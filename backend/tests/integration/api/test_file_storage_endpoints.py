@@ -123,6 +123,30 @@ class TestFileStorageEndpoints:
         assert response_get_deleted.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.parametrize(
+        ("image_metadata", "expected_detail"),
+        [
+            ("{", "image_metadata must be valid JSON"),
+            ("[]", "image_metadata must be a JSON object"),
+        ],
+    )
+    async def test_upload_image_rejects_invalid_metadata_json(
+        self,
+        api_client_superuser: AsyncClient,
+        setup_product_for_files: Product,
+        image_metadata: str,
+        expected_detail: str,
+    ) -> None:
+        """Image metadata form fields must be JSON objects."""
+        response = await api_client_superuser.post(
+            f"/v1/products/{setup_product_for_files.id}/images",
+            files={"file": (IMAGE_NAME, GIF_BYTES, IMAGE_MIMETYPE)},
+            data={"description": IMAGE_DESC, "image_metadata": image_metadata},
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json()["detail"].startswith(expected_detail)
+
+    @pytest.mark.parametrize(
         ("kind", "endpoint"),
         [("file", "files"), ("image", "images")],
     )

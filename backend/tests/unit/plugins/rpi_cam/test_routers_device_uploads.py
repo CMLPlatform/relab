@@ -26,6 +26,38 @@ if TYPE_CHECKING:
 class TestReceiveCameraUpload:
     """Tests for device-pushed image uploads."""
 
+    @pytest.mark.parametrize(
+        ("capture_metadata", "upload_metadata", "expected_detail"),
+        [
+            ("{", '{"product_id": 1}', "capture_metadata must be valid JSON"),
+            ("{}", "{", "upload_metadata must be valid JSON"),
+            ("[]", '{"product_id": 1}', "capture_metadata must be a JSON object"),
+            ("{}", "[]", "upload_metadata must be a JSON object"),
+        ],
+    )
+    async def test_rejects_invalid_json_metadata(
+        self,
+        mock_camera: Camera,
+        capture_metadata: str,
+        upload_metadata: str,
+        expected_detail: str,
+    ) -> None:
+        """Device uploads should only accept JSON object metadata fields."""
+        upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
+
+        with pytest.raises(HTTPException) as exc_info:
+            await receive_camera_upload(
+                camera_id=mock_camera.id,
+                camera=mock_camera,
+                session=MagicMock(),
+                file=upload,
+                capture_metadata=capture_metadata,
+                upload_metadata=upload_metadata,
+            )
+
+        assert exc_info.value.status_code == 400
+        assert str(exc_info.value.detail).startswith(expected_detail)
+
     async def test_rejects_upload_for_product_not_owned_by_camera_owner(self, mock_camera: Camera) -> None:
         """A paired device may only attach captures to products owned by its owner."""
         upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
