@@ -138,8 +138,13 @@ test-integration:
     for d in {{ unit_subrepos }}; do just "$d/test-integration"; done
     echo "✅ All integration tests passed"
 
+# Run root policy helper unit tests
+test-policy:
+    uv run pytest
+    @echo "✅ Root policy helper tests passed"
+
 # CI-oriented test suite across all subrepos
-test-ci:
+test-ci: test-policy
     #!/usr/bin/env bash
     set -euo pipefail
     for d in {{ subrepos }}; do just "$d/test-ci"; done
@@ -218,7 +223,7 @@ deploy-secrets-check:
 deploy-secrets-template env:
     @bash scripts/deploy_ops.sh deploy-secrets-template "{{ env }}"
 
-# Validate Docker Compose network and port exposure policy
+# Validate RELab-specific rendered Compose policy
 compose-policy-check:
     @bash scripts/deploy_ops.sh compose-policy-check
 
