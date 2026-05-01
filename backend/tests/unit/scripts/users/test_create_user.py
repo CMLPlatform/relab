@@ -79,7 +79,6 @@ class TestCreateUserScript:
         assert user_create.email == "user@example.com"
         assert user_create.username is None
         assert user_create.password == SCRIPT_TEST_PASSWORD
-        assert user_create.organization_id is None
         assert user_create.is_superuser is False
         assert user_create.is_verified is True
 

@@ -106,10 +106,6 @@ class CameraUpdate(BaseUpdateSchema):
 
     name: str | None = Field(default=None, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
-    owner_id: UUID4 | None = Field(
-        default=None,
-        description="Transfer ownership to an existing user in the same organization as the current owner.",
-    )
     relay_public_key_jwk: RelayPublicKeyJWK | None = None
     relay_key_id: str | None = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9._~-]+$")
     relay_credential_status: CameraCredentialStatus | None = None

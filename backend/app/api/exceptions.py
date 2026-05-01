@@ -5,7 +5,6 @@ exception surface without changing the underlying exception implementations.
 """
 
 from app.api.auth.exceptions import (
-    AlreadyMemberError,
     AuthCRUDError,
     DisposableEmailError,
     InvalidOAuthProviderError,
@@ -19,8 +18,6 @@ from app.api.auth.exceptions import (
     OAuthStateDecodeError,
     OAuthStateExpiredError,
     OAuthUserAlreadyExistsHTTPError,
-    OrganizationHasMembersError,
-    OrganizationNameExistsError,
     RefreshTokenError,
     RefreshTokenInvalidError,
     RefreshTokenNotFoundError,
@@ -30,12 +27,8 @@ from app.api.auth.exceptions import (
     RegistrationInvalidPasswordHTTPError,
     RegistrationUnexpectedHTTPError,
     RegistrationUserAlreadyExistsHTTPError,
-    UserDoesNotOwnOrgError,
-    UserHasNoOrgError,
-    UserIsNotMemberError,
     UserNameAlreadyExistsError,
     UserOwnershipError,
-    UserOwnsOrgError,
 )
 from app.api.common.crud.exceptions import (
     CRUDConfigurationError,
@@ -73,7 +66,6 @@ from app.api.file_storage.exceptions import (
 from app.api.plugins.rpi_cam.exceptions import (
     CameraProxyRequestError,
     GoogleOAuthAssociationRequiredError,
-    InvalidCameraOwnershipTransferError,
     InvalidCameraResponseError,
     InvalidRecordingSessionDataError,
     NoActiveYouTubeRecordingError,
@@ -87,7 +79,6 @@ from app.api.plugins.rpi_cam.exceptions import (
 
 __all__ = [
     "APIError",
-    "AlreadyMemberError",
     "AuthCRUDError",
     "BadRequestError",
     "CRUDConfigurationError",
@@ -100,7 +91,6 @@ __all__ = [
     "ForbiddenError",
     "GoogleOAuthAssociationRequiredError",
     "InternalServerError",
-    "InvalidCameraOwnershipTransferError",
     "InvalidCameraResponseError",
     "InvalidOAuthProviderError",
     "InvalidProductTreeError",
@@ -124,8 +114,6 @@ __all__ = [
     "OAuthStateDecodeError",
     "OAuthStateExpiredError",
     "OAuthUserAlreadyExistsHTTPError",
-    "OrganizationHasMembersError",
-    "OrganizationNameExistsError",
     "PairingCodeAlreadyClaimedError",
     "PairingCodeCollisionError",
     "PairingCodeNotFoundError",
@@ -148,10 +136,6 @@ __all__ = [
     "ServiceUnavailableError",
     "UnauthorizedError",
     "UploadTooLargeError",
-    "UserDoesNotOwnOrgError",
-    "UserHasNoOrgError",
-    "UserIsNotMemberError",
     "UserNameAlreadyExistsError",
     "UserOwnershipError",
-    "UserOwnsOrgError",
 ]

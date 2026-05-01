@@ -8,7 +8,7 @@ from polyfactory.fields import Ignore
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth.models import Organization, User
+from app.api.auth.models import User
 from app.api.data_collection.models.product import (
     MaterialProductLink,
     Product,
@@ -111,21 +111,6 @@ class UserFactory(BaseModelFactory[User]):
     def username(cls) -> str:
         """Generate mock value."""
         return cls.__faker__.user_name()
-
-    @classmethod
-    def organization(cls) -> None:
-        """Generate mock value."""
-        return
-
-    @classmethod
-    def organization_id(cls) -> None:
-        """Generate mock value."""
-        return
-
-    @classmethod
-    def owned_organization(cls) -> None:
-        """Generate mock value."""
-        return
 
     @classmethod
     def products(cls) -> list:
@@ -340,24 +325,3 @@ class MaterialProductLinkFactory(BaseModelFactory[MaterialProductLink]):
     def quantity(cls) -> float:
         """Generate mock value."""
         return cls.__faker__.pyfloat(positive=True, min_value=0.1, max_value=10.0)
-
-
-class OrganizationFactory(BaseModelFactory[Organization]):
-    """Factory for creating Organization test instances."""
-
-    __model__ = Organization
-
-    @classmethod
-    def name(cls) -> str:
-        """Generate mock value."""
-        return cls.__faker__.unique.company()
-
-    @classmethod
-    def location(cls) -> str | None:
-        """Generate mock value."""
-        return cls.__faker__.city() if cls.__faker__.boolean() else None
-
-    @classmethod
-    def description(cls) -> str | None:
-        """Generate mock value."""
-        return cls.__faker__.catch_phrase() if cls.__faker__.boolean() else None

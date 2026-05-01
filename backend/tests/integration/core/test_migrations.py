@@ -19,7 +19,6 @@ EXPECTED_TABLES = {
     # Auth
     "user",
     "oauthaccount",
-    "organization",
     # Reference data
     "taxonomy",
     "category",

@@ -2,38 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Annotated, cast
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import HTTPException, Response, Security
-from fastapi_pagination import Page
 from sqlalchemy import select
 
-from app.api.auth.crud.organizations import (
-    delete_organization_as_owner,
-    update_user_organization,
-)
-from app.api.auth.crud.organizations import (
-    get_organization_members as get_org_members,
-)
-from app.api.auth.crud.organizations import (
-    leave_organization as leave_org,
-)
 from app.api.auth.dependencies import (
-    CurrentActiveVerifiedUserDep,
-    CurrentUserOrgDep,
-    CurrentUserOwnedOrgDep,
     current_active_user,
     optional_current_active_user,
 )
-from app.api.auth.models import Organization, User
+from app.api.auth.models import User
 from app.api.auth.schemas import (
-    OrganizationRead,
-    OrganizationReadPublic,
-    OrganizationUpdate,
     PublicProfileView,
     UserRead,
-    UserReadPublic,
     UserUpdate,
 )
 from app.api.auth.services.privacy import can_view_profile
@@ -50,66 +32,6 @@ router = PublicAPIRouter(prefix="/users", tags=["users"], dependencies=[Security
 router.include_router(
     fastapi_user_manager.get_users_router(UserRead, UserUpdate),
 )
-
-
-## User organization routes ##
-@router.get(
-    "/me/organization", response_model=OrganizationReadPublic, summary="Get the organization of the current user"
-)
-async def get_user_organization(current_user_organization: CurrentUserOrgDep) -> Organization:
-    """Get the organization of the current user."""
-    return current_user_organization
-
-
-@router.get(
-    "/me/organization/members",
-    response_model=Page[UserReadPublic],
-    summary="Get the members of the organization of the current user",
-)
-async def get_user_organization_members(
-    current_user_organization: CurrentUserOrgDep,
-    current_user: CurrentActiveVerifiedUserDep,
-    session: AsyncSessionDep,
-) -> Page[UserReadPublic]:
-    """Get the members of the organization of the current user."""
-    return cast(
-        "Page[UserReadPublic]",
-        await get_org_members(
-            session,
-            current_user_organization.id,
-            current_user,
-            paginate=True,
-            read_schema=UserReadPublic,
-        ),
-    )
-
-
-@router.patch("/me/organization", response_model=OrganizationRead, summary="Update your organization")
-async def update_organization(
-    db_organization: CurrentUserOwnedOrgDep,
-    organization_in: OrganizationUpdate,
-    session: AsyncSessionDep,
-) -> Organization:
-    """Update organization as owner."""
-    return await update_user_organization(session, db_organization, organization_in)
-
-
-@router.delete("/me/organization", status_code=204, summary="Delete your organization as owner")
-async def delete_my_organization(
-    session: AsyncSessionDep,
-    current_user: CurrentActiveVerifiedUserDep,
-) -> None:
-    """Delete organization as owner. Fails if organization has members."""
-    return await delete_organization_as_owner(session, current_user)
-
-
-@router.delete("/me/organization/membership", status_code=204, summary="Leave current organization")
-async def leave_organization(
-    session: AsyncSessionDep,
-    current_user: CurrentActiveVerifiedUserDep,
-) -> None:
-    """Leave current organization. Cannot be used by organization owner."""
-    await leave_org(session, current_user)
 
 
 ## Public Profile Routes ##

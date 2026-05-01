@@ -15,10 +15,8 @@ from fastapi import status
 
 from tests.factories.models import (
     MaterialFactory,
-    OrganizationFactory,
     ProductTypeFactory,
     TaxonomyFactory,
-    UserFactory,
 )
 
 if TYPE_CHECKING:
@@ -86,16 +84,6 @@ class TestPaginationSmoke:
         """Representative paginated endpoints must return a Page envelope."""
         await factory.create_async(session=db_session)
         response = await api_client_light.get(path)
-        assert response.status_code == status.HTTP_200_OK
-        assert "items" in response.json()
-
-    async def test_organizations_returns_page_envelope(
-        self, api_client_light: AsyncClient, db_session: AsyncSession
-    ) -> None:
-        """GET /organizations must return a Page envelope."""
-        owner = await UserFactory.create_async(session=db_session)
-        await OrganizationFactory.create_async(session=db_session, owner_id=owner.id)
-        response = await api_client_light.get("/v1/organizations")
         assert response.status_code == status.HTTP_200_OK
         assert "items" in response.json()
 

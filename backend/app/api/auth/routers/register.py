@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
-from app.api.auth.crud import add_user_role_in_organization_after_registration, validate_user_create
+from app.api.auth.crud.users import validate_user_create
 from app.api.auth.dependencies import UserManagerDep
 from app.api.auth.exceptions import (
     RegistrationInvalidPasswordHTTPError,
@@ -15,7 +15,7 @@ from app.api.auth.exceptions import (
     RegistrationUserAlreadyExistsHTTPError,
 )
 from app.api.auth.models import User
-from app.api.auth.schemas import UserCreate, UserCreateWithOrganization, UserReadPublic
+from app.api.auth.schemas import UserCreate, UserReadPublic
 from app.api.auth.services.email import mask_email_for_log
 from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT, limiter
 from app.api.common.exceptions import APIError
@@ -35,27 +35,18 @@ router = APIRouter()
 @limiter.limit(REGISTER_RATE_LIMIT)
 async def register(
     request: Request,
-    user_create: UserCreate | UserCreateWithOrganization,
+    user_create: UserCreate,
     user_manager: UserManagerDep,
 ) -> User:
-    """Register a new user with optional organization creation or joining.
-
-    Supports two registration modes:
-    - With organization creation: User creates and owns a new organization
-    - With organization joining: User joins an existing organization as a member
-    - No organization: User registers without an organization
-    """
+    """Register a new user."""
     try:
         email_checker = get_request_email_checker(request)
 
-        # Validate user creation data (username uniqueness, disposable email, organization)
+        # Validate user creation data (username uniqueness and disposable email policy)
         user_create = await validate_user_create(user_manager.user_db, user_create, email_checker)
 
         # Create the user through UserManager (handles password hashing, validation)
         user = await user_manager.create(user_create, safe=True, request=request)
-
-        # Add user to organization if specified
-        user = await add_user_role_in_organization_after_registration(user_manager.user_db, user, request)
 
         # Request email verification automatically (this triggers on_after_request_verify -> sends email)
         await user_manager.request_verify(user, request)

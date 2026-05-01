@@ -1,15 +1,13 @@
-"""Custom exceptions for authentication, user, and organization operations."""
+"""Custom exceptions for authentication and user operations."""
 
 from fastapi import HTTPException, status
 from fastapi_users.router.common import ErrorCode
 from pydantic import UUID4
-from sqlalchemy.exc import IntegrityError
 
 from app.api.common.exceptions import (
     BadRequestError,
     ConflictError,
     ForbiddenError,
-    InternalServerError,
     NotFoundError,
     UnauthorizedError,
 )
@@ -26,84 +24,6 @@ class UserNameAlreadyExistsError(ConflictError, AuthCRUDError):
 
     def __init__(self, username: str):
         msg = f"Username '{username}' is already taken."
-        super().__init__(msg)
-
-
-class AlreadyMemberError(ConflictError, AuthCRUDError):
-    """Raised when a user already belongs to an organization."""
-
-    def __init__(self, user_id: UUID4 | None = None, details: str | None = None) -> None:
-        msg = (
-            f"User with ID {user_id} already belongs to an organization"
-            if user_id
-            else "You already belong to an organization"
-        ) + (f": {details}" if details else "")
-        super().__init__(msg)
-
-
-class UserOwnsOrgError(ConflictError, AuthCRUDError):
-    """Raised when a user already owns an organization."""
-
-    def __init__(self, user_id: UUID4 | None = None, details: str | None = None) -> None:
-        msg = (f"User with ID {user_id} owns an organization" if user_id else "You own an organization") + (
-            f": {details}" if details else ""
-        )
-
-        super().__init__(msg)
-
-
-class UserHasNoOrgError(NotFoundError, AuthCRUDError):
-    """Raised when a user does not belong to any organization."""
-
-    def __init__(self, user_id: UUID4 | None = None, details: str | None = None) -> None:
-        msg = (
-            f"User with ID {user_id} does not belong to an organization"
-            if user_id
-            else "You do not belong to an organization"
-        ) + (f": {details}" if details else "")
-        super().__init__(msg)
-
-
-class UserIsNotMemberError(ForbiddenError, AuthCRUDError):
-    """Raised when a user does not belong to an organization."""
-
-    def __init__(
-        self, user_id: UUID4 | None = None, organization_id: UUID4 | None = None, details: str | None = None
-    ) -> None:
-        msg = (
-            f"User with ID {user_id} does not belong to the organization with ID {organization_id}"
-            if user_id
-            else "You do not belong to this organization"
-        ) + (f": {details}" if details else "")
-        super().__init__(msg)
-
-
-class UserDoesNotOwnOrgError(ForbiddenError, AuthCRUDError):
-    """Raised when a user does not own an organization."""
-
-    def __init__(self, user_id: UUID4 | None = None, details: str | None = None) -> None:
-        msg = (
-            f"User with ID {user_id} does not own an organization" if user_id else "You do not own an organization"
-        ) + (f": {details}" if details else "")
-        super().__init__(msg)
-
-
-class OrganizationHasMembersError(ConflictError, AuthCRUDError):
-    """Raised when an organization has members and cannot be deleted."""
-
-    def __init__(self, organization_id: UUID4 | None = None) -> None:
-        msg = (
-            f"Organization {' with ID ' + str(organization_id) if organization_id else ''}"
-            " has members and cannot be deleted. Transfer ownership or remove members first."
-        )
-
-        super().__init__(msg)
-
-
-class OrganizationNameExistsError(ConflictError, AuthCRUDError):
-    """Raised when an organization with the same name already exists."""
-
-    def __init__(self, msg: str = "Organization with this name already exists") -> None:
         super().__init__(msg)
 
 
@@ -269,14 +189,3 @@ class RegistrationUnexpectedHTTPError(RegistrationHTTPError):
             detail="An unexpected error occurred during registration",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
-
-
-UNIQUE_VIOLATION_PG_CODE = "23505"
-
-
-def handle_organization_integrity_error(e: IntegrityError, action: str) -> None:
-    """Handle integrity errors when creating or updating an organization, and raise appropriate exceptions."""
-    if getattr(e.orig, "pgcode", None) == UNIQUE_VIOLATION_PG_CODE:
-        raise OrganizationNameExistsError from e
-    err_msg = f"Error {action} organization: {e}"
-    raise InternalServerError(details=err_msg, log_message=err_msg) from e

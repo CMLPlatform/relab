@@ -24,10 +24,6 @@ from .shared import (
     INVALID_PASSWORD,
     LOGIN_EMAIL,
     LOGIN_USERNAME,
-    ORG_DESC,
-    ORG_LOCATION,
-    ORG_NAME,
-    OWNER_EMAIL,
     TEST_EMAIL,
     TEST_PASSWORD,
     TEST_USERNAME,
@@ -138,25 +134,6 @@ class TestRegistrationEndpoint:
         user_data = {"email": "user@example.com", "password": WEAK_PASSWORD, "username": "user"}
         response = await api_client.post("/v1/auth/register", json=user_data)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-
-    async def test_register_with_organization(self, api_client: AsyncClient) -> None:
-        """Test registering with an organization."""
-        user_data = {
-            "email": OWNER_EMAIL,
-            "password": TEST_PASSWORD,
-            "username": "owner",
-            "organization": {"name": ORG_NAME, "location": ORG_LOCATION, "description": ORG_DESC},
-        }
-
-        with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
-            mock_create_override.return_value = UserCreate(
-                email=user_data["email"],
-                password=user_data["password"],
-                username=user_data["username"],
-            )
-            response = await api_client.post("/v1/auth/register", json=user_data)
-
-        assert response.status_code == status.HTTP_201_CREATED
 
     async def test_register_uses_injected_request_session(
         self,

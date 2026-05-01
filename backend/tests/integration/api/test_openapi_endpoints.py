@@ -47,6 +47,9 @@ class TestOpenAPIEndpoints:
         assert payload["info"]["x-api-major"] == "v1"
         assert "x-service-version" in payload["info"]
         paths = payload["paths"]
+        assert "/v1/organizations" not in paths
+        assert "/v1/admin/organizations" not in paths
+        assert "/v1/users/me/organization" not in paths
         assert_paths_present(
             paths,
             {
@@ -56,7 +59,6 @@ class TestOpenAPIEndpoints:
                 "/v1/admin/taxonomies",
                 "/v1/admin/cache/clear/{namespace}",
                 "/v1/admin/users",
-                "/v1/admin/organizations",
                 "/v1/products/suggestions/brands",
                 "/v1/products/facets",
                 "/v1/materials/{material_id}/categories",
@@ -119,6 +121,8 @@ class TestOpenAPIEndpoints:
         assert "/v1/admin/cache/clear/{namespace}" not in payload["paths"]
         assert "/v1/admin/users" not in payload["paths"]
         assert "/v1/admin/organizations" not in payload["paths"]
+        assert "/v1/organizations" not in payload["paths"]
+        assert "/v1/users/me/organization" not in payload["paths"]
         assert "/v1/newsletter/subscribe" not in payload["paths"]
 
     async def test_admin_openapi_json_filters_to_admin_schema(self, openapi_client: AsyncClient) -> None:
@@ -141,13 +145,6 @@ class TestOpenAPIEndpoints:
             if parameter["name"] == "email__ilike"
         )
         assert admin_users_email_filter_param["schema"]["anyOf"][0]["type"] == "string"
-
-        admin_users_response_examples = payload["paths"]["/v1/admin/users"]["get"]["responses"]["200"]["content"][
-            "application/json"
-        ]["examples"]
-        assert admin_users_response_examples["with_organization"]["value"][0]["organization"]["name"] == (
-            "University of Example"
-        )
 
     async def test_device_openapi_json_filters_to_device_schema(self, openapi_client: AsyncClient) -> None:
         """The device OpenAPI schema should contain device-originated plugin routes."""

@@ -1,7 +1,6 @@
 """Tests for authentication exceptions module.
 
-Tests validate exception hierarchy, HTTP status codes, message formatting,
-and the handle_organization_integrity_error function.
+Tests validate exception hierarchy, HTTP status codes, and message formatting.
 """
 
 from unittest.mock import Mock
@@ -10,10 +9,8 @@ from uuid import uuid4
 import pytest
 from fastapi import status
 from fastapi_users.router.common import ErrorCode
-from sqlalchemy.exc import IntegrityError
 
 from app.api.auth.exceptions import (
-    AlreadyMemberError,
     AuthCRUDError,
     DisposableEmailError,
     InvalidOAuthProviderError,
@@ -26,8 +23,6 @@ from app.api.auth.exceptions import (
     OAuthStateDecodeError,
     OAuthStateExpiredError,
     OAuthUserAlreadyExistsHTTPError,
-    OrganizationHasMembersError,
-    OrganizationNameExistsError,
     RefreshTokenInvalidError,
     RefreshTokenNotFoundError,
     RefreshTokenRevokedError,
@@ -35,18 +30,10 @@ from app.api.auth.exceptions import (
     RegistrationInvalidPasswordHTTPError,
     RegistrationUnexpectedHTTPError,
     RegistrationUserAlreadyExistsHTTPError,
-    UserDoesNotOwnOrgError,
-    UserHasNoOrgError,
-    UserIsNotMemberError,
     UserNameAlreadyExistsError,
     UserOwnershipError,
-    UserOwnsOrgError,
-    handle_organization_integrity_error,
 )
 from app.api.common.exceptions import APIError
-
-_USER_ID = uuid4()
-_ORG_ID = uuid4()
 
 
 class TestAuthCRUDErrorHierarchy:
@@ -72,72 +59,6 @@ class TestAuthCRUDErrorHierarchy:
             status.HTTP_409_CONFLICT,
             ["jean.dupont", "already taken"],
         ),
-        # AlreadyMemberError -- personal vs admin phrasing
-        (AlreadyMemberError, {}, status.HTTP_409_CONFLICT, ["You already belong"]),
-        (AlreadyMemberError, {"user_id": _USER_ID}, status.HTTP_409_CONFLICT, [str(_USER_ID), "already belongs"]),
-        (
-            AlreadyMemberError,
-            {"user_id": _USER_ID, "details": "Active member since Jan 2024"},
-            status.HTTP_409_CONFLICT,
-            [str(_USER_ID), "Active member"],
-        ),
-        # UserOwnsOrgError
-        (UserOwnsOrgError, {}, status.HTTP_409_CONFLICT, ["You own an organization"]),
-        (UserOwnsOrgError, {"user_id": _USER_ID}, status.HTTP_409_CONFLICT, [str(_USER_ID), "owns an organization"]),
-        (
-            UserOwnsOrgError,
-            {"user_id": _USER_ID, "details": "Transfer ownership first"},
-            status.HTTP_409_CONFLICT,
-            [str(_USER_ID), "Transfer ownership"],
-        ),
-        # UserHasNoOrgError
-        (UserHasNoOrgError, {}, status.HTTP_404_NOT_FOUND, ["You do not belong"]),
-        (UserHasNoOrgError, {"user_id": _USER_ID}, status.HTTP_404_NOT_FOUND, [str(_USER_ID), "does not belong"]),
-        (
-            UserHasNoOrgError,
-            {"user_id": _USER_ID, "details": "Must join before uploading"},
-            status.HTTP_404_NOT_FOUND,
-            [str(_USER_ID), "Must join"],
-        ),
-        # UserIsNotMemberError
-        (UserIsNotMemberError, {}, status.HTTP_403_FORBIDDEN, ["You do not belong to this organization"]),
-        (UserIsNotMemberError, {"user_id": _USER_ID}, status.HTTP_403_FORBIDDEN, [str(_USER_ID), "does not belong"]),
-        (
-            UserIsNotMemberError,
-            {"user_id": _USER_ID, "organization_id": _ORG_ID},
-            status.HTTP_403_FORBIDDEN,
-            [str(_USER_ID), str(_ORG_ID)],
-        ),
-        (
-            UserIsNotMemberError,
-            {"user_id": _USER_ID, "organization_id": _ORG_ID, "details": "Membership denied"},
-            status.HTTP_403_FORBIDDEN,
-            [str(_USER_ID), str(_ORG_ID), "Membership denied"],
-        ),
-        # UserDoesNotOwnOrgError
-        (UserDoesNotOwnOrgError, {}, status.HTTP_403_FORBIDDEN, ["You do not own"]),
-        (
-            UserDoesNotOwnOrgError,
-            {"user_id": _USER_ID, "details": "Owner privileges required"},
-            status.HTTP_403_FORBIDDEN,
-            [str(_USER_ID), "Owner privileges"],
-        ),
-        # OrganizationHasMembersError
-        (
-            OrganizationHasMembersError,
-            {},
-            status.HTTP_409_CONFLICT,
-            ["has members and cannot be deleted", "Transfer ownership"],
-        ),
-        (
-            OrganizationHasMembersError,
-            {"organization_id": _ORG_ID},
-            status.HTTP_409_CONFLICT,
-            [str(_ORG_ID), "cannot be deleted"],
-        ),
-        # OrganizationNameExistsError
-        (OrganizationNameExistsError, {}, status.HTTP_409_CONFLICT, ["Organization with this name already exists"]),
-        (OrganizationNameExistsError, {"msg": "Duplicate: TU Berlin Lab"}, status.HTTP_409_CONFLICT, ["TU Berlin Lab"]),
         # DisposableEmailError
         (
             DisposableEmailError,
@@ -235,13 +156,6 @@ class TestExceptionInheritanceChain:
         """Verify all AuthCRUDError subclasses ultimately inherit from APIError."""
         crud_error_subclasses = [
             UserNameAlreadyExistsError,
-            AlreadyMemberError,
-            UserOwnsOrgError,
-            UserHasNoOrgError,
-            UserIsNotMemberError,
-            UserDoesNotOwnOrgError,
-            OrganizationHasMembersError,
-            OrganizationNameExistsError,
             DisposableEmailError,
         ]
 
@@ -257,25 +171,3 @@ class TestExceptionInheritanceChain:
         """Verify AuthCRUDError subclasses can be caught as AuthCRUDError."""
         with pytest.raises(AuthCRUDError):
             raise UserNameAlreadyExistsError(username="test")
-
-
-class TestHandleOrganizationIntegrityError:
-    """Tests for handle_organization_integrity_error."""
-
-    def test_raises_org_name_exists_on_unique_violation(self) -> None:
-        """Test that unique violation raises OrganizationNameExistsError."""
-        mock_orig = Mock()
-        mock_orig.pgcode = "23505"
-        e = IntegrityError("statement", {}, mock_orig)
-
-        with pytest.raises(OrganizationNameExistsError):
-            handle_organization_integrity_error(e, "creating")
-
-    def test_raises_internal_server_error_on_other_db_error(self) -> None:
-        """Test that non-unique violations raise InternalServerError."""
-        mock_orig = Mock()
-        mock_orig.pgcode = "23503"  # Foreign key violation
-        e = IntegrityError("statement", {}, mock_orig)
-
-        with pytest.raises(APIError, match="Internal server error"):
-            handle_organization_integrity_error(e, "creating")

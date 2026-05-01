@@ -45,4 +45,8 @@ def test_set_csrf_cookie_uses_configured_state_ttl(monkeypatch: pytest.MonkeyPat
 
     set_cookie_headers = response.headers.getlist("set-cookie")
     assert len(set_cookie_headers) == 1
-    assert "Max-Age=600" in set_cookie_headers[0]
+    header = set_cookie_headers[0]
+    assert "Max-Age=600" in header
+    assert "HttpOnly" in header
+    assert "SameSite=lax" in header
+    assert "Domain=" not in header

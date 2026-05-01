@@ -123,7 +123,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         safe: bool = False,  # noqa: FBT002, FBT001 # Expected by parent class signature
         request: Request | None = None,
     ) -> User:
-        """Update a user, injecting custom organization & username validation first."""
+        """Update a user, injecting custom username validation first."""
         # Will raise exceptions like UserNameAlreadyExistsError if validation fails
         real_user_update = cast("UserUpdate", user_update)
         self._require_current_password_for_sensitive_update(real_user_update, user)

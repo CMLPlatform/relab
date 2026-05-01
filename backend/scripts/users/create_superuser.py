@@ -36,7 +36,6 @@ async def create_superuser() -> None:
                         email=superuser_email,
                         username=superuser_name,
                         password=superuser_password.get_secret_value(),
-                        organization_id=None,
                         is_superuser=True,
                         is_verified=True,
                     ),
