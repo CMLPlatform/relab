@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Path, Request
-from fastapi_filter import FilterDepends
+from fastapi import Depends, Path, Request
 from fastapi_pagination import Page
 from pydantic import PositiveInt
 from sqlalchemy import Select, select
 
-from app.api.common.crud.filtering import apply_filter
+from app.api.common.crud.filtering import apply_filter, create_filter_dependency
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
@@ -33,6 +32,8 @@ if TYPE_CHECKING:
     from starlette.responses import Response
 
 router = ReferenceDataAPIRouter(prefix="/materials", tags=["materials"])
+_FILE_FILTER_DEPENDENCY = create_filter_dependency(FileFilter)
+_IMAGE_FILTER_DEPENDENCY = create_filter_dependency(ImageFilter)
 
 
 async def _require_material(session: AsyncSessionDep, material_id: PositiveInt) -> Material:
@@ -132,7 +133,7 @@ async def get_material_categories(
 async def get_material_files(
     material_id: Annotated[PositiveInt, Path(description="ID of the Material")],
     session: AsyncSessionDep,
-    item_filter: FileFilter = FilterDepends(FileFilter),
+    item_filter: FileFilter = Depends(_FILE_FILTER_DEPENDENCY),
 ) -> list[FileReadWithinParent]:
     """Get all files associated with a material."""
     items = await list_material_files(session, material_id, filter_params=item_filter)
@@ -147,7 +148,7 @@ async def get_material_files(
 async def get_material_images(
     material_id: Annotated[PositiveInt, Path(description="ID of the Material")],
     session: AsyncSessionDep,
-    item_filter: ImageFilter = FilterDepends(ImageFilter),
+    item_filter: ImageFilter = Depends(_IMAGE_FILTER_DEPENDENCY),
 ) -> list[ImageReadWithinParent]:
     """Get all images associated with a material."""
     items = await list_material_images(session, material_id, filter_params=item_filter)

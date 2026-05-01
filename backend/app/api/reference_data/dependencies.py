@@ -2,8 +2,9 @@
 
 from typing import Annotated
 
-from fastapi_filter import FilterDepends
+from fastapi import Depends
 
+from app.api.common.crud.filtering import create_filter_dependency
 from app.api.reference_data.filters import (
     CategoryFilter,
     CategoryFilterWithRelationships,
@@ -12,15 +13,15 @@ from app.api.reference_data.filters import (
     TaxonomyFilter,
 )
 
-### FastAPI-Filters ###
-CategoryFilterDep = Annotated[CategoryFilter, FilterDepends(CategoryFilter)]
+### Query filters ###
+CategoryFilterDep = Annotated[CategoryFilter, Depends(create_filter_dependency(CategoryFilter))]
 CategoryFilterWithRelationshipsDep = Annotated[
-    CategoryFilterWithRelationships, FilterDepends(CategoryFilterWithRelationships)
+    CategoryFilterWithRelationships, Depends(create_filter_dependency(CategoryFilterWithRelationships))
 ]
-TaxonomyFilterDep = Annotated[TaxonomyFilter, FilterDepends(TaxonomyFilter)]
+TaxonomyFilterDep = Annotated[TaxonomyFilter, Depends(create_filter_dependency(TaxonomyFilter))]
 MaterialFilterWithRelationshipsDep = Annotated[
-    MaterialFilterWithRelationships, FilterDepends(MaterialFilterWithRelationships)
+    MaterialFilterWithRelationships, Depends(create_filter_dependency(MaterialFilterWithRelationships))
 ]
 ProductTypeFilterWithRelationshipsDep = Annotated[
-    ProductTypeFilterWithRelationships, FilterDepends(ProductTypeFilterWithRelationships)
+    ProductTypeFilterWithRelationships, Depends(create_filter_dependency(ProductTypeFilterWithRelationships))
 ]

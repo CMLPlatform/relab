@@ -3,19 +3,19 @@
 from typing import Annotated
 
 from fastapi import Depends
-from fastapi_filter import FilterDepends
 from pydantic import UUID4
 
 from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.crud.query import require_model
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.schemas import CameraFilter, CameraFilterWithOwner
 
-### FastAPI-Filters ###
-CameraFilterDep = Annotated[CameraFilter, FilterDepends(CameraFilter)]
-CameraFilterWithOwnerDep = Annotated[CameraFilterWithOwner, FilterDepends(CameraFilterWithOwner)]
+### Query filters ###
+CameraFilterDep = Annotated[CameraFilter, Depends(create_filter_dependency(CameraFilter))]
+CameraFilterWithOwnerDep = Annotated[CameraFilterWithOwner, Depends(create_filter_dependency(CameraFilterWithOwner))]
 
 
 ### Camera Lookup Dependencies ###

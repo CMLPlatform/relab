@@ -6,11 +6,11 @@ from typing import Annotated
 
 from fastapi import Depends, Form, Path, UploadFile
 from fastapi import File as FastAPIFile
-from fastapi_filter import FilterDepends
 from pydantic import UUID4, BeforeValidator
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
+from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -29,6 +29,8 @@ from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.schemas import FileReadWithinParent, ImageReadWithinParent, empty_str_to_none
 
 component_media_router = PublicAPIRouter(prefix="/components", tags=["components"])
+_FILE_FILTER_DEPENDENCY = create_filter_dependency(FileFilter)
+_IMAGE_FILTER_DEPENDENCY = create_filter_dependency(ImageFilter)
 
 
 @component_media_router.get(
@@ -39,7 +41,7 @@ component_media_router = PublicAPIRouter(prefix="/components", tags=["components
 async def get_component_files(
     db_component: ComponentDep,
     session: AsyncSessionDep,
-    item_filter: FileFilter = FilterDepends(FileFilter),
+    item_filter: FileFilter = Depends(_FILE_FILTER_DEPENDENCY),
 ) -> list[FileReadWithinParent]:
     """List all files attached to a component."""
     return await handle_list_files(session, db_component.id, item_filter)
@@ -98,7 +100,7 @@ async def delete_component_file(
 async def get_component_images(
     db_component: ComponentDep,
     session: AsyncSessionDep,
-    item_filter: ImageFilter = FilterDepends(ImageFilter),
+    item_filter: ImageFilter = Depends(_IMAGE_FILTER_DEPENDENCY),
 ) -> list[ImageReadWithinParent]:
     """List all images attached to a component."""
     return await handle_list_images(session, db_component.id, item_filter)
