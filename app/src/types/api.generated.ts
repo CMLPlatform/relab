@@ -2040,7 +2040,7 @@ export interface paths {
     patch: operations['users_patch_user_v1_users__id__patch'];
     trace?: never;
   };
-  '/v1/users/{identifier}/profile': {
+  '/v1/profiles/{username}': {
     parameters: {
       query?: never;
       header?: never;
@@ -2049,12 +2049,12 @@ export interface paths {
     };
     /**
      * Get public profile of a user
-     * @description Get public profile statistics for a specified user by their username or UUID.
+     * @description Get public profile statistics for a specified user by username.
      *
      *     Returns 404 if the user is not found or if the profile is marked as private (and you are not the user).
      *     Includes lazy initialization of stats if they are missing.
      */
-    get: operations['get_public_profile_v1_users__identifier__profile_get'];
+    get: operations['get_public_profile_v1_profiles__username__get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -3217,9 +3217,21 @@ export interface components {
     };
     /**
      * CircularityPropertiesFields
-     * @description Circularity note fields stored as a product JSON object.
+     * @description Circularity note fields read from a product JSON object.
      */
     CircularityPropertiesFields: {
+      /** Recyclability */
+      recyclability?: string | null;
+      /** Disassemblability */
+      disassemblability?: string | null;
+      /** Remanufacturability */
+      remanufacturability?: string | null;
+    };
+    /**
+     * CircularityPropertiesInputFields
+     * @description Write-side circularity note fields with user-text validation.
+     */
+    CircularityPropertiesInputFields: {
       /** Recyclability */
       recyclability?: string | null;
       /** Disassemblability */
@@ -3236,7 +3248,7 @@ export interface components {
      *     Owner ID and parent ID are inferred from the parent product within the CRUD layer.
      */
     ComponentCreateWithComponents: {
-      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
+      circularity_properties?: components['schemas']['CircularityPropertiesInputFields'] | null;
       /** Weight G */
       weight_g?: number | null;
       /** Height Cm */
@@ -4195,7 +4207,7 @@ export interface components {
      *     }
      */
     ProductCreateWithComponents: {
-      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
+      circularity_properties?: components['schemas']['CircularityPropertiesInputFields'] | null;
       /** Weight G */
       weight_g?: number | null;
       /** Height Cm */
@@ -4418,7 +4430,7 @@ export interface components {
      * @description Schema for updating product information including physical and circularity properties.
      */
     ProductUpdate: {
-      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
+      circularity_properties?: components['schemas']['CircularityPropertiesInputFields'] | null;
       /** Name */
       name?: string | null;
       /** Description */
@@ -4455,7 +4467,7 @@ export interface components {
      */
     PublicProfileView: {
       /** Username */
-      username?: string | null;
+      username: string;
       /** Created At */
       created_at: string | null;
       /**
@@ -4839,8 +4851,6 @@ export interface components {
        * @default false
        */
       youtube_streaming_enabled: boolean;
-    } & {
-      [key: string]: unknown;
     };
     /**
      * UserPreferencesUpdate
@@ -4857,8 +4867,6 @@ export interface components {
       rpi_camera_enabled?: boolean | null;
       /** Youtube Streaming Enabled */
       youtube_streaming_enabled?: boolean | null;
-    } & {
-      [key: string]: unknown;
     };
     /**
      * UserRead
@@ -4899,7 +4907,7 @@ export interface components {
        */
       is_verified: boolean;
       /** Username */
-      username?: string | null;
+      username: string;
       /**
        * Oauth Accounts
        * @description List of linked OAuth accounts.
@@ -4914,7 +4922,7 @@ export interface components {
      */
     UserReadPublic: {
       /** Username */
-      username?: string | null;
+      username: string;
       /**
        * Email
        * Format: email
@@ -6085,17 +6093,29 @@ export interface operations {
   get_categories_v1_categories_get: {
     parameters: {
       query?: {
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
-        taxonomy__name__ilike?: string | null;
-        taxonomy__version__ilike?: string | null;
-        taxonomy__description__ilike?: string | null;
-        taxonomy__source__ilike?: string | null;
-        taxonomy__search?: string | null;
-        taxonomy__order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        external_id?: string | null;
+        'external_id[ilike]'?: string | null;
+        taxonomy_name?: string | null;
+        'taxonomy_name[ilike]'?: string | null;
+        taxonomy_version?: string | null;
+        'taxonomy_version[ilike]'?: string | null;
+        taxonomy_description?: string | null;
+        'taxonomy_description[ilike]'?: string | null;
+        taxonomy_source?: string | null;
+        'taxonomy_source[ilike]'?: string | null;
+        order_by?: (
+          | '+name'
+          | '+external_id'
+          | '+taxonomy_name'
+          | '-name'
+          | '-external_id'
+          | '-taxonomy_name'
+        )[];
         /** @description Page number */
         page?: number;
         /** @description Page size */
@@ -6132,17 +6152,29 @@ export interface operations {
       query?: {
         /** @description Maximum recursion depth */
         recursion_depth?: number;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
-        taxonomy__name__ilike?: string | null;
-        taxonomy__version__ilike?: string | null;
-        taxonomy__description__ilike?: string | null;
-        taxonomy__source__ilike?: string | null;
-        taxonomy__search?: string | null;
-        taxonomy__order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        external_id?: string | null;
+        'external_id[ilike]'?: string | null;
+        taxonomy_name?: string | null;
+        'taxonomy_name[ilike]'?: string | null;
+        taxonomy_version?: string | null;
+        'taxonomy_version[ilike]'?: string | null;
+        taxonomy_description?: string | null;
+        'taxonomy_description[ilike]'?: string | null;
+        taxonomy_source?: string | null;
+        'taxonomy_source[ilike]'?: string | null;
+        order_by?: (
+          | '+name'
+          | '+external_id'
+          | '+taxonomy_name'
+          | '-name'
+          | '-external_id'
+          | '-taxonomy_name'
+        )[];
       };
       header?: never;
       path?: never;
@@ -6204,11 +6236,14 @@ export interface operations {
   get_subcategories_v1_categories__category_id__subcategories_get: {
     parameters: {
       query?: {
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        external_id?: string | null;
+        'external_id[ilike]'?: string | null;
+        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
         /** @description Page number */
         page?: number;
         /** @description Page size */
@@ -6248,11 +6283,14 @@ export interface operations {
       query?: {
         /** @description Maximum recursion depth */
         recursion_depth?: number;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        external_id?: string | null;
+        'external_id[ilike]'?: string | null;
+        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
       };
       header?: never;
       path: {
@@ -6285,12 +6323,16 @@ export interface operations {
   get_taxonomies_v1_taxonomies_get: {
     parameters: {
       query?: {
-        name__ilike?: string | null;
-        version__ilike?: string | null;
-        description__ilike?: string | null;
-        source__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        version?: string | null;
+        'version[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        source?: string | null;
+        'source[ilike]'?: string | null;
+        order_by?: ('+name' | '+version' | '+source' | '-name' | '-version' | '-source')[];
         /** @description Page number */
         page?: number;
         /** @description Page size */
@@ -6358,11 +6400,14 @@ export interface operations {
       query?: {
         /** @description Maximum recursion depth */
         recursion_depth?: number;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        external_id?: string | null;
+        'external_id[ilike]'?: string | null;
+        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
         /** @description Page number */
         page?: number;
         /** @description Page size */
@@ -6399,11 +6444,14 @@ export interface operations {
   get_taxonomy_categories_v1_taxonomies__taxonomy_id__categories_get: {
     parameters: {
       query?: {
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        external_id?: string | null;
+        'external_id[ilike]'?: string | null;
+        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
         /** @description Page number */
         page?: number;
         /** @description Page size */
@@ -6440,19 +6488,34 @@ export interface operations {
   get_materials_v1_materials_get: {
     parameters: {
       query?: {
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        density_kg_m3__gte?: number | null;
-        density_kg_m3__lte?: number | null;
-        is_crm?: boolean | null;
-        source__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
-        categories__name__ilike?: string | null;
-        categories__description__ilike?: string | null;
-        categories__external_id__ilike?: string | null;
-        categories__search?: string | null;
-        categories__order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        density_kg_m3?: number;
+        'density_kg_m3[ge]'?: number;
+        'density_kg_m3[le]'?: number;
+        is_crm?: boolean;
+        'is_crm[eq]'?: boolean;
+        source?: string | null;
+        'source[ilike]'?: string | null;
+        category_name?: string | null;
+        'category_name[ilike]'?: string | null;
+        category_description?: string | null;
+        'category_description[ilike]'?: string | null;
+        category_external_id?: string | null;
+        'category_external_id[ilike]'?: string | null;
+        order_by?: (
+          | '+name'
+          | '+density_kg_m3'
+          | '+source'
+          | '+category_name'
+          | '-name'
+          | '-density_kg_m3'
+          | '-source'
+          | '-category_name'
+        )[];
         /** @description Page number */
         page?: number;
         /** @description Page size */
@@ -6518,11 +6581,14 @@ export interface operations {
   get_material_categories_v1_materials__material_id__categories_get: {
     parameters: {
       query?: {
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        external_id?: string | null;
+        'external_id[ilike]'?: string | null;
+        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
       };
       header?: never;
       path: {
@@ -6555,10 +6621,14 @@ export interface operations {
   get_material_files_v1_materials__material_id__files_get: {
     parameters: {
       query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
         search?: string | null;
+        filename?: string | null;
+        'filename[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        parent_type?: components['schemas']['MediaParentType'];
+        'parent_type[eq]'?: components['schemas']['MediaParentType'];
+        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
       };
       header?: never;
       path: {
@@ -6592,10 +6662,14 @@ export interface operations {
   get_material_images_v1_materials__material_id__images_get: {
     parameters: {
       query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
         search?: string | null;
+        filename?: string | null;
+        'filename[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        parent_type?: components['schemas']['MediaParentType'];
+        'parent_type[eq]'?: components['schemas']['MediaParentType'];
+        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
       };
       header?: never;
       path: {
@@ -6629,16 +6703,19 @@ export interface operations {
   get_product_types_v1_product_types_get: {
     parameters: {
       query?: {
-        name__ilike?: string | null;
-        name__in?: string | null;
-        description__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
-        categories__name__ilike?: string | null;
-        categories__description__ilike?: string | null;
-        categories__external_id__ilike?: string | null;
-        categories__search?: string | null;
-        categories__order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        'name[in]'?: string[] | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        category_name?: string | null;
+        'category_name[ilike]'?: string | null;
+        category_description?: string | null;
+        'category_description[ilike]'?: string | null;
+        category_external_id?: string | null;
+        'category_external_id[ilike]'?: string | null;
+        order_by?: ('+name' | '+category_name' | '-name' | '-category_name')[];
         /** @description Page number */
         page?: number;
         /** @description Page size */
@@ -6704,11 +6781,14 @@ export interface operations {
   get_product_type_categories_v1_product_types__product_type_id__categories_get: {
     parameters: {
       query?: {
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        external_id?: string | null;
+        'external_id[ilike]'?: string | null;
+        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
       };
       header?: never;
       path: {
@@ -6741,10 +6821,14 @@ export interface operations {
   get_product_type_files_v1_product_types__product_type_id__files_get: {
     parameters: {
       query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
         search?: string | null;
+        filename?: string | null;
+        'filename[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        parent_type?: components['schemas']['MediaParentType'];
+        'parent_type[eq]'?: components['schemas']['MediaParentType'];
+        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
       };
       header?: never;
       path: {
@@ -6778,10 +6862,14 @@ export interface operations {
   get_product_type_images_v1_product_types__product_type_id__images_get: {
     parameters: {
       query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
         search?: string | null;
+        filename?: string | null;
+        'filename[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        parent_type?: components['schemas']['MediaParentType'];
+        'parent_type[eq]'?: components['schemas']['MediaParentType'];
+        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
       };
       header?: never;
       path: {
@@ -6945,30 +7033,53 @@ export interface operations {
   get_user_products_v1_users__user_id__products_get: {
     parameters: {
       query?: {
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        brand__ilike?: string | null;
-        brand__in?: string | null;
-        model__ilike?: string | null;
-        created_at__gte?: string | null;
-        created_at__lte?: string | null;
-        updated_at__gte?: string | null;
-        updated_at__lte?: string | null;
         search?: string | null;
-        order_by?: string | null;
-        weight_g__gte?: number | null;
-        weight_g__lte?: number | null;
-        height_cm__gte?: number | null;
-        height_cm__lte?: number | null;
-        width_cm__gte?: number | null;
-        width_cm__lte?: number | null;
-        depth_cm__gte?: number | null;
-        depth_cm__lte?: number | null;
-        product_type__name__ilike?: string | null;
-        product_type__name__in?: string | null;
-        product_type__description__ilike?: string | null;
-        product_type__search?: string | null;
-        product_type__order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        brand?: string | null;
+        'brand[ilike]'?: string | null;
+        'brand[in]'?: string[] | null;
+        model?: string | null;
+        'model[ilike]'?: string | null;
+        created_at?: string;
+        'created_at[ge]'?: string;
+        'created_at[le]'?: string;
+        updated_at?: string;
+        'updated_at[ge]'?: string;
+        'updated_at[le]'?: string;
+        weight_g?: number;
+        'weight_g[ge]'?: number;
+        'weight_g[le]'?: number;
+        height_cm?: number;
+        'height_cm[ge]'?: number;
+        'height_cm[le]'?: number;
+        width_cm?: number;
+        'width_cm[ge]'?: number;
+        'width_cm[le]'?: number;
+        depth_cm?: number;
+        'depth_cm[ge]'?: number;
+        'depth_cm[le]'?: number;
+        product_type_name?: string | null;
+        'product_type_name[ilike]'?: string | null;
+        'product_type_name[in]'?: string[] | null;
+        product_type_description?: string | null;
+        'product_type_description[ilike]'?: string | null;
+        order_by?: (
+          | '+name'
+          | '+brand'
+          | '+model'
+          | '+created_at'
+          | '+updated_at'
+          | '+product_type_name'
+          | '-name'
+          | '-brand'
+          | '-model'
+          | '-created_at'
+          | '-updated_at'
+          | '-product_type_name'
+        )[];
         /** @description Page number */
         page?: number;
         /** @description Page size */
@@ -7007,30 +7118,53 @@ export interface operations {
       query?: {
         /** @description Use 'me' to list the current user's products */
         owner?: 'me' | null;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        brand__ilike?: string | null;
-        brand__in?: string | null;
-        model__ilike?: string | null;
-        created_at__gte?: string | null;
-        created_at__lte?: string | null;
-        updated_at__gte?: string | null;
-        updated_at__lte?: string | null;
         search?: string | null;
-        order_by?: string | null;
-        weight_g__gte?: number | null;
-        weight_g__lte?: number | null;
-        height_cm__gte?: number | null;
-        height_cm__lte?: number | null;
-        width_cm__gte?: number | null;
-        width_cm__lte?: number | null;
-        depth_cm__gte?: number | null;
-        depth_cm__lte?: number | null;
-        product_type__name__ilike?: string | null;
-        product_type__name__in?: string | null;
-        product_type__description__ilike?: string | null;
-        product_type__search?: string | null;
-        product_type__order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        brand?: string | null;
+        'brand[ilike]'?: string | null;
+        'brand[in]'?: string[] | null;
+        model?: string | null;
+        'model[ilike]'?: string | null;
+        created_at?: string;
+        'created_at[ge]'?: string;
+        'created_at[le]'?: string;
+        updated_at?: string;
+        'updated_at[ge]'?: string;
+        'updated_at[le]'?: string;
+        weight_g?: number;
+        'weight_g[ge]'?: number;
+        'weight_g[le]'?: number;
+        height_cm?: number;
+        'height_cm[ge]'?: number;
+        'height_cm[le]'?: number;
+        width_cm?: number;
+        'width_cm[ge]'?: number;
+        'width_cm[le]'?: number;
+        depth_cm?: number;
+        'depth_cm[ge]'?: number;
+        'depth_cm[le]'?: number;
+        product_type_name?: string | null;
+        'product_type_name[ilike]'?: string | null;
+        'product_type_name[in]'?: string[] | null;
+        product_type_description?: string | null;
+        'product_type_description[ilike]'?: string | null;
+        order_by?: (
+          | '+name'
+          | '+brand'
+          | '+model'
+          | '+created_at'
+          | '+updated_at'
+          | '+product_type_name'
+          | '-name'
+          | '-brand'
+          | '-model'
+          | '-created_at'
+          | '-updated_at'
+          | '-product_type_name'
+        )[];
         /** @description Page number */
         page?: number;
         /** @description Page size */
@@ -7195,30 +7329,53 @@ export interface operations {
       query?: {
         /** @description Maximum recursion depth */
         recursion_depth?: number;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        brand__ilike?: string | null;
-        brand__in?: string | null;
-        model__ilike?: string | null;
-        created_at__gte?: string | null;
-        created_at__lte?: string | null;
-        updated_at__gte?: string | null;
-        updated_at__lte?: string | null;
         search?: string | null;
-        order_by?: string | null;
-        weight_g__gte?: number | null;
-        weight_g__lte?: number | null;
-        height_cm__gte?: number | null;
-        height_cm__lte?: number | null;
-        width_cm__gte?: number | null;
-        width_cm__lte?: number | null;
-        depth_cm__gte?: number | null;
-        depth_cm__lte?: number | null;
-        product_type__name__ilike?: string | null;
-        product_type__name__in?: string | null;
-        product_type__description__ilike?: string | null;
-        product_type__search?: string | null;
-        product_type__order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        brand?: string | null;
+        'brand[ilike]'?: string | null;
+        'brand[in]'?: string[] | null;
+        model?: string | null;
+        'model[ilike]'?: string | null;
+        created_at?: string;
+        'created_at[ge]'?: string;
+        'created_at[le]'?: string;
+        updated_at?: string;
+        'updated_at[ge]'?: string;
+        'updated_at[le]'?: string;
+        weight_g?: number;
+        'weight_g[ge]'?: number;
+        'weight_g[le]'?: number;
+        height_cm?: number;
+        'height_cm[ge]'?: number;
+        'height_cm[le]'?: number;
+        width_cm?: number;
+        'width_cm[ge]'?: number;
+        'width_cm[le]'?: number;
+        depth_cm?: number;
+        'depth_cm[ge]'?: number;
+        'depth_cm[le]'?: number;
+        product_type_name?: string | null;
+        'product_type_name[ilike]'?: string | null;
+        'product_type_name[in]'?: string[] | null;
+        product_type_description?: string | null;
+        'product_type_description[ilike]'?: string | null;
+        order_by?: (
+          | '+name'
+          | '+brand'
+          | '+model'
+          | '+created_at'
+          | '+updated_at'
+          | '+product_type_name'
+          | '-name'
+          | '-brand'
+          | '-model'
+          | '-created_at'
+          | '-updated_at'
+          | '-product_type_name'
+        )[];
       };
       header?: never;
       path: {
@@ -7251,30 +7408,53 @@ export interface operations {
   get_product_components_v1_products__product_id__components_get: {
     parameters: {
       query?: {
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        brand__ilike?: string | null;
-        brand__in?: string | null;
-        model__ilike?: string | null;
-        created_at__gte?: string | null;
-        created_at__lte?: string | null;
-        updated_at__gte?: string | null;
-        updated_at__lte?: string | null;
         search?: string | null;
-        order_by?: string | null;
-        weight_g__gte?: number | null;
-        weight_g__lte?: number | null;
-        height_cm__gte?: number | null;
-        height_cm__lte?: number | null;
-        width_cm__gte?: number | null;
-        width_cm__lte?: number | null;
-        depth_cm__gte?: number | null;
-        depth_cm__lte?: number | null;
-        product_type__name__ilike?: string | null;
-        product_type__name__in?: string | null;
-        product_type__description__ilike?: string | null;
-        product_type__search?: string | null;
-        product_type__order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        brand?: string | null;
+        'brand[ilike]'?: string | null;
+        'brand[in]'?: string[] | null;
+        model?: string | null;
+        'model[ilike]'?: string | null;
+        created_at?: string;
+        'created_at[ge]'?: string;
+        'created_at[le]'?: string;
+        updated_at?: string;
+        'updated_at[ge]'?: string;
+        'updated_at[le]'?: string;
+        weight_g?: number;
+        'weight_g[ge]'?: number;
+        'weight_g[le]'?: number;
+        height_cm?: number;
+        'height_cm[ge]'?: number;
+        'height_cm[le]'?: number;
+        width_cm?: number;
+        'width_cm[ge]'?: number;
+        'width_cm[le]'?: number;
+        depth_cm?: number;
+        'depth_cm[ge]'?: number;
+        'depth_cm[le]'?: number;
+        product_type_name?: string | null;
+        'product_type_name[ilike]'?: string | null;
+        'product_type_name[in]'?: string[] | null;
+        product_type_description?: string | null;
+        'product_type_description[ilike]'?: string | null;
+        order_by?: (
+          | '+name'
+          | '+brand'
+          | '+model'
+          | '+created_at'
+          | '+updated_at'
+          | '+product_type_name'
+          | '-name'
+          | '-brand'
+          | '-model'
+          | '-created_at'
+          | '-updated_at'
+          | '-product_type_name'
+        )[];
       };
       header?: never;
       path: {
@@ -7342,10 +7522,14 @@ export interface operations {
   get_product_files_v1_products__product_id__files_get: {
     parameters: {
       query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
         search?: string | null;
+        filename?: string | null;
+        'filename[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        parent_type?: components['schemas']['MediaParentType'];
+        'parent_type[eq]'?: components['schemas']['MediaParentType'];
+        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
       };
       header?: never;
       path: {
@@ -7477,10 +7661,14 @@ export interface operations {
   get_product_images_v1_products__product_id__images_get: {
     parameters: {
       query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
         search?: string | null;
+        filename?: string | null;
+        'filename[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        parent_type?: components['schemas']['MediaParentType'];
+        'parent_type[eq]'?: components['schemas']['MediaParentType'];
+        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
       };
       header?: never;
       path: {
@@ -7742,10 +7930,14 @@ export interface operations {
   get_component_files_v1_components__component_id__files_get: {
     parameters: {
       query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
         search?: string | null;
+        filename?: string | null;
+        'filename[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        parent_type?: components['schemas']['MediaParentType'];
+        'parent_type[eq]'?: components['schemas']['MediaParentType'];
+        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
       };
       header?: never;
       path: {
@@ -7877,10 +8069,14 @@ export interface operations {
   get_component_images_v1_components__component_id__images_get: {
     parameters: {
       query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
         search?: string | null;
+        filename?: string | null;
+        'filename[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        parent_type?: components['schemas']['MediaParentType'];
+        'parent_type[eq]'?: components['schemas']['MediaParentType'];
+        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
       };
       header?: never;
       path: {
@@ -8012,17 +8208,18 @@ export interface operations {
   get_component_bill_of_materials_v1_components__component_id__materials_get: {
     parameters: {
       query?: {
-        quantity__gte?: number | null;
-        quantity__lte?: number | null;
-        unit_ilike?: string | null;
-        material__name__ilike?: string | null;
-        material__description__ilike?: string | null;
-        material__density_kg_m3__gte?: number | null;
-        material__density_kg_m3__lte?: number | null;
-        material__is_crm?: boolean | null;
-        material__source__ilike?: string | null;
-        material__search?: string | null;
-        material__order_by?: string | null;
+        search?: string | null;
+        quantity?: number;
+        'quantity[ge]'?: number;
+        'quantity[le]'?: number;
+        unit?: string | null;
+        'unit[ilike]'?: string | null;
+        material_name?: string | null;
+        'material_name[ilike]'?: string | null;
+        material_description?: string | null;
+        'material_description[ilike]'?: string | null;
+        material_source?: string | null;
+        'material_source[ilike]'?: string | null;
       };
       header?: never;
       path: {
@@ -8259,9 +8456,12 @@ export interface operations {
   get_product_videos_v1_products__product_id__videos_get: {
     parameters: {
       query?: {
-        url__ilike?: string | null;
-        description__ilike?: string | null;
         search?: string | null;
+        url?: string | null;
+        'url[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        order_by?: ('+url' | '+created_at' | '-url' | '-created_at')[];
       };
       header?: never;
       path: {
@@ -8427,17 +8627,18 @@ export interface operations {
   get_product_bill_of_materials_v1_products__product_id__materials_get: {
     parameters: {
       query?: {
-        quantity__gte?: number | null;
-        quantity__lte?: number | null;
-        unit_ilike?: string | null;
-        material__name__ilike?: string | null;
-        material__description__ilike?: string | null;
-        material__density_kg_m3__gte?: number | null;
-        material__density_kg_m3__lte?: number | null;
-        material__is_crm?: boolean | null;
-        material__source__ilike?: string | null;
-        material__search?: string | null;
-        material__order_by?: string | null;
+        search?: string | null;
+        quantity?: number;
+        'quantity[ge]'?: number;
+        'quantity[le]'?: number;
+        unit?: string | null;
+        'unit[ilike]'?: string | null;
+        material_name?: string | null;
+        'material_name[ilike]'?: string | null;
+        material_description?: string | null;
+        'material_description[ilike]'?: string | null;
+        material_source?: string | null;
+        'material_source[ilike]'?: string | null;
       };
       header?: never;
       path: {
@@ -9897,12 +10098,12 @@ export interface operations {
       };
     };
   };
-  get_public_profile_v1_users__identifier__profile_get: {
+  get_public_profile_v1_profiles__username__get: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        identifier: string;
+        username: string;
       };
       cookie?: never;
     };
@@ -9931,12 +10132,18 @@ export interface operations {
   get_users_v1_admin_users_get: {
     parameters: {
       query?: {
-        email__ilike?: string | null;
-        username__ilike?: string | null;
-        is_active?: boolean | null;
-        is_superuser?: boolean | null;
-        is_verified?: boolean | null;
         search?: string | null;
+        email?: string | null;
+        'email[ilike]'?: string | null;
+        username?: string | null;
+        'username[ilike]'?: string | null;
+        is_active?: boolean;
+        'is_active[eq]'?: boolean;
+        is_superuser?: boolean;
+        'is_superuser[eq]'?: boolean;
+        is_verified?: boolean;
+        'is_verified[eq]'?: boolean;
+        order_by?: ('+email' | '+username' | '-email' | '-username')[];
         /** @description Page number */
         page?: number;
         /** @description Page size */
@@ -10037,10 +10244,12 @@ export interface operations {
         include_status?: boolean;
         /** @description Include the last-known telemetry snapshot from the Redis cache. Implies ``include_status=true``. No relay round-trips — cameras without cached telemetry come back with ``telemetry: null``. */
         include_telemetry?: boolean;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        order_by?: ('+name' | '+created_at' | '-name' | '-created_at')[];
       };
       header?: never;
       path?: never;
@@ -10695,16 +10904,25 @@ export interface operations {
   get_all_cameras_v1_admin_plugins_rpi_cam_cameras_get: {
     parameters: {
       query?: {
-        name__ilike?: string | null;
-        description__ilike?: string | null;
         search?: string | null;
-        order_by?: string | null;
-        owner__email__ilike?: string | null;
-        owner__username__ilike?: string | null;
-        owner__is_active?: boolean | null;
-        owner__is_superuser?: boolean | null;
-        owner__is_verified?: boolean | null;
-        owner__search?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        owner_email?: string | null;
+        'owner_email[ilike]'?: string | null;
+        owner_username?: string | null;
+        'owner_username[ilike]'?: string | null;
+        order_by?: (
+          | '+name'
+          | '+created_at'
+          | '+owner_email'
+          | '+owner_username'
+          | '-name'
+          | '-created_at'
+          | '-owner_email'
+          | '-owner_username'
+        )[];
         /** @description Page number */
         page?: number;
         /** @description Page size */
