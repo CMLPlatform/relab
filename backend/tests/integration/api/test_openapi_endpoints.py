@@ -76,7 +76,7 @@ class TestOpenAPIEndpoints:
         categories_name_filter_param = next(
             parameter
             for parameter in payload["paths"]["/v1/categories"]["get"]["parameters"]
-            if parameter["name"] == "name__ilike"
+            if parameter["name"] == "name[ilike]"
         )
         assert categories_name_filter_param["schema"]["anyOf"][0]["type"] == "string"
 
@@ -142,7 +142,7 @@ class TestOpenAPIEndpoints:
         admin_users_email_filter_param = next(
             parameter
             for parameter in payload["paths"]["/v1/admin/users"]["get"]["parameters"]
-            if parameter["name"] == "email__ilike"
+            if parameter["name"] == "email[ilike]"
         )
         assert admin_users_email_filter_param["schema"]["anyOf"][0]["type"] == "string"
 
