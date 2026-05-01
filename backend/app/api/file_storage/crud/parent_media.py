@@ -21,7 +21,7 @@ from .support_queries import get_parent_owned_storage_item, list_parent_storage_
 from .support_types import StorageCreateSchema, StorageModel
 
 if TYPE_CHECKING:
-    from fastapi_filter.contrib.sqlalchemy import Filter
+    from app.api.common.crud.filtering import BaseFilterSet
 
     from .support_services import StoredMediaService
 
@@ -51,7 +51,7 @@ async def list_parent_media[StorageModelT: StorageModel](
     parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
-    filter_params: Filter | None = None,
+    filter_params: BaseFilterSet | None = None,
 ) -> list[StorageModelT]:
     """Get all storage items for a parent, excluding items with missing files."""
     items = await list_parent_storage_items(
@@ -78,6 +78,7 @@ async def get_parent_media[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
     parent_model: type[Base],
+    parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
     item_id: UUID4,
@@ -89,6 +90,7 @@ async def get_parent_media[StorageModelT: StorageModel](
         model=storage_model,
         parent_id=parent_id,
         item_id=item_id,
+        parent_type=parent_type,
     )
 
     if not storage_item_exists(db_item):
@@ -114,6 +116,7 @@ async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: Storag
     db: AsyncSession,
     *,
     parent_model: type[Base],
+    parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
     item_id: UUID4,
@@ -126,6 +129,7 @@ async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: Storag
         model=storage_model,
         parent_id=parent_id,
         item_id=item_id,
+        parent_type=parent_type,
     )
     await storage_service.delete(db, item_id)
 
@@ -173,7 +177,7 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
         db: AsyncSession,
         parent_id: int,
         *,
-        filter_params: Filter | None = None,
+        filter_params: BaseFilterSet | None = None,
     ) -> list[StorageModelT]:
         """Get all storage items for a parent, excluding items with missing files."""
         return await list_parent_media(
@@ -190,6 +194,7 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
         return await get_parent_media(
             db,
             parent_model=self.parent_model,
+            parent_type=self.parent_type,
             storage_model=self.storage_model,
             parent_id=parent_id,
             item_id=item_id,
@@ -210,6 +215,7 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
         await delete_parent_media(
             db,
             parent_model=self.parent_model,
+            parent_type=self.parent_type,
             storage_model=self.storage_model,
             parent_id=parent_id,
             item_id=item_id,
