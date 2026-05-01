@@ -179,7 +179,7 @@ RELab uses [OWASP ASVS 5.0.0](https://github.com/OWASP/ASVS) as the application-
 
 For changes that touch authentication, authorization, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets, dependencies, or personal data, include security considerations in the pull request and update the relevant docs when behavior changes.
 
-Use the security section in the pull request template for sensitive changes. The maintainer checklist and supply-chain tool ownership model live in [SECURITY.md](SECURITY.md).
+Use the security section in the pull request template for sensitive changes. If a change creates a new attack-surface bucket or meaningfully changes a trust boundary, update the maintainer baseline in [SECURITY.md](SECURITY.md). The maintainer checklist and supply-chain tool ownership model live there too.
 
 Use `just security` for local maintainer diagnosis.
 

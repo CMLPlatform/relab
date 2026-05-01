@@ -22,6 +22,24 @@ Please include enough detail for us to reproduce the problem. That saves time fo
 
 RELab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline. Keep security controls simple, reviewable, and documented near the behavior they protect.
 
+## Attack Surface Baseline
+
+Use this maintainer baseline when reviewing security-sensitive changes. Keep it grouped by risk bucket rather than listing every endpoint.
+
+Review these buckets when they change:
+
+- Authentication and OAuth
+- Public read APIs
+- Authenticated mutation APIs
+- Uploads and media
+- Admin APIs
+- RPi camera device APIs and WebSocket relay
+- Backups, secrets, logs, telemetry, and release/security artifacts
+
+Valuable data includes accounts, profile/privacy settings, research records, uploaded media/files, OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup material, and runtime secrets.
+
+Update this baseline, the relevant behavior docs, or both when a change creates a new bucket or meaningfully changes a trust boundary.
+
 ## Automated Checks
 
 Supply-chain and code-security checks have clear owners:
