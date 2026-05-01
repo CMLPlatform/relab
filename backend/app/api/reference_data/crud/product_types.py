@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from app.api.common.crud.associations import add_links
 from app.api.common.crud.persistence import commit_and_refresh
-from app.api.common.crud.query import require_model
+from app.api.common.crud.query import require_locked_model
 from app.api.common.exceptions import InternalServerError
 from app.api.file_storage.crud.parent_media import (
     create_parent_media,
@@ -66,7 +66,7 @@ async def update_product_type(db: AsyncSession, product_type_id: int, product_ty
 
 async def delete_product_type(db: AsyncSession, product_type_id: int) -> None:
     """Delete a product type from the database."""
-    db_product_type = await require_model(db, ProductType, product_type_id)
+    db_product_type = await require_locked_model(db, ProductType, product_type_id)
 
     await delete_all_product_type_files(db, product_type_id)
     await delete_all_product_type_images(db, product_type_id)
@@ -139,6 +139,7 @@ async def get_product_type_file(db: AsyncSession, product_type_id: int, file_id:
     return await get_parent_media(
         db,
         parent_model=ProductType,
+        parent_type=MediaParentType.PRODUCT_TYPE,
         storage_model=File,
         parent_id=product_type_id,
         item_id=file_id,
@@ -161,6 +162,7 @@ async def delete_product_type_file(db: AsyncSession, product_type_id: int, file_
     await delete_parent_media(
         db,
         parent_model=ProductType,
+        parent_type=MediaParentType.PRODUCT_TYPE,
         storage_model=File,
         parent_id=product_type_id,
         item_id=file_id,
@@ -199,6 +201,7 @@ async def get_product_type_image(db: AsyncSession, product_type_id: int, image_i
     return await get_parent_media(
         db,
         parent_model=ProductType,
+        parent_type=MediaParentType.PRODUCT_TYPE,
         storage_model=Image,
         parent_id=product_type_id,
         item_id=image_id,
@@ -221,6 +224,7 @@ async def delete_product_type_image(db: AsyncSession, product_type_id: int, imag
     await delete_parent_media(
         db,
         parent_model=ProductType,
+        parent_type=MediaParentType.PRODUCT_TYPE,
         storage_model=Image,
         parent_id=product_type_id,
         item_id=image_id,

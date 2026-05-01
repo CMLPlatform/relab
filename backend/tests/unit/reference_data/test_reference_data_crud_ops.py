@@ -18,7 +18,7 @@ from app.api.reference_data.crud.product_types import (
     update_product_type,
 )
 from app.api.reference_data.crud.taxonomies import create_taxonomy, delete_taxonomy, update_taxonomy
-from app.api.reference_data.models import Material, ProductType, Taxonomy, TaxonomyDomain
+from app.api.reference_data.models import Category, Material, ProductType, Taxonomy, TaxonomyDomain
 from app.api.reference_data.schemas import (
     CategoryUpdate,
     MaterialCreate,
@@ -63,9 +63,10 @@ class TestCategoryCrud:
         session = _make_session()
         db_category = CategoryFactory.build(id=1)
 
-        with patch("app.api.reference_data.crud.shared.require_model", return_value=db_category):
+        with patch("app.api.reference_data.crud.shared.require_locked_model", return_value=db_category) as get_category:
             await delete_category(session, 1)
 
+        get_category.assert_awaited_once_with(session, Category, 1)
         session.delete.assert_called_once_with(db_category)
         session.commit.assert_called_once()
 
@@ -102,9 +103,10 @@ class TestTaxonomyCrud:
         session = _make_session()
         db_taxonomy = TaxonomyFactory.build(id=10)
 
-        with patch("app.api.reference_data.crud.shared.require_model", return_value=db_taxonomy):
+        with patch("app.api.reference_data.crud.shared.require_locked_model", return_value=db_taxonomy) as get_taxonomy:
             await delete_taxonomy(session, 10)
 
+        get_taxonomy.assert_awaited_once_with(session, Taxonomy, 10)
         session.delete.assert_called_once_with(db_taxonomy)
         session.commit.assert_called_once()
 
@@ -140,12 +142,16 @@ class TestMaterialCrud:
         db_material = MaterialFactory.build(id=1)
 
         with (
-            patch("app.api.reference_data.crud.materials.require_model", return_value=db_material),
+            patch(
+                "app.api.reference_data.crud.materials.require_locked_model",
+                return_value=db_material,
+            ) as get_material,
             patch("app.api.reference_data.crud.materials.delete_all_material_files"),
             patch("app.api.reference_data.crud.materials.delete_all_material_images"),
         ):
             await delete_material(session, 1)
 
+        get_material.assert_awaited_once_with(session, Material, 1)
         session.delete.assert_called_once_with(db_material)
         session.commit.assert_called_once()
 
@@ -217,11 +223,15 @@ class TestProductTypeCrud:
         db_pt = ProductTypeFactory.build(id=1)
 
         with (
-            patch("app.api.reference_data.crud.product_types.require_model", return_value=db_pt),
+            patch(
+                "app.api.reference_data.crud.product_types.require_locked_model",
+                return_value=db_pt,
+            ) as get_product_type,
             patch("app.api.reference_data.crud.product_types.delete_all_product_type_files"),
             patch("app.api.reference_data.crud.product_types.delete_all_product_type_images"),
         ):
             await delete_product_type(session, 1)
 
+        get_product_type.assert_awaited_once_with(session, ProductType, 1)
         session.delete.assert_called_once_with(db_pt)
         session.commit.assert_called_once()

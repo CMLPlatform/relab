@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from app.api.common.crud.associations import add_links
 from app.api.common.crud.persistence import SupportsModelDump, delete_and_commit, update_and_commit
-from app.api.common.crud.query import require_model, require_models
+from app.api.common.crud.query import require_locked_model, require_model, require_models
 from app.api.common.crud.utils import (
     validate_linked_items_exist,
     validate_no_duplicate_linked_items,
@@ -72,7 +72,7 @@ async def delete_background_model[ModelT: Taxonomy | Material | ProductType | Ca
     model_id: int,
 ) -> ModelT:
     """Delete a model after resolving it from the database."""
-    db_model: ModelT = await require_model(db, model, model_id)
+    db_model: ModelT = await require_locked_model(db, model, model_id)
     await delete_and_commit(db, db_model)
     return db_model
 

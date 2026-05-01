@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, cast  # lgtm[py/unused-import]
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sqlalchemy import select
@@ -11,7 +11,7 @@ from sqlalchemy import select
 from app.api.common.crud.exceptions import CRUDConfigurationError
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
-from app.api.common.crud.query import require_model
+from app.api.common.crud.query import require_locked_model, require_model
 from app.api.reference_data.filters import MaterialFilterWithRelationships
 from app.api.reference_data.models import Material
 
@@ -28,6 +28,21 @@ class TestRequireModel:
 
         with pytest.raises(CRUDConfigurationError, match="does not have an id field"):
             await require_model(session, cast("type[Any]", NoIdModel), 1)
+
+    async def test_require_locked_model_applies_for_update(self) -> None:
+        """Locked lookup helper should add FOR UPDATE to the generated SELECT."""
+        material = Material(id=1, name="Steel")
+        session = MagicMock()
+        session.execute = AsyncMock()
+        result = MagicMock()
+        session.execute.return_value = result
+        result.scalars.return_value.unique.return_value.one_or_none.return_value = material
+
+        found = await require_locked_model(session, Material, 1)
+
+        assert found is material
+        statement = session.execute.await_args.args[0]
+        assert str(statement.compile()).endswith("FOR UPDATE")
 
 
 class TestQueryConstruction:
