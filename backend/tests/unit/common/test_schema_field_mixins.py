@@ -88,6 +88,20 @@ def test_product_read_schema_does_not_apply_privacy_context() -> None:
     assert result.owner_username == "simon"
 
 
+def test_product_read_schema_accepts_persisted_control_characters() -> None:
+    """Read schemas should be tolerant; write schemas own input validation."""
+    raw = {
+        "id": 1,
+        "name": "Office Chair",
+        "circularity_properties": {"recyclability": "persisted\u0000legacy value"},
+    }
+
+    result = ProductRead.model_validate(raw)
+
+    assert result.circularity_properties is not None
+    assert result.circularity_properties.recyclability == "persisted\u0000legacy value"
+
+
 def test_component_read_schema_does_not_apply_privacy_context() -> None:
     """Component schemas should stay policy-free too."""
     raw = {
