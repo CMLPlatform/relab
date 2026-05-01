@@ -53,7 +53,7 @@ describe('authHelpers', () => {
         is_active: true,
         is_superuser: false,
         is_verified: true,
-        username: null,
+        username: 'dev_user',
         oauth_accounts: undefined,
         preferences: undefined,
       } as never),
@@ -63,10 +63,29 @@ describe('authHelpers', () => {
       isActive: true,
       isSuperuser: false,
       isVerified: true,
-      username: 'Username not defined',
+      username: 'dev_user',
       oauth_accounts: [],
       preferences: {},
     });
+  });
+
+  it('preserves null usernames for incomplete OAuth onboarding', () => {
+    expect(
+      mapApiUserToUser({
+        id: 8,
+        email: 'oauth@example.com',
+        is_active: true,
+        is_superuser: false,
+        is_verified: true,
+        username: null,
+        oauth_accounts: undefined,
+        preferences: undefined,
+      } as never),
+    ).toEqual(
+      expect.objectContaining({
+        username: null,
+      }),
+    );
   });
 
   it('extracts nested and flat API error details', () => {

@@ -4,8 +4,8 @@ import { useForm } from 'react-hook-form';
 import type { useDialog } from '@/components/common/dialogContext';
 import { getUser, login } from '@/services/api/authentication';
 import { type LoginFormValues, loginSchema } from '@/services/api/validation/userSchema';
+import type { User } from '@/types/User';
 
-type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof getUser>>>;
 type DialogApi = ReturnType<typeof useDialog>;
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -21,7 +21,7 @@ async function attemptPasswordLogin({
   email: string;
   password: string;
   dialog: DialogApi;
-  completeSuccessfulLogin: (authenticatedUser: AuthenticatedUser) => Promise<void>;
+  completeSuccessfulLogin: (authenticatedUser: User) => Promise<void>;
 }) {
   try {
     const token = await login(email, password);
@@ -64,7 +64,7 @@ export function useLoginForm({
   completeSuccessfulLogin,
 }: {
   dialog: DialogApi;
-  completeSuccessfulLogin: (authenticatedUser: AuthenticatedUser) => Promise<void>;
+  completeSuccessfulLogin: (authenticatedUser: User) => Promise<void>;
 }) {
   const { control, handleSubmit } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),

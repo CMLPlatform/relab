@@ -5,7 +5,7 @@ import { Keyboard } from 'react-native';
 import { useDialog } from '@/components/common/dialogContext';
 import { useAuth } from '@/context/auth';
 import { useEffectiveColorScheme } from '@/context/themeMode';
-import type { getUser } from '@/services/api/authentication';
+import type { User } from '@/types/User';
 import { useLoginForm } from './useLoginForm';
 import {
   getSafeRedirectTarget,
@@ -15,8 +15,6 @@ import {
 import { useOAuthLogin } from './useOAuthLogin';
 
 maybeCompleteAuthSession();
-
-type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof getUser>>>;
 
 function useKeyboardShownState() {
   const [keyboardShown, setKeyboardShown] = useState(false);
@@ -65,7 +63,7 @@ export function useLoginScreen() {
   });
 
   const completeSuccessfulLogin = useCallback(
-    async (authenticatedUser: AuthenticatedUser) => {
+    async (authenticatedUser: User) => {
       await refetch(false);
       routeAuthenticatedUser({
         authenticatedUser,

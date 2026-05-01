@@ -5,6 +5,7 @@ import { Animated, Platform } from 'react-native';
 import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/lib/router/background';
 import { loadAnimatedBackground } from '@/lib/router/backgroundLoader';
 import { HeaderRightPill } from '@/lib/router/HeaderRightPill';
+import { getUsernameOnboardingRedirect } from '@/lib/router/onboarding';
 import { getProductsHeaderStyle } from '@/lib/router/styles';
 import { renderWithProviders } from '@/test-utils/index';
 import { getAppTheme } from '@/theme';
@@ -92,12 +93,42 @@ describe('layout helpers rendering', () => {
     expect(screen.getByText('averyverylongu…')).toBeOnTheScreen();
   });
 
+  it('renders a safe prompt for signed-in users without a username', () => {
+    mockUseAuth.mockReturnValueOnce({
+      user: { id: 'user-1', username: null, email: 'test@example.com' },
+    });
+    renderWithProviders(<HeaderRightPill />);
+
+    expect(screen.getByText('Complete profile')).toBeOnTheScreen();
+  });
+
   it('returns dark and light product header styles', () => {
     expect(getProductsHeaderStyle(getAppTheme('light')).headerTitleStyle.color).toBeDefined();
     expect(getProductsHeaderStyle(getAppTheme('dark')).headerTitleStyle.color).toBeDefined();
     expect(getProductsHeaderStyle(getAppTheme('light')).headerStyle.backgroundColor).not.toBe(
       getProductsHeaderStyle(getAppTheme('dark')).headerStyle.backgroundColor,
     );
+  });
+
+  it('routes incomplete users to onboarding and completed users away from onboarding', () => {
+    expect(
+      getUsernameOnboardingRedirect({
+        user: { id: 'user-1', username: null, email: 'test@example.com' } as never,
+        pathname: '/products',
+      }),
+    ).toBe('/onboarding');
+    expect(
+      getUsernameOnboardingRedirect({
+        user: { id: 'user-1', username: 'alice', email: 'test@example.com' } as never,
+        pathname: '/onboarding',
+      }),
+    ).toBe('/products');
+    expect(
+      getUsernameOnboardingRedirect({
+        user: { id: 'user-1', username: null, email: 'test@example.com' } as never,
+        pathname: '/onboarding',
+      }),
+    ).toBeNull();
   });
 
   it('returns overlay state for normal and auth routes', async () => {

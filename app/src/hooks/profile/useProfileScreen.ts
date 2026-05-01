@@ -18,7 +18,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 type ProfileVisibility = 'public' | 'community' | 'private';
 
-function useProfileDialogs(profile: { username: string } | null | undefined) {
+function useProfileDialogs(profile: { username: string | null } | null | undefined) {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
   const [editUsernameVisible, setEditUsernameVisible] = useState(false);
@@ -38,7 +38,7 @@ function useProfileDialogs(profile: { username: string } | null | undefined) {
   }, []);
   const openEditUsername = useCallback(() => {
     if (!profile) return;
-    setNewUsername(profile.username);
+    setNewUsername(profile.username ?? '');
     setEditUsernameVisible(true);
   }, [profile]);
 
@@ -441,7 +441,7 @@ export function useProfileScreen() {
     setYoutubeEnabled,
   });
 
-  const ownProfileStats = useOwnProfileStats(profile?.username);
+  const ownProfileStats = useOwnProfileStats(profile?.username ?? undefined);
   const oauthAssociations = useOAuthAssociations({
     feedback,
     refetch,

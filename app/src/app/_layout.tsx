@@ -1,7 +1,7 @@
 import { HeaderBackButton } from '@react-navigation/elements';
 import { ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
 import { type ReactNode, useEffect } from 'react';
 import { Platform, View } from 'react-native';
@@ -11,12 +11,14 @@ import { PaperProvider } from 'react-native-paper';
 import { ActiveStreamBanner } from '@/components/common/ActiveStreamBanner';
 import { DialogProvider } from '@/components/common/DialogProvider';
 import { AuthProvider } from '@/context/AuthProvider';
+import { useAuth } from '@/context/auth';
 import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/lib/router/background';
 import { HeaderRightPill } from '@/lib/router/HeaderRightPill';
+import { getUsernameOnboardingRedirect } from '@/lib/router/onboarding';
 import { getProductsHeaderStyle } from '@/lib/router/styles';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 
@@ -126,8 +128,10 @@ function AppStack({ isDark, router }: { isDark: boolean; router: ReturnType<type
 function AppShell() {
   const colorScheme = useEffectiveColorScheme();
   const router = useRouter();
+  const pathname = usePathname();
   const isDark = colorScheme === 'dark';
   const theme = getAppTheme(colorScheme);
+  const { user, isLoading: authLoading } = useAuth();
   const { activeStream } = useStreamSession();
   const { BackgroundComponent, overlayColor, showBackground, showOverlay } =
     useAnimatedBackground(isDark);
@@ -147,6 +151,14 @@ function AppShell() {
       // Best-effort only; the app can render fine without this on unsupported targets.
     });
   }, [theme.colors.background]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    const redirectPath = getUsernameOnboardingRedirect({ user, pathname });
+    if (redirectPath) {
+      router.replace(redirectPath);
+    }
+  }, [authLoading, pathname, router, user]);
 
   return (
     <View style={{ flex: 1 }}>

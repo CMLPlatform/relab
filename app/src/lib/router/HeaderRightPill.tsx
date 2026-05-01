@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
 import { Text } from '@/components/base/Text';
 import { useAuth } from '@/context/auth';
+import { needsUsernameOnboarding } from '@/lib/router/onboarding';
 import { createHeaderRightPillStyles } from '@/lib/router/styles';
 import { useAppTheme } from '@/theme';
 
@@ -17,13 +18,14 @@ export function HeaderRightPill() {
   const { pill, primaryText } = createHeaderRightPillStyles(theme);
 
   if (user) {
-    const username = truncateUsername(user.username);
+    const needsOnboarding = needsUsernameOnboarding(user);
+    const username = needsOnboarding ? 'Complete profile' : truncateUsername(user.username ?? '');
     return (
       <Pressable
-        onPress={() => router.push('/profile')}
+        onPress={() => router.push(needsOnboarding ? '/onboarding' : '/profile')}
         style={pill}
         accessibilityRole="button"
-        accessibilityLabel={`Profile: ${username}`}
+        accessibilityLabel={needsOnboarding ? 'Complete profile' : `Profile: ${username}`}
       >
         <MaterialCommunityIcons name="account-circle" size={18} color={theme.colors.onBackground} />
         <Text style={primaryText} numberOfLines={1}>

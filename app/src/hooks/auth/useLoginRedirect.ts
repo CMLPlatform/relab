@@ -1,11 +1,10 @@
 import type { Href, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import type { useAuth } from '@/context/auth';
-import type { getUser } from '@/services/api/authentication';
+import { needsUsernameOnboarding } from '@/lib/router/onboarding';
+import type { User } from '@/types/User';
 
 export type SafeRedirectTarget = Extract<Href, string>;
-
-type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof getUser>>>;
 
 export function getSafeRedirectTarget(
   redirectTo: string | string[] | undefined,
@@ -35,13 +34,16 @@ export function routeAuthenticatedUser({
   router,
   postLoginRedirect,
 }: {
-  authenticatedUser: AuthenticatedUser;
+  authenticatedUser: User;
   router: ReturnType<typeof useRouter>;
   postLoginRedirect?: SafeRedirectTarget;
 }) {
-  if (!authenticatedUser.username || authenticatedUser.username === 'Username not defined') {
-    router.replace('/(auth)/onboarding');
-  } else if (postLoginRedirect) {
+  if (needsUsernameOnboarding(authenticatedUser)) {
+    router.replace('/onboarding');
+    return;
+  }
+
+  if (postLoginRedirect) {
     router.replace(postLoginRedirect);
   } else {
     router.replace({ pathname: '/products' });

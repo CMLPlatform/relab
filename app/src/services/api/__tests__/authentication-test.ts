@@ -319,14 +319,13 @@ describe('Authentication API Service', () => {
       // logError suppresses output in the test environment intentionally
     });
 
-    it("falls back to 'Username not defined' when username is missing", async () => {
-      const userWithoutUsername = { ...rawUser, username: null };
+    it('uses the username returned by the API', async () => {
       secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
-      fetchMock().mockResolvedValueOnce(mockResponse(200, userWithoutUsername) as Response);
+      fetchMock().mockResolvedValueOnce(mockResponse(200, rawUser) as Response);
 
       const user = await auth.getUser(true);
 
-      expect(user?.username).toBe('Username not defined');
+      expect(user?.username).toBe('testuser');
     });
 
     it('reuses the in-flight user promise for concurrent callers', async () => {

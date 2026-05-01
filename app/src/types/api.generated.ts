@@ -4785,44 +4785,6 @@ export interface components {
      */
     Unit: 'kg' | 'g' | 'm' | 'cm';
     /**
-     * UserCreate
-     * @description Create schema for users.
-     * @example {
-     *       "email": "user@example.com",
-     *       "password": "fake_password",
-     *       "username": "username"
-     *     }
-     */
-    UserCreate: {
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-      /**
-       * Password
-       * Format: password
-       */
-      password: string;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active: boolean | null;
-      /**
-       * Is Superuser
-       * @default false
-       */
-      is_superuser: boolean | null;
-      /**
-       * Is Verified
-       * @default false
-       */
-      is_verified: boolean | null;
-      /** Username */
-      username?: string | null;
-    };
-    /**
      * UserPreferences
      * @description Typed user preferences persisted as JSONB.
      */
@@ -4907,7 +4869,7 @@ export interface components {
        */
       is_verified: boolean;
       /** Username */
-      username: string;
+      username?: string | null;
       /**
        * Oauth Accounts
        * @description List of linked OAuth accounts.
@@ -4922,12 +4884,50 @@ export interface components {
      */
     UserReadPublic: {
       /** Username */
-      username: string;
+      username?: string | null;
       /**
        * Email
        * Format: email
        */
       email: string;
+    };
+    /**
+     * UserRegister
+     * @description Registration schema for password sign-up.
+     * @example {
+     *       "email": "user@example.com",
+     *       "password": "fake_password",
+     *       "username": "username"
+     *     }
+     */
+    UserRegister: {
+      /**
+       * Email
+       * Format: email
+       */
+      email: string;
+      /**
+       * Password
+       * Format: password
+       */
+      password: string;
+      /**
+       * Is Active
+       * @default true
+       */
+      is_active: boolean | null;
+      /**
+       * Is Superuser
+       * @default false
+       */
+      is_superuser: boolean | null;
+      /**
+       * Is Verified
+       * @default false
+       */
+      is_verified: boolean | null;
+      /** Username */
+      username: string;
     };
     /**
      * UserUpdate
@@ -9006,7 +9006,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UserCreate'];
+        'application/json': components['schemas']['UserRegister'];
       };
     };
     responses: {

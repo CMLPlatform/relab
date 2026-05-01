@@ -252,20 +252,16 @@ describe('Login screen', () => {
     );
   });
 
-  it('redirects to onboarding when user has no username', async () => {
+  it('redirects already-authenticated users without a username to onboarding', async () => {
     const { useAuth } = require('@/context/auth.ts');
     (useAuth as jest.Mock).mockReturnValue({
-      user: mockUser({
-        username: 'Username not defined',
-        email: 'e@example.com',
-        isVerified: false,
-      }),
+      user: mockUser({ username: null, email: 'oauth@example.com' }),
       isLoading: false,
       refetch: mockAuthRefetch,
     });
     renderWithProviders(<Login />, { withDialog: true });
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/onboarding');
+      expect(mockReplace).toHaveBeenCalledWith('/onboarding');
     });
   });
 
@@ -308,6 +304,28 @@ describe('Login screen', () => {
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/profile');
+    });
+  });
+
+  it('routes successful login without username to onboarding before requested redirect', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/profile' });
+    mockedLogin.mockResolvedValue('access-token');
+    mockedGetUser.mockResolvedValueOnce(mockUser({ username: null }));
+
+    renderWithProviders(<Login />, { withDialog: true });
+
+    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Password'),
+      'correct-horse-battery-staple-v42',
+    );
+    await act(async () => {
+      fireEvent.press(screen.getByRole('button', { name: 'Login' }));
+    });
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/onboarding');
+      expect(mockReplace).not.toHaveBeenCalledWith('/profile');
     });
   });
 
@@ -423,6 +441,23 @@ describe('Login screen', () => {
       expect(mockedMarkWebSessionActive).toHaveBeenCalled();
       expect(getUser).toHaveBeenCalledWith(true);
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
+    });
+  });
+
+  it('routes OAuth callback without username to onboarding', async () => {
+    mockPlatform('web');
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      success: 'true',
+      redirectTo: '/profile',
+    });
+    mockedGetUser.mockResolvedValueOnce(mockUser({ username: null, email: 'oauth@example.com' }));
+
+    renderWithProviders(<Login />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(mockedMarkWebSessionActive).toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith('/onboarding');
+      expect(mockReplace).not.toHaveBeenCalledWith('/profile');
     });
   });
 
