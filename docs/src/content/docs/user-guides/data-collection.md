@@ -62,6 +62,8 @@ Attach media in two ways:
 - manual upload of files and images
 - device-assisted capture through the Raspberry Pi camera integration
 
+Use image uploads for ordinary display photos. Use file uploads for research documents and scientific datasets, including hyperspectral ENVI, HDF5, NITF, and GeoTIFF files, so RELab stores the original data without image processing.
+
 If you are using the camera integration, see [RPI camera integration](../rpi-cam/).
 
 ## Final check

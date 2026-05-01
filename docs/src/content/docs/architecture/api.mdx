@@ -32,6 +32,7 @@ For the live schema and request models, use the [interactive API documentation](
 - image/file payloads expose generated `/uploads/*` media URLs, including precomputed thumbnails when available
 - base-product media remains under `/v1/products/{id}/images` and `/v1/products/{id}/files`
 - component media uses `/v1/components/{id}/images` and `/v1/components/{id}/files`
+- hyperspectral datasets use file routes, not image routes, so raw ENVI, HDF5, NITF, and GeoTIFF data is stored without image rewriting
 - videos are base-product-only under `/v1/products/{id}/videos`
 
 ## Product and component resources
