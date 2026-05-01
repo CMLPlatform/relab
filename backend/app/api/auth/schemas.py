@@ -10,6 +10,7 @@ from fastapi_users import schemas as fastapi_users_schemas
 from pydantic import (
     UUID4,
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     EmailStr,
     Field,
@@ -78,10 +79,20 @@ class OrganizationUpdate(BaseUpdateSchema):
 
 ### Users ###
 
-# Validation constraints for username field
-ValidatedUsername = Annotated[
-    str | None, StringConstraints(strip_whitespace=True, pattern=r"^\w+$", min_length=2, max_length=50)
+
+def normalize_username(v: object) -> object:
+    """Normalize username input before applying slug constraints."""
+    if isinstance(v, str):
+        return v.strip().lower()
+    return v
+
+
+ValidatedUsernameValue = Annotated[
+    str,
+    BeforeValidator(normalize_username),
+    StringConstraints(pattern=r"^[a-z0-9_]+$", min_length=2, max_length=50),
 ]
+ValidatedUsername = ValidatedUsernameValue | None
 
 RESERVED_USERNAMES = {
     "me",
