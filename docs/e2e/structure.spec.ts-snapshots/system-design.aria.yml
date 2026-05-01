@@ -89,7 +89,7 @@
   - figure "Terminal window":
     - text: ""
     - region:
-      - code: "app/ ├── api/ │ ├── auth/ # Login, registration, OAuth, users, organizations │ ├── reference_data/ # Taxonomies, categories, materials, product types, units │ ├── data_collection/ # Products, components, search, related properties │ ├── file_storage/ # Uploaded files, images, linked media records │ ├── plugins/ # Optional integrations such as rpi_cam │ └── common/ # Shared routers, helpers, exceptions ├── core/ # Runtime configuration, DB, cache, logging, HTTP clients ├── static/ # Static assets served by the backend └── templates/ # Email and HTML templates"
+      - code: "app/ ├── api/ │ ├── auth/ # Login, registration, OAuth, users │ ├── reference_data/ # Taxonomies, categories, materials, product types, units │ ├── data_collection/ # Products, components, search, related properties │ ├── file_storage/ # Uploaded files, images, linked media records │ ├── plugins/ # Optional integrations such as rpi_cam │ └── common/ # Shared routers, helpers, exceptions ├── core/ # Runtime configuration, DB, cache, logging, HTTP clients ├── static/ # Static assets served by the backend └── templates/ # Email and HTML templates"
     - button "Copy to clipboard"
   - heading "Runtime behavior" [level=2]
   - link "Section titled “Runtime behavior”":
