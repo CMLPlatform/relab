@@ -10,7 +10,7 @@ from relab_rpi_cam_models import DevicePublicKeyJWK
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 
 from app.api.auth.models import User
-from app.api.common.crud.filtering import RelabFilterSet, RelationshipFilterJoin
+from app.api.common.crud.filtering import BaseFilterSet, RelationshipFilterJoin
 from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
 from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.plugins.rpi_cam.examples import CAMERA_CREATE_EXAMPLES, CAMERA_READ_EXAMPLES, CAMERA_UPDATE_EXAMPLES
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from redis.asyncio import Redis
 
 
-class CameraFilter(RelabFilterSet):
+class CameraFilter(BaseFilterSet):
     """FilterSet for Camera filtering."""
 
     filter_model: ClassVar[type[Camera]] = Camera
