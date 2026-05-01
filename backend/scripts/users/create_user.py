@@ -37,7 +37,6 @@ async def create_normal_user(email: str, username: str | None, password: str) ->
                         email=email,
                         username=username or None,
                         password=password,
-                        organization_id=None,
                         is_superuser=False,
                         is_verified=True,
                     ),

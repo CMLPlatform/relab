@@ -4,28 +4,9 @@ from __future__ import annotations
 
 import uuid
 
-from app.api.auth.models import OrganizationRole, User
 from app.api.common.models.enums import Unit
 from app.api.data_collection.models.product import MaterialProductLink, Product
 from tests.factories.models import ProductFactory
-
-
-def test_user_organization_owner_property_tracks_mutations() -> None:
-    """Derived role flags should reflect the latest field value."""
-    user = User(
-        email="user@example.com",
-        hashed_password="hashed",
-        is_active=True,
-        is_superuser=False,
-        is_verified=True,
-        organization_role=None,
-    )
-
-    assert user.is_organization_owner is False
-
-    user.organization_role = OrganizationRole.OWNER
-
-    assert user.is_organization_owner is True
 
 
 def test_physical_properties_volume_tracks_dimension_updates() -> None:

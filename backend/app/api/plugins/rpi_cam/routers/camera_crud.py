@@ -14,7 +14,7 @@ from app.api.common.crud.filtering import apply_filter
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam import crud
-from app.api.plugins.rpi_cam.dependencies import CameraFilterDep, CameraTransferOwnerIDDep, UserOwnedCameraDep
+from app.api.plugins.rpi_cam.dependencies import CameraFilterDep, UserOwnedCameraDep
 from app.api.plugins.rpi_cam.device_assertion import AuthenticatedCameraDep
 from app.api.plugins.rpi_cam.examples import (
     CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
@@ -156,10 +156,9 @@ async def update_user_camera(
     session: AsyncSessionDep,
     db_camera: UserOwnedCameraDep,
     camera_in: CameraUpdate,
-    transfer_owner_id: CameraTransferOwnerIDDep,
 ) -> Camera:
     """Update Raspberry Pi camera."""
-    return await crud.update_camera(session, db_camera, camera_in, new_owner_id=transfer_owner_id)
+    return await crud.update_camera(session, db_camera, camera_in)
 
 
 @camera_router.delete("/{camera_id}", summary="Delete Raspberry Pi camera", status_code=204)

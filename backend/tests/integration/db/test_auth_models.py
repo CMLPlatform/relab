@@ -7,17 +7,13 @@ from typing import TYPE_CHECKING
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.api.auth.models import OrganizationRole
-from tests.factories.models import OrganizationFactory, UserFactory
+from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
 pytestmark = pytest.mark.db
-
-TEST_EMAIL = "test@example.com"
-TEST_USERNAME = "testuser"
 
 
 async def test_email_uniqueness_is_enforced(db_session: AsyncSession) -> None:
@@ -46,34 +42,3 @@ async def test_username_uniqueness_ignores_null_values(db_session: AsyncSession)
             username="uniqueuser",
             hashed_password="hashed4",
         )
-
-
-async def test_user_can_join_and_leave_organization(db_session: AsyncSession) -> None:
-    """Users should be able to gain and lose organization membership cleanly."""
-    owner = await UserFactory.create_async(db_session, email="owner@example.com", hashed_password="hashed")
-    organization = await OrganizationFactory.create_async(db_session, name="Test Org", owner_id=owner.id)
-    user = await UserFactory.create_async(
-        db_session,
-        email=TEST_EMAIL,
-        hashed_password="hashed",
-        organization_id=organization.id,
-        organization_role=OrganizationRole.MEMBER,
-    )
-
-    assert user.organization_id == organization.id
-    assert user.organization_role == OrganizationRole.MEMBER
-
-    user.organization_id = None
-    user.organization_role = None
-    db_session.add(user)
-    await db_session.flush()
-    await db_session.refresh(user)
-
-    assert user.organization_id is None
-    assert user.organization_role is None
-
-
-def test_organization_role_enum_values_match_storage_strings() -> None:
-    """Enum values should stay aligned with the stored string values."""
-    assert OrganizationRole.OWNER.value == "owner"
-    assert OrganizationRole.MEMBER.value == "member"

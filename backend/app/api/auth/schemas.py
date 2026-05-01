@@ -8,7 +8,6 @@ from typing import Annotated
 
 from fastapi_users import schemas as fastapi_users_schemas
 from pydantic import (
-    UUID4,
     BaseModel,
     BeforeValidator,
     ConfigDict,
@@ -20,61 +19,17 @@ from pydantic import (
 )
 
 from app.api.auth.examples import (
-    ORGANIZATION_CREATE_EXAMPLES,
     REFRESH_TOKEN_REQUEST_EXAMPLES,
     REFRESH_TOKEN_RESPONSE_EXAMPLES,
     USER_CREATE_EXAMPLES,
-    USER_CREATE_WITH_ORGANIZATION_EXAMPLES,
     USER_READ_EXAMPLES,
     USER_UPDATE_EXAMPLES,
 )
-from app.api.auth.models import OrganizationBase, UserBase
+from app.api.auth.models import UserBase
 from app.api.auth.preferences import UserPreferences, UserPreferencesUpdate
 from app.api.auth.profile_stats import ProfileStatsData
-from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
 
 # Note: These auth schemas stay together to avoid circular imports during model/schema construction.
-
-
-### Organizations ###
-class OrganizationCreate(BaseCreateSchema, OrganizationBase):
-    """Create schema for organizations."""
-
-    model_config = ConfigDict(json_schema_extra={"examples": ORGANIZATION_CREATE_EXAMPLES})
-
-
-class OrganizationReadPublic(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
-    """Read schema for organizations."""
-
-
-class OrganizationRead(OrganizationBase):
-    """Public read schema for organizations."""
-
-    owner_id: UUID4 = Field(description="ID of the organization owner.")
-
-
-class OrganizationReadWithRelationshipsPublic(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
-    """Read schema for organizations, including relationships."""
-
-    members: list[UserReadPublic] = Field(default_factory=list, description="List of users in the organization.")
-
-
-class OrganizationReadWithRelationships(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
-    """Read schema for organizations, including relationships."""
-
-    members: list[UserRead] = Field(default_factory=list, description="List of users in the organization.")
-
-
-class OrganizationUpdate(BaseUpdateSchema):
-    """Update schema for organizations."""
-
-    name: str | None = Field(default=None, min_length=2, max_length=100)
-    location: str | None = Field(default=None, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
-    owner_id: UUID4 | None = Field(
-        default=None,
-        description="ID of the member who should become the new owner.",
-    )
 
 
 ### Users ###
@@ -136,19 +91,9 @@ class UserCreateBase(UserBase, fastapi_users_schemas.BaseUserCreate):
 
 
 class UserCreate(UserCreateBase):
-    """Create schema for users, optionally with organization to join."""
+    """Create schema for users."""
 
-    organization_id: UUID4 | None = None
-
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_CREATE_EXAMPLES})
-
-
-class UserCreateWithOrganization(UserCreateBase):
-    """Create schema for users with organization to create and own."""
-
-    organization: OrganizationCreate
-
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_CREATE_WITH_ORGANIZATION_EXAMPLES})
+    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
 
 
 class OAuthAccountRead(BaseModel):
@@ -212,12 +157,6 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_READ_EXAMPLES})
 
 
-class UserReadWithOrganization(UserRead):
-    """Read schema for users with organization."""
-
-    organization: OrganizationRead | None = Field(default=None, description="Organization the user belongs to.")
-
-
 class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
     """Update schema for users."""
 
@@ -241,8 +180,6 @@ class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
             return UserPreferencesUpdate.model_validate(value)
         return value
 
-    organization_id: UUID4 | None = None
-
     # Override password field to include password format in JSON schema
     password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=12)
     current_password: SecretStr | None = Field(
@@ -256,7 +193,7 @@ class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
         description="User preferences (partial merge).",
     )
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
+    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
 
     def create_update_dict(self) -> dict:
         """Return FastAPI-Users update data without reauthentication-only fields."""

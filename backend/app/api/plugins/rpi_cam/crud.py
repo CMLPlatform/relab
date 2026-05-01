@@ -24,15 +24,6 @@ async def update_camera(
     db: AsyncSession,
     db_camera: Camera,
     camera_in: CameraUpdate,
-    *,
-    new_owner_id: UUID4 | None = None,
 ) -> Camera:
     """Update an existing camera."""
-    camera_data = camera_in.model_dump(exclude_unset=True)
-    camera_data.pop("owner_id", None)
-
-    if new_owner_id is not None:
-        db_camera.owner_id = new_owner_id
-
-    camera_in_without_owner = CameraUpdate.model_validate(camera_data)
-    return await update_and_commit(db, db_camera, camera_in_without_owner)
+    return await update_and_commit(db, db_camera, camera_in)

@@ -1,4 +1,4 @@
-"""Admin router integration tests for user and organization management."""
+"""Admin router integration tests for user management."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import status
 
-from tests.factories.models import OrganizationFactory, UserFactory
+from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
@@ -86,85 +86,4 @@ class TestAdminUserRouters:
         response = await api_client.get("/v1/admin/users")
 
         # Without authentication, should be 403 or similar (depends on auth middleware)
-        assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
-
-
-class TestAdminOrganizationRouters:
-    """Integration tests for admin organization management endpoints."""
-
-    async def test_get_all_organizations_as_superuser(
-        self, api_client_superuser_light: AsyncClient, db_session: AsyncSession, db_superuser: User
-    ) -> None:
-        """Superuser can list all organizations."""
-        org1 = await OrganizationFactory.create_async(
-            db_session, name="Org1", location="Location1", owner_id=db_superuser.id
-        )
-        org2 = await OrganizationFactory.create_async(
-            db_session, name="Org2", location="Location2", owner_id=db_superuser.id
-        )
-
-        response = await api_client_superuser_light.get("/v1/admin/organizations")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["total"] >= 2
-        assert len(data["items"]) >= 2
-        org_names = [o["name"] for o in data["items"]]
-        org_ids = [o["id"] for o in data["items"]]
-        assert str(org1.id) in org_ids
-        assert str(org2.id) in org_ids
-        assert "Org1" in org_names
-        assert "Org2" in org_names
-
-    async def test_get_all_organizations_with_relationships(
-        self, api_client_superuser_light: AsyncClient, db_session: AsyncSession, db_superuser: User
-    ) -> None:
-        """Organization list includes members relationship."""
-        org = await OrganizationFactory.create_async(db_session, name="OrgWithMembers", owner_id=db_superuser.id)
-        user1 = await UserFactory.create_async(
-            db_session, email="member1@example.com", username="member1", organization_id=org.id
-        )
-        user2 = await UserFactory.create_async(
-            db_session, email="member2@example.com", username="member2", organization_id=org.id
-        )
-
-        response = await api_client_superuser_light.get("/v1/admin/organizations")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        # Find our org in the list
-        org_data = next((o for o in data["items"] if o["name"] == "OrgWithMembers"), None)
-        assert org_data is not None
-        assert "members" in org_data
-        assert len(org_data["members"]) >= 2
-        member_emails = [m["email"] for m in org_data["members"]]
-        assert user1.email in member_emails
-        assert user2.email in member_emails
-
-    async def test_get_organization_by_id_with_relationships(
-        self, api_client_superuser_light: AsyncClient, db_session: AsyncSession, db_superuser: User
-    ) -> None:
-        """Superuser can retrieve organization with members."""
-        org = await OrganizationFactory.create_async(
-            db_session, name="TestOrg", location="TestLoc", owner_id=db_superuser.id
-        )
-        member = await UserFactory.create_async(
-            db_session, email="org_member@example.com", username="org_member", organization_id=org.id
-        )
-
-        response = await api_client_superuser_light.get(f"/v1/admin/organizations/{org.id}")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["id"] == str(org.id)
-        assert data["name"] == "TestOrg"
-        assert "members" in data
-        member_emails = [m["email"] for m in data["members"]]
-        assert member.email in member_emails
-        assert "org_member@example.com" in member_emails
-
-    async def test_admin_organizations_requires_superuser(self, api_client: AsyncClient) -> None:
-        """Admin organization endpoints require superuser role."""
-        response = await api_client.get("/v1/admin/organizations")
-
         assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)

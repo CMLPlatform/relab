@@ -28,3 +28,16 @@ def test_reserved_usernames_are_rejected_after_normalization() -> None:
     """Reserved usernames should be checked after case and whitespace normalization."""
     with pytest.raises(ValidationError, match="reserved username"):
         UserCreate(email="test@example.com", password=VALID_PASSWORD, username="  Admin  ")
+
+
+@pytest.mark.parametrize("field_name", ["organization_id", "organization"])
+def test_user_create_rejects_removed_organization_fields(field_name: str) -> None:
+    """Organization signup fields are no longer part of the user creation schema."""
+    with pytest.raises(ValidationError, match=field_name):
+        UserCreate(email="test@example.com", password=VALID_PASSWORD, **{field_name: "removed"})
+
+
+def test_user_update_rejects_removed_organization_id() -> None:
+    """User updates can no longer change organization membership."""
+    with pytest.raises(ValidationError, match="organization_id"):
+        UserUpdate(organization_id="1fa85f64-5717-4562-b3fc-2c963f66afa6")

@@ -89,16 +89,16 @@ async def test_update_camera(db_session: AsyncSession, db_superuser: User) -> No
     assert camera.relay_credential_status == CameraCredentialStatus.REVOKED
 
 
-async def test_update_camera_applies_validated_owner_transfer() -> None:
-    """CRUD applies an owner change once the router has already validated it."""
+async def test_update_camera_does_not_change_owner() -> None:
+    """Camera updates no longer carry public ownership transfer data."""
     mock_session = AsyncMock()
     mock_session.add = MagicMock()
-    camera = build_camera(owner_id=uuid.uuid4())
-    new_owner_id = uuid.uuid4()
-    update_data = CameraUpdate.model_validate({"owner_id": new_owner_id, "relay_key_id": NEW_KEY_ID})
+    owner_id = uuid.uuid4()
+    camera = build_camera(owner_id=owner_id)
+    update_data = CameraUpdate.model_validate({"relay_key_id": NEW_KEY_ID})
 
-    updated_camera = await update_camera(mock_session, camera, update_data, new_owner_id=new_owner_id)
+    updated_camera = await update_camera(mock_session, camera, update_data)
 
-    assert updated_camera.owner_id == new_owner_id
+    assert updated_camera.owner_id == owner_id
     assert updated_camera.relay_key_id == NEW_KEY_ID
     mock_session.commit.assert_awaited_once()

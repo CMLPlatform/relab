@@ -68,13 +68,6 @@ class CameraProxyRequestError(ServiceUnavailableError):
         super().__init__(f"Network error contacting camera: {endpoint}", details=details)
 
 
-class InvalidCameraOwnershipTransferError(BadRequestError):
-    """Raised when a camera ownership transfer payload is invalid."""
-
-    def __init__(self) -> None:
-        super().__init__("owner_id must reference an existing user in the same organization.")
-
-
 # ── Pairing exceptions ───────────────────────────────────────────────────────
 
 

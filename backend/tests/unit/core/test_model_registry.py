@@ -98,7 +98,7 @@ class TestMapperWithRegistry:
         load_models()
         configure_mappers()
 
-        from app.api.auth.models import Organization, User
+        from app.api.auth.models import User
         from app.api.data_collection.models.product import (
             MaterialProductLink,
             Product,
@@ -109,7 +109,6 @@ class TestMapperWithRegistry:
 
         for model in [
             User,
-            Organization,
             Taxonomy,
             Category,
             Material,

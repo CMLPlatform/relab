@@ -15,7 +15,7 @@ from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from app.api.auth.crud.users import get_user_by_username, validate_user_create
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import OAuthAccount, User
-from app.api.auth.schemas import OrganizationCreate, UserCreate, UserCreateWithOrganization
+from app.api.auth.schemas import UserCreate
 from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.common.exceptions import NotFoundError
 from tests.factories.models import UserFactory
@@ -87,20 +87,14 @@ class TestValidateUserCreate:
 
         assert result.email == user_create.email
 
-    async def test_converts_user_create_with_org_to_user_create(self, db_session: AsyncSession) -> None:
-        """UserCreateWithOrganization must be reduced to a plain UserCreate (org handled post-creation)."""
-        user_db = _make_user_db(db_session)
-        user_create = UserCreateWithOrganization(
-            email="orgfounder@example.com",
-            password=VALID_TEST_PASSWORD,
-            organization=OrganizationCreate(name="CircularTech", location="Berlin"),
-        )
-
-        result = await validate_user_create(user_db, user_create)
-
-        assert isinstance(result, UserCreate)
-        assert not isinstance(result, UserCreateWithOrganization)
-        assert result.email == "orgfounder@example.com"
+    def test_rejects_removed_organization_fields(self) -> None:
+        """User creation no longer accepts organization fields."""
+        with pytest.raises(ValueError, match="organization"):
+            UserCreate(
+                email="orgfounder@example.com",
+                password=VALID_TEST_PASSWORD,
+                organization_id="1fa85f64-5717-4562-b3fc-2c963f66afa6",
+            )
 
 
 class TestUserDatabaseEmailLookup:
