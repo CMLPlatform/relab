@@ -102,6 +102,24 @@ class TestValidateUserCreate:
         assert result.email == "orgfounder@example.com"
 
 
+class TestUserDatabaseEmailLookup:
+    """User email lookup uses the shared canonical identity key."""
+
+    async def test_get_by_email_matches_canonical_equivalent(self, db_session: AsyncSession) -> None:
+        """Different casing should resolve to the same stored user."""
+        user = await UserFactory.create_async(
+            db_session,
+            email="Researcher.Name@Example.COM",
+            username="canonical_lookup",
+        )
+        user_db = _make_user_db(db_session)
+
+        result = await user_db.get_by_email("researcher.name@example.com")
+
+        assert result is not None
+        assert result.id == user.id
+
+
 class TestGetUserByUsername:
     """get_user_by_username returns the user or raises NotFoundError."""
 
