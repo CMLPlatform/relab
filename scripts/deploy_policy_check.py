@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Validate RELab deploy secrets and Compose network policy."""
+"""Validate RELab-specific rendered Compose policy.
+
+Generic Dockerfile, GitHub Actions, dependency, and source-code checks belong
+to Trivy, actionlint, Zizmor, dependency review, and CodeQL. Keep this script
+focused on RELab invariants that only exist after Compose overlays are rendered:
+network exposure, service isolation, runtime hardening, image pinning, and
+secret access.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +14,8 @@ import argparse
 import json
 from pathlib import Path
 from typing import Any
+
+LOCAL_IMAGE_PREFIXES = ("relab-",)
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -51,6 +60,34 @@ def network_names(service_config: dict[str, Any]) -> set[str]:
     if isinstance(networks, dict):
         return set(networks)
     return set(networks)
+
+
+def image_tag(image: str) -> str | None:
+    """Return the image tag, or None when the image uses Docker's implicit latest tag."""
+    image_name = image.split("@", 1)[0]
+    last_path_part = image_name.rsplit("/", 1)[-1]
+    if ":" not in last_path_part:
+        return None
+    return last_path_part.rsplit(":", 1)[1]
+
+
+def is_local_relab_image(image: str) -> bool:
+    """Return whether an image is built locally by the RELab deploy stack."""
+    image_name = image.split("/", 1)[0]
+    return image_name.startswith(LOCAL_IMAGE_PREFIXES)
+
+
+def assert_deploy_service_image_policy(service_config: dict[str, Any], label: str, service_name: str) -> None:
+    """Assert that deploy service images are stable and pinned where needed."""
+    image = str(service_config.get("image") or "")
+    tag = image_tag(image)
+    has_digest = "@sha256:" in image
+    if tag == "latest" or (tag is None and not has_digest):
+        msg = f"{label}: {service_name} must not use the latest image tag"
+        raise AssertionError(msg)
+    if not is_local_relab_image(image) and not has_digest:
+        msg = f"{label}: {service_name} external image must be digest-pinned"
+        raise AssertionError(msg)
 
 
 def assert_no_host_ports(config: dict[str, Any], label: str, service_name: str) -> None:
@@ -155,6 +192,8 @@ def check_compose_policy(compose_configs: dict[str, Path]) -> None:
             assert_networks(config, label, service_name, required={"data"}, forbidden={"edge"})
         assert_networks(config, label, "relab-backup", required={"data"}, forbidden={"edge"})
         assert_networks(config, label, "api", required={"edge", "data"}, forbidden=set())
+        for service_name in config.get("services") or {}:
+            assert_deploy_service_image_policy(service(config, service_name, label), label, service_name)
         for service_name in ("api", "migrator", "docs", "app", "www", "relab-backup"):
             assert_hardened_runtime_service(config, label, service_name)
 
