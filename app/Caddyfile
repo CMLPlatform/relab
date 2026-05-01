@@ -14,7 +14,7 @@
 		# Prevent MIME-type sniffing
 		X-Content-Type-Options "nosniff"
 		# Force HTTPS on subsequent visits
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		# Restrict referrer information
 		Referrer-Policy "strict-origin-when-cross-origin"
 		# Content Security Policy

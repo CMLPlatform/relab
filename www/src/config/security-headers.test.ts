@@ -6,6 +6,10 @@ import { describe, expect, it } from 'vitest';
 
 const ENFORCED_CSP_PATTERN = /^\s*Content-Security-Policy\s+"([^"]+)"/m;
 const REPORT_ONLY_CSP_PATTERN = /^\s*Content-Security-Policy-Report-Only\s+"([^"]+)"/m;
+const HSTS_POLICY = 'max-age=63072000; includeSubDomains';
+const HSTS_PATTERN = /^\s*Strict-Transport-Security\s+"([^"]+)"/m;
+const REFERRER_POLICY_PATTERN = /^\s*Referrer-Policy\s+"([^"]+)"/m;
+const CONTENT_TYPE_OPTIONS_PATTERN = /^\s*X-Content-Type-Options\s+"([^"]+)"/m;
 
 function readCaddyfile(relativePath: string) {
   return readFileSync(resolve(import.meta.dirname, relativePath), 'utf8');
@@ -27,6 +31,30 @@ function reportOnlyCsp(caddyfile: string) {
   return match[1];
 }
 
+function hsts(caddyfile: string) {
+  const match = caddyfile.match(HSTS_PATTERN);
+  if (!match) {
+    throw new Error('Missing Strict-Transport-Security header');
+  }
+  return match[1];
+}
+
+function referrerPolicy(caddyfile: string) {
+  const match = caddyfile.match(REFERRER_POLICY_PATTERN);
+  if (!match) {
+    throw new Error('Missing Referrer-Policy header');
+  }
+  return match[1];
+}
+
+function contentTypeOptions(caddyfile: string) {
+  const match = caddyfile.match(CONTENT_TYPE_OPTIONS_PATTERN);
+  if (!match) {
+    throw new Error('Missing X-Content-Type-Options header');
+  }
+  return match[1];
+}
+
 function cspDirective(policy: string, directive: string) {
   return (
     policy
@@ -37,6 +65,21 @@ function cspDirective(policy: string, directive: string) {
 }
 
 describe('Caddy security headers', () => {
+  it.each([
+    ['www', readCaddyfile('../../Caddyfile')],
+    ['docs', readCaddyfile('../../../docs/Caddyfile')],
+  ])('%s sets the deployed OWASP HSTS policy', (_name, caddyfile) => {
+    expect(hsts(caddyfile)).toBe(HSTS_POLICY);
+  });
+
+  it.each([
+    ['www', readCaddyfile('../../Caddyfile')],
+    ['docs', readCaddyfile('../../../docs/Caddyfile')],
+  ])('%s sets the browser baseline headers recommended by OWASP', (_name, caddyfile) => {
+    expect(contentTypeOptions(caddyfile)).toBe('nosniff');
+    expect(referrerPolicy(caddyfile)).toBe('strict-origin-when-cross-origin');
+  });
+
   it.each([
     ['www', readCaddyfile('../../Caddyfile')],
     ['docs', readCaddyfile('../../../docs/Caddyfile')],

@@ -12,7 +12,7 @@
 
 	header {
 		X-Content-Type-Options "nosniff"
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		# Starlight currently emits inline page styles/scripts. The report-only
 		# policy tracks the stricter target before enforcement.
