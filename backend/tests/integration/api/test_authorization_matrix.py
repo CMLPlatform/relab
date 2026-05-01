@@ -1,4 +1,7 @@
-"""Representative authorization matrix tests for API route classes."""
+"""Representative authorization matrix tests for API route classes.
+
+Inspired by the OWASP ASVS Authorization Testing Automation guidelines.
+"""
 
 from __future__ import annotations
 

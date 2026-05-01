@@ -301,7 +301,7 @@ describe('Fetching API Service logic', () => {
       expect(products.pages).toBe(0);
     });
 
-    it('sends multiple brands as a single comma-separated brand__in param', async () => {
+    it('sends multiple brands as a single comma-separated brand[in] param', async () => {
       let capturedUrl: URL | undefined;
       server.use(
         http.get(`${API_URL}/products`, ({ request }) => {
@@ -312,8 +312,8 @@ describe('Fetching API Service logic', () => {
 
       await allProducts(1, 50, undefined, undefined, ['Dell', 'Apple']);
 
-      expect(capturedUrl?.searchParams.get('brand__in')).toBe('Dell,Apple');
-      expect(capturedUrl?.searchParams.getAll('brand__in')).toHaveLength(1);
+      expect(capturedUrl?.searchParams.get('brand[in]')).toBe('Dell,Apple');
+      expect(capturedUrl?.searchParams.getAll('brand[in]')).toHaveLength(1);
     });
 
     it('sends multiple orderBy values as a single comma-separated order_by param', async () => {
@@ -325,9 +325,9 @@ describe('Fetching API Service logic', () => {
         }),
       );
 
-      await allProducts(1, 50, undefined, ['-created_at', 'name']);
+      await allProducts(1, 50, undefined, ['-created_at', '+name']);
 
-      expect(capturedUrl?.searchParams.get('order_by')).toBe('-created_at,name');
+      expect(capturedUrl?.searchParams.get('order_by')).toBe('-created_at,+name');
       expect(capturedUrl?.searchParams.getAll('order_by')).toHaveLength(1);
     });
 
@@ -345,11 +345,11 @@ describe('Fetching API Service logic', () => {
         'Furniture',
       ]);
 
-      expect(capturedUrl?.searchParams.get('product_type__name__in')).toBe('Electronics,Furniture');
-      expect(capturedUrl?.searchParams.getAll('product_type__name__in')).toHaveLength(1);
+      expect(capturedUrl?.searchParams.get('product_type_name[in]')).toBe('Electronics,Furniture');
+      expect(capturedUrl?.searchParams.getAll('product_type_name[in]')).toHaveLength(1);
     });
 
-    it('omits brand__in, order_by, and product_type__name__in when arrays are empty', async () => {
+    it('omits brand[in], order_by, and product_type_name[in] when arrays are empty', async () => {
       let capturedUrl: URL | undefined;
       server.use(
         http.get(`${API_URL}/products`, ({ request }) => {
@@ -360,9 +360,9 @@ describe('Fetching API Service logic', () => {
 
       await allProducts(1, 50, undefined, [], [], undefined, []);
 
-      expect(capturedUrl?.searchParams.has('brand__in')).toBe(false);
+      expect(capturedUrl?.searchParams.has('brand[in]')).toBe(false);
       expect(capturedUrl?.searchParams.has('order_by')).toBe(false);
-      expect(capturedUrl?.searchParams.has('product_type__name__in')).toBe(false);
+      expect(capturedUrl?.searchParams.has('product_type_name[in]')).toBe(false);
     });
 
     it('throws on HTTP error', async () => {
@@ -424,7 +424,7 @@ describe('Fetching API Service logic', () => {
       expect(products.pages).toBe(1);
     });
 
-    it('sends multiple brands as a single comma-separated brand__in param', async () => {
+    it('sends multiple brands as a single comma-separated brand[in] param', async () => {
       jest.mocked(getToken).mockResolvedValueOnce('test-token');
       let capturedUrl: URL | undefined;
       server.use(
@@ -437,8 +437,8 @@ describe('Fetching API Service logic', () => {
       await myProducts(1, 50, undefined, undefined, ['Dell', 'Apple']);
 
       expect(capturedUrl?.searchParams.get('owner')).toBe('me');
-      expect(capturedUrl?.searchParams.get('brand__in')).toBe('Dell,Apple');
-      expect(capturedUrl?.searchParams.getAll('brand__in')).toHaveLength(1);
+      expect(capturedUrl?.searchParams.get('brand[in]')).toBe('Dell,Apple');
+      expect(capturedUrl?.searchParams.getAll('brand[in]')).toHaveLength(1);
     });
 
     it('throws on non-401 HTTP error', async () => {
