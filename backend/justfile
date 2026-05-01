@@ -46,7 +46,7 @@ typecheck:
 # Run the fast backend quality gate (no database required)
 check: lint typecheck
     uv run ruff format --check
-    @echo "✓ Backend checks passed"
+    @echo "✅ Backend checks passed"
 
 # ============================================================================
 # Testing
@@ -88,7 +88,7 @@ test-ci:
 
 # Run the full backend CI pipeline locally
 ci: check test-ci
-    @echo "✓ Backend CI pipeline passed"
+    @echo "✅ Backend CI pipeline passed"
 
 # ============================================================================
 # Database & Migrations

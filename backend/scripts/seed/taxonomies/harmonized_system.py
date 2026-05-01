@@ -118,7 +118,7 @@ def seed_taxonomy() -> None:
         # Commit
         session.commit()
         logger.info(
-            "✓ Added %s taxonomy (version %s) with %d categories and %d relationships",
+            "✅ Added %s taxonomy (version %s) with %d categories and %d relationships",
             TAXONOMY_NAME,
             TAXONOMY_VERSION,
             cat_count,

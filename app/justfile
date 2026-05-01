@@ -30,7 +30,7 @@ typecheck:
 
 # Run the app quality gate
 check: lint typecheck
-    @echo "✓ Frontend-app checks passed"
+    @echo "✅ Frontend-app checks passed"
 
 # Auto-format code
 format:
@@ -58,7 +58,7 @@ test-ci:
 
 # Run the full app CI pipeline locally
 ci: check test-ci
-    @echo "✓ Frontend-app CI pipeline passed"
+    @echo "✅ Frontend-app CI pipeline passed"
 
 # Start dev server
 dev PORT="8081":
@@ -104,4 +104,4 @@ clean:
 codegen PORT="8011":
     @echo "Generating TypeScript API types and redacting JWT examples (backend at http://localhost:{{PORT}})..."
     EXPO_PUBLIC_API_URL=http://localhost:{{PORT}} pnpm run codegen
-    @echo "✓ Generated src/types/api.generated.ts (redacted)"
+    @echo "✅ Generated src/types/api.generated.ts (redacted)"

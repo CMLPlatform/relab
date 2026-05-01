@@ -36,7 +36,7 @@ build:
 # Run quality checks that also validate the docs build pipeline
 check: lint typecheck
     pnpm run build:test
-    @echo "✓ Docs checks passed"
+    @echo "✅ Docs checks passed"
 
 # Auto-format docs code and markdown
 format:
@@ -60,7 +60,7 @@ test-ci:
 
 # Run the full docs CI pipeline locally
 ci: check test-ci
-    @echo "✓ Docs CI pipeline passed"
+    @echo "✅ Docs CI pipeline passed"
 
 # Scan dependencies for known vulnerabilities
 audit:
