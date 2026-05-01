@@ -6,6 +6,7 @@ const HSTS_POLICY = 'max-age=63072000; includeSubDomains';
 const HSTS_PATTERN = /^\s*Strict-Transport-Security\s+"([^"]+)"/m;
 const REFERRER_POLICY_PATTERN = /^\s*Referrer-Policy\s+"([^"]+)"/m;
 const CONTENT_TYPE_OPTIONS_PATTERN = /^\s*X-Content-Type-Options\s+"([^"]+)"/m;
+const PERMISSIONS_POLICY_PATTERN = /^\s*Permissions-Policy\s+"([^"]+)"/m;
 const ENFORCED_CSP_PATTERN = /^\s*Content-Security-Policy\s+"([^"]+)"/m;
 const REPORT_ONLY_CSP_PATTERN = /^\s*Content-Security-Policy-Report-Only\s+"([^"]+)"/m;
 const RESET_PASSWORD_REFERRER_POLICY_PATTERN =
@@ -51,6 +52,14 @@ function contentTypeOptions() {
   return match[1];
 }
 
+function permissionsPolicy() {
+  const match = caddyfile.match(PERMISSIONS_POLICY_PATTERN);
+  if (!match) {
+    throw new Error('Missing Permissions-Policy header');
+  }
+  return match[1];
+}
+
 describe('Caddy security headers', () => {
   it('sets the deployed OWASP HSTS policy', () => {
     expect(hsts()).toBe(HSTS_POLICY);
@@ -59,6 +68,10 @@ describe('Caddy security headers', () => {
   it('sets the browser baseline headers recommended by OWASP', () => {
     expect(contentTypeOptions()).toBe('nosniff');
     expect(referrerPolicy()).toBe('strict-origin-when-cross-origin');
+  });
+
+  it('allows only the browser capability the app intentionally uses', () => {
+    expect(permissionsPolicy()).toBe('camera=(self)');
   });
 
   it('allows only the intended YouTube embed origin for frames', () => {
