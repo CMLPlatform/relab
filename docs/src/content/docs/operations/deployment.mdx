@@ -66,6 +66,16 @@ just docker-smoke
 
 Focused subrepo work should use the subrepo `justfile`.
 
+## Transport security
+
+Production and staging are HTTPS-only behind Cloudflare Tunnel. Every deployed browser-facing origin emits:
+
+```http
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+```
+
+Static frontends set this in Caddy; the API sets it from FastAPI in `prod` and `staging`. `preload` is intentionally omitted until the full `cml-relab.org` subdomain inventory is verified.
+
 ## Deploy flow
 
 For a new host, clone the repo, create the root `.env`, create the backend runtime env file, then start the deploy stack and run migrations:
