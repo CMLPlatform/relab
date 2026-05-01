@@ -1512,12 +1512,7 @@ export interface paths {
     put?: never;
     /**
      * Register a new user
-     * @description Register a new user with optional organization creation or joining.
-     *
-     *     Supports two registration modes:
-     *     - With organization creation: User creates and owns a new organization
-     *     - With organization joining: User joins an existing organization as a member
-     *     - No organization: User registers without an organization
+     * @description Register a new user.
      */
     post: operations['register_v1_auth_register_post'];
     delete?: never;
@@ -1638,7 +1633,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Reset:Forgot Password */
+    /**
+     * Reset:Forgot Password
+     * @description Start a forgot-password request without revealing whether the account exists.
+     */
     post: operations['reset_forgot_password_v1_auth_forgot_password_post'];
     delete?: never;
     options?: never;
@@ -1655,7 +1653,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Reset:Reset Password */
+    /**
+     * Reset:Reset Password
+     * @description Reset a password while preserving FastAPI-Users' public error contract.
+     */
     post: operations['reset_reset_password_v1_auth_reset_password_post'];
     delete?: never;
     options?: never;
@@ -1677,90 +1678,6 @@ export interface paths {
     get: operations['validate_email_v1_auth_validate_email_get'];
     put?: never;
     post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/organizations': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * View all organizations
-     * @description Get a list of all organizations with optional filtering.
-     */
-    get: operations['get_organizations_v1_organizations_get'];
-    put?: never;
-    /**
-     * Create new organization
-     * @description Create new organization with current user as owner.
-     */
-    post: operations['create_organization_v1_organizations_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/organizations/{organization_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * View a single organization
-     * @description Get an organization by ID.
-     */
-    get: operations['get_organization_v1_organizations__organization_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/organizations/{organization_id}/members': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get the members of an organization
-     * @description Get the members of an organization.
-     */
-    get: operations['get_organization_members_v1_organizations__organization_id__members_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/organizations/{organization_id}/members/me': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Join organization
-     * @description Join an organization as a member.
-     */
-    post: operations['join_organization_v1_organizations__organization_id__members_me_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2123,74 +2040,6 @@ export interface paths {
     patch: operations['users_patch_user_v1_users__id__patch'];
     trace?: never;
   };
-  '/v1/users/me/organization': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get the organization of the current user
-     * @description Get the organization of the current user.
-     */
-    get: operations['get_user_organization_v1_users_me_organization_get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete your organization as owner
-     * @description Delete organization as owner. Fails if organization has members.
-     */
-    delete: operations['delete_my_organization_v1_users_me_organization_delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update your organization
-     * @description Update organization as owner.
-     */
-    patch: operations['update_organization_v1_users_me_organization_patch'];
-    trace?: never;
-  };
-  '/v1/users/me/organization/members': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get the members of the organization of the current user
-     * @description Get the members of the organization of the current user.
-     */
-    get: operations['get_user_organization_members_v1_users_me_organization_members_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/users/me/organization/membership': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Leave current organization
-     * @description Leave current organization. Cannot be used by organization owner.
-     */
-    delete: operations['leave_organization_v1_users_me_organization_membership_delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/v1/users/{identifier}/profile': {
     parameters: {
       query?: never;
@@ -2209,50 +2058,6 @@ export interface paths {
     put?: never;
     post?: never;
     delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/admin/organizations': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get all organizations with all relationships
-     * @description Get all organizations with all relationships loaded. Only superusers can access this route.
-     */
-    get: operations['get_all_organizations_v1_admin_organizations_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/admin/organizations/{organization_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get organization by ID with all relationships
-     * @description Get organization by ID with all relationships loaded. Only superusers can access this route.
-     */
-    get: operations['get_organization_with_relationships_v1_admin_organizations__organization_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete organization by ID
-     * @description Delete organization by ID. Only superusers can access this route.
-     */
-    delete: operations['delete_organization_v1_admin_organizations__organization_id__delete'];
     options?: never;
     head?: never;
     patch?: never;
@@ -3113,11 +2918,6 @@ export interface components {
       name?: string | null;
       /** Description */
       description?: string | null;
-      /**
-       * Owner Id
-       * @description Transfer ownership to an existing user in the same organization as the current owner.
-       */
-      owner_id?: string | null;
       relay_public_key_jwk?: components['schemas']['RelayPublicKeyJWK'] | null;
       /** Relay Key Id */
       relay_key_id?: string | null;
@@ -4156,105 +3956,6 @@ export interface components {
       /** Expires In */
       expires_in: number;
     };
-    /**
-     * OrganizationCreate
-     * @description Create schema for organizations.
-     * @example {
-     *       "description": "Research group for product teardown and circularity analysis",
-     *       "location": "Leiden",
-     *       "name": "Reverse Engineering Lab"
-     *     }
-     */
-    OrganizationCreate: {
-      /** Name */
-      name: string;
-      /** Location */
-      location?: string | null;
-      /** Description */
-      description?: string | null;
-    };
-    /**
-     * OrganizationRead
-     * @description Public read schema for organizations.
-     */
-    OrganizationRead: {
-      /** Name */
-      name: string;
-      /** Location */
-      location?: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Owner Id
-       * Format: uuid4
-       * @description ID of the organization owner.
-       */
-      owner_id: string;
-    };
-    /**
-     * OrganizationReadPublic
-     * @description Read schema for organizations.
-     */
-    OrganizationReadPublic: {
-      /** Name */
-      name: string;
-      /** Location */
-      location?: string | null;
-      /** Description */
-      description?: string | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-    };
-    /**
-     * OrganizationReadWithRelationships
-     * @description Read schema for organizations, including relationships.
-     */
-    OrganizationReadWithRelationships: {
-      /** Name */
-      name: string;
-      /** Location */
-      location?: string | null;
-      /** Description */
-      description?: string | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-      /**
-       * Members
-       * @description List of users in the organization.
-       */
-      members?: components['schemas']['UserRead'][];
-    };
-    /**
-     * OrganizationUpdate
-     * @description Update schema for organizations.
-     */
-    OrganizationUpdate: {
-      /** Name */
-      name?: string | null;
-      /** Location */
-      location?: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Owner Id
-       * @description ID of the member who should become the new owner.
-       */
-      owner_id?: string | null;
-    };
     /** Page[CameraRead] */
     Page_CameraRead_: {
       /** Items */
@@ -4320,32 +4021,6 @@ export interface components {
       /** Pages */
       pages: number;
     };
-    /** Page[OrganizationReadPublic] */
-    Page_OrganizationReadPublic_: {
-      /** Items */
-      items: components['schemas']['OrganizationReadPublic'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[OrganizationReadWithRelationships] */
-    Page_OrganizationReadWithRelationships_: {
-      /** Items */
-      items: components['schemas']['OrganizationReadWithRelationships'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
     /** Page[ProductTypeReadWithRelationships] */
     Page_ProductTypeReadWithRelationships_: {
       /** Items */
@@ -4399,19 +4074,6 @@ export interface components {
       /** Pages */
       pages: number;
       readonly links: components['schemas']['Links'];
-    };
-    /** Page[UserReadPublic] */
-    Page_UserReadPublic_: {
-      /** Items */
-      items: components['schemas']['UserReadPublic'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
     };
     /** Page[UserRead] */
     Page_UserRead_: {
@@ -5112,10 +4774,9 @@ export interface components {
     Unit: 'kg' | 'g' | 'm' | 'cm';
     /**
      * UserCreate
-     * @description Create schema for users, optionally with organization to join.
+     * @description Create schema for users.
      * @example {
      *       "email": "user@example.com",
-     *       "organization_id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
      *       "password": "fake_password",
      *       "username": "username"
      *     }
@@ -5148,52 +4809,6 @@ export interface components {
       is_verified: boolean | null;
       /** Username */
       username?: string | null;
-      /** Organization Id */
-      organization_id?: string | null;
-    };
-    /**
-     * UserCreateWithOrganization
-     * @description Create schema for users with organization to create and own.
-     * @example {
-     *       "email": "user@example.com",
-     *       "organization": {
-     *         "description": "description",
-     *         "location": "location",
-     *         "name": "organization"
-     *       },
-     *       "password": "fake_password",
-     *       "username": "username"
-     *     }
-     */
-    UserCreateWithOrganization: {
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-      /**
-       * Password
-       * Format: password
-       */
-      password: string;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active: boolean | null;
-      /**
-       * Is Superuser
-       * @default false
-       */
-      is_superuser: boolean | null;
-      /**
-       * Is Verified
-       * @default false
-       */
-      is_verified: boolean | null;
-      /** Username */
-      username?: string | null;
-      organization: components['schemas']['OrganizationCreate'];
     };
     /**
      * UserPreferences
@@ -5307,56 +4922,6 @@ export interface components {
       email: string;
     };
     /**
-     * UserReadWithOrganization
-     * @description Read schema for users with organization.
-     * @example {
-     *       "email": "user@example.com",
-     *       "id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
-     *       "is_active": true,
-     *       "is_superuser": false,
-     *       "is_verified": true,
-     *       "username": "username"
-     *     }
-     */
-    UserReadWithOrganization: {
-      /**
-       * Id
-       * Format: uuid
-       */
-      id: string;
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active: boolean;
-      /**
-       * Is Superuser
-       * @default false
-       */
-      is_superuser: boolean;
-      /**
-       * Is Verified
-       * @default false
-       */
-      is_verified: boolean;
-      /** Username */
-      username?: string | null;
-      /**
-       * Oauth Accounts
-       * @description List of linked OAuth accounts.
-       */
-      oauth_accounts?: components['schemas']['OAuthAccountRead'][];
-      /** @description User preferences. */
-      preferences?: components['schemas']['UserPreferences'];
-      /** @description Organization the user belongs to. */
-      organization?: components['schemas']['OrganizationRead'] | null;
-    };
-    /**
      * UserUpdate
      * @description Update schema for users.
      * @example {
@@ -5364,7 +4929,6 @@ export interface components {
      *       "is_active": true,
      *       "is_superuser": true,
      *       "is_verified": true,
-     *       "organization_id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
      *       "password": "newpassword",
      *       "username": "username"
      *     }
@@ -5385,8 +4949,6 @@ export interface components {
       is_verified?: boolean | null;
       /** Username */
       username?: string | null;
-      /** Organization Id */
-      organization_id?: string | null;
       /**
        * Current Password
        * Format: password
@@ -9243,9 +8805,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json':
-          | components['schemas']['UserCreate']
-          | components['schemas']['UserCreateWithOrganization'];
+        'application/json': components['schemas']['UserCreate'];
       };
     };
     responses: {
@@ -9533,176 +9093,6 @@ export interface operations {
           'application/json': {
             [key: string]: unknown;
           };
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_organizations_v1_organizations_get: {
-    parameters: {
-      query?: {
-        name__ilike?: string | null;
-        location__ilike?: string | null;
-        description__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_OrganizationReadPublic_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_organization_v1_organizations_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['OrganizationCreate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrganizationRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_organization_v1_organizations__organization_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        organization_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrganizationReadPublic'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_organization_members_v1_organizations__organization_id__members_get: {
-    parameters: {
-      query?: {
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path: {
-        organization_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_UserReadPublic_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  join_organization_v1_organizations__organization_id__members_me_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        organization_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UserReadWithOrganization'];
         };
       };
       /** @description Validation Error */
@@ -10507,129 +9897,6 @@ export interface operations {
       };
     };
   };
-  get_user_organization_v1_users_me_organization_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrganizationReadPublic'];
-        };
-      };
-    };
-  };
-  delete_my_organization_v1_users_me_organization_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  update_organization_v1_users_me_organization_patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['OrganizationUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrganizationRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_user_organization_members_v1_users_me_organization_members_get: {
-    parameters: {
-      query?: {
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_UserReadPublic_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  leave_organization_v1_users_me_organization_membership_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
   get_public_profile_v1_users__identifier__profile_get: {
     parameters: {
       query?: never;
@@ -10661,111 +9928,11 @@ export interface operations {
       };
     };
   };
-  get_all_organizations_v1_admin_organizations_get: {
-    parameters: {
-      query?: {
-        name__ilike?: string | null;
-        location__ilike?: string | null;
-        description__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_OrganizationReadWithRelationships_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_organization_with_relationships_v1_admin_organizations__organization_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        organization_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrganizationReadWithRelationships'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_organization_v1_admin_organizations__organization_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        organization_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
   get_users_v1_admin_users_get: {
     parameters: {
       query?: {
         email__ilike?: string | null;
         username__ilike?: string | null;
-        organization__ilike?: string | null;
         is_active?: boolean | null;
         is_superuser?: boolean | null;
         is_verified?: boolean | null;
@@ -11534,7 +10701,6 @@ export interface operations {
         order_by?: string | null;
         owner__email__ilike?: string | null;
         owner__username__ilike?: string | null;
-        owner__organization__ilike?: string | null;
         owner__is_active?: boolean | null;
         owner__is_superuser?: boolean | null;
         owner__is_verified?: boolean | null;
