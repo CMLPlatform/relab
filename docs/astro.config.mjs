@@ -119,8 +119,8 @@ export default defineConfig({
       },
     },
     build: {
-      // Mermaid is lazy-loaded and currently ships a minified chunk just over Vite's default warning threshold.
-      chunkSizeWarningLimit: 650,
+      // Mermaid is lazy-loaded and ships a large minified chunk; suppress the warning for it.
+      chunkSizeWarningLimit: 1500,
     },
   },
   integrations: [starlight(STARLIGHT_OPTIONS), mdx()],
