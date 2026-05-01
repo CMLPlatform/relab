@@ -34,7 +34,7 @@ def _database_role_kwargs() -> dict[str, Any]:
     }
 
 
-def _production_core_settings_kwargs(**overrides: Any) -> dict[str, Any]:
+def _production_core_settings_kwargs(**overrides: object) -> dict[str, Any]:
     """Return valid production-like settings, with optional field overrides."""
     kwargs: dict[str, Any] = {
         "environment": Environment.PROD,
@@ -275,15 +275,16 @@ class TestCoreSettingsCors:
         settings_config: Any = {**CoreSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
         monkeypatch.setattr(CoreSettings, "model_config", settings_config)
 
+        kwargs = _production_core_settings_kwargs()
+        for name in (
+            "database_app_password",
+            "database_migration_password",
+            "database_backup_password",
+            "redis_password",
+        ):
+            kwargs.pop(name)
+
         with pytest.raises(ValidationError, match="REDIS_PASSWORD must not be empty"):
-            kwargs = _production_core_settings_kwargs()
-            for name in (
-                "database_app_password",
-                "database_migration_password",
-                "database_backup_password",
-                "redis_password",
-            ):
-                kwargs.pop(name)
             CoreSettings(**kwargs)
 
     def test_sync_database_url_disables_ssl_by_default(self) -> None:
