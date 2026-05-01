@@ -2,6 +2,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const caddyfile = readFileSync(resolve(__dirname, '../../Caddyfile'), 'utf8');
+const HSTS_POLICY = 'max-age=63072000; includeSubDomains';
+const HSTS_PATTERN = /^\s*Strict-Transport-Security\s+"([^"]+)"/m;
+const REFERRER_POLICY_PATTERN = /^\s*Referrer-Policy\s+"([^"]+)"/m;
+const CONTENT_TYPE_OPTIONS_PATTERN = /^\s*X-Content-Type-Options\s+"([^"]+)"/m;
 const ENFORCED_CSP_PATTERN = /^\s*Content-Security-Policy\s+"([^"]+)"/m;
 const REPORT_ONLY_CSP_PATTERN = /^\s*Content-Security-Policy-Report-Only\s+"([^"]+)"/m;
 const RESET_PASSWORD_REFERRER_POLICY_PATTERN =
@@ -23,7 +27,40 @@ function reportOnlyCsp() {
   return match[1];
 }
 
+function hsts() {
+  const match = caddyfile.match(HSTS_PATTERN);
+  if (!match) {
+    throw new Error('Missing Strict-Transport-Security header');
+  }
+  return match[1];
+}
+
+function referrerPolicy() {
+  const match = caddyfile.match(REFERRER_POLICY_PATTERN);
+  if (!match) {
+    throw new Error('Missing Referrer-Policy header');
+  }
+  return match[1];
+}
+
+function contentTypeOptions() {
+  const match = caddyfile.match(CONTENT_TYPE_OPTIONS_PATTERN);
+  if (!match) {
+    throw new Error('Missing X-Content-Type-Options header');
+  }
+  return match[1];
+}
+
 describe('Caddy security headers', () => {
+  it('sets the deployed OWASP HSTS policy', () => {
+    expect(hsts()).toBe(HSTS_POLICY);
+  });
+
+  it('sets the browser baseline headers recommended by OWASP', () => {
+    expect(contentTypeOptions()).toBe('nosniff');
+    expect(referrerPolicy()).toBe('strict-origin-when-cross-origin');
+  });
+
   it('allows only the intended YouTube embed origin for frames', () => {
     expect(enforcedCsp()).toContain('frame-src https://www.youtube-nocookie.com');
   });

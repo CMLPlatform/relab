@@ -12,7 +12,7 @@
 
 	header {
 		X-Content-Type-Options "nosniff"
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		# Inline styles are still needed by Astro output. Scripts stay bundled
 		# and same-origin so the enforced policy can reject inline/eval script.
