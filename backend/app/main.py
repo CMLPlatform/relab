@@ -17,7 +17,11 @@ from app.core import lifecycle
 from app.core.config import settings
 from app.core.config.models import Environment
 from app.core.logging import cleanup_logging, setup_logging
-from app.core.middleware import register_request_id_middleware, register_request_size_limit_middleware
+from app.core.middleware import (
+    register_request_id_middleware,
+    register_request_size_limit_middleware,
+    register_security_headers_middleware,
+)
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -76,6 +80,12 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
         expose_headers=["X-Request-ID"],
+    )
+
+    # Add security headers last so they wrap framework-level responses too.
+    register_security_headers_middleware(
+        app,
+        enable_hsts=settings.environment in {Environment.STAGING, Environment.PROD},
     )
 
     # Include health check routes (liveness and readiness probes)
