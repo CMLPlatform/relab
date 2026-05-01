@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import FastAPI, HTTPException, status
+from httpx import ASGITransport, AsyncClient
 
 from app.api.auth.dependencies import current_active_superuser
 from tests.factories.models import UserFactory
@@ -19,7 +20,6 @@ from tests.fixtures.client import override_authenticated_user
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-    from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -123,3 +123,29 @@ class TestUnprocessableEntity:
         data = {"name": "Bad Material", "density_kg_m3": -500.0}
         response = await api_client_superuser.post("/v1/admin/materials", json=data)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+
+@pytest.mark.api
+class TestUnexpectedErrorResponses:
+    """Unexpected exceptions must return generic Problem Details responses."""
+
+    async def test_unhandled_exception_returns_generic_problem_details(self, test_app: FastAPI) -> None:
+        """Unhandled runtime errors are not exposed to clients."""
+
+        @test_app.get("/test/unhandled-error")
+        async def raise_unhandled_error() -> None:
+            message = "database password leaked in stack trace"
+            raise RuntimeError(message)
+
+        async with AsyncClient(
+            transport=ASGITransport(app=test_app, raise_app_exceptions=False),
+            base_url="http://test",
+        ) as client:
+            response = await client.get("/test/unhandled-error")
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.headers["content-type"].startswith("application/problem+json")
+        body = response.json()
+        assert body["detail"] == "Internal server error"
+        assert body["code"] == "RuntimeError"
+        assert "database password" not in response.text
