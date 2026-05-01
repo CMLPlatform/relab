@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
-from app.api.auth.preferences import ProfileVisibility, ThemeMode, UserPreferences
+from app.api.auth.preferences import ProfileVisibility, ThemeMode, UserPreferences, UserPreferencesUpdate
 from app.api.auth.services.privacy import can_view_profile, should_redact_owner_identity
 from tests.factories.models import UserFactory
 
@@ -66,6 +67,12 @@ def test_user_preferences_default_email_updates_to_disabled() -> None:
     preferences = UserPreferences()
 
     assert preferences.email_updates_enabled is False
+
+
+def test_user_preferences_update_rejects_unknown_keys() -> None:
+    """Clients should not persist arbitrary preference keys."""
+    with pytest.raises(ValidationError):
+        UserPreferencesUpdate.model_validate({"unknown_feature_flag": True})
 
 
 def test_malformed_stored_profile_visibility_falls_back_closed_for_privacy() -> None:
