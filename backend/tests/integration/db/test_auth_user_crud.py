@@ -58,8 +58,8 @@ class TestValidateUserCreate:
         with pytest.raises(UserNameAlreadyExistsError):
             await validate_user_create(user_db, user_create)
 
-    async def test_allows_null_username(self, db_session: AsyncSession) -> None:
-        """username=None skips uniqueness check entirely."""
+    async def test_allows_omitted_username_for_internal_creation(self, db_session: AsyncSession) -> None:
+        """Internal/OAuth creation may omit username for onboarding completion later."""
         user_db = _make_user_db(db_session)
         user_create = UserCreate(email="anon@example.com", password=VALID_TEST_PASSWORD, username=None)
 

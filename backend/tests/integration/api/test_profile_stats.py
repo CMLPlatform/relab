@@ -67,7 +67,7 @@ async def test_public_profile_returns_latest_snapshot_without_external_cache(
     db_superuser.profile_stats_computed_at = datetime.now(UTC)
     await db_session.flush()
 
-    response = await api_client.get(f"/v1/users/{db_superuser.username}/profile")
+    response = await api_client.get(f"/v1/profiles/{db_superuser.username}")
     assert response.status_code == 200
     assert response.json()["total_weight_kg"] == 35.0
 
@@ -80,6 +80,37 @@ async def test_public_profile_returns_latest_snapshot_without_external_cache(
     db_superuser.profile_stats_computed_at = datetime.now(UTC)
     await db_session.flush()
 
-    fresh_response = await api_client.get(f"/v1/users/{db_superuser.id}/profile")
+    fresh_response = await api_client.get(f"/v1/profiles/{db_superuser.username}")
     assert fresh_response.status_code == 200
     assert fresh_response.json()["total_weight_kg"] == 72.0
+
+
+@pytest.mark.usefixtures("db_session")
+async def test_public_profile_does_not_resolve_uuid_identifiers(
+    api_client: AsyncClient,
+    db_superuser: User,
+) -> None:
+    """Profile URLs are username-only; UUID-looking identifiers are not user IDs."""
+    response = await api_client.get(f"/v1/profiles/{db_superuser.id}")
+
+    assert response.status_code == 404
+
+
+async def test_public_profile_does_not_resolve_users_without_username(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    """Incomplete users are not addressable by public profile URL."""
+    user = User(
+        email="incomplete-profile@example.com",
+        hashed_password="hashed",
+        username=None,
+        is_active=True,
+        is_verified=True,
+    )
+    db_session.add(user)
+    await db_session.flush()
+
+    response = await api_client.get("/v1/profiles/incomplete-profile")
+
+    assert response.status_code == 404

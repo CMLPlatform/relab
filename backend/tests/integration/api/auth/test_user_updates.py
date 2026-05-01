@@ -13,6 +13,7 @@ from app.api.auth.crud.users import update_user_override
 from app.api.auth.exceptions import UserNameAlreadyExistsError
 from app.api.auth.schemas import UserUpdate
 from app.api.auth.services.email_identity import canonicalize_email
+from app.api.common.exceptions import BadRequestError
 from tests.factories.models import UserFactory
 
 from .shared import (
@@ -49,6 +50,21 @@ class TestUpdateUserValidation:
         user_db = MagicMock()
         user_db.session = db_session
         result = await update_user_override(user_db, user, UserUpdate(username=NEW_USERNAME))
+        assert result.username == NEW_USERNAME
+
+    async def test_update_username_from_null_succeeds(self, db_session: AsyncSession) -> None:
+        """Incomplete OAuth users can choose their username during onboarding."""
+        user = await UserFactory.create_async(
+            db_session,
+            email=USER1_EMAIL,
+            username=None,
+            hashed_password="pw",
+        )
+        user_db = MagicMock()
+        user_db.session = db_session
+
+        result = await update_user_override(user_db, user, UserUpdate(username=NEW_USERNAME))
+
         assert result.username == NEW_USERNAME
 
     async def test_update_username_to_same_name_succeeds(self, db_session: AsyncSession) -> None:
@@ -89,8 +105,22 @@ class TestUpdateUserValidation:
         )
         user_db = MagicMock()
         user_db.session = db_session
-        result = await update_user_override(user_db, user, UserUpdate(username=None))
+        result = await update_user_override(user_db, user, UserUpdate())
         assert result.username is None
+
+    async def test_update_username_to_null_raises(self, db_session: AsyncSession) -> None:
+        """Username can be changed but cannot be cleared."""
+        user = await UserFactory.create_async(
+            db_session,
+            email=USER1_EMAIL,
+            username=USER1_USERNAME,
+            hashed_password="pw",
+        )
+        user_db = MagicMock()
+        user_db.session = db_session
+
+        with pytest.raises(BadRequestError, match="Username cannot be cleared"):
+            await update_user_override(user_db, user, UserUpdate(username=None))
 
     async def test_update_preferences_merges_with_existing_typed_values(self, db_session: AsyncSession) -> None:
         """Preference updates should merge into the existing persisted JSON payload."""

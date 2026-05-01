@@ -63,6 +63,15 @@ class TestRegistrationEndpoint:
         assert "password" not in data
         assert "hashed_password" not in data
 
+    async def test_register_requires_username(self, api_client: AsyncClient) -> None:
+        """Password registration requires an explicit username."""
+        user_data = {"email": "missing-username@example.com", "password": TEST_PASSWORD}
+
+        response = await api_client.post("/v1/auth/register", json=user_data)
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+        assert "username" in response.text
+
     async def test_register_duplicate_email(self, api_client: AsyncClient) -> None:
         """Test registering with a duplicate email."""
         user_data = {"email": DUPLICATE_EMAIL, "password": TEST_PASSWORD, "username": UNIQUE_USERNAME}

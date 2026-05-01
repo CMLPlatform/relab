@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-from uuid import UUID
+from typing import Annotated, cast
 
 from fastapi import HTTPException, Response, Security
 from sqlalchemy import select
@@ -17,6 +16,7 @@ from app.api.auth.schemas import (
     PublicProfileView,
     UserRead,
     UserUpdate,
+    normalize_username,
 )
 from app.api.auth.services.privacy import can_view_profile
 from app.api.auth.services.stats import get_profile_stats, recompute_user_profile_stats
@@ -36,21 +36,21 @@ router.include_router(
 
 ## Public Profile Routes ##
 
-public_user_router = PublicAPIRouter(prefix="/users", tags=["users"])
+public_profile_router = PublicAPIRouter(prefix="/profiles", tags=["profiles"])
 
 
-@public_user_router.get(
-    "/{identifier}/profile",
+@public_profile_router.get(
+    "/{username}",
     response_model=PublicProfileView,
     summary="Get public profile of a user",
 )
 async def get_public_profile(
-    identifier: str,
+    username: str,
     response: Response,
     session: AsyncSessionDep,
     current_user: Annotated[User | None, Security(optional_current_active_user)],
 ) -> PublicProfileView:
-    """Get public profile statistics for a specified user by their username or UUID.
+    """Get public profile statistics for a specified user by username.
 
     Returns 404 if the user is not found or if the profile is marked as private (and you are not the user).
     Includes lazy initialization of stats if they are missing.
@@ -59,17 +59,10 @@ async def get_public_profile(
     # so browsers and intermediaries must revalidate on every request.
     response.headers["Cache-Control"] = "private, no-store"
 
-    # 1. Look up user by UUID or Username
-    user = None
-    try:
-        # Check if identifier is a valid UUID
-        user_uuid = UUID(identifier)
-        user = await session.get(User, user_uuid)
-    except ValueError, AttributeError:
-        # Not a valid UUID, search by username
-        stmt = select(User).where(User.username == identifier)
-        result = await session.execute(stmt)
-        user = result.unique().scalar_one_or_none()
+    lookup_username = cast("str", normalize_username(username))
+    stmt = select(User).where(User.username == lookup_username)
+    result = await session.execute(stmt)
+    user = result.unique().scalar_one_or_none()
 
     if not user:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -86,7 +79,7 @@ async def get_public_profile(
         stats = get_profile_stats(user)
 
     return PublicProfileView.from_profile_stats(
-        username=user.username,
+        username=lookup_username,
         created_at=user.created_at,
         stats=stats,
     )

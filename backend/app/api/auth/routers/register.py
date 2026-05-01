@@ -15,7 +15,7 @@ from app.api.auth.exceptions import (
     RegistrationUserAlreadyExistsHTTPError,
 )
 from app.api.auth.models import User
-from app.api.auth.schemas import UserCreate, UserReadPublic
+from app.api.auth.schemas import UserReadPublic, UserRegister
 from app.api.auth.services.email import mask_email_for_log
 from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT, limiter
 from app.api.common.exceptions import APIError
@@ -35,7 +35,7 @@ router = APIRouter()
 @limiter.limit(REGISTER_RATE_LIMIT)
 async def register(
     request: Request,
-    user_create: UserCreate,
+    user_create: UserRegister,
     user_manager: UserManagerDep,
 ) -> User:
     """Register a new user."""

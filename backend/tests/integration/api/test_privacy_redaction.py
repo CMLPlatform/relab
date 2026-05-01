@@ -99,7 +99,7 @@ class TestPrivacyRedaction:
     async def test_public_profile_visibility(self, api_client: AsyncClient, setup_data: dict[str, Any]) -> None:
         """Public profiles are visible to everyone."""
         username = setup_data["user"].username
-        response = await api_client.get(f"/v1/users/{username}/profile")
+        response = await api_client.get(f"/v1/profiles/{username}")
         assert response.status_code == status.HTTP_200_OK
 
     async def test_community_profile_visibility_guest(
@@ -109,7 +109,7 @@ class TestPrivacyRedaction:
         user = setup_data["user"]
         await set_profile_visibility(db_session, user, "community")
 
-        response = await api_client.get(f"/v1/users/{user.username}/profile")
+        response = await api_client.get(f"/v1/profiles/{user.username}")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     async def test_community_profile_visibility_logged_in(
@@ -119,7 +119,7 @@ class TestPrivacyRedaction:
         user = setup_data["user"]
         await set_profile_visibility(db_session, user, "community")
 
-        response = await owner_client.get(f"/v1/users/{user.username}/profile")
+        response = await owner_client.get(f"/v1/profiles/{user.username}")
         assert response.status_code == status.HTTP_200_OK
 
     async def test_private_profile_visibility_guest(
@@ -129,7 +129,7 @@ class TestPrivacyRedaction:
         user = setup_data["user"]
         await set_profile_visibility(db_session, user, "private")
 
-        response = await api_client.get(f"/v1/users/{user.username}/profile")
+        response = await api_client.get(f"/v1/profiles/{user.username}")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     async def test_private_profile_visibility_owner_preserves_owner_identity(
@@ -139,7 +139,7 @@ class TestPrivacyRedaction:
         user = setup_data["user"]
         await set_profile_visibility(db_session, user, "private")
 
-        profile_response = await owner_client.get(f"/v1/users/{user.username}/profile")
+        profile_response = await owner_client.get(f"/v1/profiles/{user.username}")
         assert profile_response.status_code == status.HTTP_200_OK
 
         products_response = await owner_client.get("/v1/products")
@@ -156,7 +156,7 @@ class TestPrivacyRedaction:
         user = setup_data["user"]
         await set_profile_visibility(db_session, user, "private")
 
-        profile_response = await superuser_client_light.get(f"/v1/users/{user.username}/profile")
+        profile_response = await superuser_client_light.get(f"/v1/profiles/{user.username}")
         assert profile_response.status_code == status.HTTP_200_OK
 
         detail_response = await superuser_client_light.get(f"/v1/products/{setup_data['product'].id}")
