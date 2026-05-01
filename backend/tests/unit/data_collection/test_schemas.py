@@ -16,6 +16,7 @@ from pydantic import BaseModel, ValidationError
 from app.api.data_collection.schemas import (
     ProductCreateBaseProduct,
     ProductReadWithRelationships,
+    ProductUpdate,
 )
 from app.api.file_storage.models import MediaParentType
 from app.api.file_storage.schemas import ImageRead
@@ -128,6 +129,33 @@ def test_product_brand_lowercased() -> None:
         {"name": "Cordless Drill", "brand": "Bosch"},
     )
     assert product.brand == "bosch"
+
+
+def test_product_create_normalizes_user_text_to_nfc() -> None:
+    """Product create text fields are normalized before persistence."""
+    product = _validate_model(ProductCreateBaseProduct, {"name": "Cafe\u0301 grinder"})
+
+    assert product.name == "Café grinder"
+
+
+def test_product_update_rejects_hidden_control_characters() -> None:
+    """Product update text fields reject invisible control characters."""
+    with pytest.raises(ValidationError):
+        _validate_model(ProductUpdate, {"description": "looks normal\u0000but is not"})
+
+
+def test_circularity_note_allows_multiline_text() -> None:
+    """Circularity notes are free-form text and may contain line breaks."""
+    product = _validate_model(
+        ProductCreateBaseProduct,
+        {
+            "name": "Cordless Drill",
+            "circularity_properties": {"recyclability": "Step 1\nStep 2"},
+        },
+    )
+
+    assert product.circularity_properties is not None
+    assert product.circularity_properties.recyclability == "Step 1\nStep 2"
 
 
 def test_product_read_thumbnail_url_with_images() -> None:
