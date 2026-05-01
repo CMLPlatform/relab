@@ -49,6 +49,16 @@
 		file_server
 	}
 
+	# Password-reset URLs carry single-use tokens. Serve the SPA entry point
+	# with no referrer leakage before the app removes the token from history.
+	@reset_password_route path /reset-password*
+	handle @reset_password_route {
+		header Referrer-Policy "no-referrer"
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
 	# SPA routing: fall back to index.html for navigation requests.
 	# no-cache ensures the browser always revalidates index.html after a deploy
 	# so it picks up the latest chunk hashes rather than loading a stale entry

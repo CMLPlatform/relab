@@ -16,6 +16,7 @@ jest.mock('@/services/api/client', () => ({
 }));
 
 const AT_LEAST_12_PATTERN = /at least 12/i;
+const PASSWORDS_MATCH_PATTERN = /passwords must match/i;
 const PASSWORD_RESET_SUCCESS_PATTERN = /Password reset successful/i;
 const REDIRECTING_TO_LOGIN_PATTERN = /Redirecting to login/i;
 
@@ -40,8 +41,9 @@ async function settleForm() {
   });
 }
 
-async function submitResetPassword(password: string) {
+async function submitResetPassword(password: string, confirmPassword = password) {
   fireEvent.changeText(screen.getByTestId('password-input'), password);
+  fireEvent.changeText(screen.getByTestId('confirm-password-input'), confirmPassword);
   await settleForm();
   expect(screen.getAllByTestId('button')[0].props.accessibilityState.disabled).toBe(false);
   fireEvent.press(screen.getAllByTestId('button')[0]);
@@ -66,6 +68,7 @@ describe('ResetPasswordScreen rendering', () => {
     renderResetPasswordScreen();
     expect(screen.getAllByText('Reset Password')).not.toHaveLength(0);
     expect(screen.getByTestId('password-input')).toBeOnTheScreen();
+    expect(screen.getByTestId('confirm-password-input')).toBeOnTheScreen();
     expect(screen.getByText('Back to Login')).toBeOnTheScreen();
   });
 
@@ -91,6 +94,20 @@ describe('ResetPasswordScreen rendering', () => {
     await settleForm();
 
     expect(screen.getByText(AT_LEAST_12_PATTERN)).toBeOnTheScreen();
+  });
+
+  it('shows a validation error when password confirmation does not match', async () => {
+    renderResetPasswordScreen();
+
+    fireEvent.changeText(screen.getByTestId('password-input'), 'correct-horse-battery-staple-v42');
+    fireEvent.changeText(
+      screen.getByTestId('confirm-password-input'),
+      'correct-horse-battery-staple-v43',
+    );
+    await settleForm();
+
+    expect(screen.getByText(PASSWORDS_MATCH_PATTERN)).toBeOnTheScreen();
+    expect(screen.getAllByTestId('button')[0].props.accessibilityState.disabled).toBe(true);
   });
 });
 
