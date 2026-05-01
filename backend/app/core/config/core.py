@@ -7,10 +7,10 @@ import re
 from functools import cached_property
 from pathlib import Path  # noqa: TC003 # Runtime use is needed for Pydantic validation of settings
 from typing import TYPE_CHECKING
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 from cryptography.fernet import Fernet
-from pydantic import EmailStr, Field, HttpUrl, PostgresDsn, SecretStr, field_validator, model_validator
+from pydantic import EmailStr, Field, HttpUrl, PostgresDsn, RedisDsn, SecretStr, field_validator, model_validator
 from sqlalchemy.engine import URL
 
 from app.core.config.models import (
@@ -272,10 +272,10 @@ class CoreSettings(RelabBaseSettings):
     @cached_property
     def cache_url(self) -> str:
         """Get Redis cache URL."""
-        return (
-            f"redis://:{self.redis_password.get_secret_value() or ''}"
-            f"@{self.redis_host}:{self.redis_port}/{self.redis_db}"
-        )
+        password = quote(self.redis_password.get_secret_value(), safe="")
+        rendered = f"redis://:{password}@{self.redis_host}:{self.redis_port}/{self.redis_db}"
+        RedisDsn(rendered)
+        return rendered
 
     @property
     def debug(self) -> bool:

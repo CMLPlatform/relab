@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from pydantic import HttpUrl, SecretStr
+from pydantic import HttpUrl, RedisDsn, SecretStr
 from pydantic_core import ValidationError
 from sqlalchemy.engine import make_url
 
@@ -196,6 +196,21 @@ class TestCoreSettingsCors:
         assert parsed.host == "database.internal"
         assert parsed.port == 5432
         assert parsed.database == "relab_db"
+
+    def test_cache_url_preserves_reserved_password_characters(self) -> None:
+        """Redis URL construction should safely encode reserved password characters."""
+        settings = CoreSettings(
+            environment=Environment.DEV,
+            redis_host="redis.internal",
+            redis_port=6379,
+            redis_db=2,
+            redis_password=SecretStr("p@ss:word/with?chars"),
+        )
+
+        url = settings.cache_url
+
+        RedisDsn(url)
+        assert url == "redis://:p%40ss%3Aword%2Fwith%3Fchars@redis.internal:6379/2"
 
     def test_database_urls_use_least_privilege_roles(self) -> None:
         """Application and migration URLs should use distinct database roles."""
