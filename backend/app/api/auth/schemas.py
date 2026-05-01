@@ -87,12 +87,12 @@ def normalize_username(v: object) -> object:
     return v
 
 
-ValidatedUsernameValue = Annotated[
+UsernameValue = Annotated[
     str,
     BeforeValidator(normalize_username),
     StringConstraints(pattern=r"^[a-z0-9_]+$", min_length=2, max_length=50),
 ]
-ValidatedUsername = ValidatedUsernameValue | None
+Username = UsernameValue | None
 
 RESERVED_USERNAMES = {
     "me",
@@ -123,7 +123,7 @@ class UserCreateBase(UserBase, fastapi_users_schemas.BaseUserCreate):
     """Base schema for user creation."""
 
     # Override for username field validation
-    username: ValidatedUsername = None
+    username: Username = None
 
     @field_validator("username")
     @classmethod
@@ -222,7 +222,7 @@ class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
     """Update schema for users."""
 
     # Override for username field validation
-    username: ValidatedUsername = None
+    username: Username = None
 
     @field_validator("username")
     @classmethod
