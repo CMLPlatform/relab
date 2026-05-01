@@ -23,7 +23,7 @@
   version = "0.2.0"
 
 [dependency-groups]
-  dev = ["commitizen>=4.8.3", "pre-commit>=4.2.0"]
+  dev = ["commitizen>=4.8.3", "pre-commit>=4.2.0", "ruff>=0.12.1", "ty>=0.0.15"]
 
 [tool.commitizen]
   annotated_tag      = true
@@ -31,3 +31,29 @@
   name               = "cz_conventional_commits"
   tag_format         = "v$version"
   version_scheme     = "semver2"
+
+[tool.ruff]
+  force-exclude = true
+  include       = ["scripts/*.py"]
+  line-length   = 120
+
+  [tool.ruff.lint]
+    select = ["ALL"]
+
+    ignore = [
+      # Prevent conflicts with formatter (see https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules)
+      "ANN204", # missing-return-type-special-method
+      "COM812", # missing-trailing-comma
+      "COM819", # prohibited-trailing-comma
+      "E111",   # indentation-with-invalid-multiple
+      "E114",   # indentation-with-invalid-multiple-comment
+      "E117",   # over-indented
+      "Q",      # flake8-quotes
+      "W191",   # tab-indentation
+    ]
+
+    [tool.ruff.lint.pydocstyle]
+      convention = "google"
+
+[tool.ty.src]
+  include = ["scripts"]
