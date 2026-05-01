@@ -202,6 +202,21 @@ class TestFileStorageEndpoints:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "not supported" in response.text
 
+    async def test_upload_file_rejects_stable_format_content_mismatch(
+        self,
+        api_client_superuser: AsyncClient,
+        setup_product_for_files: Product,
+    ) -> None:
+        """Stable generic file formats must match their expected content signature."""
+        response = await api_client_superuser.post(
+            f"/v1/products/{setup_product_for_files.id}/files",
+            files={"file": ("manual.pdf", b"<html>not a pdf</html>", "application/pdf")},
+            data={"description": FILE_DESC},
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "does not match" in response.text
+
     async def test_upload_image_rejects_hyperspectral_data_file(
         self,
         api_client_superuser: AsyncClient,

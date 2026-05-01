@@ -16,7 +16,11 @@ from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, Mod
 from app.api.file_storage.models import File, Image
 from app.api.file_storage.models.storage_resolver import _get_file_storage, _get_image_storage
 from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm, ImageCreateInternal
-from app.api.file_storage.upload_policy import validate_generic_file_upload_metadata, validate_image_upload_metadata
+from app.api.file_storage.upload_policy import (
+    validate_generic_file_upload_content,
+    validate_generic_file_upload_metadata,
+    validate_image_upload_metadata,
+)
 from app.core.config import settings
 from app.core.images import generate_thumbnails, process_image_for_storage
 
@@ -83,6 +87,10 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         """Validate upload metadata before storing bytes."""
         del upload_file
 
+    def validate_upload_content(self, upload_file: UploadFile) -> None:
+        """Validate upload content before storing bytes."""
+        del upload_file
+
     async def create(self, db: AsyncSession, payload: CreateSchemaT) -> StorageModelT:
         """Create a file-backed model, store the upload, and persist the DB row."""
         if payload.file.filename is None:
@@ -91,6 +99,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
 
         self.validate_upload_metadata(payload.file)
         await validate_upload_size(payload.file, self.max_size_mb)
+        await to_thread.run_sync(self.validate_upload_content, payload.file)
         payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
         await ensure_parent_exists(db, payload.parent_type, payload.parent_id)
 
@@ -155,6 +164,10 @@ class FileStorageService(StoredMediaService[File, FileCreate]):
     def validate_upload_metadata(self, upload_file: UploadFile) -> None:
         """Validate generic file upload metadata."""
         validate_generic_file_upload_metadata(upload_file)
+
+    def validate_upload_content(self, upload_file: UploadFile) -> None:
+        """Validate generic file upload content."""
+        validate_generic_file_upload_content(upload_file)
 
 
 class ImageStorageService(StoredMediaService[Image, ImageCreateFromForm | ImageCreateInternal]):
