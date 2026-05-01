@@ -96,6 +96,14 @@ class UserCreate(UserCreateBase):
     model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
 
 
+class UserRegister(UserCreateBase):
+    """Registration schema for password sign-up."""
+
+    username: UsernameValue
+
+    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
+
+
 class OAuthAccountRead(BaseModel):
     """Read schema for OAuth accounts."""
 
@@ -121,6 +129,7 @@ class UserReadProfile(UserBase):
 class PublicProfileView(UserReadProfile):
     """Detailed public profile view with aggregated stats."""
 
+    username: UsernameValue
     product_count: int = Field(default=0, description="Number of products registered.")
     total_weight_kg: float = Field(default=0.0, description="Aggregate weight of products in kg.")
     image_count: int = Field(default=0, description="Total images uploaded.")
@@ -130,7 +139,7 @@ class PublicProfileView(UserReadProfile):
     def from_profile_stats(
         cls,
         *,
-        username: str | None,
+        username: str,
         created_at: datetime | None,
         stats: ProfileStatsData,
     ) -> PublicProfileView:

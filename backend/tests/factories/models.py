@@ -122,6 +122,16 @@ class UserFactory(BaseModelFactory[User]):
         """Generate mock value."""
         return []
 
+    @classmethod
+    def preferences(cls) -> dict[str, Any]:
+        """Generate valid user preferences."""
+        return {}
+
+    @classmethod
+    def profile_stats(cls) -> dict[str, Any]:
+        """Generate valid public profile stats."""
+        return {}
+
 
 class TaxonomyFactory(BaseModelFactory[Taxonomy]):
     """Factory for creating Taxonomy test instances."""

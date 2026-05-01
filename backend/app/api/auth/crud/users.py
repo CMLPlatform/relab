@@ -10,7 +10,9 @@ from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsE
 from app.api.auth.models import User
 from app.api.auth.preferences import merge_user_preferences
 from app.api.auth.schemas import UserCreate, UserUpdate
-from app.api.common.exceptions import NotFoundError
+from app.api.common.exceptions import BadRequestError, NotFoundError
+
+USERNAME_FIELD = "username"
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,6 +56,10 @@ async def get_user_by_username(session: AsyncSession, username: str) -> User:
 ## Update User ##
 async def update_user_override(user_db: UserDatabaseAsync, user: User, user_update: UserUpdate) -> UserUpdate:
     """Override base user update with username validation and preference merging."""
+    if USERNAME_FIELD in user_update.model_fields_set and user_update.username is None:
+        err_msg = "Username cannot be cleared"
+        raise BadRequestError(err_msg)
+
     if user_update.username is not None:
         # Check username uniqueness
         query = select(exists().where((User.username == user_update.username) & (User.id != user.id)))
