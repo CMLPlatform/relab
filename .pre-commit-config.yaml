@@ -99,6 +99,7 @@ repos:
         name: ty-root-scripts
         entry: uv run ty check
         language: system
+        files: ^(?!backend/).*/scripts/.*\.py$
         pass_filenames: false
       - id: cspell
         name: cspell
