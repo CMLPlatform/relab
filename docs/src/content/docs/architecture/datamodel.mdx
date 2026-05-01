@@ -76,7 +76,7 @@ erDiagram
         boolean is_active
         boolean is_superuser
         boolean is_verified
-        varchar username UK
+        varchar username UK "nullable for OAuth onboarding, indexed"
     }
 
     OAUTHACCOUNT {
@@ -92,6 +92,8 @@ erDiagram
 
     USER ||--o{ OAUTHACCOUNT : "has"
 ```
+
+Usernames are unique and indexed for fast public profile lookup. They are nullable only while an OAuth-created account is completing onboarding; password registration requires a username up front.
 
 ## Reference data
 

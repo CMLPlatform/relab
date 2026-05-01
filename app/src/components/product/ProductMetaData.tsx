@@ -2,6 +2,7 @@ import { Link } from 'expo-router';
 import { View } from 'react-native';
 import { Text } from '@/components/base/Text';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
+import { getProfileHref } from '@/lib/router/profiles';
 import { useAppTheme } from '@/theme';
 import { entityLabel, entityLabelTitle, type Product } from '@/types/Product';
 
@@ -33,7 +34,7 @@ export default function ProductMetaData({ product }: Props) {
           Owner:{' '}
           {product.ownerUsername ? (
             <Link
-              href={`/users/${product.ownerUsername}`}
+              href={getProfileHref(product.ownerUsername)}
               style={{ color: theme.tokens.text.link, textDecorationLine: 'underline' }}
             >
               {product.ownerUsername}

@@ -32,7 +32,7 @@ describe('getPublicProfile', () => {
     const result = await getPublicProfile('alice');
     expect(result).toEqual(profile);
     expect(mockedApiFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/users/alice/profile'),
+      expect.stringContaining('/profiles/alice'),
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: 'Bearer token123' }),
       }),
@@ -45,7 +45,7 @@ describe('getPublicProfile', () => {
 
     await expect(getPublicProfile('bob')).rejects.toThrow('Profile not found');
     expect(mockedApiFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/users/bob/profile'),
+      expect.stringContaining('/profiles/bob'),
       expect.any(Object),
     );
   });
@@ -69,7 +69,7 @@ describe('getPublicProfile', () => {
     const result = await getPublicProfile('a b');
     expect(result).toEqual(profile);
     expect(mockedApiFetch).toHaveBeenCalledWith(
-      expect.stringContaining(`${encodeURIComponent('a b')}/profile`),
+      expect.stringContaining(`/profiles/${encodeURIComponent('a b')}`),
       expect.any(Object),
     );
   });

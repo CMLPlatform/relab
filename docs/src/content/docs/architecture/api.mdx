@@ -13,7 +13,8 @@ For the live schema and request models, use the [interactive API documentation](
 
 - `/v1/auth/*` — login, logout, refresh, registration, verification, and password reset
 - `/v1/oauth/*` — Google, GitHub, and YouTube account authorization, callbacks, token exchange, and account linking
-- `/v1/users/*` — authenticated user operations and public profiles
+- `/v1/users/*` — authenticated user self-management
+- `/v1/profiles/{username}` — username-addressed public profile reads
 - `/v1/admin/users/*` — superuser user administration
 
 ### Data collection
