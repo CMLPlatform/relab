@@ -9,7 +9,6 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth.exceptions import UserOwnershipError
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.ownership import get_user_owned_object
 
@@ -40,6 +39,7 @@ class TestGetUserOwnedObject:
         result = await get_user_owned_object(db=db, model=mock_model, model_id=model_id, owner_id=user_id)
 
         assert result is expected
+        assert len(statement.where.call_args.args) == 2
         db.execute.assert_awaited_once()
 
     async def test_success_respects_custom_owner_fk(self, mocker: MockerFixture) -> None:
@@ -64,31 +64,24 @@ class TestGetUserOwnedObject:
         )
 
         assert result is expected
+        assert len(statement.where.call_args.args) == 2
 
-    async def test_ownership_error_raises_user_ownership_error(self, mocker: MockerFixture) -> None:
-        """Mismatched owner IDs are translated to UserOwnershipError (403, correct message)."""
+    async def test_ownership_mismatch_raises_model_not_found(self, mocker: MockerFixture) -> None:
+        """Mismatched owner IDs are hidden behind the same error as missing rows."""
         user_id = uuid4()
         model_id = uuid4()
-        existing = MagicMock()
-        existing.owner_id = uuid4()
         statement = MagicMock()
         statement.where.return_value = statement
         mocker.patch("app.api.common.ownership.select", return_value=statement)
         execute_result = MagicMock()
-        execute_result.scalars.return_value.unique.return_value.one_or_none.return_value = existing
+        execute_result.scalars.return_value.unique.return_value.one_or_none.return_value = None
         db = AsyncMock(spec=AsyncSession)
         db.execute.return_value = execute_result
         mock_model = MagicMock()
         mock_model.model_label = "Product"
 
-        with pytest.raises(UserOwnershipError) as exc_info:
+        with pytest.raises(ModelNotFoundError):
             await get_user_owned_object(db=db, model=mock_model, model_id=model_id, owner_id=user_id)
-
-        err = exc_info.value
-        assert err.http_status_code == 403
-        assert str(user_id) in err.message
-        assert str(model_id) in err.message
-        assert "Product" in err.message
 
     async def test_missing_object_raises_model_not_found(self, mocker: MockerFixture) -> None:
         """Missing owned objects should surface as ModelNotFoundError."""
