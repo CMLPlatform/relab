@@ -67,14 +67,22 @@ FROM caddy:2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39d
 
 ARG WORKDIR
 
-# Upgrade packages to get latest security patches (Caddy image is pretty minimal, so this is low-risk)
-RUN apk upgrade --no-cache
+# Upgrade packages to get latest security patches (Caddy image is pretty minimal, so this is low-risk).
+# RELab serves Caddy on high ports, so remove the inherited low-port bind capability
+# to work with no-new-privileges and dropped runtime capabilities.
+RUN apk upgrade --no-cache \
+    && apk add --no-cache libcap \
+    && setcap -r /usr/bin/caddy \
+    && apk del libcap \
+    && install -d -o 1001 -g 1001 /config /data
 
 # Default to the production API origin; staging overrides this at runtime.
 ENV CSP_API_ORIGIN=https://api.cml-relab.org
 
 COPY --link --from=build ${WORKDIR}/dist /srv
 COPY --link Caddyfile /etc/caddy/Caddyfile
+
+USER 1001:1001
 
 EXPOSE 8081
 
