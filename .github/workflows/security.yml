@@ -34,6 +34,7 @@ jobs:
     outputs:
       run-container-images: ${{ steps.decide.outputs.run-container-images }}
       container-security-matrix: ${{ steps.decide.outputs.container-security-matrix }}
+      run-iac: ${{ steps.decide.outputs.run-iac }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -63,6 +64,7 @@ jobs:
           fi
 
           shared_trigger=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)
+          echo "run-iac=$shared_trigger" >> "$GITHUB_OUTPUT"
 
           include_entries=()
           [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
@@ -160,7 +162,7 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
           severity: HIGH,CRITICAL
-          trivyignores: .github/trivyignore
+          trivyignores: .github/trivyignore.yaml
 
       - name: Generate SBOM
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
@@ -177,6 +179,39 @@ jobs:
           name: security-${{ matrix.service }}-artifacts
           path: sbom-${{ matrix.service }}.spdx.json
           retention-days: 90
+
+  trivy-iac:
+    name: Trivy IaC
+    needs: [ changes ]
+    if: github.event_name != 'branch_protection_rule' && needs.changes.outputs.run-iac == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Scan IaC with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-iac.sarif
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          trivyignores: .github/trivyignore.yaml
+          skip-dirs: .venv,backend/.venv,node_modules,app/node_modules,docs/node_modules,www/node_modules
+
+      - name: Upload Trivy IaC SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
+        with:
+          sarif_file: trivy-iac.sarif
 
   codeql:
     name: CodeQL (${{ matrix.language }})
@@ -257,6 +292,7 @@ jobs:
       - secret-scan
       - dependency-review
       - container-security
+      - trivy-iac
       - codeql
       - scorecard
     runs-on: ubuntu-latest
@@ -276,6 +312,7 @@ jobs:
               "secret-scan": "${{ needs.secret-scan.result }}",
               "dependency-review": "${{ needs.dependency-review.result }}",
               "container-security": "${{ needs.container-security.result }}",
+              "trivy-iac": "${{ needs.trivy-iac.result }}",
               "codeql": "${{ needs.codeql.result }}",
               "scorecard": "${{ needs.scorecard.result }}"
             }
