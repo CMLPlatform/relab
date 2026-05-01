@@ -11,10 +11,11 @@ from typing import TYPE_CHECKING, Annotated, Any, cast
 from fastapi import Depends
 from fastapi_users.db.base import BaseUserDatabase
 from fastapi_users.models import ID, OAP, UOAP, UP
-from sqlalchemy import String, func, select
+from sqlalchemy import String, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Mapped, mapped_column, selectinload
+from sqlalchemy.orm import Mapped, mapped_column, selectinload, validates
 
+from app.api.auth.services.email_identity import canonicalize_email
 from app.api.common.crud.loading import relationship_attr
 from app.api.common.models.base import Base
 from app.core.crypto.sqlalchemy import EncryptedString
@@ -35,11 +36,23 @@ class BaseUserDB(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    email_canonical: Mapped[str] = mapped_column(
+        String,
+        unique=True,
+        index=True,
+    )
     hashed_password: Mapped[str] = mapped_column(String)
 
     is_active: Mapped[bool] = mapped_column(default=True)
     is_superuser: Mapped[bool] = mapped_column(default=False)
     is_verified: Mapped[bool] = mapped_column(default=False)
+
+    @validates("email")
+    def _set_email_canonical(self, key: str, email: str) -> str:
+        """Keep the comparison key synchronized with the delivery address."""
+        del key
+        self.email_canonical = canonicalize_email(email)
+        return email
 
 
 class BaseOAuthAccountDB(Base):
@@ -93,7 +106,8 @@ class UserDatabaseAsync(BaseUserDatabase[UP, ID]):
 
     async def get_by_email(self, email: str) -> UP | None:
         """Get a single user by email, with oauth_accounts eagerly loaded."""
-        statement = select(self.user_model).where(func.lower(self.user_model.email) == func.lower(email))
+        email_canonical_column = cast("Any", self.user_model).email_canonical
+        statement = select(self.user_model).where(email_canonical_column == canonicalize_email(email))
         if self.oauth_account_model is not None:
             oauth_accounts = relationship_attr(cast("type[Base]", self.user_model), "oauth_accounts")
             statement = statement.options(selectinload(oauth_accounts))

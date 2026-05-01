@@ -99,6 +99,17 @@ class TestRegistrationEndpoint:
         assert response.status_code == status.HTTP_409_CONFLICT
         assert "already exists" in response.json()["detail"].lower()
 
+    async def test_register_duplicate_canonical_email(self, api_client: AsyncClient) -> None:
+        """Canonical-equivalent email registrations should collide."""
+        first_user = {"email": "CaseSensitive@Example.com", "password": TEST_PASSWORD, "username": "case_first"}
+        second_user = {"email": "casesensitive@example.com", "password": TEST_PASSWORD, "username": "case_second"}
+
+        first_response = await api_client.post("/v1/auth/register", json=first_user)
+        second_response = await api_client.post("/v1/auth/register", json=second_user)
+
+        assert first_response.status_code == status.HTTP_201_CREATED
+        assert second_response.status_code == status.HTTP_409_CONFLICT
+
     async def test_register_duplicate_username(self, api_client: AsyncClient) -> None:
         """Test registering with a duplicate username."""
         user_data = {"email": DIFFERENT_EMAIL, "password": TEST_PASSWORD, "username": EXISTING_USERNAME}
@@ -120,6 +131,7 @@ class TestRegistrationEndpoint:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "disposable" in response.json()["detail"].lower()
+        assert user_data["email"] not in response.json()["detail"]
 
     async def test_register_weak_password(self, api_client: AsyncClient) -> None:
         """Test registering with a weak password."""
@@ -222,6 +234,20 @@ class TestLoginEndpoint:
 
         assert response.status_code == status.HTTP_200_OK
         assert "access_token" in response.json()
+
+    async def test_login_with_canonical_email_equivalent(self, api_client: AsyncClient) -> None:
+        """Login should compare emails through the shared canonical policy."""
+        user_data = {"email": "Login.Case@Example.com", "password": TEST_PASSWORD, "username": "login_case"}
+
+        response = await api_client.post("/v1/auth/register", json=user_data)
+        assert response.status_code == status.HTTP_201_CREATED
+
+        login_response = await api_client.post(
+            "/v1/auth/login",
+            data={"username": "login.case@example.com", "password": user_data["password"]},
+        )
+
+        assert login_response.status_code == status.HTTP_200_OK
 
     async def test_bearer_login_invalid_credentials(self, api_client: AsyncClient) -> None:
         """Test logging in with invalid credentials."""

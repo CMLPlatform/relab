@@ -55,6 +55,7 @@ def test_user_table_has_required_columns(migration_helper: MigrationHelper) -> N
     required = {
         "id",
         "email",
+        "email_canonical",
         "hashed_password",
         "is_active",
         "is_superuser",
