@@ -143,7 +143,7 @@ class TestAuthCRUDErrorHierarchy:
             DisposableEmailError,
             {"email": "temp@guerrillamail.com"},
             status.HTTP_400_BAD_REQUEST,
-            ["temp@guerrillamail.com", "disposable", "not allowed"],
+            ["Disposable", "not allowed"],
         ),
         # InvalidOAuthProviderError
         (

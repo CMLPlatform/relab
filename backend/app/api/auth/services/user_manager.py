@@ -18,6 +18,7 @@ from app.api.auth.schemas import UserCreate, UserUpdate
 from app.api.auth.services import refresh_token_service
 from app.api.auth.services.auth_backends import build_authentication_backends
 from app.api.auth.services.email import (
+    mask_email_for_log,
     send_email_changed_notification,
     send_post_verification_email,
     send_reset_password_email,
@@ -32,7 +33,6 @@ from app.api.auth.services.password_validator import validate_password as _valid
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter
 from app.api.auth.services.user_database import get_user_db
 from app.api.common.routers.dependencies import get_external_http_client
-from app.core.logging import sanitize_log_value
 from app.core.runtime import get_request_services
 
 if TYPE_CHECKING:
@@ -170,16 +170,16 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
     async def on_after_request_verify(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
         """Send verification email after verification is requested."""
         await send_verification_email(user.email, user.username, token)
-        logger.info("Verification email sent to user %s", sanitize_log_value(user.email))
+        logger.info("Verification email sent to user %s", mask_email_for_log(user.email))
 
     async def on_after_verify(self, user: User, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
         """Send welcome email after user verifies their email."""
-        logger.info("User %s has been verified.", sanitize_log_value(user.email))
+        logger.info("User %s has been verified.", mask_email_for_log(user.email))
         await send_post_verification_email(user.email, user.username)
 
     async def on_after_forgot_password(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
         """Send password reset email."""
-        logger.info("User %s has forgot their password. Sending reset token", sanitize_log_value(user.email))
+        logger.info("Password reset email requested for user %s", mask_email_for_log(user.email))
         await send_reset_password_email(user.email, user.username, token)
 
     async def on_after_update(self, user: User, update_dict: dict, request: Request | None = None) -> None:

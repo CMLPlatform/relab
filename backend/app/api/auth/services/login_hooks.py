@@ -15,6 +15,7 @@ from app.api.auth.services.auth_backends import (
     REFRESH_COOKIE_NAME,
     set_browser_auth_cookie,
 )
+from app.api.auth.services.email import mask_email_for_log
 from app.core.logging import sanitize_log_value
 from app.core.runtime import get_request_services
 
@@ -61,6 +62,6 @@ def log_successful_login(user: User) -> None:
     """Log a successful login event."""
     logger.info(
         "User %s logged in from %s",
-        sanitize_log_value(user.email),
+        mask_email_for_log(user.email),
         sanitize_log_value(user.last_login_ip),
     )

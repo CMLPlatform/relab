@@ -10,6 +10,7 @@ import httpx
 from fastapi import Request
 from redis.exceptions import RedisError
 
+from app.api.auth.services.email_identity import canonical_email_domain
 from app.core.background_tasks import PeriodicBackgroundTask
 from app.core.config import Environment, settings
 from app.core.env import BACKEND_DIR
@@ -77,11 +78,11 @@ class EmailChecker(PeriodicBackgroundTask):
             logger.warning("Email checker not initialized, allowing registration")
             return False
         try:
-            domain = email.rsplit("@", 1)[-1].lower()
+            domain = canonical_email_domain(email)
             if self.redis_client is not None:
                 return await redis_bool(self.redis_client.hget(_REDIS_DOMAINS_HASH, domain))
         except _RECOVERABLE_ERRORS:
-            logger.exception("Failed to check if email is disposable: %s. Allowing registration.", email)
+            logger.exception("Failed to check if email is disposable. Allowing registration.")
             return False
         else:
             return domain in self._domains
