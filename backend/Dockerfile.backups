@@ -12,13 +12,16 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates rclone restic \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER"
+    && useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER" \
+    && install -d -o "$APP_UID" -g "$APP_UID" -m 0755 "$WORKDIR"
 
 WORKDIR $WORKDIR
 
-COPY --chmod=755 scripts/backup/backup_relab_restic.sh .
-COPY --chmod=755 scripts/backup/backup_relab_restic_entrypoint.sh .
+COPY --chmod=755 --chown=$APP_UID:$APP_UID scripts/backup/backup_relab_restic.sh .
+COPY --chmod=755 --chown=$APP_UID:$APP_UID scripts/backup/backup_relab_restic_entrypoint.sh .
 
 ENV BACKUP_SCRIPT=$WORKDIR/backup_relab_restic.sh
+
+USER $APP_USER
 
 ENTRYPOINT ["./backup_relab_restic_entrypoint.sh"]

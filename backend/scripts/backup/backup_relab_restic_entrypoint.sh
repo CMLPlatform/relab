@@ -1,18 +1,14 @@
 #!/usr/bin/env bash
 # Run RELab restic backups once or on a simple interval.
 
-# spell-checker: ignore gosu
-
 set -euo pipefail
 
-BACKUP_USER="${BACKUP_USER:-backupuser}"
 BACKUP_SCRIPT="${BACKUP_SCRIPT:-./backup_relab_restic.sh}"
 BACKUP_INTERVAL_SECONDS="${BACKUP_INTERVAL_SECONDS:-86400}"
 RESTIC_REPOSITORY="${RESTIC_REPOSITORY:-/restic}"
 BACKUP_WORK_DIR="${BACKUP_WORK_DIR:-/tmp/relab-backups}"
 
 mkdir -p "$RESTIC_REPOSITORY" "$BACKUP_WORK_DIR"
-chown -R "$BACKUP_USER:$BACKUP_USER" "$RESTIC_REPOSITORY" "$BACKUP_WORK_DIR"
 
 prepare_readable_file_env() {
     local env_name="$1"
@@ -31,7 +27,7 @@ prepare_readable_file_env() {
     target_dir="$BACKUP_WORK_DIR/secrets"
     target_file="$target_dir/$target_name"
     mkdir -p "$target_dir"
-    install -m 0400 -o "$BACKUP_USER" -g "$BACKUP_USER" "$source_file" "$target_file"
+    install -m 0400 "$source_file" "$target_file"
     export "$env_name=$target_file"
 }
 
@@ -40,7 +36,7 @@ prepare_readable_file_env RESTIC_PASSWORD_FILE restic_password
 prepare_readable_file_env RCLONE_CONFIG rclone.conf
 
 run_backup() {
-    gosu "$BACKUP_USER" "$BACKUP_SCRIPT"
+    "$BACKUP_SCRIPT"
 }
 
 if [[ "${BACKUP_ON_START:-true}" == "true" ]]; then
