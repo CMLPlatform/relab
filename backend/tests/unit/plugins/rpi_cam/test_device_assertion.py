@@ -20,6 +20,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import HTTPException, status
 
+from app.api.common.exceptions import ServiceUnavailableError
 from app.api.plugins.rpi_cam import device_assertion as da
 
 
@@ -176,10 +177,11 @@ class TestAuthenticatedCameraDep:
 
         with (
             patch.object(da, "get_connection_redis", return_value=None),
-            pytest.raises(HTTPException) as exc_info,
+            pytest.raises(ServiceUnavailableError) as exc_info,
         ):
             await da._authenticated_camera(request, camera.id, session)
-        assert exc_info.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        assert exc_info.value.http_status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        assert exc_info.value.message == "Authentication service unavailable."
 
     async def test_invalid_assertion_returns_401(self) -> None:
         """A malformed JWT in the Authorization header is rejected with 401."""

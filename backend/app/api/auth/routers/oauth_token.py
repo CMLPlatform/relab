@@ -15,7 +15,7 @@ import logging
 from typing import TYPE_CHECKING, Annotated, cast
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi_users.authentication import Strategy
 from jwt import ExpiredSignatureError, InvalidTokenError, PyJWKClient
 from pydantic import UUID4, BaseModel
@@ -37,10 +37,12 @@ from app.api.auth.services.user_manager import (
     bearer_auth_backend,
     cookie_auth_backend,
 )
+from app.api.common.exceptions import ServiceUnavailableError
 from app.api.common.routers.openapi import mark_router_routes_public
 from app.core.runtime import get_connection_redis
 
 logger = logging.getLogger(__name__)
+_AUTHENTICATION_SERVICE_UNAVAILABLE = "Authentication service unavailable."
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable  # lgtm[py/unused-import]
@@ -78,7 +80,10 @@ def _verify_google_id_token(id_token: str) -> dict:
     """Validate a Google ID token and return its verified claims."""
     client_id = auth_settings.google_oauth_client_id.get_secret_value()
     if not client_id:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Google OAuth not configured.")
+        raise ServiceUnavailableError(
+            _AUTHENTICATION_SERVICE_UNAVAILABLE,
+            log_message="Google OAuth not configured.",
+        )
 
     try:
         signing_key = _google_jwks_client.get_signing_key_from_jwt(id_token)
