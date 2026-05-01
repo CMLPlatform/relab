@@ -9,6 +9,7 @@ import {
   fetchOAuthAuthorizationUrl,
   openOAuthBrowserSession,
 } from '@/services/api/oauthFlow';
+import type { User } from '@/types/User';
 import type { SafeRedirectTarget } from './useLoginRedirect';
 
 const OAUTH_ACCOUNT_NOT_LINKED_ERROR = 'OAUTH_USER_ALREADY_EXISTS';
@@ -132,7 +133,7 @@ async function finalizeOAuthSession({
   error?: string;
   detail?: string;
   dialog: DialogApi;
-  completeSuccessfulLogin: (authenticatedUser: AuthenticatedUser) => Promise<void>;
+  completeSuccessfulLogin: (authenticatedUser: User) => Promise<void>;
   showAccountAlreadyRegisteredDialog: () => void;
 }) {
   if (isAccountNotLinkedError(detail)) {
@@ -296,7 +297,7 @@ export function useOAuthLogin({
   oauthDetail,
 }: {
   dialog: DialogApi;
-  completeSuccessfulLogin: (authenticatedUser: AuthenticatedUser) => Promise<void>;
+  completeSuccessfulLogin: (authenticatedUser: User) => Promise<void>;
   showAccountAlreadyRegisteredDialog: () => void;
   postLoginRedirect?: SafeRedirectTarget;
   oauthSuccess?: string | string[];
