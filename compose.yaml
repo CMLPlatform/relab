@@ -30,8 +30,20 @@ x-healthcheck-defaults: &healthcheck-defaults
   start_interval: 5s
   retries: 3
 
+x-service-hardening: &service-hardening
+  cap_drop:
+    - ALL
+  pids_limit: 512
+  security_opt:
+    - no-new-privileges:true
+  ulimits:
+    nofile:
+      soft: 8192
+      hard: 8192
+
 services:
   api:
+    <<: *service-hardening
     build:
       context: ./backend
       <<: *gha-build
@@ -55,6 +67,7 @@ services:
       - data
 
   migrator:
+    <<: *service-hardening
     build:
       context: ./backend
       dockerfile: Dockerfile.migrations
@@ -108,6 +121,7 @@ services:
       - data
 
   docs:
+    <<: *service-hardening
     build:
       context: ./docs
       <<: *gha-build
@@ -116,6 +130,7 @@ services:
       - edge
 
   app:
+    <<: *service-hardening
     build:
       context: ./app
       <<: *gha-build
@@ -124,6 +139,7 @@ services:
       - edge
 
   www:
+    <<: *service-hardening
     build:
       context: ./www
       <<: *gha-build

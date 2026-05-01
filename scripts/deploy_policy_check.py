@@ -58,10 +58,21 @@ def assert_localhost_ports(config: dict[str, Any], label: str, service_name: str
     ports = service(config, service_name, label).get("ports") or []
     if not ports:
         raise AssertionError(f"{label}: {service_name} should publish a localhost-only dev port")
+    assert_ports_bind_localhost(ports, label, service_name)
+
+
+def assert_ports_bind_localhost(ports: list[dict[str, Any]], label: str, service_name: str) -> None:
     for port in ports:
         host_ip = port.get("host_ip")
         if host_ip != "127.0.0.1":
             raise AssertionError(f"{label}: {service_name} port {port!r} must bind to 127.0.0.1")
+
+
+def assert_all_published_ports_bind_localhost(config: dict[str, Any], label: str) -> None:
+    for service_name, service_config in (config.get("services") or {}).items():
+        ports = service_config.get("ports") or []
+        if ports:
+            assert_ports_bind_localhost(ports, label, service_name)
 
 
 def assert_networks(
@@ -81,14 +92,43 @@ def assert_networks(
         raise AssertionError(f"{label}: {service_name} must not join networks: {', '.join(sorted(unexpected))}")
 
 
+def assert_hardened_runtime_service(
+    config: dict[str, Any],
+    label: str,
+    service_name: str,
+) -> None:
+    service_config = service(config, service_name, label)
+    cap_drop = service_config.get("cap_drop") or []
+    security_opt = service_config.get("security_opt") or []
+    ulimits = service_config.get("ulimits") or {}
+    user = str(service_config.get("user") or "")
+
+    if "ALL" not in cap_drop:
+        raise AssertionError(f"{label}: {service_name} must drop all Linux capabilities")
+    if "no-new-privileges:true" not in security_opt:
+        raise AssertionError(f"{label}: {service_name} must set no-new-privileges")
+    if int(service_config.get("pids_limit") or 0) <= 0:
+        raise AssertionError(f"{label}: {service_name} must set pids_limit")
+    if "nofile" not in ulimits:
+        raise AssertionError(f"{label}: {service_name} must set a nofile ulimit")
+    if service_config.get("read_only") is not True:
+        raise AssertionError(f"{label}: {service_name} must use a read-only root filesystem")
+    if not user or user == "0" or user.startswith("0:") or user == "root" or user.startswith("root:"):
+        raise AssertionError(f"{label}: {service_name} must declare a non-root user")
+
+
 def check_compose_policy(compose_configs: dict[str, Path]) -> None:
     configs = {label: load_json(path) for label, path in compose_configs.items()}
 
     dev = configs["dev"]
     if not (dev.get("networks", {}).get("data") or {}).get("internal"):
         raise AssertionError("dev: data network must be internal")
+    assert_all_published_ports_bind_localhost(dev, "dev")
     assert_localhost_ports(dev, "dev", "postgres")
     assert_localhost_ports(dev, "dev", "redis")
+
+    e2e = configs["e2e"]
+    assert_all_published_ports_bind_localhost(e2e, "e2e")
 
     for label in ("prod", "staging"):
         config = configs[label]
@@ -99,6 +139,8 @@ def check_compose_policy(compose_configs: dict[str, Path]) -> None:
             assert_networks(config, label, service_name, required={"data"}, forbidden={"edge"})
         assert_networks(config, label, "relab-backup", required={"data"}, forbidden={"edge"})
         assert_networks(config, label, "api", required={"edge", "data"}, forbidden=set())
+        for service_name in ("api", "migrator", "docs", "app", "www", "relab-backup"):
+            assert_hardened_runtime_service(config, label, service_name)
 
 
 def check_secrets(manifest: Path, compose_configs: dict[str, Path]) -> None:
@@ -122,7 +164,7 @@ def check_secrets(manifest: Path, compose_configs: dict[str, Path]) -> None:
             expected_file = (Path.cwd() / "secrets" / label / name).resolve()
             if configured_file != expected_file:
                 raise AssertionError(
-                    f"{label}: secret '{name}' must use {expected_file}, got {configured_file}"
+                    f"{label}: secret '{name}' must use {expected_file}, got {configured_file}",
                 )
 
         required_by_service = {
@@ -153,12 +195,11 @@ def check_secrets(manifest: Path, compose_configs: dict[str, Path]) -> None:
             unexpected = sources - required
             if missing_service_secrets:
                 raise AssertionError(
-                    f"{label}: {service_name} missing required secrets: "
-                    f"{', '.join(sorted(missing_service_secrets))}"
+                    f"{label}: {service_name} missing required secrets: {', '.join(sorted(missing_service_secrets))}",
                 )
             if unexpected:
                 raise AssertionError(
-                    f"{label}: {service_name} has unexpected secret access: {', '.join(sorted(unexpected))}"
+                    f"{label}: {service_name} has unexpected secret access: {', '.join(sorted(unexpected))}",
                 )
 
 
