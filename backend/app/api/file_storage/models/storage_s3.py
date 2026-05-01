@@ -11,8 +11,8 @@ from anyio import to_thread
 
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
 from app.api.file_storage.models.storage_core import BaseStorage, secure_filename
+from app.api.file_storage.upload_policy import validate_image_upload_content
 from app.core.config import settings
-from app.core.images import validate_image_file
 
 if TYPE_CHECKING:
     from typing import BinaryIO
@@ -158,5 +158,5 @@ class S3Storage(BaseStorage):
 
     async def write_image_upload(self, upload_file: UploadFile, name: str) -> str:
         """Validate and upload an image to S3."""
-        await to_thread.run_sync(validate_image_file, upload_file.file)
+        await to_thread.run_sync(validate_image_upload_content, upload_file)
         return await self.write_upload(upload_file, name)

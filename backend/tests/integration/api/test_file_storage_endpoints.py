@@ -1,12 +1,15 @@
 """Integration tests for file storage endpoints."""
+# spell-checker: ignore ENVI geocube hyperspectral NITF
 
 from __future__ import annotations
 
 import json
+from io import BytesIO
 from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import status
+from PIL import Image as PILImage
 
 from tests.factories.models import ProductFactory, ProductTypeFactory
 
@@ -33,6 +36,13 @@ GIF_BYTES = (
     b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04"
     b"\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
 )
+
+
+def _tiff_bytes() -> bytes:
+    """Return a tiny valid TIFF payload."""
+    buffer = BytesIO()
+    PILImage.new("RGB", (1, 1), color="red").save(buffer, format="TIFF")
+    return buffer.getvalue()
 
 
 def _upload_request(kind: str) -> tuple[str, dict[str, tuple[str, bytes, str]], dict[str, str], str, str]:
@@ -145,6 +155,82 @@ class TestFileStorageEndpoints:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json()["detail"].startswith(expected_detail)
+
+    @pytest.mark.parametrize(
+        ("filename", "content_type", "content"),
+        [
+            ("cube.hdr", "text/plain", b"ENVI\nsamples = 1\nlines = 1\nbands = 224\n"),
+            ("cube.raw", "application/octet-stream", b"\x00\x01\x02\x03"),
+            ("cube.h5", "application/x-hdf5", b"\x89HDF\r\n\x1a\n"),
+            ("scene.ntf", "application/octet-stream", b"NITF02.10"),
+            ("geocube.tif", "image/tiff", _tiff_bytes()),
+        ],
+    )
+    async def test_upload_file_accepts_hyperspectral_research_formats(
+        self,
+        api_client_superuser: AsyncClient,
+        setup_product_for_files: Product,
+        filename: str,
+        content_type: str,
+        content: bytes,
+    ) -> None:
+        """Hyperspectral datasets are accepted as generic files."""
+        response = await api_client_superuser.post(
+            f"/v1/products/{setup_product_for_files.id}/files",
+            files={"file": (filename, content, content_type)},
+            data={"description": FILE_DESC},
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED, response.text
+        body = response.json()
+        assert body["filename"] == filename
+        assert body["file_url"].startswith("/uploads/files/")
+        assert filename not in body["file_url"]
+
+    async def test_upload_file_rejects_unsupported_extension(
+        self,
+        api_client_superuser: AsyncClient,
+        setup_product_for_files: Product,
+    ) -> None:
+        """Unsupported generic files are rejected before they reach public storage."""
+        response = await api_client_superuser.post(
+            f"/v1/products/{setup_product_for_files.id}/files",
+            files={"file": ("payload.svg", b"<svg><script>alert(1)</script></svg>", "image/svg+xml")},
+            data={"description": FILE_DESC},
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "not supported" in response.text
+
+    async def test_upload_image_rejects_hyperspectral_data_file(
+        self,
+        api_client_superuser: AsyncClient,
+        setup_product_for_files: Product,
+    ) -> None:
+        """Hyperspectral files must use file routes rather than image processing routes."""
+        response = await api_client_superuser.post(
+            f"/v1/products/{setup_product_for_files.id}/images",
+            files={"file": ("cube.h5", b"\x89HDF\r\n\x1a\n", "application/x-hdf5")},
+            data={"description": IMAGE_DESC},
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "not supported for image uploads" in response.text
+
+    async def test_upload_image_rejects_extension_mismatch(
+        self,
+        api_client_superuser: AsyncClient,
+        setup_product_for_files: Product,
+    ) -> None:
+        """Image uploads require extension, MIME type, and signature to agree."""
+        response = await api_client_superuser.post(
+            f"/v1/products/{setup_product_for_files.id}/images",
+            files={"file": ("image.png", GIF_BYTES, "image/png")},
+            data={"description": IMAGE_DESC},
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "does not match" in response.text
 
     @pytest.mark.parametrize(
         ("kind", "endpoint"),
