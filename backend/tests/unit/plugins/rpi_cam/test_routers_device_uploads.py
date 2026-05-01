@@ -8,6 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException, UploadFile
+from PIL import Image as PILImage
+from starlette.datastructures import Headers
 
 from app.api.auth.exceptions import UserOwnershipError
 from app.api.data_collection.models.product import Product
@@ -21,6 +23,13 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from app.api.plugins.rpi_cam.models import Camera
+
+
+def _jpeg_upload(filename: str = "preview.jpg") -> UploadFile:
+    buffer = BytesIO()
+    PILImage.new("RGB", (10, 10), color="blue").save(buffer, format="JPEG")
+    buffer.seek(0)
+    return UploadFile(file=buffer, filename=filename, headers=Headers({"content-type": "image/jpeg"}))
 
 
 class TestReceiveCameraUpload:
@@ -99,12 +108,12 @@ class TestReceivePreviewThumbnailUpload:
     ) -> None:
         """A device upload should overwrite the deterministic preview-thumbnail cache file."""
         monkeypatch.setattr(settings, "image_storage_path", tmp_path)
-        upload = UploadFile(filename="preview.jpg", file=BytesIO(b"preview-bytes"))
+        upload = _jpeg_upload()
 
         ack = await receive_preview_thumbnail_upload(camera_id=mock_camera.id, camera=mock_camera, file=upload)
 
         path = tmp_path / "rpi-cam-preview" / f"{mock_camera.id}.jpg"
-        assert path.read_bytes() == b"preview-bytes"
+        assert path.read_bytes().startswith(b"\xff\xd8")
         expected_mtime = int(path.stat().st_mtime)
         assert ack.preview_thumbnail_url == f"/uploads/images/rpi-cam-preview/{mock_camera.id}.jpg?v={expected_mtime}"
 
@@ -123,3 +132,23 @@ class TestReceivePreviewThumbnailUpload:
 
         assert exc_info.value.status_code == 400
         assert "empty" in str(exc_info.value.detail).lower()
+
+    async def test_rejects_invalid_preview_thumbnail_image(
+        self,
+        mock_camera: Camera,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Preview thumbnails must be valid images before they are exposed under /uploads."""
+        monkeypatch.setattr(settings, "image_storage_path", tmp_path)
+        upload = UploadFile(
+            filename="preview.jpg",
+            file=BytesIO(b"not an image"),
+            headers=Headers({"content-type": "image/jpeg"}),
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await receive_preview_thumbnail_upload(camera_id=mock_camera.id, camera=mock_camera, file=upload)
+
+        assert exc_info.value.status_code == 400
+        assert "invalid image" in str(exc_info.value.detail).lower()

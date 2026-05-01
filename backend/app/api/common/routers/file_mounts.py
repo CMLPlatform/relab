@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
@@ -12,11 +13,10 @@ from starlette.datastructures import MutableHeaders
 from app.core.config import settings
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from starlette.types import Message, Receive, Scope, Send
 
 RESPONSE_START_MESSAGE_TYPE = "http.response.start"
+UPLOAD_FILE_ATTACHMENT_PATH_PREFIX = "/uploads/files/"
 
 
 class CachedStaticFiles(StaticFiles):
@@ -26,15 +26,33 @@ class CachedStaticFiles(StaticFiles):
         super().__init__(directory=directory)
         self._cache_control = cache_control
 
+    def update_response_headers(self, headers: MutableHeaders, scope: Scope) -> None:
+        """Apply response headers for this static file mount."""
+        del scope
+        headers.append("Cache-Control", self._cache_control)
+
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Serve static files while appending the configured cache policy."""
 
         async def send_with_cache(message: Message) -> None:
             if message["type"] == RESPONSE_START_MESSAGE_TYPE:
-                MutableHeaders(scope=message).append("Cache-Control", self._cache_control)
+                self.update_response_headers(MutableHeaders(scope=message), scope)
             await send(message)
 
         await super().__call__(scope, receive, send_with_cache)
+
+
+class UploadStaticFiles(CachedStaticFiles):
+    """Upload-backed StaticFiles with safer browser response headers."""
+
+    def update_response_headers(self, headers: MutableHeaders, scope: Scope) -> None:
+        """Serve uploads with MIME sniffing disabled and generic files as attachments."""
+        super().update_response_headers(headers, scope)
+        headers["X-Content-Type-Options"] = "nosniff"
+        request_path = str(scope.get("path", ""))
+        if request_path.startswith(UPLOAD_FILE_ATTACHMENT_PATH_PREFIX):
+            filename = Path(request_path).name
+            headers["Content-Disposition"] = f'attachment; filename="{filename}"'
 
 
 FAVICON_ROUTE = "/favicon.ico"
@@ -51,7 +69,7 @@ def mount_static_directories(app: FastAPI) -> None:
     if settings.uploads_path.exists():
         app.mount(
             "/uploads",
-            CachedStaticFiles(
+            UploadStaticFiles(
                 directory=settings.uploads_path,
                 cache_control="public, max-age=31536000, immutable",
             ),
