@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from app.api.plugins.rpi_cam.services import get_preview_thumbnail_urls_per_camera
+from app.api.plugins.rpi_cam.runtime_preview import get_preview_thumbnail_urls_per_camera
 from app.core.config import settings
 
 if TYPE_CHECKING:

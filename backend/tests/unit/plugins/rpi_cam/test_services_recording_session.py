@@ -10,7 +10,7 @@ from uuid import uuid4
 import pytest
 
 from app.api.common.exceptions import ConflictError, ServiceUnavailableError
-from app.api.plugins.rpi_cam.services import (
+from app.api.plugins.rpi_cam.runtime_recording import (
     YOUTUBE_RECORDING_SESSION_TTL_SECONDS,
     load_recording_session,
     store_recording_session,
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from typing import Any
 
 
-@patch("app.api.plugins.rpi_cam.service_runtime.set_redis_value", new_callable=AsyncMock, return_value=False)
+@patch("app.api.plugins.rpi_cam.runtime_recording.set_redis_value", new_callable=AsyncMock, return_value=False)
 async def test_store_recording_session_raises_internal_error_when_redis_set_fails(
     mock_set_redis_value: AsyncMock, mock_session: Any
 ) -> None:
@@ -37,7 +37,7 @@ async def test_store_recording_session_raises_internal_error_when_redis_set_fail
     assert mock_session.delete.await_count == 1
 
 
-@patch("app.api.plugins.rpi_cam.service_runtime.set_redis_value", new_callable=AsyncMock, return_value=True)
+@patch("app.api.plugins.rpi_cam.runtime_recording.set_redis_value", new_callable=AsyncMock, return_value=True)
 async def test_store_recording_session_uses_48_hour_ttl(mock_set_redis_value: AsyncMock, mock_session: Any) -> None:
     """Recording sessions should live long enough for long-running broadcasts."""
     redis_mock = AsyncMock()
@@ -57,7 +57,7 @@ async def test_store_recording_session_uses_48_hour_ttl(mock_set_redis_value: As
     assert mock_session.commit.await_count == 1
 
 
-@patch("app.api.plugins.rpi_cam.service_runtime.get_redis_value", new_callable=AsyncMock, return_value=None)
+@patch("app.api.plugins.rpi_cam.runtime_recording.get_redis_value", new_callable=AsyncMock, return_value=None)
 async def test_load_recording_session_raises_conflict_when_missing(
     mock_get_redis_value: AsyncMock, mock_session: Any
 ) -> None:
@@ -71,7 +71,7 @@ async def test_load_recording_session_raises_conflict_when_missing(
     mock_get_redis_value.assert_awaited_once()
 
 
-@patch("app.api.plugins.rpi_cam.service_runtime.get_redis_value", new_callable=AsyncMock)
+@patch("app.api.plugins.rpi_cam.runtime_recording.get_redis_value", new_callable=AsyncMock)
 async def test_load_recording_session_falls_back_to_db_on_invalid_payload(
     mock_get_redis_value: AsyncMock, mock_session: Any
 ) -> None:
@@ -93,8 +93,8 @@ async def test_load_recording_session_falls_back_to_db_on_invalid_payload(
     assert loaded.product_id == 1
 
 
-@patch("app.api.plugins.rpi_cam.service_runtime.get_redis_value", new_callable=AsyncMock, return_value=None)
-@patch("app.api.plugins.rpi_cam.service_runtime.set_redis_value", new_callable=AsyncMock, return_value=True)
+@patch("app.api.plugins.rpi_cam.runtime_recording.get_redis_value", new_callable=AsyncMock, return_value=None)
+@patch("app.api.plugins.rpi_cam.runtime_recording.set_redis_value", new_callable=AsyncMock, return_value=True)
 async def test_load_recording_session_repopulates_redis_from_db_backstop(
     mock_set_redis_value: AsyncMock,
     mock_get_redis_value: AsyncMock,

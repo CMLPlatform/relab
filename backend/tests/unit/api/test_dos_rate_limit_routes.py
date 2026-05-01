@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from app.api.auth.services.rate_limiter import Limiter, RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.data_collection.routers import search_router
-from app.api.data_collection.routers.component_routers import component_router
+from app.api.data_collection.routers.component_media_routers import component_media_router
 from app.api.data_collection.routers.product_mutation_routers import product_mutation_router
 from app.api.plugins.rpi_cam.routers.camera_interaction.images import device_router as rpi_cam_device_image_router
 from app.api.reference_data.routers.admin_materials import router as material_router
@@ -65,8 +65,12 @@ def test_product_and_component_upload_routes_are_rate_limited() -> None:
     _assert_rate_limited(
         _route(product_mutation_router, "/products/{product_id}/images", "POST"), "api_upload_rate_limit"
     )
-    _assert_rate_limited(_route(component_router, "/components/{component_id}/files", "POST"), "api_upload_rate_limit")
-    _assert_rate_limited(_route(component_router, "/components/{component_id}/images", "POST"), "api_upload_rate_limit")
+    _assert_rate_limited(
+        _route(component_media_router, "/components/{component_id}/files", "POST"), "api_upload_rate_limit"
+    )
+    _assert_rate_limited(
+        _route(component_media_router, "/components/{component_id}/images", "POST"), "api_upload_rate_limit"
+    )
 
 
 def test_reference_data_upload_routes_are_rate_limited() -> None:

@@ -24,7 +24,7 @@ from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.exceptions import InvalidCameraResponseError
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
-from app.api.plugins.rpi_cam.services import get_cached_telemetry, store_telemetry
+from app.api.plugins.rpi_cam.runtime_status import get_cached_telemetry, store_telemetry
 from app.core.redis import OptionalRedisDep
 
 router = PublicAPIRouter()

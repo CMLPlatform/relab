@@ -4,17 +4,15 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
-import time
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException
 from opentelemetry.propagate import inject
 from pydantic import UUID4
-from redis.exceptions import RedisError
 from relab_rpi_cam_models import SAFE_RELAY_TRACE_HEADERS
 
+from app.api.plugins.rpi_cam.websocket import cross_worker_circuit_breaker as circuit_breaker
 from app.api.plugins.rpi_cam.websocket.connection_manager import (
     BINARY_COMMAND_TIMEOUT,
     DEFAULT_COMMAND_TIMEOUT,
@@ -29,77 +27,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 _RELAY_RETRY_AFTER_SECONDS = "2"
-
-# ── Cross-worker relay circuit breaker ────────────────────────────────────────
-# When a camera's WebSocket is not local AND the cross-worker bridge keeps
-# failing (camera genuinely offline, not just in another worker), we open a
-# per-camera circuit so subsequent requests fast-fail in <1 ms instead of
-# paying the full 30 s / 60 s BLPOP timeout. Resets on first success.
-#
-# State is per-worker (in-process) — each worker learns independently that a
-# camera is unreachable. That's fine: the circuit breaker's job is just to
-# absorb the stampede of incoming HTTP requests that pile up while a camera
-# is down; persistence across workers is not required.
-_CROSS_WORKER_CB_FAILURE_THRESHOLD = 3
-_CROSS_WORKER_CB_COOL_DOWN_S = 30.0
-# Map[camera_id] → (consecutive_failures, open_until_monotonic). Local counter;
-# threshold crossings publish an "open" marker to Redis so other workers also
-# fast-fail without each having to rediscover the camera is offline.
-_cross_worker_cb_state: dict[UUID4, tuple[int, float]] = {}
-
-
-def _cb_redis_key(camera_id: UUID4) -> str:
-    return f"rpi_cam:cb:{camera_id}"
-
-
-async def _cb_is_open(camera_id: UUID4, redis: Redis | None, *, now: float | None = None) -> bool:
-    """Return True if the cross-worker circuit for ``camera_id`` is currently open."""
-    entry = _cross_worker_cb_state.get(camera_id)
-    if entry is not None:
-        _failures, open_until = entry
-        if (now if now is not None else time.monotonic()) < open_until:
-            return True
-    if redis is None:
-        return False
-    try:
-        exists = await redis.exists(_cb_redis_key(camera_id))
-    except TimeoutError, RedisError, OSError, ConnectionError:
-        return False
-    return bool(exists)
-
-
-async def _cb_record_success(camera_id: UUID4, redis: Redis | None) -> None:
-    """Reset circuit state on a successful cross-worker call."""
-    _cross_worker_cb_state.pop(camera_id, None)
-    if redis is not None:
-        with contextlib.suppress(Exception):
-            await redis.delete(_cb_redis_key(camera_id))
-
-
-async def _cb_record_failure(camera_id: UUID4, redis: Redis | None) -> None:
-    """Record a failed cross-worker call; open the circuit at the threshold."""
-    failures, _ = _cross_worker_cb_state.get(camera_id, (0, 0.0))
-    failures += 1
-    open_until = (
-        time.monotonic() + _CROSS_WORKER_CB_COOL_DOWN_S if failures >= _CROSS_WORKER_CB_FAILURE_THRESHOLD else 0.0
-    )
-    _cross_worker_cb_state[camera_id] = (failures, open_until)
-    if open_until:
-        logger.warning(
-            "Cross-worker relay circuit opened for camera %s after %d failures; "
-            "fast-failing subsequent requests for %.0fs",
-            camera_id,
-            failures,
-            _CROSS_WORKER_CB_COOL_DOWN_S,
-        )
-        if redis is not None:
-            with contextlib.suppress(Exception):
-                await redis.set(_cb_redis_key(camera_id), "1", ex=int(_CROSS_WORKER_CB_COOL_DOWN_S))
-
-
-def _reset_cross_worker_cb_for_tests() -> None:
-    """Test hook: clear all per-camera circuit breaker state."""
-    _cross_worker_cb_state.clear()
 
 
 def _camera_not_connected() -> HTTPException:
@@ -128,7 +55,7 @@ async def _attempt_cross_worker_relay(
     callers the full BLPOP timeout. Success resets the circuit; failure advances it
     toward the open state.
     """
-    if await _cb_is_open(camera_id, redis):
+    if await circuit_breaker.is_open(camera_id, redis):
         logger.debug("Cross-worker relay circuit open for camera %s; fast-failing", camera_id)
         raise _camera_not_connected()
 
@@ -147,10 +74,10 @@ async def _attempt_cross_worker_relay(
             )
     except (RuntimeError, TimeoutError) as cross_exc:
         logger.warning("Cross-worker relay failed for camera %s: %s", camera_id, cross_exc)
-        await _cb_record_failure(camera_id, redis)
+        await circuit_breaker.record_failure(camera_id, redis)
         raise
 
-    await _cb_record_success(camera_id, redis)
+    await circuit_breaker.record_success(camera_id, redis)
     return result
 
 

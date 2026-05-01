@@ -11,6 +11,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
+from app.api.plugins.rpi_cam.websocket import cross_worker_circuit_breaker as circuit_breaker
 from app.api.plugins.rpi_cam.websocket import relay as relay_mod
 
 
@@ -107,7 +108,7 @@ async def test_cross_worker_relay_opens_circuit_after_three_failures() -> None:
     redis = AsyncMock()
     redis.exists = AsyncMock(return_value=0)
 
-    relay_mod._reset_cross_worker_cb_for_tests()
+    circuit_breaker.reset_for_tests()
 
     with (
         patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
@@ -137,7 +138,7 @@ async def test_cross_worker_relay_forwards_trace_headers() -> None:
     redis = AsyncMock()
     redis.exists = AsyncMock(return_value=0)
 
-    relay_mod._reset_cross_worker_cb_for_tests()
+    circuit_breaker.reset_for_tests()
 
     with (
         patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
@@ -173,7 +174,7 @@ async def test_cross_worker_relay_success_resets_circuit() -> None:
     redis = AsyncMock()
     redis.exists = AsyncMock(return_value=0)
 
-    relay_mod._reset_cross_worker_cb_for_tests()
+    circuit_breaker.reset_for_tests()
 
     with (
         patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
@@ -211,9 +212,9 @@ async def test_cross_worker_relay_half_opens_after_cooldown() -> None:
     redis = AsyncMock()
     redis.exists = AsyncMock(return_value=0)
 
-    relay_mod._reset_cross_worker_cb_for_tests()
-    relay_mod._cross_worker_cb_state[camera_id] = (
-        relay_mod._CROSS_WORKER_CB_FAILURE_THRESHOLD,
+    circuit_breaker.reset_for_tests()
+    circuit_breaker._cross_worker_cb_state[camera_id] = (
+        circuit_breaker.FAILURE_THRESHOLD,
         0.0,
     )
 

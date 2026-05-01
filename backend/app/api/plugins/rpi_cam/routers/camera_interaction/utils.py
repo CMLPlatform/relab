@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from app.api.common.ownership import get_user_owned_object
 from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus
-from app.api.plugins.rpi_cam.services import get_camera_status
+from app.api.plugins.rpi_cam.runtime_status import get_camera_status
 from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
 from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 
