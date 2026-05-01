@@ -1,6 +1,7 @@
 """Transactional email service helpers."""
 
 import logging
+from html import escape
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
@@ -123,6 +124,33 @@ async def send_reset_password_email(
         template_body={"username": _display_name(username, to_email), "reset_link": reset_link},
         background_tasks=background_tasks,
     )
+
+
+async def send_password_reset_confirmation_email(
+    to_email: EmailStr,
+    username: str | None,
+    background_tasks: BackgroundTasks | None = None,
+    provider: EmailProvider | None = None,
+) -> None:
+    """Notify a user after their account password has been reset."""
+    display_name = escape(_display_name(username, to_email))
+    message = _build_message(
+        to_email,
+        "Your RELab password was reset",
+        (
+            f"<p>Hello {display_name},</p>"
+            "<p>Your RELab account password was reset. "
+            "If you did not make this change, contact RELab support immediately.</p>"
+        ),
+    )
+    selected_provider = provider or default_email_provider
+    if background_tasks:
+        background_tasks.add_task(selected_provider.send, message)
+        logger.info("Password-reset confirmation queued for %s", mask_email_for_log(to_email))
+        return
+
+    await selected_provider.send(message)
+    logger.info("Password-reset confirmation sent to %s", mask_email_for_log(to_email))
 
 
 async def send_verification_email(

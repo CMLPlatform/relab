@@ -141,3 +141,48 @@ class TestUserUpdateSchema:
 
         assert "current_password" not in update.create_update_dict()
         assert "current_password" not in update.create_update_dict_superuser()
+
+
+class TestResetPasswordHooks:
+    """Post-reset hooks revoke existing sessions and notify the user."""
+
+    async def test_on_after_forgot_password_uses_background_tasks_from_request_state(self) -> None:
+        """Reset-link email sending should be queued when the route provides background tasks."""
+        manager, _ = _make_manager()
+        user = MagicMock()
+        user.email = "user@example.com"
+        user.username = "user"
+        request = MagicMock()
+        request.state.background_tasks = MagicMock()
+
+        with patch("app.api.auth.services.user_manager.send_reset_password_email", new_callable=AsyncMock) as mock_send:
+            await manager.on_after_forgot_password(user, "reset-token", request)
+
+        mock_send.assert_awaited_once_with("user@example.com", "user", "reset-token", request.state.background_tasks)
+
+    async def test_on_after_reset_password_revokes_refresh_tokens_and_sends_confirmation(self) -> None:
+        """Successful password resets should invalidate active sessions and send a confirmation email."""
+        manager, _ = _make_manager()
+        user = MagicMock()
+        user.id = "user-id"
+        user.email = "user@example.com"
+        user.username = "user"
+        request = MagicMock()
+        redis = object()
+
+        with (
+            patch("app.api.auth.services.user_manager.get_request_services") as mock_services,
+            patch(
+                "app.api.auth.services.user_manager.refresh_token_service.revoke_all_user_tokens",
+                new_callable=AsyncMock,
+            ) as mock_revoke,
+            patch(
+                "app.api.auth.services.user_manager.send_password_reset_confirmation_email",
+                new_callable=AsyncMock,
+            ) as mock_send,
+        ):
+            mock_services.return_value.redis = redis
+            await manager.on_after_reset_password(user, request)
+
+        mock_revoke.assert_awaited_once_with(redis, "user-id")
+        mock_send.assert_awaited_once_with("user@example.com", "user")

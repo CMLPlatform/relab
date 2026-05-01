@@ -14,6 +14,7 @@ from app.api.auth.config import settings as auth_settings
 from app.api.auth.services.email import (
     generate_token_link,
     send_email_changed_notification,
+    send_password_reset_confirmation_email,
     send_post_verification_email,
     send_registration_email,
     send_reset_password_email,
@@ -263,12 +264,30 @@ async def test_send_email_changed_notification_uses_plain_message(
     assert "token=" not in message.html_body
 
 
+async def test_send_password_reset_confirmation_email_uses_plain_safe_message(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """Password-reset confirmations should not include credentials, tokens, or reset URLs."""
+    await send_password_reset_confirmation_email(email_data["email"], email_data["username"])
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert message.subject == "Your RELab password was reset"
+    assert email_data["username"] in message.html_body
+    assert email_data["token"] not in message.html_body
+    assert "token=" not in message.html_body
+    assert "/reset-password" not in message.html_body
+    assert "password123" not in message.html_body
+
+
 ### Parametrized Integration Tests ###
 @pytest.mark.parametrize(
     ("email_func", "needs_token"),
     [
         (send_registration_email, True),
         (send_reset_password_email, True),
+        (send_password_reset_confirmation_email, False),
         (send_verification_email, True),
         (send_post_verification_email, False),
     ],
@@ -296,6 +315,7 @@ async def test_all_email_functions_send_emails(
     [
         (send_registration_email, True),
         (send_reset_password_email, True),
+        (send_password_reset_confirmation_email, False),
         (send_verification_email, True),
         (send_post_verification_email, False),
     ],

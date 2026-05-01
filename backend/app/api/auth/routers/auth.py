@@ -9,12 +9,11 @@ from fastapi.routing import APIRoute
 from fastapi_users.router.common import ErrorModel
 from pydantic import EmailStr  # Needed for Fastapi dependency injection
 
-from app.api.auth.routers import refresh, register
+from app.api.auth.routers import password_reset, refresh, register
 from app.api.auth.schemas import UserRead
 from app.api.auth.services.email_checker import EmailChecker, get_email_checker_dependency
 from app.api.auth.services.rate_limiter import (
     LOGIN_RATE_LIMIT,
-    PASSWORD_RESET_RATE_LIMIT,
     VERIFY_RATE_LIMIT,
     limiter,
 )
@@ -30,10 +29,22 @@ if TYPE_CHECKING:
 
 LOGIN_PATH = "/login"
 REQUEST_VERIFY_TOKEN_PATH = "/request-verify-token"  # noqa: S105 # This value is not a secret
-FORGOT_PASSWORD_PATH = "/forgot-password"  # noqa: S105 # This value is not a secret
+FORGOT_PASSWORD_PATH = password_reset.FORGOT_PASSWORD_PATH
+RESET_PASSWORD_PATH = password_reset.RESET_PASSWORD_PATH
 AUTH_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {400: {"model": ErrorModel}}
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _find_route(router_to_search: APIRouter, path: str) -> APIRoute:
+    """Return a generated route by path."""
+    return next(route for route in router_to_search.routes if isinstance(route, APIRoute) and route.path == path)
+
+
+def _rate_limit_route(router_to_search: APIRouter, path: str, rate_limit: str) -> None:
+    """Apply the shared limiter to a generated route endpoint."""
+    route = _find_route(router_to_search, path)
+    route.endpoint = limiter.limit(rate_limit)(route.endpoint)
 
 
 # Use FastAPI-Users' built-in auth routers with rate limiting on login
@@ -41,17 +52,12 @@ bearer_router = fastapi_user_manager.get_auth_router(bearer_auth_backend)
 cookie_router = fastapi_user_manager.get_auth_router(cookie_auth_backend)
 
 # Apply rate limiting to login routes
-for route in bearer_router.routes:
-    if isinstance(route, APIRoute) and route.path == LOGIN_PATH:
-        route.endpoint = limiter.limit(LOGIN_RATE_LIMIT)(route.endpoint)
-
-for route in cookie_router.routes:
-    if isinstance(route, APIRoute) and route.path == LOGIN_PATH:
-        route.endpoint = limiter.limit(LOGIN_RATE_LIMIT)(route.endpoint)
+_rate_limit_route(bearer_router, LOGIN_PATH, LOGIN_RATE_LIMIT)
+_rate_limit_route(cookie_router, LOGIN_PATH, LOGIN_RATE_LIMIT)
 
 router.add_api_route(
     LOGIN_PATH,
-    next(route.endpoint for route in bearer_router.routes if isinstance(route, APIRoute) and route.path == LOGIN_PATH),
+    _find_route(bearer_router, LOGIN_PATH).endpoint,
     methods=["POST"],
     name="auth:login",
     tags=["auth"],
@@ -69,17 +75,11 @@ router.include_router(refresh.router, tags=["auth"])
 # Mark all routes in the auth router thus far as public
 mark_router_routes_public(router)
 
-# Verification and password reset routes (rate-limit the email-sending endpoint)
+# Verification and password reset routes
 verify_router = fastapi_user_manager.get_verify_router(user_schema=UserRead)
-for route in verify_router.routes:
-    if isinstance(route, APIRoute) and route.path == REQUEST_VERIFY_TOKEN_PATH:
-        route.endpoint = limiter.limit(VERIFY_RATE_LIMIT)(route.endpoint)
+_rate_limit_route(verify_router, REQUEST_VERIFY_TOKEN_PATH, VERIFY_RATE_LIMIT)
 router.include_router(verify_router)
-reset_password_router = fastapi_user_manager.get_reset_password_router()
-for route in reset_password_router.routes:
-    if isinstance(route, APIRoute) and route.path == FORGOT_PASSWORD_PATH:
-        route.endpoint = limiter.limit(PASSWORD_RESET_RATE_LIMIT)(route.endpoint)
-router.include_router(reset_password_router)
+router.include_router(password_reset.router)
 
 
 @router.get("/validate-email")
