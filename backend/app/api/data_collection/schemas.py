@@ -1,11 +1,10 @@
 """Pydantic models used to validate CRUD operations for data collection data."""
 
 import logging
-from typing import TYPE_CHECKING, Annotated, Self
+from typing import TYPE_CHECKING, Self
 
 from pydantic import (
     BaseModel,
-    BeforeValidator,
     ConfigDict,
     Field,
     PositiveInt,
@@ -22,9 +21,10 @@ from app.api.common.schemas.base import (
     ComponentRead,
     ProductRead,
 )
-from app.api.common.schemas.field_mixins import ProductCircularityPropertiesFields
+from app.api.common.schemas.field_mixins import ProductCircularityPropertiesInputFields
+from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.data_collection.examples import PRODUCT_CREATE_EXAMPLES
-from app.api.data_collection.models.base import ProductBase
+from app.api.data_collection.models.base import NormalizedBrandText, ProductBase
 from app.api.file_storage.schemas import (
     FileRead,
     ImageRead,
@@ -40,17 +40,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# Normalizes brand strings: strips whitespace and lowercases; empty string becomes None
-NormalizedBrand = Annotated[
-    str | None,
-    BeforeValidator(lambda v: v.strip().lower() or None if isinstance(v, str) else v),
-]
-
-
 ### Product Schemas ###
 
 
-## Utility functions ##
 def validate_material_or_components(bill_of_materials: Collection, components: Collection) -> None:
     """Validation logic to ensure either materials or components are provided."""
     if len(bill_of_materials) == 0 and len(components) == 0:
@@ -61,13 +53,7 @@ def validate_material_or_components(bill_of_materials: Collection, components: C
 
 
 ## Create Schemas ##
-class ProductCreateBase(BaseCreateSchema, ProductBase):
-    """Base schema for product and component creation."""
-
-    brand: NormalizedBrand = Field(default=None, max_length=100)
-
-
-class ProductCreateWithRelationships(ProductCreateBase):
+class ProductCreateWithRelationships(BaseCreateSchema, ProductBase):
     """Schema for creating a product or component with relationships to other models."""
 
     product_type_id: PositiveInt | None = None
@@ -208,13 +194,13 @@ ComponentReadWithRecursiveComponents.model_rebuild()
 
 
 ### Update Schemas ###
-class ProductUpdate(BaseUpdateSchema, ProductCircularityPropertiesFields):
+class ProductUpdate(BaseUpdateSchema, ProductCircularityPropertiesInputFields):
     """Schema for updating product information including physical and circularity properties."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
-    brand: NormalizedBrand = Field(default=None, max_length=100)
-    model: str | None = Field(default=None, max_length=100)
+    name: SingleLineUserText | None = Field(default=None, min_length=2, max_length=100)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
+    brand: NormalizedBrandText = Field(default=None, max_length=100)
+    model: SingleLineUserText | None = Field(default=None, max_length=100)
 
     product_type_id: PositiveInt | None = None
 

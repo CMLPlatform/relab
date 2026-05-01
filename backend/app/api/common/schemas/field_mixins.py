@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.api.common.validation import MultilineUserText
 from app.api.reference_data.models import TaxonomyDomain
 
 
@@ -26,7 +27,7 @@ class PhysicalPropertiesFields(BaseModel):
 
 
 class CircularityPropertiesFields(BaseModel):
-    """Circularity note fields stored as a product JSON object."""
+    """Circularity note fields read from a product JSON object."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -44,7 +45,7 @@ class CircularityPropertiesFields(BaseModel):
 
 
 class ProductCircularityPropertiesFields(BaseModel):
-    """Shared product field for circularity notes."""
+    """Shared read-side product field for circularity notes."""
 
     circularity_properties: CircularityPropertiesFields | None = None
 
@@ -59,6 +60,20 @@ class ProductCircularityPropertiesFields(BaseModel):
         if value.model_dump(exclude_none=True) == {}:
             return None
         return value
+
+
+class CircularityPropertiesInputFields(CircularityPropertiesFields):
+    """Write-side circularity note fields with user-text validation."""
+
+    recyclability: MultilineUserText | None = Field(default=None, max_length=500)
+    disassemblability: MultilineUserText | None = Field(default=None, max_length=500)
+    remanufacturability: MultilineUserText | None = Field(default=None, max_length=500)
+
+
+class ProductCircularityPropertiesInputFields(ProductCircularityPropertiesFields):
+    """Shared write-side product field for circularity notes."""
+
+    circularity_properties: CircularityPropertiesInputFields | None = None
 
 
 class ProductFields(BaseModel):

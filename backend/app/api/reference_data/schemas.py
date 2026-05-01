@@ -11,6 +11,7 @@ from app.api.common.schemas.base import (
     MaterialRead,
 )
 from app.api.common.schemas.field_mixins import CategoryFields, ProductTypeFields, TaxonomyFields
+from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.file_storage.schemas import FileRead, ImageRead
 from app.api.reference_data.examples import (
     CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES,
@@ -116,8 +117,12 @@ class CategoryUpdate(BaseUpdateSchema):
     # TODO: Add functionality to move a category to a different taxonomy or supercategory.
     # This requires additional validation to prevent self-referential loops and other inconsistencies.
 
-    name: str | None = Field(default=None, min_length=2, max_length=100, description="Name of the category")
-    description: str | None = Field(default=None, max_length=500, description="Description of the category")
+    name: SingleLineUserText | None = Field(
+        default=None, min_length=2, max_length=100, description="Name of the category"
+    )
+    description: MultilineUserText | None = Field(
+        default=None, max_length=500, description="Description of the category"
+    )
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_UPDATE_EXAMPLES})
 
@@ -154,15 +159,15 @@ class TaxonomyReadWithCategoryTree(TaxonomyRead):
 class TaxonomyUpdate(BaseUpdateSchema):
     """Schema for the partial update of a taxonomy."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=50)
-    version: str | None = Field(default=None, min_length=1, max_length=50)
-    description: str | None = Field(default=None, max_length=500)
+    name: SingleLineUserText | None = Field(default=None, min_length=2, max_length=50)
+    version: SingleLineUserText | None = Field(default=None, min_length=1, max_length=50)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
     domains: set[TaxonomyDomain] | None = Field(
         default=None,
         description="Domains of the taxonomy, e.g. {" + f"{', '.join([d.value for d in TaxonomyDomain][:3])}" + "}",
     )
 
-    source: str | None = Field(default=None, max_length=50, description="Source of the taxonomy data")
+    source: SingleLineUserText | None = Field(default=None, max_length=50, description="Source of the taxonomy data")
 
 
 ### Material Schemas ###
@@ -198,9 +203,9 @@ class MaterialReadWithRelationships(MaterialRead):
 class MaterialUpdate(BaseUpdateSchema):
     """Schema for a partial update of a material."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
-    source: str | None = Field(
+    name: SingleLineUserText | None = Field(default=None, min_length=2, max_length=100)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
+    source: SingleLineUserText | None = Field(
         default=None, max_length=50, description="Source of the material data, e.g. URL, IRI or citation key"
     )
     density_kg_m3: float | None = Field(default=None, gt=0, description="Volumetric density (kg/m³) ")
@@ -236,5 +241,5 @@ class ProductTypeReadWithRelationships(ProductTypeRead):
 class ProductTypeUpdate(BaseUpdateSchema):
     """Schema for a partial update of a product type."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
+    name: SingleLineUserText | None = Field(default=None, min_length=2, max_length=100)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
