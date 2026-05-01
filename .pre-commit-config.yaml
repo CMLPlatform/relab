@@ -43,6 +43,13 @@ repos:
       - id: actionlint
         files: ^\.github/workflows/.*\.ya?ml$
 
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.22.0
+    hooks:
+      - id: zizmor
+        args: [ "--min-confidence=high" ]
+        files: ^\.github/(?:workflows|actions)/.*\.ya?ml$
+
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1
     hooks:

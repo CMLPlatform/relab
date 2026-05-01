@@ -30,6 +30,7 @@ Supply-chain and code-security checks have clear owners:
 - Runtime images: Trivy scans and SPDX JSON SBOM artifacts.
 - Source code: CodeQL.
 - Secrets: Gitleaks.
+- GitHub Actions workflows: actionlint and Zizmor.
 - Repository hygiene: OpenSSF Scorecard.
 
 Use `just security` for local maintainer diagnosis.
