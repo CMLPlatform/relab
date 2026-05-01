@@ -5,8 +5,8 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import HTTPException
 
+from app.api.common.exceptions import ServiceUnavailableError
 from app.core.redis import delete_redis_key, get_redis_value, require_redis, set_redis_value
 
 
@@ -51,6 +51,9 @@ class TestRedisHelpers:
         redis_client.delete.assert_awaited_once_with("key")
 
     def test_require_redis_raises_when_missing(self) -> None:
-        """require_redis should raise an HTTPException when Redis is unavailable."""
-        with pytest.raises(HTTPException, match=r"Redis is required for this operation\."):
+        """require_redis should raise a safe API error when Redis is unavailable."""
+        with pytest.raises(ServiceUnavailableError) as exc_info:
             require_redis(None)
+
+        assert exc_info.value.message == "Required service is temporarily unavailable."
+        assert exc_info.value.log_message == "Redis is required for this operation."

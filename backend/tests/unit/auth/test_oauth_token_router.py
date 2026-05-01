@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
 from jwt import ExpiredSignatureError, InvalidTokenError
 
 from app.api.auth.exceptions import (
@@ -16,6 +15,7 @@ from app.api.auth.exceptions import (
     OAuthStateExpiredError,
 )
 from app.api.auth.routers.oauth_token import _verify_google_id_token
+from app.api.common.exceptions import ServiceUnavailableError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -132,8 +132,8 @@ class TestVerifyGoogleIdToken:
 
         with (
             patch("app.api.auth.routers.oauth_token.auth_settings.google_oauth_client_id", new=empty_client_id),
-            pytest.raises(HTTPException) as exc_info,
+            pytest.raises(ServiceUnavailableError) as exc_info,
         ):
             _verify_google_id_token("any-token")
 
-        assert exc_info.value.status_code == 503
+        assert exc_info.value.message == "Authentication service unavailable."

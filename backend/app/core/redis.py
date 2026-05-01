@@ -4,10 +4,11 @@
 import logging
 from typing import TYPE_CHECKING, Annotated, Any
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, Request
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
+from app.api.common.exceptions import ServiceUnavailableError
 from app.core.config import settings
 from app.core.logging import sanitize_log_value
 from app.core.runtime import get_request_services
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
     from redis.typing import EncodableT
 
 logger = logging.getLogger(__name__)
+_REQUIRED_SERVICE_UNAVAILABLE = "Required service is temporarily unavailable."
 
 
 # Typed adapters for redis-py async operations.
@@ -270,5 +272,8 @@ OptionalRedisDep = Annotated[Redis | None, Depends(get_redis_optional)]
 def require_redis(redis_client: Redis | None) -> Redis:
     """Raise an HTTP-style error if Redis is unavailable."""
     if redis_client is None:
-        raise HTTPException(status_code=503, detail="Redis is required for this operation.")
+        raise ServiceUnavailableError(
+            _REQUIRED_SERVICE_UNAVAILABLE,
+            log_message="Redis is required for this operation.",
+        )
     return redis_client

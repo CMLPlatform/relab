@@ -1,7 +1,6 @@
 """Routers for the Raspberry Pi Camera plugin."""
 
 import contextlib
-import json
 import logging
 from typing import TYPE_CHECKING, Annotated
 
@@ -11,6 +10,8 @@ from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
 
 from app.api.audiences import DeviceAPIRouter
 from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.common.exceptions import InternalServerError
+from app.api.common.form_json import parse_required_json_object
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -30,7 +31,6 @@ from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Any
 
 logger = logging.getLogger(__name__)
 router = PublicAPIRouter()
@@ -126,11 +126,8 @@ async def receive_camera_upload(
     upload_metadata: Annotated[str, Form(description="Parent association metadata as a JSON string")],
 ) -> DeviceImageUploadAck:
     """Receive a capture pushed from the Pi and persist it."""
-    try:
-        capture_meta: dict[str, Any] = json.loads(capture_metadata) or {}
-        upload_meta: dict[str, Any] = json.loads(upload_metadata) or {}
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON metadata: {exc}") from exc
+    capture_meta = parse_required_json_object(capture_metadata, field_name="capture_metadata")
+    upload_meta = parse_required_json_object(upload_metadata, field_name="upload_metadata")
 
     product_id = upload_meta.get("product_id")
     if product_id is None:
@@ -165,9 +162,8 @@ async def receive_camera_upload(
     # the image's storage path. Round-trip through it to reuse that logic.
     image_read = ImageRead.model_validate(image)
     if image_read.image_url is None:
-        raise HTTPException(
-            status_code=500,
-            detail="Image stored but URL could not be computed — storage layer misconfigured.",
+        raise InternalServerError(
+            log_message="Image stored but URL could not be computed; storage layer misconfigured.",
         )
     return DeviceImageUploadAck(image_id=image.id.hex, image_url=image_read.image_url)
 
@@ -198,5 +194,7 @@ async def receive_preview_thumbnail_upload(
     _write_preview_thumbnail_atomic(path, image_bytes)
     preview_thumbnail_url = get_preview_thumbnail_url(camera.id)
     if preview_thumbnail_url is None:
-        raise HTTPException(status_code=500, detail="Preview thumbnail stored but URL could not be computed")
+        raise InternalServerError(
+            log_message="Preview thumbnail stored but URL could not be computed.",
+        )
     return DevicePreviewThumbnailAck(preview_thumbnail_url=preview_thumbnail_url)
