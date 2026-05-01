@@ -1,11 +1,16 @@
 import {
   getLocalItem,
   getSecureItem,
+  isWeb,
   removeLocalItem,
   removeSecureItem,
   setLocalItem,
   setSecureItem,
 } from '@/services/storage';
+
+// Web has no platform-secure storage; keep the API key in memory so XSS can't
+// exfiltrate it from localStorage. Lost on reload — user re-enters per session.
+const webApiKeys = new Map<string, string>();
 
 export const USB_GADGET_DEFAULT = 'http://192.168.7.1:8018';
 export const PROBE_TIMEOUT_MS = 3_000;
@@ -69,6 +74,11 @@ export async function probeAll(
 }
 
 export async function storeLocalConnection(cameraId: string, baseUrl: string, apiKey: string) {
+  if (isWeb()) {
+    webApiKeys.set(cameraId, apiKey);
+    await setLocalItem(urlKey(cameraId), baseUrl);
+    return;
+  }
   await Promise.all([
     setLocalItem(urlKey(cameraId), baseUrl),
     setSecureItem(apiKeySecureKey(cameraId), apiKey),
@@ -76,6 +86,13 @@ export async function storeLocalConnection(cameraId: string, baseUrl: string, ap
 }
 
 export async function loadLocalConnection(cameraId: string) {
+  if (isWeb()) {
+    const storedUrl = await getLocalItem(urlKey(cameraId));
+    return {
+      url: storedUrl ?? null,
+      apiKey: webApiKeys.get(cameraId) ?? null,
+    };
+  }
   const [storedUrl, storedKey] = await Promise.all([
     getLocalItem(urlKey(cameraId)),
     getSecureItem(apiKeySecureKey(cameraId)),
@@ -88,6 +105,11 @@ export async function loadLocalConnection(cameraId: string) {
 }
 
 export async function clearStoredLocalConnection(cameraId: string) {
+  if (isWeb()) {
+    webApiKeys.delete(cameraId);
+    await removeLocalItem(urlKey(cameraId));
+    return;
+  }
   await Promise.all([
     removeLocalItem(urlKey(cameraId)),
     removeSecureItem(apiKeySecureKey(cameraId)),
