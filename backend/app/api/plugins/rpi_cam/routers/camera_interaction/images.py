@@ -4,21 +4,25 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING, Annotated
 
+from anyio import to_thread
 from fastapi import Body, File, Form, HTTPException, UploadFile
 from pydantic import UUID4, PositiveInt
 from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
 
 from app.api.audiences import DeviceAPIRouter
 from app.api.auth.dependencies import CurrentActiveUserDep
-from app.api.common.exceptions import InternalServerError
+from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
+from app.api.common.exceptions import APIError, InternalServerError
 from app.api.common.form_json import parse_required_json_object
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.media_queries import create_image
+from app.api.file_storage.crud.support_uploads import validate_upload_size
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal, ImageRead
+from app.api.file_storage.upload_policy import validate_image_upload_content
 from app.api.plugins.rpi_cam.device_assertion import AuthenticatedCameraDep
 from app.api.plugins.rpi_cam.examples import (
     CAMERA_CAPTURE_IMAGE_DESCRIPTION_OPENAPI_EXAMPLES,
@@ -27,6 +31,7 @@ from app.api.plugins.rpi_cam.examples import (
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.service_runtime import get_preview_thumbnail_path, get_preview_thumbnail_url
 from app.api.plugins.rpi_cam.services import capture_and_store_image
+from app.core.config import settings
 from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
@@ -35,6 +40,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 router = PublicAPIRouter()
 device_router = DeviceAPIRouter(tags=["rpi-cam-device"])
+ZERO_SIZE_UPLOAD_MESSAGE = "File size is zero."
+EMPTY_PREVIEW_UPLOAD_MESSAGE = "Preview thumbnail upload was empty"
 
 
 def _unlink_quiet(path: Path) -> None:
@@ -116,6 +123,7 @@ async def capture_image(
         "image storage service and returns a tiny ack envelope the Pi consumes."
     ),
     status_code=201,
+    dependencies=[API_UPLOAD_RATE_LIMIT_DEPENDENCY],
 )
 async def receive_camera_upload(
     camera_id: UUID4,  # noqa: ARG001 — consumed by AuthenticatedCameraDep
@@ -178,6 +186,7 @@ async def receive_camera_upload(
         "cache file for camera-card previews without creating an Image database row."
     ),
     status_code=201,
+    dependencies=[API_UPLOAD_RATE_LIMIT_DEPENDENCY],
 )
 async def receive_preview_thumbnail_upload(
     camera_id: UUID4,  # noqa: ARG001 — consumed by AuthenticatedCameraDep
@@ -185,9 +194,17 @@ async def receive_preview_thumbnail_upload(
     file: Annotated[UploadFile, File(description="Cached preview JPEG thumbnail")],
 ) -> DevicePreviewThumbnailAck:
     """Receive a cached preview thumbnail pushed from the Pi and persist it."""
+    try:
+        await validate_upload_size(file, settings.max_image_upload_size_mb)
+        await to_thread.run_sync(validate_image_upload_content, file)
+    except APIError as exc:
+        if exc.message == ZERO_SIZE_UPLOAD_MESSAGE:
+            raise HTTPException(status_code=400, detail=EMPTY_PREVIEW_UPLOAD_MESSAGE) from exc
+        raise HTTPException(status_code=exc.http_status_code, detail=exc.message) from exc
+
     image_bytes = await file.read()
     if not image_bytes:
-        raise HTTPException(status_code=400, detail="Preview thumbnail upload was empty")
+        raise HTTPException(status_code=400, detail=EMPTY_PREVIEW_UPLOAD_MESSAGE)
 
     logger.info("Receiving cached preview thumbnail from camera %s", camera.id)
     path = get_preview_thumbnail_path(camera.id)

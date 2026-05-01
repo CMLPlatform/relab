@@ -12,6 +12,7 @@ from app.api.auth.services.rate_limiter import Limiter, RateLimitExceededError, 
 from app.api.data_collection.routers import search_router
 from app.api.data_collection.routers.component_routers import component_router
 from app.api.data_collection.routers.product_mutation_routers import product_mutation_router
+from app.api.plugins.rpi_cam.routers.camera_interaction.images import device_router as rpi_cam_device_image_router
 from app.api.reference_data.routers.admin_materials import router as material_router
 from app.api.reference_data.routers.admin_product_types import router as product_type_router
 
@@ -77,4 +78,16 @@ def test_reference_data_upload_routes_are_rate_limited() -> None:
     )
     _assert_rate_limited(
         _route(product_type_router, "/product-types/{product_type_id}/images", "POST"), "api_upload_rate_limit"
+    )
+
+
+def test_rpi_cam_device_upload_routes_are_rate_limited() -> None:
+    """Device-pushed upload routes should have the same upload DoS guard."""
+    _assert_rate_limited(
+        _route(rpi_cam_device_image_router, "/{camera_id}/image-upload", "POST"),
+        "api_upload_rate_limit",
+    )
+    _assert_rate_limited(
+        _route(rpi_cam_device_image_router, "/{camera_id}/preview-thumbnail-upload", "POST"),
+        "api_upload_rate_limit",
     )
