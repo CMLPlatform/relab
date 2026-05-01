@@ -14,6 +14,8 @@ import {
   setSessionItem,
 } from '../storage';
 
+const SECURE_STORAGE_UNAVAILABLE = /Secure storage is unavailable/;
+
 type StorageStub = {
   getItem: jest.Mock<(k: string) => string | null>;
   setItem: jest.Mock<(k: string, v: string) => void>;
@@ -84,9 +86,9 @@ describe('services/storage', () => {
     });
 
     it('secure: throws on web instead of falling back to localStorage', async () => {
-      await expect(setSecureItem('token', 'abc')).rejects.toThrow(/Secure storage is unavailable/);
-      await expect(getSecureItem('token')).rejects.toThrow(/Secure storage is unavailable/);
-      await expect(removeSecureItem('token')).rejects.toThrow(/Secure storage is unavailable/);
+      await expect(setSecureItem('token', 'abc')).rejects.toThrow(SECURE_STORAGE_UNAVAILABLE);
+      await expect(getSecureItem('token')).rejects.toThrow(SECURE_STORAGE_UNAVAILABLE);
+      await expect(removeSecureItem('token')).rejects.toThrow(SECURE_STORAGE_UNAVAILABLE);
       expect(secureSet).not.toHaveBeenCalled();
       expect(secureGet).not.toHaveBeenCalled();
       expect(secureDelete).not.toHaveBeenCalled();
