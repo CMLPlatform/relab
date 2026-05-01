@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from pydantic import UUID4
 from sqlalchemy import select
 
 from app.api.auth.services.stats import refresh_profile_stats_after_mutation
+from app.api.common.audit import AuditAction, audit_event
 from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.crud.persistence import commit_and_refresh
-from app.api.common.crud.query import require_model, require_models
+from app.api.common.crud.query import require_locked_model, require_model, require_models
 from app.api.data_collection.crud.storage import delete_all_product_files, delete_all_product_images
 from app.api.data_collection.exceptions import ProductOwnerRequiredError
 from app.api.data_collection.models.product import MaterialProductLink, Product
@@ -19,6 +19,7 @@ from app.api.file_storage.models import Video
 from app.api.reference_data.models import Material, ProductType
 
 if TYPE_CHECKING:
+    from pydantic import UUID4
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -196,7 +197,7 @@ def apply_product_update(db_product: Product, product: ProductUpdate) -> None:
 
 async def update_product(db: AsyncSession, product_id: int, product: ProductUpdate) -> Product:
     """Update an existing product in the database."""
-    db_product = await require_model(db, Product, product_id)
+    db_product = await require_locked_model(db, Product, product_id)
     await validate_product_type(db, product.product_type_id)
     apply_product_update(db_product, product)
 
@@ -215,12 +216,13 @@ async def delete_product_media(db: AsyncSession, product_id: int) -> None:
 
 async def delete_product(db: AsyncSession, product_id: int) -> None:
     """Delete a product from the database."""
-    db_product = await require_model(db, Product, product_id)
+    db_product = await require_locked_model(db, Product, product_id)
     await delete_product_media(db, product_id)
 
     owner_id = db_product.owner_id
     await db.delete(db_product)
     await db.commit()
+    audit_event(owner_id, AuditAction.DELETE, Product, product_id)
     if owner_id is not None:
         await refresh_profile_stats_after_mutation(db, owner_id)
         await db.commit()
