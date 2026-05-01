@@ -37,7 +37,7 @@ class UserPreferences(BaseModel):
     rpi_camera_enabled: bool = False
     youtube_streaming_enabled: bool = False
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="forbid")
 
 
 class UserPreferencesUpdate(BaseModel):
@@ -50,7 +50,7 @@ class UserPreferencesUpdate(BaseModel):
     rpi_camera_enabled: bool | None = None
     youtube_streaming_enabled: bool | None = None
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="forbid")
 
 
 def load_user_preferences(payload: object | None) -> UserPreferences:
