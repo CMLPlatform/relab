@@ -147,6 +147,20 @@ async def test_delete_product(api_client_superuser: AsyncClient, setup_product: 
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
+async def test_non_owner_cannot_update_product(api_client_user: AsyncClient, setup_product: Product) -> None:
+    """PATCH /products/{id} hides products owned by another user."""
+    response = await api_client_user.patch(f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+async def test_non_owner_cannot_delete_product(api_client_user: AsyncClient, setup_product: Product) -> None:
+    """DELETE /products/{id} hides products owned by another user."""
+    response = await api_client_user.delete(f"/v1/products/{setup_product.id}")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
 async def test_product_media_reads_are_public(api_client: AsyncClient, setup_product: Product) -> None:
     """Base-product media reads should not require ownership."""
     files_response = await api_client.get(f"/v1/products/{setup_product.id}/files")

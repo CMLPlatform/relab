@@ -198,6 +198,29 @@ async def test_patch_component(api_client_superuser: AsyncClient, setup_product_
     assert response.json()["name"] == "Renamed Component"
 
 
+async def test_non_owner_cannot_patch_component(
+    api_client_user: AsyncClient,
+    setup_product_graph: ProductGraph,
+) -> None:
+    """PATCH /components/{id} hides components owned by another user."""
+    response = await api_client_user.patch(
+        f"/v1/components/{setup_product_graph.component.id}",
+        json={"name": "Renamed Component"},
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+async def test_non_owner_cannot_delete_component(
+    api_client_user: AsyncClient,
+    setup_product_graph: ProductGraph,
+) -> None:
+    """DELETE /components/{id} hides components owned by another user."""
+    response = await api_client_user.delete(f"/v1/components/{setup_product_graph.component.id}")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
 async def test_component_media_reads_are_public(api_client: AsyncClient, setup_product_graph: ProductGraph) -> None:
     """Component media reads should not require ownership."""
     files_response = await api_client.get(f"/v1/components/{setup_product_graph.component.id}/files")
