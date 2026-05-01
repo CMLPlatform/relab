@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Body, Form, Path, Security, UploadFile
@@ -11,6 +10,7 @@ from pydantic import UUID4, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import current_active_superuser
 from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
+from app.api.common.form_json import parse_optional_json_object
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.models import MediaParentType
@@ -91,7 +91,7 @@ def _product_type_image_create(
         {
             "file": file,
             "description": description,
-            "image_metadata": json.loads(image_metadata) if image_metadata is not None else None,
+            "image_metadata": parse_optional_json_object(image_metadata, field_name="image_metadata"),
             "parent_id": product_type_id,
             "parent_type": MediaParentType.PRODUCT_TYPE,
         }
