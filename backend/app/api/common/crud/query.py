@@ -51,12 +51,27 @@ async def get_model(
     read_schema: type[BaseModel] | None = None,
 ) -> MT | None:
     """Return a model by primary key, or None when missing."""
+    return await _get_model(db, model, model_id, loaders=loaders, read_schema=read_schema, for_update=False)
+
+
+async def _get_model(
+    db: AsyncSession,
+    model: type[MT],
+    model_id: IDT,
+    *,
+    loaders: LoaderProfile | frozenset[str] | set[str] | None,
+    read_schema: type[BaseModel] | None,
+    for_update: bool,
+) -> MT | None:
+    """Return a model by primary key, optionally with a row-level write lock."""
     if not hasattr(model, "id"):
         err_msg = f"Model {model} does not have an id field."
         raise CRUDConfigurationError(err_msg)
 
     statement: Select[tuple[MT]] = select(model).filter_by(id=model_id)
     statement = apply_loader_profile(statement, model, loaders, read_schema=read_schema)
+    if for_update:
+        statement = statement.with_for_update()
     return (await db.execute(statement)).scalars().unique().one_or_none()
 
 
@@ -71,6 +86,22 @@ async def require_model(
     """Return a model by primary key or raise ModelNotFoundError."""
     return ensure_model_exists(
         await get_model(db, model, model_id, loaders=loaders, read_schema=read_schema),
+        model,
+        model_id,
+    )
+
+
+async def require_locked_model(
+    db: AsyncSession,
+    model: type[MT],
+    model_id: IDT,
+    *,
+    loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
+    read_schema: type[BaseModel] | None = None,
+) -> MT:
+    """Return a model by primary key with a row-level write lock."""
+    return ensure_model_exists(
+        await _get_model(db, model, model_id, loaders=loaders, read_schema=read_schema, for_update=True),
         model,
         model_id,
     )

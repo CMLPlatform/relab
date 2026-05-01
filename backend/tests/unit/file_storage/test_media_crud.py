@@ -100,7 +100,7 @@ class TestFileStorageCrud:
         mock_db_file.file.path = FAKE_PATH
 
         with (
-            patch("app.api.file_storage.crud.support_services.require_model", return_value=mock_db_file),
+            patch("app.api.file_storage.crud.support_services.require_locked_model", return_value=mock_db_file),
             patch("app.api.file_storage.crud.support_services.delete_file_from_storage") as mock_delete_from_storage,
         ):
             await delete_file(mock_session, file_id)
@@ -186,7 +186,7 @@ class TestImageStorageCrud:
         mock_db_image.file.path = FAKE_IMAGE_PATH
 
         with (
-            patch("app.api.file_storage.crud.support_services.require_model", return_value=mock_db_image),
+            patch("app.api.file_storage.crud.support_services.require_locked_model", return_value=mock_db_image),
             patch(
                 "app.api.file_storage.crud.support_services.delete_image_from_storage",
                 new=AsyncMock(),
@@ -205,7 +205,7 @@ class TestImageStorageCrud:
 
         with (
             patch(
-                "app.api.file_storage.crud.support_services.require_model",
+                "app.api.file_storage.crud.support_services.require_locked_model",
                 side_effect=ModelFileNotFoundError(Image, image_id),
             ),
             patch(

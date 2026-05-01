@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from app.api.common.crud.associations import add_links
 from app.api.common.crud.persistence import commit_and_refresh
-from app.api.common.crud.query import require_model, require_models
+from app.api.common.crud.query import require_locked_model, require_models
 from app.api.common.exceptions import InternalServerError
 from app.api.file_storage.crud.parent_media import (
     create_parent_media,
@@ -65,7 +65,7 @@ async def update_material(db: AsyncSession, material_id: int, material: Material
 
 async def delete_material(db: AsyncSession, material_id: int) -> None:
     """Delete a material from the database."""
-    db_material = await require_model(db, Material, material_id)
+    db_material = await require_locked_model(db, Material, material_id)
 
     await delete_all_material_files(db, material_id)
     await delete_all_material_images(db, material_id)
@@ -135,6 +135,7 @@ async def get_material_file(db: AsyncSession, material_id: int, file_id: UUID4) 
     return await get_parent_media(
         db,
         parent_model=Material,
+        parent_type=MediaParentType.MATERIAL,
         storage_model=File,
         parent_id=material_id,
         item_id=file_id,
@@ -157,6 +158,7 @@ async def delete_material_file(db: AsyncSession, material_id: int, file_id: UUID
     await delete_parent_media(
         db,
         parent_model=Material,
+        parent_type=MediaParentType.MATERIAL,
         storage_model=File,
         parent_id=material_id,
         item_id=file_id,
@@ -193,6 +195,7 @@ async def get_material_image(db: AsyncSession, material_id: int, image_id: UUID4
     return await get_parent_media(
         db,
         parent_model=Material,
+        parent_type=MediaParentType.MATERIAL,
         storage_model=Image,
         parent_id=material_id,
         item_id=image_id,
@@ -215,6 +218,7 @@ async def delete_material_image(db: AsyncSession, material_id: int, image_id: UU
     await delete_parent_media(
         db,
         parent_model=Material,
+        parent_type=MediaParentType.MATERIAL,
         storage_model=Image,
         parent_id=material_id,
         item_id=image_id,
