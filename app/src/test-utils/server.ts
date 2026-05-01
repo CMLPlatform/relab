@@ -33,7 +33,7 @@ export const handlers = [
   }),
   http.post(`${API_URL}/auth/register`, () => HttpResponse.json({}, { status: 201 })),
   http.get(`${API_URL}/products`, () => HttpResponse.json([])),
-  http.get(`${API_URL}/users/:username/profile`, () => {
+  http.get(`${API_URL}/profiles/:username`, () => {
     return HttpResponse.json({
       username: 'testuser',
       created_at: new Date().toISOString(),

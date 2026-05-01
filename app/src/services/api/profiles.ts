@@ -16,7 +16,7 @@ export async function getPublicProfile(username: string): Promise<PublicProfileV
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await apiFetch(`${API_URL}/users/${encodeURIComponent(username)}/profile`, {
+  const response = await apiFetch(`${API_URL}/profiles/${encodeURIComponent(username)}`, {
     headers,
   });
 

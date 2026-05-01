@@ -6,6 +6,7 @@ import { Card, Icon } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
 import { Text } from '@/components/base/Text';
 import ImagePlaceholder from '@/components/common/ImagePlaceholder';
+import { getProfileHref } from '@/lib/router/profiles';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 
@@ -57,10 +58,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
 
   const navigateToOwner = useCallback(() => {
     if (!product.ownerUsername) return;
-    router.push({
-      pathname: '/users/[username]',
-      params: { username: product.ownerUsername },
-    });
+    router.push(getProfileHref(product.ownerUsername));
   }, [product.ownerUsername, router]);
 
   return (
