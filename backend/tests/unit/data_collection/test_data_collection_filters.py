@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, get_args, get_origin
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.elements import ClauseElement
@@ -10,13 +10,33 @@ if TYPE_CHECKING:
 from sqlalchemy import select
 from sqlalchemy.dialects import postgresql
 
-from app.api.data_collection.filters import ProductFilter, get_brand_search_statement
+from app.api.data_collection.filters import (
+    ProductFilter,
+    get_brand_search_statement,
+    get_model_search_statement,
+    get_product_facet_statement,
+)
 from app.api.data_collection.models.product import Product
+from app.api.data_collection.routers import ProductFacetField, get_brand_suggestions, get_model_suggestions
 
 
 def _sql(clause: ClauseElement) -> str:
     """Compile a clause to a SQL string using the PostgreSQL dialect."""
     return str(clause.compile(dialect=postgresql.dialect()))
+
+
+def _compiled(clause: ClauseElement) -> object:
+    """Compile a clause for assertions on SQL text and bound parameters."""
+    return clause.compile(dialect=postgresql.dialect())
+
+
+def _order_annotation_args(endpoint: object) -> tuple[object, ...]:
+    """Return the Literal values from a suggestion endpoint's order annotation."""
+    annotation = endpoint.__annotations__["order"]
+    annotated_args = get_args(annotation)
+    literal = annotated_args[0]
+    assert get_origin(literal) is Literal
+    return get_args(literal)
 
 
 class TestGetBrandSearchStatement:
@@ -63,6 +83,45 @@ class TestGetBrandSearchStatement:
         sql_default = _sql(get_brand_search_statement())
         sql_asc = _sql(get_brand_search_statement(order="asc"))
         assert sql_default == sql_asc
+
+    def test_search_text_is_bound_not_concatenated_into_sql(self) -> None:
+        """Search input should be passed through SQLAlchemy bind params."""
+        search = "brand'); DROP TABLE product; --"
+        compiled = _compiled(get_brand_search_statement(search=search))
+        sql = str(compiled)
+
+        assert search not in sql
+        assert search.lower() in compiled.params.values()
+
+    def test_model_search_uses_same_bound_parameter_path(self) -> None:
+        """Model suggestions should use the same parameterized search helper."""
+        search = "model'); DROP TABLE product; --"
+        compiled = _compiled(get_model_search_statement(search=search))
+        sql = str(compiled)
+
+        assert search not in sql
+        assert search.lower() in compiled.params.values()
+
+    def test_order_is_limited_by_route_literal_annotations(self) -> None:
+        """Suggestion endpoints expose only asc/desc ordering to request data."""
+        assert _order_annotation_args(get_brand_suggestions) == ("asc", "desc")
+        assert _order_annotation_args(get_model_suggestions) == ("asc", "desc")
+
+
+class TestProductFacetsAllowlist:
+    """Tests for product facet identifier allowlisting."""
+
+    def test_facet_field_literal_contains_only_supported_columns(self) -> None:
+        """Facet fields must stay allowlisted before reaching getattr(Product, field)."""
+        assert get_args(ProductFacetField) == ("brand", "model")
+
+    def test_facet_statement_uses_requested_allowlisted_field(self) -> None:
+        """Allowed facet fields should compile to their corresponding product columns."""
+        brand_sql = _sql(get_product_facet_statement("brand")).lower()
+        model_sql = _sql(get_product_facet_statement("model")).lower()
+
+        assert "product.brand" in brand_sql
+        assert "product.model" in model_sql
 
 
 class TestProductFilterRankSort:
