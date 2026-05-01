@@ -1,5 +1,6 @@
 """Behavior-focused tests for file-storage utility helpers."""
-# spell-checker: ignore geocube HYPERSPECTRAL hyperspectral nitf officedocument pptx presentationml spreadsheetml wordprocessingml
+# spell-checker: ignore geocube HYPERSPECTRAL hyperspectral nitf officedocument
+# spell-checker: ignore pptx presentationml spreadsheetml wordprocessingml
 
 from __future__ import annotations
 

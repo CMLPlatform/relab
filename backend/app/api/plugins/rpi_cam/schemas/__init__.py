@@ -14,7 +14,7 @@ from app.api.auth.filters import UserFilter
 from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
 from app.api.plugins.rpi_cam.examples import CAMERA_CREATE_EXAMPLES, CAMERA_READ_EXAMPLES, CAMERA_UPDATE_EXAMPLES
 from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraCredentialStatus, CameraStatus
-from app.api.plugins.rpi_cam.service_runtime import get_cached_telemetry, get_camera_status
+from app.api.plugins.rpi_cam.runtime_status import get_cached_telemetry, get_camera_status
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis

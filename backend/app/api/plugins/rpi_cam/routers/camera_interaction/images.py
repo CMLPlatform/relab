@@ -29,8 +29,8 @@ from app.api.plugins.rpi_cam.examples import (
     CAMERA_CAPTURE_IMAGE_PRODUCT_ID_OPENAPI_EXAMPLES,
 )
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
-from app.api.plugins.rpi_cam.service_runtime import get_preview_thumbnail_path, get_preview_thumbnail_url
-from app.api.plugins.rpi_cam.services import capture_and_store_image
+from app.api.plugins.rpi_cam.runtime_capture import capture_and_store_image
+from app.api.plugins.rpi_cam.runtime_preview import get_preview_thumbnail_path, get_preview_thumbnail_url
 from app.core.config import settings
 from app.core.redis import OptionalRedisDep
 

@@ -13,7 +13,7 @@ import pytest
 from app.api.auth.exceptions import UserOwnershipError
 from app.api.data_collection.models.product import Product
 from app.api.plugins.rpi_cam.exceptions import InvalidCameraResponseError
-from app.api.plugins.rpi_cam.services import capture_and_store_image
+from app.api.plugins.rpi_cam.runtime_capture import capture_and_store_image
 from tests.unit.plugins.rpi_cam.service_test_support import CAPTURE_TIME
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ async def test_capture_and_store_image_success(mock_session: Any) -> None:
     expected_image = MagicMock()
     mock_session.get = AsyncMock(return_value=expected_image)
 
-    with patch("app.api.plugins.rpi_cam.service_runtime.get_user_owned_object") as mock_check_product:
+    with patch("app.api.plugins.rpi_cam.runtime_capture.get_user_owned_object") as mock_check_product:
         mock_capture_resp = MagicMock()
         mock_capture_resp.json.return_value = {
             "status": "uploaded",
@@ -56,7 +56,7 @@ async def test_capture_and_store_image_success(mock_session: Any) -> None:
 
 async def test_capture_raises_when_pi_queued_the_image(mock_session: Any) -> None:
     """A queued Pi response should surface as InvalidCameraResponseError."""
-    with patch("app.api.plugins.rpi_cam.service_runtime.get_user_owned_object"):
+    with patch("app.api.plugins.rpi_cam.runtime_capture.get_user_owned_object"):
         mock_capture_resp = MagicMock()
         mock_capture_resp.json.return_value = {
             "status": "queued",
@@ -83,7 +83,7 @@ async def test_capture_raises_when_image_missing_from_db(mock_session: Any) -> N
     image_uuid = uuid4()
     mock_session.get = AsyncMock(return_value=None)
 
-    with patch("app.api.plugins.rpi_cam.service_runtime.get_user_owned_object"):
+    with patch("app.api.plugins.rpi_cam.runtime_capture.get_user_owned_object"):
         mock_capture_resp = MagicMock()
         mock_capture_resp.json.return_value = {
             "status": "uploaded",
@@ -110,7 +110,7 @@ async def test_capture_rejects_product_not_owned_by_camera_owner(mock_session: A
     owner_id = uuid4()
     foreign_product_id = 1
 
-    with patch("app.api.plugins.rpi_cam.service_runtime.get_user_owned_object") as mock_get_owned:
+    with patch("app.api.plugins.rpi_cam.runtime_capture.get_user_owned_object") as mock_get_owned:
         mock_get_owned.side_effect = UserOwnershipError(Product, foreign_product_id, owner_id)
         mock_camera_request = AsyncMock()
 

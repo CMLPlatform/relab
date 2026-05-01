@@ -20,14 +20,9 @@ from app.api.plugins.rpi_cam.examples import (
     CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
 )
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraStatus
+from app.api.plugins.rpi_cam.runtime_preview import get_preview_thumbnail_path, get_preview_thumbnail_urls_per_camera
+from app.api.plugins.rpi_cam.runtime_status import get_camera_status as fetch_camera_status
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead, CameraReadWithStatus, CameraUpdate
-from app.api.plugins.rpi_cam.service_runtime import get_preview_thumbnail_path
-from app.api.plugins.rpi_cam.services import (
-    get_camera_status as fetch_camera_status,
-)
-from app.api.plugins.rpi_cam.services import (
-    get_preview_thumbnail_urls_per_camera,
-)
 from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 from app.core.redis import OptionalRedisDep
 

@@ -1,7 +1,7 @@
 """Mutation-focused routers for base product endpoints.
 
 File/image routes here are scoped to base products only. Component-scoped
-media routes live in ``component_routers.py`` and share handlers via
+media routes live in ``component_media_routers.py`` and share handlers via
 ``media_handlers``.
 """
 
@@ -20,10 +20,10 @@ from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_E
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.base import ProductRead
-from app.api.data_collection.crud.products import create_component
-from app.api.data_collection.crud.products import create_product as create_product_record
-from app.api.data_collection.crud.products import delete_product as delete_product_record
-from app.api.data_collection.crud.products import update_product as update_product_record
+from app.api.data_collection.crud.product_commands import create_component
+from app.api.data_collection.crud.product_commands import create_product as create_product_record
+from app.api.data_collection.crud.product_commands import delete_product as delete_product_record
+from app.api.data_collection.crud.product_commands import update_product as update_product_record
 from app.api.data_collection.dependencies import (
     BaseProductDep,
     UserOwnedBaseProductDep,

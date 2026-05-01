@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth.services.rate_limiter import RateLimitExceededError, limiter
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion
 from app.api.plugins.rpi_cam.models import Camera
-from app.api.plugins.rpi_cam.services import mark_camera_offline, mark_camera_online
+from app.api.plugins.rpi_cam.runtime_status import mark_camera_offline, mark_camera_online
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import run_relay_listener
 from app.api.plugins.rpi_cam.websocket.protocol import MSG_PING, MSG_PONG, MSG_RESPONSE
