@@ -1,6 +1,9 @@
 """Unit tests for cache utilities."""
+# spell-checker: ignore digestmod
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
+
+from cashews.exceptions import UnSecureDataError
 
 from app.core.cache import (
     _backend,
@@ -30,7 +33,7 @@ class TestCacheLifecycle:
             with patch.dict(_cache_state, {"initialized": False}):
                 init_cache(redis_client)
 
-            mock_setup.assert_called_once_with("redis://cache")
+            mock_setup.assert_called_once_with("redis://cache", secret=ANY, digestmod="sha256")
 
     def test_init_without_redis_uses_in_memory(self) -> None:
         """Test cache init falls back to in-memory when redis_client is None."""
@@ -39,7 +42,7 @@ class TestCacheLifecycle:
             with patch.dict(_cache_state, {"initialized": False}):
                 init_cache(None)
 
-            mock_setup.assert_called_once_with("mem://")
+            mock_setup.assert_called_once_with("mem://", secret=ANY, digestmod="sha256")
 
     def test_init_caching_disabled_uses_in_memory(self) -> None:
         """Test that when caching is disabled, InMemoryBackend is used."""
@@ -49,7 +52,7 @@ class TestCacheLifecycle:
             with patch.dict(_cache_state, {"initialized": False}):
                 init_cache(None)
 
-            mock_setup.assert_called_once_with("mem://")
+            mock_setup.assert_called_once_with("mem://", secret=ANY, digestmod="sha256")
 
     async def test_close_cache(self) -> None:
         """Closing the shared cache should close the backend when initialized."""
@@ -60,6 +63,18 @@ class TestCacheLifecycle:
             await close_cache()
 
             mock_close.assert_awaited_once()
+
+
+class TestCacheSerializer:
+    """Tests for cache payload signing."""
+
+    async def test_cache_get_returns_default_for_tampered_payloads(self) -> None:
+        """Tampered cache data should behave like a miss."""
+        default = object()
+        with patch.object(_backend, "get", AsyncMock(side_effect=UnSecureDataError("bad signature"))):
+            decoded = await cache_get("test-cache:key", default=default)
+
+        assert decoded is default
 
 
 class TestClearCacheNamespace:

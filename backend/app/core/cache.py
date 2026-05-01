@@ -3,6 +3,7 @@
 This module keeps the app-facing cache API small and stable while using
 ``cashews`` underneath for storage and TTL handling.
 """
+# spell-checker: ignore digestmod
 
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
 from cashews import Cache
+from cashews.exceptions import UnSecureDataError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.responses import Response
@@ -32,12 +34,22 @@ T = TypeVar("T")
 _MEMORY_CACHE_BACKEND = "mem://"
 _ETAG_WILDCARD = "*"
 _SUCCESS_STATUS_MAX = 299
+_CACHE_SIGNING_DIGEST = "sha256"
 _MISSING = object()
 _backend = Cache()
 _cache_state = {"initialized": False}
 
 
 _EXCLUDED_TYPES = (AsyncSession, Request, Response)
+
+
+def _setup_cache_backend(backend_location: str) -> None:
+    """Set up cashews with signed cache payloads."""
+    cast("Any", _backend).setup(
+        backend_location,
+        secret=settings.data_encryption_key_values[0],
+        digestmod=_CACHE_SIGNING_DIGEST,
+    )
 
 
 def _get_cache_backend_location(redis_client: Redis | None) -> str:
@@ -69,9 +81,17 @@ def make_key(namespace: str, *parts: object) -> str:
     return ":".join([cache_namespace(namespace), *(str(part) for part in parts)])
 
 
+async def _backend_get[T](key: str, *, default: T) -> T:
+    """Read one cache value, treating failed signature checks as misses."""
+    try:
+        return await _backend.get(key, default=default)
+    except UnSecureDataError:
+        return default
+
+
 async def cache_get[T](key: str, *, default: T | None = None) -> T | None:
     """Return an exact cache entry, or ``default`` when missing."""
-    return await _backend.get(key, default=default)
+    return await _backend_get(key, default=default)
 
 
 async def cache_set[T](key: str, value: T, *, expire: int) -> None:
@@ -157,7 +177,7 @@ def cache(
                 args=args,
                 kwargs=dict(kwargs),
             )
-            cached_value = await _backend.get(key, default=_MISSING)
+            cached_value = await _backend_get(key, default=_MISSING)
             if cached_value is not _MISSING:
                 if response := _cached_not_modified_response(request, cast("T", cached_value)):
                     return cast("T", response)
@@ -180,12 +200,12 @@ def init_cache(redis_client: Redis | None) -> None:
 
     backend_location = _get_cache_backend_location(redis_client)
     try:
-        _backend.setup(backend_location)
+        _setup_cache_backend(backend_location)
         _cache_state["initialized"] = True
         _log_cache_backend_selection(redis_client, backend_location)
     except OSError, RuntimeError, ValueError:
         logger.warning("Endpoint cache fell back to in-memory backend - Redis unavailable", exc_info=True)
-        _backend.setup(_MEMORY_CACHE_BACKEND)
+        _setup_cache_backend(_MEMORY_CACHE_BACKEND)
         _cache_state["initialized"] = True
 
 
