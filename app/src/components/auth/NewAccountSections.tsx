@@ -140,6 +140,8 @@ export function NewAccountUsernameStep({
                 onChangeText={onChange}
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="username-new"
+                textContentType="username"
                 placeholder="Username"
                 returnKeyType="next"
                 onSubmitEditing={onAdvance}
@@ -203,6 +205,8 @@ export function NewAccountEmailStep({
                 onChangeText={onChange}
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
                 keyboardType="email-address"
                 placeholder="Email address"
                 returnKeyType="next"
@@ -277,6 +281,8 @@ export function NewAccountPasswordStep({
                 value={value}
                 onChangeText={onChange}
                 autoCapitalize="none"
+                autoComplete="password-new"
+                textContentType="newPassword"
                 secureTextEntry
                 placeholder="Password"
                 returnKeyType="done"
