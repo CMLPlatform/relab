@@ -228,6 +228,7 @@ Keep modules small, explicit, and domain-shaped:
 - Use `models/` only when both ORM models and storage primitives exist; expose public surface at `models/__init__.py`
 - Use `services/` and `utils/` only when they reflect a real boundary; delete pass-through layers when simple enough to call directly
 - Keep shared behavior in `backend/app/api/common/`
+- Use SQLAlchemy expressions and bind parameters for database input; allowlist dynamic identifiers or sort tokens; never pass request-controlled data to shell commands.
 
 ### Backend Test Architecture
 

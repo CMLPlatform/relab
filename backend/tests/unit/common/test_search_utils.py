@@ -18,6 +18,11 @@ def _sql(clause: ClauseElement) -> str:
     return str(clause.compile(dialect=postgresql.dialect()))
 
 
+def _compiled(clause: ClauseElement) -> object:
+    """Compile a clause for assertions on SQL text and bound parameters."""
+    return clause.compile(dialect=postgresql.dialect())
+
+
 _SEARCH_VECTOR = literal_column("material.search_vector")
 _NAME_COL = literal_column("material.name")
 _DESC_COL = literal_column("material.description")
@@ -73,6 +78,16 @@ class TestBuildTextSearchClause:
         """Multiple conditions are OR-combined, not AND."""
         sql = _sql(build_text_search_clause("x", _SEARCH_VECTOR, _NAME_COL))
         assert " OR " in sql.upper()
+
+    def test_search_text_is_bound_not_concatenated_into_sql(self) -> None:
+        """User search text must remain a bound value, not SQL source text."""
+        search = "x'); DROP TABLE product; --"
+        compiled = _compiled(build_text_search_clause(search, _SEARCH_VECTOR, _NAME_COL))
+        sql = str(compiled)
+
+        assert search not in sql
+        assert search in compiled.params.values()
+        assert search.lower() in compiled.params.values()
 
 
 class TestApplyTsRankOrdering:
