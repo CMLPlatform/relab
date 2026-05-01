@@ -9,7 +9,7 @@ services:
       target: dev
     restart: "no"
     ports:
-      - "8011:8000"
+      - "127.0.0.1:8011:8000"
     environment:
       ENVIRONMENT: dev
       BACKEND_API_URL: "http://localhost:8011"
@@ -52,7 +52,7 @@ services:
       target: dev
     restart: "no"
     ports:
-      - "8012:8000"
+      - "127.0.0.1:8012:8000"
     develop:
       watch:
         # Keep watch scope explicit for Node-based subrepos: sync only source and
@@ -101,7 +101,7 @@ services:
       target: dev
     restart: "no"
     ports:
-      - "8013:8081"
+      - "127.0.0.1:8013:8081"
     environment:
       EXPO_PUBLIC_API_URL: "http://localhost:8011"
       EXPO_PUBLIC_WEBSITE_URL: "http://localhost:8010"
@@ -156,7 +156,7 @@ services:
       target: dev
     restart: "no"
     ports:
-      - "8010:8081"
+      - "127.0.0.1:8010:8081"
     environment:
       PUBLIC_DOCS_URL: "http://localhost:8012"
       PUBLIC_APP_URL: "http://localhost:8013"

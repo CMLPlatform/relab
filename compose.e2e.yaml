@@ -21,7 +21,7 @@ services:
       migrator:
         condition: service_completed_successfully
     ports:
-      - "${E2E_BACKEND_PORT:-18432}:8000"
+      - "127.0.0.1:${E2E_BACKEND_PORT:-18432}:8000"
     volumes:
       # To ensure that the backend has access to user uploads (for testing upload functionality with real files)
       - user_uploads:/opt/relab/backend/data/uploads

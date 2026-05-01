@@ -51,6 +51,8 @@ Backup services are enabled through Compose profiles. Telemetry is opt-in throug
 - The same `compose.deploy.yaml` is used for prod and staging. Committed `deploy/env/*.compose.env` files select the environment; the host-level root `.env` holds only local interpolation values such as tunnel tokens, telemetry endpoints, backup paths, and optional offsite repositories.
 - GitHub Actions validate changes, run security checks, and maintain release automation, but deploys are still operated from the server checkout.
 
+Docker development and E2E ports bind to localhost by default. For Expo testing from another device over a LAN, run the Expo dev server directly from `app/` on the host instead of using the Docker app service.
+
 The root `justfile` is the supported local interface for full-stack checks:
 
 ```bash
