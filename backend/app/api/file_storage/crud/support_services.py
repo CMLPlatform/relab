@@ -19,6 +19,7 @@ from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm, ImageC
 from app.api.file_storage.upload_policy import (
     validate_generic_file_upload_content,
     validate_generic_file_upload_metadata,
+    validate_image_upload_content,
     validate_image_upload_metadata,
 )
 from app.core.config import settings
@@ -122,7 +123,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         cleanup_path: Path | None = None
         file_path: Path | None = None
         try:
-            db_item = await require_model(db, self.model, item_id)
+            db_item = await require_model(db, self.model, item_id, for_update=True)
             file_path = stored_file_path(db_item)
             cleanup_path = file_path
         except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
@@ -188,6 +189,10 @@ class ImageStorageService(StoredMediaService[Image, ImageCreateFromForm | ImageC
     def validate_upload_metadata(self, upload_file: UploadFile) -> None:
         """Validate image upload metadata."""
         validate_image_upload_metadata(upload_file)
+
+    def validate_upload_content(self, upload_file: UploadFile) -> None:
+        """Validate image upload content."""
+        validate_image_upload_content(upload_file)
 
     async def after_create(self, db: AsyncSession, item: Image) -> Image:
         """Process the saved image after it has been persisted."""

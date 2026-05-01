@@ -131,6 +131,7 @@ class TestImageStorageCrud:
                 return_value=ProductFactory.build(id=1, owner_id=uuid4(), first_image_id=uuid4()),
             ),
             patch("app.api.file_storage.crud.support_services._get_image_storage") as mock_get_storage,
+            patch.object(image_storage_service, "validate_upload_content") as mock_validate_content,
         ):
             mock_storage = mock_get_storage.return_value
             mock_storage.write_image_upload = AsyncMock(return_value="stored_image.png")
@@ -138,6 +139,7 @@ class TestImageStorageCrud:
 
         assert isinstance(result, Image)
         assert result.description == TEST_IMAGE_DESC
+        mock_validate_content.assert_called_once_with(mock_file)
         assert result.filename == IMAGE_FILENAME
 
     async def test_create_image_rejects_oversized_upload(self, mock_session: AsyncMock) -> None:

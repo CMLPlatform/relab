@@ -81,3 +81,23 @@ def test_ensure_storage_directories_raises_when_storage_path_is_not_writable(moc
 
     with pytest.raises(RuntimeError, match="Storage path is not writable"):
         ensure_storage_directories()
+
+
+async def test_filesystem_write_image_upload_stores_without_policy_validation(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    """Filesystem storage should not duplicate image upload policy validation."""
+    mock_validate = mocker.patch(
+        "app.api.file_storage.models.storage_filesystem.validate_image_upload_content",
+        create=True,
+    )
+    upload = mocker.MagicMock()
+    upload.seek = mocker.AsyncMock()
+    upload.read = mocker.AsyncMock(side_effect=[b"image-bytes", b""])
+    upload.close = mocker.AsyncMock()
+
+    storage = FileSystemStorage(path=str(tmp_path))
+
+    assert await storage.write_image_upload(upload, "photo.jpg") == "photo.jpg"
+    assert (tmp_path / "photo.jpg").read_bytes() == b"image-bytes"
+    mock_validate.assert_not_called()
