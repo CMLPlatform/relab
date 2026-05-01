@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
-from fastapi import status
+from fastapi import FastAPI, HTTPException, status
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.common.exceptions import (
@@ -13,7 +13,7 @@ from app.api.common.exceptions import (
     InternalServerError,
     ServiceUnavailableError,
 )
-from app.api.common.routers.exceptions import create_exception_handler
+from app.api.common.routers.exceptions import create_exception_handler, register_exception_handlers
 
 
 class TestCreateExceptionHandler:
@@ -110,6 +110,66 @@ class TestCreateExceptionHandler:
             exc_info=(InternalServerError, exc, exc.__traceback__),
         )
 
+    async def test_http_exception_404_returns_problem_details_with_detail(self) -> None:
+        """HTTPException 404 returns Problem Details and preserves its public detail."""
+        handler = create_exception_handler()
+        mock_request = MagicMock()
+        mock_request.state.request_id = "req-http-404"
+        exc = HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource missing")
+
+        with patch("app.api.common.routers.exceptions.logger"):
+            response = await handler(mock_request, exc)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.media_type == "application/problem+json"
+        body = json.loads(bytes(response.body))
+        assert body["detail"] == "Resource missing"
+        assert body["code"] == "HTTPException"
+        assert body["request_id"] == "req-http-404"
+
+    async def test_http_exception_500_returns_generic_problem_details(self) -> None:
+        """HTTPException 500 hides its detail from clients."""
+        handler = create_exception_handler()
+        mock_request = MagicMock()
+        mock_request.state.request_id = "req-http-500"
+        exc = HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="database path /srv/db")
+
+        with patch("app.api.common.routers.exceptions.logger"):
+            response = await handler(mock_request, exc)
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        body = json.loads(bytes(response.body))
+        assert body["detail"] == "Internal server error"
+        assert "database path" not in bytes(response.body).decode()
+
+    async def test_api_error_5xx_suppresses_details_in_response(self) -> None:
+        """APIError details on 5xx are kept out of the response body."""
+        handler = create_exception_handler()
+        mock_request = MagicMock()
+        mock_request.state.request_id = "req-api-500"
+        exc = ServiceUnavailableError("Temporarily unavailable", details="redis://internal-cache:6379/0")
+
+        with patch("app.api.common.routers.exceptions.logger"):
+            response = await handler(mock_request, exc)
+
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        body = json.loads(bytes(response.body))
+        assert body["detail"] == "Temporarily unavailable"
+        assert "errors" not in body
+        assert "redis://internal-cache" not in bytes(response.body).decode()
+
+
+class TestRegisterExceptionHandlers:
+    """Tests for app-wide exception handler registration."""
+
+    def test_registers_catch_all_exception_handler(self) -> None:
+        """Plain Exception is registered for centralized generic 500 responses."""
+        app = FastAPI()
+
+        register_exception_handlers(app)
+
+        assert Exception in app.exception_handlers
+
 
 class TestRateLimitExceededHandler:
     """Tests for rate_limit_exceeded_handler."""
@@ -141,8 +201,8 @@ class TestRateLimitExceededHandler:
 class TestSharedExceptionFamilies:
     """Tests for shared common exception families exercising the full response path."""
 
-    async def test_service_unavailable_error_with_details_is_exposed(self) -> None:
-        """ServiceUnavailableError (503) includes message and details in the response body."""
+    async def test_service_unavailable_error_with_details_hides_errors(self) -> None:
+        """ServiceUnavailableError (503) keeps internal details out of the response body."""
         handler = create_exception_handler()
         mock_request = MagicMock()
         mock_request.state.request_id = "req-503"
@@ -154,4 +214,4 @@ class TestSharedExceptionFamilies:
         assert response.status_code == 503
         body = json.loads(bytes(response.body))
         assert body["detail"] == "Temporarily unavailable"
-        assert body["errors"] == "redis offline"
+        assert "errors" not in body
