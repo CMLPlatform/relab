@@ -4,6 +4,7 @@
 from typing import Any, TypeVar
 
 from polyfactory.factories.sqlalchemy_factory import SQLAlchemyFactory
+from polyfactory.fields import Ignore
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -79,6 +80,7 @@ class UserFactory(BaseModelFactory[User]):
     """Factory for creating User test instances."""
 
     __model__ = User
+    email_canonical = Ignore()
 
     @classmethod
     def email(cls) -> str:

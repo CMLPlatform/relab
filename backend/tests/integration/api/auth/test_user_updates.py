@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import status
@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from app.api.auth.crud.users import update_user_override
 from app.api.auth.exceptions import UserNameAlreadyExistsError
 from app.api.auth.schemas import UserUpdate
+from app.api.auth.services.email_identity import canonicalize_email
 from tests.factories.models import UserFactory
 
 from .shared import (
@@ -249,3 +250,43 @@ class TestUpdateUserEndpoint:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["username"] == "reauth_username_new"
+
+    async def test_email_update_verifies_new_address_and_notifies_old_address(
+        self,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+        mock_email_sending: AsyncMock,
+    ) -> None:
+        """Changing email should update canonical identity and run both safety notifications."""
+        old_email = "old-address@example.com"
+        new_email = "New-Address@Example.com"
+        user = await UserFactory.create_async(
+            db_session,
+            email=old_email,
+            username="email_update_user",
+            hashed_password=hash_test_password(TEST_PASSWORD),
+            is_verified=True,
+        )
+        login_response = await api_client.post(
+            "/v1/auth/login",
+            data={"username": user.email, "password": TEST_PASSWORD},
+        )
+        assert login_response.status_code == status.HTTP_200_OK
+        token = login_response.json()["access_token"]
+
+        response = await api_client.patch(
+            "/v1/users/me",
+            json={"email": new_email, "current_password": TEST_PASSWORD},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["email"] == "New-Address@example.com"
+        assert response.json()["is_verified"] is False
+        await db_session.refresh(user)
+        assert user.email_canonical == canonicalize_email(new_email)
+
+        email_mock = mock_email_sending
+        assert email_mock.await_count == 2
+        sent_to = [call.args[0].recipients[0].email for call in email_mock.await_args_list]
+        assert sent_to == ["New-Address@example.com", old_email]

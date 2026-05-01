@@ -13,6 +13,7 @@ from fastapi import BackgroundTasks
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.services.email import (
     generate_token_link,
+    send_email_changed_notification,
     send_post_verification_email,
     send_registration_email,
     send_reset_password_email,
@@ -247,6 +248,19 @@ async def test_send_post_verification_email_with_background_tasks(
 
     background_tasks.add_task.assert_called_once()
     mock_email_sending.assert_not_called()
+
+
+async def test_send_email_changed_notification_uses_plain_message(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """Email-change notifications should not include reset or verification tokens."""
+    await send_email_changed_notification(email_data["email"])
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert message.subject == "Your RELab account email changed"
+    assert "token=" not in message.html_body
 
 
 ### Parametrized Integration Tests ###
