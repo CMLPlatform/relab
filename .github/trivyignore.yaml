@@ -1,0 +1,39 @@
+# Trivy allowlist for image vulnerability and IaC/config scans.
+# spell-checker: ignore Dockerfiles kenv SCEP untgz
+#
+# Trivy's YAML ignore format is still experimental, so workflows pass this file
+# explicitly. Every entry must include an expiry and a clear statement.
+vulnerabilities:
+  # Caddy statically links these transitive Go deps. Upstream had not published
+  # a fixed caddy:2-alpine release when reviewed on 2026-04-23. None of these
+  # vulnerable code paths are reachable in RELab's static-site Caddy usage:
+  # plain HTTP on a single high port, no step-CA, no gRPC, no JWE, Linux only.
+  - id: CVE-2026-34986
+    expired_at: 2026-06-01
+    statement: go-jose JWE DoS; RELab Caddy does not use JWE.
+  - id: CVE-2026-30836
+    expired_at: 2026-06-01
+    statement: smallstep/certificates SCEP issue; RELab does not run an internal CA.
+  - id: CVE-2026-39883
+    expired_at: 2026-06-01
+    statement: opentelemetry-go BSD kenv PATH issue; RELab Caddy runtime is Linux-only.
+  - id: CVE-2026-33186
+    expired_at: 2026-06-01
+    statement: grpc-go authz HTTP/2 path validation; RELab Caddy does not use gRPC authz.
+
+  # The Dockerfiles run package upgrades, but fixes were not yet available in
+  # alpine 3.23 repositories when reviewed on 2026-04-23. Re-check whenever the
+  # caddy:2-alpine base image is bumped.
+  - id: CVE-2026-28390
+    expired_at: 2026-06-01
+    statement: openssl CMS NULL-deref DoS; static docs servers do not parse CMS.
+  - id: CVE-2026-40200
+    expired_at: 2026-06-01
+    statement: musl utility stack overflow; reachable only through local utilities, not HTTP handling.
+  - id: CVE-2026-22184
+    expired_at: 2026-06-01
+    statement: zlib untgz buffer overflow; utility path is not linked into Caddy request handling.
+
+misconfigurations: []
+secrets: []
+licenses: []
