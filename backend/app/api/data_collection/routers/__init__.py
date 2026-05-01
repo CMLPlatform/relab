@@ -23,6 +23,7 @@ from app.api.auth.services.rate_limiter import API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
+from app.api.common.validation import MAX_QUERY_TEXT_LENGTH
 from app.api.data_collection.filters import (
     get_brand_search_statement,
     get_model_search_statement,
@@ -60,7 +61,10 @@ PRODUCT_FACET_BRAND: ProductFacetField = "brand"
 @cache(expire=60)
 async def get_brand_suggestions(
     session: AsyncSessionDep,
-    search: Annotated[str | None, Query(description="Search brand (case-insensitive)")] = None,
+    search: Annotated[
+        str | None,
+        Query(description="Search brand (case-insensitive)", max_length=MAX_QUERY_TEXT_LENGTH),
+    ] = None,
     order: Annotated[Literal["asc", "desc"], Query(description="Sort order: 'asc' or 'desc'")] = "asc",
 ) -> Page[str]:
     """Get a paginated, searchable list of unique product brands derived from product data."""
@@ -79,7 +83,10 @@ async def get_brand_suggestions(
 @cache(expire=60)
 async def get_model_suggestions(
     session: AsyncSessionDep,
-    search: Annotated[str | None, Query(description="Search model name (case-insensitive)")] = None,
+    search: Annotated[
+        str | None,
+        Query(description="Search model name (case-insensitive)", max_length=MAX_QUERY_TEXT_LENGTH),
+    ] = None,
     order: Annotated[Literal["asc", "desc"], Query(description="Sort order: 'asc' or 'desc'")] = "asc",
 ) -> Page[str]:
     """Get a paginated, searchable list of unique product model names derived from product data."""
