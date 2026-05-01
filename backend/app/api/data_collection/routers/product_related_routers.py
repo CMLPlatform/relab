@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Body, Path
-from fastapi_filter import FilterDepends
+from fastapi import Body, Depends, Path
 from pydantic import PositiveInt
 from sqlalchemy import select
 
 from app.api.common.crud.associations import require_link
 from app.api.common.crud.exceptions import DependentModelOwnershipError
-from app.api.common.crud.filtering import apply_filter
+from app.api.common.crud.filtering import apply_filter, create_filter_dependency
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -56,6 +55,7 @@ if TYPE_CHECKING:
     from sqlalchemy import Select
 
 product_related_router = PublicAPIRouter(prefix="/products", tags=["products"])
+_VIDEO_FILTER_DEPENDENCY = create_filter_dependency(VideoFilter)
 
 
 async def _load_product_video(session: AsyncSessionDep, *, product_id: PositiveInt, video_id: PositiveInt) -> Video:
@@ -86,7 +86,7 @@ async def _list_product_videos(
 async def get_product_videos(
     session: AsyncSessionDep,
     product: BaseProductDep,
-    video_filter: VideoFilter = FilterDepends(VideoFilter),
+    video_filter: VideoFilter = Depends(_VIDEO_FILTER_DEPENDENCY),
 ) -> Sequence[Video]:
     """Get all videos associated with a base product.
 

@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Path
-from fastapi_filter import FilterDepends
+from fastapi import Depends, Path
 from fastapi_pagination import Page
 from pydantic import PositiveInt
 from sqlalchemy import Select, select
 
-from app.api.common.crud.filtering import apply_filter
+from app.api.common.crud.filtering import apply_filter, create_filter_dependency
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
@@ -30,6 +29,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 router = ReferenceDataAPIRouter(prefix="/product-types", tags=["product-types"])
+_FILE_FILTER_DEPENDENCY = create_filter_dependency(FileFilter)
+_IMAGE_FILTER_DEPENDENCY = create_filter_dependency(ImageFilter)
 
 
 async def _require_product_type(session: AsyncSessionDep, product_type_id: PositiveInt) -> ProductType:
@@ -130,7 +131,7 @@ async def get_product_type_categories(
 async def get_product_type_files(
     product_type_id: Annotated[PositiveInt, Path(description="ID of the Product Type")],
     session: AsyncSessionDep,
-    item_filter: FileFilter = FilterDepends(FileFilter),
+    item_filter: FileFilter = Depends(_FILE_FILTER_DEPENDENCY),
 ) -> list[FileReadWithinParent]:
     """Get all files associated with a product type."""
     items = await list_product_type_files(session, product_type_id, filter_params=item_filter)
@@ -145,7 +146,7 @@ async def get_product_type_files(
 async def get_product_type_images(
     product_type_id: Annotated[PositiveInt, Path(description="ID of the Product Type")],
     session: AsyncSessionDep,
-    item_filter: ImageFilter = FilterDepends(ImageFilter),
+    item_filter: ImageFilter = Depends(_IMAGE_FILTER_DEPENDENCY),
 ) -> list[ImageReadWithinParent]:
     """Get all images associated with a product type."""
     items = await list_product_type_images(session, product_type_id, filter_params=item_filter)

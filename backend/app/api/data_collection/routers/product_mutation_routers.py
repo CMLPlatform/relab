@@ -11,11 +11,11 @@ from typing import Annotated
 
 from fastapi import Body, Depends, Form, Path, UploadFile
 from fastapi import File as FastAPIFile
-from fastapi_filter import FilterDepends
 from pydantic import UUID4, BeforeValidator
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
+from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -58,6 +58,8 @@ from app.api.file_storage.schemas import (
 )
 
 product_mutation_router = PublicAPIRouter(prefix="/products", tags=["products"])
+_FILE_FILTER_DEPENDENCY = create_filter_dependency(FileFilter)
+_IMAGE_FILTER_DEPENDENCY = create_filter_dependency(ImageFilter)
 
 
 @product_mutation_router.post(
@@ -142,7 +144,7 @@ async def add_component_to_product(
 async def get_product_files(
     db_product: BaseProductDep,
     session: AsyncSessionDep,
-    item_filter: FileFilter = FilterDepends(FileFilter),
+    item_filter: FileFilter = Depends(_FILE_FILTER_DEPENDENCY),
 ) -> list[FileReadWithinParent]:
     """List all files attached to a base product."""
     return await handle_list_files(session, db_product.id, item_filter)
@@ -204,7 +206,7 @@ async def delete_product_file(
 async def get_product_images(
     db_product: BaseProductDep,
     session: AsyncSessionDep,
-    item_filter: ImageFilter = FilterDepends(ImageFilter),
+    item_filter: ImageFilter = Depends(_IMAGE_FILTER_DEPENDENCY),
 ) -> list[ImageReadWithinParent]:
     """List all images attached to a base product."""
     return await handle_list_images(session, db_product.id, item_filter)
