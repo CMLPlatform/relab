@@ -28,6 +28,7 @@ docker_smoke_backups() {
     printf '[offsite]\ntype = local\n' > "$tmp_root/rclone/rclone.conf"
 
     deploy_build_backup_image
+    docker run --rm -v "$tmp_root/restic:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
     docker run --rm -v "$tmp_root/offsite:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
     docker network create "$network" >/dev/null
     docker run -d --name "$postgres_container" --network "$network" \
@@ -97,6 +98,10 @@ backup_offsite_copy() {
     deploy_resolve_backup_paths "$env"
 
     local rclone_config="secrets/$env/rclone.conf"
+    local tmp_root
+    tmp_root="$(mktemp -d)"
+    trap 'rm -rf "$tmp_root"' EXIT
+    install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
     if [[ -z "${RESTIC_OFFSITE_REPOSITORY:-}" ]]; then
         echo "RESTIC_OFFSITE_REPOSITORY must be set, for example: rclone:<remote>:relab/$env/restic"
         exit 1
@@ -106,7 +111,7 @@ backup_offsite_copy() {
     local -a docker_args=(
         --rm
         -v "$DEPLOY_RESTIC_REPOSITORY:/restic"
-        -v "$DEPLOY_RESTIC_PASSWORD_FILE:/run/secrets/restic_password:ro"
+        -v "$tmp_root/restic_password:/run/secrets/restic_password:ro"
         -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password
         -e RESTIC_OFFSITE_REPOSITORY="$RESTIC_OFFSITE_REPOSITORY"
         -e SKIP_DATABASE_BACKUP=true
@@ -119,9 +124,9 @@ backup_offsite_copy() {
             echo "rclone config file not found: $rclone_config"
             exit 1
         fi
-        rclone_config="$(realpath "$rclone_config")"
+        install -m 0444 "$rclone_config" "$tmp_root/rclone.conf"
         docker_args+=(
-            -v "$rclone_config:/run/secrets/rclone.conf:ro"
+            -v "$tmp_root/rclone.conf:/run/secrets/rclone.conf:ro"
             -e RCLONE_CONFIG=/run/secrets/rclone.conf
         )
     fi
@@ -150,11 +155,12 @@ backup_restore_smoke() {
     trap cleanup EXIT
 
     mkdir -p "$tmp_root/restore"
+    install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
     deploy_build_backup_image
 
     docker run --rm \
         -v "$DEPLOY_RESTIC_REPOSITORY:/restic:ro" \
-        -v "$DEPLOY_RESTIC_PASSWORD_FILE:/run/secrets/restic_password:ro" \
+        -v "$tmp_root/restic_password:/run/secrets/restic_password:ro" \
         -v "$tmp_root/restore:/restore" \
         -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password \
         --entrypoint restic \
