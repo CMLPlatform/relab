@@ -83,11 +83,10 @@ describe('services/storage', () => {
       await expect(removeLocalItem('k')).resolves.toBeUndefined();
     });
 
-    it('secure: delegates to AsyncStorage (web fallback)', async () => {
-      await setSecureItem('token', 'abc');
-      await expect(getSecureItem('token')).resolves.toBe('abc');
-      await removeSecureItem('token');
-      await expect(getSecureItem('token')).resolves.toBeNull();
+    it('secure: throws on web instead of falling back to localStorage', async () => {
+      await expect(setSecureItem('token', 'abc')).rejects.toThrow(/Secure storage is unavailable/);
+      await expect(getSecureItem('token')).rejects.toThrow(/Secure storage is unavailable/);
+      await expect(removeSecureItem('token')).rejects.toThrow(/Secure storage is unavailable/);
       expect(secureSet).not.toHaveBeenCalled();
       expect(secureGet).not.toHaveBeenCalled();
       expect(secureDelete).not.toHaveBeenCalled();

@@ -2,9 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteItemAsync, getItemAsync, setItemAsync } from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const isWeb = () => Platform.OS === 'web';
+export const isWeb = () => Platform.OS === 'web';
 const getWebLocalStorage = () => globalThis.localStorage;
 const getWebSessionStorage = () => globalThis.sessionStorage;
+
+// Throw rather than fall back to localStorage: any XSS could exfiltrate it.
+const SECURE_STORAGE_WEB_ERROR =
+  'Secure storage is unavailable on web. Use an in-memory or session-scoped store instead.';
 
 export async function getLocalItem(key: string): Promise<string | null> {
   if (isWeb()) {
@@ -42,25 +46,17 @@ export async function removeLocalItem(key: string): Promise<void> {
 }
 
 export async function getSecureItem(key: string): Promise<string | null> {
-  if (isWeb()) {
-    return AsyncStorage.getItem(key);
-  }
+  if (isWeb()) throw new Error(SECURE_STORAGE_WEB_ERROR);
   return getItemAsync(key);
 }
 
 export async function setSecureItem(key: string, value: string): Promise<void> {
-  if (isWeb()) {
-    await AsyncStorage.setItem(key, value);
-    return;
-  }
+  if (isWeb()) throw new Error(SECURE_STORAGE_WEB_ERROR);
   await setItemAsync(key, value);
 }
 
 export async function removeSecureItem(key: string): Promise<void> {
-  if (isWeb()) {
-    await AsyncStorage.removeItem(key);
-    return;
-  }
+  if (isWeb()) throw new Error(SECURE_STORAGE_WEB_ERROR);
   await deleteItemAsync(key);
 }
 
