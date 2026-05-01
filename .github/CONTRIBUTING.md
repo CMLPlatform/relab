@@ -111,6 +111,8 @@ Use this when you want the full stack without configuring each subrepo manually.
 - Docs: <http://127.0.0.1:8012>
 - App frontend: <http://127.0.0.1:8013>
 
+Docker development ports bind to localhost. If you want to test the Expo app from another phone, tablet, or computer over your LAN, run the Expo server directly from `app/` with `just dev` instead of using the Docker app service.
+
 ### Useful Commands
 
 ```bash

@@ -34,6 +34,8 @@ The Expo dev server runs on <http://localhost:8081>.
 
 You will usually want the backend running as well. If the API is not on localhost, set `EXPO_PUBLIC_API_URL` in `.env.local`.
 
+Docker development ports are localhost-only. If you want to open the Expo app from another phone, tablet, or computer on your LAN, run the Expo server directly from this subrepo with `just dev` instead of using the Docker app service.
+
 To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` to your web OAuth client ID from Google Cloud Console. See [CONTRIBUTING.md](../.github/CONTRIBUTING.md#frontend-setup) for details.
 
 ## Common Commands
