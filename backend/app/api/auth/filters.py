@@ -1,32 +1,24 @@
-"""Fastapi-filter schemas for filtering auth models."""
+"""Filter schemas for auth models."""
 
-from typing import TYPE_CHECKING
+from typing import ClassVar  # Runtime import required by fastapi-filters get_type_hints
 
-from fastapi_filter.contrib.sqlalchemy import Filter
+from fastapi_filters import FilterField, FilterOperator
 
 from app.api.auth.models import User
+from app.api.common.crud.filtering import BaseFilterSet
 
-if TYPE_CHECKING:
-    from typing import ClassVar
+_TEXT_OPERATORS = [FilterOperator.ilike]
 
 
-class UserFilter(Filter):
-    """FastAPI-filter class for User filtering."""
+class UserFilter(BaseFilterSet):
+    """FilterSet for User filtering."""
 
-    email__ilike: str | None = None
-    username__ilike: str | None = None
-    is_active: bool | None = None
-    is_superuser: bool | None = None
-    is_verified: bool | None = None
+    filter_model: ClassVar[type[User]] = User
+    sortable_fields: ClassVar[tuple[str, ...]] = ("email", "username")
+    search_columns: ClassVar[tuple[object, ...]] = (User.email, User.username)
 
-    search: str | None = None
-
-    class Constants(Filter.Constants):
-        """Constants for UserFilter."""
-
-        model = User
-
-        search_model_fields: ClassVar[list[str]] = [
-            "email",
-            "username",
-        ]
+    email: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    username: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    is_active: FilterField[bool] = FilterField(operators=[FilterOperator.eq])
+    is_superuser: FilterField[bool] = FilterField(operators=[FilterOperator.eq])
+    is_verified: FilterField[bool] = FilterField(operators=[FilterOperator.eq])

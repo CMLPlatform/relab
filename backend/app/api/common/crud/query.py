@@ -19,9 +19,10 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from uuid import UUID
 
-    from fastapi_filter.contrib.sqlalchemy import Filter
     from fastapi_pagination import Page
     from pydantic import BaseModel
+
+    from app.api.common.crud.filtering import BaseFilterSet
 
 
 async def page_models(
@@ -29,7 +30,7 @@ async def page_models(
     model: type[MT],
     *,
     loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
-    filters: Filter | None = None,
+    filters: BaseFilterSet | None = None,
     statement: Select[tuple[Any]] | None = None,
     read_schema: type[BaseModel] | None = None,
     mutate_items: Callable[[list[Any]], None] | None = None,
