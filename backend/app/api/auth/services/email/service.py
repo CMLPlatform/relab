@@ -155,3 +155,24 @@ async def send_post_verification_email(
         template_body={"username": _display_name(username, to_email)},
         background_tasks=background_tasks,
     )
+
+
+async def send_email_changed_notification(
+    to_email: EmailStr,
+    background_tasks: BackgroundTasks | None = None,
+    provider: EmailProvider | None = None,
+) -> None:
+    """Notify the previous address after an account email change."""
+    message = _build_message(
+        to_email,
+        "Your RELab account email changed",
+        "<p>Your RELab account email address was changed. If you did not make this change, contact RELab support.</p>",
+    )
+    selected_provider = provider or default_email_provider
+    if background_tasks:
+        background_tasks.add_task(selected_provider.send, message)
+        logger.info("Email-change notification queued for %s", mask_email_for_log(to_email))
+        return
+
+    await selected_provider.send(message)
+    logger.info("Email-change notification sent to %s", mask_email_for_log(to_email))

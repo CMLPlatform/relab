@@ -33,9 +33,10 @@
   version_scheme     = "semver2"
 
 [tool.ruff]
-  force-exclude = true
-  include       = ["scripts/*.py"]
-  line-length   = 120
+  extend-exclude = ["app", "backend", "docs", "www"]
+  force-exclude  = true
+  include        = ["scripts/*.py"]
+  line-length    = 120
 
   [tool.ruff.lint]
     select = ["ALL"]

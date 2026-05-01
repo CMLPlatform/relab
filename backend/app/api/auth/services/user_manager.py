@@ -18,6 +18,7 @@ from app.api.auth.schemas import UserCreate, UserUpdate
 from app.api.auth.services import refresh_token_service
 from app.api.auth.services.auth_backends import build_authentication_backends
 from app.api.auth.services.email import (
+    send_email_changed_notification,
     send_post_verification_email,
     send_reset_password_email,
     send_verification_email,
@@ -133,8 +134,16 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         real_user_update = await update_user_override(self.user_db, user, real_user_update)
         user_update = cast("schemas.UU", real_user_update)
 
+        old_email = user.email
+
         # Proceed with base FastAPI User update logic
-        return await super().update(user_update, user, safe=safe, request=request)
+        updated_user = await super().update(user_update, user, safe=safe, request=request)
+
+        if real_user_update.email is not None and updated_user.email != old_email:
+            await self.request_verify(updated_user, request)
+            await send_email_changed_notification(old_email)
+
+        return updated_user
 
     def _require_current_password_for_sensitive_update(self, user_update: UserUpdate, user: User) -> None:
         """Require password reauthentication before e-mail or password changes."""
