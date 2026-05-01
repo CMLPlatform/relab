@@ -1,10 +1,12 @@
 """Central upload allowlists and validation helpers."""
-# spell-checker: ignore HYPERSPECTRAL nitf
+# spell-checker: ignore HYPERSPECTRAL nitf ooxml
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING
+from zipfile import BadZipFile, ZipFile
 
 from PIL import Image as PILImage
 from PIL import UnidentifiedImageError
@@ -13,6 +15,9 @@ from app.api.common.exceptions import BadRequestError
 
 if TYPE_CHECKING:
     from fastapi import UploadFile
+
+JSON_EXTENSION = ".json"
+PATH_SEPARATORS = frozenset(("/", "\\"))
 
 RESEARCH_FILE_EXTENSIONS: frozenset[str] = frozenset(
     {
@@ -42,6 +47,20 @@ HYPERSPECTRAL_FILE_EXTENSIONS: frozenset[str] = frozenset(
     }
 )
 GENERIC_FILE_EXTENSIONS = RESEARCH_FILE_EXTENSIONS | HYPERSPECTRAL_FILE_EXTENSIONS
+MAGIC_BYTE_PREFIXES: dict[str, tuple[bytes, ...]] = {
+    ".h5": (b"\x89HDF\r\n\x1a\n",),
+    ".hdf5": (b"\x89HDF\r\n\x1a\n",),
+    ".nitf": (b"NITF",),
+    ".ntf": (b"NITF",),
+    ".pdf": (b"%PDF-",),
+    ".tif": (b"II*\x00", b"MM\x00*", b"II+\x00", b"MM\x00+"),
+    ".tiff": (b"II*\x00", b"MM\x00*", b"II+\x00", b"MM\x00+"),
+}
+OOXML_REQUIRED_PARTS: dict[str, frozenset[str]] = {
+    ".docx": frozenset({"[Content_Types].xml", "word/document.xml"}),
+    ".pptx": frozenset({"[Content_Types].xml", "ppt/presentation.xml"}),
+    ".xlsx": frozenset({"[Content_Types].xml", "xl/workbook.xml"}),
+}
 
 IMAGE_EXTENSION_TO_FORMAT: dict[str, str] = {
     ".bmp": "BMP",
@@ -69,7 +88,7 @@ def _safe_upload_name(upload_file: UploadFile) -> str:
         msg = "File name is empty."
         raise BadRequestError(msg)
 
-    if "/" in filename or "\\" in filename:
+    if any(separator in filename for separator in PATH_SEPARATORS):
         msg = "File name must not include path separators."
         raise BadRequestError(msg)
     if filename.startswith((".", " ", "-")):
@@ -91,14 +110,76 @@ def _single_normalized_extension(name: str) -> str:
     return suffixes[0].lower()
 
 
-def validate_generic_file_upload_metadata(upload_file: UploadFile) -> UploadFile:
-    """Validate generic file upload metadata against the allowlist."""
+def _validated_generic_file_extension(upload_file: UploadFile) -> str:
+    """Return the normalized extension after generic file policy checks."""
     name = _safe_upload_name(upload_file)
     extension = _single_normalized_extension(name)
     if extension not in GENERIC_FILE_EXTENSIONS:
         allowed = ", ".join(sorted(GENERIC_FILE_EXTENSIONS))
         msg = f"File extension {extension} is not supported. Allowed extensions: {allowed}"
         raise BadRequestError(msg)
+    return extension
+
+
+def validate_generic_file_upload_metadata(upload_file: UploadFile) -> UploadFile:
+    """Validate generic file upload metadata against the allowlist."""
+    _validated_generic_file_extension(upload_file)
+    return upload_file
+
+
+def _reject_content_mismatch(extension: str, exc: Exception | None = None) -> None:
+    msg = f"File content does not match {extension} extension."
+    raise BadRequestError(msg) from exc
+
+
+def _validate_json_content(upload_file: UploadFile, extension: str) -> None:
+    try:
+        upload_file.file.seek(0)
+        json.loads(upload_file.file.read())
+    except (AttributeError, json.JSONDecodeError, OSError, TypeError, UnicodeDecodeError) as exc:
+        _reject_content_mismatch(extension, exc)
+    finally:
+        upload_file.file.seek(0)
+
+
+def _validate_magic_byte_prefix(upload_file: UploadFile, extension: str) -> None:
+    prefixes = MAGIC_BYTE_PREFIXES[extension]
+    try:
+        upload_file.file.seek(0)
+        prefix = upload_file.file.read(max(len(item) for item in prefixes))
+    except (AttributeError, OSError) as exc:
+        _reject_content_mismatch(extension, exc)
+    finally:
+        upload_file.file.seek(0)
+
+    if not any(prefix.startswith(item) for item in prefixes):
+        _reject_content_mismatch(extension)
+
+
+def _validate_ooxml_content(upload_file: UploadFile, extension: str) -> None:
+    try:
+        upload_file.file.seek(0)
+        with ZipFile(upload_file.file) as archive:
+            names = frozenset(archive.namelist())
+    except (AttributeError, BadZipFile, OSError) as exc:
+        _reject_content_mismatch(extension, exc)
+    finally:
+        upload_file.file.seek(0)
+
+    if not OOXML_REQUIRED_PARTS[extension].issubset(names):
+        _reject_content_mismatch(extension)
+
+
+def validate_generic_file_upload_content(upload_file: UploadFile) -> UploadFile:
+    """Run lightweight content checks for generic formats with stable signatures."""
+    extension = _validated_generic_file_extension(upload_file)
+
+    if extension == JSON_EXTENSION:
+        _validate_json_content(upload_file, extension)
+    elif extension in MAGIC_BYTE_PREFIXES:
+        _validate_magic_byte_prefix(upload_file, extension)
+    elif extension in OOXML_REQUIRED_PARTS:
+        _validate_ooxml_content(upload_file, extension)
     return upload_file
 
 

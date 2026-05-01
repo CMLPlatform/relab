@@ -1,11 +1,12 @@
 """Behavior-focused tests for file-storage utility helpers."""
-# spell-checker: ignore geocube HYPERSPECTRAL hyperspectral nitf officedocument wordprocessingml
+# spell-checker: ignore geocube HYPERSPECTRAL hyperspectral nitf officedocument pptx presentationml spreadsheetml wordprocessingml
 
 from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
 from fastapi import UploadFile
@@ -16,6 +17,7 @@ from app.api.file_storage.crud.support_paths import delete_image_from_storage
 from app.api.file_storage.crud.support_uploads import process_uploadfile_name, sanitize_filename
 from app.api.file_storage.upload_policy import (
     HYPERSPECTRAL_FILE_EXTENSIONS,
+    validate_generic_file_upload_content,
     validate_generic_file_upload_metadata,
     validate_image_upload_metadata,
 )
@@ -83,8 +85,20 @@ def _upload(filename: str, content_type: str, content: bytes = b"sample") -> Upl
     return UploadFile(file=BytesIO(content), filename=filename, headers=Headers({"content-type": content_type}))
 
 
+def _zip_bytes(paths: list[str]) -> bytes:
+    buffer = BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
+        for path in paths:
+            archive.writestr(path, "<xml />")
+    return buffer.getvalue()
+
+
 class TestUploadPolicy:
     """Tests for centralized upload allowlists."""
+
+    DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    PPTX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
     @pytest.mark.parametrize(
         ("filename", "content_type"),
@@ -93,7 +107,7 @@ class TestUploadPolicy:
             ("measurements.csv", "text/csv"),
             ("notes.md", "text/markdown"),
             ("metadata.json", "application/json"),
-            ("report.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+            ("report.docx", DOCX_CONTENT_TYPE),
             ("cube.hdr", "text/plain"),
             ("cube.raw", "application/octet-stream"),
             ("cube.dat", "application/octet-stream"),
@@ -136,3 +150,47 @@ class TestUploadPolicy:
         """Dangerous names and unsupported extensions are rejected before storage."""
         with pytest.raises(BadRequestError, match=r"not supported|must not|multiple extensions"):
             validate_generic_file_upload_metadata(_upload(filename, "application/octet-stream"))
+
+    @pytest.mark.parametrize(
+        ("filename", "content_type", "content"),
+        [
+            ("manual.pdf", "application/pdf", b"%PDF-1.7\n"),
+            ("metadata.json", "application/json", b'{"bands": 224}'),
+            ("cube.h5", "application/x-hdf5", b"\x89HDF\r\n\x1a\n"),
+            ("scene.ntf", "application/octet-stream", b"NITF02.10"),
+            ("geocube.tif", "image/tiff", b"II*\x00"),
+            ("report.docx", DOCX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "word/document.xml"])),
+            ("table.xlsx", XLSX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "xl/workbook.xml"])),
+            ("deck.pptx", PPTX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "ppt/presentation.xml"])),
+        ],
+    )
+    def test_generic_file_upload_content_accepts_stable_format_signatures(
+        self, filename: str, content_type: str, content: bytes
+    ) -> None:
+        """Stable research file formats get lightweight content sanity checks."""
+        upload = _upload(filename, content_type, content)
+
+        assert validate_generic_file_upload_content(upload).filename == filename
+        assert upload.file.tell() == 0
+
+    @pytest.mark.parametrize(
+        ("filename", "content_type", "content"),
+        [
+            ("manual.pdf", "application/pdf", b"<html>not a pdf</html>"),
+            ("metadata.json", "application/json", b"{not json"),
+            ("cube.h5", "application/x-hdf5", b"not hdf5"),
+            ("scene.ntf", "application/octet-stream", b"not nitf"),
+            ("geocube.tif", "image/tiff", b"not tiff"),
+            ("report.docx", DOCX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "xl/workbook.xml"])),
+            ("table.xlsx", XLSX_CONTENT_TYPE, b"not a zip"),
+        ],
+    )
+    def test_generic_file_upload_content_rejects_stable_format_mismatches(
+        self, filename: str, content_type: str, content: bytes
+    ) -> None:
+        """Allowed extensions with clearly mismatched bytes are rejected."""
+        upload = _upload(filename, content_type, content)
+
+        with pytest.raises(BadRequestError, match="does not match"):
+            validate_generic_file_upload_content(upload)
+        assert upload.file.tell() == 0
