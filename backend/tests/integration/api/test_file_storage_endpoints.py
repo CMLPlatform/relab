@@ -14,11 +14,14 @@ from PIL import Image as PILImage
 from tests.factories.models import ProductFactory, ProductTypeFactory
 
 if TYPE_CHECKING:
+    from fastapi import FastAPI
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
     from app.api.data_collection.models.product import Product
+
+from tests.fixtures.client import override_authenticated_user
 
 # Constants for test values
 PRODUCT_FILES_NAME = "Test Product Files"
@@ -319,5 +322,107 @@ class TestFileStorageEndpoints:
             files=files,
             data=data,
         )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.parametrize(
+        ("kind", "endpoint"),
+        [("file", "files"), ("image", "images")],
+    )
+    async def test_non_owner_cannot_upload_product_media(
+        self,
+        api_client_user: AsyncClient,
+        setup_product_for_files: Product,
+        kind: str,
+        endpoint: str,
+    ) -> None:
+        """Product media upload routes hide products owned by another user."""
+        _, files, data, _, _ = _upload_request(kind)
+        response = await api_client_user.post(
+            f"/v1/products/{setup_product_for_files.id}/{endpoint}",
+            files=files,
+            data=data,
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.parametrize(
+        ("kind", "endpoint"),
+        [("file", "files"), ("image", "images")],
+    )
+    async def test_non_owner_cannot_delete_product_media(
+        self,
+        api_client: AsyncClient,
+        test_app: FastAPI,
+        db_user: User,
+        db_superuser: User,
+        setup_product_for_files: Product,
+        kind: str,
+        endpoint: str,
+    ) -> None:
+        """Product media delete routes hide products owned by another user."""
+        _, files, data, _, _ = _upload_request(kind)
+        with override_authenticated_user(test_app, db_superuser, superuser=True):
+            create_response = await api_client.post(
+                f"/v1/products/{setup_product_for_files.id}/{endpoint}",
+                files=files,
+                data=data,
+            )
+        media_id = create_response.json()["id"]
+
+        with override_authenticated_user(test_app, db_user):
+            response = await api_client.delete(f"/v1/products/{setup_product_for_files.id}/{endpoint}/{media_id}")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.parametrize(
+        ("kind", "endpoint"),
+        [("file", "files"), ("image", "images")],
+    )
+    async def test_non_owner_cannot_upload_component_media(
+        self,
+        api_client_user: AsyncClient,
+        setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+        kind: str,
+        endpoint: str,
+    ) -> None:
+        """Component media upload routes hide components owned by another user."""
+        _, files, data, _, _ = _upload_request(kind)
+        response = await api_client_user.post(
+            f"/v1/components/{setup_product_graph.component.id}/{endpoint}",
+            files=files,
+            data=data,
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.parametrize(
+        ("kind", "endpoint"),
+        [("file", "files"), ("image", "images")],
+    )
+    async def test_non_owner_cannot_delete_component_media(
+        self,
+        api_client: AsyncClient,
+        test_app: FastAPI,
+        db_user: User,
+        db_superuser: User,
+        setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+        kind: str,
+        endpoint: str,
+    ) -> None:
+        """Component media delete routes hide components owned by another user."""
+        _, files, data, _, _ = _upload_request(kind)
+        with override_authenticated_user(test_app, db_superuser, superuser=True):
+            create_response = await api_client.post(
+                f"/v1/components/{setup_product_graph.component.id}/{endpoint}",
+                files=files,
+                data=data,
+            )
+        media_id = create_response.json()["id"]
+
+        with override_authenticated_user(test_app, db_user):
+            response = await api_client.delete(
+                f"/v1/components/{setup_product_graph.component.id}/{endpoint}/{media_id}"
+            )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND

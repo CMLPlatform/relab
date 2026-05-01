@@ -16,7 +16,6 @@ from app.api.common.models.base import Base
 from app.api.file_storage.exceptions import (
     FastAPIStorageFileNotFoundError,
     ModelFileNotFoundError,
-    ParentStorageOwnershipError,
 )
 from app.api.file_storage.models import MediaParentType
 from app.api.file_storage.parents import parent_model_for_type
@@ -24,7 +23,7 @@ from app.api.file_storage.parents import parent_model_for_type
 from .support_types import StorageModel
 
 if TYPE_CHECKING:
-    from fastapi_filter.contrib.sqlalchemy import Filter
+    from app.api.common.crud.filtering import BaseFilterSet
 
 
 async def ensure_parent_exists(db: AsyncSession, parent_type: MediaParentType, parent_id: int) -> None:
@@ -83,18 +82,21 @@ async def get_parent_owned_storage_item[StorageModelT: StorageModel](
     model: type[StorageModelT],
     parent_id: int,
     item_id: UUID4,
+    parent_type: MediaParentType,
 ) -> StorageModelT:
     """Fetch a storage item and verify that it belongs to the scoped parent."""
     await require_model(db, parent_model, parent_id)
     try:
-        db_item = await db.get(model, item_id)
+        statement = select(model).where(
+            model.id == item_id,
+            model.parent_id == parent_id,
+            model.parent_type == parent_type,
+        )
+        db_item = (await db.execute(statement)).scalars().unique().one_or_none()
     except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
         raise ModelFileNotFoundError(model, item_id, details=str(e)) from e
 
-    db_item = ensure_storage_item_found(model, item_id, db_item)
-    if db_item.parent_id != parent_id:
-        raise ParentStorageOwnershipError(model, item_id, parent_model, parent_id)
-    return db_item
+    return ensure_storage_item_found(model, item_id, db_item)
 
 
 async def list_parent_storage_items[StorageModelT: StorageModel](
@@ -103,7 +105,7 @@ async def list_parent_storage_items[StorageModelT: StorageModel](
     model: type[StorageModelT],
     parent_type: MediaParentType,
     parent_id: int,
-    filter_params: Filter | None = None,
+    filter_params: BaseFilterSet | None = None,
 ) -> list[StorageModelT]:
     """List storage items owned by one parent/type scope."""
     statement: Select[tuple[StorageModelT]] = select(model).where(

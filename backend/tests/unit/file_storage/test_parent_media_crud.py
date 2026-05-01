@@ -14,6 +14,7 @@ from app.api.file_storage.crud.parent_media import ParentMediaCrud
 from app.api.file_storage.exceptions import ParentStorageOwnershipError
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal
+from app.api.reference_data.models import Material
 
 TEST_FILE_DESC = "Test file"
 TEST_FILENAME = "test.txt"
@@ -84,3 +85,32 @@ class TestParentStorageCrud:
             pytest.raises(ParentStorageOwnershipError, match="not found for"),
         ):
             await operations.get_by_id(mock_session, 1, item_id)
+
+    async def test_get_by_id_uses_configured_parent_type(self, mock_session: AsyncMock) -> None:
+        """Parent-scoped lookup should use the CRUD object's parent type."""
+        operations = ParentMediaCrud(
+            parent_model=Material,
+            parent_type=MediaParentType.MATERIAL,
+            storage_model=Image,
+            storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
+        )
+        item_id = uuid4()
+        db_item = MagicMock(spec=Image)
+
+        with (
+            patch(
+                "app.api.file_storage.crud.parent_media.get_parent_owned_storage_item",
+                new=AsyncMock(return_value=db_item),
+            ) as get_scoped_item,
+            patch("app.api.file_storage.crud.parent_media.storage_item_exists", return_value=True),
+        ):
+            await operations.get_by_id(mock_session, 1, item_id)
+
+        get_scoped_item.assert_awaited_once_with(
+            mock_session,
+            parent_model=Material,
+            model=Image,
+            parent_id=1,
+            item_id=item_id,
+            parent_type=MediaParentType.MATERIAL,
+        )

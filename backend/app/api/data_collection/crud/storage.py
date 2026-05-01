@@ -40,6 +40,7 @@ async def get_product_file(db: AsyncSession, product_id: int, file_id: UUID4) ->
     return await get_parent_media(
         db,
         parent_model=Product,
+        parent_type=MediaParentType.PRODUCT,
         storage_model=File,
         parent_id=product_id,
         item_id=file_id,
@@ -62,6 +63,7 @@ async def delete_product_file(db: AsyncSession, product_id: int, file_id: UUID4)
     await delete_parent_media(
         db,
         parent_model=Product,
+        parent_type=MediaParentType.PRODUCT,
         storage_model=File,
         parent_id=product_id,
         item_id=file_id,
@@ -98,6 +100,7 @@ async def get_product_image(db: AsyncSession, product_id: int, image_id: UUID4) 
     return await get_parent_media(
         db,
         parent_model=Product,
+        parent_type=MediaParentType.PRODUCT,
         storage_model=Image,
         parent_id=product_id,
         item_id=image_id,
@@ -120,6 +123,7 @@ async def delete_product_image(db: AsyncSession, product_id: int, image_id: UUID
     await delete_parent_media(
         db,
         parent_model=Product,
+        parent_type=MediaParentType.PRODUCT,
         storage_model=Image,
         parent_id=product_id,
         item_id=image_id,
