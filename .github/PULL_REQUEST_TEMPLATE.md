@@ -35,6 +35,7 @@ For changes touching auth, permissions, browser rendering, dynamic URLs, uploads
 
 - Assets affected:
 - Trust boundaries crossed:
+- New or changed attack-surface bucket:
 - What could go wrong:
 - Controls and tests:
 - Follow-up items:
