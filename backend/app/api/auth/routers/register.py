@@ -16,9 +16,9 @@ from app.api.auth.exceptions import (
 )
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate, UserCreateWithOrganization, UserReadPublic
+from app.api.auth.services.email import mask_email_for_log
 from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT, limiter
 from app.api.common.exceptions import APIError
-from app.core.logging import sanitize_log_value
 from app.core.runtime import get_request_email_checker
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ async def register(
         # Request email verification automatically (this triggers on_after_request_verify -> sends email)
         await user_manager.request_verify(user, request)
 
-        logger.info("User %s registered successfully", sanitize_log_value(user.email))
+        logger.info("User %s registered successfully", mask_email_for_log(user.email))
 
     except UserAlreadyExists as e:
         raise RegistrationUserAlreadyExistsHTTPError from e
