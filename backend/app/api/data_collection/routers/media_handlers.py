@@ -8,12 +8,12 @@ which ownership dep resolves the id.
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING
 
 from fastapi import UploadFile
 
 from app.api.auth.services.stats import refresh_profile_stats_after_mutation
+from app.api.common.form_json import parse_optional_json_object
 from app.api.data_collection.crud.storage import (
     create_product_file,
     create_product_image,
@@ -41,13 +41,6 @@ if TYPE_CHECKING:
     from app.api.file_storage.filters import FileFilter, ImageFilter
 
 
-def _parse_optional_json(value: str | None) -> dict[str, object] | None:
-    """Parse optional JSON form payloads only when provided."""
-    if value is None:
-        return None
-    return dict(json.loads(value))
-
-
 def _product_file_create(parent_id: int, *, file: UploadFile, description: str | None) -> FileCreate:
     return FileCreate(
         file=file,
@@ -68,7 +61,7 @@ def _product_image_create(
         {
             "file": file,
             "description": description,
-            "image_metadata": _parse_optional_json(image_metadata),
+            "image_metadata": parse_optional_json_object(image_metadata, field_name="image_metadata"),
             "parent_id": parent_id,
             "parent_type": MediaParentType.PRODUCT,
         }
