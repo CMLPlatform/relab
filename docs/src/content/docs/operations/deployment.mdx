@@ -99,6 +99,8 @@ The backend enforces source-controlled application limits: JSON bodies are count
 - Alembic migrations move schema state forward in a controlled way.
 - `just backup-restore-smoke staging` or `just backup-restore-smoke prod` restores the latest database dump into a disposable Postgres container and verifies that it can be read.
 
+The deploy stack runs app-owned services with dropped Linux capabilities, `no-new-privileges`, PID/file descriptor limits, and read-only root filesystems where supported. The backup container runs as UID/GID `1001`; make sure the host restic directory under `BACKUP_DIR` is writable by that ID.
+
 ## Secrets and encrypted fields
 
 Most RELab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPI camera keys, request IDs, and cache keys are not application-encrypted.

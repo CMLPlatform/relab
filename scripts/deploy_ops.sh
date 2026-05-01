@@ -119,10 +119,12 @@ compose_policy_check() {
 
     deploy_prepare_compose_validation_files
     docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml config --format json > "$tmp_root/dev.json"
+    docker compose -p relab_e2e -f compose.e2e.yaml config --format json > "$tmp_root/e2e.json"
     render_compose_json prod "$tmp_root/prod.json" backups migrations
     render_compose_json staging "$tmp_root/staging.json" backups migrations
     python3 scripts/deploy_policy_check.py compose \
         dev="$tmp_root/dev.json" \
+        e2e="$tmp_root/e2e.json" \
         prod="$tmp_root/prod.json" \
         staging="$tmp_root/staging.json"
     echo "✓ Compose network policy validated"

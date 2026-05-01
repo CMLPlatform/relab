@@ -9,7 +9,7 @@
 #   docker compose --env-file .env --env-file deploy/env/prod.compose.env \
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
-# spell-checker: ignore REDISCLI, requirepass
+# spell-checker: ignore REDISCLI, requirepass, tmpfs
 
 name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (e.g. relab_prod, relab_staging)}
 
@@ -32,7 +32,11 @@ services:
   api:
     <<: *env-backend
     image: relab-backend:${APP_ENV}-local
+    read_only: true
+    user: "1001:1001"
     secrets: *backend-runtime-secrets
+    tmpfs:
+      - /tmp:mode=1777
     environment:
       ENVIRONMENT: ${APP_ENV}
       # Trust forwarded headers only from Docker-internal proxy addresses.
@@ -62,14 +66,29 @@ services:
   migrator:
     <<: *env-backend
     image: relab-backend-migrations:${APP_ENV}-local
+    read_only: true
+    user: "1001:1001"
     secrets: *backend-runtime-secrets
+    tmpfs:
+      - /tmp:mode=1777
 
   relab-backup:
     # Encrypted logical PostgreSQL + user upload backups.
     build:
       context: ./backend
       dockerfile: Dockerfile.backups
+    cap_drop:
+      - ALL
+    pids_limit: 512
+    read_only: true
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile:
+        soft: 8192
+        hard: 8192
+    user: "1001:1001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,7 +101,10 @@ services:
       DATABASE_BACKUP_PASSWORD_FILE: /run/secrets/database_backup_password
       RESTIC_PASSWORD_FILE: /run/secrets/restic_password
       RESTIC_REPOSITORY: /restic
+      RESTIC_CACHE_DIR: /tmp/restic-cache
+      XDG_CACHE_HOME: /tmp/xdg-cache
       UPLOADS_DIR: /data/uploads
+      BACKUP_WORK_DIR: /tmp/relab-backups
       BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
       BACKUP_ON_START: "true"
       RESTIC_KEEP_HOURLY: ${RESTIC_KEEP_HOURLY:-24}
@@ -95,6 +117,8 @@ services:
       - restic_password
     profiles:
       - backups
+    tmpfs:
+      - /tmp:mode=1777
     networks:
       - data
 
@@ -143,25 +167,43 @@ services:
 
   docs:
     image: relab-docs:${APP_ENV}-local
+    read_only: true
+    user: "1001:1001"
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
         PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://docs.cml-relab.org}
+    tmpfs:
+      - /config:uid=1001,gid=1001
+      - /data:uid=1001,gid=1001
+      - /tmp:mode=1777
 
   app:
     image: relab-app:${APP_ENV}-local
+    read_only: true
+    user: "1001:1001"
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
     environment:
       # Needed by Caddyfile to determine the API origin.
       CSP_API_ORIGIN: ${CSP_API_ORIGIN:-https://api.cml-relab.org}
+    tmpfs:
+      - /config:uid=1001,gid=1001
+      - /data:uid=1001,gid=1001
+      - /tmp:mode=1777
 
   www:
     image: relab-www:${APP_ENV}-local
+    read_only: true
+    user: "1001:1001"
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
+    tmpfs:
+      - /config:uid=1001,gid=1001
+      - /data:uid=1001,gid=1001
+      - /tmp:mode=1777
 
 volumes:
   cache_data:
