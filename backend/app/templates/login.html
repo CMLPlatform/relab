@@ -17,11 +17,29 @@
       <form id="loginForm">
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" name="email" required />
+          <input
+            type="email"
+            id="email"
+            name="email"
+            autocomplete="username"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            required
+          />
         </div>
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" required />
+          <input
+            type="password"
+            id="password"
+            name="password"
+            autocomplete="current-password"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            required
+          />
         </div>
         <div id="error" class="error"></div>
         {% if next %}
