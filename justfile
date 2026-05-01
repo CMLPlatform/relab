@@ -29,7 +29,7 @@ install:
     uv sync --frozen
     pnpm install
     for d in {{ subrepos }}; do just "$d/install"; done
-    echo "✓ All dependencies installed"
+    echo "✅ All dependencies installed"
 
 # Update all workspace dependencies
 update:
@@ -39,12 +39,12 @@ update:
     pnpm update -D
     pnpm dedupe
     for d in {{ subrepos }}; do just "$d/update"; done
-    echo "✓ Dependencies updated (run 'just install' to sync)"
+    echo "✅ Dependencies updated (run 'just install' to sync)"
 
 # Install pre-commit hooks (run once after clone)
 _pre-commit-install:
     uv run pre-commit install
-    @echo "✓ Pre-commit hooks installed"
+    @echo "✅ Pre-commit hooks installed"
 
 # Create a conventional commit message interactively
 _commit:
@@ -52,7 +52,7 @@ _commit:
 
 # Bootstrap a full local development environment
 setup: install _pre-commit-install
-    @echo "✓ Development environment ready"
+    @echo "✅ Development environment ready"
 
 # ============================================================================
 # Quality Checks
@@ -61,22 +61,23 @@ setup: install _pre-commit-install
 # Run repository-wide policy checks
 pre-commit:
     uv run pre-commit run --all-files
-    @echo "✓ Repository policy checks passed"
+    @echo "✅ Repository policy checks passed"
 
 # Run cached full-repo spell checking
 spellcheck:
     pnpm run spellcheck
-    @echo "✓ Full-repo spell check passed"
+    @echo "✅ Full-repo spell check passed"
 
 # Lint all tracked shell scripts with the pre-commit-managed ShellCheck hook
 shellcheck:
     uv run pre-commit run shellcheck --files $(git ls-files '*.sh')
-    @echo "✓ Repository shell scripts passed ShellCheck"
+    @echo "✅ Repository shell scripts passed ShellCheck"
 
 # Run root and subrepo lint checks
 lint:
     #!/usr/bin/env bash
     set -euo pipefail
+    uv run ruff check --config pyproject.toml .
     pnpm run lint
     for d in {{ subrepos }}; do just "$d/lint"; done
     echo "✅ Root and subrepo lint passed"
@@ -86,6 +87,9 @@ lint:
 check:
     #!/usr/bin/env bash
     set -euo pipefail
+    uv run ruff check --config pyproject.toml .
+    uv run ruff format --check --config pyproject.toml .
+    uv run ty check
     pnpm run check
     for d in {{ subrepos }}; do just "$d/check"; done
     echo "✅ Root and subrepo checks passed"
@@ -94,6 +98,7 @@ check:
 format:
     #!/usr/bin/env bash
     set -euo pipefail
+    uv run ruff format --config pyproject.toml .
     pnpm run format
     for d in {{ subrepos }}; do just "$d/format"; done
     echo "✅ Root and subrepo formatting complete"
@@ -102,9 +107,11 @@ format:
 fix:
     #!/usr/bin/env bash
     set -euo pipefail
+    uv run ruff check --fix --config pyproject.toml .
+    uv run ruff format --config pyproject.toml .
     pnpm run fix
     for d in {{ subrepos }}; do just "$d/fix"; done
-    echo "✓ Code fixed"
+    echo "✅ Code fixed"
 
 # ============================================================================
 # Testing
@@ -185,7 +192,7 @@ test-e2e-full-stack MODE="default":
 # Run dependency vulnerability audit for root Python tooling
 audit-root:
     uv audit --preview-features audit --frozen
-    @echo "✓ Root dependency audit complete"
+    @echo "✅ Root dependency audit complete"
 
 # Run dependency vulnerability audit across root and all subrepos
 audit: audit-root
@@ -465,7 +472,7 @@ clean:
     set -euo pipefail
     for d in {{ subrepos }}; do just "$d/clean"; done
     rm -rf .ruff_cache
-    echo "✓ Cleaned caches and build artifacts"
+    echo "✅ Cleaned caches and build artifacts"
 
 # Print a static-output size budget for a built directory (e.g. docs/dist, www/dist)
 size DIR:
