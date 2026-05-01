@@ -207,13 +207,16 @@ class TestS3StorageAsyncOperations:
         mock_file.seek.assert_called_once_with(0)
         mock_file.close.assert_called_once()
 
-    async def test_write_image_upload_validates_then_uploads(
+    async def test_write_image_upload_uploads_without_policy_validation(
         self, mock_boto3: MagicMock, mocker: MockerFixture
     ) -> None:
-        """Test write_image_upload() validates image before upload."""
+        """Storage backends should only store bytes; upload policy lives in the service layer."""
         mock_client = MagicMock()
         mock_boto3.client.return_value = mock_client
-        mock_validate = mocker.patch("app.api.file_storage.models.storage_s3.validate_image_upload_content")
+        mock_validate = mocker.patch(
+            "app.api.file_storage.models.storage_s3.validate_image_upload_content",
+            create=True,
+        )
 
         mock_file = MagicMock()
         mock_file.file = io.BytesIO(b"fake image data")
@@ -225,8 +228,7 @@ class TestS3StorageAsyncOperations:
         result = await storage.write_image_upload(mock_file, "photo.jpg")
 
         assert result == "photo.jpg"
-        # Validation should be called on the file object
-        mock_validate.assert_called_once()
+        mock_validate.assert_not_called()
         mock_file.close.assert_called_once()
 
 

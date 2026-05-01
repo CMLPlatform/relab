@@ -5,11 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from anyio import open_file, to_thread
+from anyio import open_file
 
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
 from app.api.file_storage.models.storage_core import BaseStorage, secure_filename
-from app.api.file_storage.upload_policy import validate_image_upload_content
 from app.core.config import settings
 
 if TYPE_CHECKING:
@@ -92,7 +91,5 @@ class FileSystemStorage(BaseStorage):
         return filename
 
     async def write_image_upload(self, upload_file: UploadFile, name: str) -> str:
-        """Validate and write an uploaded image using async file I/O."""
-        self._ensure_path()
-        await to_thread.run_sync(validate_image_upload_content, upload_file)
+        """Write an uploaded image using async file I/O."""
         return await self.write_upload(upload_file, name)
