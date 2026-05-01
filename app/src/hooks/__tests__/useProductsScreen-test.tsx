@@ -56,7 +56,7 @@ jest.mock('@/context/auth', () => ({
 jest.mock('@/hooks/useProductQueries', () => ({
   DEFAULT_PRODUCT_SORT: ['-created_at'],
   PRODUCT_SORT_OPTIONS: [
-    { label: 'Relevance', value: ['rank'] },
+    { label: 'Relevance', value: [] },
     { label: 'Newest first', value: ['-created_at'] },
     { label: 'Oldest first', value: ['created_at'] },
   ],

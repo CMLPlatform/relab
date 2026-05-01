@@ -82,7 +82,7 @@ function normalizeProductsParams(params: ProductsSearchParams) {
     sortBy: params.sort
       ? params.sort.split(',')
       : searchQueryURL
-        ? (['rank'] as string[])
+        ? []
         : Array.from(DEFAULT_PRODUCT_SORT ?? FALLBACK_DEFAULT_SORT),
     activeDatePreset,
     activeBrands: params.brands ? params.brands.split(',') : [],
@@ -242,14 +242,12 @@ function useProductsParamsSync({
   currentUser,
   debouncedSearchQuery,
   filterMode,
-  paramsSort,
   searchQueryURL,
   updateParams,
 }: {
   currentUser: ReturnType<typeof useAuth>['user'];
   debouncedSearchQuery: string;
   filterMode: ProductFilter;
-  paramsSort?: string;
   searchQueryURL: string;
   updateParams: (newParams: RouterSetParams) => void;
 }) {
@@ -258,12 +256,6 @@ function useProductsParamsSync({
       updateParams({ q: debouncedSearchQuery || undefined, page: '1' });
     }
   }, [debouncedSearchQuery, searchQueryURL, updateParams]);
-
-  useEffect(() => {
-    if (!searchQueryURL && paramsSort === 'rank') {
-      updateParams({ sort: undefined });
-    }
-  }, [paramsSort, searchQueryURL, updateParams]);
 
   useEffect(() => {
     if (!currentUser && filterMode === 'mine') {
@@ -283,7 +275,8 @@ function useProductsActions({
 }) {
   const clearQuery = useCallback(() => updateParams({ q: undefined, page: '1' }), [updateParams]);
   const applySort = useCallback(
-    (sort: readonly string[]) => updateParams({ sort: sort.join(','), page: '1' }),
+    (sort: readonly string[]) =>
+      updateParams({ sort: sort.length ? sort.join(',') : undefined, page: '1' }),
     [updateParams],
   );
   const toggleMine = useCallback(
@@ -483,7 +476,6 @@ function buildProductsScreenState({
   };
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: products-screen orchestration is intentionally exposed through one screen hook.
 export function useProductsScreen(numColumns: number) {
   const dialog = useDialog();
   const router = useRouter();
@@ -523,7 +515,6 @@ export function useProductsScreen(numColumns: number) {
     currentUser,
     debouncedSearchQuery,
     filterMode,
-    paramsSort: params.sort,
     searchQueryURL,
     updateParams,
   });

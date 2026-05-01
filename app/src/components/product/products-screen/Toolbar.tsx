@@ -43,12 +43,12 @@ export function ProductsSearchToolbar({
         }
       >
         {sortOptions
-          .filter((option) => searchQueryURL || option.value[0] !== 'rank')
+          .filter((option) => searchQueryURL || option.value.length > 0)
           .map((option) => (
             <Menu.Item
               key={option.label}
               title={option.label}
-              trailingIcon={sortBy[0] === option.value[0] ? 'check' : undefined}
+              trailingIcon={sortBy.join(',') === option.value.join(',') ? 'check' : undefined}
               onPress={() => {
                 onSortChange(option.value);
                 onSetSortMenuVisible(false);

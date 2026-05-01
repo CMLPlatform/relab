@@ -223,10 +223,10 @@ function buildProductsUrl(
   url.searchParams.append('page', page.toString());
   url.searchParams.append('size', size.toString());
   if (search) url.searchParams.append('search', search);
-  if (brands?.length) url.searchParams.append('brand__in', brands.join(','));
-  if (createdAfter) url.searchParams.append('created_at__gte', createdAfter.toISOString());
+  if (brands?.length) url.searchParams.append('brand[in]', brands.join(','));
+  if (createdAfter) url.searchParams.append('created_at[ge]', createdAfter.toISOString());
   if (productTypeNames?.length)
-    url.searchParams.append('product_type__name__in', productTypeNames.join(','));
+    url.searchParams.append('product_type_name[in]', productTypeNames.join(','));
   if (orderBy?.length) url.searchParams.append('order_by', orderBy.join(','));
   if (owner) url.searchParams.append('owner', owner);
   return url;

@@ -136,7 +136,7 @@ describe('useProductQueries', () => {
 
     renderHook(
       () =>
-        useProductsQuery('all', 2, 'lamp', ['name'], {
+        useProductsQuery('all', 2, 'lamp', ['+name'], {
           brands: ['ikea', 'philips'],
           createdAfter,
           productTypeNames: ['Furniture'],
@@ -149,7 +149,7 @@ describe('useProductQueries', () => {
       2,
       24,
       'lamp',
-      ['name'],
+      ['+name'],
       ['ikea', 'philips'],
       createdAfter,
       ['Furniture'],
