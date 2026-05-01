@@ -20,9 +20,9 @@ router = APIRouter(include_in_schema=False)
 async def index(request: Request, user: OptionalCurrentActiveUserDep) -> HTMLResponse:
     """Render the landing page."""
     return templates.TemplateResponse(
+        request,
         "index.html",
         {
-            "request": request,
             "user": user,
             "frontend_web_url": core_settings.frontend_web_url,
         },
@@ -49,4 +49,4 @@ async def login_page(
     if next_page is not None and (not next_page.startswith("/") or next_page.startswith("//")):
         next_page = None
 
-    return templates.TemplateResponse("login.html", {"request": request, "next": next_page})
+    return templates.TemplateResponse(request, "login.html", {"next": next_page})
