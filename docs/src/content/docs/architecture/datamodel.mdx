@@ -12,7 +12,6 @@ graph TD
 
         User["User"]
         OAuthAccount["OAuth account"]
-        Organization["Organization"]
 
         Camera["Camera"]
         Product["Product"]
@@ -30,9 +29,6 @@ graph TD
         Video["Video"]
 
     User -->|Has| OAuthAccount
-    User -->|Belongs to| Organization
-    User -->|Owns| Organization
-
     User -->|Owns| Camera
 
     User -->|Owns| Product
@@ -52,7 +48,7 @@ graph TD
     style LocalStorage fill:#f8fafc,stroke:#475569,stroke-width:1px,color:#1e293b;
 
     classDef UserManagementFill fill:#e9d8fd,stroke:#6b46c1,stroke-width:2px,color:#44337a;
-    class User,OAuthAccount,Organization UserManagementFill;
+    class User,OAuthAccount UserManagementFill;
 
     classDef DataCollectionFill fill:#d9f4fb,stroke:#006783,stroke-width:2px,color:#13263a;
     class Product,PhysicalProperties,Camera DataCollectionFill;
@@ -68,7 +64,7 @@ The full data schema is broken up into four modules: user management, reference 
 
 ## User management
 
-This part covers user accounts, organisations and membership, linked OAuth accounts, and ownership and access control. It is kept separate from the research entities so auth concerns do not leak into the product model more than necessary.
+This part covers user accounts, linked OAuth accounts, and ownership and access control. It is kept separate from the research entities so auth concerns do not leak into the product model more than necessary.
 
 ```mermaid
 erDiagram
@@ -81,16 +77,6 @@ erDiagram
         boolean is_superuser
         boolean is_verified
         varchar username UK
-        uuid organization_id FK
-        organizationrole organization_role "optional; owner, admin, member"
-    }
-
-    ORGANIZATION {
-        uuid id PK
-        varchar name UK
-        varchar location
-        varchar description
-        uuid owner_id FK
     }
 
     OAUTHACCOUNT {
@@ -104,8 +90,6 @@ erDiagram
         varchar account_email
     }
 
-    USER ||--o| ORGANIZATION : "owns"
-    USER }|--o| ORGANIZATION : "is member of"
     USER ||--o{ OAUTHACCOUNT : "has"
 ```
 

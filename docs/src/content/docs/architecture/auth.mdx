@@ -76,7 +76,7 @@ Logout clears auth cookies and blacklists the refresh token when one is present.
 
 Refresh tokens are random bearer secrets. Redis stores them under SHA-256 fingerprints rather than raw token values, so Redis key names are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with the backend `DATA_ENCRYPTION_KEYS` keyring.
 
-Encryption is not used as a substitute for authorization. Authenticated API handlers must still check ownership, organization membership, and route-level permissions before returning or mutating data.
+Encryption is not used as a substitute for authorization. Authenticated API handlers must still check resource ownership and route-level permissions before returning or mutating data.
 
 ## OAuth
 
