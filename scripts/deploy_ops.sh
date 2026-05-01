@@ -63,7 +63,7 @@ compose_config() {
         -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml config >/dev/null
     docker compose -p relab_e2e -f compose.e2e.yaml config >/dev/null
 
-    echo "✓ Compose configurations validated"
+    echo "✅ Compose configurations validated"
 }
 
 deploy_secrets_check() {
@@ -82,7 +82,7 @@ deploy_secrets_check() {
         --manifest deploy/required-secret-files.txt \
         prod="$tmp_root/prod.json" \
         staging="$tmp_root/staging.json"
-    echo "✓ Deploy secret manifest matches Compose"
+    echo "✅ Deploy secret manifest matches Compose"
 }
 
 deploy_secrets_template() {
@@ -105,7 +105,7 @@ deploy_secrets_template() {
         fi
         chmod 600 "$path"
     done < <(deploy_secret_files)
-    echo "✓ Secret files are present under secrets/$env"
+    echo "✅ Secret files are present under secrets/$env"
 }
 
 compose_policy_check() {
@@ -127,7 +127,7 @@ compose_policy_check() {
         e2e="$tmp_root/e2e.json" \
         prod="$tmp_root/prod.json" \
         staging="$tmp_root/staging.json"
-    echo "✓ Compose network policy validated"
+    echo "✅ Compose network policy validated"
 }
 
 parse_profiles() {

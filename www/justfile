@@ -40,7 +40,7 @@ fix:
 
 # Run lint + typecheck
 check: lint typecheck
-    @echo "✓ Frontend-web checks passed"
+    @echo "✅ Frontend-web checks passed"
 
 # Build the production site
 build:
@@ -60,7 +60,7 @@ test-e2e:
 
 # Run the full www CI pipeline locally
 ci: check test-ci
-    @echo "✓ Frontend-web CI pipeline passed"
+    @echo "✅ Frontend-web CI pipeline passed"
 
 # Scan dependencies for known vulnerabilities
 audit:

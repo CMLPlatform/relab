@@ -181,7 +181,7 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
         # Commit
         session.commit()
         logger.info(
-            "✓ Added %s taxonomy (version %s) with %d categories and %d relationships",
+            "✅ Added %s taxonomy (version %s) with %d categories and %d relationships",
             TAXONOMY_NAME,
             TAXONOMY_VERSION,
             cat_count,

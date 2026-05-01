@@ -59,7 +59,7 @@ def compile_mjml_templates() -> None:
             html_file = BUILD_DIR / mjml_file.with_suffix(".html").name
             html_file.write_text(html_content)
 
-            logger.info("  ✓ Compiled to %s", html_file.name)
+            logger.info("  ✅ Compiled to %s", html_file.name)
 
         except Exception:
             logger.exception("  ✗ Failed to compile %s", mjml_file.name)
