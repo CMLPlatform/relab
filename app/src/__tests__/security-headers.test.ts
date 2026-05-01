@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 const caddyfile = readFileSync(resolve(__dirname, '../../Caddyfile'), 'utf8');
 const ENFORCED_CSP_PATTERN = /^\s*Content-Security-Policy\s+"([^"]+)"/m;
 const REPORT_ONLY_CSP_PATTERN = /^\s*Content-Security-Policy-Report-Only\s+"([^"]+)"/m;
+const RESET_PASSWORD_REFERRER_POLICY_PATTERN =
+  /@reset_password_route\s+path\s+\/reset-password\*\s+handle\s+@reset_password_route\s+\{\s+header\s+Referrer-Policy\s+"no-referrer"/s;
 
 function enforcedCsp() {
   const match = caddyfile.match(ENFORCED_CSP_PATTERN);
@@ -44,5 +46,9 @@ describe('Caddy security headers', () => {
     expect(reportOnlyCsp()).not.toContain('script-src *');
     expect(enforcedCsp()).not.toContain('javascript:');
     expect(reportOnlyCsp()).not.toContain('javascript:');
+  });
+
+  it('sets no-referrer specifically on password reset routes', () => {
+    expect(caddyfile).toMatch(RESET_PASSWORD_REFERRER_POLICY_PATTERN);
   });
 });

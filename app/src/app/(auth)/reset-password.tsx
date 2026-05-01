@@ -37,7 +37,7 @@ function ResetPasswordForm({
   setShowPassword,
   isSubmitting,
   error,
-  passwordError,
+  validationError,
   isValid,
   onSubmit,
   onBackToLogin,
@@ -47,7 +47,7 @@ function ResetPasswordForm({
   setShowPassword: (value: boolean) => void;
   isSubmitting: boolean;
   error: string | null;
-  passwordError?: string;
+  validationError?: string;
   isValid: boolean;
   onSubmit: () => void;
   onBackToLogin: () => void;
@@ -65,6 +65,8 @@ function ResetPasswordForm({
             onChangeText={onChange}
             secureTextEntry={!showPassword}
             autoCapitalize="none"
+            autoComplete="password-new"
+            textContentType="newPassword"
             disabled={isSubmitting}
             right={
               <TextInput.Icon
@@ -76,15 +78,33 @@ function ResetPasswordForm({
         )}
       />
 
+      <Controller
+        control={control}
+        name="confirmPassword"
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            label="Confirm New Password"
+            testID="confirm-password-input"
+            value={value}
+            onChangeText={onChange}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoComplete="password-new"
+            textContentType="newPassword"
+            disabled={isSubmitting}
+          />
+        )}
+      />
+
       {error && (
         <HelperText type="error" visible={Boolean(error)}>
           {error}
         </HelperText>
       )}
 
-      {!error && passwordError && (
+      {!error && validationError && (
         <HelperText type="error" visible>
-          {passwordError}
+          {validationError}
         </HelperText>
       )}
 
@@ -110,7 +130,7 @@ function useResetPasswordFormState() {
   return useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
     mode: 'onChange',
-    defaultValues: { password: '' },
+    defaultValues: { password: '', confirmPassword: '' },
   });
 }
 
@@ -134,7 +154,7 @@ function ResetPasswordCardContent({
   setShowPassword,
   isSubmitting,
   error,
-  passwordError,
+  validationError,
   isValid,
   onSubmit,
   onBackToLogin,
@@ -145,7 +165,7 @@ function ResetPasswordCardContent({
   setShowPassword: (value: boolean) => void;
   isSubmitting: boolean;
   error: string | null;
-  passwordError?: string;
+  validationError?: string;
   isValid: boolean;
   onSubmit: () => void;
   onBackToLogin: () => void;
@@ -159,7 +179,7 @@ function ResetPasswordCardContent({
       setShowPassword={setShowPassword}
       isSubmitting={isSubmitting}
       error={error}
-      passwordError={passwordError}
+      validationError={validationError}
       isValid={isValid}
       onSubmit={onSubmit}
       onBackToLogin={onBackToLogin}
@@ -230,7 +250,7 @@ export default function ResetPasswordScreen() {
             setShowPassword={setShowPassword}
             isSubmitting={isSubmitting}
             error={error}
-            passwordError={errors.password?.message}
+            validationError={errors.password?.message ?? errors.confirmPassword?.message}
             isValid={isValid}
             onSubmit={handleResetPassword}
             onBackToLogin={handleBackToLogin}
