@@ -32,6 +32,7 @@ from app.api.auth.services.login_hooks import (
 from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, hashed_identifier_rate_limit_key, limiter
 from app.api.auth.services.user_database import get_user_db
+from app.api.common.audit import AuditAction, audit_event
 from app.api.common.routers.dependencies import get_external_http_client
 from app.core.runtime import get_request_services
 
@@ -195,6 +196,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         if update_dict.get("is_active") is False:
             redis = get_request_services(request).redis if request else None
             await refresh_token_service.revoke_all_user_tokens(redis, user.id)
+            audit_event(user.id, AuditAction.DEACTIVATE, User, user.id)
 
     async def on_after_login(
         self, user: User, request: Request | None = None, response: Response | None = None

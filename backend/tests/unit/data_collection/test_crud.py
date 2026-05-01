@@ -9,6 +9,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.common.audit import AuditAction
 from app.api.common.models.enums import Unit
 from app.api.common.schemas.associations import (
     MaterialProductLinkCreateWithinProduct,
@@ -102,7 +103,10 @@ class TestProductCrud:
         db_product.owner_id = uuid4()
 
         with (
-            patch("app.api.data_collection.crud.product_commands.require_model", return_value=db_product),
+            patch(
+                "app.api.data_collection.crud.product_commands.require_locked_model",
+                return_value=db_product,
+            ) as get_product,
             patch("app.api.data_collection.crud.product_commands.require_models", return_value=[]),
             patch(
                 "app.api.data_collection.crud.product_commands.refresh_profile_stats_after_mutation",
@@ -114,26 +118,34 @@ class TestProductCrud:
             assert mock_session.add.call_count >= 1
             assert mock_session.commit.call_count >= 1
             apply_stats.assert_awaited_once()
+            get_product.assert_awaited_once_with(mock_session, Product, product_id)
 
     async def test_delete_product_success(self, mock_session: AsyncMock) -> None:
         """Test successful product deletion."""
         product_id = 1
         db_product = ProductFactory.build(id=product_id)
-        db_product.owner_id = uuid4()
+        owner_id = uuid4()
+        db_product.owner_id = owner_id
 
         with (
-            patch("app.api.data_collection.crud.product_commands.require_model", return_value=db_product),
+            patch(
+                "app.api.data_collection.crud.product_commands.require_locked_model",
+                return_value=db_product,
+            ) as get_product,
             patch("app.api.data_collection.crud.product_commands.delete_all_product_files"),
             patch("app.api.data_collection.crud.product_commands.delete_all_product_images"),
             patch(
                 "app.api.data_collection.crud.product_commands.refresh_profile_stats_after_mutation",
                 AsyncMock(),
             ) as apply_stats,
+            patch("app.api.data_collection.crud.product_commands.audit_event") as log_audit,
         ):
             await delete_product(mock_session, product_id)
             mock_session.delete.assert_called_once_with(db_product)
             assert mock_session.commit.call_count >= 1
             apply_stats.assert_awaited_once()
+            get_product.assert_awaited_once_with(mock_session, Product, product_id)
+            log_audit.assert_called_once_with(owner_id, AuditAction.DELETE, Product, product_id)
 
     async def test_create_component_success(self, mock_session: AsyncMock) -> None:
         """Test successful component creation."""

@@ -9,9 +9,11 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users.manager import BaseUserManager
 from pydantic import SecretStr
 
+from app.api.auth.models import User
 from app.api.auth.schemas import UserUpdate
 from app.api.auth.services.rate_limiter import RateLimitExceededError
 from app.api.auth.services.user_manager import UserManager
+from app.api.common.audit import AuditAction
 
 
 def _make_credentials(username: str, password: str = "testpassword") -> OAuth2PasswordRequestForm:  # noqa: S107
@@ -186,3 +188,32 @@ class TestResetPasswordHooks:
 
         mock_revoke.assert_awaited_once_with(redis, "user-id")
         mock_send.assert_awaited_once_with("user@example.com", "user")
+
+
+class TestAuditHooks:
+    """Audit-related UserManager hook behavior."""
+
+    async def test_on_after_update_logs_deactivation_with_enum_action(self) -> None:
+        """Deactivation audit events should use the typed AuditAction enum."""
+        manager, _ = _make_manager()
+        user = MagicMock()
+        user.id = "user-id"
+        request = MagicMock()
+        redis = object()
+
+        with (
+            patch("app.api.auth.services.user_manager.get_request_services") as mock_services,
+            patch(
+                "app.api.auth.services.user_manager.refresh_token_service.revoke_all_user_tokens",
+                new_callable=AsyncMock,
+            ),
+            patch("app.api.auth.services.user_manager.audit_event") as log_audit,
+        ):
+            mock_services.return_value.redis = redis
+            await manager.on_after_update(user, {"is_active": False}, request)
+
+        log_audit.assert_called_once_with("user-id", AuditAction.DEACTIVATE, User, "user-id")
+
+    def test_delete_audit_is_not_emitted_from_user_manager_hook(self) -> None:
+        """User deletion audit belongs to the admin route where the actor is known."""
+        assert "on_after_delete" not in UserManager.__dict__
