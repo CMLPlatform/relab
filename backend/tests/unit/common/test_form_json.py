@@ -34,6 +34,17 @@ def test_parse_json_object_rejects_malformed_json() -> None:
     assert str(exc_info.value.detail).startswith("image_metadata must be valid JSON")
 
 
+def test_parse_json_object_rejects_oversized_raw_value() -> None:
+    """Metadata form fields should be bounded before JSON parsing."""
+    payload = '{"notes":"' + ("a" * (16 * 1024)) + '"}'
+
+    with pytest.raises(HTTPException) as exc_info:
+        parse_optional_json_object(payload, field_name="image_metadata")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "image_metadata must be at most 16384 bytes"
+
+
 @pytest.mark.parametrize("payload", ["[]", '"value"', "1", "true", "null"])
 def test_parse_json_object_rejects_non_object_json(payload: str) -> None:
     """Only JSON objects are accepted for metadata form fields."""
