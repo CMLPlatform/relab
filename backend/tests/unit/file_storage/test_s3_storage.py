@@ -213,7 +213,7 @@ class TestS3StorageAsyncOperations:
         """Test write_image_upload() validates image before upload."""
         mock_client = MagicMock()
         mock_boto3.client.return_value = mock_client
-        mock_validate = mocker.patch("app.api.file_storage.models.storage_s3.validate_image_file")
+        mock_validate = mocker.patch("app.api.file_storage.models.storage_s3.validate_image_upload_content")
 
         mock_file = MagicMock()
         mock_file.file = io.BytesIO(b"fake image data")

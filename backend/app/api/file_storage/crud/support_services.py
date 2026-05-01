@@ -16,6 +16,7 @@ from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, Mod
 from app.api.file_storage.models import File, Image
 from app.api.file_storage.models.storage_resolver import _get_file_storage, _get_image_storage
 from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm, ImageCreateInternal
+from app.api.file_storage.upload_policy import validate_generic_file_upload_metadata, validate_image_upload_metadata
 from app.core.config import settings
 from app.core.images import generate_thumbnails, process_image_for_storage
 
@@ -78,12 +79,17 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         del db
         return item
 
+    def validate_upload_metadata(self, upload_file: UploadFile) -> None:
+        """Validate upload metadata before storing bytes."""
+        del upload_file
+
     async def create(self, db: AsyncSession, payload: CreateSchemaT) -> StorageModelT:
         """Create a file-backed model, store the upload, and persist the DB row."""
         if payload.file.filename is None:
             msg = "File name is empty"
             raise BadRequestError(msg)
 
+        self.validate_upload_metadata(payload.file)
         await validate_upload_size(payload.file, self.max_size_mb)
         payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
         await ensure_parent_exists(db, payload.parent_type, payload.parent_id)
@@ -146,6 +152,10 @@ class FileStorageService(StoredMediaService[File, FileCreate]):
         """Persist a generic file upload."""
         return await _get_file_storage().write_upload(upload_file, filename)
 
+    def validate_upload_metadata(self, upload_file: UploadFile) -> None:
+        """Validate generic file upload metadata."""
+        validate_generic_file_upload_metadata(upload_file)
+
 
 class ImageStorageService(StoredMediaService[Image, ImageCreateFromForm | ImageCreateInternal]):
     """Service for image storage and post-processing."""
@@ -161,6 +171,10 @@ class ImageStorageService(StoredMediaService[Image, ImageCreateFromForm | ImageC
     async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
         """Persist an image upload."""
         return await _get_image_storage().write_image_upload(upload_file, filename)
+
+    def validate_upload_metadata(self, upload_file: UploadFile) -> None:
+        """Validate image upload metadata."""
+        validate_image_upload_metadata(upload_file)
 
     async def after_create(self, db: AsyncSession, item: Image) -> Image:
         """Process the saved image after it has been persisted."""

@@ -23,7 +23,7 @@ from app.api.file_storage.examples import (
 )
 from app.api.file_storage.models import FileBase, ImageBase, MediaParentType, VideoBase
 from app.core.config import settings
-from app.core.images import thumbnail_path_for, validate_image_mime_type
+from app.core.images import thumbnail_path_for
 
 if TYPE_CHECKING:
     from os import PathLike
@@ -91,7 +91,6 @@ FileUpload = Annotated[
 ImageUpload = Annotated[
     UploadFile,
     AfterValidator(validate_filename),
-    AfterValidator(validate_image_mime_type),
 ]
 
 

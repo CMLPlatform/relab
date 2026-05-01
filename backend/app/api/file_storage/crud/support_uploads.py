@@ -69,7 +69,12 @@ def process_uploadfile_name(file: UploadFile) -> tuple[UploadFile, UUID4, str, s
 
     original_filename = sanitize_filename(file.filename)
     file_id = uuid.uuid4()
-    stored_filename = f"{file_id.hex}_{original_filename}"
+    extension = Path(original_filename).suffix.lower()
+    if not extension:
+        msg = "File extension is required."
+        raise BadRequestError(msg)
+
+    stored_filename = f"{file_id.hex}{extension}"
     file.filename = stored_filename
     return file, file_id, original_filename, stored_filename
 
