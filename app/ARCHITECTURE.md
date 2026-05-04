@@ -46,7 +46,7 @@ products, profile, users live directly under `src/app/`.
 
 1. Backend exposes OpenAPI at `$EXPO_PUBLIC_API_URL/openapi.json`; runtime API helpers append `/v1` for application routes.
 1. `just codegen` regenerates [src/types/api.generated.ts](src/types/api.generated.ts)
-   and runs `scripts/redact_api.js` to strip JWT examples before commit.
+   and runs `scripts/redact_api.mjs` to strip JWT examples before commit.
 1. Request helpers live in [src/services/api](src/services/api); feature hooks
    wrap them with TanStack Query, returning typed data.
 1. MSW handlers in `src/test-utils/` mock the same surface in unit/integration
