@@ -12,8 +12,8 @@ from sqlalchemy.dialects import postgresql
 
 from app.api.common.crud.filtering import BaseFilterSet, apply_filter
 from app.api.common.validation import BoundedQueryText, BoundedQueryTextList
-from app.api.reference_data.filters import CategoryFilter, MaterialFilter, ProductTypeFilter
-from app.api.reference_data.models import Category, Material, ProductType
+from app.api.reference_data.filters import CategoryFilter, MaterialFilter, ProductTypeFilter, TaxonomyFilter
+from app.api.reference_data.models import Category, Material, ProductType, Taxonomy
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.elements import ClauseElement
@@ -131,3 +131,18 @@ class TestReferenceDataFilterInputBounds:
         """List filters should have a practical item-count bound."""
         with pytest.raises(ValidationError):
             _from_in(ProductTypeFilter, "name", [f"type-{i}" for i in range(51)])
+
+
+class TestTaxonomySearchColumns:
+    """Tests for simpler search-column fallback filters."""
+
+    def test_search_column_value_is_bound_not_sql_text(self) -> None:
+        """Taxonomy free-text search should bind values even without tsvector search."""
+        search = "taxonomy'); DROP TABLE taxonomy; --"
+
+        compiled = apply_filter(select(Taxonomy), Taxonomy, TaxonomyFilter().with_search(search)).compile(
+            dialect=postgresql.dialect()
+        )
+
+        assert search not in str(compiled)
+        assert {f"%{search}%"} == set(compiled.params.values())

@@ -1,8 +1,9 @@
 """Tests for data_collection and shared search filter helper functions."""
+# spell-checker: ignore Makita
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, get_args, get_origin
+from typing import TYPE_CHECKING, Literal, cast, get_args, get_origin
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.elements import ClauseElement
@@ -151,6 +152,13 @@ class TestProductFacetsAllowlist:
         assert "product.brand" in brand_sql
         assert "product.model" in model_sql
 
+    def test_facet_statement_rejects_non_allowlisted_field(self) -> None:
+        """Internal misuse should fail before an arbitrary Product attribute can be selected."""
+        unsafe = cast("ProductFacetField", "name; DROP TABLE product; --")
+
+        with pytest.raises(KeyError):
+            get_product_facet_statement(unsafe)
+
 
 class TestProductFilterRankSort:
     """Tests for ProductFilter's search relevance ordering behaviour."""
@@ -207,3 +215,23 @@ class TestProductFilterInputBounds:
         """List filters should have a practical item-count bound."""
         with pytest.raises(ValidationError):
             _from_in(ProductFilter, "brand", [f"brand-{i}" for i in range(51)])
+
+    def test_ilike_filter_value_is_bound_not_sql_text(self) -> None:
+        """Structured text filters should pass request values as bind params."""
+        value = "brand'); DROP TABLE product; --"
+        product_filter = _from_ilike(ProductFilter, "brand", value)
+
+        compiled = _compiled(apply_filter(select(Product), Product, product_filter))
+
+        assert value not in str(compiled)
+        assert value in compiled.params.values()
+
+    def test_in_filter_values_are_bound_not_sql_text(self) -> None:
+        """List filters should pass request values through SQLAlchemy bind params."""
+        values = ["Bosch", "Makita'); DROP TABLE product; --"]
+        product_filter = _from_in(ProductFilter, "brand", values)
+
+        compiled = _compiled(apply_filter(select(Product), Product, product_filter))
+
+        assert all(value not in str(compiled) for value in values)
+        assert values in compiled.params.values()

@@ -40,6 +40,10 @@ class MaterialProductLinkFilter(BaseFilterSet):
 
 # Brand search helpers (kept here as they are product/brand-specific)
 ORDER_DESC: Literal["desc"] = "desc"
+_PRODUCT_FACET_COLUMNS: dict[Literal["brand", "model"], Any] = {
+    "brand": Product.brand,
+    "model": Product.model,
+}
 
 
 def _normalized_text_field(field: ColumnElement[str]) -> ColumnElement[str]:
@@ -78,7 +82,7 @@ def get_model_search_statement(search: str | None = None, order: Literal["asc", 
 
 def get_product_facet_statement(field_name: Literal["brand", "model"]) -> Select[tuple[str, int]]:
     """Return a grouped product facet statement for a derived text field."""
-    field = column_expr(getattr(Product, field_name))
+    field = column_expr(_PRODUCT_FACET_COLUMNS[field_name])
     field_expr = _normalized_text_field(field).label("value")
     count_expr = func.count(Product.id).label("count")
     return (
