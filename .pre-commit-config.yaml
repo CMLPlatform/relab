@@ -69,6 +69,15 @@ repos:
       - id: check-json5
         exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
 
+  - repo: https://github.com/semgrep/pre-commit
+    rev: v1.159.0
+    hooks:
+      - id: semgrep
+        name: semgrep-browser-js-policy
+        args: [ "--config", ".semgrep/third-party-browser-js.yml", "--error", "app", "www", "docs" ]
+        pass_filenames: false
+        files: ^(?:app|www|docs|\.semgrep/|\.semgrepignore$)
+
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.11.1
     hooks:

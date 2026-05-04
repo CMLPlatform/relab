@@ -1,0 +1,11 @@
+**/__tests__/**
+**/*.test.*
+**/node_modules/**
+**/dist/**
+**/.astro/**
+**/.expo/**
+**/coverage/**
+**/playwright-report/**
+**/test-results/**
+**/pnpm-lock.yaml
+app/src/types/api.generated.ts
