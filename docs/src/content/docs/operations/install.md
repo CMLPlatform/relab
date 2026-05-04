@@ -89,6 +89,9 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
 
    - Set up a domain and a remotely managed tunnel in Cloudflare.
    - Forward traffic to `app:8081`, `www:8081`, `api:8000`, and `docs:8000`.
+   - Public DNS and Tunnel ingress are now represented in `infra/cloudflare/`.
+     For an existing Cloudflare account, import the current resources before
+     applying OpenTofu changes.
 
 1. Copy `.env.example` to `.env` and fill in values.
 
