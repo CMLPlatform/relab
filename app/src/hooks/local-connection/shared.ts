@@ -7,6 +7,7 @@ import {
   setLocalItem,
   setSecureItem,
 } from '@/services/storage';
+import { normalizeLocalConnectionUrl } from './reducer';
 
 // Web has no platform-secure storage; keep the API key in memory so XSS can't
 // exfiltrate it from localStorage. Lost on reload — user re-enters per session.
@@ -37,12 +38,19 @@ export function buildLocalProbeCandidates(candidateUrls: string[]): string[] {
 }
 
 export async function probeLocalUrl(baseUrl: string, apiKey: string | null): Promise<boolean> {
+  let probeBaseUrl: string;
+  try {
+    probeBaseUrl = normalizeLocalConnectionUrl(baseUrl);
+  } catch {
+    return false;
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (apiKey) headers['X-API-Key'] = apiKey;
-    const response = await fetch(`${baseUrl}/camera`, { headers, signal: controller.signal });
+    const response = await fetch(`${probeBaseUrl}/camera`, { headers, signal: controller.signal });
     return response.ok;
   } catch {
     return false;
@@ -74,13 +82,14 @@ export async function probeAll(
 }
 
 export async function storeLocalConnection(cameraId: string, baseUrl: string, apiKey: string) {
+  const normalizedBaseUrl = normalizeLocalConnectionUrl(baseUrl);
   if (isWeb()) {
     webApiKeys.set(cameraId, apiKey);
-    await setLocalItem(urlKey(cameraId), baseUrl);
+    await setLocalItem(urlKey(cameraId), normalizedBaseUrl);
     return;
   }
   await Promise.all([
-    setLocalItem(urlKey(cameraId), baseUrl),
+    setLocalItem(urlKey(cameraId), normalizedBaseUrl),
     setSecureItem(apiKeySecureKey(cameraId), apiKey),
   ]);
 }

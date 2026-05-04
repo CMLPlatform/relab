@@ -1,5 +1,7 @@
+import { normalizeHttpUrl } from '@/utils/urlSafety';
+
 export type LocalConnectionMode = 'probing' | 'local' | 'relay';
-const TRAILING_SLASH_PATTERN = /\/$/;
+const TRAILING_SLASHES_PATTERN = /\/+$/;
 
 export interface LocalConnectionState {
   mode: LocalConnectionMode;
@@ -46,7 +48,11 @@ export function createInitialLocalConnectionState(): LocalConnectionState {
 }
 
 export function normalizeLocalConnectionUrl(baseUrl: string): string {
-  return baseUrl.replace(TRAILING_SLASH_PATTERN, '');
+  const normalized = normalizeHttpUrl(baseUrl)?.replace(TRAILING_SLASHES_PATTERN, '');
+  if (!normalized) {
+    throw new Error('Local camera connection URL must be an http(s) URL.');
+  }
+  return normalized;
 }
 
 export function deriveLocalMediaUrl(baseUrl: string | null): string | null {
