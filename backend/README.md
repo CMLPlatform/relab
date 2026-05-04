@@ -45,6 +45,7 @@ The backend is intentionally moving toward explicit, domain-owned seams instead 
 - Domain read paths should prefer small local `select(...).where(...)` helpers over generic query-builder indirection.
 - The shared CRUD/query kernel is intentionally small: keep `require_model`, `require_models`, `page_models`, `exists`, and persistence helpers. Older convenience helpers such as `QueryOptions`, `build_query`, and `list_models` are retired.
 - Recursive endpoints such as `/v1/categories/tree` and `/v1/products/{product_id}/components/tree` remain supported public APIs, but they should use bounded tree loaders plus pure serialization, never lazy ORM traversal during response assembly.
+- Query parameters should stay in SQLAlchemy expressions so user values become bind parameters. If a query needs dynamic identifiers such as sort or facet fields, route them through explicit allowlists before building SQL. Keep raw SQL static unless PostgreSQL requires otherwise, and bind runtime values separately.
 
 Two examples of the preferred shape:
 
