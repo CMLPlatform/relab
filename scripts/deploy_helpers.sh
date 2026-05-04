@@ -70,30 +70,6 @@ deploy_cleanup_compose_validation_files() {
     rmdir secrets/prod secrets/staging secrets 2>/dev/null || true
 }
 
-deploy_load_root_env_preserving() {
-    local -a names=("$@")
-    local -A saved=()
-    local name
-
-    for name in "${names[@]}"; do
-        saved["$name"]="${!name:-}"
-    done
-
-    if [[ -f .env ]]; then
-        set -a
-        # shellcheck disable=SC1091
-        source .env
-        set +a
-    fi
-
-    for name in "${names[@]}"; do
-        if [[ -n "${saved[$name]}" ]]; then
-            printf -v "$name" '%s' "${saved[$name]}"
-            export "${name?}"
-        fi
-    done
-}
-
 deploy_require_dir() {
     local description="$1"
     local path="$2"

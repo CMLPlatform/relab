@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # This script sets up the local development environment for the backend.
 
+# spell-checker: ignore direnv envrc
+
 # Exit immediately if a command exits with a non-zero status
 set -e
 
@@ -8,25 +10,23 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Resolve backend directory (one level up from `scripts`)
 BACKEND_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+require_env() {
+    local name
+    for name in "$@"; do
+        if [[ -z "${!name:-}" ]]; then
+            echo "$name must be exported before running this script." >&2
+            echo "Use direnv with backend/.envrc.example, or export values from backend/.env.dev manually." >&2
+            exit 1
+        fi
+    done
+}
+
 echo "Running local setup script from $SCRIPT_DIR"
 echo "Backend directory: $BACKEND_DIR"
-echo "dev env file: $BACKEND_DIR/.env.dev"
-
-# Check if .env.dev file exists, if not, prompt the user and exit
-if [ ! -f "$BACKEND_DIR/.env.dev" ]; then
-    echo ".env.dev not found. Please create it by copying from .env.dev.example:"
-    echo "cp ""$BACKEND_DIR""/.env.dev.example ""$BACKEND_DIR""/.env.dev"
-    exit 1
-fi
 
 echo "Setting up local development environment..."
 
-# Load database environment variables from .env.dev file
-set -a
-echo "Loading environment variables from $BACKEND_DIR/.env.dev"
-# shellcheck source=/dev/null
-source "$BACKEND_DIR/.env.dev"
-set +a
+require_env DATABASE_HOST POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB
 
 # Set PGPASSWORD for non-interactive authentication with PostgreSQL
 export PGPASSWORD="$POSTGRES_PASSWORD"
