@@ -244,3 +244,42 @@ class TestProxyHls:
         assert exc_info.value.status_code == 404
         mock_camera_request.assert_awaited_once()
         mock_sleep.assert_not_awaited()
+
+    @pytest.mark.parametrize(
+        "hls_path",
+        [
+            "../system/telemetry",
+            "/system/telemetry",
+            "http://example.test/x.m3u8",
+            "cam-preview\\index.m3u8",
+            "cam-preview/%2e%2e/secret.m3u8",
+            "cam-preview/segment 0.mp4",
+            "cam-preview/index.txt",
+            "",
+        ],
+    )
+    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.get_user_owned_camera")
+    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.build_camera_request")
+    async def test_hls_path_guard_rejects_unsafe_paths_before_relay(
+        self,
+        mock_build_camera_request: MagicMock,
+        mock_get_cam: MagicMock,
+        hls_path: str,
+        mock_camera: Camera,
+        mock_user: User,
+    ) -> None:
+        """Unsafe HLS paths should fail before camera ownership or relay work."""
+        mock_get_cam.return_value = mock_camera
+
+        with pytest.raises(HTTPException) as exc_info:
+            await proxy_hls(
+                require_uuid(mock_camera.id),
+                hls_path,
+                AsyncMock(),
+                mock_user,
+                AsyncMock(),
+            )
+
+        assert exc_info.value.status_code == 400
+        mock_get_cam.assert_not_awaited()
+        mock_build_camera_request.assert_not_called()

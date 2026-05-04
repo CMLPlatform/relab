@@ -37,6 +37,9 @@ from app.core.redis import OptionalRedisDep
 # Exponential backoff for LL-HLS manifest 404 retries. Totals ~7.75s; fast at the
 # start for the hot path, longer tail for a cold MediaMTX warm-up.
 _MANIFEST_RETRY_BACKOFF_S: tuple[float, ...] = (0.25, 0.5, 1.0, 2.0, 4.0)
+_ALLOWED_HLS_SUFFIXES = (".m3u8", ".mp4", ".m4s")
+_ALLOWED_HLS_PATH_PUNCTUATION = frozenset("/._-")
+_PARENT_SEGMENT = ".."
 
 router = PublicAPIRouter()
 
@@ -60,6 +63,7 @@ async def proxy_hls(
     redis: OptionalRedisDep,
 ) -> Response:
     """Proxy an LL-HLS URL through the camera's WebSocket relay."""
+    _validate_hls_path(hls_path)
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
     camera_request = build_camera_request(camera, redis)
 
@@ -102,6 +106,22 @@ async def proxy_hls(
             "Cache-Control": "no-store",
         },
     )
+
+
+def _validate_hls_path(hls_path: str) -> None:
+    """Reject paths that could escape the camera's HLS relay surface."""
+    segments = hls_path.split("/")
+    if (
+        not hls_path
+        or hls_path.startswith("/")
+        or _PARENT_SEGMENT in segments
+        or not hls_path.endswith(_ALLOWED_HLS_SUFFIXES)
+        or any(
+            not char.isascii() or (not char.isalnum() and char not in _ALLOWED_HLS_PATH_PUNCTUATION)
+            for char in hls_path
+        )
+    ):
+        raise HTTPException(status_code=400, detail="Invalid HLS path.")
 
 
 def _resolve_media_type(hls_path: str) -> str:
