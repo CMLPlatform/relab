@@ -8,14 +8,18 @@
     "scheme": "relab-app",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/images/favicon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.cml.relabFrontendApp"
+      "package": "com.cml.relabFrontendApp",
+      "allowBackup": false
     },
     "web": {
       "bundler": "metro",
@@ -43,7 +47,20 @@
         }
       ],
       "expo-web-browser",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow RELab to use the camera for product photos.",
+          "photosPermission": "Allow RELab to select product photos from your library.",
+          "microphonePermission": false
+        }
+      ],
       "expo-image"
     ],
     "experiments": {
