@@ -137,7 +137,7 @@ The repository also includes dependency maintenance, container scanning, perform
 
 ## Supply chain artifacts
 
-GitHub Dependency Review / Dependency Graph gates dependency changes, while Renovate opens dependency update PRs. The security workflow builds the deployable Compose images, scans them with Trivy, and stores SPDX JSON SBOM artifacts for 90 days.
+GitHub Dependency Review / Dependency Graph gates dependency changes, while Renovate opens dependency update PRs. For an explicit full-tree dependency vulnerability sweep, run `just audit`. The security workflow builds the deployable Compose images, scans them with Trivy, and stores SPDX JSON SBOM artifacts for 90 days.
 
 When Release Please creates a GitHub release, the release workflow rebuilds those images, generates SPDX SBOM files, attests the SBOM files with GitHub artifact attestations, and uploads them as release assets. RELab deploys locally built Compose images rather than immutable registry images, so release attestations prove SBOM file provenance. Image-digest-bound SBOM attestations require publishing runtime images to a registry.
 
