@@ -50,6 +50,7 @@ Backup services are enabled through Compose profiles. Telemetry is opt-in throug
 - `compose.dev.yaml`, `compose.ci.yaml`, and `compose.deploy.yaml` are the supported environment overlays.
 - The same `compose.deploy.yaml` is used for prod and staging. Committed `deploy/env/*.compose.env` files select the environment; Docker Compose reads the host-level root `.env` for local interpolation values such as tunnel tokens, telemetry endpoints, and backup paths. Manual shell helpers use exported environment variables instead of parsing `.env`.
 - GitHub Actions validate changes, run security checks, and maintain release automation, but deploys are still operated from the server checkout.
+- Cloudflare DNS and Tunnel public hostname configuration lives in `infra/cloudflare/`. Compose still owns the runtime services; OpenTofu owns only the public edge.
 
 Docker development and E2E ports bind to localhost by default. For Expo testing from another device over a LAN, run the Expo dev server directly from `app/` on the host instead of using the Docker app service.
 
@@ -65,6 +66,32 @@ just docker-smoke
 ```
 
 Focused subrepo work should use the subrepo `justfile`.
+
+## Cloudflare edge as code
+
+RELab manages public hostnames through OpenTofu in `infra/cloudflare/`. The
+configuration is intentionally narrow: DNS records, separate prod/staging
+Cloudflare Tunnels, Tunnel ingress rules, and a final `http_status:404` catch-all
+for unknown hostnames. It does not manage app secrets, Compose services,
+PostgreSQL, Redis, storage, backups, or host deployment.
+
+The current origins point at Compose services such as `http://api:8000` and
+`http://app:8081`. If RELab later moves to Kubernetes or cloud-managed
+containers, keep the public hostname map stable and replace the origin targets
+with Kubernetes service names, internal load balancers, or other private origins.
+
+Use separate prod and staging OpenTofu workspaces/state. Before applying this to
+an existing Cloudflare account, import the current DNS records and tunnels, then
+run `just cloudflare-plan staging` or `just cloudflare-plan prod` until the plan
+shows only intentional drift. Apply with `just cloudflare-apply <env> YES` after
+reviewing the plan. Provide Cloudflare/OpenTofu credentials through environment
+variables; today those can be exported manually, and later they can come from a
+department-owned password manager. Do not commit Cloudflare tokens, tunnel
+tokens, or state files.
+
+Public hostname changes should start in `infra/cloudflare/`. Do not add wildcard
+DNS records unless there is a concrete operational need and the blast radius has
+been reviewed.
 
 ## Network segmentation policy
 
@@ -122,7 +149,7 @@ The backend enforces source-controlled application limits: JSON bodies are count
 - `just backup-restore-smoke staging` or `just backup-restore-smoke prod` restores the latest database dump into a disposable Postgres container and verifies that it can be read.
 
 The deploy stack runs app-owned services with dropped Linux capabilities, `no-new-privileges`, PID/file descriptor limits, and read-only root filesystems where supported. The backup container runs as UID/GID `1001`; make sure the host restic directory under `BACKUP_DIR` is writable by that ID.
-CI checks Dockerfile misconfigurations with Trivy, while RELab-specific Compose policy checks validate rendered stack invariants such as network exposure, runtime hardening, image pinning, and secret access.
+CI checks Dockerfile misconfigurations with Trivy and validates Cloudflare edge IaC with `just cloudflare-check`, while RELab-specific Compose policy checks validate rendered stack invariants such as network exposure, runtime hardening, image pinning, and secret access.
 
 ## Secrets and encrypted fields
 
@@ -132,7 +159,13 @@ The backend uses `DATA_ENCRYPTION_KEY` only for reversible sensitive values it m
 
 Database role passwords, the Redis password, the restic repository password, and optional rclone config live in gitignored Compose secret files under `secrets/<env>/`. The required secret filenames are listed in `deploy/required-secret-files.txt`; use `just deploy-secrets-template <env>` to create missing files and `just deploy-secrets-check` to verify that the manifest and Compose overlay stay aligned. The application role, migration role, and backup role are separate PostgreSQL users; the application role is not the schema owner.
 
-Keep configuration ownership narrow: `deploy/` contains committed infrastructure config and manifests, `secrets/` contains uncommitted operator-owned secret material, and `scripts/` contains repo-wide operational helpers that are too large for the root `justfile`. Backend runtime settings stay in `backend/.env.<env>` because they are consumed directly by the FastAPI settings layer and backend tooling.
+Keep configuration ownership narrow: `infra/cloudflare/` contains public edge
+configuration, `deploy/` contains committed runtime config and manifests,
+`secrets/` contains uncommitted operator-owned secret material, and `scripts/`
+contains repo-wide operational helpers that are too large for the root
+`justfile`. Non-secret backend runtime settings stay in `backend/.env.<env>`
+because they are consumed directly by the FastAPI settings layer and backend
+tooling.
 
 In the current single-host deployment, PostgreSQL and Redis are isolated on the internal Compose `data` network and do not publish host ports in prod or staging. `DATABASE_SSL=false` is intentional for this trusted local Docker network. If PostgreSQL moves to an external host, managed database, or untrusted network, enable `DATABASE_SSL` and manage database TLS certificates as part of that move.
 
