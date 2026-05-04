@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from typing import Any
 
 TEST_DATA_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+TEST_CACHE_SIGNING_SECRET = "cache-signing-secret-with-32-bytes"
 
 
 def _database_role_kwargs() -> dict[str, Any]:
@@ -46,7 +47,8 @@ def _production_core_settings_kwargs(**overrides: object) -> dict[str, Any]:
         "redis_password": SecretStr("test-password"),
         "superuser_password": SecretStr("test-password"),
         "superuser_email": "test@example.com",
-        "data_encryption_keys": SecretStr(TEST_DATA_ENCRYPTION_KEY),
+        "data_encryption_key": SecretStr(TEST_DATA_ENCRYPTION_KEY),
+        "cache_signing_secret": SecretStr(TEST_CACHE_SIGNING_SECRET),
     }
     kwargs.update(overrides)
     return kwargs
@@ -121,6 +123,11 @@ class TestCoreSettingsCors:
         """Production config should fail fast when required secrets are missing."""
         with pytest.raises(ValidationError, match="Production security check failed"):
             CoreSettings(environment=Environment.PROD)
+
+    def test_cache_signing_secret_rejects_short_values(self) -> None:
+        """Cache payload signing should use dedicated key material with a 32-byte floor."""
+        with pytest.raises(ValidationError, match="CACHE_SIGNING_SECRET must be at least 32 bytes"):
+            CoreSettings(environment=Environment.DEV, cache_signing_secret=SecretStr("short"))
 
     def test_request_body_limit_default_is_one_mebibyte(self) -> None:
         """Non-upload request bodies should default to a conservative 1 MiB cap."""
@@ -247,6 +254,8 @@ class TestCoreSettingsCors:
             database_app_user="relab_app",
             database_migration_user="relab_migrator",
             database_backup_user="relab_backup",
+            data_encryption_key=SecretStr(TEST_DATA_ENCRYPTION_KEY),
+            cache_signing_secret=SecretStr(TEST_CACHE_SIGNING_SECRET),
         )
 
         assert settings.database_app_password.get_secret_value() == "app-secret"
@@ -372,7 +381,7 @@ class TestModuleSettingsValidation:
         with pytest.raises(ValidationError, match="Auth settings validation failed"):
             AuthSettings(
                 environment=Environment.PROD,
-                fastapi_users_secret=SecretStr(""),
+                fastapi_users_secret=SecretStr("x" * 32),
                 google_oauth_client_id=SecretStr(""),
                 google_oauth_client_secret=SecretStr(""),
                 github_oauth_client_id=SecretStr(""),

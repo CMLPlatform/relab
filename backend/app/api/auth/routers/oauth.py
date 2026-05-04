@@ -36,6 +36,7 @@ def _public_callback_url(path: str) -> str:
 
 def _include_oauth_routes(target_router: APIRouter, *, public_callback_prefix: str) -> None:
     """Include provider OAuth routes on one router."""
+    oauth_state_secret = settings.oauth_state_secret.get_secret_value()
     for client in (github_oauth_client, google_oauth_client):
         provider_name = client.name
         # Google verifies email ownership, so auto-linking by email is safe.
@@ -48,7 +49,7 @@ def _include_oauth_routes(target_router: APIRouter, *, public_callback_prefix: s
                 CustomOAuthRouterBuilder(
                     client,
                     auth_backend,
-                    settings.fastapi_users_secret.get_secret_value(),
+                    oauth_state_secret,
                     redirect_url=_public_callback_url(f"{public_callback_prefix}/{provider_name}/{transport}/callback"),
                     is_verified_by_default=True,
                     associate_by_email=associate_by_email,
@@ -62,7 +63,7 @@ def _include_oauth_routes(target_router: APIRouter, *, public_callback_prefix: s
                 client,
                 fastapi_user_manager.authenticator,
                 UserRead,
-                settings.fastapi_users_secret.get_secret_value(),
+                oauth_state_secret,
                 redirect_url=_public_callback_url(f"{public_callback_prefix}/{provider_name}/associate/callback"),
             ).build(),
             prefix=f"/{provider_name}/associate",
@@ -76,7 +77,7 @@ def _include_oauth_routes(target_router: APIRouter, *, public_callback_prefix: s
             google_youtube_oauth_client,
             fastapi_user_manager.authenticator,
             UserRead,
-            settings.fastapi_users_secret.get_secret_value(),
+            oauth_state_secret,
             redirect_url=_public_callback_url(f"{public_callback_prefix}/google-youtube/associate/callback"),
             route_name_key="google-youtube",
             # Force Google to show the consent screen so the user explicitly grants

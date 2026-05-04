@@ -9,7 +9,6 @@ from pathlib import Path  # noqa: TC003 # Runtime use is needed for Pydantic val
 from typing import TYPE_CHECKING
 from urllib.parse import quote, urlsplit
 
-from cryptography.fernet import Fernet
 from pydantic import EmailStr, Field, HttpUrl, PostgresDsn, RedisDsn, SecretStr, field_validator, model_validator
 from sqlalchemy.engine import URL
 
@@ -20,7 +19,9 @@ from app.core.config.models import (
     Environment,
     StorageBackend,
 )
+from app.core.crypto.keys import decode_data_encryption_key
 from app.core.env import BACKEND_DIR, RelabBaseSettings
+from app.core.secrets import validate_min_secret_bytes
 
 if TYPE_CHECKING:
     from typing import Self
@@ -30,7 +31,6 @@ if TYPE_CHECKING:
 DATABASE_DRIVER_PSYCOPG = "psycopg"
 DATABASE_DRIVER_ASYNCPG = "asyncpg"
 HTTPS_SCHEME = "https"
-DEV_DATA_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
 
 class CoreSettings(RelabBaseSettings):
@@ -99,17 +99,25 @@ class CoreSettings(RelabBaseSettings):
             return None
         return v
 
-    @field_validator("data_encryption_keys")
+    @field_validator("data_encryption_key")
     @classmethod
-    def validate_data_encryption_keys(cls, v: SecretStr) -> SecretStr:
-        """Validate configured Fernet keys when a keyring is provided."""
+    def validate_data_encryption_key(cls, v: SecretStr) -> SecretStr:
+        """Validate configured AES-256-GCM key material."""
         raw_value = v.get_secret_value()
         if not raw_value:
-            return v
-        for key in (part.strip() for part in raw_value.split(",")):
-            if key:
-                Fernet(key.encode("ascii"))
+            msg = "DATA_ENCRYPTION_KEY must not be empty."
+            raise ValueError(msg)
+        try:
+            decode_data_encryption_key(raw_value)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
         return v
+
+    @field_validator("cache_signing_secret")
+    @classmethod
+    def validate_cache_signing_secret(cls, v: SecretStr) -> SecretStr:
+        """Validate the dedicated cache payload signing secret."""
+        return validate_min_secret_bytes(v, "CACHE_SIGNING_SECRET")
 
     @staticmethod
     def _normalize_origin(url: HttpUrl) -> str:
@@ -138,6 +146,7 @@ class CoreSettings(RelabBaseSettings):
 
     # ── Cache ─────────────────────────────────────────────────────────────────────
     cache: CacheSettings = Field(default_factory=CacheSettings)
+    cache_signing_secret: SecretStr = SecretStr("")
 
     # ── Worker, DB, image, and outbound HTTP capacity ────────────────────────────
     db_pool_size: int = Field(default=10, ge=1, le=50)
@@ -175,7 +184,7 @@ class CoreSettings(RelabBaseSettings):
 
     # ── Storage ───────────────────────────────────────────────────────────────────
     storage_backend: StorageBackend = StorageBackend.FILESYSTEM
-    data_encryption_keys: SecretStr = SecretStr("")
+    data_encryption_key: SecretStr = SecretStr("")
     s3_bucket: str = ""
     s3_region: str = "us-east-1"
     s3_access_key_id: SecretStr = SecretStr("")
@@ -186,13 +195,9 @@ class CoreSettings(RelabBaseSettings):
     s3_image_prefix: str = "images"
 
     @cached_property
-    def data_encryption_key_values(self) -> list[str]:
-        """Return data-encryption keys in keyring order."""
-        raw_value = self.data_encryption_keys.get_secret_value()
-        keys = [key.strip() for key in raw_value.split(",") if key.strip()]
-        if keys or self.environment in (Environment.STAGING, Environment.PROD):
-            return keys
-        return [DEV_DATA_ENCRYPTION_KEY]
+    def data_encryption_key_bytes(self) -> bytes:
+        """Return decoded AES-256-GCM key material."""
+        return decode_data_encryption_key(self.data_encryption_key.get_secret_value())
 
     # ── Paths ─────────────────────────────────────────────────────────────────────
     uploads_path: Path = BACKEND_DIR / "data" / "uploads"
@@ -363,9 +368,6 @@ class CoreSettings(RelabBaseSettings):
 
         if not self.superuser_password.get_secret_value():
             errors.append("SUPERUSER_PASSWORD must not be empty in production")
-
-        if not self.data_encryption_key_values:
-            errors.append("DATA_ENCRYPTION_KEYS must not be empty in production/staging")
 
         if self.superuser_email == DEFAULT_SUPERUSER_EMAIL:
             errors.append("SUPERUSER_EMAIL must not be the default placeholder in production")
