@@ -72,7 +72,7 @@ services:
     tmpfs:
       - /tmp:mode=1777
 
-  relab-backup:
+  backup:
     # Encrypted logical PostgreSQL + user upload backups.
     build:
       context: ./backend
