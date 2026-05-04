@@ -66,6 +66,18 @@ just docker-smoke
 
 Focused subrepo work should use the subrepo `justfile`.
 
+## Network segmentation policy
+
+The deploy stack keeps segmentation intentionally small: public-facing services use the `edge` network, data services use the internal `data` network, and only the API bridges both. This follows the OWASP network segmentation model at Compose scale without adding extra proxies, VLANs, or host firewall rules to the repo.
+
+| Service group | Compose networks | Host ports in prod/staging |
+| --- | --- | --- |
+| `cloudflared`, `docs`, `app`, `www` | `edge` only | none |
+| `api` | `edge`, `data` | none |
+| `postgres`, `redis`, `migrator`, `backup` | `data` only | none |
+
+`just compose-policy-check` validates these rendered Compose invariants for prod and staging.
+
 ## Transport security
 
 Production and staging are HTTPS-only behind Cloudflare Tunnel. Every deployed browser-facing origin emits:
@@ -116,7 +128,7 @@ CI checks Dockerfile misconfigurations with Trivy, while RELab-specific Compose 
 
 Most RELab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPI camera keys, request IDs, and cache keys are not application-encrypted.
 
-The backend uses `DATA_ENCRYPTION_KEYS` only for reversible sensitive values it must recover later, such as OAuth provider tokens and active YouTube broadcast keys. Keep those keys in the host runtime environment, not in committed files. If key rotation becomes operationally necessary after production launch, add a focused re-encryption task then.
+The backend uses `DATA_ENCRYPTION_KEY` only for reversible sensitive values it must recover later, such as OAuth provider tokens and active YouTube broadcast keys. Cache payload signing uses the separate `CACHE_SIGNING_SECRET`, and OAuth state uses `OAUTH_STATE_SECRET`, so each key has one purpose. Keep these application secrets in the host runtime environment, not in committed files.
 
 Database role passwords, the Redis password, the restic repository password, and optional rclone config live in gitignored Compose secret files under `secrets/<env>/`. The required secret filenames are listed in `deploy/required-secret-files.txt`; use `just deploy-secrets-template <env>` to create missing files and `just deploy-secrets-check` to verify that the manifest and Compose overlay stay aligned. The application role, migration role, and backup role are separate PostgreSQL users; the application role is not the schema owner.
 
