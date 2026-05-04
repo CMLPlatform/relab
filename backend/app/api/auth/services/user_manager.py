@@ -29,6 +29,7 @@ from app.api.auth.services.login_hooks import (
     maybe_set_refresh_token_cookie,
     update_last_login_metadata,
 )
+from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, hashed_identifier_rate_limit_key, limiter
 from app.api.auth.services.user_database import get_user_db
@@ -69,7 +70,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
     user_db: UserDatabaseAsync
 
     def __init__(self, user_db: UserDatabaseAsync, http_client: AsyncClient) -> None:
-        super().__init__(user_db)
+        super().__init__(user_db, password_helper=build_password_helper())
         self.http_client = http_client
         self.skip_breach_check = False
         self.skip_password_validation = False

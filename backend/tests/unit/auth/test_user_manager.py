@@ -46,6 +46,17 @@ def _make_manager(mock_user: MagicMock | None = None) -> tuple[UserManager, Asyn
 class TestAuthenticateUsernameResolution:
     """UserManager.authenticate resolves usernames to email before delegating to the parent."""
 
+    def test_initializes_with_application_password_helper(self) -> None:
+        """UserManager should use the repo-owned password helper instead of FastAPI-Users defaults."""
+        user_db = MagicMock()
+        http_client = AsyncMock()
+
+        manager = UserManager(user_db, http_client)
+        hashed_password = manager.password_helper.hash("correct-horse-battery-staple-v42")
+
+        assert "$argon2id$" in hashed_password
+        assert "m=19456,t=2,p=1" in hashed_password
+
     async def test_applies_account_aware_rate_limit_before_lookup(self) -> None:
         """Login attempts should also be bucketed by a hash of the submitted identifier."""
         manager, mock_session = _make_manager()
