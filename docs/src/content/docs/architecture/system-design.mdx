@@ -93,9 +93,19 @@ graph TD
 
 These choices keep the stack small enough to understand and operate without dedicated infrastructure work.
 
+## Security architecture inventory
+
+RELab is a single backend application with supporting infrastructure, not a large microservice fleet. Authorization stays in FastAPI route dependencies, ownership checks, and admin-only dependencies. Dedicated policy engines, service meshes, mTLS between containers, and internal identity-propagation tokens are deferred until there are multiple independently deployed backend services.
+
+Application services are `api`, `app`, `www`, `docs`, `migrator`, and optional `backup`. Supporting systems are PostgreSQL, Redis, file or S3-compatible storage, Cloudflare Tunnel, optional Loki/OTLP telemetry, and external OAuth, email, Have I Been Pwned, and YouTube providers.
+
+Sensitive data assets include accounts, profile/privacy settings, research records, uploaded media, OAuth and YouTube tokens, refresh-token state, RPi camera credentials, database dumps, backups, runtime secrets, and encryption keys. Public research records, request IDs, cache keys, and public camera key material are not application-encrypted secrets.
+
+Trust boundaries are intentionally narrow: clients and devices enter through the API; Cloudflare fronts public ingress; PostgreSQL and Redis stay on the internal `data` network; runtime secrets stay in Docker secret files; and telemetry leaves the stack only when explicitly enabled. Main data flows are client-to-API requests, device assertions/uploads, backend reads and writes to Postgres/Redis/storage, OAuth/email/YouTube calls, backup reads from Postgres/uploads, and optional log/trace export.
+
 ## Backend domain structure
 
-The backend is organised mainly by domain rather than by HTTP verb alone:
+The backend is organised mainly by domain:
 
 ```sh
 app/
