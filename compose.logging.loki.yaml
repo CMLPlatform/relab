@@ -32,7 +32,7 @@ services:
     logging: *loki-logging
   migrator:
     logging: *loki-logging
-  relab-backup:
+  backup:
     logging: *loki-logging
   redis:
     logging: *loki-logging
