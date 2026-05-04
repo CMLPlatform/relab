@@ -31,17 +31,13 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
+# Local certs / keys
 *.pem
 
 # Local env overrides
 .env.local
 
 ### Manual additions
-# VS Code settings
-!.vscode/settings.json
-!.vscode/extensions.json
-
 # Testing
 coverage/
 playwright-report/

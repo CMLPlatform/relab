@@ -22,10 +22,6 @@ playwright-report/
 test-results/
 
 ### Manual additions
-# VS Code settings
-!.vscode/settings.json
-!.vscode/extensions.json
-
 # Test coverage
 coverage/
 
