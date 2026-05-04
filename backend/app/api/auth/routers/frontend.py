@@ -2,8 +2,8 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Query, Request
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from app.api.auth.dependencies import OptionalCurrentActiveUserDep
@@ -37,14 +37,10 @@ async def index(request: Request, user: OptionalCurrentActiveUserDep) -> HTMLRes
 )
 async def login_page(
     request: Request,
-    user: OptionalCurrentActiveUserDep,
     *,
     next_page: Annotated[str | None, Query(description="Redirect URL after login", alias="next")] = None,
-) -> Response:
+) -> HTMLResponse:
     """Render the login page."""
-    if user:
-        return RedirectResponse(url=str(router.url_path_for("index")), status_code=302)
-
     # Only allow relative paths to prevent open redirect attacks
     if next_page is not None and (not next_page.startswith("/") or next_page.startswith("//")):
         next_page = None
