@@ -1,15 +1,22 @@
-# Node dependencies
+# Dependencies
 node_modules/
 
-# Build output
+# Build outputs
 dist/
 .astro/
 site/
 
-# Dev tooling
+# Testing
+e2e/
+coverage/
+test-results/
+playwright.config.ts
+
+# Dev tooling / config
 .vscode/
 justfile
 README.md
+.env.local
 
 # Docker and git
 Dockerfile
@@ -20,3 +27,8 @@ Dockerfile.*
 
 # macOS
 .DS_Store
+
+# Debug logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
