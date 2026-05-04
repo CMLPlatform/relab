@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from psycopg import sql
 
 from scripts.maintenance import migrate_encryption_v1_to_v2 as migration
 
@@ -80,3 +81,32 @@ def test_get_env_secret_reads_file_fallback(monkeypatch: pytest.MonkeyPatch, tmp
     monkeypatch.setenv("DATABASE_APP_PASSWORD_FILE", str(secret_file))
 
     assert migration.get_env_secret("DATABASE_APP_PASSWORD") == "from-file"
+
+
+def test_target_select_queries_use_psycopg_identifiers() -> None:
+    """Hardcoded migration targets should be composed with quoted identifiers."""
+    for table, pk_col, enc_cols in migration.TARGETS:
+        query = migration.build_select_unmigrated_query(table, pk_col, enc_cols)
+        rendered = query.as_string(None)
+
+        assert isinstance(query, sql.Composed)
+        assert f'FROM "{table}"' in rendered
+        assert f'"{pk_col}"' in rendered
+        for col in enc_cols:
+            assert f'"{col}"' in rendered
+
+
+def test_update_query_keeps_values_as_placeholders() -> None:
+    """Update SQL should quote identifiers but leave encrypted values as bind parameters."""
+    query = migration.build_update_encrypted_columns_query(
+        "oauthaccount",
+        "id",
+        ["access_token", "refresh_token"],
+    )
+    rendered = query.as_string(None)
+
+    assert isinstance(query, sql.Composed)
+    assert 'UPDATE "oauthaccount"' in rendered
+    assert '"access_token" = %s' in rendered
+    assert '"refresh_token" = %s' in rendered
+    assert "new-token" not in rendered
