@@ -81,6 +81,24 @@ compose.local.yml
 # Local Docker Compose secret files
 secrets/
 
+# Local OpenTofu/Terraform working files
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+.terraformrc
+terraform.rc
+
 # Local architecture diagrams
 LOCAL_DIAGRAMS.md
 
