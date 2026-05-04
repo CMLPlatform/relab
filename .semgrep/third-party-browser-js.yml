@@ -1,0 +1,50 @@
+# spell-checker: ignore googletagmanager, hotjar
+
+rules:
+  - id: relab.third-party-browser-js.remote-script-src
+    message: Do not load browser runtime scripts from third-party origins; bundle first-party code instead.
+    severity: ERROR
+    languages: [ generic ]
+    pattern-regex: '<script\b[^>]*\bsrc\s*=\s*["''](?:https?:)?//'
+
+  - id: relab.third-party-browser-js.remote-module-import
+    message: Do not import browser runtime JavaScript from remote URLs; install and bundle dependencies locally.
+    severity: ERROR
+    languages: [ generic ]
+    pattern-regex: '\b(?:import|export)\s+(?:[^;\n]*?\s+from\s+)?["''](?:https?:)?//|import\s*\(\s*["''](?:https?:)?//'
+
+  - id: relab.third-party-browser-js.cdn-runtime-reference
+    message: Do not add CDN-hosted browser runtime assets; install and serve first-party bundled assets.
+    severity: ERROR
+    languages: [ generic ]
+    paths:
+      include:
+        - "/app/**"
+        - "/docs/src/components/**"
+        - "/docs/src/pages/**"
+        - "/docs/src/scripts/**"
+        - "/docs/Caddyfile"
+        - "/docs/package.json"
+        - "/www/src/**"
+        - "/www/public/**"
+        - "/www/Caddyfile"
+        - "/www/package.json"
+    pattern-regex: 'https?://(?:[^/\s"''`<>]+\.)?(?:cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com|cdn\.[^/\s"''`<>]+)'
+
+  - id: relab.third-party-browser-js.marketing-tag-signature
+    message: Do not add browser marketing or analytics tags without an explicit third-party JavaScript security review.
+    severity: ERROR
+    languages: [ generic ]
+    paths:
+      include:
+        - "/app/**"
+        - "/docs/src/components/**"
+        - "/docs/src/pages/**"
+        - "/docs/src/scripts/**"
+        - "/docs/Caddyfile"
+        - "/docs/package.json"
+        - "/www/src/**"
+        - "/www/public/**"
+        - "/www/Caddyfile"
+        - "/www/package.json"
+    pattern-regex: '\b(?:googletagmanager|google-analytics|gtag\s*\(|dataLayer|plausible\.io|matomo|hotjar|segment\.com)'

@@ -57,6 +57,8 @@ words:
   - mpegurl
   - nosniff
   - OTLP
+  - semgrep
+  - semgrepignore
   - shellcheck
   - subrepo
   - subrepos

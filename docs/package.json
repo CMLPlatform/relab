@@ -21,7 +21,7 @@
     "preview": "astro preview --port 8000 --host",
     "format": "biome format --write .",
     "fix": "biome check --write . && markdownlint-cli2 --fix",
-    "lint": "biome check . && markdownlint-cli2 && node ./scripts/check-no-cdn-imports.mjs",
+    "lint": "biome check . && markdownlint-cli2",
     "typecheck": "astro check",
     "test": "echo 'docs has no unit tests — see test:e2e for Playwright suites'",
     "test:e2e": "playwright test",
