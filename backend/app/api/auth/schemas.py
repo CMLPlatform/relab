@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime  # noqa: TC003 # Used at runtime for Pydantic model annotations
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from fastapi_users import schemas as fastapi_users_schemas
 from pydantic import (
@@ -90,16 +90,30 @@ class UserCreateBase(UserBase, fastapi_users_schemas.BaseUserCreate):
     password: str = Field(json_schema_extra={"format": "password"}, min_length=12)
 
 
-class UserCreate(UserCreateBase):
+class NoPublicAccountControls:
+    """Remove FastAPI-Users account-control fields from public request schemas."""
+
+    is_active: ClassVar[None] = None
+    is_superuser: ClassVar[None] = None
+    is_verified: ClassVar[None] = None
+
+
+class UserCreate(NoPublicAccountControls, UserCreateBase):
     """Create schema for users."""
 
     model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
 
 
-class UserRegister(UserCreateBase):
+class UserRegister(NoPublicAccountControls, UserCreateBase):
     """Registration schema for password sign-up."""
 
     username: UsernameValue
+
+    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
+
+
+class TrustedUserCreate(UserCreateBase):
+    """Trusted internal user creation schema for scripts and system workflows."""
 
     model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
 
@@ -166,7 +180,7 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_READ_EXAMPLES})
 
 
-class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
+class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUserUpdate):
     """Update schema for users."""
 
     # Override for username field validation
@@ -221,7 +235,7 @@ class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
 class RefreshTokenRequest(BaseModel):
     """Request schema for refreshing access token."""
 
-    model_config = ConfigDict(json_schema_extra={"examples": REFRESH_TOKEN_REQUEST_EXAMPLES})
+    model_config = ConfigDict(extra="forbid", json_schema_extra={"examples": REFRESH_TOKEN_REQUEST_EXAMPLES})
 
     refresh_token: SecretStr = Field(description="Refresh token obtained from login")
 

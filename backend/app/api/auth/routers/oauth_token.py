@@ -18,7 +18,7 @@ import jwt
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi_users.authentication import Strategy
 from jwt import ExpiredSignatureError, InvalidTokenError, PyJWKClient
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, ConfigDict
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.dependencies import UserManagerDep
@@ -57,6 +57,8 @@ router = APIRouter(prefix="/oauth", tags=["oauth"])
 
 class GoogleTokenRequest(BaseModel):
     """Body for Google PKCE token exchange."""
+
+    model_config = ConfigDict(extra="forbid")
 
     id_token: str
     # The Google access token is stored in OAuthAccount for downstream API use

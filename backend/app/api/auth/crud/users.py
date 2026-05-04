@@ -9,7 +9,7 @@ from sqlalchemy import exists, select
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import User
 from app.api.auth.preferences import merge_user_preferences
-from app.api.auth.schemas import UserCreate, UserUpdate
+from app.api.auth.schemas import UserCreateBase, UserUpdate
 from app.api.common.exceptions import BadRequestError, NotFoundError
 
 USERNAME_FIELD = "username"
@@ -22,11 +22,11 @@ if TYPE_CHECKING:
 
 
 ## Create User ##
-async def validate_user_create(
+async def validate_user_create[UserCreateT: UserCreateBase](
     user_db: UserDatabaseAsync,
-    user_create: UserCreate,
+    user_create: UserCreateT,
     email_checker: EmailChecker | None = None,
-) -> UserCreate:
+) -> UserCreateT:
     """Override of base user creation with additional username uniqueness check.
 
     Meant for use within the on_after_register event in FastAPI-Users UserManager.
