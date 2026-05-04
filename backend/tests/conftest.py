@@ -108,6 +108,19 @@ def _ensure_testcontainers_postgres() -> None:
     logger.info("Testcontainers Postgres started: %s:%s", host, port)
 
 
+def _validate_test_database_name(database_name: str) -> str:
+    """Return a validated test database name."""
+    if not _SAFE_DB_NAME.fullmatch(database_name):
+        err = f"Unsafe test database name: {database_name!r}"
+        raise ValueError(err)
+    return database_name
+
+
+def _quoted_test_database_identifier(database_name: str) -> str:
+    """Return a quoted test database identifier after validating the allowlist."""
+    return f'"{_validate_test_database_name(database_name)}"'
+
+
 def pytest_unconfigure(config: pytest.Config) -> None:
     """Stop Testcontainers after all tests complete."""
     del config
@@ -126,11 +139,7 @@ def _get_worker_test_db_name() -> str:
     if worker_id and worker_id != _MASTER_WORKER:
         db_name = f"{base_name}_{worker_id}"
 
-    if not _SAFE_DB_NAME.match(db_name):
-        err = f"Unsafe test database name: {db_name!r}"
-        raise ValueError(err)
-
-    return db_name
+    return _validate_test_database_name(db_name)
 
 
 def _build_database_url(driver: str, database_name: str) -> str:
@@ -162,7 +171,8 @@ def _drop_test_database(test_database_name: str) -> None:
             AND pid <> pg_backend_pid();
         """)
         connection.execute(term_query, {"db_name": test_database_name})
-        connection.execute(text(f"DROP DATABASE IF EXISTS {test_database_name}"))
+        quoted_db_name = _quoted_test_database_identifier(test_database_name)
+        connection.exec_driver_sql(f"DROP DATABASE IF EXISTS {quoted_db_name}")
 
     sync_engine.dispose()
 
@@ -174,7 +184,8 @@ def create_test_database(test_database_name: str) -> None:
     sync_admin_url = _build_database_url("psycopg", "postgres")
     sync_engine = create_engine(sync_admin_url, isolation_level="AUTOCOMMIT")
     with sync_engine.connect() as connection:
-        connection.execute(text(f"CREATE DATABASE {test_database_name}"))
+        quoted_db_name = _quoted_test_database_identifier(test_database_name)
+        connection.exec_driver_sql(f"CREATE DATABASE {quoted_db_name}")
     sync_engine.dispose()
 
     logger.info("Test database created successfully: %s", test_database_name)
