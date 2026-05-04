@@ -12,8 +12,8 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from app.api.auth.routers.frontend import router as frontend_router
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.api.common.routers.health import router as health_router
+from app.api.common.routers.main import router as api_router
 from app.api.common.routers.openapi import init_openapi_docs
-from app.api.v1.router import router as v1_router
 from app.core import lifecycle
 from app.core.config import settings
 from app.core.config.models import Environment
@@ -100,7 +100,7 @@ def create_app() -> FastAPI:
     app.include_router(frontend_router)
 
     # Include the canonical versioned API contract.
-    app.include_router(v1_router)
+    app.include_router(api_router, prefix="/v1")
 
     # Initialize OpenAPI documentation
     init_openapi_docs(app)
