@@ -23,7 +23,7 @@
   version = "0.2.0"
 
 [dependency-groups]
-  dev = ["commitizen>=4.8.3", "pre-commit>=4.2.0", "pytest>=9.0.1", "ruff>=0.12.1", "ty>=0.0.15"]
+  dev = ["commitizen>=4.8.3", "pre-commit>=4.2.0", "ruff>=0.12.1", "ty>=0.0.15"]
 
 [tool.commitizen]
   annotated_tag      = true
@@ -58,8 +58,3 @@
 
 [tool.ty.src]
   include = ["scripts"]
-
-[tool.pytest.ini_options]
-  addopts  = ["--strict-config", "--strict-markers"]
-  pythonpath = ["."]
-  testpaths = ["scripts/tests"]
