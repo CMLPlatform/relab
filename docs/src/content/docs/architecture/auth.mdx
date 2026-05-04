@@ -19,7 +19,6 @@ The API exposes two login transports:
 - Password reset and email verification
 - Google and GitHub OAuth login
 - OAuth account linking for existing users
-- Google PKCE login on web
 - Disposable email checks during registration
 
 ## Security controls
@@ -74,7 +73,7 @@ Refresh-token rotation uses dedicated endpoints:
 
 Logout clears auth cookies and blacklists the refresh token when one is present.
 
-Refresh tokens are random bearer secrets. Redis stores them under SHA-256 fingerprints rather than raw token values, so Redis key names are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with the backend `DATA_ENCRYPTION_KEYS` keyring.
+Refresh tokens are random bearer secrets. Redis stores them under SHA-256 fingerprints rather than raw token values, so Redis key names are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with AES-256-GCM using the backend `DATA_ENCRYPTION_KEY`.
 
 Encryption is not used as a substitute for authorization. Authenticated API handlers must still check resource ownership and route-level permissions before returning or mutating data.
 
@@ -84,7 +83,7 @@ OAuth login is available for Google and GitHub. Both providers support session-c
 
 ### Backend-mediated flow
 
-GitHub uses the backend-mediated flow on all platforms. Google uses it on native clients.
+Google and GitHub use the backend-mediated flow on all platforms.
 
 Callbacks use a CSRF cookie and signed state token. Redirect targets are restricted by auth-setting allowlists. Provider callback URLs are versioned under `/v1/oauth` and must be registered with each provider:
 
@@ -114,32 +113,6 @@ sequenceDiagram
     API-->>Frontend: Redirect with session/token response
 ```
 
-### Google PKCE flow
-
-The web frontend uses `expo-auth-session` to run Google PKCE directly in the browser, then exchanges the Google ID token with RELab. No backend redirect or third-party auth proxy is involved.
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Frontend
-    participant Google
-    participant API
-
-    User->>Frontend: Start Google sign-in
-    Frontend->>Google: Open PKCE auth popup (expo-auth-session)
-    User->>Google: Approve login
-    Google-->>Frontend: ID token + access token
-    Frontend->>API: POST /v1/oauth/google/session/token {id_token}
-    API->>Google: Verify ID token via JWKS
-    API->>API: Create or link user account
-    API-->>Frontend: Set session cookies (204)
-```
-
-Google token exchange endpoints:
-
-- `POST /v1/oauth/google/session/token` — sets httpOnly session cookies (used by the web app)
-- `POST /v1/oauth/google/bearer/token` — returns bearer + refresh tokens (for API clients)
-
 ## Public auth endpoints
 
 <details>
@@ -156,8 +129,6 @@ Google token exchange endpoints:
 - `POST /v1/auth/reset-password`
 - `GET /v1/auth/validate-email`
 - `GET /v1/oauth/*`
-- `POST /v1/oauth/google/session/token`
-- `POST /v1/oauth/google/bearer/token`
 
 </details>
 
