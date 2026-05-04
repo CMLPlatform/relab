@@ -20,25 +20,19 @@ Please include enough detail for us to reproduce the problem. That saves time fo
 
 ## Security Baseline
 
-RELab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline. Keep security controls simple, reviewable, and documented near the behavior they protect.
+RELab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline and the [OWASP Secure Product Design](https://cheatsheetseries.owasp.org/cheatsheets/Secure_Product_Design_Cheat_Sheet.html) lens for product decisions. Keep controls simple, reviewable, and documented near the behavior they protect.
 
-## Attack Surface Baseline
+Review security-sensitive changes against this baseline:
 
-Use this maintainer baseline when reviewing security-sensitive changes. Keep it grouped by risk bucket rather than listing every endpoint.
+- Context: self-hosted research and data-collection platform.
+- Components: backend, app, web, docs, PostgreSQL, Redis, storage, backups, OAuth, email, YouTube, and RPi camera integrations.
+- Connections: clients and devices enter through the API; PostgreSQL and Redis stay on the internal data network; external providers are explicit trust boundaries.
+- Code: authorization, validation, upload checks, browser security headers, and tests live close to the behavior they protect.
+- Configuration: secrets, Compose policy, HTTPS, least-privilege database roles, and secure runtime defaults are source-controlled where practical.
 
-Review these buckets when they change:
+Security-sensitive buckets are authentication and OAuth, public read APIs, authenticated mutation APIs, uploads and media, admin APIs, RPi camera device APIs and WebSocket relay, backups, secrets, logs, telemetry, and release/security artifacts. Keep this list grouped by risk, not by endpoint.
 
-- Authentication and OAuth
-- Public read APIs
-- Authenticated mutation APIs
-- Uploads and media
-- Admin APIs
-- RPi camera device APIs and WebSocket relay
-- Backups, secrets, logs, telemetry, and release/security artifacts
-
-Valuable data includes accounts, profile/privacy settings, research records, uploaded media/files, OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup material, and runtime secrets.
-
-Update this baseline, the relevant behavior docs, or both when a change creates a new bucket or meaningfully changes a trust boundary.
+Valuable assets include accounts, profile/privacy settings, research records, uploaded media/files, OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup material, and runtime secrets. Update this baseline, the relevant behavior docs, or both when a change creates a new bucket or meaningfully changes a trust boundary.
 
 ## Automated Checks
 
@@ -58,11 +52,14 @@ Release SBOM assets are attested as files and uploaded with GitHub releases.
 
 ## Maintainer Review
 
-Automated checks do not replace reviewer judgment. For changes that touch authentication, authorization, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets, dependencies, or personal data, check:
+Automated checks do not replace reviewer judgment. For changes that touch authentication, authorization, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets, dependencies, or personal data, confirm:
 
 - authorization is enforced server-side, not only hidden in a client
 - input is validated at API, upload, form, and device boundaries
 - browser-rendered values stay on framework escaping paths; raw HTML sinks and dynamic URLs are isolated, validated, and tested
 - logs do not include tokens, passwords, private URLs, OAuth material, or other sensitive values
-- auth, permission, upload, and device-flow behavior has relevant test coverage
-- docs and examples are updated when security-sensitive behavior changes
+- secure defaults fail closed in production and staging
+- auth, permission, upload, and device-flow behavior has focused test coverage
+- docs and examples change only when they clarify real behavior
+
+Audience-filtered OpenAPI schemas and API reference pages are contract and inventory tools, not authorization controls. Keep endpoint authorization enforced in backend dependencies and services even when a route is absent from a public docs audience.
