@@ -171,7 +171,8 @@ _e2e-backend-down:
 test-e2e-full-stack MODE="default":
     #!/usr/bin/env bash
     set -euo pipefail
-    case "{{ MODE }}" in
+    mode={{ quote(MODE) }}
+    case "$mode" in
       default)       e2e_recipe="test-e2e" ;;
       cross-browser) e2e_recipe="test-e2e-cross-browser" ;;
       *) echo "MODE must be 'default' or 'cross-browser'"; exit 1 ;;
@@ -181,9 +182,9 @@ test-e2e-full-stack MODE="default":
     just _e2e-backend-up
     echo "→ Building Expo web app..."
     just app/build-web
-    echo "→ Running Playwright E2E tests ({{ MODE }})..."
+    echo "→ Running Playwright E2E tests ($mode)..."
     just "app/$e2e_recipe"
-    echo "✅ Full-stack E2E tests passed ({{ MODE }})"
+    echo "✅ Full-stack E2E tests passed ($mode)"
 
 # ============================================================================
 # Security
@@ -216,7 +217,7 @@ deploy-secrets-check:
 
 # Create missing deploy secret files for an environment (prod or staging)
 deploy-secrets-template env:
-    @bash scripts/deploy_ops.sh deploy-secrets-template "{{ env }}"
+    @bash scripts/deploy_ops.sh deploy-secrets-template {{ quote(env) }}
 
 # Validate RELab-specific rendered Compose policy
 compose-policy-check:
@@ -277,7 +278,7 @@ dev-migrate:
 
 # Wipe all dev volumes and containers (full clean slate; re-run dev-migrate after this)
 _dev-reset confirm='':
-    @just _require-confirm "wipe the development Docker environment" "just _dev-reset YES" "FORCE=1 just _dev-reset" "{{ confirm }}"
+    @just _require-confirm "wipe the development Docker environment" "just _dev-reset YES" "FORCE=1 just _dev-reset" {{ quote(confirm) }}
     {{ dev_compose }} --profile migrations down -v
 
 # ============================================================================
@@ -306,7 +307,7 @@ prod-logs:
 
 # Run database migrations (prod); required on first deploy and after schema changes
 prod-migrate confirm='':
-    @bash scripts/deploy_ops.sh stack prod migrate "{{ confirm }}"
+    @bash scripts/deploy_ops.sh stack prod migrate {{ quote(confirm) }}
 
 # ============================================================================
 # Docker: Staging
@@ -330,7 +331,7 @@ staging-logs:
 
 # Run database migrations and seed dummy data (staging)
 staging-migrate confirm='':
-    @bash scripts/deploy_ops.sh stack staging migrate "{{ confirm }}"
+    @bash scripts/deploy_ops.sh stack staging migrate {{ quote(confirm) }}
 
 # ============================================================================
 # Docker: Test / CI
@@ -342,16 +343,20 @@ staging-migrate confirm='':
 _require-confirm action example force_example confirm='':
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ "{{ confirm }}" = "YES" ] || [ "${FORCE:-}" = "1" ] || [ "${FORCE:-}" = "true" ] || [ "${FORCE:-}" = "YES" ]; then
+    action={{ quote(action) }}
+    example={{ quote(example) }}
+    force_example={{ quote(force_example) }}
+    confirm={{ quote(confirm) }}
+    if [ "$confirm" = "YES" ] || [ "${FORCE:-}" = "1" ] || [ "${FORCE:-}" = "true" ] || [ "${FORCE:-}" = "YES" ]; then
         exit 0
     fi
-    echo "Refusing to {{ action }} without explicit confirmation."
-    echo "Use '{{ example }}' or '{{ force_example }}'."
+    echo "Refusing to $action without explicit confirmation."
+    echo "Use '$example' or '$force_example'."
     exit 1
 
 # Internal helper: bring up a CI compose subset and wait for readiness.
 _docker-smoke-up services timeout:
-    {{ ci_compose }} up --build -d --wait --wait-timeout {{ timeout }} {{ services }}
+    {{ ci_compose }} up --build -d --wait --wait-timeout {{ quote(timeout) }} {{ services }}
 
 # Internal helper: tear down a CI compose subset and its anonymous resources.
 _docker-smoke-down services:
@@ -395,11 +400,11 @@ docker-smoke-backups:
 
 # Copy the local restic repository to an optional offsite repository, such as rclone:<remote>:relab/staging/restic
 backup-offsite-copy env='staging':
-    @bash scripts/backup_restic_ops.sh backup-offsite-copy "{{ env }}"
+    @bash scripts/backup_restic_ops.sh backup-offsite-copy {{ quote(env) }}
 
 # Restore the latest restic PostgreSQL dump into a disposable Postgres container
 backup-restore-smoke env='prod':
-    @bash scripts/backup_restic_ops.sh backup-restore-smoke "{{ env }}"
+    @bash scripts/backup_restic_ops.sh backup-restore-smoke {{ quote(env) }}
 
 # Smoke test: compose-level backend orchestration (service wiring + migrations)
 docker-orchestration-smoke:
@@ -439,7 +444,7 @@ _docker-ci-migrate-dummy:
 
 # Stop the CI stack and remove volumes
 docker-ci-down confirm='':
-    @just _require-confirm "stop and wipe the CI Docker environment" "just docker-ci-down YES" "FORCE=1 just docker-ci-down" "{{ confirm }}"
+    @just _require-confirm "stop and wipe the CI Docker environment" "just docker-ci-down YES" "FORCE=1 just docker-ci-down" {{ quote(confirm) }}
     {{ ci_compose }} --profile migrations down -v --remove-orphans
 
 # Run the backend k6 baseline against the CI Docker stack.
@@ -456,11 +461,11 @@ docker-ci-perf-baseline:
 
 # Write a dated CI baseline report from the latest backend k6 summary export
 _docker-ci-perf-report DATE="":
-    just backend/_perf-report-ci "{{ DATE }}"
+    just backend/_perf-report-ci {{ quote(DATE) }}
 
 # Recalibrate backend perf thresholds from the latest CI baseline summary export
 _docker-ci-perf-thresholds HEADROOM="1.15":
-    just backend/_perf-thresholds-apply "{{ HEADROOM }}"
+    just backend/_perf-thresholds-apply {{ quote(HEADROOM) }}
 
 # ============================================================================
 # Maintenance
@@ -476,5 +481,5 @@ clean:
 
 # Print a static-output size budget for a built directory (e.g. docs/dist, www/dist)
 size DIR:
-    du -sh {{ DIR }}
-    find {{ DIR }} -type f | sort | xargs du -h
+    du -sh {{ quote(DIR) }}
+    find {{ quote(DIR) }} -type f | sort | xargs du -h

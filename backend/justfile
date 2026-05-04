@@ -18,7 +18,7 @@ install:
 
 # Start development server
 dev PORT="8000":
-    uv run uvicorn app.main:app --reload --reload-dir app --port {{ PORT }}
+    uv run uvicorn app.main:app --reload --reload-dir app --port {{ quote(PORT) }}
 
 # ============================================================================
 # Linting & Formatting
@@ -59,7 +59,7 @@ test *ARGS:
 # Run tests with coverage report (FORMAT: html for local, xml for CI)
 test-cov FORMAT="html":
     mkdir -p reports/coverage
-    {{ pytest }} --cov --cov-report={{ FORMAT }} --cov-report=term
+    {{ pytest }} --cov --cov-report={{ quote(FORMAT) }} --cov-report=term
 
 # Run only unit tests (fast, no Docker/database path)
 test-unit *ARGS:
@@ -100,7 +100,7 @@ migrate:
 
 # Create new migration (use: just migrate-create "description")
 migrate-create MESSAGE:
-    uv run alembic revision --autogenerate -m "{{ MESSAGE }}"
+    uv run alembic revision --autogenerate -m {{ quote(MESSAGE) }}
 
 # Reset database (down to base, then up to head)
 migrate-reset:
@@ -132,7 +132,7 @@ k6_docker_image := "grafana/k6:latest"
 _perf-ci MEDIA_URL="" BASE_URL="http://api:8000":
     #!/usr/bin/env bash
     set -euo pipefail
-    media_url="{{ MEDIA_URL }}"
+    media_url={{ quote(MEDIA_URL) }}
     if [ -z "$media_url" ]; then
         echo "→ No MEDIA_URL provided; running perf baseline without media_url_read scenario."
     fi
@@ -141,7 +141,7 @@ _perf-ci MEDIA_URL="" BASE_URL="http://api:8000":
         --network relab_test_default \
         -v "$PWD/perf:/perf:ro" \
         -v "$PWD/reports/performance:/reports" \
-        -e BASE_URL="{{ BASE_URL }}" \
+        -e BASE_URL={{ quote(BASE_URL) }} \
         -e PERF_USER_EMAIL="e2e-admin@example.com" \
         -e PERF_USER_PASSWORD="E2eTestPass123!" \
         -e PERF_MEDIA_URL="$media_url" \
@@ -151,17 +151,17 @@ _perf-ci MEDIA_URL="" BASE_URL="http://api:8000":
 _perf-report-ci DATE="" BASE_URL="http://api:8000":
     #!/usr/bin/env bash
     set -euo pipefail
-    report_date="{{ DATE }}"
+    report_date={{ quote(DATE) }}
     if [ -z "$report_date" ]; then
         report_date="$(date +%F)"
     fi
-    python3 -m scripts.perf.perf_ci write-report --date "$report_date" --base-url "{{ BASE_URL }}"
+    python3 -m scripts.perf.perf_ci write-report --date "$report_date" --base-url {{ quote(BASE_URL) }}
 
 # Recalibrate p95 thresholds in perf/k6-baseline.js from the latest k6 JSON summary export.
 _perf-thresholds-apply HEADROOM="1.15":
     #!/usr/bin/env bash
     set -euo pipefail
-    python3 -m scripts.perf.perf_ci apply-thresholds "{{ HEADROOM }}"
+    python3 -m scripts.perf.perf_ci apply-thresholds {{ quote(HEADROOM) }}
 
 # ============================================================================
 # Maintenance
@@ -184,7 +184,8 @@ clean:
 audit SCOPE="runtime":
     #!/usr/bin/env bash
     set -euo pipefail
-    case "{{ SCOPE }}" in
+    scope={{ quote(SCOPE) }}
+    case "$scope" in
       runtime) flag="--no-default-groups" ;;
       all) flag="" ;;
       *) echo "SCOPE must be 'runtime' or 'all'"; exit 1 ;;
