@@ -34,11 +34,9 @@ _What problem does this solve or why is it worth merging?_
 For changes touching auth, permissions, browser rendering, dynamic URLs, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets, dependencies, or personal data:
 
 - Assets affected:
-- Trust boundaries crossed:
-- New or changed attack-surface bucket:
-- What could go wrong:
+- Trust boundary changed:
+- Secure default/failure mode:
 - Controls and tests:
-- Follow-up items:
 
 See the maintainer checklist in [SECURITY.md](SECURITY.md).
 
