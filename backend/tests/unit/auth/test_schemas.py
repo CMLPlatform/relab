@@ -4,7 +4,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.api.auth.schemas import UserCreate, UserUpdate
+from app.api.auth.schemas import RefreshTokenRequest, UserCreate, UserRegister, UserUpdate
 
 VALID_PASSWORD = "correct-horse-battery-staple-v42"
 
@@ -41,3 +41,27 @@ def test_user_update_rejects_removed_organization_id() -> None:
     """User updates can no longer change organization membership."""
     with pytest.raises(ValidationError, match="organization_id"):
         UserUpdate(organization_id="1fa85f64-5717-4562-b3fc-2c963f66afa6")
+
+
+type PublicUserSchema = type[UserCreate | UserRegister | UserUpdate]
+
+
+@pytest.mark.parametrize("schema_cls", [UserCreate, UserRegister, UserUpdate])
+@pytest.mark.parametrize("field_name", ["is_superuser", "is_active", "is_verified"])
+def test_public_user_schemas_reject_privileged_fields(schema_cls: PublicUserSchema, field_name: str) -> None:
+    """Public user payloads must not expose FastAPI-Users control fields."""
+    payload = {
+        "email": "test@example.com",
+        "password": VALID_PASSWORD,
+        "username": "public_user",
+        field_name: True,
+    }
+
+    with pytest.raises(ValidationError, match=field_name):
+        schema_cls.model_validate(payload)
+
+
+def test_refresh_token_request_rejects_unknown_fields() -> None:
+    """Refresh-token requests should not silently accept extra client-controlled fields."""
+    with pytest.raises(ValidationError, match="is_superuser"):
+        RefreshTokenRequest.model_validate({"refresh_token": "token", "is_superuser": True})

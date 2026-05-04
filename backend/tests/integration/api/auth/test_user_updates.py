@@ -281,6 +281,51 @@ class TestUpdateUserEndpoint:
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["username"] == "reauth_username_new"
 
+    @pytest.mark.parametrize(
+        ("field_name", "value"),
+        [
+            ("is_superuser", True),
+            ("is_active", False),
+            ("is_verified", True),
+        ],
+    )
+    async def test_update_me_rejects_privileged_fields_without_mutating_user(
+        self,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+        field_name: str,
+        value: object,
+    ) -> None:
+        """Self-service updates must reject account-control fields at request validation."""
+        user = await UserFactory.create_async(
+            db_session,
+            email=f"mass-assignment-{field_name.replace('_', '-')}@example.com",
+            username=f"mass_assignment_{field_name}",
+            hashed_password=hash_test_password(TEST_PASSWORD),
+            is_active=True,
+            is_superuser=False,
+            is_verified=False,
+        )
+        login_response = await api_client.post(
+            "/v1/auth/login",
+            data={"username": user.email, "password": TEST_PASSWORD},
+        )
+        assert login_response.status_code == status.HTTP_200_OK
+        token = login_response.json()["access_token"]
+
+        response = await api_client.patch(
+            "/v1/users/me",
+            json={field_name: value},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+        assert field_name in response.text
+        await db_session.refresh(user)
+        assert user.is_active is True
+        assert user.is_superuser is False
+        assert user.is_verified is False
+
     async def test_email_update_verifies_new_address_and_notifies_old_address(
         self,
         api_client: AsyncClient,

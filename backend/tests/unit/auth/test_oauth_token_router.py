@@ -8,13 +8,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from jwt import ExpiredSignatureError, InvalidTokenError
+from pydantic import ValidationError
 
 from app.api.auth.exceptions import (
     OAuthEmailUnavailableError,
     OAuthStateDecodeError,
     OAuthStateExpiredError,
 )
-from app.api.auth.routers.oauth_token import _verify_google_id_token
+from app.api.auth.routers.oauth_token import GoogleTokenRequest, _verify_google_id_token
 from app.api.common.exceptions import ServiceUnavailableError
 
 if TYPE_CHECKING:
@@ -137,3 +138,9 @@ class TestVerifyGoogleIdToken:
             _verify_google_id_token("any-token")
 
         assert exc_info.value.message == "Authentication service unavailable."
+
+
+def test_google_token_request_rejects_unknown_fields() -> None:
+    """Google token exchange requests should not silently accept extra client-controlled fields."""
+    with pytest.raises(ValidationError, match="is_superuser"):
+        GoogleTokenRequest.model_validate({"id_token": "token", "is_superuser": True})

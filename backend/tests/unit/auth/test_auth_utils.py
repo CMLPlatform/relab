@@ -12,7 +12,7 @@ import pytest
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 from redis.exceptions import ConnectionError as RedisConnectionError
 
-from app.api.auth.schemas import UserCreate
+from app.api.auth.schemas import TrustedUserCreate
 from app.api.auth.services.email_checker import EmailChecker, load_local_disposable_domains
 from app.api.auth.services.programmatic_user_crud import create_user
 from tests.factories.models import UserFactory
@@ -191,9 +191,9 @@ class TestProgrammaticUserCrud:
     """Tests for programmatic user CRUD operations."""
 
     @pytest.fixture
-    def user_create(self) -> UserCreate:
-        """Fixture for UserCreate schema."""
-        return UserCreate(email="test@example.com", password="correct-horse-battery-staple-v42")
+    def user_create(self) -> TrustedUserCreate:
+        """Fixture for trusted user creation schema."""
+        return TrustedUserCreate(email="test@example.com", password="correct-horse-battery-staple-v42")
 
     @pytest.fixture
     def mock_user_manager(self) -> AsyncMock:
@@ -201,7 +201,7 @@ class TestProgrammaticUserCrud:
         return AsyncMock()
 
     async def test_create_user_success(
-        self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock
+        self, mock_session: AsyncSession, user_create: TrustedUserCreate, mock_user_manager: AsyncMock
     ) -> None:
         """Test successful user creation."""
         expected_user = UserFactory.build(email=user_create.email, hashed_password="hashed")
@@ -222,7 +222,7 @@ class TestProgrammaticUserCrud:
             mock_user_manager.create.assert_called_once_with(user_create)
 
     async def test_create_user_with_email(
-        self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock
+        self, mock_session: AsyncSession, user_create: TrustedUserCreate, mock_user_manager: AsyncMock
     ) -> None:
         """Test user creation with verification email."""
         expected_user = UserFactory.build(email=user_create.email, hashed_password="hashed")
@@ -247,7 +247,7 @@ class TestProgrammaticUserCrud:
             mock_user_manager.request_verify.assert_called_once_with(expected_user)
 
     async def test_create_user_can_skip_breach_check(
-        self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock
+        self, mock_session: AsyncSession, user_create: TrustedUserCreate, mock_user_manager: AsyncMock
     ) -> None:
         """Programmatic bootstrap flows can disable the network breach check."""
         expected_user = UserFactory.build(email=user_create.email, hashed_password="hashed")
@@ -268,7 +268,7 @@ class TestProgrammaticUserCrud:
             mock_user_manager.create.assert_called_once_with(user_create)
 
     async def test_create_user_already_exists(
-        self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock
+        self, mock_session: AsyncSession, user_create: TrustedUserCreate, mock_user_manager: AsyncMock
     ) -> None:
         """Test user creation when user already exists."""
         mock_user_manager.create.side_effect = UserAlreadyExists()
@@ -287,7 +287,7 @@ class TestProgrammaticUserCrud:
             assert f"User with email {user_create.email} already exists" in str(exc.value)
 
     async def test_create_user_invalid_password(
-        self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock
+        self, mock_session: AsyncSession, user_create: TrustedUserCreate, mock_user_manager: AsyncMock
     ) -> None:
         """Test user creation with invalid password."""
         mock_user_manager.create.side_effect = InvalidPasswordException(reason=PW_TOO_SHORT)
