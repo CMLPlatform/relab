@@ -16,9 +16,7 @@ playwright.config.ts
 # Dev tooling / config
 .vscode/
 justfile
-Dockerfile.dev
 README.md
-.prettierrc
 .env.local
 
 # Docker and git
@@ -30,9 +28,8 @@ Dockerfile.*
 
 # macOS
 .DS_Store
-*.pem
 
-# debug
+# Debug logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*

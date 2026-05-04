@@ -11,16 +11,14 @@ e2e/
 coverage/
 test-results/
 playwright.config.ts
-jest.config.ts
-jest.setup.ts
+jest.config.cjs
+config/jest/
 
 # Dev tooling / config
 .vscode/
-biome.json
+biome.jsonc
 justfile
-Dockerfile.dev
 README.md
-.prettierrc
 .env.local
 
 # Docker and git
@@ -37,6 +35,8 @@ ios/
 
 # macOS
 .DS_Store
+
+# Local certs / keys
 *.pem
 *.jks
 *.p8
@@ -44,7 +44,7 @@ ios/
 *.key
 *.mobileprovision
 
-# debug
+# Debug logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
