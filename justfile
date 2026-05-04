@@ -6,8 +6,9 @@
 default:
     @just --list
 
-dev_compose := "docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml"
+dev_compose := "docker compose -p relab_dev --env-file deploy/env/dev.compose.env -f compose.yaml -f compose.dev.yaml"
 ci_compose := "docker compose -p relab_test -f compose.yaml -f compose.ci.yaml"
+cloudflare_dir := "infra/cloudflare"
 
 # Subrepos that mirror the root quality / test / audit / clean recipes.
 subrepos := "backend docs www app"
@@ -154,8 +155,8 @@ test-e2e:
     @just test-e2e-full-stack
     @echo "✅ All E2E tests passed"
 
-# Canonical CI pipeline: policy, quality checks, CI tests, compose validation
-ci: pre-commit check test-ci compose-config compose-policy-check deploy-secrets-check
+# Canonical CI pipeline: policy, IaC, quality checks, CI tests, compose validation
+ci: pre-commit cloudflare-check check test-ci compose-config compose-policy-check deploy-secrets-check
     @echo "✅ CI pipeline passed"
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
@@ -207,15 +208,64 @@ audit: audit-root
 security: audit
     @echo "✅ Security checks complete"
 
+# Format Cloudflare OpenTofu files
+cloudflare-fmt:
+    tofu -chdir={{ cloudflare_dir }} fmt
+
+# Validate Cloudflare OpenTofu configuration without configuring a state backend
+cloudflare-check:
+    tofu -chdir={{ cloudflare_dir }} fmt -check
+    tofu -chdir={{ cloudflare_dir }} init -backend=false
+    tofu -chdir={{ cloudflare_dir }} validate
+
+# Plan Cloudflare edge changes for one environment (prod or staging)
+cloudflare-plan env:
+    @just _require-cloudflare-env {{ quote(env) }}
+    @just _require-cloudflare-vars
+    tofu -chdir={{ cloudflare_dir }} init
+    tofu -chdir={{ cloudflare_dir }} workspace select {{ quote(env) }} || tofu -chdir={{ cloudflare_dir }} workspace new {{ quote(env) }}
+    tofu -chdir={{ cloudflare_dir }} plan -input=false -var="environment={{ env }}"
+
+# Apply Cloudflare edge changes for one environment (prod or staging)
+cloudflare-apply env confirm='':
+    @just _require-cloudflare-env {{ quote(env) }}
+    @just _require-cloudflare-vars
+    @just _require-confirm "apply Cloudflare edge changes for {{ env }}" "just cloudflare-apply {{ env }} YES" "FORCE=1 just cloudflare-apply {{ env }}" {{ quote(confirm) }}
+    tofu -chdir={{ cloudflare_dir }} init
+    tofu -chdir={{ cloudflare_dir }} workspace select {{ quote(env) }} || tofu -chdir={{ cloudflare_dir }} workspace new {{ quote(env) }}
+    tofu -chdir={{ cloudflare_dir }} apply -auto-approve -input=false -var="environment={{ env }}"
+
+_require-cloudflare-env env:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    env={{ quote(env) }}
+    case "$env" in
+      prod|staging) exit 0 ;;
+      *) echo "env must be 'prod' or 'staging'"; exit 1 ;;
+    esac
+
+_require-cloudflare-vars:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    missing=()
+    [ -n "${CLOUDFLARE_API_TOKEN:-}" ] || missing+=("CLOUDFLARE_API_TOKEN")
+    [ -n "${TF_VAR_cloudflare_account_id:-}" ] || missing+=("TF_VAR_cloudflare_account_id")
+    [ -n "${TF_VAR_cloudflare_zone_id:-}" ] || missing+=("TF_VAR_cloudflare_zone_id")
+    if [ "${#missing[@]}" -gt 0 ]; then
+        echo "Missing Cloudflare/OpenTofu environment variables:" >&2
+        printf '  - %s\n' "${missing[@]}" >&2
+        exit 1
+    fi
+
 # Validate every supported Compose stack shape
 compose-config:
     @bash scripts/deploy_ops.sh compose-config
 
-# Validate deploy secret definitions against the required secret manifest
+# Validate deploy secret files and service grants against the required manifest
 deploy-secrets-check:
     @bash scripts/deploy_ops.sh deploy-secrets-check
 
-# Create missing deploy secret files for an environment (prod or staging)
+# Create missing secret files for an environment (dev, prod, or staging)
 deploy-secrets-template env:
     @bash scripts/deploy_ops.sh deploy-secrets-template {{ quote(env) }}
 
