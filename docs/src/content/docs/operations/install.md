@@ -158,13 +158,15 @@ The supported offsite path is a second restic repository copied from the local r
 
 1. Create `secrets/<env>/rclone.conf` with a WebDAV remote.
 
-1. Set the offsite repository in the host root `.env`.
+1. Export the offsite repository in the shell that runs the manual copy.
 
    ```sh
-   RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/staging/restic
+   export RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/staging/restic
    ```
 
-1. Copy snapshots offsite after a local backup exists.
+1. Copy snapshots offsite after a local backup exists. The helper reads
+   exported variables; Docker Compose continues to read root `.env` through
+   its normal `--env-file` path.
 
    ```bash
    just backup-offsite-copy staging
