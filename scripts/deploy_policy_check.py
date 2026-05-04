@@ -16,6 +16,10 @@ from pathlib import Path
 from typing import Any
 
 LOCAL_IMAGE_PREFIXES = ("relab-",)
+DEPLOY_ENVIRONMENTS = ("prod", "staging")
+LOKI_POLICY_LABELS = ("prod-loki", "staging-loki")
+DATA_ONLY_SERVICES = ("postgres", "redis")
+HARDENED_RUNTIME_SERVICES = ("api", "migrator", "docs", "app", "www", "backup")
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -167,6 +171,15 @@ def assert_hardened_runtime_service(config: dict[str, Any], label: str, service_
         raise AssertionError(msg)
 
 
+def assert_loki_logging_overlay(config: dict[str, Any], label: str) -> None:
+    """Assert that every runtime service uses the Loki logging driver in the optional overlay."""
+    for service_name, service_config in (config.get("services") or {}).items():
+        logging_config = service_config.get("logging") or {}
+        if logging_config.get("driver") != "loki":
+            msg = f"{label}: {service_name} must use the loki logging driver"
+            raise AssertionError(msg)
+
+
 def check_compose_policy(compose_configs: dict[str, Path]) -> None:
     """Check that Compose configs follow RELab network and runtime policy."""
     configs = {label: load_json(path) for label, path in compose_configs.items()}
@@ -182,20 +195,24 @@ def check_compose_policy(compose_configs: dict[str, Path]) -> None:
     e2e = configs["e2e"]
     assert_all_published_ports_bind_localhost(e2e, "e2e")
 
-    for label in ("prod", "staging"):
+    for label in DEPLOY_ENVIRONMENTS:
         config = configs[label]
         if not (config.get("networks", {}).get("data") or {}).get("internal"):
             msg = f"{label}: data network must be internal"
             raise AssertionError(msg)
-        for service_name in ("postgres", "redis"):
+        for service_name in DATA_ONLY_SERVICES:
             assert_no_host_ports(config, label, service_name)
             assert_networks(config, label, service_name, required={"data"}, forbidden={"edge"})
-        assert_networks(config, label, "relab-backup", required={"data"}, forbidden={"edge"})
+        assert_networks(config, label, "backup", required={"data"}, forbidden={"edge"})
         assert_networks(config, label, "api", required={"edge", "data"}, forbidden=set())
         for service_name in config.get("services") or {}:
             assert_deploy_service_image_policy(service(config, service_name, label), label, service_name)
-        for service_name in ("api", "migrator", "docs", "app", "www", "relab-backup"):
+        for service_name in HARDENED_RUNTIME_SERVICES:
             assert_hardened_runtime_service(config, label, service_name)
+
+    for label in LOKI_POLICY_LABELS:
+        if label in configs:
+            assert_loki_logging_overlay(configs[label], label)
 
 
 def check_secrets(manifest: Path, compose_configs: dict[str, Path]) -> None:
@@ -243,7 +260,7 @@ def check_secrets(manifest: Path, compose_configs: dict[str, Path]) -> None:
                 "database_backup_password",
             },
             "redis": {"redis_password"},
-            "relab-backup": {"database_backup_password", "restic_password"},
+            "backup": {"database_backup_password", "restic_password"},
         }
         for service_name, required in required_by_service.items():
             sources = secret_sources(service(config, service_name, label))

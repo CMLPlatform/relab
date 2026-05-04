@@ -11,15 +11,20 @@ loki_overlay_args() {
     fi
 }
 
+compose_env_file() {
+    local env="$1"
+    case "$env" in
+        prod) printf '%s\n' "$PROD_COMPOSE_ENV" ;;
+        staging) printf '%s\n' "$STAGING_COMPOSE_ENV" ;;
+        *) echo "env must be 'prod' or 'staging'" >&2; exit 2 ;;
+    esac
+}
+
 compose_args() {
     local env="$1"
     local compose_env
 
-    case "$env" in
-        prod) compose_env="$PROD_COMPOSE_ENV" ;;
-        staging) compose_env="$STAGING_COMPOSE_ENV" ;;
-        *) echo "env must be 'prod' or 'staging'" >&2; exit 2 ;;
-    esac
+    compose_env="$(compose_env_file "$env")"
 
     printf '%s\n' docker compose --env-file .env --env-file "$compose_env" -f compose.yaml -f compose.deploy.yaml
     loki_overlay_args
@@ -44,6 +49,18 @@ render_compose_json() {
     done
 
     run_deploy_compose "$env" "${profile_flags[@]}" config --format json > "$output_path"
+}
+
+render_loki_compose_json() {
+    local env="$1"
+    local output_path="$2"
+    local compose_env
+
+    compose_env="$(compose_env_file "$env")"
+
+    docker compose --env-file .env --env-file "$compose_env" \
+        -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml \
+        --profile backups --profile migrations config --format json > "$output_path"
 }
 
 compose_config() {
@@ -122,11 +139,15 @@ compose_policy_check() {
     docker compose -p relab_e2e -f compose.e2e.yaml config --format json > "$tmp_root/e2e.json"
     render_compose_json prod "$tmp_root/prod.json" backups migrations
     render_compose_json staging "$tmp_root/staging.json" backups migrations
+    render_loki_compose_json prod "$tmp_root/prod-loki.json"
+    render_loki_compose_json staging "$tmp_root/staging-loki.json"
     python3 scripts/deploy_policy_check.py compose \
         dev="$tmp_root/dev.json" \
         e2e="$tmp_root/e2e.json" \
         prod="$tmp_root/prod.json" \
-        staging="$tmp_root/staging.json"
+        staging="$tmp_root/staging.json" \
+        prod-loki="$tmp_root/prod-loki.json" \
+        staging-loki="$tmp_root/staging-loki.json"
     echo "✅ Compose network policy validated"
 }
 
