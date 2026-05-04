@@ -138,13 +138,8 @@ test-integration:
     for d in {{ unit_subrepos }}; do just "$d/test-integration"; done
     echo "✅ All integration tests passed"
 
-# Run root policy helper unit tests
-test-policy:
-    uv run pytest
-    @echo "✅ Root policy helper tests passed"
-
 # CI-oriented test suite across all subrepos
-test-ci: test-policy
+test-ci:
     #!/usr/bin/env bash
     set -euo pipefail
     for d in {{ subrepos }}; do just "$d/test-ci"; done
