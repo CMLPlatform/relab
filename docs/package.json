@@ -29,7 +29,7 @@
     "test:links": "linkinator ./dist --silent --skip 'mailto:*'",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run build:test",
     "ci": "pnpm run check && pnpm run test:ci",
-    "audit": "pnpm audit --prod --audit-level high"
+    "audit": "pnpm audit --prod --audit-level moderate"
   },
   "dependencies": {
     "@astrojs/mdx": "^5.0.4",

@@ -27,7 +27,7 @@
     "build": "pnpm run build:web",
     "build:web": "expo export -p web -c",
     "profile:compiler:web": "BUILD_MODE=production expo start --web --clear",
-    "audit": "pnpm audit --prod --audit-level high",
+    "audit": "pnpm audit --prod --audit-level moderate",
     "test:e2e": "playwright test",
     "test:e2e:cross-browser": "playwright test --project=chromium --project=firefox --project=webkit --project=mobile-chrome --project=mobile-safari",
     "test:e2e:ui": "playwright test --ui",
