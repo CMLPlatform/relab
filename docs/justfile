@@ -19,7 +19,7 @@ update:
 
 # Start development server with live reload
 dev PORT="8000":
-    pnpm run dev -- --port {{ PORT }}
+    pnpm run dev -- --port {{ quote(PORT) }}
 
 # Run lint checks
 lint:

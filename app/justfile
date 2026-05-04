@@ -62,7 +62,7 @@ ci: check test-ci
 
 # Start dev server
 dev PORT="8081":
-    pnpm exec expo start --port {{PORT}} --web
+    pnpm exec expo start --port {{ quote(PORT) }} --web
 
 # Scan dependencies for known vulnerabilities
 audit:
@@ -70,12 +70,13 @@ audit:
 
 # Port the E2E backend is mapped to on the host (must match compose.e2e.yaml / E2E_BACKEND_PORT)
 e2e_backend_port := env("E2E_BACKEND_PORT", "18432")
+e2e_api_url := "http://localhost:" + e2e_backend_port
 
 # Build Expo web app for E2E testing (exports static SPA to dist/)
 # Only the API URL is required for these tests; the public website URL falls back in-app.
 build-web:
-    @echo "Building Expo web for E2E with EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}}"
-    EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}} pnpm run build:web
+    @printf '%s\n' {{ quote("Building Expo web for E2E with EXPO_PUBLIC_API_URL=" + e2e_api_url) }}
+    EXPO_PUBLIC_API_URL={{ quote(e2e_api_url) }} pnpm run build:web
 
 # Run full-stack E2E tests (requires a prior `just build-web` and compose.e2e.yaml running)
 test-e2e:
@@ -102,6 +103,6 @@ clean:
 
 # Generate TypeScript API types from backend OpenAPI and redact sensitive examples
 codegen PORT="8011":
-    @echo "Generating TypeScript API types and redacting JWT examples (backend at http://localhost:{{PORT}})..."
-    EXPO_PUBLIC_API_URL=http://localhost:{{PORT}} pnpm run codegen
+    @printf '%s\n' {{ quote("Generating TypeScript API types and redacting JWT examples (backend at http://localhost:" + PORT + ")...") }}
+    EXPO_PUBLIC_API_URL={{ quote("http://localhost:" + PORT) }} pnpm run codegen
     @echo "✅ Generated src/types/api.generated.ts (redacted)"
