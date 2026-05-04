@@ -1,8 +1,6 @@
 """Shared constants for auth integration and unit-style endpoint tests."""
 
-from functools import lru_cache
-
-from pwdlib import PasswordHash
+from app.api.auth.services.password_hashing import build_password_helper
 
 TEST_EMAIL = "newuser@example.com"
 TEST_PASSWORD = "correct-horse-battery-staple-v42"
@@ -31,12 +29,6 @@ JWT_DOT_COUNT = 2
 TEST_STATE_JWT_SECRET = "test-state-jwt-secret-32-bytes-long"
 
 
-@lru_cache(maxsize=1)
-def _password_hasher() -> PasswordHash:
-    """Return a stable password hasher for auth integration test data."""
-    return PasswordHash.recommended()
-
-
 def hash_test_password(password: str) -> str:
     """Hash a password with a real supported scheme for auth-focused tests."""
-    return _password_hasher().hash(password)
+    return build_password_helper().hash(password)
