@@ -25,7 +25,12 @@ Backups are stored under:
 $BACKUP_DIR/restic
 ```
 
-`BACKUP_DIR` is configured in the host-local root `.env` file and defaults to `./backups`. Non-secret prod/staging Compose interpolation lives in `deploy/env/*.compose.env`; do not put real secrets under `deploy/`.
+For the Compose backup service, `BACKUP_DIR` is read from the host-local root
+`.env` file and defaults to `./backups`. Manual shell helpers such as
+`just backup-restore-smoke` use already-exported environment variables instead
+of parsing `.env`; export `BACKUP_DIR` first when you need a non-default path.
+Non-secret prod/staging Compose interpolation lives in `deploy/env/*.compose.env`;
+do not put real secrets under `deploy/`.
 
 ## Required Secrets
 

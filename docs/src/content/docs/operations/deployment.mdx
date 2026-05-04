@@ -48,7 +48,7 @@ Backup services are enabled through Compose profiles. Telemetry is opt-in throug
 - Docker Compose is the runtime for staging and production.
 - `compose.yaml` is the shared base topology.
 - `compose.dev.yaml`, `compose.ci.yaml`, and `compose.deploy.yaml` are the supported environment overlays.
-- The same `compose.deploy.yaml` is used for prod and staging. Committed `deploy/env/*.compose.env` files select the environment; the host-level root `.env` holds only local interpolation values such as tunnel tokens, telemetry endpoints, backup paths, and optional offsite repositories.
+- The same `compose.deploy.yaml` is used for prod and staging. Committed `deploy/env/*.compose.env` files select the environment; Docker Compose reads the host-level root `.env` for local interpolation values such as tunnel tokens, telemetry endpoints, and backup paths. Manual shell helpers use exported environment variables instead of parsing `.env`.
 - GitHub Actions validate changes, run security checks, and maintain release automation, but deploys are still operated from the server checkout.
 
 Docker development and E2E ports bind to localhost by default. For Expo testing from another device over a LAN, run the Expo dev server directly from `app/` on the host instead of using the Docker app service.
@@ -105,7 +105,7 @@ The backend enforces source-controlled application limits: JSON bodies are count
 - PostgreSQL stores the primary application state.
 - Uploaded files and images are stored on disk and served by the backend.
 - Database dumps and user-uploaded files are backed up into an encrypted local restic repository under `BACKUP_DIR`.
-- Optional offsite copies use `restic copy`; WebDAV is supported through restic's rclone backend with `RESTIC_OFFSITE_REPOSITORY=rclone:<remote>:relab/<env>/restic`.
+- Optional offsite copies use `restic copy`; WebDAV is supported through restic's rclone backend. Export `RESTIC_OFFSITE_REPOSITORY=rclone:<remote>:relab/<env>/restic` before running the manual offsite-copy helper.
 - Alembic migrations move schema state forward in a controlled way.
 - `just backup-restore-smoke staging` or `just backup-restore-smoke prod` restores the latest database dump into a disposable Postgres container and verifies that it can be read.
 
