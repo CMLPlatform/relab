@@ -173,6 +173,7 @@ const ENSURE_DEVICE_INTERNET_PATTERN = /ensure your device has internet/i;
 const ACCOUNT_SUSPENDED_PATTERN = /your account has been suspended/i;
 const UNABLE_TO_RETRIEVE_USER_PATTERN = /Unable to retrieve user information/;
 const UNEXPECTED_AUTHORIZATION_URL_PATTERN = /Unexpected authorization URL/;
+const UNEXPECTED_CALLBACK_URL_PATTERN = /Unexpected OAuth callback URL/;
 
 const mockedLogin = jest.mocked(login);
 const mockedGetUser = jest.mocked(getUser);
@@ -204,7 +205,7 @@ describe('Login screen', () => {
     mockedFetchOAuthAuthorizationUrl.mockResolvedValue({
       ok: true,
       status: 200,
-      authorizationUrl: 'https://provider.example.com/oauth',
+      authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       detail: undefined,
     });
     mockedOpenOAuthBrowserSession.mockResolvedValue({ type: 'cancel' } as AuthSessionResult);
@@ -717,6 +718,54 @@ describe('Login screen', () => {
           message: expect.stringMatching(UNEXPECTED_AUTHORIZATION_URL_PATTERN),
         }),
       );
+    });
+  });
+
+  it('shows error when OAuth provider returns an unsafe authorization URL on native', async () => {
+    mockPlatform('android');
+    mockedFetchOAuthAuthorizationUrl.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      authorizationUrl: 'http://evil.example.com/phish',
+      detail: undefined,
+    });
+
+    renderWithProviders(<Login />, { withDialog: true });
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with GitHub'));
+    });
+
+    await waitFor(() => {
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Login Failed',
+          message: expect.stringMatching(UNEXPECTED_AUTHORIZATION_URL_PATTERN),
+        }),
+      );
+      expect(openOAuthBrowserSession).not.toHaveBeenCalled();
+    });
+  });
+
+  it('shows error when native OAuth callback does not match the configured redirect', async () => {
+    mockPlatform('android');
+    mockedOpenOAuthBrowserSession.mockResolvedValueOnce({
+      type: 'success',
+      url: 'exp://evil.example/login?success=true',
+    });
+
+    renderWithProviders(<Login />, { withDialog: true });
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with Google'));
+    });
+
+    await waitFor(() => {
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Login Failed',
+          message: expect.stringMatching(UNEXPECTED_CALLBACK_URL_PATTERN),
+        }),
+      );
+      expect(getUser).not.toHaveBeenCalled();
     });
   });
 

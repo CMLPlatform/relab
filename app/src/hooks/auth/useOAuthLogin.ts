@@ -45,6 +45,20 @@ function parseOAuthCallbackUrl(url: string): {
   return { success, error, detail };
 }
 
+function isExpectedOAuthCallbackUrl(url: string, redirectUri: string): boolean {
+  try {
+    const actual = new URL(url.replace('#', '?'));
+    const expected = new URL(redirectUri);
+    return (
+      actual.protocol === expected.protocol &&
+      actual.host === expected.host &&
+      actual.pathname === expected.pathname
+    );
+  } catch {
+    return false;
+  }
+}
+
 function getOAuthErrorMessage(
   error?: string,
   detail?: string,
@@ -202,10 +216,11 @@ async function startOAuthLogin({
       throw new Error(detail || 'Failed to reach authorization endpoint.');
     }
 
+    if (!isAllowedOAuthRedirectUrl(authorization.authorizationUrl)) {
+      throw new Error('Unexpected authorization URL received. Please try again.');
+    }
+
     if (Platform.OS === 'web') {
-      if (!isAllowedOAuthRedirectUrl(authorization.authorizationUrl)) {
-        throw new Error('Unexpected authorization URL received. Please try again.');
-      }
       window.location.href = authorization.authorizationUrl;
       return;
     }
@@ -213,6 +228,10 @@ async function startOAuthLogin({
     const result = await openOAuthBrowserSession(authorization.authorizationUrl, redirectUri);
 
     if (!result || result.type !== 'success' || !result.url) return;
+
+    if (!isExpectedOAuthCallbackUrl(result.url, redirectUri)) {
+      throw new Error('Unexpected OAuth callback URL received. Please try again.');
+    }
 
     await finalizeOAuthLogin(parseOAuthCallbackUrl(result.url));
   } catch (error: unknown) {
