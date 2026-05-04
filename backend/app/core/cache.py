@@ -47,7 +47,7 @@ def _setup_cache_backend(backend_location: str) -> None:
     """Set up cashews with signed cache payloads."""
     cast("Any", _backend).setup(
         backend_location,
-        secret=settings.data_encryption_key_values[0],
+        secret=settings.cache_signing_secret.get_secret_value(),
         digestmod=_CACHE_SIGNING_DIGEST,
     )
 

@@ -4,11 +4,22 @@ from dataclasses import dataclass
 from enum import StrEnum
 from functools import cached_property
 
-from pydantic import BaseModel, EmailStr, Field, NameEmail, SecretStr, TypeAdapter, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    NameEmail,
+    SecretStr,
+    TypeAdapter,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 from app.core.config.models import Environment
 from app.core.constants import DAY, HOUR, MINUTE
 from app.core.env import RelabBaseSettings, is_production_like_environment
+from app.core.secrets import validate_min_secret_bytes
 
 NAME_EMAIL_ADAPTER = TypeAdapter(NameEmail)
 
@@ -72,6 +83,7 @@ class AuthSettings(RelabBaseSettings):
     fastapi_users_secret: SecretStr = SecretStr("")
 
     # OAuth settings
+    oauth_state_secret: SecretStr = SecretStr("")
     google_oauth_client_id: SecretStr = SecretStr("")
     google_oauth_client_secret: SecretStr = SecretStr("")
     github_oauth_client_id: SecretStr = SecretStr("")
@@ -127,6 +139,16 @@ class AuthSettings(RelabBaseSettings):
         ]
     )
 
+    @field_validator("fastapi_users_secret")
+    @classmethod
+    def validate_fastapi_users_secret(cls, value: SecretStr, info: ValidationInfo) -> SecretStr:
+        """Reject too-short auth secrets outside deterministic tests."""
+        environment = info.data.get("environment", Environment.DEV)
+        if environment == Environment.TESTING:
+            return value
+
+        return validate_min_secret_bytes(value, "FASTAPI_USERS_SECRET")
+
     @cached_property
     def email(self) -> ResolvedEmailSettings:
         """Return resolved email settings with shared fallback logic applied once."""
@@ -151,15 +173,28 @@ class AuthSettings(RelabBaseSettings):
             save_to_sent_items=self.microsoft_graph_save_to_sent_items,
         )
 
+    def _validate_oauth_state_secret(self, errors: list[str]) -> None:
+        """Collect production OAuth state secret length errors."""
+        if not self.oauth_state_secret.get_secret_value():
+            return
+        try:
+            validate_min_secret_bytes(self.oauth_state_secret, "OAUTH_STATE_SECRET")
+        except ValueError as exc:
+            errors.append(str(exc).removesuffix("."))
+
     @model_validator(mode="after")
     def validate_production_auth_settings(self) -> AuthSettings:
         """Fail fast when production-like auth settings are incomplete."""
+        oauth_state_secret = self.oauth_state_secret.get_secret_value()
         if not is_production_like_environment(self.environment.value):
+            if not oauth_state_secret:
+                self.oauth_state_secret = self.fastapi_users_secret
             return self
 
         errors: list[str] = []
         required_secrets: dict[str, str] = {
             "FASTAPI_USERS_SECRET": self.fastapi_users_secret.get_secret_value(),
+            "OAUTH_STATE_SECRET": oauth_state_secret,
             "GOOGLE_OAUTH_CLIENT_ID": self.google_oauth_client_id.get_secret_value(),
             "GOOGLE_OAUTH_CLIENT_SECRET": self.google_oauth_client_secret.get_secret_value(),
             "GITHUB_OAUTH_CLIENT_ID": self.github_oauth_client_id.get_secret_value(),
@@ -190,6 +225,8 @@ class AuthSettings(RelabBaseSettings):
         for name, value in required_secrets.items():
             if not value:
                 errors.append(f"{name} must not be empty in production/staging")
+
+        self._validate_oauth_state_secret(errors)
 
         for name, value in required_strings.items():
             if not value:

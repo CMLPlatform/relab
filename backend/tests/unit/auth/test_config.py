@@ -1,8 +1,13 @@
 """Unit tests for the auth module configuration."""
 
+import pytest
 from pydantic import SecretStr
+from pydantic_core import ValidationError
 
 from app.api.auth.config import AuthSettings
+from app.core.config import Environment
+
+VALID_SECRET = "x" * 32
 
 
 class TestAuthSettingsDefaults:
@@ -80,9 +85,66 @@ class TestAuthSettingsOverrides:
 
     def test_secrets_can_be_set_via_constructor(self) -> None:
         """Secrets supplied in __init__ are stored and retrievable."""
-        secret = "my-test-jwt-secret"
+        secret = VALID_SECRET
         settings = AuthSettings(fastapi_users_secret=SecretStr(secret))
         assert settings.fastapi_users_secret.get_secret_value() == secret
+
+    def test_fastapi_users_secret_rejects_short_values_outside_testing(self) -> None:
+        """Auth JWT keys should meet the 32-byte minimum outside test runs."""
+        with pytest.raises(ValidationError, match="FASTAPI_USERS_SECRET must be at least 32 bytes"):
+            AuthSettings(environment=Environment.DEV, fastapi_users_secret=SecretStr("short"))
+
+    def test_fastapi_users_secret_allows_fixed_testing_value(self) -> None:
+        """Tests can keep deterministic auth secrets for reproducibility."""
+        settings = AuthSettings(environment=Environment.TESTING, fastapi_users_secret=SecretStr("short"))
+
+        assert settings.fastapi_users_secret.get_secret_value() == "short"
+
+    def test_oauth_state_secret_falls_back_to_fastapi_users_secret_in_dev(self) -> None:
+        """Dev and test can omit the dedicated OAuth state key while migrating local envs."""
+        settings = AuthSettings(
+            environment=Environment.DEV,
+            fastapi_users_secret=SecretStr(VALID_SECRET),
+            oauth_state_secret=SecretStr(""),
+        )
+
+        assert settings.oauth_state_secret.get_secret_value() == VALID_SECRET
+
+    def test_oauth_state_secret_is_required_in_production_like_environments(self) -> None:
+        """Production-like environments should use separate keys for auth tokens and OAuth state."""
+        with pytest.raises(ValidationError, match="OAUTH_STATE_SECRET must not be empty"):
+            AuthSettings(
+                environment=Environment.PROD,
+                fastapi_users_secret=SecretStr(VALID_SECRET),
+                oauth_state_secret=SecretStr(""),
+                google_oauth_client_id=SecretStr("google-client"),
+                google_oauth_client_secret=SecretStr("google-secret"),
+                github_oauth_client_id=SecretStr("github-client"),
+                github_oauth_client_secret=SecretStr("github-secret"),
+                email_host="smtp.example.com",
+                email_username="smtp@example.com",
+                email_password=SecretStr("email-password"),
+                email_from="Sender <sender@example.com>",
+                email_reply_to="reply@example.com",
+            )
+
+    def test_oauth_state_secret_rejects_short_values_in_production_like_environments(self) -> None:
+        """Dedicated OAuth state keys should meet the same 32-byte floor in deployments."""
+        with pytest.raises(ValidationError, match="OAUTH_STATE_SECRET must be at least 32 bytes"):
+            AuthSettings(
+                environment=Environment.STAGING,
+                fastapi_users_secret=SecretStr(VALID_SECRET),
+                oauth_state_secret=SecretStr("short"),
+                google_oauth_client_id=SecretStr("google-client"),
+                google_oauth_client_secret=SecretStr("google-secret"),
+                github_oauth_client_id=SecretStr("github-client"),
+                github_oauth_client_secret=SecretStr("github-secret"),
+                email_host="smtp.example.com",
+                email_username="smtp@example.com",
+                email_password=SecretStr("email-password"),
+                email_from="Sender <sender@example.com>",
+                email_reply_to="reply@example.com",
+            )
 
     def test_oauth_redirect_paths_can_be_set(self) -> None:
         """OAuth allowed paths can be configured via constructor."""

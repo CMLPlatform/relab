@@ -7,6 +7,8 @@ from app.api.auth.config import AuthSettings, EmailProviderName, GraphEmailSetti
 from app.api.auth.services.email.providers import MicrosoftGraphEmailProvider, SmtpEmailProvider, build_email_provider
 from app.core.config.models import Environment
 
+VALID_SECRET = "x" * 32
+
 
 def test_email_provider_defaults_to_smtp() -> None:
     """SMTP remains the default provider for backward compatibility."""
@@ -63,7 +65,8 @@ def test_production_validation_is_provider_specific_for_graph() -> None:
     """Graph production config should not require SMTP host credentials."""
     settings = AuthSettings(
         environment=Environment.PROD,
-        fastapi_users_secret=SecretStr("secret"),
+        fastapi_users_secret=SecretStr(VALID_SECRET),
+        oauth_state_secret=SecretStr(VALID_SECRET),
         google_oauth_client_id=SecretStr("google-id"),
         google_oauth_client_secret=SecretStr("google-secret"),
         github_oauth_client_id=SecretStr("github-id"),
@@ -85,7 +88,8 @@ def test_production_validation_requires_graph_credentials() -> None:
     with pytest.raises(ValueError, match="MICROSOFT_GRAPH_CLIENT_ID"):
         AuthSettings(
             environment=Environment.PROD,
-            fastapi_users_secret=SecretStr("secret"),
+            fastapi_users_secret=SecretStr(VALID_SECRET),
+            oauth_state_secret=SecretStr(VALID_SECRET),
             google_oauth_client_id=SecretStr("google-id"),
             google_oauth_client_secret=SecretStr("google-secret"),
             github_oauth_client_id=SecretStr("github-id"),
