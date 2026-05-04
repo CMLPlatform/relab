@@ -35,13 +35,13 @@
     "@astrojs/mdx": "^5.0.4",
     "@astrojs/starlight": "^0.38.4",
     "@mermaid-js/layout-elk": "^0.2.1",
-    "astro": "^6.1.9",
+    "astro": "^6.2.1",
     "mermaid": "^11.14.0"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.8",
-    "@axe-core/playwright": "^4.11.2",
-    "@biomejs/biome": "^2.4.13",
+    "@astrojs/check": "^0.9.9",
+    "@axe-core/playwright": "^4.11.3",
+    "@biomejs/biome": "^2.4.14",
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.6.0",
     "linkinator": "^7.6.1",
