@@ -41,5 +41,3 @@ export const DOCS_URL = normalizeOptionalHttpUrl(
   process.env.EXPO_PUBLIC_DOCS_URL,
   'EXPO_PUBLIC_DOCS_URL',
 );
-
-export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
