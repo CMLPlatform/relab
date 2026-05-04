@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.dialects import postgresql
 
 from app.api.common.crud.exceptions import CRUDConfigurationError
 from app.api.common.crud.filtering import apply_filter
@@ -93,3 +94,13 @@ class TestQueryConstruction:
         assert "join categorymateriallink" in sql
         assert "join category" in sql
         assert "order by category.name asc" in sql
+
+    def test_relationship_filter_value_is_bound_not_sql_text(self) -> None:
+        """Relationship-backed filter values should remain bind params after allowlisted joins."""
+        value = "metal'); DROP TABLE material; --"
+        filters = MaterialFilterWithRelationships.from_ops(MaterialFilterWithRelationships.category_name.ilike(value))
+
+        compiled = apply_filter(select(Material), Material, filters).compile(dialect=postgresql.dialect())
+
+        assert value not in str(compiled)
+        assert value in compiled.params.values()
