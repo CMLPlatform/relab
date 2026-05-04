@@ -1963,46 +1963,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/oauth/google/bearer/token': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Exchange Google ID token for bearer + refresh tokens (PKCE flow)
-     * @description Receive a Google ID token obtained client-side via PKCE and issue app tokens.
-     */
-    post: operations['google_bearer_token_v1_oauth_google_bearer_token_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/oauth/google/session/token': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Exchange Google ID token for session cookies (PKCE flow)
-     * @description Receive a Google ID token obtained client-side via PKCE and set session cookies.
-     */
-    post: operations['google_session_token_v1_oauth_google_session_token_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/v1/users/me': {
     parameters: {
       query?: never;
@@ -3563,16 +3523,6 @@ export interface components {
       /** File Url */
       file_url?: string | null;
     };
-    /**
-     * GoogleTokenRequest
-     * @description Body for Google PKCE token exchange.
-     */
-    GoogleTokenRequest: {
-      /** Id Token */
-      id_token: string;
-      /** Access Token */
-      access_token?: string | null;
-    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -3950,23 +3900,6 @@ export interface components {
       account_id: string;
       /** Account Email */
       account_email: string;
-    };
-    /**
-     * OAuthBearerResponse
-     * @description Response for the bearer transport exchange.
-     */
-    OAuthBearerResponse: {
-      /** Access Token */
-      access_token: string;
-      /** Refresh Token */
-      refresh_token: string;
-      /**
-       * Token Type
-       * @default bearer
-       */
-      token_type: string;
-      /** Expires In */
-      expires_in: number;
     };
     /** Page[CameraRead] */
     Page_CameraRead_: {
@@ -4911,21 +4844,6 @@ export interface components {
        * Format: password
        */
       password: string;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active: boolean | null;
-      /**
-       * Is Superuser
-       * @default false
-       */
-      is_superuser: boolean | null;
-      /**
-       * Is Verified
-       * @default false
-       */
-      is_verified: boolean | null;
       /** Username */
       username: string;
     };
@@ -4934,9 +4852,6 @@ export interface components {
      * @description Update schema for users.
      * @example {
      *       "email": "user@example.com",
-     *       "is_active": true,
-     *       "is_superuser": true,
-     *       "is_verified": true,
      *       "password": "newpassword",
      *       "username": "username"
      *     }
@@ -4949,12 +4864,6 @@ export interface components {
       password?: string | null;
       /** Email */
       email?: string | null;
-      /** Is Active */
-      is_active?: boolean | null;
-      /** Is Superuser */
-      is_superuser?: boolean | null;
-      /** Is Verified */
-      is_verified?: boolean | null;
       /** Username */
       username?: string | null;
       /**
@@ -9309,9 +9218,7 @@ export interface operations {
   };
   oauth_github_bearer_authorize_v1_oauth_github_token_authorize_get: {
     parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
@@ -9325,15 +9232,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -9374,9 +9272,7 @@ export interface operations {
   };
   oauth_github_cookie_authorize_v1_oauth_github_session_authorize_get: {
     parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
@@ -9390,15 +9286,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -9439,9 +9326,7 @@ export interface operations {
   };
   oauth_associate_github_authorize_v1_oauth_github_associate_authorize_get: {
     parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
@@ -9455,15 +9340,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -9504,9 +9380,7 @@ export interface operations {
   };
   oauth_google_bearer_authorize_v1_oauth_google_token_authorize_get: {
     parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
@@ -9520,15 +9394,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -9569,9 +9434,7 @@ export interface operations {
   };
   oauth_google_cookie_authorize_v1_oauth_google_session_authorize_get: {
     parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
@@ -9585,15 +9448,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -9634,9 +9488,7 @@ export interface operations {
   };
   oauth_associate_google_authorize_v1_oauth_google_associate_authorize_get: {
     parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
@@ -9650,15 +9502,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -9699,9 +9542,7 @@ export interface operations {
   };
   oauth_associate_google_youtube_authorize_v1_oauth_google_youtube_associate_authorize_get: {
     parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
@@ -9715,15 +9556,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -9772,70 +9604,6 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  google_bearer_token_v1_oauth_google_bearer_token_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['GoogleTokenRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OAuthBearerResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  google_session_token_v1_oauth_google_session_token_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['GoogleTokenRequest'];
-      };
-    };
     responses: {
       /** @description Successful Response */
       204: {
