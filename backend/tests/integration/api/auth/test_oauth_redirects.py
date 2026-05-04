@@ -37,7 +37,7 @@ class TestOAuthRedirectValidation:
         mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
         with pytest.raises(HTTPException) as exc_info:
-            await builder._get_authorize_handler(mock_request, Response(), scopes=None)
+            await builder._get_authorize_handler(mock_request, Response())
 
         assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
         assert exc_info.value.detail == "Invalid redirect_uri"
@@ -61,7 +61,7 @@ class TestOAuthRedirectValidation:
         mock_request.query_params = {"redirect_uri": "https://app.example.com/auth/callback"}
         mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
-        result = await builder._get_authorize_handler(mock_request, Response(), scopes=None)
+        result = await builder._get_authorize_handler(mock_request, Response())
         assert result.authorization_url == "https://github.com/login/oauth/authorize"
 
     async def test_authorize_accepts_dev_regex_redirect_uri(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -83,7 +83,7 @@ class TestOAuthRedirectValidation:
         mock_request.query_params = {"redirect_uri": "http://192.168.1.50:3000/auth/callback"}
         mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
-        result = await builder._get_authorize_handler(mock_request, Response(), scopes=None)
+        result = await builder._get_authorize_handler(mock_request, Response())
         assert result.authorization_url == "https://github.com/login/oauth/authorize"
 
     async def test_authorize_accepts_allowlisted_native_redirect_uri(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -102,7 +102,7 @@ class TestOAuthRedirectValidation:
         mock_request.query_params = {"redirect_uri": "relab://oauth-callback"}
         mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
-        result = await builder._get_authorize_handler(mock_request, Response(), scopes=None)
+        result = await builder._get_authorize_handler(mock_request, Response())
         assert result.authorization_url == "https://github.com/login/oauth/authorize"
 
     async def test_authorize_rejects_redirect_uri_with_embedded_credentials(
@@ -127,7 +127,7 @@ class TestOAuthRedirectValidation:
         mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
         with pytest.raises(HTTPException) as exc_info:
-            await builder._get_authorize_handler(mock_request, Response(), scopes=None)
+            await builder._get_authorize_handler(mock_request, Response())
 
         assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
         assert exc_info.value.detail == "Invalid redirect_uri"

@@ -254,7 +254,7 @@ class TestAuthorizeHandler:
         request.query_params = {}
         response = MagicMock()
 
-        result = await builder._get_authorize_handler(request, response, user, scopes=None)
+        result = await builder._get_authorize_handler(request, response, user)
 
         assert result.authorization_url == "https://provider.example/auth?x=1"
         response.set_cookie.assert_called_once()
@@ -271,11 +271,11 @@ class TestAuthorizeHandler:
         response = MagicMock()
 
         with pytest.raises(OAuthInvalidRedirectURIError):
-            await builder._get_authorize_handler(request, response, user, scopes=None)
+            await builder._get_authorize_handler(request, response, user)
         oauth_client.get_authorization_url.assert_not_called()
 
     async def test_authorize_embeds_allowed_frontend_redirect_in_state(self) -> None:
-        """An allowed redirect_uri gets embedded in the state token and scopes propagate."""
+        """An allowed redirect_uri gets embedded in state while scopes stay backend-controlled."""
         builder, oauth_client, _ = _make_builder()
         builder.redirect_url = "https://api.example/cb"
         oauth_client.get_authorization_url = AsyncMock(return_value="https://provider.example/auth")
@@ -285,11 +285,11 @@ class TestAuthorizeHandler:
         request.query_params = {"redirect_uri": "https://relab.example/ok"}
         response = MagicMock()
 
-        await builder._get_authorize_handler(request, response, user, scopes=["openid"])
+        await builder._get_authorize_handler(request, response, user)
 
         call = oauth_client.get_authorization_url.await_args
         assert call is not None
         assert call.args[0] == "https://api.example/cb"
         assert isinstance(call.args[1], str)
         assert len(call.args[1]) > 20
-        assert call.args[2] == ["openid"]
+        assert call.args[2] is None
