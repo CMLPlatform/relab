@@ -12,7 +12,6 @@ Required environment:
 """
 # spell-checker: ignore aesgcm, conninfo
 
-
 from __future__ import annotations
 
 import argparse
@@ -26,6 +25,7 @@ from typing import TYPE_CHECKING
 
 import psycopg
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from psycopg import sql
 
 from app.core.crypto.keys import decode_data_encryption_key
 
@@ -101,6 +101,29 @@ def migrate_value(value: str | None, aesgcm: AESGCM) -> str | None:
     return encrypt_v2(aesgcm, value)
 
 
+def build_select_unmigrated_query(table: str, pk_col: str, enc_cols: Sequence[str]) -> sql.Composed:
+    """Build the allowlisted SELECT query for one hardcoded migration target."""
+    selected_cols = sql.SQL(", ").join(sql.Identifier(col) for col in (pk_col, *enc_cols))
+    unmigrated_clauses = sql.SQL(" OR ").join(
+        sql.SQL("({col} IS NOT NULL AND {col} NOT LIKE %s)").format(col=sql.Identifier(col)) for col in enc_cols
+    )
+    return sql.SQL("SELECT {cols} FROM {table} WHERE {where}").format(
+        cols=selected_cols,
+        table=sql.Identifier(table),
+        where=unmigrated_clauses,
+    )
+
+
+def build_update_encrypted_columns_query(table: str, pk_col: str, update_cols: Sequence[str]) -> sql.Composed:
+    """Build the allowlisted UPDATE query for encrypted columns on one row."""
+    set_clause = sql.SQL(", ").join(sql.SQL("{col} = %s").format(col=sql.Identifier(col)) for col in update_cols)
+    return sql.SQL("UPDATE {table} SET {set_clause} WHERE {pk_col} = %s").format(
+        table=sql.Identifier(table),
+        set_clause=set_clause,
+        pk_col=sql.Identifier(pk_col),
+    )
+
+
 def migrate_table(
     conn: psycopg.Connection,
     table: str,
@@ -113,13 +136,11 @@ def migrate_table(
 ) -> MigrationStats:
     """Migrate one table and return migrated/skipped field counts."""
     migrated = skipped = 0
-    cols_sql = ", ".join([pk_col, *enc_cols])
-    unmigrated_clauses = " OR ".join(f"({col} IS NOT NULL AND {col} NOT LIKE %s)" for col in enc_cols)
     v2_pattern = f"{V2_PREFIX}%"
 
     with conn.cursor() as cur:
         cur.execute(
-            f"SELECT {cols_sql} FROM {table} WHERE {unmigrated_clauses}",  # noqa: S608
+            build_select_unmigrated_query(table, pk_col, enc_cols),
             [v2_pattern] * len(enc_cols),
         )
         rows = cur.fetchmany(batch_size)
@@ -145,11 +166,10 @@ def migrate_table(
                 if not updates:
                     continue
 
-                set_clause = ", ".join(f"{col} = %s" for col in updates)
                 if not dry_run:
                     with conn.cursor() as upd:
                         upd.execute(
-                            f"UPDATE {table} SET {set_clause} WHERE {pk_col} = %s",  # noqa: S608
+                            build_update_encrypted_columns_query(table, pk_col, list(updates)),
                             [*updates.values(), pk],
                         )
                 migrated += len(updates)
