@@ -8,8 +8,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi import status
 from fastapi_users.exceptions import UserAlreadyExists
+from sqlalchemy import select
 
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
+from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
 from app.api.auth.services.user_database import UserDatabaseAsync
 
@@ -174,6 +176,30 @@ class TestRegistrationEndpoint:
             response = await api_client.post("/v1/auth/register", json=user_data)
 
         assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.parametrize("field_name", ["is_superuser", "is_active", "is_verified"])
+    async def test_register_rejects_privileged_fields(
+        self,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+        field_name: str,
+    ) -> None:
+        """Registration must reject user-control fields instead of relying on safe-mode filtering."""
+        email = f"{field_name.replace('_', '-')}@example.com"
+        response = await api_client.post(
+            "/v1/auth/register",
+            json={
+                "email": email,
+                "password": TEST_PASSWORD,
+                "username": f"mass_assignment_{field_name}",
+                field_name: True,
+            },
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+        assert field_name in response.text
+        user = await db_session.scalar(select(User).where(User.email == email))
+        assert user is None
 
 
 class TestLoginEndpoint:
