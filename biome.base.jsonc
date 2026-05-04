@@ -18,7 +18,20 @@
       "recommended": true,
       "a11y": "on",
       "performance": "on",
-      "security": "on"
+      "security": "on",
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["http://**", "https://**", "//**"],
+                "message": "Do not import browser runtime JavaScript from remote or CDN URLs; install and bundle dependencies locally."
+              }
+            ]
+          }
+        }
+      }
     }
   },
   "vcs": {
