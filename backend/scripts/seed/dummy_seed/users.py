@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import User
-from app.api.auth.schemas import UserCreate
+from app.api.auth.schemas import TrustedUserCreate
 from app.api.auth.services.programmatic_user_crud import create_user
 
 from .data import user_data
@@ -29,7 +29,7 @@ async def seed_users(session: AsyncSession) -> dict[str, User]:
             user_map[existing_user.email] = existing_user
             continue
 
-        user_create = UserCreate(
+        user_create = TrustedUserCreate(
             email=user_dict["email"],
             password=user_dict["password"],
             username=user_dict["username"],

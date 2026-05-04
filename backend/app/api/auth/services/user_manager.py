@@ -13,7 +13,7 @@ from sqlalchemy import select
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.crud.users import update_user_override
 from app.api.auth.models import User
-from app.api.auth.schemas import UserCreate, UserUpdate
+from app.api.auth.schemas import UserCreateBase, UserUpdate
 from app.api.auth.services import refresh_token_service
 from app.api.auth.services.auth_backends import build_authentication_backends
 from app.api.auth.services.email import (
@@ -104,7 +104,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
     async def validate_password(
         self,
         password: str | SecretStr,
-        user: UserCreate | User,
+        user: UserCreateBase | User,
     ) -> None:
         """Delegate password validation to the dedicated service."""
         if self.skip_password_validation:

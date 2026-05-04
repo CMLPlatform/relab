@@ -7,7 +7,7 @@ import logging
 import anyio
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
-from app.api.auth.schemas import UserCreate
+from app.api.auth.schemas import TrustedUserCreate
 from app.api.auth.services.programmatic_user_crud import create_user
 from app.core.config import settings
 from app.core.database import async_session_context, close_async_engine
@@ -32,7 +32,7 @@ async def create_superuser() -> None:
             try:
                 await create_user(
                     async_session=async_session,
-                    user_create=UserCreate.model_construct(
+                    user_create=TrustedUserCreate.model_construct(
                         email=superuser_email,
                         username=superuser_name,
                         password=superuser_password.get_secret_value(),
