@@ -27,9 +27,6 @@ USER_UPDATE_EXAMPLES = [
     {
         "password": "newpassword",
         "email": "user@example.com",
-        "is_active": True,
-        "is_superuser": True,
-        "is_verified": True,
         "username": "username",
     }
 ]

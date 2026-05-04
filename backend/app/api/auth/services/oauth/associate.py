@@ -3,7 +3,7 @@
 
 from typing import TYPE_CHECKING, Annotated, Any, Protocol, cast
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import Response as FastAPIResponse
 from fastapi_users import schemas
 from fastapi_users.models import UserOAuthProtocol
@@ -136,9 +136,8 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
             request: Request,
             response: Response,
             user: Annotated[User, Depends(get_current_active_user)],
-            scopes: Annotated[list[str] | None, Query()] = None,
         ) -> OAuth2AuthorizeResponse:
-            return await self._get_authorize_handler(request, response, user, scopes)
+            return await self._get_authorize_handler(request, response, user)
 
         # Python 3.14 (annotationlib) cannot resolve local-scope variables referenced in
         # annotations of inner functions when Pydantic rebuilds the schema. Setting
@@ -171,7 +170,6 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         request: Request,
         response: Response,
         user: User,
-        scopes: list[str] | None,
     ) -> OAuth2AuthorizeResponse:
         authorize_redirect_url = self.redirect_url
         if authorize_redirect_url is None:
@@ -190,7 +188,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         authorization_url = await self.oauth_client.get_authorization_url(
             authorize_redirect_url,
             state,
-            scopes,
+            None,
             extras_params=self.authorize_extras_params,
         )
 
