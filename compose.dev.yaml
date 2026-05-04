@@ -194,3 +194,7 @@ services:
           path: ./www/pnpm-lock.yaml
         - action: rebuild
           path: ./www/package.json
+
+networks:
+  data:
+    internal: false
