@@ -135,6 +135,7 @@ jest.mock('@/services/api/authentication', () => ({
 }));
 
 jest.mock('@/services/api/oauthFlow', () => ({
+  ...jest.requireActual<typeof import('@/services/api/oauthFlow')>('@/services/api/oauthFlow'),
   buildOAuthAuthorizeUrl: jest.fn(),
   fetchOAuthAuthorizationUrl: jest.fn(),
   openOAuthBrowserSession: jest.fn(),

@@ -136,28 +136,6 @@ export async function updateUser(updates: Partial<User>): Promise<User | undefin
   }
 }
 
-/**
- * Exchange a Google ID token (obtained via expo-auth-session PKCE on web) for
- * app session cookies.  Sets httpOnly auth + refresh_token cookies on success.
- */
-export async function oauthLoginWithGoogleToken(
-  idToken: string,
-  accessToken: string | null,
-): Promise<void> {
-  const url = new URL(`${apiURL}/oauth/google/session/token`);
-  const response = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ id_token: idToken, access_token: accessToken }),
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(extractApiErrorDetail(errorData, 'Google login failed. Please try again.'));
-  }
-}
-
 export async function unlinkOAuth(provider: string): Promise<boolean> {
   const url = new URL(`${apiURL}/oauth/${provider}/associate`);
 

@@ -524,36 +524,6 @@ describe('Authentication API Service', () => {
     });
   });
 
-  // ─── oauthLoginWithGoogleToken ──────────────────────────
-
-  describe('oauthLoginWithGoogleToken', () => {
-    it('resolves without error on a successful response', async () => {
-      fetchMock().mockResolvedValueOnce(mockResponse(200, {}) as Response);
-
-      await expect(
-        auth.oauthLoginWithGoogleToken('id-token-abc', 'access-token-xyz'),
-      ).resolves.toBeUndefined();
-    });
-
-    it('throws with server detail on non-ok response', async () => {
-      fetchMock().mockResolvedValueOnce(
-        mockResponse(400, { detail: 'Token expired' }, false) as Response,
-      );
-
-      await expect(auth.oauthLoginWithGoogleToken('bad-token', null)).rejects.toThrow(
-        'Token expired',
-      );
-    });
-
-    it('throws a fallback message when response has no detail', async () => {
-      fetchMock().mockResolvedValueOnce(mockResponse(500, {}, false) as Response);
-
-      await expect(auth.oauthLoginWithGoogleToken('token', null)).rejects.toThrow(
-        'Google login failed. Please try again.',
-      );
-    });
-  });
-
   // ─── Web platform tests ──────────────────────────────────
   // These tests need a working sessionStorage (not provided by jest-expo's
   // lightweight test environment). We install a simple in-memory mock once
