@@ -4,17 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - Reverse Engineering Lab API</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/static/css/styles.css" />
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
     <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon" />
+    <script src="/static/js/backend-login.js" defer></script>
   </head>
   <body>
     <div class="container">
       <h1>Login</h1>
-      <form id="loginForm">
+      <form id="loginForm" data-login-url="/v1/auth/session/login" data-default-next="{{ url_for('index') }}">
         <div class="form-group">
           <label for="email">Email</label>
           <input
@@ -41,7 +39,7 @@
             required
           />
         </div>
-        <div id="error" class="error"></div>
+        <div id="error" class="error" hidden></div>
         {% if next %}
           <input type="hidden" id="next" name="next" value="{{ next|e }}" />
         {% endif %}
@@ -49,40 +47,5 @@
         <a href="{{ url_for('index') }}" class="secondary-btn back-link">API Homepage</a>
       </form>
     </div>
-
-    <script>
-      const defaultNext = {{ url_for("index") | string | tojson }}
-
-      document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault()
-        const errorDiv = document.getElementById('error')
-
-        try {
-          const response = await fetch('/v1/auth/session/login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-              username: document.getElementById('email').value,
-              password: document.getElementById('password').value,
-              ...(document.getElementById('next') ? { next: document.getElementById('next').value } : {})
-            }),
-            credentials: 'include'
-          })
-
-          if (response.ok) {
-            window.location.href = defaultNext
-          } else {
-            const data = await response.json()
-            errorDiv.textContent = data.detail || 'Login failed'
-            errorDiv.style.display = 'block'
-          }
-        } catch (error) {
-          errorDiv.textContent = error.message || 'An unexpected error occurred'
-          errorDiv.style.display = 'block'
-        }
-      })
-    </script>
   </body>
 </html>
