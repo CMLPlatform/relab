@@ -19,9 +19,10 @@ from app.core.config import settings
 from app.core.config.models import Environment
 from app.core.logging import cleanup_logging, setup_logging
 from app.core.middleware import (
+    register_content_negotiation_middleware,
     register_request_id_middleware,
     register_request_size_limit_middleware,
-    register_security_headers_middleware,
+    register_response_policy_middleware,
 )
 
 if TYPE_CHECKING:
@@ -63,6 +64,9 @@ def create_app() -> FastAPI:
     # Add request ID propagation and request access logging
     register_request_id_middleware(app)
 
+    # Enforce lean REST media type negotiation on API routes.
+    register_content_negotiation_middleware(app)
+
     # Add global non-multipart request body size limits
     register_request_size_limit_middleware(app)
 
@@ -83,8 +87,8 @@ def create_app() -> FastAPI:
         expose_headers=["X-Request-ID"],
     )
 
-    # Add security headers last so they wrap framework-level responses too.
-    register_security_headers_middleware(
+    # Add response policy last so it wraps framework-level responses too.
+    register_response_policy_middleware(
         app,
         enable_hsts=settings.environment in {Environment.STAGING, Environment.PROD},
     )

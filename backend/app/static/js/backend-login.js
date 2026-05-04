@@ -9,7 +9,7 @@ if (loginForm instanceof HTMLFormElement) {
         const passwordInput = document.getElementById('password');
         const nextInput = document.getElementById('next');
         const loginUrl = loginForm.dataset.loginUrl;
-        const defaultNext = loginForm.dataset.defaultNext || '/';
+        const redirectUrl = nextInput instanceof HTMLInputElement ? nextInput.value : loginForm.dataset.defaultNext || '/';
 
         if (!(emailInput instanceof HTMLInputElement) || !(passwordInput instanceof HTMLInputElement) || !loginUrl) {
             return;
@@ -35,7 +35,7 @@ if (loginForm instanceof HTMLFormElement) {
             });
 
             if (response.ok) {
-                window.location.href = defaultNext;
+                window.location.href = redirectUrl;
                 return;
             }
 
