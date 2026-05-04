@@ -33,7 +33,7 @@
     "test:e2e:ui": "playwright test --ui",
     "ci": "pnpm run check && pnpm run test:ci",
     "codegen:api": "openapi-typescript ${EXPO_PUBLIC_API_URL:-http://localhost:8011}/openapi.json -o src/types/api.generated.ts",
-    "codegen:api:redact": "pnpm run codegen:api && node scripts/redact_api.js",
+    "codegen:api:redact": "pnpm run codegen:api && node scripts/redact_api.mjs",
     "codegen": "pnpm run codegen:api:redact"
   },
   "dependencies": {
