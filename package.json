@@ -17,9 +17,9 @@
     "syncpack:check": "syncpack lint"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.13",
+    "@biomejs/biome": "^2.4.14",
     "cspell": "^10.0.0",
-    "syncpack": "^14.3.0"
+    "syncpack": "^14.3.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": []
