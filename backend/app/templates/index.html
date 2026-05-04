@@ -4,14 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reverse Engineering Labs API</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/static/css/styles.css" />
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
     <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon" />
+    <script src="/static/js/backend-index.js" defer></script>
   </head>
-  <body>
+  <body data-logout-url="{{ url_for('auth:logout') }}">
     <div class="container">
       <h1>RELab API</h1>
       <p class="description">This is the backend API for the Reverse Engineering Lab.</p>
@@ -40,22 +38,5 @@
         {% endif %}
       </div>
     </div>
-
-    <script>
-      const logoutLink = document.getElementById('logoutLink')
-
-      if (logoutLink) {
-        logoutLink.addEventListener('click', async (event) => {
-          event.preventDefault()
-
-          try {
-            await fetch('{{ url_for("auth:logout") }}', { method: 'POST', credentials: 'include' })
-            window.location.reload()
-          } catch (error) {
-            console.error('Logout failed:', error)
-          }
-        })
-      }
-    </script>
   </body>
 </html>
