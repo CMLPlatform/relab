@@ -6,6 +6,8 @@ import { getToken } from '@/services/api/authentication';
 import {
   buildOAuthAuthorizeUrl,
   fetchOAuthAuthorizationUrl,
+  isAllowedOAuthRedirectUrl,
+  isExpectedOAuthCallbackUrl,
   openOAuthBrowserSession,
 } from '@/services/api/oauthFlow';
 
@@ -32,6 +34,8 @@ jest.mock('@/services/api/oauthFlow', () => ({
     ok: true,
     authorizationUrl: 'https://oauth.example.com/start',
   })),
+  isAllowedOAuthRedirectUrl: jest.fn(() => true),
+  isExpectedOAuthCallbackUrl: jest.fn(() => true),
   openOAuthBrowserSession: jest.fn(async () => ({
     type: 'success',
     url: 'relab://profile?success=true',
@@ -50,6 +54,8 @@ describe('useOAuthAssociations', () => {
       detail: undefined,
       authorizationUrl: 'https://oauth.example.com/start',
     }));
+    jest.mocked(isAllowedOAuthRedirectUrl).mockReturnValue(true);
+    jest.mocked(isExpectedOAuthCallbackUrl).mockReturnValue(true);
     jest.mocked(openOAuthBrowserSession).mockImplementation(async () => ({
       type: 'success',
       url: 'relab://profile?success=true',
@@ -173,6 +179,51 @@ describe('useOAuthAssociations', () => {
 
     expect(mockFeedback.error).toHaveBeenCalledWith(
       'Failed to start link flow: Association endpoint unavailable',
+      'Link failed',
+    );
+  });
+
+  it('rejects an unexpected provider authorization URL before opening the browser', async () => {
+    jest.mocked(isAllowedOAuthRedirectUrl).mockReturnValue(false);
+
+    const { result } = renderHook(() =>
+      useOAuthAssociations({
+        feedback: mockFeedback,
+        refetch: mockRefetch,
+        setYoutubeEnabled: mockSetYoutubeEnabled,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.actions.linkGithub();
+    });
+
+    expect(openOAuthBrowserSession).not.toHaveBeenCalled();
+    expect(mockRefetch).not.toHaveBeenCalled();
+    expect(mockFeedback.error).toHaveBeenCalledWith(
+      'Failed to start link flow: Unexpected authorization URL received. Please try again.',
+      'Link failed',
+    );
+  });
+
+  it('rejects an unexpected association callback URL before refetching', async () => {
+    jest.mocked(isExpectedOAuthCallbackUrl).mockReturnValue(false);
+
+    const { result } = renderHook(() =>
+      useOAuthAssociations({
+        feedback: mockFeedback,
+        refetch: mockRefetch,
+        setYoutubeEnabled: mockSetYoutubeEnabled,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.actions.linkGoogle();
+    });
+
+    expect(mockRefetch).not.toHaveBeenCalled();
+    expect(mockFeedback.error).toHaveBeenCalledWith(
+      'Failed to start link flow: Unexpected OAuth callback URL received. Please try again.',
       'Link failed',
     );
   });

@@ -7,13 +7,14 @@ import { getUser, markWebSessionActive } from '@/services/api/authentication';
 import {
   buildOAuthAuthorizeUrl,
   fetchOAuthAuthorizationUrl,
+  isAllowedOAuthRedirectUrl,
+  isExpectedOAuthCallbackUrl,
   openOAuthBrowserSession,
 } from '@/services/api/oauthFlow';
 import type { User } from '@/types/User';
 import type { SafeRedirectTarget } from './useLoginRedirect';
 
 const OAUTH_ACCOUNT_NOT_LINKED_ERROR = 'OAUTH_USER_ALREADY_EXISTS';
-const ALLOWED_OAUTH_HOSTNAMES = new Set(['accounts.google.com', 'github.com']);
 type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
 type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof getUser>>>;
 type DialogApi = ReturnType<typeof useDialog>;
@@ -21,15 +22,6 @@ type DialogApi = ReturnType<typeof useDialog>;
 function maybeUnrefTimer(timer: unknown): void {
   if (timer && typeof timer === 'object' && 'unref' in timer) {
     (timer as TimerWithUnref).unref();
-  }
-}
-
-function isAllowedOAuthRedirectUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === 'https:' && ALLOWED_OAUTH_HOSTNAMES.has(parsed.hostname);
-  } catch {
-    return false;
   }
 }
 
@@ -43,20 +35,6 @@ function parseOAuthCallbackUrl(url: string): {
   const error = callbackUrl.searchParams.get('error') ?? undefined;
   const detail = callbackUrl.searchParams.get('detail') ?? undefined;
   return { success, error, detail };
-}
-
-function isExpectedOAuthCallbackUrl(url: string, redirectUri: string): boolean {
-  try {
-    const actual = new URL(url.replace('#', '?'));
-    const expected = new URL(redirectUri);
-    return (
-      actual.protocol === expected.protocol &&
-      actual.host === expected.host &&
-      actual.pathname === expected.pathname
-    );
-  } catch {
-    return false;
-  }
 }
 
 function getOAuthErrorMessage(

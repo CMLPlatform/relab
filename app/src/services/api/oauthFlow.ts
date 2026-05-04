@@ -2,6 +2,7 @@ import { openAuthSessionAsync } from 'expo-web-browser';
 import { apiFetch } from '@/services/api/client';
 
 const OAUTH_BROWSER_TIMEOUT_MS = 5 * 60 * 1000;
+const ALLOWED_OAUTH_HOSTNAMES = new Set(['accounts.google.com', 'github.com']);
 
 export type OAuthSessionResult = Awaited<ReturnType<typeof openAuthSessionAsync>>;
 
@@ -19,6 +20,29 @@ export function extractOAuthErrorDetail(payload: unknown): string | undefined {
     if (typeof nested.message === 'string') return nested.message;
   }
   return;
+}
+
+export function isAllowedOAuthRedirectUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && ALLOWED_OAUTH_HOSTNAMES.has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function isExpectedOAuthCallbackUrl(url: string, redirectUri: string): boolean {
+  try {
+    const actual = new URL(url.replace('#', '?'));
+    const expected = new URL(redirectUri);
+    return (
+      actual.protocol === expected.protocol &&
+      actual.host === expected.host &&
+      actual.pathname === expected.pathname
+    );
+  } catch {
+    return false;
+  }
 }
 
 export async function fetchOAuthAuthorizationUrl(

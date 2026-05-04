@@ -5,6 +5,8 @@ import { getToken } from '@/services/api/authentication';
 import {
   buildOAuthAuthorizeUrl,
   fetchOAuthAuthorizationUrl,
+  isAllowedOAuthRedirectUrl,
+  isExpectedOAuthCallbackUrl,
   openOAuthBrowserSession,
 } from '@/services/api/oauthFlow';
 
@@ -53,8 +55,15 @@ export function useOAuthAssociations({
       throw new Error(authorization.detail || 'Failed to reach association endpoint.');
     }
 
+    if (!isAllowedOAuthRedirectUrl(authorization.authorizationUrl)) {
+      throw new Error('Unexpected authorization URL received. Please try again.');
+    }
+
     const result = await openOAuthBrowserSession(authorization.authorizationUrl, redirectUri);
     if (result.type === 'success') {
+      if (!result.url || !isExpectedOAuthCallbackUrl(result.url, redirectUri)) {
+        throw new Error('Unexpected OAuth callback URL received. Please try again.');
+      }
       return { type: 'success', url: result.url };
     }
     return { type: String(result.type) };
