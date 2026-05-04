@@ -94,7 +94,6 @@ backup_offsite_copy() {
     local env="${1:-staging}"
     source scripts/deploy_helpers.sh
 
-    deploy_load_root_env_preserving BACKUP_DIR RESTIC_OFFSITE_REPOSITORY
     deploy_resolve_backup_paths "$env"
 
     local rclone_config="secrets/$env/rclone.conf"
@@ -138,7 +137,6 @@ backup_restore_smoke() {
     local env="${1:-prod}"
     source scripts/deploy_helpers.sh
 
-    deploy_load_root_env_preserving BACKUP_DIR RESTIC_OFFSITE_REPOSITORY
     deploy_resolve_backup_paths "$env"
 
     tmp_root="$(mktemp -d)"
