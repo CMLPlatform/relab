@@ -35,11 +35,14 @@ This page is about running the stack. For tooling policy and contributor workflo
    just setup
    ```
 
-1. Configure the backend environment.
+1. Configure the backend environment and local backend secrets.
 
    ```bash
    cp backend/.env.dev.example backend/.env.dev
+   just deploy-secrets-template dev
    ```
+
+   `backend/.env.dev` stores non-secret config. Replace values under `secrets/dev/` only when you need real local credentials for integrations such as OAuth or email.
 
 1. Run the first migration pass.
 
@@ -93,32 +96,39 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
      For an existing Cloudflare account, import the current resources before
      applying OpenTofu changes.
 
-1. Copy `.env.example` to `.env` and fill in values.
+1. Copy `.env.example` to `.env` and fill in the operator checklist.
 
    ```bash
    cp .env.example .env
    ```
 
-   - **Prod host**: set `TUNNEL_TOKEN=<prod token>` plus optional telemetry and backup overrides.
-   - **Staging host**: set `TUNNEL_TOKEN=<staging token>` plus optional telemetry and backup overrides.
+   The root `.env` holds host-local values that Compose must interpolate. It can contain two types of values:
 
-   Environment identity, public URLs, worker counts, and build mode live in `deploy/env/prod.compose.env` and `deploy/env/staging.compose.env`; do not duplicate those values in the root `.env`.
+   - **Non-secret** values, such as OAuth client IDs, email sender metadata, the initial superuser email/name, backup retention, and optional telemetry endpoints.
+   - **Secret** values only when a host helper or Compose interpolation requires them, such as `TUNNEL_TOKEN` or optional authenticated telemetry URLs/headers.
 
-1. Configure the backend runtime environment for this host.
+   For prod or staging, fill the required non-secret backend deploy inputs in `.env`: `GOOGLE_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_ID`, `EMAIL_PROVIDER`, email sender fields, and `SUPERUSER_EMAIL`. Use the prod or staging Cloudflare tunnel token for `TUNNEL_TOKEN`. Compose requires the shared email identity values; backend startup validation enforces provider-specific settings. With `EMAIL_PROVIDER=smtp`, fill `EMAIL_HOST`, `EMAIL_USERNAME`, and `secrets/<env>/email_password`. With `EMAIL_PROVIDER=microsoft_graph`, fill the Microsoft Graph tenant/client/sender values and `secrets/<env>/microsoft_graph_client_secret`.
 
-   ```bash
-   cp backend/.env.prod.example backend/.env.prod          # on a prod host
-   # OR
-   cp backend/.env.staging.example backend/.env.staging    # on a staging host
-   ```
+   Environment identity, public origins, and worker counts live in `deploy/env/prod.compose.env` and `deploy/env/staging.compose.env`. Each deploy env file defines the environment plus the four public service URLs once: `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `WEB_PUBLIC_URL`, and `DOCS_PUBLIC_URL`.
 
-1. Create the host-local Compose secret files for database roles and backups.
+1. Review the non-secret deploy settings for this host.
+
+   Edit `deploy/env/prod.compose.env` or `deploy/env/staging.compose.env` only for committed public URL or worker-count changes. Keep application/runtime secrets out of `.env`; they belong under `secrets/<env>/`.
+
+1. Create the host-local Compose secret files.
 
    ```bash
    just deploy-secrets-template prod
    ```
 
-   Replace every placeholder value under `secrets/prod/`. Use `just deploy-secrets-template staging` for staging. The required filenames for database, Redis, and restic credentials are tracked in `deploy/required-secret-files.txt`, and `just deploy-secrets-check` verifies that the manifest still matches Compose. Existing database volumes must be dumped and recreated before this role layout can take effect.
+   Replace every placeholder value under `secrets/prod/`. Use `just deploy-secrets-template staging` for staging or `just deploy-secrets-template dev` for local development. Required secret filenames are declared by the rendered Compose overlays, and `just deploy-secrets-check` verifies that every rendered secret points at the expected `secrets/<env>/` file. Existing database volumes must be dumped and recreated before the database role layout can take effect.
+
+1. Validate the deployment configuration.
+
+   ```bash
+   just compose-config
+   just deploy-secrets-check
+   ```
 
 1. Start the stack.
 
@@ -135,6 +145,29 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
    ```
 
    In the current setup, deployment is done directly on the server.
+
+1. For Cloudflare edge changes, plan from the repo checkout or an ops machine
+   with OpenTofu and Cloudflare credentials.
+
+   Set the credentials and Cloudflare identifiers in the shell before planning:
+
+   ```bash
+   export CLOUDFLARE_API_TOKEN='...'
+   export TF_VAR_cloudflare_account_id='...'
+   export TF_VAR_cloudflare_zone_id='...'
+   ```
+
+   ```bash
+   just cloudflare-check
+   just cloudflare-plan staging
+   just cloudflare-plan prod
+   just cloudflare-apply staging YES
+   just cloudflare-apply prod YES
+   ```
+
+   The same commands will work later if those values come from Bitwarden or
+   another password manager. Keep prod and staging state separate. Do not commit
+   Cloudflare tokens, tunnel tokens, or state files.
 
 1. Run migrations.
 
