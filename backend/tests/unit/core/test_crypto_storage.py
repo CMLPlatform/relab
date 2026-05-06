@@ -97,12 +97,12 @@ def test_production_requires_data_encryption_key() -> None:
         CoreSettings(
             environment=Environment.PROD,
             backend_api_url=HttpUrl("https://api.cml-relab.org/"),
-            frontend_web_url=HttpUrl("https://cml-relab.org/"),
+            site_public_url=HttpUrl("https://cml-relab.org/"),
             frontend_app_url=HttpUrl("https://app.cml-relab.org/"),
             postgres_password=SecretStr("test-password"),
             redis_password=SecretStr("test-password"),
-            superuser_password=SecretStr("test-password"),
-            superuser_email="admin@example.com",
+            bootstrap_superuser_password=SecretStr("test-password"),
+            bootstrap_superuser_email="admin@example.com",
             data_encryption_key=SecretStr(""),
         )
 

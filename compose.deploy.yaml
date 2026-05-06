@@ -14,13 +14,13 @@
 # --- Reusable fragments ------------------------------------------------------
 # Shipping container logs to a central Loki instance is opt-in: include
 # compose.logging.loki.yaml alongside this file (the justfile does this
-# automatically when LOKI_URL is set in the host's root .env). Hosts without
+# automatically when LOKI_PUSH_URL is set in the host's root .env). Hosts without
 # Loki get Docker's default json-file driver — no config needed.
 
 x-backend-public-origins: &backend-public-origins
   BACKEND_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
   FRONTEND_APP_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
-  FRONTEND_WEB_URL: ${WEB_PUBLIC_URL:?WEB_PUBLIC_URL must be set}
+  SITE_PUBLIC_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
   DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
   OAUTH_ALLOWED_REDIRECT_URIS: ${OAUTH_ALLOWED_REDIRECT_URIS:?OAUTH_ALLOWED_REDIRECT_URIS must be set}
 
@@ -28,31 +28,31 @@ x-backend-host-overrides: &backend-host-overrides
   GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID must be set in root .env}
   GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:?GITHUB_OAUTH_CLIENT_ID must be set in root .env}
   EMAIL_PROVIDER: ${EMAIL_PROVIDER:?EMAIL_PROVIDER must be set in root .env}
-  EMAIL_HOST: ${EMAIL_HOST:-}
-  EMAIL_USERNAME: ${EMAIL_USERNAME:-}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
   EMAIL_FROM: ${EMAIL_FROM:?EMAIL_FROM must be set in root .env}
   EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:?EMAIL_REPLY_TO must be set in root .env}
   MICROSOFT_GRAPH_TENANT_ID: ${MICROSOFT_GRAPH_TENANT_ID:-}
   MICROSOFT_GRAPH_CLIENT_ID: ${MICROSOFT_GRAPH_CLIENT_ID:-}
   MICROSOFT_GRAPH_SENDER_USER: ${MICROSOFT_GRAPH_SENDER_USER:-}
   MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS: ${MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS:-false}
-  SUPERUSER_EMAIL: ${SUPERUSER_EMAIL:?SUPERUSER_EMAIL must be set in root .env}
-  SUPERUSER_NAME: ${SUPERUSER_NAME:-}
+  BOOTSTRAP_SUPERUSER_EMAIL: ${BOOTSTRAP_SUPERUSER_EMAIL:?BOOTSTRAP_SUPERUSER_EMAIL must be set in root .env}
+  BOOTSTRAP_SUPERUSER_NAME: ${BOOTSTRAP_SUPERUSER_NAME:-}
 
 x-backend-runtime-secrets: &backend-runtime-secrets
   - database_app_password
   - database_migration_password
   - database_backup_password
   - redis_password
-  - fastapi_users_secret
+  - auth_token_secret
   - oauth_state_secret
   - cache_signing_secret
   - data_encryption_key
   - google_oauth_client_secret
   - github_oauth_client_secret
-  - email_password
+  - smtp_password
   - microsoft_graph_client_secret
-  - superuser_password
+  - bootstrap_superuser_password
 
 services:
   api:
@@ -123,7 +123,7 @@ services:
         condition: service_healthy
     volumes:
       - user_uploads:/data/uploads:ro
-      - ${BACKUP_DIR:-./backups}/restic:/restic
+      - ${BACKUP_HOST_DIR:-./backups}/restic:/restic
     environment:
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
@@ -175,7 +175,7 @@ services:
       api:
         condition: service_healthy
     environment:
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?TUNNEL_TOKEN must be set (in root .env on the deploy host)}
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must be set (in root .env on the deploy host)}
     command: tunnel --no-autoupdate run
     pull_policy: always
     networks:
@@ -223,7 +223,7 @@ services:
       args:
         ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
         EXPO_PUBLIC_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
-        EXPO_PUBLIC_WEBSITE_URL: ${WEB_PUBLIC_URL:?WEB_PUBLIC_URL must be set}
+        EXPO_PUBLIC_WEBSITE_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
         EXPO_PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
     environment:
       # Needed by Caddyfile to determine the API origin.
@@ -242,7 +242,7 @@ services:
         ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
         PUBLIC_APP_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
         PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
-        PUBLIC_SITE_URL: ${WEB_PUBLIC_URL:?WEB_PUBLIC_URL must be set}
+        PUBLIC_SITE_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
     tmpfs:
       - /config:uid=1001,gid=1001
       - /data:uid=1001,gid=1001
@@ -264,8 +264,8 @@ secrets:
     file: ./secrets/${ENVIRONMENT}/redis_password
   restic_password:
     file: ./secrets/${ENVIRONMENT}/restic_password
-  fastapi_users_secret:
-    file: ./secrets/${ENVIRONMENT}/fastapi_users_secret
+  auth_token_secret:
+    file: ./secrets/${ENVIRONMENT}/auth_token_secret
   oauth_state_secret:
     file: ./secrets/${ENVIRONMENT}/oauth_state_secret
   cache_signing_secret:
@@ -276,9 +276,9 @@ secrets:
     file: ./secrets/${ENVIRONMENT}/google_oauth_client_secret
   github_oauth_client_secret:
     file: ./secrets/${ENVIRONMENT}/github_oauth_client_secret
-  email_password:
-    file: ./secrets/${ENVIRONMENT}/email_password
+  smtp_password:
+    file: ./secrets/${ENVIRONMENT}/smtp_password
   microsoft_graph_client_secret:
     file: ./secrets/${ENVIRONMENT}/microsoft_graph_client_secret
-  superuser_password:
-    file: ./secrets/${ENVIRONMENT}/superuser_password
+  bootstrap_superuser_password:
+    file: ./secrets/${ENVIRONMENT}/bootstrap_superuser_password

@@ -82,13 +82,13 @@ Use the default provider:
 
 ```env
 EMAIL_PROVIDER=smtp
-EMAIL_HOST=smtp.gmail.com
-EMAIL_USERNAME=sender@example.com
+SMTP_HOST=smtp.gmail.com
+SMTP_USERNAME=sender@example.com
 EMAIL_FROM=Reverse Engineering Lab <sender@example.com>
 EMAIL_REPLY_TO=relab@example.com
 ```
 
-Store the SMTP password in `../secrets/<env>/email_password`. For a personal/free Google account, use an app password when available. For Workspace, prefer the Workspace SMTP relay when the domain policy allows it. Keep SPF, DKIM, and DMARC aligned for the sending domain. Google references: [send email with SMTP](https://support.google.com/a/answer/176600) and [email authentication](https://support.google.com/a/answer/10583557).
+Store the SMTP password in `../secrets/<env>/smtp_password`. For a personal/free Google account, use an app password when available. For Workspace, prefer the Workspace SMTP relay when the domain policy allows it. Keep SPF, DKIM, and DMARC aligned for the sending domain. Google references: [send email with SMTP](https://support.google.com/a/answer/176600) and [email authentication](https://support.google.com/a/answer/10583557).
 
 ### Microsoft Entra + Graph
 

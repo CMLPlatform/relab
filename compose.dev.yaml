@@ -7,15 +7,15 @@ x-backend-runtime-secrets: &backend-runtime-secrets
   - database_migration_password
   - database_backup_password
   - redis_password
-  - fastapi_users_secret
+  - auth_token_secret
   - oauth_state_secret
   - cache_signing_secret
   - data_encryption_key
   - google_oauth_client_secret
   - github_oauth_client_secret
-  - email_password
+  - smtp_password
   - microsoft_graph_client_secret
-  - superuser_password
+  - bootstrap_superuser_password
 
 services:
   api:
@@ -29,7 +29,7 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-dev}
       BACKEND_API_URL: ${API_PUBLIC_URL:-http://localhost:8011}
       FRONTEND_APP_URL: ${APP_PUBLIC_URL:-http://localhost:8013}
-      FRONTEND_WEB_URL: ${WEB_PUBLIC_URL:-http://localhost:8010}
+      SITE_PUBLIC_URL: ${SITE_PUBLIC_URL:-http://localhost:8010}
       DOCS_URL: ${DOCS_PUBLIC_URL:-http://localhost:8012}
     env_file: ./backend/.env.dev
     secrets: *backend-runtime-secrets
@@ -146,7 +146,7 @@ services:
       - "127.0.0.1:8013:8081"
     environment:
       EXPO_PUBLIC_API_URL: ${API_PUBLIC_URL:-http://localhost:8011}
-      EXPO_PUBLIC_WEBSITE_URL: ${WEB_PUBLIC_URL:-http://localhost:8010}
+      EXPO_PUBLIC_WEBSITE_URL: ${SITE_PUBLIC_URL:-http://localhost:8010}
       EXPO_PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://localhost:8012}
     develop:
       watch:
@@ -203,7 +203,7 @@ services:
     environment:
       PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://localhost:8012}
       PUBLIC_APP_URL: ${APP_PUBLIC_URL:-http://localhost:8013}
-      PUBLIC_SITE_URL: ${WEB_PUBLIC_URL:-http://127.0.0.1:8010}
+      PUBLIC_SITE_URL: ${SITE_PUBLIC_URL:-http://127.0.0.1:8010}
     develop:
       watch:
         # Same rule here: explicit source/config syncs only, rebuild for deps.
@@ -254,8 +254,8 @@ secrets:
     file: ./secrets/dev/database_backup_password
   redis_password:
     file: ./secrets/dev/redis_password
-  fastapi_users_secret:
-    file: ./secrets/dev/fastapi_users_secret
+  auth_token_secret:
+    file: ./secrets/dev/auth_token_secret
   oauth_state_secret:
     file: ./secrets/dev/oauth_state_secret
   cache_signing_secret:
@@ -266,9 +266,9 @@ secrets:
     file: ./secrets/dev/google_oauth_client_secret
   github_oauth_client_secret:
     file: ./secrets/dev/github_oauth_client_secret
-  email_password:
-    file: ./secrets/dev/email_password
+  smtp_password:
+    file: ./secrets/dev/smtp_password
   microsoft_graph_client_secret:
     file: ./secrets/dev/microsoft_graph_client_secret
-  superuser_password:
-    file: ./secrets/dev/superuser_password
+  bootstrap_superuser_password:
+    file: ./secrets/dev/bootstrap_superuser_password

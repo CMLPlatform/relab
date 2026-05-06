@@ -48,7 +48,7 @@ def rate_limit_bucket_key(prefix: str, value: str) -> str:
     normalized_value = value.strip().casefold()
     if not normalized_value:
         return f"{prefix}:missing"
-    secret = auth_settings.fastapi_users_secret.get_secret_value().encode("utf-8")
+    secret = auth_settings.auth_token_secret.get_secret_value().encode("utf-8")
     digest = hmac.new(secret, normalized_value.encode("utf-8"), hashlib.sha256).hexdigest()
     return f"{prefix}:{digest}"
 

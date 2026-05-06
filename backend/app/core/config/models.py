@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.core.constants import DAY, HOUR
 
-DEFAULT_SUPERUSER_EMAIL = "your-email@example.com"
+DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL = "your-email@example.com"
 DEFAULT_CORS_ORIGIN_REGEX = r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?"
 
 

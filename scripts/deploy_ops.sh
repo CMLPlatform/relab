@@ -18,16 +18,16 @@ deploy_prepare_compose_validation_files() {
         DEPLOY_CREATED_ROOT_ENV=true
     fi
 
-    export TUNNEL_TOKEN="${TUNNEL_TOKEN:-placeholder}"
-    export LOKI_URL="${LOKI_URL:-http://placeholder/loki/api/v1/push}"
+    export CLOUDFLARE_TUNNEL_TOKEN="${CLOUDFLARE_TUNNEL_TOKEN:-placeholder}"
+    export LOKI_PUSH_URL="${LOKI_PUSH_URL:-http://placeholder/loki/api/v1/push}"
     export GOOGLE_OAUTH_CLIENT_ID="${GOOGLE_OAUTH_CLIENT_ID:-placeholder-google-client-id}"
     export GITHUB_OAUTH_CLIENT_ID="${GITHUB_OAUTH_CLIENT_ID:-placeholder-github-client-id}"
     export EMAIL_PROVIDER="${EMAIL_PROVIDER:-smtp}"
-    export EMAIL_HOST="${EMAIL_HOST:-smtp.example.test}"
-    export EMAIL_USERNAME="${EMAIL_USERNAME:-relab@example.test}"
+    export SMTP_HOST="${SMTP_HOST:-smtp.example.test}"
+    export SMTP_USERNAME="${SMTP_USERNAME:-relab@example.test}"
     export EMAIL_FROM="${EMAIL_FROM:-Reverse Engineering Lab <relab@example.test>}"
     export EMAIL_REPLY_TO="${EMAIL_REPLY_TO:-relab@example.test}"
-    export SUPERUSER_EMAIL="${SUPERUSER_EMAIL:-admin@example.test}"
+    export BOOTSTRAP_SUPERUSER_EMAIL="${BOOTSTRAP_SUPERUSER_EMAIL:-admin@example.test}"
 }
 
 deploy_cleanup_compose_validation_files() {
@@ -37,7 +37,7 @@ deploy_cleanup_compose_validation_files() {
 }
 
 loki_overlay_args() {
-    if [[ -f .env ]] && grep -qE '^LOKI_URL=[^[:space:]]' .env; then
+    if [[ -f .env ]] && grep -qE '^LOKI_PUSH_URL=[^[:space:]]' .env; then
         printf '%s\n' -f compose.logging.loki.yaml
     fi
 }

@@ -21,7 +21,7 @@ class TestAuthSettingsDefaults:
     def test_email_defaults_to_username(self) -> None:
         """Resolved sender fields should fall back to the SMTP username when omitted."""
         settings = AuthSettings(
-            email_username="noreply@example.com",
+            smtp_username="noreply@example.com",
             email_from="",
             email_reply_to="",
         )
@@ -33,7 +33,7 @@ class TestAuthSettingsDefaults:
     def test_email_parsing_reuses_sender_when_reply_to_is_omitted(self) -> None:
         """Parsed sender/reply-to values should share the same fallback logic."""
         settings = AuthSettings(
-            email_username="smtp@example.com",
+            smtp_username="smtp@example.com",
             email_from="Reverse Engineering Lab <noreply@example.com>",
             email_reply_to="",
         )
@@ -85,25 +85,25 @@ class TestAuthSettingsOverrides:
     def test_secrets_can_be_set_via_constructor(self) -> None:
         """Secrets supplied in __init__ are stored and retrievable."""
         secret = VALID_SECRET
-        settings = AuthSettings(fastapi_users_secret=SecretStr(secret))
-        assert settings.fastapi_users_secret.get_secret_value() == secret
+        settings = AuthSettings(auth_token_secret=SecretStr(secret))
+        assert settings.auth_token_secret.get_secret_value() == secret
 
-    def test_fastapi_users_secret_rejects_short_values_outside_testing(self) -> None:
+    def test_auth_token_secret_rejects_short_values_outside_testing(self) -> None:
         """Auth JWT keys should meet the 32-byte minimum outside test runs."""
-        with pytest.raises(ValidationError, match="FASTAPI_USERS_SECRET must be at least 32 bytes"):
-            AuthSettings(environment=Environment.DEV, fastapi_users_secret=SecretStr("short"))
+        with pytest.raises(ValidationError, match="AUTH_TOKEN_SECRET must be at least 32 bytes"):
+            AuthSettings(environment=Environment.DEV, auth_token_secret=SecretStr("short"))
 
-    def test_fastapi_users_secret_allows_fixed_testing_value(self) -> None:
+    def test_auth_token_secret_allows_fixed_testing_value(self) -> None:
         """Tests can keep deterministic auth secrets for reproducibility."""
-        settings = AuthSettings(environment=Environment.TESTING, fastapi_users_secret=SecretStr("short"))
+        settings = AuthSettings(environment=Environment.TESTING, auth_token_secret=SecretStr("short"))
 
-        assert settings.fastapi_users_secret.get_secret_value() == "short"
+        assert settings.auth_token_secret.get_secret_value() == "short"
 
-    def test_oauth_state_secret_falls_back_to_fastapi_users_secret_in_dev(self) -> None:
+    def test_oauth_state_secret_falls_back_to_auth_token_secret_in_dev(self) -> None:
         """Dev and test can omit the dedicated OAuth state key while migrating local envs."""
         settings = AuthSettings(
             environment=Environment.DEV,
-            fastapi_users_secret=SecretStr(VALID_SECRET),
+            auth_token_secret=SecretStr(VALID_SECRET),
             oauth_state_secret=SecretStr(""),
         )
 
@@ -114,15 +114,15 @@ class TestAuthSettingsOverrides:
         with pytest.raises(ValidationError, match="OAUTH_STATE_SECRET must not be empty"):
             AuthSettings(
                 environment=Environment.PROD,
-                fastapi_users_secret=SecretStr(VALID_SECRET),
+                auth_token_secret=SecretStr(VALID_SECRET),
                 oauth_state_secret=SecretStr(""),
                 google_oauth_client_id=SecretStr("google-client"),
                 google_oauth_client_secret=SecretStr("google-secret"),
                 github_oauth_client_id=SecretStr("github-client"),
                 github_oauth_client_secret=SecretStr("github-secret"),
-                email_host="smtp.example.com",
-                email_username="smtp@example.com",
-                email_password=SecretStr("email-password"),
+                smtp_host="smtp.example.com",
+                smtp_username="smtp@example.com",
+                smtp_password=SecretStr("email-password"),
                 email_from="Sender <sender@example.com>",
                 email_reply_to="reply@example.com",
             )
@@ -132,15 +132,15 @@ class TestAuthSettingsOverrides:
         with pytest.raises(ValidationError, match="OAUTH_STATE_SECRET must be at least 32 bytes"):
             AuthSettings(
                 environment=Environment.STAGING,
-                fastapi_users_secret=SecretStr(VALID_SECRET),
+                auth_token_secret=SecretStr(VALID_SECRET),
                 oauth_state_secret=SecretStr("short"),
                 google_oauth_client_id=SecretStr("google-client"),
                 google_oauth_client_secret=SecretStr("google-secret"),
                 github_oauth_client_id=SecretStr("github-client"),
                 github_oauth_client_secret=SecretStr("github-secret"),
-                email_host="smtp.example.com",
-                email_username="smtp@example.com",
-                email_password=SecretStr("email-password"),
+                smtp_host="smtp.example.com",
+                smtp_username="smtp@example.com",
+                smtp_password=SecretStr("email-password"),
                 email_from="Sender <sender@example.com>",
                 email_reply_to="reply@example.com",
             )
@@ -170,7 +170,7 @@ class TestAuthSettingsOverrides:
     def test_explicit_email_from_and_reply_to_are_preserved(self) -> None:
         """Explicit sender overrides should win over the username fallback."""
         settings = AuthSettings(
-            email_username="smtp@example.com",
+            smtp_username="smtp@example.com",
             email_from="Sender <sender@example.com>",
             email_reply_to="reply@example.com",
         )

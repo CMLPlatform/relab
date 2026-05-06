@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Declare constants
-SECRET: SecretStr = auth_settings.fastapi_users_secret
+SECRET: SecretStr = auth_settings.auth_token_secret
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
 RESET_TOKEN_TTL = auth_settings.reset_password_token_ttl_seconds
 VERIFICATION_TOKEN_TTL = auth_settings.verification_token_ttl_seconds

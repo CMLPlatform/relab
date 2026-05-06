@@ -37,6 +37,7 @@ STALE_ENV_NAMES = {
     "COMPOSE_PROJECT_NAME",
     "CSP_API_ORIGIN",
     "DOCS_ORIGIN",
+    "WEB_PUBLIC_URL",
     "WEB_ORIGIN",
 }
 SERVICE_BOUNDARY_URL_NAMES = {
@@ -218,7 +219,7 @@ def assert_deploy_env_files_are_canonical(inventory: dict[str, Any]) -> None:
             f"{path}: contains service-boundary/stale names: {', '.join(forbidden_present)}",
         )
 
-        for name in ("ENVIRONMENT", "API_PUBLIC_URL", "APP_PUBLIC_URL", "WEB_PUBLIC_URL", "DOCS_PUBLIC_URL"):
+        for name in ("ENVIRONMENT", "API_PUBLIC_URL", "APP_PUBLIC_URL", "SITE_PUBLIC_URL", "DOCS_PUBLIC_URL"):
             require(name in assignments, f"{path}: missing {name}")
 
     for path in PRODUCTION_DEPLOY_ENV_FILES:
@@ -297,14 +298,14 @@ def docker_compose_config_missing(required_name: str, inventory: dict[str, Any])
     """Render deploy Compose with one required variable omitted."""
     values = {
         "EMAIL_FROM": "Reverse Engineering Lab <relab@example.test>",
-        "EMAIL_HOST": "smtp.example.test",
+        "SMTP_HOST": "smtp.example.test",
         "EMAIL_PROVIDER": "smtp",
         "EMAIL_REPLY_TO": "relab@example.test",
-        "EMAIL_USERNAME": "relab@example.test",
+        "SMTP_USERNAME": "relab@example.test",
         "GITHUB_OAUTH_CLIENT_ID": "placeholder-github-client-id",
         "GOOGLE_OAUTH_CLIENT_ID": "placeholder-google-client-id",
-        "SUPERUSER_EMAIL": "admin@example.test",
-        "TUNNEL_TOKEN": "placeholder-tunnel-token",
+        "BOOTSTRAP_SUPERUSER_EMAIL": "admin@example.test",
+        "CLOUDFLARE_TUNNEL_TOKEN": "placeholder-tunnel-token",
     }
     values.pop(required_name)
     docker = shutil.which("docker")

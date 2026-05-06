@@ -14,7 +14,7 @@ from sqlalchemy.engine import URL
 
 from app.core.config.models import (
     DEFAULT_CORS_ORIGIN_REGEX,
-    DEFAULT_SUPERUSER_EMAIL,
+    DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL,
     CacheSettings,
     Environment,
     StorageBackend,
@@ -66,23 +66,23 @@ class CoreSettings(RelabBaseSettings):
     redis_password: SecretStr = SecretStr("")
 
     # ── Superuser ─────────────────────────────────────────────────────────────────
-    superuser_email: EmailStr = DEFAULT_SUPERUSER_EMAIL
-    superuser_name: str | None = None
-    superuser_password: SecretStr = SecretStr("")
+    bootstrap_superuser_email: EmailStr = DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL
+    bootstrap_superuser_name: str | None = None
+    bootstrap_superuser_password: SecretStr = SecretStr("")
 
     # ── Network & CORS ────────────────────────────────────────────────────────────
     backend_api_url: HttpUrl = HttpUrl("http://127.0.0.1:8001")
-    frontend_web_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
+    site_public_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
     frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8003")
     docs_url: HttpUrl | None = None
     cors_origin_regex: str | None = Field(default=None)
 
-    @field_validator("superuser_name")
+    @field_validator("bootstrap_superuser_name")
     @classmethod
-    def validate_superuser_name(cls, v: str | None) -> str | None:
+    def validate_bootstrap_superuser_name(cls, v: str | None) -> str | None:
         """Enforce lowercase letters, digits, and underscores only."""
         if v is not None and not re.fullmatch(r"[a-z0-9_]+", v):
-            msg = "superuser_name may only contain lowercase letters, digits, and underscores"
+            msg = "bootstrap_superuser_name may only contain lowercase letters, digits, and underscores"
             raise ValueError(msg)
         return v
 
@@ -141,7 +141,7 @@ class CoreSettings(RelabBaseSettings):
     def allowed_origins(self) -> list[str]:
         """Get CORS Origin allowlist (scheme + host + optional port)."""
         return [
-            self._normalize_origin(self.frontend_web_url),
+            self._normalize_origin(self.site_public_url),
             self._normalize_origin(self.frontend_app_url),
             self._normalize_origin(self.effective_docs_url),
         ]
@@ -377,11 +377,11 @@ class CoreSettings(RelabBaseSettings):
         if not self.redis_password.get_secret_value():
             errors.append("REDIS_PASSWORD must not be empty in production")
 
-        if not self.superuser_password.get_secret_value():
-            errors.append("SUPERUSER_PASSWORD must not be empty in production")
+        if not self.bootstrap_superuser_password.get_secret_value():
+            errors.append("BOOTSTRAP_SUPERUSER_PASSWORD must not be empty in production")
 
-        if self.superuser_email == DEFAULT_SUPERUSER_EMAIL:
-            errors.append("SUPERUSER_EMAIL must not be the default placeholder in production")
+        if self.bootstrap_superuser_email == DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL:
+            errors.append("BOOTSTRAP_SUPERUSER_EMAIL must not be the default placeholder in production")
 
         if self.backend_api_url.scheme != HTTPS_SCHEME:
             errors.append("BACKEND_API_URL must use https in production/staging")
@@ -389,8 +389,8 @@ class CoreSettings(RelabBaseSettings):
         if self.frontend_app_url.scheme != HTTPS_SCHEME:
             errors.append("FRONTEND_APP_URL must use https in production/staging")
 
-        if self.frontend_web_url.scheme != HTTPS_SCHEME:
-            errors.append("FRONTEND_WEB_URL must use https in production/staging")
+        if self.site_public_url.scheme != HTTPS_SCHEME:
+            errors.append("SITE_PUBLIC_URL must use https in production/staging")
 
         if self.effective_docs_url.scheme != HTTPS_SCHEME:
             errors.append("DOCS_URL must use https in production/staging")
