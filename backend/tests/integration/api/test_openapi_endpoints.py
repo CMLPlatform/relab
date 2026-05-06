@@ -53,7 +53,7 @@ class TestOpenAPIEndpoints:
         assert_paths_present(
             paths,
             {
-                "/v1/auth/login",
+                "/v1/auth/bearer/login",
                 "/v1/admin/materials",
                 "/v1/admin/categories",
                 "/v1/admin/taxonomies",
@@ -113,7 +113,7 @@ class TestOpenAPIEndpoints:
         assert payload["paths"]
         assert payload["info"]["version"] == "1.0.0"
         assert payload["info"]["x-api-major"] == "v1"
-        assert "/v1/auth/login" in payload["paths"]
+        assert "/v1/auth/bearer/login" in payload["paths"]
         assert "/v1/products" in payload["paths"]
         assert "/v1/admin/materials" not in payload["paths"]
         assert "/v1/admin/categories" not in payload["paths"]
@@ -137,7 +137,7 @@ class TestOpenAPIEndpoints:
         assert "/v1/admin/users/by-email/{email}" not in payload["paths"]
         assert "/v1/admin/users/by-username/{username}" not in payload["paths"]
         assert "/v1/products" not in payload["paths"]
-        assert "/v1/auth/login" not in payload["paths"]
+        assert "/v1/auth/bearer/login" not in payload["paths"]
 
         admin_users_email_filter_param = next(
             parameter
