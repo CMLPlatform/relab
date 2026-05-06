@@ -15,10 +15,12 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+VARIABLE_INVENTORY_FILE = ROOT / "deploy" / "env" / "variables.toml"
 
 DEPLOY_ENV_FILES = (
     ROOT / "deploy" / "env" / "dev.compose.env",
@@ -27,14 +29,6 @@ DEPLOY_ENV_FILES = (
 )
 PRODUCTION_DEPLOY_ENV_FILES = DEPLOY_ENV_FILES[1:]
 
-CANONICAL_DEPLOY_ENV_NAMES = {
-    "ENVIRONMENT",
-    "API_PUBLIC_URL",
-    "APP_PUBLIC_URL",
-    "WEB_PUBLIC_URL",
-    "DOCS_PUBLIC_URL",
-    "WEB_CONCURRENCY",
-}
 STALE_ENV_NAMES = {
     "API_ORIGIN",
     "APP_ENV",
@@ -60,46 +54,6 @@ SERVICE_BOUNDARY_URL_NAMES = {
     "PUBLIC_SITE_URL",
     "SITE_URL",
 }
-REQUIRED_OPERATOR_INPUTS = {
-    "EMAIL_FROM",
-    "EMAIL_HOST",
-    "EMAIL_PROVIDER",
-    "EMAIL_REPLY_TO",
-    "EMAIL_USERNAME",
-    "GITHUB_OAUTH_CLIENT_ID",
-    "GOOGLE_OAUTH_CLIENT_ID",
-    "MICROSOFT_GRAPH_CLIENT_ID",
-    "MICROSOFT_GRAPH_SENDER_USER",
-    "MICROSOFT_GRAPH_TENANT_ID",
-    "SUPERUSER_EMAIL",
-    "SUPERUSER_NAME",
-    "TUNNEL_TOKEN",
-}
-REQUIRED_COMPOSE_VALUES = {
-    "EMAIL_FROM",
-    "EMAIL_PROVIDER",
-    "EMAIL_REPLY_TO",
-    "GITHUB_OAUTH_CLIENT_ID",
-    "GOOGLE_OAUTH_CLIENT_ID",
-    "SUPERUSER_EMAIL",
-    "TUNNEL_TOKEN",
-}
-APP_SECRET_ENV_NAMES = {
-    "CACHE_SIGNING_SECRET",
-    "DATABASE_APP_PASSWORD",
-    "DATABASE_BACKUP_PASSWORD",
-    "DATABASE_MIGRATION_PASSWORD",
-    "DATA_ENCRYPTION_KEY",
-    "EMAIL_PASSWORD",
-    "FASTAPI_USERS_SECRET",
-    "GITHUB_OAUTH_CLIENT_SECRET",
-    "GOOGLE_OAUTH_CLIENT_SECRET",
-    "MICROSOFT_GRAPH_CLIENT_SECRET",
-    "OAUTH_STATE_SECRET",
-    "POSTGRES_PASSWORD",
-    "REDIS_PASSWORD",
-    "SUPERUSER_PASSWORD",
-}
 REMOVED_DEPLOY_ENV_FILES = {
     ROOT / "app" / ".env.prod",
     ROOT / "app" / ".env.staging",
@@ -123,6 +77,57 @@ RUNTIME_CONFIG_FILES = (
     ROOT / "www" / "Dockerfile",
     ROOT / "www" / "Caddyfile",
 )
+FORBIDDEN_INFRA_DIRECTORIES = {
+    ROOT / "infra" / "telemetry": "central telemetry stack IaC belongs in the central telemetry repository",
+}
+
+
+def _as_string_set(raw_values: object, name: str) -> set[str]:
+    """Parse a TOML list of strings as a set."""
+    if not isinstance(raw_values, list):
+        msg = f"{VARIABLE_INVENTORY_FILE}: env_policy.{name} must be a list of strings"
+        raise TypeError(msg)
+
+    values: list[str] = []
+    for value in raw_values:
+        if not isinstance(value, str):
+            msg = f"{VARIABLE_INVENTORY_FILE}: env_policy.{name} must be a list of strings"
+            raise TypeError(msg)
+        values.append(value)
+    return set(values)
+
+
+def load_variable_inventory(path: Path = VARIABLE_INVENTORY_FILE) -> dict[str, Any]:
+    """Load RELab's compact provider-neutral variable inventory."""
+    with path.open("rb") as f:
+        raw = tomllib.load(f)
+
+    policy = raw.get("env_policy")
+    if not isinstance(policy, dict):
+        msg = f"{path}: missing [env_policy] table"
+        raise TypeError(msg)
+
+    runtime_secret_env = policy.get("runtime_secret_env", {})
+    if not isinstance(runtime_secret_env, dict) or not all(
+        isinstance(name, str) and isinstance(env_name, str) for name, env_name in runtime_secret_env.items()
+    ):
+        msg = f"{path}: env_policy.runtime_secret_env must map secret file names to env names"
+        raise TypeError(msg)
+
+    inventory = {
+        "committed_deploy": _as_string_set(policy.get("committed_deploy"), "committed_deploy"),
+        "root_operator_inputs": _as_string_set(policy.get("root_operator_inputs"), "root_operator_inputs"),
+        "backend_dev_fixtures": _as_string_set(policy.get("backend_dev_fixtures"), "backend_dev_fixtures"),
+        "runtime_secret_files": _as_string_set(policy.get("runtime_secret_files"), "runtime_secret_files"),
+        "required_compose_values": _as_string_set(policy.get("required_compose_values"), "required_compose_values"),
+        "runtime_secret_env": dict(runtime_secret_env),
+        "infisical_path_template": str(policy.get("infisical_path_template", "/relab/{env}/{name}")),
+    }
+    require(
+        set(inventory["runtime_secret_env"]) == inventory["runtime_secret_files"],
+        f"{path}: runtime_secret_env keys must match runtime_secret_files",
+    )
+    return inventory
 
 
 def env_assignments(path: Path) -> dict[str, str]:
@@ -158,6 +163,28 @@ def assert_secret_files(label: str, config: dict[str, Any]) -> None:
             raise AssertionError(msg)
 
 
+def assert_rendered_secrets_are_in_inventory(config: dict[str, Any], inventory: dict[str, Any]) -> None:
+    """Assert rendered Compose secret names are declared in the inventory."""
+    unexpected = sorted(set(compose_secret_names(config)) - inventory["runtime_secret_files"])
+    require(not unexpected, f"Compose renders secrets not declared in inventory: {', '.join(unexpected)}")
+
+
+def assert_secret_value_is_usable(label: str, name: str, value: str) -> None:
+    """Reject generated placeholder secrets in production-like environments."""
+    if label in {"prod", "staging"} and value.strip().startswith(f"replace-me-{label}-"):
+        msg = f"{label}: placeholder secret remains in secrets/{label}/{name}"
+        raise AssertionError(msg)
+
+
+def assert_existing_secret_files_do_not_use_placeholders(inventory: dict[str, Any]) -> None:
+    """Check existing production-like secret files for unfilled generated placeholders."""
+    for label in ("staging", "prod"):
+        for name in sorted(inventory["runtime_secret_files"]):
+            path = ROOT / "secrets" / label / name
+            if path.exists():
+                assert_secret_value_is_usable(label, name, path.read_text(encoding="utf-8"))
+
+
 def parse_labeled_paths(values: list[str]) -> dict[str, Path]:
     """Parse command-line arguments of the form LABEL=PATH."""
     parsed: dict[str, Path] = {}
@@ -176,12 +203,13 @@ def require(condition: object, message: str) -> None:
         raise AssertionError(message)
 
 
-def assert_deploy_env_files_are_canonical() -> None:
+def assert_deploy_env_files_are_canonical(inventory: dict[str, Any]) -> None:
     """Ensure committed deploy env files contain only canonical root values."""
     forbidden_names = STALE_ENV_NAMES | SERVICE_BOUNDARY_URL_NAMES
+    canonical_names = inventory["committed_deploy"]
     for path in DEPLOY_ENV_FILES:
         assignments = env_assignments(path)
-        unexpected_names = sorted(set(assignments) - CANONICAL_DEPLOY_ENV_NAMES)
+        unexpected_names = sorted(set(assignments) - canonical_names)
         require(not unexpected_names, f"{path}: unexpected env names: {', '.join(unexpected_names)}")
 
         forbidden_present = sorted(set(assignments) & forbidden_names)
@@ -197,26 +225,29 @@ def assert_deploy_env_files_are_canonical() -> None:
         require("WEB_CONCURRENCY" in env_assignments(path), f"{path}: missing WEB_CONCURRENCY")
 
 
-def assert_root_env_example_is_operator_checklist() -> None:
+def assert_root_env_example_is_operator_checklist(inventory: dict[str, Any]) -> None:
     """Ensure the root env example lists required inputs and avoids app secret assignments."""
     path = ROOT / ".env.example"
     contents = path.read_text(encoding="utf-8")
     assignments = env_assignments(path)
 
-    for name in REQUIRED_OPERATOR_INPUTS:
+    for name in inventory["root_operator_inputs"]:
         require(name in contents, f"{path}: missing operator input {name}")
 
-    for name in APP_SECRET_ENV_NAMES:
+    for name in inventory["runtime_secret_env"].values():
         require(name not in assignments, f"{path}: must not assign application secret {name}")
 
     require("secrets/<env>/" in contents, f"{path}: must point application secrets to secrets/<env>/")
 
 
-def assert_backend_dev_example_avoids_app_secret_assignments() -> None:
-    """Ensure the backend dev fixture does not reintroduce app secret values."""
+def assert_backend_dev_example_matches_inventory(inventory: dict[str, Any]) -> None:
+    """Ensure the backend dev fixture stays non-secret and inventory-backed."""
     path = ROOT / "backend" / ".env.dev.example"
     assignments = env_assignments(path)
-    for name in APP_SECRET_ENV_NAMES:
+    unexpected_names = sorted(set(assignments) - inventory["backend_dev_fixtures"])
+    require(not unexpected_names, f"{path}: unexpected env names: {', '.join(unexpected_names)}")
+
+    for name in inventory["runtime_secret_env"].values():
         require(name not in assignments, f"{path}: must not assign application secret {name}")
 
 
@@ -226,10 +257,10 @@ def assert_removed_env_files_stay_removed() -> None:
         require(not path.exists(), f"{path}: prod/staging deploy config must not live in subrepo env files")
 
 
-def assert_deploy_compose_requires_operator_values() -> None:
+def assert_deploy_compose_requires_operator_values(inventory: dict[str, Any]) -> None:
     """Ensure deploy Compose has fail-fast interpolation for required host values."""
     contents = (ROOT / "compose.deploy.yaml").read_text(encoding="utf-8")
-    for name in REQUIRED_COMPOSE_VALUES:
+    for name in inventory["required_compose_values"]:
         require(f"${{{name}:?" in contents, f"compose.deploy.yaml: {name} must use ${{VAR:?message}}")
 
 
@@ -243,7 +274,26 @@ def assert_runtime_images_do_not_hide_prod_defaults() -> None:
             require(pattern not in contents, f"{path}: remove hidden production default {pattern}")
 
 
-def docker_compose_config_missing(required_name: str) -> subprocess.CompletedProcess[str]:
+def assert_infra_boundaries_are_preserved() -> None:
+    """Ensure IaC ownership boundaries stay explicit."""
+    for path, reason in FORBIDDEN_INFRA_DIRECTORIES.items():
+        require(not path.exists(), f"{path}: {reason}")
+
+
+def assert_telemetry_examples_use_department_contract() -> None:
+    """Ensure RELab documents the central telemetry endpoint contract it consumes."""
+    contents = (ROOT / ".env.example").read_text(encoding="utf-8")
+    require(
+        "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org" in contents,
+        ".env.example: OTEL example must use the current department OTLP endpoint",
+    )
+    require(
+        "OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org" not in contents,
+        ".env.example: OTEL example must not use the old otlp.cml-relab.org endpoint",
+    )
+
+
+def docker_compose_config_missing(required_name: str, inventory: dict[str, Any]) -> subprocess.CompletedProcess[str]:
     """Render deploy Compose with one required variable omitted."""
     values = {
         "EMAIL_FROM": "Reverse Engineering Lab <relab@example.test>",
@@ -268,7 +318,7 @@ def docker_compose_config_missing(required_name: str) -> subprocess.CompletedPro
         env_file.flush()
 
         env = os.environ.copy()
-        for name in REQUIRED_COMPOSE_VALUES:
+        for name in inventory["required_compose_values"]:
             env.pop(name, None)
         return subprocess.run(  # noqa: S603 - fixed command invokes local Docker Compose for repo policy validation.
             [
@@ -294,10 +344,10 @@ def docker_compose_config_missing(required_name: str) -> subprocess.CompletedPro
         )
 
 
-def assert_deploy_compose_render_fails_for_missing_operator_values() -> None:
+def assert_deploy_compose_render_fails_for_missing_operator_values(inventory: dict[str, Any]) -> None:
     """Ensure missing required host values produce clear Compose render errors."""
-    for name in sorted(REQUIRED_COMPOSE_VALUES):
-        result = docker_compose_config_missing(name)
+    for name in sorted(inventory["required_compose_values"]):
+        result = docker_compose_config_missing(name, inventory)
         combined_output = f"{result.stdout}\n{result.stderr}"
         require(result.returncode != 0, f"compose render unexpectedly succeeded without {name}")
         require(name in combined_output, f"compose render without {name} did not mention the missing variable")
@@ -305,27 +355,57 @@ def assert_deploy_compose_render_fails_for_missing_operator_values() -> None:
 
 def run_env_policy_checks() -> None:
     """Run all environment policy checks."""
-    assert_deploy_env_files_are_canonical()
-    assert_root_env_example_is_operator_checklist()
-    assert_backend_dev_example_avoids_app_secret_assignments()
+    inventory = load_variable_inventory()
+    assert_deploy_env_files_are_canonical(inventory)
+    assert_root_env_example_is_operator_checklist(inventory)
+    assert_backend_dev_example_matches_inventory(inventory)
     assert_removed_env_files_stay_removed()
-    assert_deploy_compose_requires_operator_values()
+    assert_deploy_compose_requires_operator_values(inventory)
     assert_runtime_images_do_not_hide_prod_defaults()
-    assert_deploy_compose_render_fails_for_missing_operator_values()
+    assert_infra_boundaries_are_preserved()
+    assert_telemetry_examples_use_department_contract()
+    assert_existing_secret_files_do_not_use_placeholders(inventory)
+    assert_deploy_compose_render_fails_for_missing_operator_values(inventory)
 
 
 def run_secrets_check(configs: list[str]) -> None:
     """Validate rendered Compose secret paths."""
+    inventory = load_variable_inventory()
     for label, path in parse_labeled_paths(configs).items():
-        assert_secret_files(label, load_json(path))
+        config = load_json(path)
+        assert_rendered_secrets_are_in_inventory(config, inventory)
+        assert_secret_files(label, config)
 
 
-def main() -> int:
+def format_inventory(inventory: dict[str, Any]) -> str:
+    """Render the variable inventory for operators."""
+    lines = [
+        "RELab variable and secret inventory",
+        "Infisical-ready contract: sync runtime_secret_files as host files before Compose starts.",
+        "",
+    ]
+    groups = (
+        ("committed_deploy", "Committed deploy env"),
+        ("root_operator_inputs", "Root .env.example inputs"),
+        ("backend_dev_fixtures", "Backend dev fixtures"),
+        ("runtime_secret_files", "Runtime secret files"),
+        ("required_compose_values", "Required deploy Compose values"),
+    )
+    for key, label in groups:
+        lines.append(f"[{label}]")
+        lines.extend(f"- {name}" for name in sorted(inventory[key]))
+        lines.append("")
+    lines.append(f"Runtime secret manager path template: {inventory['infisical_path_template']}")
+    return "\n".join(lines)
+
+
+def main(argv: list[str] | None = None) -> int:
     """CLI entrypoint."""
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("check", help="validate root environment variable policy")
+    subparsers.add_parser("inventory", help="print the variable and secret inventory")
 
     secrets_list_parser = subparsers.add_parser("secrets-list", help="list rendered Compose secret names")
     secrets_list_parser.add_argument("config", type=Path, help="Compose config JSON file")
@@ -333,18 +413,20 @@ def main() -> int:
     secrets_check_parser = subparsers.add_parser("secrets-check", help="validate rendered Compose secret file paths")
     secrets_check_parser.add_argument("configs", nargs="+", help="Compose config JSON files as LABEL=PATH")
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     try:
         if args.command == "check":
             run_env_policy_checks()
             sys.stdout.write("✅ Environment variable policy checks passed\n")
+        elif args.command == "inventory":
+            sys.stdout.write(format_inventory(load_variable_inventory()))
         elif args.command == "secrets-list":
             for name in compose_secret_names(load_json(args.config)):
                 sys.stdout.write(f"{name}\n")
         elif args.command == "secrets-check":
             run_secrets_check(args.configs)
-    except (AssertionError, FileNotFoundError) as exc:
+    except (AssertionError, FileNotFoundError, TypeError) as exc:
         sys.stderr.write(f"env policy check failed: {exc}\n")
         return 1
 

@@ -57,3 +57,69 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "relab" {
     )
   }
 }
+
+resource "cloudflare_ruleset" "rate_limiting" {
+  count = var.enable_rate_limiting_rules ? 1 : 0
+
+  zone_id     = var.cloudflare_zone_id
+  name        = "RELab ${var.environment} API rate limits"
+  description = "Zone-level rate limiting for RELab ${var.environment} auth, media upload, and RPi camera endpoints."
+  kind        = "zone"
+  phase       = "http_ratelimit"
+
+  rules = [
+    for name, rule in local.rate_limit_rules : {
+      ref         = "relab_${var.environment}_${name}"
+      description = rule.description
+      expression  = rule.expression
+      action      = "block"
+      action_parameters = {
+        response = {
+          status_code  = 429
+          content_type = "application/json"
+          content      = jsonencode({ detail = "Too many requests." })
+        }
+      }
+      ratelimit = {
+        characteristics     = ["cf.colo.id", "ip.src"]
+        period              = rule.period
+        requests_per_period = rule.requests_per_period
+        mitigation_timeout  = rule.mitigation_timeout
+      }
+    }
+  ]
+}
+
+resource "cloudflare_ruleset" "cache_settings" {
+  count = var.enable_cache_rules ? 1 : 0
+
+  zone_id     = var.cloudflare_zone_id
+  name        = "RELab cache rules"
+  description = "Zone-level cache rules for RELab. Import the existing dashboard-managed phase before enabling."
+  kind        = "zone"
+  phase       = "http_request_cache_settings"
+
+  rules = [
+    {
+      ref         = "relab_staging_cache_bypass"
+      description = "Bypass cache for staging hostnames"
+      expression  = local.staging_hosts_expression
+      action      = "set_cache_settings"
+      action_parameters = {
+        cache = false
+      }
+    }
+  ]
+}
+
+resource "cloudflare_ruleset" "custom_firewall" {
+  count = var.enable_custom_firewall_rules ? 1 : 0
+
+  zone_id     = var.cloudflare_zone_id
+  name        = "RELab custom firewall rules"
+  description = "Zone-level custom firewall rules for RELab. Import the existing dashboard-managed phase before enabling."
+  kind        = "zone"
+  phase       = "http_request_firewall_custom"
+
+  rules = local.custom_firewall_rules
+}

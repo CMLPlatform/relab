@@ -272,6 +272,10 @@ compose-config:
 env-policy-check:
     @uv run python scripts/env_policy.py check
 
+# Print the root-owned variable and secret inventory
+env-inventory:
+    @uv run python scripts/env_policy.py inventory
+
 # Validate rendered deploy secret file paths
 deploy-secrets-check:
     @bash scripts/deploy_ops.sh deploy-secrets-check
