@@ -108,7 +108,11 @@ The deploy stack keeps segmentation intentionally small: public-facing services 
 
 ## Transport security
 
-Production and staging are HTTPS-only behind Cloudflare Tunnel. Every deployed browser-facing origin emits:
+Production and staging are HTTPS-only behind Cloudflare Tunnel. The Cloudflare
+edge configuration in `infra/cloudflare/` enforces TLS 1.2 or newer, enables TLS
+1.3, and redirects HTTP requests to HTTPS before they reach the tunnel.
+
+Every deployed browser-facing origin emits:
 
 ```http
 Strict-Transport-Security: max-age=63072000; includeSubDomains
