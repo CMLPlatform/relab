@@ -6,9 +6,10 @@ Run before deploying runtime code that only accepts ``relab:v2:aesgcm:`` values:
     python -m scripts.maintenance.migrate_encryption_v1_to_v2
 
 Required environment:
-- ``DATA_ENCRYPTION_KEY``: new base64url AES-256-GCM key.
-- database connection values, including ``DATABASE_APP_PASSWORD`` or its file
-  fallback from ``DATABASE_APP_PASSWORD_FILE`` / ``/run/secrets/database_app_password``.
+- ``DATA_ENCRYPTION_KEY``: new base64url AES-256-GCM key from ``/run/secrets``,
+  root ``secrets/<env>/``, ``*_FILE``, or env, in that order.
+- database connection values, including ``DATABASE_APP_PASSWORD`` from the same
+  secret-file lookup model.
 """
 # spell-checker: ignore aesgcm, conninfo
 
@@ -37,6 +38,8 @@ logger = logging.getLogger(__name__)
 V2_PREFIX = "relab:v2:aesgcm:"
 AESGCM_NONCE_BYTES = 12
 DEFAULT_BATCH_SIZE = 200
+REPO_DIR = Path(__file__).resolve().parents[3]
+DOCKER_SECRETS_DIR = Path("/run/secrets")
 
 TARGETS = (
     ("oauthaccount", "id", ("access_token", "refresh_token")),
@@ -60,20 +63,26 @@ class MigrationStats:
         return MigrationStats(migrated=self.migrated + other.migrated, skipped=self.skipped + other.skipped)
 
 
-def get_env_secret(name: str) -> str:
-    """Return a secret from an env var, explicit *_FILE, or Docker secret file."""
-    if value := os.environ.get(name):
-        return value
+def get_env_secret(
+    name: str,
+    *,
+    repo_dir: Path = REPO_DIR,
+    docker_secrets_dir: Path = DOCKER_SECRETS_DIR,
+) -> str:
+    """Return a secret from Docker/root secret files, explicit *_FILE, or env."""
+    secret_name = name.lower()
+    env = os.environ.get("ENVIRONMENT", "dev").casefold()
+    candidate_files = [
+        docker_secrets_dir / secret_name,
+        repo_dir / "secrets" / env / secret_name,
+        Path(os.environ[f"{name}_FILE"]) if os.environ.get(f"{name}_FILE") else None,
+    ]
 
-    file_path = os.environ.get(f"{name}_FILE")
-    default_file_path = Path("/run/secrets") / name.lower()
-    if not file_path and default_file_path.exists():
-        file_path = str(default_file_path)
+    for file_path in candidate_files:
+        if file_path and file_path.exists():
+            return file_path.read_text(encoding="utf-8").strip()
 
-    if not file_path:
-        return ""
-
-    return Path(file_path).read_text(encoding="utf-8").strip()
+    return os.environ.get(name, "")
 
 
 def load_aesgcm(key_raw: str) -> AESGCM:
@@ -211,9 +220,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     args = parse_args(argv)
 
-    new_key = os.environ.get("DATA_ENCRYPTION_KEY", "")
+    new_key = get_env_secret("DATA_ENCRYPTION_KEY")
     if not new_key:
-        logger.error("DATA_ENCRYPTION_KEY env var is required (new AES-256-GCM key).")
+        logger.error("DATA_ENCRYPTION_KEY is required in /run/secrets, secrets/<env>, *_FILE, or env.")
         return 1
 
     try:
