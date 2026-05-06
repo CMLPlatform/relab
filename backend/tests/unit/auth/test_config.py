@@ -64,7 +64,7 @@ class TestAuthSettingsDefaults:
         """Session and refresh-token defaults are sensible."""
         settings = AuthSettings()
         assert settings.refresh_token_expire_days == 30
-        assert settings.session_id_length == 32
+        assert settings.refresh_session_absolute_expire_days == 30
 
     def test_rate_limit_defaults(self) -> None:
         """Rate limiting defaults are enabled with conservative values."""
