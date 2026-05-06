@@ -11,11 +11,20 @@ configuration.
 - Public hostnames are generated from one environment-specific route map.
 - DNS records point at the matching Cloudflare Tunnel endpoint.
 - Tunnel ingress routes point at the current Compose origins.
+- Zone TLS settings enforce TLS 1.2+, enable TLS 1.3, and redirect HTTP to HTTPS.
 - The final ingress rule returns `http_status:404` for unknown hostnames.
 
 Current origins are Compose-oriented, such as `http://api:8000`. If RELab moves
 to Kubernetes or managed cloud hosting later, keep the public hostname map and
 replace only the origin targets in `locals.tf`.
+
+## Security notes
+
+The tunnel origins stay plain HTTP inside the private Compose `edge` network.
+Do not enable Cloudflare strict-origin TLS until the origin services present
+certificates. CAA records are also left out of source control while RELab uses
+Cloudflare-managed certificates; add them only if the project adopts custom
+certificates or explicit CA governance.
 
 ## Commands
 
