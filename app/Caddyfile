@@ -17,6 +17,9 @@
 		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		# Restrict referrer information
 		Referrer-Policy "strict-origin-when-cross-origin"
+		# Isolate top-level browsing context and same-site resources without blocking YouTube embeds.
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-site"
 		# Only declare features we intentionally allow; product photos need same-origin camera access.
 		Permissions-Policy "camera=(self)"
 		# Content Security Policy
