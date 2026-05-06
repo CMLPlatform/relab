@@ -9,7 +9,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api.auth.routers.frontend import router as frontend_router
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.api.common.routers.health import router as health_router
 from app.api.common.routers.main import router as api_router
@@ -96,14 +95,14 @@ def create_app() -> FastAPI:
     # Include health check routes (liveness and readiness probes)
     app.include_router(health_router)
 
-    # Include unversioned browser pages separately from the API contract.
-    app.include_router(frontend_router)
-
     # Include the canonical versioned API contract.
     app.include_router(api_router, prefix="/v1")
 
     # Initialize OpenAPI documentation
-    init_openapi_docs(app)
+    init_openapi_docs(
+        app,
+        include_internal_contracts=settings.environment in {Environment.DEV, Environment.TESTING},
+    )
 
     # Initialize exception handling
     register_exception_handlers(app)
