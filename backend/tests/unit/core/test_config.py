@@ -210,6 +210,11 @@ class TestCoreSettingsCors:
         RedisDsn(url)
         assert url == "redis://:p%40ss%3Aword%2Fwith%3Fchars@redis.internal:6379/2"
 
+    def test_endpoint_caching_is_enabled_outside_testing(self) -> None:
+        """Redis-backed endpoint caching should be available in dev and production-like environments."""
+        assert CoreSettings(environment=Environment.DEV).enable_caching is True
+        assert CoreSettings(environment=Environment.TESTING).enable_caching is False
+
     def test_database_urls_use_least_privilege_roles(self) -> None:
         """Application and migration URLs should use distinct database roles."""
         settings = CoreSettings(

@@ -300,8 +300,8 @@ class CoreSettings(RelabBaseSettings):
 
     @cached_property
     def enable_caching(self) -> bool:
-        """Disable Redis caching in development and testing."""
-        return self.environment not in (Environment.DEV, Environment.TESTING)
+        """Disable Redis-backed endpoint caching only in tests."""
+        return self.environment != Environment.TESTING
 
     @property
     def secure_cookies(self) -> bool:

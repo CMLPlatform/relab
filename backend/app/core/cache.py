@@ -63,7 +63,10 @@ def _log_cache_backend_selection(redis_client: Redis | None, backend_location: s
     """Log the cache backend choice in one place."""
     if backend_location == _MEMORY_CACHE_BACKEND:
         if not settings.enable_caching:
-            logger.info("Caching disabled in '%s' environment. Using in-memory backend.", settings.environment)
+            logger.info(
+                "Endpoint cache initialized with in-memory backend - caching disabled in '%s' environment.",
+                settings.environment,
+            )
         elif redis_client is None:
             logger.warning("Endpoint cache initialized with in-memory backend - Redis unavailable")
         return
