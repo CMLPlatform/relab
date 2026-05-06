@@ -2,7 +2,12 @@ import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
 import { extractApiErrorDetail, getAuthLoginPath } from './authHelpers';
 import { authRuntime } from './authRuntime';
-import { isWeb, setWebSessionFlag } from './authSession';
+import {
+  isWeb,
+  loadStoredAccessToken,
+  loadStoredRefreshToken,
+  setWebSessionFlag,
+} from './authSession';
 import { fetchWithTimeout } from './request';
 
 export async function login(
@@ -11,11 +16,13 @@ export async function login(
   password: string,
   deps: {
     persistAccessToken: (token: string) => Promise<void>;
+    persistRefreshToken: (token: string) => Promise<void>;
     getUser: (forceRefresh?: boolean) => Promise<User | undefined>;
     refreshAuthToken: () => Promise<boolean>;
   },
 ): Promise<string | undefined> {
-  const authPath = getAuthLoginPath(isWeb());
+  const web = isWeb();
+  const authPath = getAuthLoginPath(web);
   const url = new URL(apiUrl + authPath);
   const headers = {
     'Content-Type': 'application/x-www-form-urlencoded',
@@ -32,7 +39,7 @@ export async function login(
     });
 
     if (response.status === 204) {
-      if (isWeb()) {
+      if (web) {
         setWebSessionFlag(true);
         authRuntime.explicitlyLoggedOut = false;
         try {
@@ -64,7 +71,7 @@ export async function login(
       );
     }
 
-    if (isWeb()) {
+    if (web) {
       setWebSessionFlag(true);
       return 'success';
     }
@@ -72,6 +79,9 @@ export async function login(
     const data = await response.json().catch(() => null);
     if (typeof data?.access_token === 'string') {
       await deps.persistAccessToken(data.access_token);
+      if (typeof data.refresh_token === 'string') {
+        await deps.persistRefreshToken(data.refresh_token);
+      }
       return data.access_token;
     }
 
@@ -86,10 +96,25 @@ export async function logout(
   apiUrl: string,
   clearCachedAuthState: () => Promise<void>,
 ): Promise<void> {
+  const web = isWeb();
+  const refreshToken = web ? undefined : await loadStoredRefreshToken();
+  const accessToken = authRuntime.token ?? (web ? undefined : await loadStoredAccessToken());
+  const logoutPath = web ? '/auth/session/logout' : '/auth/bearer/logout';
+  const body = refreshToken ? JSON.stringify({ refresh_token: refreshToken }) : undefined;
+  const headers: Record<string, string> = {};
+  if (!web && accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  if (refreshToken) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   await clearCachedAuthState();
   try {
-    await fetchWithTimeout(new URL(`${apiUrl}/auth/logout`), {
+    await fetchWithTimeout(new URL(`${apiUrl}${logoutPath}`), {
       method: 'POST',
+      headers,
+      body,
       credentials: 'include',
     });
   } catch (err) {

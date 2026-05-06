@@ -14,10 +14,15 @@ import { mockUser } from './api-mocks';
  * `@/test-utils`; they give finer-grained per-call control.
  */
 export const handlers = [
-  http.post(`${API_URL}/auth/login`, () => HttpResponse.json({ access_token: 'test-token' })),
-  http.post(`${API_URL}/auth/logout`, () => HttpResponse.json({})),
-  http.post(`${API_URL}/auth/refresh`, () =>
-    HttpResponse.json({ access_token: 'refreshed-token' }),
+  http.post(`${API_URL}/auth/bearer/login`, () =>
+    HttpResponse.json({ access_token: 'test-token', refresh_token: 'test-refresh-token' }),
+  ),
+  http.post(`${API_URL}/auth/bearer/logout`, () => HttpResponse.json({})),
+  http.post(`${API_URL}/auth/bearer/refresh`, () =>
+    HttpResponse.json({
+      access_token: 'refreshed-token',
+      refresh_token: 'refreshed-refresh-token',
+    }),
   ),
   http.get(`${API_URL}/users/me`, () => {
     const user = mockUser();

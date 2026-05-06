@@ -119,7 +119,7 @@ describe('Authentication API Service', () => {
       await auth.logout();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.objectContaining({ href: expect.stringContaining('/auth/logout') }),
+        expect.objectContaining({ href: expect.stringContaining('/auth/bearer/logout') }),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -130,6 +130,7 @@ describe('Authentication API Service', () => {
       await auth.logout();
 
       expect(secureStoreMock.deleteItemAsync).toHaveBeenCalledWith('access_token');
+      expect(secureStoreMock.deleteItemAsync).toHaveBeenCalledWith('refresh_token');
     });
 
     it('does not throw when logout fetch fails', async () => {
@@ -151,8 +152,11 @@ describe('Authentication API Service', () => {
     });
 
     it('returns true and stores token on native success', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('refresh-token');
       fetchMock().mockResolvedValueOnce(
-        mockResponse(200, { access_token: 'refreshed-token' }) as Response,
+        mockResponse(200, {
+          access_token: 'refreshed-token',
+        }) as Response,
       );
 
       const result = await auth.refreshAuthToken();
@@ -192,14 +196,21 @@ describe('Authentication API Service', () => {
     it('refreshes token on 401 and retries', async () => {
       // Populate the cached token before exercising the 401 -> refresh -> retry flow.
       fetchMock().mockResolvedValueOnce(
-        mockResponse(200, { access_token: 'old-token' }) as Response,
+        mockResponse(200, {
+          access_token: 'old-token',
+        }) as Response,
       );
       await auth.login('user', 'pass');
       jest.clearAllMocks(); // reset call count; module-level token cache stays populated
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('old-refresh-token');
 
       fetchMock()
         .mockResolvedValueOnce(mockResponse(401, {}, false) as Response) // first call 401
-        .mockResolvedValueOnce(mockResponse(200, { access_token: 'new-token' }) as Response) // refresh
+        .mockResolvedValueOnce(
+          mockResponse(200, {
+            access_token: 'new-token',
+          }) as Response,
+        ) // refresh
         .mockResolvedValueOnce(mockResponse(200, { success: true }) as Response); // retry
 
       // We need to call a function that uses fetchWithAuth internally, like getUser(true)

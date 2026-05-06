@@ -2,11 +2,11 @@ import type { ApiUserRead } from '@/types/api';
 import type { User } from '@/types/User';
 
 export function getAuthLoginPath(web: boolean) {
-  return web ? '/auth/session/login' : '/auth/login';
+  return web ? '/auth/session/login' : '/auth/bearer/login';
 }
 
 export function getAuthRefreshPath(web: boolean) {
-  return web ? '/auth/session/refresh' : '/auth/refresh';
+  return web ? '/auth/session/refresh' : '/auth/bearer/refresh';
 }
 
 export function shouldSkipUserFetch({

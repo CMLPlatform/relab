@@ -8,6 +8,7 @@ import {
   fetchWithAuth as fetchWithAuthFlow,
   getToken as getTokenFlow,
   persistAccessToken,
+  persistRefreshToken,
   refreshAuthToken as refreshAuthTokenFlow,
 } from './authRefresh';
 import { authRuntime } from './authRuntime';
@@ -49,6 +50,7 @@ export async function fetchWithAuth(
 export async function login(username: string, password: string): Promise<string | undefined> {
   return loginFlow(apiURL, username, password, {
     persistAccessToken,
+    persistRefreshToken,
     getUser: (forceRefresh = false) => getUser(forceRefresh),
     refreshAuthToken: () => refreshAuthToken(),
   });
