@@ -68,6 +68,8 @@ async def test_response_policy_sets_browser_baseline_headers() -> None:
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["referrer-policy"] == REFERRER_POLICY_HEADER_VALUE
     assert response.headers["content-security-policy"] == CONTENT_SECURITY_POLICY_HEADER_VALUE
+    assert response.headers["cross-origin-opener-policy"] == "same-origin"
+    assert response.headers["cross-origin-resource-policy"] == "same-site"
 
 
 async def test_response_policy_sets_self_hosted_csp() -> None:
