@@ -28,7 +28,7 @@ Expected uses:
 
 ## Access and publication status
 
-The intention is to publish curated releases openly. That publication workflow is still maturing, so the most reliable way to explore current records is the app. For technical access to live data, use the API docs: [api.cml-relab.org/docs](https://api.cml-relab.org/docs).
+The intention is to publish curated releases openly. That publication workflow is still maturing, so the most reliable way to explore current records is the app. For technical access to live data, use the [API reference](/api/public/).
 
 Curated downloadable releases will be the authoritative source for exact scope, version, and license once they exist.
 

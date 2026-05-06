@@ -28,4 +28,4 @@ just audit
 
 - Product, platform, and architecture docs live in this app.
 - Repo onboarding remains in [../README.md](../README.md) and [../.github/CONTRIBUTING.md](../.github/CONTRIBUTING.md). Install and self-hosting steps now live at [operations/install](src/content/docs/operations/install.md).
-- Interactive API reference remains canonical at <https://api.cml-relab.org/docs>.
+- Interactive API reference remains canonical at <https://docs.cml-relab.org/api/public/>.

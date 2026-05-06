@@ -35,7 +35,7 @@ RELab is a research platform for collecting and publicly viewing data on the dis
 ## Quick links
 
 - [Open the platform](https://app.cml-relab.org)
-- [Open the API docs](https://api.cml-relab.org/docs)
+- [Open the API docs](/api/public/)
 - [View the repository](https://github.com/CMLPlatform/relab)
 
 ## Research motivation
