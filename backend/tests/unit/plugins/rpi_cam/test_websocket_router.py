@@ -20,7 +20,28 @@ from app.api.plugins.rpi_cam.websocket.router import (
     _handle_text_frame,
     _heartbeat_loop,
     _receive_loop,
+    camera_websocket_connect,
 )
+
+
+async def test_connect_rejects_browser_origin_before_auth_lookup() -> None:
+    """The device-only relay should reject browser-origin WebSocket handshakes."""
+    websocket = MagicMock()
+    websocket.headers = {"origin": "https://evil.example"}
+    websocket.client = SimpleNamespace(host="203.0.113.10")
+    websocket.close = AsyncMock()
+    websocket.accept = AsyncMock()
+    camera_id = uuid4()
+
+    with patch("app.api.plugins.rpi_cam.websocket.router._authenticate", new=AsyncMock()) as authenticate:
+        await camera_websocket_connect(websocket, camera_id)
+
+    websocket.close.assert_awaited_once_with(
+        code=1008,
+        reason="Browser-origin WebSocket clients are not allowed.",
+    )
+    websocket.accept.assert_not_awaited()
+    authenticate.assert_not_awaited()
 
 
 async def test_handle_text_frame_sanitizes_camera_id_in_log() -> None:
@@ -41,6 +62,49 @@ async def test_handle_text_frame_sanitizes_camera_id_in_log() -> None:
 
     assert result == (None, None)
     mock_logger.warning.assert_called_once_with("Camera %s sent invalid JSON, ignoring.", str(camera_id))
+
+
+async def test_handle_text_frame_ignores_malformed_response_envelope() -> None:
+    """Malformed response envelopes should not tear down the receive loop."""
+    camera_id = uuid4()
+    manager = MagicMock()
+
+    with patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger:
+        result = await _handle_text_frame(
+            raw={"text": '{"type":"response","id":"msg-1","status":"not-an-int"}'},
+            camera_id=camera_id,
+            manager=manager,
+            pending_id=None,
+            pending_json=None,
+            last_pong_at=[0.0],
+            redis=None,
+        )
+
+    assert result == (None, None)
+    manager.resolve_json.assert_not_called()
+    mock_logger.warning.assert_called_once_with(
+        "Camera %s sent malformed response envelope, ignoring.",
+        str(camera_id),
+    )
+
+
+async def test_handle_text_frame_ignores_non_object_json() -> None:
+    """Valid JSON text frames that are not objects should be ignored."""
+    camera_id = uuid4()
+    manager = MagicMock()
+
+    result = await _handle_text_frame(
+        raw={"text": '["response"]'},
+        camera_id=camera_id,
+        manager=manager,
+        pending_id=None,
+        pending_json=None,
+        last_pong_at=[0.0],
+        redis=None,
+    )
+
+    assert result == (None, None)
+    manager.resolve_json.assert_not_called()
 
 
 async def test_authenticate_sanitizes_client_ip_when_blocked() -> None:

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from jwt import InvalidTokenError
-from pydantic import UUID4
+from pydantic import UUID4, ValidationError
 from relab_rpi_cam_models import RelayResponseEnvelope
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,6 +49,13 @@ _HEARTBEAT_TIMEOUT = 90.0
 @router.websocket("/plugins/rpi-cam/ws/connect")
 async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> None:
     """Persistent WebSocket connection for an RPi camera relay tunnel."""
+    if websocket.headers.get("origin") is not None:
+        await websocket.close(
+            code=status.WS_1008_POLICY_VIOLATION,
+            reason="Browser-origin WebSocket clients are not allowed.",
+        )
+        return
+
     if not await _authenticate(websocket, camera_id):
         return
 
@@ -237,6 +244,10 @@ async def _handle_text_frame(
         logger.warning("Camera %s sent invalid JSON, ignoring.", sanitize_log_value(camera_id))
         return pending_id, pending_json
 
+    if not isinstance(msg, dict):
+        logger.warning("Camera %s sent non-object JSON, ignoring.", sanitize_log_value(camera_id))
+        return pending_id, pending_json
+
     msg_type = msg.get("type")
 
     if msg_type == MSG_PONG:
@@ -248,19 +259,25 @@ async def _handle_text_frame(
         if redis:
             await mark_camera_online(redis, camera_id)
     elif msg_type == MSG_RESPONSE:
-        return _handle_response(msg, manager, pending_id, pending_json)
+        return _handle_response(msg, camera_id, manager, pending_id, pending_json)
 
     return pending_id, pending_json
 
 
 def _handle_response(
     msg: dict,
+    camera_id: UUID4,
     manager: CameraConnectionManager,
     pending_id: str | None,
     pending_json: dict | None,
 ) -> tuple[str | None, dict | None]:
     """Resolve or defer a response frame depending on whether binary data follows."""
-    envelope = RelayResponseEnvelope.model_validate(msg)
+    try:
+        envelope = RelayResponseEnvelope.model_validate(msg)
+    except ValidationError:
+        logger.warning("Camera %s sent malformed response envelope, ignoring.", sanitize_log_value(camera_id))
+        return pending_id, pending_json
+
     msg_id = envelope.id
     if not msg_id:
         return pending_id, pending_json
