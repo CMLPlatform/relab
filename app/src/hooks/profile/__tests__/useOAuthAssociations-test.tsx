@@ -19,7 +19,7 @@ const mockSetYoutubeEnabled = jest.fn<(enabled: boolean) => Promise<void>>();
 
 jest.mock('expo-linking', () => ({
   __esModule: true,
-  createURL: jest.fn(() => 'relab://profile'),
+  createURL: jest.fn(() => 'relab-app://profile'),
 }));
 
 jest.mock('@/services/api/authentication', () => ({
@@ -38,14 +38,14 @@ jest.mock('@/services/api/oauthFlow', () => ({
   isExpectedOAuthCallbackUrl: jest.fn(() => true),
   openOAuthBrowserSession: jest.fn(async () => ({
     type: 'success',
-    url: 'relab://profile?success=true',
+    url: 'relab-app://profile?success=true',
   })),
 }));
 
 describe('useOAuthAssociations', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(createURL).mockReturnValue('relab://profile');
+    jest.mocked(createURL).mockReturnValue('relab-app://profile');
     jest.mocked(getToken).mockImplementation(async () => 'token-123');
     jest.mocked(buildOAuthAuthorizeUrl).mockImplementation((path) => path);
     jest.mocked(fetchOAuthAuthorizationUrl).mockImplementation(async () => ({
@@ -58,7 +58,7 @@ describe('useOAuthAssociations', () => {
     jest.mocked(isExpectedOAuthCallbackUrl).mockReturnValue(true);
     jest.mocked(openOAuthBrowserSession).mockImplementation(async () => ({
       type: 'success',
-      url: 'relab://profile?success=true',
+      url: 'relab-app://profile?success=true',
     }));
     mockRefetch.mockImplementation(async () => undefined);
     mockSetYoutubeEnabled.mockImplementation(async () => undefined);
@@ -118,7 +118,7 @@ describe('useOAuthAssociations', () => {
   it('shows a YouTube-specific error when authorization returns a denied callback', async () => {
     jest.mocked(openOAuthBrowserSession).mockImplementation(async () => ({
       type: 'success',
-      url: 'relab://profile?error=access_denied&detail=No%20thanks',
+      url: 'relab-app://profile?error=access_denied&detail=No%20thanks',
     }));
 
     const { result } = renderHook(() =>

@@ -15,15 +15,20 @@ describe('OAuth URL validation', () => {
 
   it('accepts callbacks whose scheme host and path match the generated redirect URI', () => {
     expect(
-      isExpectedOAuthCallbackUrl('relab://profile?success=true&detail=ok', 'relab://profile'),
+      isExpectedOAuthCallbackUrl(
+        'relab-app://profile?success=true&detail=ok',
+        'relab-app://profile',
+      ),
     ).toBe(true);
   });
 
   it('rejects callbacks for a different scheme host or path', () => {
     expect(
-      isExpectedOAuthCallbackUrl('https://example.com/profile?success=true', 'relab://profile'),
+      isExpectedOAuthCallbackUrl('https://example.com/profile?success=true', 'relab-app://profile'),
     ).toBe(false);
-    expect(isExpectedOAuthCallbackUrl('relab://login?success=true', 'relab://profile')).toBe(false);
-    expect(isExpectedOAuthCallbackUrl('not a url', 'relab://profile')).toBe(false);
+    expect(
+      isExpectedOAuthCallbackUrl('relab-app://login?success=true', 'relab-app://profile'),
+    ).toBe(false);
+    expect(isExpectedOAuthCallbackUrl('not a url', 'relab-app://profile')).toBe(false);
   });
 });
