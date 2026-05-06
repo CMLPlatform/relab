@@ -181,7 +181,15 @@ backend `.env.<env>` files.
 
 In the current single-host deployment, PostgreSQL and Redis are isolated on the internal Compose `data` network and do not publish host ports in prod or staging. `DATABASE_SSL=false` is intentional for this trusted local Docker network. If PostgreSQL moves to an external host, managed database, or untrusted network, enable `DATABASE_SSL` and manage database TLS certificates as part of that move.
 
-To rotate a secret, replace its file under `secrets/<env>/`, restart the affected service, and verify `/live` and `/health`. If a real secret is exposed outside the intended host, rotate it and treat existing encrypted backups as still depending on the old key until the backup retention window passes.
+### Rotation and break-glass
+
+For ordinary app secret rotation, replace the file under `secrets/<env>/`, restart the affected service, and verify `/live` and `/health`. For `FASTAPI_USERS_SECRET`, expect existing login/reset/verification tokens to become invalid. For OAuth or email provider secrets, rotate the upstream credential first, update the matching file, then restart `api`.
+
+Database role password rotation has two steps: change the PostgreSQL role password, then update the matching file under `secrets/<env>/` and restart the affected service (`api`, `migrator`, or `backup`). Redis rotation requires restarting both `redis` and consumers such as `api`.
+
+`DATA_ENCRYPTION_KEY` is break-glass material, not a routine restart-only secret. Rotating it requires a planned data re-encryption path and backup-retention review because older encrypted values and backups depend on the previous key.
+
+If a real secret is exposed outside the intended host, treat it as compromised: revoke or rotate it upstream, update the host file or root `.env` value, restart affected services, run health checks, and preserve enough incident notes to know what was exposed and when. Existing encrypted backups should be treated as depending on the old key until their retention window passes.
 
 ## Quality controls
 
