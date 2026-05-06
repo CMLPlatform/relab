@@ -67,6 +67,26 @@ class TestReceiveCameraUpload:
         assert exc_info.value.status_code == 400
         assert str(exc_info.value.detail).startswith(expected_detail)
 
+    async def test_rejects_oversized_metadata(
+        self,
+        mock_camera: Camera,
+    ) -> None:
+        """Device uploads should bound parsed metadata before storage work."""
+        upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
+
+        with pytest.raises(HTTPException) as exc_info:
+            await receive_camera_upload(
+                camera_id=mock_camera.id,
+                camera=mock_camera,
+                session=MagicMock(),
+                file=upload,
+                capture_metadata="{}",
+                upload_metadata='{"product_id": 1, "description": "' + ("x" * 5000) + '"}',
+            )
+
+        assert exc_info.value.status_code == 400
+        assert str(exc_info.value.detail).startswith("upload_metadata")
+
     async def test_rejects_upload_for_product_not_owned_by_camera_owner(self, mock_camera: Camera) -> None:
         """A paired device may only attach captures to products owned by its owner."""
         upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
