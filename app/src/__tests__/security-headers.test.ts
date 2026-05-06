@@ -10,7 +10,7 @@ const PERMISSIONS_POLICY_PATTERN = /^\s*Permissions-Policy\s+"([^"]+)"/m;
 const ENFORCED_CSP_PATTERN = /^\s*Content-Security-Policy\s+"([^"]+)"/m;
 const REPORT_ONLY_CSP_PATTERN = /^\s*Content-Security-Policy-Report-Only\s+"([^"]+)"/m;
 const RESET_PASSWORD_REFERRER_POLICY_PATTERN =
-  /@reset_password_route\s+path\s+\/reset-password\*\s+handle\s+@reset_password_route\s+\{\s+header\s+Referrer-Policy\s+"no-referrer"/s;
+  /@reset_password_route\s+path\s+\/reset-password\*\s+handle\s+@reset_password_route\s+\{\s+header\s+Referrer-Policy/s;
 
 function enforcedCsp() {
   const match = caddyfile.match(ENFORCED_CSP_PATTERN);
@@ -67,7 +67,7 @@ describe('Caddy security headers', () => {
 
   it('sets the browser baseline headers recommended by OWASP', () => {
     expect(contentTypeOptions()).toBe('nosniff');
-    expect(referrerPolicy()).toBe('strict-origin-when-cross-origin');
+    expect(referrerPolicy()).toBe('no-referrer');
     expect(caddyfile).toContain('Cross-Origin-Opener-Policy "same-origin"');
     expect(caddyfile).toContain('Cross-Origin-Resource-Policy "same-site"');
   });
@@ -100,7 +100,7 @@ describe('Caddy security headers', () => {
     expect(reportOnlyCsp()).not.toContain('javascript:');
   });
 
-  it('sets no-referrer specifically on password reset routes', () => {
-    expect(caddyfile).toMatch(RESET_PASSWORD_REFERRER_POLICY_PATTERN);
+  it('uses the global no-referrer policy for password reset routes', () => {
+    expect(caddyfile).not.toMatch(RESET_PASSWORD_REFERRER_POLICY_PATTERN);
   });
 });

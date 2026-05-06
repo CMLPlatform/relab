@@ -16,7 +16,7 @@
 		# Force HTTPS on subsequent visits
 		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		# Restrict referrer information
-		Referrer-Policy "strict-origin-when-cross-origin"
+		Referrer-Policy "no-referrer"
 		# Isolate top-level browsing context and same-site resources without blocking YouTube embeds.
 		Cross-Origin-Opener-Policy "same-origin"
 		Cross-Origin-Resource-Policy "same-site"
@@ -55,10 +55,9 @@
 	}
 
 	# Password-reset URLs carry single-use tokens. Serve the SPA entry point
-	# with no referrer leakage before the app removes the token from history.
+	# without caching while the global no-referrer policy prevents token leakage.
 	@reset_password_route path /reset-password*
 	handle @reset_password_route {
-		header Referrer-Policy "no-referrer"
 		header Cache-Control "no-cache"
 		try_files {path} /index.html
 		file_server
