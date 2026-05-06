@@ -1,6 +1,6 @@
 # RELab Monorepo Task Runner
 # Run `just --list` to see all available commands
-# spell-checker: ignore esac
+# spell-checker: ignore esac shellfmt shfmt
 
 # Show available recipes
 default:
@@ -74,6 +74,11 @@ shellcheck:
     uv run pre-commit run shellcheck --files $(git ls-files '*.sh')
     @echo "✅ Repository shell scripts passed ShellCheck"
 
+# Format all tracked shell scripts with the pre-commit-managed shfmt hook
+shellfmt:
+    uv run pre-commit run shfmt --files $(git ls-files '*.sh')
+    @echo "✅ Repository shell scripts formatted"
+
 # Run root and subrepo lint checks
 lint:
     #!/usr/bin/env bash
@@ -100,6 +105,7 @@ format:
     #!/usr/bin/env bash
     set -euo pipefail
     uv run ruff format --config pyproject.toml .
+    just shellfmt
     pnpm run format
     for d in {{ subrepos }}; do just "$d/format"; done
     echo "✅ Root and subrepo formatting complete"
@@ -110,6 +116,7 @@ fix:
     set -euo pipefail
     uv run ruff check --fix --config pyproject.toml .
     uv run ruff format --config pyproject.toml .
+    just shellfmt
     pnpm run fix
     for d in {{ subrepos }}; do just "$d/fix"; done
     echo "✅ Code fixed"
@@ -156,7 +163,7 @@ test-e2e:
     @echo "✅ All E2E tests passed"
 
 # Canonical CI pipeline: policy, IaC, quality checks, CI tests, compose validation
-ci: pre-commit cloudflare-check check test-ci compose-config compose-policy-check deploy-secrets-check
+ci: pre-commit cloudflare-check check test-ci env-policy-check compose-config deploy-secrets-check
     @echo "✅ CI pipeline passed"
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
@@ -261,17 +268,17 @@ _require-cloudflare-vars:
 compose-config:
     @bash scripts/deploy_ops.sh compose-config
 
-# Validate deploy secret files and service grants against the required manifest
+# Validate root-owned environment variable policy
+env-policy-check:
+    @uv run python scripts/env_policy.py check
+
+# Validate rendered deploy secret file paths
 deploy-secrets-check:
     @bash scripts/deploy_ops.sh deploy-secrets-check
 
 # Create missing secret files for an environment (dev, prod, or staging)
 deploy-secrets-template env:
     @bash scripts/deploy_ops.sh deploy-secrets-template {{ quote(env) }}
-
-# Validate RELab-specific rendered Compose policy
-compose-policy-check:
-    @bash scripts/deploy_ops.sh compose-policy-check
 
 # ============================================================================
 # Docker: Targeted Development (subset of services with hot reload)

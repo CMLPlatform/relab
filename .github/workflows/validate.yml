@@ -87,7 +87,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   automation:
-    name: Automation and Compose Policy
+    name: Automation, IaC, and Compose Policy
     needs: [ changes ]
     if: github.event_name != 'schedule' && needs.changes.outputs.run-policy == 'true'
     runs-on: ubuntu-latest
@@ -120,6 +120,11 @@ jobs:
       - name: Install root dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
+        with:
+          tofu_wrapper: false
+
       - name: Run pre-commit checks
         run: >-
           ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'SKIP=no-commit-to-branch ' || '' }}uv run pre-commit run --all-files --show-diff-on-failure
@@ -127,11 +132,17 @@ jobs:
       - name: Check shared dep version alignment
         run: pnpm run syncpack:check
 
+      - name: Validate Cloudflare edge IaC
+        run: just cloudflare-check
+
+      - name: Validate environment variable policy
+        run: just env-policy-check
+
       - name: Validate Compose stacks
         run: just compose-config
 
-      - name: Validate Compose policy
-        run: just compose-policy-check
+      - name: Validate deploy secret paths
+        run: just deploy-secrets-check
 
       - name: Publish summary
         run: |
@@ -140,8 +151,10 @@ jobs:
             echo
             echo "- repository policy checks passed"
             echo "- shared dep versions aligned across subrepos"
+            echo "- Cloudflare edge IaC validated"
+            echo "- environment variable policy validated"
             echo "- Compose configs rendered successfully"
-            echo "- Compose network policy passed"
+            echo "- deploy secret file paths matched rendered Compose"
             echo "- GitHub workflow lint passed via pre-commit"
           } >> "$GITHUB_STEP_SUMMARY"
 

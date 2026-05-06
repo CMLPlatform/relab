@@ -5,6 +5,36 @@ set -euo pipefail
 PROD_COMPOSE_ENV="${PROD_COMPOSE_ENV:-deploy/env/prod.compose.env}"
 STAGING_COMPOSE_ENV="${STAGING_COMPOSE_ENV:-deploy/env/staging.compose.env}"
 DEV_COMPOSE_ENV="${DEV_COMPOSE_ENV:-deploy/env/dev.compose.env}"
+DEPLOY_CREATED_DEV_ENV=false
+DEPLOY_CREATED_ROOT_ENV=false
+
+deploy_prepare_compose_validation_files() {
+    if [[ ! -f backend/.env.dev && -f backend/.env.dev.example ]]; then
+        cp backend/.env.dev.example backend/.env.dev
+        DEPLOY_CREATED_DEV_ENV=true
+    fi
+    if [[ ! -f .env ]]; then
+        : >.env
+        DEPLOY_CREATED_ROOT_ENV=true
+    fi
+
+    export TUNNEL_TOKEN="${TUNNEL_TOKEN:-placeholder}"
+    export LOKI_URL="${LOKI_URL:-http://placeholder/loki/api/v1/push}"
+    export GOOGLE_OAUTH_CLIENT_ID="${GOOGLE_OAUTH_CLIENT_ID:-placeholder-google-client-id}"
+    export GITHUB_OAUTH_CLIENT_ID="${GITHUB_OAUTH_CLIENT_ID:-placeholder-github-client-id}"
+    export EMAIL_PROVIDER="${EMAIL_PROVIDER:-smtp}"
+    export EMAIL_HOST="${EMAIL_HOST:-smtp.example.test}"
+    export EMAIL_USERNAME="${EMAIL_USERNAME:-relab@example.test}"
+    export EMAIL_FROM="${EMAIL_FROM:-Reverse Engineering Lab <relab@example.test>}"
+    export EMAIL_REPLY_TO="${EMAIL_REPLY_TO:-relab@example.test}"
+    export SUPERUSER_EMAIL="${SUPERUSER_EMAIL:-admin@example.test}"
+}
+
+deploy_cleanup_compose_validation_files() {
+    [[ "$DEPLOY_CREATED_DEV_ENV" == true ]] && rm -f backend/.env.dev
+    [[ "$DEPLOY_CREATED_ROOT_ENV" == true ]] && rm -f .env
+    return 0
+}
 
 loki_overlay_args() {
     if [[ -f .env ]] && grep -qE '^LOKI_URL=[^[:space:]]' .env; then
@@ -56,7 +86,6 @@ render_compose_json() {
 }
 
 compose_config() {
-    source scripts/deploy_helpers.sh
     deploy_prepare_compose_validation_files
     trap deploy_cleanup_compose_validation_files EXIT
 
@@ -74,8 +103,7 @@ compose_config() {
     echo "✅ Compose configurations validated"
 }
 
-deploy_secrets_check() {
-    source scripts/deploy_helpers.sh
+validate_deploy_secret_paths() {
     tmp_root="$(mktemp -d)"
     cleanup() {
         rm -rf "$tmp_root"
@@ -87,7 +115,7 @@ deploy_secrets_check() {
     docker compose -p relab_dev --env-file "$DEV_COMPOSE_ENV" -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/dev.json"
     render_compose_json prod "$tmp_root/prod.json" backups migrations
     render_compose_json staging "$tmp_root/staging.json" backups migrations
-    python3 scripts/deploy_secrets_check.py check \
+    uv run python scripts/env_policy.py secrets-check \
         dev="$tmp_root/dev.json" \
         prod="$tmp_root/prod.json" \
         staging="$tmp_root/staging.json"
@@ -123,7 +151,6 @@ deploy_secrets_template() {
             ;;
     esac
 
-    source scripts/deploy_helpers.sh
     tmp_root="$(mktemp -d)"
     cleanup() {
         rm -rf "$tmp_root"
@@ -152,7 +179,7 @@ deploy_secrets_template() {
             echo "kept $path"
         fi
         chmod 600 "$path"
-    done < <(python3 scripts/deploy_secrets_check.py list "$tmp_root/$env.json")
+    done < <(uv run python scripts/env_policy.py secrets-list "$tmp_root/$env.json")
     echo "✅ Secret files are present under secrets/$env"
 }
 
@@ -246,7 +273,7 @@ main() {
             compose_config
             ;;
         deploy-secrets-check)
-            deploy_secrets_check
+            validate_deploy_secret_paths
             ;;
         deploy-secrets-template)
             deploy_secrets_template "${2:-}"
