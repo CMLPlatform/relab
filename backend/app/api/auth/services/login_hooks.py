@@ -17,7 +17,6 @@ from app.api.auth.services.auth_backends import (
     set_browser_auth_cookie,
 )
 from app.api.auth.services.email import mask_email_for_log
-from app.core.logging import sanitize_log_value
 from app.core.runtime import get_request_services
 
 if TYPE_CHECKING:
@@ -41,11 +40,9 @@ def _has_browser_auth_cookie(response: Response) -> bool:
     return f"{AUTH_COOKIE_NAME}=" in response.headers.get("set-cookie", "")
 
 
-async def update_last_login_metadata(user: User, request: Request | None, session: AsyncSession) -> None:
-    """Persist the latest login timestamp and IP address."""
+async def update_last_login_metadata(user: User, _request: Request | None, session: AsyncSession) -> None:
+    """Persist the latest login timestamp."""
     user.last_login_at = datetime.now(UTC).replace(tzinfo=None)
-    if request and request.client:
-        user.last_login_ip = request.client.host
     await session.commit()
 
 
@@ -64,7 +61,6 @@ async def maybe_set_refresh_token_cookie(user: User, request: Request | None, re
 def log_successful_login(user: User) -> None:
     """Log a successful login event."""
     logger.info(
-        "User %s logged in from %s",
+        "User %s logged in",
         mask_email_for_log(user.email),
-        sanitize_log_value(user.last_login_ip),
     )

@@ -31,7 +31,7 @@ from app.api.auth.services.login_hooks import (
 )
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
-from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, hashed_identifier_rate_limit_key, limiter
+from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter, rate_limit_bucket_key
 from app.api.auth.services.user_database import get_user_db
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.routers.dependencies import get_external_http_client
@@ -60,7 +60,7 @@ SENSITIVE_UPDATE_FIELDS = frozenset({"email", "password"})
 
 def _login_identifier_rate_limit_key(identifier: str) -> str:
     """Return a privacy-preserving login rate-limit key for a submitted identifier."""
-    return hashed_identifier_rate_limit_key("auth:login:account", identifier)
+    return rate_limit_bucket_key("auth:login:account", identifier)
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: ignore UUIDID

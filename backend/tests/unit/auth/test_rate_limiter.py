@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from unittest.mock import MagicMock
 
 import pytest
@@ -12,7 +13,9 @@ from app.api.auth.services.rate_limiter import (
     Limiter,
     RateLimitExceededError,
     _find_request,
+    rate_limit_bucket_key,
     rate_limit_exceeded_handler,
+    request_ip_rate_limit_key,
 )
 
 
@@ -82,6 +85,50 @@ class TestRateLimitExceededHandler:
         resp = rate_limit_exceeded_handler(MagicMock(), RateLimitExceededError("nope"))
         body = json.loads(bytes(resp.body))
         assert body["detail"] == "nope"
+
+
+# ---------------------------------------------------------------------------
+# Privacy-preserving keys
+# ---------------------------------------------------------------------------
+
+
+class TestRateLimitBucketKey:
+    """Tests for privacy-preserving explicit rate-limit bucket keys."""
+
+    def test_returns_stable_hmac_key_with_readable_prefix(self) -> None:
+        """The generated key should be stable without exposing the raw value."""
+        key = rate_limit_bucket_key("auth:login:ip", "203.0.113.10")
+
+        assert key == rate_limit_bucket_key("auth:login:ip", "203.0.113.10")
+        assert key.startswith("auth:login:ip:")
+        assert "203.0.113.10" not in key
+
+    def test_different_values_use_different_buckets(self) -> None:
+        """Different submitted values should not collide into the same bucket."""
+        first = rate_limit_bucket_key("auth:login:ip", "203.0.113.10")
+        second = rate_limit_bucket_key("auth:login:ip", "203.0.113.11")
+
+        assert first != second
+
+    def test_account_identifier_key_does_not_expose_submitted_identifier(self) -> None:
+        """Submitted account identifiers should be normalized into keyed buckets."""
+        key = rate_limit_bucket_key("auth:login:account", " User@Example.COM ")
+
+        assert key == rate_limit_bucket_key("auth:login:account", "user@example.com")
+        assert key.startswith("auth:login:account:")
+        assert "User@Example.COM" not in key
+        assert "user@example.com" not in key
+
+    def test_request_ip_key_does_not_expose_client_ip(self) -> None:
+        """Request-scoped per-IP limits should use a safe client-IP bucket."""
+        request = _make_request()
+        request.headers = {"CF-Connecting-IP": "203.0.113.10"}
+        request.client = None
+
+        key = request_ip_rate_limit_key(request)
+
+        assert key.startswith("client:ip:")
+        assert "203.0.113.10" not in key
 
 
 # ---------------------------------------------------------------------------
@@ -178,6 +225,20 @@ class TestLimiter:
             limiter.hit_key("1/minute", "auth:login:account:one")
 
         limiter.hit_key("1/minute", "auth:login:account:two")
+
+    def test_limit_exceeded_log_uses_safe_bucket_key(self, limiter: Limiter, caplog: pytest.LogCaptureFixture) -> None:
+        """Rate-limit logs should not include raw identifiers when callers use safe buckets."""
+        raw_ip = "203.0.113.10"
+        safe_key = rate_limit_bucket_key("auth:login:ip", raw_ip)
+
+        caplog.set_level(logging.INFO, logger="app.api.auth.services.rate_limiter")
+        limiter.hit_key("1/minute", safe_key)
+
+        with pytest.raises(RateLimitExceededError):
+            limiter.hit_key("1/minute", safe_key)
+
+        assert "auth:login:ip:" in caplog.text
+        assert raw_ip not in caplog.text
 
     async def test_no_request_arg_skips_check(self, limiter: Limiter) -> None:
         """When no Request is found in args, the limiter should not block."""
