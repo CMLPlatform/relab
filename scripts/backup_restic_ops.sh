@@ -2,11 +2,44 @@
 # Operator and smoke-test helpers for RELab restic backups.
 set -euo pipefail
 
+DEPLOY_BACKUP_IMAGE="${DEPLOY_BACKUP_IMAGE:-relab-backups-smoke}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4}"
 
-docker_smoke_backups() {
-    source scripts/deploy_helpers.sh
+require_dir() {
+    local description="$1"
+    local path="$2"
+    if [[ ! -d "$path" ]]; then
+        echo "$description not found: $path" >&2
+        exit 1
+    fi
+    realpath "$path"
+}
 
+require_file() {
+    local description="$1"
+    local path="$2"
+    if [[ ! -f "$path" ]]; then
+        echo "$description not found: $path" >&2
+        exit 1
+    fi
+    realpath "$path"
+}
+
+resolve_backup_paths() {
+    local env="$1"
+    local repo="${BACKUP_DIR:-./backups}/restic"
+    local secret="secrets/$env/restic_password"
+
+    DEPLOY_RESTIC_REPOSITORY="$(require_dir "Restic repository" "$repo")"
+    DEPLOY_RESTIC_PASSWORD_FILE="$(require_file "Restic password file" "$secret")"
+    export DEPLOY_RESTIC_REPOSITORY DEPLOY_RESTIC_PASSWORD_FILE
+}
+
+build_backup_image() {
+    docker build -f backend/Dockerfile.backups -t "$DEPLOY_BACKUP_IMAGE" backend
+}
+
+docker_smoke_backups() {
     tmp_root="$(mktemp -d)"
     network="relab_backup_smoke_$(date +%s)"
     postgres_container="${network}_postgres"
@@ -23,11 +56,11 @@ docker_smoke_backups() {
     trap cleanup EXIT
 
     mkdir -p "$tmp_root/uploads/images" "$tmp_root/uploads/files" "$tmp_root/restic" "$tmp_root/offsite" "$tmp_root/rclone"
-    printf 'smoke test image bytes\n' > "$tmp_root/uploads/images/example.txt"
-    printf 'smoke test file bytes\n' > "$tmp_root/uploads/files/example.txt"
-    printf '[offsite]\ntype = local\n' > "$tmp_root/rclone/rclone.conf"
+    printf 'smoke test image bytes\n' >"$tmp_root/uploads/images/example.txt"
+    printf 'smoke test file bytes\n' >"$tmp_root/uploads/files/example.txt"
+    printf '[offsite]\ntype = local\n' >"$tmp_root/rclone/rclone.conf"
 
-    deploy_build_backup_image
+    build_backup_image
     docker run --rm -v "$tmp_root/restic:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
     docker run --rm -v "$tmp_root/offsite:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
     docker network create "$network" >/dev/null
@@ -92,9 +125,8 @@ docker_smoke_backups() {
 
 backup_offsite_copy() {
     local env="${1:-staging}"
-    source scripts/deploy_helpers.sh
 
-    deploy_resolve_backup_paths "$env"
+    resolve_backup_paths "$env"
 
     local rclone_config="secrets/$env/rclone.conf"
     local tmp_root
@@ -106,7 +138,7 @@ backup_offsite_copy() {
         exit 1
     fi
 
-    deploy_build_backup_image
+    build_backup_image
     local -a docker_args=(
         --rm
         -v "$DEPLOY_RESTIC_REPOSITORY:/restic"
@@ -135,9 +167,8 @@ backup_offsite_copy() {
 
 backup_restore_smoke() {
     local env="${1:-prod}"
-    source scripts/deploy_helpers.sh
 
-    deploy_resolve_backup_paths "$env"
+    resolve_backup_paths "$env"
 
     tmp_root="$(mktemp -d)"
     container="relab_restore_smoke_$(date +%s)"
@@ -154,7 +185,7 @@ backup_restore_smoke() {
 
     mkdir -p "$tmp_root/restore"
     install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
-    deploy_build_backup_image
+    build_backup_image
 
     docker run --rm \
         -v "$DEPLOY_RESTIC_REPOSITORY:/restic:ro" \
