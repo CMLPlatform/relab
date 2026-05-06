@@ -35,25 +35,38 @@ This page is about running the stack. For tooling policy and contributor workflo
    just setup
    ```
 
-1. Configure the backend environment and local backend secrets.
+1. Create local backend secrets.
 
    ```bash
-   cp backend/.env.dev.example backend/.env.dev
    just deploy-secrets-template dev
    ```
 
-   `backend/.env.dev` stores non-secret config. Replace values under `secrets/dev/` only when you need real local credentials for integrations such as OAuth or email.
+   Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email, or bootstrap settings. Replace values under `secrets/dev/` only when you need real local credentials for integrations.
 
-1. Run the first migration pass.
+   ```text
+   GOOGLE_OAUTH_CLIENT_ID=google-oauth-client-id
+   GITHUB_OAUTH_CLIENT_ID=github-oauth-client-id
+   EMAIL_PROVIDER=smtp
+   SMTP_HOST=smtp.example.com
+   SMTP_USERNAME=you@example.com
+   EMAIL_FROM=Your Name <you@example.com>
+   EMAIL_REPLY_TO=you@example.com
+   BOOTSTRAP_SUPERUSER_EMAIL=you@example.com
+   ```
+
+1. Start the containerized database/cache and run the first migration pass.
 
    ```bash
+   just dev-db
    just dev-migrate
    ```
+
+   To seed sample data during migrations, run `SEED_DUMMY_DATA=true just dev-migrate`.
 
    If you also need CPV or HS taxonomy seeding in the migration container:
 
    ```bash
-   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose --profile migrations up --build migrator
+   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true just dev-migrate
    ```
 
 1. Start the stack.
@@ -86,7 +99,7 @@ This page is about running the stack. For tooling policy and contributor workflo
 
 ## Production and staging deployment
 
-Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging are selected by committed non-secret Compose env files under `deploy/env/`, while each host keeps only host-local interpolation values in the gitignored root `.env`. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
+Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging are selected by committed non-secret Compose env files under `deploy/env/`, while each host keeps host-local interpolation values in the gitignored root `.env`. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
 
 1. Configure a Cloudflare tunnel.
 
@@ -104,17 +117,17 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
 
    The root `.env` holds host-local values that Compose must interpolate. It can contain two types of values:
 
-   - **Non-secret** values, such as OAuth client IDs, email sender metadata, the initial superuser email/name, backup retention, and optional telemetry endpoints.
+   - **Non-secret** values, such as OAuth client IDs, email sender metadata, the initial superuser email, the backup host directory, and optional telemetry endpoints.
    - **Secret** values only when a host helper or Compose interpolation requires them, such as `CLOUDFLARE_TUNNEL_TOKEN` or optional authenticated telemetry URLs/headers.
 
    For prod or staging, fill the required non-secret backend deploy inputs in `.env`: `GOOGLE_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_ID`, `EMAIL_PROVIDER`, email sender fields, and `BOOTSTRAP_SUPERUSER_EMAIL`. Use the prod or staging Cloudflare tunnel token for `CLOUDFLARE_TUNNEL_TOKEN`. Compose requires the shared email identity values; backend startup validation enforces provider-specific settings. With `EMAIL_PROVIDER=smtp`, fill `SMTP_HOST`, `SMTP_USERNAME`, and `secrets/<env>/smtp_password`. With `EMAIL_PROVIDER=microsoft_graph`, fill the Microsoft Graph tenant/client/sender values and `secrets/<env>/microsoft_graph_client_secret`.
 
-   Environment identity, public origins, and worker counts live in `deploy/env/prod.compose.env` and `deploy/env/staging.compose.env`. Each deploy env file defines the environment plus the four public service URLs once: `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL`, and `DOCS_PUBLIC_URL`.
+   Environment identity and public origins live in `deploy/env/prod.compose.env` and `deploy/env/staging.compose.env`. Each deploy env file defines the environment plus the four public service URLs once: `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL`, and `DOCS_PUBLIC_URL`.
 
 1. Review the non-secret deploy settings for this host.
 
-   Edit `deploy/env/prod.compose.env` or `deploy/env/staging.compose.env` only for committed public URL or worker-count changes. Keep application/runtime secrets out of `.env`; they belong under `secrets/<env>/`.
-   To inspect the full repo-owned variable contract, run:
+   Edit `deploy/env/prod.compose.env` or `deploy/env/staging.compose.env` only for committed public URL changes. Keep application/runtime secrets out of `.env`; they belong under `secrets/<env>/`.
+   To inspect the runtime secret inventory, run:
 
    ```bash
    just env-inventory
@@ -126,7 +139,7 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
    just deploy-secrets-template prod
    ```
 
-   Replace every placeholder value under `secrets/prod/`. Use `just deploy-secrets-template staging` for staging or `just deploy-secrets-template dev` for local development. Required secret filenames are declared by the rendered Compose overlays and the source-controlled inventory in `deploy/env/variables.toml`; `just deploy-secrets-check` verifies that every rendered secret points at the expected `secrets/<env>/` file. Existing database volumes must be dumped and recreated before the database role layout can take effect.
+   Replace every placeholder value under `secrets/prod/`. Use `just deploy-secrets-template staging` for staging or `just deploy-secrets-template dev` for local development. Required secret filenames are declared by the rendered Compose overlays and the runtime secret inventory in `deploy/env/variables.toml`; `just deploy-secrets-check` verifies that every rendered secret points at the expected `secrets/<env>/` file. Existing database volumes must be dumped and recreated before the database role layout can take effect.
 
 1. Validate the deployment configuration.
 
