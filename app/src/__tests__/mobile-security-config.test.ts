@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 type ExpoPlugin = string | [string, Record<string, unknown>];
-const HTTPS_API_URL_PATTERN = /^EXPO_PUBLIC_API_URL='https:\/\//m;
-const HTTPS_WEBSITE_URL_PATTERN = /^EXPO_PUBLIC_WEBSITE_URL='https:\/\//m;
-const HTTPS_DOCS_URL_PATTERN = /^EXPO_PUBLIC_DOCS_URL='https:\/\//m;
+const HTTPS_API_URL_PATTERN = /^API_PUBLIC_URL='?https:\/\//m;
+const HTTPS_WEBSITE_URL_PATTERN = /^WEB_PUBLIC_URL='?https:\/\//m;
+const HTTPS_DOCS_URL_PATTERN = /^DOCS_PUBLIC_URL='?https:\/\//m;
 
 const appConfig = JSON.parse(readFileSync(resolve(__dirname, '../../app.json'), 'utf8')) as {
   expo: {
@@ -22,8 +22,8 @@ function pluginConfig(name: string): Record<string, unknown> {
   return plugin[1];
 }
 
-function readEnv(name: string): string {
-  return readFileSync(resolve(__dirname, `../../${name}`), 'utf8');
+function readRootEnv(name: string): string {
+  return readFileSync(resolve(__dirname, `../../../${name}`), 'utf8');
 }
 
 describe('mobile app security configuration', () => {
@@ -40,8 +40,8 @@ describe('mobile app security configuration', () => {
   });
 
   it('keeps production-like public service URLs on HTTPS', () => {
-    for (const envName of ['.env.prod', '.env.staging']) {
-      const env = readEnv(envName);
+    for (const envName of ['deploy/env/prod.compose.env', 'deploy/env/staging.compose.env']) {
+      const env = readRootEnv(envName);
 
       expect(env).toMatch(HTTPS_API_URL_PATTERN);
       expect(env).toMatch(HTTPS_WEBSITE_URL_PATTERN);
