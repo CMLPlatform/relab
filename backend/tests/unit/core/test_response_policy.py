@@ -10,10 +10,18 @@ from app.api.common.routers.exceptions import register_exception_handlers
 from app.core.middleware.response_policy import (
     CONTENT_SECURITY_POLICY_HEADER_VALUE,
     HSTS_HEADER_VALUE,
-    NO_STORE,
     REFERRER_POLICY_HEADER_VALUE,
     register_response_policy_middleware,
 )
+from app.core.http_headers import NO_STORE
+
+SENSITIVE_CACHE_CONTROL = "no-store, no-cache, must-revalidate"
+
+
+def _assert_sensitive_cache_headers(response) -> None:
+    assert response.headers["cache-control"] == SENSITIVE_CACHE_CONTROL
+    assert response.headers["pragma"] == "no-cache"
+    assert response.headers["expires"] == "0"
 
 
 def _create_policy_app(*, enable_hsts: bool = False) -> FastAPI:
@@ -65,30 +73,19 @@ async def test_response_policy_sets_browser_baseline_headers() -> None:
 
 
 async def test_response_policy_sets_self_hosted_csp() -> None:
-    """Backend CSP should allow only same-origin browser assets and API calls."""
+    """API CSP should contain only browser framing protection."""
     app = _create_policy_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
         response = await client.get("/health")
 
     policy = response.headers["content-security-policy"]
-    for directive in (
-        "default-src 'self'",
-        "script-src 'self'",
-        "style-src 'self'",
-        "img-src 'self' data:",
-        "font-src 'self'",
-        "connect-src 'self'",
-        "frame-ancestors 'none'",
-        "object-src 'none'",
-        "base-uri 'self'",
-        "form-action 'self'",
-    ):
-        assert directive in policy
+    assert policy == "frame-ancestors 'none'"
+    assert "script-src" not in policy
+    assert "style-src" not in policy
+    assert "connect-src" not in policy
     assert "'unsafe-inline'" not in policy
     assert "'unsafe-eval'" not in policy
-    assert "script-src *" not in policy
-    assert "style-src *" not in policy
     assert "javascript:" not in policy
 
 
@@ -144,9 +141,10 @@ async def test_response_policy_sets_no_store_for_sensitive_paths() -> None:
         admin_response = await client.get("/v1/admin/users")
         camera_response = await client.get("/v1/plugins/rpi-cam/cameras/1/status")
 
-    assert auth_response.headers["cache-control"] == NO_STORE
-    assert admin_response.headers["cache-control"] == NO_STORE
-    assert camera_response.headers["cache-control"] == NO_STORE
+    assert auth_response.headers["cache-control"] != NO_STORE
+    _assert_sensitive_cache_headers(auth_response)
+    _assert_sensitive_cache_headers(admin_response)
+    _assert_sensitive_cache_headers(camera_response)
 
 
 async def test_response_policy_uses_path_boundaries() -> None:
@@ -168,8 +166,8 @@ async def test_response_policy_sets_no_store_for_authenticated_requests() -> Non
         client.cookies.set("auth", "token")
         cookie_response = await client.get("/v1/products")
 
-    assert bearer_response.headers["cache-control"] == NO_STORE
-    assert cookie_response.headers["cache-control"] == NO_STORE
+    _assert_sensitive_cache_headers(bearer_response)
+    _assert_sensitive_cache_headers(cookie_response)
 
 
 async def test_response_policy_sets_no_store_for_problem_details() -> None:
@@ -180,4 +178,4 @@ async def test_response_policy_sets_no_store_for_problem_details() -> None:
         response = await client.get("/v1/error")
 
     assert response.status_code == 404
-    assert response.headers["cache-control"] == NO_STORE
+    _assert_sensitive_cache_headers(response)

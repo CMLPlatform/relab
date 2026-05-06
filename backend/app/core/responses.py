@@ -10,9 +10,9 @@ from typing import TYPE_CHECKING
 
 from fastapi.encoders import jsonable_encoder
 from fastapi.requests import Request
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import JSONResponse, Response
 
-from app.core.middleware import REQUEST_ID_HEADER
+from app.core.http_headers import NO_STORE, REQUEST_ID_HEADER
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -78,11 +78,14 @@ def build_problem_response(
     if extra:
         problem.update(extra)
 
+    response_headers = _response_headers(request, headers)
+    response_headers.setdefault("Cache-Control", NO_STORE)
+
     return JSONResponse(
         status_code=status_code,
         content=problem,
         media_type=PROBLEM_CONTENT_TYPE,
-        headers=_response_headers(request, headers),
+        headers=response_headers,
     )
 
 
@@ -109,22 +112,3 @@ def conditional_json_response(
         return Response(status_code=304, headers=response_headers)
 
     return JSONResponse(status_code=status_code, content=encoded_payload, headers=response_headers)
-
-
-def conditional_html_response(
-    request: Request,
-    content: str,
-    *,
-    status_code: int = 200,
-    headers: Mapping[str, str] | None = None,
-) -> Response:
-    """Return an HTML response with ETag support."""
-    response_bytes = content.encode("utf-8")
-    etag = _quoted_etag(response_bytes)
-    response_headers = _response_headers(request, headers)
-    response_headers["ETag"] = etag
-
-    if _etag_matches(request.headers.get("if-none-match"), etag):
-        return Response(status_code=304, headers=response_headers)
-
-    return HTMLResponse(content=content, status_code=status_code, headers=response_headers)
