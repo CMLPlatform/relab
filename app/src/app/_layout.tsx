@@ -1,6 +1,7 @@
 import { HeaderBackButton } from '@react-navigation/elements';
 import { ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useFonts } from 'expo-font';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
 import { type ReactNode, useEffect } from 'react';
@@ -33,6 +34,18 @@ const queryClient = new QueryClient({
 });
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    'IBMPlexSans-Bold': require('@/assets/fonts/IBMPlexSans-Bold.ttf'),
+    'IBMPlexSans-Italic': require('@/assets/fonts/IBMPlexSans-Italic.ttf'),
+    'IBMPlexSans-Medium': require('@/assets/fonts/IBMPlexSans-Medium.ttf'),
+    'IBMPlexSans-Regular': require('@/assets/fonts/IBMPlexSans-Regular.ttf'),
+    'IBMPlexSans-SemiBold': require('@/assets/fonts/IBMPlexSans-SemiBold.ttf'),
+  });
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <Providers>
       <AppShell />

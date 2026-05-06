@@ -18,20 +18,32 @@ const mermaidThemeVariables = {
   light: {
     background: '#f7fbff',
     primaryColor: '#d9f4fb',
-    primaryBorderColor: '#006783',
-    primaryTextColor: '#13263a',
+    primaryBorderColor: 'var(--relab-brand-primary)',
+    primaryTextColor: 'var(--relab-brand-text)',
     lineColor: '#24415b',
     tertiaryColor: '#eef5fb',
   },
   dark: {
     background: '#0c1724',
     primaryColor: '#13364d',
-    primaryBorderColor: '#63d3ff',
-    primaryTextColor: '#f2f8ff',
+    primaryBorderColor: 'var(--relab-brand-primary)',
+    primaryTextColor: 'var(--relab-brand-text)',
     lineColor: '#b9dcf6',
     tertiaryColor: '#102131',
   },
 } as const;
+
+const resolveThemeVariables = (theme: keyof typeof mermaidThemeVariables) => {
+  const styles = getComputedStyle(document.documentElement);
+  return Object.fromEntries(
+    Object.entries(mermaidThemeVariables[theme]).map(([key, value]) => [
+      key,
+      value.startsWith('var(')
+        ? styles.getPropertyValue(value.slice(4, -1)).trim() || value
+        : value,
+    ]),
+  );
+};
 
 const normalizeMermaidSource = (source: string) => {
   return source
@@ -119,7 +131,7 @@ const renderMermaid = async (force = false) => {
         startOnLoad: false,
         securityLevel: 'strict',
         theme: 'base',
-        themeVariables: mermaidThemeVariables[theme],
+        themeVariables: resolveThemeVariables(theme),
       });
       activeMermaidTheme = theme;
       for (const diagram of diagrams) {

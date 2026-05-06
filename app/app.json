@@ -36,7 +36,48 @@
           }
         }
       ],
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./src/assets/fonts/IBMPlexSans-Regular.ttf",
+            "./src/assets/fonts/IBMPlexSans-Medium.ttf",
+            "./src/assets/fonts/IBMPlexSans-SemiBold.ttf",
+            "./src/assets/fonts/IBMPlexSans-Bold.ttf",
+            "./src/assets/fonts/IBMPlexSans-Italic.ttf"
+          ],
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "IBM Plex Sans",
+                "fontDefinitions": [
+                  {
+                    "path": "./src/assets/fonts/IBMPlexSans-Regular.ttf",
+                    "weight": 400
+                  },
+                  {
+                    "path": "./src/assets/fonts/IBMPlexSans-Medium.ttf",
+                    "weight": 500
+                  },
+                  {
+                    "path": "./src/assets/fonts/IBMPlexSans-SemiBold.ttf",
+                    "weight": 600
+                  },
+                  {
+                    "path": "./src/assets/fonts/IBMPlexSans-Bold.ttf",
+                    "weight": 700
+                  },
+                  {
+                    "path": "./src/assets/fonts/IBMPlexSans-Italic.ttf",
+                    "weight": 400,
+                    "style": "italic"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
       [
         "expo-splash-screen",
         {

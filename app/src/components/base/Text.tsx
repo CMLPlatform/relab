@@ -14,6 +14,6 @@ export const Text: React.FC<TextProps> = ({ style, children, ...props }) => {
 
 const styles = StyleSheet.create({
   base: {
-    fontFamily: 'System',
+    fontFamily: 'IBMPlexSans-Regular',
   },
 });

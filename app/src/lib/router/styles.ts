@@ -14,6 +14,7 @@ export function createHeaderRightPillStyles(theme: AppTheme) {
     },
     primaryText: {
       color: theme.colors.onBackground,
+      fontFamily: 'IBMPlexSans-SemiBold',
       fontWeight: '600' as const,
       fontSize: 14,
     },
@@ -23,7 +24,8 @@ export function createHeaderRightPillStyles(theme: AppTheme) {
 export function getProductsHeaderStyle(theme: AppTheme) {
   return {
     headerTitleStyle: {
-      fontWeight: 'bold' as const,
+      fontFamily: 'IBMPlexSans-Bold',
+      fontWeight: '700' as const,
       fontSize: 34,
       color: theme.colors.onBackground,
     },

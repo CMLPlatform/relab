@@ -1,10 +1,10 @@
 html,
 body {
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: var(--relab-brand-font-body), sans-serif;
 }
 
 body {
-  color: var(--relab-text);
+  color: var(--relab-brand-text);
 }
 
 body::before {
@@ -32,8 +32,8 @@ body::after {
   pointer-events: none;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--relab-surface-wash) 96%, white 4%) 0%,
-    color-mix(in srgb, var(--relab-surface-wash) 92%, transparent) 100%
+    color-mix(in srgb, var(--relab-brand-surface-wash) 96%, white 4%) 0%,
+    color-mix(in srgb, var(--relab-brand-surface-wash) 92%, transparent) 100%
   );
   backdrop-filter: blur(4px);
 }
@@ -41,8 +41,8 @@ body::after {
 :root[data-theme="dark"] body::after {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--relab-surface-wash) 94%, #09111d 6%) 0%,
-    color-mix(in srgb, var(--relab-surface-wash) 90%, transparent) 100%
+    color-mix(in srgb, var(--relab-brand-surface-wash) 94%, #09111d 6%) 0%,
+    color-mix(in srgb, var(--relab-brand-surface-wash) 90%, transparent) 100%
   );
 }
 
@@ -52,10 +52,10 @@ h3,
 h4,
 .site-title,
 .hero {
-  font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
-  letter-spacing: -0.015em;
+  font-family: var(--relab-brand-font-heading), var(--relab-brand-font-body), Georgia, serif;
+  letter-spacing: -0.025em;
 }
 
 a {
-  color: var(--relab-primary);
+  color: var(--relab-brand-primary);
 }
