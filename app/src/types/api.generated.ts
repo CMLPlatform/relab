@@ -1450,7 +1450,7 @@ export interface paths {
     patch: operations['update_product_bill_of_materials_v1_products__product_id__materials__material_id__patch'];
     trace?: never;
   };
-  '/v1/auth/login': {
+  '/v1/auth/bearer/login': {
     parameters: {
       query?: never;
       header?: never;
@@ -1459,8 +1459,11 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Login with email and password */
-    post: operations['auth_login_v1_auth_login_post'];
+    /**
+     * Login with email and password for bearer-token clients
+     * @description Authenticate a bearer client and return access and refresh tokens in JSON.
+     */
+    post: operations['auth_bearer_login_v1_auth_bearer_login_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1476,25 +1479,8 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Auth:Cookie.Login */
-    post: operations['auth_cookie_login_v1_auth_session_login_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/auth/session/logout': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Auth:Cookie.Logout */
-    post: operations['auth_cookie_logout_v1_auth_session_logout_post'];
+    /** Login with email and password for browser sessions */
+    post: operations['auth_session_login_v1_auth_session_login_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1521,7 +1507,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/auth/refresh': {
+  '/v1/auth/bearer/refresh': {
     parameters: {
       query?: never;
       header?: never;
@@ -1537,7 +1523,7 @@ export interface paths {
      *     Validates refresh token and issues new access token.
      *     Updates session activity timestamp.
      */
-    post: operations['auth_bearer_refresh_v1_auth_refresh_post'];
+    post: operations['auth_bearer_refresh_v1_auth_bearer_refresh_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1567,7 +1553,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/auth/logout': {
+  '/v1/auth/bearer/logout': {
     parameters: {
       query?: never;
       header?: never;
@@ -1577,13 +1563,30 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Auth:Logout
-     * @description Logout the current user.
-     *
-     *     Destroys the current access token in Redis and blacklists the refresh token.
-     *     Clears cookies on the client side.
+     * Auth:Bearer.Logout
+     * @description Logout a bearer client and revoke its supplied refresh token.
      */
-    post: operations['auth_logout_v1_auth_logout_post'];
+    post: operations['auth_bearer_logout_v1_auth_bearer_logout_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/auth/session/logout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Auth:Session.Logout
+     * @description Logout a browser session, revoke refresh state, and clear browser storage.
+     */
+    post: operations['auth_session_logout_v1_auth_session_logout_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2464,8 +2467,8 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    /** Body_auth_cookie_login_v1_auth_session_login_post */
-    Body_auth_cookie_login_v1_auth_session_login_post: {
+    /** Body_auth_bearer_login_v1_auth_bearer_login_post */
+    Body_auth_bearer_login_v1_auth_bearer_login_post: {
       /** Grant Type */
       grant_type?: string | null;
       /** Username */
@@ -2488,8 +2491,8 @@ export interface components {
        */
       client_secret?: string | null;
     };
-    /** Body_auth_login_v1_auth_login_post */
-    Body_auth_login_v1_auth_login_post: {
+    /** Body_auth_session_login_v1_auth_session_login_post */
+    Body_auth_session_login_v1_auth_session_login_post: {
       /** Grant Type */
       grant_type?: string | null;
       /** Username */
@@ -8781,7 +8784,7 @@ export interface operations {
       };
     };
   };
-  auth_login_v1_auth_login_post: {
+  auth_bearer_login_v1_auth_bearer_login_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -8790,7 +8793,49 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/x-www-form-urlencoded': components['schemas']['Body_auth_login_v1_auth_login_post'];
+        'application/x-www-form-urlencoded': components['schemas']['Body_auth_bearer_login_v1_auth_bearer_login_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RefreshTokenResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorModel'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  auth_session_login_v1_auth_session_login_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/x-www-form-urlencoded': components['schemas']['Body_auth_session_login_v1_auth_session_login_post'];
       };
     };
     responses: {
@@ -8820,89 +8865,6 @@ export interface operations {
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
         };
-      };
-    };
-  };
-  auth_cookie_login_v1_auth_session_login_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/x-www-form-urlencoded': components['schemas']['Body_auth_cookie_login_v1_auth_session_login_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description No Content */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorModel'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  auth_cookie_logout_v1_auth_session_logout_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description No Content */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Missing token or inactive user. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
       };
     };
   };
@@ -8939,14 +8901,12 @@ export interface operations {
       };
     };
   };
-  auth_bearer_refresh_v1_auth_refresh_post: {
+  auth_bearer_refresh_v1_auth_bearer_refresh_post: {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
-      cookie?: {
-        refresh_token?: string | null;
-      };
+      cookie?: never;
     };
     requestBody?: {
       content: {
@@ -9003,7 +8963,38 @@ export interface operations {
       };
     };
   };
-  auth_logout_v1_auth_logout_post: {
+  auth_bearer_logout_v1_auth_bearer_logout_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['RefreshTokenRequest'] | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  auth_session_logout_v1_auth_session_logout_post: {
     parameters: {
       query?: never;
       header?: never;
