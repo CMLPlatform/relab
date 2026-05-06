@@ -1,17 +1,10 @@
-<! spell-checker: ignore Grotesk -->
-<mj-font
-  name="IBM Plex Sans"
-  href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap"
-/>
-<mj-font
-  name="Space Grotesk"
-  href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap"
-/>
 <mj-attributes>
-  <mj-all font-family="'IBM Plex Sans', Arial, sans-serif" />
-  <mj-text font-size="15px" color="#191c1e" line-height="1.6" />
+  <mj-all
+    font-family="{{brand:--relab-brand-font-body}}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"
+  />
+  <mj-text font-size="15px" color="{{brand:--relab-brand-text}}" line-height="1.6" />
   <mj-button
-    background-color="#006783"
+    background-color="{{brand:--relab-brand-primary}}"
     color="#ffffff"
     font-size="15px"
     font-weight="500"
@@ -21,21 +14,12 @@
 </mj-attributes>
 <mj-style>
   .header-title {
-    font-family: 'Space Grotesk', 'IBM Plex Sans', Arial, sans-serif;
     font-size: 22px;
     font-weight: 600;
-    color: #006783;
-    letter-spacing: -0.02em;
+    color: {{brand:--relab-brand-primary}};
   }
   .footer-text {
     font-size: 12px;
-    color: #40484c;
-  }
-  .muted {
-    color: #40484c;
-  }
-  .link {
-    color: #006783;
-    word-break: break-all;
+    color: {{brand:--relab-brand-accent}};
   }
 </mj-style>
