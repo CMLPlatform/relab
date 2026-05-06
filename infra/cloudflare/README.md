@@ -6,7 +6,7 @@ This directory manages RELab's Cloudflare edge with OpenTofu:
 - DNS records for public RELab hostnames
 - Tunnel ingress routes to the Compose `edge` network
 - TLS zone settings
-- optional zone rate limiting, cache, and custom firewall rules
+- zone rate limiting, cache, and custom firewall rules
 
 It does not manage application runtime settings, Compose services, secrets,
 databases, backups, or telemetry.
@@ -28,14 +28,14 @@ Tunnel origins use plain HTTP inside the private Compose `edge` network.
 
 Rulesets:
 
-- `http_ratelimit`: enabled by default with `enable_rate_limiting_rules`.
-- `http_request_cache_settings`: disabled by default with `enable_cache_rules`.
-- `http_request_firewall_custom`: disabled by default with
-  `enable_custom_firewall_rules`.
+- `http_ratelimit`: repo-managed API rate limits.
+- `http_request_cache_settings`: repo-managed cache rules.
+- `http_request_firewall_custom`: repo-managed custom firewall rules.
 
-Cache and custom firewall rulesets are zone-wide Cloudflare phases. Enable them
-from only one workspace after importing the existing dashboard-managed phase, so
-prod and staging state do not compete for ownership.
+Cloudflare rules should be changed in this directory, not in the dashboard. The
+dashboard remains useful for inspection, events, and emergency debugging. If an
+emergency dashboard edit is ever made, copy the change back into OpenTofu and
+run a plan before the next apply.
 
 ## Commands
 
@@ -65,8 +65,6 @@ Optional:
 
 ```bash
 export TF_VAR_cloudflare_zone_name='cml-relab.org'
-export TF_VAR_enable_cache_rules=true
-export TF_VAR_enable_custom_firewall_rules=true
 ```
 
 Do not commit tokens, tunnel tokens, or state files.
@@ -76,7 +74,7 @@ Do not commit tokens, tunnel tokens, or state files.
 Import existing Cloudflare resources before applying from a fresh state:
 
 1. Select the matching workspace: `prod` or `staging`.
-1. Import the tunnel, DNS records, and any enabled ruleset phase.
+1. Import the tunnel, DNS records, and ruleset phases managed in this directory.
 1. Run `just cloudflare-plan <env>`.
 1. Apply only after the plan shows the exact intended drift.
 

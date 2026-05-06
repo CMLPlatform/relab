@@ -59,8 +59,6 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "relab" {
 }
 
 resource "cloudflare_ruleset" "rate_limiting" {
-  count = var.enable_rate_limiting_rules ? 1 : 0
-
   zone_id     = var.cloudflare_zone_id
   name        = "RELab ${var.environment} API rate limits"
   description = "Zone-level rate limiting for RELab ${var.environment} auth, media upload, and RPi camera endpoints."
@@ -91,11 +89,9 @@ resource "cloudflare_ruleset" "rate_limiting" {
 }
 
 resource "cloudflare_ruleset" "cache_settings" {
-  count = var.enable_cache_rules ? 1 : 0
-
   zone_id     = var.cloudflare_zone_id
   name        = "RELab cache rules"
-  description = "Zone-level cache rules for RELab. Import the existing dashboard-managed phase before enabling."
+  description = "Zone-level cache rules for RELab."
   kind        = "zone"
   phase       = "http_request_cache_settings"
 
@@ -113,11 +109,9 @@ resource "cloudflare_ruleset" "cache_settings" {
 }
 
 resource "cloudflare_ruleset" "custom_firewall" {
-  count = var.enable_custom_firewall_rules ? 1 : 0
-
   zone_id     = var.cloudflare_zone_id
   name        = "RELab custom firewall rules"
-  description = "Zone-level custom firewall rules for RELab. Import the existing dashboard-managed phase before enabling."
+  description = "Zone-level custom firewall rules for RELab."
   kind        = "zone"
   phase       = "http_request_firewall_custom"
 
