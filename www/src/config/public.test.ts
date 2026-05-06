@@ -19,7 +19,7 @@ function publicEnv(overrides: [string, string][]) {
 }
 
 describe('readSiteUrl', () => {
-  it('prefers SITE_URL, then PUBLIC_SITE_URL, then fallback when reading the site URL', () => {
+  it('uses PUBLIC_SITE_URL, then fallback when reading the site URL', () => {
     expect(
       readSiteUrl(
         envFixture([
@@ -28,7 +28,7 @@ describe('readSiteUrl', () => {
         ]),
         'https://fallback.example.com',
       ),
-    ).toBe('https://site.example.com');
+    ).toBe('https://public.example.com');
 
     expect(
       readSiteUrl(

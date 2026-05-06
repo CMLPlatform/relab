@@ -26,8 +26,8 @@ function validateHttpUrl(value: string, key: string): string {
 }
 
 export function readSiteUrl(env: EnvSource, fallback?: string): string {
-  const value = getOptional(env, 'SITE_URL') ?? getOptional(env, 'PUBLIC_SITE_URL') ?? fallback;
-  return value ? validateHttpUrl(value, 'SITE_URL') : '';
+  const value = getOptional(env, 'PUBLIC_SITE_URL') ?? fallback;
+  return value ? validateHttpUrl(value, 'PUBLIC_SITE_URL') : '';
 }
 
 export function readPublicSiteConfig(env: EnvSource): PublicSiteConfig {
