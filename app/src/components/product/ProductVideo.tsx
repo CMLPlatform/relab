@@ -370,6 +370,7 @@ function VideoEmbed({ url, linkColor }: { url: string; linkColor: string }) {
           title="Embedded product video"
           style={styles.webEmbed}
           sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
+          referrerPolicy="strict-origin-when-cross-origin"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
