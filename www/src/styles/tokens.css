@@ -7,18 +7,18 @@
   --backdrop-wash:
     linear-gradient(180deg, rgba(239, 246, 248, 0.74) 0%, rgba(237, 244, 247, 0.8) 100%),
     linear-gradient(120deg, rgba(168, 207, 223, 0.16) 0%, rgba(255, 255, 255, 0.1) 100%);
-  --color-primary: #0f7592;
-  --color-primary-strong: #0c5b72;
-  --color-primary-soft: rgba(15, 117, 146, 0.1);
-  --color-accent: #3f5a63;
+  --color-primary: var(--relab-brand-primary);
+  --color-primary-strong: var(--relab-brand-primary-strong);
+  --color-primary-soft: var(--relab-brand-primary-soft);
+  --color-accent: var(--relab-brand-accent);
   --color-surface: #eef4f7;
   --color-surface-raised: rgba(255, 255, 255, 0.92);
   --color-surface-strong: rgba(255, 255, 255, 0.98);
   --color-on-surface: #172637;
-  --color-text: #1f3041;
+  --color-text: var(--relab-brand-text);
   --color-muted: #53667a;
   --color-border: rgba(23, 38, 45, 0.12);
-  --color-ring: rgba(15, 117, 146, 0.2);
+  --color-ring: color-mix(in srgb, var(--relab-brand-primary) 20%, transparent);
   --color-success: #23734d;
   --color-error: #b24141;
   --shadow-soft: 0 10px 28px rgba(16, 32, 38, 0.05);
@@ -44,15 +44,15 @@
   --backdrop-wash:
     linear-gradient(180deg, rgba(9, 20, 29, 0.62) 0%, rgba(7, 17, 26, 0.76) 100%),
     linear-gradient(120deg, rgba(28, 72, 93, 0.24) 0%, rgba(3, 11, 17, 0.28) 100%);
-  --color-primary: #78d3f2;
-  --color-primary-strong: #a7e9ff;
-  --color-primary-soft: rgba(120, 211, 242, 0.14);
-  --color-accent: #c2ddea;
+  --color-primary: var(--relab-brand-primary);
+  --color-primary-strong: var(--relab-brand-primary-strong);
+  --color-primary-soft: var(--relab-brand-primary-soft);
+  --color-accent: var(--relab-brand-accent);
   --color-surface: #09131b;
   --color-surface-raised: rgba(13, 26, 35, 0.88);
   --color-surface-strong: rgba(18, 33, 43, 0.95);
   --color-on-surface: #edf7ff;
-  --color-text: #deeffc;
+  --color-text: var(--relab-brand-text);
   --color-muted: #b3c8d8;
   --color-border: rgba(222, 239, 252, 0.12);
   --shadow-soft: 0 20px 44px rgba(0, 0, 0, 0.24);
@@ -68,15 +68,15 @@
     --backdrop-wash:
       linear-gradient(180deg, rgba(9, 20, 29, 0.62) 0%, rgba(7, 17, 26, 0.76) 100%),
       linear-gradient(120deg, rgba(28, 72, 93, 0.24) 0%, rgba(3, 11, 17, 0.28) 100%);
-    --color-primary: #78d3f2;
-    --color-primary-strong: #a7e9ff;
-    --color-primary-soft: rgba(120, 211, 242, 0.14);
-    --color-accent: #c2ddea;
+    --color-primary: var(--relab-brand-primary);
+    --color-primary-strong: var(--relab-brand-primary-strong);
+    --color-primary-soft: var(--relab-brand-primary-soft);
+    --color-accent: var(--relab-brand-accent);
     --color-surface: #09131b;
     --color-surface-raised: rgba(13, 26, 35, 0.88);
     --color-surface-strong: rgba(18, 33, 43, 0.95);
     --color-on-surface: #edf7ff;
-    --color-text: #deeffc;
+    --color-text: var(--relab-brand-text);
     --color-muted: #b3c8d8;
     --color-border: rgba(222, 239, 252, 0.12);
     --shadow-soft: 0 20px 44px rgba(0, 0, 0, 0.24);

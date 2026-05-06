@@ -43,6 +43,6 @@ export function TextInput({
 
 const styles = StyleSheet.create({
   input: {
-    fontFamily: 'System',
+    fontFamily: 'IBMPlexSans-Regular',
   },
 });

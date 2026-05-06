@@ -11,6 +11,7 @@ const MODE_SITES = {
 };
 const MODE_FLAG = '--mode';
 const CUSTOM_CSS = [
+  './src/styles/brand.css',
   './src/styles/tokens.css',
   './src/styles/base.css',
   './src/styles/components.css',
@@ -19,8 +20,33 @@ const HEAD_LINKS = [
   {
     tag: 'link',
     attrs: {
+      rel: 'icon',
+      href: '/images/favicon.svg',
+      type: 'image/svg+xml',
+    },
+  },
+  {
+    tag: 'link',
+    attrs: {
+      rel: 'icon',
+      href: '/images/favicon-48.png',
+      type: 'image/png',
+      sizes: '48x48',
+    },
+  },
+  {
+    tag: 'link',
+    attrs: {
+      rel: 'apple-touch-icon',
+      href: '/images/apple-touch-icon.png',
+      sizes: '180x180',
+    },
+  },
+  {
+    tag: 'link',
+    attrs: {
       rel: 'preload',
-      href: '/fonts/space-grotesk-latin.woff2',
+      href: '/fonts/literata-latin.woff2',
       as: 'font',
       type: 'font/woff2',
       crossorigin: true,
@@ -79,10 +105,10 @@ const STARLIGHT_OPTIONS = {
   title: 'RELab docs',
   description: 'Technical documentation for the Reverse Engineering Lab research platform.',
   logo: {
-    src: './public/images/logo.png',
+    src: './public/images/logo.svg',
     alt: 'Reverse Engineering Lab logo',
   },
-  favicon: '/images/favicon.ico',
+  favicon: '/images/favicon.svg',
   titleDelimiter: '·',
   lastUpdated: true,
   pagefind: true,
