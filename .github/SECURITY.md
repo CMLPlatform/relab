@@ -40,7 +40,7 @@ Supply-chain and code-security checks have clear owners:
 
 - Dependencies: GitHub Dependency Review / Dependency Graph and Renovate.
 - Runtime images: Trivy scans and SPDX JSON SBOM artifacts.
-- Infrastructure as code: Trivy misconfiguration scans for supported repo config files, plus RELab Compose policy checks.
+- Infrastructure as code: Trivy misconfiguration scans for supported repo config files, OpenTofu validates Cloudflare edge config, plus RELab Compose render and deploy secret path checks.
 - Source code: CodeQL.
 - Secrets: Gitleaks.
 - GitHub Actions workflows: actionlint and Zizmor.

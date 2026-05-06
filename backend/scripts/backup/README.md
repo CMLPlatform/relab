@@ -34,10 +34,9 @@ do not put real secrets under `deploy/`.
 
 ## Required Secrets
 
-The required filename list lives in `deploy/required-secret-files.txt`. Use
+The deploy Compose overlay declares the required backup secret files. Use
 `just deploy-secrets-template prod` or `just deploy-secrets-template staging` to
-create missing files, then replace the placeholder values. `just deploy-secrets-check` verifies that the manifest and Compose overlay stay
-aligned.
+create missing files, then replace the placeholder values. `just deploy-secrets-check` verifies that rendered Compose secrets point at the expected `secrets/<env>/` files.
 
 ## Restore Smoke Test
 

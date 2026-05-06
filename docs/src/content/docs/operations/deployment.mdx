@@ -48,7 +48,7 @@ Backup services are enabled through Compose profiles. Telemetry is opt-in throug
 - Docker Compose is the runtime for staging and production.
 - `compose.yaml` is the shared base topology.
 - `compose.dev.yaml`, `compose.ci.yaml`, and `compose.deploy.yaml` are the supported environment overlays.
-- The same `compose.deploy.yaml` is used for prod and staging. Committed `deploy/env/*.compose.env` files select the environment; Docker Compose reads the host-level root `.env` for local interpolation values such as tunnel tokens, telemetry endpoints, and backup paths. Manual shell helpers use exported environment variables instead of parsing `.env`.
+- The same `compose.deploy.yaml` is used for prod and staging. Committed `deploy/env/*.compose.env` files select the environment, public origins, and worker count once; Compose maps those values to backend, app, docs, and www variable names at each service boundary. Docker Compose reads the host-level root `.env` for host-local operator inputs such as tunnel tokens, OAuth client IDs, email sender metadata, the initial superuser identity, telemetry endpoints, and backup paths. Manual shell helpers use exported environment variables instead of parsing `.env`.
 - GitHub Actions validate changes, run security checks, and maintain release automation, but deploys are still operated from the server checkout.
 - Cloudflare DNS and Tunnel public hostname configuration lives in `infra/cloudflare/`. Compose still owns the runtime services; OpenTofu owns only the public edge.
 
@@ -103,7 +103,8 @@ The deploy stack keeps segmentation intentionally small: public-facing services 
 | `api` | `edge`, `data` | none |
 | `postgres`, `redis`, `migrator`, `backup` | `data` only | none |
 
-`just compose-policy-check` validates these rendered Compose invariants for prod and staging.
+`just compose-config` validates that the supported Compose overlays render for dev, prod, and staging.
+`just deploy-secrets-check` validates that rendered Compose secrets point at the expected `secrets/<env>/` files.
 
 ## Transport security
 
@@ -117,13 +118,15 @@ Static frontends set this in Caddy; the API sets it from FastAPI in `prod` and `
 
 ## Deploy flow
 
-For a new host, clone the repo, create the root `.env`, create the backend runtime env file, then start the deploy stack and run migrations:
+For a new host, clone the repo, create the root `.env`, review the relevant `deploy/env/*.compose.env` file, create secret files, validate the render, then start the deploy stack and run migrations:
 
 ```bash
 cp .env.example .env
-cp backend/.env.prod.example backend/.env.prod
+# Fill required values in .env.
 just deploy-secrets-template prod
 # Replace every placeholder under secrets/prod/.
+just compose-config
+just deploy-secrets-check
 just prod-up YES
 just prod-migrate YES
 ```
@@ -137,7 +140,7 @@ For local rehearsal, use staging plus the backups profile instead of production:
 
 RELab keeps DoS mitigation layered. Cloudflare Tunnel is the public ingress path and should carry the network-level controls: WAF rules, per-path rate limiting for `/v1/auth/*`, `/v1/products/*/files`, `/v1/products/*/images`, `/v1/components/*/files`, `/v1/components/*/images`, `/v1/plugins/rpi-cam/device/cameras/*/image-upload`, `/v1/plugins/rpi-cam/device/cameras/*/preview-thumbnail-upload`, and `/v1/plugins/rpi-cam/ws/connect`, and request body limits aligned with the backend upload limits. Volumetric attacks are handled at Cloudflare or the upstream provider, not inside the FastAPI process.
 
-The backend enforces source-controlled application limits: JSON bodies are counted while streaming, multipart uploads have per-media size caps and allowlisted formats, expensive public product suggestion/facet routes and upload routes use Redis-backed rate limits, and the RPi camera WebSocket relay bounds auth attempts and frame sizes. Keep those defaults in code unless product policy changes; the main deployment-sized Uvicorn knob is `UVICORN_LIMIT_CONCURRENCY`, which should be tuned with worker count, DB pool size, and host capacity.
+The backend enforces source-controlled application limits: JSON bodies are counted while streaming, multipart uploads have per-media size caps and allowlisted formats, expensive public product suggestion/facet routes and upload routes use Redis-backed rate limits, and the RPi camera WebSocket relay bounds auth attempts and frame sizes. Keep those defaults in code unless product policy changes; tune deployment capacity primarily with `WEB_CONCURRENCY`, DB pool sizing, and host resources.
 
 ## Storage and backups
 
@@ -149,27 +152,28 @@ The backend enforces source-controlled application limits: JSON bodies are count
 - `just backup-restore-smoke staging` or `just backup-restore-smoke prod` restores the latest database dump into a disposable Postgres container and verifies that it can be read.
 
 The deploy stack runs app-owned services with dropped Linux capabilities, `no-new-privileges`, PID/file descriptor limits, and read-only root filesystems where supported. The backup container runs as UID/GID `1001`; make sure the host restic directory under `BACKUP_DIR` is writable by that ID.
-CI checks Dockerfile misconfigurations with Trivy and validates Cloudflare edge IaC with `just cloudflare-check`, while RELab-specific Compose policy checks validate rendered stack invariants such as network exposure, runtime hardening, image pinning, and secret access.
+CI checks Dockerfile misconfigurations with Trivy and validates Cloudflare edge IaC with `just cloudflare-check`.
+Root deployment validation renders the supported Compose overlays with `just compose-config` and checks rendered secret file paths with `just deploy-secrets-check`.
 
 ## Secrets and encrypted fields
 
 Most RELab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPI camera keys, request IDs, and cache keys are not application-encrypted.
 
-The backend uses `DATA_ENCRYPTION_KEY` only for reversible sensitive values it must recover later, such as OAuth provider tokens and active YouTube broadcast keys. Cache payload signing uses the separate `CACHE_SIGNING_SECRET`, and OAuth state uses `OAUTH_STATE_SECRET`, so each key has one purpose. Keep these application secrets in the host runtime environment, not in committed files.
+The backend uses `DATA_ENCRYPTION_KEY` only for reversible sensitive values it must recover later, such as OAuth provider tokens and active YouTube broadcast keys. Cache payload signing uses the separate `CACHE_SIGNING_SECRET`, and OAuth state uses `OAUTH_STATE_SECRET`, so each key has one purpose. Keep these application secrets in gitignored Compose secret files under `secrets/<env>/`, not in committed files or backend env files.
 
-Database role passwords, the Redis password, the restic repository password, and optional rclone config live in gitignored Compose secret files under `secrets/<env>/`. The required secret filenames are listed in `deploy/required-secret-files.txt`; use `just deploy-secrets-template <env>` to create missing files and `just deploy-secrets-check` to verify that the manifest and Compose overlay stay aligned. The application role, migration role, and backup role are separate PostgreSQL users; the application role is not the schema owner.
+Backend app secrets, database role passwords, the Redis password, the restic repository password, and optional rclone config live in gitignored Compose secret files under `secrets/<env>/`. Required files are declared by the rendered Compose overlays; use `just deploy-secrets-template dev`, `just deploy-secrets-template staging`, or `just deploy-secrets-template prod` to create missing files and `just deploy-secrets-check` to verify that Compose points at the expected root secret files. The application role, migration role, and backup role are separate PostgreSQL users; the application role is not the schema owner.
 
 Keep configuration ownership narrow: `infra/cloudflare/` contains public edge
-configuration, `deploy/` contains committed runtime config and manifests,
-`secrets/` contains uncommitted operator-owned secret material, and `scripts/`
-contains repo-wide operational helpers that are too large for the root
-`justfile`. Non-secret backend runtime settings stay in `backend/.env.<env>`
-because they are consumed directly by the FastAPI settings layer and backend
-tooling.
+configuration, `deploy/` contains committed non-secret runtime identity, the
+root `.env` contains host-local operator inputs, `secrets/`
+contains uncommitted operator-owned secret material, and `scripts/` contains
+repo-wide operational helpers that are too large for the root `justfile`.
+Backend dotenv files are local/test fixtures only; prod and staging do not use
+backend `.env.<env>` files.
 
 In the current single-host deployment, PostgreSQL and Redis are isolated on the internal Compose `data` network and do not publish host ports in prod or staging. `DATABASE_SSL=false` is intentional for this trusted local Docker network. If PostgreSQL moves to an external host, managed database, or untrusted network, enable `DATABASE_SSL` and manage database TLS certificates as part of that move.
 
-If a real secret is exposed outside the intended host, rotate it and treat existing encrypted backups as still depending on the old key until the backup retention window passes.
+To rotate a secret, replace its file under `secrets/<env>/`, restart the affected service, and verify `/live` and `/health`. If a real secret is exposed outside the intended host, rotate it and treat existing encrypted backups as still depending on the old key until the backup retention window passes.
 
 ## Quality controls
 
@@ -185,6 +189,12 @@ The repository also includes dependency maintenance, container scanning, perform
 GitHub Dependency Review / Dependency Graph gates dependency changes, while Renovate opens dependency update PRs. For an explicit full-tree dependency vulnerability sweep, run `just audit`. The security workflow builds the deployable Compose images, scans them with Trivy, and stores SPDX JSON SBOM artifacts for 90 days.
 
 When Release Please creates a GitHub release, the release workflow rebuilds those images, generates SPDX SBOM files, attests the SBOM files with GitHub artifact attestations, and uploads them as release assets. RELab deploys locally built Compose images rather than immutable registry images, so release attestations prove SBOM file provenance. Image-digest-bound SBOM attestations require publishing runtime images to a registry.
+
+## Browser third-party JavaScript
+
+RELab does not load third-party browser runtime JavaScript by default. Browser code is installed, bundled, and served as first-party assets; Biome and the repository pre-commit/CI Semgrep policy block remote script tags, remote module imports, CDN-hosted runtime assets, and common analytics/tag-manager snippets.
+
+The current exception is product video embedding from `https://www.youtube-nocookie.com`, constrained by CSP and iframe/WebView origin controls. Any new third-party runtime script must be intentionally reviewed, documented, allowlisted in CSP, and covered by the browser JavaScript policy tests.
 
 ## Telemetry
 

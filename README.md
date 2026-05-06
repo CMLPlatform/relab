@@ -57,6 +57,10 @@ If you want to go deeper:
 
 Infrastructure is orchestrated with Docker Compose from the repo root.
 
+Configuration has three homes: committed non-secret environment identity in
+`deploy/env/*.compose.env`, host-local operator inputs in the gitignored root
+`.env`, and runtime secrets in gitignored `secrets/<env>/` files.
+
 ## Common Commands
 
 ```bash
@@ -65,13 +69,14 @@ just ci        # run the canonical local CI pipeline
 just test      # run local test suites
 just security  # run dependency and security checks
 just dev       # start the full Docker dev stack with file watching
+just deploy-secrets-template dev  # create local backend secret files
 ```
 
 ## Project Links
 
 - [Live Platform](https://app.cml-relab.org)
 - [Documentation](https://docs.cml-relab.org)
-- [API Docs](https://api.cml-relab.org/docs)
+- [API Docs](https://docs.cml-relab.org/api/public/)
 - [Roadmap](https://docs.cml-relab.org/project/roadmap)
 
 ## Community and Policy
