@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import re
 import secrets
 from typing import Any  # noqa: TC003 # Used at runtime for FastAPI validation
-from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import jwt
 from fastapi import Request, Response
@@ -13,9 +12,8 @@ from fastapi.responses import RedirectResponse
 from fastapi_users.jwt import SecretType, decode_jwt
 from httpx_oauth.oauth2 import BaseOAuth2  # noqa: TC002 # Used at runtime for FastAPI validation
 
-from app.api.auth.config import settings
+from app.api.auth.config import normalize_oauth_redirect_uri, settings
 from app.api.auth.exceptions import (
-    OAuthInvalidRedirectURIError,
     OAuthInvalidStateError,
     OAuthStateDecodeError,
     OAuthStateExpiredError,
@@ -28,7 +26,6 @@ from app.api.auth.services.oauth_utils import (
     OAuthCookieSettings,
     set_csrf_cookie,
 )
-from app.core.config import settings as core_settings
 
 
 class BaseOAuthRouterBuilder:
@@ -103,51 +100,11 @@ class BaseOAuthRouterBuilder:
         parts[4] = urlencode(query)
         return RedirectResponse(urlunparse(parts))
 
-    @staticmethod
-    def _normalize_origin(url: str) -> str:
-        """Normalize a URL into scheme://host[:port]."""
-        parsed = urlparse(url)
-        return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}".rstrip("/")
-
-    @staticmethod
-    def _normalize_redirect_target(url: str) -> str:
-        """Normalize a redirect target to scheme://netloc/path with no query/fragment."""
-        parsed = urlparse(url)
-        return urlunparse((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, "", "", "")).rstrip("/")
-
-    @staticmethod
-    def _is_allowed_redirect_path(path: str) -> bool:
-        """Validate the redirect path against the optional allowlist."""
-        return not settings.oauth_allowed_redirect_paths or path in settings.oauth_allowed_redirect_paths
-
-    def _is_allowed_http_redirect(self, redirect_uri: str, parsed_redirect: ParseResult) -> bool:
-        """Validate an HTTP(S) frontend redirect against trusted origins."""
-        if not parsed_redirect.netloc:
-            return False
-
-        redirect_origin = self._normalize_origin(redirect_uri)
-        if core_settings.cors_origin_regex and re.fullmatch(core_settings.cors_origin_regex, redirect_origin):
-            return self._is_allowed_redirect_path(parsed_redirect.path)
-
-        return redirect_origin in core_settings.allowed_origins and self._is_allowed_redirect_path(parsed_redirect.path)
-
-    def _is_allowed_native_redirect(self, redirect_uri: str) -> bool:
-        """Validate a native deep-link callback against the explicit allowlist."""
-        normalized_redirect = self._normalize_redirect_target(redirect_uri)
-        allowed_native_redirects = {
-            self._normalize_redirect_target(uri) for uri in settings.oauth_allowed_native_redirect_uris
-        }
-        return normalized_redirect in allowed_native_redirects
-
     def _is_allowed_frontend_redirect(self, redirect_uri: str) -> bool:
-        """Validate whether a frontend redirect URI is explicitly allowed."""
-        parsed = urlparse(redirect_uri)
-        if not parsed.scheme or parsed.username or parsed.password or parsed.fragment:
+        """Validate whether a frontend redirect URI is exactly allowed."""
+        try:
+            normalized_redirect = normalize_oauth_redirect_uri(redirect_uri)
+        except ValueError:
             return False
 
-        if parsed.scheme in {"http", "https"}:
-            return self._is_allowed_http_redirect(redirect_uri, parsed)
-
-        if not self._is_allowed_native_redirect(redirect_uri):
-            raise OAuthInvalidRedirectURIError
-        return True
+        return normalized_redirect in settings.oauth_allowed_redirect_uris

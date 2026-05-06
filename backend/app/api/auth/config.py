@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 from functools import cached_property
+from urllib.parse import urlparse, urlunparse
 
 from pydantic import (
     BaseModel,
@@ -22,6 +23,15 @@ from app.core.env import RelabBaseSettings, is_production_like_environment
 from app.core.secrets import validate_min_secret_bytes
 
 NAME_EMAIL_ADAPTER = TypeAdapter(NameEmail)
+
+
+def normalize_oauth_redirect_uri(value: str) -> str:
+    """Normalize an OAuth redirect target to scheme://host/path."""
+    parsed = urlparse(value)
+    if not parsed.scheme or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment:
+        msg = "OAuth redirect URIs must be absolute targets without credentials, query, or fragment"
+        raise ValueError(msg)
+    return urlunparse((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, "", "", "")).rstrip("/")
 
 
 class EmailProviderName(StrEnum):
@@ -89,13 +99,8 @@ class AuthSettings(RelabBaseSettings):
     github_oauth_client_id: SecretStr = SecretStr("")
     github_oauth_client_secret: SecretStr = SecretStr("")
 
-    # OAuth frontend redirect hardening
-    # NOTE: Origin validation reuses the same normalized frontend URLs and dev-only regex as CORS.
-
-    # Optional path allowlist. When empty, any path on an allowed origin is accepted.
-    oauth_allowed_redirect_paths: list[str] = Field(default_factory=list)
-    # Optional exact allowlist for native deep-link callbacks (scheme://host/path, no query/fragment).
-    oauth_allowed_native_redirect_uris: list[str] = Field(default_factory=list)
+    # OAuth frontend redirect hardening: exact normalized callback targets only.
+    oauth_allowed_redirect_uris: list[str] = Field(default_factory=list)
 
     # Settings used to configure the email server for sending emails from the app.
     email_provider: EmailProviderName = EmailProviderName.SMTP
@@ -148,6 +153,12 @@ class AuthSettings(RelabBaseSettings):
             return value
 
         return validate_min_secret_bytes(value, "FASTAPI_USERS_SECRET")
+
+    @field_validator("oauth_allowed_redirect_uris")
+    @classmethod
+    def normalize_oauth_allowed_redirect_uris(cls, value: list[str]) -> list[str]:
+        """Normalize exact OAuth redirect allowlist entries."""
+        return [normalize_oauth_redirect_uri(redirect_uri) for redirect_uri in value]
 
     @cached_property
     def email(self) -> ResolvedEmailSettings:

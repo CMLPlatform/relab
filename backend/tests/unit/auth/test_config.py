@@ -13,11 +13,10 @@ VALID_SECRET = "x" * 32
 class TestAuthSettingsDefaults:
     """AuthSettings should produce safe, predictable defaults when no env file is present."""
 
-    def test_oauth_redirect_lists_default_empty(self) -> None:
-        """OAuth redirect path/native allowlists default empty."""
+    def test_oauth_redirect_allowlist_defaults_empty(self) -> None:
+        """OAuth redirect URI allowlist defaults empty."""
         settings = AuthSettings()
-        assert settings.oauth_allowed_redirect_paths == []
-        assert settings.oauth_allowed_native_redirect_uris == []
+        assert settings.oauth_allowed_redirect_uris == []
 
     def test_email_defaults_to_username(self) -> None:
         """Resolved sender fields should fall back to the SMTP username when omitted."""
@@ -146,11 +145,21 @@ class TestAuthSettingsOverrides:
                 email_reply_to="reply@example.com",
             )
 
-    def test_oauth_redirect_paths_can_be_set(self) -> None:
-        """OAuth allowed paths can be configured via constructor."""
-        paths = ["/v1/auth/callback", "/oauth/complete"]
-        settings = AuthSettings(oauth_allowed_redirect_paths=paths)
-        assert settings.oauth_allowed_redirect_paths == paths
+    def test_oauth_redirect_uris_can_be_set(self) -> None:
+        """OAuth allowed redirect URIs can be configured via constructor."""
+        redirect_uris = ["https://app.example.com/login", "relab-app://profile"]
+        settings = AuthSettings(oauth_allowed_redirect_uris=redirect_uris)
+        assert settings.oauth_allowed_redirect_uris == redirect_uris
+
+    def test_oauth_redirect_uris_are_normalized(self) -> None:
+        """OAuth allowed redirect URIs normalize scheme, host, and trailing slash."""
+        settings = AuthSettings(oauth_allowed_redirect_uris=["HTTPS://APP.EXAMPLE.COM/login/"])
+        assert settings.oauth_allowed_redirect_uris == ["https://app.example.com/login"]
+
+    def test_oauth_redirect_uris_reject_query_strings(self) -> None:
+        """OAuth allowed redirect URIs should not include attacker-controlled query slots."""
+        with pytest.raises(ValidationError, match="without credentials, query, or fragment"):
+            AuthSettings(oauth_allowed_redirect_uris=["https://app.example.com/login?next=/profile"])
 
     def test_rate_limit_can_be_overridden(self) -> None:
         """Rate limiting parameters accept custom values."""
