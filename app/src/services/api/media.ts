@@ -3,8 +3,6 @@ import { hasUrlScheme, isSafeImageUrl } from '@/utils/urlSafety';
 
 const apiBaseUrl = API_ORIGIN_URL.replace(/\/+$/, '');
 
-export const API_PLACEHOLDER_IMAGE_PATH = '/static/images/placeholder.png';
-
 export function resolveApiMediaUrl(path?: string | null): string | undefined {
   const trimmedPath = path?.trim();
   if (!trimmedPath) {
@@ -26,16 +24,12 @@ export function resolveApiMediaUrl(path?: string | null): string | undefined {
   return `${apiBaseUrl}${normalizedPath}`;
 }
 
-export function getPlaceholderImageUrl() {
-  return resolveApiMediaUrl(API_PLACEHOLDER_IMAGE_PATH) ?? API_PLACEHOLDER_IMAGE_PATH;
-}
-
 export function getResizedImageUrl(
   imageUrl: string,
   imageId: string | undefined,
   width: number,
-): string {
+): string | undefined {
   void imageId;
   void width;
-  return resolveApiMediaUrl(imageUrl) ?? getPlaceholderImageUrl();
+  return resolveApiMediaUrl(imageUrl);
 }
