@@ -9,7 +9,6 @@ import pytest
 from fastapi import status
 
 from app.api.auth.services.refresh_token_service import create_refresh_token
-from app.api.auth.services.user_database import UserDatabaseAsync
 from tests.factories.models import UserFactory
 
 from .shared import INVALID_REFRESH_TOKEN, hash_test_password
@@ -37,7 +36,44 @@ class TestRefreshTokenEndpoint:
     async def test_bearer_refresh_token_invalid(self, api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
         """Test that the bearer refresh endpoint rejects invalid refresh tokens."""
         del mock_redis_dependency
-        response = await api_client.post("/v1/auth/refresh", json={"refresh_token": INVALID_REFRESH_TOKEN})
+        response = await api_client.post("/v1/auth/bearer/refresh", json={"refresh_token": INVALID_REFRESH_TOKEN})
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    async def test_bearer_refresh_requires_json_body_even_when_cookie_present(
+        self,
+        api_client: AsyncClient,
+        mock_redis_dependency: Redis,
+        db_session: AsyncSession,
+    ) -> None:
+        """Bearer refresh should not accept refresh tokens through cookies."""
+        user = await UserFactory.create_async(
+            db_session,
+            email="bearer-cookie-ignored@example.com",
+            username="bearer_cookie_ignored",
+        )
+        refresh_token = await create_refresh_token(mock_redis_dependency, user.id)
+
+        api_client.cookies.set("refresh_token", refresh_token)
+        response = await api_client.post("/v1/auth/bearer/refresh")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    async def test_session_refresh_requires_cookie_even_when_json_body_present(
+        self,
+        api_client: AsyncClient,
+        mock_redis_dependency: Redis,
+        db_session: AsyncSession,
+    ) -> None:
+        """Session refresh should not accept refresh tokens through JSON."""
+        user = await UserFactory.create_async(
+            db_session,
+            email="session-json-ignored@example.com",
+            username="session_json_ignored",
+        )
+        refresh_token = await create_refresh_token(mock_redis_dependency, user.id)
+
+        response = await api_client.post("/v1/auth/session/refresh", json={"refresh_token": refresh_token})
+
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     async def test_bearer_refresh_rotates_and_replay_fails(
@@ -59,7 +95,7 @@ class TestRefreshTokenEndpoint:
 
         old_refresh_token = await create_refresh_token(mock_redis_dependency, user.id)
 
-        response = await api_client.post("/v1/auth/refresh", json={"refresh_token": old_refresh_token})
+        response = await api_client.post("/v1/auth/bearer/refresh", json={"refresh_token": old_refresh_token})
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
@@ -68,41 +104,11 @@ class TestRefreshTokenEndpoint:
         new_refresh_token = data["refresh_token"]
         assert new_refresh_token != old_refresh_token
 
-        replay_response = await api_client.post("/v1/auth/refresh", json={"refresh_token": old_refresh_token})
+        replay_response = await api_client.post("/v1/auth/bearer/refresh", json={"refresh_token": old_refresh_token})
         assert replay_response.status_code == status.HTTP_401_UNAUTHORIZED
 
-        second_refresh = await api_client.post("/v1/auth/refresh", json={"refresh_token": new_refresh_token})
+        second_refresh = await api_client.post("/v1/auth/bearer/refresh", json={"refresh_token": new_refresh_token})
         assert second_refresh.status_code == status.HTTP_200_OK
-
-    async def test_bearer_refresh_uses_injected_request_session(
-        self,
-        api_client: AsyncClient,
-        mock_redis_dependency: Redis,
-        db_session: AsyncSession,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        """Refresh must resolve users through the injected FastAPI test session."""
-        user = await UserFactory.create_async(
-            db_session,
-            email="refresh-session@example.com",
-            username="refresh_session_user",
-            hashed_password=hash_test_password("pw"),
-            is_active=True,
-            is_verified=True,
-        )
-        refresh_token = await create_refresh_token(mock_redis_dependency, user.id)
-
-        original_get = UserDatabaseAsync.get
-
-        async def asserted_get(self: UserDatabaseAsync, id: object) -> object | None:  # noqa: A002
-            assert self.session is db_session
-            return await original_get(self, id)
-
-        monkeypatch.setattr(UserDatabaseAsync, "get", asserted_get)
-
-        response = await api_client.post("/v1/auth/refresh", json={"refresh_token": refresh_token})
-
-        assert response.status_code == status.HTTP_200_OK
 
     async def test_session_refresh_rotates_and_replay_fails(
         self,

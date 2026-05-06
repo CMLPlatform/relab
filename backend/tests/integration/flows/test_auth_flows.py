@@ -85,19 +85,15 @@ class TestCompleteAuthFlow:
             "username": register_data["email"],
             "password": register_data["password"],
         }
-        login_response = await api_client.post("/v1/auth/login", data=login_data)
+        login_response = await api_client.post("/v1/auth/bearer/login", data=login_data)
 
         assert login_response.status_code == status.HTTP_200_OK, "Login failed, skipping integration test"
 
-        # Bearer login returns an access token and the login hook sets refresh_token.
-        # Refresh token is set as httpOnly cookie via on_after_login
+        # Bearer login returns both tokens in JSON; browser sessions use HttpOnly cookies.
         login_result = login_response.json() if login_response.text else {}
 
-        # Get access token from response
         access_token = login_result.get("access_token")
-
-        # Get refresh token from cookies
-        refresh_token = login_response.cookies.get("refresh_token")
+        refresh_token = login_result.get("refresh_token")
 
         # Verify tokens are present
         assert access_token is not None
@@ -105,7 +101,7 @@ class TestCompleteAuthFlow:
 
         # Step 5: Refresh the access token
         refresh_data = {"refresh_token": refresh_token}
-        refresh_response = await api_client.post("/v1/auth/refresh", json=refresh_data)
+        refresh_response = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
         assert refresh_response.status_code == status.HTTP_200_OK
         refresh_result = refresh_response.json()
         new_access_token = refresh_result["access_token"]
@@ -114,7 +110,8 @@ class TestCompleteAuthFlow:
 
         # Step 6: Logout through the custom auth route so the refresh cookie is blacklisted too.
         logout_response = await api_client.post(
-            "/v1/auth/logout",
+            "/v1/auth/bearer/logout",
+            json={"refresh_token": refresh_token},
             headers={"Authorization": f"Bearer {access_token}"},
         )
         assert logout_response.status_code == status.HTTP_204_NO_CONTENT
@@ -125,7 +122,7 @@ class TestCompleteAuthFlow:
         assert is_blacklisted
 
         # Step 7: Try to use blacklisted token (should fail)
-        retry_refresh = await api_client.post("/v1/auth/refresh", json=refresh_data)
+        retry_refresh = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
         assert retry_refresh.status_code == status.HTTP_401_UNAUTHORIZED
 
     async def test_login_tracking(
@@ -159,7 +156,7 @@ class TestCompleteAuthFlow:
 
         # Step 2: Login
         login_data = {"username": register_data["email"], "password": register_data["password"]}
-        login_response = await api_client.post("/v1/auth/login", data=login_data)
+        login_response = await api_client.post("/v1/auth/bearer/login", data=login_data)
 
         assert login_response.status_code == status.HTTP_200_OK
 
@@ -222,7 +219,7 @@ class TestErrorHandling:
 
         # Try to refresh
         refresh_data = {"refresh_token": token}
-        response = await api_client.post("/v1/auth/refresh", json=refresh_data)
+        response = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -245,25 +242,26 @@ class TestErrorHandling:
             await api_client.post("/v1/auth/register", json=register_data)
 
         login_data = {"username": register_data["email"], "password": register_data["password"]}
-        login_response = await api_client.post("/v1/auth/login", data=login_data)
+        login_response = await api_client.post("/v1/auth/bearer/login", data=login_data)
 
         assert login_response.status_code == status.HTTP_200_OK
 
-        # Get tokens from response and cookies
+        # Get bearer tokens from the JSON response.
         login_result = login_response.json() if login_response.text else {}
         access_token = login_result.get("access_token")
-        refresh_token = login_response.cookies.get("refresh_token")
-        assert refresh_token is not None, "No refresh token in cookies"
+        refresh_token = login_result.get("refresh_token")
+        assert refresh_token is not None, "No refresh token in login response"
 
         # Logout via the custom route so the refresh token cookie is blacklisted.
         logout_response = await api_client.post(
-            "/v1/auth/logout",
+            "/v1/auth/bearer/logout",
+            json={"refresh_token": refresh_token},
             headers={"Authorization": f"Bearer {access_token}"} if access_token else {},
         )
         assert logout_response.status_code == status.HTTP_204_NO_CONTENT
 
         # Try to refresh immediately after logout
         refresh_data = {"refresh_token": refresh_token}
-        refresh_response = await api_client.post("/v1/auth/refresh", json=refresh_data)
+        refresh_response = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
 
         assert refresh_response.status_code == status.HTTP_401_UNAUTHORIZED

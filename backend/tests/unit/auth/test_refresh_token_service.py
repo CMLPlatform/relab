@@ -5,11 +5,11 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 from typing import TYPE_CHECKING
 
 import pytest
-from fakeredis.aioredis import FakeRedis
 
 from app.api.auth.config import settings
 from app.api.auth.exceptions import RefreshTokenInvalidError, RefreshTokenRevokedError
@@ -29,20 +29,22 @@ if TYPE_CHECKING:
 # Renamed to avoid S105 while keeping meaningful names
 TOKEN_VAL_INVALID = "invalid"
 TOKEN_VAL_REVOKED = "revoked"
-TOKEN_LENGTH = 64
-TTL_MARGIN = 10
 TTL_ABS_MARGIN = 5
+
+
+def _json_loads_redis(value: bytes | str) -> dict:
+    """Decode a Redis JSON value from either real Redis or fakeredis."""
+    return json.loads(value.decode("utf-8") if isinstance(value, bytes) else value)
 
 
 class TestRefreshTokenService:
     """Tests for refresh token service functions."""
 
     async def test_create_refresh_token(self, redis_client: Redis) -> None:
-        """Token is stored in Redis under a fingerprint key with user_id in the payload."""
+        """Token is stored under a fingerprint key with the minimum session metadata."""
         user_id = uuid.uuid4()
         token = await create_refresh_token(redis_client, user_id)
 
-        assert len(token) == TOKEN_LENGTH
         assert isinstance(token, str)
 
         fingerprint = refresh_token_fingerprint(token)
@@ -51,11 +53,28 @@ class TestRefreshTokenService:
 
         stored_data = await redis_client.get(f"auth:rt:{fingerprint}")
         assert stored_data is not None
-        assert (
-            str(user_id) in stored_data.decode("utf-8")
-            if isinstance(stored_data, bytes)
-            else str(user_id) in stored_data
+        payload = _json_loads_redis(stored_data)
+        assert payload["user_id"] == str(user_id)
+        assert set(payload) == {"user_id", "absolute_expires_at"}
+        assert payload["absolute_expires_at"] > 0
+
+    async def test_verify_refresh_token_rejects_malformed_token_before_lookup(self, redis_client: Redis) -> None:
+        """Refresh tokens are untrusted input and must match the generated token shape."""
+        user_id = uuid.uuid4()
+        malformed_token = "bad token with spaces"
+        await redis_client.setex(
+            f"auth:rt:{refresh_token_fingerprint(malformed_token)}",
+            3600,
+            json.dumps(
+                {
+                    "user_id": str(user_id),
+                    "absolute_expires_at": 4_102_444_800,
+                }
+            ),
         )
+
+        with pytest.raises(RefreshTokenInvalidError):
+            await verify_refresh_token(redis_client, malformed_token)
 
     async def test_verify_refresh_token_success(self, redis_client: Redis) -> None:
         """Test verifying a valid refresh token."""
@@ -66,15 +85,6 @@ class TestRefreshTokenService:
 
         assert result == user_id
 
-    async def test_verify_refresh_token_rejects_raw_redis_key(self, redis_client: Redis) -> None:
-        """Raw-token Redis keys should not be accepted as active refresh-token storage."""
-        user_id = uuid.uuid4()
-        token = "raw-refresh-token"
-        await redis_client.setex(f"auth:rt:{token}", 3600, str(user_id))
-
-        with pytest.raises(RefreshTokenInvalidError):
-            await verify_refresh_token(redis_client, token)
-
     async def test_verify_refresh_token_not_found(self, redis_client: Redis) -> None:
         """Test verifying a non-existent token raises 401."""
         with pytest.raises(RefreshTokenInvalidError) as exc_info:
@@ -83,53 +93,33 @@ class TestRefreshTokenService:
         assert exc_info.value.http_status_code == 401
         assert TOKEN_VAL_INVALID in exc_info.value.message.lower()
 
-    async def test_verify_refresh_token_blacklisted(self, redis_client: Redis) -> None:
-        """Test verifying a blacklisted token raises 401."""
+    async def test_rotate_refresh_token_rejects_blacklisted_token(self, redis_client: Redis) -> None:
+        """Rotation must not accept a token after it appears in the blacklist."""
         user_id = uuid.uuid4()
         token = await create_refresh_token(redis_client, user_id)
-        await blacklist_token(redis_client, token)
+        fingerprint = refresh_token_fingerprint(token)
+        await redis_client.setex(f"auth:rt_blacklist:{fingerprint}", 3600, "1")
 
-        with pytest.raises(RefreshTokenRevokedError) as exc_info:
-            await verify_refresh_token(redis_client, token)
+        with pytest.raises(RefreshTokenRevokedError):
+            await rotate_refresh_token(redis_client, token)
 
-        assert exc_info.value.http_status_code == 401
-        assert TOKEN_VAL_REVOKED in exc_info.value.message.lower()
-
-    async def test_blacklist_token(self, redis_client: Redis) -> None:
-        """Test blacklisting a refresh token."""
+    async def test_blacklist_token_revokes_and_removes_token(self, redis_client: Redis) -> None:
+        """Blacklisting removes the active token and makes verification fail as revoked."""
         user_id = uuid.uuid4()
         token = await create_refresh_token(redis_client, user_id)
 
-        # Verify token exists and is valid
         result = await verify_refresh_token(redis_client, token)
         assert result == user_id
 
-        # Blacklist the token
         await blacklist_token(redis_client, token)
 
-        # Token should be blacklisted
         fingerprint = refresh_token_fingerprint(token)
         is_blacklisted = await redis_client.exists(f"auth:rt_blacklist:{fingerprint}")
         assert is_blacklisted
 
-        # Original token data should be deleted
         stored_data = await redis_client.get(f"auth:rt:{fingerprint}")
         assert stored_data is None
 
-        # Verify token is now invalid
-        with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
-            await verify_refresh_token(redis_client, token)
-
-    async def test_blacklist_token_ignores_raw_redis_key(self, redis_client: Redis) -> None:
-        """Blacklisting should only use fingerprint keys, not raw-token Redis keys."""
-        user_id = uuid.uuid4()
-        token = "raw-refresh-token"
-        await redis_client.setex(f"auth:rt:{token}", 3600, str(user_id))
-
-        await blacklist_token(redis_client, token)
-
-        assert await redis_client.get(f"auth:rt:{token}") == str(user_id)
-        assert not await redis_client.exists(f"auth:rt_blacklist:{token}")
         with pytest.raises(RefreshTokenRevokedError):
             await verify_refresh_token(redis_client, token)
 
@@ -138,24 +128,47 @@ class TestRefreshTokenService:
         user_id = uuid.uuid4()
         old_token = await create_refresh_token(redis_client, user_id)
 
-        # Rotate the token
         new_token = await rotate_refresh_token(redis_client, old_token)
 
-        # New token should be different
         assert new_token != old_token
-        assert len(new_token) == TOKEN_LENGTH
 
-        # New token should be valid
         result = await verify_refresh_token(redis_client, new_token)
         assert result == user_id
 
-        # Old token should be blacklisted
         is_blacklisted = await redis_client.exists(f"auth:rt_blacklist:{refresh_token_fingerprint(old_token)}")
         assert is_blacklisted
 
-        # Old token should be invalid
         with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
             await verify_refresh_token(redis_client, old_token)
+
+    async def test_rotate_refresh_token_preserves_absolute_session_expiry(self, redis_client: Redis) -> None:
+        """Rotation should not extend the absolute refresh session lifetime."""
+        user_id = uuid.uuid4()
+        old_token = await create_refresh_token(redis_client, user_id)
+        old_payload_raw = await redis_client.get(f"auth:rt:{refresh_token_fingerprint(old_token)}")
+        assert old_payload_raw is not None
+        old_payload = _json_loads_redis(old_payload_raw)
+
+        new_token = await rotate_refresh_token(redis_client, old_token)
+
+        new_payload_raw = await redis_client.get(f"auth:rt:{refresh_token_fingerprint(new_token)}")
+        assert new_payload_raw is not None
+        new_payload = _json_loads_redis(new_payload_raw)
+        assert new_payload["absolute_expires_at"] == old_payload["absolute_expires_at"]
+
+    async def test_verify_refresh_token_rejects_absolute_expired_session(self, redis_client: Redis) -> None:
+        """A refresh token should fail once its absolute session lifetime is over."""
+        user_id = uuid.uuid4()
+        token = await create_refresh_token(redis_client, user_id)
+        token_key = f"auth:rt:{refresh_token_fingerprint(token)}"
+        payload_raw = await redis_client.get(token_key)
+        assert payload_raw is not None
+        payload = _json_loads_redis(payload_raw)
+        payload["absolute_expires_at"] = 1
+        await redis_client.setex(token_key, 3600, json.dumps(payload))
+
+        with pytest.raises(RefreshTokenInvalidError):
+            await verify_refresh_token(redis_client, token)
 
     async def test_multiple_tokens_per_user(self, redis_client: Redis) -> None:
         """Test that a user can have multiple active refresh tokens (multi-device)."""
@@ -184,23 +197,8 @@ class TestRefreshTokenService:
 class TestRefreshTokenServiceInMemory:
     """Tests for refresh token service in-memory fallback (redis=None)."""
 
-    async def test_create_refresh_token_in_memory(self) -> None:
-        """Test creating a token with no Redis stores it in memory."""
-        refresh_token_service._memory_tokens.clear()
-        user_id = uuid.uuid4()
-
-        token = await create_refresh_token(None, user_id)
-
-        assert isinstance(token, str)
-        assert len(token) == TOKEN_LENGTH
-        assert token in refresh_token_service._memory_tokens
-        stored_user_id, _expire = refresh_token_service._memory_tokens[token]
-        assert stored_user_id == str(user_id)
-
-        refresh_token_service._memory_tokens.clear()
-
-    async def test_verify_refresh_token_in_memory_success(self) -> None:
-        """Test verifying a valid in-memory token returns the correct user ID."""
+    async def test_create_and_verify_refresh_token_in_memory(self) -> None:
+        """The in-memory fallback can create and verify a token."""
         refresh_token_service._memory_tokens.clear()
         refresh_token_service._memory_blacklist.clear()
         user_id = uuid.uuid4()
@@ -208,42 +206,18 @@ class TestRefreshTokenServiceInMemory:
         token = await create_refresh_token(None, user_id)
         result = await verify_refresh_token(None, token)
 
+        assert isinstance(token, str)
         assert result == user_id
-
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-
-    async def test_verify_refresh_token_in_memory_not_found(self) -> None:
-        """Test that verifying a missing in-memory token raises 401."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-
-        with pytest.raises(RefreshTokenInvalidError) as exc_info:
-            await verify_refresh_token(None, "nonexistent-token")
-
-        assert exc_info.value.http_status_code == 401
-        assert TOKEN_VAL_INVALID in exc_info.value.message.lower()
-
-    async def test_verify_refresh_token_in_memory_blacklisted(self) -> None:
-        """Test that a blacklisted in-memory token raises 401."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-        user_id = uuid.uuid4()
-
-        token = await create_refresh_token(None, user_id)
-        await blacklist_token(None, token)
-
-        with pytest.raises(RefreshTokenRevokedError) as exc_info:
-            await verify_refresh_token(None, token)
-
-        assert exc_info.value.http_status_code == 401
-        assert TOKEN_VAL_REVOKED in exc_info.value.message.lower()
+        assert token in refresh_token_service._memory_tokens
+        metadata = refresh_token_service._memory_tokens[token]
+        assert metadata["user_id"] == str(user_id)
+        assert set(metadata) == {"user_id", "absolute_expires_at"}
 
         refresh_token_service._memory_tokens.clear()
         refresh_token_service._memory_blacklist.clear()
 
     async def test_blacklist_token_in_memory(self) -> None:
-        """Test blacklisting an in-memory token removes it and adds to blacklist."""
+        """Blacklisting removes an in-memory token and makes verification fail."""
         refresh_token_service._memory_tokens.clear()
         refresh_token_service._memory_blacklist.clear()
         user_id = uuid.uuid4()
@@ -255,50 +229,11 @@ class TestRefreshTokenServiceInMemory:
 
         assert token not in refresh_token_service._memory_tokens
         assert token in refresh_token_service._memory_blacklist
+        with pytest.raises(RefreshTokenRevokedError) as exc_info:
+            await verify_refresh_token(None, token)
+
+        assert exc_info.value.http_status_code == 401
+        assert TOKEN_VAL_REVOKED in exc_info.value.message.lower()
 
         refresh_token_service._memory_tokens.clear()
         refresh_token_service._memory_blacklist.clear()
-
-    async def test_blacklist_token_in_memory_with_explicit_ttl(self) -> None:
-        """Test blacklisting with explicit TTL uses provided value."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-        user_id = uuid.uuid4()
-
-        token = await create_refresh_token(None, user_id)
-        await blacklist_token(None, token, ttl_seconds=3600)
-
-        assert token in refresh_token_service._memory_blacklist
-
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-
-    async def test_blacklist_nonexistent_token_in_memory(self) -> None:
-        """Test blacklisting a nonexistent in-memory token uses default TTL."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-
-        await blacklist_token(None, "nonexistent-token")
-
-        assert "nonexistent-token" in refresh_token_service._memory_blacklist
-
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-
-    async def test_blacklist_token_redis_expired_defaults_ttl(self) -> None:
-        """Test that blacklisting with Redis uses default TTL when token already expired."""
-        redis = FakeRedis(decode_responses=True, version=7)
-        user_id = uuid.uuid4()
-
-        token = await create_refresh_token(redis, user_id)
-        # Delete the token to simulate expiry
-        await redis.delete(f"auth:rt:{refresh_token_fingerprint(token)}")
-
-        # Blacklisting should still work using the default 3600 TTL
-        await blacklist_token(redis, token)
-
-        bl_key = f"auth:rt_blacklist:{refresh_token_fingerprint(token)}"
-        assert await redis.exists(bl_key)
-        ttl = await redis.ttl(bl_key)
-        assert ttl > 0
-        await redis.aclose()

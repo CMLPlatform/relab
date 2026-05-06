@@ -208,7 +208,7 @@ class TestUpdateUserEndpoint:
             hashed_password=hash_test_password(TEST_PASSWORD),
         )
         login_response = await api_client.post(
-            "/v1/auth/login",
+            "/v1/auth/bearer/login",
             data={"username": user.email, "password": TEST_PASSWORD},
         )
         assert login_response.status_code == status.HTTP_200_OK
@@ -236,7 +236,7 @@ class TestUpdateUserEndpoint:
             hashed_password=hash_test_password(TEST_PASSWORD),
         )
         login_response = await api_client.post(
-            "/v1/auth/login",
+            "/v1/auth/bearer/login",
             data={"username": user.email, "password": TEST_PASSWORD},
         )
         assert login_response.status_code == status.HTTP_200_OK
@@ -266,7 +266,7 @@ class TestUpdateUserEndpoint:
             hashed_password=hash_test_password(TEST_PASSWORD),
         )
         login_response = await api_client.post(
-            "/v1/auth/login",
+            "/v1/auth/bearer/login",
             data={"username": user.email, "password": TEST_PASSWORD},
         )
         assert login_response.status_code == status.HTTP_200_OK
@@ -307,7 +307,7 @@ class TestUpdateUserEndpoint:
             is_verified=False,
         )
         login_response = await api_client.post(
-            "/v1/auth/login",
+            "/v1/auth/bearer/login",
             data={"username": user.email, "password": TEST_PASSWORD},
         )
         assert login_response.status_code == status.HTTP_200_OK
@@ -343,7 +343,7 @@ class TestUpdateUserEndpoint:
             is_verified=True,
         )
         login_response = await api_client.post(
-            "/v1/auth/login",
+            "/v1/auth/bearer/login",
             data={"username": user.email, "password": TEST_PASSWORD},
         )
         assert login_response.status_code == status.HTTP_200_OK

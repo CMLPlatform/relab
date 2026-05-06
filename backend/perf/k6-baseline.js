@@ -85,7 +85,7 @@ export function productListRead() {
 
 export function bearerLogin() {
   const response = http.post(
-    `${baseUrl}/v1/auth/login`,
+    `${baseUrl}/v1/auth/bearer/login`,
     {
       username: loginEmail,
       password: loginPassword,
