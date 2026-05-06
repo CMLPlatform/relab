@@ -1,4 +1,5 @@
 shared:
+  - 'assets/brand/**'
   - '.github/**'
   - '.devcontainer/**'
   - '.vscode/**'

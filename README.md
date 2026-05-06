@@ -57,9 +57,14 @@ If you want to go deeper:
 
 Infrastructure is orchestrated with Docker Compose from the repo root.
 
-Configuration has three homes: committed non-secret environment identity in
-`deploy/env/*.compose.env`, host-local operator inputs in the gitignored root
-`.env`, and runtime secrets in gitignored `secrets/<env>/` files.
+Shared brand assets live in `assets/brand/` and are synced into the consumer
+subrepos with `just assets-sync`.
+
+Configuration has five homes: committed public prod/staging identity in
+`deploy/env/*.compose.env`, deploy-host inputs in the gitignored root `.env`,
+runtime secrets in gitignored `secrets/<env>/` files, optional backend-only
+local overrides in `backend/.env.dev`, and framework/test fixtures such as
+`app/.env.development` and `backend/.env.test`.
 
 ## Common Commands
 
