@@ -6,14 +6,13 @@ The backend provides the API, authentication flows, product and component data m
 
 ```bash
 just install
-cp .env.dev.example .env.dev
 (cd .. && just deploy-secrets-template dev)
-./scripts/local_setup.sh
+(cd .. && just dev-db && just dev-migrate)
 just dev
 ```
 
 The API is then available at <http://localhost:8000>.
-`backend/.env.dev` stores non-secret config; local backend secrets live in `../secrets/dev/`.
+Use Docker Compose for local PostgreSQL and Redis. Create `.env.dev` only when you need backend-only non-secret overrides; local backend secrets live in `../secrets/dev/`.
 
 - Filtered public contracts: <http://localhost:8000/openapi.public.json> and <http://localhost:8000/openapi.device.json>
 - Public API reference UI: <http://localhost:4300/api/public/>
@@ -33,7 +32,7 @@ just migrate       # apply migrations
 just fix           # lint autofix + format
 ```
 
-The disposable-email validator now seeds itself from the committed runtime fallback file in [app/api/auth/resources/disposable_email_domains.txt](app/api/auth/resources/disposable_email_domains.txt), so startup works offline. Remote updates are still optional and happen via the background refresh path or the maintenance command above.
+The disposable-email validator seeds itself from the committed runtime fallback file in [app/api/auth/resources/disposable_email_domains.txt](app/api/auth/resources/disposable_email_domains.txt), so startup works offline. Remote updates are still optional and happen via the background refresh path or the maintenance command above.
 
 Committed migration/bootstrap payloads live under [data/seed/](data/seed/). The migrations image includes that directory, while generated uploads stay excluded from Docker build contexts.
 
@@ -101,7 +100,6 @@ EMAIL_REPLY_TO=relab@example.edu
 MICROSOFT_GRAPH_TENANT_ID=00000000-0000-0000-0000-000000000000
 MICROSOFT_GRAPH_CLIENT_ID=00000000-0000-0000-0000-000000000000
 MICROSOFT_GRAPH_SENDER_USER=relab@example.edu
-MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS=false
 ```
 
 Store the Graph client secret in `../secrets/<env>/microsoft_graph_client_secret`. Create a dedicated mailbox, register an Entra app, grant Microsoft Graph application permission `Mail.Send`, and restrict the app to that mailbox with an application access policy before production use. Microsoft references: [send mail with Graph](https://learn.microsoft.com/en-us/graph/api/user-sendmail), [client credentials](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow), and [application access policies](https://learn.microsoft.com/en-us/graph/auth-limit-mailbox-access).

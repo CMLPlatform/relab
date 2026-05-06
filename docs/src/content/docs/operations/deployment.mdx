@@ -48,7 +48,7 @@ Backup services are enabled through Compose profiles. Telemetry is opt-in throug
 - Docker Compose is the runtime for staging and production.
 - `compose.yaml` is the shared base topology.
 - `compose.dev.yaml`, `compose.ci.yaml`, and `compose.deploy.yaml` are the supported environment overlays.
-- The same `compose.deploy.yaml` is used for prod and staging. Committed `deploy/env/*.compose.env` files select the environment, public origins, and worker count once; Compose maps those values to backend, app, docs, and www variable names at each service boundary. Docker Compose reads the host-level root `.env` for host-local operator inputs such as tunnel tokens, OAuth client IDs, email sender metadata, the initial superuser identity, telemetry endpoints, and backup paths. Manual shell helpers use exported environment variables instead of parsing `.env`.
+- The same `compose.deploy.yaml` is used for prod and staging. Committed `deploy/env/*.compose.env` files select the environment and public origins; Compose maps those values to backend, app, docs, and www variable names at each service boundary. Docker Compose reads the host-level root `.env` for host-local operator inputs such as tunnel tokens, OAuth client IDs, email sender metadata, the initial superuser identity, telemetry endpoints, and backup paths. Manual shell helpers use exported environment variables instead of parsing `.env`.
 - GitHub Actions validate changes, run security checks, and maintain release automation, but deploys are still operated from the server checkout.
 - Cloudflare DNS and Tunnel public hostname configuration lives in `infra/cloudflare/`. Compose still owns the runtime services; OpenTofu owns only the public edge.
 
@@ -146,7 +146,16 @@ For local rehearsal, use staging plus the backups profile instead of production:
 
 RELab keeps DoS mitigation layered. Cloudflare Tunnel is the public ingress path and carries source-controlled edge controls in `infra/cloudflare/`: per-path rate limiting for `/v1/auth/*`, product/component media uploads, RPi camera image/thumbnail uploads, and `/v1/plugins/rpi-cam/ws/connect`. Volumetric attacks are handled at Cloudflare or the upstream provider, not inside the FastAPI process. Managed WAF rules can be added later once the zone plan and existing dashboard state are known.
 
-The backend enforces source-controlled application limits: JSON bodies are counted while streaming, multipart uploads have per-media size caps and allowlisted formats, expensive public product suggestion/facet routes and upload routes use Redis-backed rate limits, and the RPi camera WebSocket relay bounds auth attempts and frame sizes. Keep those defaults in code unless product policy changes; tune deployment capacity primarily with `WEB_CONCURRENCY`, DB pool sizing, and host resources.
+The backend enforces source-controlled application limits: JSON bodies are counted while streaming, multipart uploads have per-media size caps and allowlisted formats, expensive public product suggestion/facet routes and upload routes use Redis-backed rate limits, and the RPi camera WebSocket relay bounds auth attempts and frame sizes. Keep those defaults in code unless product policy changes; tune normal deployment capacity in `compose.deploy.yaml`.
+
+For one host only, create a gitignored `compose.host.yaml`; deploy recipes include it last:
+
+```yaml
+services:
+  api:
+    environment:
+      WEB_CONCURRENCY: "1"
+```
 
 ## Storage and backups
 
@@ -165,7 +174,7 @@ Root deployment validation renders the supported Compose overlays with `just com
 
 Most RELab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPI camera keys, request IDs, and cache keys are not application-encrypted.
 
-`deploy/env/variables.toml` is the source-controlled inventory for variables and secrets. It classifies each name as committed non-secret deploy identity, host-local input, backend dev fixture, or runtime secret file, and records the consumer and future Infisical path for runtime secrets. Use `just env-inventory` from the repo root when onboarding a host or reviewing a configuration change.
+`deploy/env/variables.toml` is the source-controlled runtime secret inventory. It lists the secret files Compose should render under `secrets/<env>/` and keeps the future Infisical path template beside that contract. Use `just env-inventory` from the repo root when onboarding a host or reviewing secret-file changes.
 
 The backend uses `DATA_ENCRYPTION_KEY` only for reversible sensitive values it must recover later, such as OAuth provider tokens and active YouTube broadcast keys. Cache payload signing uses the separate `CACHE_SIGNING_SECRET`, and OAuth state uses `OAUTH_STATE_SECRET`, so each key has one purpose. Keep these application secrets in gitignored Compose secret files under `secrets/<env>/`, not in committed files or backend env files.
 
@@ -176,7 +185,7 @@ configuration, `deploy/` contains committed non-secret runtime identity, the
 root `.env` contains host-local operator inputs, `secrets/`
 contains uncommitted operator-owned secret material, and `scripts/` contains
 repo-wide operational helpers that are too large for the root `justfile`.
-Backend dotenv files are local/test fixtures only; prod and staging do not use
+Backend dotenv files are local/test inputs only; prod and staging do not use
 backend `.env.<env>` files.
 
 In the current single-host deployment, PostgreSQL and Redis are isolated on the internal Compose `data` network and do not publish host ports in prod or staging. `DATABASE_SSL=false` is intentional for this trusted local Docker network. If PostgreSQL moves to an external host, managed database, or untrusted network, enable `DATABASE_SSL` and manage database TLS certificates as part of that move.

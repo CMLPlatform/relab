@@ -32,15 +32,13 @@ This is the recommended path into the repo if you use VS Code.
 
 1. Clone the repository.
 
-1. Create the environment files.
+1. Create local backend secret files.
 
    ```bash
-   cp backend/.env.dev.example backend/.env.dev
-   cp .env.example .env
    just deploy-secrets-template dev
    ```
 
-1. Fill in backend-only local values in `backend/.env.dev` and host-local Compose inputs in the root `.env`. Runtime secrets live in gitignored files under `secrets/dev/`.
+   Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email, or bootstrap settings. Runtime secrets live in gitignored files under `secrets/dev/`. Local PostgreSQL and Redis run through Docker Compose.
 
 1. Reopen the repo in the `relab-fullstack` devcontainer.
 
@@ -48,6 +46,8 @@ This is the recommended path into the repo if you use VS Code.
 
    ```bash
    just setup
+   just dev-db
+   just dev-migrate
    just dev
    ```
 
@@ -80,15 +80,25 @@ This is the recommended path into the repo if you use VS Code.
 
 Use this when you want the full stack without configuring each subrepo manually.
 
-1. Create the local environment files.
+1. Create local backend secret files.
 
    ```bash
-   cp backend/.env.dev.example backend/.env.dev
-   cp .env.example .env
    just deploy-secrets-template dev
    ```
 
-   `backend/.env.dev` is a backend-only local fixture. Root `.env` contains host-local Compose inputs, and runtime secrets live in `secrets/dev/`.
+   `backend/.env.dev` is optional backend-app-only local configuration. Root `.env` is for deploy hosts, and runtime secrets live in `secrets/dev/`.
+   A typical override file only contains integration-facing values:
+
+   ```text
+   GOOGLE_OAUTH_CLIENT_ID=google-oauth-client-id
+   GITHUB_OAUTH_CLIENT_ID=github-oauth-client-id
+   EMAIL_PROVIDER=smtp
+   SMTP_HOST=smtp.example.com
+   SMTP_USERNAME=you@example.com
+   EMAIL_FROM=Your Name <you@example.com>
+   EMAIL_REPLY_TO=you@example.com
+   BOOTSTRAP_SUPERUSER_EMAIL=you@example.com
+   ```
 
 1. Install local tooling.
 
@@ -96,16 +106,17 @@ Use this when you want the full stack without configuring each subrepo manually.
    just setup
    ```
 
+1. Start the containerized database/cache and run migrations.
+
+   ```bash
+   just dev-db
+   just dev-migrate
+   ```
+
 1. Start the stack with file watching.
 
    ```bash
    just dev
-   ```
-
-1. Run migrations on first start.
-
-   ```bash
-   just dev-migrate
    ```
 
 ### Local Service URLs
@@ -194,23 +205,24 @@ The backend lives in `backend/`.
 ### Requirements
 
 - `uv`
-- PostgreSQL
-- Redis recommended; required for production-like auth behavior
+- Docker Compose for local PostgreSQL and Redis
 
 ### Setup
 
 ```bash
 cd backend
 uv sync --all-groups --frozen
-cp .env.dev.example .env.dev
 cd ..
 just deploy-secrets-template dev
+just dev-db
+just dev-migrate
 cd backend
-./scripts/local_setup.sh
 just dev
 ```
 
 The API is available at <http://127.0.0.1:8000>.
+Use `SEED_DUMMY_DATA=true just dev-migrate` when you want sample data.
+Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email, or bootstrap settings.
 
 - Public API reference: <http://127.0.0.1:4300/api/public/>
 - Device API reference: <http://127.0.0.1:4300/api/device/>
