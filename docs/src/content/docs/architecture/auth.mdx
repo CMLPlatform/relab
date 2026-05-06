@@ -85,7 +85,7 @@ OAuth login is available for Google and GitHub. Both providers support session-c
 
 Google and GitHub use the backend-mediated flow on all platforms.
 
-Callbacks use a CSRF cookie and signed state token. Frontend redirect targets must exactly match `OAUTH_ALLOWED_REDIRECT_URIS`; entries are normalized as `scheme://host/path` and must not contain credentials, query strings, or fragments. Provider callback URLs are versioned under `/v1/oauth` and must be registered with each provider:
+Callbacks use a CSRF cookie and signed state token. Frontend redirect targets must exactly match the backend allowlist derived from `APP_PUBLIC_URL` (`/login` and `/profile`) plus the fixed native app redirects (`relab-app://login` and `relab-app://profile`). Entries are normalized as `scheme://host/path` and must not contain credentials, query strings, or fragments. Provider callback URLs are versioned under `/v1/oauth` and must be registered with each provider:
 
 - `https://api.cml-relab.org/v1/oauth/google/session/callback`
 - `https://api.cml-relab.org/v1/oauth/google/associate/callback`

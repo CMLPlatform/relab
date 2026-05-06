@@ -511,7 +511,7 @@ class TestGetSecretsDir:
     def test_uses_root_environment_secret_dir_for_local_dev(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
-        """Local bare-metal settings should read root secrets/<env> when Docker secrets are absent."""
+        """Local backend processes should read root secrets/<env> when Docker secrets are absent."""
         local_secrets = tmp_path / "secrets" / "dev"
         local_secrets.mkdir(parents=True)
         monkeypatch.setenv("ENVIRONMENT", "dev")

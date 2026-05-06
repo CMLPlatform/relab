@@ -13,10 +13,15 @@ VALID_SECRET = "x" * 32
 class TestAuthSettingsDefaults:
     """AuthSettings should produce safe, predictable defaults when no env file is present."""
 
-    def test_oauth_redirect_allowlist_defaults_empty(self) -> None:
-        """OAuth redirect URI allowlist defaults empty."""
-        settings = AuthSettings()
-        assert settings.oauth_allowed_redirect_uris == []
+    def test_oauth_redirect_allowlist_defaults_from_frontend_app_url(self) -> None:
+        """OAuth redirect URI allowlist derives from the public app origin."""
+        settings = AuthSettings(frontend_app_url="https://app.example.com")
+        assert settings.oauth_allowed_redirect_uris == [
+            "https://app.example.com/login",
+            "https://app.example.com/profile",
+            "relab-app://login",
+            "relab-app://profile",
+        ]
 
     def test_email_defaults_to_username(self) -> None:
         """Resolved sender fields should fall back to the SMTP username when omitted."""
