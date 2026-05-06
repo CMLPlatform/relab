@@ -47,10 +47,15 @@ COPY tsconfig.json astro.config.ts ./
 COPY public/ ./public/
 COPY src/ ./src/
 
-ARG BUILD_MODE=prod
-COPY ".env.$BUILD_MODE" ".env.$BUILD_MODE"
+ARG ENVIRONMENT=prod
+ARG PUBLIC_APP_URL
+ARG PUBLIC_DOCS_URL
+ARG PUBLIC_SITE_URL
+ENV PUBLIC_APP_URL=${PUBLIC_APP_URL} \
+    PUBLIC_DOCS_URL=${PUBLIC_DOCS_URL} \
+    PUBLIC_SITE_URL=${PUBLIC_SITE_URL}
 
-RUN pnpm run build:$BUILD_MODE
+RUN pnpm run build:${ENVIRONMENT}
 
 # --- Runtime stage (default) ---
 FROM caddy:2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d AS runtime

@@ -32,13 +32,13 @@ In the full Docker stack, the site is served behind Caddy at <http://localhost:8
 
 ## Common commands
 
-Use `just` if you want the repo-standard task runner, or `pnpm run` if you prefer package scripts.
+Use `just` for repo-standard tasks. The build recipe loads the root deploy env so public URLs stay owned by the orchestration config.
 
 | Task                    | Command            |
 | ----------------------- | ------------------ |
 | Install dependencies    | `just install`     |
 | Start local dev server  | `pnpm run dev`     |
-| Build production output | `pnpm run build`   |
+| Build production output | `just build`       |
 | Preview a build locally | `pnpm run preview` |
 | Lint and type-check     | `just check`       |
 | Format files            | `just format`      |
@@ -56,7 +56,7 @@ Use `just` if you want the repo-standard task runner, or `pnpm run` if you prefe
 
 ## Environment variables
 
-Public variables are read through `import.meta.env` and used by [src/config/public.ts](src/config/public.ts).
+Public variables are read through `import.meta.env` and used by [src/config/public.ts](src/config/public.ts). Full-stack dev, staging, and production values live in `../deploy/env/*.compose.env`; `just dev` and `just build` map those canonical root values to the Astro `PUBLIC_*` names.
 
 | Name                   | Required | Purpose                            |
 | ---------------------- | -------- | ---------------------------------- |

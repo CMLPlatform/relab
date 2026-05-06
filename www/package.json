@@ -19,7 +19,7 @@
     "build:staging": "astro build --mode staging",
     "build:test": "astro build --mode test",
     "preview": "astro preview --port 8081 --host 0.0.0.0 --strictPort",
-    "preview:e2e": "pnpm run build && astro preview --port 8081 --host 0.0.0.0 --strictPort",
+    "preview:e2e": "just build && astro preview --port 8081 --host 0.0.0.0 --strictPort",
     "check": "pnpm run lint && pnpm run typecheck",
     "format": "biome format --write .",
     "fix": "biome check --write .",

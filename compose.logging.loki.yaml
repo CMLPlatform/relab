@@ -25,7 +25,7 @@ x-loki-logging: &loki-logging
     loki-batch-size: "400"
     mode: non-blocking
     max-buffer-size: 4m
-    loki-external-labels: "service={{.Name}},env=${APP_ENV},host=${COMPOSE_PROJECT_NAME}"
+    loki-external-labels: "service={{.Name}},env=${ENVIRONMENT},project=relab"
 
 services:
   api:
