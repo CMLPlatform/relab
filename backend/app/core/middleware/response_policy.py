@@ -28,11 +28,15 @@ HSTS_HEADER_VALUE = "max-age=63072000; includeSubDomains"
 REFERRER_POLICY_HEADER_VALUE = "strict-origin-when-cross-origin"
 CONTENT_SECURITY_POLICY_HEADER_VALUE = "frame-ancestors 'none'"
 X_XSS_PROTECTION_HEADER_VALUE = "0"
+CROSS_ORIGIN_OPENER_POLICY_HEADER_VALUE = "same-origin"
+CROSS_ORIGIN_RESOURCE_POLICY_HEADER_VALUE = "same-site"
 BASE_SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": REFERRER_POLICY_HEADER_VALUE,
     "Content-Security-Policy": CONTENT_SECURITY_POLICY_HEADER_VALUE,
     "X-XSS-Protection": X_XSS_PROTECTION_HEADER_VALUE,
+    "Cross-Origin-Opener-Policy": CROSS_ORIGIN_OPENER_POLICY_HEADER_VALUE,
+    "Cross-Origin-Resource-Policy": CROSS_ORIGIN_RESOURCE_POLICY_HEADER_VALUE,
 }
 
 
