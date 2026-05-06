@@ -15,8 +15,8 @@ from pydantic import EmailStr
 from app.api.auth.dependencies import UserManagerDep
 from app.api.auth.services.rate_limiter import (
     PASSWORD_RESET_RATE_LIMIT,
-    hashed_identifier_rate_limit_key,
     limiter,
+    rate_limit_bucket_key,
 )
 
 FORGOT_PASSWORD_PATH = "/forgot-password"  # noqa: S105 # This value is not a secret
@@ -28,7 +28,7 @@ router = APIRouter()
 
 def _password_reset_identifier_rate_limit_key(identifier: str) -> str:
     """Return a privacy-preserving forgot-password rate-limit key."""
-    return hashed_identifier_rate_limit_key("auth:password-reset:account", identifier)
+    return rate_limit_bucket_key("auth:password-reset:account", identifier)
 
 
 async def _sleep_until_minimum_elapsed(started_at: float) -> None:

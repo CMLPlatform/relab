@@ -58,7 +58,7 @@ class TestAuthenticateUsernameResolution:
         assert "m=19456,t=2,p=1" in hashed_password
 
     async def test_applies_account_aware_rate_limit_before_lookup(self) -> None:
-        """Login attempts should also be bucketed by a hash of the submitted identifier."""
+        """Login attempts should also be bucketed by a keyed digest of the submitted identifier."""
         manager, mock_session = _make_manager()
         credentials = _make_credentials(" User@Example.COM ")
 
@@ -154,6 +154,30 @@ class TestUserUpdateSchema:
 
         assert "current_password" not in update.create_update_dict()
         assert "current_password" not in update.create_update_dict_superuser()
+
+
+class TestLoginHooks:
+    """Post-login hooks avoid storing full network identifiers."""
+
+    async def test_on_after_login_does_not_store_or_log_ip_address(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Successful login should update timestamp without retaining the request IP."""
+        manager, mock_session = _make_manager()
+        mock_session.commit = AsyncMock()
+
+        class LoginUser:
+            email = "user@example.com"
+            last_login_at = None
+
+        user = LoginUser()
+        request = MagicMock()
+        request.client.host = "203.0.113.10"
+
+        await manager.on_after_login(user, request, None)
+
+        assert user.last_login_at is not None
+        assert not hasattr(user, "last_login_ip")
+        mock_session.commit.assert_awaited_once()
+        assert "203.0.113.10" not in caplog.text
 
 
 class TestResetPasswordHooks:

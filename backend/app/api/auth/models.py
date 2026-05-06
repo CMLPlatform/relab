@@ -32,9 +32,8 @@ class User(BaseUserDB, TimeStampMixinBare):
 
     username: Mapped[str | None] = mapped_column(String(50), index=True, unique=True, default=None)
 
-    # Login tracking
+    # Login tracking without retaining network identifiers.
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    last_login_ip: Mapped[str | None] = mapped_column(String(45), default=None)
 
     # Flexible user preferences (UI settings, feature toggles, etc.)
     preferences: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)

@@ -15,7 +15,7 @@ from pydantic import UUID4, ValidationError
 from relab_rpi_cam_models import RelayResponseEnvelope
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth.services.rate_limiter import RateLimitExceededError, limiter
+from app.api.auth.services.rate_limiter import RateLimitExceededError, limiter, rate_limit_bucket_key
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.runtime_status import mark_camera_offline, mark_camera_online
@@ -98,15 +98,15 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
             await mark_camera_offline(redis, camera_id)
 
 
-async def _enforce_ws_auth_rate_limit(websocket: WebSocket, client_ip: str, camera_key: str) -> bool:
+async def _enforce_ws_auth_rate_limit(websocket: WebSocket, client_ip_bucket: str, camera_key: str) -> bool:
     """Apply shared Redis-backed rate limits to WebSocket authentication attempts."""
     try:
-        limiter.hit_key(settings.rpi_cam_ws_auth_rate_limit, f"rpi-cam:ws-auth:ip:{client_ip}")
+        limiter.hit_key(settings.rpi_cam_ws_auth_rate_limit, client_ip_bucket)
         limiter.hit_key(settings.rpi_cam_ws_auth_rate_limit, f"rpi-cam:ws-auth:camera:{camera_key}")
     except RateLimitExceededError:
         logger.warning(
-            "WebSocket auth from %s for camera %s blocked by rate limit.",
-            sanitize_log_value(client_ip),
+            "WebSocket auth bucket %s for camera %s blocked by rate limit.",
+            client_ip_bucket,
             sanitize_log_value(camera_key),
         )
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Too many failed attempts.")
@@ -117,8 +117,9 @@ async def _enforce_ws_auth_rate_limit(websocket: WebSocket, client_ip: str, came
 async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
     """Validate a short-lived signed camera device assertion."""
     client_ip = extract_client_ip(websocket.headers, websocket.client.host if websocket.client else "unknown")
+    client_ip_bucket = rate_limit_bucket_key("rpi-cam:ws-auth:ip", client_ip)
     camera_key = str(camera_id)
-    if not await _enforce_ws_auth_rate_limit(websocket, client_ip, camera_key):
+    if not await _enforce_ws_auth_rate_limit(websocket, client_ip_bucket, camera_key):
         return False
 
     assertion = _extract_bearer_token(websocket)
@@ -142,9 +143,9 @@ async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
         payload = await verify_device_assertion(assertion, camera, redis)
     except InvalidTokenError as exc:
         logger.warning(
-            "Camera %s assertion rejected from %s: %s",
+            "Camera %s assertion rejected from bucket %s: %s",
             sanitize_log_value(camera_id),
-            sanitize_log_value(client_ip),
+            client_ip_bucket,
             sanitize_log_value(exc),
         )
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Authentication failed.")
@@ -152,9 +153,9 @@ async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
 
     await mark_camera_online(redis, camera_id)
     logger.info(
-        "Camera %s authenticated from %s with key %s.",
+        "Camera %s authenticated from bucket %s with key %s.",
         sanitize_log_value(camera_id),
-        sanitize_log_value(client_ip),
+        client_ip_bucket,
         sanitize_log_value(payload.get("kid") or camera.relay_key_id),
     )
     return True

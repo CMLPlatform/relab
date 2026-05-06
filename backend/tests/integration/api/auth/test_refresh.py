@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import status
 
-from app.api.auth.services.refresh_token_service import create_refresh_token
+from app.api.auth.services.refresh_token_service import create_refresh_token, refresh_token_fingerprint
 from tests.factories.models import UserFactory
 
 from .shared import INVALID_REFRESH_TOKEN, hash_test_password
@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
     from redis.asyncio import Redis
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.api.auth.models import User
 
 
 pytestmark = pytest.mark.api
@@ -153,3 +155,27 @@ class TestRefreshTokenEndpoint:
         assert second_response.status_code == status.HTTP_204_NO_CONTENT
 
         api_client.cookies.clear()
+
+    async def test_revoke_all_sessions_revokes_refresh_tokens_and_clears_browser_state(
+        self,
+        api_client_user: AsyncClient,
+        mock_redis_dependency: Redis,
+        db_user: User,
+    ) -> None:
+        """Authenticated users can invalidate all refresh tokens for their account."""
+        refresh_token = await create_refresh_token(mock_redis_dependency, db_user.id)
+
+        response = await api_client_user.post("/v1/auth/sessions/revoke-all")
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert response.headers["clear-site-data"] == '"cache", "cookies", "storage"'
+        assert await mock_redis_dependency.exists(f"auth:rt_blacklist:{refresh_token_fingerprint(refresh_token)}")
+        set_cookie_headers = response.headers.get_list("set-cookie")
+        assert any(header.startswith("auth=") for header in set_cookie_headers)
+        assert any(header.startswith("refresh_token=") for header in set_cookie_headers)
+
+    async def test_revoke_all_sessions_requires_authentication(self, api_client: AsyncClient) -> None:
+        """Remote session invalidation is only available to active users."""
+        response = await api_client.post("/v1/auth/sessions/revoke-all")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED

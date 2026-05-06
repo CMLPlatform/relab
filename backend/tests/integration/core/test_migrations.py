@@ -65,6 +65,7 @@ def test_user_table_has_required_columns(migration_helper: MigrationHelper) -> N
     }
     missing = required - columns
     assert not missing, f"user table is missing columns: {missing}"
+    assert "last_login_ip" not in columns
 
 
 @pytest.mark.migration

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -18,7 +17,7 @@ from app.api.auth.routers.password_reset import (
     forgot_password,
     reset_password,
 )
-from app.api.auth.services.rate_limiter import PASSWORD_RESET_RATE_LIMIT
+from app.api.auth.services.rate_limiter import PASSWORD_RESET_RATE_LIMIT, rate_limit_bucket_key
 
 
 def _request() -> Request:
@@ -44,18 +43,17 @@ def test_reset_password_route_is_rate_limited() -> None:
     assert hasattr(route.endpoint, "__wrapped__")
 
 
-def test_forgot_password_account_rate_limit_key_hashes_normalized_email() -> None:
+def test_forgot_password_account_rate_limit_key_uses_normalized_keyed_bucket() -> None:
     """Forgot-password account buckets should not expose raw submitted addresses."""
     key = _password_reset_identifier_rate_limit_key(" User@Example.COM ")
-    expected_digest = hashlib.sha256(b"user@example.com").hexdigest()
 
-    assert key == f"auth:password-reset:account:{expected_digest}"
+    assert key == rate_limit_bucket_key("auth:password-reset:account", "user@example.com")
     assert "User@Example.COM" not in key
     assert "user@example.com" not in key
 
 
 async def test_forgot_password_applies_account_rate_limit_to_all_requests() -> None:
-    """The account-hash limiter should run before account lookup."""
+    """The account-bucket limiter should run before account lookup."""
     user_manager = MagicMock()
     user_manager.get_by_email = AsyncMock(side_effect=exceptions.UserNotExists)
 

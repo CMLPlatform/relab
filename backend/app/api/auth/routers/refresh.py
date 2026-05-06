@@ -162,3 +162,19 @@ async def logout_session(
 
     if cookie_refresh_token:
         await refresh_token_service.blacklist_token(redis, cookie_refresh_token)
+
+
+@router.post(
+    "/sessions/revoke-all",
+    name="auth:sessions.revoke_all",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def revoke_all_sessions(
+    response: Response,
+    current_user: CurrentActiveUserDep,
+    redis: OptionalRedisDep,
+) -> None:
+    """Revoke all refresh tokens for the current user and clear browser session state."""
+    await refresh_token_service.revoke_all_user_tokens(redis, current_user.id)
+    clear_auth_cookies(response)
+    response.headers["Clear-Site-Data"] = SESSION_LOGOUT_CLEAR_SITE_DATA

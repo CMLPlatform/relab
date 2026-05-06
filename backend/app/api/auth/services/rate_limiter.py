@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import hmac
 import logging
 from typing import TYPE_CHECKING, ParamSpec, TypeVar
 
@@ -42,13 +43,19 @@ class RateLimitExceededError(Exception):
         super().__init__(detail)
 
 
-def hashed_identifier_rate_limit_key(prefix: str, identifier: str) -> str:
-    """Return a privacy-preserving rate-limit key for a submitted account identifier."""
-    normalized_identifier = identifier.strip().casefold()
-    if not normalized_identifier:
+def rate_limit_bucket_key(prefix: str, value: str) -> str:
+    """Return a keyed digest bucket for sensitive rate-limit dimensions."""
+    normalized_value = value.strip().casefold()
+    if not normalized_value:
         return f"{prefix}:missing"
-    digest = hashlib.sha256(normalized_identifier.encode("utf-8")).hexdigest()
+    secret = auth_settings.fastapi_users_secret.get_secret_value().encode("utf-8")
+    digest = hmac.new(secret, normalized_value.encode("utf-8"), hashlib.sha256).hexdigest()
     return f"{prefix}:{digest}"
+
+
+def request_ip_rate_limit_key(request: Request) -> str:
+    """Return a privacy-preserving rate-limit key for the request client IP."""
+    return rate_limit_bucket_key("client:ip", get_client_ip(request))
 
 
 class Limiter:
@@ -86,7 +93,7 @@ class Limiter:
                     if request is not None and limiter is not None:
                         key = self._key_func(request)
                         if not limiter.hit(parsed, key):
-                            logger.info("Rate limit exceeded for key %s", key)
+                            logger.info("Rate limit exceeded for bucket %s", key)
                             raise RateLimitExceededError
                 return await func(*args, **kwargs)
 
@@ -101,7 +108,7 @@ class Limiter:
 
         parsed = parse(rate_string)
         if not self._limiter.hit(parsed, key):
-            logger.info("Rate limit exceeded for key %s", key)
+            logger.info("Rate limit exceeded for bucket %s", key)
             raise RateLimitExceededError
 
     def hit_request(self, rate_string: str, request: Request) -> None:
@@ -143,7 +150,7 @@ def _find_request(args: tuple[object, ...], kwargs: Mapping[str, object]) -> Req
 # ---------------------------------------------------------------------------
 
 limiter = Limiter(
-    key_func=get_client_ip,
+    key_func=request_ip_rate_limit_key,
     storage_uri=core_settings.cache_url,
     strategy="fixed-window",
     enabled=core_settings.enable_rate_limit,

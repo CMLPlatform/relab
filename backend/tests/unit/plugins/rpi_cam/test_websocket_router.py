@@ -13,7 +13,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from app.api.auth.services.rate_limiter import RateLimitExceededError
+from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_bucket_key
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion as _verify_device_assertion
 from app.api.plugins.rpi_cam.websocket.router import (
     _authenticate,
@@ -108,7 +108,7 @@ async def test_handle_text_frame_ignores_non_object_json() -> None:
 
 
 async def test_authenticate_sanitizes_client_ip_when_blocked() -> None:
-    """Blocked auth logging should neutralize line breaks in the client IP."""
+    """Blocked auth logging should use the safe IP bucket rather than the raw IP."""
     websocket = MagicMock()
     websocket.headers = {}
     websocket.client = SimpleNamespace(host="203.0.113.10\nFORGED")
@@ -125,10 +125,11 @@ async def test_authenticate_sanitizes_client_ip_when_blocked() -> None:
     assert result is False
     websocket.close.assert_awaited_once()
     mock_logger.warning.assert_called_once_with(
-        "WebSocket auth from %s for camera %s blocked by rate limit.",
-        "203.0.113.10 FORGED",
+        "WebSocket auth bucket %s for camera %s blocked by rate limit.",
+        rate_limit_bucket_key("rpi-cam:ws-auth:ip", "203.0.113.10\nFORGED"),
         str(camera_id),
     )
+    assert "203.0.113.10" not in str(mock_logger.warning.call_args)
 
 
 async def test_authenticate_enforces_redis_backed_rate_limit_before_auth_lookup() -> None:
@@ -143,7 +144,10 @@ async def test_authenticate_enforces_redis_backed_rate_limit_before_auth_lookup(
         result = await _authenticate(websocket, camera_id)
 
     assert result is False
-    mock_limiter.hit_key.assert_any_call("10/minute", "rpi-cam:ws-auth:ip:203.0.113.10")
+    mock_limiter.hit_key.assert_any_call(
+        "10/minute",
+        rate_limit_bucket_key("rpi-cam:ws-auth:ip", "203.0.113.10"),
+    )
     mock_limiter.hit_key.assert_any_call("10/minute", f"rpi-cam:ws-auth:camera:{camera_id}")
 
 

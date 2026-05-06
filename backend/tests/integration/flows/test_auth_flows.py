@@ -128,7 +128,7 @@ class TestCompleteAuthFlow:
     async def test_login_tracking(
         self, api_client: AsyncClient, mock_redis_dependency: Redis, db_session: AsyncSession
     ) -> None:
-        """Test that login tracking (last_login_at, last_login_ip) is updated."""
+        """Test that login timestamp tracking is updated without retaining IP addresses."""
         del mock_redis_dependency
         # Step 1: Register user
         register_data = {
