@@ -1,7 +1,7 @@
 # Repository-wide pre-commit policy hooks.
 # Project-specific linting and test commands live in the subrepo `justfile`s.
 
-# spell-checker: ignore rhysd
+# spell-checker: ignore rhysd shfmt
 
 repos:
   - repo: https://github.com/gitleaks/gitleaks
@@ -57,6 +57,13 @@ repos:
         args: [ "--external-sources", "--source-path=SCRIPTDIR:." ]
         exclude: (^|/)(node_modules|\.venv)/
 
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.12.0-2
+    hooks:
+      - id: shfmt
+        args: [ "-w", "-i", "4", "-ci", "-bn" ]
+        exclude: (^|/)(node_modules|\.venv)/
+
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.13.9
     hooks:
@@ -108,7 +115,7 @@ repos:
         name: ty-root-scripts
         entry: uv run ty check
         language: system
-        files: ^(?!backend/).*/scripts/.*\.py$
+        files: ^scripts/.*\.py$
         pass_filenames: false
       - id: cspell
         name: cspell
