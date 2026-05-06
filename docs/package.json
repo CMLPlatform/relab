@@ -33,10 +33,10 @@
   },
   "dependencies": {
     "@astrojs/mdx": "^5.0.4",
-    "@astrojs/starlight": "^0.38.4",
+    "@astrojs/starlight": "^0.38.5",
     "@mermaid-js/layout-elk": "^0.2.1",
-    "@scalar/api-reference": "^1.55.1",
-    "astro": "^6.2.1",
+    "@scalar/api-reference": "^1.55.3",
+    "astro": "^6.2.2",
     "mermaid": "^11.14.0"
   },
   "devDependencies": {
