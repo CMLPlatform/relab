@@ -3,7 +3,7 @@ title: API interaction guide
 description: Use the RELab API safely for scripts, notebooks, and external tooling.
 ---
 
-For the authoritative schema, request models, and endpoint list, use the [interactive API documentation](https://api.cml-relab.org/docs). For how the API is designed internally, see [API structure](../../architecture/api/).
+For the authoritative schema, request models, and endpoint list, use the [interactive API documentation](/api/public/). For device/plugin integration, use the [device API reference](/api/device/). For how the API is designed internally, see [API structure](../../architecture/api/).
 
 The public API is versioned under `/v1`. Client configuration should keep the API origin separate from the versioned path, then build requests such as `https://api.cml-relab.org/v1/products`.
 
@@ -17,7 +17,7 @@ The public API is versioned under `/v1`. Client configuration should keep the AP
 ## Authentication
 
 - **Browsers** use cookies (`POST /v1/auth/session/login`)
-- **Apps and scripts** use bearer tokens (`POST /v1/auth/login`)
+- **Apps and scripts** use bearer tokens (`POST /v1/auth/bearer/login`)
 - Refresh-token handling depends on the Redis-backed auth path (see [Authentication](../../architecture/auth/))
 
 !!! note "Public vs. authenticated routes"
@@ -25,7 +25,7 @@ Public reference data (taxonomies, materials, product types), product records, a
 
 ## Suggested first steps
 
-1. Open the [live OpenAPI docs](https://api.cml-relab.org/docs).
+1. Open the [live API reference](/api/public/).
 1. Identify whether the endpoint you need is public or requires authentication.
 1. Start with a read-only request before attempting writes.
 1. Inspect response models carefully, especially around linked entities and media.

@@ -50,13 +50,13 @@ sequenceDiagram
     participant TokenStore as Redis/JWT
     participant DB as Database
 
-    User->>API: POST /v1/auth/login or /v1/auth/session/login
+    User->>API: POST /v1/auth/bearer/login or /v1/auth/session/login
     API->>DB: Validate credentials
     API->>DB: Update last login metadata
     API->>TokenStore: Create access token
     alt Redis is available
         API->>TokenStore: Create refresh token
-        API-->>User: Access token + refresh token cookie
+        API-->>User: Bearer JSON tokens or browser cookies
     else Redis is unavailable
         API-->>User: Access token only
     end
@@ -68,10 +68,10 @@ Successful login updates `last_login_at` and `last_login_ip`. When Redis is avai
 
 Refresh-token rotation uses dedicated endpoints:
 
-- `POST /v1/auth/refresh` for bearer clients
+- `POST /v1/auth/bearer/refresh` for bearer clients
 - `POST /v1/auth/session/refresh` for browser sessions
 
-Logout clears auth cookies and blacklists the refresh token when one is present.
+Bearer logout revokes the submitted refresh token. Session logout clears auth cookies, asks the browser to clear local session data, and blacklists the refresh token when one is present.
 
 Refresh tokens are random bearer secrets. Redis stores them under SHA-256 fingerprints rather than raw token values, so Redis key names are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with AES-256-GCM using the backend `DATA_ENCRYPTION_KEY`.
 
@@ -118,11 +118,12 @@ sequenceDiagram
 <details>
 <summary>Expand endpoint list</summary>
 
-- `POST /v1/auth/login`
+- `POST /v1/auth/bearer/login`
 - `POST /v1/auth/session/login`
-- `POST /v1/auth/refresh`
+- `POST /v1/auth/bearer/refresh`
 - `POST /v1/auth/session/refresh`
-- `POST /v1/auth/logout`
+- `POST /v1/auth/bearer/logout`
+- `POST /v1/auth/session/logout`
 - `POST /v1/auth/register`
 - `POST /v1/auth/verify`
 - `POST /v1/auth/forgot-password`
@@ -132,4 +133,4 @@ sequenceDiagram
 
 </details>
 
-For the full live surface, see the [interactive API docs](https://api.cml-relab.org/docs#tag/auth).
+For the full live surface, see the [interactive API docs](/api/public/#tag/auth).
