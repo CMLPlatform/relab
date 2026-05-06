@@ -17,4 +17,13 @@ describe('privacyContent', () => {
     expect(JSON.stringify(rights)).not.toContain('<a ');
     expect(JSON.stringify(rights)).not.toContain('<strong>');
   });
+
+  it('explains the current privacy controls for sessions, embeds, and linked accounts', () => {
+    const text = JSON.stringify(privacyContent);
+
+    expect(text).toContain('full login IP addresses on your account');
+    expect(text).toContain('Sign out everywhere');
+    expect(text).toContain('encrypted');
+    expect(text).toContain('External videos load only after you choose to load them.');
+  });
 });
