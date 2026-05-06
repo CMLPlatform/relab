@@ -154,7 +154,7 @@
         - /url: https://app.cml-relab.org
     - listitem:
       - link "Open the API docs":
-        - /url: https://api.cml-relab.org/docs
+        - /url: /api/public/
     - listitem:
       - link "View the repository":
         - /url: https://github.com/CMLPlatform/relab

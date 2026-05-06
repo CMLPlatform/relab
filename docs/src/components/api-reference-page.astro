@@ -1,0 +1,30 @@
+---
+import { backendApiUrlForMode } from '../lib/backend-api.ts';
+
+interface Props {
+  schemaPath: string;
+  title: string;
+}
+
+const { schemaPath, title } = Astro.props;
+const backendApiUrl = backendApiUrlForMode(import.meta.env.MODE);
+const schemaUrl = new URL(schemaPath, backendApiUrl).toString();
+const pageTitle = `${title} · RELab docs`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+  </head>
+  <body>
+    <header class="api-reference-header">
+      <a href="/">RELab docs</a>
+      <h1>{title}</h1>
+    </header>
+    <main id="api-reference" data-backend-api-url={backendApiUrl} data-schema-url={schemaUrl}></main>
+    <script src="../scripts/api-reference.ts"></script>
+  </body>
+</html>
