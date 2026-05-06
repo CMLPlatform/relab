@@ -31,12 +31,26 @@ export function getTouchPointX(event: GestureResponderEvent, type: 'start' | 'en
 
 export function buildGalleryMedia(product: Product) {
   const images = product.images ?? [];
+  const media = images.flatMap((image) => {
+    const imageUrl = resolveApiMediaUrl(image.url);
+    if (!imageUrl) {
+      return [];
+    }
+    const thumbnailUrl = resolveApiMediaUrl(image.thumbnailUrl) ?? imageUrl;
+    return [
+      {
+        image,
+        thumbnailUrl,
+        mediumUrl: getResizedImageUrl(image.url, image.id, 800) ?? imageUrl,
+        largeUrl: getResizedImageUrl(image.url, image.id, 1600) ?? imageUrl,
+      },
+    ];
+  });
+
   return {
-    images,
-    thumbnailUrls: images.map(
-      (image) => image.thumbnailUrl ?? resolveApiMediaUrl(image.url) ?? image.url,
-    ),
-    mediumUrls: images.map((image) => getResizedImageUrl(image.url, image.id, 800)),
-    largeUrls: images.map((image) => getResizedImageUrl(image.url, image.id, 1600)),
+    images: media.map(({ image }) => image),
+    thumbnailUrls: media.map(({ thumbnailUrl }) => thumbnailUrl),
+    mediumUrls: media.map(({ mediumUrl }) => mediumUrl),
+    largeUrls: media.map(({ largeUrl }) => largeUrl),
   };
 }

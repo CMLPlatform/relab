@@ -1,10 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import {
-  API_PLACEHOLDER_IMAGE_PATH,
-  getPlaceholderImageUrl,
-  getResizedImageUrl,
-  resolveApiMediaUrl,
-} from '../media';
+import { getResizedImageUrl, resolveApiMediaUrl } from '../media';
 
 const ORIGINAL_ENV = process.env.EXPO_PUBLIC_API_URL;
 
@@ -51,29 +46,9 @@ describe('resolveApiMediaUrl', () => {
   });
 
   it('prepends the API base URL to relative paths without a leading slash', () => {
-    expect(resolveApiMediaUrl('static/images/placeholder.png')).toBe(
-      'http://localhost:8000/static/images/placeholder.png',
+    expect(resolveApiMediaUrl('uploads/images/test.jpg')).toBe(
+      'http://localhost:8000/uploads/images/test.jpg',
     );
-  });
-
-  it('normalizes the placeholder constant', () => {
-    expect(resolveApiMediaUrl(API_PLACEHOLDER_IMAGE_PATH)).toBe(
-      'http://localhost:8000/static/images/placeholder.png',
-    );
-  });
-});
-
-describe('getPlaceholderImageUrl', () => {
-  beforeEach(() => {
-    process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000';
-  });
-
-  afterEach(() => {
-    process.env.EXPO_PUBLIC_API_URL = ORIGINAL_ENV;
-  });
-
-  it('returns the API-prefixed placeholder path', () => {
-    expect(getPlaceholderImageUrl()).toBe('http://localhost:8000/static/images/placeholder.png');
   });
 });
 
@@ -106,8 +81,8 @@ describe('getResizedImageUrl', () => {
     expect(result).toBe('file:///data/image.jpg');
   });
 
-  it('falls back to the placeholder when the image URL is unsafe', () => {
+  it('returns undefined when the image URL is unsafe', () => {
     const result = getResizedImageUrl('javascript:alert(1)', '5', 400);
-    expect(result).toBe('http://localhost:8000/static/images/placeholder.png');
+    expect(result).toBeUndefined();
   });
 });
