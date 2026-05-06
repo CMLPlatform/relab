@@ -240,19 +240,25 @@ def _make_assertion(
     *,
     aud: str = _AUD,
     exp_offset: int = 120,
+    iss: str | None = None,
+    sub: str | None = None,
     jti: str | None = None,
+    omit_claims: set[str] | None = None,
 ) -> str:
     now = int(time.time())
+    payload = {
+        "iss": iss or f"camera:{camera_id}",
+        "sub": sub or f"camera:{camera_id}",
+        "aud": aud,
+        "iat": now,
+        "nbf": now,
+        "exp": now + exp_offset,
+        "jti": jti or secrets.token_urlsafe(24),
+    }
+    for claim in omit_claims or set():
+        payload.pop(claim, None)
     return jwt.encode(
-        {
-            "iss": f"camera:{camera_id}",
-            "sub": f"camera:{camera_id}",
-            "aud": aud,
-            "iat": now,
-            "nbf": now,
-            "exp": now + exp_offset,
-            "jti": jti or secrets.token_urlsafe(24),
-        },
+        payload,
         private_key,
         algorithm=_ALG,
         headers={"kid": key_id},
@@ -308,8 +314,32 @@ class TestVerifyDeviceAssertion:
 
         # Sign with a different camera id in the subject
         other_id = uuid4()
-        assertion = _make_assertion(private_key, str(other_id), key_id)
+        assertion = _make_assertion(private_key, str(camera.id), key_id, sub=f"camera:{other_id}")
         with pytest.raises(jwt.InvalidTokenError, match="subject"):
+            await _verify_device_assertion(assertion, camera, redis)
+
+    async def test_rejects_missing_issuer(self) -> None:
+        """An assertion without iss should be rejected."""
+        key_id = "key-1"
+        private_key, jwk = _make_key()
+        camera = _make_camera(key_id, jwk)
+        redis = AsyncMock()
+        redis.set = AsyncMock(return_value=True)
+
+        assertion = _make_assertion(private_key, str(camera.id), key_id, omit_claims={"iss"})
+        with pytest.raises(jwt.InvalidTokenError):
+            await _verify_device_assertion(assertion, camera, redis)
+
+    async def test_rejects_wrong_issuer(self) -> None:
+        """An assertion whose iss doesn't match the camera id should be rejected."""
+        key_id = "key-1"
+        private_key, jwk = _make_key()
+        camera = _make_camera(key_id, jwk)
+        redis = AsyncMock()
+        redis.set = AsyncMock(return_value=True)
+
+        assertion = _make_assertion(private_key, str(camera.id), key_id, iss=f"camera:{uuid4()}")
+        with pytest.raises(jwt.InvalidTokenError, match="issuer"):
             await _verify_device_assertion(assertion, camera, redis)
 
     async def test_rejects_wrong_kid(self) -> None:

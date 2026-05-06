@@ -50,8 +50,8 @@ async def verify_device_assertion(assertion: str, camera: Camera, redis: Redis) 
         msg = "Unsupported assertion algorithm"
         raise InvalidTokenError(msg)
     if header.get("kid") != camera.relay_key_id:
-        msg_0 = "Assertion key id does not match camera credential"
-        raise InvalidTokenError(msg_0)
+        msg = "Assertion key id does not match camera credential"
+        raise InvalidTokenError(msg)
 
     public_key = PyJWK.from_dict(camera.relay_public_key_jwk).key
     payload = jwt.decode(
@@ -59,22 +59,25 @@ async def verify_device_assertion(assertion: str, camera: Camera, redis: Redis) 
         key=public_key,
         algorithms=list(ASSERTION_ALGORITHMS),
         audience=ASSERTION_AUDIENCE,
-        options={"require": ["exp", "iat", "nbf", "jti", "sub"]},
+        options={"require": ["exp", "iat", "iss", "nbf", "jti", "sub"]},
     )
-    expected_subject = f"camera:{camera.id}"
-    if payload.get("sub") != expected_subject:
-        msg_1 = "Assertion subject does not match camera"
-        raise InvalidTokenError(msg_1)
+    expected_camera_claim = f"camera:{camera.id}"
+    if payload.get("iss") != expected_camera_claim:
+        msg = "Assertion issuer does not match camera"
+        raise InvalidTokenError(msg)
+    if payload.get("sub") != expected_camera_claim:
+        msg = "Assertion subject does not match camera"
+        raise InvalidTokenError(msg)
 
     jti = str(payload.get("jti") or "")
     if not jti:
-        msg_2 = "Missing assertion id"
-        raise InvalidTokenError(msg_2)
+        msg = "Missing assertion id"
+        raise InvalidTokenError(msg)
     ttl = _assertion_replay_ttl(payload)
     was_set = await redis.set(f"{REPLAY_KEY_PREFIX}{camera.id}:{jti}", "1", ex=ttl, nx=True)
     if not was_set:
-        msg_3 = "Assertion replay detected"
-        raise InvalidTokenError(msg_3)
+        msg = "Assertion replay detected"
+        raise InvalidTokenError(msg)
     payload["kid"] = header.get("kid")
     return payload
 
