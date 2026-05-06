@@ -27,7 +27,7 @@ require_file() {
 
 resolve_backup_paths() {
     local env="$1"
-    local repo="${BACKUP_DIR:-./backups}/restic"
+    local repo="${BACKUP_HOST_DIR:-./backups}/restic"
     local secret="secrets/$env/restic_password"
 
     DEPLOY_RESTIC_REPOSITORY="$(require_dir "Restic repository" "$repo")"

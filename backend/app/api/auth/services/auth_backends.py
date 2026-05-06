@@ -21,7 +21,7 @@ from app.core.config import settings as core_settings
 from app.core.redis import OptionalRedisDep
 
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
-SECRET: SecretStr = auth_settings.fastapi_users_secret
+SECRET: SecretStr = auth_settings.auth_token_secret
 _AUTHENTICATION_SERVICE_UNAVAILABLE = "Authentication service unavailable."
 
 

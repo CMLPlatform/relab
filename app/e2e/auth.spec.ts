@@ -6,8 +6,8 @@
  *   - the Expo web app has been built for E2E
  *
  * Test user credentials come from backend/.env.test:
- *   SUPERUSER_EMAIL=e2e-admin@example.com
- *   SUPERUSER_PASSWORD=E2eTestPass123!
+ *   BOOTSTRAP_SUPERUSER_EMAIL=e2e-admin@example.com
+ *   BOOTSTRAP_SUPERUSER_PASSWORD=E2eTestPass123!
  */
 
 import { expect, test } from '@playwright/test';

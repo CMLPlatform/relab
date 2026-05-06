@@ -90,7 +90,7 @@ class AuthSettings(RelabBaseSettings):
     environment: Environment = Environment.DEV
 
     # Authentication settings
-    fastapi_users_secret: SecretStr = SecretStr("")
+    auth_token_secret: SecretStr = SecretStr("")
 
     # OAuth settings
     oauth_state_secret: SecretStr = SecretStr("")
@@ -104,10 +104,10 @@ class AuthSettings(RelabBaseSettings):
 
     # Settings used to configure the email server for sending emails from the app.
     email_provider: EmailProviderName = EmailProviderName.SMTP
-    email_host: str = ""
-    email_port: int = 587  # Default SMTP port for TLS
-    email_username: str = ""
-    email_password: SecretStr = SecretStr("")
+    smtp_host: str = ""
+    smtp_port: int = 587  # Default SMTP port for TLS
+    smtp_username: str = ""
+    smtp_password: SecretStr = SecretStr("")
     email_from: str = ""
     email_reply_to: str = ""
 
@@ -144,15 +144,15 @@ class AuthSettings(RelabBaseSettings):
         ]
     )
 
-    @field_validator("fastapi_users_secret")
+    @field_validator("auth_token_secret")
     @classmethod
-    def validate_fastapi_users_secret(cls, value: SecretStr, info: ValidationInfo) -> SecretStr:
+    def validate_auth_token_secret(cls, value: SecretStr, info: ValidationInfo) -> SecretStr:
         """Reject too-short auth secrets outside deterministic tests."""
         environment = info.data.get("environment", Environment.DEV)
         if environment == Environment.TESTING:
             return value
 
-        return validate_min_secret_bytes(value, "FASTAPI_USERS_SECRET")
+        return validate_min_secret_bytes(value, "AUTH_TOKEN_SECRET")
 
     @field_validator("oauth_allowed_redirect_uris")
     @classmethod
@@ -163,14 +163,14 @@ class AuthSettings(RelabBaseSettings):
     @cached_property
     def email(self) -> ResolvedEmailSettings:
         """Return resolved email settings with shared fallback logic applied once."""
-        sender = parse_name_email(self.email_from, fallback=self.email_username)
+        sender = parse_name_email(self.email_from, fallback=self.smtp_username)
         return ResolvedEmailSettings(
-            username=self.email_username,
-            password=self.email_password,
-            host=self.email_host,
-            port=self.email_port,
+            username=self.smtp_username,
+            password=self.smtp_password,
+            host=self.smtp_host,
+            port=self.smtp_port,
             sender=sender,
-            reply_to=parse_name_email(self.email_reply_to, fallback=self.email_from or self.email_username) or sender,
+            reply_to=parse_name_email(self.email_reply_to, fallback=self.email_from or self.smtp_username) or sender,
         )
 
     @cached_property
@@ -199,12 +199,12 @@ class AuthSettings(RelabBaseSettings):
         oauth_state_secret = self.oauth_state_secret.get_secret_value()
         if not is_production_like_environment(self.environment.value):
             if not oauth_state_secret:
-                self.oauth_state_secret = self.fastapi_users_secret
+                self.oauth_state_secret = self.auth_token_secret
             return self
 
         errors: list[str] = []
         required_secrets: dict[str, str] = {
-            "FASTAPI_USERS_SECRET": self.fastapi_users_secret.get_secret_value(),
+            "AUTH_TOKEN_SECRET": self.auth_token_secret.get_secret_value(),
             "OAUTH_STATE_SECRET": oauth_state_secret,
             "GOOGLE_OAUTH_CLIENT_ID": self.google_oauth_client_id.get_secret_value(),
             "GOOGLE_OAUTH_CLIENT_SECRET": self.google_oauth_client_secret.get_secret_value(),
@@ -216,11 +216,11 @@ class AuthSettings(RelabBaseSettings):
             "EMAIL_REPLY_TO": self.email_reply_to,
         }
         if self.email_provider is EmailProviderName.SMTP:
-            required_secrets["EMAIL_PASSWORD"] = self.email_password.get_secret_value()
+            required_secrets["SMTP_PASSWORD"] = self.smtp_password.get_secret_value()
             required_strings.update(
                 {
-                    "EMAIL_HOST": self.email_host,
-                    "EMAIL_USERNAME": self.email_username,
+                    "SMTP_HOST": self.smtp_host,
+                    "SMTP_USERNAME": self.smtp_username,
                 }
             )
         else:

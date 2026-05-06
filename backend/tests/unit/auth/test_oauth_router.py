@@ -39,7 +39,7 @@ def test_public_callback_url_normalizes_slashes(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_oauth_routes_use_dedicated_state_secret(monkeypatch: pytest.MonkeyPatch) -> None:
-    """OAuth route builders should receive OAUTH_STATE_SECRET, not FASTAPI_USERS_SECRET."""
+    """OAuth route builders should receive OAUTH_STATE_SECRET, not AUTH_TOKEN_SECRET."""
     captured_state_secrets: list[str] = []
 
     class FakeBuilder:
@@ -58,7 +58,7 @@ def test_oauth_routes_use_dedicated_state_secret(monkeypatch: pytest.MonkeyPatch
         def build(self) -> APIRouter:
             return APIRouter()
 
-    monkeypatch.setattr(oauth.settings.fastapi_users_secret, "get_secret_value", lambda: "auth-secret")
+    monkeypatch.setattr(oauth.settings.auth_token_secret, "get_secret_value", lambda: "auth-secret")
     monkeypatch.setattr(oauth.settings.oauth_state_secret, "get_secret_value", lambda: "state-secret")
     monkeypatch.setattr(oauth, "CustomOAuthRouterBuilder", FakeBuilder)
     monkeypatch.setattr(oauth, "CustomOAuthAssociateRouterBuilder", FakeAssociateBuilder)

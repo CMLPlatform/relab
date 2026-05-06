@@ -20,9 +20,9 @@ def test_email_provider_defaults_to_smtp() -> None:
 def test_build_email_provider_uses_smtp_by_default() -> None:
     """Default auth settings should build an SMTP provider."""
     settings = AuthSettings(
-        email_host="smtp.example.com",
-        email_username="relab@example.com",
-        email_password=SecretStr("password"),
+        smtp_host="smtp.example.com",
+        smtp_username="relab@example.com",
+        smtp_password=SecretStr("password"),
         email_from="RELab <relab@example.com>",
         email_reply_to="relab@example.com",
     )
@@ -65,7 +65,7 @@ def test_production_validation_is_provider_specific_for_graph() -> None:
     """Graph production config should not require SMTP host credentials."""
     settings = AuthSettings(
         environment=Environment.PROD,
-        fastapi_users_secret=SecretStr(VALID_SECRET),
+        auth_token_secret=SecretStr(VALID_SECRET),
         oauth_state_secret=SecretStr(VALID_SECRET),
         google_oauth_client_id=SecretStr("google-id"),
         google_oauth_client_secret=SecretStr("google-secret"),
@@ -88,7 +88,7 @@ def test_production_validation_requires_graph_credentials() -> None:
     with pytest.raises(ValueError, match="MICROSOFT_GRAPH_CLIENT_ID"):
         AuthSettings(
             environment=Environment.PROD,
-            fastapi_users_secret=SecretStr(VALID_SECRET),
+            auth_token_secret=SecretStr(VALID_SECRET),
             oauth_state_secret=SecretStr(VALID_SECRET),
             google_oauth_client_id=SecretStr("google-id"),
             google_oauth_client_secret=SecretStr("google-secret"),

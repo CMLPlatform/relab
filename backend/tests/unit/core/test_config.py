@@ -40,13 +40,13 @@ def _production_core_settings_kwargs(**overrides: object) -> dict[str, Any]:
     kwargs: dict[str, Any] = {
         "environment": Environment.PROD,
         "backend_api_url": HttpUrl("https://api.cml-relab.org"),
-        "frontend_web_url": HttpUrl("https://cml-relab.org"),
+        "site_public_url": HttpUrl("https://cml-relab.org"),
         "frontend_app_url": HttpUrl("https://app.cml-relab.org"),
         "postgres_password": SecretStr("admin-password"),
         **_database_role_kwargs(),
         "redis_password": SecretStr("test-password"),
-        "superuser_password": SecretStr("test-password"),
-        "superuser_email": "test@example.com",
+        "bootstrap_superuser_password": SecretStr("test-password"),
+        "bootstrap_superuser_email": "test@example.com",
         "data_encryption_key": SecretStr(TEST_DATA_ENCRYPTION_KEY),
         "cache_signing_secret": SecretStr(TEST_CACHE_SIGNING_SECRET),
     }
@@ -61,7 +61,7 @@ class TestCoreSettingsCors:
         """DEV environment should derive the local docs origin unless overridden."""
         settings = CoreSettings(
             environment=Environment.DEV,
-            frontend_web_url=HttpUrl("http://localhost:3000/"),
+            site_public_url=HttpUrl("http://localhost:3000/"),
             frontend_app_url=HttpUrl("http://localhost:8081/"),
         )
         assert settings.allowed_origins == [
@@ -76,7 +76,7 @@ class TestCoreSettingsCors:
             **_production_core_settings_kwargs(
                 environment=Environment.STAGING,
                 backend_api_url=HttpUrl("https://api-test.cml-relab.org/"),
-                frontend_web_url=HttpUrl("https://web-test.cml-relab.org/"),
+                site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
                 frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
                 cors_origin_regex=None,
             )
@@ -92,7 +92,7 @@ class TestCoreSettingsCors:
         """Custom/self-hosted docs origins should be accepted through DOCS_URL."""
         settings = CoreSettings(
             environment=Environment.DEV,
-            frontend_web_url=HttpUrl("http://localhost:3000/"),
+            site_public_url=HttpUrl("http://localhost:3000/"),
             frontend_app_url=HttpUrl("http://localhost:8081/"),
             docs_url=HttpUrl("http://localhost:8012/"),
         )
@@ -114,7 +114,7 @@ class TestCoreSettingsCors:
             **_production_core_settings_kwargs(
                 environment=Environment.STAGING,
                 backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
-                frontend_web_url=HttpUrl("https://web-test.cml-relab.org/"),
+                site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
                 frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
                 cors_origin_regex=None,
             )
@@ -133,7 +133,7 @@ class TestCoreSettingsCors:
                 **_production_core_settings_kwargs(
                     environment=Environment.STAGING,
                     backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
-                    frontend_web_url=HttpUrl("https://web-test.cml-relab.org/"),
+                    site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
                     frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
                     cors_origin_regex=DEFAULT_CORS_ORIGIN_REGEX,
                 )
@@ -298,7 +298,7 @@ class TestCoreSettingsCors:
         (tmp_path / "database_migration_password").write_text("migration-secret", encoding="utf-8")
         (tmp_path / "database_backup_password").write_text("backup-secret", encoding="utf-8")
         (tmp_path / "redis_password").write_text("redis-secret", encoding="utf-8")
-        (tmp_path / "superuser_password").write_text("superuser-secret", encoding="utf-8")
+        (tmp_path / "bootstrap_superuser_password").write_text("superuser-secret", encoding="utf-8")
         (tmp_path / "data_encryption_key").write_text(TEST_DATA_ENCRYPTION_KEY, encoding="utf-8")
         (tmp_path / "cache_signing_secret").write_text(TEST_CACHE_SIGNING_SECRET, encoding="utf-8")
         settings_config: Any = {**CoreSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
@@ -311,7 +311,7 @@ class TestCoreSettingsCors:
             "database_migration_password",
             "database_backup_password",
             "redis_password",
-            "superuser_password",
+            "bootstrap_superuser_password",
             "data_encryption_key",
             "cache_signing_secret",
         ):
@@ -323,7 +323,7 @@ class TestCoreSettingsCors:
         assert settings.database_migration_password.get_secret_value() == "migration-secret"
         assert settings.database_backup_password.get_secret_value() == "backup-secret"
         assert settings.redis_password.get_secret_value() == "redis-secret"
-        assert settings.superuser_password.get_secret_value() == "superuser-secret"
+        assert settings.bootstrap_superuser_password.get_secret_value() == "superuser-secret"
         assert settings.data_encryption_key.get_secret_value() == TEST_DATA_ENCRYPTION_KEY
         assert settings.cache_signing_secret.get_secret_value() == TEST_CACHE_SIGNING_SECRET
 
@@ -419,11 +419,11 @@ class TestModuleSettingsValidation:
     ) -> None:
         """Auth settings should load secret material from secrets_dir."""
         valid_secret = "x" * 32
-        (tmp_path / "fastapi_users_secret").write_text(valid_secret, encoding="utf-8")
+        (tmp_path / "auth_token_secret").write_text(valid_secret, encoding="utf-8")
         (tmp_path / "oauth_state_secret").write_text(valid_secret, encoding="utf-8")
         (tmp_path / "google_oauth_client_secret").write_text("google-secret", encoding="utf-8")
         (tmp_path / "github_oauth_client_secret").write_text("github-secret", encoding="utf-8")
-        (tmp_path / "email_password").write_text("email-secret", encoding="utf-8")
+        (tmp_path / "smtp_password").write_text("email-secret", encoding="utf-8")
         settings_config: Any = {**AuthSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
         monkeypatch.setattr(AuthSettings, "model_config", settings_config)
 
@@ -431,31 +431,31 @@ class TestModuleSettingsValidation:
             environment=Environment.PROD,
             google_oauth_client_id=SecretStr("google-client-id"),
             github_oauth_client_id=SecretStr("github-client-id"),
-            email_host="smtp.example.com",
-            email_username="sender@example.com",
+            smtp_host="smtp.example.com",
+            smtp_username="sender@example.com",
             email_from="RELab <sender@example.com>",
             email_reply_to="relab@example.com",
         )
 
-        assert settings.fastapi_users_secret.get_secret_value() == valid_secret
+        assert settings.auth_token_secret.get_secret_value() == valid_secret
         assert settings.oauth_state_secret.get_secret_value() == valid_secret
         assert settings.google_oauth_client_secret.get_secret_value() == "google-secret"
         assert settings.github_oauth_client_secret.get_secret_value() == "github-secret"
-        assert settings.email_password.get_secret_value() == "email-secret"
+        assert settings.smtp_password.get_secret_value() == "email-secret"
 
     def test_auth_settings_require_secrets_in_production(self) -> None:
         """Auth settings should reject blank prod/staging secrets and email config."""
         with pytest.raises(ValidationError, match="Auth settings validation failed"):
             AuthSettings(
                 environment=Environment.PROD,
-                fastapi_users_secret=SecretStr("x" * 32),
+                auth_token_secret=SecretStr("x" * 32),
                 google_oauth_client_id=SecretStr(""),
                 google_oauth_client_secret=SecretStr(""),
                 github_oauth_client_id=SecretStr(""),
                 github_oauth_client_secret=SecretStr(""),
-                email_host="",
-                email_username="",
-                email_password=SecretStr(""),
+                smtp_host="",
+                smtp_username="",
+                smtp_password=SecretStr(""),
                 email_from="",
                 email_reply_to="",
             )

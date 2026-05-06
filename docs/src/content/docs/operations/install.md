@@ -105,11 +105,11 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
    The root `.env` holds host-local values that Compose must interpolate. It can contain two types of values:
 
    - **Non-secret** values, such as OAuth client IDs, email sender metadata, the initial superuser email/name, backup retention, and optional telemetry endpoints.
-   - **Secret** values only when a host helper or Compose interpolation requires them, such as `TUNNEL_TOKEN` or optional authenticated telemetry URLs/headers.
+   - **Secret** values only when a host helper or Compose interpolation requires them, such as `CLOUDFLARE_TUNNEL_TOKEN` or optional authenticated telemetry URLs/headers.
 
-   For prod or staging, fill the required non-secret backend deploy inputs in `.env`: `GOOGLE_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_ID`, `EMAIL_PROVIDER`, email sender fields, and `SUPERUSER_EMAIL`. Use the prod or staging Cloudflare tunnel token for `TUNNEL_TOKEN`. Compose requires the shared email identity values; backend startup validation enforces provider-specific settings. With `EMAIL_PROVIDER=smtp`, fill `EMAIL_HOST`, `EMAIL_USERNAME`, and `secrets/<env>/email_password`. With `EMAIL_PROVIDER=microsoft_graph`, fill the Microsoft Graph tenant/client/sender values and `secrets/<env>/microsoft_graph_client_secret`.
+   For prod or staging, fill the required non-secret backend deploy inputs in `.env`: `GOOGLE_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_ID`, `EMAIL_PROVIDER`, email sender fields, and `BOOTSTRAP_SUPERUSER_EMAIL`. Use the prod or staging Cloudflare tunnel token for `CLOUDFLARE_TUNNEL_TOKEN`. Compose requires the shared email identity values; backend startup validation enforces provider-specific settings. With `EMAIL_PROVIDER=smtp`, fill `SMTP_HOST`, `SMTP_USERNAME`, and `secrets/<env>/smtp_password`. With `EMAIL_PROVIDER=microsoft_graph`, fill the Microsoft Graph tenant/client/sender values and `secrets/<env>/microsoft_graph_client_secret`.
 
-   Environment identity, public origins, and worker counts live in `deploy/env/prod.compose.env` and `deploy/env/staging.compose.env`. Each deploy env file defines the environment plus the four public service URLs once: `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `WEB_PUBLIC_URL`, and `DOCS_PUBLIC_URL`.
+   Environment identity, public origins, and worker counts live in `deploy/env/prod.compose.env` and `deploy/env/staging.compose.env`. Each deploy env file defines the environment plus the four public service URLs once: `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL`, and `DOCS_PUBLIC_URL`.
 
 1. Review the non-secret deploy settings for this host.
 
@@ -224,7 +224,7 @@ If you run a central monitoring stack (Grafana + Loki + Tempo + Prometheus), pro
    docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
    ```
 
-1. Set `LOKI_URL` (and optionally `OTEL_EXPORTER_OTLP_ENDPOINT`) in the host's root `.env`. The `prod-up` / `staging-up` recipes auto-include `compose.logging.loki.yaml` when `LOKI_URL` is non-empty. Hosts without the variable keep Docker's default `json-file` driver.
+1. Set `LOKI_PUSH_URL` (and optionally `OTEL_EXPORTER_OTLP_ENDPOINT`) in the host's root `.env`. The `prod-up` / `staging-up` recipes auto-include `compose.logging.loki.yaml` when `LOKI_PUSH_URL` is non-empty. Hosts without the variable keep Docker's default `json-file` driver.
 
 See [Deployment and operations](/operations/deployment/#telemetry) for the full flow.
 

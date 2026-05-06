@@ -10,17 +10,17 @@
 #   1. Install the driver plugin once per host:
 #        docker plugin install grafana/loki-docker-driver:latest \
 #          --alias loki --grant-all-permissions
-#   2. Set LOKI_URL in the host's root `.env`, e.g.:
-#        LOKI_URL=https://logs.cml-relab.org/loki/api/v1/push
+#   2. Set LOKI_PUSH_URL in the host's root `.env`, e.g.:
+#        LOKI_PUSH_URL=https://logs.cml-relab.org/loki/api/v1/push
 #
-# The root deploy recipes auto-include this overlay when a non-empty LOKI_URL is
+# The root deploy recipes auto-include this overlay when a non-empty LOKI_PUSH_URL is
 # present in `.env`.
 
 # --- Reusable fragment -------------------------------------------------------
 x-loki-logging: &loki-logging
   driver: loki
   options:
-    loki-url: ${LOKI_URL:?set LOKI_URL in .env to use the Loki logging overlay}
+    loki-url: ${LOKI_PUSH_URL:?set LOKI_PUSH_URL in .env to use the Loki logging overlay}
     loki-retries: "5"
     loki-batch-size: "400"
     mode: non-blocking

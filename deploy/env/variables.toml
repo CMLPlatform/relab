@@ -9,7 +9,7 @@ committed_deploy = [
   "ENVIRONMENT",
   "API_PUBLIC_URL",
   "APP_PUBLIC_URL",
-  "WEB_PUBLIC_URL",
+  "SITE_PUBLIC_URL",
   "DOCS_PUBLIC_URL",
   "OAUTH_ALLOWED_REDIRECT_URIS",
   "WEB_CONCURRENCY",
@@ -17,24 +17,24 @@ committed_deploy = [
 
 root_operator_inputs = [
   "COMPOSE_BAKE",
-  "TUNNEL_TOKEN",
+  "CLOUDFLARE_TUNNEL_TOKEN",
   "GOOGLE_OAUTH_CLIENT_ID",
   "GITHUB_OAUTH_CLIENT_ID",
   "EMAIL_PROVIDER",
   "EMAIL_FROM",
   "EMAIL_REPLY_TO",
-  "EMAIL_HOST",
-  "EMAIL_USERNAME",
+  "SMTP_HOST",
+  "SMTP_USERNAME",
   "MICROSOFT_GRAPH_TENANT_ID",
   "MICROSOFT_GRAPH_CLIENT_ID",
   "MICROSOFT_GRAPH_SENDER_USER",
   "MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS",
-  "SUPERUSER_EMAIL",
-  "SUPERUSER_NAME",
-  "LOKI_URL",
+  "BOOTSTRAP_SUPERUSER_EMAIL",
+  "BOOTSTRAP_SUPERUSER_NAME",
+  "LOKI_PUSH_URL",
   "OTEL_EXPORTER_OTLP_ENDPOINT",
   "OTEL_EXPORTER_OTLP_HEADERS",
-  "BACKUP_DIR",
+  "BACKUP_HOST_DIR",
   "BACKUP_INTERVAL_SECONDS",
   "RESTIC_KEEP_HOURLY",
   "RESTIC_KEEP_DAILY",
@@ -55,8 +55,8 @@ backend_dev_fixtures = [
   "GITHUB_OAUTH_CLIENT_ID",
   "OAUTH_ALLOWED_REDIRECT_URIS",
   "EMAIL_PROVIDER",
-  "EMAIL_HOST",
-  "EMAIL_USERNAME",
+  "SMTP_HOST",
+  "SMTP_USERNAME",
   "EMAIL_FROM",
   "EMAIL_REPLY_TO",
   "MICROSOFT_GRAPH_TENANT_ID",
@@ -64,11 +64,11 @@ backend_dev_fixtures = [
   "MICROSOFT_GRAPH_SENDER_USER",
   "MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS",
   "REDIS_HOST",
-  "SUPERUSER_EMAIL",
-  "SUPERUSER_NAME",
+  "BOOTSTRAP_SUPERUSER_EMAIL",
+  "BOOTSTRAP_SUPERUSER_NAME",
   "BACKEND_API_URL",
   "FRONTEND_APP_URL",
-  "FRONTEND_WEB_URL",
+  "SITE_PUBLIC_URL",
   "CORS_ORIGIN_REGEX",
 ]
 
@@ -79,25 +79,25 @@ runtime_secret_files = [
   "database_backup_password",
   "redis_password",
   "restic_password",
-  "fastapi_users_secret",
+  "auth_token_secret",
   "oauth_state_secret",
   "cache_signing_secret",
   "data_encryption_key",
   "google_oauth_client_secret",
   "github_oauth_client_secret",
-  "email_password",
+  "smtp_password",
   "microsoft_graph_client_secret",
-  "superuser_password",
+  "bootstrap_superuser_password",
 ]
 
 required_compose_values = [
-  "TUNNEL_TOKEN",
+  "CLOUDFLARE_TUNNEL_TOKEN",
   "GOOGLE_OAUTH_CLIENT_ID",
   "GITHUB_OAUTH_CLIENT_ID",
   "EMAIL_PROVIDER",
   "EMAIL_FROM",
   "EMAIL_REPLY_TO",
-  "SUPERUSER_EMAIL",
+  "BOOTSTRAP_SUPERUSER_EMAIL",
 ]
 
 infisical_path_template = "/relab/{env}/{name}"
@@ -109,12 +109,12 @@ database_migration_password = "DATABASE_MIGRATION_PASSWORD"
 database_backup_password = "DATABASE_BACKUP_PASSWORD"
 redis_password = "REDIS_PASSWORD"
 restic_password = "RESTIC_PASSWORD"
-fastapi_users_secret = "FASTAPI_USERS_SECRET"
+auth_token_secret = "AUTH_TOKEN_SECRET"
 oauth_state_secret = "OAUTH_STATE_SECRET"
 cache_signing_secret = "CACHE_SIGNING_SECRET"
 data_encryption_key = "DATA_ENCRYPTION_KEY"
 google_oauth_client_secret = "GOOGLE_OAUTH_CLIENT_SECRET"
 github_oauth_client_secret = "GITHUB_OAUTH_CLIENT_SECRET"
-email_password = "EMAIL_PASSWORD"
+smtp_password = "SMTP_PASSWORD"
 microsoft_graph_client_secret = "MICROSOFT_GRAPH_CLIENT_SECRET"
-superuser_password = "SUPERUSER_PASSWORD"
+bootstrap_superuser_password = "BOOTSTRAP_SUPERUSER_PASSWORD"

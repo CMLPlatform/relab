@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 type ExpoPlugin = string | [string, Record<string, unknown>];
 const HTTPS_API_URL_PATTERN = /^API_PUBLIC_URL='?https:\/\//m;
-const HTTPS_WEBSITE_URL_PATTERN = /^WEB_PUBLIC_URL='?https:\/\//m;
+const HTTPS_WEBSITE_URL_PATTERN = /^SITE_PUBLIC_URL='?https:\/\//m;
 const HTTPS_DOCS_URL_PATTERN = /^DOCS_PUBLIC_URL='?https:\/\//m;
 
 const appConfig = JSON.parse(readFileSync(resolve(__dirname, '../../app.json'), 'utf8')) as {

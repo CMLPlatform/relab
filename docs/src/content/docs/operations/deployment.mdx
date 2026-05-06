@@ -41,7 +41,7 @@ graph TD
     Backend -->|container logs via Docker driver| Loki
 ```
 
-Backup services are enabled through Compose profiles. Telemetry is opt-in through host-level environment variables: `LOKI_URL` enables the optional Loki logging overlay, and `OTEL_EXPORTER_OTLP_ENDPOINT` enables backend OTLP export.
+Backup services are enabled through Compose profiles. Telemetry is opt-in through host-level environment variables: `LOKI_PUSH_URL` enables the optional Loki logging overlay, and `OTEL_EXPORTER_OTLP_ENDPOINT` enables backend OTLP export.
 
 ## Supported delivery path
 
@@ -152,12 +152,12 @@ The backend enforces source-controlled application limits: JSON bodies are count
 
 - PostgreSQL stores the primary application state.
 - Uploaded files and images are stored on disk and served by the backend.
-- Database dumps and user-uploaded files are backed up into an encrypted local restic repository under `BACKUP_DIR`.
+- Database dumps and user-uploaded files are backed up into an encrypted local restic repository under `BACKUP_HOST_DIR`.
 - Optional offsite copies use `restic copy`; WebDAV is supported through restic's rclone backend. Export `RESTIC_OFFSITE_REPOSITORY=rclone:<remote>:relab/<env>/restic` before running the manual offsite-copy helper.
 - Alembic migrations move schema state forward in a controlled way.
 - `just backup-restore-smoke staging` or `just backup-restore-smoke prod` restores the latest database dump into a disposable Postgres container and verifies that it can be read.
 
-The deploy stack runs app-owned services with dropped Linux capabilities, `no-new-privileges`, PID/file descriptor limits, and read-only root filesystems where supported. The backup container runs as UID/GID `1001`; make sure the host restic directory under `BACKUP_DIR` is writable by that ID.
+The deploy stack runs app-owned services with dropped Linux capabilities, `no-new-privileges`, PID/file descriptor limits, and read-only root filesystems where supported. The backup container runs as UID/GID `1001`; make sure the host restic directory under `BACKUP_HOST_DIR` is writable by that ID.
 CI checks Dockerfile misconfigurations with Trivy and validates Cloudflare edge IaC with `just cloudflare-check`.
 Root deployment validation renders the supported Compose overlays with `just compose-config` and checks rendered secret file paths with `just deploy-secrets-check`.
 
@@ -183,7 +183,7 @@ In the current single-host deployment, PostgreSQL and Redis are isolated on the 
 
 ### Rotation and break-glass
 
-For ordinary app secret rotation, replace the file under `secrets/<env>/`, restart the affected service, and verify `/live` and `/health`. For `FASTAPI_USERS_SECRET`, expect existing login/reset/verification tokens to become invalid. For OAuth or email provider secrets, rotate the upstream credential first, update the matching file, then restart `api`.
+For ordinary app secret rotation, replace the file under `secrets/<env>/`, restart the affected service, and verify `/live` and `/health`. For `AUTH_TOKEN_SECRET`, expect existing login/reset/verification tokens to become invalid. For OAuth or email provider secrets, rotate the upstream credential first, update the matching file, then restart `api`.
 
 Database role password rotation has two steps: change the PostgreSQL role password, then update the matching file under `secrets/<env>/` and restart the affected service (`api`, `migrator`, or `backup`). Redis rotation requires restarting both `redis` and consumers such as `api`.
 
@@ -216,7 +216,7 @@ The current exception is product video embedding from `https://www.youtube-nocoo
 
 Prod and staging can ship logs, traces, and metrics to a central monitoring stack outside this repo. Dev and CI do not ship telemetry.
 
-- `LOKI_URL` in the host root `.env` enables the optional Loki Docker log-driver overlay.
+- `LOKI_PUSH_URL` in the host root `.env` enables the optional Loki Docker log-driver overlay.
 - `OTEL_EXPORTER_OTLP_ENDPOINT` enables backend OTLP traces and metrics.
 - `OTEL_EXPORTER_OTLP_HEADERS` can pass collector auth headers through to the backend container.
 

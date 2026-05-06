@@ -37,7 +37,7 @@ dev:
     source ../deploy/env/dev.compose.env
     export PUBLIC_APP_URL="$APP_PUBLIC_URL"
     export PUBLIC_DOCS_URL="$DOCS_PUBLIC_URL"
-    export PUBLIC_SITE_URL="$WEB_PUBLIC_URL"
+    export PUBLIC_SITE_URL="$SITE_PUBLIC_URL"
     pnpm run dev
 
 # Auto-format code with Biome
@@ -59,7 +59,7 @@ build:
     source ../deploy/env/prod.compose.env
     export PUBLIC_APP_URL="$APP_PUBLIC_URL"
     export PUBLIC_DOCS_URL="$DOCS_PUBLIC_URL"
-    export PUBLIC_SITE_URL="$WEB_PUBLIC_URL"
+    export PUBLIC_SITE_URL="$SITE_PUBLIC_URL"
     pnpm run build
 
 # Run unit tests
