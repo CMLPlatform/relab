@@ -13,6 +13,9 @@ from ._oauth_support import make_auth_builder, make_base_builder
 
 pytestmark = pytest.mark.api
 
+ALLOWED_NATIVE_REDIRECT_URI = "relab-app://login"
+ALLOWED_WEB_REDIRECT_URI = "https://app.example.com/auth/callback"
+
 
 class TestOAuthRedirectValidation:
     """Cover redirect-uri validation and redirect rewriting."""
@@ -22,15 +25,9 @@ class TestOAuthRedirectValidation:
         builder = make_auth_builder()
 
         monkeypatch.setattr(
-            "app.api.auth.services.oauth.base.core_settings.allowed_origins",
-            ["https://app.example.com"],
+            "app.api.auth.services.oauth.base.settings.oauth_allowed_redirect_uris",
+            [ALLOWED_WEB_REDIRECT_URI],
         )
-        monkeypatch.setattr("app.api.auth.services.oauth.base.core_settings.cors_origin_regex", None)
-        monkeypatch.setattr(
-            "app.api.auth.services.oauth.base.settings.oauth_allowed_redirect_paths",
-            ["/auth/callback"],
-        )
-        monkeypatch.setattr("app.api.auth.services.oauth.base.settings.oauth_allowed_native_redirect_uris", [])
 
         mock_request = MagicMock()
         mock_request.query_params = {"redirect_uri": "https://evil.example.org/auth/callback"}
@@ -42,91 +39,67 @@ class TestOAuthRedirectValidation:
         assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
         assert exc_info.value.detail == "Invalid redirect_uri"
 
-    async def test_authorize_accepts_trusted_redirect_uri(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Accepts a trusted HTTPS redirect URI."""
+    async def test_authorize_accepts_exact_allowlisted_web_redirect_uri(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Accepts an exact allowlisted HTTPS redirect URI."""
         builder = make_auth_builder()
 
         monkeypatch.setattr(
-            "app.api.auth.services.oauth.base.core_settings.allowed_origins",
-            ["https://app.example.com"],
+            "app.api.auth.services.oauth.base.settings.oauth_allowed_redirect_uris",
+            [ALLOWED_WEB_REDIRECT_URI],
         )
-        monkeypatch.setattr("app.api.auth.services.oauth.base.core_settings.cors_origin_regex", None)
-        monkeypatch.setattr(
-            "app.api.auth.services.oauth.base.settings.oauth_allowed_redirect_paths",
-            ["/auth/callback"],
-        )
-        monkeypatch.setattr("app.api.auth.services.oauth.base.settings.oauth_allowed_native_redirect_uris", [])
 
         mock_request = MagicMock()
-        mock_request.query_params = {"redirect_uri": "https://app.example.com/auth/callback"}
+        mock_request.query_params = {"redirect_uri": ALLOWED_WEB_REDIRECT_URI}
         mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
         result = await builder._get_authorize_handler(mock_request, Response())
         assert result.authorization_url == "https://github.com/login/oauth/authorize"
 
-    async def test_authorize_accepts_dev_regex_redirect_uri(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Accepts a development redirect URI matched by the regex."""
-        builder = make_auth_builder()
-
-        monkeypatch.setattr("app.api.auth.services.oauth.base.core_settings.allowed_origins", [])
-        monkeypatch.setattr(
-            "app.api.auth.services.oauth.base.core_settings.cors_origin_regex",
-            r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?",
-        )
-        monkeypatch.setattr(
-            "app.api.auth.services.oauth.base.settings.oauth_allowed_redirect_paths",
-            ["/auth/callback"],
-        )
-        monkeypatch.setattr("app.api.auth.services.oauth.base.settings.oauth_allowed_native_redirect_uris", [])
-
-        mock_request = MagicMock()
-        mock_request.query_params = {"redirect_uri": "http://192.168.1.50:3000/auth/callback"}
-        mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
-
-        result = await builder._get_authorize_handler(mock_request, Response())
-        assert result.authorization_url == "https://github.com/login/oauth/authorize"
-
-    async def test_authorize_accepts_allowlisted_native_redirect_uri(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Accepts an explicitly allowlisted native redirect URI."""
-        builder = make_auth_builder()
-
-        monkeypatch.setattr("app.api.auth.services.oauth.base.core_settings.allowed_origins", [])
-        monkeypatch.setattr("app.api.auth.services.oauth.base.core_settings.cors_origin_regex", None)
-        monkeypatch.setattr("app.api.auth.services.oauth.base.settings.oauth_allowed_redirect_paths", [])
-        monkeypatch.setattr(
-            "app.api.auth.services.oauth.base.settings.oauth_allowed_native_redirect_uris",
-            ["relab://oauth-callback"],
-        )
-
-        mock_request = MagicMock()
-        mock_request.query_params = {"redirect_uri": "relab://oauth-callback"}
-        mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
-
-        result = await builder._get_authorize_handler(mock_request, Response())
-        assert result.authorization_url == "https://github.com/login/oauth/authorize"
-
-    async def test_authorize_rejects_redirect_uri_with_embedded_credentials(
+    async def test_authorize_accepts_exact_allowlisted_native_redirect_uri(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Rejects redirect URIs containing embedded credentials."""
+        """Accepts an exact allowlisted native redirect URI."""
         builder = make_auth_builder()
 
         monkeypatch.setattr(
-            "app.api.auth.services.oauth.base.core_settings.allowed_origins",
-            ["https://app.example.com"],
+            "app.api.auth.services.oauth.base.settings.oauth_allowed_redirect_uris",
+            [ALLOWED_NATIVE_REDIRECT_URI],
         )
-        monkeypatch.setattr("app.api.auth.services.oauth.base.core_settings.cors_origin_regex", None)
-        monkeypatch.setattr(
-            "app.api.auth.services.oauth.base.settings.oauth_allowed_redirect_paths",
-            ["/auth/callback"],
-        )
-        monkeypatch.setattr("app.api.auth.services.oauth.base.settings.oauth_allowed_native_redirect_uris", [])
 
         mock_request = MagicMock()
-        mock_request.query_params = {"redirect_uri": "https://user:pass@app.example.com/auth/callback"}
+        mock_request.query_params = {"redirect_uri": ALLOWED_NATIVE_REDIRECT_URI}
         mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
-        with pytest.raises(HTTPException) as exc_info:
+        result = await builder._get_authorize_handler(mock_request, Response())
+        assert result.authorization_url == "https://github.com/login/oauth/authorize"
+
+    @pytest.mark.parametrize(
+        "redirect_uri",
+        [
+            "https://app.example.com/profile",
+            "http://app.example.com/auth/callback",
+            "https://app.example.com/auth/callback?next=/profile",
+            "https://app.example.com/auth/callback#token",
+            "https://user:pass@app.example.com/auth/callback",
+        ],
+        ids=["unconfigured-path", "unconfigured-scheme", "query-string", "fragment", "embedded-credentials"],
+    )
+    async def test_authorize_rejects_non_exact_or_unsafe_redirect_uri(
+        self, redirect_uri: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Rejects redirect URIs that are not exact safe allowlist matches."""
+        builder = make_auth_builder()
+
+        monkeypatch.setattr(
+            "app.api.auth.services.oauth.base.settings.oauth_allowed_redirect_uris",
+            [ALLOWED_WEB_REDIRECT_URI],
+        )
+
+        mock_request = MagicMock()
+        mock_request.query_params = {"redirect_uri": redirect_uri}
+        mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
+
+        with pytest.raises(HTTPException, match="Invalid redirect_uri") as exc_info:
             await builder._get_authorize_handler(mock_request, Response())
 
         assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
