@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, Request
 
+from app.core.http_headers import REQUEST_ID_HEADER
 from app.core.logging import log_context
 
 if TYPE_CHECKING:
@@ -17,7 +18,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-REQUEST_ID_HEADER = "X-Request-ID"
 _MAX_REQUEST_ID_LENGTH = 255
 
 

@@ -6,11 +6,14 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, Response
 
+from app.core.http_headers import SENSITIVE_CACHE_CONTROL
+
 if TYPE_CHECKING:
     from starlette.middleware.base import RequestResponseEndpoint
 
-NO_STORE = "no-store"
 CACHE_CONTROL_HEADER = "cache-control"
+PRAGMA_HEADER = "pragma"
+EXPIRES_HEADER = "expires"
 PROBLEM_CONTENT_TYPE = "application/problem+json"
 AUTH_COOKIE_NAMES = frozenset({"auth", "refresh_token"})
 SENSITIVE_PATH_PREFIXES = (
@@ -25,18 +28,7 @@ SENSITIVE_PATH_PREFIXES = (
 
 HSTS_HEADER_VALUE = "max-age=63072000; includeSubDomains"
 REFERRER_POLICY_HEADER_VALUE = "strict-origin-when-cross-origin"
-CONTENT_SECURITY_POLICY_HEADER_VALUE = (
-    "default-src 'self'; "
-    "script-src 'self'; "
-    "style-src 'self'; "
-    "img-src 'self' data:; "
-    "font-src 'self'; "
-    "connect-src 'self'; "
-    "frame-ancestors 'none'; "
-    "object-src 'none'; "
-    "base-uri 'self'; "
-    "form-action 'self'"
-)
+CONTENT_SECURITY_POLICY_HEADER_VALUE = "frame-ancestors 'none'"
 X_XSS_PROTECTION_HEADER_VALUE = "0"
 BASE_SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
@@ -73,6 +65,13 @@ def _should_set_no_store(request: Request, response: Response) -> bool:
     return _has_auth_material(request) or _is_sensitive_path(request.url.path) or _is_problem_details(response)
 
 
+def _set_sensitive_cache_headers(response: Response) -> None:
+    """Set legacy-compatible no-cache headers for sensitive responses."""
+    response.headers.setdefault("Cache-Control", SENSITIVE_CACHE_CONTROL)
+    response.headers.setdefault("Pragma", "no-cache")
+    response.headers.setdefault("Expires", "0")
+
+
 def register_response_policy_middleware(app: FastAPI, *, enable_hsts: bool) -> None:
     """Register response-only cache and browser security policy."""
 
@@ -80,7 +79,7 @@ def register_response_policy_middleware(app: FastAPI, *, enable_hsts: bool) -> N
     async def response_policy_middleware(request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
         if _should_set_no_store(request, response) and CACHE_CONTROL_HEADER not in response.headers:
-            response.headers["Cache-Control"] = NO_STORE
+            _set_sensitive_cache_headers(response)
         for name, value in BASE_SECURITY_HEADERS.items():
             response.headers.setdefault(name, value)
         if enable_hsts:
