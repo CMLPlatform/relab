@@ -1,4 +1,0 @@
-# Optional direnv setup for backend maintenance scripts.
-# spell-checker: ignore direnv envrc
-# Copy to `.envrc`, then run `direnv allow` from `backend/`.
-dotenv_if_exists .env.dev
