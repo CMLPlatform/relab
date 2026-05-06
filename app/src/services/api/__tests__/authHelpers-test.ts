@@ -10,12 +10,12 @@ import {
 describe('authHelpers', () => {
   it('returns the correct login path for web and native', () => {
     expect(getAuthLoginPath(true)).toBe('/auth/session/login');
-    expect(getAuthLoginPath(false)).toBe('/auth/login');
+    expect(getAuthLoginPath(false)).toBe('/auth/bearer/login');
   });
 
   it('returns the correct refresh path for web and native', () => {
     expect(getAuthRefreshPath(true)).toBe('/auth/session/refresh');
-    expect(getAuthRefreshPath(false)).toBe('/auth/refresh');
+    expect(getAuthRefreshPath(false)).toBe('/auth/bearer/refresh');
   });
 
   it('decides when user fetches should be skipped', () => {

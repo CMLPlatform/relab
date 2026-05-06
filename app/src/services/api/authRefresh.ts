@@ -3,10 +3,13 @@ import { getAuthRefreshPath } from './authHelpers';
 import { authRuntime } from './authRuntime';
 import {
   clearStoredAccessToken,
+  clearStoredRefreshToken,
   hasWebSessionFlag,
   isWeb,
   loadStoredAccessToken,
+  loadStoredRefreshToken,
   persistStoredAccessToken,
+  persistStoredRefreshToken,
   setWebSessionFlag,
 } from './authSession';
 import { createRequestId, fetchWithTimeout } from './request';
@@ -17,6 +20,11 @@ export async function persistAccessToken(nextToken: string): Promise<void> {
   await persistStoredAccessToken(nextToken);
 }
 
+export async function persistRefreshToken(nextToken: string): Promise<void> {
+  authRuntime.explicitlyLoggedOut = false;
+  await persistStoredRefreshToken(nextToken);
+}
+
 export async function clearCachedAuthState(): Promise<void> {
   authRuntime.token = undefined;
   authRuntime.user = undefined;
@@ -24,6 +32,7 @@ export async function clearCachedAuthState(): Promise<void> {
   authRuntime.authGeneration++;
   authRuntime.explicitlyLoggedOut = true;
   await clearStoredAccessToken();
+  await clearStoredRefreshToken();
   setWebSessionFlag(false);
 }
 
@@ -45,16 +54,23 @@ export async function getToken(): Promise<string | undefined> {
 
 export async function refreshAuthToken(apiUrl: string): Promise<boolean> {
   if (authRuntime.refreshPromise) return authRuntime.refreshPromise;
-  if (isWeb() && !hasWebSessionFlag()) return false;
+  const web = isWeb();
+  if (web && !hasWebSessionFlag()) return false;
 
-  const authPath = getAuthRefreshPath(isWeb());
+  const authPath = getAuthRefreshPath(web);
   const url = new URL(apiUrl + authPath);
 
   authRuntime.refreshPromise = (async () => {
     try {
+      const refreshToken = web ? undefined : await loadStoredRefreshToken();
+      if (!web && !refreshToken) return false;
+
       const response = await fetchWithTimeout(url, {
         method: 'POST',
-        headers: { Accept: 'application/json' },
+        headers: web
+          ? { Accept: 'application/json' }
+          : { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: refreshToken ? JSON.stringify({ refresh_token: refreshToken }) : undefined,
         credentials: 'include',
       });
 
@@ -64,7 +80,7 @@ export async function refreshAuthToken(apiUrl: string): Promise<boolean> {
         return false;
       }
 
-      if (isWeb()) {
+      if (web) {
         setWebSessionFlag(true);
         authRuntime.explicitlyLoggedOut = false;
         return true;
@@ -73,6 +89,9 @@ export async function refreshAuthToken(apiUrl: string): Promise<boolean> {
       const data = await response.json().catch(() => null);
       if (typeof data?.access_token === 'string') {
         await persistAccessToken(data.access_token);
+        if (typeof data.refresh_token === 'string') {
+          await persistRefreshToken(data.refresh_token);
+        }
         return true;
       }
 
