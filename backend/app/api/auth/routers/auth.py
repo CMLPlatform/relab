@@ -4,13 +4,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.routing import APIRoute
-from fastapi_users.router.common import ErrorModel
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_users.authentication import Strategy
+from fastapi_users.router.common import ErrorCode, ErrorModel
 from pydantic import EmailStr  # Needed for Fastapi dependency injection
 
+from app.api.auth.config import settings as auth_settings
 from app.api.auth.routers import password_reset, refresh, register
-from app.api.auth.schemas import UserRead
+from app.api.auth.schemas import RefreshTokenResponse, UserRead
+from app.api.auth.services import refresh_token_service
 from app.api.auth.services.email_checker import EmailChecker, get_email_checker_dependency
 from app.api.auth.services.rate_limiter import (
     LOGIN_RATE_LIMIT,
@@ -18,11 +22,13 @@ from app.api.auth.services.rate_limiter import (
     limiter,
 )
 from app.api.auth.services.user_manager import (
+    UserManager,
     bearer_auth_backend,
     cookie_auth_backend,
     fastapi_user_manager,
 )
 from app.api.common.routers.openapi import mark_router_routes_public
+from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
     from typing import Any
@@ -47,24 +53,53 @@ def _rate_limit_route(router_to_search: APIRouter, path: str, rate_limit: str) -
     route.endpoint = limiter.limit(rate_limit)(route.endpoint)
 
 
-# Use FastAPI-Users' built-in auth routers with rate limiting on login
-bearer_router = fastapi_user_manager.get_auth_router(bearer_auth_backend)
+# Use FastAPI-Users' built-in cookie auth router for browser sessions.
 cookie_router = fastapi_user_manager.get_auth_router(cookie_auth_backend)
 
-# Apply rate limiting to login routes
-_rate_limit_route(bearer_router, LOGIN_PATH, LOGIN_RATE_LIMIT)
 _rate_limit_route(cookie_router, LOGIN_PATH, LOGIN_RATE_LIMIT)
 
+
+@router.post(
+    "/bearer/login",
+    name="auth:bearer.login",
+    tags=["auth"],
+    response_model=RefreshTokenResponse,
+    responses=AUTH_ERROR_RESPONSES,
+    summary="Login with email and password for bearer-token clients",
+)
+@limiter.limit(LOGIN_RATE_LIMIT)
+async def bearer_login(
+    request: Request,
+    credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
+    user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
+    strategy: Annotated[Strategy, Depends(bearer_auth_backend.get_strategy)],
+    redis: OptionalRedisDep,
+) -> RefreshTokenResponse:
+    """Authenticate a bearer client and return access and refresh tokens in JSON."""
+    user = await user_manager.authenticate(credentials)
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ErrorCode.LOGIN_BAD_CREDENTIALS)
+
+    access_token = await strategy.write_token(user)
+    await user_manager.on_after_login(user, request, None)
+    refresh_token_value = await refresh_token_service.create_refresh_token(redis, user.id)
+    return RefreshTokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token_value,
+        token_type="bearer",  # noqa: S106 # This value is not a secret.
+        expires_in=auth_settings.access_token_ttl_seconds,
+    )
+
+
 router.add_api_route(
-    LOGIN_PATH,
-    _find_route(bearer_router, LOGIN_PATH).endpoint,
+    "/session/login",
+    _find_route(cookie_router, LOGIN_PATH).endpoint,
     methods=["POST"],
-    name="auth:login",
+    name="auth:session.login",
     tags=["auth"],
     responses=AUTH_ERROR_RESPONSES,
-    summary="Login with email and password",
+    summary="Login with email and password for browser sessions",
 )
-router.include_router(cookie_router, prefix="/session", tags=["auth"])
 
 # Custom registration route
 router.include_router(register.router, tags=["auth"])
