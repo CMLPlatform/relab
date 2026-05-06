@@ -8,27 +8,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONVERT = "convert"
-
-
-@dataclass(frozen=True)
-class CopyAsset:
-    """A byte-for-byte asset copy."""
-
-    source: Path
-    targets: tuple[Path, ...]
-
-
-@dataclass(frozen=True)
-class GeneratedAsset:
-    """An asset generated through ImageMagick."""
-
-    target: Path
-    args: tuple[str, ...]
+LOGO_SOURCE = ROOT / "assets/brand/logo.svg"
 
 
 def root_path(path: str) -> Path:
@@ -41,44 +25,35 @@ WEB_FONT_FILES = (
     "ibm-plex-sans-latin.woff2",
     "ibm-plex-sans-italic-latin-ext.woff2",
     "ibm-plex-sans-italic-latin.woff2",
-    "literata-latin-ext.woff2",
-    "literata-latin.woff2",
-)
-APP_FONT_FILES = (
-    "IBMPlexSans-Regular.ttf",
-    "IBMPlexSans-Medium.ttf",
-    "IBMPlexSans-SemiBold.ttf",
-    "IBMPlexSans-Bold.ttf",
-    "IBMPlexSans-Italic.ttf",
 )
 
 COPY_ASSETS = (
-    CopyAsset(
-        source=root_path("assets/brand/brand.css"),
-        targets=(
+    (
+        root_path("assets/brand/brand.css"),
+        (
             root_path("docs/src/styles/brand.css"),
             root_path("www/src/styles/brand.css"),
         ),
     ),
-    CopyAsset(
-        source=root_path("assets/brand/images/bg-light.jpg"),
-        targets=(
+    (
+        root_path("assets/brand/images/bg-light.jpg"),
+        (
             root_path("app/src/assets/images/bg-light.jpg"),
             root_path("docs/public/images/bg-light.jpg"),
             root_path("www/public/images/bg-light.jpg"),
         ),
     ),
-    CopyAsset(
-        source=root_path("assets/brand/images/bg-dark.jpg"),
-        targets=(
+    (
+        root_path("assets/brand/images/bg-dark.jpg"),
+        (
             root_path("app/src/assets/images/bg-dark.jpg"),
             root_path("docs/public/images/bg-dark.jpg"),
             root_path("www/public/images/bg-dark.jpg"),
         ),
     ),
-    CopyAsset(
-        source=root_path("assets/brand/logo.svg"),
-        targets=(
+    (
+        LOGO_SOURCE,
+        (
             root_path("docs/public/images/logo.svg"),
             root_path("docs/public/images/favicon.svg"),
             root_path("www/public/images/logo.svg"),
@@ -86,21 +61,14 @@ COPY_ASSETS = (
         ),
     ),
     *(
-        CopyAsset(
-            source=root_path(f"assets/brand/fonts/{font_file}"),
-            targets=(
+        (
+            root_path(f"assets/brand/fonts/{font_file}"),
+            (
                 root_path(f"docs/public/fonts/{font_file}"),
                 root_path(f"www/public/fonts/{font_file}"),
             ),
         )
         for font_file in WEB_FONT_FILES
-    ),
-    *(
-        CopyAsset(
-            source=root_path(f"assets/brand/fonts/native/{font_file}"),
-            targets=(root_path(f"app/src/assets/fonts/{font_file}"),),
-        )
-        for font_file in APP_FONT_FILES
     ),
 )
 
@@ -121,25 +89,16 @@ def png_args(size: int) -> tuple[str, ...]:
 
 
 GENERATED_ASSETS = (
-    GeneratedAsset(target=root_path("app/src/assets/images/favicon.png"), args=png_args(512)),
-    GeneratedAsset(target=root_path("docs/public/images/logo.png"), args=png_args(512)),
-    GeneratedAsset(target=root_path("www/public/images/logo.png"), args=png_args(512)),
-    GeneratedAsset(target=root_path("docs/public/images/favicon-48.png"), args=png_args(48)),
-    GeneratedAsset(target=root_path("www/public/images/favicon-48.png"), args=png_args(48)),
-    GeneratedAsset(target=root_path("docs/public/images/apple-touch-icon.png"), args=png_args(180)),
-    GeneratedAsset(target=root_path("www/public/images/apple-touch-icon.png"), args=png_args(180)),
-    GeneratedAsset(
-        target=root_path("backend/app/static/favicon.ico"),
-        args=("-define", "icon:auto-resize=48,32,16"),
-    ),
-    GeneratedAsset(
-        target=root_path("docs/public/images/favicon.ico"),
-        args=("-define", "icon:auto-resize=48,32,16"),
-    ),
-    GeneratedAsset(
-        target=root_path("www/public/images/favicon.ico"),
-        args=("-define", "icon:auto-resize=48,32,16"),
-    ),
+    (root_path("app/src/assets/images/favicon.png"), png_args(512)),
+    (root_path("docs/public/images/logo.png"), png_args(512)),
+    (root_path("www/public/images/logo.png"), png_args(512)),
+    (root_path("docs/public/images/favicon-48.png"), png_args(48)),
+    (root_path("www/public/images/favicon-48.png"), png_args(48)),
+    (root_path("docs/public/images/apple-touch-icon.png"), png_args(180)),
+    (root_path("www/public/images/apple-touch-icon.png"), png_args(180)),
+    (root_path("backend/app/static/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
+    (root_path("docs/public/images/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
+    (root_path("www/public/images/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
 )
 
 
@@ -156,16 +115,16 @@ def compare_bytes(expected: Path, actual: Path) -> bool:
         return False
 
 
-def copy_asset(asset: CopyAsset, *, check: bool) -> list[str]:
+def copy_asset(source: Path, targets: tuple[Path, ...], *, check: bool) -> list[str]:
     """Copy or verify one source file against all targets."""
     out_of_sync: list[str] = []
-    for target in asset.targets:
+    for target in targets:
         if check:
-            if not compare_bytes(asset.source, target):
+            if not compare_bytes(source, target):
                 out_of_sync.append(relative(target))
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(asset.source, target)
+        shutil.copyfile(source, target)
     return out_of_sync
 
 
@@ -186,19 +145,18 @@ def run_convert(source: Path, target: Path, args: tuple[str, ...]) -> None:
         raise RuntimeError(msg) from exc
 
 
-def generated_asset(asset: GeneratedAsset, *, check: bool) -> list[str]:
+def generated_asset(target: Path, args: tuple[str, ...], *, check: bool) -> list[str]:
     """Generate or verify one derived asset."""
-    source = root_path("assets/brand/logo.svg")
     if not check:
-        run_convert(source, asset.target, asset.args)
+        run_convert(LOGO_SOURCE, target, args)
         return []
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        generated = Path(temp_dir) / asset.target.name
-        run_convert(source, generated, asset.args)
-        if compare_bytes(generated, asset.target):
+        generated = Path(temp_dir) / target.name
+        run_convert(LOGO_SOURCE, generated, args)
+        if compare_bytes(generated, target):
             return []
-    return [relative(asset.target)]
+    return [relative(target)]
 
 
 def parse_args() -> argparse.Namespace:
@@ -214,10 +172,10 @@ def main() -> int:
     out_of_sync: list[str] = []
 
     try:
-        for asset in COPY_ASSETS:
-            out_of_sync.extend(copy_asset(asset, check=args.check))
-        for asset in GENERATED_ASSETS:
-            out_of_sync.extend(generated_asset(asset, check=args.check))
+        for source, targets in COPY_ASSETS:
+            out_of_sync.extend(copy_asset(source, targets, check=args.check))
+        for target, convert_args in GENERATED_ASSETS:
+            out_of_sync.extend(generated_asset(target, convert_args, check=args.check))
     except RuntimeError as exc:
         sys.stderr.write(f"{exc}\n")
         return 1

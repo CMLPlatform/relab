@@ -27,7 +27,7 @@ h2,
 h3,
 h4 {
   margin: 0;
-  font-family: var(--relab-brand-font-heading), var(--relab-brand-font-body), Georgia, serif;
+  font-family: var(--relab-brand-font-heading), var(--relab-brand-font-body), sans-serif;
   color: var(--color-on-surface);
   letter-spacing: -0.02em;
   line-height: 1.1;
