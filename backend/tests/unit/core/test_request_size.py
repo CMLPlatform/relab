@@ -106,9 +106,10 @@ async def test_request_size_limit_rejects_streaming_body_before_buffering_all_ch
     assert any(message["type"] == "http.response.start" and message["status"] == 413 for message in sent_messages)
 
 
-async def test_request_size_limit_skips_multipart_requests(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Multipart requests should remain governed by route-specific upload validation."""
+async def test_request_size_limit_accepts_multipart_requests_under_upload_cap(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Multipart requests under the derived upload cap should pass through."""
     monkeypatch.setattr("app.core.middleware.request_size.settings.request_body_limit_bytes", 8)
+    monkeypatch.setattr("app.core.middleware.request_size.settings.max_file_upload_size_mb", 1)
     app = _create_test_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -120,3 +121,23 @@ async def test_request_size_limit_skips_multipart_requests(monkeypatch: pytest.M
 
     assert response.status_code == 200
     assert response.json()["content_type"].startswith("multipart/form-data")
+
+
+async def test_request_size_limit_rejects_multipart_requests_over_upload_cap(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Multipart requests over the derived upload cap should be rejected before parsing."""
+    monkeypatch.setattr("app.core.middleware.request_size.settings.max_file_upload_size_mb", 1)
+    app = _create_test_app()
+    limit_bytes = (1024 * 1024) + (1024 * 1024)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/multipart",
+            content=b"x" * (limit_bytes + 1),
+            headers={
+                "content-type": "multipart/form-data; boundary=test-boundary",
+                "content-length": str(limit_bytes + 1),
+            },
+        )
+
+    assert response.status_code == 413
+    assert response.json()["detail"]["message"] == f"Request body too large. Maximum size: {limit_bytes} bytes"

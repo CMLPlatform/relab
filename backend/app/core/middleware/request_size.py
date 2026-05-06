@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 BODYLESS_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 MULTIPART_FORM_DATA = "multipart/form-data"
+BYTES_PER_MIB = 1024 * 1024
+MULTIPART_FORM_OVERHEAD_BYTES = BYTES_PER_MIB
 HTTP_SCOPE_TYPE = "http"
 HTTP_REQUEST_MESSAGE_TYPE = "http.request"
 HTTP_RESPONSE_START_MESSAGE_TYPE = "http.response.start"
@@ -38,7 +40,7 @@ def _payload_too_large_response(limit_bytes: int) -> JSONResponse:
 
 
 class RequestSizeLimitMiddleware:
-    """ASGI middleware that caps non-multipart request bodies while streaming."""
+    """ASGI middleware that caps request bodies while streaming."""
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -50,11 +52,11 @@ class RequestSizeLimitMiddleware:
             return
 
         headers = Headers(scope=scope)
-        if _should_skip_limit(scope, headers):
+        if scope["method"] in BODYLESS_METHODS:
             await self.app(scope, receive, send)
             return
 
-        limit_bytes = settings.request_body_limit_bytes
+        limit_bytes = _request_limit_bytes(headers)
         if _content_length_exceeds_limit(headers, limit_bytes):
             await _payload_too_large_response(limit_bytes)(scope, receive, send)
             return
@@ -90,9 +92,11 @@ class RequestSizeLimitMiddleware:
                 await _payload_too_large_response(limit_bytes)(scope, receive, send)
 
 
-def _should_skip_limit(scope: Scope, headers: Headers) -> bool:
-    """Return whether the request is exempt from the JSON/body-size middleware."""
-    return scope["method"] in BODYLESS_METHODS or _is_multipart_request(headers)
+def _request_limit_bytes(headers: Headers) -> int:
+    """Return the byte limit for the current request media type."""
+    if _is_multipart_request(headers):
+        return (settings.max_file_upload_size_mb * BYTES_PER_MIB) + MULTIPART_FORM_OVERHEAD_BYTES
+    return settings.request_body_limit_bytes
 
 
 def _content_length_exceeds_limit(headers: Headers, limit_bytes: int) -> bool:
@@ -102,5 +106,5 @@ def _content_length_exceeds_limit(headers: Headers, limit_bytes: int) -> bool:
 
 
 def register_request_size_limit_middleware(app: FastAPI) -> None:
-    """Attach middleware that caps non-multipart request body size."""
+    """Attach middleware that caps request body size."""
     app.add_middleware(RequestSizeLimitMiddleware)
