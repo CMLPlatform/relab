@@ -114,6 +114,11 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
 1. Review the non-secret deploy settings for this host.
 
    Edit `deploy/env/prod.compose.env` or `deploy/env/staging.compose.env` only for committed public URL or worker-count changes. Keep application/runtime secrets out of `.env`; they belong under `secrets/<env>/`.
+   To inspect the full repo-owned variable contract, run:
+
+   ```bash
+   just env-inventory
+   ```
 
 1. Create the host-local Compose secret files.
 
@@ -121,7 +126,7 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
    just deploy-secrets-template prod
    ```
 
-   Replace every placeholder value under `secrets/prod/`. Use `just deploy-secrets-template staging` for staging or `just deploy-secrets-template dev` for local development. Required secret filenames are declared by the rendered Compose overlays, and `just deploy-secrets-check` verifies that every rendered secret points at the expected `secrets/<env>/` file. Existing database volumes must be dumped and recreated before the database role layout can take effect.
+   Replace every placeholder value under `secrets/prod/`. Use `just deploy-secrets-template staging` for staging or `just deploy-secrets-template dev` for local development. Required secret filenames are declared by the rendered Compose overlays and the source-controlled inventory in `deploy/env/variables.toml`; `just deploy-secrets-check` verifies that every rendered secret points at the expected `secrets/<env>/` file. Existing database volumes must be dumped and recreated before the database role layout can take effect.
 
 1. Validate the deployment configuration.
 
@@ -155,6 +160,7 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
    export CLOUDFLARE_API_TOKEN='...'
    export TF_VAR_cloudflare_account_id='...'
    export TF_VAR_cloudflare_zone_id='...'
+   export TF_VAR_cloudflare_zone_name='cml-relab.org'
    ```
 
    ```bash

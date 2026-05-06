@@ -1,34 +1,45 @@
-# RELab Cloudflare edge
+# RELab Cloudflare Edge
 
-This directory owns the public Cloudflare edge for RELab: DNS records,
-Cloudflare Tunnels, and Tunnel ingress rules. It intentionally does not manage
-Compose, Docker secrets, PostgreSQL, Redis, storage, backups, or app runtime
-configuration.
+This directory manages RELab's Cloudflare edge with OpenTofu:
 
-## Shape
+- Cloudflare Tunnel per environment
+- DNS records for public RELab hostnames
+- Tunnel ingress routes to the Compose `edge` network
+- TLS zone settings
+- optional zone rate limiting, cache, and custom firewall rules
 
-- `prod` and `staging` use separate OpenTofu workspaces/state.
-- Public hostnames are generated from one environment-specific route map.
-- DNS records point at the matching Cloudflare Tunnel endpoint.
-- Tunnel ingress routes point at the current Compose origins.
-- Zone TLS settings enforce TLS 1.2+, enable TLS 1.3, and redirect HTTP to HTTPS.
-- The final ingress rule returns `http_status:404` for unknown hostnames.
+It does not manage application runtime settings, Compose services, secrets,
+databases, backups, or telemetry.
 
-Current origins are Compose-oriented, such as `http://api:8000`. If RELab moves
-to Kubernetes or managed cloud hosting later, keep the public hostname map and
-replace only the origin targets in `locals.tf`.
+## Managed Resources
 
-## Security notes
+`prod` and `staging` use separate OpenTofu workspaces and separate tunnels. Both
+environments share the same route map in `locals.tf`.
 
-The tunnel origins stay plain HTTP inside the private Compose `edge` network.
-Do not enable Cloudflare strict-origin TLS until the origin services present
-certificates. CAA records are also left out of source control while RELab uses
-Cloudflare-managed certificates; add them only if the project adopts custom
-certificates or explicit CA governance.
+Current hostnames:
+
+- Production: `cml-relab.org`, `app.cml-relab.org`, `api.cml-relab.org`,
+  `docs.cml-relab.org`
+- Staging: `web-test.cml-relab.org`, `app-test.cml-relab.org`,
+  `api-test.cml-relab.org`, `docs-test.cml-relab.org`
+
+Zone settings enforce TLS 1.2+, enable TLS 1.3, and redirect HTTP to HTTPS.
+Tunnel origins use plain HTTP inside the private Compose `edge` network.
+
+Rulesets:
+
+- `http_ratelimit`: enabled by default with `enable_rate_limiting_rules`.
+- `http_request_cache_settings`: disabled by default with `enable_cache_rules`.
+- `http_request_firewall_custom`: disabled by default with
+  `enable_custom_firewall_rules`.
+
+Cache and custom firewall rulesets are zone-wide Cloudflare phases. Enable them
+from only one workspace after importing the existing dashboard-managed phase, so
+prod and staging state do not compete for ownership.
 
 ## Commands
 
-From the repository root:
+Run from the repository root:
 
 ```bash
 just cloudflare-check
@@ -38,12 +49,11 @@ just cloudflare-apply staging YES
 just cloudflare-apply prod YES
 ```
 
-`cloudflare-check` is static with respect to the RELab Cloudflare account. It may
-download the provider, but it does not read or change account resources.
-`cloudflare-plan` and `cloudflare-apply` require Cloudflare credentials and IDs.
-Apply is guarded: pass `YES` or set `FORCE=1`.
+`cloudflare-check` is local/static apart from provider downloads. `plan` and
+`apply` require Cloudflare credentials and IDs. `apply` is guarded by `YES` or
+`FORCE=1`.
 
-Set these values in the shell before planning:
+Required environment variables:
 
 ```bash
 export CLOUDFLARE_API_TOKEN='...'
@@ -51,17 +61,28 @@ export TF_VAR_cloudflare_account_id='...'
 export TF_VAR_cloudflare_zone_id='...'
 ```
 
-This keeps the local workflow and the future password-manager workflow identical:
-Bitwarden/1Password can export the same environment variables before running the
-same `just` command. Do not commit account tokens, tunnel tokens, or state files.
+Optional:
 
-## Existing resources
+```bash
+export TF_VAR_cloudflare_zone_name='cml-relab.org'
+export TF_VAR_enable_cache_rules=true
+export TF_VAR_enable_custom_firewall_rules=true
+```
 
-The first adoption should import existing Cloudflare resources into state before
-any apply. Use `just cloudflare-plan <env>` after each import and continue only
-when the plan is empty or shows the exact intended drift. Use
-`just cloudflare-apply <env> YES` only after reviewing the plan.
+Do not commit tokens, tunnel tokens, or state files.
 
-OpenTofu state can contain provider-managed sensitive data. Keep prod and
-staging state separate, and prefer a remote encrypted backend with locking
-before multiple people or CI can apply changes.
+## Import Workflow
+
+Import existing Cloudflare resources before applying from a fresh state:
+
+1. Select the matching workspace: `prod` or `staging`.
+1. Import the tunnel, DNS records, and any enabled ruleset phase.
+1. Run `just cloudflare-plan <env>`.
+1. Apply only after the plan shows the exact intended drift.
+
+Keep rule `ref` values stable. Cloudflare uses them to track rules across
+reordering.
+
+OpenTofu state can contain sensitive provider data. Keep prod and staging state
+separate, and use a remote encrypted backend with locking before multiple people
+or CI apply changes.

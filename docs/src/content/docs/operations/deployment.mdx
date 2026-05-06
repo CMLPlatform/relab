@@ -110,7 +110,9 @@ The deploy stack keeps segmentation intentionally small: public-facing services 
 
 Production and staging are HTTPS-only behind Cloudflare Tunnel. The Cloudflare
 edge configuration in `infra/cloudflare/` enforces TLS 1.2 or newer, enables TLS
-1.3, and redirects HTTP requests to HTTPS before they reach the tunnel.
+1.3, redirects HTTP requests to HTTPS before they reach the tunnel, and owns
+RELab-specific Cloudflare rate limiting policy for auth, upload, and RPi camera
+traffic.
 
 Every deployed browser-facing origin emits:
 
@@ -142,7 +144,7 @@ For local rehearsal, use staging plus the backups profile instead of production:
 
 ## Denial-of-service controls
 
-RELab keeps DoS mitigation layered. Cloudflare Tunnel is the public ingress path and should carry the network-level controls: WAF rules, per-path rate limiting for `/v1/auth/*`, `/v1/products/*/files`, `/v1/products/*/images`, `/v1/components/*/files`, `/v1/components/*/images`, `/v1/plugins/rpi-cam/device/cameras/*/image-upload`, `/v1/plugins/rpi-cam/device/cameras/*/preview-thumbnail-upload`, and `/v1/plugins/rpi-cam/ws/connect`, and request body limits aligned with the backend upload limits. Volumetric attacks are handled at Cloudflare or the upstream provider, not inside the FastAPI process.
+RELab keeps DoS mitigation layered. Cloudflare Tunnel is the public ingress path and carries source-controlled edge controls in `infra/cloudflare/`: per-path rate limiting for `/v1/auth/*`, product/component media uploads, RPi camera image/thumbnail uploads, and `/v1/plugins/rpi-cam/ws/connect`. Volumetric attacks are handled at Cloudflare or the upstream provider, not inside the FastAPI process. Managed WAF rules can be added later once the zone plan and existing dashboard state are known.
 
 The backend enforces source-controlled application limits: JSON bodies are counted while streaming, multipart uploads have per-media size caps and allowlisted formats, expensive public product suggestion/facet routes and upload routes use Redis-backed rate limits, and the RPi camera WebSocket relay bounds auth attempts and frame sizes. Keep those defaults in code unless product policy changes; tune deployment capacity primarily with `WEB_CONCURRENCY`, DB pool sizing, and host resources.
 
@@ -162,6 +164,8 @@ Root deployment validation renders the supported Compose overlays with `just com
 ## Secrets and encrypted fields
 
 Most RELab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPI camera keys, request IDs, and cache keys are not application-encrypted.
+
+`deploy/env/variables.toml` is the source-controlled inventory for variables and secrets. It classifies each name as committed non-secret deploy identity, host-local input, backend dev fixture, or runtime secret file, and records the consumer and future Infisical path for runtime secrets. Use `just env-inventory` from the repo root when onboarding a host or reviewing a configuration change.
 
 The backend uses `DATA_ENCRYPTION_KEY` only for reversible sensitive values it must recover later, such as OAuth provider tokens and active YouTube broadcast keys. Cache payload signing uses the separate `CACHE_SIGNING_SECRET`, and OAuth state uses `OAUTH_STATE_SECRET`, so each key has one purpose. Keep these application secrets in gitignored Compose secret files under `secrets/<env>/`, not in committed files or backend env files.
 
