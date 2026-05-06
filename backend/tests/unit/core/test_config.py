@@ -4,7 +4,6 @@ Tests CORS settings, host allowlists, and environment file resolution.
 """
 # spell-checker: ignore PGSSL
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -14,9 +13,10 @@ from sqlalchemy.engine import make_url
 
 from app.api.auth.config import AuthSettings
 from app.core.config import DEFAULT_CORS_ORIGIN_REGEX, CoreSettings, Environment
-from app.core.env import get_env_file
+from app.core.env import get_env_file, get_secrets_dir
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from typing import Any
 
 TEST_DATA_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
@@ -57,17 +57,21 @@ def _production_core_settings_kwargs(**overrides: object) -> dict[str, Any]:
 class TestCoreSettingsCors:
     """Test CORS configuration behavior in CoreSettings."""
 
-    def test_allowed_origins_dev_normalizes_frontend_urls(self) -> None:
-        """DEV environment normalizes frontend URLs to scheme+host (no trailing slash)."""
+    def test_allowed_origins_dev_derive_default_docs_origin(self) -> None:
+        """DEV environment should derive the local docs origin unless overridden."""
         settings = CoreSettings(
             environment=Environment.DEV,
             frontend_web_url=HttpUrl("http://localhost:3000/"),
             frontend_app_url=HttpUrl("http://localhost:8081/"),
         )
-        assert settings.allowed_origins == ["http://localhost:3000", "http://localhost:8081"]
+        assert settings.allowed_origins == [
+            "http://localhost:3000",
+            "http://localhost:8081",
+            "http://127.0.0.1:4300",
+        ]
 
     def test_allowed_origins_staging_are_normalized(self) -> None:
-        """Staging origins should match browser Origin format (no trailing slash)."""
+        """Staging origins should include the default docs origin."""
         settings = CoreSettings(
             **_production_core_settings_kwargs(
                 environment=Environment.STAGING,
@@ -81,6 +85,22 @@ class TestCoreSettingsCors:
         assert settings.allowed_origins == [
             "https://web-test.cml-relab.org",
             "https://app-test.cml-relab.org",
+            "https://docs-test.cml-relab.org",
+        ]
+
+    def test_allowed_origins_docs_url_override_is_normalized(self) -> None:
+        """Custom/self-hosted docs origins should be accepted through DOCS_URL."""
+        settings = CoreSettings(
+            environment=Environment.DEV,
+            frontend_web_url=HttpUrl("http://localhost:3000/"),
+            frontend_app_url=HttpUrl("http://localhost:8081/"),
+            docs_url=HttpUrl("http://localhost:8012/"),
+        )
+
+        assert settings.allowed_origins == [
+            "http://localhost:3000",
+            "http://localhost:8081",
+            "http://localhost:8012",
         ]
 
     def test_allowed_hosts_dev_defaults(self) -> None:
@@ -148,35 +168,6 @@ class TestCoreSettingsCors:
         assert settings.uvicorn_limit_concurrency == 100
         assert settings.uvicorn_timeout_keep_alive == 5
         assert settings.uvicorn_h11_max_incomplete_event_size == 16_384
-
-    def test_dos_hardening_defaults_are_not_advertised_as_env_file_knobs(self) -> None:
-        """Source-owned hardening defaults should not clutter deploy env examples."""
-        backend_dir = Path(__file__).resolve().parents[3]
-        source_default_names = {
-            "REQUEST_BODY_LIMIT_BYTES",
-            "MAX_FILE_UPLOAD_SIZE_MB",
-            "MAX_IMAGE_UPLOAD_SIZE_MB",
-            "API_READ_RATE_LIMIT",
-            "API_UPLOAD_RATE_LIMIT",
-            "RPI_CAM_WS_AUTH_RATE_LIMIT",
-            "RPI_CAM_WS_TEXT_FRAME_LIMIT_BYTES",
-            "RPI_CAM_WS_BINARY_FRAME_LIMIT_BYTES",
-            "UVICORN_TIMEOUT_KEEP_ALIVE",
-            "UVICORN_H11_MAX_INCOMPLETE_EVENT_SIZE",
-        }
-
-        for env_example in (".env.prod.example", ".env.staging.example"):
-            contents = (backend_dir / env_example).read_text(encoding="utf-8")
-            for name in source_default_names:
-                assert name not in contents
-
-    def test_deploy_env_examples_keep_only_capacity_sized_uvicorn_knob(self) -> None:
-        """Concurrency may vary by host capacity, so it remains the advertised Uvicorn knob."""
-        backend_dir = Path(__file__).resolve().parents[3]
-
-        for env_example in (".env.prod.example", ".env.staging.example"):
-            contents = (backend_dir / env_example).read_text(encoding="utf-8")
-            assert "UVICORN_LIMIT_CONCURRENCY" in contents
 
     def test_otel_is_disabled_by_default(self) -> None:
         """Telemetry is opt-in: no endpoint configured means OTEL is off."""
@@ -263,31 +254,78 @@ class TestCoreSettingsCors:
         assert settings.database_backup_password.get_secret_value() == "backup-secret"
         assert settings.redis_password.get_secret_value() == "redis-secret"
 
+    def test_secret_files_override_backend_dotenv_secret_values(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Root secret files should be the secret source even if old dotenv values exist."""
+        env_file = tmp_path / ".env.dev"
+        env_file.write_text(
+            "DATA_ENCRYPTION_KEY=short\nCACHE_SIGNING_SECRET=short\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "data_encryption_key").write_text(TEST_DATA_ENCRYPTION_KEY, encoding="utf-8")
+        (tmp_path / "cache_signing_secret").write_text(TEST_CACHE_SIGNING_SECRET, encoding="utf-8")
+        settings_config: Any = {**CoreSettings.model_config, "env_file": env_file, "secrets_dir": tmp_path}
+        monkeypatch.setattr(CoreSettings, "model_config", settings_config)
+
+        settings = CoreSettings(environment=Environment.DEV)
+
+        assert settings.data_encryption_key.get_secret_value() == TEST_DATA_ENCRYPTION_KEY
+        assert settings.cache_signing_secret.get_secret_value() == TEST_CACHE_SIGNING_SECRET
+
+    def test_secret_files_override_process_environment_secret_values(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Root secret files should remain authoritative over exported secret values."""
+        monkeypatch.setenv("DATA_ENCRYPTION_KEY", "short")
+        monkeypatch.setenv("CACHE_SIGNING_SECRET", "short")
+        (tmp_path / "data_encryption_key").write_text(TEST_DATA_ENCRYPTION_KEY, encoding="utf-8")
+        (tmp_path / "cache_signing_secret").write_text(TEST_CACHE_SIGNING_SECRET, encoding="utf-8")
+        settings_config: Any = {**CoreSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
+        monkeypatch.setattr(CoreSettings, "model_config", settings_config)
+
+        settings = CoreSettings(environment=Environment.DEV)
+
+        assert settings.data_encryption_key.get_secret_value() == TEST_DATA_ENCRYPTION_KEY
+        assert settings.cache_signing_secret.get_secret_value() == TEST_CACHE_SIGNING_SECRET
+
     def test_production_can_load_runtime_passwords_from_secret_files(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Production-like settings should accept runtime passwords from secrets_dir."""
+        (tmp_path / "postgres_password").write_text("admin-secret", encoding="utf-8")
         (tmp_path / "database_app_password").write_text("app-secret", encoding="utf-8")
         (tmp_path / "database_migration_password").write_text("migration-secret", encoding="utf-8")
         (tmp_path / "database_backup_password").write_text("backup-secret", encoding="utf-8")
         (tmp_path / "redis_password").write_text("redis-secret", encoding="utf-8")
+        (tmp_path / "superuser_password").write_text("superuser-secret", encoding="utf-8")
+        (tmp_path / "data_encryption_key").write_text(TEST_DATA_ENCRYPTION_KEY, encoding="utf-8")
+        (tmp_path / "cache_signing_secret").write_text(TEST_CACHE_SIGNING_SECRET, encoding="utf-8")
         settings_config: Any = {**CoreSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
         monkeypatch.setattr(CoreSettings, "model_config", settings_config)
 
         kwargs = _production_core_settings_kwargs()
         for name in (
+            "postgres_password",
             "database_app_password",
             "database_migration_password",
             "database_backup_password",
             "redis_password",
+            "superuser_password",
+            "data_encryption_key",
+            "cache_signing_secret",
         ):
             kwargs.pop(name)
         settings = CoreSettings(**kwargs)
 
+        assert settings.postgres_password.get_secret_value() == "admin-secret"
         assert settings.database_app_password.get_secret_value() == "app-secret"
         assert settings.database_migration_password.get_secret_value() == "migration-secret"
         assert settings.database_backup_password.get_secret_value() == "backup-secret"
         assert settings.redis_password.get_secret_value() == "redis-secret"
+        assert settings.superuser_password.get_secret_value() == "superuser-secret"
+        assert settings.data_encryption_key.get_secret_value() == TEST_DATA_ENCRYPTION_KEY
+        assert settings.cache_signing_secret.get_secret_value() == TEST_CACHE_SIGNING_SECRET
 
     def test_production_rejects_missing_redis_secret_file(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -376,6 +414,35 @@ class TestCoreSettingsCors:
 class TestModuleSettingsValidation:
     """Test non-core module settings that should fail fast on bad config."""
 
+    def test_auth_settings_load_runtime_secrets_from_secret_files(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Auth settings should load secret material from secrets_dir."""
+        valid_secret = "x" * 32
+        (tmp_path / "fastapi_users_secret").write_text(valid_secret, encoding="utf-8")
+        (tmp_path / "oauth_state_secret").write_text(valid_secret, encoding="utf-8")
+        (tmp_path / "google_oauth_client_secret").write_text("google-secret", encoding="utf-8")
+        (tmp_path / "github_oauth_client_secret").write_text("github-secret", encoding="utf-8")
+        (tmp_path / "email_password").write_text("email-secret", encoding="utf-8")
+        settings_config: Any = {**AuthSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
+        monkeypatch.setattr(AuthSettings, "model_config", settings_config)
+
+        settings = AuthSettings(
+            environment=Environment.PROD,
+            google_oauth_client_id=SecretStr("google-client-id"),
+            github_oauth_client_id=SecretStr("github-client-id"),
+            email_host="smtp.example.com",
+            email_username="sender@example.com",
+            email_from="RELab <sender@example.com>",
+            email_reply_to="relab@example.com",
+        )
+
+        assert settings.fastapi_users_secret.get_secret_value() == valid_secret
+        assert settings.oauth_state_secret.get_secret_value() == valid_secret
+        assert settings.google_oauth_client_secret.get_secret_value() == "google-secret"
+        assert settings.github_oauth_client_secret.get_secret_value() == "github-secret"
+        assert settings.email_password.get_secret_value() == "email-secret"
+
     def test_auth_settings_require_secrets_in_production(self) -> None:
         """Auth settings should reject blank prod/staging secrets and email config."""
         with pytest.raises(ValidationError, match="Auth settings validation failed"):
@@ -402,15 +469,15 @@ class TestGetEnvFile:
         monkeypatch.setenv("ENVIRONMENT", "dev")
         assert get_env_file(tmp_path) == tmp_path / ".env.dev"
 
-    def test_staging_maps_to_staging_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """STAGING environment should map to .env.staging."""
+    def test_staging_uses_no_dotenv_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """STAGING should use process env and secrets, not backend .env files."""
         monkeypatch.setenv("ENVIRONMENT", "staging")
-        assert get_env_file(tmp_path) == tmp_path / ".env.staging"
+        assert get_env_file(tmp_path) is None
 
-    def test_prod_maps_to_production_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """PROD environment should map to .env.prod."""
+    def test_prod_uses_no_dotenv_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """PROD should use process env and secrets, not backend .env files."""
         monkeypatch.setenv("ENVIRONMENT", "prod")
-        assert get_env_file(tmp_path) == tmp_path / ".env.prod"
+        assert get_env_file(tmp_path) is None
 
     def test_testing_maps_to_test_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """TESTING environment should map to .env.test."""
@@ -422,7 +489,31 @@ class TestGetEnvFile:
         monkeypatch.delenv("ENVIRONMENT", raising=False)
         assert get_env_file(tmp_path) == tmp_path / ".env.dev"
 
-    def test_unknown_environment_uses_name_directly(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """An unrecognised value falls back to .env.<value> so custom envs work."""
+    def test_unknown_environment_uses_no_dotenv_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """Custom environments should use process env and secrets only."""
         monkeypatch.setenv("ENVIRONMENT", "ci")
-        assert get_env_file(tmp_path) == tmp_path / ".env.ci"
+        assert get_env_file(tmp_path) is None
+
+
+class TestGetSecretsDir:
+    """get_secrets_dir() should resolve Docker and local root secret directories."""
+
+    def test_prefers_docker_runtime_secrets(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """Docker /run/secrets should win over local root secrets when mounted."""
+        docker_secrets = tmp_path / "run" / "secrets"
+        local_secrets = tmp_path / "secrets" / "dev"
+        docker_secrets.mkdir(parents=True)
+        local_secrets.mkdir(parents=True)
+        monkeypatch.setenv("ENVIRONMENT", "dev")
+
+        assert get_secrets_dir(tmp_path, docker_secrets_dir=docker_secrets) == docker_secrets
+
+    def test_uses_root_environment_secret_dir_for_local_dev(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Local bare-metal settings should read root secrets/<env> when Docker secrets are absent."""
+        local_secrets = tmp_path / "secrets" / "dev"
+        local_secrets.mkdir(parents=True)
+        monkeypatch.setenv("ENVIRONMENT", "dev")
+
+        assert get_secrets_dir(tmp_path, docker_secrets_dir=tmp_path / "missing") == local_secrets
