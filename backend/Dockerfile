@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
 
 # Multi-target Dockerfile for the Backend
 #   - `dev`     → hot-reload dev image (all groups synced)
@@ -7,7 +7,7 @@
 ARG WORKDIR=/opt/relab/backend
 
 # --- Build stage (prod deps only) ---
-FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:37ec7fe8c82064a87c1c3d57e8ef5ff108b64bc34b17f64a4c00094b64928330 AS build
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:3e70f580d0e63d78408c35d332d780024b6e1d46d9744c888e22fa944393448e AS build
 
 ARG WORKDIR
 WORKDIR $WORKDIR
@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --no-default-groups
 
 # --- Dev stage (all groups, hot reload) ---
-FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:37ec7fe8c82064a87c1c3d57e8ef5ff108b64bc34b17f64a4c00094b64928330 AS dev
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:3e70f580d0e63d78408c35d332d780024b6e1d46d9744c888e22fa944393448e AS dev
 
 ARG WORKDIR
 WORKDIR $WORKDIR
@@ -56,7 +56,7 @@ EXPOSE 8000
 CMD [".venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "app"]
 
 # --- Runtime stage (default) ---
-FROM python:3.14-slim-trixie@sha256:bc389f7dfcb21413e72a28f491985326994795e34d2b86c8ae2f417b4e7818aa AS runtime
+FROM python:3.14-slim-trixie@sha256:5b3879b6f3cb77e712644d50262d05a7c146b7312d784a18eff7ff5462e77033 AS runtime
 
 ARG WORKDIR
 ARG APP_USER=appuser
