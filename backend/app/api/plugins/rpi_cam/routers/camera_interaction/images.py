@@ -32,6 +32,7 @@ from app.api.plugins.rpi_cam.examples import (
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.runtime_capture import capture_and_store_image
 from app.api.plugins.rpi_cam.runtime_preview import get_preview_thumbnail_path, get_preview_thumbnail_url
+from app.api.plugins.rpi_cam.utils.metadata import validate_rpi_cam_metadata_object
 from app.core.config import settings
 from app.core.redis import OptionalRedisDep
 
@@ -135,8 +136,17 @@ async def receive_camera_upload(
     upload_metadata: Annotated[str, Form(description="Parent association metadata as a JSON string")],
 ) -> DeviceImageUploadAck:
     """Receive a capture pushed from the Pi and persist it."""
-    capture_meta = parse_required_json_object(capture_metadata, field_name="capture_metadata")
-    upload_meta = parse_required_json_object(upload_metadata, field_name="upload_metadata")
+    try:
+        capture_meta = validate_rpi_cam_metadata_object(
+            parse_required_json_object(capture_metadata, field_name="capture_metadata"),
+            field_name="capture_metadata",
+        )
+        upload_meta = validate_rpi_cam_metadata_object(
+            parse_required_json_object(upload_metadata, field_name="upload_metadata"),
+            field_name="upload_metadata",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     product_id = upload_meta.get("product_id")
     if product_id is None:
