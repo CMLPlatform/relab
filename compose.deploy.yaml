@@ -1,17 +1,15 @@
 # compose.deploy.yaml (DEPLOY — covers prod AND staging)
 #
-# Single artifact for both environments. APP_ENV (required) selects which.
+# Single artifact for both environments. ENVIRONMENT (required) selects which.
 # Per-environment non-secret knobs live in committed `deploy/env/*.compose.env`
-# files; per-host secret/local interpolation lives in the root `.env`
-# (gitignored).
+# files; host-local operator inputs for Compose interpolation live in the
+# gitignored root `.env`.
 #
 # Invocation (normally through root just recipes):
-#   docker compose --env-file .env --env-file deploy/env/prod.compose.env \
+#   docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
 # spell-checker: ignore REDISCLI, requirepass, tmpfs
-
-name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (e.g. relab_prod, relab_staging)}
 
 # --- Reusable fragments ------------------------------------------------------
 # Shipping container logs to a central Loki instance is opt-in: include
@@ -19,26 +17,53 @@ name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (e.g. relab_prod,
 # automatically when LOKI_URL is set in the host's root .env). Hosts without
 # Loki get Docker's default json-file driver — no config needed.
 
-x-env-backend: &env-backend
-  env_file: ./backend/.env.${APP_ENV:?APP_ENV must be set (prod|staging)}
+x-backend-public-origins: &backend-public-origins
+  BACKEND_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+  FRONTEND_APP_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
+  FRONTEND_WEB_URL: ${WEB_PUBLIC_URL:?WEB_PUBLIC_URL must be set}
+  DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
+
+x-backend-host-overrides: &backend-host-overrides
+  GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID must be set in root .env}
+  GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:?GITHUB_OAUTH_CLIENT_ID must be set in root .env}
+  EMAIL_PROVIDER: ${EMAIL_PROVIDER:?EMAIL_PROVIDER must be set in root .env}
+  EMAIL_HOST: ${EMAIL_HOST:-}
+  EMAIL_USERNAME: ${EMAIL_USERNAME:-}
+  EMAIL_FROM: ${EMAIL_FROM:?EMAIL_FROM must be set in root .env}
+  EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:?EMAIL_REPLY_TO must be set in root .env}
+  MICROSOFT_GRAPH_TENANT_ID: ${MICROSOFT_GRAPH_TENANT_ID:-}
+  MICROSOFT_GRAPH_CLIENT_ID: ${MICROSOFT_GRAPH_CLIENT_ID:-}
+  MICROSOFT_GRAPH_SENDER_USER: ${MICROSOFT_GRAPH_SENDER_USER:-}
+  MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS: ${MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS:-false}
+  SUPERUSER_EMAIL: ${SUPERUSER_EMAIL:?SUPERUSER_EMAIL must be set in root .env}
+  SUPERUSER_NAME: ${SUPERUSER_NAME:-}
 
 x-backend-runtime-secrets: &backend-runtime-secrets
   - database_app_password
   - database_migration_password
   - database_backup_password
   - redis_password
+  - fastapi_users_secret
+  - oauth_state_secret
+  - cache_signing_secret
+  - data_encryption_key
+  - google_oauth_client_secret
+  - github_oauth_client_secret
+  - email_password
+  - microsoft_graph_client_secret
+  - superuser_password
 
 services:
   api:
-    <<: *env-backend
-    image: relab-backend:${APP_ENV}-local
+    image: relab-backend:${ENVIRONMENT}-local
     read_only: true
     user: "1001:1001"
     secrets: *backend-runtime-secrets
     tmpfs:
       - /tmp:mode=1777
     environment:
-      ENVIRONMENT: ${APP_ENV}
+      <<: [*backend-public-origins, *backend-host-overrides]
+      ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
       # Trust forwarded headers only from Docker-internal proxy addresses.
       FORWARDED_ALLOW_IPS: 172.16.0.0/12
       # OpenTelemetry — OTEL_EXPORTER_OTLP_ENDPOINT is the on/off switch;
@@ -61,14 +86,16 @@ services:
       IMAGE_RESIZE_WORKERS: "5"
       DB_POOL_SIZE: "10"
       DB_POOL_MAX_OVERFLOW: "10"
-      UVICORN_LIMIT_CONCURRENCY: ${UVICORN_LIMIT_CONCURRENCY:-100}
+      UVICORN_LIMIT_CONCURRENCY: "100"
 
   migrator:
-    <<: *env-backend
-    image: relab-backend-migrations:${APP_ENV}-local
+    image: relab-backend-migrations:${ENVIRONMENT}-local
     read_only: true
     user: "1001:1001"
     secrets: *backend-runtime-secrets
+    environment:
+      <<: [*backend-public-origins, *backend-host-overrides]
+      ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
     tmpfs:
       - /tmp:mode=1777
 
@@ -77,7 +104,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.backups
-    image: relab-backup:${APP_ENV}-local
+    image: relab-backup:${ENVIRONMENT}-local
     cap_drop:
       - ALL
     pids_limit: 512
@@ -99,6 +126,8 @@ services:
     environment:
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
+      POSTGRES_DB: relab_db
+      DATABASE_BACKUP_USER: relab_backup
       DATABASE_BACKUP_PASSWORD_FILE: /run/secrets/database_backup_password
       RESTIC_PASSWORD_FILE: /run/secrets/restic_password
       RESTIC_REPOSITORY: /restic
@@ -112,7 +141,6 @@ services:
       RESTIC_KEEP_DAILY: ${RESTIC_KEEP_DAILY:-14}
       RESTIC_KEEP_WEEKLY: ${RESTIC_KEEP_WEEKLY:-8}
       RESTIC_KEEP_MONTHLY: ${RESTIC_KEEP_MONTHLY:-12}
-    env_file: ./backend/.env.${APP_ENV}
     secrets:
       - database_backup_password
       - restic_password
@@ -124,7 +152,6 @@ services:
       - data
 
   redis:
-    <<: *env-backend
     secrets:
       - redis_password
     volumes:
@@ -154,8 +181,12 @@ services:
       - edge
 
   postgres:
-    <<: *env-backend
     environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: relab_db
+      DATABASE_APP_USER: relab_app
+      DATABASE_MIGRATION_USER: relab_migrator
+      DATABASE_BACKUP_USER: relab_backup
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       DATABASE_APP_PASSWORD_FILE: /run/secrets/database_app_password
       DATABASE_MIGRATION_PASSWORD_FILE: /run/secrets/database_migration_password
@@ -167,40 +198,50 @@ services:
       - database_backup_password
 
   docs:
-    image: relab-docs:${APP_ENV}-local
+    image: relab-docs:${ENVIRONMENT}-local
     read_only: true
     user: "1001:1001"
     build:
       args:
-        BUILD_MODE: ${BUILD_MODE:-prod}
-        PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://docs.cml-relab.org}
+        ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
+        PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
+        PUBLIC_BACKEND_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+    environment:
+      # Needed by Caddyfile so API reference pages can fetch live OpenAPI JSON.
+      CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
     tmpfs:
       - /config:uid=1001,gid=1001
       - /data:uid=1001,gid=1001
       - /tmp:mode=1777
 
   app:
-    image: relab-app:${APP_ENV}-local
+    image: relab-app:${ENVIRONMENT}-local
     read_only: true
     user: "1001:1001"
     build:
       args:
-        BUILD_MODE: ${BUILD_MODE:-prod}
+        ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
+        EXPO_PUBLIC_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+        EXPO_PUBLIC_WEBSITE_URL: ${WEB_PUBLIC_URL:?WEB_PUBLIC_URL must be set}
+        EXPO_PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
     environment:
       # Needed by Caddyfile to determine the API origin.
-      CSP_API_ORIGIN: ${CSP_API_ORIGIN:-https://api.cml-relab.org}
+      CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
     tmpfs:
       - /config:uid=1001,gid=1001
       - /data:uid=1001,gid=1001
       - /tmp:mode=1777
 
   www:
-    image: relab-www:${APP_ENV}-local
+    image: relab-www:${ENVIRONMENT}-local
     read_only: true
     user: "1001:1001"
     build:
       args:
-        BUILD_MODE: ${BUILD_MODE:-prod}
+        ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
+        PUBLIC_APP_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
+        PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
+        PUBLIC_SITE_URL: ${WEB_PUBLIC_URL:?WEB_PUBLIC_URL must be set}
     tmpfs:
       - /config:uid=1001,gid=1001
       - /data:uid=1001,gid=1001
@@ -211,14 +252,32 @@ volumes:
 
 secrets:
   postgres_password:
-    file: ./secrets/${APP_ENV}/postgres_password
+    file: ./secrets/${ENVIRONMENT}/postgres_password
   database_app_password:
-    file: ./secrets/${APP_ENV}/database_app_password
+    file: ./secrets/${ENVIRONMENT}/database_app_password
   database_migration_password:
-    file: ./secrets/${APP_ENV}/database_migration_password
+    file: ./secrets/${ENVIRONMENT}/database_migration_password
   database_backup_password:
-    file: ./secrets/${APP_ENV}/database_backup_password
+    file: ./secrets/${ENVIRONMENT}/database_backup_password
   redis_password:
-    file: ./secrets/${APP_ENV}/redis_password
+    file: ./secrets/${ENVIRONMENT}/redis_password
   restic_password:
-    file: ./secrets/${APP_ENV}/restic_password
+    file: ./secrets/${ENVIRONMENT}/restic_password
+  fastapi_users_secret:
+    file: ./secrets/${ENVIRONMENT}/fastapi_users_secret
+  oauth_state_secret:
+    file: ./secrets/${ENVIRONMENT}/oauth_state_secret
+  cache_signing_secret:
+    file: ./secrets/${ENVIRONMENT}/cache_signing_secret
+  data_encryption_key:
+    file: ./secrets/${ENVIRONMENT}/data_encryption_key
+  google_oauth_client_secret:
+    file: ./secrets/${ENVIRONMENT}/google_oauth_client_secret
+  github_oauth_client_secret:
+    file: ./secrets/${ENVIRONMENT}/github_oauth_client_secret
+  email_password:
+    file: ./secrets/${ENVIRONMENT}/email_password
+  microsoft_graph_client_secret:
+    file: ./secrets/${ENVIRONMENT}/microsoft_graph_client_secret
+  superuser_password:
+    file: ./secrets/${ENVIRONMENT}/superuser_password

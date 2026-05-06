@@ -1,73 +1,36 @@
 #!/usr/bin/env bash
 # Shared shell helpers for root justfile deploy recipes.
 
-DEPLOY_SECRET_MANIFEST="${DEPLOY_SECRET_MANIFEST:-deploy/required-secret-files.txt}"
 DEPLOY_BACKUP_IMAGE="${DEPLOY_BACKUP_IMAGE:-relab-backups-smoke}"
-DEPLOY_CREATED_PROD_ENV=false
-DEPLOY_CREATED_STAGING_ENV=false
 DEPLOY_CREATED_DEV_ENV=false
 DEPLOY_CREATED_ROOT_ENV=false
-DEPLOY_CREATED_SECRET_FILES=()
-
-deploy_secret_files() {
-    if [[ ! -f "$DEPLOY_SECRET_MANIFEST" ]]; then
-        echo "Deploy secret manifest not found: $DEPLOY_SECRET_MANIFEST" >&2
-        exit 1
-    fi
-
-    local line
-    while IFS= read -r line; do
-        line="${line%%#*}"
-        line="${line//[[:space:]]/}"
-        [[ -n "$line" ]] && printf '%s\n' "$line"
-    done < "$DEPLOY_SECRET_MANIFEST"
-}
 
 deploy_prepare_compose_validation_files() {
-    if [[ ! -f backend/.env.prod && -f backend/.env.prod.example ]]; then
-        cp backend/.env.prod.example backend/.env.prod
-        DEPLOY_CREATED_PROD_ENV=true
-    fi
-    if [[ ! -f backend/.env.staging && -f backend/.env.staging.example ]]; then
-        cp backend/.env.staging.example backend/.env.staging
-        DEPLOY_CREATED_STAGING_ENV=true
-    fi
     if [[ ! -f backend/.env.dev && -f backend/.env.dev.example ]]; then
         cp backend/.env.dev.example backend/.env.dev
         DEPLOY_CREATED_DEV_ENV=true
     fi
     if [[ ! -f .env ]]; then
-        : > .env
+        : >.env
         DEPLOY_CREATED_ROOT_ENV=true
     fi
 
-    local env name path
-    for env in prod staging; do
-        mkdir -p "secrets/$env"
-        while IFS= read -r name; do
-            path="secrets/$env/$name"
-            if [[ ! -f "$path" ]]; then
-                printf 'placeholder-%s-%s\n' "$env" "$name" > "$path"
-                DEPLOY_CREATED_SECRET_FILES+=("$path")
-            fi
-        done < <(deploy_secret_files)
-    done
-
     export TUNNEL_TOKEN="${TUNNEL_TOKEN:-placeholder}"
     export LOKI_URL="${LOKI_URL:-http://placeholder/loki/api/v1/push}"
+    export GOOGLE_OAUTH_CLIENT_ID="${GOOGLE_OAUTH_CLIENT_ID:-placeholder-google-client-id}"
+    export GITHUB_OAUTH_CLIENT_ID="${GITHUB_OAUTH_CLIENT_ID:-placeholder-github-client-id}"
+    export EMAIL_PROVIDER="${EMAIL_PROVIDER:-smtp}"
+    export EMAIL_HOST="${EMAIL_HOST:-smtp.example.test}"
+    export EMAIL_USERNAME="${EMAIL_USERNAME:-relab@example.test}"
+    export EMAIL_FROM="${EMAIL_FROM:-Reverse Engineering Lab <relab@example.test>}"
+    export EMAIL_REPLY_TO="${EMAIL_REPLY_TO:-relab@example.test}"
+    export SUPERUSER_EMAIL="${SUPERUSER_EMAIL:-admin@example.test}"
 }
 
 deploy_cleanup_compose_validation_files() {
-    [[ "$DEPLOY_CREATED_PROD_ENV" == true ]] && rm -f backend/.env.prod
-    [[ "$DEPLOY_CREATED_STAGING_ENV" == true ]] && rm -f backend/.env.staging
     [[ "$DEPLOY_CREATED_DEV_ENV" == true ]] && rm -f backend/.env.dev
     [[ "$DEPLOY_CREATED_ROOT_ENV" == true ]] && rm -f .env
-
-    local path
-    for path in "${DEPLOY_CREATED_SECRET_FILES[@]}"; do
-        rm -f "$path"
-    done
-    rmdir secrets/prod secrets/staging secrets 2>/dev/null || true
+    return 0
 }
 
 deploy_require_dir() {
