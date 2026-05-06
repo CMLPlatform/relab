@@ -86,4 +86,4 @@ USER $APP_USER
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/live',timeout=5).status==200 else 1)"
 
-CMD ["sh", "-c", ".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='${FORWARDED_ALLOW_IPS:-127.0.0.1}' --no-server-header --workers ${WEB_CONCURRENCY:-1} --limit-concurrency ${UVICORN_LIMIT_CONCURRENCY:-100} --timeout-keep-alive ${UVICORN_TIMEOUT_KEEP_ALIVE:-5} --h11-max-incomplete-event-size ${UVICORN_H11_MAX_INCOMPLETE_EVENT_SIZE:-16384}"]
+CMD ["sh", "-c", ".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='${FORWARDED_ALLOW_IPS:-127.0.0.1}' --no-server-header --workers ${WEB_CONCURRENCY:-1} --limit-concurrency ${UVICORN_LIMIT_CONCURRENCY:-100} --timeout-keep-alive ${UVICORN_TIMEOUT_KEEP_ALIVE:-5} --h11-max-incomplete-event-size ${UVICORN_H11_MAX_INCOMPLETE_EVENT_SIZE:-16384} --ws-max-size ${RPI_CAM_WS_BINARY_FRAME_LIMIT_BYTES:-10485760} --ws-max-queue ${UVICORN_WS_MAX_QUEUE:-8} --ws-per-message-deflate false"]
