@@ -6,14 +6,12 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, Response
 
-from app.core.http_headers import SENSITIVE_CACHE_CONTROL
+from app.core.http_headers import NO_STORE, SENSITIVE_CACHE_CONTROL
 
 if TYPE_CHECKING:
     from starlette.middleware.base import RequestResponseEndpoint
 
 CACHE_CONTROL_HEADER = "cache-control"
-PRAGMA_HEADER = "pragma"
-EXPIRES_HEADER = "expires"
 PROBLEM_CONTENT_TYPE = "application/problem+json"
 AUTH_COOKIE_NAMES = frozenset({"auth", "refresh_token"})
 SENSITIVE_PATH_PREFIXES = (
@@ -60,14 +58,15 @@ def _is_problem_details(response: Response) -> bool:
     return response.headers.get("content-type", "").lower().startswith(PROBLEM_CONTENT_TYPE)
 
 
-def _should_set_no_store(request: Request, response: Response) -> bool:
+def _should_apply_sensitive_cache_policy(request: Request, response: Response) -> bool:
     """Return whether the response should opt out of cache storage."""
     return _has_auth_material(request) or _is_sensitive_path(request.url.path) or _is_problem_details(response)
 
 
 def _set_sensitive_cache_headers(response: Response) -> None:
     """Set legacy-compatible no-cache headers for sensitive responses."""
-    response.headers.setdefault("Cache-Control", SENSITIVE_CACHE_CONTROL)
+    if response.headers.get(CACHE_CONTROL_HEADER) in (None, NO_STORE):
+        response.headers["Cache-Control"] = SENSITIVE_CACHE_CONTROL
     response.headers.setdefault("Pragma", "no-cache")
     response.headers.setdefault("Expires", "0")
 
@@ -78,7 +77,7 @@ def register_response_policy_middleware(app: FastAPI, *, enable_hsts: bool) -> N
     @app.middleware("http")
     async def response_policy_middleware(request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
-        if _should_set_no_store(request, response) and CACHE_CONTROL_HEADER not in response.headers:
+        if _should_apply_sensitive_cache_policy(request, response):
             _set_sensitive_cache_headers(response)
         for name, value in BASE_SECURITY_HEADERS.items():
             response.headers.setdefault(name, value)

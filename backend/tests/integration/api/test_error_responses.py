@@ -14,7 +14,7 @@ from fastapi import FastAPI, HTTPException, status
 from httpx import ASGITransport, AsyncClient
 
 from app.api.auth.dependencies import current_active_superuser
-from app.core.responses import NO_STORE
+from app.core.http_headers import SENSITIVE_CACHE_CONTROL
 from tests.factories.models import UserFactory
 from tests.fixtures.client import override_authenticated_user
 
@@ -37,7 +37,7 @@ class TestUnauthenticated:
         """GET /users/me requires authentication and returns the standard error shape."""
         response = await api_client.get("/v1/users/me")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert response.headers["cache-control"] == NO_STORE
+        assert response.headers["cache-control"] == SENSITIVE_CACHE_CONTROL
         body = response.json()
         assert "detail" in body
 
@@ -74,7 +74,7 @@ class TestForbidden:
         data = {"name": "Forbidden Taxonomy", "version": "v1", "domains": ["materials"]}
         response = await regular_user_client.post("/v1/admin/taxonomies", json=data)
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.headers["cache-control"] == NO_STORE
+        assert response.headers["cache-control"] == SENSITIVE_CACHE_CONTROL
 
     async def test_403_response_has_detail_key(self, regular_user_client: AsyncClient) -> None:
         """403 responses must include a 'detail' key."""
@@ -148,7 +148,7 @@ class TestUnexpectedErrorResponses:
 
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert response.headers["content-type"].startswith("application/problem+json")
-        assert response.headers["cache-control"] == NO_STORE
+        assert response.headers["cache-control"] == SENSITIVE_CACHE_CONTROL
         body = response.json()
         assert body["detail"] == "Internal server error"
         assert body["code"] == "RuntimeError"

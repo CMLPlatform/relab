@@ -3,22 +3,20 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.common.routers.exceptions import register_exception_handlers
+from app.core.http_headers import SENSITIVE_CACHE_CONTROL
 from app.core.middleware.response_policy import (
     CONTENT_SECURITY_POLICY_HEADER_VALUE,
     HSTS_HEADER_VALUE,
     REFERRER_POLICY_HEADER_VALUE,
     register_response_policy_middleware,
 )
-from app.core.http_headers import NO_STORE
-
-SENSITIVE_CACHE_CONTROL = "no-store, no-cache, must-revalidate"
 
 
-def _assert_sensitive_cache_headers(response) -> None:
+def _assert_sensitive_cache_headers(response: Response) -> None:
     assert response.headers["cache-control"] == SENSITIVE_CACHE_CONTROL
     assert response.headers["pragma"] == "no-cache"
     assert response.headers["expires"] == "0"
@@ -132,8 +130,8 @@ async def test_response_policy_keeps_public_reads_cacheable() -> None:
     assert "cache-control" not in response.headers
 
 
-async def test_response_policy_sets_no_store_for_sensitive_paths() -> None:
-    """Sensitive auth, admin, and camera-control paths should receive no-store."""
+async def test_response_policy_sets_no_cache_headers_for_sensitive_paths() -> None:
+    """Sensitive auth, admin, and camera-control paths should receive no-cache headers."""
     app = _create_policy_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -141,7 +139,6 @@ async def test_response_policy_sets_no_store_for_sensitive_paths() -> None:
         admin_response = await client.get("/v1/admin/users")
         camera_response = await client.get("/v1/plugins/rpi-cam/cameras/1/status")
 
-    assert auth_response.headers["cache-control"] != NO_STORE
     _assert_sensitive_cache_headers(auth_response)
     _assert_sensitive_cache_headers(admin_response)
     _assert_sensitive_cache_headers(camera_response)
@@ -157,8 +154,8 @@ async def test_response_policy_uses_path_boundaries() -> None:
     assert "cache-control" not in response.headers
 
 
-async def test_response_policy_sets_no_store_for_authenticated_requests() -> None:
-    """Requests with Authorization or RELab auth cookies should receive no-store."""
+async def test_response_policy_sets_no_cache_headers_for_authenticated_requests() -> None:
+    """Requests with Authorization or RELab auth cookies should receive no-cache headers."""
     app = _create_policy_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -170,8 +167,8 @@ async def test_response_policy_sets_no_store_for_authenticated_requests() -> Non
     _assert_sensitive_cache_headers(cookie_response)
 
 
-async def test_response_policy_sets_no_store_for_problem_details() -> None:
-    """Problem Details responses should receive no-store."""
+async def test_response_policy_sets_no_cache_headers_for_problem_details() -> None:
+    """Problem Details responses should receive no-cache headers."""
     app = _create_policy_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
