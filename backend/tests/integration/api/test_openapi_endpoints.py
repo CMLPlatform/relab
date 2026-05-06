@@ -5,13 +5,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from fastapi import status
+from fastapi import FastAPI, status
 from httpx import ASGITransport, AsyncClient
+
+from app.api.common.routers.openapi import init_openapi_docs
+from app.core.config import settings
+from app.core.config.models import Environment
+from app.main import create_app
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
-
-    from fastapi import FastAPI
 
 
 def assert_paths_present(paths: dict[str, object], expected_paths: set[str]) -> None:
@@ -33,11 +36,40 @@ async def openapi_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient]:
 class TestOpenAPIEndpoints:
     """Tests for canonical and filtered OpenAPI schema generation."""
 
+    async def test_openapi_registration_can_exclude_internal_contracts_explicitly(self) -> None:
+        """OpenAPI route registration should not read global environment state."""
+        app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
+        init_openapi_docs(app, include_internal_contracts=False)
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
+            public_schema = await client.get("/openapi.public.json")
+            device_schema = await client.get("/openapi.device.json")
+            canonical_schema = await client.get("/openapi.json")
+            admin_schema = await client.get("/openapi.admin.json")
+
+        assert public_schema.status_code == status.HTTP_200_OK
+        assert device_schema.status_code == status.HTTP_200_OK
+        assert canonical_schema.status_code == status.HTTP_404_NOT_FOUND
+        assert admin_schema.status_code == status.HTTP_404_NOT_FOUND
+
+    async def test_openapi_registration_can_include_internal_contracts_explicitly(self) -> None:
+        """Development/testing callers should be able to opt into full/admin contracts."""
+        app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
+        init_openapi_docs(app, include_internal_contracts=True)
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
+            canonical_schema = await client.get("/openapi.json")
+            admin_schema = await client.get("/openapi.admin.json")
+
+        assert canonical_schema.status_code == status.HTTP_200_OK
+        assert admin_schema.status_code == status.HTTP_200_OK
+
     async def test_canonical_openapi_json_can_be_generated(self, openapi_client: AsyncClient) -> None:
         """The canonical OpenAPI schema endpoint should return the complete API contract."""
         response = await openapi_client.get("/openapi.json")
 
         assert response.status_code == status.HTTP_200_OK
+        assert "cache-control" not in response.headers
         payload = response.json()
         assert payload["openapi"].startswith("3.")
         assert isinstance(payload["paths"], dict)
@@ -96,7 +128,7 @@ class TestOpenAPIEndpoints:
         video_create_examples = payload["components"]["schemas"]["VideoCreateWithinProduct"]["examples"]
         assert video_create_examples[0]["video_metadata"]["source"] == "youtube"
 
-        user_create_examples = payload["components"]["schemas"]["UserCreate"]["examples"]
+        user_create_examples = payload["components"]["schemas"]["UserRegister"]["examples"]
         assert user_create_examples[0]["username"] == "username"
 
         refresh_response_examples = payload["components"]["schemas"]["RefreshTokenResponse"]["examples"]
@@ -107,6 +139,7 @@ class TestOpenAPIEndpoints:
         response = await openapi_client.get("/openapi.public.json")
 
         assert response.status_code == status.HTTP_200_OK
+        assert "cache-control" not in response.headers
         payload = response.json()
         assert payload["openapi"].startswith("3.")
         assert isinstance(payload["paths"], dict)
@@ -130,6 +163,7 @@ class TestOpenAPIEndpoints:
         response = await openapi_client.get("/openapi.admin.json")
 
         assert response.status_code == status.HTTP_200_OK
+        assert "cache-control" not in response.headers
         payload = response.json()
         assert payload["openapi"].startswith("3.")
         assert "/v1/admin/materials" in payload["paths"]
@@ -151,6 +185,7 @@ class TestOpenAPIEndpoints:
         response = await openapi_client.get("/openapi.device.json")
 
         assert response.status_code == status.HTTP_200_OK
+        assert "cache-control" not in response.headers
         payload = response.json()
         assert payload["openapi"].startswith("3.")
         assert "/v1/plugins/rpi-cam/pairing/register" in payload["paths"]
@@ -205,3 +240,41 @@ class TestOpenAPIEndpoints:
         )
 
         assert second_response.status_code == status.HTTP_304_NOT_MODIFIED
+
+    async def test_internal_openapi_json_is_not_registered_in_production(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Production should expose public/device contracts but not full/admin contracts."""
+        monkeypatch.setattr(settings, "environment", Environment.PROD)
+        app = create_app()
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
+            public_schema = await client.get("/openapi.public.json")
+            device_schema = await client.get("/openapi.device.json")
+            canonical_schema = await client.get("/openapi.json")
+            admin_schema = await client.get("/openapi.admin.json")
+
+        assert public_schema.status_code == status.HTTP_200_OK
+        assert device_schema.status_code == status.HTTP_200_OK
+        assert canonical_schema.status_code == status.HTTP_404_NOT_FOUND
+        assert admin_schema.status_code == status.HTTP_404_NOT_FOUND
+
+    async def test_internal_openapi_json_remains_registered_in_testing(self, openapi_client: AsyncClient) -> None:
+        """Testing keeps internal schemas available for client generation and contract checks."""
+        canonical_schema = await openapi_client.get("/openapi.json")
+        admin_schema = await openapi_client.get("/openapi.admin.json")
+        device_schema = await openapi_client.get("/openapi.device.json")
+        public_schema = await openapi_client.get("/openapi.public.json")
+
+        assert canonical_schema.status_code == status.HTTP_200_OK
+        assert admin_schema.status_code == status.HTTP_200_OK
+        assert device_schema.status_code == status.HTTP_200_OK
+        assert public_schema.status_code == status.HTTP_200_OK
+
+    @pytest.mark.parametrize("path", ["/docs", "/docs/public", "/docs/device", "/docs/admin", "/redoc"])
+    async def test_backend_does_not_host_openapi_html_docs(self, openapi_client: AsyncClient, path: str) -> None:
+        """The backend should expose JSON contracts only; docs UI lives in the docs site."""
+        response = await openapi_client.get(path)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND

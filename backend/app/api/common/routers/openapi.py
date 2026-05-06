@@ -4,17 +4,15 @@ from types import MethodType
 from typing import TYPE_CHECKING, Any, cast
 
 from fastapi import APIRouter, FastAPI
-from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.requests import Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import Response
 from fastapi.routing import APIRoute
 
 from app.__version__ import version as service_version
 from app.api.audiences import OPENAPI_AUDIENCE_EXTENSION, PublicAPIRouter, RouteAudience, merge_audience_extra
 from app.api.common.config import settings as api_settings
-from app.api.common.routers.file_mounts import FAVICON_ROUTE
-from app.core.responses import conditional_html_response, conditional_json_response
+from app.core.responses import conditional_json_response
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -30,11 +28,6 @@ DEVICE_ROUTE_SUFFIXES = ("/image-upload", "/preview-thumbnail-upload", "/self")
 
 
 ### Route inclusion functions ###
-def _html_body_text(response: HTMLResponse) -> str:
-    """Normalize Starlette HTML response bodies to plain text."""
-    return bytes(response.body).decode("utf-8")
-
-
 def mark_router_routes_public(router: APIRouter) -> None:
     """Mark all routes in a router as public."""
     for route in router.routes:
@@ -160,7 +153,31 @@ def _is_device_operation(path: str, operation: dict[str, Any]) -> bool:
     return path.startswith(f"/{API_MAJOR}/plugins/rpi-cam/pairing/") or path.endswith(DEVICE_ROUTE_SUFFIXES)
 
 
-def init_openapi_docs(app: FastAPI) -> FastAPI:  # noqa: C901 - route declarations are intentionally colocated
+def _register_internal_docs(router: APIRouter, app: FastAPI) -> None:
+    """Register development/testing-only canonical and admin schemas."""
+
+    @router.get("/openapi.json")
+    async def get_openapi_schema(request: Request) -> Response:
+        return conditional_json_response(request, app.openapi())
+
+    @router.get("/openapi.admin.json")
+    async def get_admin_openapi(request: Request) -> Response:
+        return conditional_json_response(request, _build_admin_openapi(app))
+
+
+def _register_public_docs(router: APIRouter, app: FastAPI) -> None:
+    """Register public app and device/plugin integration schemas."""
+
+    @router.get("/openapi.public.json")
+    async def get_public_openapi(request: Request) -> Response:
+        return conditional_json_response(request, _build_public_openapi(app))
+
+    @router.get("/openapi.device.json")
+    async def get_device_openapi(request: Request) -> Response:
+        return conditional_json_response(request, _build_device_openapi(app))
+
+
+def init_openapi_docs(app: FastAPI, *, include_internal_contracts: bool) -> FastAPI:
     """Initialize OpenAPI documentation endpoints.
 
     Overrides app.openapi() so the complete schema is the canonical schema
@@ -175,65 +192,9 @@ def init_openapi_docs(app: FastAPI) -> FastAPI:  # noqa: C901 - route declaratio
     openapi_app.openapi = MethodType(_canonical_openapi, app)
 
     public_docs_router = APIRouter(prefix="", include_in_schema=False)
-
-    @public_docs_router.get("/openapi.json")
-    async def get_openapi_schema(request: Request) -> Response:
-        return conditional_json_response(request, app.openapi())
-
-    @public_docs_router.get("/docs")
-    async def get_swagger_docs(request: Request) -> Response:
-        html = get_swagger_ui_html(
-            openapi_url="/openapi.json",
-            title="API Documentation",
-            swagger_favicon_url=FAVICON_ROUTE,
-        )
-        return conditional_html_response(request, _html_body_text(html))
-
-    @public_docs_router.get("/redoc")
-    async def get_redoc_docs(request: Request) -> Response:
-        html = get_redoc_html(
-            openapi_url="/openapi.json", title="API Documentation - ReDoc", redoc_favicon_url=FAVICON_ROUTE
-        )
-        return conditional_html_response(request, _html_body_text(html))
-
-    @public_docs_router.get("/openapi.public.json")
-    async def get_public_openapi(request: Request) -> Response:
-        return conditional_json_response(request, _build_public_openapi(app))
-
-    @public_docs_router.get("/openapi.admin.json")
-    async def get_admin_openapi(request: Request) -> Response:
-        return conditional_json_response(request, _build_admin_openapi(app))
-
-    @public_docs_router.get("/openapi.device.json")
-    async def get_device_openapi(request: Request) -> Response:
-        return conditional_json_response(request, _build_device_openapi(app))
-
-    @public_docs_router.get("/docs/public")
-    async def get_public_swagger_docs(request: Request) -> Response:
-        html = get_swagger_ui_html(
-            openapi_url="/openapi.public.json",
-            title="Public API Documentation",
-            swagger_favicon_url=FAVICON_ROUTE,
-        )
-        return conditional_html_response(request, _html_body_text(html))
-
-    @public_docs_router.get("/docs/admin")
-    async def get_admin_swagger_docs(request: Request) -> Response:
-        html = get_swagger_ui_html(
-            openapi_url="/openapi.admin.json",
-            title="Admin API Documentation",
-            swagger_favicon_url=FAVICON_ROUTE,
-        )
-        return conditional_html_response(request, _html_body_text(html))
-
-    @public_docs_router.get("/docs/device")
-    async def get_device_swagger_docs(request: Request) -> Response:
-        html = get_swagger_ui_html(
-            openapi_url="/openapi.device.json",
-            title="Device API Documentation",
-            swagger_favicon_url=FAVICON_ROUTE,
-        )
-        return conditional_html_response(request, _html_body_text(html))
+    _register_public_docs(public_docs_router, app)
+    if include_internal_contracts:
+        _register_internal_docs(public_docs_router, app)
 
     app.include_router(public_docs_router)
 
