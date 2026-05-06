@@ -145,7 +145,7 @@ The plugin uses three separate contracts:
 
 - **App REST API**: `/v1/plugins/rpi-cam/cameras/*` for app-facing camera CRUD, status, capture commands, telemetry, local-access bootstrap, and stream controls.
 - **Device REST API**: `/v1/plugins/rpi-cam/device/cameras/*` for Pi-originated callbacks such as image upload, preview thumbnail upload, and self-unpair. These routes authenticate with short-lived device assertions rather than a user session.
-- **Device WebSocket protocol**: `/v1/plugins/rpi-cam/ws/connect` for the persistent outbound relay tunnel from the Pi to the backend.
+- **Device WebSocket protocol**: `/v1/plugins/rpi-cam/ws/connect` for the persistent outbound relay tunnel from the Pi to the backend. It is a non-browser endpoint: the Pi authenticates with a short-lived bearer device assertion, production pairing returns a `wss://` URL, browser `Origin` handshakes are rejected, WebSocket compression is disabled, and frame/queue sizes are bounded.
 
 OpenAPI covers the HTTP routes. The WebSocket tunnel is a protocol contract and should be treated separately from generated REST clients.
 
