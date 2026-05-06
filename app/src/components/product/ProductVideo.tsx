@@ -352,6 +352,7 @@ const embedContainerStyle = {
 };
 
 function VideoEmbed({ url, linkColor }: { url: string; linkColor: string }) {
+  const [loaded, setLoaded] = useState(false);
   const videoId = extractYouTubeVideoId(url);
   const handleOpenUrl = async () => openExternalUrl(url);
   if (!videoId) {
@@ -362,6 +363,18 @@ function VideoEmbed({ url, linkColor }: { url: string; linkColor: string }) {
     );
   }
   const embedUri = `https://www.youtube-nocookie.com/embed/${videoId}`;
+  if (!loaded) {
+    return (
+      <View style={styles.videoActions}>
+        <TouchableOpacity onPress={() => setLoaded(true)}>
+          <Text style={[styles.videoLink, { color: linkColor }]}>Load video</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleOpenUrl}>
+          <Text style={[styles.videoLink, { color: linkColor }]}>Open video</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
   if (Platform.OS === 'web') {
     return (
       <View style={embedContainerStyle}>
@@ -370,7 +383,7 @@ function VideoEmbed({ url, linkColor }: { url: string; linkColor: string }) {
           title="Embedded product video"
           style={styles.webEmbed}
           sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
-          referrerPolicy="strict-origin-when-cross-origin"
+          referrerPolicy="no-referrer"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
@@ -409,6 +422,11 @@ const styles = StyleSheet.create({
   },
   videoFields: {
     flex: 1,
+  },
+  videoActions: {
+    flexDirection: 'row',
+    gap: 16,
+    marginVertical: 4,
   },
   titleInput: {
     paddingHorizontal: 14,

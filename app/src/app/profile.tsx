@@ -61,6 +61,7 @@ export default function ProfileTab() {
       <ProfileAccountSection
         isVerified={profile.profile.isVerified}
         onLogout={actions.onLogout}
+        onRevokeAllSessions={actions.onRevokeAllSessions}
         onVerifyAccount={actions.onVerifyAccount}
       />
 

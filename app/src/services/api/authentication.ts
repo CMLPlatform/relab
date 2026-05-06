@@ -2,7 +2,11 @@ import { API_URL } from '@/config';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
 import { extractApiErrorDetail } from './authHelpers';
-import { login as loginFlow, logout as logoutFlow } from './authLogin';
+import {
+  login as loginFlow,
+  logout as logoutFlow,
+  revokeAllSessions as revokeAllSessionsFlow,
+} from './authLogin';
 import {
   clearCachedAuthState,
   fetchWithAuth as fetchWithAuthFlow,
@@ -58,6 +62,10 @@ export async function login(username: string, password: string): Promise<string 
 
 export async function logout(): Promise<void> {
   await logoutFlow(apiURL, clearCachedAuthState);
+}
+
+export async function revokeAllSessions(): Promise<void> {
+  await revokeAllSessionsFlow(apiURL, clearCachedAuthState);
 }
 
 export async function getUser(forceRefresh = false): Promise<User | undefined> {
