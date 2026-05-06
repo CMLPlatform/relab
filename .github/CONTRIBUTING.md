@@ -37,9 +37,10 @@ This is the recommended path into the repo if you use VS Code.
    ```bash
    cp backend/.env.dev.example backend/.env.dev
    cp .env.example .env
+   just deploy-secrets-template dev
    ```
 
-1. Fill in the required values in `backend/.env.dev` and `.env`.
+1. Fill in backend-only local values in `backend/.env.dev` and host-local Compose inputs in the root `.env`. Runtime secrets live in gitignored files under `secrets/dev/`.
 
 1. Reopen the repo in the `relab-fullstack` devcontainer.
 
@@ -79,12 +80,15 @@ This is the recommended path into the repo if you use VS Code.
 
 Use this when you want the full stack without configuring each subrepo manually.
 
-1. Create the backend environment file.
+1. Create the local environment files.
 
    ```bash
    cp backend/.env.dev.example backend/.env.dev
    cp .env.example .env
+   just deploy-secrets-template dev
    ```
+
+   `backend/.env.dev` is a backend-only local fixture. Root `.env` contains host-local Compose inputs, and runtime secrets live in `secrets/dev/`.
 
 1. Install local tooling.
 
@@ -199,14 +203,18 @@ The backend lives in `backend/`.
 cd backend
 uv sync --all-groups --frozen
 cp .env.dev.example .env.dev
+cd ..
+just deploy-secrets-template dev
+cd backend
 ./scripts/local_setup.sh
 just dev
 ```
 
 The API is available at <http://127.0.0.1:8000>.
 
-- Public docs: <http://127.0.0.1:8000/docs>
-- Full docs: <http://127.0.0.1:8000/docs/full> after authenticating as a superuser
+- Public API reference: <http://127.0.0.1:4300/api/public/>
+- Device API reference: <http://127.0.0.1:4300/api/device/>
+- Development/testing-only JSON contracts: <http://127.0.0.1:8000/openapi.json> and <http://127.0.0.1:8000/openapi.admin.json>
 
 ### OpenAPI Examples
 

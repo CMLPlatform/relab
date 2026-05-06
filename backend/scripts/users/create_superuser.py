@@ -24,7 +24,7 @@ async def create_superuser() -> None:
     superuser_password = settings.superuser_password
 
     if not superuser_email or not superuser_password:
-        err_msg = "SUPERUSER_EMAIL and SUPERUSER_PASSWORD must be set in the environment or .env file."
+        err_msg = "SUPERUSER_EMAIL and SUPERUSER_PASSWORD must be set in backend config and secrets/<env>/."
         raise ValueError(err_msg)
 
     try:

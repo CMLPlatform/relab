@@ -21,15 +21,36 @@ require_env() {
     done
 }
 
+read_secret() {
+    local env="${ENVIRONMENT:-dev}"
+    local env_name="$1"
+    local file_name="$2"
+    local file_path
+
+    for file_path in "/run/secrets/$file_name" "$BACKEND_DIR/../secrets/$env/$file_name"; do
+        if [[ -f "$file_path" ]]; then
+            tr -d '\n' <"$file_path"
+            return
+        fi
+    done
+
+    printf '%s' "${!env_name:-}"
+}
+
 echo "Running local setup script from $SCRIPT_DIR"
 echo "Backend directory: $BACKEND_DIR"
 
 echo "Setting up local development environment..."
 
-require_env DATABASE_HOST POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB
+require_env DATABASE_HOST POSTGRES_USER POSTGRES_DB
 
 # Set PGPASSWORD for non-interactive authentication with PostgreSQL
-export PGPASSWORD="$POSTGRES_PASSWORD"
+PGPASSWORD="$(read_secret POSTGRES_PASSWORD postgres_password)"
+if [[ -z "$PGPASSWORD" ]]; then
+    echo "POSTGRES_PASSWORD must be set in /run/secrets/postgres_password, ../secrets/${ENVIRONMENT:-dev}/postgres_password, or the environment." >&2
+    exit 1
+fi
+export PGPASSWORD
 
 MAX_RETRIES=10
 RETRY_COUNT=0

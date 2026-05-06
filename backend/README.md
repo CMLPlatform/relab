@@ -7,14 +7,18 @@ The backend provides the API, authentication flows, product and component data m
 ```bash
 just install
 cp .env.dev.example .env.dev
+(cd .. && just deploy-secrets-template dev)
 ./scripts/local_setup.sh
 just dev
 ```
 
 The API is then available at <http://localhost:8000>.
+`backend/.env.dev` stores non-secret config; local backend secrets live in `../secrets/dev/`.
 
-- API docs: <http://localhost:8000/docs>
-- Filtered OpenAPI schemas: <http://localhost:8000/openapi.public.json>, <http://localhost:8000/openapi.admin.json>, and <http://localhost:8000/openapi.device.json>
+- Filtered public contracts: <http://localhost:8000/openapi.public.json> and <http://localhost:8000/openapi.device.json>
+- Public API reference UI: <http://localhost:4300/api/public/>
+- Public device/plugin API reference UI: <http://localhost:4300/api/device/>
+- Development/testing-only internal contracts: <http://localhost:8000/openapi.json> and <http://localhost:8000/openapi.admin.json>
 
 ## Common Commands
 
@@ -57,6 +61,7 @@ Two examples of the preferred shape:
 The Raspberry Pi camera integration has two intentional contract layers:
 
 - **Public/frontend contract**: backend routes and OpenAPI remain the only app-facing API surface
+- **Public device/plugin contract**: `/openapi.device.json` documents the supported device integration surface, with the human reference hosted by the docs site
 - **Private device seam**: `relab-rpi-cam-models` owns the backend\<->plugin transport DTOs for pairing, relay envelopes, local-access bootstrap, and direct upload acknowledgements
 
 Frontend code should keep consuming backend-generated OpenAPI types rather than importing private device-seam DTOs directly.
@@ -79,12 +84,11 @@ Use the default provider:
 EMAIL_PROVIDER=smtp
 EMAIL_HOST=smtp.gmail.com
 EMAIL_USERNAME=sender@example.com
-EMAIL_PASSWORD=app-password-or-relay-secret
 EMAIL_FROM=Reverse Engineering Lab <sender@example.com>
 EMAIL_REPLY_TO=relab@example.com
 ```
 
-For a personal/free Google account, use an app password when available. For Workspace, prefer the Workspace SMTP relay when the domain policy allows it. Keep SPF, DKIM, and DMARC aligned for the sending domain. Google references: [send email with SMTP](https://support.google.com/a/answer/176600) and [email authentication](https://support.google.com/a/answer/10583557).
+Store the SMTP password in `../secrets/<env>/email_password`. For a personal/free Google account, use an app password when available. For Workspace, prefer the Workspace SMTP relay when the domain policy allows it. Keep SPF, DKIM, and DMARC aligned for the sending domain. Google references: [send email with SMTP](https://support.google.com/a/answer/176600) and [email authentication](https://support.google.com/a/answer/10583557).
 
 ### Microsoft Entra + Graph
 
@@ -96,12 +100,11 @@ EMAIL_FROM=Reverse Engineering Lab <relab@example.edu>
 EMAIL_REPLY_TO=relab@example.edu
 MICROSOFT_GRAPH_TENANT_ID=00000000-0000-0000-0000-000000000000
 MICROSOFT_GRAPH_CLIENT_ID=00000000-0000-0000-0000-000000000000
-MICROSOFT_GRAPH_CLIENT_SECRET=...
 MICROSOFT_GRAPH_SENDER_USER=relab@example.edu
 MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS=false
 ```
 
-Create a dedicated mailbox, register an Entra app, grant Microsoft Graph application permission `Mail.Send`, and restrict the app to that mailbox with an application access policy before production use. Microsoft references: [send mail with Graph](https://learn.microsoft.com/en-us/graph/api/user-sendmail), [client credentials](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow), and [application access policies](https://learn.microsoft.com/en-us/graph/auth-limit-mailbox-access).
+Store the Graph client secret in `../secrets/<env>/microsoft_graph_client_secret`. Create a dedicated mailbox, register an Entra app, grant Microsoft Graph application permission `Mail.Send`, and restrict the app to that mailbox with an application access policy before production use. Microsoft references: [send mail with Graph](https://learn.microsoft.com/en-us/graph/api/user-sendmail), [client credentials](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow), and [application access policies](https://learn.microsoft.com/en-us/graph/auth-limit-mailbox-access).
 
 Recurring newsletter delivery is not part of the runtime API; add it back only with a real sender workflow, unsubscribe handling, and preference-center support.
 
