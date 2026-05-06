@@ -1,0 +1,44 @@
+# spell-checker: ignore webview
+
+rules:
+  - id: relab.browser-runtime-safety.astro-set-html
+    message: Do not render unsanitized HTML with Astro set:html; use structured components instead.
+    severity: ERROR
+    languages: [ generic ]
+    paths:
+      include:
+        - "/docs/src/**/*.astro"
+        - "/www/src/**/*.astro"
+        - "/app/src/**/*.astro"
+    pattern-regex: '\bset:html\s*='
+
+  - id: relab.browser-runtime-safety.dom-html-sink
+    message: Do not write raw HTML into the DOM; use structured rendering or an explicitly reviewed sanitizer boundary.
+    severity: ERROR
+    languages: [ generic ]
+    paths:
+      include:
+        - "/docs/src/**"
+        - "/www/src/**"
+        - "/app/src/**"
+    pattern-regex: '\.(?:innerHTML|outerHTML)\s*=|\binsertAdjacentHTML\s*\(|\bdocument\.write\s*\('
+
+  - id: relab.browser-runtime-safety.webview-unsafe-origin
+    message: Do not add permissive or plaintext React Native WebView origins.
+    severity: ERROR
+    languages: [ generic ]
+    paths:
+      include:
+        - "/app/src/**"
+    pattern-regex: 'originWhitelist\s*=\s*\{\s*\[[^\]]*(?:["'']\*["'']|["'']http://)'
+
+  - id: relab.browser-runtime-safety.webview-new-usage
+    message: New React Native WebView usage must go through an explicit security review; keep WebView isolated to the reviewed product video component.
+    severity: ERROR
+    languages: [ generic ]
+    paths:
+      include:
+        - "/app/src/**"
+      exclude:
+        - "/app/src/components/product/ProductVideo.tsx"
+    pattern-regex: '(?:from\s+["'']react-native-webview["'']|require\(\s*["'']react-native-webview["'']\s*\))'
