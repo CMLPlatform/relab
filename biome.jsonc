@@ -5,7 +5,9 @@
     "includes": [
       // This root config covers the monorepo root itself.
       // Each subrepo owns its own Biome surface through its local biome.jsonc.
+      // Semgrep fixture files intentionally contain invalid examples.
       "**",
+      "!.semgrep",
       "!backend",
       "!app",
       "!www",
