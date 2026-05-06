@@ -9,7 +9,13 @@ import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useStopYouTubeStreamMutation } from '@/hooks/useRpiCameras';
 import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
-import { logout, unlinkOAuth, updateUser, verify } from '@/services/api/authentication';
+import {
+  logout,
+  revokeAllSessions,
+  unlinkOAuth,
+  updateUser,
+  verify,
+} from '@/services/api/authentication';
 import type { ThemeMode } from '@/types/User';
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -67,66 +73,6 @@ function useProfileDialogs(profile: { username: string | null } | null | undefin
       close: closeUnlinkDialog,
     },
   };
-}
-
-function finishLogout({
-  setActiveStream,
-  refetch,
-  router,
-  setIsLoggingOut,
-}: {
-  setActiveStream: (stream: null) => void;
-  refetch: (forceRefresh?: boolean) => Promise<unknown>;
-  router: ReturnType<typeof useRouter>;
-  setIsLoggingOut: (value: boolean) => void;
-}) {
-  setActiveStream(null);
-  void logout()
-    .then(() => {
-      void refetch(false);
-      router.replace('/products');
-    })
-    .finally(() => setIsLoggingOut(false));
-}
-
-function confirmProfileLogout({
-  activeStream,
-  stopStream,
-  feedback,
-  setIsLoggingOut,
-  closeLogoutDialog,
-  setActiveStream,
-  refetch,
-  router,
-}: {
-  activeStream: { productName: string } | null;
-  stopStream: (callbacks: { onSuccess: () => void; onError: () => void }) => void;
-  feedback: ReturnType<typeof useAppFeedback>;
-  setIsLoggingOut: (value: boolean) => void;
-  closeLogoutDialog: () => void;
-  setActiveStream: (stream: null) => void;
-  refetch: (forceRefresh?: boolean) => Promise<unknown>;
-  router: ReturnType<typeof useRouter>;
-}) {
-  closeLogoutDialog();
-  setIsLoggingOut(true);
-
-  const proceed = () => finishLogout({ setActiveStream, refetch, router, setIsLoggingOut });
-  if (!activeStream) {
-    proceed();
-    return;
-  }
-
-  stopStream({
-    onSuccess: proceed,
-    onError: () => {
-      feedback.error(
-        'Failed to stop the stream. Please stop it manually before logging out.',
-        'Stream error',
-      );
-      setIsLoggingOut(false);
-    },
-  });
 }
 
 async function sendVerificationEmail({
@@ -325,6 +271,48 @@ function useProfileActions({
   youtubeEnabled: boolean;
   setYoutubeEnabled: (enabled: boolean) => Promise<void>;
 }) {
+  const exitSession = useCallback(
+    ({
+      endSession,
+      redirectTo,
+      closeDialog,
+    }: {
+      endSession: () => Promise<void>;
+      redirectTo: '/login' | '/products';
+      closeDialog?: () => void;
+    }) => {
+      closeDialog?.();
+      setIsLoggingOut(true);
+
+      const proceed = () => {
+        setActiveStream(null);
+        void endSession()
+          .then(() => {
+            void refetch(false);
+            router.replace(redirectTo);
+          })
+          .finally(() => setIsLoggingOut(false));
+      };
+
+      if (!activeStream) {
+        proceed();
+        return;
+      }
+
+      stopStreamMutation.mutate(undefined, {
+        onSuccess: proceed,
+        onError: () => {
+          feedback.error(
+            'Failed to stop the stream. Please stop it manually before logging out.',
+            'Stream error',
+          );
+          setIsLoggingOut(false);
+        },
+      });
+    },
+    [activeStream, feedback, refetch, router, setActiveStream, setIsLoggingOut, stopStreamMutation],
+  );
+
   const onLogout = useCallback(() => {
     if (activeStream) {
       feedback.alert({
@@ -341,32 +329,24 @@ function useProfileActions({
   }, [activeStream, dialogs.logoutDialog, feedback]);
 
   const confirmLogout = useCallback(() => {
-    confirmProfileLogout({
-      activeStream,
-      stopStream: ({ onSuccess, onError }) =>
-        stopStreamMutation.mutate(undefined, { onSuccess, onError }),
-      feedback,
-      setIsLoggingOut,
-      closeLogoutDialog: dialogs.logoutDialog.close,
-      setActiveStream,
-      refetch,
-      router,
+    exitSession({
+      closeDialog: dialogs.logoutDialog.close,
+      endSession: logout,
+      redirectTo: '/products',
     });
-  }, [
-    activeStream,
-    dialogs.logoutDialog.close,
-    feedback,
-    refetch,
-    router,
-    setActiveStream,
-    setIsLoggingOut,
-    stopStreamMutation,
-  ]);
+  }, [dialogs.logoutDialog.close, exitSession]);
 
   const onVerifyAccount = useCallback(() => {
     if (!profile) return;
     void sendVerificationEmail({ email: profile.email, feedback });
   }, [feedback, profile]);
+
+  const onRevokeAllSessions = useCallback(() => {
+    exitSession({
+      endSession: revokeAllSessions,
+      redirectTo: '/login',
+    });
+  }, [exitSession]);
 
   const handleUpdateUsername = useCallback(async () => {
     await updateProfileUsername({
@@ -398,6 +378,7 @@ function useProfileActions({
   return {
     onLogout,
     confirmLogout,
+    onRevokeAllSessions,
     onVerifyAccount,
     handleUpdateUsername,
     handleUnlinkOAuthConfirm,

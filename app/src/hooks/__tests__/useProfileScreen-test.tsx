@@ -18,6 +18,7 @@ const mockSetThemeMode: jest.Mock = jest.fn();
 const mockVerify: jest.Mock = jest.fn();
 const mockUpdateUser: jest.Mock = jest.fn();
 const mockLogout: jest.Mock = jest.fn();
+const mockRevokeAllSessions: jest.Mock = jest.fn();
 const mockStopStreamMutate: jest.Mock = jest.fn();
 const mockProfile = {
   id: 'user-1',
@@ -89,6 +90,7 @@ jest.mock('@/hooks/useRpiCameras', () => ({
 jest.mock('@/services/api/authentication', () => ({
   getToken: jest.fn(),
   logout: (...args: unknown[]) => mockLogout(...args),
+  revokeAllSessions: (...args: unknown[]) => mockRevokeAllSessions(...args),
   unlinkOAuth: jest.fn(),
   updateUser: (...args: unknown[]) => mockUpdateUser(...args),
   verify: (...args: unknown[]) => mockVerify(...args),
@@ -123,6 +125,7 @@ describe('useProfileScreen', () => {
     mockVerify.mockImplementation(async () => true);
     mockUpdateUser.mockImplementation(async () => undefined);
     mockLogout.mockImplementation(async () => undefined);
+    mockRevokeAllSessions.mockImplementation(async () => undefined);
     mockStopStreamMutate.mockImplementation((...args: unknown[]) => {
       const options = args[1] as { onSuccess?: () => void } | undefined;
       options?.onSuccess?.();
@@ -205,6 +208,43 @@ describe('useProfileScreen', () => {
     });
 
     expect(mockLogout).not.toHaveBeenCalled();
+    expect(mockSetActiveStream).not.toHaveBeenCalledWith(null);
+    expect(mockFeedback.error).toHaveBeenCalledWith(
+      'Failed to stop the stream. Please stop it manually before logging out.',
+      'Stream error',
+    );
+  });
+
+  it('stops an active stream before signing out everywhere', async () => {
+    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+
+    await act(async () => {
+      result.current.actions.onRevokeAllSessions();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(mockStopStreamMutate).toHaveBeenCalled();
+    expect(mockSetActiveStream).toHaveBeenCalledWith(null);
+    expect(mockRevokeAllSessions).toHaveBeenCalled();
+    expect(mockRefetch).toHaveBeenCalledWith(false);
+    expect(mockReplace).toHaveBeenCalledWith('/login');
+  });
+
+  it('aborts sign out everywhere when stopping the active stream fails', async () => {
+    mockStopStreamMutate.mockImplementation((...args: unknown[]) => {
+      const options = args[1] as { onError?: (error: unknown) => void } | undefined;
+      options?.onError?.(new Error('stop failed'));
+    });
+
+    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+
+    await act(async () => {
+      result.current.actions.onRevokeAllSessions();
+      await Promise.resolve();
+    });
+
+    expect(mockRevokeAllSessions).not.toHaveBeenCalled();
     expect(mockSetActiveStream).not.toHaveBeenCalledWith(null);
     expect(mockFeedback.error).toHaveBeenCalledWith(
       'Failed to stop the stream. Please stop it manually before logging out.',

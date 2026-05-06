@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { login, logout } from '../authLogin';
+import { login, logout, revokeAllSessions } from '../authLogin';
 import { authRuntime } from '../authRuntime';
 
 jest.mock('../authSession', () => ({
@@ -163,6 +163,29 @@ describe('authLogin', () => {
       expect.objectContaining({ href: expect.stringContaining('/auth/bearer/logout') }),
       expect.objectContaining({
         body: JSON.stringify({ refresh_token: 'stored-refresh-token' }),
+        headers: expect.objectContaining({ Authorization: 'Bearer stored-access-token' }),
+      }),
+    );
+  });
+
+  it('revokes all sessions through the shared endpoint and clears cached state first', async () => {
+    const { fetchWithTimeout } = jest.requireMock('../request') as {
+      fetchWithTimeout: jest.Mock;
+    };
+    const { loadStoredAccessToken } = jest.requireMock('../authSession') as {
+      loadStoredAccessToken: jest.MockedFunction<() => Promise<string | undefined>>;
+    };
+    loadStoredAccessToken.mockResolvedValueOnce('stored-access-token');
+    const clearCachedAuthState = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
+
+    await revokeAllSessions('http://localhost:8000', clearCachedAuthState);
+
+    expect(clearCachedAuthState).toHaveBeenCalled();
+    expect(fetchWithTimeout).toHaveBeenCalledWith(
+      expect.objectContaining({ href: expect.stringContaining('/auth/sessions/revoke-all') }),
+      expect.objectContaining({
+        method: 'POST',
         headers: expect.objectContaining({ Authorization: 'Bearer stored-access-token' }),
       }),
     );

@@ -98,13 +98,9 @@ export async function logout(
 ): Promise<void> {
   const web = isWeb();
   const refreshToken = web ? undefined : await loadStoredRefreshToken();
-  const accessToken = authRuntime.token ?? (web ? undefined : await loadStoredAccessToken());
   const logoutPath = web ? '/auth/session/logout' : '/auth/bearer/logout';
   const body = refreshToken ? JSON.stringify({ refresh_token: refreshToken }) : undefined;
-  const headers: Record<string, string> = {};
-  if (!web && accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  }
+  const headers = await getNativeAuthorizationHeaders();
   if (refreshToken) {
     headers['Content-Type'] = 'application/json';
   }
@@ -120,4 +116,28 @@ export async function logout(
   } catch (err) {
     logError('[Logout Fetch Error]:', err);
   }
+}
+
+export async function revokeAllSessions(
+  apiUrl: string,
+  clearCachedAuthState: () => Promise<void>,
+): Promise<void> {
+  const headers = await getNativeAuthorizationHeaders();
+
+  await clearCachedAuthState();
+  try {
+    await fetchWithTimeout(new URL(`${apiUrl}/auth/sessions/revoke-all`), {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+    });
+  } catch (err) {
+    logError('[Revoke All Sessions Fetch Error]:', err);
+  }
+}
+
+async function getNativeAuthorizationHeaders(): Promise<Record<string, string>> {
+  const web = isWeb();
+  const accessToken = authRuntime.token ?? (web ? undefined : await loadStoredAccessToken());
+  return web || !accessToken ? {} : { Authorization: `Bearer ${accessToken}` };
 }

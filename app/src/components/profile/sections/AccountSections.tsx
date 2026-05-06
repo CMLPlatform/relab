@@ -6,12 +6,14 @@ import { type OAuthAccount, ProfileAction, ProfileSectionHeader } from './shared
 type ProfileAccountSectionProps = {
   isVerified: boolean;
   onLogout: () => void;
+  onRevokeAllSessions: () => void;
   onVerifyAccount: () => void;
 };
 
 export function ProfileAccountSection({
   isVerified,
   onLogout,
+  onRevokeAllSessions,
   onVerifyAccount,
 }: ProfileAccountSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
@@ -23,6 +25,12 @@ export function ProfileAccountSection({
           title="Logout"
           subtitle="Switch to another account"
           onPress={onLogout}
+          titleStyle={styles.danger}
+        />
+        <ProfileAction
+          title="Sign out everywhere"
+          subtitle="End all active sessions for this account"
+          onPress={onRevokeAllSessions}
           titleStyle={styles.danger}
         />
         {!isVerified ? (

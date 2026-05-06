@@ -179,7 +179,7 @@ describe('ProductVideo', () => {
     expect(screen.getByDisplayValue('A great talk')).toBeOnTheScreen();
   });
 
-  it('constrains native YouTube WebView embeds to the privacy-enhanced origin', () => {
+  it('loads native YouTube WebView embeds only after explicit user action', () => {
     const productWithVideo: Product = {
       ...baseProduct,
       videos: [
@@ -194,6 +194,9 @@ describe('ProductVideo', () => {
 
     renderProductVideo({ product: productWithVideo });
     fireEvent.press(screen.getByText('Show (1)'));
+
+    expect(screen.queryByTestId('mock-webview')).toBeNull();
+    fireEvent.press(screen.getByText('Load video'));
 
     expect(screen.getByTestId('mock-webview')).toHaveProp('originWhitelist', [
       'https://www.youtube-nocookie.com',
