@@ -63,14 +63,25 @@ def test_load_aesgcm_rejects_wrong_key_length() -> None:
         migration.load_aesgcm(short_key)
 
 
-def test_get_env_secret_prefers_direct_value(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """Direct env vars should win over *_FILE fallbacks."""
+def test_get_env_secret_prefers_root_secret_over_explicit_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Root secrets/<env> files should win over explicit *_FILE compatibility."""
+    root_secrets = tmp_path / "secrets" / "dev"
+    root_secrets.mkdir(parents=True)
     secret_file = tmp_path / "secret"
-    secret_file.write_text("from-file", encoding="utf-8")
+    (root_secrets / "database_app_password").write_text("from-root", encoding="utf-8")
+    secret_file.write_text("from-explicit-file", encoding="utf-8")
     monkeypatch.setenv("DATABASE_APP_PASSWORD", "from-env")
     monkeypatch.setenv("DATABASE_APP_PASSWORD_FILE", str(secret_file))
+    monkeypatch.setenv("ENVIRONMENT", "dev")
 
-    assert migration.get_env_secret("DATABASE_APP_PASSWORD") == "from-env"
+    assert (
+        migration.get_env_secret(
+            "DATABASE_APP_PASSWORD",
+            repo_dir=tmp_path,
+            docker_secrets_dir=tmp_path / "missing",
+        )
+        == "from-root"
+    )
 
 
 def test_get_env_secret_reads_file_fallback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -81,6 +92,25 @@ def test_get_env_secret_reads_file_fallback(monkeypatch: pytest.MonkeyPatch, tmp
     monkeypatch.setenv("DATABASE_APP_PASSWORD_FILE", str(secret_file))
 
     assert migration.get_env_secret("DATABASE_APP_PASSWORD") == "from-file"
+
+
+def test_get_env_secret_reads_root_environment_secret_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Bare-metal maintenance scripts should read root secrets/<env> files."""
+    root_secrets = tmp_path / "secrets" / "dev"
+    root_secrets.mkdir(parents=True)
+    (root_secrets / "data_encryption_key").write_text(_aes_key(), encoding="utf-8")
+    monkeypatch.delenv("DATA_ENCRYPTION_KEY", raising=False)
+    monkeypatch.delenv("DATA_ENCRYPTION_KEY_FILE", raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "dev")
+
+    assert (
+        migration.get_env_secret(
+            "DATA_ENCRYPTION_KEY",
+            repo_dir=tmp_path,
+            docker_secrets_dir=tmp_path / "missing",
+        )
+        == _aes_key()
+    )
 
 
 def test_target_select_queries_use_psycopg_identifiers() -> None:
