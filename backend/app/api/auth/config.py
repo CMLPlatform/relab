@@ -121,7 +121,7 @@ class AuthSettings(RelabBaseSettings):
 
     # Auth settings - Refresh tokens and sessions
     refresh_token_expire_days: int = 30  # 30 days for long-lived refresh tokens
-    session_id_length: int = 32
+    refresh_session_absolute_expire_days: int = 30  # 30 days maximum session lifetime
 
     # Auth settings - Rate limiting
     rate_limit_login_attempts_per_minute: int = 3
