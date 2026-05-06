@@ -1,6 +1,6 @@
 # compose.dev.yaml (DEVELOPMENT - explicit dev overlay)
 # spell-checker: ignore REDISCLI requirepass
-# Run with: docker compose -p relab_dev --env-file deploy/env/dev.compose.env -f compose.yaml -f compose.dev.yaml up
+# Run with: COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml up
 
 x-backend-runtime-secrets: &backend-runtime-secrets
   - database_app_password
@@ -31,7 +31,9 @@ services:
       FRONTEND_APP_URL: ${APP_PUBLIC_URL:-http://localhost:8013}
       SITE_PUBLIC_URL: ${SITE_PUBLIC_URL:-http://localhost:8010}
       DOCS_URL: ${DOCS_PUBLIC_URL:-http://localhost:8012}
-    env_file: ./backend/.env.dev
+    env_file:
+      - path: ./backend/.env.dev
+        required: false
     secrets: *backend-runtime-secrets
     develop:
       watch:
@@ -52,7 +54,6 @@ services:
   redis:
     ports:
       - "127.0.0.1:6379:6379"
-    env_file: ./backend/.env.dev
     secrets:
       - redis_password
     healthcheck:
@@ -67,8 +68,12 @@ services:
   postgres:
     ports:
       - "127.0.0.1:5432:5432"
-    env_file: ./backend/.env.dev
     environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: relab_db
+      DATABASE_APP_USER: relab_app
+      DATABASE_MIGRATION_USER: relab_migrator
+      DATABASE_BACKUP_USER: relab_backup
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       DATABASE_APP_PASSWORD_FILE: /run/secrets/database_app_password
       DATABASE_MIGRATION_PASSWORD_FILE: /run/secrets/database_migration_password
@@ -80,7 +85,6 @@ services:
       - database_backup_password
 
   migrator:
-    env_file: ./backend/.env.dev
     secrets: *backend-runtime-secrets
 
   docs:

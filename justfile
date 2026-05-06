@@ -6,7 +6,7 @@
 default:
     @just --list
 
-dev_compose := "docker compose -p relab_dev --env-file deploy/env/dev.compose.env -f compose.yaml -f compose.dev.yaml"
+dev_compose := "COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml"
 ci_compose := "docker compose -p relab_test -f compose.yaml -f compose.ci.yaml"
 cloudflare_dir := "infra/cloudflare"
 
@@ -46,6 +46,14 @@ update:
 _pre-commit-install:
     uv run pre-commit install
     @echo "✅ Pre-commit hooks installed"
+
+# Sync shared brand assets into consumer subrepos
+assets-sync:
+    uv run python scripts/sync_brand_assets.py
+
+# Verify shared brand assets are in sync
+assets-check:
+    uv run python scripts/sync_brand_assets.py --check
 
 # Create a conventional commit message interactively
 _commit:
@@ -272,7 +280,7 @@ compose-config:
 env-policy-check:
     @uv run python scripts/env_policy.py check
 
-# Print the root-owned variable and secret inventory
+# Print the root-owned runtime secret inventory
 env-inventory:
     @uv run python scripts/env_policy.py inventory
 
@@ -289,8 +297,8 @@ deploy-secrets-template env:
 # ============================================================================
 
 
-# Start only the development database and cache infrastructure and wait for readiness
-_dev-db:
+# Start the development database and cache infrastructure and wait for readiness
+dev-db:
     {{ dev_compose }} up -d --wait postgres redis
 
 # Start backend + its infrastructure (database, cache) with hot reload

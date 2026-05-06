@@ -1,77 +1,9 @@
-# RELab variable and secret inventory.
+# RELab runtime secret inventory.
 #
-# This provider-neutral contract keeps Docker Compose simple today and leaves a
-# clean path for a later external manager such as Infisical to sync runtime
-# secrets into host files.
+# This provider-neutral contract leaves a clean path for a later external
+# manager such as Infisical to sync runtime secrets into host files.
 
 [env_policy]
-committed_deploy = [
-  "ENVIRONMENT",
-  "API_PUBLIC_URL",
-  "APP_PUBLIC_URL",
-  "SITE_PUBLIC_URL",
-  "DOCS_PUBLIC_URL",
-  "OAUTH_ALLOWED_REDIRECT_URIS",
-  "WEB_CONCURRENCY",
-]
-
-root_operator_inputs = [
-  "COMPOSE_BAKE",
-  "CLOUDFLARE_TUNNEL_TOKEN",
-  "GOOGLE_OAUTH_CLIENT_ID",
-  "GITHUB_OAUTH_CLIENT_ID",
-  "EMAIL_PROVIDER",
-  "EMAIL_FROM",
-  "EMAIL_REPLY_TO",
-  "SMTP_HOST",
-  "SMTP_USERNAME",
-  "MICROSOFT_GRAPH_TENANT_ID",
-  "MICROSOFT_GRAPH_CLIENT_ID",
-  "MICROSOFT_GRAPH_SENDER_USER",
-  "MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS",
-  "BOOTSTRAP_SUPERUSER_EMAIL",
-  "BOOTSTRAP_SUPERUSER_NAME",
-  "LOKI_PUSH_URL",
-  "OTEL_EXPORTER_OTLP_ENDPOINT",
-  "OTEL_EXPORTER_OTLP_HEADERS",
-  "BACKUP_HOST_DIR",
-  "BACKUP_INTERVAL_SECONDS",
-  "RESTIC_KEEP_HOURLY",
-  "RESTIC_KEEP_DAILY",
-  "RESTIC_KEEP_WEEKLY",
-  "RESTIC_KEEP_MONTHLY",
-  "RESTIC_OFFSITE_REPOSITORY",
-]
-
-backend_dev_fixtures = [
-  "DATABASE_HOST",
-  "DATABASE_SSL",
-  "POSTGRES_USER",
-  "POSTGRES_DB",
-  "DATABASE_APP_USER",
-  "DATABASE_MIGRATION_USER",
-  "DATABASE_BACKUP_USER",
-  "GOOGLE_OAUTH_CLIENT_ID",
-  "GITHUB_OAUTH_CLIENT_ID",
-  "OAUTH_ALLOWED_REDIRECT_URIS",
-  "EMAIL_PROVIDER",
-  "SMTP_HOST",
-  "SMTP_USERNAME",
-  "EMAIL_FROM",
-  "EMAIL_REPLY_TO",
-  "MICROSOFT_GRAPH_TENANT_ID",
-  "MICROSOFT_GRAPH_CLIENT_ID",
-  "MICROSOFT_GRAPH_SENDER_USER",
-  "MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS",
-  "REDIS_HOST",
-  "BOOTSTRAP_SUPERUSER_EMAIL",
-  "BOOTSTRAP_SUPERUSER_NAME",
-  "BACKEND_API_URL",
-  "FRONTEND_APP_URL",
-  "SITE_PUBLIC_URL",
-  "CORS_ORIGIN_REGEX",
-]
-
 runtime_secret_files = [
   "postgres_password",
   "database_app_password",
@@ -90,31 +22,4 @@ runtime_secret_files = [
   "bootstrap_superuser_password",
 ]
 
-required_compose_values = [
-  "CLOUDFLARE_TUNNEL_TOKEN",
-  "GOOGLE_OAUTH_CLIENT_ID",
-  "GITHUB_OAUTH_CLIENT_ID",
-  "EMAIL_PROVIDER",
-  "EMAIL_FROM",
-  "EMAIL_REPLY_TO",
-  "BOOTSTRAP_SUPERUSER_EMAIL",
-]
-
 infisical_path_template = "/relab/{env}/{name}"
-
-[env_policy.runtime_secret_env]
-postgres_password = "POSTGRES_PASSWORD"
-database_app_password = "DATABASE_APP_PASSWORD"
-database_migration_password = "DATABASE_MIGRATION_PASSWORD"
-database_backup_password = "DATABASE_BACKUP_PASSWORD"
-redis_password = "REDIS_PASSWORD"
-restic_password = "RESTIC_PASSWORD"
-auth_token_secret = "AUTH_TOKEN_SECRET"
-oauth_state_secret = "OAUTH_STATE_SECRET"
-cache_signing_secret = "CACHE_SIGNING_SECRET"
-data_encryption_key = "DATA_ENCRYPTION_KEY"
-google_oauth_client_secret = "GOOGLE_OAUTH_CLIENT_SECRET"
-github_oauth_client_secret = "GITHUB_OAUTH_CLIENT_SECRET"
-smtp_password = "SMTP_PASSWORD"
-microsoft_graph_client_secret = "MICROSOFT_GRAPH_CLIENT_SECRET"
-bootstrap_superuser_password = "BOOTSTRAP_SUPERUSER_PASSWORD"

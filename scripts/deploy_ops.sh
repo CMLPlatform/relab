@@ -4,41 +4,33 @@ set -euo pipefail
 
 PROD_COMPOSE_ENV="${PROD_COMPOSE_ENV:-deploy/env/prod.compose.env}"
 STAGING_COMPOSE_ENV="${STAGING_COMPOSE_ENV:-deploy/env/staging.compose.env}"
-DEV_COMPOSE_ENV="${DEV_COMPOSE_ENV:-deploy/env/dev.compose.env}"
-DEPLOY_CREATED_DEV_ENV=false
-DEPLOY_CREATED_ROOT_ENV=false
 
-deploy_prepare_compose_validation_files() {
-    if [[ ! -f backend/.env.dev && -f backend/.env.dev.example ]]; then
-        cp backend/.env.dev.example backend/.env.dev
-        DEPLOY_CREATED_DEV_ENV=true
-    fi
-    if [[ ! -f .env ]]; then
-        : >.env
-        DEPLOY_CREATED_ROOT_ENV=true
-    fi
-
-    export CLOUDFLARE_TUNNEL_TOKEN="${CLOUDFLARE_TUNNEL_TOKEN:-placeholder}"
-    export LOKI_PUSH_URL="${LOKI_PUSH_URL:-http://placeholder/loki/api/v1/push}"
-    export GOOGLE_OAUTH_CLIENT_ID="${GOOGLE_OAUTH_CLIENT_ID:-placeholder-google-client-id}"
-    export GITHUB_OAUTH_CLIENT_ID="${GITHUB_OAUTH_CLIENT_ID:-placeholder-github-client-id}"
-    export EMAIL_PROVIDER="${EMAIL_PROVIDER:-smtp}"
-    export SMTP_HOST="${SMTP_HOST:-smtp.example.test}"
-    export SMTP_USERNAME="${SMTP_USERNAME:-relab@example.test}"
-    export EMAIL_FROM="${EMAIL_FROM:-Reverse Engineering Lab <relab@example.test>}"
-    export EMAIL_REPLY_TO="${EMAIL_REPLY_TO:-relab@example.test}"
-    export BOOTSTRAP_SUPERUSER_EMAIL="${BOOTSTRAP_SUPERUSER_EMAIL:-admin@example.test}"
-}
-
-deploy_cleanup_compose_validation_files() {
-    [[ "$DEPLOY_CREATED_DEV_ENV" == true ]] && rm -f backend/.env.dev
-    [[ "$DEPLOY_CREATED_ROOT_ENV" == true ]] && rm -f .env
-    return 0
+write_validation_env_file() {
+    local path="$1"
+    cat >"$path" <<'EOF'
+CLOUDFLARE_TUNNEL_TOKEN=placeholder
+LOKI_PUSH_URL=http://placeholder/loki/api/v1/push
+GOOGLE_OAUTH_CLIENT_ID=placeholder-google-client-id
+GITHUB_OAUTH_CLIENT_ID=placeholder-github-client-id
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.example.test
+SMTP_USERNAME=relab@example.test
+EMAIL_FROM=Reverse Engineering Lab <relab@example.test>
+EMAIL_REPLY_TO=relab@example.test
+BOOTSTRAP_SUPERUSER_EMAIL=admin@example.test
+EOF
 }
 
 loki_overlay_args() {
-    if [[ -f .env ]] && grep -qE '^LOKI_PUSH_URL=[^[:space:]]' .env; then
+    local root_env_file="${1:-.env}"
+    if [[ -f "$root_env_file" ]] && grep -qE '^LOKI_PUSH_URL=[^[:space:]]' "$root_env_file"; then
         printf '%s\n' -f compose.logging.loki.yaml
+    fi
+}
+
+host_overlay_args() {
+    if [[ -f compose.host.yaml ]]; then
+        printf '%s\n' -f compose.host.yaml
     fi
 }
 
@@ -56,12 +48,14 @@ compose_env_file() {
 
 compose_args() {
     local env="$1"
+    local root_env_file="${2:-.env}"
     local compose_env
 
     compose_env="$(compose_env_file "$env")"
 
-    printf '%s\n' docker compose -p "relab_$env" --env-file .env --env-file "$compose_env" -f compose.yaml -f compose.deploy.yaml
-    loki_overlay_args
+    printf '%s\n' docker compose -p "relab_$env" --env-file "$root_env_file" --env-file "$compose_env" -f compose.yaml -f compose.deploy.yaml
+    loki_overlay_args "$root_env_file"
+    host_overlay_args
 }
 
 run_deploy_compose() {
@@ -71,10 +65,19 @@ run_deploy_compose() {
     "${compose_command[@]}" "$@"
 }
 
+run_validation_deploy_compose() {
+    local env="$1"
+    local root_env_file="$2"
+    shift 2
+    mapfile -t compose_command < <(compose_args "$env" "$root_env_file")
+    "${compose_command[@]}" "$@"
+}
+
 render_compose_json() {
     local env="$1"
-    local output_path="$2"
-    shift 2
+    local root_env_file="$2"
+    local output_path="$3"
+    shift 3
 
     local -a profile_flags=()
     local profile
@@ -82,21 +85,28 @@ render_compose_json() {
         profile_flags+=(--profile "$profile")
     done
 
-    run_deploy_compose "$env" "${profile_flags[@]}" config --format json >"$output_path"
+    run_validation_deploy_compose "$env" "$root_env_file" "${profile_flags[@]}" config --format json >"$output_path"
 }
 
 compose_config() {
-    deploy_prepare_compose_validation_files
-    trap deploy_cleanup_compose_validation_files EXIT
+    tmp_root="$(mktemp -d)"
+    cleanup() {
+        rm -rf "$tmp_root"
+    }
+    trap cleanup EXIT
+    local validation_env="$tmp_root/validation.env"
+    write_validation_env_file "$validation_env"
 
     local env
-    docker compose -p relab_dev --env-file "$DEV_COMPOSE_ENV" -f compose.yaml -f compose.dev.yaml config >/dev/null
+    COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml config >/dev/null
     docker compose -p relab_test -f compose.yaml -f compose.ci.yaml config >/dev/null
     for env in staging prod; do
-        run_deploy_compose "$env" config >/dev/null
-        run_deploy_compose "$env" --profile backups --profile migrations config >/dev/null
-        docker compose -p "relab_$env" --env-file .env --env-file "$(compose_env_file "$env")" \
-            -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml config >/dev/null
+        run_validation_deploy_compose "$env" "$validation_env" config >/dev/null
+        run_validation_deploy_compose "$env" "$validation_env" --profile backups --profile migrations config >/dev/null
+        local -a host_args=()
+        mapfile -t host_args < <(host_overlay_args)
+        docker compose -p "relab_$env" --env-file "$validation_env" --env-file "$(compose_env_file "$env")" \
+            -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml "${host_args[@]}" config >/dev/null
     done
     docker compose -p relab_e2e -f compose.e2e.yaml config >/dev/null
 
@@ -107,14 +117,14 @@ validate_deploy_secret_paths() {
     tmp_root="$(mktemp -d)"
     cleanup() {
         rm -rf "$tmp_root"
-        deploy_cleanup_compose_validation_files
     }
     trap cleanup EXIT
 
-    deploy_prepare_compose_validation_files
-    docker compose -p relab_dev --env-file "$DEV_COMPOSE_ENV" -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/dev.json"
-    render_compose_json prod "$tmp_root/prod.json" backups migrations
-    render_compose_json staging "$tmp_root/staging.json" backups migrations
+    local validation_env="$tmp_root/validation.env"
+    write_validation_env_file "$validation_env"
+    COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/dev.json"
+    render_compose_json prod "$validation_env" "$tmp_root/prod.json" backups migrations
+    render_compose_json staging "$validation_env" "$tmp_root/staging.json" backups migrations
     uv run python scripts/env_policy.py secrets-check \
         dev="$tmp_root/dev.json" \
         prod="$tmp_root/prod.json" \
@@ -154,16 +164,16 @@ deploy_secrets_template() {
     tmp_root="$(mktemp -d)"
     cleanup() {
         rm -rf "$tmp_root"
-        deploy_cleanup_compose_validation_files
     }
     trap cleanup EXIT
 
-    deploy_prepare_compose_validation_files
+    local validation_env="$tmp_root/validation.env"
+    write_validation_env_file "$validation_env"
 
     if [[ "$env" == "dev" ]]; then
-        docker compose -p relab_dev --env-file "$DEV_COMPOSE_ENV" -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/$env.json"
+        COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/$env.json"
     else
-        render_compose_json "$env" "$tmp_root/$env.json" backups migrations
+        render_compose_json "$env" "$validation_env" "$tmp_root/$env.json" backups migrations
     fi
 
     mkdir -p "secrets/$env"
