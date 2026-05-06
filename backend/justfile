@@ -115,6 +115,14 @@ migrate-reset:
 compile-email:
     uv run python -m scripts.generate.compile_email_templates
 
+# Export OpenAPI schemas consumed by the docs site
+openapi:
+    uv run python -m scripts.generate.export_openapi
+
+# Check that exported docs OpenAPI schemas are current
+openapi-check:
+    uv run python -m scripts.generate.export_openapi --check
+
 # Refresh the committed disposable-email fallback list from the upstream source
 refresh-disposable-email-domains:
     uv run python -m scripts.maintenance.refresh_disposable_email_domains

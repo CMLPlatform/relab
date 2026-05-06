@@ -46,16 +46,6 @@ const HEAD_LINKS = [
     tag: 'link',
     attrs: {
       rel: 'preload',
-      href: '/fonts/literata-latin.woff2',
-      as: 'font',
-      type: 'font/woff2',
-      crossorigin: true,
-    },
-  },
-  {
-    tag: 'link',
-    attrs: {
-      rel: 'preload',
       href: '/fonts/ibm-plex-sans-latin.woff2',
       as: 'font',
       type: 'font/woff2',

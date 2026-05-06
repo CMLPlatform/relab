@@ -6,78 +6,6 @@ import { adaptNavigationTheme, MD3DarkTheme, MD3LightTheme } from 'react-native-
 import { createTokens } from '@/theme/tokens';
 import type { AppScheme, AppTheme } from '@/theme/types';
 
-const FONT_FAMILY = {
-  regular: 'IBMPlexSans-Regular',
-  medium: 'IBMPlexSans-Medium',
-  semiBold: 'IBMPlexSans-SemiBold',
-  bold: 'IBMPlexSans-Bold',
-} as const;
-
-const FONT_WEIGHT = {
-  regular: '400',
-  medium: '500',
-  semiBold: '600',
-  bold: '700',
-} as const;
-
-type FontRole = keyof typeof FONT_FAMILY;
-type ThemeFontVariant =
-  | 'displayLarge'
-  | 'displayMedium'
-  | 'displaySmall'
-  | 'headlineLarge'
-  | 'headlineMedium'
-  | 'headlineSmall'
-  | 'titleLarge'
-  | 'titleMedium'
-  | 'titleSmall'
-  | 'labelLarge'
-  | 'labelMedium'
-  | 'labelSmall'
-  | 'bodyLarge'
-  | 'bodyMedium'
-  | 'bodySmall';
-
-const FONT_VARIANT_ROLES: Array<readonly [readonly ThemeFontVariant[], FontRole]> = [
-  [
-    [
-      'displayLarge',
-      'displayMedium',
-      'displaySmall',
-      'headlineLarge',
-      'headlineMedium',
-      'headlineSmall',
-      'titleLarge',
-    ],
-    'semiBold',
-  ],
-  [['titleMedium', 'titleSmall', 'labelLarge', 'labelMedium', 'labelSmall'], 'medium'],
-  [['bodyLarge', 'bodyMedium', 'bodySmall'], 'regular'],
-];
-
-function withFont<T extends { fontFamily: string; fontWeight?: string }>(font: T, role: FontRole) {
-  return {
-    ...font,
-    fontFamily: FONT_FAMILY[role],
-    fontWeight: FONT_WEIGHT[role],
-  };
-}
-
-function createThemeFonts(baseFonts: typeof MD3LightTheme.fonts) {
-  const fonts = {
-    ...baseFonts,
-    default: withFont(baseFonts.default, 'regular'),
-  };
-
-  for (const [variants, role] of FONT_VARIANT_ROLES) {
-    for (const variant of variants) {
-      fonts[variant] = withFont(baseFonts[variant], role);
-    }
-  }
-
-  return fonts;
-}
-
 function createThemeColors(isDark: boolean, baseColors: typeof MD3LightTheme.colors) {
   return {
     ...baseColors,
@@ -135,7 +63,6 @@ function createTheme(
     colors,
     roundness: 1,
     dark: isDark,
-    fonts: createThemeFonts(baseTheme.fonts),
     scheme,
     isDark,
     tokens: createTokens(scheme, colors),

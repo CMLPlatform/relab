@@ -1,5 +1,5 @@
 import type React from 'react';
-import { TextInput as NativeTextInput, StyleSheet, type TextInputProps } from 'react-native';
+import { TextInput as NativeTextInput, type TextInputProps } from 'react-native';
 import { useAppTheme } from '@/theme';
 
 interface Props extends TextInputProps {
@@ -25,7 +25,6 @@ export function TextInput({
     <NativeTextInput
       ref={ref}
       style={[
-        styles.input,
         { color: theme.colors.onSurface },
         error && {
           backgroundColor: theme.colors.errorContainer,
@@ -40,9 +39,3 @@ export function TextInput({
     </NativeTextInput>
   );
 }
-
-const styles = StyleSheet.create({
-  input: {
-    fontFamily: 'IBMPlexSans-Regular',
-  },
-});

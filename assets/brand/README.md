@@ -33,15 +33,12 @@ Current shared assets:
 - `images/bg-dark.jpg`
 - `logo.svg`
 - `fonts/ibm-plex-sans-*.woff2`
-- `fonts/literata-*.woff2`
-- `fonts/native/IBMPlexSans-*.ttf`
 
 Typography ownership:
 
-- IBM Plex Sans is the shared UI/body/app/email typeface.
-- Literata is the docs/www editorial heading typeface.
+- IBM Plex Sans is the shared web UI/body/heading and email typeface.
 - WOFF2 files are for docs/www web delivery.
-- TTF files are for Expo app delivery.
+- The Expo app intentionally uses platform system fonts.
 
 Brand primitive ownership:
 
@@ -54,7 +51,6 @@ Generated consumer output groups:
 
 - Background images: copied to the app, docs, and www image asset folders.
 - Web fonts: copied to the docs and www `public/fonts` folders.
-- App fonts: copied to the Expo app `src/assets/fonts` folder.
 - Brand CSS: copied to docs and www style folders.
 - SVG logos and favicons: copied from `logo.svg` to docs and www public image folders.
 - PNG app, logo, favicon, and touch icons: generated for Expo app metadata and docs/www browser surfaces.

@@ -52,7 +52,7 @@ h3,
 h4,
 .site-title,
 .hero {
-  font-family: var(--relab-brand-font-heading), var(--relab-brand-font-body), Georgia, serif;
+  font-family: var(--relab-brand-font-heading), var(--relab-brand-font-body), sans-serif;
   letter-spacing: -0.025em;
 }
 
