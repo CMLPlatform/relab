@@ -33,7 +33,7 @@ class TestCreateSuperuserScript:
         monkeypatch: pytest.MonkeyPatch,
         mocker: MockerFixture,
     ) -> None:
-        """The script should include BOOTSTRAP_SUPERUSER_NAME when present."""
+        """The script should include the optional bootstrap name when present."""
         session = object()
 
         @asynccontextmanager

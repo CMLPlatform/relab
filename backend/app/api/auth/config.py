@@ -9,6 +9,7 @@ from pydantic import (
     BaseModel,
     EmailStr,
     Field,
+    HttpUrl,
     NameEmail,
     SecretStr,
     TypeAdapter,
@@ -23,6 +24,8 @@ from app.core.env import RelabBaseSettings, is_production_like_environment
 from app.core.secrets import validate_min_secret_bytes
 
 NAME_EMAIL_ADAPTER = TypeAdapter(NameEmail)
+FRONTEND_OAUTH_REDIRECT_PATHS = ("/login", "/profile")
+NATIVE_OAUTH_REDIRECT_URIS = ("relab-app://login", "relab-app://profile")
 
 
 def normalize_oauth_redirect_uri(value: str) -> str:
@@ -98,6 +101,7 @@ class AuthSettings(RelabBaseSettings):
     google_oauth_client_secret: SecretStr = SecretStr("")
     github_oauth_client_id: SecretStr = SecretStr("")
     github_oauth_client_secret: SecretStr = SecretStr("")
+    frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8003")
 
     # OAuth frontend redirect hardening: exact normalized callback targets only.
     oauth_allowed_redirect_uris: list[str] = Field(default_factory=list)
@@ -159,6 +163,20 @@ class AuthSettings(RelabBaseSettings):
     def normalize_oauth_allowed_redirect_uris(cls, value: list[str]) -> list[str]:
         """Normalize exact OAuth redirect allowlist entries."""
         return [normalize_oauth_redirect_uri(redirect_uri) for redirect_uri in value]
+
+    @model_validator(mode="after")
+    def derive_oauth_allowed_redirect_uris(self) -> AuthSettings:
+        """Derive OAuth redirect allowlist from the public app origin when omitted."""
+        if "oauth_allowed_redirect_uris" in self.model_fields_set:
+            return self
+
+        app_origin = str(self.frontend_app_url).rstrip("/")
+        web_redirects = [f"{app_origin}{path}" for path in FRONTEND_OAUTH_REDIRECT_PATHS]
+        self.oauth_allowed_redirect_uris = [
+            *(normalize_oauth_redirect_uri(redirect_uri) for redirect_uri in web_redirects),
+            *NATIVE_OAUTH_REDIRECT_URIS,
+        ]
+        return self
 
     @cached_property
     def email(self) -> ResolvedEmailSettings:

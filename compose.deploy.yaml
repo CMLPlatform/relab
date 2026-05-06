@@ -22,7 +22,6 @@ x-backend-public-origins: &backend-public-origins
   FRONTEND_APP_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
   SITE_PUBLIC_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
   DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
-  OAUTH_ALLOWED_REDIRECT_URIS: ${OAUTH_ALLOWED_REDIRECT_URIS:?OAUTH_ALLOWED_REDIRECT_URIS must be set}
 
 x-backend-host-overrides: &backend-host-overrides
   GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID must be set in root .env}
@@ -35,9 +34,7 @@ x-backend-host-overrides: &backend-host-overrides
   MICROSOFT_GRAPH_TENANT_ID: ${MICROSOFT_GRAPH_TENANT_ID:-}
   MICROSOFT_GRAPH_CLIENT_ID: ${MICROSOFT_GRAPH_CLIENT_ID:-}
   MICROSOFT_GRAPH_SENDER_USER: ${MICROSOFT_GRAPH_SENDER_USER:-}
-  MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS: ${MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS:-false}
   BOOTSTRAP_SUPERUSER_EMAIL: ${BOOTSTRAP_SUPERUSER_EMAIL:?BOOTSTRAP_SUPERUSER_EMAIL must be set in root .env}
-  BOOTSTRAP_SUPERUSER_NAME: ${BOOTSTRAP_SUPERUSER_NAME:-}
 
 x-backend-runtime-secrets: &backend-runtime-secrets
   - database_app_password
@@ -77,13 +74,14 @@ services:
       # ── Resource knobs ──────────────────────────────────────────────────────────
       # WEB_CONCURRENCY = Uvicorn worker processes (~1 CPU core each).
       # All other values are per worker; totals = WEB_CONCURRENCY x per-worker value.
-      # Prod: 4, Staging: 2, small VMs: 1.
+      # The deploy default is intentionally source-controlled; edit this file
+      # when host capacity changes instead of adding another operator knob.
       #
       #                    per worker  x  workers  =  total (prod)
       # Image threads:          5      x     4     =   20  (CPU-bound)
       # DB connections:    10 + 10     x     4     =   80  (PostgreSQL default max=100)
       # Outbound HTTP:        100      x     4     =  400  (mostly idle)
-      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+      WEB_CONCURRENCY: "4"
       IMAGE_RESIZE_WORKERS: "5"
       DB_POOL_SIZE: "10"
       DB_POOL_MAX_OVERFLOW: "10"
@@ -136,12 +134,12 @@ services:
       XDG_CACHE_HOME: /tmp/xdg-cache
       UPLOADS_DIR: /data/uploads
       BACKUP_WORK_DIR: /tmp/relab-backups
-      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_INTERVAL_SECONDS: "86400"
       BACKUP_ON_START: "true"
-      RESTIC_KEEP_HOURLY: ${RESTIC_KEEP_HOURLY:-24}
-      RESTIC_KEEP_DAILY: ${RESTIC_KEEP_DAILY:-14}
-      RESTIC_KEEP_WEEKLY: ${RESTIC_KEEP_WEEKLY:-8}
-      RESTIC_KEEP_MONTHLY: ${RESTIC_KEEP_MONTHLY:-12}
+      RESTIC_KEEP_HOURLY: "24"
+      RESTIC_KEEP_DAILY: "14"
+      RESTIC_KEEP_WEEKLY: "8"
+      RESTIC_KEEP_MONTHLY: "12"
     secrets:
       - database_backup_password
       - restic_password
