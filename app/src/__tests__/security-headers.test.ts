@@ -68,6 +68,8 @@ describe('Caddy security headers', () => {
   it('sets the browser baseline headers recommended by OWASP', () => {
     expect(contentTypeOptions()).toBe('nosniff');
     expect(referrerPolicy()).toBe('strict-origin-when-cross-origin');
+    expect(caddyfile).toContain('Cross-Origin-Opener-Policy "same-origin"');
+    expect(caddyfile).toContain('Cross-Origin-Resource-Policy "same-site"');
   });
 
   it('allows only the browser capability the app intentionally uses', () => {
