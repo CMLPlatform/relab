@@ -22,6 +22,7 @@ x-backend-public-origins: &backend-public-origins
   FRONTEND_APP_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
   FRONTEND_WEB_URL: ${WEB_PUBLIC_URL:?WEB_PUBLIC_URL must be set}
   DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
+  OAUTH_ALLOWED_REDIRECT_URIS: ${OAUTH_ALLOWED_REDIRECT_URIS:?OAUTH_ALLOWED_REDIRECT_URIS must be set}
 
 x-backend-host-overrides: &backend-host-overrides
   GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID must be set in root .env}
