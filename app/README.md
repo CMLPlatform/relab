@@ -104,7 +104,7 @@ In practice, that means:
 
 Memoization changes in this app should be validated in a release-like build, not only in Metro dev mode.
 
-1. Run `pnpm run profile:compiler:web` to start Expo web with `BUILD_MODE=production`, which keeps the React Compiler enabled locally without changing the normal `dev` workflow.
+1. Run `pnpm run profile:compiler:web` to start Expo web with `ENVIRONMENT=production`, which keeps the React Compiler enabled locally without changing the normal `dev` workflow.
 1. Open the app in a browser with React DevTools installed and record the interaction in the Profiler tab.
 1. Confirm the slow interaction in the profiler before changing memoization.
 1. Re-profile after the change and keep manual `useMemo` / `useCallback` / `React.memo` only where the compiled build still benefits.

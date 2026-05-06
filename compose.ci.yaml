@@ -20,9 +20,14 @@ services:
   app:
     build:
       args:
-        BUILD_MODE: test
+        ENVIRONMENT: test
+        EXPO_PUBLIC_API_URL: http://localhost:8000
+        EXPO_PUBLIC_WEBSITE_URL: http://localhost:8010
+        EXPO_PUBLIC_DOCS_URL: http://localhost:8012
+    environment:
+      CADDY_API_ORIGIN: http://localhost:8000
 
   www:
     build:
       args:
-        BUILD_MODE: test
+        ENVIRONMENT: test

@@ -30,6 +30,16 @@ lint:
 typecheck:
     pnpm run typecheck
 
+# Start the standalone dev server using the root full-stack dev origins
+dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ../deploy/env/dev.compose.env
+    export PUBLIC_APP_URL="$APP_PUBLIC_URL"
+    export PUBLIC_DOCS_URL="$DOCS_PUBLIC_URL"
+    export PUBLIC_SITE_URL="$WEB_PUBLIC_URL"
+    pnpm run dev
+
 # Auto-format code with Biome
 format:
     pnpm run format
@@ -44,6 +54,12 @@ check: lint typecheck
 
 # Build the production site
 build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ../deploy/env/prod.compose.env
+    export PUBLIC_APP_URL="$APP_PUBLIC_URL"
+    export PUBLIC_DOCS_URL="$DOCS_PUBLIC_URL"
+    export PUBLIC_SITE_URL="$WEB_PUBLIC_URL"
     pnpm run build
 
 # Run unit tests

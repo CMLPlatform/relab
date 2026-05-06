@@ -4,7 +4,7 @@
 #   - compose.dev.yaml    → local development (hot reload)
 #   - compose.ci.yaml     → backend unit/integration tests in CI
 #   - compose.e2e.yaml    → full-stack Playwright E2E
-#   - compose.deploy.yaml → prod and staging (APP_ENV selects which)
+#   - compose.deploy.yaml → prod and staging (ENVIRONMENT selects which)
 #
 # Profiles:
 #   - migrations → one-shot `migrator` service (required on first start and after schema changes)

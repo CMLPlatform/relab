@@ -53,12 +53,14 @@ ENV CI=1
 COPY app.json babel.config.js tsconfig.json ./
 COPY src/ ./src/
 
-# Copy only the chosen env file as `.env`. Source filenames match BUILD_MODE
-# exactly (.env.prod / .env.staging / .env.test) so no mapping is needed.
-# Only one env file ends up in the image — this avoids Expo's dotenv loader
-# silently preferring `.env.production` over `.env` during `expo export`.
-ARG BUILD_MODE=prod
-COPY .env.${BUILD_MODE} .env
+ARG ENVIRONMENT=prod
+ARG EXPO_PUBLIC_API_URL
+ARG EXPO_PUBLIC_WEBSITE_URL
+ARG EXPO_PUBLIC_DOCS_URL
+ENV ENVIRONMENT=${ENVIRONMENT} \
+    EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL} \
+    EXPO_PUBLIC_WEBSITE_URL=${EXPO_PUBLIC_WEBSITE_URL} \
+    EXPO_PUBLIC_DOCS_URL=${EXPO_PUBLIC_DOCS_URL}
 
 RUN pnpm exec expo export -p web -c
 
@@ -75,9 +77,6 @@ RUN apk upgrade --no-cache \
     && setcap -r /usr/bin/caddy \
     && apk del libcap \
     && install -d -o 1001 -g 1001 /config /data
-
-# Default to the production API origin; staging overrides this at runtime.
-ENV CSP_API_ORIGIN=https://api.cml-relab.org
 
 COPY --link --from=build ${WORKDIR}/dist /srv
 COPY --link Caddyfile /etc/caddy/Caddyfile

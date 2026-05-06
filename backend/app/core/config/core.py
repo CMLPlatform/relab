@@ -31,6 +31,12 @@ if TYPE_CHECKING:
 DATABASE_DRIVER_PSYCOPG = "psycopg"
 DATABASE_DRIVER_ASYNCPG = "asyncpg"
 HTTPS_SCHEME = "https"
+DEFAULT_DOCS_URL_BY_ENVIRONMENT: dict[Environment, HttpUrl] = {
+    Environment.DEV: HttpUrl("http://127.0.0.1:4300"),
+    Environment.TESTING: HttpUrl("http://127.0.0.1:4300"),
+    Environment.STAGING: HttpUrl("https://docs-test.cml-relab.org"),
+    Environment.PROD: HttpUrl("https://docs.cml-relab.org"),
+}
 
 
 class CoreSettings(RelabBaseSettings):
@@ -68,6 +74,7 @@ class CoreSettings(RelabBaseSettings):
     backend_api_url: HttpUrl = HttpUrl("http://127.0.0.1:8001")
     frontend_web_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
     frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8003")
+    docs_url: HttpUrl | None = None
     cors_origin_regex: str | None = Field(default=None)
 
     @field_validator("superuser_name")
@@ -126,11 +133,17 @@ class CoreSettings(RelabBaseSettings):
         return f"{parsed.scheme}://{parsed.netloc}"
 
     @cached_property
+    def effective_docs_url(self) -> HttpUrl:
+        """Return the configured docs URL or the environment default."""
+        return self.docs_url or DEFAULT_DOCS_URL_BY_ENVIRONMENT[self.environment]
+
+    @cached_property
     def allowed_origins(self) -> list[str]:
         """Get CORS Origin allowlist (scheme + host + optional port)."""
         return [
             self._normalize_origin(self.frontend_web_url),
             self._normalize_origin(self.frontend_app_url),
+            self._normalize_origin(self.effective_docs_url),
         ]
 
     @cached_property
@@ -204,9 +217,7 @@ class CoreSettings(RelabBaseSettings):
     file_storage_path: Path = uploads_path / "files"
     image_storage_path: Path = uploads_path / "images"
     static_files_path: Path = BACKEND_DIR / "app" / "static"
-    templates_path: Path = BACKEND_DIR / "app" / "templates"
     log_path: Path = BACKEND_DIR / "logs"
-    docs_path: Path = BACKEND_DIR / "docs" / "site"
 
     def build_database_url(
         self,
@@ -380,6 +391,9 @@ class CoreSettings(RelabBaseSettings):
 
         if self.frontend_web_url.scheme != HTTPS_SCHEME:
             errors.append("FRONTEND_WEB_URL must use https in production/staging")
+
+        if self.effective_docs_url.scheme != HTTPS_SCHEME:
+            errors.append("DOCS_URL must use https in production/staging")
 
         return errors
 
