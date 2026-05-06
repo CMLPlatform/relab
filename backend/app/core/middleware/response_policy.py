@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, Response
 
-from app.core.http_headers import NO_STORE, SENSITIVE_CACHE_CONTROL
+from app.core.http_headers import NO_STORE, SENSITIVE_CACHE_CONTROL, SENSITIVE_CACHE_HEADERS
 
 if TYPE_CHECKING:
     from starlette.middleware.base import RequestResponseEndpoint
@@ -25,7 +25,7 @@ SENSITIVE_PATH_PREFIXES = (
 )
 
 HSTS_HEADER_VALUE = "max-age=63072000; includeSubDomains"
-REFERRER_POLICY_HEADER_VALUE = "strict-origin-when-cross-origin"
+REFERRER_POLICY_HEADER_VALUE = "no-referrer"
 CONTENT_SECURITY_POLICY_HEADER_VALUE = "frame-ancestors 'none'"
 X_XSS_PROTECTION_HEADER_VALUE = "0"
 CROSS_ORIGIN_OPENER_POLICY_HEADER_VALUE = "same-origin"
@@ -71,8 +71,9 @@ def _set_sensitive_cache_headers(response: Response) -> None:
     """Set legacy-compatible no-cache headers for sensitive responses."""
     if response.headers.get(CACHE_CONTROL_HEADER) in (None, NO_STORE):
         response.headers["Cache-Control"] = SENSITIVE_CACHE_CONTROL
-    response.headers.setdefault("Pragma", "no-cache")
-    response.headers.setdefault("Expires", "0")
+    for name, value in SENSITIVE_CACHE_HEADERS.items():
+        if name.lower() != CACHE_CONTROL_HEADER:
+            response.headers.setdefault(name, value)
 
 
 def register_response_policy_middleware(app: FastAPI, *, enable_hsts: bool) -> None:

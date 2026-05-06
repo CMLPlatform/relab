@@ -12,7 +12,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse, Response
 
-from app.core.http_headers import REQUEST_ID_HEADER, SENSITIVE_CACHE_CONTROL
+from app.core.http_headers import REQUEST_ID_HEADER, SENSITIVE_CACHE_HEADERS
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -79,9 +79,8 @@ def build_problem_response(
         problem.update(extra)
 
     response_headers = _response_headers(request, headers)
-    response_headers.setdefault("Cache-Control", SENSITIVE_CACHE_CONTROL)
-    response_headers.setdefault("Pragma", "no-cache")
-    response_headers.setdefault("Expires", "0")
+    for name, value in SENSITIVE_CACHE_HEADERS.items():
+        response_headers.setdefault(name, value)
 
     return JSONResponse(
         status_code=status_code,
