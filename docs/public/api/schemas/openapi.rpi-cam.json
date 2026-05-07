@@ -1,0 +1,1457 @@
+{
+  "components": {
+    "schemas": {
+      "CameraControlInfo": {
+        "description": "Discoverable information about one backend camera control.",
+        "properties": {
+          "default": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default"
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum"
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "namespace": {
+            "default": "backend",
+            "title": "Namespace",
+            "type": "string"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "items": {},
+                      "type": "array"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "read_only": {
+            "default": false,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "value_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Type"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CameraControlInfo",
+        "type": "object"
+      },
+      "CameraControlsPatch": {
+        "description": "Generic camera controls patch using backend-native control names.",
+        "properties": {
+          "controls": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {},
+                  "type": "array"
+                },
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": "Backend-native control names and values.",
+            "examples": [
+              {
+                "AnalogueGain": 1.5,
+                "ExposureTime": 10000
+              }
+            ],
+            "maxProperties": 32,
+            "minProperties": 1,
+            "title": "Controls",
+            "type": "object"
+          }
+        },
+        "required": [
+          "controls"
+        ],
+        "title": "CameraControlsPatch",
+        "type": "object"
+      },
+      "CameraControlsView": {
+        "description": "Remote control capabilities and latest observed camera values.",
+        "properties": {
+          "controls": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CameraControlInfo"
+            },
+            "title": "Controls",
+            "type": "object"
+          },
+          "supported": {
+            "title": "Supported",
+            "type": "boolean"
+          },
+          "values": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {},
+                  "type": "array"
+                },
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Values",
+            "type": "object"
+          }
+        },
+        "required": [
+          "supported"
+        ],
+        "title": "CameraControlsView",
+        "type": "object"
+      },
+      "CameraMode": {
+        "description": "Camera use mode. Contains camera configuration for each mode.",
+        "enum": [
+          "photo",
+          "video"
+        ],
+        "title": "CameraMode",
+        "type": "string"
+      },
+      "CameraProperties": {
+        "description": "Static camera properties from libcamera.\n\nFor more info, see https://libcamera.org/api-html/namespacelibcamera_1_1properties.html.",
+        "properties": {
+          "Model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "pixel_array_size": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "exclusiveMinimum": 0.0,
+                    "type": "integer"
+                  },
+                  {
+                    "exclusiveMinimum": 0.0,
+                    "type": "integer"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pixel Array Size"
+          },
+          "sensor_sensitivity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sensor Sensitivity"
+          },
+          "unit_cell_size": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "exclusiveMinimum": 0.0,
+                    "type": "integer"
+                  },
+                  {
+                    "exclusiveMinimum": 0.0,
+                    "type": "integer"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Sensor unit cell size in nanometers",
+            "title": "Unit Cell Size"
+          }
+        },
+        "title": "CameraProperties",
+        "type": "object"
+      },
+      "CameraStatusView": {
+        "description": "API response model for camera status.",
+        "properties": {
+          "current_mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CameraMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stream": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StreamView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "CameraStatusView",
+        "type": "object"
+      },
+      "CaptureMetadata": {
+        "description": "Dynamic capture metadata from libcamera.\n\nFor more info, see  https://libcamera.org/api-html/namespacelibcamera_1_1controls.html.",
+        "properties": {
+          "analogue_gain": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analogue Gain"
+          },
+          "color_temperature": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Color temperature in K",
+            "title": "Color Temperature"
+          },
+          "digital_gain": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digital Gain"
+          },
+          "exposure_time": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exposure time in microseconds",
+            "title": "Exposure Time"
+          },
+          "frame_duration": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Frame duration in microseconds",
+            "title": "Frame Duration"
+          },
+          "lux": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Illuminance in lux",
+            "title": "Lux"
+          },
+          "sensor_temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Sensor temperature in \u00b0C",
+            "title": "Sensor Temperature"
+          }
+        },
+        "title": "CaptureMetadata",
+        "type": "object"
+      },
+      "CaptureUploadMetadata": {
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": "Bounded opaque metadata forwarded to the configured image sink.",
+        "maxProperties": 16,
+        "title": "CaptureUploadMetadata",
+        "type": "object"
+      },
+      "FocusControlRequest": {
+        "description": "Request body for common focus operations.",
+        "properties": {
+          "lens_position": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Manual focus lens position; only used with mode=manual.",
+            "title": "Lens Position"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/FocusMode",
+            "description": "Focus mode to apply."
+          },
+          "trigger_cycle": {
+            "default": false,
+            "description": "When mode=auto, run a one-shot autofocus cycle.",
+            "title": "Trigger Cycle",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "title": "FocusControlRequest",
+        "type": "object"
+      },
+      "FocusMode": {
+        "description": "Friendly focus modes exposed at the API edge.",
+        "enum": [
+          "continuous",
+          "auto",
+          "manual"
+        ],
+        "title": "FocusMode",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImageCaptureResponse": {
+        "description": "Response model for image capture.",
+        "properties": {
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Expiration time for queue entries; None for successfully uploaded images.",
+            "title": "Expires At"
+          },
+          "image_id": {
+            "description": "Local capture identifier (Pi-side).",
+            "pattern": "^[0-9a-f]{32}$",
+            "title": "Image Id",
+            "type": "string"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Backend-hosted URL for the stored image. None when the capture is queued.",
+            "title": "Image Url"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/ImageMetadata",
+            "description": "Image metadata"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImageCaptureStatus",
+            "default": "uploaded",
+            "description": "Whether the image was successfully pushed to the backend or queued for retry."
+          }
+        },
+        "required": [
+          "image_id",
+          "metadata"
+        ],
+        "title": "ImageCaptureResponse",
+        "type": "object"
+      },
+      "ImageCaptureStatus": {
+        "description": "Delivery state of a captured image.\n\n- UPLOADED: the Pi synchronously pushed the bytes to the backend and the\n  backend has stored them. ``image_url`` points at the backend.\n- QUEUED: the synchronous push failed and the bytes are in the Pi's local\n  upload queue awaiting retry. ``image_url`` is None because nothing is\n  retrievable yet.",
+        "enum": [
+          "uploaded",
+          "queued"
+        ],
+        "title": "ImageCaptureStatus",
+        "type": "string"
+      },
+      "ImageMetadata": {
+        "description": "Complete image metadata model.",
+        "properties": {
+          "camera_properties": {
+            "$ref": "#/components/schemas/CameraProperties"
+          },
+          "capture_metadata": {
+            "$ref": "#/components/schemas/CaptureMetadata"
+          },
+          "image_properties": {
+            "$ref": "#/components/schemas/ImageProperties"
+          }
+        },
+        "required": [
+          "camera_properties",
+          "capture_metadata",
+          "image_properties"
+        ],
+        "title": "ImageMetadata",
+        "type": "object"
+      },
+      "ImageProperties": {
+        "description": "Basic image properties.",
+        "properties": {
+          "capture_time": {
+            "description": "Capture time in UTC",
+            "title": "Capture Time",
+            "type": "string"
+          },
+          "height": {
+            "description": "Image height in pixels",
+            "exclusiveMinimum": 0.0,
+            "title": "Height",
+            "type": "integer"
+          },
+          "width": {
+            "description": "Image width in pixels",
+            "exclusiveMinimum": 0.0,
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "title": "ImageProperties",
+        "type": "object"
+      },
+      "LocalAccessInfo": {
+        "description": "Plugin -> backend -> frontend local direct-connection bootstrap payload.",
+        "properties": {
+          "candidate_urls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Candidate Urls",
+            "type": "array"
+          },
+          "local_api_key": {
+            "title": "Local Api Key",
+            "type": "string"
+          },
+          "mdns_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mdns Name"
+          }
+        },
+        "required": [
+          "local_api_key",
+          "candidate_urls",
+          "mdns_name"
+        ],
+        "title": "LocalAccessInfo",
+        "type": "object"
+      },
+      "StreamMetadata": {
+        "description": "Metadata specific to video streams.",
+        "properties": {
+          "camera_properties": {
+            "$ref": "#/components/schemas/CameraProperties"
+          },
+          "capture_metadata": {
+            "$ref": "#/components/schemas/CaptureMetadata"
+          },
+          "fps": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Frames per second calculated from frame duration.",
+            "readOnly": true,
+            "title": "Fps"
+          }
+        },
+        "required": [
+          "camera_properties",
+          "capture_metadata",
+          "fps"
+        ],
+        "title": "StreamMetadata",
+        "type": "object"
+      },
+      "StreamMode": {
+        "description": "Active stream provider/mode.",
+        "enum": [
+          "youtube"
+        ],
+        "title": "StreamMode",
+        "type": "string"
+      },
+      "StreamView": {
+        "description": "Provider-neutral public model for active stream information.",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/StreamMetadata"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/StreamMode"
+          },
+          "provider": {
+            "description": "Stream provider identifier",
+            "title": "Provider",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "url": {
+            "format": "uri",
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "provider",
+          "url",
+          "started_at",
+          "metadata"
+        ],
+        "title": "StreamView",
+        "type": "object"
+      },
+      "TelemetrySnapshot": {
+        "description": "Point-in-time device health sample emitted by the Pi plugin.",
+        "properties": {
+          "cpu_percent": {
+            "description": "CPU utilisation as a percentage (0-100).",
+            "title": "Cpu Percent",
+            "type": "number"
+          },
+          "cpu_temp_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "CPU die temperature in Celsius; None if the sysfs reading is unavailable.",
+            "title": "Cpu Temp C"
+          },
+          "current_preview_size": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current lores-stream size (width, height); None when no preview pipeline is configured.",
+            "title": "Current Preview Size"
+          },
+          "disk_percent": {
+            "description": "Disk utilisation on the images volume as a percentage (0-100).",
+            "title": "Disk Percent",
+            "type": "number"
+          },
+          "mem_percent": {
+            "description": "Memory utilisation as a percentage (0-100).",
+            "title": "Mem Percent",
+            "type": "number"
+          },
+          "preview_fps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Observed preview encoder frame rate, or None if no preview pipeline is active.",
+            "title": "Preview Fps"
+          },
+          "preview_sessions": {
+            "default": 0,
+            "description": "Number of active LL-HLS preview subscribers on the local MediaMTX instance.",
+            "title": "Preview Sessions",
+            "type": "integer"
+          },
+          "thermal_state": {
+            "$ref": "#/components/schemas/ThermalState",
+            "description": "Thermal governor classification for this snapshot."
+          },
+          "timestamp": {
+            "description": "When this snapshot was collected.",
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          }
+        },
+        "required": [
+          "timestamp",
+          "cpu_percent",
+          "mem_percent",
+          "disk_percent",
+          "thermal_state"
+        ],
+        "title": "TelemetrySnapshot",
+        "type": "object"
+      },
+      "ThermalState": {
+        "description": "Coarse thermal classification used by the thermal governor.",
+        "enum": [
+          "normal",
+          "warm",
+          "throttle",
+          "critical"
+        ],
+        "title": "ThermalState",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "YoutubeStreamConfig": {
+        "description": "YouTube stream configuration passed to the stream start endpoint.",
+        "properties": {
+          "broadcast_key": {
+            "description": "Broadcast key for YouTube streaming",
+            "format": "password",
+            "title": "Broadcast Key",
+            "type": "string",
+            "writeOnly": true
+          },
+          "stream_key": {
+            "description": "Stream key for YouTube streaming",
+            "format": "password",
+            "title": "Stream Key",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "stream_key",
+          "broadcast_key"
+        ],
+        "title": "YoutubeStreamConfig",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyCookie": {
+        "description": "Browser session cookie for operator UI access.",
+        "in": "cookie",
+        "name": "relab_session",
+        "type": "apiKey"
+      },
+      "APIKeyHeader": {
+        "description": "API Key for API access.",
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "This API allows you to remotely capture images and stream video from a Raspberry Pi camera. It is used as a plugin for the RELab platform.<br>For more info, visit the <a href=\"https://github.com/CMLplatform/relab\" target=\"_blank\"> RELab GitHub</a>.",
+    "title": "Raspberry Pi Camera API",
+    "version": "0.3.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/camera": {
+      "get": {
+        "description": "Return the current camera mode and any active stream details.",
+        "operationId": "get_camera_status_camera_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraStatusView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Get camera status",
+        "tags": [
+          "camera"
+        ]
+      }
+    },
+    "/camera/controls": {
+      "get": {
+        "description": "Returns the backend-exposed camera controls along with any latest observed values. Use this to discover what controls are available on the current camera.",
+        "operationId": "get_camera_controls_camera_controls_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraControlsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Get camera controls",
+        "tags": [
+          "camera"
+        ]
+      },
+      "patch": {
+        "description": "Apply backend-native camera controls. Control names are the exact strings reported by /camera/controls.",
+        "operationId": "set_camera_controls_camera_controls_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraControlsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraControlsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Set camera controls",
+        "tags": [
+          "camera"
+        ]
+      }
+    },
+    "/camera/focus": {
+      "put": {
+        "description": "Apply friendly focus controls (continuous, auto, or manual).",
+        "operationId": "set_camera_focus_camera_focus_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FocusControlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraControlsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Set camera focus",
+        "tags": [
+          "camera"
+        ]
+      }
+    },
+    "/captures": {
+      "post": {
+        "description": "Capture a full-resolution image, push it to the backend, and return the result.",
+        "operationId": "capture_image_captures_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/CaptureUploadMetadata"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Opaque metadata forwarded to the backend upload endpoint. Typically includes `product_id` and `description` for the parent association, but the Pi treats this dict as a pass-through so non-standard backends can add their own fields.",
+                "title": "Upload Metadata"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageCaptureResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Capture image",
+        "tags": [
+          "captures"
+        ]
+      }
+    },
+    "/preview/hls/{hls_path}": {
+      "get": {
+        "description": "Fetch an LL-HLS resource from the local MediaMTX and return it verbatim.",
+        "operationId": "proxy_hls_preview_hls__hls_path__get",
+        "parameters": [
+          {
+            "description": "MediaMTX-relative path, e.g. ``cam-preview/index.m3u8``",
+            "in": "path",
+            "name": "hls_path",
+            "required": true,
+            "schema": {
+              "description": "MediaMTX-relative path, e.g. ``cam-preview/index.m3u8``",
+              "pattern": "^[a-zA-Z0-9_\\-/\\.]+$",
+              "title": "Hls Path",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Playlist (``application/vnd.apple.mpegurl``) or segment (``video/mp4``)."
+          },
+          "404": {
+            "description": "Stream not yet published \u2014 preview encoder hasn't started."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "MediaMTX unreachable."
+          }
+        },
+        "summary": "Proxy an LL-HLS playlist or segment from MediaMTX",
+        "tags": [
+          "preview"
+        ]
+      }
+    },
+    "/preview/start": {
+      "post": {
+        "description": "Explicitly start the preview pipeline. Idempotent.",
+        "operationId": "start_preview_preview_start_post",
+        "responses": {
+          "204": {
+            "description": "Encoder started (or was already running)."
+          },
+          "503": {
+            "description": "Camera not ready or encoder failed to start."
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Start the preview encoder and RTSP publish to MediaMTX",
+        "tags": [
+          "preview"
+        ]
+      }
+    },
+    "/preview/stop": {
+      "post": {
+        "description": "Explicitly stop the preview pipeline and refresh the cached thumbnail.",
+        "operationId": "stop_preview_preview_stop_post",
+        "responses": {
+          "204": {
+            "description": "Encoder stopped (or was already idle)."
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Stop the preview encoder and refresh the cached thumbnail",
+        "tags": [
+          "preview"
+        ]
+      }
+    },
+    "/streams/youtube": {
+      "delete": {
+        "description": "Stop active YouTube stream.",
+        "operationId": "stop_stream_streams_youtube_delete",
+        "responses": {
+          "204": {
+            "description": "Active YouTube stream stopped."
+          },
+          "404": {
+            "description": "No active stream."
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Stop YouTube streaming",
+        "tags": [
+          "streams"
+        ]
+      },
+      "get": {
+        "description": "Get current stream status.",
+        "operationId": "get_stream_status_streams_youtube_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Get active stream",
+        "tags": [
+          "streams"
+        ]
+      },
+      "post": {
+        "description": "Start a YouTube stream using the provided stream and broadcast keys.",
+        "operationId": "start_stream_streams_youtube_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/YoutubeStreamConfig",
+                "examples": [
+                  {
+                    "broadcast_key": "your-broadcast-id",
+                    "stream_key": "your-stream-key"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamView"
+                }
+              }
+            },
+            "description": "YouTube stream started successfully."
+          },
+          "400": {
+            "description": "YouTube config is missing or invalid."
+          },
+          "409": {
+            "description": "A stream is already active."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Start YouTube streaming",
+        "tags": [
+          "streams"
+        ]
+      }
+    },
+    "/system/local-access": {
+      "get": {
+        "description": "Return local API key and candidate IP URLs for direct (Ethernet/USB-C) access.\n\nCalled by the backend through the WebSocket relay when the user opens the\ncamera detail screen.  The response is forwarded to the authenticated frontend\nuser so the app can auto-configure local mode without manual key copying.",
+        "operationId": "get_local_access_info_system_local_access_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalAccessInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Get local direct-connection info",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/system/telemetry": {
+      "get": {
+        "description": "Return a point-in-time device health snapshot.",
+        "operationId": "get_telemetry_system_telemetry_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetrySnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Get device telemetry snapshot",
+        "tags": [
+          "system"
+        ]
+      }
+    }
+  }
+}

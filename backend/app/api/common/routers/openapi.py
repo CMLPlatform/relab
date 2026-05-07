@@ -17,7 +17,13 @@ from app.core.responses import conditional_json_response
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-__all__ = ["PublicAPIRouter", "init_openapi_docs", "mark_router_routes_public"]
+__all__ = [
+    "PublicAPIRouter",
+    "build_device_openapi",
+    "build_public_openapi",
+    "init_openapi_docs",
+    "mark_router_routes_public",
+]
 
 ### Constants ###
 OPENAPI_PUBLIC_INCLUSION_EXTENSION: str = "x-public"
@@ -78,7 +84,7 @@ def _build_filtered_openapi(
     return schema
 
 
-def _build_public_openapi(app: FastAPI) -> dict[str, Any]:
+def build_public_openapi(app: FastAPI) -> dict[str, Any]:
     """Generate the app/public OpenAPI schema."""
     return _build_filtered_openapi(
         app,
@@ -96,7 +102,7 @@ def _build_admin_openapi(app: FastAPI) -> dict[str, Any]:
     )
 
 
-def _build_device_openapi(app: FastAPI) -> dict[str, Any]:
+def build_device_openapi(app: FastAPI) -> dict[str, Any]:
     """Generate the device/plugin OpenAPI schema."""
     return _build_filtered_openapi(
         app,
@@ -170,11 +176,11 @@ def _register_public_docs(router: APIRouter, app: FastAPI) -> None:
 
     @router.get("/openapi.public.json")
     async def get_public_openapi(request: Request) -> Response:
-        return conditional_json_response(request, _build_public_openapi(app))
+        return conditional_json_response(request, build_public_openapi(app))
 
     @router.get("/openapi.device.json")
     async def get_device_openapi(request: Request) -> Response:
-        return conditional_json_response(request, _build_device_openapi(app))
+        return conditional_json_response(request, build_device_openapi(app))
 
 
 def init_openapi_docs(app: FastAPI, *, include_internal_contracts: bool) -> FastAPI:
