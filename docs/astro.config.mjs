@@ -62,6 +62,7 @@ const SIDEBAR = [
       { label: 'System design', slug: 'architecture/system-design' },
       { label: 'Data model', slug: 'architecture/datamodel' },
       { label: 'API structure', slug: 'architecture/api' },
+      { label: 'API reference', slug: 'api-reference' },
       { label: 'Authentication', slug: 'architecture/auth' },
       { label: 'RPI camera plugin', slug: 'architecture/rpi-cam' },
     ],

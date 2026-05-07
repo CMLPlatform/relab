@@ -5,7 +5,7 @@ description: How the RELab API is organized and how the main domain surfaces fit
 
 Routes are organised by domain, not by HTTP verb. The same API serves the research app, the public web frontend, and external tooling. Public and authenticated surfaces are separated in practice, but the cleanest source of truth is the live OpenAPI docs.
 
-For the live schema and request models, use the [interactive API documentation](/api/public/). For practical usage guidance, see the [API interaction guide](../../user-guides/api/).
+For live schemas and request models, start from the [API reference overview](/api-reference/). Use the [public API reference](/api/public/) for application routes, the [device API reference](/api/device/) for backend-facing device integration, and the [RPi camera API reference](/api/rpi-cam/) for the local camera service. For practical usage guidance, see the [API interaction guide](../../user-guides/api/).
 
 ## Route organisation
 
@@ -51,6 +51,8 @@ Owner attribution is viewer-aware. Public profiles show product owner names to e
 ### Hardware integration
 
 - `/v1/plugins/rpi-cam/*` — camera registration, status, capture, streaming, and remote interactions
+
+The app-facing camera routes appear in the [public API reference](/api/public/). Pairing and Pi-originated callbacks appear in the [device API reference](/api/device/). The separate local camera API served by the plugin appears in the [RPi camera API reference](/api/rpi-cam/).
 
 ### Supporting services
 

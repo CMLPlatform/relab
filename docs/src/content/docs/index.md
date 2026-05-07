@@ -24,6 +24,9 @@ RELab is a research platform for collecting and publicly viewing data on the dis
 - **[Guides](user-guides/)**
   Practical help for data collection, hardware, camera capture, and API access.
 
+- **[API reference](api-reference/)**
+  Explore the generated interactive references for the public, device, and RPi camera APIs.
+
 - **[Architecture](architecture/)**
   How the platform is built, how it runs, and where the main boundaries are.
 
@@ -32,10 +35,25 @@ RELab is a research platform for collecting and publicly viewing data on the dis
 
 </div>
 
+## API references
+
+<div class="grid cards relab-card-grid" markdown>
+
+- **[Public API reference](/api/public/)**
+  Endpoints and schemas for platform data, accounts, authentication, media, and public records.
+
+- **[Device API reference](/api/device/)**
+  Pairing and integration endpoints used by RELab devices and plugins.
+
+- **[RPi camera API reference](/api/rpi-cam/)**
+  Local camera-service endpoints for capture workflows and device status.
+
+</div>
+
 ## Quick links
 
 - [Open the platform](https://app.cml-relab.org)
-- [Open the API docs](/api/public/)
+- [Open public API reference](/api/public/)
 - [View the repository](https://github.com/CMLPlatform/relab)
 
 ## Research motivation

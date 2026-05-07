@@ -5,7 +5,7 @@ description: How the RELab Raspberry Pi camera plugin talks to the backend and a
 
 An optional plugin that connects camera devices to RELab for remote capture, HLS preview streaming, and YouTube streaming. The backend remains the control plane and default relay path; when the camera and client share a LAN, the RELab app can optionally switch to direct local access for lower-latency preview and capture.
 
-For platform-side setup and day-to-day usage, see the [RPI camera user guide](../../user-guides/rpi-cam/). For device installation and deployment, see the [RPI camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+For platform-side setup and day-to-day usage, see the [RPI camera user guide](../../user-guides/rpi-cam/). For endpoint details, start from the [API reference overview](/api-reference/): app-facing camera routes are in the [public API reference](/api/public/), backend-facing device routes are in the [device API reference](/api/device/), and the local plugin service is in the [RPi camera API reference](/api/rpi-cam/). For device installation and deployment, see the [RPI camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
 ## System diagram
 
@@ -147,7 +147,7 @@ The plugin uses three separate contracts:
 - **Device REST API**: `/v1/plugins/rpi-cam/device/cameras/*` for Pi-originated callbacks such as image upload, preview thumbnail upload, and self-unpair. These routes authenticate with short-lived device assertions rather than a user session.
 - **Device WebSocket protocol**: `/v1/plugins/rpi-cam/ws/connect` for the persistent outbound relay tunnel from the Pi to the backend. It is a non-browser endpoint: the Pi authenticates with a short-lived bearer device assertion, production pairing returns a `wss://` URL, browser `Origin` handshakes are rejected, WebSocket compression is disabled, and frame/queue sizes are bounded.
 
-OpenAPI covers the HTTP routes. The WebSocket tunnel is a protocol contract and should be treated separately from generated REST clients.
+OpenAPI covers the HTTP routes: use the [public API reference](/api/public/) for app REST routes, the [device API reference](/api/device/) for Pi callback and pairing routes, and the [RPi camera API reference](/api/rpi-cam/) for the plugin's local HTTP API. The WebSocket tunnel is a protocol contract and should be treated separately from generated REST clients.
 
 ### WebSocket relay envelope
 

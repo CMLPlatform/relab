@@ -20,7 +20,7 @@ From the app's perspective, the backend remains the only public API surface.
 The device/plugin uses a smaller private backend-facing contract for pairing,
 relay, and direct upload flows.
 
-For endpoint-level details, use the generated [RPi camera device API reference](/api/rpi-cam/).
+For endpoint-level details, start from the [API reference overview](/api-reference/). The app-facing camera routes are in the [public API reference](/api/public/), backend-facing pairing and device callbacks are in the [device API reference](/api/device/), and the local camera service is documented in the [RPi camera API reference](/api/rpi-cam/).
 
 ## Platform setup
 
