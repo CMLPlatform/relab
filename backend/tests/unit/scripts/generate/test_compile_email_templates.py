@@ -96,13 +96,13 @@ class TestCompileEmailTemplatesScript:
         brand_css.write_text(
             """
             :root {
-              --relab-brand-font-body: "IBM Plex Sans";
+              --relab-brand-font: "IBM Plex Sans";
               --relab-brand-primary: #006783;
             }
             """
         )
         (src_dir / "welcome.mjml").write_text(
-            '<mjml><mj-text color="{{brand:--relab-brand-primary}}">{{brand:--relab-brand-font-body}}</mj-text></mjml>'
+            '<mjml><mj-text color="{{brand:--relab-brand-primary}}">{{brand:--relab-brand-font}}</mj-text></mjml>'
         )
         compile_mock = mocker.patch.object(
             compile_email_templates_script,
