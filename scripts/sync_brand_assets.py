@@ -23,8 +23,6 @@ def root_path(path: str) -> Path:
 WEB_FONT_FILES = (
     "ibm-plex-sans-latin-ext.woff2",
     "ibm-plex-sans-latin.woff2",
-    "ibm-plex-sans-italic-latin-ext.woff2",
-    "ibm-plex-sans-italic-latin.woff2",
 )
 
 COPY_ASSETS = (
@@ -90,10 +88,7 @@ def png_args(size: int) -> tuple[str, ...]:
 
 GENERATED_ASSETS = (
     (root_path("app/src/assets/images/favicon.png"), png_args(512)),
-    (root_path("docs/public/images/logo.png"), png_args(512)),
     (root_path("www/public/images/logo.png"), png_args(512)),
-    (root_path("docs/public/images/favicon-48.png"), png_args(48)),
-    (root_path("www/public/images/favicon-48.png"), png_args(48)),
     (root_path("docs/public/images/apple-touch-icon.png"), png_args(180)),
     (root_path("www/public/images/apple-touch-icon.png"), png_args(180)),
     (root_path("backend/app/static/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
