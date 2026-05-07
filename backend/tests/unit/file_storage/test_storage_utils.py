@@ -7,7 +7,7 @@ from __future__ import annotations
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
-from zipfile import ZIP_DEFLATED, ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 import pytest
 from fastapi import UploadFile
@@ -29,6 +29,9 @@ ARC_TAR_GZ = "archive.tar.gz"
 MY_DOC_PDF = "my-document.pdf"
 MY_DOC_RAW = "my document.pdf"
 FAKE_IMAGE_PATH = "/fake/path/test.png"
+ZIP_MEMBER_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+ZIP_TIMESTAMP_A = 1_710_000_000
+ZIP_TIMESTAMP_B = 1_710_000_120
 
 
 class TestFileStorageCrudUtils:
@@ -90,8 +93,19 @@ def _zip_bytes(paths: list[str]) -> bytes:
     buffer = BytesIO()
     with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
         for path in paths:
-            archive.writestr(path, "<xml />")
+            archive.writestr(ZipInfo(path, date_time=ZIP_MEMBER_TIMESTAMP), "<xml />", compress_type=ZIP_DEFLATED)
     return buffer.getvalue()
+
+
+def test_zip_bytes_are_deterministic_when_collection_times_differ(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Generated parametrized zip fixtures must not depend on worker collection time."""
+    monkeypatch.setattr("zipfile.time.time", lambda: ZIP_TIMESTAMP_A)
+    first = _zip_bytes(["[Content_Types].xml", "word/document.xml"])
+
+    monkeypatch.setattr("zipfile.time.time", lambda: ZIP_TIMESTAMP_B)
+    second = _zip_bytes(["[Content_Types].xml", "word/document.xml"])
+
+    assert first == second
 
 
 class TestUploadPolicy:
