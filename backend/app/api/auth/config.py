@@ -26,6 +26,7 @@ from app.core.secrets import validate_min_secret_bytes
 NAME_EMAIL_ADAPTER = TypeAdapter(NameEmail)
 FRONTEND_OAUTH_REDIRECT_PATHS = ("/login", "/profile")
 NATIVE_OAUTH_REDIRECT_URIS = ("relab-app://login", "relab-app://profile")
+OAUTH_ALLOWED_REDIRECT_URIS_FIELD = "oauth_allowed_redirect_uris"
 
 
 def normalize_oauth_redirect_uri(value: str) -> str:
@@ -167,7 +168,7 @@ class AuthSettings(RelabBaseSettings):
     @model_validator(mode="after")
     def derive_oauth_allowed_redirect_uris(self) -> AuthSettings:
         """Derive OAuth redirect allowlist from the public app origin when omitted."""
-        if "oauth_allowed_redirect_uris" in self.model_fields_set:
+        if OAUTH_ALLOWED_REDIRECT_URIS_FIELD in self.model_fields_set:
             return self
 
         app_origin = str(self.frontend_app_url).rstrip("/")
