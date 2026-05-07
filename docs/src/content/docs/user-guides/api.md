@@ -3,7 +3,7 @@ title: API interaction guide
 description: Use the RELab API safely for scripts, notebooks, and external tooling.
 ---
 
-For the authoritative schema, request models, and endpoint list, use the [interactive API documentation](/api/public/). For device/plugin integration, use the [device API reference](/api/device/). For how the API is designed internally, see [API structure](../../architecture/api/).
+For the authoritative schema, request models, and endpoint list, use the [interactive API documentation](/api/public/). For device/plugin integration, use the [device API reference](/api/device/) and the [RPi camera device API reference](/api/rpi-cam/). For how the API is designed internally, see [API structure](../../architecture/api/).
 
 The public API is versioned under `/v1`. Client configuration should keep the API origin separate from the versioned path, then build requests such as `https://api.cml-relab.org/v1/products`.
 
@@ -25,7 +25,7 @@ Public reference data (taxonomies, materials, product types), product records, a
 
 ## Suggested first steps
 
-1. Open the [live API reference](/api/public/).
+1. Open the [interactive API reference](/api/public/).
 1. Identify whether the endpoint you need is public or requires authentication.
 1. Start with a read-only request before attempting writes.
 1. Inspect response models carefully, especially around linked entities and media.
@@ -33,7 +33,7 @@ Public reference data (taxonomies, materials, product types), product records, a
 
 ## Integration advice
 
-- Build against the live OpenAPI schema rather than copying examples from old documentation.
+- Build against the generated OpenAPI schema rather than copying examples from old documentation.
 - For product circularity notes, use `circularity_properties` as either `null` or an object with optional `recyclability`, `disassemblability`, and `remanufacturability` strings. Empty objects and empty note strings are normalized to `null`.
 - Treat uploads and image handling as first-class API operations, not afterthoughts.
 - If you need a stable exported dataset rather than live application access, check the [dataset page](../../project/dataset/) first.

@@ -35,6 +35,7 @@ ignorePaths:
   - backend/app/api/auth/resources/disposable_email_domains.txt
   - app/src/assets/data/**
   - app/src/types/api.generated.ts
+  - docs/public/api/schemas/**
 
 language: en_us
 words:

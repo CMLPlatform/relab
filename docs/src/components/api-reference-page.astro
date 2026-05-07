@@ -2,13 +2,14 @@
 import { backendApiUrlForMode } from '../lib/backend-api.ts';
 
 interface Props {
-  schemaPath: string;
+  schemaUrl: string;
+  serverUrl?: string;
   title: string;
 }
 
-const { schemaPath, title } = Astro.props;
+const { schemaUrl, serverUrl, title } = Astro.props;
 const backendApiUrl = backendApiUrlForMode(import.meta.env.MODE);
-const schemaUrl = new URL(schemaPath, backendApiUrl).toString();
+const apiServerUrl = serverUrl ?? backendApiUrl;
 const pageTitle = `${title} · RELab docs`;
 ---
 
@@ -24,7 +25,7 @@ const pageTitle = `${title} · RELab docs`;
       <a href="/">RELab docs</a>
       <h1>{title}</h1>
     </header>
-    <main id="api-reference" data-backend-api-url={backendApiUrl} data-schema-url={schemaUrl}></main>
+    <main id="api-reference" data-backend-api-url={apiServerUrl} data-schema-url={schemaUrl}></main>
     <script src="../scripts/api-reference.ts"></script>
   </body>
 </html>
