@@ -92,8 +92,8 @@ GENERATED_ASSETS = (
     (root_path("docs/public/images/apple-touch-icon.png"), png_args(180)),
     (root_path("www/public/images/apple-touch-icon.png"), png_args(180)),
     (root_path("backend/app/static/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
-    (root_path("docs/public/images/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
-    (root_path("www/public/images/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
+    (root_path("docs/public/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
+    (root_path("www/public/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
 )
 
 
