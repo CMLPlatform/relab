@@ -13,8 +13,8 @@ from pydantic import EmailStr, Field, HttpUrl, PostgresDsn, RedisDsn, SecretStr,
 from sqlalchemy.engine import URL
 
 from app.core.config.models import (
-    DEFAULT_CORS_ORIGIN_REGEX,
     DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL,
+    DEFAULT_CORS_ORIGIN_REGEX,
     CacheSettings,
     Environment,
     StorageBackend,

@@ -24,7 +24,10 @@ async def create_superuser() -> None:
     bootstrap_superuser_password = settings.bootstrap_superuser_password
 
     if not bootstrap_superuser_email or not bootstrap_superuser_password:
-        err_msg = "BOOTSTRAP_SUPERUSER_EMAIL and BOOTSTRAP_SUPERUSER_PASSWORD must be set in backend config and secrets/<env>/."
+        err_msg = (
+            "BOOTSTRAP_SUPERUSER_EMAIL and BOOTSTRAP_SUPERUSER_PASSWORD "
+            "must be set in backend config and secrets/<env>/."
+        )
         raise ValueError(err_msg)
 
     try:
