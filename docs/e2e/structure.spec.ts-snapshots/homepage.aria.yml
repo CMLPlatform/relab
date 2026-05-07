@@ -53,6 +53,9 @@
             - link "API structure":
               - /url: /architecture/api/
           - listitem:
+            - link "API reference":
+              - /url: /api-reference/
+          - listitem:
             - link "Authentication":
               - /url: /architecture/auth/
           - listitem:
@@ -91,6 +94,9 @@
       - listitem:
         - link "Start here":
           - /url: "#start-here"
+      - listitem:
+        - link "API references":
+          - /url: "#api-references"
       - listitem:
         - link "Quick links":
           - /url: "#quick-links"
@@ -136,6 +142,12 @@
     - listitem:
       - paragraph:
         - strong:
+          - link "API reference":
+            - /url: api-reference/
+        - text: Explore the generated interactive references for the public, device, and RPi camera APIs.
+    - listitem:
+      - paragraph:
+        - strong:
           - link "Architecture":
             - /url: architecture/
         - text: How the platform is built, how it runs, and where the main boundaries are.
@@ -145,6 +157,28 @@
           - link "Project context":
             - /url: project/
         - text: Why RELab exists, who it is for, and where the dataset work is heading.
+  - heading "API references" [level=2]
+  - link "Section titled “API references”":
+    - /url: "#api-references"
+  - list:
+    - listitem:
+      - paragraph:
+        - strong:
+          - link "Public API reference":
+            - /url: /api/public/
+        - text: Endpoints and schemas for platform data, accounts, authentication, media, and public records.
+    - listitem:
+      - paragraph:
+        - strong:
+          - link "Device API reference":
+            - /url: /api/device/
+        - text: Pairing and integration endpoints used by RELab devices and plugins.
+    - listitem:
+      - paragraph:
+        - strong:
+          - link "RPi camera API reference":
+            - /url: /api/rpi-cam/
+        - text: Local camera-service endpoints for capture workflows and device status.
   - heading "Quick links" [level=2]
   - link "Section titled “Quick links”":
     - /url: "#quick-links"
@@ -153,7 +187,7 @@
       - link "Open the platform":
         - /url: https://app.cml-relab.org
     - listitem:
-      - link "Open the API docs":
+      - link "Open public API reference":
         - /url: /api/public/
     - listitem:
       - link "View the repository":
@@ -177,6 +211,6 @@
     - /url: https://github.com/CMLPlatform/relab/edit/main/docs/src/content/docs/index.md
   - paragraph:
     - text: "Last updated:"
-    - time: /Apr \d+, \d+/
+    - time: /May \d+, \d+/
   - link "Next Getting started":
     - /url: /user-guides/getting-started/

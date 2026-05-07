@@ -3,7 +3,7 @@ title: API interaction guide
 description: Use the RELab API safely for scripts, notebooks, and external tooling.
 ---
 
-For the authoritative schema, request models, and endpoint list, use the [interactive API documentation](/api/public/). For device/plugin integration, use the [device API reference](/api/device/) and the [RPi camera device API reference](/api/rpi-cam/). For how the API is designed internally, see [API structure](../../architecture/api/).
+For the authoritative schema, request models, and endpoint list, start from the [API reference overview](/api-reference/). Use the [public API reference](/api/public/) for application and data endpoints, the [device API reference](/api/device/) for backend-facing device integration, and the [RPi camera API reference](/api/rpi-cam/) for the local camera service. For how the API is designed internally, see [API structure](../../architecture/api/).
 
 The public API is versioned under `/v1`. Client configuration should keep the API origin separate from the versioned path, then build requests such as `https://api.cml-relab.org/v1/products`.
 
@@ -25,7 +25,7 @@ Public reference data (taxonomies, materials, product types), product records, a
 
 ## Suggested first steps
 
-1. Open the [interactive API reference](/api/public/).
+1. Open the [API reference overview](/api-reference/) and choose the surface you need.
 1. Identify whether the endpoint you need is public or requires authentication.
 1. Start with a read-only request before attempting writes.
 1. Inspect response models carefully, especially around linked entities and media.

@@ -26,3 +26,40 @@ test.describe('Structure regression', () => {
     });
   });
 });
+
+test.describe('API reference discoverability', () => {
+  test('homepage and sidebar expose API reference entry points', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(page.getByRole('main').getByRole('link', { exact: true, name: 'API reference' })).toHaveAttribute(
+      'href',
+      'api-reference/',
+    );
+    await expect(
+      page.getByRole('main').getByRole('link', { exact: true, name: 'Public API reference' }),
+    ).toHaveAttribute(
+      'href',
+      '/api/public/',
+    );
+
+    const sidebar = page.getByRole('navigation', { name: 'Main' });
+    await expect(sidebar.getByRole('link', { exact: true, name: 'API reference' })).toHaveAttribute(
+      'href',
+      '/api-reference/',
+    );
+    await expect(sidebar.getByRole('link', { exact: true, name: 'Public API' })).toHaveCount(0);
+    await expect(sidebar.getByRole('link', { exact: true, name: 'Device API' })).toHaveCount(0);
+    await expect(sidebar.getByRole('link', { exact: true, name: 'RPi camera API' })).toHaveCount(0);
+  });
+
+  test('related docs pages link to the API reference overview', async ({ page }) => {
+    const pages = ['/user-guides/api/', '/user-guides/rpi-cam/', '/architecture/api/', '/architecture/rpi-cam/'];
+
+    for (const path of pages) {
+      await page.goto(path);
+      await expect(
+        page.getByRole('main').getByRole('link', { exact: true, name: 'API reference overview' }).first(),
+      ).toHaveAttribute('href', '/api-reference/');
+    }
+  });
+});

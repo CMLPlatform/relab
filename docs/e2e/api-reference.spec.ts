@@ -20,7 +20,28 @@ test.describe('API reference pages', () => {
   test('public API reference renders from the committed docs schema', async ({ page }) => {
     await page.goto('/api/public/');
 
-    await expect(page.getByText('RELab public API')).toBeVisible();
+    await expect(page).toHaveTitle('RELab public API · RELab docs');
+    const apiNav = page.getByRole('navigation', { name: 'API references' });
+    await expect(apiNav.getByRole('link', { name: 'API reference overview' })).toHaveAttribute(
+      'href',
+      '/api-reference/',
+    );
+    await expect(apiNav.getByRole('link', { exact: true, name: 'Public API' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect(apiNav.getByRole('link', { exact: true, name: 'Device API' })).toHaveAttribute(
+      'href',
+      '/api/device/',
+    );
+    await expect(apiNav.getByRole('separator', { name: 'Plugin API references' })).toBeVisible();
+    await expect(apiNav.getByRole('link', { exact: true, name: 'RPi camera API' })).toHaveAttribute(
+      'href',
+      '/api/rpi-cam/',
+    );
+    await expect(page.getByRole('button', { name: 'Search' })).toHaveCount(0);
+    await expect(page.getByRole('complementary')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Reverse Engineering Lab - Data Collection API' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Download OpenAPI Document' })).toHaveAttribute(
       'href',
       '/api/schemas/openapi.public.json',
@@ -37,7 +58,7 @@ test.describe('API reference pages', () => {
   test('device API reference renders from the committed docs schema', async ({ page }) => {
     await page.goto('/api/device/');
 
-    await expect(page.getByText('RELab device API')).toBeVisible();
+    await expect(page).toHaveTitle('RELab device API · RELab docs');
     await expect(page.getByRole('link', { name: 'Download OpenAPI Document' })).toHaveAttribute(
       'href',
       '/api/schemas/openapi.device.json',
@@ -53,7 +74,7 @@ test.describe('API reference pages', () => {
   test('RPi camera API reference renders from the committed docs schema', async ({ page }) => {
     await page.goto('/api/rpi-cam/');
 
-    await expect(page.getByText('RELab RPi camera API')).toBeVisible();
+    await expect(page).toHaveTitle('RELab RPi camera API · RELab docs');
     await expect(page.getByRole('heading', { name: 'Get camera status' })).toBeVisible();
     await expect(page.getByText('/camera').first()).toBeVisible();
     await expect(page.getByText(/Add API/i)).toHaveCount(0);
