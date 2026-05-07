@@ -55,4 +55,4 @@ Generated consumer output groups:
 - Brand CSS: copied to docs and www style folders.
 - SVG logos and favicons: copied from `logo.svg` to docs and www public image folders.
 - PNG outputs: generated for Expo app metadata, the www social preview logo, and docs/www Apple touch icons.
-- `.ico` fallback favicons: generated for legacy browser and backend `/favicon.ico` support.
+- `.ico` fallback favicons: generated at the docs/www public root for legacy browser support and in backend static storage for `/favicon.ico` support.
