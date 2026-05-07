@@ -28,15 +28,6 @@ const HEAD_LINKS = [
   {
     tag: 'link',
     attrs: {
-      rel: 'icon',
-      href: '/images/favicon-48.png',
-      type: 'image/png',
-      sizes: '48x48',
-    },
-  },
-  {
-    tag: 'link',
-    attrs: {
       rel: 'apple-touch-icon',
       href: '/images/apple-touch-icon.png',
       sizes: '180x180',

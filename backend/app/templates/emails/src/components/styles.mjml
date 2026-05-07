@@ -1,6 +1,6 @@
 <mj-attributes>
   <mj-all
-    font-family="{{brand:--relab-brand-font-body}}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"
+    font-family="{{brand:--relab-brand-font}}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"
   />
   <mj-text font-size="15px" color="{{brand:--relab-brand-text}}" line-height="1.6" />
   <mj-button
