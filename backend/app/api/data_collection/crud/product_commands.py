@@ -11,7 +11,7 @@ from app.api.common.audit import AuditAction, audit_event
 from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.query import require_locked_model, require_model, require_models
-from app.api.data_collection.crud.storage import delete_all_product_files, delete_all_product_images
+from app.api.data_collection.crud.storage import cleanup_product_media_storage, delete_product_media
 from app.api.data_collection.exceptions import ProductOwnerRequiredError
 from app.api.data_collection.models.product import MaterialProductLink, Product
 from app.api.data_collection.schemas import ComponentCreateWithComponents, ProductCreateWithComponents, ProductUpdate
@@ -208,21 +208,15 @@ async def update_product(db: AsyncSession, product_id: int, product: ProductUpda
     return res
 
 
-async def delete_product_media(db: AsyncSession, product_id: int) -> None:
-    """Delete all stored files and images associated with a product."""
-    await delete_all_product_files(db, product_id)
-    await delete_all_product_images(db, product_id)
-
-
 async def delete_product(db: AsyncSession, product_id: int) -> None:
     """Delete a product from the database."""
     db_product = await require_locked_model(db, Product, product_id)
-    await delete_product_media(db, product_id)
+    storage_cleanups = await delete_product_media(db, product_id)
 
     owner_id = db_product.owner_id
     await db.delete(db_product)
-    await db.commit()
-    audit_event(owner_id, AuditAction.DELETE, Product, product_id)
     if owner_id is not None:
         await refresh_profile_stats_after_mutation(db, owner_id)
-        await db.commit()
+    await db.commit()
+    audit_event(owner_id, AuditAction.DELETE, Product, product_id)
+    await cleanup_product_media_storage(storage_cleanups)

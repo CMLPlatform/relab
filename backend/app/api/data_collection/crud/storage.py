@@ -1,5 +1,8 @@
 """Product storage helpers."""
 
+import logging
+from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from app.api.data_collection.models.product import Product
@@ -9,6 +12,11 @@ from app.api.file_storage.crud.parent_media import (
     delete_parent_media,
     get_parent_media,
     list_parent_media,
+)
+from app.api.file_storage.crud.support_paths import (
+    delete_file_from_storage,
+    delete_image_from_storage,
+    stored_file_path,
 )
 from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
 from app.api.file_storage.models import File, Image, MediaParentType
@@ -21,6 +29,11 @@ if TYPE_CHECKING:
 
     from app.api.file_storage.filters import FileFilter, ImageFilter
     from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm
+
+logger = logging.getLogger(__name__)
+
+type ProductMediaStorageDelete = Callable[[Path], Awaitable[None]]
+type ProductMediaStorageCleanup = tuple[Path, ProductMediaStorageDelete]
 
 
 async def list_product_files(db: AsyncSession, product_id: int, *, filter_params: FileFilter) -> Sequence[File]:
@@ -141,3 +154,32 @@ async def delete_all_product_images(db: AsyncSession, product_id: int) -> None:
         parent_id=product_id,
         storage_service=image_storage_service,
     )
+
+
+async def delete_product_media(db: AsyncSession, product_id: int) -> list[ProductMediaStorageCleanup]:
+    """Stage product media rows for deletion and return post-commit storage cleanup targets."""
+    cleanups: list[ProductMediaStorageCleanup] = []
+    for storage_model, delete_from_storage in (
+        (File, delete_file_from_storage),
+        (Image, delete_image_from_storage),
+    ):
+        result = await db.execute(
+            select(storage_model).where(
+                storage_model.parent_id == product_id,
+                storage_model.parent_type == MediaParentType.PRODUCT,
+            )
+        )
+        for item in result.scalars().all():
+            if file_path := stored_file_path(item):
+                cleanups.append((file_path, delete_from_storage))
+            await db.delete(item)
+    return cleanups
+
+
+async def cleanup_product_media_storage(cleanups: list[ProductMediaStorageCleanup]) -> None:
+    """Best-effort cleanup of storage bytes after product media DB rows have committed."""
+    for file_path, delete_from_storage in cleanups:
+        try:
+            await delete_from_storage(file_path)
+        except OSError:
+            logger.warning("Product media storage cleanup failed after product deletion.", exc_info=True)

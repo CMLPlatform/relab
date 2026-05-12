@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -26,6 +27,7 @@ from app.api.data_collection.crud.products import (
     create_component,
     create_product,
     delete_product,
+    delete_product_media,
     update_product,
 )
 from app.api.data_collection.exceptions import (
@@ -132,8 +134,7 @@ class TestProductCrud:
                 "app.api.data_collection.crud.product_commands.require_locked_model",
                 return_value=db_product,
             ) as get_product,
-            patch("app.api.data_collection.crud.product_commands.delete_all_product_files"),
-            patch("app.api.data_collection.crud.product_commands.delete_all_product_images"),
+            patch("app.api.data_collection.crud.product_commands.delete_product_media", return_value=[]),
             patch(
                 "app.api.data_collection.crud.product_commands.refresh_profile_stats_after_mutation",
                 AsyncMock(),
@@ -146,6 +147,83 @@ class TestProductCrud:
             apply_stats.assert_awaited_once()
             get_product.assert_awaited_once_with(mock_session, Product, product_id)
             log_audit.assert_called_once_with(owner_id, AuditAction.DELETE, Product, product_id)
+
+    async def test_delete_product_commits_db_changes_before_storage_cleanup(self, mock_session: AsyncMock) -> None:
+        """Product delete should commit DB rows atomically before deleting stored bytes."""
+        product_id = 1
+        db_product = ProductFactory.build(id=product_id)
+        db_product.owner_id = uuid4()
+        events: list[str] = []
+
+        async def commit() -> None:
+            events.append("commit")
+
+        async def delete_from_storage(file_path: Path) -> None:
+            events.append(f"cleanup:{file_path.name}")
+
+        mock_session.commit.side_effect = commit
+
+        with (
+            patch("app.api.data_collection.crud.product_commands.require_locked_model", return_value=db_product),
+            patch(
+                "app.api.data_collection.crud.product_commands.delete_product_media",
+                return_value=[(Path("relab-file.txt"), delete_from_storage)],
+            ),
+            patch(
+                "app.api.data_collection.crud.product_commands.refresh_profile_stats_after_mutation",
+                AsyncMock(),
+            ),
+            patch("app.api.data_collection.crud.product_commands.audit_event"),
+        ):
+            await delete_product(mock_session, product_id)
+
+        assert mock_session.commit.call_count == 1
+        assert events == ["commit", "cleanup:relab-file.txt"]
+
+    async def test_delete_product_storage_cleanup_failure_does_not_raise(self, mock_session: AsyncMock) -> None:
+        """Post-commit storage cleanup is best-effort after canonical DB state is gone."""
+        product_id = 1
+        db_product = ProductFactory.build(id=product_id)
+        db_product.owner_id = uuid4()
+
+        async def delete_from_storage(_file_path: Path) -> None:
+            msg = "storage unavailable"
+            raise OSError(msg)
+
+        with (
+            patch("app.api.data_collection.crud.product_commands.require_locked_model", return_value=db_product),
+            patch(
+                "app.api.data_collection.crud.product_commands.delete_product_media",
+                return_value=[(Path("relab-file.txt"), delete_from_storage)],
+            ),
+            patch(
+                "app.api.data_collection.crud.product_commands.refresh_profile_stats_after_mutation",
+                AsyncMock(),
+            ),
+            patch("app.api.data_collection.crud.product_commands.audit_event"),
+        ):
+            await delete_product(mock_session, product_id)
+
+        assert mock_session.commit.call_count == 1
+
+    async def test_delete_product_media_stages_rows_without_committing(self, mock_session: AsyncMock) -> None:
+        """Product media deletion stages DB rows and returns storage cleanup work."""
+        file_item = MagicMock()
+        file_item.file.path = "relab-file.txt"
+        image_item = MagicMock()
+        image_item.file.path = "relab-image.png"
+
+        file_result = MagicMock()
+        file_result.scalars.return_value.all.return_value = [file_item]
+        image_result = MagicMock()
+        image_result.scalars.return_value.all.return_value = [image_item]
+        mock_session.execute.side_effect = [file_result, image_result]
+
+        cleanups = await delete_product_media(mock_session, product_id=1)
+
+        assert mock_session.delete.await_count == 2
+        mock_session.commit.assert_not_called()
+        assert [file_path.name for file_path, _delete_from_storage in cleanups] == ["relab-file.txt", "relab-image.png"]
 
     async def test_create_component_success(self, mock_session: AsyncMock) -> None:
         """Test successful component creation."""
