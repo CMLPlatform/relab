@@ -89,6 +89,20 @@ def test_generate_token_link_with_trailing_slash() -> None:
     assert urlparse(link).path == route
 
 
+def test_generate_token_link_url_encodes_token_query_parameter() -> None:
+    """Token links should preserve token content without creating extra query parameters."""
+    token = "abc+def&next=https://evil.test/#frag"
+    route = "/verify"
+
+    link = generate_token_link(token, route)
+
+    parsed = urlparse(link)
+    query_params = parse_qs(parsed.query)
+
+    assert parsed.path == route
+    assert query_params == {"token": [token]}
+
+
 ### Registration Email Tests ###
 async def test_send_registration_email(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
     """Test registration email is sent."""

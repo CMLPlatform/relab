@@ -3,7 +3,7 @@
 import logging
 from html import escape
 from typing import TYPE_CHECKING
-from urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 
 from pydantic import AnyUrl, EmailStr
 
@@ -34,7 +34,7 @@ def generate_token_link(token: str, route: str, base_url: str | AnyUrl | None = 
     """Generate a link with the specified token and route."""
     if base_url is None:
         base_url = str(core_settings.frontend_app_url)
-    return urljoin(str(base_url), f"{route}?token={token}")
+    return urljoin(str(base_url), f"{route}?{urlencode({'token': token})}")
 
 
 def mask_email_for_log(email: EmailStr, *, mask: bool = True, max_len: int = 80) -> str:
