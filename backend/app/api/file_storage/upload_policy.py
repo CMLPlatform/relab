@@ -6,18 +6,24 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING
-from zipfile import BadZipFile, ZipFile
+from zipfile import BadZipFile, ZipFile, ZipInfo
 
 from PIL import Image as PILImage
 from PIL import UnidentifiedImageError
 
 from app.api.common.exceptions import BadRequestError
+from app.core.config import settings
+from app.core.images.validation import validate_image_dimensions
 
 if TYPE_CHECKING:
     from fastapi import UploadFile
 
 JSON_EXTENSION = ".json"
 PATH_SEPARATORS = frozenset(("/", "\\"))
+PARENT_DIRECTORY_PART = ".."
+WINDOWS_PATH_SEPARATOR = "\\"
+MAX_COMPRESSED_FILE_COUNT = 500
+ZIP_SYMLINK_FILE_TYPE = 0o120000
 
 RESEARCH_FILE_EXTENSIONS: frozenset[str] = frozenset(
     {
@@ -62,6 +68,7 @@ OOXML_REQUIRED_PARTS: dict[str, frozenset[str]] = {
     ".xlsx": frozenset({"[Content_Types].xml", "xl/workbook.xml"}),
 }
 
+
 IMAGE_EXTENSION_TO_FORMAT: dict[str, str] = {
     ".bmp": "BMP",
     ".gif": "GIF",
@@ -79,6 +86,11 @@ IMAGE_MIME_TO_FORMAT: dict[str, str] = {
 }
 IMAGE_UPLOAD_EXTENSIONS = frozenset(IMAGE_EXTENSION_TO_FORMAT)
 IMAGE_UPLOAD_MIME_TYPES = frozenset(IMAGE_MIME_TO_FORMAT)
+
+
+def _max_compressed_unpacked_size_bytes() -> int:
+    """Return the current unpacked-size limit for compressed generic uploads."""
+    return settings.max_file_upload_size_mb * 1024 * 1024
 
 
 def _safe_upload_name(upload_file: UploadFile) -> str:
@@ -160,7 +172,9 @@ def _validate_ooxml_content(upload_file: UploadFile, extension: str) -> None:
     try:
         upload_file.file.seek(0)
         with ZipFile(upload_file.file) as archive:
-            names = frozenset(archive.namelist())
+            infos = archive.infolist()
+            _validate_compressed_members(infos, max_unpacked_size_bytes=_max_compressed_unpacked_size_bytes())
+            names = frozenset(info.filename for info in infos)
     except (AttributeError, BadZipFile, OSError) as exc:
         _reject_content_mismatch(extension, exc)
     finally:
@@ -168,6 +182,38 @@ def _validate_ooxml_content(upload_file: UploadFile, extension: str) -> None:
 
     if not OOXML_REQUIRED_PARTS[extension].issubset(names):
         _reject_content_mismatch(extension)
+
+
+def _is_zip_symlink(info: ZipInfo) -> bool:
+    return info.create_system == 3 and ((info.external_attr >> 16) & 0o170000) == ZIP_SYMLINK_FILE_TYPE
+
+
+def _validate_compressed_member_path(name: str) -> None:
+    path = Path(name)
+    if (
+        name.startswith(tuple(PATH_SEPARATORS))
+        or any(part == PARENT_DIRECTORY_PART for part in path.parts)
+        or WINDOWS_PATH_SEPARATOR in name
+    ):
+        msg = "Compressed file entries must not include unsafe path information."
+        raise BadRequestError(msg)
+
+
+def _validate_compressed_members(infos: list[ZipInfo], *, max_unpacked_size_bytes: int) -> None:
+    if len(infos) > MAX_COMPRESSED_FILE_COUNT:
+        msg = f"Compressed file contains too many files. Maximum: {MAX_COMPRESSED_FILE_COUNT}"
+        raise BadRequestError(msg)
+
+    total_unpacked_size = 0
+    for info in infos:
+        _validate_compressed_member_path(info.filename)
+        if _is_zip_symlink(info):
+            msg = "Compressed files containing symlinks are not supported."
+            raise BadRequestError(msg)
+        total_unpacked_size += info.file_size
+        if total_unpacked_size > max_unpacked_size_bytes:
+            msg = f"Compressed file uncompressed size exceeds the maximum allowed {max_unpacked_size_bytes} bytes."
+            raise BadRequestError(msg)
 
 
 def validate_generic_file_upload_content(upload_file: UploadFile) -> UploadFile:
@@ -218,7 +264,10 @@ def validate_image_upload_content(upload_file: UploadFile) -> UploadFile:
     try:
         with PILImage.open(upload_file.file) as image:
             detected_format = image.format
+            validate_image_dimensions(image)
             image.verify()
+    except ValueError as exc:
+        raise BadRequestError(str(exc)) from exc
     except (AttributeError, OSError, TypeError, UnidentifiedImageError) as exc:
         msg = "Invalid image file"
         raise BadRequestError(msg) from exc
