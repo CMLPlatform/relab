@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import status
 
+from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.api.auth.services.refresh_token_service import create_refresh_token, refresh_token_fingerprint
 from tests.factories.models import UserFactory
 
@@ -55,7 +56,7 @@ class TestRefreshTokenEndpoint:
         )
         refresh_token = await create_refresh_token(mock_redis_dependency, user.id)
 
-        api_client.cookies.set("refresh_token", refresh_token)
+        api_client.cookies.set(REFRESH_COOKIE_NAME, refresh_token)
         response = await api_client.post("/v1/auth/bearer/refresh")
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -131,7 +132,7 @@ class TestRefreshTokenEndpoint:
 
         old_refresh_token = await create_refresh_token(mock_redis_dependency, user.id)
 
-        api_client.cookies.set("refresh_token", old_refresh_token)
+        api_client.cookies.set(REFRESH_COOKIE_NAME, old_refresh_token)
         first_response = await api_client.post("/v1/auth/session/refresh")
         assert first_response.status_code == status.HTTP_204_NO_CONTENT
 
@@ -139,18 +140,18 @@ class TestRefreshTokenEndpoint:
         for header in first_response.headers.get_list("set-cookie"):
             parsed_cookies.load(header)
 
-        assert "refresh_token" in parsed_cookies
-        new_refresh_token = parsed_cookies["refresh_token"].value
+        assert REFRESH_COOKIE_NAME in parsed_cookies
+        new_refresh_token = parsed_cookies[REFRESH_COOKIE_NAME].value
         assert new_refresh_token
         assert new_refresh_token != old_refresh_token
 
         api_client.cookies.clear()
-        api_client.cookies.set("refresh_token", old_refresh_token)
+        api_client.cookies.set(REFRESH_COOKIE_NAME, old_refresh_token)
         replay_response = await api_client.post("/v1/auth/session/refresh")
         assert replay_response.status_code == status.HTTP_401_UNAUTHORIZED
 
         api_client.cookies.clear()
-        api_client.cookies.set("refresh_token", new_refresh_token)
+        api_client.cookies.set(REFRESH_COOKIE_NAME, new_refresh_token)
         second_response = await api_client.post("/v1/auth/session/refresh")
         assert second_response.status_code == status.HTTP_204_NO_CONTENT
 
@@ -171,8 +172,8 @@ class TestRefreshTokenEndpoint:
         assert response.headers["clear-site-data"] == '"cache", "cookies", "storage"'
         assert await mock_redis_dependency.exists(f"auth:rt_blacklist:{refresh_token_fingerprint(refresh_token)}")
         set_cookie_headers = response.headers.get_list("set-cookie")
-        assert any(header.startswith("auth=") for header in set_cookie_headers)
-        assert any(header.startswith("refresh_token=") for header in set_cookie_headers)
+        assert any(header.startswith(f"{AUTH_COOKIE_NAME}=") for header in set_cookie_headers)
+        assert any(header.startswith(f"{REFRESH_COOKIE_NAME}=") for header in set_cookie_headers)
 
     async def test_revoke_all_sessions_requires_authentication(self, api_client: AsyncClient) -> None:
         """Remote session invalidation is only available to active users."""

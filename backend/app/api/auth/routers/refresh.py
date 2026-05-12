@@ -89,7 +89,7 @@ async def refresh_access_token_cookie(
     user_manager: UserManagerDep,
     strategy: Annotated[Strategy, Depends(cookie_auth_backend.get_strategy)],
     redis: OptionalRedisDep,
-    refresh_token: Annotated[str | None, Cookie()] = None,
+    refresh_token: Annotated[str | None, Cookie(alias=REFRESH_COOKIE_NAME)] = None,
 ) -> None:
     """Refresh access token using refresh token from cookie.
 
@@ -147,8 +147,8 @@ async def logout_session(
     current_user: CurrentActiveUserDep,
     strategy: Annotated[Strategy, Depends(cookie_auth_backend.get_strategy)],
     redis: OptionalRedisDep,
-    cookie_refresh_token: Annotated[str | None, Cookie(alias="refresh_token")] = None,
-    cookie_auth_token: Annotated[str | None, Cookie(alias="auth")] = None,
+    cookie_refresh_token: Annotated[str | None, Cookie(alias=REFRESH_COOKIE_NAME)] = None,
+    cookie_auth_token: Annotated[str | None, Cookie(alias=AUTH_COOKIE_NAME)] = None,
 ) -> None:
     """Logout a browser session, revoke refresh state, and clear browser storage."""
     if cookie_auth_token:
