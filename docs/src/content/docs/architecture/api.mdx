@@ -46,6 +46,8 @@ Base products and components share the same database table, but they are separat
 - direct children and bounded base-product subtrees are listed with `/v1/products/{id}/components` and `/v1/products/{id}/components/tree`
 - bill-of-materials routes follow the addressed resource: `/v1/products/{id}/materials` for base products and `/v1/components/{id}/materials` for components
 
+Product and component entry is progressive. A record can be created before its full component tree or bill of materials is known; completeness checks belong to later curation and audit workflows, not to create-time validation.
+
 Owner attribution is viewer-aware. Public profiles show product owner names to everyone, community profiles show them only to signed-in users, and private profiles show them only to the owner and admins. Hidden owner identity is returned as `null` rather than exposing a username or owner id.
 
 ### Hardware integration
