@@ -1,8 +1,8 @@
-"""Business validation for product hierarchy and bill of materials.
+"""Manual audit validation for product hierarchy and bill of materials.
 
-Extracted from Product.validate_product model_validator per ADR-013.
-These validators should be called from the CRUD layer during create/update,
-not from the ORM model itself.
+Progressive data entry intentionally allows incomplete product/component
+records during collection. Use these validators from manual curation or audit
+workflows when checking whether a product tree is complete enough for reuse.
 """
 
 from __future__ import annotations
@@ -26,11 +26,12 @@ class ProductValidationError(ValueError):
 
 
 def validate_product(product: Product) -> Product:
-    """Validate the product hierarchy and bill of materials constraints.
+    """Validate completed product hierarchy and bill-of-materials constraints.
 
     DB-level invariants enforce the role-specific shape of a row
     (``parent_id``/``owner_id``/``amount_in_parent`` combinations), so this
-    validator only covers structural rules that span multiple rows.
+    validator only covers structural rules that span multiple rows. It is not
+    called by normal create/update flows because those support draft records.
 
     Raises:
         ProductValidationError: If the tree fails any structural business rule.

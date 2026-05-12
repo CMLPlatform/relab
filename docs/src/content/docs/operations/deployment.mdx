@@ -146,7 +146,7 @@ For local rehearsal, use staging plus the backups profile instead of production:
 
 RELab keeps DoS mitigation layered. Cloudflare Tunnel is the public ingress path and carries source-controlled edge controls in `infra/cloudflare/`: per-path rate limiting for `/v1/auth/*`, product/component media uploads, RPi camera image/thumbnail uploads, and `/v1/plugins/rpi-cam/ws/connect`. Volumetric attacks are handled at Cloudflare or the upstream provider, not inside the FastAPI process. Managed WAF rules can be added later once the zone plan and existing dashboard state are known.
 
-The backend enforces source-controlled application limits: JSON bodies are counted while streaming, multipart uploads have per-media size caps and allowlisted formats, expensive public product suggestion/facet routes and upload routes use Redis-backed rate limits, and the RPi camera WebSocket relay bounds auth attempts and frame sizes. Keep those defaults in code unless product policy changes; tune normal deployment capacity in `compose.deploy.yaml`.
+The backend enforces source-controlled application limits: JSON bodies are counted while streaming, multipart uploads have per-media size caps and allowlisted formats, expensive public product suggestion/facet routes, authenticated product/component writes, and upload routes use Redis-backed rate limits, and the RPi camera WebSocket relay bounds auth attempts and frame sizes.
 
 For one host only, create a gitignored `compose.host.yaml`; deploy recipes include it last:
 
