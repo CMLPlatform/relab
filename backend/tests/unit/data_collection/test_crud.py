@@ -347,7 +347,7 @@ class TestBillOfMaterialsCrud:
             patch("app.api.data_collection.crud.shared.require_models"),
         ):
             await remove_materials_from_product(mock_session, product_id, material_ids)
+            # One execute for the bulk DELETE; no individual db.delete calls
             mock_session.execute.assert_called_once()
-            # Should have deleted each material link
-            assert mock_session.delete.call_count == 2
+            assert mock_session.delete.call_count == 0
             mock_session.commit.assert_called_once()

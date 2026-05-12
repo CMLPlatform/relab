@@ -9,7 +9,7 @@ from fastapi_pagination import Page
 from pydantic import PositiveInt
 from sqlalchemy import Select, select
 
-from app.api.common.crud.filtering import apply_filter, create_filter_dependency
+from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, apply_filter, create_filter_dependency
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
@@ -76,6 +76,7 @@ async def _list_product_type_categories(
     )
     statement = apply_filter(statement, Category, category_filter)
     statement = apply_loader_profile(statement, Category, read_schema=CategoryRead)
+    statement = statement.limit(SUB_RESOURCE_LIMIT)
     return list((await session.execute(statement)).scalars().unique().all())
 
 

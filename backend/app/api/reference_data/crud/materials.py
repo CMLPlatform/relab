@@ -174,7 +174,6 @@ async def delete_all_material_files(db: AsyncSession, material_id: int) -> None:
         parent_type=MediaParentType.MATERIAL,
         storage_model=File,
         parent_id=material_id,
-        storage_service=file_storage_service,
     )
 
 
@@ -234,5 +233,4 @@ async def delete_all_material_images(db: AsyncSession, material_id: int) -> None
         parent_type=MediaParentType.MATERIAL,
         storage_model=Image,
         parent_id=material_id,
-        storage_service=image_storage_service,
     )

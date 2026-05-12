@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.api.common.crud.associations import require_link
-from app.api.common.crud.filtering import apply_filter
+from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, apply_filter
 from app.api.common.crud.persistence import update_and_commit
 from app.api.common.crud.utils import validate_linked_items_exist, validate_no_duplicate_linked_items
 from app.api.common.exceptions import InternalServerError
@@ -21,7 +21,7 @@ from app.api.data_collection.filters import MaterialProductLinkFilter
 from app.api.data_collection.models.product import MaterialProductLink
 from app.api.reference_data.models import Material
 
-from .shared import get_material_links_for_product, get_product_with_bill_of_materials, validate_product_material_links
+from .shared import get_product_with_bill_of_materials, validate_product_material_links
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -41,6 +41,7 @@ async def list_material_links_for_product(
         select(MaterialProductLink).join(Material).where(MaterialProductLink.product_id == product_id)
     )
     statement = apply_filter(statement, MaterialProductLink, material_filter)
+    statement = statement.limit(SUB_RESOURCE_LIMIT)
     return list((await db.execute(statement)).scalars().unique().all())
 
 
@@ -117,7 +118,9 @@ async def remove_materials_from_product(db: AsyncSession, product_id: int, mater
 
     validate_linked_items_exist(normalized_material_ids, product.bill_of_materials, "Materials", id_attr="material_id")
 
-    for material_link in await get_material_links_for_product(db, product_id, normalized_material_ids):
-        await db.delete(material_link)
-
+    await db.execute(
+        delete(MaterialProductLink)
+        .where(MaterialProductLink.product_id == product_id)
+        .where(MaterialProductLink.material_id.in_(normalized_material_ids))
+    )
     await db.commit()

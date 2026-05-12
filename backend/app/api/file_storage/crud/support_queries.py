@@ -106,6 +106,7 @@ async def list_parent_storage_items[StorageModelT: StorageModel](
     parent_type: MediaParentType,
     parent_id: int,
     filter_params: BaseFilterSet | None = None,
+    limit: int | None = None,
 ) -> list[StorageModelT]:
     """List storage items owned by one parent/type scope."""
     statement: Select[tuple[StorageModelT]] = select(model).where(
@@ -113,4 +114,6 @@ async def list_parent_storage_items[StorageModelT: StorageModel](
         model.parent_id == parent_id,
     )
     statement = apply_filter(statement, model, filter_params)
+    if limit is not None:
+        statement = statement.limit(limit)
     return list((await db.execute(statement)).scalars().all())

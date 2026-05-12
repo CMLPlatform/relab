@@ -102,7 +102,6 @@ async def delete_all_product_files(db: AsyncSession, product_id: int) -> None:
         parent_type=MediaParentType.PRODUCT,
         storage_model=File,
         parent_id=product_id,
-        storage_service=file_storage_service,
     )
 
 
@@ -169,7 +168,6 @@ async def delete_all_product_images(db: AsyncSession, product_id: int) -> None:
         parent_type=MediaParentType.PRODUCT,
         storage_model=Image,
         parent_id=product_id,
-        storage_service=image_storage_service,
     )
 
 
