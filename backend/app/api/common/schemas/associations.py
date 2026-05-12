@@ -2,6 +2,7 @@
 
 from pydantic import Field, PositiveInt
 
+from app.api.common.models.associations import MAX_MATERIAL_QUANTITY
 from app.api.common.models.associations import MaterialProductLinkBaseSchema as MaterialProductLinkBase
 from app.api.common.models.enums import Unit
 from app.api.common.schemas.base import (
@@ -42,5 +43,5 @@ class MaterialProductLinkReadWithinMaterial(AssociationModelReadSchemaWithTimeSt
 class MaterialProductLinkUpdate(BaseUpdateSchema):
     """Schema for updating material-product links."""
 
-    quantity: float | None = Field(gt=0)
+    quantity: float | None = Field(default=None, gt=0, le=MAX_MATERIAL_QUANTITY)
     unit: Unit | None = Field(default=Unit.KILOGRAM)
