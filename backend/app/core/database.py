@@ -20,10 +20,11 @@ load_models()
 async_engine: AsyncEngine = create_async_engine(
     settings.async_database_url,
     connect_args=settings.async_database_connect_args,
-    future=True,
     echo=settings.debug,
     pool_size=settings.db_pool_size,
     max_overflow=settings.db_pool_max_overflow,
+    pool_pre_ping=True,
+    pool_recycle=1800,
 )
 async_sessionmaker_factory = async_sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
 
