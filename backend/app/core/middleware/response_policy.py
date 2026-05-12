@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 CACHE_CONTROL_HEADER = "cache-control"
 PROBLEM_CONTENT_TYPE = "application/problem+json"
-AUTH_COOKIE_NAMES = frozenset({"auth", "refresh_token"})
+AUTH_COOKIE_NAMES = frozenset({"__Host-relab-auth", "__Host-relab-refresh"})
 SENSITIVE_PATH_PREFIXES = (
     "/v1/auth",
     "/v1/oauth",
@@ -26,7 +26,7 @@ SENSITIVE_PATH_PREFIXES = (
 
 HSTS_HEADER_VALUE = "max-age=63072000; includeSubDomains"
 REFERRER_POLICY_HEADER_VALUE = "no-referrer"
-CONTENT_SECURITY_POLICY_HEADER_VALUE = "frame-ancestors 'none'"
+CONTENT_SECURITY_POLICY_HEADER_VALUE = "default-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'"
 X_XSS_PROTECTION_HEADER_VALUE = "0"
 CROSS_ORIGIN_OPENER_POLICY_HEADER_VALUE = "same-origin"
 CROSS_ORIGIN_RESOURCE_POLICY_HEADER_VALUE = "same-site"
