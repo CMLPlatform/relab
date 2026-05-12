@@ -122,6 +122,8 @@ Strict-Transport-Security: max-age=63072000; includeSubDomains
 
 Static frontends set this in Caddy; the API sets it from FastAPI in `prod` and `staging`. `preload` is intentionally omitted until the full `cml-relab.org` subdomain inventory is verified.
 
+Supported browsers must implement HTTPS, HSTS, Content Security Policy, host-prefixed secure cookies, SameSite cookies, CORS preflight enforcement, and the modern cross-origin isolation headers used by RELab (`Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy`). Unsupported browsers are not given a fallback security mode; they may fail to authenticate, fail to load protected media, or be blocked by browser policy.
+
 ## Deploy flow
 
 For a new host, clone the repo, create the root `.env`, review the relevant `deploy/env/*.compose.env` file, create secret files, validate the render, then start the deploy stack and run migrations:
@@ -220,6 +222,8 @@ When Release Please creates a GitHub release, the release workflow rebuilds thos
 RELab does not load third-party browser runtime JavaScript by default. Browser code is installed, bundled, and served as first-party assets; Biome and the repository pre-commit/CI Semgrep policy block remote script tags, remote module imports, CDN-hosted runtime assets, and common analytics/tag-manager snippets.
 
 The current exception is product video embedding from `https://www.youtube-nocookie.com`, constrained by CSP and iframe/WebView origin controls. Any new third-party runtime script must be intentionally reviewed, documented, allowlisted in CSP, and covered by the browser JavaScript policy tests.
+
+The Expo web app still requires inline and eval-style first-party script support in its enforced CSP. RELab keeps a stricter report-only policy as the migration target; this is the remaining ASVS V3 L3 CSP exception for the app origin. RELab does not currently collect CSP violation reports because there is no reviewed reporting pipeline yet. The docs and public web origins enforce stricter script policies today, while all browser-facing origins enforce `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`, and referrer suppression.
 
 ## Telemetry
 

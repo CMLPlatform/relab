@@ -10,6 +10,12 @@
 		respond "ok" 200
 	}
 
+	@dangerous_methods method TRACE TRACK CONNECT
+	handle @dangerous_methods {
+		header Allow "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"
+		respond "HTTP method is not allowed." 405
+	}
+
 	header {
 		# Prevent MIME-type sniffing
 		X-Content-Type-Options "nosniff"
@@ -40,8 +46,8 @@
 		# - CADDY_API_ORIGIN: injected by the container environment per deployment
 		-Content-Security-Policy
 		-Content-Security-Policy-Report-Only
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CADDY_API_ORIGIN}; connect-src 'self' blob: {$CADDY_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
-		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CADDY_API_ORIGIN}; connect-src 'self' blob: {$CADDY_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CADDY_API_ORIGIN}; connect-src 'self' blob: {$CADDY_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CADDY_API_ORIGIN}; connect-src 'self' blob: {$CADDY_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
 	}
 
 	# Hashed, content-addressed static assets — serve directly with no SPA fallback
