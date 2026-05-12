@@ -161,4 +161,5 @@ REGISTER_RATE_LIMIT = f"{auth_settings.rate_limit_register_attempts_per_hour}/ho
 VERIFY_RATE_LIMIT = f"{auth_settings.rate_limit_verify_attempts_per_hour}/hour"
 PASSWORD_RESET_RATE_LIMIT = f"{auth_settings.rate_limit_password_reset_attempts_per_hour}/hour"
 API_READ_RATE_LIMIT_DEPENDENCY = limiter.dependency(core_settings.api_read_rate_limit, name="api_read_rate_limit")
+API_WRITE_RATE_LIMIT_DEPENDENCY = limiter.dependency(core_settings.api_write_rate_limit, name="api_write_rate_limit")
 API_UPLOAD_RATE_LIMIT_DEPENDENCY = limiter.dependency(core_settings.api_upload_rate_limit, name="api_upload_rate_limit")

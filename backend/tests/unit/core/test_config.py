@@ -161,6 +161,7 @@ class TestCoreSettingsCors:
         assert settings.max_file_upload_size_mb == 50
         assert settings.max_image_upload_size_mb == 10
         assert settings.api_read_rate_limit == "300/minute"
+        assert settings.api_write_rate_limit == "120/minute"
         assert settings.api_upload_rate_limit == "30/minute"
         assert settings.rpi_cam_ws_auth_rate_limit == "10/minute"
         assert settings.rpi_cam_ws_text_frame_limit_bytes == 65_536

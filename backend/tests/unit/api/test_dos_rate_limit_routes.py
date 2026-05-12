@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from inspect import signature
 
+import pytest
 from fastapi import APIRouter, FastAPI
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from app.api.auth.services.rate_limiter import Limiter, RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.data_collection.routers import search_router
+from app.api.data_collection.routers.component_core_routers import component_core_router
 from app.api.data_collection.routers.component_media_routers import component_media_router
 from app.api.data_collection.routers.product_mutation_routers import product_mutation_router
 from app.api.plugins.rpi_cam.routers.camera_interaction.images import device_router as rpi_cam_device_image_router
@@ -71,6 +73,23 @@ def test_product_and_component_upload_routes_are_rate_limited() -> None:
     _assert_rate_limited(
         _route(component_media_router, "/components/{component_id}/images", "POST"), "api_upload_rate_limit"
     )
+
+
+@pytest.mark.parametrize(
+    ("router", "path", "method"),
+    [
+        (product_mutation_router, "/products", "POST"),
+        (product_mutation_router, "/products/{product_id}", "PATCH"),
+        (product_mutation_router, "/products/{product_id}", "DELETE"),
+        (product_mutation_router, "/products/{product_id}/components", "POST"),
+        (component_core_router, "/components/{component_id}/components", "POST"),
+        (component_core_router, "/components/{component_id}", "PATCH"),
+        (component_core_router, "/components/{component_id}", "DELETE"),
+    ],
+)
+def test_product_and_component_write_routes_are_rate_limited(router: APIRouter, path: str, method: str) -> None:
+    """Authenticated product/component write routes should have per-IP write limits."""
+    _assert_rate_limited(_route(router, path, method), "api_write_rate_limit")
 
 
 def test_reference_data_upload_routes_are_rate_limited() -> None:
