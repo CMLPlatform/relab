@@ -54,6 +54,7 @@
         "backend/.python-version",
         "package.json",
         "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
         "pyproject.toml",
         "uv.lock"
       ],
@@ -67,21 +68,21 @@
     },
     {
       "groupName": "docs-runtime-tooling",
-      "matchFileNames": ["docs/package.json", "docs/pnpm-lock.yaml", "docs/Dockerfile*"],
+      "matchFileNames": ["docs/package.json", "docs/Dockerfile*"],
       "automerge": false
     },
     {
       "groupName": "www-runtime-tooling",
-      "matchFileNames": ["www/package.json", "www/pnpm-lock.yaml", "www/Dockerfile*"],
+      "matchFileNames": ["www/package.json", "www/Dockerfile*"],
       "automerge": false
     },
     {
       "groupName": "app-runtime-tooling",
-      "matchFileNames": ["app/package.json", "app/pnpm-lock.yaml", "app/Dockerfile*"],
+      "matchFileNames": ["app/package.json", "app/Dockerfile*"],
       "automerge": false
     },
     {
-      "matchFileNames": ["app/package.json", "app/pnpm-lock.yaml"],
+      "matchFileNames": ["app/package.json", "pnpm-lock.yaml"],
       "matchPackageNames": [
         "expo",
         "/^expo($|-)/",
@@ -110,12 +111,7 @@
     {
       "groupName": "node lock file maintenance",
       "matchUpdateTypes": ["lockFileMaintenance"],
-      "matchFileNames": [
-        "pnpm-lock.yaml",
-        "docs/pnpm-lock.yaml",
-        "www/pnpm-lock.yaml",
-        "app/pnpm-lock.yaml"
-      ],
+      "matchFileNames": ["pnpm-lock.yaml"],
       "automerge": false
     },
     {

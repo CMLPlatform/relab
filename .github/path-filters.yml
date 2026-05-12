@@ -7,6 +7,9 @@ shared:
   - '.env.example'
   - 'backend/.env*.example'
   - 'justfile'
+  - 'package.json'
+  - 'pnpm-lock.yaml'
+  - 'pnpm-workspace.yaml'
   - 'scripts/**'
   - 'deploy/**'
   - 'infra/**'
@@ -27,6 +30,9 @@ policy:
   - 'backend/.env*.example'
   - 'pyproject.toml'
   - 'justfile'
+  - 'package.json'
+  - 'pnpm-lock.yaml'
+  - 'pnpm-workspace.yaml'
   - 'scripts/**'
   - 'deploy/**'
   - 'infra/**'
@@ -38,16 +44,25 @@ backend:
 
 www:
   - 'www/**'
+  - 'package.json'
+  - 'pnpm-lock.yaml'
+  - 'pnpm-workspace.yaml'
   - 'compose*.yml'
   - 'compose*.yaml'
 
 app:
   - 'app/**'
+  - 'package.json'
+  - 'pnpm-lock.yaml'
+  - 'pnpm-workspace.yaml'
   - 'compose*.yml'
   - 'compose*.yaml'
 
 docs:
   - 'docs/**'
+  - 'package.json'
+  - 'pnpm-lock.yaml'
+  - 'pnpm-workspace.yaml'
   - 'compose*.yml'
   - 'compose*.yaml'
 
@@ -56,6 +71,5 @@ containers:
   - 'compose*.yaml'
   - '**/Dockerfile*'
   - 'backend/uv.lock'
-  - 'docs/pnpm-lock.yaml'
-  - 'app/pnpm-lock.yaml'
-  - 'www/pnpm-lock.yaml'
+  - 'pnpm-lock.yaml'
+  - 'pnpm-workspace.yaml'

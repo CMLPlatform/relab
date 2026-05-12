@@ -74,11 +74,11 @@ jobs:
           [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
             include_entries+=('{"service":"relab-backup","context":"./backend","dockerfile":"./backend/Dockerfile.backups","image_ref":"relab-backup:${{ github.sha }}"}')
           [[ "$shared_trigger" == "true" || "$DOCS" == "true" ]] && \
-            include_entries+=('{"service":"docs","context":"./docs","dockerfile":"./docs/Dockerfile","image_ref":"relab-docs:${{ github.sha }}"}')
+            include_entries+=('{"service":"docs","context":".","dockerfile":"./docs/Dockerfile","image_ref":"relab-docs:${{ github.sha }}"}')
           [[ "$shared_trigger" == "true" || "$APP" == "true" ]] && \
-            include_entries+=('{"service":"app","context":"./app","dockerfile":"./app/Dockerfile","image_ref":"relab-app:${{ github.sha }}"}')
+            include_entries+=('{"service":"app","context":".","dockerfile":"./app/Dockerfile","image_ref":"relab-app:${{ github.sha }}"}')
           [[ "$shared_trigger" == "true" || "$WWW" == "true" ]] && \
-            include_entries+=('{"service":"www","context":"./www","dockerfile":"./www/Dockerfile","image_ref":"relab-www:${{ github.sha }}"}')
+            include_entries+=('{"service":"www","context":".","dockerfile":"./www/Dockerfile","image_ref":"relab-www:${{ github.sha }}"}')
 
           if ((${#include_entries[@]} == 0)); then
             echo "run-container-images=false" >> "$GITHUB_OUTPUT"

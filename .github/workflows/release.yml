@@ -60,15 +60,15 @@ jobs:
             dockerfile: ./backend/Dockerfile.backups
             image_ref: relab-backup:${{ github.sha }}
           - service: docs
-            context: ./docs
+            context: .
             dockerfile: ./docs/Dockerfile
             image_ref: relab-docs:${{ github.sha }}
           - service: app
-            context: ./app
+            context: .
             dockerfile: ./app/Dockerfile
             image_ref: relab-app:${{ github.sha }}
           - service: www
-            context: ./www
+            context: .
             dockerfile: ./www/Dockerfile
             image_ref: relab-www:${{ github.sha }}
     steps:
