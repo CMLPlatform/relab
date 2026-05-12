@@ -109,6 +109,7 @@ services:
   postgres:
     image: postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4
     restart: unless-stopped
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "pg_stat_statements.track=all"]
     volumes:
       - database_data:/var/lib/postgresql
       # Postgres runs initdb files in sorted order on fresh volumes.
