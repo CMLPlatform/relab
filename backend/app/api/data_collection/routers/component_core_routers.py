@@ -8,6 +8,7 @@ from fastapi import Body, HTTPException
 from pydantic import PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, OptionalCurrentActiveUserDep
+from app.api.auth.services.rate_limiter import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -55,6 +56,7 @@ async def get_component(
     response_model=ComponentReadWithRecursiveComponents,
     status_code=201,
     summary="Create a nested component",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def add_component_to_component(
     db_component: UserOwnedComponentDep,
@@ -79,6 +81,7 @@ async def add_component_to_component(
     "/{component_id}",
     response_model=ComponentRead,
     summary="Update component",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def update_component(
     component_update: ProductUpdate,
@@ -95,6 +98,7 @@ async def update_component(
     "/{component_id}",
     status_code=204,
     summary="Delete component",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def delete_component(db_component: UserOwnedComponentDep, session: AsyncSessionDep) -> None:
     """Delete a component (cascades to its sub-components)."""

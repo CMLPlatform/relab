@@ -173,6 +173,7 @@ class CoreSettings(RelabBaseSettings):
     max_file_upload_size_mb: int = Field(default=50, ge=1, le=500)
     max_image_upload_size_mb: int = Field(default=10, ge=1, le=100)
     api_read_rate_limit: str = "300/minute"
+    api_write_rate_limit: str = "120/minute"
     api_upload_rate_limit: str = "30/minute"
     rpi_cam_ws_auth_rate_limit: str = "10/minute"
     rpi_cam_ws_text_frame_limit_bytes: int = Field(default=64 * 1024, ge=1024, le=1024 * 1024)

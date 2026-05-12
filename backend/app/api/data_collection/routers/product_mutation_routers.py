@@ -14,7 +14,7 @@ from fastapi import File as FastAPIFile
 from pydantic import UUID4, BeforeValidator
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
-from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
+from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY, API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
@@ -67,6 +67,7 @@ _IMAGE_FILTER_DEPENDENCY = create_filter_dependency(ImageFilter)
     response_model=ProductRead,
     summary="Create a new product, optionally with components",
     status_code=201,
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def create_product(
     product: Annotated[
@@ -85,7 +86,12 @@ async def create_product(
     return to_product_read(created, ProductRead, current_user)
 
 
-@product_mutation_router.patch("/{product_id}", response_model=ProductRead, summary="Update base product")
+@product_mutation_router.patch(
+    "/{product_id}",
+    response_model=ProductRead,
+    summary="Update base product",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+)
 async def update_product(
     product_update: ProductUpdate,
     db_product: UserOwnedBaseProductDep,
@@ -113,6 +119,7 @@ async def delete_product(db_product: UserOwnedBaseProductDep, session: AsyncSess
     response_model=ComponentReadWithRecursiveComponents,
     status_code=201,
     summary="Create a new component under a base product",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def add_component_to_product(
     db_product: UserOwnedBaseProductDep,
