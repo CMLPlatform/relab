@@ -156,6 +156,59 @@ class TestUserUpdateSchema:
         assert "current_password" not in update.create_update_dict_superuser()
 
 
+class TestSensitiveUpdateHooks:
+    """Sensitive user updates revoke refresh sessions before follow-up side effects."""
+
+    async def test_email_update_revokes_sessions_before_email_side_effects(self) -> None:
+        """Refresh sessions should be revoked even if a later email side effect fails."""
+        manager, _ = _make_manager()
+        request = MagicMock()
+        user = MagicMock()
+        user.email = "old@example.com"
+        updated_user = MagicMock()
+        updated_user.id = "user-id"
+        updated_user.email = "new@example.com"
+        update = UserUpdate(email="new@example.com", current_password=SecretStr("current-passphrase-42"))
+        calls: list[str] = []
+
+        manager._require_current_password_for_sensitive_update = MagicMock()  # noqa: SLF001
+        manager.request_verify = AsyncMock(side_effect=lambda *_args: calls.append("request_verify"))
+
+        async def update_override_side_effect(*_args: object) -> UserUpdate:
+            return update
+
+        async def base_update_side_effect(*_args: object, **_kwargs: object) -> MagicMock:
+            calls.append("base_update")
+            return updated_user
+
+        async def revoke_side_effect(*_args: object) -> None:
+            calls.append("revoke")
+
+        async def email_notification_side_effect(*_args: object) -> None:
+            calls.append("email_notification")
+
+        with (
+            patch(
+                "app.api.auth.services.user_manager.update_user_override",
+                side_effect=update_override_side_effect,
+            ),
+            patch.object(BaseUserManager, "update", side_effect=base_update_side_effect),
+            patch(
+                "app.api.auth.services.user_manager._revoke_user_refresh_tokens",
+                side_effect=revoke_side_effect,
+            ) as revoke,
+            patch(
+                "app.api.auth.services.user_manager.send_email_changed_notification",
+                side_effect=email_notification_side_effect,
+            ),
+        ):
+            result = await manager.update(update, user, request=request)
+
+        assert result is updated_user
+        revoke.assert_awaited_once_with(updated_user.id, request)
+        assert calls == ["base_update", "revoke", "request_verify", "email_notification"]
+
+
 class TestLoginHooks:
     """Post-login hooks avoid storing full network identifiers."""
 

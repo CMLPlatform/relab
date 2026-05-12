@@ -63,6 +63,17 @@ def _login_identifier_rate_limit_key(identifier: str) -> str:
     return rate_limit_bucket_key("auth:login:account", identifier)
 
 
+def _sensitive_update_fields(user_update: UserUpdate) -> set[str]:
+    """Return sensitive account fields included in a user update."""
+    return set(user_update.model_dump(exclude_unset=True)) & SENSITIVE_UPDATE_FIELDS
+
+
+async def _revoke_user_refresh_tokens(user_id: UUID4, request: Request | None) -> None:
+    """Revoke every refresh-token session for a user in the current request context."""
+    redis = get_request_services(request).redis if request else None
+    await refresh_token_service.revoke_all_user_tokens(redis, user_id)
+
+
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: ignore UUIDID
     """User manager class for FastAPI-Users."""
 
@@ -128,7 +139,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         """Update a user, injecting custom username validation first."""
         # Will raise exceptions like UserNameAlreadyExistsError if validation fails
         real_user_update = cast("UserUpdate", user_update)
-        self._require_current_password_for_sensitive_update(real_user_update, user)
+        sensitive_fields = _sensitive_update_fields(real_user_update)
+        self._require_current_password_for_sensitive_update(real_user_update, user, sensitive_fields)
         real_user_update = await update_user_override(self.user_db, user, real_user_update)
         user_update = cast("schemas.UU", real_user_update)
 
@@ -137,16 +149,20 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         # Proceed with base FastAPI User update logic
         updated_user = await super().update(user_update, user, safe=safe, request=request)
 
+        if sensitive_fields:
+            await _revoke_user_refresh_tokens(updated_user.id, request)
+
         if real_user_update.email is not None and updated_user.email != old_email:
             await self.request_verify(updated_user, request)
             await send_email_changed_notification(old_email)
 
         return updated_user
 
-    def _require_current_password_for_sensitive_update(self, user_update: UserUpdate, user: User) -> None:
+    def _require_current_password_for_sensitive_update(
+        self, user_update: UserUpdate, user: User, sensitive_fields: set[str]
+    ) -> None:
         """Require password reauthentication before e-mail or password changes."""
-        update_data = user_update.model_dump(exclude_unset=True)
-        if not SENSITIVE_UPDATE_FIELDS.intersection(update_data):
+        if not sensitive_fields:
             return
 
         if not user_update.current_password:
@@ -188,15 +204,13 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
 
     async def on_after_reset_password(self, user: User, request: Request | None = None) -> None:
         """Revoke active refresh tokens and notify the user after a password reset."""
-        redis = get_request_services(request).redis if request else None
-        await refresh_token_service.revoke_all_user_tokens(redis, user.id)
+        await _revoke_user_refresh_tokens(user.id, request)
         await send_password_reset_confirmation_email(user.email, user.username)
 
     async def on_after_update(self, user: User, update_dict: dict, request: Request | None = None) -> None:
         """Revoke all refresh tokens when a user is deactivated."""
         if update_dict.get("is_active") is False:
-            redis = get_request_services(request).redis if request else None
-            await refresh_token_service.revoke_all_user_tokens(redis, user.id)
+            await _revoke_user_refresh_tokens(user.id, request)
             audit_event(user.id, AuditAction.DEACTIVATE, User, user.id)
 
     async def on_after_login(
