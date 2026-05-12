@@ -1,5 +1,5 @@
 """Behavior-focused tests for file-storage utility helpers."""
-# spell-checker: ignore geocube HYPERSPECTRAL hyperspectral nitf officedocument
+# spell-checker: ignore geocube HYPERSPECTRAL hyperspectral nitf officedocument ooxml
 # spell-checker: ignore pptx presentationml spreadsheetml wordprocessingml
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 import pytest
 from fastapi import UploadFile
+from PIL import Image as PILImage
 from starlette.datastructures import Headers
 
 from app.api.common.exceptions import BadRequestError
@@ -20,6 +21,7 @@ from app.api.file_storage.upload_policy import (
     HYPERSPECTRAL_FILE_EXTENSIONS,
     validate_generic_file_upload_content,
     validate_generic_file_upload_metadata,
+    validate_image_upload_content,
     validate_image_upload_metadata,
 )
 
@@ -94,6 +96,15 @@ def _zip_bytes(paths: list[str]) -> bytes:
     with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
         for path in paths:
             archive.writestr(ZipInfo(path, date_time=ZIP_MEMBER_TIMESTAMP), "<xml />", compress_type=ZIP_DEFLATED)
+    return buffer.getvalue()
+
+
+def _zip_bytes_with_info(entries: list[tuple[ZipInfo, bytes]]) -> bytes:
+    buffer = BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
+        for info, content in entries:
+            info.date_time = ZIP_MEMBER_TIMESTAMP
+            archive.writestr(info, content, compress_type=ZIP_DEFLATED)
     return buffer.getvalue()
 
 
@@ -208,4 +219,82 @@ class TestUploadPolicy:
 
         with pytest.raises(BadRequestError, match="does not match"):
             validate_generic_file_upload_content(upload)
+        assert upload.file.tell() == 0
+
+    @pytest.mark.parametrize(
+        ("paths", "message"),
+        [
+            (["[Content_Types].xml", "word/document.xml", "../evil.xml"], "path information"),
+            (["[Content_Types].xml", "word/document.xml", "/absolute.xml"], "path information"),
+            (["[Content_Types].xml", "word/document.xml", "nested\\evil.xml"], "path information"),
+        ],
+    )
+    def test_ooxml_upload_rejects_zip_slip_paths(self, paths: list[str], message: str) -> None:
+        """Compressed uploads must ignore user-provided path tricks before processing."""
+        upload = _upload("report.docx", self.DOCX_CONTENT_TYPE, _zip_bytes(paths))
+
+        with pytest.raises(BadRequestError, match=message):
+            validate_generic_file_upload_content(upload)
+        assert upload.file.tell() == 0
+
+    def test_ooxml_upload_rejects_too_many_files(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Compressed uploads must cap member count before accepting the archive."""
+        monkeypatch.setattr("app.api.file_storage.upload_policy.MAX_COMPRESSED_FILE_COUNT", 2)
+        upload = _upload(
+            "report.docx",
+            self.DOCX_CONTENT_TYPE,
+            _zip_bytes(["[Content_Types].xml", "word/document.xml", "extra.xml"]),
+        )
+
+        with pytest.raises(BadRequestError, match="too many files"):
+            validate_generic_file_upload_content(upload)
+        assert upload.file.tell() == 0
+
+    def test_ooxml_upload_rejects_excessive_uncompressed_size(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Compressed uploads must cap unpacked size before accepting the archive."""
+        monkeypatch.setattr("app.api.file_storage.upload_policy._max_compressed_unpacked_size_bytes", lambda: 10)
+        upload = _upload(
+            "report.docx",
+            self.DOCX_CONTENT_TYPE,
+            _zip_bytes_with_info(
+                [
+                    (ZipInfo("[Content_Types].xml"), b"<xml />"),
+                    (ZipInfo("word/document.xml"), b"x" * 20),
+                ]
+            ),
+        )
+
+        with pytest.raises(BadRequestError, match="uncompressed size"):
+            validate_generic_file_upload_content(upload)
+        assert upload.file.tell() == 0
+
+    def test_ooxml_upload_rejects_symlink_members(self) -> None:
+        """Compressed uploads must reject symlink entries."""
+        symlink = ZipInfo("word/link.xml")
+        symlink.create_system = 3
+        symlink.external_attr = 0o120777 << 16
+        upload = _upload(
+            "report.docx",
+            self.DOCX_CONTENT_TYPE,
+            _zip_bytes_with_info(
+                [
+                    (ZipInfo("[Content_Types].xml"), b"<xml />"),
+                    (ZipInfo("word/document.xml"), b"<xml />"),
+                    (symlink, b"target"),
+                ]
+            ),
+        )
+
+        with pytest.raises(BadRequestError, match="symlink"):
+            validate_generic_file_upload_content(upload)
+        assert upload.file.tell() == 0
+
+    def test_image_upload_content_rejects_pixel_flood_images(self) -> None:
+        """Image uploads must reject dimensions over the configured pixel cap before storage."""
+        buffer = BytesIO()
+        PILImage.new("RGB", (8001, 1), color="red").save(buffer, format="PNG")
+        upload = _upload("photo.png", "image/png", buffer.getvalue())
+
+        with pytest.raises(BadRequestError, match="exceed"):
+            validate_image_upload_content(upload)
         assert upload.file.tell() == 0
