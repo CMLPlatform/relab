@@ -34,6 +34,9 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         Index("product_search_vector_idx", "search_vector", postgresql_using="gin"),
         Index("product_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
         Index("product_brand_trgm_idx", "brand", postgresql_using="gin", postgresql_ops={"brand": "gin_trgm_ops"}),
+        # All owned rows, including components; used for product-owned media quota checks.
+        Index("ix_product_owner_id", "owner_id"),
+        # Base products only; keeps user product-list queries on a smaller targeted index.
         Index("ix_product_base_owner_id", "owner_id", postgresql_where=text("parent_id IS NULL")),
         CheckConstraint(
             "(parent_id IS NULL AND amount_in_parent IS NULL) "

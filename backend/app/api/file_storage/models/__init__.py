@@ -56,8 +56,8 @@ class File(TimeStampMixinBare, Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     filename: Mapped[str] = mapped_column(doc="Original file name of the file.")
     file: Mapped[StorageFile] = mapped_column(FileType, nullable=False, doc="Local file path to the file")
+    upload_size_bytes: Mapped[int] = mapped_column(default=0, server_default="0")
     description: Mapped[str | None] = mapped_column(default=None)
-
     parent_type: Mapped[MediaParentType] = mapped_column(SAEnum(MediaParentType, name="fileparenttype"), nullable=False)
     parent_id: Mapped[int] = mapped_column(nullable=False)
 
@@ -71,9 +71,9 @@ class Image(TimeStampMixinBare, Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     filename: Mapped[str] = mapped_column(nullable=False, doc="Original file name of the image.")
     file: Mapped[StorageImage] = mapped_column(ImageType, nullable=False, doc="Local file path to the image")
+    upload_size_bytes: Mapped[int] = mapped_column(default=0, server_default="0")
     description: Mapped[str | None] = mapped_column(default=None)
     image_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
-
     parent_type: Mapped[MediaParentType] = mapped_column(
         SAEnum(MediaParentType, name="imageparenttype"), nullable=False
     )
