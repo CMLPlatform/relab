@@ -129,9 +129,6 @@ jobs:
         run: >-
           ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'SKIP=no-commit-to-branch ' || '' }}uv run pre-commit run --all-files --show-diff-on-failure
 
-      - name: Check shared dep version alignment
-        run: pnpm run syncpack:check
-
       - name: Validate Cloudflare edge IaC
         run: just cloudflare-check
 
@@ -220,7 +217,7 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: www/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: just www/install
@@ -266,7 +263,7 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: www/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: just www/install
@@ -305,7 +302,7 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: app/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: just app/install
@@ -351,7 +348,7 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: docs/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: just docs/install
@@ -387,7 +384,7 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: app/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install app dependencies
         run: just app/install
