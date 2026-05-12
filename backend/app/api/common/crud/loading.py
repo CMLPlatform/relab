@@ -5,7 +5,7 @@ from typing import Any, Self, cast
 
 from pydantic import BaseModel
 from sqlalchemy import Select, inspect
-from sqlalchemy.orm import joinedload, noload, selectinload
+from sqlalchemy.orm import joinedload, noload, raiseload, selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
 
 from app.api.common.crud.exceptions import CRUDConfigurationError
@@ -64,6 +64,8 @@ def apply_loader_profile[T, ModelT: Base](
     relationships = _get_model_relationships(model)
     if not relationships:
         return statement
+
+    statement = statement.options(raiseload("*"))
 
     schema_relationships = (
         {name for name in relationships if name in read_schema.model_fields}
