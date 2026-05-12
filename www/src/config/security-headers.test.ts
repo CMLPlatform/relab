@@ -1,6 +1,4 @@
-// biome-ignore lint/correctness/noNodejsModules: this regression test reads deployment Caddyfiles.
 import { readFileSync } from 'node:fs';
-// biome-ignore lint/correctness/noNodejsModules: this regression test reads deployment Caddyfiles.
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -11,6 +9,12 @@ const HSTS_PATTERN = /^\s*Strict-Transport-Security\s+"([^"]+)"/m;
 const REFERRER_POLICY_PATTERN = /^\s*Referrer-Policy\s+"([^"]+)"/m;
 const CONTENT_TYPE_OPTIONS_PATTERN = /^\s*X-Content-Type-Options\s+"([^"]+)"/m;
 const PERMISSIONS_POLICY_HEADER_PATTERN = /^\s*Permissions-Policy\s+/m;
+const DANGEROUS_METHODS_PATTERN =
+  /@dangerous_methods\s+method\s+([^\n]+)\s+handle\s+@dangerous_methods\s+\{(?<block>[\s\S]*?)\n\s*\}/m;
+const METHOD_SPLIT_PATTERN = /\s+/;
+const METHOD_ALLOW_HEADER_PATTERN =
+  /header\s+Allow\s+"GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"/;
+const METHOD_405_RESPONSE_PATTERN = /respond\s+"[^"]+"\s+405/;
 
 function readCaddyfile(relativePath: string) {
   return readFileSync(resolve(import.meta.dirname, relativePath), 'utf8');
@@ -65,7 +69,29 @@ function cspDirective(policy: string, directive: string) {
   );
 }
 
+function dangerousMethodPolicy(caddyfile: string) {
+  const match = caddyfile.match(DANGEROUS_METHODS_PATTERN);
+  if (!match?.groups?.block) {
+    throw new Error('Missing dangerous method policy block');
+  }
+  return {
+    block: match.groups.block,
+    methods: match[1].trim().split(METHOD_SPLIT_PATTERN),
+  };
+}
+
 describe('Caddy baseline security headers', () => {
+  it.each([
+    ['www', readCaddyfile('../../Caddyfile')],
+    ['docs', readCaddyfile('../../../docs/Caddyfile')],
+  ])('%s blocks dangerous unsupported HTTP methods', (_name, caddyfile) => {
+    const policy = dangerousMethodPolicy(caddyfile);
+
+    expect(policy.methods).toEqual(['TRACE', 'TRACK', 'CONNECT']);
+    expect(policy.block).toMatch(METHOD_ALLOW_HEADER_PATTERN);
+    expect(policy.block).toMatch(METHOD_405_RESPONSE_PATTERN);
+  });
+
   it.each([
     ['www', readCaddyfile('../../Caddyfile')],
     ['docs', readCaddyfile('../../../docs/Caddyfile')],
@@ -100,9 +126,10 @@ describe('Caddy CSP security headers', () => {
 
     expect(policy).toContain("default-src 'self'");
     expect(policy).toContain("object-src 'none'");
-    expect(policy).toContain("base-uri 'self'");
+    expect(policy).toContain("base-uri 'none'");
     expect(policy).toContain("form-action 'self'");
     expect(policy).toContain("frame-ancestors 'none'");
+    expect(policy).not.toContain('report-uri');
   });
 
   it.each([

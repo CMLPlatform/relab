@@ -9,6 +9,12 @@ const CONTENT_TYPE_OPTIONS_PATTERN = /^\s*X-Content-Type-Options\s+"([^"]+)"/m;
 const PERMISSIONS_POLICY_PATTERN = /^\s*Permissions-Policy\s+"([^"]+)"/m;
 const ENFORCED_CSP_PATTERN = /^\s*Content-Security-Policy\s+"([^"]+)"/m;
 const REPORT_ONLY_CSP_PATTERN = /^\s*Content-Security-Policy-Report-Only\s+"([^"]+)"/m;
+const DANGEROUS_METHODS_PATTERN =
+  /@dangerous_methods\s+method\s+([^\n]+)\s+handle\s+@dangerous_methods\s+\{(?<block>[\s\S]*?)\n\s*\}/m;
+const METHOD_SPLIT_PATTERN = /\s+/;
+const METHOD_ALLOW_HEADER_PATTERN =
+  /header\s+Allow\s+"GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"/;
+const METHOD_405_RESPONSE_PATTERN = /respond\s+"[^"]+"\s+405/;
 const RESET_PASSWORD_REFERRER_POLICY_PATTERN =
   /@reset_password_route\s+path\s+\/reset-password\*\s+handle\s+@reset_password_route\s+\{\s+header\s+Referrer-Policy/s;
 
@@ -60,7 +66,26 @@ function permissionsPolicy() {
   return match[1];
 }
 
+function dangerousMethodPolicy() {
+  const match = caddyfile.match(DANGEROUS_METHODS_PATTERN);
+  if (!match?.groups?.block) {
+    throw new Error('Missing dangerous method policy block');
+  }
+  return {
+    block: match.groups.block,
+    methods: match[1].trim().split(METHOD_SPLIT_PATTERN),
+  };
+}
+
 describe('Caddy security headers', () => {
+  it('blocks dangerous unsupported HTTP methods', () => {
+    const policy = dangerousMethodPolicy();
+
+    expect(policy.methods).toEqual(['TRACE', 'TRACK', 'CONNECT']);
+    expect(policy.block).toMatch(METHOD_ALLOW_HEADER_PATTERN);
+    expect(policy.block).toMatch(METHOD_405_RESPONSE_PATTERN);
+  });
+
   it('sets the deployed OWASP HSTS policy', () => {
     expect(hsts()).toBe(HSTS_POLICY);
   });
@@ -85,8 +110,9 @@ describe('Caddy security headers', () => {
 
     expect(policy).toContain("frame-ancestors 'none'");
     expect(policy).toContain("object-src 'none'");
-    expect(policy).toContain("base-uri 'self'");
+    expect(policy).toContain("base-uri 'none'");
     expect(policy).toContain("form-action 'self'");
+    expect(policy).not.toContain('report-uri');
   });
 
   it('observes a stricter script policy without unsafe eval', () => {

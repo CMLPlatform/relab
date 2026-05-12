@@ -10,6 +10,12 @@
 		respond "ok" 200
 	}
 
+	@dangerous_methods method TRACE TRACK CONNECT
+	handle @dangerous_methods {
+		header Allow "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"
+		respond "HTTP method is not allowed." 405
+	}
+
 	header {
 		X-Content-Type-Options "nosniff"
 		Strict-Transport-Security "max-age=63072000; includeSubDomains"
@@ -20,8 +26,8 @@
 		# and same-origin so the enforced policy can reject inline/eval script.
 		-Content-Security-Policy
 		-Content-Security-Policy-Report-Only
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
-		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
 	}
 
 	# Astro content-hashed static assets — immutable, cache forever
