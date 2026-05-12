@@ -88,7 +88,7 @@ def _measure_file_size(file: BinaryIO) -> int:
     return file_size
 
 
-async def validate_upload_size(upload_file: UploadFile, max_size_mb: int) -> None:
+async def validate_upload_size(upload_file: UploadFile, max_size_mb: int) -> int:
     """Validate upload size, even when UploadFile.size is unavailable."""
     file_size = upload_file.size
     if file_size is None:
@@ -98,13 +98,15 @@ async def validate_upload_size(upload_file: UploadFile, max_size_mb: int) -> Non
         msg = "File size is zero."
         raise BadRequestError(msg)
     if file_size > max_size_mb * 1024 * 1024:
-        raise UploadTooLargeError(file_size_bytes=file_size, max_size_mb=max_size_mb)
+        raise UploadTooLargeError(upload_size_bytes=file_size, max_size_mb=max_size_mb)
+    return file_size
 
 
 def build_storage_instance[StorageModelT: StorageModel](
     *,
     model: type[StorageModelT],
     file_id: UUID4,
+    upload_size_bytes: int,
     original_filename: str,
     stored_name: str,
     payload: StorageCreateSchema,
@@ -115,6 +117,7 @@ def build_storage_instance[StorageModelT: StorageModel](
         "description": payload.description,
         "filename": original_filename,
         "file": stored_name,
+        "upload_size_bytes": upload_size_bytes,
         "parent_type": payload.parent_type,
         "parent_id": payload.parent_id,
     }
