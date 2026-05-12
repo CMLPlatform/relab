@@ -5,7 +5,7 @@
 #   - `runtime` → caddy-served expo web export (default)
 
 # spell-checker: ignore USEPOLLING
-ARG WORKDIR=/opt/relab/app
+ARG WORKDIR=/opt/relab
 
 # --- Shared deps stage ---
 FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS deps
@@ -21,8 +21,10 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml ./
+COPY app/package.json app/package.json
 RUN --mount=type=cache,target=/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline
+    pnpm install --frozen-lockfile --filter ./app... --prefer-offline
 
 # --- Dev stage (Metro dev server) ---
 FROM deps AS dev
@@ -34,7 +36,9 @@ ENV CHOKIDAR_USEPOLLING=true \
     CHOKIDAR_INTERVAL=500 \
     WATCHPACK_POLLING=true
 
-COPY . .
+COPY app/ app/
+
+WORKDIR $WORKDIR/app
 
 EXPOSE 8081
 
@@ -50,8 +54,8 @@ WORKDIR $WORKDIR
 
 ENV CI=1
 
-COPY app.json babel.config.js tsconfig.json ./
-COPY src/ ./src/
+COPY app/app.json app/babel.config.js app/tsconfig.json app/
+COPY app/src/ app/src/
 
 ARG ENVIRONMENT=prod
 ARG EXPO_PUBLIC_API_URL
@@ -61,6 +65,8 @@ ENV ENVIRONMENT=${ENVIRONMENT} \
     EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL} \
     EXPO_PUBLIC_WEBSITE_URL=${EXPO_PUBLIC_WEBSITE_URL} \
     EXPO_PUBLIC_DOCS_URL=${EXPO_PUBLIC_DOCS_URL}
+
+WORKDIR $WORKDIR/app
 
 RUN pnpm exec expo export -p web -c
 
@@ -78,8 +84,8 @@ RUN apk upgrade --no-cache \
     && apk del libcap \
     && install -d -o 1001 -g 1001 /config /data
 
-COPY --link --from=build ${WORKDIR}/dist /srv
-COPY --link Caddyfile /etc/caddy/Caddyfile
+COPY --link --from=build ${WORKDIR}/app/dist /srv
+COPY --link app/Caddyfile /etc/caddy/Caddyfile
 
 USER 1001:1001
 

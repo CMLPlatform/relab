@@ -1,0 +1,54 @@
+# Version control
+.git/
+.gitignore
+
+# Local environments and secrets
+.env
+.env.*
+!.env.example
+secrets/
+backups/
+
+# Python environments and caches
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.ty/
+
+# Node dependencies and package-manager stores
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# Build outputs and test reports
+dist/
+**/dist/
+coverage/
+**/coverage/
+playwright-report/
+**/playwright-report/
+test-results/
+**/test-results/
+.astro/
+**/.astro/
+.expo/
+**/.expo/
+web-build/
+**/web-build/
+reports/
+**/reports/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+
+# Debug logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.*

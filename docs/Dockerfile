@@ -4,7 +4,7 @@
 #   - `dev`     → hot-reload dev server (use with `docker compose watch`)
 #   - `runtime` → caddy-served static build (default)
 
-ARG WORKDIR=/opt/relab/docs
+ARG WORKDIR=/opt/relab
 
 # --- Shared deps stage ---
 FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS deps
@@ -20,8 +20,10 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml ./
+COPY docs/package.json docs/package.json
 RUN --mount=type=cache,target=/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline
+    pnpm install --frozen-lockfile --filter ./docs... --prefer-offline
 
 # --- Dev stage (hot reload) ---
 FROM deps AS dev
@@ -29,7 +31,9 @@ FROM deps AS dev
 ARG WORKDIR
 WORKDIR $WORKDIR
 
-COPY . .
+COPY docs/ docs/
+
+WORKDIR $WORKDIR/docs
 
 EXPOSE 8000
 
@@ -43,9 +47,9 @@ WORKDIR $WORKDIR
 
 ENV CI=1
 
-COPY astro.config.mjs tsconfig.json ./
-COPY public/ ./public/
-COPY src/ ./src/
+COPY docs/astro.config.mjs docs/tsconfig.json docs/
+COPY docs/public/ docs/public/
+COPY docs/src/ docs/src/
 
 ARG ENVIRONMENT=prod
 ARG PUBLIC_DOCS_URL
@@ -53,6 +57,8 @@ ARG PUBLIC_BACKEND_API_URL
 ENV ENVIRONMENT=${ENVIRONMENT}
 ENV PUBLIC_DOCS_URL=${PUBLIC_DOCS_URL}
 ENV PUBLIC_BACKEND_API_URL=${PUBLIC_BACKEND_API_URL}
+
+WORKDIR $WORKDIR/docs
 
 RUN pnpm run build:${ENVIRONMENT}
 
@@ -70,8 +76,8 @@ RUN apk upgrade --no-cache \
     && apk del libcap \
     && install -d -o 1001 -g 1001 /config /data
 
-COPY --link --from=build ${WORKDIR}/dist /srv
-COPY --link Caddyfile /etc/caddy/Caddyfile
+COPY --link --from=build ${WORKDIR}/docs/dist /srv
+COPY --link docs/Caddyfile /etc/caddy/Caddyfile
 
 USER 1001:1001
 
