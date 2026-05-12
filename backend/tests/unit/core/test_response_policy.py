@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.core.http_headers import SENSITIVE_CACHE_CONTROL
 from app.core.middleware.response_policy import (
@@ -74,14 +75,18 @@ async def test_response_policy_sets_browser_baseline_headers() -> None:
 
 
 async def test_response_policy_sets_self_hosted_csp() -> None:
-    """API CSP should contain only browser framing protection."""
+    """API CSP should enforce the ASVS browser baseline without allowing page resources."""
     app = _create_policy_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
         response = await client.get("/health")
 
     policy = response.headers["content-security-policy"]
-    assert policy == "frame-ancestors 'none'"
+    assert policy == CONTENT_SECURITY_POLICY_HEADER_VALUE
+    assert "default-src 'none'" in policy
+    assert "frame-ancestors 'none'" in policy
+    assert "object-src 'none'" in policy
+    assert "base-uri 'none'" in policy
     assert "script-src" not in policy
     assert "style-src" not in policy
     assert "connect-src" not in policy
@@ -163,7 +168,7 @@ async def test_response_policy_sets_no_cache_headers_for_authenticated_requests(
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         bearer_response = await client.get("/v1/products", headers={"authorization": "Bearer token"})
-        client.cookies.set("auth", "token")
+        client.cookies.set(AUTH_COOKIE_NAME, "token")
         cookie_response = await client.get("/v1/products")
 
     _assert_sensitive_cache_headers(bearer_response)
