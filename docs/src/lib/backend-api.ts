@@ -6,7 +6,17 @@ const BACKEND_API_URL_BY_MODE: Record<string, string> = {
 };
 
 export function normalizeBackendApiUrl(value: string): string {
-  return value.trim().replace(/\/+$/, '');
+  const trimmedValue = value.trim();
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(trimmedValue);
+  } catch {
+    throw new Error('Backend API URL must be an absolute http(s) URL');
+  }
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    throw new Error('Backend API URL must use http or https');
+  }
+  return parsedUrl.toString().replace(/\/+$/, '');
 }
 
 export function backendApiUrlForMode(mode: string): string {
