@@ -8,15 +8,19 @@ from typing import TYPE_CHECKING
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.datastructures import MutableHeaders
+from starlette.datastructures import Headers, MutableHeaders
+from starlette.responses import FileResponse
+from starlette.staticfiles import NotModifiedResponse
 
 from app.core.config import settings
 
 if TYPE_CHECKING:
+    import os
+
+    from starlette.responses import Response
     from starlette.types import Message, Receive, Scope, Send
 
 RESPONSE_START_MESSAGE_TYPE = "http.response.start"
-UPLOAD_FILE_ATTACHMENT_PATH_PREFIX = "/uploads/files/"
 
 
 class CachedStaticFiles(StaticFiles):
@@ -42,17 +46,35 @@ class CachedStaticFiles(StaticFiles):
         await super().__call__(scope, receive, send_with_cache)
 
 
-class UploadStaticFiles(CachedStaticFiles):
+class UploadedAssetStaticFiles(CachedStaticFiles):
     """Upload-backed StaticFiles with safer browser response headers."""
 
     def update_response_headers(self, headers: MutableHeaders, scope: Scope) -> None:
-        """Serve uploads with MIME sniffing disabled and generic files as attachments."""
+        """Serve uploads with MIME sniffing disabled."""
         super().update_response_headers(headers, scope)
         headers["X-Content-Type-Options"] = "nosniff"
-        request_path = str(scope.get("path", ""))
-        if request_path.startswith(UPLOAD_FILE_ATTACHMENT_PATH_PREFIX):
-            filename = Path(request_path).name
-            headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+
+class UploadedFileAttachmentStaticFiles(UploadedAssetStaticFiles):
+    """Uploaded file StaticFiles that serve responses as filename-aware attachments."""
+
+    def file_response(
+        self,
+        full_path: str | os.PathLike[str],
+        stat_result: os.stat_result,
+        scope: Scope,
+        status_code: int = 200,
+    ) -> Response:
+        """Return a Starlette FileResponse with Content-Disposition derived from the request path."""
+        response = FileResponse(
+            full_path,
+            status_code=status_code,
+            stat_result=stat_result,
+            filename=Path(str(scope.get("path", ""))).name,
+        )
+        if self.is_not_modified(response.headers, Headers(scope=scope)):
+            return NotModifiedResponse(response.headers)
+        return response
 
 
 FAVICON_ROUTE = "/favicon.ico"
@@ -64,21 +86,27 @@ def mount_static_directories(app: FastAPI) -> None:
     Args:
         app: FastAPI application instance
     """
-    # Mount the uploads directory if it exists. Note: if this is called
-    # from lifespan, the directory should have been ensured already.
-    if settings.uploads_path.exists():
+    # Mount upload subdirectories if they exist. Note: if this is called
+    # from lifespan, these directories should have been ensured already.
+    if settings.file_storage_path.exists() and settings.image_storage_path.exists():
         app.mount(
-            "/uploads",
-            UploadStaticFiles(
-                directory=settings.uploads_path,
+            "/uploads/files",
+            UploadedFileAttachmentStaticFiles(
+                directory=settings.file_storage_path,
                 cache_control="public, max-age=31536000, immutable",
             ),
-            name="uploads",
+            name="uploaded-files",
+        )
+        app.mount(
+            "/uploads/images",
+            UploadedAssetStaticFiles(
+                directory=settings.image_storage_path,
+                cache_control="public, max-age=31536000, immutable",
+            ),
+            name="uploaded-images",
         )
     else:
-        err_msg = (
-            f"Uploads path '{settings.uploads_path}' does not exist. Ensure storage directories are created at startup."
-        )
+        err_msg = "Upload storage paths do not exist. Ensure storage directories are created at startup."
         raise RuntimeError(err_msg)
 
     # Static files directory is part of the repo and should exist; mount
