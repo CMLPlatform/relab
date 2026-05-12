@@ -84,13 +84,14 @@ async def handle_get_file(session: AsyncSession, parent_id: int, file_id: UUID4)
 
 
 async def handle_upload_file(
-    session: AsyncSession, parent_id: int, *, file: UploadFile, description: str | None
+    session: AsyncSession, parent_id: int, *, file: UploadFile, description: str | None, current_user: User
 ) -> FileReadWithinParent:
     """Attach a new file to the given parent."""
     item = await create_product_file(
         session,
         parent_id,
         _product_file_create(parent_id, file=file, description=description),
+        quota_user_id=current_user.id,
     )
     return FileReadWithinParent.model_validate(item)
 
@@ -130,7 +131,13 @@ async def handle_upload_image(
     item = await create_product_image(
         session,
         parent_id,
-        _product_image_create(parent_id, file=file, description=description, image_metadata=image_metadata),
+        _product_image_create(
+            parent_id,
+            file=file,
+            description=description,
+            image_metadata=image_metadata,
+        ),
+        quota_user_id=current_user.id,
     )
     await refresh_profile_stats_after_mutation(session, current_user.id)
     await session.commit()

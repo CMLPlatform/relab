@@ -72,10 +72,11 @@ async def upload_component_file(
     session: AsyncSessionDep,
     parent_id: Annotated[int, Depends(get_user_owned_component_id_from_component)],
     file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
+    current_user: CurrentActiveVerifiedUserDep,
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
     """Upload a new file for a component."""
-    return await handle_upload_file(session, parent_id, file=file, description=description)
+    return await handle_upload_file(session, parent_id, file=file, description=description, current_user=current_user)
 
 
 @component_media_router.delete(

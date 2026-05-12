@@ -175,7 +175,7 @@ async def receive_camera_upload(
         product_id_int,
         file.filename,
     )
-    image = await create_image(session, image_data)
+    image = await create_image(session, image_data, quota_user_id=camera.owner_id)
 
     # ImageRead computes the public `image_url` via a model_validator based on
     # the image's storage path. Round-trip through it to reuse that logic.

@@ -6,6 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from pydantic import UUID4
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.exceptions import BadRequestError
@@ -13,14 +14,16 @@ from app.api.common.models.base import Base
 from app.api.file_storage.exceptions import (
     FastAPIStorageFileNotFoundError,
 )
-from app.api.file_storage.models import MediaParentType
+from app.api.file_storage.models import Image, MediaParentType
 from app.core.logging import sanitize_log_value
 
-from .support_paths import storage_item_exists
+from .support_paths import delete_file_from_storage, delete_image_from_storage, storage_item_exists, stored_file_path
 from .support_queries import get_parent_owned_storage_item, list_parent_storage_items
 from .support_types import StorageCreateSchema, StorageModel
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from app.api.common.crud.filtering import BaseFilterSet
 
     from .support_services import StoredMediaService
@@ -44,6 +47,9 @@ def validate_parent_media_scope[CreateSchemaT: StorageCreateSchema](
         raise BadRequestError(msg)
 
 
+_SUB_RESOURCE_LIMIT = 200
+
+
 async def list_parent_media[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
@@ -60,6 +66,7 @@ async def list_parent_media[StorageModelT: StorageModel](
         parent_type=parent_type,
         parent_id=parent_id,
         filter_params=filter_params,
+        limit=_SUB_RESOURCE_LIMIT,
     )
     valid_items = [item for item in items if storage_item_exists(item)]
     if len(valid_items) < len(items):
@@ -106,10 +113,11 @@ async def create_parent_media[StorageModelT: StorageModel, CreateSchemaT: Storag
     parent_type: MediaParentType,
     storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
     item_data: CreateSchemaT,
+    quota_user_id: UUID | None = None,
 ) -> StorageModelT:
     """Create a new parent-scoped storage item."""
     validate_parent_media_scope(parent_id=parent_id, parent_type=parent_type, item_data=item_data)
-    return await storage_service.create(db, item_data)
+    return await storage_service.create(db, item_data, quota_user_id=quota_user_id)
 
 
 async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](
@@ -143,17 +151,28 @@ async def delete_all_parent_media[StorageModelT: StorageModel, CreateSchemaT: St
     parent_id: int,
     storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
 ) -> None:
-    """Delete all storage items associated with a parent."""
-    items = await list_parent_media(
+    """Delete all storage items associated with a parent in one bulk DB round-trip."""
+    items = await list_parent_storage_items(
         db,
-        parent_model=parent_model,
+        model=storage_model,
         parent_type=parent_type,
-        storage_model=storage_model,
         parent_id=parent_id,
     )
-    for item in items:
-        if item.id is not None:
-            await storage_service.delete(db, item.id)
+    if not items:
+        return
+
+    paths = [(item, stored_file_path(item)) for item in items if item.id is not None]
+    ids = [item.id for item, _ in paths]
+    await db.execute(delete(storage_model).where(storage_model.id.in_(ids)))
+    await db.commit()
+
+    for item, path in paths:
+        if path is None:
+            continue
+        if isinstance(item, Image):
+            await delete_image_from_storage(path)
+        else:
+            await delete_file_from_storage(path)
 
 
 class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
@@ -200,7 +219,14 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
             item_id=item_id,
         )
 
-    async def create(self, db: AsyncSession, parent_id: int, item_data: CreateSchemaT) -> StorageModelT:
+    async def create(
+        self,
+        db: AsyncSession,
+        parent_id: int,
+        item_data: CreateSchemaT,
+        *,
+        quota_user_id: UUID | None = None,
+    ) -> StorageModelT:
         """Create a new storage item for a parent."""
         return await create_parent_media(
             db,
@@ -208,6 +234,7 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
             parent_type=self.parent_type,
             storage_service=self.storage_service,
             item_data=item_data,
+            quota_user_id=quota_user_id,
         )
 
     async def delete(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> None:
