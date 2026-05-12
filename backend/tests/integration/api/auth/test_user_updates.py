@@ -1,5 +1,5 @@
 """User update validation and endpoint tests."""
-
+# spell-checker: ignore reauthenticated
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -13,6 +13,7 @@ from app.api.auth.crud.users import update_user_override
 from app.api.auth.exceptions import UserNameAlreadyExistsError
 from app.api.auth.schemas import UserUpdate
 from app.api.auth.services.email_identity import canonicalize_email
+from app.api.auth.services.refresh_token_service import create_refresh_token, refresh_token_fingerprint
 from app.api.common.exceptions import BadRequestError
 from tests.factories.models import UserFactory
 
@@ -29,11 +30,36 @@ from .shared import (
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
+    from redis.asyncio import Redis
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.api.auth.models import User
 
 
 pytestmark = pytest.mark.api
 UPDATED_PASSWORD = "updated-test-credential-42"
+
+
+async def _login_bearer(api_client: AsyncClient, user: User, password: str = TEST_PASSWORD) -> str:
+    response = await api_client.post(
+        "/v1/auth/bearer/login",
+        data={"username": user.email, "password": password},
+    )
+    assert response.status_code == status.HTTP_200_OK
+    return response.json()["access_token"]
+
+
+async def _create_refresh_session(redis: Redis, user: User) -> str:
+    return await create_refresh_token(redis, user.id)
+
+
+async def _assert_refresh_session_revoked(api_client: AsyncClient, redis: Redis, refresh_token: str) -> None:
+    assert await redis.exists(f"auth:rt_blacklist:{refresh_token_fingerprint(refresh_token)}")
+    response = await api_client.post(
+        "/v1/auth/bearer/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 class TestUpdateUserValidation:
@@ -253,6 +279,33 @@ class TestUpdateUserEndpoint:
 
         assert response.status_code == status.HTTP_200_OK
 
+    async def test_password_update_revokes_existing_refresh_sessions(
+        self,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+        mock_redis_dependency: Redis,
+    ) -> None:
+        """A reauthenticated password change should terminate existing refresh sessions."""
+        user = await UserFactory.create_async(
+            db_session,
+            email="password-revokes@example.com",
+            username="password_revokes",
+            hashed_password=hash_test_password(TEST_PASSWORD),
+        )
+        old_refresh_token = await _create_refresh_session(mock_redis_dependency, user)
+        token = await _login_bearer(api_client, user)
+
+        update_response = await api_client.patch(
+            "/v1/users/me",
+            json={
+                "password": UPDATED_PASSWORD,
+                "current_password": TEST_PASSWORD,
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert update_response.status_code == status.HTTP_200_OK
+        await _assert_refresh_session_revoked(api_client, mock_redis_dependency, old_refresh_token)
+
     async def test_username_update_does_not_require_current_password(
         self,
         api_client: AsyncClient,
@@ -365,3 +418,30 @@ class TestUpdateUserEndpoint:
         assert email_mock.await_count == 2
         sent_to = [call.args[0].recipients[0].email for call in email_mock.await_args_list]
         assert sent_to == ["New-Address@example.com", old_email]
+
+    async def test_email_update_revokes_existing_refresh_sessions(
+        self,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+        mock_email_sending: AsyncMock,
+        mock_redis_dependency: Redis,
+    ) -> None:
+        """A reauthenticated email change should terminate existing refresh sessions."""
+        user = await UserFactory.create_async(
+            db_session,
+            email="email-revokes@example.com",
+            username="email_revokes",
+            hashed_password=hash_test_password(TEST_PASSWORD),
+            is_verified=True,
+        )
+        old_refresh_token = await _create_refresh_session(mock_redis_dependency, user)
+        token = await _login_bearer(api_client, user)
+
+        update_response = await api_client.patch(
+            "/v1/users/me",
+            json={"email": "email-revokes-new@example.com", "current_password": TEST_PASSWORD},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert update_response.status_code == status.HTTP_200_OK
+        assert mock_email_sending.await_count == 2
+        await _assert_refresh_session_revoked(api_client, mock_redis_dependency, old_refresh_token)
