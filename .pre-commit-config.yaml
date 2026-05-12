@@ -136,15 +136,9 @@ repos:
         language: system
         files: ^(?:backend/app/.*|backend/scripts/generate/export_openapi\.py|backend/justfile|backend/pyproject\.toml|backend/uv\.lock|docs/public/api/schemas/openapi\.(?:public|device)\.json)$
         pass_filenames: false
-      - id: pnpm-lock-app
-        name: pnpm-lock-app
-        entry: just app/lockfile
+      - id: pnpm-lock
+        name: pnpm-lock
+        entry: pnpm install --lockfile-only --ignore-scripts
         language: system
-        files: ^app/package.json$
-        pass_filenames: false
-      - id: pnpm-lock-www
-        name: pnpm-lock-www
-        entry: just www/lockfile
-        language: system
-        files: ^www/package.json$
+        files: ^(?:package\.json|pnpm-workspace\.yaml|app/package\.json|docs/package\.json|www/package\.json)$
         pass_filenames: false

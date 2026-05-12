@@ -1,0 +1,32 @@
+packages:
+  - app
+  - docs
+  - www
+
+engineStrict: true
+preferFrozenLockfile: true
+
+# Wait 3 days before accepting newly published packages.
+minimumReleaseAge: 4320
+minimumReleaseAgeStrict: false
+# Some registry metadata omits publish times; warn and continue in that case.
+minimumReleaseAgeIgnoreMissingTime: true
+
+# Approve only install scripts that are needed for native/runtime setup.
+allowBuilds:
+  esbuild: true
+  msw: true
+  sharp: true
+  vue-demi: false
+
+overrides:
+  # Keep Monaco's DOMPurify transitive dependency on a patched release.
+  monaco-editor@0.55.1>dompurify: 3.4.2
+
+catalog:
+  "@astrojs/check": ^0.9.9
+  "@axe-core/playwright": ^4.11.3
+  "@biomejs/biome": ^2.4.15
+  "@playwright/test": ^1.59.1
+  "@types/node": ^25.6.2
+  typescript: ^5.9.3
