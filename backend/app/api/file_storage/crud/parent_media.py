@@ -9,6 +9,7 @@ from pydantic import UUID4
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, BaseFilterSet
 from app.api.common.exceptions import BadRequestError
 from app.api.common.models.base import Base
 from app.api.file_storage.exceptions import (
@@ -23,8 +24,6 @@ from .support_types import StorageCreateSchema, StorageModel
 
 if TYPE_CHECKING:
     from uuid import UUID
-
-    from app.api.common.crud.filtering import BaseFilterSet
 
     from .support_services import StoredMediaService
 
@@ -47,9 +46,6 @@ def validate_parent_media_scope[CreateSchemaT: StorageCreateSchema](
         raise BadRequestError(msg)
 
 
-_SUB_RESOURCE_LIMIT = 200
-
-
 async def list_parent_media[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
@@ -66,7 +62,7 @@ async def list_parent_media[StorageModelT: StorageModel](
         parent_type=parent_type,
         parent_id=parent_id,
         filter_params=filter_params,
-        limit=_SUB_RESOURCE_LIMIT,
+        limit=SUB_RESOURCE_LIMIT,
     )
     valid_items = [item for item in items if storage_item_exists(item)]
     if len(valid_items) < len(items):
@@ -142,14 +138,13 @@ async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: Storag
     await storage_service.delete(db, item_id)
 
 
-async def delete_all_parent_media[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](
+async def delete_all_parent_media[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
     parent_model: type[Base],
     parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
-    storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
 ) -> None:
     """Delete all storage items associated with a parent in one bulk DB round-trip."""
     items = await list_parent_storage_items(
@@ -257,5 +252,4 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
             parent_type=self.parent_type,
             storage_model=self.storage_model,
             parent_id=parent_id,
-            storage_service=self.storage_service,
         )

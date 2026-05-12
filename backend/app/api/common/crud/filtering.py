@@ -21,6 +21,8 @@ from app.api.common.validation import BoundedQueryText, BoundedQueryTextList
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+SUB_RESOURCE_LIMIT: int = 200
+
 _QUERY_TEXT_ADAPTER = TypeAdapter(BoundedQueryText)
 
 

@@ -10,7 +10,7 @@ from sqlalchemy import select
 
 from app.api.common.crud.associations import require_link
 from app.api.common.crud.exceptions import DependentModelOwnershipError
-from app.api.common.crud.filtering import apply_filter, create_filter_dependency
+from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, apply_filter, create_filter_dependency
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -75,6 +75,7 @@ async def _list_product_videos(
     """List videos scoped to one product."""
     statement: Select[tuple[Video]] = select(Video).where(Video.product_id == product_id)
     statement = apply_filter(statement, Video, video_filter)
+    statement = statement.limit(SUB_RESOURCE_LIMIT)
     return list((await session.execute(statement)).scalars().unique().all())
 
 
