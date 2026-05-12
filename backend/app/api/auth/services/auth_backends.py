@@ -28,15 +28,15 @@ _AUTHENTICATION_SERVICE_UNAVAILABLE = "Authentication service unavailable."
 # Session cookies are host-only to avoid exposing credentials to sibling subdomains.
 COOKIE_DOMAIN: str | None = None
 COOKIE_PATH: str = "/"
-AUTH_COOKIE_NAME = "auth"
-REFRESH_COOKIE_NAME = "refresh_token"
+AUTH_COOKIE_NAME = "__Host-relab-auth"
+REFRESH_COOKIE_NAME = "__Host-relab-refresh"
 AUTH_COOKIE_NAMES = (AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME)
 
 cookie_transport = CookieTransport(
     cookie_name=AUTH_COOKIE_NAME,
     cookie_max_age=ACCESS_TOKEN_TTL,
     cookie_domain=COOKIE_DOMAIN,
-    cookie_secure=core_settings.secure_cookies,
+    cookie_secure=True,
 )
 
 
@@ -49,7 +49,7 @@ def set_browser_auth_cookie(response: Response, *, key: str, value: str, max_age
         path=COOKIE_PATH,
         domain=COOKIE_DOMAIN,
         httponly=True,
-        secure=core_settings.secure_cookies,
+        secure=True,
         samesite="lax",
     )
 
@@ -59,7 +59,7 @@ def _delete_cookie(response: Response, name: str, domain: str | None) -> None:
         name,
         path=COOKIE_PATH,
         domain=domain,
-        secure=core_settings.secure_cookies,
+        secure=True,
         httponly=True,
         samesite="lax",
     )

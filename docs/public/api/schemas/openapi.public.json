@@ -6392,7 +6392,7 @@
     "securitySchemes": {
       "APIKeyCookie": {
         "in": "cookie",
-        "name": "auth",
+        "name": "__Host-relab-auth",
         "type": "apiKey"
       },
       "OAuth2PasswordBearer": {
@@ -6700,7 +6700,7 @@
         "parameters": [
           {
             "in": "cookie",
-            "name": "refresh_token",
+            "name": "__Host-relab-refresh",
             "required": false,
             "schema": {
               "anyOf": [
@@ -6711,12 +6711,12 @@
                   "type": "null"
                 }
               ],
-              "title": "Refresh Token"
+              "title": "  Host-Relab-Refresh"
             }
           },
           {
             "in": "cookie",
-            "name": "auth",
+            "name": "__Host-relab-auth",
             "required": false,
             "schema": {
               "anyOf": [
@@ -6727,7 +6727,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Auth"
+              "title": "  Host-Relab-Auth"
             }
           }
         ],
@@ -6773,7 +6773,7 @@
         "parameters": [
           {
             "in": "cookie",
-            "name": "refresh_token",
+            "name": "__Host-relab-refresh",
             "required": false,
             "schema": {
               "anyOf": [
@@ -6784,7 +6784,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Refresh Token"
+              "title": "  Host-Relab-Refresh"
             }
           }
         ],

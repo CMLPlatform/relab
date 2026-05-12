@@ -9,7 +9,13 @@ import pytest
 from fastapi import HTTPException, status
 from fastapi_users.jwt import decode_jwt
 
-from app.api.auth.services.oauth import CSRF_TOKEN_KEY, OAuthCookieSettings, generate_csrf_token, generate_state_token
+from app.api.auth.services.oauth import (
+    CSRF_TOKEN_COOKIE_NAME,
+    CSRF_TOKEN_KEY,
+    OAuthCookieSettings,
+    generate_csrf_token,
+    generate_state_token,
+)
 
 from ._oauth_support import TEST_STATE_JWT_SECRET, make_base_builder
 from .shared import FRONTEND_REDIRECT_URI, JWT_DOT_COUNT
@@ -29,6 +35,17 @@ class TestOAuthHelpers:
     def test_generate_csrf_token_is_unique(self) -> None:
         """Generates distinct CSRF tokens on repeated calls."""
         assert generate_csrf_token() != generate_csrf_token()
+
+    def test_oauth_csrf_cookie_uses_host_prefix(self) -> None:
+        """OAuth CSRF cookies should use the __Host- prefix contract."""
+        cookie_settings = OAuthCookieSettings()
+
+        assert CSRF_TOKEN_COOKIE_NAME == "__Host-relab-oauth-csrf"
+        assert cookie_settings.name == CSRF_TOKEN_COOKIE_NAME
+        assert cookie_settings.path == "/"
+        assert cookie_settings.domain is None
+        assert cookie_settings.httponly is True
+        assert cookie_settings.samesite == "lax"
 
     def test_generate_state_token_returns_jwt(self) -> None:
         """Encodes state data as a JWT."""

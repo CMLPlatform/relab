@@ -30,7 +30,7 @@ def make_base_builder() -> BaseOAuthRouterBuilder:
     return BaseOAuthRouterBuilder(
         oauth_client=mock_client,
         state_secret=TEST_STATE_JWT_SECRET,
-        cookie_settings=OAuthCookieSettings(secure=False),
+        cookie_settings=OAuthCookieSettings(),
     )
 
 
@@ -49,7 +49,7 @@ def make_auth_builder() -> CustomOAuthRouterBuilder:
         oauth_client=mock_client,
         backend=mock_backend,
         state_secret=TEST_STATE_JWT_SECRET,
-        cookie_settings=OAuthCookieSettings(secure=False),
+        cookie_settings=OAuthCookieSettings(),
     )
 
 
@@ -67,7 +67,7 @@ def make_associate_builder() -> CustomOAuthAssociateRouterBuilder:
         authenticator=mock_authenticator,
         user_schema=mock_schema,
         state_secret=TEST_STATE_JWT_SECRET,
-        cookie_settings=OAuthCookieSettings(secure=False),
+        cookie_settings=OAuthCookieSettings(),
     )
 
 

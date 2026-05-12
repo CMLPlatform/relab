@@ -41,12 +41,13 @@ def test_set_csrf_cookie_uses_configured_state_ttl(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr("app.api.auth.services.oauth_utils.auth_settings.oauth_state_token_ttl_seconds", 600)
 
     response = Response()
-    set_csrf_cookie(response, OAuthCookieSettings(secure=False), "csrf-token")
+    set_csrf_cookie(response, OAuthCookieSettings(), "csrf-token")
 
     set_cookie_headers = response.headers.getlist("set-cookie")
     assert len(set_cookie_headers) == 1
     header = set_cookie_headers[0]
     assert "Max-Age=600" in header
+    assert "Secure" in header
     assert "HttpOnly" in header
     assert "SameSite=lax" in header
     assert "Domain=" not in header

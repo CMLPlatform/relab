@@ -6392,7 +6392,7 @@
     "securitySchemes": {
       "APIKeyCookie": {
         "in": "cookie",
-        "name": "auth",
+        "name": "__Host-relab-auth",
         "type": "apiKey"
       },
       "OAuth2PasswordBearer": {

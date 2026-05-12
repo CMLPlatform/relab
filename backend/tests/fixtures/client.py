@@ -136,7 +136,7 @@ async def api_client(
 
             async with httpx.AsyncClient(
                 transport=ASGITransport(app=test_app),
-                base_url="http://test",
+                base_url="https://test",
                 follow_redirects=True,
             ) as client:
                 yield client
@@ -187,7 +187,7 @@ async def api_client_light(
     try:
         async with httpx.AsyncClient(
             transport=ASGITransport(app=test_app),
-            base_url="http://test",
+            base_url="https://test",
             follow_redirects=True,
         ) as client:
             yield client

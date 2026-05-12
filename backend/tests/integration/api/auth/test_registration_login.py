@@ -13,6 +13,7 @@ from sqlalchemy import select
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
+from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.api.auth.services.user_database import UserDatabaseAsync
 
 from .shared import (
@@ -305,8 +306,8 @@ class TestLoginEndpoint:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert response.headers["clear-site-data"] == '"cache", "cookies", "storage"'
         set_cookie_headers = response.headers.get_list("set-cookie")
-        assert any(header.startswith("auth=") for header in set_cookie_headers)
-        assert any(header.startswith("refresh_token=") for header in set_cookie_headers)
+        assert any(header.startswith(f"{AUTH_COOKIE_NAME}=") for header in set_cookie_headers)
+        assert any(header.startswith(f"{REFRESH_COOKIE_NAME}=") for header in set_cookie_headers)
 
 
 class TestLogoutEndpoint:
