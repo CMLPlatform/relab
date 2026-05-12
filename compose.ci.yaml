@@ -31,3 +31,6 @@ services:
     build:
       args:
         ENVIRONMENT: test
+        PUBLIC_APP_URL: http://localhost:8013
+        PUBLIC_DOCS_URL: http://localhost:8012
+        PUBLIC_SITE_URL: http://localhost:8010

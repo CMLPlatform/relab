@@ -89,8 +89,8 @@ services:
 
   docs:
     build:
-      context: ./docs
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: docs/Dockerfile
       target: dev
     restart: "no"
     ports:
@@ -137,13 +137,15 @@ services:
           path: ./docs/playwright.config.ts
           target: /opt/relab/docs/playwright.config.ts
         - action: rebuild
-          path: ./docs/pnpm-lock.yaml
+          path: ./pnpm-lock.yaml
+        - action: rebuild
+          path: ./pnpm-workspace.yaml
         - action: rebuild
           path: ./docs/package.json
 
   app:
     build:
-      dockerfile: Dockerfile
+      dockerfile: app/Dockerfile
       target: dev
     restart: "no"
     ports:
@@ -193,13 +195,15 @@ services:
           path: ./app/tsconfig.json
           target: /opt/relab/app/tsconfig.json
         - action: rebuild
-          path: ./app/pnpm-lock.yaml
+          path: ./pnpm-lock.yaml
+        - action: rebuild
+          path: ./pnpm-workspace.yaml
         - action: rebuild
           path: ./app/package.json
 
   www:
     build:
-      dockerfile: Dockerfile
+      dockerfile: www/Dockerfile
       target: dev
     restart: "no"
     ports:
@@ -239,7 +243,9 @@ services:
           path: ./www/tsconfig.json
           target: /opt/relab/www/tsconfig.json
         - action: rebuild
-          path: ./www/pnpm-lock.yaml
+          path: ./pnpm-lock.yaml
+        - action: rebuild
+          path: ./pnpm-workspace.yaml
         - action: rebuild
           path: ./www/package.json
 

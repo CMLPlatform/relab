@@ -4,7 +4,7 @@
 #   - `dev`     → hot-reload dev server (use with `docker compose watch`)
 #   - `runtime` → caddy-served static build (default)
 
-ARG WORKDIR=/opt/relab/www
+ARG WORKDIR=/opt/relab
 
 # --- Shared deps stage ---
 FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS deps
@@ -20,8 +20,10 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml ./
+COPY www/package.json www/package.json
 RUN --mount=type=cache,target=/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline
+    pnpm install --frozen-lockfile --filter ./www... --prefer-offline
 
 # --- Dev stage (hot reload) ---
 FROM deps AS dev
@@ -29,7 +31,9 @@ FROM deps AS dev
 ARG WORKDIR
 WORKDIR $WORKDIR
 
-COPY . .
+COPY www/ www/
+
+WORKDIR $WORKDIR/www
 
 EXPOSE 8081
 
@@ -43,9 +47,9 @@ WORKDIR $WORKDIR
 
 ENV CI=1
 
-COPY tsconfig.json astro.config.ts ./
-COPY public/ ./public/
-COPY src/ ./src/
+COPY www/tsconfig.json www/astro.config.ts www/
+COPY www/public/ www/public/
+COPY www/src/ www/src/
 
 ARG ENVIRONMENT=prod
 ARG PUBLIC_APP_URL
@@ -54,6 +58,8 @@ ARG PUBLIC_SITE_URL
 ENV PUBLIC_APP_URL=${PUBLIC_APP_URL} \
     PUBLIC_DOCS_URL=${PUBLIC_DOCS_URL} \
     PUBLIC_SITE_URL=${PUBLIC_SITE_URL}
+
+WORKDIR $WORKDIR/www
 
 RUN pnpm run build:${ENVIRONMENT}
 
@@ -71,8 +77,8 @@ RUN apk upgrade --no-cache \
     && apk del libcap \
     && install -d -o 1001 -g 1001 /config /data
 
-COPY --link --from=build ${WORKDIR}/dist /srv
-COPY --link Caddyfile /etc/caddy/Caddyfile
+COPY --link --from=build ${WORKDIR}/www/dist /srv
+COPY --link www/Caddyfile /etc/caddy/Caddyfile
 
 USER 1001:1001
 
