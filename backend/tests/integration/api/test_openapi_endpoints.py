@@ -157,6 +157,8 @@ class TestOpenAPIEndpoints:
         assert "/v1/organizations" not in payload["paths"]
         assert "/v1/users/me/organization" not in payload["paths"]
         assert "/v1/newsletter/subscribe" not in payload["paths"]
+        assert "ProductRead" in payload["components"]["schemas"]
+        assert "MaterialCreateWithCategories" not in payload["components"]["schemas"]
 
     async def test_admin_openapi_json_filters_to_admin_schema(self, openapi_client: AsyncClient) -> None:
         """The admin OpenAPI schema should contain admin routes only."""
@@ -195,6 +197,8 @@ class TestOpenAPIEndpoints:
         assert "/v1/plugins/rpi-cam/device/cameras/{camera_id}/self" in payload["paths"]
         assert "/v1/products" not in payload["paths"]
         assert "/v1/admin/users" not in payload["paths"]
+        assert "PairingRegisterResponse" in payload["components"]["schemas"]
+        assert "ProductRead" not in payload["components"]["schemas"]
 
     async def test_openapi_includes_centralized_data_collection_examples(self, openapi_client: AsyncClient) -> None:
         """The OpenAPI schema should expose centralized data-collection examples."""
