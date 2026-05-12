@@ -240,3 +240,7 @@
     [tool.ruff.lint.pylint]
       allow-magic-value-types = ["int"]
       max-args                = 10
+
+[tool.uv]
+  # Mitigate supply chain issues
+  exclude-newer = "3 days"

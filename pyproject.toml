@@ -58,3 +58,7 @@
 
 [tool.ty.src]
   include = ["scripts"]
+
+[tool.uv]
+  # Mitigate supply chain issues
+  exclude-newer = "3 days"
