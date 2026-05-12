@@ -5,6 +5,8 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from sqlalchemy import select
+
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.parent_media import (
     create_parent_media,
@@ -23,6 +25,7 @@ from app.api.file_storage.models import File, Image, MediaParentType
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from uuid import UUID
 
     from pydantic import UUID4
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,7 +63,13 @@ async def get_product_file(db: AsyncSession, product_id: int, file_id: UUID4) ->
     )
 
 
-async def create_product_file(db: AsyncSession, product_id: int, payload: FileCreate) -> File:
+async def create_product_file(
+    db: AsyncSession,
+    product_id: int,
+    payload: FileCreate,
+    *,
+    quota_user_id: UUID | None = None,
+) -> File:
     """Create a file attached to a product."""
     return await create_parent_media(
         db,
@@ -68,6 +77,7 @@ async def create_product_file(db: AsyncSession, product_id: int, payload: FileCr
         parent_type=MediaParentType.PRODUCT,
         storage_service=file_storage_service,
         item_data=payload,
+        quota_user_id=quota_user_id,
     )
 
 
@@ -120,7 +130,13 @@ async def get_product_image(db: AsyncSession, product_id: int, image_id: UUID4) 
     )
 
 
-async def create_product_image(db: AsyncSession, product_id: int, payload: ImageCreateFromForm) -> Image:
+async def create_product_image(
+    db: AsyncSession,
+    product_id: int,
+    payload: ImageCreateFromForm,
+    *,
+    quota_user_id: UUID | None = None,
+) -> Image:
     """Create an image attached to a product."""
     return await create_parent_media(
         db,
@@ -128,6 +144,7 @@ async def create_product_image(db: AsyncSession, product_id: int, payload: Image
         parent_type=MediaParentType.PRODUCT,
         storage_service=image_storage_service,
         item_data=payload,
+        quota_user_id=quota_user_id,
     )
 
 

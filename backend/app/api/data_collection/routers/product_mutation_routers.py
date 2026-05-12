@@ -108,6 +108,7 @@ async def update_product(
     "/{product_id}",
     status_code=204,
     summary="Delete base product",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def delete_product(db_product: UserOwnedBaseProductDep, session: AsyncSessionDep) -> None:
     """Delete a base product, cascading to its components. Use ``DELETE /components/{id}`` for a component."""
@@ -182,10 +183,11 @@ async def upload_product_file(
     session: AsyncSessionDep,
     parent_id: Annotated[int, Depends(get_user_owned_base_product_id)],
     file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
+    current_user: CurrentActiveVerifiedUserDep,
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
     """Upload a new file for a base product."""
-    return await handle_upload_file(session, parent_id, file=file, description=description)
+    return await handle_upload_file(session, parent_id, file=file, description=description, current_user=current_user)
 
 
 @product_mutation_router.delete(
