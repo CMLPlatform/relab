@@ -11,7 +11,7 @@ default:
 install:
     pnpm install --frozen-lockfile
 
-# Regenerate the lockfile without installing dependencies (called by pre-commit hook on package.json changes)
+# Regenerate the workspace lockfile without installing dependencies
 lockfile:
     pnpm install --lockfile-only --ignore-scripts
 

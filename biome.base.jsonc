@@ -17,6 +17,11 @@
     "rules": {
       "recommended": true,
       "a11y": "on",
+      "correctness": {
+        // Biome's project-domain import resolver does not handle the pnpm
+        // workspace layout reliably; TypeScript/Astro/ESLint cover imports.
+        "noUnresolvedImports": "off"
+      },
       "performance": "on",
       "security": "on",
       "style": {

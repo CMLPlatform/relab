@@ -10,6 +10,10 @@ default:
 install:
     pnpm install --frozen-lockfile
 
+# Regenerate the workspace lockfile without installing dependencies
+lockfile:
+    pnpm install --lockfile-only --ignore-scripts
+
 # Update dependencies (Astro upgrade + in-range pnpm updates + dedupe the tree)
 # Uses `pnpm up` without --latest so majors stay intentional (opt in via Renovate PRs).
 update:

@@ -182,7 +182,8 @@ Configuration ownership should stay predictable:
 - root `justfile`: repo-wide orchestration and cross-project workflows
 - subrepo `justfile`: local commands for one project
 - `pyproject.toml`: Python dependencies and Python tool configuration
-- `package.json`: frontend dependencies, engine policy, and script wrappers
+- `pnpm-workspace.yaml`: JavaScript workspace membership, package-manager policy, and shared tooling catalogs
+- `package.json`: JavaScript package dependencies and script wrappers
 - env files: runtime and build-time configuration only
 - GitHub workflow YAML: CI/CD wiring; move complex logic to versioned scripts
 

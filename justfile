@@ -23,13 +23,13 @@ unit_subrepos := "backend app"
 # Setup
 # ============================================================================
 
-# Install all workspace dependencies (root + all subrepos)
+# Install all workspace dependencies (root Python + JS workspace + backend)
 install:
     #!/usr/bin/env bash
     set -euo pipefail
     uv sync --frozen
-    pnpm install
-    for d in {{ subrepos }}; do just "$d/install"; done
+    pnpm install --frozen-lockfile
+    just backend/install
     echo "✅ All dependencies installed"
 
 # Update all workspace dependencies
