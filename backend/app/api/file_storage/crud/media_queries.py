@@ -24,6 +24,7 @@ from .support_services import (
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from uuid import UUID
 
 
 async def get_files(db: AsyncSession, *, file_filter: FileFilter | None = None) -> Sequence[File]:
@@ -38,9 +39,9 @@ async def get_file(db: AsyncSession, file_id: UUID4) -> File:
     return await get_storage_item_or_raise(db, File, file_id)
 
 
-async def create_file(db: AsyncSession, file_data: FileCreate) -> File:
+async def create_file(db: AsyncSession, file_data: FileCreate, *, quota_user_id: UUID | None = None) -> File:
     """Create a new file in the database and save it."""
-    return await file_storage_service.create(db, file_data)
+    return await file_storage_service.create(db, file_data, quota_user_id=quota_user_id)
 
 
 async def update_file(db: AsyncSession, file_id: UUID4, file: FileUpdate) -> File:
@@ -65,9 +66,14 @@ async def get_image(db: AsyncSession, image_id: UUID4) -> Image:
     return await get_storage_item_or_raise(db, Image, image_id)
 
 
-async def create_image(db: AsyncSession, image_data: ImageCreateFromForm | ImageCreateInternal) -> Image:
+async def create_image(
+    db: AsyncSession,
+    image_data: ImageCreateFromForm | ImageCreateInternal,
+    *,
+    quota_user_id: UUID | None = None,
+) -> Image:
     """Create a new image in the database and save it."""
-    return await image_storage_service.create(db, image_data)
+    return await image_storage_service.create(db, image_data, quota_user_id=quota_user_id)
 
 
 async def update_image(db: AsyncSession, image_id: UUID4, image: ImageUpdate) -> Image:

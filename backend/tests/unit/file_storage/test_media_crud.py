@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi import UploadFile
+from pydantic import ValidationError
 
 from app.api.file_storage.crud.media_queries import create_file, create_image, delete_file, delete_image
 from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
@@ -37,26 +38,48 @@ class TestFileStorageCrud:
         mock_file.size = 1024
         mock_file.file = BytesIO(b"test content")
 
+        quota_user_id = uuid4()
+        quota_mock = AsyncMock()
         file_create = FileCreate(
-            file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+            file=mock_file,
+            description=TEST_FILE_DESC,
+            parent_id=1,
+            parent_type=MediaParentType.PRODUCT,
         )
 
         with (
             patch("app.api.file_storage.crud.support_queries.parent_model_for_type") as mock_parent_model,
             patch("app.api.file_storage.crud.support_queries.require_model"),
+            patch("app.api.file_storage.crud.support_services.enforce_product_upload_quota", new=quota_mock),
             patch("app.api.file_storage.crud.support_services._get_file_storage") as mock_get_storage,
         ):
             mock_parent_model.return_value = MagicMock()
             mock_storage = mock_get_storage.return_value
             mock_storage.write_upload = AsyncMock(return_value="stored_test.txt")
 
-            result = await create_file(mock_session, file_create)
+            result = await create_file(mock_session, file_create, quota_user_id=quota_user_id)
 
         assert isinstance(result, File)
         assert result.description == TEST_FILE_DESC
         assert result.filename == TEST_FILENAME
         assert result.parent_type == MediaParentType.PRODUCT
         assert result.parent_id == 1
+        assert result.upload_size_bytes == 1024
+        quota_mock.assert_awaited_once_with(mock_session, quota_user_id=quota_user_id, upload_size_bytes=1024)
+
+    def test_file_create_rejects_quota_user_fields(self) -> None:
+        """Upload payload schemas should not expose quota-accounting fields."""
+        mock_file = MagicMock(spec=UploadFile)
+        mock_file.filename = TEST_FILENAME
+
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+            FileCreate(
+                file=mock_file,
+                description=TEST_FILE_DESC,
+                parent_id=1,
+                parent_type=MediaParentType.PRODUCT,
+                quota_user_id=uuid4(),
+            )
 
     async def test_create_file_rejects_oversized_upload(self, mock_session: AsyncMock) -> None:
         """Rejects file uploads above the size limit."""
@@ -121,8 +144,13 @@ class TestImageStorageCrud:
         mock_file.file = BytesIO(b"fake image bytes")
         mock_file.path = None
 
+        quota_user_id = uuid4()
+        quota_mock = AsyncMock()
         image_create = ImageCreateInternal(
-            file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+            file=mock_file,
+            description=TEST_IMAGE_DESC,
+            parent_id=1,
+            parent_type=MediaParentType.PRODUCT,
         )
 
         with (
@@ -130,17 +158,34 @@ class TestImageStorageCrud:
                 "app.api.file_storage.crud.support_queries.require_model",
                 return_value=ProductFactory.build(id=1, owner_id=uuid4(), first_image_id=uuid4()),
             ),
+            patch("app.api.file_storage.crud.support_services.enforce_product_upload_quota", new=quota_mock),
             patch("app.api.file_storage.crud.support_services._get_image_storage") as mock_get_storage,
             patch.object(image_storage_service, "validate_upload_content") as mock_validate_content,
         ):
             mock_storage = mock_get_storage.return_value
             mock_storage.write_image_upload = AsyncMock(return_value="stored_image.png")
-            result = await create_image(mock_session, image_create)
+            result = await create_image(mock_session, image_create, quota_user_id=quota_user_id)
 
         assert isinstance(result, Image)
         assert result.description == TEST_IMAGE_DESC
         mock_validate_content.assert_called_once_with(mock_file)
         assert result.filename == IMAGE_FILENAME
+        assert result.upload_size_bytes == 1024
+        quota_mock.assert_awaited_once_with(mock_session, quota_user_id=quota_user_id, upload_size_bytes=1024)
+
+    def test_image_create_rejects_quota_user_fields(self) -> None:
+        """Image upload payload schemas should not expose quota-accounting fields."""
+        mock_file = MagicMock(spec=UploadFile)
+        mock_file.filename = IMAGE_FILENAME
+
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+            ImageCreateInternal(
+                file=mock_file,
+                description=TEST_IMAGE_DESC,
+                parent_id=1,
+                parent_type=MediaParentType.PRODUCT,
+                quota_user_id=uuid4(),
+            )
 
     async def test_create_image_rejects_oversized_upload(self, mock_session: AsyncMock) -> None:
         """Rejects image uploads above the size limit."""
