@@ -20,10 +20,18 @@ async def test_delete_user_emits_single_route_level_audit_event() -> None:
     user_manager = MagicMock()
     user_manager.get = AsyncMock(return_value=user)
     user_manager.delete = AsyncMock()
+    redis = MagicMock()
 
-    with patch("app.api.auth.routers.admin.users.audit_event") as log_audit:
-        await delete_user(user_id, user_manager, actor)
+    with (
+        patch("app.api.auth.routers.admin.users.audit_event") as log_audit,
+        patch(
+            "app.api.auth.routers.admin.users.refresh_token_service.revoke_all_user_tokens",
+            new_callable=AsyncMock,
+        ) as revoke_all_user_tokens,
+    ):
+        await delete_user(user_id, user_manager, actor, redis)
 
     user_manager.get.assert_awaited_once_with(user_id)
+    revoke_all_user_tokens.assert_awaited_once_with(redis, user_id)
     user_manager.delete.assert_awaited_once_with(user)
     log_audit.assert_called_once_with(actor_id, AuditAction.DELETE, User, user_id)

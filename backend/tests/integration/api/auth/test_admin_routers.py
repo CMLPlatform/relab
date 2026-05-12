@@ -7,16 +7,27 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import status
 
+from app.api.auth.services.refresh_token_service import create_refresh_token, refresh_token_fingerprint
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
+    from redis.asyncio import Redis
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
 
 
 pytestmark = pytest.mark.api
+
+
+async def _assert_refresh_session_revoked(api_client: AsyncClient, redis: Redis, refresh_token: str) -> None:
+    assert await redis.exists(f"auth:rt_blacklist:{refresh_token_fingerprint(refresh_token)}")
+    response = await api_client.post(
+        "/v1/auth/bearer/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 class TestAdminUserRouters:
@@ -87,3 +98,22 @@ class TestAdminUserRouters:
 
         # Without authentication, should be 403 or similar (depends on auth middleware)
         assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
+
+    async def test_delete_user_revokes_refresh_sessions(
+        self,
+        api_client_superuser: AsyncClient,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+        mock_redis_dependency: Redis,
+    ) -> None:
+        """Deleting a user should invalidate their active refresh-token sessions."""
+        user = await UserFactory.create_async(
+            db_session,
+            email="delete-revokes-session@example.com",
+            username="delete_revokes_session",
+        )
+        refresh_token = await create_refresh_token(mock_redis_dependency, user.id)
+
+        delete_response = await api_client_superuser.delete(f"/v1/admin/users/{user.id}")
+        assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+        await _assert_refresh_session_revoked(api_client, mock_redis_dependency, refresh_token)
