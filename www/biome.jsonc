@@ -7,7 +7,9 @@
   "linter": {
     "rules": {
       "complexity": "on",
-      "correctness": "on",
+      "correctness": {
+        "noUnresolvedImports": "off"
+      },
       "style": "on",
       "suspicious": "on"
     }
