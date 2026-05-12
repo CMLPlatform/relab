@@ -13,8 +13,15 @@ from uuid import uuid4
 import pytest
 from pydantic import BaseModel, ValidationError
 
+from app.api.common.schemas.associations import MAX_MATERIAL_QUANTITY
 from app.api.data_collection.schemas import (
+    ComponentCreateWithComponents,
+    MAX_BOM_ENTRIES,
+    MAX_COMPONENT_AMOUNT,
+    MAX_COMPONENTS_PER_LEVEL,
+    MAX_VIDEOS_PER_PRODUCT,
     ProductCreateBaseProduct,
+    ProductCreateWithComponents,
     ProductReadWithRelationships,
     ProductUpdate,
 )
@@ -120,6 +127,74 @@ def test_product_list_fields_default_to_empty() -> None:
     product = _validate_model(ProductCreateBaseProduct, {"name": "Dyson V15 Detect"})
     assert product.videos == []
     assert product.bill_of_materials == []
+
+
+def test_incomplete_product_create_remains_valid_for_progressive_collection() -> None:
+    """Progressive data entry allows products before the completed tree is audited."""
+    product = _validate_model(ProductCreateWithComponents, {"name": "Dyson V15 Detect"})
+
+    assert product.components == []
+    assert product.bill_of_materials == []
+
+
+def test_incomplete_component_create_remains_valid_for_progressive_collection() -> None:
+    """Progressive data entry allows components before materials are known."""
+    component = _validate_model(
+        ComponentCreateWithComponents,
+        {"name": "Battery pack", "amount_in_parent": 1},
+    )
+
+    assert component.components == []
+    assert component.bill_of_materials == []
+
+
+@pytest.mark.parametrize(
+    ("field", "items"),
+    [
+        (
+            "components",
+            [{"name": f"Component {index}", "amount_in_parent": 1} for index in range(MAX_COMPONENTS_PER_LEVEL + 1)],
+        ),
+        (
+            "bill_of_materials",
+            [{"material_id": index + 1, "quantity": 1} for index in range(MAX_BOM_ENTRIES + 1)],
+        ),
+        (
+            "videos",
+            [
+                {"url": f"https://example.com/video-{index}", "title": f"Video {index}"}
+                for index in range(MAX_VIDEOS_PER_PRODUCT + 1)
+            ],
+        ),
+    ],
+)
+def test_product_create_rejects_oversized_lists(field: str, items: list[dict[str, object]]) -> None:
+    """Request-shape limits prevent excessively large nested payloads in one call."""
+    with pytest.raises(ValidationError):
+        _validate_model(ProductCreateWithComponents, {"name": "Cordless drill", field: items})
+
+
+def test_component_create_rejects_excessive_amount_in_parent() -> None:
+    """Component multiplicity has a practical upper business limit."""
+    with pytest.raises(ValidationError):
+        _validate_model(
+            ComponentCreateWithComponents,
+            {"name": "Tiny screw", "amount_in_parent": MAX_COMPONENT_AMOUNT + 1},
+        )
+
+
+def test_bill_of_material_rejects_excessive_quantity() -> None:
+    """Material quantities have a practical upper business limit."""
+    with pytest.raises(ValidationError):
+        _validate_model(
+            ProductCreateWithComponents,
+            {
+                "name": "Cordless drill",
+                "bill_of_materials": [
+                    {"material_id": 1, "quantity": MAX_MATERIAL_QUANTITY + 1},
+                ],
+            },
+        )
 
 
 def test_product_brand_lowercased() -> None:

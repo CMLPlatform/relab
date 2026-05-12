@@ -1701,6 +1701,7 @@
           "amount_in_parent": {
             "description": "Quantity within parent product. Required for component products.",
             "exclusiveMinimum": 0.0,
+            "maximum": 1000.0,
             "title": "Amount In Parent",
             "type": "integer"
           },
@@ -1709,6 +1710,7 @@
             "items": {
               "$ref": "#/components/schemas/MaterialProductLinkCreateWithinProduct"
             },
+            "maxItems": 100,
             "title": "Bill Of Materials",
             "type": "array"
           },
@@ -1739,6 +1741,7 @@
             "items": {
               "$ref": "#/components/schemas/ComponentCreateWithComponents"
             },
+            "maxItems": 100,
             "title": "Components",
             "type": "array"
           },
@@ -3073,6 +3076,7 @@
           "quantity": {
             "description": "Quantity of the material in the product",
             "exclusiveMinimum": 0.0,
+            "maximum": 1000000.0,
             "title": "Quantity",
             "type": "number"
           },
@@ -3096,6 +3100,7 @@
           "quantity": {
             "description": "Quantity of the material in the product",
             "exclusiveMinimum": 0.0,
+            "maximum": 1000000.0,
             "title": "Quantity",
             "type": "number"
           },
@@ -3129,6 +3134,7 @@
           "quantity": {
             "description": "Quantity of the material in the product",
             "exclusiveMinimum": 0.0,
+            "maximum": 1000000.0,
             "title": "Quantity",
             "type": "number"
           },
@@ -3168,6 +3174,7 @@
           "quantity": {
             "description": "Quantity of the material in the product",
             "exclusiveMinimum": 0.0,
+            "maximum": 1000000.0,
             "title": "Quantity",
             "type": "number"
           },
@@ -3197,6 +3204,7 @@
             "anyOf": [
               {
                 "exclusiveMinimum": 0.0,
+                "maximum": 1000000.0,
                 "type": "number"
               },
               {
@@ -3217,9 +3225,6 @@
             "default": "kg"
           }
         },
-        "required": [
-          "quantity"
-        ],
         "title": "MaterialProductLinkUpdate",
         "type": "object"
       },
@@ -4134,6 +4139,7 @@
             "items": {
               "$ref": "#/components/schemas/MaterialProductLinkCreateWithinProduct"
             },
+            "maxItems": 100,
             "title": "Bill Of Materials",
             "type": "array"
           },
@@ -4164,6 +4170,7 @@
             "items": {
               "$ref": "#/components/schemas/ComponentCreateWithComponents"
             },
+            "maxItems": 100,
             "title": "Components",
             "type": "array"
           },
@@ -4238,6 +4245,7 @@
             "items": {
               "$ref": "#/components/schemas/VideoCreateWithinProduct"
             },
+            "maxItems": 5,
             "title": "Videos",
             "type": "array"
           },
@@ -4877,6 +4885,7 @@
             "anyOf": [
               {
                 "exclusiveMinimum": 0.0,
+                "maximum": 1000.0,
                 "type": "integer"
               },
               {

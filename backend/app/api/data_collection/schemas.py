@@ -39,27 +39,31 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-
-### Product Schemas ###
+### Validation utilities ###
+MAX_BOM_ENTRIES = 100
+MAX_COMPONENTS_PER_LEVEL = 100
+MAX_VIDEOS_PER_PRODUCT = 5
+MAX_COMPONENT_AMOUNT = 1_000
 
 
 def validate_material_or_components(bill_of_materials: Collection, components: Collection) -> None:
     """Validation logic to ensure either materials or components are provided."""
     if len(bill_of_materials) == 0 and len(components) == 0:
         err_msg = "Product must have at least one material or component"
-        # TODO: raise error again once we implement mBill of materials UI
+        # TODO: raise error again once we implement Bill of materials UI
         # that allows users to add materials at product creation instead of only components
         logger.warning("Validation warning: %s. This will become an error in the future.", err_msg)
 
-
-## Create Schemas ##
+### Create Schemas ###
 class ProductCreateWithRelationships(BaseCreateSchema, ProductBase):
     """Schema for creating a product or component with relationships to other models."""
 
     product_type_id: PositiveInt | None = None
 
     bill_of_materials: list[MaterialProductLinkCreateWithinProduct] = Field(
-        default_factory=list, description="Bill of materials with quantities and units"
+        default_factory=list,
+        max_length=MAX_BOM_ENTRIES,
+        description="Bill of materials with quantities and units",
     )
 
 
@@ -67,7 +71,11 @@ class ProductCreateBaseProduct(ProductCreateWithRelationships):
     """Schema for creating a base product."""
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": PRODUCT_CREATE_EXAMPLES})
-    videos: list[VideoCreateWithinProduct] = Field(default_factory=list, description="Disassembly videos")
+    videos: list[VideoCreateWithinProduct] = Field(
+        default_factory=list,
+        max_length=MAX_VIDEOS_PER_PRODUCT,
+        description="Disassembly videos",
+    )
 
 
 class ComponentCreate(ProductCreateWithRelationships):
@@ -76,7 +84,11 @@ class ComponentCreate(ProductCreateWithRelationships):
     Owner ID and parent ID are inferred from the parent product within the CRUD layer.
     """
 
-    amount_in_parent: int = Field(gt=0, description="Quantity within parent product. Required for component products.")
+    amount_in_parent: int = Field(
+        gt=0,
+        le=MAX_COMPONENT_AMOUNT,
+        description="Quantity within parent product. Required for component products.",
+    )
 
 
 # Recursive product creation schemas
@@ -90,7 +102,9 @@ class ComponentCreateWithComponents(ComponentCreate):
 
     # Recursive components
     components: list[ComponentCreateWithComponents] = Field(
-        default_factory=list, description="Set of component products"
+        default_factory=list,
+        max_length=MAX_COMPONENTS_PER_LEVEL,
+        description="Set of component products",
     )
 
     @model_validator(mode="after")
@@ -118,7 +132,9 @@ class ProductCreateWithComponents(ProductCreateBaseProduct):
     """Schema for creating a base product with optional components."""
 
     components: list[ComponentCreateWithComponents] = Field(
-        default_factory=list, description="Set of component products"
+        default_factory=list,
+        max_length=MAX_COMPONENTS_PER_LEVEL,
+        description="Set of component products",
     )
 
     @model_validator(mode="after")
@@ -205,7 +221,10 @@ class ProductUpdate(BaseUpdateSchema, ProductCircularityPropertiesInputFields):
     product_type_id: PositiveInt | None = None
 
     amount_in_parent: int | None = Field(
-        default=None, gt=0, description="Quantity within parent product. Required for component products."
+        default=None,
+        gt=0,
+        le=MAX_COMPONENT_AMOUNT,
+        description="Quantity within parent product. Required for component products.",
     )
 
     # Physical properties
