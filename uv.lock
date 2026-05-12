@@ -2,6 +2,10 @@ version = 1
 revision = 3
 requires-python = ">=3.14"
 
+[options]
+exclude-newer = "2026-05-09T20:38:06.893809056Z"
+exclude-newer-span = "P3D"
+
 [[package]]
 name = "argcomplete"
 version = "3.6.3"
