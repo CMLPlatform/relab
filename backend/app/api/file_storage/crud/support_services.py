@@ -22,6 +22,7 @@ from app.api.file_storage.upload_policy import (
     validate_image_upload_content,
     validate_image_upload_metadata,
 )
+from app.api.file_storage.upload_security import enforce_product_upload_quota, scan_upload_or_raise
 from app.core.config import settings
 from app.core.images import generate_thumbnails, process_image_for_storage
 
@@ -32,6 +33,7 @@ from .support_uploads import build_storage_instance, process_uploadfile_name, va
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from uuid import UUID
 
 logger = logging.getLogger(__name__)
 
@@ -92,22 +94,31 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         """Validate upload content before storing bytes."""
         del upload_file
 
-    async def create(self, db: AsyncSession, payload: CreateSchemaT) -> StorageModelT:
+    async def create(
+        self,
+        db: AsyncSession,
+        payload: CreateSchemaT,
+        *,
+        quota_user_id: UUID | None = None,
+    ) -> StorageModelT:
         """Create a file-backed model, store the upload, and persist the DB row."""
         if payload.file.filename is None:
             msg = "File name is empty"
             raise BadRequestError(msg)
 
         self.validate_upload_metadata(payload.file)
-        await validate_upload_size(payload.file, self.max_size_mb)
+        upload_size_bytes = await validate_upload_size(payload.file, self.max_size_mb)
         await to_thread.run_sync(self.validate_upload_content, payload.file)
+        await scan_upload_or_raise(payload.file)
         payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
         await ensure_parent_exists(db, payload.parent_type, payload.parent_id)
+        await enforce_product_upload_quota(db, quota_user_id=quota_user_id, upload_size_bytes=upload_size_bytes)
 
         stored_name = await self.write_upload(payload.file, stored_filename)
         db_item = build_storage_instance(
             model=self.model,
             file_id=file_id,
+            upload_size_bytes=upload_size_bytes,
             original_filename=original_filename,
             stored_name=stored_name,
             payload=payload,

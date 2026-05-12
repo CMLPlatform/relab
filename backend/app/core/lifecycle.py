@@ -14,6 +14,7 @@ from httpx import CloseError
 from app.api.auth.services.email_checker import init_email_checker
 from app.api.common.routers.file_mounts import mount_static_directories, register_favicon_route
 from app.api.file_storage.services.manager import FileCleanupManager
+from app.api.file_storage.upload_security import validate_malware_scanner_configuration
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager, set_connection_manager
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import set_blocking_redis
 from app.core.cache import close_cache, init_cache
@@ -71,6 +72,7 @@ async def _initialize_camera_services(services: AppServices) -> None:
 
 async def _initialize_storage_services(app: FastAPI, services: AppServices) -> None:
     """Initialize file storage and cleanup services."""
+    validate_malware_scanner_configuration()
     services.file_cleanup_manager = FileCleanupManager(async_sessionmaker_factory)
     await services.file_cleanup_manager.initialize()
 
