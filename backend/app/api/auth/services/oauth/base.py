@@ -118,6 +118,21 @@ class BaseOAuthRouterBuilder:
         return redirect_response
 
     @staticmethod
+    def _create_mfa_redirect(frontend_redirect: str, *, mfa_handoff: str) -> Response:
+        """Create a redirect to the frontend with an MFA handoff in the fragment."""
+        parts = list(urlparse(frontend_redirect))
+        query = dict(parse_qsl(parts[4]))
+        query.pop(ACCESS_TOKEN_KEY, None)
+        parts[4] = urlencode(query)
+
+        fragment = dict(parse_qsl(parts[5]))
+        fragment.pop(ACCESS_TOKEN_KEY, None)
+        fragment["success"] = "false"
+        fragment["mfa_handoff"] = mfa_handoff
+        parts[5] = urlencode(fragment)
+        return RedirectResponse(urlunparse(parts))
+
+    @staticmethod
     def _create_error_redirect(frontend_redirect: str, detail: str) -> Response:
         """Create a redirect to the frontend with an error detail in the query string."""
         parts = list(urlparse(frontend_redirect))

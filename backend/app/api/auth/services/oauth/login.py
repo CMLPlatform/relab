@@ -3,7 +3,8 @@
 
 from typing import TYPE_CHECKING, Annotated, cast
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi.responses import JSONResponse
 from fastapi_users.authentication import Strategy  # Used at runtime in __annotations__ dict
 from fastapi_users.exceptions import UserAlreadyExists
 from fastapi_users.router.common import ErrorCode
@@ -18,6 +19,7 @@ from app.api.auth.exceptions import (
     OAuthUserAlreadyExistsHTTPError,
 )
 from app.api.auth.models import User
+from app.api.auth.services import login_completion
 from app.api.auth.services.oauth_utils import (
     ACCESS_TOKEN_KEY,
     OAuth2AuthorizeResponse,
@@ -26,8 +28,11 @@ from app.api.auth.services.oauth_utils import (
     generate_state_token,
 )
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager
+from app.core.runtime import get_request_services
 
 from .base import BaseOAuthRouterBuilder
+
+COOKIE_BACKEND_NAME = "cookie"
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable  # lgtm[py/unused-import]
@@ -129,7 +134,7 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
         self.set_csrf_cookie(response, csrf_token)
         return OAuth2AuthorizeResponse(authorization_url=authorization_url)
 
-    async def _get_callback_handler(
+    async def _get_callback_handler(  # noqa: PLR0911 - OAuth callback branches map distinct protocol outcomes.
         self,
         request: Request,
         access_token_state: tuple[OAuth2Token, str],
@@ -173,10 +178,23 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
                 return self._create_error_redirect(frontend_redirect, ErrorCode.LOGIN_BAD_CREDENTIALS.value)
             raise OAuthInactiveUserHTTPError
 
-        response = await self.backend.login(strategy, user)
-        await user_manager.on_after_login(user, request, response)
+        if not user.mfa_enabled:
+            response = await self.backend.login(strategy, user)
+            await user_manager.on_after_login(user, request, response)
+            if frontend_redirect:
+                return self._create_success_redirect(frontend_redirect, response)
+            return response
 
+        redis = get_request_services(request).redis
+        transport = "session" if self.backend.name == COOKIE_BACKEND_NAME else "bearer"
+        mfa_response = await login_completion.create_mfa_pending_response(redis, user, transport=transport)
         if frontend_redirect:
-            return self._create_success_redirect(frontend_redirect, response)
-
-        return response
+            handoff = await login_completion.create_oauth_mfa_handoff(redis, mfa_response)
+            return self._create_mfa_redirect(
+                frontend_redirect,
+                mfa_handoff=handoff,
+            )
+        return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED,
+            content=mfa_response.model_dump(mode="json"),
+        )
