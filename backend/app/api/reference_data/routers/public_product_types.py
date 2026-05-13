@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import Depends, Path
 from fastapi_pagination import Page
@@ -24,9 +24,6 @@ from app.api.reference_data.dependencies import CategoryFilterDep, ProductTypeFi
 from app.api.reference_data.models import Category, CategoryProductTypeLink, ProductType
 from app.api.reference_data.routers.public_support import ReferenceDataAPIRouter
 from app.api.reference_data.schemas import CategoryRead, ProductTypeReadWithRelationships
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 router = ReferenceDataAPIRouter(prefix="/product-types", tags=["product-types"])
 _FILE_FILTER_DEPENDENCY = create_filter_dependency(FileFilter)
@@ -66,7 +63,7 @@ async def _list_product_type_categories(
     *,
     product_type_id: PositiveInt,
     category_filter: CategoryFilterDep,
-) -> Sequence[Category]:
+) -> list[Category]:
     """List categories linked to a product type."""
     await require_model(session, ProductType, product_type_id)
     statement: Select[tuple[Category]] = (
@@ -115,7 +112,7 @@ async def get_product_type_categories(
     product_type_id: PositiveInt,
     session: AsyncSessionDep,
     category_filter: CategoryFilterDep,
-) -> Sequence[Category]:
+) -> list[Category]:
     """Get categories linked to a product type."""
     return await _list_product_type_categories(
         session,

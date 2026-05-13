@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import Depends, Path, Request
 from fastapi_pagination import Page
 from pydantic import PositiveInt
 from sqlalchemy import Select, select
+from starlette.responses import Response  # noqa: TC002 # Runtime annotation evaluation needs this.
 
 from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, apply_filter, create_filter_dependency
 from app.api.common.crud.loading import apply_loader_profile
@@ -25,11 +26,6 @@ from app.api.reference_data.models import Category, CategoryMaterialLink, Materi
 from app.api.reference_data.routers.public_support import ReferenceDataAPIRouter
 from app.api.reference_data.schemas import CategoryRead, MaterialReadWithRelationships
 from app.core.responses import conditional_json_response
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from starlette.responses import Response
 
 router = ReferenceDataAPIRouter(prefix="/materials", tags=["materials"])
 _FILE_FILTER_DEPENDENCY = create_filter_dependency(FileFilter)
@@ -69,7 +65,7 @@ async def _list_material_categories(
     *,
     material_id: PositiveInt,
     category_filter: CategoryFilterDep,
-) -> Sequence[Category]:
+) -> list[Category]:
     """List categories linked to a material."""
     await require_model(session, Material, material_id)
     statement: Select[tuple[Category]] = (
@@ -121,7 +117,7 @@ async def get_material_categories(
     material_id: PositiveInt,
     session: AsyncSessionDep,
     category_filter: CategoryFilterDep,
-) -> Sequence[Category]:
+) -> list[Category]:
     """Get categories linked to a material."""
     return await _list_material_categories(session, material_id=material_id, category_filter=category_filter)
 

@@ -27,7 +27,6 @@ from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from pathlib import Path
 
     from redis.asyncio import Redis
@@ -63,7 +62,7 @@ async def get_user_cameras(
             "come back with ``telemetry: null``."
         ),
     ),
-) -> Sequence[Camera | CameraReadWithStatus]:
+) -> list[Camera | CameraReadWithStatus]:
     """Get all Raspberry Pi cameras of the current user."""
     statement = select(Camera).where(Camera.owner_id == current_user.id)
     statement = apply_filter(statement, Camera, camera_filter)
