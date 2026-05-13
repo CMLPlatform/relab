@@ -58,8 +58,8 @@ def _production_core_settings_kwargs(**overrides: object) -> dict[str, Any]:
 class TestCoreSettingsCors:
     """Test CORS configuration behavior in CoreSettings."""
 
-    def test_allowed_origins_dev_derive_default_docs_origin(self) -> None:
-        """DEV environment should derive the local docs origin unless overridden."""
+    def test_allowed_origins_dev_include_site_and_app_only(self) -> None:
+        """DEV environment should allow browser origins that call the backend."""
         settings = CoreSettings(
             environment=Environment.DEV,
             site_public_url=HttpUrl("http://localhost:3000/"),
@@ -68,11 +68,10 @@ class TestCoreSettingsCors:
         assert settings.allowed_origins == [
             "http://localhost:3000",
             "http://localhost:8081",
-            "http://127.0.0.1:4300",
         ]
 
     def test_allowed_origins_staging_are_normalized(self) -> None:
-        """Staging origins should include the default docs origin."""
+        """Staging origins should include browser app origins only."""
         settings = CoreSettings(
             **_production_core_settings_kwargs(
                 environment=Environment.STAGING,
@@ -86,22 +85,6 @@ class TestCoreSettingsCors:
         assert settings.allowed_origins == [
             "https://web-test.cml-relab.org",
             "https://app-test.cml-relab.org",
-            "https://docs-test.cml-relab.org",
-        ]
-
-    def test_allowed_origins_docs_url_override_is_normalized(self) -> None:
-        """Custom/self-hosted docs origins should be accepted through DOCS_URL."""
-        settings = CoreSettings(
-            environment=Environment.DEV,
-            site_public_url=HttpUrl("http://localhost:3000/"),
-            frontend_app_url=HttpUrl("http://localhost:8081/"),
-            docs_url=HttpUrl("http://localhost:8012/"),
-        )
-
-        assert settings.allowed_origins == [
-            "http://localhost:3000",
-            "http://localhost:8081",
-            "http://localhost:8012",
         ]
 
     def test_allowed_hosts_dev_defaults(self) -> None:
@@ -170,6 +153,42 @@ class TestCoreSettingsCors:
         assert settings.uvicorn_timeout_keep_alive == 5
         assert settings.uvicorn_h11_max_incomplete_event_size == 16_384
         assert settings.trusted_proxy_cidrs == ("127.0.0.0/8", "::1/128")
+
+    def test_outbound_http_allowlist_defaults_to_known_backend_destinations(self) -> None:
+        """Backend outbound HTTP should default to narrow integration URL prefixes."""
+        settings = CoreSettings(environment=Environment.DEV)
+
+        assert tuple(str(url) for url in settings.outbound_http_allowed_urls) == (
+            "https://github.com/login/oauth/access_token",
+            "https://api.github.com/user",
+            "https://api.github.com/user/emails",
+            "https://oauth2.googleapis.com/token",
+            "https://people.googleapis.com/v1/people/me",
+            "https://accounts.google.com/o/oauth2/revoke",
+            "https://login.microsoftonline.com/",
+            "https://graph.microsoft.com/v1.0/users/",
+            "https://api.pwnedpasswords.com/range/",
+            "https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt",
+            "https://www.googleapis.com/youtube/v3/",
+        )
+
+    def test_outbound_http_allowlist_uses_pydantic_url_normalization(self) -> None:
+        """Outbound allowlist values should be validated and normalized URLs."""
+        settings = CoreSettings(
+            environment=Environment.DEV,
+            outbound_http_allowed_urls=("https://API.PWNEDPASSWORDS.COM/range/", "https://graph.microsoft.com"),
+        )
+
+        assert tuple(str(url) for url in settings.outbound_http_allowed_urls) == (
+            "https://api.pwnedpasswords.com/range/",
+            "https://graph.microsoft.com/",
+        )
+
+    @pytest.mark.parametrize("url", ["", "api.example.com", "http://api.example.com", "ftp://api.example.com"])
+    def test_outbound_http_allowlist_rejects_invalid_urls(self, url: str) -> None:
+        """Outbound allowlist entries should be HTTP(S) URLs parsed by Pydantic."""
+        with pytest.raises(ValidationError, match="outbound_http_allowed_urls"):
+            CoreSettings(environment=Environment.DEV, outbound_http_allowed_urls=(url,))
 
     def test_trusted_proxy_cidrs_reject_invalid_networks(self) -> None:
         """Proxy trust configuration should fail fast for invalid CIDR values."""

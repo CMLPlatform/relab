@@ -8,10 +8,21 @@ import ssl
 from functools import cached_property
 from ipaddress import ip_network
 from pathlib import Path  # noqa: TC003 # Runtime use is needed for Pydantic validation of settings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 from urllib.parse import quote, urlsplit
 
-from pydantic import EmailStr, Field, HttpUrl, PostgresDsn, RedisDsn, SecretStr, field_validator, model_validator
+from pydantic import (
+    AnyUrl,
+    EmailStr,
+    Field,
+    HttpUrl,
+    PostgresDsn,
+    RedisDsn,
+    SecretStr,
+    UrlConstraints,
+    field_validator,
+    model_validator,
+)
 from sqlalchemy.engine import URL
 
 from app.core.config.models import (
@@ -29,18 +40,36 @@ if TYPE_CHECKING:
     from typing import Self
 
 
-# Constants for database drivers to resolve PLR2004
+### Constants ###
+# Database drivers and SSL modes.
 DATABASE_DRIVER_PSYCOPG = "psycopg"
 DATABASE_DRIVER_ASYNCPG = "asyncpg"
 DATABASE_SSLMODE_DISABLE = "disable"
 DATABASE_SSLMODE_VERIFY_FULL = "verify-full"
-HTTPS_SCHEME = "https"
+# Default docs URLs by environment.
 DEFAULT_DOCS_URL_BY_ENVIRONMENT: dict[Environment, HttpUrl] = {
     Environment.DEV: HttpUrl("http://127.0.0.1:4300"),
     Environment.TESTING: HttpUrl("http://127.0.0.1:4300"),
     Environment.STAGING: HttpUrl("https://docs-test.cml-relab.org"),
     Environment.PROD: HttpUrl("https://docs.cml-relab.org"),
 }
+
+# Allowed outbound HTTPS URL settings
+HTTPS_SCHEME = "https"
+OutboundHttpsUrl = Annotated[AnyUrl, UrlConstraints(allowed_schemes=[HTTPS_SCHEME], host_required=True)]
+DEFAULT_OUTBOUND_HTTP_ALLOWED_URLS: tuple[OutboundHttpsUrl, ...] = (
+    AnyUrl("https://github.com/login/oauth/access_token"),
+    AnyUrl("https://api.github.com/user"),
+    AnyUrl("https://api.github.com/user/emails"),
+    AnyUrl("https://oauth2.googleapis.com/token"),
+    AnyUrl("https://people.googleapis.com/v1/people/me"),
+    AnyUrl("https://accounts.google.com/o/oauth2/revoke"),
+    AnyUrl("https://login.microsoftonline.com/"),
+    AnyUrl("https://graph.microsoft.com/v1.0/users/"),
+    AnyUrl("https://api.pwnedpasswords.com/range/"),
+    AnyUrl("https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt"),
+    AnyUrl("https://www.googleapis.com/youtube/v3/"),
+)
 
 
 class CoreSettings(RelabBaseSettings):
@@ -83,6 +112,7 @@ class CoreSettings(RelabBaseSettings):
     frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8003")
     docs_url: HttpUrl | None = None
     cors_origin_regex: str | None = Field(default=None)
+    outbound_http_allowed_urls: tuple[OutboundHttpsUrl, ...] = DEFAULT_OUTBOUND_HTTP_ALLOWED_URLS
 
     @field_validator("bootstrap_superuser_name")
     @classmethod
