@@ -58,7 +58,7 @@ export function useNewAccountScreen() {
 
     const loginSuccess = await login(data.email, data.password);
 
-    if (!loginSuccess) {
+    if (loginSuccess.status === 'invalid_credentials') {
       dialog.alert({
         title: 'Account Created',
         message: 'Your account was created! Please log in.',
@@ -66,7 +66,6 @@ export function useNewAccountScreen() {
       router.replace('/login');
       return;
     }
-
     try {
       await refetch(true);
     } catch (error) {

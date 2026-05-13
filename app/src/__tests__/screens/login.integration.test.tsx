@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { openAuthSessionAsync, WebBrowserResultType } from 'expo-web-browser';
 import Login from '@/app/(auth)/login';
 import { getToken, getUser, login, markWebSessionActive } from '@/services/api/authentication';
+import { claimOAuthMfaHandoff, setPendingMfaLogin } from '@/services/api/authMfa';
 import {
   buildOAuthAuthorizeUrl,
   fetchOAuthAuthorizationUrl,
@@ -141,6 +142,12 @@ jest.mock('@/services/api/oauthFlow', () => ({
   openOAuthBrowserSession: jest.fn(),
 }));
 
+jest.mock('@/services/api/authMfa', () => ({
+  ...jest.requireActual<typeof import('@/services/api/authMfa')>('@/services/api/authMfa'),
+  claimOAuthMfaHandoff: jest.fn(),
+  setPendingMfaLogin: jest.fn(),
+}));
+
 jest.mock('expo-web-browser', () => ({
   maybeCompleteAuthSession: jest.fn(),
   openAuthSessionAsync: jest.fn(),
@@ -168,6 +175,12 @@ jest.mock('@/components/common/dialogContext', () => {
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
+const mockedClaimOAuthMfaHandoff = claimOAuthMfaHandoff as jest.MockedFunction<
+  typeof claimOAuthMfaHandoff
+>;
+const mockedSetPendingMfaLogin = setPendingMfaLogin as jest.MockedFunction<
+  typeof setPendingMfaLogin
+>;
 const YOU_DENIED_ACCESS_PATTERN = /You denied access/i;
 const ALREADY_EXISTS_PATTERN = /already exists/i;
 const ENSURE_DEVICE_INTERNET_PATTERN = /ensure your device has internet/i;
@@ -268,7 +281,7 @@ describe('Login screen', () => {
   });
 
   it('calls login and redirects to products on successful login', async () => {
-    mockedLogin.mockResolvedValue('access-token');
+    mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValueOnce(mockUser()); // returned by getUser(true) inside attemptLogin
 
     renderWithProviders(<Login />, { withDialog: true });
@@ -290,7 +303,7 @@ describe('Login screen', () => {
 
   it('redirects to the requested route after successful login', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/profile' });
-    mockedLogin.mockResolvedValue('access-token');
+    mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValueOnce(mockUser());
 
     renderWithProviders(<Login />, { withDialog: true });
@@ -311,7 +324,7 @@ describe('Login screen', () => {
 
   it('routes successful login without username to onboarding before requested redirect', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/profile' });
-    mockedLogin.mockResolvedValue('access-token');
+    mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValueOnce(mockUser({ username: null }));
 
     renderWithProviders(<Login />, { withDialog: true });
@@ -331,8 +344,33 @@ describe('Login screen', () => {
     });
   });
 
+  it('preserves requested redirect when password login requires MFA', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/profile' });
+    mockedLogin.mockResolvedValue({ status: 'mfa_required', mfaToken: 'mfa-token' });
+
+    renderWithProviders(<Login />, { withDialog: true });
+
+    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Password'),
+      'correct-horse-battery-staple-v42',
+    );
+    await act(async () => {
+      fireEvent.press(screen.getByRole('button', { name: 'Login' }));
+    });
+
+    await waitFor(() => {
+      expect(mockedSetPendingMfaLogin).toHaveBeenCalledWith({
+        status: 'mfa_required',
+        mfaToken: 'mfa-token',
+        redirectTo: '/profile',
+      });
+      expect(mockPush).toHaveBeenCalledWith('/mfa');
+    });
+  });
+
   it('shows Login Failed dialog when login returns null', async () => {
-    mockedLogin.mockResolvedValue(undefined);
+    mockedLogin.mockResolvedValue({ status: 'invalid_credentials' });
 
     renderWithProviders(<Login />, { withDialog: true });
 
@@ -444,6 +482,44 @@ describe('Login screen', () => {
       expect(getUser).toHaveBeenCalledWith(true);
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
     });
+  });
+
+  it('claims and routes a web OAuth MFA callback handoff from URL fragment params', async () => {
+    mockPlatform('web');
+    (useLocalSearchParams as jest.Mock).mockReturnValue({});
+    mockedClaimOAuthMfaHandoff.mockResolvedValue({
+      status: 'mfa_required',
+      mfaToken: 'claimed-mfa-token',
+    });
+    const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
+    const originalLocationDescriptor = Object.getOwnPropertyDescriptor(window, 'location');
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        href: 'https://app.example.test/login#success=false&mfa_handoff=oauth-handoff-token',
+        hash: '#success=false&mfa_handoff=oauth-handoff-token',
+        pathname: '/login',
+      },
+    });
+
+    try {
+      renderWithProviders(<Login />, { withDialog: true });
+
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith('/mfa');
+      });
+      expect(mockedClaimOAuthMfaHandoff).toHaveBeenCalledWith('oauth-handoff-token');
+      expect(mockedSetPendingMfaLogin).toHaveBeenCalledWith({
+        status: 'mfa_required',
+        mfaToken: 'claimed-mfa-token',
+      });
+      expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/login');
+    } finally {
+      replaceStateSpy.mockRestore();
+      if (originalLocationDescriptor) {
+        Object.defineProperty(window, 'location', originalLocationDescriptor);
+      }
+    }
   });
 
   it('routes OAuth callback without username to onboarding', async () => {
@@ -615,7 +691,7 @@ describe('Login screen', () => {
   });
 
   it('shows account suspended message in attemptLogin when user is inactive', async () => {
-    mockedLogin.mockResolvedValue('access-token');
+    mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValue(mockUser({ isActive: false }));
 
     renderWithProviders(<Login />, { withDialog: true });
@@ -677,7 +753,7 @@ describe('Login screen', () => {
   });
 
   it('shows dialog when getUser returns null after successful login', async () => {
-    mockedLogin.mockResolvedValue('access-token');
+    mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValue(undefined);
 
     renderWithProviders(<Login />, { withDialog: true });

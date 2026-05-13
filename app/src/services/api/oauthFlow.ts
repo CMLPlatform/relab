@@ -6,6 +6,13 @@ const ALLOWED_OAUTH_HOSTNAMES = new Set(['accounts.google.com', 'github.com']);
 
 export type OAuthSessionResult = Awaited<ReturnType<typeof openAuthSessionAsync>>;
 
+export type OAuthCallbackResult = {
+  success: boolean;
+  error?: string;
+  detail?: string;
+  mfaHandoff?: string;
+};
+
 export function buildOAuthAuthorizeUrl(pathname: string, redirectUri: string) {
   return `${pathname}?redirect_uri=${encodeURIComponent(redirectUri)}`;
 }
@@ -33,7 +40,7 @@ export function isAllowedOAuthRedirectUrl(url: string): boolean {
 
 export function isExpectedOAuthCallbackUrl(url: string, redirectUri: string): boolean {
   try {
-    const actual = new URL(url.replace('#', '?'));
+    const actual = new URL(url);
     const expected = new URL(redirectUri);
     return (
       actual.protocol === expected.protocol &&
@@ -43,6 +50,24 @@ export function isExpectedOAuthCallbackUrl(url: string, redirectUri: string): bo
   } catch {
     return false;
   }
+}
+
+export function parseOAuthCallbackUrl(url: string): OAuthCallbackResult {
+  const callbackUrl = new URL(url);
+  const params = new URLSearchParams(callbackUrl.search);
+  if (callbackUrl.hash) {
+    const fragmentParams = new URLSearchParams(callbackUrl.hash.slice(1));
+    fragmentParams.forEach((value, key) => {
+      params.set(key, value);
+    });
+  }
+
+  return {
+    success: params.get('success') === 'true',
+    error: params.get('error') ?? undefined,
+    detail: params.get('detail') ?? undefined,
+    mfaHandoff: params.get('mfa_handoff') ?? undefined,
+  };
 }
 
 export async function fetchOAuthAuthorizationUrl(

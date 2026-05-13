@@ -151,7 +151,7 @@ describe('NewAccount screen', () => {
 
   it('navigates to products on successful registration and login', async () => {
     mockedRegister.mockResolvedValue({ success: true });
-    mockedLogin.mockResolvedValue('access-token');
+    mockedLogin.mockResolvedValue({ status: 'authenticated' });
 
     renderWithProviders(<NewAccount />, { withDialog: true });
 
@@ -299,6 +299,7 @@ describe('NewAccount – authenticated redirect', () => {
         isActive: true,
         isVerified: true,
         isSuperuser: false,
+        mfaEnabled: false,
         oauth_accounts: [],
         preferences: {},
       },

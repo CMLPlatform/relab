@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import type { useDialog } from '@/components/common/dialogContext';
 import { getUser, login } from '@/services/api/authentication';
+import type { MfaLoginPending } from '@/services/api/authMfa';
 import { type LoginFormValues, loginSchema } from '@/services/api/validation/userSchema';
 import type { User } from '@/types/User';
 
@@ -17,15 +18,21 @@ async function attemptPasswordLogin({
   password,
   dialog,
   completeSuccessfulLogin,
+  handleMfaPending,
 }: {
   email: string;
   password: string;
   dialog: DialogApi;
   completeSuccessfulLogin: (authenticatedUser: User) => Promise<void>;
+  handleMfaPending: (pending: MfaLoginPending) => void;
 }) {
   try {
     const token = await login(email, password);
-    if (!token) {
+    if (token.status === 'mfa_required') {
+      handleMfaPending(token);
+      return;
+    }
+    if (token.status === 'invalid_credentials') {
       dialog.alert({
         title: 'Login Failed',
         message: 'Invalid email or password.',
@@ -62,9 +69,11 @@ async function attemptPasswordLogin({
 export function useLoginForm({
   dialog,
   completeSuccessfulLogin,
+  handleMfaPending,
 }: {
   dialog: DialogApi;
   completeSuccessfulLogin: (authenticatedUser: User) => Promise<void>;
+  handleMfaPending: (pending: MfaLoginPending) => void;
 }) {
   const { control, handleSubmit } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -79,6 +88,7 @@ export function useLoginForm({
       password: data.password,
       dialog,
       completeSuccessfulLogin,
+      handleMfaPending,
     });
   });
 

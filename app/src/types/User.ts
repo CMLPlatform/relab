@@ -23,6 +23,7 @@ export type User = {
   isActive: boolean;
   isSuperuser: boolean;
   isVerified: boolean;
+  mfaEnabled: boolean;
   username: string | null;
   oauth_accounts: NonNullable<ApiUserRead['oauth_accounts']>;
   preferences: UserPreferences;
