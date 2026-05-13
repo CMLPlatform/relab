@@ -137,6 +137,7 @@ def _make_builder() -> tuple[CustomOAuthAssociateRouterBuilder, MagicMock, Magic
         authenticator=MagicMock(),
         user_schema=user_schema,
         state_secret=STATE_SECRET,
+        oauth_flow="google:associate",
     )
     # Patch verify_state so tests supply state_data directly, avoiding JWT/CSRF plumbing.
     return builder, oauth_client, user_schema

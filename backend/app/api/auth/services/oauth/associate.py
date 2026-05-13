@@ -21,7 +21,6 @@ from app.api.auth.exceptions import (
 )
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services.oauth_utils import (
-    CSRF_TOKEN_KEY,
     OAuth2AuthorizeResponse,
     OAuthCookieSettings,
     generate_csrf_token,
@@ -87,6 +86,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         authenticator: Authenticator[User, UUID4],
         user_schema: type[schemas.U],
         state_secret: SecretType,
+        oauth_flow: str,
         redirect_url: str | None = None,
         cookie_settings: OAuthCookieSettings | None = None,
         *,
@@ -106,12 +106,12 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         to pass provider-specific flags such as ``{"access_type": "offline",
         "prompt": "consent"}`` for the Google YouTube scope-upgrade flow.
         """
-        super().__init__(oauth_client, state_secret, redirect_url, cookie_settings)
+        key = route_name_key if route_name_key is not None else oauth_client.name
+        super().__init__(oauth_client, state_secret, oauth_flow, redirect_url, cookie_settings)
         self.authenticator = authenticator
         self.user_schema = user_schema
         self.requires_verification = requires_verification
         self.authorize_extras_params = authorize_extras_params
-        key = route_name_key if route_name_key is not None else oauth_client.name
         self.callback_route_name = f"oauth-associate:{key}.callback"
 
     def build(self) -> APIRouter:
@@ -176,15 +176,14 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
             authorize_redirect_url = str(request.url_for(self.callback_route_name))
 
         csrf_token = generate_csrf_token()
-        state_data: dict[str, str] = {"sub": str(user.id), CSRF_TOKEN_KEY: csrf_token}
-
         redirect_uri = request.query_params.get("redirect_uri")
-        if redirect_uri:
-            if not self._is_allowed_frontend_redirect(redirect_uri):
-                raise OAuthInvalidRedirectURIError
-            state_data["frontend_redirect_uri"] = redirect_uri
+        if redirect_uri and not self._is_allowed_frontend_redirect(redirect_uri):
+            raise OAuthInvalidRedirectURIError
 
-        state = generate_state_token(state_data, self.state_secret)
+        extra_claims = {"sub": str(user.id)}
+        if redirect_uri:
+            extra_claims["frontend_redirect_uri"] = redirect_uri
+        state = generate_state_token(self.build_state_data(csrf_token, extra_claims), self.state_secret)
         authorization_url = await self.oauth_client.get_authorization_url(
             authorize_redirect_url,
             state,

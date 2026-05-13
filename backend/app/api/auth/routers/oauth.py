@@ -50,6 +50,7 @@ def _include_oauth_routes(target_router: APIRouter, *, public_callback_prefix: s
                     client,
                     auth_backend,
                     oauth_state_secret,
+                    oauth_flow=f"{provider_name}:{transport}",
                     redirect_url=_public_callback_url(f"{public_callback_prefix}/{provider_name}/{transport}/callback"),
                     is_verified_by_default=True,
                     associate_by_email=associate_by_email,
@@ -64,6 +65,7 @@ def _include_oauth_routes(target_router: APIRouter, *, public_callback_prefix: s
                 fastapi_user_manager.authenticator,
                 UserRead,
                 oauth_state_secret,
+                oauth_flow=f"{provider_name}:associate",
                 redirect_url=_public_callback_url(f"{public_callback_prefix}/{provider_name}/associate/callback"),
             ).build(),
             prefix=f"/{provider_name}/associate",
@@ -78,6 +80,7 @@ def _include_oauth_routes(target_router: APIRouter, *, public_callback_prefix: s
             fastapi_user_manager.authenticator,
             UserRead,
             oauth_state_secret,
+            oauth_flow="google-youtube:associate",
             redirect_url=_public_callback_url(f"{public_callback_prefix}/google-youtube/associate/callback"),
             route_name_key="google-youtube",
             # Force Google to show the consent screen so the user explicitly grants
