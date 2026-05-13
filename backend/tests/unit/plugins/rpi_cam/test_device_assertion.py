@@ -52,6 +52,7 @@ def _sign(
     jti: str | None = None,
     exp_offset: int = 120,
     omit_jti: bool = False,
+    headers: dict[str, object] | None = None,
 ) -> str:
     now = int(time.time())
     payload: dict = {
@@ -68,7 +69,7 @@ def _sign(
         payload,
         private_key,
         algorithm="ES256",
-        headers={"kid": camera.relay_key_id},
+        headers=headers or {"kid": camera.relay_key_id},
     )
 
 
@@ -86,6 +87,19 @@ class TestVerifyMissingJti:
         with pytest.raises(jwt.InvalidTokenError):
             await da.verify_device_assertion(assertion, camera, redis)
         redis.set.assert_not_called()
+
+    @pytest.mark.parametrize("header_name", ["jwk", "jku", "x5u"])
+    async def test_ignores_attacker_supplied_key_headers(self, header_name: str) -> None:
+        """JWT key-source headers must not override the camera's stored public credential."""
+        camera, _stored_private_key = _make_camera()
+        attacker_private_key, attacker_jwk = _make_keypair()
+        redis = AsyncMock()
+        headers: dict[str, object] = {"kid": camera.relay_key_id}
+        headers[header_name] = attacker_jwk if header_name == "jwk" else "https://attacker.example/jwks.json"
+        assertion = _sign(camera, attacker_private_key, headers=headers)
+
+        with pytest.raises(jwt.InvalidTokenError):
+            await da.verify_device_assertion(assertion, camera, redis)
 
 
 # ── TTL helper ───────────────────────────────────────────────────────────────
