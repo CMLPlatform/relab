@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import ssl
 from functools import cached_property
 from ipaddress import ip_network
 from pathlib import Path  # noqa: TC003 # Runtime use is needed for Pydantic validation of settings
@@ -31,6 +32,8 @@ if TYPE_CHECKING:
 # Constants for database drivers to resolve PLR2004
 DATABASE_DRIVER_PSYCOPG = "psycopg"
 DATABASE_DRIVER_ASYNCPG = "asyncpg"
+DATABASE_SSLMODE_DISABLE = "disable"
+DATABASE_SSLMODE_VERIFY_FULL = "verify-full"
 HTTPS_SCHEME = "https"
 DEFAULT_DOCS_URL_BY_ENVIRONMENT: dict[Environment, HttpUrl] = {
     Environment.DEV: HttpUrl("http://127.0.0.1:4300"),
@@ -49,7 +52,8 @@ class CoreSettings(RelabBaseSettings):
     # ── Database ─────────────────────────────────────────────────────────────────
     database_host: str = "localhost"
     database_port: int = Field(default=5432, ge=1, le=65535)
-    database_ssl: bool = False
+    database_tls: bool = False
+    database_tls_ca_file: Path | None = None
     postgres_user: str = "postgres"
     postgres_password: SecretStr = SecretStr("")
     postgres_db: str = "relab_db"
@@ -65,6 +69,8 @@ class CoreSettings(RelabBaseSettings):
     redis_port: int = Field(default=6379, ge=1, le=65535)
     redis_db: int = Field(default=0, ge=0, le=15)
     redis_password: SecretStr = SecretStr("")
+    redis_tls: bool = False
+    redis_tls_ca_file: Path | None = None
 
     # ── Superuser ─────────────────────────────────────────────────────────────────
     bootstrap_superuser_email: EmailStr = DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL
@@ -250,7 +256,9 @@ class CoreSettings(RelabBaseSettings):
         """Build and validate PostgreSQL database URL."""
         query: dict[str, str] = {}
         if driver == DATABASE_DRIVER_PSYCOPG:
-            query = {"sslmode": "require" if self.database_ssl else "disable"}
+            query = {"sslmode": DATABASE_SSLMODE_VERIFY_FULL if self.database_tls else DATABASE_SSLMODE_DISABLE}
+            if self.database_tls and self.database_tls_ca_file is not None:
+                query["sslrootcert"] = str(self.database_tls_ca_file)
 
         url = URL.create(
             f"postgresql+{driver}",
@@ -296,20 +304,25 @@ class CoreSettings(RelabBaseSettings):
         )
 
     @cached_property
-    def async_database_connect_args(self) -> dict[str, bool]:
+    def async_database_connect_args(self) -> dict[str, bool | ssl.SSLContext]:
         """Get async engine connect args.
 
         Be explicit about SSL so asyncpg does not inherit PGSSL* environment
         variables from the container when talking to the internal Docker
         Postgres service.
         """
-        return {"ssl": self.database_ssl}
+        if not self.database_tls:
+            return {"ssl": False}
+
+        cafile = str(self.database_tls_ca_file) if self.database_tls_ca_file is not None else None
+        return {"ssl": ssl.create_default_context(cafile=cafile)}
 
     @cached_property
     def cache_url(self) -> str:
         """Get Redis cache URL."""
         password = quote(self.redis_password.get_secret_value(), safe="")
-        rendered = f"redis://:{password}@{self.redis_host}:{self.redis_port}/{self.redis_db}"
+        scheme = "rediss" if self.redis_tls else "redis"
+        rendered = f"{scheme}://:{password}@{self.redis_host}:{self.redis_port}/{self.redis_db}"
         RedisDsn(rendered)
         return rendered
 
