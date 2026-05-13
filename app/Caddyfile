@@ -60,11 +60,11 @@
 		file_server
 	}
 
-	# Password-reset URLs carry single-use tokens. Serve the SPA entry point
-	# without caching while the global no-referrer policy prevents token leakage.
-	@reset_password_route path /reset-password*
-	handle @reset_password_route {
-		header Cache-Control "no-cache"
+	# Email verification and password-reset URLs carry single-use tokens in
+	# fragments. Serve the SPA entry point without browser storage.
+	@sensitive_auth_routes path /verify* /reset-password*
+	handle @sensitive_auth_routes {
+		header Cache-Control "no-store"
 		try_files {path} /index.html
 		file_server
 	}

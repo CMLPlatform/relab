@@ -17,6 +17,8 @@ const METHOD_ALLOW_HEADER_PATTERN =
 const METHOD_405_RESPONSE_PATTERN = /respond\s+"[^"]+"\s+405/;
 const RESET_PASSWORD_REFERRER_POLICY_PATTERN =
   /@reset_password_route\s+path\s+\/reset-password\*\s+handle\s+@reset_password_route\s+\{\s+header\s+Referrer-Policy/s;
+const SENSITIVE_AUTH_ROUTE_PATTERN =
+  /@sensitive_auth_routes\s+path\s+([^\n]+)\s+handle\s+@sensitive_auth_routes\s+\{(?<block>[\s\S]*?)\n\s*\}/m;
 
 function enforcedCsp() {
   const match = caddyfile.match(ENFORCED_CSP_PATTERN);
@@ -77,6 +79,17 @@ function dangerousMethodPolicy() {
   };
 }
 
+function sensitiveAuthRoutePolicy() {
+  const match = caddyfile.match(SENSITIVE_AUTH_ROUTE_PATTERN);
+  if (!match?.groups?.block) {
+    throw new Error('Missing sensitive auth route policy block');
+  }
+  return {
+    block: match.groups.block,
+    paths: match[1].trim().split(METHOD_SPLIT_PATTERN),
+  };
+}
+
 describe('Caddy security headers', () => {
   it('blocks dangerous unsupported HTTP methods', () => {
     const policy = dangerousMethodPolicy();
@@ -128,5 +141,14 @@ describe('Caddy security headers', () => {
 
   it('uses the global no-referrer policy for password reset routes', () => {
     expect(caddyfile).not.toMatch(RESET_PASSWORD_REFERRER_POLICY_PATTERN);
+  });
+
+  it('serves token-bearing auth routes without browser caching', () => {
+    const policy = sensitiveAuthRoutePolicy();
+
+    expect(policy.paths).toEqual(['/verify*', '/reset-password*']);
+    expect(policy.block).toContain('header Cache-Control "no-store"');
+    expect(policy.block).toContain('try_files {path} /index.html');
+    expect(policy.block).toContain('file_server');
   });
 });
