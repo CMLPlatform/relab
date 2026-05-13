@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from typing import cast
+from typing import Self, cast
 from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import NameEmail, SecretStr
 
 from app.api.auth.config import GraphEmailSettings, ResolvedEmailSettings
+from app.api.auth.services.email import providers as providers_module
 from app.api.auth.services.email.messages import EmailMessage
 from app.api.auth.services.email.providers import (
     EmailDeliveryError,
@@ -79,6 +80,22 @@ class FakeGraphClient:
                 {"access_token": "token-123", "expires_in": 3600},
             )
         return FakeResponse(self.send_status)
+
+
+class ContextManagedFakeGraphClient(FakeGraphClient):
+    """Fake Graph client that records context-manager ownership."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.entered = 0
+        self.exited = 0
+
+    async def __aenter__(self) -> Self:
+        self.entered += 1
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        self.exited += 1
 
 
 def _graph_settings() -> GraphEmailSettings:
@@ -160,6 +177,20 @@ async def test_graph_provider_raises_delivery_error_on_send_failure() -> None:
 
     with pytest.raises(EmailDeliveryError, match="send"):
         await provider.send(_message())
+
+
+async def test_graph_provider_default_client_uses_shared_http_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Graph email calls should create and close an owned shared HTTP client."""
+    client = ContextManagedFakeGraphClient()
+    monkeypatch.setattr(providers_module, "create_http_client", lambda: client)
+
+    provider = MicrosoftGraphEmailProvider(settings=_graph_settings())
+
+    await provider.send(_message())
+
+    assert client.entered == 1
+    assert client.exited == 1
+    assert len(client.posts) == 2
 
 
 def test_smtp_provider_builds_from_resolved_email_settings() -> None:

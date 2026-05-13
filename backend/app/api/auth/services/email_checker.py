@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-import httpx
+from httpx import HTTPError
 from redis.exceptions import RedisError
 
 from app.api.auth.services.blocklist_store import (
@@ -16,6 +16,7 @@ from app.api.auth.services.blocklist_store import (
 )
 from app.api.auth.services.email_identity import canonical_email_domain
 from app.core.background_tasks import PeriodicBackgroundTask
+from app.core.clients.http import create_http_client
 from app.core.config import Environment, settings
 from app.core.env import BACKEND_DIR
 
@@ -30,7 +31,7 @@ DISPOSABLE_DOMAINS_URL = "https://raw.githubusercontent.com/disposable/disposabl
 DISPOSABLE_DOMAINS_FALLBACK_PATH = BACKEND_DIR / "app" / "api" / "auth" / "resources" / "disposable_email_domains.txt"
 REDIS_DISPOSABLE_DOMAINS_KEY = "auth:blocklists:email:disposable"
 
-_RECOVERABLE_ERRORS = (RuntimeError, ValueError, ConnectionError, OSError, RedisError, httpx.HTTPError)
+_RECOVERABLE_ERRORS = (RuntimeError, ValueError, ConnectionError, OSError, RedisError, HTTPError)
 
 
 def load_local_disposable_domains(path: Path = DISPOSABLE_DOMAINS_FALLBACK_PATH) -> set[str]:
@@ -110,7 +111,7 @@ class EmailChecker(PeriodicBackgroundTask):
 
     async def _fetch_remote_domains(self) -> set[str]:
         """Fetch the latest disposable domain list from the remote source."""
-        async with httpx.AsyncClient() as client:
+        async with create_http_client() as client:
             response = await client.get(DISPOSABLE_DOMAINS_URL, timeout=10.0)
             response.raise_for_status()
         return load_blocklist_text(response.text, str.lower)

@@ -6,11 +6,11 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Protocol
 from urllib.parse import quote
 
-import httpx
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 
 from app.api.auth.config import AuthSettings, EmailProviderName, GraphEmailSettings, ResolvedEmailSettings
 from app.api.auth.services.email.messages import EmailMessage
+from app.core.clients.http import create_http_client
 from app.core.config import settings as core_settings
 
 if TYPE_CHECKING:
@@ -42,7 +42,7 @@ class GraphHttpResponse(Protocol):
         """Return a JSON response body."""
         ...
 
-    def raise_for_status(self) -> None:
+    def raise_for_status(self) -> object:
         """Raise when the HTTP request failed."""
         ...
 
@@ -111,7 +111,7 @@ class MicrosoftGraphEmailProvider:
 
     def __init__(self, settings: GraphEmailSettings, client: GraphHttpClient | None = None) -> None:
         self._settings = settings
-        self._client = client or httpx.AsyncClient(timeout=10)
+        self._client = client
         self._token: str | None = None
         self._token_expires_at: datetime | None = None
 
@@ -121,13 +121,13 @@ class MicrosoftGraphEmailProvider:
         margin = timedelta(seconds=MICROSOFT_GRAPH_TOKEN_REFRESH_MARGIN_SECONDS)
         return datetime.now(UTC) + margin < self._token_expires_at
 
-    async def _get_access_token(self) -> str:
+    async def _get_access_token(self, client: GraphHttpClient) -> str:
         if self._has_valid_token():
             return self._token or ""
 
         token_url = MICROSOFT_GRAPH_TOKEN_URL_TEMPLATE.format(tenant_id=quote(self._settings.tenant_id, safe=""))
         try:
-            response = await self._client.post(
+            response = await client.post(
                 token_url,
                 data={
                     "client_id": self._settings.client_id,
@@ -152,9 +152,9 @@ class MicrosoftGraphEmailProvider:
         self._token_expires_at = datetime.now(UTC) + timedelta(seconds=expires_seconds)
         return token
 
-    async def send(self, message: EmailMessage) -> None:
+    async def _send_with_client(self, message: EmailMessage, client: GraphHttpClient) -> None:
         """Send one rendered HTML message through Microsoft Graph."""
-        token = await self._get_access_token()
+        token = await self._get_access_token(client)
         send_url = MICROSOFT_GRAPH_SEND_MAIL_URL_TEMPLATE.format(sender=quote(self._settings.sender_user, safe=""))
         message_payload: dict[str, object] = {
             "subject": message.subject,
@@ -170,7 +170,7 @@ class MicrosoftGraphEmailProvider:
             message_payload["from"] = _name_email_payload(message.sender)
 
         try:
-            response = await self._client.post(
+            response = await client.post(
                 send_url,
                 headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
                 json=payload,
@@ -179,6 +179,15 @@ class MicrosoftGraphEmailProvider:
         except Exception as exc:
             msg = "Microsoft Graph sendMail request failed"
             raise EmailDeliveryError(msg) from exc
+
+    async def send(self, message: EmailMessage) -> None:
+        """Send one rendered HTML message through Microsoft Graph."""
+        if self._client is not None:
+            await self._send_with_client(message, self._client)
+            return
+
+        async with create_http_client() as client:
+            await self._send_with_client(message, client)
 
 
 def build_email_provider(
