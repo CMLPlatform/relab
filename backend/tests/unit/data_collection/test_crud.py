@@ -23,7 +23,7 @@ from app.api.data_collection.crud.material_links import (
     remove_materials_from_product,
     update_material_within_product,
 )
-from app.api.data_collection.crud.products import (
+from app.api.data_collection.crud.product_commands import (
     create_component,
     create_product,
     delete_product,
