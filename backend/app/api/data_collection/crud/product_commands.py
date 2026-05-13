@@ -16,6 +16,7 @@ from app.api.data_collection.exceptions import ProductOwnerRequiredError
 from app.api.data_collection.models.product import MaterialProductLink, Product
 from app.api.data_collection.schemas import ComponentCreateWithComponents, ProductCreateWithComponents, ProductUpdate
 from app.api.file_storage.models import Video
+from app.api.file_storage.upload_quota import recompute_user_upload_quota
 from app.api.reference_data.models import Material, ProductType
 
 if TYPE_CHECKING:
@@ -216,6 +217,8 @@ async def delete_product(db: AsyncSession, product_id: int) -> None:
     owner_id = db_product.owner_id
     await db.delete(db_product)
     if owner_id is not None:
+        await db.flush()
+        await recompute_user_upload_quota(db, user_id=owner_id)
         await refresh_profile_stats_after_mutation(db, owner_id)
     await db.commit()
     audit_event(owner_id, AuditAction.DELETE, Product, product_id)

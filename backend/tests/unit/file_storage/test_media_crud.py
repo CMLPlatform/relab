@@ -50,7 +50,7 @@ class TestFileStorageCrud:
         with (
             patch("app.api.file_storage.crud.support_queries.parent_model_for_type") as mock_parent_model,
             patch("app.api.file_storage.crud.support_queries.require_model"),
-            patch("app.api.file_storage.crud.support_services.enforce_product_upload_quota", new=quota_mock),
+            patch("app.api.file_storage.crud.support_services.reserve_product_upload_quota", new=quota_mock),
             patch("app.api.file_storage.crud.support_services._get_file_storage") as mock_get_storage,
         ):
             mock_parent_model.return_value = MagicMock()
@@ -65,7 +65,7 @@ class TestFileStorageCrud:
         assert result.parent_type == MediaParentType.PRODUCT
         assert result.parent_id == 1
         assert result.upload_size_bytes == 1024
-        quota_mock.assert_awaited_once_with(mock_session, quota_user_id=quota_user_id, upload_size_bytes=1024)
+        quota_mock.assert_awaited_once_with(mock_session, user_id=quota_user_id, upload_size_bytes=1024)
 
     def test_file_create_rejects_quota_user_fields(self) -> None:
         """Upload payload schemas should not expose quota-accounting fields."""
@@ -125,11 +125,33 @@ class TestFileStorageCrud:
         with (
             patch("app.api.file_storage.crud.support_services.require_locked_model", return_value=mock_db_file),
             patch("app.api.file_storage.crud.support_services.delete_file_from_storage") as mock_delete_from_storage,
+            patch("app.api.file_storage.crud.support_services.release_product_upload_quota_for_media", new=AsyncMock()),
         ):
             await delete_file(mock_session, file_id)
 
         mock_session.delete.assert_called_once_with(mock_db_file)
         mock_delete_from_storage.assert_called_once_with(Path(FAKE_PATH))
+
+    async def test_delete_product_file_releases_upload_quota(self, mock_session: AsyncMock) -> None:
+        """Deleting product-owned files should release the owner's upload ledger."""
+        file_id = uuid4()
+        mock_db_file = MagicMock(spec=File)
+        mock_db_file.file.path = FAKE_PATH
+        mock_db_file.parent_type = MediaParentType.PRODUCT
+        mock_db_file.parent_id = 1
+        mock_db_file.upload_size_bytes = 1024
+
+        with (
+            patch("app.api.file_storage.crud.support_services.require_locked_model", return_value=mock_db_file),
+            patch("app.api.file_storage.crud.support_services.delete_file_from_storage"),
+            patch(
+                "app.api.file_storage.crud.support_services.release_product_upload_quota_for_media",
+                new=AsyncMock(),
+            ) as release_quota,
+        ):
+            await delete_file(mock_session, file_id)
+
+        release_quota.assert_awaited_once_with(mock_session, mock_db_file)
 
 
 class TestImageStorageCrud:
@@ -158,7 +180,7 @@ class TestImageStorageCrud:
                 "app.api.file_storage.crud.support_queries.require_model",
                 return_value=ProductFactory.build(id=1, owner_id=uuid4(), first_image_id=uuid4()),
             ),
-            patch("app.api.file_storage.crud.support_services.enforce_product_upload_quota", new=quota_mock),
+            patch("app.api.file_storage.crud.support_services.reserve_product_upload_quota", new=quota_mock),
             patch("app.api.file_storage.crud.support_services._get_image_storage") as mock_get_storage,
             patch.object(image_storage_service, "validate_upload_content") as mock_validate_content,
         ):
@@ -171,7 +193,7 @@ class TestImageStorageCrud:
         mock_validate_content.assert_called_once_with(mock_file)
         assert result.filename == IMAGE_FILENAME
         assert result.upload_size_bytes == 1024
-        quota_mock.assert_awaited_once_with(mock_session, quota_user_id=quota_user_id, upload_size_bytes=1024)
+        quota_mock.assert_awaited_once_with(mock_session, user_id=quota_user_id, upload_size_bytes=1024)
 
     def test_image_create_rejects_quota_user_fields(self) -> None:
         """Image upload payload schemas should not expose quota-accounting fields."""
@@ -236,6 +258,7 @@ class TestImageStorageCrud:
                 "app.api.file_storage.crud.support_services.delete_image_from_storage",
                 new=AsyncMock(),
             ) as mock_delete_image,
+            patch("app.api.file_storage.crud.support_services.release_product_upload_quota_for_media", new=AsyncMock()),
         ):
             await delete_image(mock_session, image_id)
         mock_session.delete.assert_called_once_with(mock_db_image)
@@ -257,6 +280,7 @@ class TestImageStorageCrud:
                 "app.api.file_storage.crud.support_services.delete_image_from_storage",
                 new=AsyncMock(),
             ) as mock_delete_image,
+            patch("app.api.file_storage.crud.support_services.release_product_upload_quota_for_media", new=AsyncMock()),
         ):
             await delete_image(mock_session, image_id)
 

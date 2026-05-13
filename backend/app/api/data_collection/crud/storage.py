@@ -10,7 +10,6 @@ from sqlalchemy import select
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.parent_media import (
     create_parent_media,
-    delete_all_parent_media,
     delete_parent_media,
     get_parent_media,
     list_parent_media,
@@ -94,17 +93,6 @@ async def delete_product_file(db: AsyncSession, product_id: int, file_id: UUID4)
     )
 
 
-async def delete_all_product_files(db: AsyncSession, product_id: int) -> None:
-    """Delete all files attached to a product."""
-    await delete_all_parent_media(
-        db,
-        parent_model=Product,
-        parent_type=MediaParentType.PRODUCT,
-        storage_model=File,
-        parent_id=product_id,
-    )
-
-
 async def list_product_images(db: AsyncSession, product_id: int, *, filter_params: ImageFilter) -> Sequence[Image]:
     """List images attached to a product."""
     return await list_parent_media(
@@ -157,17 +145,6 @@ async def delete_product_image(db: AsyncSession, product_id: int, image_id: UUID
         parent_id=product_id,
         item_id=image_id,
         storage_service=image_storage_service,
-    )
-
-
-async def delete_all_product_images(db: AsyncSession, product_id: int) -> None:
-    """Delete all images attached to a product."""
-    await delete_all_parent_media(
-        db,
-        parent_model=Product,
-        parent_type=MediaParentType.PRODUCT,
-        storage_model=Image,
-        parent_id=product_id,
     )
 
 
