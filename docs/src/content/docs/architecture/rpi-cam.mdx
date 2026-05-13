@@ -183,10 +183,8 @@ Captured image bytes do not travel through the WebSocket. After a capture comman
 
 ### Device callback routes
 
-Pi-originated HTTP callbacks are plugin-scoped instead of using a generic `/device` namespace because RELab currently has one device family:
+Pi-originated HTTP callbacks are plugin-scoped, keeping device routes namespaced to the camera plugin:
 
 - `POST /v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload`
 - `POST /v1/plugins/rpi-cam/device/cameras/{camera_id}/preview-thumbnail-upload`
 - `DELETE /v1/plugins/rpi-cam/device/cameras/{camera_id}/self`
-
-If RELab adds multiple device families later, the protocol docs can be split by plugin while keeping this same audience model.

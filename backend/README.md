@@ -6,14 +6,13 @@ The backend provides the API, authentication flows, product and component data m
 
 ```bash
 just install
-(cd .. && just deploy-secrets-template dev)
-(cd .. && just dev-db && just dev-migrate)
+cd .. && just deploy-secrets-template dev && just dev-db && just dev-migrate
+cd backend
 just dev
 ```
 
 The API is then available at <http://127.0.0.1:8010>.
-Use Docker Compose for local PostgreSQL and Redis; run `../just dev-db` before starting the backend directly
-with `just dev`. Development uses Redis-backed caching when Redis is available, and falls back to in-memory
+Use Docker Compose for local PostgreSQL and Redis. Development uses Redis-backed caching when Redis is available, and falls back to in-memory
 caching only when Redis is not running. Create `.env.dev` only when you need backend-only non-secret overrides;
 local backend secrets live in `../secrets/dev/`.
 
@@ -43,20 +42,20 @@ Taxonomy imports are intentionally opt-in for the migrations image. If you want 
 
 The main [`backend/Dockerfile`](Dockerfile) is multi-target: the default `runtime` stage builds the slim production image, and `--target dev` produces the hot-reload dev image used by `compose.dev.yaml`.
 
-## Current Backend Shape
+## Backend Architecture
 
-The backend is intentionally moving toward explicit, domain-owned seams instead of broad internal registries.
+The backend uses explicit, domain-owned seams rather than broad internal registries.
 
-- Routers should stay thin orchestration layers.
-- Domain read paths should prefer small local `select(...).where(...)` helpers over generic query-builder indirection.
-- The shared CRUD/query kernel is intentionally small: keep `require_model`, `require_models`, `page_models`, `exists`, and persistence helpers. Older convenience helpers such as `QueryOptions`, `build_query`, and `list_models` are retired.
-- Recursive endpoints such as `/v1/categories/tree` and `/v1/products/{product_id}/components/tree` remain supported public APIs, but they should use bounded tree loaders plus pure serialization, never lazy ORM traversal during response assembly.
-- Query parameters should stay in SQLAlchemy expressions so user values become bind parameters. If a query needs dynamic identifiers such as sort or facet fields, route them through explicit allowlists before building SQL. Keep raw SQL static unless PostgreSQL requires otherwise, and bind runtime values separately.
+- Routers are thin orchestration layers.
+- Domain read paths use small local `select(...).where(...)` helpers rather than generic query-builder indirection.
+- The shared CRUD/query kernel is intentionally small: `require_model`, `require_models`, `page_models`, `exists`, and persistence helpers.
+- Recursive endpoints such as `/v1/categories/tree` and `/v1/products/{product_id}/components/tree` use bounded tree loaders plus pure serialization, not lazy ORM traversal during response assembly.
+- Query parameters stay in SQLAlchemy expressions so user values become bind parameters. Dynamic identifiers such as sort or facet fields go through explicit allowlists before SQL is built. Raw SQL stays static; runtime values are bound separately.
 
-Two examples of the preferred shape:
+Key reference points for the domain shape:
 
-- `app/api/data_collection/crud/products.py` is now the stable product-domain entrypoint, with tree reads in `product_tree_queries.py` and mutations in `product_commands.py`.
-- `app/api/file_storage/crud/` is split by concern; avoid reintroducing a broad `file_storage.crud` compatibility surface.
+- `app/api/data_collection/crud/products.py` is the product-domain entrypoint, with tree reads in `product_tree_queries.py` and mutations in `product_commands.py`.
+- `app/api/file_storage/crud/` is split by concern.
 
 ## RPi Camera Contract Boundary
 
@@ -107,7 +106,7 @@ MICROSOFT_GRAPH_SENDER_USER=relab@example.edu
 
 Store the Graph client secret in `../secrets/<env>/microsoft_graph_client_secret`. Create a dedicated mailbox, register an Entra app, grant Microsoft Graph application permission `Mail.Send`, and restrict the app to that mailbox with an application access policy before production use. Microsoft references: [send mail with Graph](https://learn.microsoft.com/en-us/graph/api/user-sendmail), [client credentials](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow), and [application access policies](https://learn.microsoft.com/en-us/graph/auth-limit-mailbox-access).
 
-Recurring newsletter delivery is not part of the runtime API; add it back only with a real sender workflow, unsubscribe handling, and preference-center support.
+Recurring newsletter delivery is not part of the runtime API. Any future implementation requires a real sender workflow, unsubscribe handling, and preference-center support before it should be wired into the API.
 
 ## More
 

@@ -26,13 +26,11 @@ Expected uses:
 - industrial ecology and LCA-oriented work that depends on primary product data
 - linking with other open industrial-ecology data infrastructures
 
-## Access and publication status
+## Access
 
-The intention is to publish curated releases openly. That publication workflow is still maturing, so the most reliable way to explore current records is the app. For technical access to live data, use the [API reference overview](/api-reference/) or go directly to the [public API reference](/api/public/).
+Current records can be explored in the app or through the API. For technical access, see the [API reference overview](/api-reference/) or go directly to the [public API reference](/api/public/).
 
-Curated downloadable releases will be the authoritative source for exact scope, version, and license once they exist.
-
-The longer-term aim is to contribute to an open industrial ecology data commons, not just publish an isolated file.
+Curated releases will carry authoritative scope, versioning, and licensing metadata. The goal is to contribute to an open industrial ecology data commons, not just publish an isolated file.
 
 ## Dublin Core metadata
 
@@ -56,7 +54,7 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
 
 ## License
 
-The intended dataset license is the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/). Published dataset releases will be the authoritative source for exact licensing, scope, and versioning.
+The dataset is published under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/).
 
 ## Contact
 

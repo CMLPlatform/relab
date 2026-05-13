@@ -32,13 +32,22 @@ Review security-sensitive changes against this baseline:
 - Code: authorization, validation, upload checks, browser security headers, and tests live close to the behavior they protect.
 - Configuration: secrets, Compose policy, HTTPS, least-privilege database roles, and secure runtime defaults are source-controlled where practical.
 
-Security-sensitive buckets are authentication and OAuth, public read APIs, authenticated mutation APIs, uploads and media, admin APIs, RPi camera device APIs and WebSocket relay, backups, secrets, logs, telemetry, and release/security artifacts. Keep this list grouped by risk, not by endpoint.
+Security-sensitive areas:
 
-Valuable assets include accounts, profile/privacy settings, research records, uploaded media/files, OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup material, and runtime secrets. Update this baseline, the relevant behavior docs, or both when a change creates a new bucket or meaningfully changes a trust boundary.
+- authentication and OAuth
+- public read APIs
+- authenticated mutation APIs
+- uploads and media
+- admin APIs
+- RPi camera device APIs and WebSocket relay
+- backups, secrets, logs, and telemetry
+- release and security artifacts
+
+Valuable assets include accounts, profile/privacy settings, research records, uploaded media/files, OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup material, and runtime secrets.
 
 ## Automated Checks
 
-Supply-chain and code-security checks have clear owners:
+Supply-chain and code-security checks:
 
 - Dependencies: GitHub Dependency Review / Dependency Graph and Renovate.
 - Runtime images: Trivy scans and SPDX JSON SBOM artifacts.

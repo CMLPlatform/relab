@@ -85,7 +85,7 @@ For emulator and device setup, testing patterns, and app-specific development no
 
 ## Styling And Theming
 
-Styling in `app` now follows a single-theme setup built on React Native Paper MD3.
+Styling in `app` follows a single-theme setup built on React Native Paper MD3.
 
 - Import theme values from `@/theme`, not from `src/assets/themes/*`
 - Use `useAppTheme()` as the default hook for theme access
@@ -113,13 +113,13 @@ The default `pnpm run dev` flow intentionally keeps compiler transforms off for 
 
 ## Lint Ownership
 
-Biome remains the primary formatter/linter for this app, including the React rules it supports well today:
+Biome is the primary formatter/linter for this app, including the React rules it supports:
 
 - hook ordering and dependency linting
 - React prop assignment safety
 - general React module/export safety where configured
 
-ESLint is intentionally narrow and only runs the React compiler-era checks that Biome does not cover well yet. It also enforces explicit Fast Refresh export-only structure via `eslint-plugin-react-refresh`.
+ESLint is intentionally narrow: it covers only the React compiler checks that Biome does not handle, plus explicit Fast Refresh export-only structure via `eslint-plugin-react-refresh`.
 
 The React ESLint pass is blocking, not advisory. `pnpm run lint:react` must pass with zero warnings.
 
@@ -135,4 +135,4 @@ Key ESLint coverage includes:
 - `react-hooks/set-state-in-render`
 - `react-refresh/only-export-components`
 
-Biome is still the only lint tool we plan to use for React Native-specific checks in this app, but the currently published Biome release used here does not yet expose the RN rule surface we wanted to enable. RN-specific linting therefore remains intentionally minimal for now.
+Biome is the only lint tool used for React Native-specific checks in this app, but it does not expose the RN rule surface needed for more targeted checks. RN-specific linting is intentionally minimal.

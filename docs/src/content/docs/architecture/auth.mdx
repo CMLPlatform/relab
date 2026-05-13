@@ -29,7 +29,14 @@ The breach check fails open if Have I Been Pwned is unavailable. The frontend ke
 
 Changing `email` or `password` through `PATCH /v1/users/me` requires `current_password`. Username, profile, and preference updates do not. Email changes mark the account unverified, send a verification email to the new address, and send a security notification to the previous address. Password changes send a security notification to the account email address.
 
-TOTP MFA is optional account hardening. Accounts without TOTP enabled receive bearer tokens or browser session cookies after successful password or OAuth login. Accounts with TOTP enabled receive a short-lived challenge token and must submit a current one-time code before the API issues bearer tokens or browser session cookies. TOTP setup is an authenticated account action, and future sensitive routes can use the backend MFA dependency to require accounts with confirmed MFA. TOTP seeds and pending MFA tokens are generated with cryptographically secure randomness, and accepted TOTP counters are recorded briefly to prevent replay within the allowed clock window. Administrators can reset a user's MFA enrollment after identity-proofed recovery, but they cannot choose a replacement factor for the user.
+TOTP MFA is optional account hardening:
+
+- Accounts without TOTP receive bearer tokens or session cookies after a successful password or OAuth login.
+- Accounts with TOTP receive a short-lived challenge token and must submit a current one-time code before the API issues credentials.
+- Sensitive backend routes can require confirmed MFA via the MFA dependency.
+- TOTP seeds and pending challenge tokens are generated with cryptographically secure randomness.
+- Accepted TOTP counters are recorded briefly to prevent replay within the allowed clock window.
+- Administrators can reset a user's MFA enrollment after identity-proofed recovery, but cannot choose a replacement factor.
 
 Forgot-password responses do not reveal whether an account exists. The API returns the same accepted response for known, unknown, and inactive accounts and pads the response to a small minimum duration to reduce timing-based account enumeration. Login failures use the same bad-credentials response for unknown, invalid, and inactive accounts.
 
@@ -73,9 +80,16 @@ Refresh-token rotation uses dedicated endpoints:
 - `POST /v1/auth/bearer/refresh` for bearer clients
 - `POST /v1/auth/session/refresh` for browser sessions
 
-Refresh tokens have a 30-day inactivity lifetime and a 30-day absolute session lifetime. Each successful refresh rotates the refresh token, but rotation preserves the original absolute expiry, so activity cannot extend a session beyond 30 days. RELab allows multiple concurrent sessions per account within that lifetime. Users can end all of them from the profile screen with "Sign out everywhere"; the current product direction intentionally does not add a per-device session inventory.
+Refresh tokens have a 30-day inactivity lifetime and a 30-day absolute session lifetime. Each successful refresh rotates the refresh token, but rotation preserves the original absolute expiry, so activity cannot extend a session beyond 30 days. RELab allows multiple concurrent sessions per account within that lifetime. Users can end all of them from the profile screen with "Sign out everywhere"; a per-device session inventory is not provided.
 
-Bearer logout revokes the submitted refresh token. Session logout clears auth cookies, asks the browser to clear local session data, and blacklists the refresh token when one is present. `POST /v1/auth/sessions/revoke-all` revokes all refresh tokens for the current account and clears browser session state. Password reset, current-password-protected password changes, current-password-protected email changes, account deactivation, and account deletion also revoke all refresh tokens for the affected account. Existing access tokens are not tracked in a separate revocation list; authenticated API requests still require a resolvable active user, and any residual access-token exposure is bounded by the 15-minute lifetime.
+Token revocation events:
+
+- **Bearer logout:** revokes the submitted refresh token.
+- **Session logout:** clears auth cookies, asks the browser to clear local session data, and blacklists the refresh token when one is present.
+- **Revoke all** (`POST /v1/auth/sessions/revoke-all`): revokes all refresh tokens for the account and clears browser session state.
+- **Password reset, password change, email change, account deactivation, and account deletion:** all revoke every refresh token for the affected account.
+
+Existing access tokens are not tracked in a separate revocation list. Authenticated requests still require a resolvable active user, and any residual access-token exposure is bounded by the 15-minute lifetime.
 
 Refresh tokens are random bearer secrets. Redis and the local development fallback store them under SHA-256 fingerprints rather than raw token values, so storage keys are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with AES-256-GCM using the backend `DATA_ENCRYPTION_KEY`.
 
@@ -85,7 +99,7 @@ Authorization is enforced in the backend route layer, not by client-side UI stat
 
 ## OAuth
 
-OAuth login is available for Google and GitHub. Both providers support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email. GitHub linking requires explicit association. OAuth login creates RELab-owned access and refresh sessions; RELab does not currently claim IdP-wide logout or coordinated provider session termination.
+OAuth login is available for Google and GitHub. Both providers support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email. GitHub linking requires explicit association. OAuth login creates RELab-owned access and refresh sessions; RELab does not claim IdP-wide logout or coordinated provider session termination.
 
 ### Backend-mediated flow
 
@@ -99,7 +113,7 @@ Callbacks use a CSRF cookie and signed state token. Frontend redirect targets mu
 - `https://api.cml-relab.org/v1/oauth/github/session/callback`
 - `https://api.cml-relab.org/v1/oauth/github/associate/callback`
 
-The public backend origin comes from `API_PUBLIC_URL`; production currently uses `https://api.cml-relab.org`. Bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when enabled for a client.
+The public backend origin comes from `API_PUBLIC_URL`; production uses `https://api.cml-relab.org`. Bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when enabled for a client.
 
 When OAuth login needs MFA, the backend redirects back to the login screen with a short-lived one-time handoff in the URL fragment. The app claims that handoff through the API, stores the returned pending MFA challenge in app runtime/session storage, routes immediately to the MFA screen, and clears the browser URL. The MFA challenge token is never placed in query strings or URL fragments.
 

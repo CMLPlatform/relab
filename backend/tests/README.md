@@ -33,7 +33,6 @@ Use this tier for database-backed tests that exercise ORM models, CRUD, queries,
 - Allowed fixtures: `db_session`, seed/data fixtures, factories
 - Not required by default: `api_client`, app lifespan, routing stack
 - Goal: verify persistence and query behavior with a real database
-- This tier also includes the former `tests/integration/models/` coverage for model constraints and relationships
 
 ### `tests/integration/core/`
 

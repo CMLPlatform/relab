@@ -33,7 +33,7 @@ Rulesets:
 - `http_request_firewall_custom`: repo-managed custom firewall rules.
 
 Cloudflare rules should be changed in this directory, not in the dashboard. The
-dashboard remains useful for inspection, events, and emergency debugging. If an
+dashboard is useful for inspection, events, and emergency debugging. If an
 emergency dashboard edit is ever made, copy the change back into OpenTofu and
 run a plan before the next apply.
 

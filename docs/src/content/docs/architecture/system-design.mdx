@@ -95,7 +95,7 @@ These choices keep the stack small enough to understand and operate without dedi
 
 ## Security architecture inventory
 
-RELab is a single backend application with supporting infrastructure, not a large microservice fleet. Authorization stays in FastAPI route dependencies, ownership checks, and admin-only dependencies. Dedicated policy engines, service meshes, mTLS between containers, and internal identity-propagation tokens are deferred until there are multiple independently deployed backend services.
+RELab is a single backend application with supporting infrastructure, not a large microservice fleet. Authorization stays in FastAPI route dependencies, ownership checks, and admin-only dependencies. Dedicated policy engines, service meshes, mTLS between containers, and internal identity-propagation tokens are out of scope for a single backend application.
 
 Application services are `api`, `app`, `www`, `docs`, `migrator`, and optional `backup`. Supporting systems are PostgreSQL, Redis, file or S3-compatible storage, Cloudflare Tunnel, optional Loki/OTLP telemetry, and external OAuth, email, Have I Been Pwned, and YouTube providers.
 
