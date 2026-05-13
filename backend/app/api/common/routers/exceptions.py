@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
-from app.api.common.audit import AuditAction, audit_event
+from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.exceptions import APIError
 from app.core.responses import build_problem_response
 
@@ -52,9 +52,7 @@ def create_exception_handler(
                 AuditAction.AUTHORIZATION_DENIED,
                 "http_request",
                 request.url.path,
-                outcome="denied",
-                status_code=status_code,
-                error_code=code,
+                context=AuditContext(outcome="denied", status_code=status_code, error_code=code),
             )
 
         return build_problem_response(

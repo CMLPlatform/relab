@@ -7,7 +7,7 @@ from inspect import Parameter, signature
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from app.api.common.audit import AuditAction, audit_event
+from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.reference_data.models import Material
 
 if TYPE_CHECKING:
@@ -42,8 +42,7 @@ def test_audit_event_sanitizes_structured_string_fields(caplog: pytest.LogCaptur
             AuditAction.LOGIN_FAILURE,
             "auth\nflow",
             "credential\rslot",
-            outcome="denied\nnow",
-            reason="bad\npassword",
+            context=AuditContext(outcome="denied\nnow", reason="bad\npassword"),
         )
 
     record = caplog.records[0]
@@ -61,10 +60,10 @@ def test_audit_event_has_explicit_optional_fields_only() -> None:
 
     assert all(parameter.kind is not Parameter.VAR_KEYWORD for parameter in parameters.values())
     assert "request" not in parameters
-    assert {"reason", "transport", "flow", "operation", "status_code", "error_code"} <= set(parameters)
+    assert set(parameters) == {"actor_id", "action", "resource_type", "resource_id", "context"}
 
 
-def test_audit_event_sanitizes_explicit_optional_fields(caplog: pytest.LogCaptureFixture) -> None:
+def test_audit_event_sanitizes_context_fields(caplog: pytest.LogCaptureFixture) -> None:
     """Optional audit fields should be sanitized before reaching the log record."""
     with caplog.at_level(logging.INFO, logger="audit"):
         audit_event(
@@ -72,12 +71,14 @@ def test_audit_event_sanitizes_explicit_optional_fields(caplog: pytest.LogCaptur
             AuditAction.LOGIN_FAILURE,
             "auth",
             "credentials",
-            reason="bad\ncredentials",
-            transport="bearer\nclient",
-            flow="login\rchallenge",
-            operation="mfa\nreset",
-            status_code=403,
-            error_code="Forbidden\nError",
+            context=AuditContext(
+                reason="bad\ncredentials",
+                transport="bearer\nclient",
+                flow="login\rchallenge",
+                operation="mfa\nreset",
+                status_code=403,
+                error_code="Forbidden\nError",
+            ),
         )
 
     record = caplog.records[0]

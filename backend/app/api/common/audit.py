@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -31,6 +32,19 @@ class AuditAction(StrEnum):
     RATE_LIMITED = "rate_limited"
 
 
+@dataclass(frozen=True, kw_only=True)
+class AuditContext:
+    """Optional structured audit fields allowed on log records."""
+
+    outcome: str = "ok"
+    reason: str | None = None
+    transport: str | None = None
+    flow: str | None = None
+    operation: str | None = None
+    status_code: int | None = None
+    error_code: str | None = None
+
+
 def _resource_type_name(resource_type: type[object] | str) -> str:
     if isinstance(resource_type, str):
         return sanitize_log_value(resource_type)
@@ -53,19 +67,13 @@ def _safe_context(context: dict[str, object]) -> dict[str, object]:
     return safe
 
 
-def audit_event(  # noqa: PLR0913 - explicit audit fields avoid unsafe arbitrary LogRecord extras.
+def audit_event(
     actor_id: UUID | str | None,
     action: AuditAction,
     resource_type: type[object] | str,
     resource_id: object,
     *,
-    outcome: str = "ok",
-    reason: str | None = None,
-    transport: str | None = None,
-    flow: str | None = None,
-    operation: str | None = None,
-    status_code: int | None = None,
-    error_code: str | None = None,
+    context: AuditContext | None = None,
 ) -> None:
     """Emit a structured audit log entry.
 
@@ -75,7 +83,8 @@ def audit_event(  # noqa: PLR0913 - explicit audit fields avoid unsafe arbitrary
     resource_type_name = _resource_type_name(resource_type)
     safe_actor_id = _safe_extra_value(str(actor_id)) if actor_id is not None else None
     safe_resource_id = _safe_extra_value(resource_id)
-    safe_outcome = sanitize_log_value(outcome)
+    audit_context = context or AuditContext()
+    safe_outcome = sanitize_log_value(audit_context.outcome)
     extra: dict[str, object] = {
         "audit": True,
         "actor_id": safe_actor_id,
@@ -85,12 +94,12 @@ def audit_event(  # noqa: PLR0913 - explicit audit fields avoid unsafe arbitrary
         "outcome": safe_outcome,
         **_safe_context(
             {
-                "reason": reason,
-                "transport": transport,
-                "flow": flow,
-                "operation": operation,
-                "status_code": status_code,
-                "error_code": error_code,
+                "reason": audit_context.reason,
+                "transport": audit_context.transport,
+                "flow": audit_context.flow,
+                "operation": audit_context.operation,
+                "status_code": audit_context.status_code,
+                "error_code": audit_context.error_code,
             },
         ),
     }

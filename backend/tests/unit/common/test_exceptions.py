@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 from fastapi import FastAPI, HTTPException, status
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
-from app.api.common.audit import AuditAction
+from app.api.common.audit import AuditAction, AuditContext
 from app.api.common.exceptions import (
     APIError,
     InternalServerError,
@@ -164,9 +164,11 @@ class TestCreateExceptionHandler:
             AuditAction.AUTHORIZATION_DENIED,
             "http_request",
             "/v1/admin/users",
-            outcome="denied",
-            status_code=status.HTTP_403_FORBIDDEN,
-            error_code="HTTPException",
+            context=AuditContext(
+                outcome="denied",
+                status_code=status.HTTP_403_FORBIDDEN,
+                error_code="HTTPException",
+            ),
         )
 
     async def test_http_exception_401_does_not_emit_authorization_denied_event(self) -> None:
@@ -259,8 +261,7 @@ class TestRateLimitExceededHandler:
             AuditAction.RATE_LIMITED,
             "http_request",
             "/v1/auth/bearer/login",
-            outcome="denied",
-            status_code=429,
+            context=AuditContext(outcome="denied", status_code=429),
         )
 
 

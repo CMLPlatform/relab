@@ -20,7 +20,7 @@ from limits.storage import storage_from_string
 from limits.strategies import STRATEGIES
 
 from app.api.auth.config import settings as auth_settings
-from app.api.common.audit import AuditAction, audit_event
+from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.config import settings as core_settings
 from app.core.middleware.client_ip import get_client_ip
 from app.core.responses import build_problem_response
@@ -106,8 +106,7 @@ def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONRespons
         AuditAction.RATE_LIMITED,
         "http_request",
         request.url.path,
-        outcome="denied",
-        status_code=429,
+        context=AuditContext(outcome="denied", status_code=429),
     )
     return build_problem_response(
         request=request,

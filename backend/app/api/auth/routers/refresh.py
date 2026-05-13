@@ -21,7 +21,7 @@ from app.api.auth.services.auth_backends import (
     set_browser_auth_cookie,
 )
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend
-from app.api.common.audit import AuditAction, audit_event
+from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.redis import OptionalRedisDep
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/bearer/login", auto_error=False)
@@ -141,7 +141,7 @@ async def logout_bearer(
         AuditAction.LOGOUT,
         "auth_session",
         current_user.id,
-        transport="bearer",
+        context=AuditContext(transport="bearer"),
     )
 
 
@@ -175,7 +175,7 @@ async def logout_session(
         AuditAction.LOGOUT,
         "auth_session",
         current_user.id,
-        transport="session",
+        context=AuditContext(transport="session"),
     )
 
 
