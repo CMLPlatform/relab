@@ -172,6 +172,7 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
     """Read schema for users."""
 
     oauth_accounts: list[OAuthAccountRead] = Field(default_factory=list, description="List of linked OAuth accounts.")
+    mfa_enabled: bool = Field(default=False, description="Whether TOTP MFA is enabled for this account.")
     preferences: UserPreferences = Field(
         default_factory=UserPreferences,
         description="User preferences.",
@@ -249,3 +250,44 @@ class RefreshTokenResponse(BaseModel):
     refresh_token: str = Field(description="Rotated refresh token")
     token_type: str = Field(default="bearer", description="Token type (always 'bearer')")
     expires_in: int = Field(description="Access token expiration time in seconds")
+
+
+class MfaPendingResponse(BaseModel):
+    """Response returned after the first authentication factor succeeds."""
+
+    mfa_required: bool = True
+    mfa_token: str = Field(description="Short-lived token for completing an MFA challenge")
+
+
+class MfaOAuthClaimRequest(BaseModel):
+    """Request to claim an OAuth MFA handoff."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mfa_handoff: SecretStr
+
+
+class MfaTotpSetupResponse(BaseModel):
+    """TOTP setup material for authenticator apps."""
+
+    setup_token: str
+    secret: str
+    otpauth_uri: str
+
+
+class MfaTotpConfirmRequest(BaseModel):
+    """Request to confirm authenticated TOTP setup."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    setup_token: SecretStr
+    code: str = Field(min_length=6, max_length=6)
+
+
+class MfaChallengeRequest(BaseModel):
+    """Request to complete MFA for an account with TOTP already enabled."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mfa_token: SecretStr
+    code: str = Field(min_length=6, max_length=6)

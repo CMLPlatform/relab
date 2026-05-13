@@ -1,6 +1,13 @@
-"""Shared constants for auth integration and unit-style endpoint tests."""
+"""Shared constants and helpers for auth integration tests."""
+
+from typing import TYPE_CHECKING, Any
+
+from fastapi import status
 
 from app.api.auth.services.password_hashing import build_password_helper
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient
 
 TEST_EMAIL = "newuser@example.com"
 TEST_PASSWORD = "correct-horse-battery-staple-v42"
@@ -32,3 +39,22 @@ TEST_STATE_JWT_SECRET = "test-state-jwt-secret-32-bytes-long"
 def hash_test_password(password: str) -> str:
     """Hash a password with a real supported scheme for auth-focused tests."""
     return build_password_helper().hash(password)
+
+
+async def login_bearer(api_client: AsyncClient, *, email: str, password: str) -> dict[str, Any]:
+    """Log in without MFA and return bearer token JSON."""
+    response = await api_client.post(
+        "/v1/auth/bearer/login",
+        data={"username": email, "password": password},
+    )
+    assert response.status_code == status.HTTP_200_OK
+    return dict(response.json())
+
+
+async def login_session(api_client: AsyncClient, *, email: str, password: str) -> None:
+    """Log in without MFA and keep session cookies on the client."""
+    response = await api_client.post(
+        "/v1/auth/session/login",
+        data={"username": email, "password": password},
+    )
+    assert response.status_code == status.HTTP_204_NO_CONTENT
