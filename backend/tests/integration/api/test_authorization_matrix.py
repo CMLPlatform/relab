@@ -113,6 +113,16 @@ async def test_authorization_matrix_for_representative_route_classes(
         )
         assert_status(foreign_mutation.status_code, status.HTTP_404_NOT_FOUND, "regular user foreign-object mutation")
 
+        own_user_products = await api_client.get(f"/v1/users/{db_user.id}/products")
+        assert_status(own_user_products.status_code, status.HTTP_200_OK, "regular user own scoped product list")
+
+        foreign_user_products = await api_client.get(f"/v1/users/{db_superuser.id}/products")
+        assert_status(
+            foreign_user_products.status_code,
+            status.HTTP_403_FORBIDDEN,
+            "regular user foreign scoped product list",
+        )
+
         test_app.dependency_overrides[current_active_superuser] = raise_forbidden
         try:
             regular_admin = await api_client.post("/v1/admin/taxonomies", json=taxonomy_payload)
@@ -126,3 +136,10 @@ async def test_authorization_matrix_for_representative_route_classes(
             json={**taxonomy_payload, "name": "Authorization Matrix Superuser Taxonomy"},
         )
         assert_status(superuser_admin.status_code, status.HTTP_201_CREATED, "superuser admin route")
+
+        superuser_foreign_products = await api_client.get(f"/v1/users/{db_user.id}/products")
+        assert_status(
+            superuser_foreign_products.status_code,
+            status.HTTP_200_OK,
+            "superuser foreign scoped product list",
+        )

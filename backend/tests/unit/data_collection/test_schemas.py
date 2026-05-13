@@ -15,11 +15,11 @@ from pydantic import BaseModel, ValidationError
 
 from app.api.common.schemas.associations import MAX_MATERIAL_QUANTITY
 from app.api.data_collection.schemas import (
-    ComponentCreateWithComponents,
     MAX_BOM_ENTRIES,
     MAX_COMPONENT_AMOUNT,
     MAX_COMPONENTS_PER_LEVEL,
     MAX_VIDEOS_PER_PRODUCT,
+    ComponentCreateWithComponents,
     ProductCreateBaseProduct,
     ProductCreateWithComponents,
     ProductReadWithRelationships,
@@ -146,6 +146,30 @@ def test_incomplete_component_create_remains_valid_for_progressive_collection() 
 
     assert component.components == []
     assert component.bill_of_materials == []
+
+
+@pytest.mark.parametrize(
+    ("schema_cls", "payload"),
+    [
+        (ProductCreateWithComponents, {"name": "Cordless drill", "owner_id": str(uuid4())}),
+        (
+            ComponentCreateWithComponents,
+            {"name": "Battery pack", "amount_in_parent": 1, "owner_id": str(uuid4())},
+        ),
+        (
+            ComponentCreateWithComponents,
+            {"name": "Battery pack", "amount_in_parent": 1, "parent_id": 1},
+        ),
+        (ProductUpdate, {"owner_id": str(uuid4())}),
+        (ProductUpdate, {"parent_id": 1}),
+    ],
+)
+def test_product_write_schemas_reject_client_controlled_ownership_fields(
+    schema_cls: type[BaseModel], payload: dict[str, object]
+) -> None:
+    """Clients cannot set ownership or hierarchy fields that authorization derives server-side."""
+    with pytest.raises(ValidationError):
+        _validate_model(schema_cls, payload)
 
 
 @pytest.mark.parametrize(
