@@ -19,7 +19,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 4,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://localhost:18081',
+    baseURL: process.env.BASE_URL ?? 'http://127.0.0.1:18011',
     trace: 'on-first-retry',
   },
   projects: [
@@ -52,8 +52,8 @@ export default defineConfig({
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: 'pnpm exec serve dist -l 18081 --no-clipboard',
-        url: 'http://localhost:18081',
+        command: 'pnpm exec serve dist -l 18011 --no-clipboard',
+        url: 'http://127.0.0.1:18011',
         reuseExistingServer: !process.env.CI,
       },
 });

@@ -1,7 +1,7 @@
 import { normalizeHttpUrl } from '@/utils/urlSafety';
 
 const API_VERSION_PATH = '/v1';
-const DEFAULT_API_ORIGIN_URL = 'http://localhost:8000';
+const DEFAULT_API_ORIGIN_URL = 'http://127.0.0.1:8010';
 const TRAILING_SLASHES_PATTERN = /\/+$/;
 
 export function normalizeRequiredHttpUrl(value: string | undefined, key: string): string {

@@ -31,7 +31,7 @@ PUBLIC_OAUTH_CALLBACK_PREFIX = "/v1/oauth"
 
 def _public_callback_url(path: str) -> str:
     """Build an absolute callback URL from the configured public API base URL."""
-    return urljoin(f"{str(core_settings.backend_api_url).rstrip('/')}/", path.lstrip("/"))
+    return urljoin(f"{str(core_settings.api_public_url).rstrip('/')}/", path.lstrip("/"))
 
 
 def _include_oauth_routes(target_router: APIRouter, *, public_callback_prefix: str) -> None:

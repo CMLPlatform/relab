@@ -10,7 +10,7 @@ just install
 just dev
 ```
 
-The docs site runs on <http://localhost:8000>.
+The docs site runs on <http://127.0.0.1:8012>.
 
 ## Common Commands
 

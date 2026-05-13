@@ -1,8 +1,8 @@
 const BACKEND_API_URL_BY_MODE: Record<string, string> = {
-  dev: 'http://127.0.0.1:8001',
+  dev: 'http://127.0.0.1:8010',
   prod: 'https://api.cml-relab.org',
   staging: 'https://api-test.cml-relab.org',
-  test: 'http://127.0.0.1:8001',
+  test: 'http://127.0.0.1:18010',
 };
 
 export function normalizeBackendApiUrl(value: string): string {

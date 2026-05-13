@@ -30,7 +30,7 @@ pnpm run codegen:api
 pnpm run codegen:api:redact
 ```
 
-The Expo dev server runs on <http://localhost:8081>.
+The Expo dev server runs on <http://127.0.0.1:8011>.
 
 You will usually want the backend running as well. If the API is not on localhost, set `EXPO_PUBLIC_API_URL` in `.env.local`.
 

@@ -17,7 +17,7 @@ install:
     uv sync --all-groups --frozen
 
 # Start development server
-dev PORT="8000":
+dev PORT="8010":
     uv run uvicorn app.main:app --reload --reload-dir app --port {{ quote(PORT) }}
 
 # ============================================================================

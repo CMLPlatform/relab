@@ -37,7 +37,7 @@ describe('authUser', () => {
       (apiUrl: string, url: string | URL, options?: RequestInit) => Promise<Response>
     >;
 
-    const user = await getUser('http://localhost:8000', fetchWithAuth, true);
+    const user = await getUser('http://127.0.0.1:18010', fetchWithAuth, true);
 
     expect(user?.username).toBe('dev');
     expect(authRuntime.user?.username).toBe('dev');
@@ -52,8 +52,8 @@ describe('authUser', () => {
       (apiUrl: string, url: string | URL, options?: RequestInit) => Promise<Response>
     >;
 
-    const firstCall = getUser('http://localhost:8000', fetchWithAuth, true);
-    const secondCall = getUser('http://localhost:8000', fetchWithAuth, false);
+    const firstCall = getUser('http://127.0.0.1:18010', fetchWithAuth, true);
+    const secondCall = getUser('http://127.0.0.1:18010', fetchWithAuth, false);
 
     resolveFetch({
       ok: true,

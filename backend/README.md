@@ -11,16 +11,16 @@ just install
 just dev
 ```
 
-The API is then available at <http://localhost:8000>.
+The API is then available at <http://127.0.0.1:8010>.
 Use Docker Compose for local PostgreSQL and Redis; run `../just dev-db` before starting the backend directly
 with `just dev`. Development uses Redis-backed caching when Redis is available, and falls back to in-memory
 caching only when Redis is not running. Create `.env.dev` only when you need backend-only non-secret overrides;
 local backend secrets live in `../secrets/dev/`.
 
-- Filtered public contracts: <http://localhost:8000/openapi.public.json> and <http://localhost:8000/openapi.device.json>
-- Public API reference UI: <http://localhost:4300/api/public/>
-- Public device/plugin API reference UI: <http://localhost:4300/api/device/>
-- Development/testing-only internal contracts: <http://localhost:8000/openapi.json> and <http://localhost:8000/openapi.admin.json>
+- Filtered public contracts: <http://127.0.0.1:8010/openapi.public.json> and <http://127.0.0.1:8010/openapi.device.json>
+- Public API reference UI: <http://127.0.0.1:8012/api/public/>
+- Public device/plugin API reference UI: <http://127.0.0.1:8012/api/device/>
+- Development/testing-only internal contracts: <http://127.0.0.1:8010/openapi.json> and <http://127.0.0.1:8010/openapi.admin.json>
 
 ## Common Commands
 

@@ -3,7 +3,7 @@ import { cleanup } from '@testing-library/react-native';
 import type React from 'react';
 import { server } from '../../src/test-utils/server';
 
-process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000';
+process.env.EXPO_PUBLIC_API_URL = 'http://127.0.0.1:18010';
 
 if (typeof window !== 'undefined' && typeof window.dispatchEvent !== 'function') {
   Object.defineProperty(window, 'dispatchEvent', {

@@ -11,6 +11,7 @@ from fastapi_users import InvalidPasswordException
 from httpx import HTTPError
 from pydantic import SecretStr
 
+from app.api.auth.services.common_password_checker import load_local_common_passwords
 from app.api.auth.services.password_validator import (
     check_pwned_password,
     validate_password,
@@ -124,9 +125,22 @@ async def test_validate_password_rejects_username_case_insensitively() -> None:
 
 
 async def test_validate_password_rejects_blocklisted_passwords() -> None:
-    """Common passwords from the xato blocklist should be rejected."""
+    """Common passwords should be rejected."""
     with pytest.raises(InvalidPasswordException) as exc:
         await validate_password("password12345", email="a@b.c", skip_breach_check=True)
+    assert "too common" in exc.value.reason
+
+
+def test_common_password_resource_has_asvs_sized_policy_matching_set() -> None:
+    """ASVS 6.2.4 requires at least 3000 common passwords matching the password policy."""
+    blocklist = load_local_common_passwords()
+    assert blocklist.entry_count >= 3000
+
+
+async def test_validate_password_rejects_common_password_from_resource() -> None:
+    """Common passwords from the larger ASVS list must be rejected."""
+    with pytest.raises(InvalidPasswordException) as exc:
+        await validate_password("passwordpassword", email="a@b.c", skip_breach_check=True)
     assert "too common" in exc.value.reason
 
 

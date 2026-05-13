@@ -21,16 +21,16 @@ services:
     build:
       args:
         ENVIRONMENT: test
-        EXPO_PUBLIC_API_URL: http://localhost:8000
-        EXPO_PUBLIC_WEBSITE_URL: http://localhost:8010
-        EXPO_PUBLIC_DOCS_URL: http://localhost:8012
+        EXPO_PUBLIC_API_URL: http://127.0.0.1:18010
+        EXPO_PUBLIC_WEBSITE_URL: http://127.0.0.1:18013
+        EXPO_PUBLIC_DOCS_URL: http://127.0.0.1:18012
     environment:
-      CADDY_API_ORIGIN: http://localhost:8000
+      CADDY_API_ORIGIN: http://127.0.0.1:18010
 
   www:
     build:
       args:
         ENVIRONMENT: test
-        PUBLIC_APP_URL: http://localhost:8013
-        PUBLIC_DOCS_URL: http://localhost:8012
-        PUBLIC_SITE_URL: http://localhost:8010
+        PUBLIC_APP_URL: http://127.0.0.1:18011
+        PUBLIC_DOCS_URL: http://127.0.0.1:18012
+        PUBLIC_SITE_URL: http://127.0.0.1:18013

@@ -61,7 +61,7 @@ ci: check test-ci
     @echo "✅ Frontend-app CI pipeline passed"
 
 # Start dev server
-dev PORT="8081":
+dev PORT="8011":
     pnpm exec expo start --port {{ quote(PORT) }} --web
 
 # Scan dependencies for known vulnerabilities
@@ -69,7 +69,7 @@ audit:
     pnpm run audit
 
 # Port the E2E backend is mapped to on the host (must match compose.e2e.yaml / E2E_BACKEND_PORT)
-e2e_backend_port := env("E2E_BACKEND_PORT", "18432")
+e2e_backend_port := env("E2E_BACKEND_PORT", "18010")
 e2e_api_url := "http://localhost:" + e2e_backend_port
 
 # Build Expo web app for E2E testing (exports static SPA to dist/)
@@ -102,7 +102,7 @@ clean:
     rm -rf .expo .expo-shared coverage dist web-build playwright-report test-results
 
 # Generate TypeScript API types from backend OpenAPI and redact sensitive examples
-codegen PORT="8011":
+codegen PORT="8010":
     @printf '%s\n' {{ quote("Generating TypeScript API types and redacting JWT examples (backend at http://localhost:" + PORT + ")...") }}
     EXPO_PUBLIC_API_URL={{ quote("http://localhost:" + PORT) }} pnpm run codegen
     @echo "✅ Generated src/types/api.generated.ts (redacted)"

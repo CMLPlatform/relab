@@ -99,7 +99,7 @@ Callbacks use a CSRF cookie and signed state token. Frontend redirect targets mu
 - `https://api.cml-relab.org/v1/oauth/github/session/callback`
 - `https://api.cml-relab.org/v1/oauth/github/associate/callback`
 
-The public backend origin comes from `BACKEND_API_URL`; production currently uses `https://api.cml-relab.org`. Bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when enabled for a client.
+The public backend origin comes from `API_PUBLIC_URL`; production currently uses `https://api.cml-relab.org`. Bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when enabled for a client.
 
 When OAuth login needs MFA, the backend redirects back to the login screen with a short-lived one-time handoff in the URL fragment. The app claims that handoff through the API, stores the returned pending MFA challenge in app runtime/session storage, routes immediately to the MFA screen, and clears the browser URL. The MFA challenge token is never placed in query strings or URL fragments.
 

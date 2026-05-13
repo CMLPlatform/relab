@@ -33,7 +33,7 @@ default_email_provider = build_email_provider(settings=auth_settings)
 def generate_token_link(token: str, route: str, base_url: str | AnyUrl | None = None) -> str:
     """Generate a link with the specified token and route."""
     if base_url is None:
-        base_url = str(core_settings.frontend_app_url)
+        base_url = str(core_settings.app_public_url)
     return urljoin(str(base_url), f"{route}?{urlencode({'token': token})}")
 
 
@@ -144,7 +144,13 @@ async def send_password_reset_confirmation_email(
             "If you did not make this change, contact RELab support immediately.</p>"
         ),
     )
-    await _dispatch(message, to_email, "Password-reset confirmation", background_tasks, provider or default_email_provider)
+    await _dispatch(
+        message,
+        to_email,
+        "Password-reset confirmation",
+        background_tasks,
+        provider or default_email_provider,
+    )
 
 
 async def send_password_changed_notification(
@@ -164,7 +170,13 @@ async def send_password_changed_notification(
             "If you did not make this change, reset your password and contact RELab support.</p>"
         ),
     )
-    await _dispatch(message, to_email, "Password-change notification", background_tasks, provider or default_email_provider)
+    await _dispatch(
+        message,
+        to_email,
+        "Password-change notification",
+        background_tasks,
+        provider or default_email_provider,
+    )
 
 
 async def send_verification_email(
@@ -208,6 +220,15 @@ async def send_email_changed_notification(
     message = _build_message(
         to_email,
         "Your RELab account email changed",
-        "<p>Your RELab account email address was changed. If you did not make this change, contact RELab support.</p>",
+        (
+            "<p>Your RELab account email address was changed. "
+            "If you did not make this change, contact RELab support.</p>"
+        ),
     )
-    await _dispatch(message, to_email, "Email-change notification", background_tasks, provider or default_email_provider)
+    await _dispatch(
+        message,
+        to_email,
+        "Email-change notification",
+        background_tasks,
+        provider or default_email_provider,
+    )

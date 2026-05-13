@@ -102,7 +102,7 @@ class AuthSettings(RelabBaseSettings):
     google_oauth_client_secret: SecretStr = SecretStr("")
     github_oauth_client_id: SecretStr = SecretStr("")
     github_oauth_client_secret: SecretStr = SecretStr("")
-    frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8003")
+    app_public_url: HttpUrl = HttpUrl("http://127.0.0.1:8011")
 
     # OAuth frontend redirect hardening: exact normalized callback targets only.
     oauth_allowed_redirect_uris: list[str] = Field(default_factory=list)
@@ -168,7 +168,7 @@ class AuthSettings(RelabBaseSettings):
         if OAUTH_ALLOWED_REDIRECT_URIS_FIELD in self.model_fields_set:
             return self
 
-        app_origin = str(self.frontend_app_url).rstrip("/")
+        app_origin = str(self.app_public_url).rstrip("/")
         web_redirects = [f"{app_origin}{path}" for path in FRONTEND_OAUTH_REDIRECT_PATHS]
         self.oauth_allowed_redirect_uris = [
             *(normalize_oauth_redirect_uri(redirect_uri) for redirect_uri in web_redirects),

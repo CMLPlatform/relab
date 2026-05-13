@@ -222,13 +222,13 @@ describe('Authentication API Service', () => {
       secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(200, { ok: true }) as Response);
 
-      await auth.fetchWithAuth('http://localhost:8000/test', {
+      await auth.fetchWithAuth('http://127.0.0.1:18010/test', {
         method: 'GET',
         headers: { Accept: 'application/json' },
       });
 
       expect(fetchMock()).toHaveBeenCalledWith(
-        'http://localhost:8000/test',
+        'http://127.0.0.1:18010/test',
         expect.objectContaining({
           method: 'GET',
           credentials: 'include',

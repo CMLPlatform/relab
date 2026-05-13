@@ -5,7 +5,7 @@ const ORIGINAL_ENV = process.env.EXPO_PUBLIC_API_URL;
 
 describe('resolveApiMediaUrl', () => {
   beforeEach(() => {
-    process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000';
+    process.env.EXPO_PUBLIC_API_URL = 'http://127.0.0.1:18010';
   });
 
   afterEach(() => {
@@ -41,20 +41,20 @@ describe('resolveApiMediaUrl', () => {
 
   it('prepends the API base URL to root-relative paths', () => {
     expect(resolveApiMediaUrl('/uploads/images/test.jpg')).toBe(
-      'http://localhost:8000/uploads/images/test.jpg',
+      'http://127.0.0.1:8010/uploads/images/test.jpg',
     );
   });
 
   it('prepends the API base URL to relative paths without a leading slash', () => {
     expect(resolveApiMediaUrl('uploads/images/test.jpg')).toBe(
-      'http://localhost:8000/uploads/images/test.jpg',
+      'http://127.0.0.1:8010/uploads/images/test.jpg',
     );
   });
 });
 
 describe('getResizedImageUrl', () => {
   beforeEach(() => {
-    process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000';
+    process.env.EXPO_PUBLIC_API_URL = 'http://127.0.0.1:18010';
   });
 
   afterEach(() => {
@@ -63,12 +63,12 @@ describe('getResizedImageUrl', () => {
 
   it('returns the resolved image URL when imageId is provided', () => {
     const result = getResizedImageUrl('/uploads/img.jpg', '7', 400);
-    expect(result).toBe('http://localhost:8000/uploads/img.jpg');
+    expect(result).toBe('http://127.0.0.1:8010/uploads/img.jpg');
   });
 
   it('returns resolved original URL when imageId is undefined', () => {
     const result = getResizedImageUrl('/uploads/img.jpg', undefined, 400);
-    expect(result).toBe('http://localhost:8000/uploads/img.jpg');
+    expect(result).toBe('http://127.0.0.1:8010/uploads/img.jpg');
   });
 
   it('returns resolved original URL for blob: URI (no resize)', () => {
