@@ -21,6 +21,7 @@ from app.api.auth.services.auth_backends import (
     set_browser_auth_cookie,
 )
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend
+from app.api.common.audit import AuditAction, audit_event
 from app.core.redis import OptionalRedisDep
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/bearer/login", auto_error=False)
@@ -135,6 +136,13 @@ async def logout_bearer(
 
     if request:
         await refresh_token_service.blacklist_token(redis, request.refresh_token.get_secret_value())
+    audit_event(
+        current_user.id,
+        AuditAction.LOGOUT,
+        "auth_session",
+        current_user.id,
+        transport="bearer",
+    )
 
 
 @router.post(
@@ -162,6 +170,13 @@ async def logout_session(
 
     if cookie_refresh_token:
         await refresh_token_service.blacklist_token(redis, cookie_refresh_token)
+    audit_event(
+        current_user.id,
+        AuditAction.LOGOUT,
+        "auth_session",
+        current_user.id,
+        transport="session",
+    )
 
 
 @router.post(
@@ -178,3 +193,4 @@ async def revoke_all_sessions(
     await refresh_token_service.revoke_all_user_tokens(redis, current_user.id)
     clear_auth_cookies(response)
     response.headers["Clear-Site-Data"] = SESSION_LOGOUT_CLEAR_SITE_DATA
+    audit_event(current_user.id, AuditAction.SESSIONS_REVOKED, "auth_session", current_user.id)
