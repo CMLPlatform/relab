@@ -132,6 +132,16 @@ class UserFactory(BaseModelFactory[User]):
         """Generate valid public profile stats."""
         return {}
 
+    @classmethod
+    def upload_file_count(cls) -> int:
+        """Generate valid upload quota count."""
+        return 0
+
+    @classmethod
+    def upload_total_bytes(cls) -> int:
+        """Generate valid upload quota byte total."""
+        return 0
+
 
 class TaxonomyFactory(BaseModelFactory[Taxonomy]):
     """Factory for creating Taxonomy test instances."""
