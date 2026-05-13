@@ -18,8 +18,8 @@
       "recommended": true,
       "a11y": "on",
       "correctness": {
-        // Biome's project-domain import resolver does not handle the pnpm
-        // workspace layout reliably; TypeScript/Astro/ESLint cover imports.
+        // Biome's unresolved-import scanner false-positives on Astro, package
+        // export maps, and React Native tooling; type checkers own resolution.
         "noUnresolvedImports": "off"
       },
       "performance": "on",
