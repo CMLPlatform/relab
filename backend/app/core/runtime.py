@@ -88,11 +88,6 @@ def get_connection_image_resize_limiter(connection: HTTPConnection) -> anyio.Cap
     return get_connection_services(connection).image_resize_limiter
 
 
-def get_request_email_checker(request: Request) -> EmailChecker | None:
-    """Return the shared disposable-email checker for a request."""
-    return get_request_services(request).email_checker
-
-
 def get_connection_file_cleanup_manager(connection: HTTPConnection) -> FileCleanupManager | None:
     """Return the shared file cleanup manager for a request or websocket."""
     return get_connection_services(connection).file_cleanup_manager
