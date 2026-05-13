@@ -109,6 +109,12 @@ The deploy stack keeps segmentation intentionally small: public-facing services 
 `just compose-config` validates that the supported Compose overlays render for dev, prod, and staging.
 `just deploy-secrets-check` validates that rendered Compose secrets point at the expected `secrets/<env>/` files.
 
+## Backend egress
+
+Backend outbound HTTP is restricted to `OUTBOUND_HTTP_ALLOWED_URLS`. See
+[Security and hardening](/operations/security/#backend-egress) for the policy
+model.
+
 ## Transport security
 
 Production and staging are HTTPS-only behind Cloudflare Tunnel. The Cloudflare
@@ -124,6 +130,13 @@ Strict-Transport-Security: max-age=63072000; includeSubDomains
 ```
 
 Static frontends set this in Caddy; the API sets it from FastAPI in `prod` and `staging`. `preload` is intentionally omitted until the full `cml-relab.org` subdomain inventory is verified.
+
+PostgreSQL and Redis stay on the private Compose `data` network, so
+`DATABASE_TLS=false` and `REDIS_TLS=false` are intentional defaults. If either
+service moves off that trusted network, enable validating TLS with
+`DATABASE_TLS=true` or `REDIS_TLS=true`; set the matching CA file variable for
+private CAs. See [Security and hardening](/operations/security/) for the broader
+trust-boundary model.
 
 Supported browsers must implement HTTPS, HSTS, Content Security Policy, host-prefixed secure cookies, SameSite cookies, CORS preflight enforcement, and the modern cross-origin isolation headers used by RELab (`Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy`). Unsupported browsers are not given a fallback security mode; they may fail to authenticate, fail to load protected media, or be blocked by browser policy.
 
@@ -148,21 +161,6 @@ Prod and staging enable ClamAV malware scanning for uploads. The `clamav` servic
 
 The database role hardening is a breaking fresh-volume change. For an existing host, take a verified dump first, stop the stack, recreate the Postgres volume, start Postgres so `/docker-entrypoint-initdb.d` creates the least-privilege roles, run migrations, then restore the dump through the migration/admin path.
 For local rehearsal, use staging plus the backups profile instead of production: `just staging-up YES backups`, `just staging-migrate YES`, then `just backup-restore-smoke staging`.
-
-## Denial-of-service controls
-
-RELab keeps DoS mitigation layered. Cloudflare Tunnel is the public ingress path and carries source-controlled edge controls in `infra/cloudflare/`: per-path rate limiting for `/v1/auth/*`, product/component media uploads, RPi camera image/thumbnail uploads, and `/v1/plugins/rpi-cam/ws/connect`. Volumetric attacks are handled at Cloudflare or the upstream provider, not inside the FastAPI process. Managed WAF rules can be added later once the zone plan and existing dashboard state are known.
-
-The backend enforces source-controlled application limits: JSON bodies are counted while streaming, multipart uploads have per-media size caps and allowlisted formats, expensive public product suggestion/facet routes, authenticated product/component writes, and upload routes use Redis-backed rate limits, and the RPi camera WebSocket relay bounds auth attempts and frame sizes.
-
-For one host only, create a gitignored `compose.host.yaml`; deploy recipes include it last:
-
-```yaml
-services:
-  api:
-    environment:
-      WEB_CONCURRENCY: "1"
-```
 
 ## Storage and backups
 
@@ -195,8 +193,6 @@ repo-wide operational helpers that are too large for the root `justfile`.
 Backend dotenv files are local/test inputs only; prod and staging do not use
 backend `.env.<env>` files.
 
-In the current single-host deployment, PostgreSQL and Redis are isolated on the internal Compose `data` network and do not publish host ports in prod or staging. `DATABASE_SSL=false` is intentional for this trusted local Docker network. If PostgreSQL moves to an external host, managed database, or untrusted network, enable `DATABASE_SSL` and manage database TLS certificates as part of that move.
-
 ### Rotation and break-glass
 
 For ordinary app secret rotation, replace the file under `secrets/<env>/`, restart the affected service, and verify `/live` and `/health`. For `AUTH_TOKEN_SECRET`, expect existing login/reset/verification tokens to become invalid. For OAuth or email provider secrets, rotate the upstream credential first, update the matching file, then restart `api`.
@@ -206,29 +202,6 @@ Database role password rotation has two steps: change the PostgreSQL role passwo
 `DATA_ENCRYPTION_KEY` is break-glass material, not a routine restart-only secret. Rotating it requires a planned data re-encryption path and backup-retention review because older encrypted values and backups depend on the previous key.
 
 If a real secret is exposed outside the intended host, treat it as compromised: revoke or rotate it upstream, update the host file or root `.env` value, restart affected services, run health checks, and preserve enough incident notes to know what was exposed and when. Existing encrypted backups should be treated as depending on the old key until their retention window passes.
-
-## Quality controls
-
-- backend: unit and integration tests, linting, and type checking
-- app: Jest tests for app logic and UI components
-- www: Vitest and Playwright coverage for the public site
-- docs: formatting, spelling checks, and build smoke tests
-
-The repository also includes dependency maintenance, container scanning, performance baselines, and repository-level checks through GitHub Actions.
-
-## Supply chain artifacts
-
-GitHub Dependency Review / Dependency Graph gates dependency changes, while Renovate opens dependency update PRs. For an explicit full-tree dependency vulnerability sweep, run `just audit`. The security workflow builds the deployable Compose images, scans them with Trivy, and stores SPDX JSON SBOM artifacts for 90 days.
-
-When Release Please creates a GitHub release, the release workflow rebuilds those images, generates SPDX SBOM files, attests the SBOM files with GitHub artifact attestations, and uploads them as release assets. RELab deploys locally built Compose images rather than immutable registry images, so release attestations prove SBOM file provenance. Image-digest-bound SBOM attestations require publishing runtime images to a registry.
-
-## Browser third-party JavaScript
-
-RELab does not load third-party browser runtime JavaScript by default. Browser code is installed, bundled, and served as first-party assets; Biome and the repository pre-commit/CI Semgrep policy block remote script tags, remote module imports, CDN-hosted runtime assets, and common analytics/tag-manager snippets.
-
-The current exception is product video embedding from `https://www.youtube-nocookie.com`, constrained by CSP and iframe/WebView origin controls. Any new third-party runtime script must be intentionally reviewed, documented, allowlisted in CSP, and covered by the browser JavaScript policy tests.
-
-The Expo web app still requires inline and eval-style first-party script support in its enforced CSP. RELab keeps a stricter report-only policy as the migration target; this is the remaining ASVS V3 L3 CSP exception for the app origin. RELab does not currently collect CSP violation reports because there is no reviewed reporting pipeline yet. The docs and public web origins enforce stricter script policies today, while all browser-facing origins enforce `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`, and referrer suppression.
 
 ## Telemetry
 

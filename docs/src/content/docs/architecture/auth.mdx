@@ -14,20 +14,22 @@ The API exposes two login transports:
 
 ## Supported flows
 
-- Email/password login with bearer-token or session-cookie responses
+- Email/password login with optional TOTP MFA completion for accounts that enable it
 - Refresh-token rotation and logout revocation
 - Password reset and email verification
-- Google and GitHub OAuth login
+- Google and GitHub OAuth login with the same optional TOTP MFA completion step
 - OAuth account linking for existing users
 - Disposable email checks during registration
 
 ## Security controls
 
-Password validation follows the project baseline from the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters, must not contain the username or email address, and are checked against a committed ASVS-sized common-password fallback that is seeded into Redis when available. New and reset passwords are also checked with Have I Been Pwned using the k-anonymity range API.
+Password validation follows the project baseline from the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters, must not contain the username or email address, and are checked against a committed ASVS-sized common-password fallback that is seeded into Redis when available. New and reset passwords are also checked with Have I Been Pwned using the k-anonymity range API. Stored passwords use the backend-owned Argon2id profile; RELab does not store reversible passwords.
 
 The breach check fails open if Have I Been Pwned is unavailable. The frontend keeps standard password inputs and does not block paste, so password managers work normally.
 
-Changing `email` or `password` through `PATCH /v1/users/me` requires `current_password`. Username, profile, and preference updates do not. Email changes mark the account unverified, send a verification email to the new address, and send a security notification to the previous address.
+Changing `email` or `password` through `PATCH /v1/users/me` requires `current_password`. Username, profile, and preference updates do not. Email changes mark the account unverified, send a verification email to the new address, and send a security notification to the previous address. Password changes send a security notification to the account email address.
+
+TOTP MFA is optional account hardening. Accounts without TOTP enabled receive bearer tokens or browser session cookies after successful password or OAuth login. Accounts with TOTP enabled receive a short-lived challenge token and must submit a current one-time code before the API issues bearer tokens or browser session cookies. TOTP setup is an authenticated account action, and future sensitive routes can use the backend MFA dependency to require accounts with confirmed MFA. TOTP seeds and pending MFA tokens are generated with cryptographically secure randomness, and accepted TOTP counters are recorded briefly to prevent replay within the allowed clock window. Administrators can reset a user's MFA enrollment after identity-proofed recovery, but they cannot choose a replacement factor for the user.
 
 Forgot-password responses do not reveal whether an account exists. The API returns the same accepted response for known, unknown, and inactive accounts and pads the response to a small minimum duration to reduce timing-based account enumeration. Login failures use the same bad-credentials response for unknown, invalid, and inactive accounts.
 
@@ -75,7 +77,7 @@ Refresh tokens have a 30-day inactivity lifetime and a 30-day absolute session l
 
 Bearer logout revokes the submitted refresh token. Session logout clears auth cookies, asks the browser to clear local session data, and blacklists the refresh token when one is present. `POST /v1/auth/sessions/revoke-all` revokes all refresh tokens for the current account and clears browser session state. Password reset, current-password-protected password changes, current-password-protected email changes, account deactivation, and account deletion also revoke all refresh tokens for the affected account. Existing access tokens are not tracked in a separate revocation list; authenticated API requests still require a resolvable active user, and any residual access-token exposure is bounded by the 15-minute lifetime.
 
-Refresh tokens are random bearer secrets. Redis stores them under SHA-256 fingerprints rather than raw token values, so Redis key names are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with AES-256-GCM using the backend `DATA_ENCRYPTION_KEY`.
+Refresh tokens are random bearer secrets. Redis and the local development fallback store them under SHA-256 fingerprints rather than raw token values, so storage keys are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with AES-256-GCM using the backend `DATA_ENCRYPTION_KEY`.
 
 Encryption is not used as a substitute for authorization. Authenticated API handlers must still check resource ownership and route-level permissions before returning or mutating data.
 
@@ -98,6 +100,8 @@ Callbacks use a CSRF cookie and signed state token. Frontend redirect targets mu
 - `https://api.cml-relab.org/v1/oauth/github/associate/callback`
 
 The public backend origin comes from `BACKEND_API_URL`; production currently uses `https://api.cml-relab.org`. Bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when enabled for a client.
+
+When OAuth login needs MFA, the backend redirects back to the login screen with a short-lived one-time handoff in the URL fragment. The app claims that handoff through the API, stores the returned pending MFA challenge in app runtime/session storage, routes immediately to the MFA screen, and clears the browser URL. The MFA challenge token is never placed in query strings or URL fragments.
 
 ```mermaid
 sequenceDiagram
@@ -124,6 +128,10 @@ sequenceDiagram
 
 - `POST /v1/auth/bearer/login`
 - `POST /v1/auth/session/login`
+- `POST /v1/auth/mfa/totp/setup`
+- `POST /v1/auth/mfa/totp/confirm`
+- `POST /v1/auth/mfa/oauth/claim`
+- `POST /v1/auth/mfa/challenge`
 - `POST /v1/auth/bearer/refresh`
 - `POST /v1/auth/session/refresh`
 - `POST /v1/auth/bearer/logout`

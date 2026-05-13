@@ -22,6 +22,8 @@ Please include enough detail for us to reproduce the problem. That saves time fo
 
 RELab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline and the [OWASP Secure Product Design](https://cheatsheetseries.owasp.org/cheatsheets/Secure_Product_Design_Cheat_Sheet.html) lens for product decisions. Keep controls simple, reviewable, and documented near the behavior they protect.
 
+For the deployed security posture, trust-boundary model, egress policy, browser runtime policy, and supply-chain artifact posture, see [Security and hardening](https://docs.cml-relab.org/operations/security/).
+
 Review security-sensitive changes against this baseline:
 
 - Context: self-hosted research and data-collection platform.

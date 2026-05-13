@@ -72,6 +72,7 @@ const SIDEBAR = [
     items: [
       { label: 'Install and self-host', slug: 'operations/install' },
       { label: 'Deployment', slug: 'operations/deployment' },
+      { label: 'Security and hardening', slug: 'operations/security' },
     ],
   },
   {
