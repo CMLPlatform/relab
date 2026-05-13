@@ -27,8 +27,10 @@ def storage_item_exists(item: File | Image) -> bool:
 async def delete_file_from_storage(file_path: Path) -> None:
     """Delete a file from the filesystem."""
     async_path = AnyIOPath(str(file_path))
-    if await async_path.exists():
+    try:
         await async_path.unlink()
+    except FileNotFoundError:
+        return
 
 
 async def delete_image_from_storage(image_path: Path) -> None:
