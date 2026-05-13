@@ -60,6 +60,21 @@ async def test_request_size_limit_rejects_large_json(monkeypatch: pytest.MonkeyP
     assert response.json()["detail"]["message"] == "Request body too large. Maximum size: 32 bytes"
 
 
+async def test_request_size_limit_rejects_malformed_content_length() -> None:
+    """Malformed Content-Length should receive a clean client error."""
+    app = _create_test_app()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/echo",
+            content=b"{}",
+            headers={"content-type": "application/json", "content-length": "not-a-number"},
+        )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["message"] == "Malformed Content-Length header."
+
+
 async def test_request_size_limit_rejects_streaming_body_before_buffering_all_chunks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
