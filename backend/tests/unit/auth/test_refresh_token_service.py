@@ -18,11 +18,14 @@ from app.api.auth.services.refresh_token_service import (
     blacklist_token,
     create_refresh_token,
     refresh_token_fingerprint,
+    revoke_all_user_tokens,
     rotate_refresh_token,
     verify_refresh_token,
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from redis.asyncio import Redis
 
 # Constants for test values to avoid magic value warnings
@@ -35,6 +38,18 @@ TTL_ABS_MARGIN = 5
 def _json_loads_redis(value: bytes | str) -> dict:
     """Decode a Redis JSON value from either real Redis or fakeredis."""
     return json.loads(value.decode("utf-8") if isinstance(value, bytes) else value)
+
+
+@pytest.fixture
+def clear_memory_refresh_tokens() -> Iterator[None]:
+    """Keep the in-memory refresh-token fallback isolated between tests."""
+    refresh_token_service._memory_tokens.clear()
+    refresh_token_service._memory_blacklist.clear()
+    try:
+        yield
+    finally:
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
 
 
 class TestRefreshTokenService:
@@ -197,10 +212,9 @@ class TestRefreshTokenService:
 class TestRefreshTokenServiceInMemory:
     """Tests for refresh token service in-memory fallback (redis=None)."""
 
-    async def test_create_and_verify_refresh_token_in_memory(self) -> None:
+    async def test_create_and_verify_refresh_token_in_memory(self, clear_memory_refresh_tokens: None) -> None:
         """The in-memory fallback can create and verify a token."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
+        del clear_memory_refresh_tokens
         user_id = uuid.uuid4()
 
         token = await create_refresh_token(None, user_id)
@@ -208,32 +222,48 @@ class TestRefreshTokenServiceInMemory:
 
         assert isinstance(token, str)
         assert result == user_id
-        assert token in refresh_token_service._memory_tokens
-        metadata = refresh_token_service._memory_tokens[token]
+        fingerprint = refresh_token_fingerprint(token)
+        assert token not in refresh_token_service._memory_tokens
+        assert fingerprint in refresh_token_service._memory_tokens
+        metadata = refresh_token_service._memory_tokens[fingerprint]
         assert metadata["user_id"] == str(user_id)
         assert set(metadata) == {"user_id", "absolute_expires_at"}
 
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-
-    async def test_blacklist_token_in_memory(self) -> None:
+    async def test_blacklist_token_in_memory(self, clear_memory_refresh_tokens: None) -> None:
         """Blacklisting removes an in-memory token and makes verification fail."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
+        del clear_memory_refresh_tokens
         user_id = uuid.uuid4()
 
         token = await create_refresh_token(None, user_id)
-        assert token in refresh_token_service._memory_tokens
+        fingerprint = refresh_token_fingerprint(token)
+        assert token not in refresh_token_service._memory_tokens
+        assert fingerprint in refresh_token_service._memory_tokens
 
         await blacklist_token(None, token)
 
         assert token not in refresh_token_service._memory_tokens
-        assert token in refresh_token_service._memory_blacklist
+        assert fingerprint not in refresh_token_service._memory_tokens
+        assert token not in refresh_token_service._memory_blacklist
+        assert fingerprint in refresh_token_service._memory_blacklist
         with pytest.raises(RefreshTokenRevokedError) as exc_info:
             await verify_refresh_token(None, token)
 
         assert exc_info.value.http_status_code == 401
         assert TOKEN_VAL_REVOKED in exc_info.value.message.lower()
 
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
+    async def test_revoke_all_user_tokens_in_memory_uses_fingerprints(self, clear_memory_refresh_tokens: None) -> None:
+        """User-wide in-memory revocation should blacklist stored token fingerprints."""
+        del clear_memory_refresh_tokens
+        user_id = uuid.uuid4()
+        other_user_id = uuid.uuid4()
+
+        token = await create_refresh_token(None, user_id)
+        other_token = await create_refresh_token(None, other_user_id)
+        fingerprint = refresh_token_fingerprint(token)
+
+        await revoke_all_user_tokens(None, user_id)
+
+        assert fingerprint in refresh_token_service._memory_blacklist
+        with pytest.raises(RefreshTokenRevokedError):
+            await verify_refresh_token(None, token)
+        assert await verify_refresh_token(None, other_token) == other_user_id
