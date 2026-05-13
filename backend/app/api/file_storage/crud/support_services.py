@@ -12,9 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.query import require_locked_model, require_model
 from app.api.common.exceptions import BadRequestError
-from app.api.data_collection.models.product import Product
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, ModelFileNotFoundError
-from app.api.file_storage.models import File, Image, MediaParentType
+from app.api.file_storage.models import File, Image
 from app.api.file_storage.models.storage_resolver import _get_file_storage, _get_image_storage
 from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm, ImageCreateInternal
 from app.api.file_storage.upload_policy import (
@@ -23,7 +22,7 @@ from app.api.file_storage.upload_policy import (
     validate_image_upload_content,
     validate_image_upload_metadata,
 )
-from app.api.file_storage.upload_quota import release_product_upload_quota, reserve_product_upload_quota
+from app.api.file_storage.upload_quota import release_product_upload_quota_for_media, reserve_product_upload_quota
 from app.api.file_storage.upload_security import scan_upload_or_raise
 from app.core.config import settings
 from app.core.images import generate_thumbnails, process_image_for_storage
@@ -60,16 +59,6 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
         logger.warning("Thumbnail generation failed for image %s, skipping", db_image.id, exc_info=True)
 
     return db_image
-
-
-async def _product_quota_owner_for_item(db: AsyncSession, item: StorageModel) -> tuple[UUID | None, int]:
-    """Return the quota owner and stored upload size for one product-owned media item."""
-    if item.parent_type != MediaParentType.PRODUCT:
-        return None, 0
-    product = await db.get(Product, item.parent_id)
-    if product is None or product.owner_id is None:
-        return None, 0
-    return product.owner_id, item.upload_size_bytes
 
 
 class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
@@ -162,10 +151,8 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
                 e,
             )
 
-        quota_user_id, upload_size_bytes = await _product_quota_owner_for_item(db, db_item)
         await db.delete(db_item)
-        if quota_user_id is not None:
-            await release_product_upload_quota(db, user_id=quota_user_id, upload_size_bytes=upload_size_bytes)
+        await release_product_upload_quota_for_media(db, db_item)
         await db.commit()
 
         if self.model is Image and cleanup_path:

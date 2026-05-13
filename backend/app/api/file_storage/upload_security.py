@@ -1,15 +1,13 @@
-"""ASVS V5 upload quota and malware scanning controls."""
-# spell-checker: ignore CLAMAV clamav
+"""ASVS V5 malware scanning controls for uploads."""
 
 from __future__ import annotations
 
 import struct
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
 import anyio
 
-from app.api.common.exceptions import BadRequestError, PayloadTooLargeError, ServiceUnavailableError
+from app.api.common.exceptions import BadRequestError, ServiceUnavailableError
 from app.core.config import settings
 
 if TYPE_CHECKING:
@@ -54,13 +52,6 @@ class MalwareScanUnavailableError(ServiceUnavailableError):
         super().__init__(message=MALWARE_SCANNING_UNAVAILABLE_MESSAGE, details=details)
 
 
-class UploadQuotaExceededError(PayloadTooLargeError):
-    """Raised when a user exceeds upload quota limits."""
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message=message)
-
-
 class ClamAVScanner:
     """Small ClamAV INSTREAM client."""
 
@@ -90,14 +81,6 @@ class ClamAVScanner:
             raise MalwareDetectedError(signature or None)
         if not response.endswith(CLAMAV_OK_MARKER):
             raise MalwareScanUnavailableError(details=response.strip() or None)
-
-
-@dataclass(frozen=True, slots=True)
-class UploadQuotaSnapshot:
-    """Current per-user upload quota usage."""
-
-    file_count: int
-    total_bytes: int
 
 
 def get_upload_scanner() -> UploadScanner | None:
@@ -137,19 +120,3 @@ async def scan_upload_or_raise(
 
     await scanner.scan(upload_file.file)
     upload_file.file.seek(0)
-
-
-def enforce_upload_quota(
-    snapshot: UploadQuotaSnapshot,
-    *,
-    upload_size_bytes: int,
-    max_files: int,
-    max_total_bytes: int,
-) -> None:
-    """Reject uploads that would exceed per-user count or byte quotas."""
-    if snapshot.file_count >= max_files:
-        message = f"User has reached the maximum number of uploaded files ({max_files})."
-        raise UploadQuotaExceededError(message)
-    if snapshot.total_bytes + upload_size_bytes > max_total_bytes:
-        message = f"User storage quota exceeded. Maximum total upload size: {max_total_bytes} bytes."
-        raise UploadQuotaExceededError(message)

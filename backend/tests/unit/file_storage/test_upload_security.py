@@ -1,4 +1,4 @@
-"""Tests for ASVS V5 upload quota and malware scanning controls."""
+"""Tests for ASVS V5 malware scanning controls."""
 # spell-checker: ignore clamav, clamd, EICAR
 
 from __future__ import annotations
@@ -9,12 +9,10 @@ import anyio
 import pytest
 from fastapi import UploadFile
 
-from app.api.common.exceptions import PayloadTooLargeError, ServiceUnavailableError
+from app.api.common.exceptions import ServiceUnavailableError
 from app.api.file_storage.upload_security import (
     ClamAVScanner,
     MalwareDetectedError,
-    UploadQuotaSnapshot,
-    enforce_upload_quota,
     get_upload_scanner,
     scan_upload_or_raise,
     validate_malware_scanner_configuration,
@@ -23,38 +21,6 @@ from app.api.file_storage.upload_security import (
 
 def _upload(content: bytes = b"clean") -> UploadFile:
     return UploadFile(filename="manual.pdf", file=BytesIO(content), size=len(content))
-
-
-def test_upload_quota_allows_files_below_count_and_byte_limits() -> None:
-    """A new upload below both per-user quota dimensions is accepted."""
-    enforce_upload_quota(
-        UploadQuotaSnapshot(file_count=9, total_bytes=900),
-        upload_size_bytes=99,
-        max_files=10,
-        max_total_bytes=1000,
-    )
-
-
-@pytest.mark.parametrize(
-    ("snapshot", "upload_size", "message"),
-    [
-        (UploadQuotaSnapshot(file_count=10, total_bytes=0), 1, "maximum number"),
-        (UploadQuotaSnapshot(file_count=0, total_bytes=1000), 1, "storage quota"),
-    ],
-)
-def test_upload_quota_rejects_count_and_total_size_breaches(
-    snapshot: UploadQuotaSnapshot,
-    upload_size: int,
-    message: str,
-) -> None:
-    """Per-user quotas must prevent a single user from filling storage."""
-    with pytest.raises(PayloadTooLargeError, match=message):
-        enforce_upload_quota(
-            snapshot,
-            upload_size_bytes=upload_size,
-            max_files=10,
-            max_total_bytes=1000,
-        )
 
 
 async def test_optional_scanner_none_accepts_uploads() -> None:

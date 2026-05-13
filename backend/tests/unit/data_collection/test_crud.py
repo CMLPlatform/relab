@@ -139,11 +139,17 @@ class TestProductCrud:
                 "app.api.data_collection.crud.product_commands.refresh_profile_stats_after_mutation",
                 AsyncMock(),
             ) as apply_stats,
+            patch(
+                "app.api.data_collection.crud.product_commands.recompute_user_upload_quota",
+                AsyncMock(),
+            ) as recompute_quota,
             patch("app.api.data_collection.crud.product_commands.audit_event") as log_audit,
         ):
             await delete_product(mock_session, product_id)
             mock_session.delete.assert_called_once_with(db_product)
+            mock_session.flush.assert_awaited_once()
             assert mock_session.commit.call_count >= 1
+            recompute_quota.assert_awaited_once_with(mock_session, user_id=owner_id)
             apply_stats.assert_awaited_once()
             get_product.assert_awaited_once_with(mock_session, Product, product_id)
             log_audit.assert_called_once_with(owner_id, AuditAction.DELETE, Product, product_id)
@@ -158,9 +164,19 @@ class TestProductCrud:
         async def commit() -> None:
             events.append("commit")
 
+        async def flush() -> None:
+            events.append("flush")
+
+        async def recompute_quota(*_args: object, **_kwargs: object) -> None:
+            events.append("quota")
+
+        async def refresh_stats(*_args: object, **_kwargs: object) -> None:
+            events.append("stats")
+
         async def delete_from_storage(file_path: Path) -> None:
             events.append(f"cleanup:{file_path.name}")
 
+        mock_session.flush.side_effect = flush
         mock_session.commit.side_effect = commit
 
         with (
@@ -171,14 +187,18 @@ class TestProductCrud:
             ),
             patch(
                 "app.api.data_collection.crud.product_commands.refresh_profile_stats_after_mutation",
-                AsyncMock(),
+                AsyncMock(side_effect=refresh_stats),
+            ),
+            patch(
+                "app.api.data_collection.crud.product_commands.recompute_user_upload_quota",
+                AsyncMock(side_effect=recompute_quota),
             ),
             patch("app.api.data_collection.crud.product_commands.audit_event"),
         ):
             await delete_product(mock_session, product_id)
 
         assert mock_session.commit.call_count == 1
-        assert events == ["commit", "cleanup:relab-file.txt"]
+        assert events == ["flush", "quota", "stats", "commit", "cleanup:relab-file.txt"]
 
     async def test_delete_product_storage_cleanup_failure_does_not_raise(self, mock_session: AsyncMock) -> None:
         """Post-commit storage cleanup is best-effort after canonical DB state is gone."""
@@ -200,10 +220,15 @@ class TestProductCrud:
                 "app.api.data_collection.crud.product_commands.refresh_profile_stats_after_mutation",
                 AsyncMock(),
             ),
+            patch(
+                "app.api.data_collection.crud.product_commands.recompute_user_upload_quota",
+                AsyncMock(),
+            ),
             patch("app.api.data_collection.crud.product_commands.audit_event"),
         ):
             await delete_product(mock_session, product_id)
 
+        mock_session.flush.assert_awaited_once()
         assert mock_session.commit.call_count == 1
 
     async def test_delete_product_media_stages_rows_without_committing(self, mock_session: AsyncMock) -> None:
