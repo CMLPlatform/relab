@@ -54,6 +54,7 @@ def validate_material_or_components(bill_of_materials: Collection, components: C
         # that allows users to add materials at product creation instead of only components
         logger.warning("Validation warning: %s. This will become an error in the future.", err_msg)
 
+
 ### Create Schemas ###
 class ProductCreateWithRelationships(BaseCreateSchema, ProductBase):
     """Schema for creating a product or component with relationships to other models."""
