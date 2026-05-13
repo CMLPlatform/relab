@@ -1,9 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text } from 'react-native-paper';
 import { API_URL } from '@/config';
 import { useAuth } from '@/context/auth';
+import { useSensitiveAuthToken } from '@/hooks/auth/useSensitiveAuthToken';
 import { apiFetch } from '@/services/api/client';
 import { useAppTheme } from '@/theme';
 import { logError } from '@/utils/logging';
@@ -125,13 +126,7 @@ export default function VerifyEmailScreen() {
   const router = useRouter();
   const { user, refetch } = useAuth();
   const { token: tokenParam } = useLocalSearchParams<{ token: string }>();
-  const token = typeof tokenParam === 'string' ? tokenParam : undefined;
-
-  useEffect(() => {
-    if (tokenParam && Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, [tokenParam]);
+  const token = useSensitiveAuthToken(typeof tokenParam === 'string' ? tokenParam : undefined);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

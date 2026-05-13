@@ -77,7 +77,11 @@ describe('ResetPasswordScreen rendering', () => {
     jest.replaceProperty(Platform, 'OS', 'web');
     Object.defineProperty(window, 'location', {
       configurable: true,
-      value: { pathname: '/reset-password' },
+      value: {
+        hash: '#token=fragment-reset-token',
+        pathname: '/reset-password',
+        search: '',
+      },
     });
 
     renderResetPasswordScreen();
@@ -138,6 +142,38 @@ describe('ResetPasswordScreen submission', () => {
     );
     expect(screen.getByText(PASSWORD_RESET_SUCCESS_PATTERN)).toBeOnTheScreen();
     expect(screen.getByText(REDIRECTING_TO_LOGIN_PATTERN)).toBeOnTheScreen();
+  });
+
+  it('submits a web fragment token after scrubbing it from the URL', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    (useLocalSearchParams as jest.Mock).mockReturnValue({});
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        hash: '#token=fragment-reset-token',
+        pathname: '/reset-password',
+        search: '',
+      },
+    });
+    const replaceStateSpy = jest.spyOn(window.history, 'replaceState').mockImplementation(() => {
+      window.location.hash = '';
+    });
+
+    renderResetPasswordScreen();
+    await submitResetPassword('correct-horse-battery-staple-v42');
+
+    expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/reset-password');
+    expect(mockedApiFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/reset-password'),
+      expect.objectContaining({
+        body: JSON.stringify({
+          token: 'fragment-reset-token',
+          password: 'correct-horse-battery-staple-v42',
+        }),
+      }),
+    );
+
+    replaceStateSpy.mockRestore();
   });
 
   it('shows the API error message when the reset fails', async () => {
