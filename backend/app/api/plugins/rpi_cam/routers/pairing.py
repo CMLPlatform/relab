@@ -12,7 +12,7 @@ from __future__ import annotations
 import hmac
 import logging
 
-from fastapi import Query, Request, status
+from fastapi import Query, status
 from relab_rpi_cam_models import (
     PairingClaimedRecord,
     PairingPendingRecord,
@@ -79,15 +79,13 @@ def _build_ws_url() -> str:
     response_model=PairingRegisterResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a pairing code (called by RPi)",
+    dependencies=[limiter.dependency(REGISTER_RATE_LIMIT)],
 )
-@limiter.limit(REGISTER_RATE_LIMIT)
 async def register_pairing_code(
-    request: Request,
     body: PairingRegisterRequest,
     redis: RedisDep,
 ) -> PairingRegisterResponse:
     """Register a short-lived pairing code and the camera's public device key."""
-    del request
     key = _pairing_key(body.code)
     payload = dump_pairing_record(
         build_waiting_record(
@@ -108,17 +106,15 @@ async def register_pairing_code(
     "/claim",
     response_model=CameraRead,
     summary="Claim a pairing code and create a camera (called by user)",
+    dependencies=[limiter.dependency(CLAIM_RATE_LIMIT)],
 )
-@limiter.limit(CLAIM_RATE_LIMIT)
 async def claim_pairing_code(
-    request: Request,
     body: PairingClaimRequest,
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
     redis: RedisDep,
 ) -> Camera:
     """Claim a pairing code and create a WebSocket-relayed camera."""
-    del request
     key = _pairing_key(body.code)
     raw = await get_redis_value(redis, key)
     if raw is None:
@@ -163,16 +159,14 @@ async def claim_pairing_code(
     "/poll",
     response_model=PairingPollResponse,
     summary="Poll pairing status (called by RPi)",
+    dependencies=[limiter.dependency(POLL_RATE_LIMIT)],
 )
-@limiter.limit(POLL_RATE_LIMIT)
 async def poll_pairing_status(
-    request: Request,
     redis: RedisDep,
     code: str = Query(min_length=6, max_length=6, pattern=r"^[A-Z0-9]{6}$"),
     fingerprint: str = Query(min_length=8, max_length=64),
 ) -> PairingPollResponse:
     """Poll for pairing completion. Returns non-secret relay metadata once claimed."""
-    del request
     key = _pairing_key(code)
     raw = await get_redis_value(redis, key)
     if raw is None:
