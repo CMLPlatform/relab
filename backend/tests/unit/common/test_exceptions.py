@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 from fastapi import FastAPI, HTTPException, status
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
+from app.api.common.audit import AuditAction
 from app.api.common.exceptions import (
     APIError,
     InternalServerError,
@@ -142,6 +143,50 @@ class TestCreateExceptionHandler:
         assert body["detail"] == "Internal server error"
         assert "database path" not in bytes(response.body).decode()
 
+    async def test_http_exception_403_emits_authorization_denied_event(self) -> None:
+        """Authorization failures should be part of the structured security log."""
+        handler = create_exception_handler()
+        mock_request = MagicMock()
+        mock_request.state.request_id = "req-http-403"
+        mock_request.method = "POST"
+        mock_request.url.path = "/v1/admin/users"
+        exc = HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+        with (
+            patch("app.api.common.routers.exceptions.logger"),
+            patch("app.api.common.routers.exceptions.audit_event") as log_event,
+        ):
+            response = await handler(mock_request, exc)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        log_event.assert_called_once_with(
+            None,
+            AuditAction.AUTHORIZATION_DENIED,
+            "http_request",
+            "/v1/admin/users",
+            outcome="denied",
+            status_code=status.HTTP_403_FORBIDDEN,
+            error_code="HTTPException",
+        )
+
+    async def test_http_exception_401_does_not_emit_authorization_denied_event(self) -> None:
+        """Authentication failures are not authorization decisions."""
+        handler = create_exception_handler()
+        mock_request = MagicMock()
+        mock_request.state.request_id = "req-http-401"
+        mock_request.method = "POST"
+        mock_request.url.path = "/v1/auth/mfa/challenge"
+        exc = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+        with (
+            patch("app.api.common.routers.exceptions.logger"),
+            patch("app.api.common.routers.exceptions.audit_event") as log_event,
+        ):
+            response = await handler(mock_request, exc)
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        log_event.assert_not_called()
+
     async def test_api_error_5xx_suppresses_details_in_response(self) -> None:
         """APIError details on 5xx are kept out of the response body."""
         handler = create_exception_handler()
@@ -196,6 +241,27 @@ class TestRateLimitExceededHandler:
         body = json.loads(bytes(response.body))
         assert body["detail"] == "Too many login attempts"
         assert body["code"] == "RateLimitExceeded"
+
+    def test_rate_limit_response_emits_structured_event(self) -> None:
+        """Rate-limit failures should be recorded as security-control events."""
+        mock_request = MagicMock()
+        mock_request.state.request_id = "req-429"
+        mock_request.method = "POST"
+        mock_request.url.path = "/v1/auth/bearer/login"
+        exc = RateLimitExceededError("Too many login attempts")
+
+        with patch("app.api.auth.services.rate_limiter.audit_event") as log_event:
+            response = rate_limit_exceeded_handler(mock_request, exc)
+
+        assert response.status_code == 429
+        log_event.assert_called_once_with(
+            None,
+            AuditAction.RATE_LIMITED,
+            "http_request",
+            "/v1/auth/bearer/login",
+            outcome="denied",
+            status_code=429,
+        )
 
 
 class TestSharedExceptionFamilies:

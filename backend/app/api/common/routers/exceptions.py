@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
+from app.api.common.audit import AuditAction, audit_event
 from app.api.common.exceptions import APIError
 from app.core.responses import build_problem_response
 
@@ -44,6 +45,17 @@ def create_exception_handler(
             logger.warning("%s: %s", exc.__class__.__name__, log_message)
         else:
             logger.info("%s: %s", exc.__class__.__name__, log_message)
+
+        if status_code == status.HTTP_403_FORBIDDEN:
+            audit_event(
+                None,
+                AuditAction.AUTHORIZATION_DENIED,
+                "http_request",
+                request.url.path,
+                outcome="denied",
+                status_code=status_code,
+                error_code=code,
+            )
 
         return build_problem_response(
             request=request,

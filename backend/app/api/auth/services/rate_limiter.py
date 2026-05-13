@@ -20,6 +20,7 @@ from limits.storage import storage_from_string
 from limits.strategies import STRATEGIES
 
 from app.api.auth.config import settings as auth_settings
+from app.api.common.audit import AuditAction, audit_event
 from app.core.config import settings as core_settings
 from app.core.middleware.client_ip import get_client_ip
 from app.core.responses import build_problem_response
@@ -100,6 +101,14 @@ class Limiter:
 def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
     """Return a 429 JSON response for rate-limited requests."""
     detail = exc.detail if isinstance(exc, RateLimitExceededError) else "Rate limit exceeded"
+    audit_event(
+        None,
+        AuditAction.RATE_LIMITED,
+        "http_request",
+        request.url.path,
+        outcome="denied",
+        status_code=429,
+    )
     return build_problem_response(
         request=request,
         status_code=429,
