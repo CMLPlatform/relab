@@ -66,6 +66,16 @@ Use image uploads for ordinary display photos. Use file uploads for research doc
 
 If you are using the camera integration, see [RPI camera integration](../rpi-cam/).
 
+## Upload limits
+
+Accepted types and size limits:
+
+- Images: `.bmp`, `.gif`, `.jpeg`, `.jpg`, `.png`, `.webp` — up to 10 MiB.
+- Research files: `.csv`, `.docx`, `.json`, `.md`, `.pdf`, `.pptx`, `.tsv`, `.txt`, `.xlsx` — up to 50 MiB.
+- Scientific data: `.dat`, `.h5`, `.hdr`, `.hdf5`, `.img`, `.nitf`, `.ntf`, `.raw`, `.tif`, `.tiff` — up to 50 MiB.
+
+RELab validates type, size, and content before storing a file. Office files are unpacked and inspected before acceptance. Each account has a cap on total file count and storage used. If malware scanning is enabled, files are scanned on upload and rejected if flagged.
+
 ## Final check
 
 - Verify component-parent relations are correct.
