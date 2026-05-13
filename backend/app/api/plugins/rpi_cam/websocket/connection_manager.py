@@ -7,13 +7,29 @@ import contextlib
 import json
 import logging
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, cast
 
+import relab_rpi_cam_models as relay_models
 from pydantic import UUID4
-from relab_rpi_cam_models import RelayMessageType, build_relay_command
+from relab_rpi_cam_models import RelayMessageType
 
 if TYPE_CHECKING:
     from fastapi import WebSocket
+
+    class _RelayCommand(Protocol):
+        def model_dump_json(self) -> str: ...
+
+    class _RelayModels(Protocol):
+        def build_relay_command(
+            self,
+            msg_id: str,
+            method: str,
+            path: str,
+            params: dict | None = None,
+            body: dict | None = None,
+            headers: dict[str, str] | None = None,
+        ) -> _RelayCommand: ...
+
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +105,11 @@ class CameraConnectionManager:
         self._pending[msg_id] = future
 
         try:
-            payload = build_relay_command(msg_id, method, path, params, body, headers).model_dump_json()
+            payload = (
+                cast("_RelayModels", relay_models)
+                .build_relay_command(msg_id, method, path, params, body, headers)
+                .model_dump_json()
+            )
             await ws.send_text(payload)
             return await future
         finally:

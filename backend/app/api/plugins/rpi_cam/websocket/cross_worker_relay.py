@@ -35,6 +35,7 @@ import time
 import uuid
 from typing import TYPE_CHECKING, cast
 
+from app.api.plugins.rpi_cam.websocket.runtime_state import get_blocking_redis
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
@@ -46,24 +47,6 @@ if TYPE_CHECKING:
     from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 
 logger = logging.getLogger(__name__)
-
-# ── Blocking Redis singleton ───────────────────────────────────────────────────
-# BLPOP requires socket_timeout=None; the shared app Redis client uses
-# socket_timeout=5 which causes TimeoutError mid-wait.  main.py calls
-# set_blocking_redis() at startup with a dedicated client.
-
-_blocking_redis_state: dict[str, Redis | None] = {"client": None}
-
-
-def set_blocking_redis(client: Redis | None) -> None:
-    """Register the blocking Redis client (called once at startup)."""
-    _blocking_redis_state["client"] = client
-
-
-def get_blocking_redis() -> Redis | None:
-    """Return the blocking Redis client, or None if unavailable."""
-    return _blocking_redis_state["client"]
-
 
 # ── Redis key templates ────────────────────────────────────────────────────────
 

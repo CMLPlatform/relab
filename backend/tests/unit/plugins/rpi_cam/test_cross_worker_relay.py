@@ -20,12 +20,13 @@ from uuid import uuid4
 import pytest
 
 from app.api.plugins.rpi_cam.websocket import cross_worker_relay as cwr
+from app.api.plugins.rpi_cam.websocket import runtime_state
 
 
 @pytest.fixture(autouse=True)
 def _clear_blocking_redis() -> None:
     """Reset the module-level blocking-Redis singleton between tests."""
-    cwr.set_blocking_redis(None)
+    runtime_state.set_blocking_redis(None)
 
 
 def _mock_redis() -> MagicMock:
@@ -57,10 +58,10 @@ class TestBlockingRedisSingleton:
 
     def test_round_trip(self) -> None:
         """set_blocking_redis / get_blocking_redis round-trip the registered client."""
-        assert cwr.get_blocking_redis() is None
+        assert runtime_state.get_blocking_redis() is None
         sentinel = MagicMock(name="redis")
-        cwr.set_blocking_redis(sentinel)
-        assert cwr.get_blocking_redis() is sentinel
+        runtime_state.set_blocking_redis(sentinel)
+        assert runtime_state.get_blocking_redis() is sentinel
 
 
 # ── relay_cross_worker ───────────────────────────────────────────────────────
