@@ -6,13 +6,20 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_users.jwt import decode_jwt, generate_jwt
 from fastapi_users.manager import BaseUserManager
+from jwt import InvalidAudienceError
 from pydantic import SecretStr
 
 from app.api.auth.models import User
 from app.api.auth.schemas import UserUpdate
 from app.api.auth.services.rate_limiter import RateLimitExceededError
-from app.api.auth.services.user_manager import UserManager
+from app.api.auth.services.user_manager import (
+    RESET_PASSWORD_TOKEN_AUDIENCE,
+    SECRET,
+    VERIFICATION_TOKEN_AUDIENCE,
+    UserManager,
+)
 from app.api.common.audit import AuditAction
 
 
@@ -236,6 +243,31 @@ class TestLoginHooks:
 class TestResetPasswordHooks:
     """Post-reset hooks revoke existing sessions and notify the user."""
 
+    def test_reset_and_verification_token_audiences_are_explicit(self) -> None:
+        """Account lifecycle JWTs should have distinct, named audiences."""
+        assert UserManager.reset_password_token_audience == RESET_PASSWORD_TOKEN_AUDIENCE
+        assert UserManager.verification_token_audience == VERIFICATION_TOKEN_AUDIENCE
+        assert RESET_PASSWORD_TOKEN_AUDIENCE != VERIFICATION_TOKEN_AUDIENCE
+
+    def test_reset_and_verification_token_audiences_cannot_be_cross_used(self) -> None:
+        """A reset token must not decode in a verification-token context, or vice versa."""
+        secret = SECRET.get_secret_value()
+        reset_token = generate_jwt(
+            {"sub": "user-id", "aud": RESET_PASSWORD_TOKEN_AUDIENCE},
+            secret,
+            lifetime_seconds=60,
+        )
+        verify_token = generate_jwt(
+            {"sub": "user-id", "email": "user@example.com", "aud": VERIFICATION_TOKEN_AUDIENCE},
+            secret,
+            lifetime_seconds=60,
+        )
+
+        with pytest.raises(InvalidAudienceError):
+            decode_jwt(reset_token, secret, [VERIFICATION_TOKEN_AUDIENCE])
+        with pytest.raises(InvalidAudienceError):
+            decode_jwt(verify_token, secret, [RESET_PASSWORD_TOKEN_AUDIENCE])
+
     async def test_on_after_forgot_password_uses_background_tasks_from_request_state(self) -> None:
         """Reset-link email sending should be queued when the route provides background tasks."""
         manager, _ = _make_manager()
@@ -259,9 +291,9 @@ class TestResetPasswordHooks:
         user.username = "user"
         request = MagicMock()
         redis = object()
+        request.app.state.services.redis = redis
 
         with (
-            patch("app.api.auth.services.user_manager.get_request_services") as mock_services,
             patch(
                 "app.api.auth.services.user_manager.refresh_token_service.revoke_all_user_tokens",
                 new_callable=AsyncMock,
@@ -271,7 +303,6 @@ class TestResetPasswordHooks:
                 new_callable=AsyncMock,
             ) as mock_send,
         ):
-            mock_services.return_value.redis = redis
             await manager.on_after_reset_password(user, request)
 
         mock_revoke.assert_awaited_once_with(redis, "user-id")
@@ -288,16 +319,15 @@ class TestAuditHooks:
         user.id = "user-id"
         request = MagicMock()
         redis = object()
+        request.app.state.services.redis = redis
 
         with (
-            patch("app.api.auth.services.user_manager.get_request_services") as mock_services,
             patch(
                 "app.api.auth.services.user_manager.refresh_token_service.revoke_all_user_tokens",
                 new_callable=AsyncMock,
             ),
             patch("app.api.auth.services.user_manager.audit_event") as log_audit,
         ):
-            mock_services.return_value.redis = redis
             await manager.on_after_update(user, {"is_active": False}, request)
 
         log_audit.assert_called_once_with("user-id", AuditAction.DEACTIVATE, User, "user-id")
