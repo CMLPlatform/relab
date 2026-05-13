@@ -20,6 +20,7 @@ from app.api.auth.services.auth_backends import build_authentication_backends
 from app.api.auth.services.email import (
     mask_email_for_log,
     send_email_changed_notification,
+    send_password_changed_notification,
     send_password_reset_confirmation_email,
     send_post_verification_email,
     send_reset_password_email,
@@ -168,6 +169,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         if real_user_update.email is not None and updated_user.email != old_email:
             await self.request_verify(updated_user, request)
             await send_email_changed_notification(old_email)
+        if real_user_update.password is not None:
+            await send_password_changed_notification(updated_user.email, updated_user.username)
 
         return updated_user
 

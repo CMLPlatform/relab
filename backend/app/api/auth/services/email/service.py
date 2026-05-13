@@ -61,6 +61,22 @@ def _build_message(to_email: EmailStr, subject: str, html_body: str) -> EmailMes
     )
 
 
+async def _dispatch(
+    message: EmailMessage,
+    to_email: EmailStr,
+    log_label: str,
+    background_tasks: BackgroundTasks | None,
+    provider: EmailProvider,
+) -> None:
+    """Send or enqueue an email message and log the outcome."""
+    if background_tasks:
+        background_tasks.add_task(provider.send, message)
+        logger.info("%s queued for %s", log_label, mask_email_for_log(to_email))
+    else:
+        await provider.send(message)
+        logger.info("%s sent to %s", log_label, mask_email_for_log(to_email))
+
+
 async def send_templated_email(
     to_email: EmailStr,
     subject: str,
@@ -71,25 +87,10 @@ async def send_templated_email(
 ) -> None:
     """Send one validated templated email through the configured provider."""
     validate_template_body(template_name, template_body)
-    message = _build_message(to_email, subject, render_email_template(template_name, template_body))
     selected_provider = provider or default_email_provider
-
-    if background_tasks:
-        background_tasks.add_task(selected_provider.send, message)
-        logger.info(
-            "Email queued for background sending to %s using template %s via %s",
-            mask_email_for_log(to_email),
-            template_name,
-            selected_provider.__class__.__name__,
-        )
-    else:
-        await selected_provider.send(message)
-        logger.info(
-            "Email sent to %s using template %s via %s",
-            mask_email_for_log(to_email),
-            template_name,
-            selected_provider.__class__.__name__,
-        )
+    message = _build_message(to_email, subject, render_email_template(template_name, template_body))
+    log_label = f"Email (template={template_name}, provider={selected_provider.__class__.__name__})"
+    await _dispatch(message, to_email, log_label, background_tasks, selected_provider)
 
 
 async def send_registration_email(
@@ -143,14 +144,27 @@ async def send_password_reset_confirmation_email(
             "If you did not make this change, contact RELab support immediately.</p>"
         ),
     )
-    selected_provider = provider or default_email_provider
-    if background_tasks:
-        background_tasks.add_task(selected_provider.send, message)
-        logger.info("Password-reset confirmation queued for %s", mask_email_for_log(to_email))
-        return
+    await _dispatch(message, to_email, "Password-reset confirmation", background_tasks, provider or default_email_provider)
 
-    await selected_provider.send(message)
-    logger.info("Password-reset confirmation sent to %s", mask_email_for_log(to_email))
+
+async def send_password_changed_notification(
+    to_email: EmailStr,
+    username: str | None,
+    background_tasks: BackgroundTasks | None = None,
+    provider: EmailProvider | None = None,
+) -> None:
+    """Notify a user after their account password has been changed while signed in."""
+    display_name = escape(_display_name(username, to_email))
+    message = _build_message(
+        to_email,
+        "Your RELab password was changed",
+        (
+            f"<p>Hello {display_name},</p>"
+            "<p>Your RELab account password was changed. "
+            "If you did not make this change, reset your password and contact RELab support.</p>"
+        ),
+    )
+    await _dispatch(message, to_email, "Password-change notification", background_tasks, provider or default_email_provider)
 
 
 async def send_verification_email(
@@ -196,11 +210,4 @@ async def send_email_changed_notification(
         "Your RELab account email changed",
         "<p>Your RELab account email address was changed. If you did not make this change, contact RELab support.</p>",
     )
-    selected_provider = provider or default_email_provider
-    if background_tasks:
-        background_tasks.add_task(selected_provider.send, message)
-        logger.info("Email-change notification queued for %s", mask_email_for_log(to_email))
-        return
-
-    await selected_provider.send(message)
-    logger.info("Email-change notification sent to %s", mask_email_for_log(to_email))
+    await _dispatch(message, to_email, "Email-change notification", background_tasks, provider or default_email_provider)
