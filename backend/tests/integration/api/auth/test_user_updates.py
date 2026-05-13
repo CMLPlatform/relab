@@ -1,4 +1,5 @@
 """User update validation and endpoint tests."""
+
 # spell-checker: ignore reauthenticated
 from __future__ import annotations
 
