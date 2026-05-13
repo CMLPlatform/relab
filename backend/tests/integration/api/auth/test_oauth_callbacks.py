@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import AsyncMock, MagicMock
+from urllib.parse import parse_qs, urlparse
+from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException, status
@@ -13,9 +15,12 @@ from fastapi_users.router.common import ErrorCode
 
 from ._oauth_support import (
     TEST_EMAIL,
+    OAuthCookieSettings,
+    generate_csrf_token,
     make_associate_builder,
     make_associate_request_with_valid_state,
     make_auth_builder,
+    make_oauth_state,
     make_request_with_valid_state,
 )
 from .shared import USER1_EMAIL, USER2_EMAIL
@@ -36,7 +41,9 @@ class TestOAuthCallbackLinkingPolicy:
         request, access_token_state = make_request_with_valid_state()
 
         user = MagicMock()
+        user.id = uuid4()
         user.is_active = True
+        user.mfa_enabled = False
 
         user_manager = MagicMock()
         user_manager.oauth_callback = AsyncMock(return_value=user)
@@ -48,6 +55,46 @@ class TestOAuthCallbackLinkingPolicy:
         assert response.status_code == status.HTTP_200_OK
         assert user_manager.oauth_callback.await_args is not None
         assert user_manager.oauth_callback.await_args.kwargs["associate_by_email"] is False
+        user_manager.on_after_login.assert_awaited_once()
+
+    async def test_callback_redirect_places_mfa_handoff_not_token_in_url_fragment(self) -> None:
+        """OAuth MFA redirects should keep the MFA token out of URLs."""
+        builder = make_auth_builder()
+        csrf_token = generate_csrf_token()
+        frontend_redirect = "relab-app://login?redirectTo=%2Fprofile"
+        state = make_oauth_state(
+            csrf_token,
+            provider_name="github",
+            oauth_flow="github:session",
+            extra_state={"frontend_redirect_uri": frontend_redirect},
+        )
+        request = MagicMock()
+        request.cookies = {OAuthCookieSettings.name: csrf_token}
+
+        user = MagicMock()
+        user.id = uuid4()
+        user.is_active = True
+        user.mfa_enabled = True
+        user_manager = MagicMock()
+        user_manager.oauth_callback = AsyncMock(return_value=user)
+        user_manager.on_after_login = AsyncMock()
+
+        response = await builder._get_callback_handler(
+            request,
+            (cast("Any", {"access_token": "provider-access-token"}), state),
+            user_manager,
+            MagicMock(),
+        )
+
+        location = response.headers["location"]
+        parsed = urlparse(location)
+        query = parse_qs(parsed.query)
+        fragment = parse_qs(parsed.fragment)
+        assert "mfa_token" not in query
+        assert query["redirectTo"] == ["/profile"]
+        assert "mfa_token" not in fragment
+        assert fragment["success"] == ["false"]
+        assert fragment["mfa_handoff"][0]
 
     async def test_callback_returns_stable_existing_user_error(self) -> None:
         """Maps duplicate-user errors to the stable OAuth error code."""
