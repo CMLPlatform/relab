@@ -94,6 +94,24 @@ class RefreshTokenUserInactiveError(RefreshTokenError):
         super().__init__("User not found or inactive")
 
 
+class MfaError(UnauthorizedError):
+    """Base class for MFA authentication failures."""
+
+
+class MfaChallengeInvalidError(MfaError):
+    """Raised when an MFA challenge or setup token is invalid, expired, or already used."""
+
+    def __init__(self) -> None:
+        super().__init__("Invalid or expired MFA token")
+
+
+class MfaCodeInvalidError(MfaError):
+    """Raised when an MFA one-time code is invalid."""
+
+    def __init__(self) -> None:
+        super().__init__("Invalid MFA code")
+
+
 class OAuthHTTPError(HTTPException):
     """Base class for OAuth flow errors that intentionally preserve FastAPI HTTPException payloads."""
 
