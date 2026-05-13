@@ -15,6 +15,7 @@ import {
 } from '../storage';
 
 const SECURE_STORAGE_UNAVAILABLE = /Secure storage is unavailable/;
+const SENSITIVE_LOCAL_STORAGE_FORBIDDEN = /must not be stored in local storage/;
 
 type StorageStub = {
   getItem: jest.Mock<(k: string) => string | null>;
@@ -70,6 +71,34 @@ describe('services/storage', () => {
       await expect(getLocalItem('k')).resolves.toBeNull();
       expect(storage.setItem).toHaveBeenCalledWith('k', 'v');
       expect(storage.removeItem).toHaveBeenCalledWith('k');
+    });
+
+    it.each([
+      'access_token',
+      'refreshToken',
+      'apiKey',
+      'auth-state',
+      'session-id',
+      'password',
+    ])('local: rejects sensitive key %s', async (key) => {
+      const storage = stubWebStorage('localStorage');
+
+      await expect(setLocalItem(key, 'secret')).rejects.toThrow(SENSITIVE_LOCAL_STORAGE_FORBIDDEN);
+
+      expect(storage.setItem).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      'product_gallery_index_42',
+      'products_info_card_dismissed_guest',
+      'localConnection:camera-1:url',
+      'author-preferences',
+    ])('local: allows benign key %s', async (key) => {
+      const storage = stubWebStorage('localStorage');
+
+      await expect(setLocalItem(key, 'value')).resolves.toBeUndefined();
+
+      expect(storage.setItem).toHaveBeenCalledWith(key, 'value');
     });
 
     it('local: returns null and swallows when localStorage access throws', async () => {
