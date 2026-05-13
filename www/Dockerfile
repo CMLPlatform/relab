@@ -37,7 +37,7 @@ WORKDIR $WORKDIR/www
 
 EXPOSE 8081
 
-CMD ["pnpm", "run", "dev"]
+CMD ["pnpm", "exec", "astro", "dev", "--port", "8081", "--host", "0.0.0.0", "--strictPort", "--mode", "dev"]
 
 # --- Build stage (prod static build) ---
 FROM deps AS build

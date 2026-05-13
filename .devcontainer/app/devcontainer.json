@@ -6,7 +6,7 @@
   "workspaceFolder": "/opt/relab/app",
   "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
   "overrideCommand": true,
-  "postAttachCommand": "echo 'RELab app devcontainer ready.\\nUse this for focused app work; the root full-stack container is the default onboarding path.\\nRun just install if needed, then just dev or just check.\\nApp: http://localhost:8013'",
+  "postAttachCommand": "echo 'RELab app devcontainer ready.\\nUse this for focused app work; the root full-stack container is the default onboarding path.\\nRun just install if needed, then just dev or just check.\\nApp: http://127.0.0.1:8011'",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers-extra/features/expo-cli:1": {}

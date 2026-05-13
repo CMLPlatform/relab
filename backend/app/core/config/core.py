@@ -99,9 +99,10 @@ class CoreSettings(RelabBaseSettings):
     bootstrap_superuser_password: SecretStr = SecretStr("")
 
     # ── Network & CORS ────────────────────────────────────────────────────────────
-    backend_api_url: HttpUrl = HttpUrl("http://127.0.0.1:8001")
-    site_public_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
-    frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8003")
+    api_public_url: HttpUrl = HttpUrl("http://127.0.0.1:8010")
+    app_public_url: HttpUrl = HttpUrl("http://127.0.0.1:8011")
+    docs_public_url: HttpUrl = HttpUrl("http://127.0.0.1:8012")
+    site_public_url: HttpUrl = HttpUrl("http://127.0.0.1:8013")
     cors_origin_regex: str | None = Field(default=None)
     outbound_http_allowed_urls: tuple[OutboundHttpsUrl, ...] = DEFAULT_OUTBOUND_HTTP_ALLOWED_URLS
 
@@ -177,8 +178,8 @@ class CoreSettings(RelabBaseSettings):
         """Get CORS Origin allowlist (scheme + host + optional port)."""
         return [
             self._normalize_origin(self.site_public_url),
-            self._normalize_origin(self.frontend_app_url),
-            self._normalize_origin(self.effective_docs_url),
+            self._normalize_origin(self.app_public_url),
+            self._normalize_origin(self.docs_public_url),
         ]
 
     @cached_property
@@ -187,7 +188,7 @@ class CoreSettings(RelabBaseSettings):
         if self.environment in (Environment.DEV, Environment.TESTING):
             return ["*"]
 
-        backend_host = urlsplit(str(self.backend_api_url)).hostname
+        backend_host = urlsplit(str(self.api_public_url)).hostname
         if backend_host:
             return [backend_host, "127.0.0.1", "localhost"]
         return ["127.0.0.1", "localhost"]
@@ -432,17 +433,17 @@ class CoreSettings(RelabBaseSettings):
         if self.bootstrap_superuser_email == DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL:
             errors.append("BOOTSTRAP_SUPERUSER_EMAIL must not be the default placeholder in production")
 
-        if self.backend_api_url.scheme != HTTPS_SCHEME:
-            errors.append("BACKEND_API_URL must use https in production/staging")
+        if self.api_public_url.scheme != HTTPS_SCHEME:
+            errors.append("API_PUBLIC_URL must use https in production/staging")
 
-        if self.frontend_app_url.scheme != HTTPS_SCHEME:
-            errors.append("FRONTEND_APP_URL must use https in production/staging")
+        if self.app_public_url.scheme != HTTPS_SCHEME:
+            errors.append("APP_PUBLIC_URL must use https in production/staging")
 
         if self.site_public_url.scheme != HTTPS_SCHEME:
             errors.append("SITE_PUBLIC_URL must use https in production/staging")
 
-        if self.effective_docs_url.scheme != HTTPS_SCHEME:
-            errors.append("DOCS_URL must use https in production/staging")
+        if self.docs_public_url.scheme != HTTPS_SCHEME:
+            errors.append("DOCS_PUBLIC_URL must use https in production/staging")
 
         return errors
 

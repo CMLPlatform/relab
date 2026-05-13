@@ -69,10 +69,10 @@ This is the recommended path into the repo if you use VS Code.
 
 ### Forwarded Ports
 
-- Platform: <http://127.0.0.1:8010>
-- Backend: <http://127.0.0.1:8011>
+- API: <http://127.0.0.1:8010>
+- App frontend: <http://127.0.0.1:8011>
 - Docs: <http://127.0.0.1:8012>
-- App frontend: <http://127.0.0.1:8013>
+- Landing site: <http://127.0.0.1:8013>
 - PostgreSQL: `5432`
 - Redis: `6379`
 
@@ -121,10 +121,10 @@ Use this when you want the full stack without configuring each subrepo manually.
 
 ### Local Service URLs
 
-- Platform: <http://127.0.0.1:8010>
-- Backend: <http://127.0.0.1:8011>
+- API: <http://127.0.0.1:8010>
+- App frontend: <http://127.0.0.1:8011>
 - Docs: <http://127.0.0.1:8012>
-- App frontend: <http://127.0.0.1:8013>
+- Landing site: <http://127.0.0.1:8013>
 
 Docker development ports bind to localhost. If you want to test the Expo app from another phone, tablet, or computer over your LAN, run the Expo server directly from `app/` with `just dev` instead of using the Docker app service.
 
@@ -232,13 +232,13 @@ cd backend
 just dev
 ```
 
-The API is available at <http://127.0.0.1:8000>.
+The API is available at <http://127.0.0.1:8010>.
 Use `SEED_DUMMY_DATA=true just dev-migrate` when you want sample data.
 Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email, or bootstrap settings.
 
-- Public API reference: <http://127.0.0.1:4300/api/public/>
-- Device API reference: <http://127.0.0.1:4300/api/device/>
-- Development/testing-only JSON contracts: <http://127.0.0.1:8000/openapi.json> and <http://127.0.0.1:8000/openapi.admin.json>
+- Public API reference: <http://127.0.0.1:8012/api/public/>
+- Device API reference: <http://127.0.0.1:8012/api/device/>
+- Development/testing-only JSON contracts: <http://127.0.0.1:8010/openapi.json> and <http://127.0.0.1:8010/openapi.admin.json>
 
 ### OpenAPI Examples
 
@@ -316,11 +316,11 @@ pnpm install --frozen-lockfile
 just dev
 ```
 
-The Expo dev server runs on <http://localhost:8081>.
+The Expo dev server runs on <http://127.0.0.1:8011>.
 
 If you are using a physical device or a non-default backend URL, create `app/.env.local` and set `EXPO_PUBLIC_API_URL`.
 
-To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in your env file to the web client ID from Google Cloud Console. The authorized redirect URI for your environment must also be registered there (e.g. `http://localhost:8013/login` for local dev).
+To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in your env file to the web client ID from Google Cloud Console. The authorized redirect URI for your environment must also be registered there (e.g. `http://127.0.0.1:8011/login` for local dev).
 
 ### Regenerating API types
 
@@ -347,7 +347,7 @@ pnpm install --frozen-lockfile
 just dev
 ```
 
-The Astro dev server runs on <http://127.0.0.1:8081>. Use the numeric loopback
+The Astro dev server runs on <http://127.0.0.1:8013>. Use the numeric loopback
 host when developing through VS Code Remote port forwarding; Firefox can be
 unreliable with forwarded `localhost` URLs.
 
@@ -361,7 +361,7 @@ pnpm install --frozen-lockfile
 just dev
 ```
 
-The docs site runs on <http://localhost:8000>.
+The docs site runs on <http://127.0.0.1:8012>.
 
 The docs app is the canonical home for public guides, architecture reference, and project context. Keep repo-level setup text in this file short and link back to the docs site when deeper explanation belongs there.
 

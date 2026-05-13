@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
-const CANONICAL_URL_PATTERN = /^https?:\/\/((127\.0\.0\.1|localhost):8081|cml-relab\.org)(\/.*)?$/;
+const CANONICAL_URL_PATTERN =
+  /^https?:\/\/((127\.0\.0\.1|localhost):(8013|18013)|cml-relab\.org)(\/.*)?$/;
 const HOMEPAGE_DESCRIPTION_PATTERN = /open-source research platform/i;
 const OPEN_APP_ARIA_NAME = 'Open the RELab app';
 const READ_DOCS_ARIA_NAME = 'Read the RELab documentation';

@@ -54,7 +54,7 @@ def test_generate_token_link_default_base_url() -> None:
     parsed = urlparse(link)
     query_params = parse_qs(parsed.query)
 
-    assert link.startswith(str(core_settings.frontend_app_url))
+    assert link.startswith(str(core_settings.app_public_url))
     assert parsed.path == route
     assert query_params["token"] == [token]
 

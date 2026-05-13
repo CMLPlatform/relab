@@ -7,7 +7,7 @@ test.describe('API reference pages', () => {
   test.beforeEach(async ({ page }) => {
     liveSchemaRequests = [];
     scalarServiceRequests = [];
-    await page.route('http://127.0.0.1:8001/openapi.*.json', async (route) => {
+    await page.route('http://127.0.0.1:18010/openapi.*.json', async (route) => {
       liveSchemaRequests.push(route.request().url());
       await route.abort();
     });

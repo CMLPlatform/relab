@@ -40,9 +40,10 @@ def _production_core_settings_kwargs(**overrides: object) -> dict[str, Any]:
     """Return valid production-like settings, with optional field overrides."""
     kwargs: dict[str, Any] = {
         "environment": Environment.PROD,
-        "backend_api_url": HttpUrl("https://api.cml-relab.org"),
+        "api_public_url": HttpUrl("https://api.cml-relab.org"),
         "site_public_url": HttpUrl("https://cml-relab.org"),
-        "frontend_app_url": HttpUrl("https://app.cml-relab.org"),
+        "app_public_url": HttpUrl("https://app.cml-relab.org"),
+        "docs_public_url": HttpUrl("https://docs.cml-relab.org"),
         "postgres_password": SecretStr("admin-password"),
         **_database_role_kwargs(),
         "redis_password": SecretStr("test-password"),
@@ -58,26 +59,31 @@ def _production_core_settings_kwargs(**overrides: object) -> dict[str, Any]:
 class TestCoreSettingsCors:
     """Test CORS configuration behavior in CoreSettings."""
 
-    def test_allowed_origins_dev_include_site_and_app_only(self) -> None:
-        """DEV environment should allow browser origins that call the backend."""
+    def test_allowed_origins_include_frontend_origins(self) -> None:
+        """CORS should allow the browser clients that call the backend."""
         settings = CoreSettings(
             environment=Environment.DEV,
-            site_public_url=HttpUrl("http://localhost:3000/"),
-            frontend_app_url=HttpUrl("http://localhost:8081/"),
+            api_public_url=HttpUrl("http://127.0.0.1:9010/"),
+            app_public_url=HttpUrl("http://127.0.0.1:9011/"),
+            docs_public_url=HttpUrl("http://127.0.0.1:9012/"),
+            site_public_url=HttpUrl("http://127.0.0.1:9013/"),
         )
+
         assert settings.allowed_origins == [
-            "http://localhost:3000",
-            "http://localhost:8081",
+            "http://127.0.0.1:9013",
+            "http://127.0.0.1:9011",
+            "http://127.0.0.1:9012",
         ]
 
     def test_allowed_origins_staging_are_normalized(self) -> None:
-        """Staging origins should include browser app origins only."""
+        """Staging origins should include browser app origins."""
         settings = CoreSettings(
             **_production_core_settings_kwargs(
                 environment=Environment.STAGING,
-                backend_api_url=HttpUrl("https://api-test.cml-relab.org/"),
+                api_public_url=HttpUrl("https://api-test.cml-relab.org/"),
                 site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
-                frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
+                app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
+                docs_public_url=HttpUrl("https://docs-test.cml-relab.org/"),
                 cors_origin_regex=None,
             )
         )
@@ -85,6 +91,7 @@ class TestCoreSettingsCors:
         assert settings.allowed_origins == [
             "https://web-test.cml-relab.org",
             "https://app-test.cml-relab.org",
+            "https://docs-test.cml-relab.org",
         ]
 
     def test_allowed_hosts_dev_defaults(self) -> None:
@@ -92,14 +99,14 @@ class TestCoreSettingsCors:
         settings = CoreSettings(environment=Environment.DEV)
         assert settings.allowed_hosts == ["*"]
 
-    def test_allowed_hosts_derive_from_backend_api_url(self) -> None:
-        """Trusted hosts should derive from backend_api_url in non-DEV environments."""
+    def test_allowed_hosts_derive_from_api_public_url(self) -> None:
+        """Trusted hosts should derive from api_public_url in non-DEV environments."""
         settings = CoreSettings(
             **_production_core_settings_kwargs(
                 environment=Environment.STAGING,
-                backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
+                api_public_url=HttpUrl("https://api-test.cml-relab.org"),
                 site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
-                frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
+                app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
                 cors_origin_regex=None,
             )
         )
@@ -116,9 +123,9 @@ class TestCoreSettingsCors:
             CoreSettings(
                 **_production_core_settings_kwargs(
                     environment=Environment.STAGING,
-                    backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
+                    api_public_url=HttpUrl("https://api-test.cml-relab.org"),
                     site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
-                    frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
+                    app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
                     cors_origin_regex=DEFAULT_CORS_ORIGIN_REGEX,
                 )
             )
@@ -441,10 +448,19 @@ class TestCoreSettingsCors:
         RedisDsn(url)
         assert url == "rediss://:p%40ss%3Aword%2Fwith%3Fchars@redis.internal:6379/2"
 
-    def test_production_requires_https_origins(self) -> None:
+    @pytest.mark.parametrize(
+        ("field", "url", "message"),
+        [
+            ("api_public_url", "http://api.cml-relab.org", "API_PUBLIC_URL must use https"),
+            ("app_public_url", "http://app.cml-relab.org", "APP_PUBLIC_URL must use https"),
+            ("site_public_url", "http://cml-relab.org", "SITE_PUBLIC_URL must use https"),
+            ("docs_public_url", "http://docs.cml-relab.org", "DOCS_PUBLIC_URL must use https"),
+        ],
+    )
+    def test_production_requires_https_origins(self, field: str, url: str, message: str) -> None:
         """Production-like environments should use HTTPS for external URLs."""
-        with pytest.raises(ValidationError, match="BACKEND_API_URL must use https"):
-            CoreSettings(**_production_core_settings_kwargs(backend_api_url=HttpUrl("http://api.cml-relab.org")))
+        with pytest.raises(ValidationError, match=message):
+            CoreSettings(**_production_core_settings_kwargs(**{field: HttpUrl(url)}))
 
     @pytest.mark.parametrize(
         ("field", "value", "message"),

@@ -63,7 +63,7 @@ const galleryListProduct = {
 };
 
 async function mockGalleryProductApi(page: Page) {
-  await page.route('http://localhost:18432/products?*', async (route) => {
+  await page.route('http://127.0.0.1:18010/products?*', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -77,7 +77,7 @@ async function mockGalleryProductApi(page: Page) {
     });
   });
 
-  await page.route('http://localhost:18432/products/1?*', async (route) => {
+  await page.route('http://127.0.0.1:18010/products/1?*', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',

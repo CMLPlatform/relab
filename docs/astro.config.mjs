@@ -4,10 +4,10 @@ import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 
 const MODE_SITES = {
-  dev: 'http://127.0.0.1:8000',
+  dev: 'http://127.0.0.1:8012',
   prod: 'https://docs.cml-relab.org',
   staging: 'https://docs-test.cml-relab.org',
-  test: 'http://127.0.0.1:4300',
+  test: 'http://127.0.0.1:18012',
 };
 const MODE_FLAG = '--mode';
 const CUSTOM_CSS = [

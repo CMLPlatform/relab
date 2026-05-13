@@ -18,10 +18,10 @@
 # Loki get Docker's default json-file driver — no config needed.
 
 x-backend-public-origins: &backend-public-origins
-  BACKEND_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
-  FRONTEND_APP_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
+  API_PUBLIC_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+  APP_PUBLIC_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
   SITE_PUBLIC_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
-  DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
+  DOCS_PUBLIC_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
 
 x-backend-host-overrides: &backend-host-overrides
   GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID must be set in root .env}

@@ -37,7 +37,7 @@ WORKDIR $WORKDIR/docs
 
 EXPOSE 8000
 
-CMD ["pnpm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["pnpm", "exec", "astro", "dev", "--port", "8000", "--host", "0.0.0.0", "--strictPort", "--mode", "dev"]
 
 # --- Build stage (prod static build) ---
 FROM deps AS build

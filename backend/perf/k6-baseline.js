@@ -1,7 +1,7 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 
-const baseUrl = __ENV.BASE_URL || "http://127.0.0.1:8000";
+const baseUrl = __ENV.BASE_URL || "http://127.0.0.1:8010";
 const productListPath = __ENV.PERF_PRODUCT_LIST_PATH || "/v1/products?size=20";
 const livePath = __ENV.PERF_LIVE_PATH || "/live";
 const loginEmail = __ENV.PERF_USER_EMAIL;

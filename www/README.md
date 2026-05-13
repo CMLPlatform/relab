@@ -13,11 +13,11 @@ just install
 pnpm run dev
 ```
 
-The local dev server runs at <http://127.0.0.1:8081>. Use the numeric loopback
+The local dev server runs at <http://127.0.0.1:8013>. Use the numeric loopback
 host when developing through VS Code Remote port forwarding; Firefox can be
 unreliable with forwarded `localhost` URLs.
 
-In the full Docker stack, the site is served behind Caddy at <http://localhost:8010>.
+In the full Docker stack, the site is served behind Caddy at <http://127.0.0.1:8013>.
 
 ## What is here
 
@@ -85,7 +85,7 @@ pnpm vitest
 E2E tests live in `e2e/`. By default, Playwright builds the site and starts a preview server when `BASE_URL` is not set. To run against the Docker stack instead:
 
 ```bash
-BASE_URL=http://localhost:8010 pnpm run test:e2e
+BASE_URL=http://127.0.0.1:8013 pnpm run test:e2e
 ```
 
 ## More context

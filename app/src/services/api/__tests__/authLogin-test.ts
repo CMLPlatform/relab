@@ -51,7 +51,7 @@ describe('authLogin', () => {
     const refreshAuthToken = jest.fn<() => Promise<boolean>>().mockResolvedValue(false);
 
     await expect(
-      login('http://localhost:8000', 'user', 'pass', {
+      login('http://127.0.0.1:18010', 'user', 'pass', {
         persistAccessToken,
         persistRefreshToken,
         getUser,
@@ -81,7 +81,7 @@ describe('authLogin', () => {
     const refreshAuthToken = jest.fn<() => Promise<boolean>>().mockResolvedValue(true);
 
     await expect(
-      login('http://localhost:8000', 'user', 'pass', {
+      login('http://127.0.0.1:18010', 'user', 'pass', {
         persistAccessToken,
         persistRefreshToken,
         getUser,
@@ -111,7 +111,7 @@ describe('authLogin', () => {
     const getUser = jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined);
     const refreshAuthToken = jest.fn<() => Promise<boolean>>().mockResolvedValue(false);
 
-    const promise = login('http://localhost:8000', 'user', 'pass', {
+    const promise = login('http://127.0.0.1:18010', 'user', 'pass', {
       persistAccessToken,
       persistRefreshToken,
       getUser,
@@ -140,7 +140,7 @@ describe('authLogin', () => {
       }),
     } as never);
 
-    const result = await login('http://localhost:8000', 'user', 'pass', {
+    const result = await login('http://127.0.0.1:18010', 'user', 'pass', {
       persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
       persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
       getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
@@ -165,7 +165,7 @@ describe('authLogin', () => {
     } as never);
 
     await expect(
-      login('http://localhost:8000', 'user', 'pass', {
+      login('http://127.0.0.1:18010', 'user', 'pass', {
         persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
         persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
         getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
@@ -181,7 +181,7 @@ describe('authLogin', () => {
     const clearCachedAuthState = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 200 } as never);
 
-    await logout('http://localhost:8000', clearCachedAuthState);
+    await logout('http://127.0.0.1:18010', clearCachedAuthState);
 
     expect(clearCachedAuthState).toHaveBeenCalled();
     expect(fetchWithTimeout).toHaveBeenCalledWith(
@@ -205,7 +205,7 @@ describe('authLogin', () => {
     const clearCachedAuthState = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
 
-    await logout('http://localhost:8000', clearCachedAuthState);
+    await logout('http://127.0.0.1:18010', clearCachedAuthState);
 
     expect(fetchWithTimeout).toHaveBeenCalledWith(
       expect.objectContaining({ href: expect.stringContaining('/auth/bearer/logout') }),
@@ -227,7 +227,7 @@ describe('authLogin', () => {
     const clearCachedAuthState = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
 
-    await revokeAllSessions('http://localhost:8000', clearCachedAuthState);
+    await revokeAllSessions('http://127.0.0.1:18010', clearCachedAuthState);
 
     expect(clearCachedAuthState).toHaveBeenCalled();
     expect(fetchWithTimeout).toHaveBeenCalledWith(

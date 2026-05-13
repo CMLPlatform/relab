@@ -24,13 +24,13 @@ services:
       target: dev
     restart: "no"
     ports:
-      - "127.0.0.1:8011:8000"
+      - "127.0.0.1:8010:8000"
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-dev}
-      BACKEND_API_URL: ${API_PUBLIC_URL:-http://localhost:8011}
-      FRONTEND_APP_URL: ${APP_PUBLIC_URL:-http://localhost:8013}
-      SITE_PUBLIC_URL: ${SITE_PUBLIC_URL:-http://localhost:8010}
-      DOCS_URL: ${DOCS_PUBLIC_URL:-http://localhost:8012}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-http://127.0.0.1:8010}
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://127.0.0.1:8011}
+      SITE_PUBLIC_URL: ${SITE_PUBLIC_URL:-http://127.0.0.1:8013}
+      DOCS_PUBLIC_URL: ${DOCS_PUBLIC_URL:-http://127.0.0.1:8012}
     env_file:
       - path: ./backend/.env.dev
         required: false
@@ -96,9 +96,9 @@ services:
     ports:
       - "127.0.0.1:8012:8000"
     environment:
-      PUBLIC_BACKEND_API_URL: ${API_PUBLIC_URL:-http://localhost:8011}
-      PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://localhost:8012}
-      CADDY_API_ORIGIN: ${API_PUBLIC_URL:-http://localhost:8011}
+      PUBLIC_BACKEND_API_URL: ${API_PUBLIC_URL:-http://127.0.0.1:8010}
+      PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://127.0.0.1:8012}
+      CADDY_API_ORIGIN: ${API_PUBLIC_URL:-http://127.0.0.1:8010}
     develop:
       watch:
         # Keep watch scope explicit for Node-based subrepos: sync only source and
@@ -149,11 +149,11 @@ services:
       target: dev
     restart: "no"
     ports:
-      - "127.0.0.1:8013:8081"
+      - "127.0.0.1:8011:8081"
     environment:
-      EXPO_PUBLIC_API_URL: ${API_PUBLIC_URL:-http://localhost:8011}
-      EXPO_PUBLIC_WEBSITE_URL: ${SITE_PUBLIC_URL:-http://localhost:8010}
-      EXPO_PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://localhost:8012}
+      EXPO_PUBLIC_API_URL: ${API_PUBLIC_URL:-http://127.0.0.1:8010}
+      EXPO_PUBLIC_WEBSITE_URL: ${SITE_PUBLIC_URL:-http://127.0.0.1:8013}
+      EXPO_PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://127.0.0.1:8012}
     develop:
       watch:
         # Avoid watching the whole app tree. Recursive watches can walk
@@ -207,11 +207,11 @@ services:
       target: dev
     restart: "no"
     ports:
-      - "127.0.0.1:8010:8081"
+      - "127.0.0.1:8013:8081"
     environment:
-      PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://localhost:8012}
-      PUBLIC_APP_URL: ${APP_PUBLIC_URL:-http://localhost:8013}
-      PUBLIC_SITE_URL: ${SITE_PUBLIC_URL:-http://127.0.0.1:8010}
+      PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://127.0.0.1:8012}
+      PUBLIC_APP_URL: ${APP_PUBLIC_URL:-http://127.0.0.1:8011}
+      PUBLIC_SITE_URL: ${SITE_PUBLIC_URL:-http://127.0.0.1:8013}
     develop:
       watch:
         # Same rule here: explicit source/config syncs only, rebuild for deps.

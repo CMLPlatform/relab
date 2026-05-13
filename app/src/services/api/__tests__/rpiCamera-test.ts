@@ -297,7 +297,7 @@ describe('rpiCamera API service', () => {
     const result = await fetchCameras(true);
 
     expect(result[0]?.preview_thumbnail_url).toBe(
-      'http://localhost:8000/uploads/images/rpi-cam-preview/cam-1.jpg',
+      'http://127.0.0.1:8010/uploads/images/rpi-cam-preview/cam-1.jpg',
     );
   });
 

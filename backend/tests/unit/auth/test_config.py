@@ -13,9 +13,9 @@ VALID_SECRET = "x" * 32
 class TestAuthSettingsDefaults:
     """AuthSettings should produce safe, predictable defaults when no env file is present."""
 
-    def test_oauth_redirect_allowlist_defaults_from_frontend_app_url(self) -> None:
+    def test_oauth_redirect_allowlist_defaults_from_app_public_url(self) -> None:
         """OAuth redirect URI allowlist derives from the public app origin."""
-        settings = AuthSettings(frontend_app_url="https://app.example.com")
+        settings = AuthSettings(app_public_url="https://app.example.com")
         assert settings.oauth_allowed_redirect_uris == [
             "https://app.example.com/login",
             "https://app.example.com/profile",

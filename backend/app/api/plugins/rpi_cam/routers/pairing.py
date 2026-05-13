@@ -69,7 +69,7 @@ def _pairing_key(code: str) -> str:
 
 def _build_ws_url() -> str:
     """Derive the WebSocket relay URL from the backend's configured API URL."""
-    base = str(core_settings.backend_api_url).rstrip("/")
+    base = str(core_settings.api_public_url).rstrip("/")
     ws_base = base.replace("https://", "wss://").replace("http://", "ws://")
     return f"{ws_base}/v1/plugins/rpi-cam/ws/connect"
 

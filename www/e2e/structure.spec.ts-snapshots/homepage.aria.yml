@@ -2,10 +2,10 @@
   - heading "Reverse Engineering Lab" [level=1]
   - paragraph: RELab is an open-source research platform for documenting the disassembly of durable goods and organising the resulting product data.
   - link "Open the RELab app":
-    - /url: http://localhost:8013
+    - /url: https://app.cml-relab.org
     - text: Open the app
   - link "Read the RELab documentation":
-    - /url: http://localhost:8012
+    - /url: https://docs.cml-relab.org
     - text: Read the docs
   - link "Browse the RELab source code on GitHub":
     - /url: https://github.com/CMLPlatform/relab

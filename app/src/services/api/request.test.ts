@@ -17,7 +17,7 @@ describe('fetchWithTimeout', () => {
       });
     }) as typeof fetch;
 
-    const pendingRequest = fetchWithTimeout('http://localhost:8000/products');
+    const pendingRequest = fetchWithTimeout('http://127.0.0.1:18010/products');
     const assertion = pendingRequest.catch((error) => {
       expect(isTimeoutError(error)).toBe(true);
       expect(error).toBeInstanceOf(TimeoutError);
@@ -63,7 +63,7 @@ describe('fetchWithTimeout', () => {
       });
     }) as typeof fetch;
 
-    const pendingRequest = fetchWithTimeout('http://localhost:8000/products', {
+    const pendingRequest = fetchWithTimeout('http://127.0.0.1:18010/products', {
       timeoutMs: 250,
     });
     const assertion = pendingRequest.catch((error) => {

@@ -79,15 +79,15 @@ This page is about running the stack. For tooling policy and contributor workflo
 
 1. Open the local services.
 
-   - Platform: <http://127.0.0.1:8010>
-   - API: <http://127.0.0.1:8011>
+   - API: <http://127.0.0.1:8010>
+   - App frontend: <http://127.0.0.1:8011>
    - Docs: <http://127.0.0.1:8012>
-   - App frontend: <http://127.0.0.1:8013>
+   - Landing site: <http://127.0.0.1:8013>
 
 1. Verify the backend is healthy.
 
    ```bash
-   curl http://127.0.0.1:8011/health
+   curl http://127.0.0.1:8010/health
    ```
 
 1. Run checks if needed.

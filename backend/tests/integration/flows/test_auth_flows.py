@@ -17,6 +17,7 @@ from sqlalchemy import select
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
 from app.api.auth.services import refresh_token_service
+from tests.integration.api.auth.shared import login_bearer, login_session
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
@@ -80,17 +81,12 @@ class TestCompleteAuthFlow:
         user = await get_user_by_email(db_session, register_data["email"])
         assert user is not None, "User not found in database after registration"
 
-        # Step 2: Login with bearer authentication
-        login_data = {
-            "username": register_data["email"],
-            "password": register_data["password"],
-        }
-        login_response = await api_client.post("/v1/auth/bearer/login", data=login_data)
-
-        assert login_response.status_code == status.HTTP_200_OK, "Login failed, skipping integration test"
-
-        # Bearer login returns both tokens in JSON; browser sessions use HttpOnly cookies.
-        login_result = login_response.json() if login_response.text else {}
+        # Step 2: Login with bearer authentication.
+        login_result = await login_bearer(
+            api_client,
+            email=register_data["email"],
+            password=register_data["password"],
+        )
 
         access_token = login_result.get("access_token")
         refresh_token = login_result.get("refresh_token")
@@ -154,11 +150,8 @@ class TestCompleteAuthFlow:
         # Verify user doesn't have login tracking yet
         assert user.last_login_at is None
 
-        # Step 2: Login
-        login_data = {"username": register_data["email"], "password": register_data["password"]}
-        login_response = await api_client.post("/v1/auth/bearer/login", data=login_data)
-
-        assert login_response.status_code == status.HTTP_200_OK
+        # Step 2: Login.
+        await login_bearer(api_client, email=register_data["email"], password=register_data["password"])
 
         # Step 3: Verify login tracking was updated
         # Clear session cache to ensure we get fresh data from DB
@@ -187,15 +180,11 @@ class TestCompleteAuthFlow:
 
         assert register_response.status_code == status.HTTP_201_CREATED
 
-        # Step 2: Login with session transport
-        login_data = {"username": register_data["email"], "password": register_data["password"]}
-        login_response = await api_client.post("/v1/auth/session/login", data=login_data)
+        # Step 2: Login with session transport.
+        await login_session(api_client, email=register_data["email"], password=register_data["password"])
 
-        assert login_response.status_code == status.HTTP_204_NO_CONTENT, "Session login failed"
-
-        # Verify cookies were set
-        cookies = login_response.cookies
-        assert len(cookies) > 0 or "set-cookie" in login_response.headers
+        # Verify cookies were set on the client.
+        assert api_client.cookies
 
         # Step 3: Access protected endpoint using cookies
 
@@ -241,13 +230,12 @@ class TestErrorHandling:
             )
             await api_client.post("/v1/auth/register", json=register_data)
 
-        login_data = {"username": register_data["email"], "password": register_data["password"]}
-        login_response = await api_client.post("/v1/auth/bearer/login", data=login_data)
-
-        assert login_response.status_code == status.HTTP_200_OK
-
         # Get bearer tokens from the JSON response.
-        login_result = login_response.json() if login_response.text else {}
+        login_result = await login_bearer(
+            api_client,
+            email=register_data["email"],
+            password=register_data["password"],
+        )
         access_token = login_result.get("access_token")
         refresh_token = login_result.get("refresh_token")
         assert refresh_token is not None, "No refresh token in login response"

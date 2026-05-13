@@ -1,7 +1,7 @@
 import process from 'node:process';
 import { defineConfig, devices } from '@playwright/test';
 
-const DOCS_PREVIEW_URL = 'http://127.0.0.1:4300';
+const DOCS_PREVIEW_URL = 'http://127.0.0.1:18012';
 
 export default defineConfig({
   testDir: './e2e',
@@ -20,7 +20,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'astro preview --port 4300 --host 127.0.0.1',
+    command: 'astro preview --port 18012 --host 127.0.0.1 --strictPort',
     url: DOCS_PREVIEW_URL,
     reuseExistingServer: !process.env.CI,
     stdout: 'ignore',

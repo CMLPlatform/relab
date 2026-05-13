@@ -34,9 +34,9 @@ typecheck:
 dev:
     #!/usr/bin/env bash
     set -euo pipefail
-    export PUBLIC_APP_URL="${PUBLIC_APP_URL:-http://localhost:8013}"
-    export PUBLIC_DOCS_URL="${PUBLIC_DOCS_URL:-http://localhost:8012}"
-    export PUBLIC_SITE_URL="${PUBLIC_SITE_URL:-http://localhost:8010}"
+    export PUBLIC_APP_URL="${PUBLIC_APP_URL:-http://127.0.0.1:8011}"
+    export PUBLIC_DOCS_URL="${PUBLIC_DOCS_URL:-http://127.0.0.1:8012}"
+    export PUBLIC_SITE_URL="${PUBLIC_SITE_URL:-http://127.0.0.1:8013}"
     pnpm run dev
 
 # Auto-format code with Biome

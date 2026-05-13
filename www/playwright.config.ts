@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { getNodeRuntimeConfig } from './config/runtime.ts';
 
 const runtimeConfig = getNodeRuntimeConfig();
-const localBaseUrl = 'http://127.0.0.1:8081';
+const localBaseUrl = 'http://127.0.0.1:18013';
 
 // Structural (ARIA) snapshots only run on desktop Chromium — one baseline
 // is enough to catch landmark/heading regressions. Other projects ignore it.

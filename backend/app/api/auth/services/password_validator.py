@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 MIN_PASSWORD_LENGTH = 12
 MIN_CONTEXT_TOKEN_LENGTH = 3
 
+
 def _normalize_for_validation(value: str) -> str:
     """Normalize user-controlled strings before validation comparisons."""
     return unicodedata.normalize("NFC", value).casefold()

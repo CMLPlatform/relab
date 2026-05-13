@@ -22,7 +22,7 @@ update:
     pnpm dedupe
 
 # Start development server with live reload
-dev PORT="8000":
+dev PORT="8012":
     pnpm run dev -- --port {{ quote(PORT) }}
 
 # Run lint checks
