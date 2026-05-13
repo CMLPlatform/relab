@@ -1,5 +1,5 @@
 """Unit tests for password validation helpers."""
-# spell-checker: ignore alicewonder, blocklisted, elevenchars, hibp
+# spell-checker: ignore alicewonder, elevenchars, hibp
 
 from __future__ import annotations
 
@@ -124,11 +124,10 @@ async def test_validate_password_rejects_username_case_insensitively() -> None:
 
 
 async def test_validate_password_rejects_blocklisted_passwords() -> None:
-    """Common and project-specific blocklisted passwords should be rejected."""
-    for password in ("password12345", "relab-password"):
-        with pytest.raises(InvalidPasswordException) as exc:
-            await validate_password(password, email="a@b.c", skip_breach_check=True)
-        assert "too common" in exc.value.reason
+    """Common passwords from the xato blocklist should be rejected."""
+    with pytest.raises(InvalidPasswordException) as exc:
+        await validate_password("password12345", email="a@b.c", skip_breach_check=True)
+    assert "too common" in exc.value.reason
 
 
 async def test_validate_password_normalizes_unicode_before_checks() -> None:

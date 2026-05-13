@@ -3,7 +3,8 @@
 Extracted from UserManager per ADR-012 to keep auth business logic
 in services rather than fastapi-users hooks.
 """
-# spell-checker: ignore blocklisted, changeme, letmein, reverseengineeringlab
+
+from __future__ import annotations
 
 import hashlib
 import logging
@@ -13,23 +14,12 @@ from fastapi_users import InvalidPasswordException
 from httpx import AsyncClient, HTTPError
 from pydantic import SecretStr
 
+from app.api.auth.services.common_password_checker import CommonPasswordChecker, load_local_common_passwords
+
 logger = logging.getLogger(__name__)
 
 MIN_PASSWORD_LENGTH = 12
 MIN_CONTEXT_TOKEN_LENGTH = 3
-BLOCKLISTED_PASSWORD_TOKENS = frozenset(
-    {
-        "password",
-        "qwerty",
-        "admin",
-        "letmein",
-        "welcome",
-        "changeme",
-        "relab",
-        "reverseengineeringlab",
-    }
-)
-
 
 def _normalize_for_validation(value: str) -> str:
     """Normalize user-controlled strings before validation comparisons."""
@@ -42,12 +32,6 @@ def _password_contains_context(password: str, value: str | None) -> bool:
         return False
     normalized_value = _normalize_for_validation(value)
     return len(normalized_value) >= MIN_CONTEXT_TOKEN_LENGTH and normalized_value in password
-
-
-def _password_matches_blocklist(password: str) -> bool:
-    """Return whether the normalized password contains a known weak token."""
-    compact_password = "".join(char for char in password if char.isalnum())
-    return any(blocked in compact_password for blocked in BLOCKLISTED_PASSWORD_TOKENS)
 
 
 async def check_pwned_password(password: str, http_client: AsyncClient) -> int:
@@ -85,6 +69,7 @@ async def validate_password(
     username: str | None = None,
     http_client: AsyncClient | None = None,
     skip_breach_check: bool = False,
+    common_password_checker: CommonPasswordChecker | None = None,
 ) -> None:
     """Validate password meets security requirements.
 
@@ -104,10 +89,11 @@ async def validate_password(
         raise InvalidPasswordException(reason="Password should not contain e-mail")
     if _password_contains_context(normalized_password, username):
         raise InvalidPasswordException(reason="Password should not contain username")
-    if _password_matches_blocklist(normalized_password):
-        raise InvalidPasswordException(
-            reason="Password is too common. Please choose a longer, less predictable password."
-        )
+    if common_password_checker is not None:
+        if await common_password_checker.matches(password):
+            raise InvalidPasswordException(reason="Password is too common")
+    elif load_local_common_passwords().matches(password):
+        raise InvalidPasswordException(reason="Password is too common")
 
     if not skip_breach_check and http_client:
         breach_count = await check_pwned_password(password, http_client)

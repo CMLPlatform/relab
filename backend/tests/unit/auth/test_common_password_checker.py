@@ -39,9 +39,7 @@ def test_load_local_common_passwords_normalizes_and_compacts_entries(tmp_path: P
     passwords = load_local_common_passwords(path)
 
     assert passwords.entry_count == 2
-    assert passwords.members == frozenset(
-        {"exact:pass word 12345", "compact:password12345", "exact:pass-word-12345"}
-    )
+    assert passwords.members == frozenset({"exact:pass word 12345", "compact:password12345", "exact:pass-word-12345"})
 
 
 async def test_common_password_checker_seeds_and_checks_redis(redis_client: Redis) -> None:
