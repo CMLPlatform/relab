@@ -5,8 +5,8 @@ from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel
+from sqlalchemy import CheckConstraint, ForeignKey, Index
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Index
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -51,7 +51,10 @@ class File(TimeStampMixinBare, Base):
     """Database model for generic files stored in the local file system."""
 
     __tablename__ = "file"
-    __table_args__ = (Index("ix_file_parent_type_parent_id", "parent_type", "parent_id"),)
+    __table_args__ = (
+        CheckConstraint("upload_size_bytes >= 0", name="ck_file_upload_size_bytes_non_negative"),
+        Index("ix_file_parent_type_parent_id", "parent_type", "parent_id"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     filename: Mapped[str] = mapped_column(doc="Original file name of the file.")
@@ -66,7 +69,10 @@ class Image(TimeStampMixinBare, Base):
     """Database model for images stored in the local file system."""
 
     __tablename__ = "image"
-    __table_args__ = (Index("ix_image_parent_type_parent_id", "parent_type", "parent_id"),)
+    __table_args__ = (
+        CheckConstraint("upload_size_bytes >= 0", name="ck_image_upload_size_bytes_non_negative"),
+        Index("ix_image_parent_type_parent_id", "parent_type", "parent_id"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     filename: Mapped[str] = mapped_column(nullable=False, doc="Original file name of the image.")

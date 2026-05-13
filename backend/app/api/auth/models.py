@@ -5,7 +5,7 @@ from datetime import datetime  # noqa: TC003 # Used at runtime for ORM mapped an
 from typing import Any  # noqa: TC003 # Used at runtime for ORM mapped annotations
 
 from pydantic import BaseModel
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -29,6 +29,10 @@ class User(BaseUserDB, TimeStampMixinBare):
 
     # Override __tablename__ from base (both set "user", this is explicit)
     __tablename__ = "user"
+    __table_args__ = (
+        CheckConstraint("upload_file_count >= 0", name="ck_user_upload_file_count_non_negative"),
+        CheckConstraint("upload_total_bytes >= 0", name="ck_user_upload_total_bytes_non_negative"),
+    )
 
     username: Mapped[str | None] = mapped_column(String(50), index=True, unique=True, default=None)
 
@@ -41,6 +45,10 @@ class User(BaseUserDB, TimeStampMixinBare):
     # Pre-computed public-profile statistics stored as a flexible JSONB snapshot.
     profile_stats: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)
     profile_stats_computed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+    # Authoritative upload quota ledger for product-owned files and images.
+    upload_file_count: Mapped[int] = mapped_column(nullable=False, server_default="0", default=0)
+    upload_total_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default="0", default=0)
 
     # One-to-many relationship with OAuthAccount
     oauth_accounts: Mapped[list[OAuthAccount]] = relationship(

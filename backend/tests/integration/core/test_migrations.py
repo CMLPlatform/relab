@@ -62,10 +62,32 @@ def test_user_table_has_required_columns(migration_helper: MigrationHelper) -> N
         "updated_at",
         "profile_stats",
         "profile_stats_computed_at",
+        "upload_file_count",
+        "upload_total_bytes",
     }
     missing = required - columns
     assert not missing, f"user table is missing columns: {missing}"
     assert "last_login_ip" not in columns
+
+
+@pytest.mark.migration
+def test_user_table_has_upload_quota_constraints(migration_helper: MigrationHelper) -> None:
+    """Upload quota ledger counters must not be allowed to go negative."""
+    constraints = migration_helper.get_table_constraints("user")
+    check_names = {constraint["name"] for constraint in constraints["checks"]}
+    assert "ck_user_upload_file_count_non_negative" in check_names
+    assert "ck_user_upload_total_bytes_non_negative" in check_names
+
+
+@pytest.mark.migration
+def test_media_tables_have_upload_size_constraints(migration_helper: MigrationHelper) -> None:
+    """Persisted upload sizes must not be allowed to go negative."""
+    file_constraints = migration_helper.get_table_constraints("file")
+    image_constraints = migration_helper.get_table_constraints("image")
+    file_check_names = {constraint["name"] for constraint in file_constraints["checks"]}
+    image_check_names = {constraint["name"] for constraint in image_constraints["checks"]}
+    assert "ck_file_upload_size_bytes_non_negative" in file_check_names
+    assert "ck_image_upload_size_bytes_non_negative" in image_check_names
 
 
 @pytest.mark.migration
