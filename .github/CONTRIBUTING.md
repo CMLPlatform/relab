@@ -191,24 +191,20 @@ Keep new settings in the smallest surface that actually needs them. If a change 
 
 ## Quality Controls
 
-Keep quality checks close to the changed surface:
+Run the relevant subrepo checks before opening a pull request:
 
-- backend changes: unit or integration tests, Ruff, and `ty`
-- Expo app changes: Jest plus the TypeScript and lint checks
-- public web changes: Vitest, Astro checks, and Playwright where browser behavior changes
-- docs changes: formatting, spelling, and build smoke checks
+- backend: unit or integration tests, Ruff, and `ty`
+- app: Jest, TypeScript, and lint checks
+- www: Vitest, Astro checks, and Playwright where browser behavior changes
+- docs: formatting, spelling, and build smoke check
 
-GitHub Actions also cover dependency review, container scanning, repository hygiene, and release/security artifact checks. Prefer the focused subrepo `just` targets while developing, then use root-level checks for cross-repo or policy changes.
+For cross-repo or policy changes, also run `just ci` from the root. GitHub Actions covers dependency review, container scanning, repository hygiene, and release artifact checks on every push.
 
-## Security Review Expectations
+## Security
 
-RELab uses [OWASP ASVS 5.0.0](https://github.com/OWASP/ASVS) as the application-security baseline. The deployed security posture lives in the public [Security and hardening](https://docs.cml-relab.org/operations/security/) docs.
+For changes that touch authentication, authorization, uploads, device flows, admin APIs, secrets, or personal data, include security context in the pull request and update the relevant docs if behavior changes. See [SECURITY.md](SECURITY.md) for the reviewer checklist.
 
-For changes that touch authentication, authorization, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets, dependencies, or personal data, include security considerations in the pull request and update the relevant docs when behavior changes.
-
-Use the security section in the pull request template for sensitive changes. If a change creates a new attack-surface bucket or meaningfully changes a trust boundary, update [SECURITY.md](SECURITY.md), the public security docs, or both.
-
-Use `just security` for local maintainer diagnosis.
+Use `just security` for local diagnosis.
 
 ## Backend Setup
 
@@ -250,28 +246,16 @@ Keep examples centralized and predictable:
 - In routers, pass examples via `openapi_examples=...` parameter
 - Update `backend/tests/integration/api/test_openapi_endpoints.py` when changing examples
 
-### Backend Module Structure
-
-Keep modules small, explicit, and domain-shaped:
-
-- One top-level package per domain: `auth`, `background_data`, `data_collection`, `file_storage`, `newsletter`, `plugins/rpi_cam`
-- Prefer flat modules first: `crud.py`, `dependencies.py`, `examples.py`, `exceptions.py`, `filters.py`, `models.py`, `schemas.py`
-- Use `routers/` only when multiple route files exist; entrypoint goes in `routers/__init__.py`
-- Use `models/` only when both ORM models and storage primitives exist; expose public surface at `models/__init__.py`
-- Use `services/` and `utils/` only when they reflect a real boundary; delete pass-through layers when simple enough to call directly
-- Keep shared behavior in `backend/app/api/common/`
-- Use SQLAlchemy expressions and bind parameters for database input; allowlist dynamic identifiers or sort tokens; never pass request-controlled data to shell commands.
-
 ### Backend Test Architecture
 
-Keep the backend suite organized by execution cost first, then by feature:
+The backend suite is organized by execution cost:
 
-- `backend/tests/unit/`: pure unit tests only, with no database session, testcontainers startup, or real app lifespan
-- `backend/tests/integration/db/`: CRUD, ORM, and persistence behavior against the real schema
-- `backend/tests/integration/api/`: HTTP endpoint behavior against the ASGI app
-- `backend/tests/integration/flows/`: a small set of cross-boundary, multi-step scenarios
-
-Use the backend test commands that match those tiers:
+| Tier | Path | When to use |
+| ---- | ---- | ----------- |
+| unit | `backend/tests/unit/` | pure logic with mocks/stubs only, no database or app lifespan |
+| integration/db | `backend/tests/integration/db/` | behavior that depends on SQLAlchemy queries, migrations, or constraints |
+| integration/api | `backend/tests/integration/api/` | HTTP behavior tested against the ASGI app; one behavior per test |
+| flows | `backend/tests/integration/flows/` | full multi-step cross-boundary scenarios |
 
 ```bash
 cd backend
@@ -282,29 +266,7 @@ just test-flows
 just test-ci
 ```
 
-Fixture conventions should stay explicit and descriptive:
-
-- `db_session` for database access
-- `db_user` and `db_superuser` for persisted auth principals
-- `api_client`, `api_client_user`, and `api_client_superuser` for HTTP tests
-- `redis_client` or feature-local Redis fixtures where applicable
-
-Do not add or reintroduce `session` or `superuser` as in-repo fixture aliases. Use the canonical `db_session` and `db_superuser` names directly.
-
-Do not add compatibility-only test coverage for fixture aliases, re-export modules, or pass-through wrappers unless they protect a deliberate stable external contract. Prefer testing behavior at the canonical fixture or module surface.
-
-Keep fixtures close to the tests that use them when the reuse is local. Reserve `backend/tests/conftest.py` for bootstrap concerns such as testcontainers, test database setup, and global logging behavior. Avoid broad `autouse` fixtures unless they are true cross-suite safety rails.
-
-Keep API tests focused on one behavior per test. Avoid multi-step CRUD journeys in `tests/integration/api/`; move those broader stories to `tests/integration/flows/`.
-
-Path is the primary source of truth for where a test belongs:
-
-- Choose `unit` when the test can run with mocks/stubs only.
-- Choose `integration/db` when the behavior depends on SQLAlchemy queries, migrations, or constraints.
-- Choose `integration/api` when the behavior is expressed as HTTP requests against the app.
-- Choose `flows` only when the value comes from verifying a full multi-step journey.
-
-If a test file starts growing into a mixed “god file”, split it by behavior before adding more cases.
+Standard fixture names: `db_session`, `db_user`, `db_superuser`, `api_client`, `api_client_user`, `api_client_superuser`, `redis_client`.
 
 ## Frontend Setup
 
@@ -324,20 +286,14 @@ To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in your en
 
 ### Regenerating API types
 
-The frontend TypeScript API types are autogenerated from the backend OpenAPI schema and written to `app/src/types/api.generated.ts`.
-
-When working on backend API changes, regenerate the types:
+After backend API changes, regenerate the TypeScript types from the OpenAPI schema:
 
 ```bash
-# from repo root
 cd app
-pnpm run codegen:api
-
-# regenerate and redact embedded JWT examples (recommended)
-pnpm run codegen
+just codegen   # regenerate and redact embedded JWT examples
 ```
 
-You can also run `just codegen` inside `app` (after `just install`) which runs the regeneration and redaction steps.
+See [app/README.md](../app/README.md) for more options.
 
 ### `www`
 
@@ -362,8 +318,6 @@ just dev
 ```
 
 The docs site runs on <http://127.0.0.1:8012>.
-
-The docs app is the canonical home for public guides, architecture reference, and project context. Keep repo-level setup text in this file short and link back to the docs site when deeper explanation belongs there.
 
 ## Development Workflow
 
@@ -397,88 +351,9 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 <type>(<scope>): <short summary>
 ```
 
-## CI
-
-The repo uses GitHub Actions for:
-
-- normal CI
-- security checks
-- release automation
-
-Locally, the important commands are:
-
-- `just ci`
-- `just test`
-- `just test-integration`
-- `just security`
-
 ## Backend Development
 
-### Backend Code Style
-
-The backend uses:
-
-- Ruff for linting and formatting
-- Ty for static type checking
-- ShellCheck for shell scripts
-
-Useful commands from `backend/`:
-
-```bash
-just lint
-just format
-just fix
-just typecheck
-just shellcheck
-just check
-```
-
-### Backend Testing
-
-Useful commands from `backend/`:
-
-```bash
-just test
-just test-unit
-just test-integration
-just test-cov
-```
-
-When adding backend behavior, add tests close to the change. Prefer small unit tests unless the behavior really depends on routing, persistence, or integration boundaries.
-
-### Database Migrations
-
-When changing schema:
-
-1. Create a migration.
-
-   ```bash
-   cd backend
-   just migrate-create "describe the change"
-   ```
-
-1. Review the generated file in `alembic/versions/`.
-
-1. Apply it.
-
-   ```bash
-   just migrate
-   ```
-
-For Docker-based runs, you can also use `just dev-migrate` from the repo root.
-
-### Email Templates
-
-MJML source templates live in `backend/app/templates/emails/src/`. Compiled HTML lives in `backend/app/templates/emails/build/`.
-
-Do not edit compiled output directly.
-
-To rebuild email templates:
-
-```bash
-cd backend
-just compile-email
-```
+For code style, test commands, migration workflow, and email templates, see [backend/README.md](../backend/README.md).
 
 ## Frontend Development
 

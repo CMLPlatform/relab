@@ -78,18 +78,14 @@ for unknown hostnames. It does not manage app secrets, Compose services,
 PostgreSQL, Redis, storage, backups, or host deployment.
 
 The current origins point at Compose services such as `http://api:8000` and
-`http://app:8081`. If RELab later moves to Kubernetes or cloud-managed
-containers, keep the public hostname map stable and replace the origin targets
-with Kubernetes service names, internal load balancers, or other private origins.
+`http://app:8081`.
 
 Use separate prod and staging OpenTofu workspaces/state. Before applying this to
 an existing Cloudflare account, import the current DNS records and tunnels, then
 run `just cloudflare-plan staging` or `just cloudflare-plan prod` until the plan
 shows only intentional drift. Apply with `just cloudflare-apply <env> YES` after
-reviewing the plan. Provide Cloudflare/OpenTofu credentials through environment
-variables; today those can be exported manually, and later they can come from a
-department-owned password manager. Do not commit Cloudflare tokens, tunnel
-tokens, or state files.
+reviewing the plan. Export Cloudflare/OpenTofu credentials as environment variables before running
+these commands. Do not commit Cloudflare tokens, tunnel tokens, or state files.
 
 Public hostname changes should start in `infra/cloudflare/`. Do not add wildcard
 DNS records unless there is a concrete operational need and the blast radius has
@@ -129,7 +125,7 @@ Every deployed browser-facing origin emits:
 Strict-Transport-Security: max-age=63072000; includeSubDomains
 ```
 
-Static frontends set this in Caddy; the API sets it from FastAPI in `prod` and `staging`. `preload` is intentionally omitted until the full `cml-relab.org` subdomain inventory is verified.
+Static frontends set this in Caddy; the API sets it from FastAPI in `prod` and `staging`. `preload` is omitted; the full `cml-relab.org` subdomain inventory has not been verified for preloading.
 
 PostgreSQL and Redis stay on the private Compose `data` network, so
 `DATABASE_TLS=false` and `REDIS_TLS=false` are intentional defaults. If either

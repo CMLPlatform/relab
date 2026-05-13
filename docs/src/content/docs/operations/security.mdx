@@ -18,6 +18,34 @@ RELab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-securi
 
 Valuable assets include accounts, profile/privacy settings, research records, uploaded media/files, OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup material, and runtime secrets.
 
+## Data Protection
+
+RELab classifies data by how much harm disclosure or misuse would cause, then keeps the protection rules close to that classification:
+
+- **Public research data:** product records, public catalog/reference data, public dataset metadata, and intentionally public uploaded media. These may be cached when responses are public and content-addressed assets must 404 when missing rather than falling back to the app shell.
+- **User and account data:** email addresses, usernames, profile preferences, contribution statistics, owner attribution, and account state. These are access-controlled by backend dependencies and privacy policy helpers. Viewer-dependent API responses use `no-store`, and product owner identity is redacted when profile visibility does not allow the current viewer to see it.
+- **Secrets and credentials:** passwords, auth tokens, refresh-token state, OAuth/YouTube tokens, RPi camera credentials, local camera API keys, runtime secrets, encryption keys, database passwords, and backup passwords. These must not appear in URLs, logs, browser local storage, docs examples, or analytics. Browser sessions use secure cookies; native bearer tokens use platform secure storage; local camera API keys use secure storage on native and memory-only storage on web.
+- **Uploads and metadata:** uploaded images, generic research files, derived thumbnails, image metadata, video metadata, and RPi capture metadata. Uploads are validated, malware-scanned when enabled, and size-limited before storage. Stored display images are post-processed to apply orientation and strip EXIF metadata; original research files are stored as submitted because the file itself is the research artifact.
+- **Operational data:** request IDs, logs, telemetry, database dumps, and backup archives. Logs and traces must avoid tokens, passwords, OAuth material, private URLs, and sensitive personal values. Backups and dumps inherit the highest classification of their contents and are encrypted, access-controlled, and retained only for operational recovery.
+
+Protection requirements:
+
+- Send sensitive values in request bodies, headers, secure cookies, or URL fragments that are scrubbed by the client; never place them in server-visible query strings.
+- Use `Cache-Control: no-store` for authenticated, viewer-dependent, error, logout, password-reset, and verification flows. Public immutable assets may use long-lived caching only when missing files produce a real 404.
+- Keep access control server-side. Public docs schemas and filtered UI states are inventory tools, not authorization controls.
+- Store secret material in Docker secrets, secure platform stores, hashed/token-fingerprint state, or encrypted backup material as appropriate for the data type.
+- Delete obsolete runtime state through existing session revocation, upload deletion, cache invalidation, cleanup, and backup rotation workflows. Add explicit retention automation when a new data class needs a schedule beyond those workflows.
+
+## Logging and Error Handling
+
+The backend writes application, access, audit, and security-control events through the standard Python logging stack. Development logs are human-readable; production and staging logs are JSON on stderr so container log drivers and processors can parse them consistently. Each request gets an `X-Request-ID` value that is echoed to the client and attached to backend log records with method, path, status, and latency.
+
+Structured audit events cover accountability actions and security-control outcomes such as login success or failure, MFA challenge success or failure, logout, all-session revocation, authorization denial, and rate limiting. Event fields are sanitized before logging. Logs may include stable IDs, masked account identifiers, request metadata, action names, resource labels, outcomes, and non-secret reasons; they must not include passwords, raw tokens, OAuth material, private URLs, or raw sensitive payload bodies.
+
+Container logs are the default storage and transport mechanism. Deploy hosts may add the optional Loki logging overlay, and OpenTelemetry export may be enabled when an operator has a separate collector. Log access, retention, backup, and deletion are operator responsibilities outside the application process; RELab only emits to the documented stdout/stderr, Loki, or OTel paths configured for that deployment.
+
+Unexpected application errors are handled by the backend catch-all exception handler. Internal details and stack traces are logged for operators, while clients receive generic Problem Details responses with the request ID for correlation.
+
 ## Inbound Edge
 
 Production and staging are HTTPS-only behind Cloudflare Tunnel. Source-controlled Cloudflare configuration in `infra/cloudflare/` owns DNS records, public hostnames, tunnel ingress rules, TLS minimums, HTTPS redirects, and RELab-specific rate limiting for auth, upload, and RPi camera traffic.
@@ -45,7 +73,9 @@ Prefer exact HTTPS URLs. Use trailing-slash prefixes only for integrations with 
 
 RELab keeps denial-of-service mitigation layered. Cloudflare Tunnel is the public ingress for production and staging; source-controlled edge rules cover `/v1/auth/*`, upload routes, RPi camera upload routes, and WebSocket connection attempts. Volumetric attacks are handled by Cloudflare and upstream infrastructure, not by FastAPI.
 
-The backend still enforces application-level limits: JSON streaming limits, multipart upload caps, file format allowlists, Redis-backed route rate limits, and WebSocket authentication and frame limits.
+The expensive paths are media uploads, image processing and thumbnails, malware scanning, file cleanup, backups, OpenAPI/schema generation, YouTube API calls, and RPi camera relay/HLS traffic. The backend keeps these bounded with JSON streaming limits, multipart upload caps, file format allowlists, user upload quotas, Redis-backed route rate limits, image worker limits, ClamAV scan timeouts, bounded outbound HTTP timeouts/retries, WebSocket authentication and frame limits, and camera relay circuit-breaking.
+
+Long-running maintenance work should stay in `just` tasks, scripts, migrations, or background services rather than request handlers. New API paths that can exceed normal client timeouts need asynchronous processing or explicit limits before exposure.
 
 For one host only, create a gitignored `compose.host.yaml`; deploy recipes include it last:
 
@@ -62,12 +92,34 @@ RELab does not load third-party browser runtime JavaScript by default. Browser c
 
 The current exception is product video embedding from `https://www.youtube-nocookie.com`, constrained by CSP and iframe/WebView controls. Any new third-party runtime script must be reviewed, documented, CSP-allowlisted, and tested.
 
-The Expo web app still requires inline and eval-style first-party script support in the enforced CSP. A stricter report-only policy tracks the migration target and remains an ASVS V3 L3 exception. Docs and public web origins enforce stricter script policies; all browser origins enforce `object-src`, `base-uri`, `frame-ancestors`, and referrer suppression.
+The Expo web app requires inline and eval-style first-party script support in the enforced CSP. A stricter report-only policy is active and documented as an ASVS V3 L3 exception. Docs and public web origins enforce stricter script policies; all browser origins enforce `object-src`, `base-uri`, `frame-ancestors`, and referrer suppression.
 
-## Supply Chain Artifacts
+## Supply Chain
 
 GitHub Dependency Review and Dependency Graph gate dependency changes, while Renovate opens dependency update PRs. For an explicit full-tree dependency vulnerability sweep, run `just audit`.
 
 The security workflow builds deployable Compose images, scans them with Trivy, and stores SPDX JSON SBOM artifacts for 90 days. Release automation rebuilds deployable images, generates SPDX SBOMs, attests SBOM files with GitHub artifact attestations, and uploads them with GitHub releases.
 
-RELab deploys locally built Compose images, so release attestations prove SBOM file provenance. Image-digest-bound SBOM attestations require publishing runtime images to a registry.
+Dependency updates use risk-based timeframes:
+
+- critical exploitable vulnerabilities: mitigate or patch within 48 hours
+- high vulnerabilities: patch within 7 days
+- medium vulnerabilities: patch within 30 days
+- low vulnerabilities and routine library updates: handle in the normal weekly Renovate cycle
+
+If no upstream fix exists, record the accepted risk, compensating control, or temporary pin in the PR, issue, or nearest maintainer documentation. Do not keep production dependencies past these windows without an explicit maintainer decision.
+
+Trusted dependency sources are the source-controlled package manifests, lockfiles, Docker image references, GitHub Actions pins, and Renovate configuration. SBOMs produced by security and release workflows are the deployable dependency inventory. RELab deploys locally built Compose images, so release attestations prove SBOM file provenance; image-digest-bound SBOM attestations require publishing runtime images to a registry.
+
+Risky components are dependencies that parse untrusted content, execute native code, perform cryptography, manage authentication, or open network/file boundaries. Current examples include image processing, archive/office file inspection, OAuth/provider clients, S3-compatible storage, Redis/PostgreSQL drivers, ClamAV, and browser media playback helpers. Changes to these components need maintainer review even when automated checks pass.
+
+## Dangerous Functionality
+
+Dangerous functionality is isolated behind small modules and reviewed as a security-sensitive bucket:
+
+- upload byte handling, public file serving, image processing, archive/office inspection, and malware scanning live in the backend file-storage and image modules
+- outbound HTTP must use the shared client with no ambient proxy trust, no automatic redirects, bounded timeouts, TLS validation, and URL allowlists
+- RPi camera direct and relayed traffic is authenticated, rate-limited, and separated from database/storage services by Compose network boundaries
+- backup jobs read database and upload volumes but run in dedicated containers with separate secrets
+
+New dangerous functionality should be encapsulated near its trust boundary, covered by focused tests, and documented here when it changes the security model.

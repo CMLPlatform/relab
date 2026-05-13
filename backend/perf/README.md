@@ -112,7 +112,7 @@ just perf-baseline
 ## Recommended Baseline Inputs
 
 - Use `just docker-ci-perf-baseline` so the database is seeded with stable sample products before the k6 run starts.
-- `live_probe` and `product_list_read` are the baseline scenarios and should always remain runnable.
+- `live_probe` and `product_list_read` are the baseline scenarios and must stay runnable.
 - `media_url_read` is opportunistic rather than required. The baseline must still run cleanly if no media URL is provided.
 - Use `/v1/products?size=20` as the default product-read baseline unless you intentionally want a different page size.
 - Reuse the CI superuser from `backend/.env.test` for login measurements unless you explicitly need another account.
@@ -123,33 +123,11 @@ just perf-baseline
 
 After a meaningful run, save a short dated markdown summary in `reports/performance/` so the numbers are easy to review in PRs.
 
-The current thresholds are provisional and were first calibrated from a dockerized baseline captured on `2026-03-30`. Recalibrate them after the first canonical CI-stack baseline capture.
+To recalibrate thresholds, run the `Performance Baseline` workflow with `workflow_dispatch`, download the `backend-perf-baseline-artifacts` artifact, replace `reports/performance/latest-k6-summary.json` with the artifact copy, then use the maintainer-only perf helpers in `backend/justfile` to write a dated report and refresh thresholds in `perf/k6-baseline.js`. Commit the dated report and updated thresholds together.
 
-## Make CI The Baseline
+Report writing and threshold refresh are maintenance operations, not routine commands. They are available as hidden backend `just` recipes to keep the public task surface small.
 
-Use this flow to replace the historical docker-dev baseline with a canonical CI-stack baseline.
+## Measurement Scope
 
-For local work, use the Docker CI stack only to validate the mechanics:
-
-1. Run the baseline:
-   `just docker-ci-perf-baseline`
-
-Then use GitHub Actions as the calibration source of truth:
-
-1. Run the `Performance Baseline` workflow with `workflow_dispatch`.
-1. Download the `backend-perf-baseline-artifacts` artifact from that run.
-1. Replace `reports/performance/latest-k6-summary.json` locally with the artifact copy from GitHub.
-1. If those GitHub CI numbers should become the new regression baseline, use the maintainer-only perf helpers in `backend/justfile` to write a dated report and refresh thresholds.
-1. Rerun the workflow or a local Docker CI smoke run to confirm the refreshed thresholds behave as expected.
-1. Commit the new dated CI report and the updated thresholds in `perf/k6-baseline.js`.
-
-Treat that new CI report as the canonical baseline and keep older docker-dev reports only as historical context.
-
-## Notes On What We Measure
-
-- `/v1/products` is intentionally part of the baseline because it is a supported public catalog read, not just an internal implementation detail.
-- Do not make the perf workflow depend on embedded image data in `/v1/products`; the baseline must stay useful even when no seeded media URL is present.
-
-## Maintainer Note
-
-Report writing and threshold refresh are maintenance operations, not routine commands. They stay available as hidden backend `just` recipes so the public task surface can stay small and stable.
+- `/v1/products` is part of the baseline because it is a supported public catalog read, not an internal implementation detail.
+- The perf workflow must not depend on embedded image data in `/v1/products`; the baseline must run cleanly even when no seeded media URL is present.

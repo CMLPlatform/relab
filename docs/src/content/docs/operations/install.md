@@ -105,7 +105,7 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
 
    - Set up a domain and a remotely managed tunnel in Cloudflare.
    - Forward traffic to `app:8081`, `www:8081`, `api:8000`, and `docs:8000`.
-   - Public DNS and Tunnel ingress are now represented in `infra/cloudflare/`.
+   - Public DNS and Tunnel ingress are managed in `infra/cloudflare/`.
      For an existing Cloudflare account, import the current resources before
      applying OpenTofu changes.
 
@@ -162,7 +162,7 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
    just backup-restore-smoke staging
    ```
 
-   In the current setup, deployment is done directly on the server.
+   Deployment runs directly on the server.
 
 1. For Cloudflare edge changes, plan from the repo checkout or an ops machine
    with OpenTofu and Cloudflare credentials.
@@ -184,9 +184,9 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
    just cloudflare-apply prod YES
    ```
 
-   The same commands will work later if those values come from Bitwarden or
-   another password manager. Keep prod and staging state separate. Do not commit
-   Cloudflare tokens, tunnel tokens, or state files.
+   These commands also work with credentials from Bitwarden or another password
+   manager. Keep prod and staging state separate. Do not commit Cloudflare
+   tokens, tunnel tokens, or state files.
 
 1. Run migrations.
 
