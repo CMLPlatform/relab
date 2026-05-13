@@ -51,6 +51,7 @@ words:
   - ASVS
   - Bitwarden
   - Caddyfiles
+  - clamav
   - HSTS
   - linkinator
   - LogQL
