@@ -9,7 +9,7 @@
 #   docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
-# spell-checker: ignore clamav, clamd, clamdscan, REDISCLI, requirepass, tmpfs
+# spell-checker: ignore clamd, clamdscan, REDISCLI, requirepass, tmpfs
 
 # --- Reusable fragments ------------------------------------------------------
 # Shipping container logs to a central Loki instance is opt-in: include
@@ -64,6 +64,7 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
       # Trust forwarded headers only from Docker-internal proxy addresses.
       FORWARDED_ALLOW_IPS: 172.16.0.0/12
+      TRUSTED_PROXY_CIDRS: 172.16.0.0/12
       # OpenTelemetry — OTEL_EXPORTER_OTLP_ENDPOINT is the on/off switch;
       # leave unset in root .env to disable. OTEL_SERVICE_NAME is read by the
       # OTEL SDK automatically from the container env and matches the compose
