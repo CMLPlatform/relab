@@ -16,7 +16,7 @@ from app.api.auth.schemas import UserCreate
 from app.api.auth.services import mfa_service
 from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.api.auth.services.user_database import UserDatabaseAsync
-from app.api.common.audit import AuditAction
+from app.api.common.audit import AuditAction, AuditContext
 
 from .shared import (
     COOKIE_EMAIL,
@@ -643,9 +643,7 @@ class TestLoginEndpoint:
             AuditAction.LOGIN_FAILURE,
             "auth",
             "credentials",
-            outcome="denied",
-            transport="bearer",
-            reason="bad_credentials",
+            context=AuditContext(outcome="denied", transport="bearer", reason="bad_credentials"),
         )
 
     async def test_session_cookie_login(self, api_client: AsyncClient) -> None:
