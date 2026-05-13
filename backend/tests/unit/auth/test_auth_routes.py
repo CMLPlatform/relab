@@ -20,27 +20,36 @@ from app.api.auth.routers.password_reset import (
 from app.api.auth.services.rate_limiter import PASSWORD_RESET_RATE_LIMIT, rate_limit_bucket_key
 
 
+def _dependency_names(route: APIRoute) -> set[str]:
+    """Return dependency function names attached directly to a route."""
+    return {
+        getattr(dependency.dependency, "__name__", "")
+        for dependency in route.dependencies
+        if dependency.dependency is not None
+    }
+
+
 def _request() -> Request:
     """Build a minimal request object for direct endpoint tests."""
     return Request({"type": "http", "method": "POST", "path": "/auth/forgot-password", "headers": []})
 
 
 def test_forgot_password_route_is_rate_limited() -> None:
-    """The password-reset e-mail request endpoint should be wrapped by the limiter."""
+    """The password-reset e-mail request endpoint should use the limiter dependency."""
     route = next(
         route for route in router.routes if isinstance(route, APIRoute) and route.path == f"/auth{FORGOT_PASSWORD_PATH}"
     )
 
-    assert hasattr(route.endpoint, "__wrapped__")
+    assert "rate_limit" in _dependency_names(route)
 
 
 def test_reset_password_route_is_rate_limited() -> None:
-    """The password-reset submission endpoint should be wrapped by the limiter."""
+    """The password-reset submission endpoint should use the limiter dependency."""
     route = next(
         route for route in router.routes if isinstance(route, APIRoute) and route.path == f"/auth{RESET_PASSWORD_PATH}"
     )
 
-    assert hasattr(route.endpoint, "__wrapped__")
+    assert "rate_limit" in _dependency_names(route)
 
 
 def test_forgot_password_account_rate_limit_key_uses_normalized_keyed_bucket() -> None:

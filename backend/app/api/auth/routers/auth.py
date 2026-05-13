@@ -27,7 +27,7 @@ from app.api.auth.services.user_manager import (
     cookie_auth_backend,
     fastapi_user_manager,
 )
-from app.api.common.audit import AuditAction, audit_event
+from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.routers.openapi import mark_router_routes_public
 from app.core.redis import OptionalRedisDep
 
@@ -54,9 +54,7 @@ async def _authenticate_first_factor(
             AuditAction.LOGIN_FAILURE,
             "auth",
             "credentials",
-            outcome="denied",
-            transport=transport,
-            reason="bad_credentials",
+            context=AuditContext(outcome="denied", transport=transport, reason="bad_credentials"),
         )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ErrorCode.LOGIN_BAD_CREDENTIALS)
     return user
@@ -89,7 +87,7 @@ async def bearer_login(
         redis=redis,
         bearer_strategy=bearer_strategy,
     )
-    audit_event(user.id, AuditAction.LOGIN_SUCCESS, User, user.id, transport="bearer")
+    audit_event(user.id, AuditAction.LOGIN_SUCCESS, User, user.id, context=AuditContext(transport="bearer"))
     return result
 
 
@@ -121,7 +119,7 @@ async def session_login(
         redis=redis,
         cookie_strategy=cookie_strategy,
     )
-    audit_event(user.id, AuditAction.LOGIN_SUCCESS, User, user.id, transport="session")
+    audit_event(user.id, AuditAction.LOGIN_SUCCESS, User, user.id, context=AuditContext(transport="session"))
     return None
 
 

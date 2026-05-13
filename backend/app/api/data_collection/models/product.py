@@ -217,6 +217,10 @@ class MaterialProductLink(MaterialProductLinkBase, TimeStampMixinBare, Base):
     """Association table to link Material with Product."""
 
     __tablename__ = "materialproductlink"
+    __table_args__ = (
+        Index("ix_materialproductlink_material_id", "material_id"),
+        Index("ix_materialproductlink_product_id", "product_id"),
+    )
 
     material_id: Mapped[int] = mapped_column(ForeignKey("material.id"), primary_key=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("product.id"), primary_key=True)
