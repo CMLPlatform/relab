@@ -28,6 +28,7 @@ export type TimedRequestInit = RequestInit & {
   timeoutMs?: number;
 };
 
+const REQUEST_ID_RANDOM_BYTES = 16;
 let fallbackRequestCounter = 0;
 
 export function createRequestId(): string {
@@ -35,10 +36,11 @@ export function createRequestId(): string {
     return globalThis.crypto.randomUUID();
   }
   if (typeof globalThis.crypto?.getRandomValues === 'function') {
-    const bytes = new Uint8Array(8);
+    const bytes = new Uint8Array(REQUEST_ID_RANDOM_BYTES);
     globalThis.crypto.getRandomValues(bytes);
     return `req-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
   }
+  // Last-resort correlation ID only; this path is not suitable for secrets.
   fallbackRequestCounter = (fallbackRequestCounter + 1) % Number.MAX_SAFE_INTEGER;
   return `req-${Date.now().toString(36)}-${fallbackRequestCounter.toString(36)}`;
 }
