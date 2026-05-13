@@ -1,5 +1,4 @@
 """OAuth login router builder."""
-
 # spell-checker: ignore annotationlib
 
 from typing import TYPE_CHECKING, Annotated, cast
@@ -21,7 +20,6 @@ from app.api.auth.exceptions import (
 from app.api.auth.models import User
 from app.api.auth.services.oauth_utils import (
     ACCESS_TOKEN_KEY,
-    CSRF_TOKEN_KEY,
     OAuth2AuthorizeResponse,
     OAuthCookieSettings,
     generate_csrf_token,
@@ -46,6 +44,7 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
         oauth_client: BaseOAuth2,
         backend: AuthenticationBackend[User, UUID4],
         state_secret: SecretType,
+        oauth_flow: str,
         redirect_url: str | None = None,
         cookie_settings: OAuthCookieSettings | None = None,
         *,
@@ -53,7 +52,7 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
         is_verified_by_default: bool = False,
     ) -> None:
         """Initialize the router builder."""
-        super().__init__(oauth_client, state_secret, redirect_url, cookie_settings)
+        super().__init__(oauth_client, state_secret, oauth_flow, redirect_url, cookie_settings)
         self.backend = backend
         self.associate_by_email = associate_by_email
         self.is_verified_by_default = is_verified_by_default
@@ -115,15 +114,12 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
             authorize_redirect_url = str(request.url_for(self.callback_route_name))
 
         csrf_token = generate_csrf_token()
-        state_data: dict[str, str] = {CSRF_TOKEN_KEY: csrf_token}
-
         redirect_uri = request.query_params.get("redirect_uri")
-        if redirect_uri:
-            if not self._is_allowed_frontend_redirect(redirect_uri):
-                raise OAuthInvalidRedirectURIError
-            state_data["frontend_redirect_uri"] = redirect_uri
+        if redirect_uri and not self._is_allowed_frontend_redirect(redirect_uri):
+            raise OAuthInvalidRedirectURIError
 
-        state = generate_state_token(state_data, self.state_secret)
+        extra_claims = {"frontend_redirect_uri": redirect_uri} if redirect_uri else None
+        state = generate_state_token(self.build_state_data(csrf_token, extra_claims), self.state_secret)
         authorization_url = await self.oauth_client.get_authorization_url(
             authorize_redirect_url,
             state,

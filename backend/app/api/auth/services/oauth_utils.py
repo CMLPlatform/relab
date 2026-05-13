@@ -14,7 +14,10 @@ if TYPE_CHECKING:
     from typing import Literal
 
 STATE_TOKEN_AUDIENCE = "fastapi-users:oauth-state"  # noqa: S105 # This value is not a secret
+OAUTH_STATE_JWT_ALGORITHM = "HS256"
 CSRF_TOKEN_KEY = "csrftoken"  # noqa: S105 # This value is not a secret
+OAUTH_PROVIDER_KEY = "oauth_provider"
+OAUTH_FLOW_KEY = "oauth_flow"
 CSRF_TOKEN_COOKIE_NAME = "__Host-relab-oauth-csrf"  # noqa: S105 # This value is not a secret
 SET_COOKIE_HEADER = b"set-cookie"
 ACCESS_TOKEN_KEY = "access_token"  # noqa: S105 # This value is not a secret
@@ -28,8 +31,14 @@ class OAuth2AuthorizeResponse(BaseModel):
 
 def generate_state_token(data: dict[str, str], secret: SecretType, lifetime_seconds: int | None = None) -> str:
     """Generate a JWT state token for OAuth flows."""
-    data["aud"] = STATE_TOKEN_AUDIENCE
-    return generate_jwt(data, secret, lifetime_seconds or auth_settings.oauth_state_token_ttl_seconds)
+    payload = data.copy()
+    payload["aud"] = STATE_TOKEN_AUDIENCE
+    return generate_jwt(
+        payload,
+        secret,
+        lifetime_seconds or auth_settings.oauth_state_token_ttl_seconds,
+        algorithm=OAUTH_STATE_JWT_ALGORITHM,
+    )
 
 
 def generate_csrf_token() -> str:

@@ -41,10 +41,11 @@ def test_public_callback_url_normalizes_slashes(monkeypatch: pytest.MonkeyPatch)
 def test_oauth_routes_use_dedicated_state_secret(monkeypatch: pytest.MonkeyPatch) -> None:
     """OAuth route builders should receive OAUTH_STATE_SECRET, not AUTH_TOKEN_SECRET."""
     captured_state_secrets: list[str] = []
+    captured_oauth_flows: list[str] = []
 
     class FakeBuilder:
         def __init__(self, *args: object, **kwargs: object) -> None:
-            del kwargs
+            captured_oauth_flows.append(str(kwargs["oauth_flow"]))
             captured_state_secrets.append(str(args[2]))
 
         def build(self) -> APIRouter:
@@ -52,7 +53,7 @@ def test_oauth_routes_use_dedicated_state_secret(monkeypatch: pytest.MonkeyPatch
 
     class FakeAssociateBuilder:
         def __init__(self, *args: object, **kwargs: object) -> None:
-            del kwargs
+            captured_oauth_flows.append(str(kwargs["oauth_flow"]))
             captured_state_secrets.append(str(args[3]))
 
         def build(self) -> APIRouter:
@@ -67,3 +68,12 @@ def test_oauth_routes_use_dedicated_state_secret(monkeypatch: pytest.MonkeyPatch
 
     assert captured_state_secrets
     assert set(captured_state_secrets) == {"state-secret"}
+    assert set(captured_oauth_flows) == {
+        "github:token",
+        "github:session",
+        "github:associate",
+        "google:token",
+        "google:session",
+        "google:associate",
+        "google-youtube:associate",
+    }
