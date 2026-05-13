@@ -26,9 +26,9 @@ if TYPE_CHECKING:
     from redis.asyncio import Redis
 
 
-# In-memory stores used when Redis is not available. Keys are the raw token strings.
-# Values for _memory_tokens: token -> refresh-token metadata
-# Values for _memory_blacklist: token -> expire_ts
+# In-memory stores used when Redis is not available. Keys are refresh token fingerprints.
+# Values for _memory_tokens: fingerprint -> refresh-token metadata
+# Values for _memory_blacklist: fingerprint -> expire_ts
 _memory_tokens: dict[str, dict[str, str | int]] = {}
 _memory_blacklist: dict[str, float] = {}
 
@@ -86,6 +86,15 @@ def _metadata_ttl_seconds(metadata: dict[str, str | int]) -> int:
     return min(_refresh_token_ttl_seconds(), remaining_absolute_ttl)
 
 
+def _blacklist_memory_fingerprint(token_fingerprint: str, ttl_seconds: int | None = None) -> None:
+    token_data = _memory_tokens.get(token_fingerprint)
+    if ttl_seconds is None:
+        ttl_seconds = max(int(int(token_data["absolute_expires_at"]) - time.time()), HOUR) if token_data else HOUR
+
+    _memory_blacklist[token_fingerprint] = time.time() + ttl_seconds
+    _memory_tokens.pop(token_fingerprint, None)
+
+
 def _decode_token_metadata(raw_value: bytes | str | None) -> dict[str, str | int]:
     if raw_value is None:
         raise RefreshTokenInvalidError
@@ -111,16 +120,16 @@ def _decode_token_metadata(raw_value: bytes | str | None) -> dict[str, str | int
 async def _load_active_token_metadata(redis: Redis | None, token: str) -> dict[str, str | int]:
     _validate_refresh_token_shape(token)
     now = time.time()
+    token_fingerprint = refresh_token_fingerprint(token)
 
     if redis is None:
-        bl_expire = _memory_blacklist.get(token)
+        bl_expire = _memory_blacklist.get(token_fingerprint)
         if bl_expire and bl_expire > now:
             raise RefreshTokenRevokedError
-        metadata = _memory_tokens.get(token)
+        metadata = _memory_tokens.get(token_fingerprint)
         if not metadata:
             raise RefreshTokenInvalidError
     else:
-        token_fingerprint = refresh_token_fingerprint(token)
         if await redis.exists(_refresh_token_blacklist_key(token_fingerprint)):
             raise RefreshTokenRevokedError
         metadata = _decode_token_metadata(await redis.get(_refresh_token_key(token_fingerprint)))
@@ -156,11 +165,11 @@ async def create_refresh_token(
     if ttl <= 0:
         raise RefreshTokenInvalidError
 
+    token_fingerprint = refresh_token_fingerprint(token)
     if redis is None:
-        _memory_tokens[token] = metadata
+        _memory_tokens[token_fingerprint] = metadata
         return token
 
-    token_fingerprint = refresh_token_fingerprint(token)
     token_key = _refresh_token_key(token_fingerprint)
     user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id}"
     await redis.setex(token_key, ttl, json.dumps(metadata, separators=(",", ":")))
@@ -205,12 +214,7 @@ async def blacklist_token(
     token_key = _refresh_token_key(token_fingerprint)
 
     if redis is None:
-        if ttl_seconds is None:
-            token_data = _memory_tokens.get(token)
-            ttl_seconds = max(int(int(token_data["absolute_expires_at"]) - time.time()), HOUR) if token_data else HOUR
-
-        _memory_blacklist[token] = time.time() + ttl_seconds
-        _memory_tokens.pop(token, None)
+        _blacklist_memory_fingerprint(token_fingerprint, ttl_seconds)
         return
 
     blacklist_key = _refresh_token_blacklist_key(token_fingerprint)
@@ -244,9 +248,11 @@ async def revoke_all_user_tokens(
     user_id_str = str(user_id)
 
     if redis is None:
-        tokens_to_revoke = [t for t, metadata in list(_memory_tokens.items()) if metadata["user_id"] == user_id_str]
-        for token in tokens_to_revoke:
-            await blacklist_token(redis, token)
+        fingerprints_to_revoke = [
+            fingerprint for fingerprint, metadata in list(_memory_tokens.items()) if metadata["user_id"] == user_id_str
+        ]
+        for fingerprint in fingerprints_to_revoke:
+            _blacklist_memory_fingerprint(fingerprint)
         return
 
     user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id_str}"
