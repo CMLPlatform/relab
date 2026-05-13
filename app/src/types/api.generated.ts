@@ -1479,7 +1479,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Login with email and password for browser sessions */
+    /**
+     * Login with email and password for browser sessions
+     * @description Authenticate a browser client and return MFA challenge only when MFA is enabled.
+     */
     post: operations['auth_session_login_v1_auth_session_login_post'];
     delete?: never;
     options?: never;
@@ -1521,7 +1524,6 @@ export interface paths {
      * @description Refresh access token using refresh token for bearer auth.
      *
      *     Validates refresh token and issues new access token.
-     *     Updates session activity timestamp.
      */
     post: operations['auth_bearer_refresh_v1_auth_bearer_refresh_post'];
     delete?: never;
@@ -1544,7 +1546,6 @@ export interface paths {
      * @description Refresh access token using refresh token from cookie.
      *
      *     Validates refresh token cookie and issues new access token cookie.
-     *     Updates session activity timestamp.
      */
     post: operations['auth_session_refresh_v1_auth_session_refresh_post'];
     delete?: never;
@@ -1587,6 +1588,106 @@ export interface paths {
      * @description Logout a browser session, revoke refresh state, and clear browser storage.
      */
     post: operations['auth_session_logout_v1_auth_session_logout_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/auth/sessions/revoke-all': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Auth:Sessions.Revoke All
+     * @description Revoke all refresh tokens for the current user and clear browser session state.
+     */
+    post: operations['auth_sessions_revoke_all_v1_auth_sessions_revoke_all_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/auth/mfa/totp/setup': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Start Totp Setup
+     * @description Start authenticated TOTP enrollment for an account that opted into MFA.
+     */
+    post: operations['start_totp_setup_v1_auth_mfa_totp_setup_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/auth/mfa/totp/confirm': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirm Totp Setup
+     * @description Confirm authenticated TOTP enrollment.
+     */
+    post: operations['confirm_totp_setup_v1_auth_mfa_totp_confirm_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/auth/mfa/oauth/claim': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Claim Oauth Mfa Handoff
+     * @description Claim a one-time OAuth MFA handoff and return pending MFA state.
+     */
+    post: operations['claim_oauth_mfa_handoff_v1_auth_mfa_oauth_claim_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/auth/mfa/challenge': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Complete Mfa Challenge
+     * @description Complete login for a user with TOTP already enabled.
+     */
+    post: operations['complete_mfa_challenge_v1_auth_mfa_challenge_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2065,6 +2166,26 @@ export interface paths {
      * @description Delete a user by ID.
      */
     delete: operations['delete_user_v1_admin_users__user_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/admin/users/{user_id}/mfa/reset': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reset a user's MFA enrollment
+     * @description Reset TOTP MFA after an administrator performs identity-proofed recovery.
+     */
+    post: operations['reset_user_mfa_v1_admin_users__user_id__mfa_reset_post'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -3418,7 +3539,7 @@ export interface components {
     DeviceImageUploadAck: {
       /**
        * Image Id
-       * @description Stored image ID in hex32 (UUID without dashes)
+       * @description Stored backend image ID.
        */
       image_id: string;
       /**
@@ -3651,7 +3772,7 @@ export interface components {
       /** Candidate Urls */
       candidate_urls: string[];
       /** Mdns Name */
-      mdns_name: string | null;
+      mdns_name?: string | null;
     };
     /**
      * MaterialCreateWithCategories
@@ -3763,7 +3884,7 @@ export interface components {
      */
     MaterialProductLinkUpdate: {
       /** Quantity */
-      quantity: number | null;
+      quantity?: number | null;
       /** @default kg */
       unit: components['schemas']['Unit'] | null;
     };
@@ -3884,6 +4005,71 @@ export interface components {
      * @enum {string}
      */
     MediaParentType: 'product' | 'product_type' | 'material';
+    /**
+     * MfaChallengeRequest
+     * @description Request to complete MFA for an account with TOTP already enabled.
+     */
+    MfaChallengeRequest: {
+      /**
+       * Mfa Token
+       * Format: password
+       */
+      mfa_token: string;
+      /** Code */
+      code: string;
+    };
+    /**
+     * MfaOAuthClaimRequest
+     * @description Request to claim an OAuth MFA handoff.
+     */
+    MfaOAuthClaimRequest: {
+      /**
+       * Mfa Handoff
+       * Format: password
+       */
+      mfa_handoff: string;
+    };
+    /**
+     * MfaPendingResponse
+     * @description Response returned after the first authentication factor succeeds.
+     */
+    MfaPendingResponse: {
+      /**
+       * Mfa Required
+       * @default true
+       */
+      mfa_required: boolean;
+      /**
+       * Mfa Token
+       * @description Short-lived token for completing an MFA challenge
+       */
+      mfa_token: string;
+    };
+    /**
+     * MfaTotpConfirmRequest
+     * @description Request to confirm authenticated TOTP setup.
+     */
+    MfaTotpConfirmRequest: {
+      /**
+       * Setup Token
+       * Format: password
+       */
+      setup_token: string;
+      /** Code */
+      code: string;
+    };
+    /**
+     * MfaTotpSetupResponse
+     * @description TOTP setup material for authenticator apps.
+     */
+    MfaTotpSetupResponse: {
+      /** Setup Token */
+      setup_token: string;
+      /** Secret */
+      secret: string;
+      /** Otpauth Uri */
+      otpauth_uri: string;
+    };
     /**
      * OAuth2AuthorizeResponse
      * @description Response model for OAuth2 authorization endpoint.
@@ -4811,6 +4997,12 @@ export interface components {
        * @description List of linked OAuth accounts.
        */
       oauth_accounts?: components['schemas']['OAuthAccountRead'][];
+      /**
+       * Mfa Enabled
+       * @description Whether TOTP MFA is enabled for this account.
+       * @default false
+       */
+      mfa_enabled: boolean;
       /** @description User preferences. */
       preferences?: components['schemas']['UserPreferences'];
     };
@@ -8803,7 +8995,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['RefreshTokenResponse'];
+          'application/json':
+            | components['schemas']['RefreshTokenResponse']
+            | components['schemas']['MfaPendingResponse'];
         };
       };
       /** @description Bad Request */
@@ -8845,7 +9039,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['MfaPendingResponse'] | null;
         };
       };
       /** @description Bad Request */
@@ -8940,7 +9134,7 @@ export interface operations {
       header?: never;
       path?: never;
       cookie?: {
-        refresh_token?: string | null;
+        '__Host-relab-refresh'?: string | null;
       };
     };
     requestBody?: never;
@@ -9000,8 +9194,8 @@ export interface operations {
       header?: never;
       path?: never;
       cookie?: {
-        refresh_token?: string | null;
-        auth?: string | null;
+        '__Host-relab-refresh'?: string | null;
+        '__Host-relab-auth'?: string | null;
       };
     };
     requestBody?: never;
@@ -9012,6 +9206,141 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  auth_sessions_revoke_all_v1_auth_sessions_revoke_all_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  start_totp_setup_v1_auth_mfa_totp_setup_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MfaTotpSetupResponse'];
+        };
+      };
+    };
+  };
+  confirm_totp_setup_v1_auth_mfa_totp_confirm_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MfaTotpConfirmRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  claim_oauth_mfa_handoff_v1_auth_mfa_oauth_claim_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MfaOAuthClaimRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MfaPendingResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  complete_mfa_challenge_v1_auth_mfa_challenge_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MfaChallengeRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RefreshTokenResponse'] | null;
+        };
       };
       /** @description Validation Error */
       422: {
@@ -9118,7 +9447,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': null;
         };
       };
       /** @description Validation Error */
@@ -9151,7 +9480,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': null;
         };
       };
       /** @description Bad Request */
@@ -9967,6 +10296,36 @@ export interface operations {
     };
   };
   delete_user_v1_admin_users__user_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The user's ID */
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  reset_user_mfa_v1_admin_users__user_id__mfa_reset_post: {
     parameters: {
       query?: never;
       header?: never;
