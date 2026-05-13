@@ -15,11 +15,11 @@ from app.api.auth.exceptions import (
     RegistrationUserAlreadyExistsHTTPError,
 )
 from app.api.auth.models import User
+from app.api.auth.runtime_dependencies import get_email_checker
 from app.api.auth.schemas import UserReadPublic, UserRegister
 from app.api.auth.services.email import mask_email_for_log
 from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT, limiter
 from app.api.common.exceptions import APIError
-from app.core.runtime import get_request_email_checker
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ async def register(
 ) -> User:
     """Register a new user."""
     try:
-        email_checker = get_request_email_checker(request)
+        email_checker = get_email_checker(request)
 
         # Validate user creation data (username uniqueness and disposable email policy)
         user_create = await validate_user_create(user_manager.user_db, user_create, email_checker)

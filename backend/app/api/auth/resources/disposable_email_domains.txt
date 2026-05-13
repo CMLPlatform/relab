@@ -1,4 +1,5 @@
 # Curated local fallback for disposable email validation.
+# Source: https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt
 # Refresh from upstream with: `just refresh-disposable-email-domains`
 0-00.usa.cc
 0-30-24.com
