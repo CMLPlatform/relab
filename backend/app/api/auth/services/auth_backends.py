@@ -23,6 +23,8 @@ from app.core.redis import OptionalRedisDep
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
 SECRET: SecretStr = auth_settings.auth_token_secret
 _AUTHENTICATION_SERVICE_UNAVAILABLE = "Authentication service unavailable."
+AUTH_JWT_ALGORITHM = "HS256"
+AUTH_TOKEN_AUDIENCE = "fastapi-users:auth"  # noqa: S105 # This value is not a secret
 
 
 # Session cookies are host-only to avoid exposing credentials to sibling subdomains.
@@ -87,7 +89,12 @@ def get_token_strategy(redis: OptionalRedisDep) -> Strategy[User, UUID4]:
 
     return cast(
         "Strategy[User, UUID4]",
-        JWTStrategy(secret=SECRET.get_secret_value(), lifetime_seconds=ACCESS_TOKEN_TTL),
+        JWTStrategy(
+            secret=SECRET.get_secret_value(),
+            lifetime_seconds=ACCESS_TOKEN_TTL,
+            token_audience=[AUTH_TOKEN_AUDIENCE],
+            algorithm=AUTH_JWT_ALGORITHM,
+        ),
     )
 
 

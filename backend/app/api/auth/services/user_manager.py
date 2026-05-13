@@ -35,7 +35,6 @@ from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter, rate_l
 from app.api.auth.services.user_database import get_user_db
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.routers.dependencies import get_external_http_client
-from app.core.runtime import get_request_services
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -55,6 +54,8 @@ SECRET: SecretStr = auth_settings.auth_token_secret
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
 RESET_TOKEN_TTL = auth_settings.reset_password_token_ttl_seconds
 VERIFICATION_TOKEN_TTL = auth_settings.verification_token_ttl_seconds
+RESET_PASSWORD_TOKEN_AUDIENCE = "fastapi-users:reset"  # noqa: S105 # This value is not a secret.
+VERIFICATION_TOKEN_AUDIENCE = "fastapi-users:verify"  # noqa: S105 # This value is not a secret.
 SENSITIVE_UPDATE_FIELDS = frozenset({"email", "password"})
 
 
@@ -89,9 +90,11 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
     # Set up token secrets and lifetimes
     reset_password_token_secret: SecretType = SECRET.get_secret_value()
     reset_password_token_lifetime_seconds = RESET_TOKEN_TTL
+    reset_password_token_audience = RESET_PASSWORD_TOKEN_AUDIENCE
 
     verification_token_secret: SecretType = SECRET.get_secret_value()
     verification_token_lifetime_seconds = VERIFICATION_TOKEN_TTL
+    verification_token_audience = VERIFICATION_TOKEN_AUDIENCE
 
     async def authenticate(self, credentials: OAuth2PasswordRequestForm) -> User | None:
         """Support login with either email or username."""
