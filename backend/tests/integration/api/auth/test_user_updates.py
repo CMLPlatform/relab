@@ -27,6 +27,7 @@ from .shared import (
     USER2_EMAIL,
     USER2_USERNAME,
     hash_test_password,
+    login_bearer,
 )
 
 if TYPE_CHECKING:
@@ -42,12 +43,8 @@ UPDATED_PASSWORD = "updated-test-credential-42"
 
 
 async def _login_bearer(api_client: AsyncClient, user: User, password: str = TEST_PASSWORD) -> str:
-    response = await api_client.post(
-        "/v1/auth/bearer/login",
-        data={"username": user.email, "password": password},
-    )
-    assert response.status_code == status.HTTP_200_OK
-    return response.json()["access_token"]
+    token_data = await login_bearer(api_client, email=user.email, password=password)
+    return str(token_data["access_token"])
 
 
 async def _create_refresh_session(redis: Redis, user: User) -> str:
@@ -234,12 +231,7 @@ class TestUpdateUserEndpoint:
             username="reauth_required",
             hashed_password=hash_test_password(TEST_PASSWORD),
         )
-        login_response = await api_client.post(
-            "/v1/auth/bearer/login",
-            data={"username": user.email, "password": TEST_PASSWORD},
-        )
-        assert login_response.status_code == status.HTTP_200_OK
-        token = login_response.json()["access_token"]
+        token = await _login_bearer(api_client, user)
 
         response = await api_client.patch(
             "/v1/users/me",
@@ -254,20 +246,16 @@ class TestUpdateUserEndpoint:
         self,
         api_client: AsyncClient,
         db_session: AsyncSession,
+        mock_email_sending: AsyncMock,
     ) -> None:
-        """A valid current password allows a password change."""
+        """A valid current password allows a password change and sends a security notification."""
         user = await UserFactory.create_async(
             db_session,
             email="reauth-valid@example.com",
             username="reauth_valid",
             hashed_password=hash_test_password(TEST_PASSWORD),
         )
-        login_response = await api_client.post(
-            "/v1/auth/bearer/login",
-            data={"username": user.email, "password": TEST_PASSWORD},
-        )
-        assert login_response.status_code == status.HTTP_200_OK
-        token = login_response.json()["access_token"]
+        token = await _login_bearer(api_client, user)
 
         response = await api_client.patch(
             "/v1/users/me",
@@ -279,6 +267,10 @@ class TestUpdateUserEndpoint:
         )
 
         assert response.status_code == status.HTTP_200_OK
+        assert mock_email_sending.await_count == 1
+        message = mock_email_sending.await_args.args[0]
+        assert message.recipients[0].email == "reauth-valid@example.com"
+        assert "password was changed" in message.subject.lower()
 
     async def test_password_update_revokes_existing_refresh_sessions(
         self,
@@ -319,12 +311,7 @@ class TestUpdateUserEndpoint:
             username="reauth_username",
             hashed_password=hash_test_password(TEST_PASSWORD),
         )
-        login_response = await api_client.post(
-            "/v1/auth/bearer/login",
-            data={"username": user.email, "password": TEST_PASSWORD},
-        )
-        assert login_response.status_code == status.HTTP_200_OK
-        token = login_response.json()["access_token"]
+        token = await _login_bearer(api_client, user)
 
         response = await api_client.patch(
             "/v1/users/me",
@@ -360,12 +347,7 @@ class TestUpdateUserEndpoint:
             is_superuser=False,
             is_verified=False,
         )
-        login_response = await api_client.post(
-            "/v1/auth/bearer/login",
-            data={"username": user.email, "password": TEST_PASSWORD},
-        )
-        assert login_response.status_code == status.HTTP_200_OK
-        token = login_response.json()["access_token"]
+        token = await _login_bearer(api_client, user)
 
         response = await api_client.patch(
             "/v1/users/me",
@@ -396,12 +378,7 @@ class TestUpdateUserEndpoint:
             hashed_password=hash_test_password(TEST_PASSWORD),
             is_verified=True,
         )
-        login_response = await api_client.post(
-            "/v1/auth/bearer/login",
-            data={"username": user.email, "password": TEST_PASSWORD},
-        )
-        assert login_response.status_code == status.HTTP_200_OK
-        token = login_response.json()["access_token"]
+        token = await _login_bearer(api_client, user)
 
         response = await api_client.patch(
             "/v1/users/me",
