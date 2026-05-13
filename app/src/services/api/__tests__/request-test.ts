@@ -23,13 +23,13 @@ describe('request helpers', () => {
       configurable: true,
       value: {
         getRandomValues: (array: Uint8Array) => {
-          array.set([0, 1, 2, 3, 4, 5, 6, 7]);
+          array.set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
           return array;
         },
       },
     });
 
-    expect(createRequestId()).toBe('req-0001020304050607');
+    expect(createRequestId()).toBe('req-000102030405060708090a0b0c0d0e0f');
     expect(mathRandomSpy).not.toHaveBeenCalled();
 
     mathRandomSpy.mockRestore();
