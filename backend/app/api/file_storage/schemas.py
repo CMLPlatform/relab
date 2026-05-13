@@ -49,6 +49,14 @@ def empty_str_to_none(value: object) -> object | None:
     return value
 
 
+def _relative_to_storage_root(file_path: Path, storage_root: Path) -> Path | None:
+    """Return a stored path relative to its configured root, or None if outside it."""
+    try:
+        return file_path.resolve().relative_to(storage_root.resolve())
+    except OSError, ValueError:
+        return None
+
+
 def _build_storage_url(path: str | PathLike[str] | None, storage_root: Path, url_prefix: str) -> str | None:
     """Build a public URL for a stored file-backed object from its filesystem path."""
     if path is None:
@@ -58,7 +66,9 @@ def _build_storage_url(path: str | PathLike[str] | None, storage_root: Path, url
     if not file_path.exists():
         return None
 
-    relative_path = file_path.relative_to(storage_root)
+    relative_path = _relative_to_storage_root(file_path, storage_root)
+    if relative_path is None:
+        return None
     return f"{url_prefix}/{quote(str(relative_path))}"
 
 
@@ -75,12 +85,16 @@ def _build_image_urls(
     path = Path(file_path)
     if not path.exists():
         return None, None
-    relative_path = path.relative_to(storage_root)
+    relative_path = _relative_to_storage_root(path, storage_root)
+    if relative_path is None:
+        return None, None
     image_url = f"/uploads/images/{quote(str(relative_path))}"
     thumbnail_path = thumbnail_path_for(path, 200)
     if not thumbnail_path.exists():
         return image_url, image_url
-    thumbnail_relative_path = thumbnail_path.relative_to(storage_root)
+    thumbnail_relative_path = _relative_to_storage_root(thumbnail_path, storage_root)
+    if thumbnail_relative_path is None:
+        return image_url, image_url
     return image_url, f"/uploads/images/{quote(str(thumbnail_relative_path))}"
 
 
