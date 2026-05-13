@@ -122,12 +122,18 @@
         "description": "Backend -> Pi acknowledgement of a direct image upload.",
         "properties": {
           "image_id": {
-            "description": "Stored image ID in hex32 (UUID without dashes)",
+            "description": "Stored backend image ID.",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9._~-]+$",
             "title": "Image Id",
             "type": "string"
           },
           "image_url": {
             "description": "Backend-hosted URL for the stored image",
+            "maxLength": 2048,
+            "minLength": 1,
+            "pattern": "^(https?://[^\\s]+|/([^\\s/][^\\s]*)?)$",
             "title": "Image Url",
             "type": "string"
           }
@@ -144,6 +150,9 @@
         "properties": {
           "preview_thumbnail_url": {
             "description": "Backend-hosted URL for the cached preview thumbnail",
+            "maxLength": 2048,
+            "minLength": 1,
+            "pattern": "^(https?://[^\\s]+|/([^\\s/][^\\s]*)?)$",
             "title": "Preview Thumbnail Url",
             "type": "string"
           }
@@ -277,6 +286,9 @@
           "camera_id": {
             "anyOf": [
               {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9._~-]+$",
                 "type": "string"
               },
               {
@@ -288,6 +300,9 @@
           "key_id": {
             "anyOf": [
               {
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9._~-]+$",
                 "type": "string"
               },
               {
@@ -307,6 +322,9 @@
           "ws_url": {
             "anyOf": [
               {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -365,11 +383,16 @@
         "description": "Backend -> Pi acknowledgement of a pairing registration.",
         "properties": {
           "code": {
+            "maxLength": 6,
+            "minLength": 6,
+            "pattern": "^[A-Z0-9]{6}$",
             "title": "Code",
             "type": "string"
           },
           "expires_in": {
             "description": "Seconds until the pairing code expires.",
+            "exclusiveMinimum": 0.0,
+            "maximum": 600.0,
             "title": "Expires In",
             "type": "integer"
           }
