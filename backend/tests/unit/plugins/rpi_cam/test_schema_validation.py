@@ -11,9 +11,15 @@ from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest
 
 def test_pairing_claim_normalizes_camera_name_to_nfc() -> None:
     """Pairing text fields are normalized before persistence."""
-    claim = PairingClaimRequest(code="ABCD12", camera_name="Cafe\u0301 camera")
+    claim = PairingClaimRequest(code="ABCD23", camera_name="Cafe\u0301 camera")
 
     assert claim.camera_name == "Café camera"
+
+
+def test_pairing_claim_rejects_invalid_pairing_code() -> None:
+    """Pairing claims should use the shared unambiguous code contract."""
+    with pytest.raises(ValidationError):
+        PairingClaimRequest.model_validate({"code": "ABC230", "camera_name": "Test Camera"})
 
 
 def test_camera_update_rejects_hidden_control_characters() -> None:

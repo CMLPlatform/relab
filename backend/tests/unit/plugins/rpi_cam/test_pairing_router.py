@@ -6,11 +6,14 @@ import json
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
+import pytest
 from fakeredis.aioredis import FakeRedis
-from starlette.requests import Request
 
+from app.api.auth.services.rate_limiter import rate_limit_bucket_key
+from app.api.plugins.rpi_cam.exceptions import PairingCodeNotFoundError
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.pairing import (
+    CLAIM_CODE_RATE_LIMIT,
     _build_ws_url,
     claim_pairing_code,
     poll_pairing_status,
@@ -32,6 +35,7 @@ PUBLIC_JWK = {
     "kid": "key-12345",
 }
 KEY_ID = "key-12345"
+PAIRING_CODE = "ABCD23"
 
 
 def test_build_ws_url_uses_canonical_v1_plugin_route() -> None:
@@ -50,15 +54,10 @@ def build_camera() -> Camera:
     )
 
 
-def build_request() -> Request:
-    """Build a minimal Starlette request for router tests."""
-    return Request({"type": "http", "method": "POST", "path": "/", "headers": [], "query_string": b""})
-
-
 async def test_register_pairing_code_sanitizes_code_in_log() -> None:
     """Register logging should include only validated pairing codes."""
     body = PairingRegisterRequest(
-        code="ABCD12",
+        code=PAIRING_CODE,
         rpi_fingerprint="fingerprint",
         public_key_jwk=PUBLIC_JWK,
         key_id=KEY_ID,
@@ -67,14 +66,13 @@ async def test_register_pairing_code_sanitizes_code_in_log() -> None:
 
     with patch("app.api.plugins.rpi_cam.routers.pairing.logger") as mock_logger:
         response = await register_pairing_code(
-            request=build_request(),
             body=body,
             redis=redis_client,
         )
 
     assert response.code == body.code
-    mock_logger.info.assert_called_once_with("Pairing code %s registered.", "ABCD12")
-    stored = await redis_client.get("rpi_cam:pairing:ABCD12")
+    mock_logger.info.assert_called_once_with("Pairing code %s registered.", PAIRING_CODE)
+    stored = await redis_client.get(f"rpi_cam:pairing:{PAIRING_CODE}")
     assert stored is not None
     payload = json.loads(stored)
     assert payload["public_key_jwk"] == PUBLIC_JWK
@@ -93,10 +91,10 @@ async def test_claim_pairing_code_sanitizes_code_in_log() -> None:
         is_verified=True,
     )
     camera = build_camera()
-    body = PairingClaimRequest(code="ABCD12", camera_name="Camera", description="Description")
+    body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description="Description")
     redis_client = await _make_fake_redis()
     await redis_client.set(
-        "rpi_cam:pairing:ABCD12",
+        f"rpi_cam:pairing:{PAIRING_CODE}",
         json.dumps(
             {
                 "status": "waiting",
@@ -110,9 +108,9 @@ async def test_claim_pairing_code_sanitizes_code_in_log() -> None:
     with (
         patch("app.api.plugins.rpi_cam.routers.pairing.crud.create_camera", new=AsyncMock(return_value=camera)),
         patch("app.api.plugins.rpi_cam.routers.pairing.logger") as mock_logger,
+        patch("app.api.plugins.rpi_cam.routers.pairing.limiter.hit_key"),
     ):
         response = await claim_pairing_code(
-            request=build_request(),
             body=body,
             session=session,
             current_user=current_user,
@@ -120,8 +118,8 @@ async def test_claim_pairing_code_sanitizes_code_in_log() -> None:
         )
 
     assert response.id == camera.id
-    assert mock_logger.info.call_args.args[1] == "ABCD12"
-    stored = await redis_client.get("rpi_cam:pairing:ABCD12")
+    assert mock_logger.info.call_args.args[1] == PAIRING_CODE
+    stored = await redis_client.get(f"rpi_cam:pairing:{PAIRING_CODE}")
     assert stored is not None
     payload = json.loads(stored)
     assert payload["auth_scheme"] == "device_assertion"
@@ -129,12 +127,43 @@ async def test_claim_pairing_code_sanitizes_code_in_log() -> None:
     assert "api_key" not in payload
 
 
+async def test_claim_pairing_code_rate_limits_code_before_redis_lookup() -> None:
+    """Code-specific throttling should run before revealing whether a code exists."""
+    session = AsyncMock()
+    current_user = UserFactory.build(
+        id=uuid4(),
+        email="owner@example.com",
+        hashed_password="hashed",
+        is_active=True,
+        is_superuser=False,
+        is_verified=True,
+    )
+    body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description=None)
+    redis_client = await _make_fake_redis()
+
+    with (
+        patch("app.api.plugins.rpi_cam.routers.pairing.limiter.hit_key") as hit_key,
+        pytest.raises(PairingCodeNotFoundError),
+    ):
+        await claim_pairing_code(
+            body=body,
+            session=session,
+            current_user=current_user,
+            redis=redis_client,
+        )
+
+    hit_key.assert_called_once_with(
+        CLAIM_CODE_RATE_LIMIT,
+        rate_limit_bucket_key("rpi-cam:pairing:claim:code", PAIRING_CODE),
+    )
+
+
 async def test_poll_pairing_status_sanitizes_code_in_log() -> None:
     """Polling logs should include only validated pairing codes."""
-    body_code = "ABCD12"
+    body_code = PAIRING_CODE
     redis_client = await _make_fake_redis()
     await redis_client.set(
-        "rpi_cam:pairing:ABCD12",
+        f"rpi_cam:pairing:{PAIRING_CODE}",
         dump_pairing_record(
             build_claimed_record(
                 build_claimed_bootstrap(
@@ -149,7 +178,6 @@ async def test_poll_pairing_status_sanitizes_code_in_log() -> None:
 
     with patch("app.api.plugins.rpi_cam.routers.pairing.logger") as mock_logger:
         response = await poll_pairing_status(
-            request=build_request(),
             redis=redis_client,
             code=body_code,
             fingerprint="fingerprint",
@@ -158,8 +186,8 @@ async def test_poll_pairing_status_sanitizes_code_in_log() -> None:
     assert response.status == "paired"
     assert response.auth_scheme == "device_assertion"
     assert response.key_id == KEY_ID
-    mock_logger.info.assert_called_once_with("Pairing credentials retrieved for code %s.", "ABCD12")
-    assert await redis_client.get("rpi_cam:pairing:ABCD12") is None
+    mock_logger.info.assert_called_once_with("Pairing credentials retrieved for code %s.", PAIRING_CODE)
+    assert await redis_client.get(f"rpi_cam:pairing:{PAIRING_CODE}") is None
 
 
 async def _make_fake_redis() -> FakeRedis:

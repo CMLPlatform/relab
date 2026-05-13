@@ -11,17 +11,19 @@ from __future__ import annotations
 
 import hmac
 import logging
+from typing import Annotated
 
 from fastapi import Query, status
 from relab_rpi_cam_models import (
     PairingClaimedRecord,
+    PairingCode,
     PairingPendingRecord,
     PairingPollResponse,
     PairingRegisterResponse,
 )
 
 from app.api.auth.dependencies import CurrentActiveUserDep
-from app.api.auth.services.rate_limiter import limiter
+from app.api.auth.services.rate_limiter import limiter, rate_limit_bucket_key
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam import crud
@@ -59,6 +61,7 @@ PAIRING_CREDENTIAL_TTL_SECONDS = 300
 REGISTER_RATE_LIMIT = "20/minute"
 POLL_RATE_LIMIT = "60/minute"
 CLAIM_RATE_LIMIT = "10/minute"
+CLAIM_CODE_RATE_LIMIT = "5/minute"
 
 _STATUS_WAITING = "waiting"
 
@@ -115,6 +118,7 @@ async def claim_pairing_code(
     redis: RedisDep,
 ) -> Camera:
     """Claim a pairing code and create a WebSocket-relayed camera."""
+    limiter.hit_key(CLAIM_CODE_RATE_LIMIT, rate_limit_bucket_key("rpi-cam:pairing:claim:code", body.code))
     key = _pairing_key(body.code)
     raw = await get_redis_value(redis, key)
     if raw is None:
@@ -163,7 +167,7 @@ async def claim_pairing_code(
 )
 async def poll_pairing_status(
     redis: RedisDep,
-    code: str = Query(min_length=6, max_length=6, pattern=r"^[A-Z0-9]{6}$"),
+    code: Annotated[PairingCode, Query()],
     fingerprint: str = Query(min_length=8, max_length=64),
 ) -> PairingPollResponse:
     """Poll for pairing completion. Returns non-secret relay metadata once claimed."""
