@@ -3,7 +3,6 @@
 This module supports both Redis-backed storage and an in-memory fallback
 used when Redis is unavailable (convenient for local development).
 """
-# spell-checker: ignore setex
 
 from __future__ import annotations
 

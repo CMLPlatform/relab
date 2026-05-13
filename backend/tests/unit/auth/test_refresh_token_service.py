@@ -1,5 +1,4 @@
 """Unit tests for refresh token service."""
-# spell-checker: ignore setex
 
 # ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
 

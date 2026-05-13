@@ -1,4 +1,6 @@
 """Unit tests for disposable-email blocklist loading and Redis caching."""
+# spell-checker: ignore nmailinator
+
 # ruff: noqa: SLF001 # Private member behaviour is tested here to avoid background task timing.
 
 from __future__ import annotations
