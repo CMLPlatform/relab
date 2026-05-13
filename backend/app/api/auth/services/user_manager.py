@@ -13,6 +13,7 @@ from sqlalchemy import select
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.crud.users import update_user_override
 from app.api.auth.models import User
+from app.api.auth.runtime_dependencies import get_common_password_checker
 from app.api.auth.schemas import UserCreateBase, UserUpdate
 from app.api.auth.services import refresh_token_service
 from app.api.auth.services.auth_backends import build_authentication_backends
@@ -45,6 +46,7 @@ if TYPE_CHECKING:
     from starlette.requests import Request
     from starlette.responses import Response
 
+    from app.api.auth.services.common_password_checker import CommonPasswordChecker
     from app.api.auth.services.user_database import UserDatabaseAsync
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -71,7 +73,8 @@ def _sensitive_update_fields(user_update: UserUpdate) -> set[str]:
 
 async def _revoke_user_refresh_tokens(user_id: UUID4, request: Request | None) -> None:
     """Revoke every refresh-token session for a user in the current request context."""
-    redis = get_request_services(request).redis if request else None
+    services = getattr(request.app.state, "services", None) if request else None
+    redis = getattr(services, "redis", None)
     await refresh_token_service.revoke_all_user_tokens(redis, user_id)
 
 
@@ -81,9 +84,15 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
     # We will initialize the user manager with a UserDatabaseAsync instance in the dependency function below
     user_db: UserDatabaseAsync
 
-    def __init__(self, user_db: UserDatabaseAsync, http_client: AsyncClient) -> None:
+    def __init__(
+        self,
+        user_db: UserDatabaseAsync,
+        http_client: AsyncClient,
+        common_password_checker: CommonPasswordChecker | None = None,
+    ) -> None:
         super().__init__(user_db, password_helper=build_password_helper())
         self.http_client = http_client
+        self.common_password_checker = common_password_checker
         self.skip_breach_check = False
         self.skip_password_validation = False
 
@@ -129,6 +138,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
             email=user.email,
             username=getattr(user, "username", None),
             http_client=self.http_client,
+            common_password_checker=self.common_password_checker,
             skip_breach_check=self.skip_breach_check,
         )
 
@@ -228,9 +238,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
 async def get_user_manager(
     user_db: UserDatabaseAsync[User, UUID4] = Depends(get_user_db),
     http_client: AsyncClient = Depends(get_external_http_client),
+    common_password_checker: CommonPasswordChecker | None = Depends(get_common_password_checker),
 ) -> AsyncGenerator[UserManager]:
     """Async generator for the user manager."""
-    yield UserManager(user_db, http_client)
+    yield UserManager(user_db, http_client, common_password_checker)
 
 
 bearer_auth_backend: AuthenticationBackend[User, UUID4]

@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from redis.asyncio import Redis
     from starlette.requests import HTTPConnection
 
+    from app.api.auth.services.common_password_checker import CommonPasswordChecker
     from app.api.auth.services.email_checker import EmailChecker
     from app.api.file_storage.services.manager import FileCleanupManager
     from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
@@ -25,6 +26,7 @@ class AppServices:
     redis: Redis | None = None
     blocking_redis: Redis | None = None
     email_checker: EmailChecker | None = None
+    common_password_checker: CommonPasswordChecker | None = None
     camera_connection_manager: CameraConnectionManager | None = None
     file_cleanup_manager: FileCleanupManager | None = None
     http_client: AsyncClient | None = None

@@ -11,6 +11,7 @@ import anyio
 from fastapi import FastAPI
 from httpx import CloseError
 
+from app.api.auth.services.common_password_checker import init_common_password_checker
 from app.api.auth.services.email_checker import init_email_checker
 from app.api.common.routers.file_mounts import mount_static_directories, register_favicon_route
 from app.api.file_storage.services.manager import FileCleanupManager
@@ -58,6 +59,7 @@ async def _initialize_cache_services(services: AppServices) -> None:
     """Initialize Redis-backed services."""
     services.redis = await init_redis()
     services.email_checker = await init_email_checker(services.redis)
+    services.common_password_checker = await init_common_password_checker(services.redis)
     init_cache(services.redis)
 
     services.blocking_redis = await init_blocking_redis()
