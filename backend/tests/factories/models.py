@@ -108,6 +108,21 @@ class UserFactory(BaseModelFactory[User]):
         return True
 
     @classmethod
+    def mfa_enabled(cls) -> bool:
+        """Generate model-default MFA state."""
+        return False
+
+    @classmethod
+    def mfa_totp_secret(cls) -> None:
+        """Generate model-default MFA state."""
+        return
+
+    @classmethod
+    def mfa_confirmed_at(cls) -> None:
+        """Generate model-default MFA state."""
+        return
+
+    @classmethod
     def username(cls) -> str:
         """Generate mock value."""
         return cls.__faker__.user_name()

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.api.auth.services.user_database import BaseOAuthAccountDB, BaseUserDB
 from app.api.common.models.base import TimeStampMixinBare
+from app.core.crypto.sqlalchemy import EncryptedString
 
 # Note: Keeping auth models together avoids circular imports in SQLAlchemy/Pydantic schema building.
 
@@ -38,6 +39,10 @@ class User(BaseUserDB, TimeStampMixinBare):
 
     # Login tracking without retaining network identifiers.
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+    mfa_totp_secret: Mapped[str | None] = mapped_column(EncryptedString(), default=None)
+    mfa_enabled: Mapped[bool] = mapped_column(default=False, nullable=False)
+    mfa_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     # Flexible user preferences (UI settings, feature toggles, etc.)
     preferences: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)
