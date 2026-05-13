@@ -215,7 +215,14 @@ async def test_session_pairs_binary_frame_with_pending_response() -> None:
 
     manager.resolve_json.assert_called_once_with(
         "msg-1",
-        {"id": "msg-1", "status": 200, "has_binary": True},
+        {
+            "id": "msg-1",
+            "type": "response",
+            "status": 200,
+            "content_type": None,
+            "has_binary": True,
+            "data": None,
+        },
         b"payload",
     )
     assert session.pending_binary_response is None
