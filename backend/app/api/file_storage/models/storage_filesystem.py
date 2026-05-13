@@ -58,7 +58,7 @@ class FileSystemStorage(BaseStorage):
         path = self._path / Path(filename)
 
         file.seek(0)
-        with path.open("wb") as output:
+        with path.open("xb") as output:
             while chunk := file.read(self.default_chunk_size):
                 output.write(chunk)
 
@@ -83,7 +83,7 @@ class FileSystemStorage(BaseStorage):
         path = self._path / filename
 
         await upload_file.seek(0)
-        async with await open_file(path, "wb") as output:
+        async with await open_file(path, "xb") as output:
             while chunk := await upload_file.read(self.default_chunk_size):
                 await output.write(chunk)
 

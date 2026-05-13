@@ -15,7 +15,7 @@ from PIL import Image as PILImage
 from starlette.datastructures import Headers
 
 from app.api.common.exceptions import BadRequestError
-from app.api.file_storage.crud.support_paths import delete_image_from_storage
+from app.api.file_storage.crud.support_paths import delete_file_from_storage, delete_image_from_storage
 from app.api.file_storage.crud.support_uploads import process_uploadfile_name, sanitize_filename
 from app.api.file_storage.upload_policy import (
     HYPERSPECTRAL_FILE_EXTENSIONS,
@@ -85,6 +85,21 @@ class TestFileStorageCrudUtils:
 
         mock_run_sync.assert_awaited_once()
         mock_delete_file.assert_awaited_once_with(image_path)
+
+    async def test_delete_file_from_storage_ignores_files_already_removed(self, tmp_path: Path) -> None:
+        """Deletion should tolerate a concurrent remover winning the unlink race."""
+        await delete_file_from_storage(tmp_path / "missing.txt")
+
+    async def test_delete_file_from_storage_surfaces_unexpected_os_errors(self) -> None:
+        """Only a missing file is benign; other unlink errors should stay visible."""
+        with (
+            patch(
+                "app.api.file_storage.crud.support_paths.AnyIOPath.unlink",
+                new=AsyncMock(side_effect=PermissionError("denied")),
+            ),
+            pytest.raises(PermissionError, match="denied"),
+        ):
+            await delete_file_from_storage(Path(FAKE_IMAGE_PATH))
 
 
 def _upload(filename: str, content_type: str, content: bytes = b"sample") -> UploadFile:

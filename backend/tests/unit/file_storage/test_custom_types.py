@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from fastapi import UploadFile
 
 from app.api.file_storage.models.storage_filesystem import FileSystemStorage
 from app.core.lifecycle import ensure_storage_directories
@@ -101,3 +102,16 @@ async def test_filesystem_write_image_upload_stores_without_policy_validation(
     assert await storage.write_image_upload(upload, "photo.jpg") == "photo.jpg"
     assert (tmp_path / "photo.jpg").read_bytes() == b"image-bytes"
     mock_validate.assert_not_called()
+
+
+async def test_filesystem_write_upload_refuses_to_overwrite_existing_file(tmp_path: Path) -> None:
+    """Unexpected stored-name collisions must not replace existing upload bytes."""
+    stored_file = tmp_path / "same-name.pdf"
+    stored_file.write_bytes(b"original")
+    upload = UploadFile(file=io.BytesIO(b"replacement"), filename="same-name.pdf", size=len(b"replacement"))
+    storage = FileSystemStorage(path=str(tmp_path))
+
+    with pytest.raises(FileExistsError):
+        await storage.write_upload(upload, "same-name.pdf")
+
+    assert stored_file.read_bytes() == b"original"
