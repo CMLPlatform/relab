@@ -1,5 +1,5 @@
 """Unit tests for authentication utilities."""
-# spell-checker: ignore mailinator
+# spell-checker: ignore nmailinator
 # ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
 
 from __future__ import annotations

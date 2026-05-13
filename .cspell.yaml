@@ -32,7 +32,7 @@ ignorePaths:
   - package-lock.json
   - pnpm-lock.yaml
   - uv.lock
-  - backend/app/api/auth/resources/disposable_email_domains.txt
+  - backend/app/api/auth/resources/**
   - app/src/assets/data/**
   - app/src/types/api.generated.ts
   - docs/public/api/schemas/**
@@ -55,6 +55,7 @@ words:
   - HSTS
   - linkinator
   - LogQL
+  - mailinator
   - MASVS
   - mpegurl
   - nosniff
@@ -65,6 +66,7 @@ words:
   - subrepo
   - subrepos
   - tootallnate
+  - TOTP
   - trivyignores
   - trixie
   - tsvector
@@ -111,13 +113,18 @@ overrides:
       - instrumentors
       - joinedload
       - ondelete
+      - otpauth
       - piexif
       - pythonjsonlogger
       - PYTHONDONTWRITEBYTECODE
       - PYTHONUNBUFFERED
       - primaryjoin
       - reauthentication
+      - rediss
+      - scard
       - selectinload
+      - setex
+      - sismember
       - tsquery
       - uninstrument
       - usefixtures
@@ -137,6 +144,7 @@ overrides:
     words:
       # Technical terms
       - ellipsize
+      - otpauth
       - pressable
       - pressables
       - refetches
