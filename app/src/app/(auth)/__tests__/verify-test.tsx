@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { HttpResponse, http } from 'msw';
+import { Platform } from 'react-native';
 import { API_URL } from '@/config';
 import { getToken, getUser } from '@/services/api/authentication';
 import { renderWithProviders } from '@/test-utils/index';
@@ -26,6 +27,7 @@ function renderVerifyEmailScreen() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.replaceProperty(Platform, 'OS', 'ios');
   mockedGetToken.mockResolvedValue(undefined);
   mockedGetUser.mockResolvedValue(undefined);
   (useRouter as jest.Mock).mockReturnValue({
@@ -70,6 +72,35 @@ describe('VerifyEmailScreen states', () => {
     await waitFor(() => {
       expect(screen.getByText(EMAIL_VERIFIED_SUCCESS_PATTERN)).toBeOnTheScreen();
     });
+  });
+
+  it('verifies a web fragment token after scrubbing it from the URL', async () => {
+    const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
+    jest.replaceProperty(Platform, 'OS', 'web');
+    (useLocalSearchParams as jest.Mock).mockReturnValue({});
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        hash: '#token=fragment-verify-token',
+        pathname: '/verify',
+        search: '',
+      },
+    });
+    server.use(
+      http.post(`${API_URL}/auth/verify`, async ({ request }) => {
+        await expect(request.json()).resolves.toEqual({ token: 'fragment-verify-token' });
+        return HttpResponse.json({}, { status: 200 });
+      }),
+    );
+
+    renderVerifyEmailScreen();
+
+    await waitFor(() => {
+      expect(screen.getByText(EMAIL_VERIFIED_SUCCESS_PATTERN)).toBeOnTheScreen();
+    });
+    expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/verify');
+
+    replaceStateSpy.mockRestore();
   });
 
   it('shows API error when verification returns non-ok response', async () => {

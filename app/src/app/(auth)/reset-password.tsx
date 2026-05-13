@@ -2,9 +2,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Platform, View } from 'react-native';
+import { View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
 import { API_URL } from '@/config';
+import { useSensitiveAuthToken } from '@/hooks/auth/useSensitiveAuthToken';
 import { apiFetch } from '@/services/api/client';
 import {
   type ResetPasswordFormValues,
@@ -190,12 +191,7 @@ function ResetPasswordCardContent({
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const { token: tokenParam } = useLocalSearchParams<{ token: string }>();
-  const token = typeof tokenParam === 'string' ? tokenParam : undefined;
-  useEffect(() => {
-    if (tokenParam && Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, [tokenParam]);
+  const token = useSensitiveAuthToken(typeof tokenParam === 'string' ? tokenParam : undefined);
 
   const {
     control,

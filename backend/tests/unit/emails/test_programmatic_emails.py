@@ -52,11 +52,12 @@ def test_generate_token_link_default_base_url() -> None:
     link = generate_token_link(token, route)
 
     parsed = urlparse(link)
-    query_params = parse_qs(parsed.query)
+    fragment_params = parse_qs(parsed.fragment)
 
     assert link.startswith(str(core_settings.app_public_url))
     assert parsed.path == route
-    assert query_params["token"] == [token]
+    assert parsed.query == ""
+    assert fragment_params["token"] == [token]
 
 
 def test_generate_token_link_custom_base_url() -> None:
@@ -68,11 +69,12 @@ def test_generate_token_link_custom_base_url() -> None:
     link = generate_token_link(token, route, base_url=custom_base_url)
 
     parsed = urlparse(link)
-    query_params = parse_qs(parsed.query)
+    fragment_params = parse_qs(parsed.fragment)
 
     assert link.startswith(custom_base_url)
     assert parsed.path == route
-    assert query_params["token"] == [token]
+    assert parsed.query == ""
+    assert fragment_params["token"] == [token]
 
 
 def test_generate_token_link_with_trailing_slash() -> None:
@@ -89,18 +91,19 @@ def test_generate_token_link_with_trailing_slash() -> None:
     assert urlparse(link).path == route
 
 
-def test_generate_token_link_url_encodes_token_query_parameter() -> None:
-    """Token links should preserve token content without creating extra query parameters."""
+def test_generate_token_link_url_encodes_token_fragment_parameter() -> None:
+    """Token links should preserve token content without putting sensitive values in the query."""
     token = "abc+def&next=https://evil.test/#frag"
     route = "/verify"
 
     link = generate_token_link(token, route)
 
     parsed = urlparse(link)
-    query_params = parse_qs(parsed.query)
+    fragment_params = parse_qs(parsed.fragment)
 
     assert parsed.path == route
-    assert query_params == {"token": [token]}
+    assert parsed.query == ""
+    assert fragment_params == {"token": [token]}
 
 
 ### Registration Email Tests ###
