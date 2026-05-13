@@ -128,7 +128,6 @@ async def api_client(
 
     with (
         patch("app.core.lifecycle.init_redis", return_value=mock_redis_dependency),
-        patch("app.core.lifecycle.init_blocking_redis", return_value=None),
         patch("app.core.lifecycle.create_http_client", return_value=outbound_http_client),
     ):
         async with test_app.router.lifespan_context(test_app):

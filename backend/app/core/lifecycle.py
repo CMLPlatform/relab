@@ -27,7 +27,7 @@ from app.core.config import Environment, settings
 from app.core.database import async_engine, async_sessionmaker_factory
 from app.core.logging import cleanup_logging, setup_logging
 from app.core.observability import init_telemetry, shutdown_telemetry
-from app.core.redis import close_redis, init_blocking_redis, init_redis
+from app.core.redis import close_redis, init_redis
 from app.core.runtime import AppServices, get_app_services, reset_app_services
 
 if TYPE_CHECKING:
@@ -89,7 +89,7 @@ async def _initialize_cache_services(services: AppServices) -> None:
     services.common_password_checker = await init_common_password_checker(services.redis)
     init_cache(services.redis)
 
-    services.blocking_redis = await init_blocking_redis()
+    services.blocking_redis = await init_redis(blocking=True)
     set_blocking_redis(services.blocking_redis)
 
 
