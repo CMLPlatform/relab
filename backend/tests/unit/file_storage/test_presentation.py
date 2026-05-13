@@ -114,3 +114,46 @@ def test_missing_storage_file_returns_no_urls(tmp_path: Path, monkeypatch: pytes
 
     assert storage_item_exists(file) is False
     assert FileReadWithinParent.model_validate(file).file_url is None
+
+
+def test_file_read_omits_url_for_path_outside_storage_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Malformed stored paths must not become public upload URLs."""
+    storage_root = tmp_path / "files"
+    outside_root = tmp_path / "outside"
+    storage_root.mkdir()
+    outside_root.mkdir()
+    outside_file = outside_root / "leak.txt"
+    outside_file.write_bytes(b"secret")
+    monkeypatch.setattr(settings, "file_storage_path", storage_root)
+    file = File(
+        id=uuid4(),
+        filename="leak.txt",
+        file=FakeStoredFile(path=str(outside_file)),
+        parent_type=MediaParentType.PRODUCT,
+        parent_id=1,
+    )
+
+    assert FileReadWithinParent.model_validate(file).file_url is None
+
+
+def test_image_read_omits_urls_for_path_outside_storage_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Malformed stored image paths must not become public upload URLs."""
+    storage_root = tmp_path / "images"
+    outside_root = tmp_path / "outside"
+    storage_root.mkdir()
+    outside_root.mkdir()
+    outside_file = outside_root / "leak.png"
+    outside_file.write_bytes(b"secret")
+    monkeypatch.setattr(settings, "image_storage_path", storage_root)
+    image = Image(
+        id=uuid4(),
+        filename="leak.png",
+        file=FakeStoredFile(path=str(outside_file)),
+        parent_type=MediaParentType.PRODUCT,
+        parent_id=1,
+    )
+
+    read_model = ImageReadWithinParent.model_validate(image)
+
+    assert read_model.image_url is None
+    assert read_model.thumbnail_url is None
