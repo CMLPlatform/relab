@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.api.common.crud.filtering import apply_filter
+from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.sa_typing import orm_attr
 from app.api.data_collection.filters import ProductFilterWithRelationships
 from app.api.data_collection.models.product import Product
@@ -30,6 +31,12 @@ class ProductTreeData:
 
     roots: list[Product]
     children_by_parent_id: dict[int, list[Product]]
+
+
+def apply_product_detail_loaders(statement: Select[tuple[Product]]) -> Select[tuple[Product]]:
+    """Apply relationship loaders required by product detail responses."""
+    statement = apply_loader_profile(statement, Product, PRODUCT_READ_DETAIL_RELATIONSHIPS)
+    return statement.options(selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.owner)))
 
 
 async def load_component_subtree(

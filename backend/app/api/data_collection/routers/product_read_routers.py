@@ -8,18 +8,20 @@ from fastapi import HTTPException, Query, Request
 from fastapi_pagination.links import Page
 from pydantic import UUID4, PositiveInt
 from sqlalchemy import select
+from starlette.responses import Response  # noqa: TC002 # Runtime annotation evaluation needs this.
 
 from app.api.auth.dependencies import CurrentActiveUserDep, OptionalCurrentActiveUserDep
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
+from app.api.common.crud.utils import ensure_model_exists
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.base import ComponentRead, ProductRead
-from app.api.data_collection.crud.products import (
-    PRODUCT_READ_DETAIL_RELATIONSHIPS,
+from app.api.data_collection.crud.product_tree_queries import (
     PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+    apply_product_detail_loaders,
     load_component_subtree,
 )
 from app.api.data_collection.dependencies import ProductFilterWithRelationshipsDep
@@ -41,7 +43,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from sqlalchemy import Select
-    from starlette.responses import Response
 
 user_product_router = PublicAPIRouter(prefix="/users/{user_id}/products", tags=["products"])
 product_read_router = PublicAPIRouter(prefix="/products", tags=["products"])
@@ -55,7 +56,10 @@ async def _require_product_summary(session: AsyncSessionDep, product_id: Positiv
 
 async def _require_product_detail(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
     """Load one product with the detail relationships used on detail reads."""
-    return await require_model(session, Product, product_id, loaders=PRODUCT_READ_DETAIL_RELATIONSHIPS)
+    statement = select(Product).where(Product.id == product_id)
+    statement = apply_product_detail_loaders(statement)
+    product = (await session.execute(statement)).scalars().unique().one_or_none()
+    return ensure_model_exists(product, Product, product_id)
 
 
 async def _list_direct_components(
