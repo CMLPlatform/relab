@@ -1,10 +1,11 @@
 """Configuration settings for the FastAPI app."""
-# spell-checker: ignore clamav PGSSL
+# spell-checker: ignore PGSSL
 
 from __future__ import annotations
 
 import re
 from functools import cached_property
+from ipaddress import ip_network
 from pathlib import Path  # noqa: TC003 # Runtime use is needed for Pydantic validation of settings
 from typing import TYPE_CHECKING
 from urllib.parse import quote, urlsplit
@@ -126,6 +127,18 @@ class CoreSettings(RelabBaseSettings):
         """Validate the dedicated cache payload signing secret."""
         return validate_min_secret_bytes(v, "CACHE_SIGNING_SECRET")
 
+    @field_validator("trusted_proxy_cidrs")
+    @classmethod
+    def validate_trusted_proxy_cidrs(cls, v: tuple[str, ...]) -> tuple[str, ...]:
+        """Validate trusted proxy networks used for forwarded client IP headers."""
+        for cidr in v:
+            try:
+                ip_network(cidr, strict=False)
+            except ValueError as exc:
+                msg = f"trusted_proxy_cidrs contains invalid CIDR: {cidr}"
+                raise ValueError(msg) from exc
+        return v
+
     @staticmethod
     def _normalize_origin(url: HttpUrl) -> str:
         """Normalize URL-like values to browser Origin format."""
@@ -182,11 +195,11 @@ class CoreSettings(RelabBaseSettings):
     api_write_rate_limit: str = "120/minute"
     api_upload_rate_limit: str = "30/minute"
     rpi_cam_ws_auth_rate_limit: str = "10/minute"
-    rpi_cam_ws_text_frame_limit_bytes: int = Field(default=64 * 1024, ge=1024, le=1024 * 1024)
     rpi_cam_ws_binary_frame_limit_bytes: int = Field(default=10 * 1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     uvicorn_limit_concurrency: int = Field(default=100, ge=1, le=10_000)
     uvicorn_timeout_keep_alive: int = Field(default=5, ge=1, le=120)
     uvicorn_h11_max_incomplete_event_size: int = Field(default=16 * 1024, ge=1024, le=1024 * 1024)
+    trusted_proxy_cidrs: tuple[str, ...] = ("127.0.0.0/8", "::1/128")
     # OTEL on/off is derived from the endpoint; service.name is read by the
     # OTEL SDK directly from the OTEL_SERVICE_NAME env var (set in compose).
     otel_exporter_otlp_endpoint: str | None = None
