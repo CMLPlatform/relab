@@ -1,9 +1,10 @@
 """Unit tests for application configuration.
 
-Tests CORS settings, host allowlists, and environment file resolution.
+Tests CORS settings, host allowlists, transport settings, and environment file resolution.
 """
 # spell-checker: ignore PGSSL
 
+import ssl
 from typing import TYPE_CHECKING
 
 import pytest
@@ -360,8 +361,8 @@ class TestCoreSettingsCors:
         with pytest.raises(ValidationError, match="REDIS_PASSWORD must not be empty"):
             CoreSettings(**kwargs)
 
-    def test_sync_database_url_disables_ssl_by_default(self) -> None:
-        """Sync DB URLs should explicitly disable SSL for the internal Postgres service."""
+    def test_sync_database_url_disables_tls_by_default(self) -> None:
+        """Sync DB URLs should explicitly disable TLS for the internal Postgres service."""
         settings = CoreSettings(
             environment=Environment.DEV,
             database_migration_password=SecretStr("test-password"),
@@ -369,15 +370,57 @@ class TestCoreSettingsCors:
         parsed = make_url(settings.sync_migration_database_url)
         assert parsed.query["sslmode"] == "disable"
 
-    def test_async_database_connect_args_disable_ssl_by_default(self) -> None:
+    def test_sync_database_url_supports_verify_full_tls(self, tmp_path: Path) -> None:
+        """External Postgres deployments should be able to require full certificate verification."""
+        ca_file = tmp_path / "postgres-ca.pem"
+        ca_file.write_text("test CA path", encoding="utf-8")
+        settings = CoreSettings(
+            environment=Environment.DEV,
+            database_tls=True,
+            database_tls_ca_file=ca_file,
+            database_migration_password=SecretStr("test-password"),
+        )
+
+        parsed = make_url(settings.sync_migration_database_url)
+
+        assert parsed.query["sslmode"] == "verify-full"
+        assert parsed.query["sslrootcert"] == str(ca_file)
+
+    def test_database_tls_rejects_non_boolean_values(self) -> None:
+        """Database TLS should stay a simple boolean toggle."""
+        with pytest.raises(ValidationError, match="database_tls"):
+            CoreSettings(environment=Environment.DEV, database_tls="require")
+
+    def test_async_database_connect_args_disable_tls_by_default(self) -> None:
         """Async DB connections should not inherit accidental PGSSL* env vars by default."""
         settings = CoreSettings(environment=Environment.DEV)
         assert settings.async_database_connect_args == {"ssl": False}
 
-    def test_async_database_connect_args_enable_ssl_when_configured(self) -> None:
-        """Async DB SSL should remain configurable for deployments that need it."""
-        settings = CoreSettings(**_production_core_settings_kwargs(database_ssl=True))
-        assert settings.async_database_connect_args == {"ssl": True}
+    def test_async_database_connect_args_verify_full_uses_ssl_context(self) -> None:
+        """Full DB certificate verification should use a default verifying SSL context."""
+        settings = CoreSettings(**_production_core_settings_kwargs(database_tls=True))
+
+        connect_args = settings.async_database_connect_args
+
+        assert isinstance(connect_args["ssl"], ssl.SSLContext)
+        assert connect_args["ssl"].verify_mode == ssl.CERT_REQUIRED
+        assert connect_args["ssl"].check_hostname is True
+
+    def test_cache_url_uses_rediss_when_redis_tls_is_enabled(self) -> None:
+        """Redis TLS should be reflected in the cache URL scheme."""
+        settings = CoreSettings(
+            environment=Environment.DEV,
+            redis_host="redis.internal",
+            redis_port=6379,
+            redis_db=2,
+            redis_password=SecretStr("p@ss:word/with?chars"),
+            redis_tls=True,
+        )
+
+        url = settings.cache_url
+
+        RedisDsn(url)
+        assert url == "rediss://:p%40ss%3Aword%2Fwith%3Fchars@redis.internal:6379/2"
 
     def test_production_requires_https_origins(self) -> None:
         """Production-like environments should use HTTPS for external URLs."""

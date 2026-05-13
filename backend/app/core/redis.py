@@ -2,6 +2,7 @@
 # spell-checker: ignore BLPOP, BRPOP, coro
 
 import logging
+import ssl
 from typing import TYPE_CHECKING, Annotated, Any
 
 from fastapi import Depends, Request
@@ -29,7 +30,7 @@ _REQUIRED_SERVICE_UNAVAILABLE = "Required service is temporarily unavailable."
 # stub gap. ``coro: Any`` is deliberate; the helpers hide it from call sites.
 
 
-async def redis_bool(coro: Any) -> bool:  # noqa: ANN401 — upstream stub gap, see module docstring
+async def redis_bool(coro: Any) -> bool:  # noqa: ANN401 — upstream stub gap
     """Await a redis-py coroutine and coerce the result to ``bool``."""
     return bool(await coro)
 
@@ -68,7 +69,7 @@ async def _execute_redis_operation[T](
         return failure_result
 
 
-async def init_redis() -> Redis | None:
+async def init_redis(*, blocking: bool = False) -> Redis | None:
     """Initialize Redis client instance with connection pooling.
 
     Returns:
@@ -78,62 +79,60 @@ async def init_redis() -> Redis | None:
     Gracefully handles connection failures and returns None if Redis is unavailable.
     """
     try:
-        redis_client = Redis(
-            host=settings.redis_host,
-            port=settings.redis_port,
-            db=settings.redis_db,
-            password=settings.redis_password.get_secret_value() if settings.redis_password else None,
-            decode_responses=True,
-            socket_connect_timeout=5,
-            socket_timeout=5,
-        )
+        password = settings.redis_password.get_secret_value() if settings.redis_password else None
+        socket_timeout = None if blocking else 5
+        if settings.redis_tls:
+            redis_client = Redis(
+                host=settings.redis_host,
+                port=settings.redis_port,
+                db=settings.redis_db,
+                password=password,
+                decode_responses=True,
+                socket_connect_timeout=5,
+                socket_timeout=socket_timeout,
+                ssl=True,
+                ssl_cert_reqs=ssl.CERT_REQUIRED,
+                ssl_ca_certs=str(settings.redis_tls_ca_file) if settings.redis_tls_ca_file is not None else None,
+                ssl_check_hostname=True,
+            )
+        else:
+            redis_client = Redis(
+                host=settings.redis_host,
+                port=settings.redis_port,
+                db=settings.redis_db,
+                password=password,
+                decode_responses=True,
+                socket_connect_timeout=5,
+                socket_timeout=socket_timeout,
+                ssl=False,
+            )
 
         # Verify connection on startup
         await redis_bool(redis_client.ping())
-        logger.info("Redis client initialized and connected: %s:%s", settings.redis_host, settings.redis_port)
+        if blocking:
+            logger.info(
+                "Blocking Redis client initialized and connected: %s:%s",
+                settings.redis_host,
+                settings.redis_port,
+            )
+        else:
+            logger.info("Redis client initialized and connected: %s:%s", settings.redis_host, settings.redis_port)
 
     except (TimeoutError, RedisError, OSError, ConnectionError) as e:
-        logger.warning(
-            "Failed to connect to Redis during initialization: %s. Application will continue without Redis.", e
-        )
+        if blocking:
+            logger.warning(
+                "Failed to connect to Redis (blocking client) during initialization: %s. "
+                "Cross-worker relay will be unavailable.",
+                e,
+            )
+        else:
+            logger.warning(
+                "Failed to connect to Redis during initialization: %s. Application will continue without Redis.", e
+            )
         return None
     else:
         return redis_client
 
-
-async def init_blocking_redis() -> Redis | None:
-    """Initialize a Redis client for blocking commands (BLPOP/BRPOP).
-
-    Identical to ``init_redis`` except ``socket_timeout`` is ``None`` so that
-    blocking pops (BLPOP with large or zero timeout) are not interrupted by the
-    socket-level timeout.  Use this client *only* for blocking operations; all
-    other operations should use the regular client from ``init_redis``.
-    """
-    try:
-        redis_client = Redis(
-            host=settings.redis_host,
-            port=settings.redis_port,
-            db=settings.redis_db,
-            password=settings.redis_password.get_secret_value() if settings.redis_password else None,
-            decode_responses=True,
-            socket_connect_timeout=5,
-            socket_timeout=None,  # must be None for BLPOP — a finite timeout kills the socket mid-wait
-        )
-        await redis_bool(redis_client.ping())
-        logger.info(
-            "Blocking Redis client initialized and connected: %s:%s",
-            settings.redis_host,
-            settings.redis_port,
-        )
-    except (TimeoutError, RedisError, OSError, ConnectionError) as e:
-        logger.warning(
-            "Failed to connect to Redis (blocking client) during initialization: %s. "
-            "Cross-worker relay will be unavailable.",
-            e,
-        )
-        return None
-    else:
-        return redis_client
 
 
 async def close_redis(redis_client: Redis) -> None:
