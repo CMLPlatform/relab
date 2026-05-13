@@ -127,6 +127,10 @@ openapi-check:
 refresh-disposable-email-domains:
     uv run python -m scripts.maintenance.refresh_disposable_email_domains
 
+# Refresh the committed common-password fallback list from the pinned upstream source
+refresh-common-passwords:
+    uv run python -m scripts.maintenance.refresh_common_passwords
+
 # Run the backend k6 baseline performance suite (requires k6 installed)
 perf-baseline:
     mkdir -p reports/performance
