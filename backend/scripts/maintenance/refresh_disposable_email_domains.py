@@ -6,7 +6,6 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING
 
-import anyio
 import httpx
 
 from app.api.auth.services.email_checker import DISPOSABLE_DOMAINS_FALLBACK_PATH, DISPOSABLE_DOMAINS_URL
@@ -29,6 +28,7 @@ def _render_domains_file(domains: list[str]) -> str:
     """Render the fallback file contents."""
     header = [
         "# Curated local fallback for disposable email validation.",
+        f"# Source: {DISPOSABLE_DOMAINS_URL}",
         "# Refresh from upstream with: `just refresh-disposable-email-domains`",
     ]
     return "\n".join([*header, *domains, ""])
@@ -51,6 +51,12 @@ def _validate_rendered_size(content: str) -> None:
         )
 
 
+def _write_domains_file(output_path: Path, rendered: str) -> None:
+    """Write rendered disposable-domain fallback content to disk."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(rendered, encoding="utf-8")
+
+
 async def refresh_disposable_domains(output_path: Path = DISPOSABLE_DOMAINS_FALLBACK_PATH) -> int:
     """Download the current domain list and write it to the repo-local fallback file."""
     async with httpx.AsyncClient() as client:
@@ -60,8 +66,7 @@ async def refresh_disposable_domains(output_path: Path = DISPOSABLE_DOMAINS_FALL
     domains = _normalize_domains(response.text)
     rendered = _render_domains_file(domains)
     _validate_rendered_size(rendered)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    await anyio.Path(output_path).write_text(rendered, encoding="utf-8")
+    await asyncio.to_thread(_write_domains_file, output_path, rendered)
     logger.info("Updated %s with %d disposable domains.", output_path, len(domains))
     return 0
 

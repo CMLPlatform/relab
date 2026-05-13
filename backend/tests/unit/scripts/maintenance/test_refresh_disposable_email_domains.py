@@ -58,13 +58,20 @@ class TestRefreshDisposableEmailDomainsScript:
         client_mock.__aexit__.return_value = None
 
         monkeypatch.setattr(refresh_script.httpx, "AsyncClient", mocker.Mock(return_value=client_mock))
+        to_thread_mock = mocker.patch.object(
+            refresh_script.asyncio,
+            "to_thread",
+            side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
+        )
 
         exit_code = await refresh_script.refresh_disposable_domains(output_path)
 
         assert exit_code == 0
+        to_thread_mock.assert_awaited_once()
         assert output_path.exists()
         assert output_path.read_text(encoding="utf-8") == (
             "# Curated local fallback for disposable email validation.\n"
+            f"# Source: {refresh_script.DISPOSABLE_DOMAINS_URL}\n"
             "# Refresh from upstream with: `just refresh-disposable-email-domains`\n"
             "mailinator.com\n"
             "temp-mail.org\n"
