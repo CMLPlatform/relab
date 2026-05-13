@@ -12,14 +12,16 @@ from uuid import uuid4
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
+from relab_rpi_cam_models import RELAY_WS_TEXT_FRAME_LIMIT_BYTES
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_bucket_key
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion as _verify_device_assertion
+from app.api.plugins.rpi_cam.websocket import router as router_mod
 from app.api.plugins.rpi_cam.websocket.router import (
     _authenticate,
-    _handle_text_frame,
     _heartbeat_loop,
     _receive_loop,
+    _RelayWebSocketSession,
     camera_websocket_connect,
 )
 
@@ -44,43 +46,31 @@ async def test_connect_rejects_browser_origin_before_auth_lookup() -> None:
     authenticate.assert_not_awaited()
 
 
-async def test_handle_text_frame_sanitizes_camera_id_in_log() -> None:
+async def test_session_text_frame_sanitizes_camera_id_in_log() -> None:
     """Invalid JSON logging should neutralize line breaks in camera IDs."""
     camera_id = uuid4()
     manager = MagicMock(spec=[])
+    session = _RelayWebSocketSession(camera_id=camera_id, manager=manager, redis=None, last_pong_at=0.0)
 
     with patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger:
-        result = await _handle_text_frame(
-            raw={"text": "{not-json"},
-            camera_id=camera_id,
-            manager=manager,
-            pending_id=None,
-            pending_json=None,
-            last_pong_at=[0.0],
-            redis=None,
-        )
+        await session.handle_text_frame("{not-json")
 
-    assert result == (None, None)
+    assert session.pending_binary_response is None
+    assert session.last_pong_at == 0.0
     mock_logger.warning.assert_called_once_with("Camera %s sent invalid JSON, ignoring.", str(camera_id))
 
 
-async def test_handle_text_frame_ignores_malformed_response_envelope() -> None:
+async def test_session_text_frame_ignores_malformed_response_envelope() -> None:
     """Malformed response envelopes should not tear down the receive loop."""
     camera_id = uuid4()
     manager = MagicMock()
+    session = _RelayWebSocketSession(camera_id=camera_id, manager=manager, redis=None, last_pong_at=0.0)
 
     with patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger:
-        result = await _handle_text_frame(
-            raw={"text": '{"type":"response","id":"msg-1","status":"not-an-int"}'},
-            camera_id=camera_id,
-            manager=manager,
-            pending_id=None,
-            pending_json=None,
-            last_pong_at=[0.0],
-            redis=None,
-        )
+        await session.handle_text_frame('{"type":"response","id":"msg-1","status":"not-an-int"}')
 
-    assert result == (None, None)
+    assert session.pending_binary_response is None
+    assert session.last_pong_at == 0.0
     manager.resolve_json.assert_not_called()
     mock_logger.warning.assert_called_once_with(
         "Camera %s sent malformed response envelope, ignoring.",
@@ -88,22 +78,16 @@ async def test_handle_text_frame_ignores_malformed_response_envelope() -> None:
     )
 
 
-async def test_handle_text_frame_ignores_non_object_json() -> None:
+async def test_session_text_frame_ignores_non_object_json() -> None:
     """Valid JSON text frames that are not objects should be ignored."""
     camera_id = uuid4()
     manager = MagicMock()
+    session = _RelayWebSocketSession(camera_id=camera_id, manager=manager, redis=None, last_pong_at=0.0)
 
-    result = await _handle_text_frame(
-        raw={"text": '["response"]'},
-        camera_id=camera_id,
-        manager=manager,
-        pending_id=None,
-        pending_json=None,
-        last_pong_at=[0.0],
-        redis=None,
-    )
+    await session.handle_text_frame('["response"]')
 
-    assert result == (None, None)
+    assert session.pending_binary_response is None
+    assert session.last_pong_at == 0.0
     manager.resolve_json.assert_not_called()
 
 
@@ -157,15 +141,14 @@ async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:
     websocket.close = AsyncMock()
     websocket.send_text = AsyncMock()
     camera_id = uuid4()
-    last_pong_at = [0.0]
+    session = _RelayWebSocketSession(camera_id=camera_id, manager=MagicMock(), redis=None, last_pong_at=0.0)
 
     with (
         patch("app.api.plugins.rpi_cam.websocket.router.asyncio.sleep", new=AsyncMock()),
-        patch("app.api.plugins.rpi_cam.websocket.router.asyncio.get_running_loop") as mock_loop,
+        patch("app.api.plugins.rpi_cam.websocket.router.monotonic", return_value=91.0),
         patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger,
     ):
-        mock_loop.return_value.time.return_value = 91.0
-        await _heartbeat_loop(websocket, camera_id, last_pong_at)
+        await _heartbeat_loop(websocket, session)
 
     websocket.close.assert_awaited_once_with(code=1001)
     mock_logger.warning.assert_called_once_with(
@@ -177,7 +160,10 @@ async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:
 
 async def test_receive_loop_closes_on_oversized_text_frame(monkeypatch: pytest.MonkeyPatch) -> None:
     """Oversized WebSocket text frames should close before JSON parsing or dispatch."""
-    monkeypatch.setattr("app.api.plugins.rpi_cam.websocket.router.settings.rpi_cam_ws_text_frame_limit_bytes", 8)
+    monkeypatch.setattr(
+        "app.api.plugins.rpi_cam.websocket.router.RELAY_WS_TEXT_FRAME_LIMIT_BYTES",
+        8,
+    )
     websocket = AsyncMock()
     websocket.receive = AsyncMock(
         side_effect=[
@@ -187,14 +173,13 @@ async def test_receive_loop_closes_on_oversized_text_frame(monkeypatch: pytest.M
     )
     websocket.close = AsyncMock()
 
-    await _receive_loop(websocket, uuid4(), MagicMock(), [0.0], None)
+    await _receive_loop(websocket, _RelayWebSocketSession(camera_id=uuid4(), manager=MagicMock(), redis=None))
 
     websocket.close.assert_awaited_once()
 
 
-async def test_receive_loop_closes_on_oversized_binary_frame(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Oversized WebSocket binary frames should close before being retained in memory."""
-    monkeypatch.setattr("app.api.plugins.rpi_cam.websocket.router.settings.rpi_cam_ws_binary_frame_limit_bytes", 8)
+async def test_receive_loop_accepts_binary_frames_after_server_level_size_checks() -> None:
+    """Binary frame size is enforced by Uvicorn before frames reach the app."""
     websocket = AsyncMock()
     websocket.receive = AsyncMock(
         side_effect=[
@@ -204,9 +189,41 @@ async def test_receive_loop_closes_on_oversized_binary_frame(monkeypatch: pytest
     )
     websocket.close = AsyncMock()
 
-    await _receive_loop(websocket, uuid4(), MagicMock(), [0.0], None)
+    await _receive_loop(websocket, _RelayWebSocketSession(camera_id=uuid4(), manager=MagicMock(), redis=None))
 
-    websocket.close.assert_awaited_once()
+    websocket.close.assert_not_awaited()
+
+
+async def test_session_updates_last_pong_at_from_pong_frame() -> None:
+    """The receive session should own heartbeat timestamp updates."""
+    manager = MagicMock()
+    session = _RelayWebSocketSession(camera_id=uuid4(), manager=manager, redis=None, last_pong_at=1.0)
+
+    with patch("app.api.plugins.rpi_cam.websocket.router.monotonic", return_value=123.0):
+        await session.handle_text_frame('{"type":"pong"}')
+
+    assert session.last_pong_at == 123.0
+
+
+async def test_session_pairs_binary_frame_with_pending_response() -> None:
+    """The receive session should pair a binary frame with its pending JSON response."""
+    manager = MagicMock()
+    session = _RelayWebSocketSession(camera_id=uuid4(), manager=manager, redis=None)
+    await session.handle_text_frame('{"type":"response","id":"msg-1","status":200,"has_binary":true}')
+
+    session.handle_binary_frame(b"payload")
+
+    manager.resolve_json.assert_called_once_with(
+        "msg-1",
+        {"id": "msg-1", "status": 200, "has_binary": True},
+        b"payload",
+    )
+    assert session.pending_binary_response is None
+
+
+def test_text_frame_limit_matches_shared_contract() -> None:
+    """The router should use the shared relay text-frame contract."""
+    assert router_mod.RELAY_WS_TEXT_FRAME_LIMIT_BYTES == RELAY_WS_TEXT_FRAME_LIMIT_BYTES
 
 
 # ── Device assertion verification ────────────────────────────────────────────
