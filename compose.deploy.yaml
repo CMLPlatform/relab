@@ -9,7 +9,7 @@
 #   docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
-# spell-checker: ignore REDISCLI, requirepass, tmpfs
+# spell-checker: ignore clamav, clamd, clamdscan, REDISCLI, requirepass, tmpfs
 
 # --- Reusable fragments ------------------------------------------------------
 # Shipping container logs to a central Loki instance is opt-in: include
@@ -86,6 +86,45 @@ services:
       DB_POOL_SIZE: "10"
       DB_POOL_MAX_OVERFLOW: "10"
       UVICORN_LIMIT_CONCURRENCY: "100"
+      MALWARE_SCAN_ENABLED: "true"
+      CLAMAV_HOST: clamav
+    depends_on:
+      clamav:
+        condition: service_healthy
+    networks:
+      - scanning
+
+  clamav:
+    # ClamAV needs substantial RAM for signature databases; budget roughly
+    # 3-4 GiB so default reload and FreshClam database testing stay enabled.
+    # The first start with an empty clamav_db volume downloads signatures before
+    # clamd becomes healthy, so API startup may wait several minutes.
+    image: clamav/clamav:1.5_base-debian@sha256:dc21c2989e199a0ffdc4d00bfffff21cc1faaecc22a4442005bd00b0d0a7afd9
+    entrypoint: /init-unprivileged
+    user: clamav
+    restart: unless-stopped
+    mem_limit: 4g
+    mem_reservation: 3g
+    cap_drop:
+      - ALL
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile:
+        soft: 8192
+        hard: 8192
+    volumes:
+      - clamav_db:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1 2>/dev/null"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      start_interval: 10s
+      retries: 3
+    networks:
+      - scanning
 
   migrator:
     image: relab-backend-migrations:${ENVIRONMENT}-local
@@ -248,6 +287,7 @@ services:
 
 volumes:
   cache_data:
+  clamav_db:
 
 secrets:
   postgres_password:
@@ -280,3 +320,6 @@ secrets:
     file: ./secrets/${ENVIRONMENT}/microsoft_graph_client_secret
   bootstrap_superuser_password:
     file: ./secrets/${ENVIRONMENT}/bootstrap_superuser_password
+
+networks:
+  scanning:
