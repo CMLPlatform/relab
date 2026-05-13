@@ -10,8 +10,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from pydantic import UUID4
-
-from app.api.plugins.rpi_cam.websocket.protocol import MSG_PONG, build_command
+from relab_rpi_cam_models import RelayMessageType, build_relay_command
 
 if TYPE_CHECKING:
     from fastapi import WebSocket
@@ -90,7 +89,7 @@ class CameraConnectionManager:
         self._pending[msg_id] = future
 
         try:
-            payload = build_command(msg_id, method, path, params, body, headers)
+            payload = build_relay_command(msg_id, method, path, params, body, headers).model_dump_json()
             await ws.send_text(payload)
             return await future
         finally:
@@ -108,26 +107,7 @@ class CameraConnectionManager:
         """Respond to a ping from the camera."""
         ws = self._connections.get(camera_id)
         if ws:
-            await ws.send_text(json.dumps({"type": MSG_PONG}))
-
-
-# ── Module-level singleton ────────────────────────────────────────────────────
-
-_manager_state: dict[str, CameraConnectionManager | None] = {"manager": None}
-
-
-def get_connection_manager() -> CameraConnectionManager:
-    """Return the global CameraConnectionManager (must be initialised at startup)."""
-    manager = _manager_state["manager"]
-    if manager is None:
-        msg = "CameraConnectionManager is not initialised."
-        raise RuntimeError(msg)
-    return manager
-
-
-def set_connection_manager(manager: CameraConnectionManager) -> None:
-    """Set the global CameraConnectionManager (called during app startup)."""
-    _manager_state["manager"] = manager
+            await ws.send_text(json.dumps({"type": RelayMessageType.PONG}))
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
