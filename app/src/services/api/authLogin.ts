@@ -1,6 +1,7 @@
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
 import { extractApiErrorDetail, getAuthLoginPath } from './authHelpers';
+import { type MfaLoginPending, parseMfaPendingPayload } from './authMfa';
 import { authRuntime } from './authRuntime';
 import {
   isWeb,
@@ -9,6 +10,11 @@ import {
   setWebSessionFlag,
 } from './authSession';
 import { fetchWithTimeout } from './request';
+
+export type LoginResult =
+  | { status: 'authenticated' }
+  | MfaLoginPending
+  | { status: 'invalid_credentials' };
 
 export async function login(
   apiUrl: string,
@@ -20,7 +26,7 @@ export async function login(
     getUser: (forceRefresh?: boolean) => Promise<User | undefined>;
     refreshAuthToken: () => Promise<boolean>;
   },
-): Promise<string | undefined> {
+): Promise<LoginResult> {
   const web = isWeb();
   const authPath = getAuthLoginPath(web);
   const url = new URL(apiUrl + authPath);
@@ -47,6 +53,9 @@ export async function login(
           if (refreshed) {
             await deps.getUser(true);
           } else {
+            // The browser may not have processed the session cookie from the login
+            // response by the time the next request fires. A short delay lets the
+            // cookie become available so getUser() can authenticate successfully.
             await new Promise<void>((resolve) => setTimeout(resolve, 150));
             await deps.getUser(true).catch(() => {
               /* ignore */
@@ -56,38 +65,40 @@ export async function login(
           /* ignore */
         }
       }
-      return 'success';
+      return { status: 'authenticated' };
     }
 
     if (response.status === 400) {
       authRuntime.token = undefined;
-      return;
+      return { status: 'invalid_credentials' };
     }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      throw new Error(
-        `HTTP ${response.status}: ${extractApiErrorDetail(errorData, 'Login failed.')}`,
-      );
-    }
-
-    if (web) {
-      setWebSessionFlag(true);
-      return 'success';
+      throw new Error(extractApiErrorDetail(errorData, 'Login failed.'));
     }
 
     const data = await response.json().catch(() => null);
+    const mfaPending = parseMfaPendingPayload(data);
+    if (response.status === 202 && mfaPending) return mfaPending;
+
+    if (web) {
+      setWebSessionFlag(true);
+      return { status: 'authenticated' };
+    }
+
     if (typeof data?.access_token === 'string') {
       await deps.persistAccessToken(data.access_token);
       if (typeof data.refresh_token === 'string') {
         await deps.persistRefreshToken(data.refresh_token);
       }
-      return data.access_token;
+      return { status: 'authenticated' };
     }
 
-    return 'success';
+    return { status: 'authenticated' };
   } catch (err) {
     logError('[Login Fetch Error]:', err);
+    if (err instanceof Error) throw err;
     throw new Error('Unable to reach server. Please try again later.');
   }
 }

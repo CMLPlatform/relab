@@ -4,12 +4,15 @@ import { Platform } from 'react-native';
 import type { useDialog } from '@/components/common/dialogContext';
 import { API_URL } from '@/config';
 import { getUser, markWebSessionActive } from '@/services/api/authentication';
+import { claimOAuthMfaHandoff, type MfaLoginPending } from '@/services/api/authMfa';
 import {
   buildOAuthAuthorizeUrl,
   fetchOAuthAuthorizationUrl,
   isAllowedOAuthRedirectUrl,
   isExpectedOAuthCallbackUrl,
+  type OAuthCallbackResult,
   openOAuthBrowserSession,
+  parseOAuthCallbackUrl,
 } from '@/services/api/oauthFlow';
 import type { User } from '@/types/User';
 import type { SafeRedirectTarget } from './useLoginRedirect';
@@ -23,18 +26,6 @@ function maybeUnrefTimer(timer: unknown): void {
   if (timer && typeof timer === 'object' && 'unref' in timer) {
     (timer as TimerWithUnref).unref();
   }
-}
-
-function parseOAuthCallbackUrl(url: string): {
-  success: boolean;
-  error?: string;
-  detail?: string;
-} {
-  const callbackUrl = new URL(url.replace('#', '?'));
-  const success = callbackUrl.searchParams.get('success') === 'true';
-  const error = callbackUrl.searchParams.get('error') ?? undefined;
-  const detail = callbackUrl.searchParams.get('detail') ?? undefined;
-  return { success, error, detail };
 }
 
 function getOAuthErrorMessage(
@@ -117,17 +108,26 @@ async function finalizeOAuthSession({
   success,
   error,
   detail,
+  mfaHandoff,
   dialog,
   completeSuccessfulLogin,
+  handleMfaPending,
   showAccountAlreadyRegisteredDialog,
-}: {
+}: OAuthCallbackResult & {
   success: boolean;
   error?: string;
   detail?: string;
+  mfaHandoff?: string;
   dialog: DialogApi;
   completeSuccessfulLogin: (authenticatedUser: User) => Promise<void>;
+  handleMfaPending: (pending: MfaLoginPending) => void;
   showAccountAlreadyRegisteredDialog: () => void;
 }) {
+  if (mfaHandoff) {
+    handleMfaPending(await claimOAuthMfaHandoff(mfaHandoff));
+    return;
+  }
+
   if (isAccountNotLinkedError(detail)) {
     showAccountAlreadyRegisteredDialog();
     return;
@@ -167,11 +167,7 @@ async function startOAuthLogin({
 }: {
   provider: 'google' | 'github';
   dialog: DialogApi;
-  finalizeOAuthLogin: (args: {
-    success: boolean;
-    error?: string;
-    detail?: string;
-  }) => Promise<void>;
+  finalizeOAuthLogin: (args: OAuthCallbackResult) => Promise<void>;
   showAccountAlreadyRegisteredDialog: () => void;
 }) {
   try {
@@ -234,11 +230,7 @@ function useOAuthCallbackEffect({
   oauthError?: string | string[];
   oauthDetail?: string | string[];
   postLoginRedirect?: SafeRedirectTarget;
-  finalizeOAuthLogin: (args: {
-    success: boolean;
-    error?: string;
-    detail?: string;
-  }) => Promise<void>;
+  finalizeOAuthLogin: (args: OAuthCallbackResult) => Promise<void>;
   dialog: DialogApi;
 }) {
   useEffect(() => {
@@ -249,8 +241,15 @@ function useOAuthCallbackEffect({
       oauthError,
       oauthDetail,
     });
+    const fragmentCallback =
+      Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash
+        ? parseOAuthCallbackUrl(window.location.href)
+        : undefined;
     const hasOAuthCallbackParams =
-      successParam !== undefined || errorParam !== undefined || detailParam !== undefined;
+      successParam !== undefined ||
+      errorParam !== undefined ||
+      detailParam !== undefined ||
+      fragmentCallback !== undefined;
 
     if (!hasOAuthCallbackParams) return;
 
@@ -263,11 +262,13 @@ function useOAuthCallbackEffect({
       window.history.replaceState({}, '', window.location.pathname + cleanSearch);
     }
 
-    finalizeOAuthLogin({
-      success: successParam === 'true',
-      error: errorParam,
-      detail: detailParam,
-    }).catch((error: unknown) => {
+    finalizeOAuthLogin(
+      fragmentCallback ?? {
+        success: successParam === 'true',
+        error: errorParam,
+        detail: detailParam,
+      },
+    ).catch((error: unknown) => {
       dialog.alert({
         title: 'Login Failed',
         message: getErrorMessage(error, 'OAuth login failed.'),
@@ -292,6 +293,7 @@ export function useOAuthLogin({
   oauthSuccess,
   oauthError,
   oauthDetail,
+  handleMfaPending,
 }: {
   dialog: DialogApi;
   completeSuccessfulLogin: (authenticatedUser: User) => Promise<void>;
@@ -300,21 +302,24 @@ export function useOAuthLogin({
   oauthSuccess?: string | string[];
   oauthError?: string | string[];
   oauthDetail?: string | string[];
+  handleMfaPending: (pending: MfaLoginPending) => void;
 }) {
   const handledOAuthCallbackRef = useRef(false);
 
   const finalizeOAuthLogin = useCallback(
-    async ({ success, error, detail }: { success: boolean; error?: string; detail?: string }) => {
+    async ({ success, error, detail, mfaHandoff }: OAuthCallbackResult) => {
       await finalizeOAuthSession({
         success,
         error,
         detail,
+        mfaHandoff,
         dialog,
         completeSuccessfulLogin,
+        handleMfaPending,
         showAccountAlreadyRegisteredDialog,
       });
     },
-    [dialog, showAccountAlreadyRegisteredDialog, completeSuccessfulLogin],
+    [dialog, showAccountAlreadyRegisteredDialog, completeSuccessfulLogin, handleMfaPending],
   );
 
   useOAuthCallbackEffect({

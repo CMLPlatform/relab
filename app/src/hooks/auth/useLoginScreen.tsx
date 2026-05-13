@@ -1,10 +1,11 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { maybeCompleteAuthSession } from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { Keyboard } from 'react-native';
 import { useDialog } from '@/components/common/dialogContext';
 import { useAuth } from '@/context/auth';
 import { useEffectiveColorScheme } from '@/context/themeMode';
+import { type MfaLoginPending, setPendingMfaLogin } from '@/services/api/authMfa';
 import type { User } from '@/types/User';
 import { useLoginForm } from './useLoginForm';
 import {
@@ -15,6 +16,8 @@ import {
 import { useOAuthLogin } from './useOAuthLogin';
 
 maybeCompleteAuthSession();
+
+const MFA_ROUTE = '/mfa' as Href;
 
 function useKeyboardShownState() {
   const [keyboardShown, setKeyboardShown] = useState(false);
@@ -74,9 +77,22 @@ export function useLoginScreen() {
     [postLoginRedirect, refetch, router],
   );
 
+  const routeToMfa = useCallback(
+    (pending: MfaLoginPending, replace = false) => {
+      setPendingMfaLogin({ ...pending, redirectTo: postLoginRedirect });
+      if (replace) {
+        router.replace(MFA_ROUTE);
+        return;
+      }
+      router.push(MFA_ROUTE);
+    },
+    [postLoginRedirect, router],
+  );
+
   const { control, emailRef, submit } = useLoginForm({
     dialog,
     completeSuccessfulLogin,
+    handleMfaPending: (pending) => routeToMfa(pending),
   });
 
   const showAccountAlreadyRegisteredDialog = useCallback(() => {
@@ -99,6 +115,7 @@ export function useLoginScreen() {
     oauthSuccess,
     oauthError,
     oauthDetail,
+    handleMfaPending: (pending) => routeToMfa(pending, true),
   });
 
   return {

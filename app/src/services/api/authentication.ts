@@ -3,6 +3,7 @@ import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
 import { extractApiErrorDetail } from './authHelpers';
 import {
+  type LoginResult,
   login as loginFlow,
   logout as logoutFlow,
   revokeAllSessions as revokeAllSessionsFlow,
@@ -51,7 +52,7 @@ export async function fetchWithAuth(
   return fetchWithAuthFlow(apiURL, url, options);
 }
 
-export async function login(username: string, password: string): Promise<string | undefined> {
+export async function login(username: string, password: string): Promise<LoginResult> {
   return loginFlow(apiURL, username, password, {
     persistAccessToken,
     persistRefreshToken,
@@ -128,15 +129,7 @@ export async function updateUser(updates: Partial<User>): Promise<User | undefin
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      const detail = errorData?.detail;
-      throw new Error(
-        typeof detail === 'string'
-          ? detail
-          : (detail?.message ??
-              detail?.reason ??
-              JSON.stringify(detail) ??
-              'Failed to update user profile'),
-      );
+      throw new Error(extractApiErrorDetail(errorData, 'Failed to update user profile'));
     }
 
     return await getUser(true);

@@ -1,5 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
-import { isAllowedOAuthRedirectUrl, isExpectedOAuthCallbackUrl } from '@/services/api/oauthFlow';
+import {
+  isAllowedOAuthRedirectUrl,
+  isExpectedOAuthCallbackUrl,
+  parseOAuthCallbackUrl,
+} from '@/services/api/oauthFlow';
 
 describe('OAuth URL validation', () => {
   it('accepts the configured HTTPS provider authorization hosts', () => {
@@ -20,6 +24,15 @@ describe('OAuth URL validation', () => {
         'relab-app://profile',
       ),
     ).toBe(true);
+  });
+
+  it('parses OAuth MFA handoff callback data from URL fragments', () => {
+    expect(
+      parseOAuthCallbackUrl('relab-app://login#success=false&mfa_handoff=handoff-token'),
+    ).toEqual({
+      success: false,
+      mfaHandoff: 'handoff-token',
+    });
   });
 
   it('rejects callbacks for a different scheme host or path', () => {

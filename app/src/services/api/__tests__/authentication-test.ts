@@ -80,7 +80,7 @@ describe('Authentication API Service', () => {
       const result = await auth.login('user', 'pass');
 
       expect(secureStoreMock.setItemAsync).toHaveBeenCalledWith('access_token', 'new-token-123');
-      expect(result).toBe('new-token-123');
+      expect(result).toEqual({ status: 'authenticated' });
     });
 
     it("returns 'success' for 204 cookie login", async () => {
@@ -88,7 +88,7 @@ describe('Authentication API Service', () => {
 
       const result = await auth.login('user', 'pass');
 
-      expect(result).toBe('success');
+      expect(result).toEqual({ status: 'authenticated' });
     });
 
     it('returns undefined for HTTP 400', async () => {
@@ -98,7 +98,7 @@ describe('Authentication API Service', () => {
 
       const result = await auth.login('user', 'wrong-pass');
 
-      expect(result).toBeUndefined();
+      expect(result).toEqual({ status: 'invalid_credentials' });
     });
 
     it('throws on non-ok, non-400 response', async () => {
@@ -620,7 +620,7 @@ describe('Authentication API Service', () => {
 
         const result = await auth.login('u@e.com', 'pass');
 
-        expect(result).toBe('success');
+        expect(result).toEqual({ status: 'authenticated' });
         expect(fetchMock()).toHaveBeenCalledWith(
           expect.objectContaining({ href: expect.stringContaining('/auth/session/login') }),
           expect.anything(),
@@ -639,7 +639,7 @@ describe('Authentication API Service', () => {
         await jest.runAllTimersAsync();
         const result = await loginPromise;
 
-        expect(result).toBe('success');
+        expect(result).toEqual({ status: 'authenticated' });
         expect(fetchMock()).toHaveBeenCalledTimes(3);
       });
 
@@ -653,7 +653,7 @@ describe('Authentication API Service', () => {
         await jest.advanceTimersByTimeAsync(200);
         const result = await loginPromise;
 
-        expect(result).toBe('success');
+        expect(result).toEqual({ status: 'authenticated' });
       });
     });
 

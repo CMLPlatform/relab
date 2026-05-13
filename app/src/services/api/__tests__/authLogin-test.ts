@@ -57,7 +57,7 @@ describe('authLogin', () => {
         getUser,
         refreshAuthToken,
       }),
-    ).resolves.toBe('native-token');
+    ).resolves.toEqual({ status: 'authenticated' });
 
     expect(persistAccessToken).toHaveBeenCalledWith('native-token');
     expect(persistRefreshToken).toHaveBeenCalledWith('native-refresh-token');
@@ -87,7 +87,7 @@ describe('authLogin', () => {
         getUser,
         refreshAuthToken,
       }),
-    ).resolves.toBe('success');
+    ).resolves.toEqual({ status: 'authenticated' });
 
     expect(setWebSessionFlag).toHaveBeenCalledWith(true);
     expect(refreshAuthToken).toHaveBeenCalled();
@@ -120,10 +120,58 @@ describe('authLogin', () => {
 
     await jest.advanceTimersByTimeAsync(150);
 
-    await expect(promise).resolves.toBe('success');
+    await expect(promise).resolves.toEqual({ status: 'authenticated' });
     expect(getUser).toHaveBeenCalledWith(true);
 
     jest.useRealTimers();
+  });
+
+  it('returns a discriminated MFA pending result from 202 responses', async () => {
+    const { fetchWithTimeout } = jest.requireMock('../request') as {
+      fetchWithTimeout: jest.Mock;
+    };
+
+    fetchWithTimeout.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({
+        mfa_required: true,
+        mfa_token: 'mfa-token',
+      }),
+    } as never);
+
+    const result = await login('http://localhost:8000', 'user', 'pass', {
+      persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
+      refreshAuthToken: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
+    });
+
+    expect(result).toEqual({
+      status: 'mfa_required',
+      mfaToken: 'mfa-token',
+    });
+  });
+
+  it('preserves API error details for non-credential login failures', async () => {
+    const { fetchWithTimeout } = jest.requireMock('../request') as {
+      fetchWithTimeout: jest.Mock;
+    };
+
+    fetchWithTimeout.mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      json: async () => ({ detail: 'Too many login attempts.' }),
+    } as never);
+
+    await expect(
+      login('http://localhost:8000', 'user', 'pass', {
+        persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+        persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+        getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
+        refreshAuthToken: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
+      }),
+    ).rejects.toThrow('Too many login attempts.');
   });
 
   it('clears cached auth state before calling logout endpoint', async () => {
