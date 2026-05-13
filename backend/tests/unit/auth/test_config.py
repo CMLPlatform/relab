@@ -78,10 +78,9 @@ class TestAuthSettingsDefaults:
         assert settings.rate_limit_password_reset_attempts_per_hour == 3
 
     def test_youtube_api_scopes_default(self) -> None:
-        """YouTube API scopes default to the expected list of four scopes."""
+        """YouTube API scopes default to the narrow live-streaming scope."""
         settings = AuthSettings()
-        assert len(settings.youtube_api_scopes) == 4
-        assert all(s.startswith("https://www.googleapis.com/auth/youtube") for s in settings.youtube_api_scopes)
+        assert settings.youtube_api_scopes == ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 
 class TestAuthSettingsOverrides:

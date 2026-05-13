@@ -142,10 +142,7 @@ class AuthSettings(RelabBaseSettings):
     # Youtube API settings
     youtube_api_scopes: list[str] = Field(
         default_factory=lambda: [
-            "https://www.googleapis.com/auth/youtube",
             "https://www.googleapis.com/auth/youtube.force-ssl",
-            "https://www.googleapis.com/auth/youtube.readonly",
-            "https://www.googleapis.com/auth/youtube.upload",
         ]
     )
 
