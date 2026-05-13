@@ -2574,18 +2574,27 @@
         "properties": {
           "candidate_urls": {
             "items": {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
               "type": "string"
             },
+            "maxItems": 16,
+            "minItems": 1,
             "title": "Candidate Urls",
             "type": "array"
           },
           "local_api_key": {
+            "maxLength": 256,
+            "minLength": 8,
             "title": "Local Api Key",
             "type": "string"
           },
           "mdns_name": {
             "anyOf": [
               {
+                "maxLength": 253,
+                "pattern": "^[A-Za-z0-9.-]+$",
                 "type": "string"
               },
               {
@@ -2597,8 +2606,7 @@
         },
         "required": [
           "local_api_key",
-          "candidate_urls",
-          "mdns_name"
+          "candidate_urls"
         ],
         "title": "LocalAccessInfo",
         "type": "object"
@@ -2957,6 +2965,115 @@
         ],
         "title": "MediaParentType",
         "type": "string"
+      },
+      "MfaChallengeRequest": {
+        "additionalProperties": false,
+        "description": "Request to complete MFA for an account with TOTP already enabled.",
+        "properties": {
+          "code": {
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Code",
+            "type": "string"
+          },
+          "mfa_token": {
+            "format": "password",
+            "title": "Mfa Token",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "mfa_token",
+          "code"
+        ],
+        "title": "MfaChallengeRequest",
+        "type": "object"
+      },
+      "MfaOAuthClaimRequest": {
+        "additionalProperties": false,
+        "description": "Request to claim an OAuth MFA handoff.",
+        "properties": {
+          "mfa_handoff": {
+            "format": "password",
+            "title": "Mfa Handoff",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "mfa_handoff"
+        ],
+        "title": "MfaOAuthClaimRequest",
+        "type": "object"
+      },
+      "MfaPendingResponse": {
+        "description": "Response returned after the first authentication factor succeeds.",
+        "properties": {
+          "mfa_required": {
+            "default": true,
+            "title": "Mfa Required",
+            "type": "boolean"
+          },
+          "mfa_token": {
+            "description": "Short-lived token for completing an MFA challenge",
+            "title": "Mfa Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mfa_token"
+        ],
+        "title": "MfaPendingResponse",
+        "type": "object"
+      },
+      "MfaTotpConfirmRequest": {
+        "additionalProperties": false,
+        "description": "Request to confirm authenticated TOTP setup.",
+        "properties": {
+          "code": {
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Code",
+            "type": "string"
+          },
+          "setup_token": {
+            "format": "password",
+            "title": "Setup Token",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "setup_token",
+          "code"
+        ],
+        "title": "MfaTotpConfirmRequest",
+        "type": "object"
+      },
+      "MfaTotpSetupResponse": {
+        "description": "TOTP setup material for authenticator apps.",
+        "properties": {
+          "otpauth_uri": {
+            "title": "Otpauth Uri",
+            "type": "string"
+          },
+          "secret": {
+            "title": "Secret",
+            "type": "string"
+          },
+          "setup_token": {
+            "title": "Setup Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "setup_token",
+          "secret",
+          "otpauth_uri"
+        ],
+        "title": "MfaTotpSetupResponse",
+        "type": "object"
       },
       "Page_CategoryReadWithRecursiveSubCategories_": {
         "properties": {
@@ -3342,6 +3459,9 @@
           "camera_id": {
             "anyOf": [
               {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9._~-]+$",
                 "type": "string"
               },
               {
@@ -3353,6 +3473,9 @@
           "key_id": {
             "anyOf": [
               {
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9._~-]+$",
                 "type": "string"
               },
               {
@@ -3372,6 +3495,9 @@
           "ws_url": {
             "anyOf": [
               {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -3430,11 +3556,16 @@
         "description": "Backend -> Pi acknowledgement of a pairing registration.",
         "properties": {
           "code": {
+            "maxLength": 6,
+            "minLength": 6,
+            "pattern": "^[A-Z0-9]{6}$",
             "title": "Code",
             "type": "string"
           },
           "expires_in": {
             "description": "Seconds until the pairing code expires.",
+            "exclusiveMinimum": 0.0,
+            "maximum": 600.0,
             "title": "Expires In",
             "type": "integer"
           }
@@ -5236,7 +5367,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RefreshTokenResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/RefreshTokenResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MfaPendingResponse"
+                    }
+                  ],
+                  "title": "Response Auth Bearer Login V1 Auth Bearer Login Post"
                 }
               }
             },
@@ -5386,6 +5525,199 @@
         "x-public": true
       }
     },
+    "/v1/auth/mfa/challenge": {
+      "post": {
+        "description": "Complete login for a user with TOTP already enabled.",
+        "operationId": "complete_mfa_challenge_v1_auth_mfa_challenge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaChallengeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/RefreshTokenResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Complete Mfa Challenge V1 Auth Mfa Challenge Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Complete Mfa Challenge",
+        "tags": [
+          "auth",
+          "auth",
+          "auth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ],
+        "x-public": true
+      }
+    },
+    "/v1/auth/mfa/oauth/claim": {
+      "post": {
+        "description": "Claim a one-time OAuth MFA handoff and return pending MFA state.",
+        "operationId": "claim_oauth_mfa_handoff_v1_auth_mfa_oauth_claim_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaOAuthClaimRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaPendingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Claim Oauth Mfa Handoff",
+        "tags": [
+          "auth",
+          "auth",
+          "auth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ],
+        "x-public": true
+      }
+    },
+    "/v1/auth/mfa/totp/confirm": {
+      "post": {
+        "description": "Confirm authenticated TOTP enrollment.",
+        "operationId": "confirm_totp_setup_v1_auth_mfa_totp_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaTotpConfirmRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Confirm Totp Setup",
+        "tags": [
+          "auth",
+          "auth",
+          "auth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ],
+        "x-public": true
+      }
+    },
+    "/v1/auth/mfa/totp/setup": {
+      "post": {
+        "description": "Start authenticated TOTP enrollment for an account that opted into MFA.",
+        "operationId": "start_totp_setup_v1_auth_mfa_totp_setup_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaTotpSetupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Start Totp Setup",
+        "tags": [
+          "auth",
+          "auth",
+          "auth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ],
+        "x-public": true
+      }
+    },
     "/v1/auth/register": {
       "post": {
         "description": "Register a new user.",
@@ -5436,6 +5768,7 @@
     },
     "/v1/auth/session/login": {
       "post": {
+        "description": "Authenticate a browser client and return MFA challenge only when MFA is enabled.",
         "operationId": "auth_session_login_v1_auth_session_login_post",
         "requestBody": {
           "content": {
@@ -5451,7 +5784,17 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MfaPendingResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Auth Session Login V1 Auth Session Login Post"
+                }
               }
             },
             "description": "Successful Response"
