@@ -5,9 +5,9 @@ from __future__ import annotations
 from importlib import import_module
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from starlette.requests import Request
+from starlette.requests import Request  # noqa: TC002 - FastAPI needs the runtime type for OpenAPI generation.
 
+if TYPE_CHECKING:
     from app.api.auth.services.common_password_checker import CommonPasswordChecker
     from app.api.auth.services.email_checker import EmailChecker
 

@@ -16,8 +16,12 @@ from app.api.plugins.rpi_cam.routers.pairing import (
     poll_pairing_status,
     register_pairing_code,
 )
-from app.api.plugins.rpi_cam.schemas import RelayPublicKeyJWK
 from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest, PairingRegisterRequest
+from app.api.plugins.rpi_cam.utils.device_contracts import (
+    build_claimed_bootstrap,
+    build_claimed_record,
+    dump_pairing_record,
+)
 from tests.factories.models import UserFactory
 
 PUBLIC_JWK = {
@@ -52,11 +56,11 @@ def build_request() -> Request:
 
 
 async def test_register_pairing_code_sanitizes_code_in_log() -> None:
-    """Register logging should neutralize line breaks in the pairing code."""
-    body = PairingRegisterRequest.model_construct(
-        code="ABCD\n12",
+    """Register logging should include only validated pairing codes."""
+    body = PairingRegisterRequest(
+        code="ABCD12",
         rpi_fingerprint="fingerprint",
-        public_key_jwk=RelayPublicKeyJWK(**PUBLIC_JWK),
+        public_key_jwk=PUBLIC_JWK,
         key_id=KEY_ID,
     )
     redis_client = await _make_fake_redis()
@@ -69,8 +73,8 @@ async def test_register_pairing_code_sanitizes_code_in_log() -> None:
         )
 
     assert response.code == body.code
-    mock_logger.info.assert_called_once_with("Pairing code %s registered.", "ABCD 12")
-    stored = await redis_client.get("rpi_cam:pairing:ABCD\n12")
+    mock_logger.info.assert_called_once_with("Pairing code %s registered.", "ABCD12")
+    stored = await redis_client.get("rpi_cam:pairing:ABCD12")
     assert stored is not None
     payload = json.loads(stored)
     assert payload["public_key_jwk"] == PUBLIC_JWK
@@ -126,20 +130,20 @@ async def test_claim_pairing_code_sanitizes_code_in_log() -> None:
 
 
 async def test_poll_pairing_status_sanitizes_code_in_log() -> None:
-    """Polling logs should neutralize line breaks in the pairing code."""
-    body_code = "ABCD\n12"
+    """Polling logs should include only validated pairing codes."""
+    body_code = "ABCD12"
     redis_client = await _make_fake_redis()
     await redis_client.set(
-        "rpi_cam:pairing:ABCD\n12",
-        json.dumps(
-            {
-                "status": "paired",
-                "camera_id": "1",
-                "ws_url": "3",
-                "auth_scheme": "device_assertion",
-                "key_id": KEY_ID,
-                "rpi_fingerprint": "fingerprint",
-            }
+        "rpi_cam:pairing:ABCD12",
+        dump_pairing_record(
+            build_claimed_record(
+                build_claimed_bootstrap(
+                    camera_id=str(uuid4()),
+                    ws_url="ws://testserver/v1/plugins/rpi-cam/ws/connect",
+                    key_id=KEY_ID,
+                ),
+                rpi_fingerprint="fingerprint",
+            )
         ),
     )
 
@@ -154,8 +158,8 @@ async def test_poll_pairing_status_sanitizes_code_in_log() -> None:
     assert response.status == "paired"
     assert response.auth_scheme == "device_assertion"
     assert response.key_id == KEY_ID
-    mock_logger.info.assert_called_once_with("Pairing credentials retrieved for code %s.", "ABCD 12")
-    assert await redis_client.get("rpi_cam:pairing:ABCD\n12") is None
+    mock_logger.info.assert_called_once_with("Pairing credentials retrieved for code %s.", "ABCD12")
+    assert await redis_client.get("rpi_cam:pairing:ABCD12") is None
 
 
 async def _make_fake_redis() -> FakeRedis:

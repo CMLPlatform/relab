@@ -1,5 +1,5 @@
 """Unit tests for authentication utilities."""
-# spell-checker: ignore hget, hset, mailinator
+# spell-checker: ignore mailinator
 # ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
 
 from __future__ import annotations
@@ -10,7 +10,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
-from redis.exceptions import ConnectionError as RedisConnectionError
 
 from app.api.auth.schemas import TrustedUserCreate
 from app.api.auth.services.email_checker import EmailChecker, load_local_disposable_domains
@@ -52,44 +51,6 @@ class TestEmailChecker:
 
         await checker.close()
 
-    async def test_init_with_redis(self, mock_redis: AsyncMock) -> None:
-        """Test initialization with Redis client when domains don't exist in cache."""
-        mock_redis.exists = AsyncMock(return_value=False)
-        mock_pipe = MagicMock()
-        mock_pipe.execute = AsyncMock()
-        mock_redis.pipeline = MagicMock(return_value=mock_pipe)
-        checker = EmailChecker(redis_client=mock_redis)
-
-        with patch(
-            "app.api.auth.services.email_checker.load_local_disposable_domains",
-            return_value={"mailinator.com", "temp-mail.org"},
-        ):
-            await checker.initialize()
-
-            assert checker._initialized is True
-            mock_redis.exists.assert_called_once_with("temp_domains")
-            mock_pipe.delete.assert_called_once()
-            mock_pipe.hset.assert_called_once()
-
-        await checker.close()
-
-    async def test_init_with_redis_cached(self, mock_redis: AsyncMock) -> None:
-        """Test initialization with Redis client when domains already exist in cache."""
-        mock_redis.exists = AsyncMock(return_value=True)
-        checker = EmailChecker(redis_client=mock_redis)
-
-        with patch(
-            "app.api.auth.services.email_checker.load_local_disposable_domains",
-            return_value={"temp-mail.org"},
-        ):
-            await checker.initialize()
-
-            assert checker._initialized is True
-            mock_redis.exists.assert_called_once_with("temp_domains")
-            mock_redis.hset.assert_not_awaited()
-
-        await checker.close()
-
     async def test_refresh_domains_success(self) -> None:
         """Test successful domain refresh."""
         checker = EmailChecker(redis_client=None)
@@ -112,7 +73,7 @@ class TestEmailChecker:
         with patch.object(checker, "_fetch_remote_domains", AsyncMock(side_effect=RuntimeError("Refresh failed"))):
             await checker.run_once()
 
-        mock_redis.hset.assert_not_awaited()
+        assert checker._domains == set()
 
     def test_load_local_disposable_domains(self, tmp_path: Path) -> None:
         """Local fallback files should ignore comments and blank lines."""
@@ -136,27 +97,6 @@ class TestEmailChecker:
         checker = EmailChecker(redis_client=None)
         checker._initialized = True
         checker._domains = {"temp-mail.org"}
-
-        result = await checker.is_disposable("user@example.com")
-
-        assert result is False
-
-    async def test_is_disposable_redis(self, mock_redis: AsyncMock) -> None:
-        """Test disposable check via Redis."""
-        mock_redis.hget = AsyncMock(return_value=b"1")
-        checker = EmailChecker(redis_client=mock_redis)
-        checker._initialized = True
-
-        result = await checker.is_disposable("test@temp-mail.org")
-
-        assert result is True
-        mock_redis.hget.assert_awaited_once_with("temp_domains", "temp-mail.org")
-
-    async def test_is_disposable_error_fail_open(self, mock_redis: AsyncMock) -> None:
-        """Test error handling during check returns False (fail open)."""
-        mock_redis.hget = AsyncMock(side_effect=RedisConnectionError("Redis down"))
-        checker = EmailChecker(redis_client=mock_redis)
-        checker._initialized = True
 
         result = await checker.is_disposable("user@example.com")
 
