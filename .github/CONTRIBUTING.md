@@ -189,13 +189,24 @@ Configuration ownership should stay predictable:
 
 Keep new settings in the smallest surface that actually needs them. If a change adds or renames env vars, update the examples, validation rules, and affected docs in the same PR.
 
+## Quality Controls
+
+Keep quality checks close to the changed surface:
+
+- backend changes: unit or integration tests, Ruff, and `ty`
+- Expo app changes: Jest plus the TypeScript and lint checks
+- public web changes: Vitest, Astro checks, and Playwright where browser behavior changes
+- docs changes: formatting, spelling, and build smoke checks
+
+GitHub Actions also cover dependency review, container scanning, repository hygiene, and release/security artifact checks. Prefer the focused subrepo `just` targets while developing, then use root-level checks for cross-repo or policy changes.
+
 ## Security Review Expectations
 
-RELab uses [OWASP ASVS 5.0.0](https://github.com/OWASP/ASVS) as the application-security baseline and keeps supply-chain checks consolidated around GitHub-native controls, Renovate, Trivy, CodeQL, Gitleaks, and OpenSSF Scorecard.
+RELab uses [OWASP ASVS 5.0.0](https://github.com/OWASP/ASVS) as the application-security baseline. The deployed security posture lives in the public [Security and hardening](https://docs.cml-relab.org/operations/security/) docs.
 
 For changes that touch authentication, authorization, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets, dependencies, or personal data, include security considerations in the pull request and update the relevant docs when behavior changes.
 
-Use the security section in the pull request template for sensitive changes. If a change creates a new attack-surface bucket or meaningfully changes a trust boundary, update the maintainer baseline in [SECURITY.md](SECURITY.md). The maintainer checklist and supply-chain tool ownership model live there too.
+Use the security section in the pull request template for sensitive changes. If a change creates a new attack-surface bucket or meaningfully changes a trust boundary, update [SECURITY.md](SECURITY.md), the public security docs, or both.
 
 Use `just security` for local maintainer diagnosis.
 

@@ -46,14 +46,6 @@ DATABASE_DRIVER_PSYCOPG = "psycopg"
 DATABASE_DRIVER_ASYNCPG = "asyncpg"
 DATABASE_SSLMODE_DISABLE = "disable"
 DATABASE_SSLMODE_VERIFY_FULL = "verify-full"
-# Default docs URLs by environment.
-DEFAULT_DOCS_URL_BY_ENVIRONMENT: dict[Environment, HttpUrl] = {
-    Environment.DEV: HttpUrl("http://127.0.0.1:4300"),
-    Environment.TESTING: HttpUrl("http://127.0.0.1:4300"),
-    Environment.STAGING: HttpUrl("https://docs-test.cml-relab.org"),
-    Environment.PROD: HttpUrl("https://docs.cml-relab.org"),
-}
-
 # Allowed outbound HTTPS URL settings
 HTTPS_SCHEME = "https"
 OutboundHttpsUrl = Annotated[AnyUrl, UrlConstraints(allowed_schemes=[HTTPS_SCHEME], host_required=True)]
@@ -110,7 +102,6 @@ class CoreSettings(RelabBaseSettings):
     backend_api_url: HttpUrl = HttpUrl("http://127.0.0.1:8001")
     site_public_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
     frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8003")
-    docs_url: HttpUrl | None = None
     cors_origin_regex: str | None = Field(default=None)
     outbound_http_allowed_urls: tuple[OutboundHttpsUrl, ...] = DEFAULT_OUTBOUND_HTTP_ALLOWED_URLS
 
@@ -180,11 +171,6 @@ class CoreSettings(RelabBaseSettings):
         """Normalize URL-like values to browser Origin format."""
         parsed = urlsplit(str(url))
         return f"{parsed.scheme}://{parsed.netloc}"
-
-    @cached_property
-    def effective_docs_url(self) -> HttpUrl:
-        """Return the configured docs URL or the environment default."""
-        return self.docs_url or DEFAULT_DOCS_URL_BY_ENVIRONMENT[self.environment]
 
     @cached_property
     def allowed_origins(self) -> list[str]:

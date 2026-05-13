@@ -1,0 +1,73 @@
+---
+title: Security and hardening
+description: RELab's deployed security posture and trust-boundary controls.
+---
+
+RELab is a self-hosted research platform. Its security posture is intentionally small and explicit: public traffic enters through Cloudflare Tunnel, data services stay on private Compose networks, outbound backend HTTP is allowlisted, and sensitive application behavior is covered by source-controlled checks.
+
+## Baseline
+
+RELab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline. The practical review focus is:
+
+- authentication, OAuth, and token flows
+- public read APIs and authenticated mutation APIs
+- uploads, media, malware scanning, and file storage
+- admin APIs
+- RPi camera device APIs and WebSocket relay
+- backups, secrets, logs, telemetry, and release/security artifacts
+
+Valuable assets include accounts, profile/privacy settings, research records, uploaded media/files, OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup material, and runtime secrets.
+
+## Inbound Edge
+
+Production and staging are HTTPS-only behind Cloudflare Tunnel. Source-controlled Cloudflare configuration in `infra/cloudflare/` owns DNS records, public hostnames, tunnel ingress rules, TLS minimums, HTTPS redirects, and RELab-specific rate limiting for auth, upload, and RPi camera traffic.
+
+Unknown tunnel hostnames fall through to a final `http_status:404` rule. Compose still owns runtime services; OpenTofu owns only the public edge.
+
+## Network Boundaries
+
+The deploy stack keeps segmentation at Compose scale:
+
+- public-facing services use the `edge` network
+- PostgreSQL, Redis, migrations, and backups use the internal `data` network
+- ClamAV scanning uses the private `scanning` network
+- only the API bridges the networks it needs
+
+PostgreSQL and Redis do not publish host ports in prod or staging. The current internal-network defaults are `DATABASE_TLS=false` and `REDIS_TLS=false`. If either service moves to an external host, managed service, or other untrusted network, enable validating TLS with `DATABASE_TLS=true` or `REDIS_TLS=true`; set the matching CA file variable for private CAs.
+
+## Backend Egress
+
+Backend outbound HTTP must use the shared HTTP client unless a reviewed exception exists. The shared client ignores ambient proxy and CA environment variables, does not follow redirects, uses bounded timeouts, validates TLS certificates, and permits only `OUTBOUND_HTTP_ALLOWED_URLS`.
+
+Prefer exact HTTPS URLs. Use trailing-slash prefixes only for integrations with required dynamic path segments. Keep GitHub, raw GitHub, and provider API access narrowed to the specific integration URLs RELab uses.
+
+## Denial-of-Service Controls
+
+RELab keeps denial-of-service mitigation layered. Cloudflare Tunnel is the public ingress for production and staging; source-controlled edge rules cover `/v1/auth/*`, upload routes, RPi camera upload routes, and WebSocket connection attempts. Volumetric attacks are handled by Cloudflare and upstream infrastructure, not by FastAPI.
+
+The backend still enforces application-level limits: JSON streaming limits, multipart upload caps, file format allowlists, Redis-backed route rate limits, and WebSocket authentication and frame limits.
+
+For one host only, create a gitignored `compose.host.yaml`; deploy recipes include it last:
+
+```yaml
+services:
+  api:
+    environment:
+      WEB_CONCURRENCY: "1"
+```
+
+## Browser Runtime Policy
+
+RELab does not load third-party browser runtime JavaScript by default. Browser code is bundled and served first-party; Biome and CI checks block remote script tags, remote module imports, CDN runtime assets, analytics snippets, and tag-manager snippets.
+
+The current exception is product video embedding from `https://www.youtube-nocookie.com`, constrained by CSP and iframe/WebView controls. Any new third-party runtime script must be reviewed, documented, CSP-allowlisted, and tested.
+
+The Expo web app still requires inline and eval-style first-party script support in the enforced CSP. A stricter report-only policy tracks the migration target and remains an ASVS V3 L3 exception. Docs and public web origins enforce stricter script policies; all browser origins enforce `object-src`, `base-uri`, `frame-ancestors`, and referrer suppression.
+
+## Supply Chain Artifacts
+
+GitHub Dependency Review and Dependency Graph gate dependency changes, while Renovate opens dependency update PRs. For an explicit full-tree dependency vulnerability sweep, run `just audit`.
+
+The security workflow builds deployable Compose images, scans them with Trivy, and stores SPDX JSON SBOM artifacts for 90 days. Release automation rebuilds deployable images, generates SPDX SBOMs, attests SBOM files with GitHub artifact attestations, and uploads them with GitHub releases.
+
+RELab deploys locally built Compose images, so release attestations prove SBOM file provenance. Image-digest-bound SBOM attestations require publishing runtime images to a registry.
