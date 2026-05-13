@@ -38,7 +38,7 @@ class ParentStorageOwnershipError(NotFoundError):
 class UploadTooLargeError(PayloadTooLargeError):
     """Raised when an uploaded file exceeds the configured size limit."""
 
-    def __init__(self, *, file_size_bytes: int, max_size_mb: int) -> None:
+    def __init__(self, *, upload_size_bytes: int, max_size_mb: int) -> None:
         super().__init__(
-            message=f"File size too large: {file_size_bytes / 1024 / 1024:.2f} MB. Maximum size: {max_size_mb} MB"
+            message=f"File size too large: {upload_size_bytes / 1024 / 1024:.2f} MB. Maximum size: {max_size_mb} MB"
         )
