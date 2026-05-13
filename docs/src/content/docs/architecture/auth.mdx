@@ -23,7 +23,7 @@ The API exposes two login transports:
 
 ## Security controls
 
-Password validation follows the project baseline from the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters, must not contain the username or email address, and are checked against a small local blocklist. New and reset passwords are also checked with Have I Been Pwned using the k-anonymity range API.
+Password validation follows the project baseline from the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters, must not contain the username or email address, and are checked against a committed ASVS-sized common-password fallback that is seeded into Redis when available. New and reset passwords are also checked with Have I Been Pwned using the k-anonymity range API.
 
 The breach check fails open if Have I Been Pwned is unavailable. The frontend keeps standard password inputs and does not block paste, so password managers work normally.
 
@@ -71,7 +71,9 @@ Refresh-token rotation uses dedicated endpoints:
 - `POST /v1/auth/bearer/refresh` for bearer clients
 - `POST /v1/auth/session/refresh` for browser sessions
 
-Bearer logout revokes the submitted refresh token. Session logout clears auth cookies, asks the browser to clear local session data, and blacklists the refresh token when one is present. `POST /v1/auth/sessions/revoke-all` revokes all refresh tokens for the current account and clears browser session state.
+Refresh tokens have a 30-day inactivity lifetime and a 30-day absolute session lifetime. Each successful refresh rotates the refresh token, but rotation preserves the original absolute expiry, so activity cannot extend a session beyond 30 days. RELab allows multiple concurrent sessions per account within that lifetime. Users can end all of them from the profile screen with "Sign out everywhere"; the current product direction intentionally does not add a per-device session inventory.
+
+Bearer logout revokes the submitted refresh token. Session logout clears auth cookies, asks the browser to clear local session data, and blacklists the refresh token when one is present. `POST /v1/auth/sessions/revoke-all` revokes all refresh tokens for the current account and clears browser session state. Password reset, current-password-protected password changes, current-password-protected email changes, account deactivation, and account deletion also revoke all refresh tokens for the affected account. Existing access tokens are not tracked in a separate revocation list; authenticated API requests still require a resolvable active user, and any residual access-token exposure is bounded by the 15-minute lifetime.
 
 Refresh tokens are random bearer secrets. Redis stores them under SHA-256 fingerprints rather than raw token values, so Redis key names are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with AES-256-GCM using the backend `DATA_ENCRYPTION_KEY`.
 
@@ -81,7 +83,7 @@ Authorization is enforced in the backend route layer, not by client-side UI stat
 
 ## OAuth
 
-OAuth login is available for Google and GitHub. Both providers support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email. GitHub linking requires explicit association.
+OAuth login is available for Google and GitHub. Both providers support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email. GitHub linking requires explicit association. OAuth login creates RELab-owned access and refresh sessions; RELab does not currently claim IdP-wide logout or coordinated provider session termination.
 
 ### Backend-mediated flow
 
