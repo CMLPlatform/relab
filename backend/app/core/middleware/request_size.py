@@ -39,6 +39,14 @@ def _payload_too_large_response(limit_bytes: int) -> JSONResponse:
     )
 
 
+def _malformed_content_length_response() -> JSONResponse:
+    """Build the shared API error payload for malformed Content-Length values."""
+    return JSONResponse(
+        status_code=400,
+        content={"detail": {"message": "Malformed Content-Length header."}},
+    )
+
+
 class RequestSizeLimitMiddleware:
     """ASGI middleware that caps request bodies while streaming."""
 
@@ -57,9 +65,16 @@ class RequestSizeLimitMiddleware:
             return
 
         limit_bytes = _request_limit_bytes(headers)
-        if _content_length_exceeds_limit(headers, limit_bytes):
-            await _payload_too_large_response(limit_bytes)(scope, receive, send)
-            return
+        content_length = headers.get("content-length")
+        if content_length is not None:
+            try:
+                content_length_bytes = int(content_length)
+            except ValueError:
+                await _malformed_content_length_response()(scope, receive, send)
+                return
+            if content_length_bytes > limit_bytes:
+                await _payload_too_large_response(limit_bytes)(scope, receive, send)
+                return
 
         await self._call_with_stream_limit(scope, receive, send, limit_bytes)
 
@@ -97,12 +112,6 @@ def _request_limit_bytes(headers: Headers) -> int:
     if _is_multipart_request(headers):
         return (settings.max_file_upload_size_mb * BYTES_PER_MIB) + MULTIPART_FORM_OVERHEAD_BYTES
     return settings.request_body_limit_bytes
-
-
-def _content_length_exceeds_limit(headers: Headers, limit_bytes: int) -> bool:
-    """Return whether a declared request length is already over the configured limit."""
-    content_length = headers.get("content-length")
-    return content_length is not None and int(content_length) > limit_bytes
 
 
 def register_request_size_limit_middleware(app: FastAPI) -> None:
