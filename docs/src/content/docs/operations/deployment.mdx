@@ -19,6 +19,7 @@ graph TD
         Backend[FastAPI Backend]
         DB[(PostgreSQL)]
         Cache[(Redis)]
+        ClamAV[ClamAV\nupload malware scanning]
         Uploads[(User Media)]
         FrontendApp[Expo App]
         FrontendWeb[Astro Landing Page]
@@ -37,6 +38,7 @@ graph TD
     Backups -->|logical dumps| DB
     Backups -->|encrypted snapshots| Uploads
     Cloudflared -->|proxies inbound traffic| Backend
+    Backend -->|scan uploads| ClamAV
     Backend -->|OTLP traces/metrics| OTel
     Backend -->|container logs via Docker driver| Loki
 ```
@@ -95,13 +97,14 @@ been reviewed.
 
 ## Network segmentation policy
 
-The deploy stack keeps segmentation intentionally small: public-facing services use the `edge` network, data services use the internal `data` network, and only the API bridges both. This follows the OWASP network segmentation model at Compose scale without adding extra proxies, VLANs, or host firewall rules to the repo.
+The deploy stack keeps segmentation intentionally small: public-facing services use the `edge` network, data services use the internal `data` network, upload scanning uses the private `scanning` network, and only the API bridges the networks it needs. This follows the OWASP network segmentation model at Compose scale without adding extra proxies, VLANs, or host firewall rules to the repo.
 
 | Service group | Compose networks | Host ports in prod/staging |
 | --- | --- | --- |
 | `cloudflared`, `docs`, `app`, `www` | `edge` only | none |
-| `api` | `edge`, `data` | none |
+| `api` | `edge`, `data`, `scanning` | none |
 | `postgres`, `redis`, `migrator`, `backup` | `data` only | none |
+| `clamav` | `scanning` only | none |
 
 `just compose-config` validates that the supported Compose overlays render for dev, prod, and staging.
 `just deploy-secrets-check` validates that rendered Compose secrets point at the expected `secrets/<env>/` files.
@@ -140,6 +143,8 @@ just prod-migrate YES
 ```
 
 Staging follows the same pattern with the staging env files and `staging-*` recipes. Upgrades are intentionally boring: pull a known-good revision, bring the stack up again, run migrations, and verify `/live` and `/health`.
+
+Prod and staging enable ClamAV malware scanning for uploads. The `clamav` service keeps its signature database in the persisted `clamav_db` volume; first boot with an empty volume can wait several minutes while signatures download. Budget roughly 3-4 GiB of RAM for ClamAV so default signature reload and database testing behavior can stay enabled.
 
 The database role hardening is a breaking fresh-volume change. For an existing host, take a verified dump first, stop the stack, recreate the Postgres volume, start Postgres so `/docker-entrypoint-initdb.d` creates the least-privilege roles, run migrations, then restore the dump through the migration/admin path.
 For local rehearsal, use staging plus the backups profile instead of production: `just staging-up YES backups`, `just staging-migrate YES`, then `just backup-restore-smoke staging`.
