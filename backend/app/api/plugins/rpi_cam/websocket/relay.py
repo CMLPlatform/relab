@@ -10,16 +10,16 @@ from typing import TYPE_CHECKING
 from fastapi import HTTPException
 from opentelemetry.propagate import inject
 from pydantic import UUID4
-from relab_rpi_cam_models import SAFE_RELAY_TRACE_HEADERS
+from relab_rpi_cam_models import extract_safe_relay_headers, relay_command_is_allowed
 
+from app.api.plugins.rpi_cam.relay_response import RelayResponse
 from app.api.plugins.rpi_cam.websocket import cross_worker_circuit_breaker as circuit_breaker
 from app.api.plugins.rpi_cam.websocket.connection_manager import (
     BINARY_COMMAND_TIMEOUT,
     DEFAULT_COMMAND_TIMEOUT,
-    get_connection_manager,
 )
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import relay_cross_worker
-from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
+from app.api.plugins.rpi_cam.websocket.runtime_state import get_connection_manager
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
@@ -81,51 +81,11 @@ async def _attempt_cross_worker_relay(
     return result
 
 
-# Exact (method, path) pairs permitted through the relay. Anything outside this
-# set and _ALLOWED_PATH_PREFIXES is rejected with 403.
-#
-# The relay carries commands only: captured image bytes travel over a direct
-# Pi→backend HTTPS upload (see
-# ``routers/camera_interaction/images.py::receive_camera_upload``), not
-# through this allowlist.
-_ALLOWED_COMMANDS = {
-    ("GET", "/camera"),
-    ("POST", "/captures"),
-    ("GET", "/streams/youtube"),
-    ("POST", "/streams/youtube"),
-    ("DELETE", "/streams/youtube"),
-    ("GET", "/system/telemetry"),
-    # Sent by the backend when a camera is deleted so the Pi clears its
-    # credentials and re-enters pairing mode automatically.
-    ("DELETE", "/pairing"),
-    # Fetched by the backend on behalf of the frontend to deliver the local
-    # API key and candidate IP addresses for Ethernet/USB-C direct-connect setup.
-    ("GET", "/system/local-access"),
-}
-
-# Dynamic prefixes. Requests where `path.startswith(prefix)` are permitted for
-# the matching method. Prefix entries must end in `/` to avoid accidental
-# prefix-of-sibling matches.
-_ALLOWED_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
-    # LL-HLS live preview. The Pi proxies to its local MediaMTX HLS listener
-    # on :8888 and returns playlist + segment bytes. Every segment fetch is
-    # one relay round-trip — at ~500kbps lores / 200ms parts that's ~12.5 KB
-    # per request, which the WebSocket carries fine.
-    ("GET", "/preview/hls/"),
-)
-
-
-def _relay_command_allowed(method: str, path: str) -> bool:
-    if (method, path) in _ALLOWED_COMMANDS:
-        return True
-    return any(method == m and path.startswith(p) for m, p in _ALLOWED_PATH_PREFIXES)
-
-
 def _build_relay_trace_headers() -> dict[str, str]:
     """Inject the current trace context into relay-safe headers."""
     carrier: dict[str, str] = {}
     inject(carrier)
-    return {name: carrier[name] for name in SAFE_RELAY_TRACE_HEADERS if name in carrier}
+    return extract_safe_relay_headers(carrier)
 
 
 async def relay_via_websocket(
@@ -149,7 +109,7 @@ async def relay_via_websocket(
     call will raise 503 when the camera is not connected locally).
     """
     normalized_method = method.upper()
-    if not _relay_command_allowed(normalized_method, path):
+    if not relay_command_is_allowed(normalized_method, path):
         raise HTTPException(status_code=403, detail=f"Relay command is not allowed: {normalized_method} {path}")
 
     manager = get_connection_manager()
