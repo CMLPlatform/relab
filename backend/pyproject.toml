@@ -36,7 +36,7 @@
     "sqlalchemy>=2.0.41",
     # Shared application models and outbound integrations
     "httpx[http2]>=0.28.1",
-    "relab-rpi-cam-models>=0.3.1",
+    "relab-rpi-cam-models>=0.3.2",
     # Configuration, validation, and utility types
     "pydantic>=2.12",
     "pydantic-extra-types>=2.10.5",

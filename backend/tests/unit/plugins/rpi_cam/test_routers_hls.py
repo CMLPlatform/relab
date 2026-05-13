@@ -14,9 +14,9 @@ from fastapi import HTTPException
 from app.api.auth.models import User
 from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.models import Camera
+from app.api.plugins.rpi_cam.relay_response import RelayResponse
 from app.api.plugins.rpi_cam.routers.camera_interaction import hls as hls_mod
 from app.api.plugins.rpi_cam.routers.camera_interaction.hls import proxy_hls
-from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:

@@ -58,7 +58,7 @@ if TYPE_CHECKING:
 
     from redis.asyncio import Redis
 
-    from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
+    from app.api.plugins.rpi_cam.relay_response import RelayResponse
 
 # Initialize router
 router = PublicAPIRouter()

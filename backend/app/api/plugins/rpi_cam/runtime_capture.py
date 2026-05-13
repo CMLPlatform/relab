@@ -16,7 +16,7 @@ from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Image
 from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.exceptions import InvalidCameraResponseError
-from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
+from app.api.plugins.rpi_cam.relay_response import RelayResponse
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
