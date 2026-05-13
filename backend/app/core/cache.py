@@ -35,6 +35,8 @@ _MEMORY_CACHE_BACKEND = "mem://"
 _ETAG_WILDCARD = "*"
 _SUCCESS_STATUS_MAX = 299
 _CACHE_SIGNING_DIGEST = "sha256"
+_NO_STORE_DIRECTIVE = "no-store"
+_AUTH_COOKIE_NAMES = frozenset({"__Host-relab-auth", "__Host-relab-refresh"})
 _MISSING = object()
 _backend = Cache()
 _cache_state = {"initialized": False}
@@ -155,8 +157,27 @@ def _cached_not_modified_response(request: Request | None, cached_value: object)
     return Response(status_code=304, headers=dict(cached_value.headers))
 
 
-def _cacheable_result(result: object) -> bool:
+def _request_has_auth_material(request: Request | None) -> bool:
+    """Return whether the request carries user credentials."""
+    if request is None:
+        return False
+    if request.headers.get("authorization"):
+        return True
+    return any(cookie_name in request.cookies for cookie_name in _AUTH_COOKIE_NAMES)
+
+
+def _response_disables_storage(result: object) -> bool:
+    """Return whether a response explicitly opts out of cache storage."""
+    if not isinstance(result, Response):
+        return False
+    directives = {part.strip().lower() for part in result.headers.get("cache-control", "").split(",")}
+    return _NO_STORE_DIRECTIVE in directives
+
+
+def _cacheable_result(result: object, *, request_has_auth_material: bool = False) -> bool:
     """Return whether a function result should be stored as the canonical cached value."""
+    if request_has_auth_material or _response_disables_storage(result):
+        return False
     return not isinstance(result, Response) or result.status_code <= _SUCCESS_STATUS_MAX
 
 
@@ -173,6 +194,7 @@ def cache(
             request = kwargs.get("request")
             if not isinstance(request, Request):
                 request = next((arg for arg in args if isinstance(arg, Request)), None)
+            request_has_auth_material = _request_has_auth_material(request)
 
             key = _cache_key_excluding_dependencies(
                 func,
@@ -180,14 +202,15 @@ def cache(
                 args=args,
                 kwargs=dict(kwargs),
             )
-            cached_value = await _backend_get(key, default=_MISSING)
-            if cached_value is not _MISSING:
-                if response := _cached_not_modified_response(request, cast("T", cached_value)):
-                    return cast("T", response)
-                return cast("T", cached_value)
+            if not request_has_auth_material:
+                cached_value = await _backend_get(key, default=_MISSING)
+                if cached_value is not _MISSING:
+                    if response := _cached_not_modified_response(request, cast("T", cached_value)):
+                        return cast("T", response)
+                    return cast("T", cached_value)
 
             result = await func(*args, **kwargs)
-            if _cacheable_result(result):
+            if _cacheable_result(result, request_has_auth_material=request_has_auth_material):
                 await cache_set(key, result, expire=expire)
             return result
 

@@ -262,6 +262,64 @@ class TestAppCacheIntegration:
         finally:
             await close_cache()
 
+    async def test_authorized_requests_bypass_endpoint_cache(self) -> None:
+        """Credentialed responses should not be read from or written to the endpoint cache."""
+        await close_cache()
+        init_cache(None)
+
+        app = FastAPI()
+        router = APIRouter()
+        call_count = {"private": 0}
+
+        @router.get("/private")
+        @cache(expire=EXPIRE_60)
+        async def private_endpoint(request: Request) -> dict:
+            assert request.headers.get("authorization")
+            call_count["private"] += 1
+            return {"call_count": call_count["private"]}
+
+        app.include_router(router)
+
+        try:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response1 = await client.get("/private", headers={"Authorization": "Bearer token-1"})
+                response2 = await client.get("/private", headers={"Authorization": "Bearer token-1"})
+
+            assert response1.json()["call_count"] == 1
+            assert response2.json()["call_count"] == 2
+        finally:
+            await close_cache()
+
+    async def test_no_store_responses_are_not_cached(self) -> None:
+        """Responses that opt out of storage should not be replayed from the endpoint cache."""
+        await close_cache()
+        init_cache(None)
+
+        app = FastAPI()
+        router = APIRouter()
+        call_count = {"sensitive": 0}
+
+        @router.get("/sensitive")
+        @cache(expire=EXPIRE_60)
+        async def sensitive_endpoint() -> JSONResponse:
+            call_count["sensitive"] += 1
+            return JSONResponse(
+                {"call_count": call_count["sensitive"]},
+                headers={"Cache-Control": "no-store"},
+            )
+
+        app.include_router(router)
+
+        try:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response1 = await client.get("/sensitive")
+                response2 = await client.get("/sensitive")
+
+            assert response1.json()["call_count"] == 1
+            assert response2.json()["call_count"] == 2
+        finally:
+            await close_cache()
+
     def test_cached_response_survives_pickle_round_trip(self) -> None:
         """Redis backends store cached values via pickle; Response objects must round-trip intact."""
         original = JSONResponse(
