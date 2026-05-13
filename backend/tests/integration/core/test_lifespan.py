@@ -68,7 +68,6 @@ class RuntimeMocks:
     file_cleanup_manager: MagicMock
     http_client: AsyncMock
     init_redis: AsyncMock
-    init_blocking_redis: AsyncMock
     init_email_checker: AsyncMock
     init_common_password_checker: AsyncMock
     init_cache: MagicMock
@@ -107,13 +106,16 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
     mock_http_client = AsyncMock() if config.http_client is None else config.http_client
     mock_http_client.aclose = AsyncMock(side_effect=config.http_client_close_side_effect)
 
+    async def init_redis_side_effect(*, blocking: bool = False) -> MagicMock | None:
+        if config.init_redis_side_effect is not None:
+            raise config.init_redis_side_effect
+        return mock_blocking_redis if blocking else mock_redis
+
     with (
         patch(
             "app.core.lifecycle.init_redis",
-            return_value=mock_redis,
-            side_effect=config.init_redis_side_effect,
+            side_effect=init_redis_side_effect,
         ) as init_redis,
-        patch("app.core.lifecycle.init_blocking_redis", return_value=mock_blocking_redis) as init_blocking_redis,
         patch(
             "app.core.lifecycle.init_email_checker",
             return_value=mock_email_checker,
@@ -151,7 +153,6 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
             file_cleanup_manager=mock_file_cleanup_manager,
             http_client=mock_http_client,
             init_redis=init_redis,
-            init_blocking_redis=init_blocking_redis,
             init_email_checker=init_email_checker,
             init_common_password_checker=init_common,
             init_cache=init_cache,
@@ -185,7 +186,8 @@ class TestLifespan:
                 assert services.email_checker is runtime.email_checker
                 assert services.common_password_checker is runtime.common_password_checker
 
-        runtime.init_redis.assert_awaited_once()
+        assert runtime.init_redis.await_args_list[0].kwargs == {}
+        assert runtime.init_redis.await_args_list[1].kwargs == {"blocking": True}
         runtime.init_email_checker.assert_awaited_once_with(runtime.redis)
         runtime.init_common_password_checker.assert_awaited_once_with(runtime.redis)
 

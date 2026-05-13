@@ -134,7 +134,6 @@ async def init_redis(*, blocking: bool = False) -> Redis | None:
         return redis_client
 
 
-
 async def close_redis(redis_client: Redis) -> None:
     """Close Redis connection and connection pool.
 
