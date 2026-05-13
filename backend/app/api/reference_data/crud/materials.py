@@ -170,7 +170,6 @@ async def delete_all_material_files(db: AsyncSession, material_id: int) -> None:
     """Delete all files attached to a material."""
     await delete_all_parent_media(
         db,
-        parent_model=Material,
         parent_type=MediaParentType.MATERIAL,
         storage_model=File,
         parent_id=material_id,
@@ -229,7 +228,6 @@ async def delete_all_material_images(db: AsyncSession, material_id: int) -> None
     """Delete all images attached to a material."""
     await delete_all_parent_media(
         db,
-        parent_model=Material,
         parent_type=MediaParentType.MATERIAL,
         storage_model=Image,
         parent_id=material_id,
