@@ -31,8 +31,8 @@ router = APIRouter()
     response_model=UserReadPublic,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
+    dependencies=[limiter.dependency(REGISTER_RATE_LIMIT)],
 )
-@limiter.limit(REGISTER_RATE_LIMIT)
 async def register(
     request: Request,
     user_create: UserRegister,

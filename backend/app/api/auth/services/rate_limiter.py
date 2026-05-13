@@ -1,18 +1,16 @@
 """Lightweight rate limiter backed by the `limits` library.
 
 Replaces the unmaintained slowapi package with a minimal implementation
-that covers exactly the features this project uses: a per-route ``@limiter.limit()``
-decorator, FastAPI route dependencies, Redis-backed storage, and a fixed-window
-strategy.
+that covers exactly the features this project uses: FastAPI route dependencies,
+explicit service-level buckets, Redis-backed storage, and a fixed-window strategy.
 """
 
 from __future__ import annotations
 
-import functools
 import hashlib
 import hmac
 import logging
-from typing import TYPE_CHECKING, ParamSpec, TypeVar
+from typing import TYPE_CHECKING
 
 from fastapi import Depends, Request
 from fastapi.params import Depends as DependsParam
@@ -27,10 +25,7 @@ from app.core.middleware.client_ip import get_client_ip
 from app.core.responses import build_problem_response
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Mapping
-
-P = ParamSpec("P")
-R = TypeVar("R")
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +54,7 @@ def request_ip_rate_limit_key(request: Request) -> str:
 
 
 class Limiter:
-    """Minimal rate limiter compatible with FastAPI route decorators."""
+    """Minimal rate limiter for FastAPI dependencies and explicit service buckets."""
 
     def __init__(
         self,
@@ -77,29 +72,6 @@ class Limiter:
         else:
             self._storage = None
             self._limiter = None
-
-    def limit(self, rate_string: str) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
-        """Decorator that enforces *rate_string* on an async endpoint."""
-        parsed = parse(rate_string)
-
-        def decorator(
-            func: Callable[P, Awaitable[R]],
-        ) -> Callable[P, Awaitable[R]]:
-            @functools.wraps(func)
-            async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-                if self.enabled:
-                    limiter = self._limiter
-                    request = _find_request(args, kwargs)
-                    if request is not None and limiter is not None:
-                        key = self._key_func(request)
-                        if not limiter.hit(parsed, key):
-                            logger.info("Rate limit exceeded for bucket %s", key)
-                            raise RateLimitExceededError
-                return await func(*args, **kwargs)
-
-            return wrapper
-
-        return decorator
 
     def hit_key(self, rate_string: str, key: str) -> None:
         """Enforce *rate_string* for an explicit bucket key."""
@@ -135,14 +107,6 @@ def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONRespons
         code="RateLimitExceeded",
         type_="https://httpstatuses.com/429",
     )
-
-
-def _find_request(args: tuple[object, ...], kwargs: Mapping[str, object]) -> Request | None:
-    """Extract the ``Request`` instance from endpoint arguments."""
-    for val in (*args, *kwargs.values()):
-        if isinstance(val, Request):
-            return val
-    return None
 
 
 # ---------------------------------------------------------------------------
