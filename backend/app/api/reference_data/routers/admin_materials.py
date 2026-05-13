@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import APIRouter, Body, Form, Path, Security, UploadFile
 from fastapi import File as FastAPIFile
@@ -52,9 +52,6 @@ from app.api.reference_data.crud.materials import (
 from app.api.reference_data.examples import CATEGORY_IDS_OPENAPI_EXAMPLES
 from app.api.reference_data.models import Category, Material
 from app.api.reference_data.schemas import CategoryRead, MaterialCreateWithCategories, MaterialRead, MaterialUpdate
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 router = APIRouter(prefix="/materials", tags=["materials"])
 
@@ -145,7 +142,7 @@ async def add_categories_to_material(
             openapi_examples=CATEGORY_IDS_OPENAPI_EXAMPLES,
         ),
     ],
-) -> Sequence[Category]:
+) -> list[Category]:
     """Add multiple categories to a material."""
     return await add_material_categories(session, material_id, set(category_ids))
 

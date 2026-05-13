@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, get_type_hints
 
 import pytest
 from fastapi import FastAPI, status
+from fastapi.routing import APIRoute
 from httpx import ASGITransport, AsyncClient
 
 from app.api.common.routers.openapi import init_openapi_docs
@@ -35,6 +36,12 @@ async def openapi_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient]:
 
 class TestOpenAPIEndpoints:
     """Tests for canonical and filtered OpenAPI schema generation."""
+
+    def test_route_endpoint_annotations_resolve_at_runtime(self, test_app: FastAPI) -> None:
+        """Endpoint annotations should be resolvable by FastAPI/OpenAPI introspection."""
+        for route in test_app.routes:
+            if isinstance(route, APIRoute):
+                get_type_hints(route.endpoint, include_extras=True)
 
     async def test_openapi_registration_can_exclude_internal_contracts_explicitly(self) -> None:
         """OpenAPI route registration should not read global environment state."""

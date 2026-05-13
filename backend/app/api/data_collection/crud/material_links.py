@@ -24,8 +24,6 @@ from app.api.reference_data.models import Material
 from .shared import get_product_with_bill_of_materials, validate_product_material_links
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from sqlalchemy import Select
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,7 +33,7 @@ async def list_material_links_for_product(
     *,
     product_id: int,
     material_filter: MaterialProductLinkFilter,
-) -> Sequence[MaterialProductLink]:
+) -> list[MaterialProductLink]:
     """List bill-of-material rows scoped to one product/component row."""
     statement: Select[tuple[MaterialProductLink]] = (
         select(MaterialProductLink).join(Material).where(MaterialProductLink.product_id == product_id)

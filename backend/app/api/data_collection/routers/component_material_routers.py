@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import Body, Path
 from pydantic import PositiveInt
@@ -35,9 +35,6 @@ from app.api.data_collection.examples import (
 )
 from app.api.data_collection.models.product import MaterialProductLink
 
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
 component_material_router = PublicAPIRouter(prefix="/components", tags=["components"])
 
 
@@ -50,7 +47,7 @@ async def get_component_bill_of_materials(
     session: AsyncSessionDep,
     component: ComponentDep,
     material_filter: MaterialProductLinkFilterDep,
-) -> Sequence[MaterialProductLink]:
+) -> list[MaterialProductLink]:
     """Get bill of materials for a component."""
     return await list_material_links_for_product(session, product_id=component.id, material_filter=material_filter)
 

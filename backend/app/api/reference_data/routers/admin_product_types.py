@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import APIRouter, Body, Form, Path, Security, UploadFile
 from fastapi import File as FastAPIFile
@@ -57,9 +57,6 @@ from app.api.reference_data.schemas import (
     ProductTypeRead,
     ProductTypeUpdate,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 router = APIRouter(prefix="/product-types", tags=["product-types"])
 
@@ -155,7 +152,7 @@ async def add_categories_to_product_type(
             openapi_examples=CATEGORY_IDS_OPENAPI_EXAMPLES,
         ),
     ],
-) -> Sequence[Category]:
+) -> list[Category]:
     """Add multiple categories to a product type."""
     return await add_product_type_categories(session, product_type_id, set(category_ids))
 

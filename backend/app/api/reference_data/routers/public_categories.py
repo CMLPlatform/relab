@@ -8,6 +8,7 @@ from fastapi import Path, Request
 from fastapi_pagination import Page
 from pydantic import PositiveInt
 from sqlalchemy import select
+from starlette.responses import Response  # noqa: TC002 # Runtime annotation evaluation needs this.
 
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
@@ -32,7 +33,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from sqlalchemy import Select
-    from starlette.responses import Response
 
 router = ReferenceDataAPIRouter(prefix="/categories", tags=["categories"])
 

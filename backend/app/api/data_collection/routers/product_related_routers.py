@@ -50,8 +50,6 @@ from app.api.file_storage.models import Video
 from app.api.file_storage.schemas import VideoCreateWithinProduct, VideoReadWithinProduct, VideoUpdateWithinProduct
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from sqlalchemy import Select
 
 product_related_router = PublicAPIRouter(prefix="/products", tags=["products"])
@@ -71,7 +69,7 @@ async def _list_product_videos(
     *,
     product_id: PositiveInt,
     video_filter: VideoFilter,
-) -> Sequence[Video]:
+) -> list[Video]:
     """List videos scoped to one product."""
     statement: Select[tuple[Video]] = select(Video).where(Video.product_id == product_id)
     statement = apply_filter(statement, Video, video_filter)
@@ -88,7 +86,7 @@ async def get_product_videos(
     session: AsyncSessionDep,
     product: BaseProductDep,
     video_filter: VideoFilter = Depends(_VIDEO_FILTER_DEPENDENCY),
-) -> Sequence[Video]:
+) -> list[Video]:
     """Get all videos associated with a base product.
 
     Videos live only on base products (dismantling captures whole products,
@@ -166,7 +164,7 @@ async def get_product_bill_of_materials(
     session: AsyncSessionDep,
     product: BaseProductDep,
     material_filter: MaterialProductLinkFilterDep,
-) -> Sequence[MaterialProductLink]:
+) -> list[MaterialProductLink]:
     """Get bill of materials for a base product."""
     return await list_material_links_for_product(session, product_id=product.id, material_filter=material_filter)
 
