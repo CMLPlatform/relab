@@ -3,16 +3,47 @@
 from __future__ import annotations
 
 import asyncio
+import json
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
+import relab_rpi_cam_models as relay_models
 
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 
+if TYPE_CHECKING:
+    import pytest
 
-async def test_unregister_fails_pending_command_futures() -> None:
-    """Disconnecting a camera should unblock commands that are waiting for a response."""
+
+@dataclass
+class _RelayCommand:
+    payload: dict
+
+    def model_dump_json(self) -> str:
+        return json.dumps(self.payload)
+
+
+async def test_send_command_uses_model_package_command_builder_and_resolves_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Command serialization should use the shared model package boundary."""
+    monkeypatch.setattr(
+        relay_models,
+        "build_relay_command",
+        lambda msg_id, method, path, params, body, headers: _RelayCommand(
+            {
+                "id": msg_id,
+                "method": method,
+                "path": path,
+                "params": params or {},
+                "body": body,
+                "headers": headers or {},
+            }
+        ),
+        raising=False,
+    )
     manager = CameraConnectionManager()
     camera_id = uuid4()
     websocket = AsyncMock()
@@ -23,10 +54,13 @@ async def test_unregister_fails_pending_command_futures() -> None:
     command_task = asyncio.create_task(manager.send_command(camera_id, "GET", "/camera"))
     try:
         await asyncio.wait_for(command_sent.wait(), timeout=1)
-        manager.unregister(camera_id)
+        assert websocket.send_text.await_args is not None
+        payload = json.loads(websocket.send_text.await_args.args[0])
+        manager.resolve_json(payload["id"], {"status": 200, "data": {"ok": True}}, None)
 
-        with pytest.raises(RuntimeError, match="disconnected before responding"):
-            await command_task
+        assert await command_task == ({"status": 200, "data": {"ok": True}}, None)
+        assert payload["method"] == "GET"
+        assert payload["path"] == "/camera"
     finally:
         if not command_task.done():
             command_task.cancel()
