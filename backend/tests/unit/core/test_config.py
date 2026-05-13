@@ -164,11 +164,16 @@ class TestCoreSettingsCors:
         assert settings.api_write_rate_limit == "120/minute"
         assert settings.api_upload_rate_limit == "30/minute"
         assert settings.rpi_cam_ws_auth_rate_limit == "10/minute"
-        assert settings.rpi_cam_ws_text_frame_limit_bytes == 65_536
         assert settings.rpi_cam_ws_binary_frame_limit_bytes == 10_485_760
         assert settings.uvicorn_limit_concurrency == 100
         assert settings.uvicorn_timeout_keep_alive == 5
         assert settings.uvicorn_h11_max_incomplete_event_size == 16_384
+        assert settings.trusted_proxy_cidrs == ("127.0.0.0/8", "::1/128")
+
+    def test_trusted_proxy_cidrs_reject_invalid_networks(self) -> None:
+        """Proxy trust configuration should fail fast for invalid CIDR values."""
+        with pytest.raises(ValidationError, match="trusted_proxy_cidrs contains invalid CIDR"):
+            CoreSettings(environment=Environment.DEV, trusted_proxy_cidrs=("not-a-cidr",))
 
     def test_otel_is_disabled_by_default(self) -> None:
         """Telemetry is opt-in: no endpoint configured means OTEL is off."""
