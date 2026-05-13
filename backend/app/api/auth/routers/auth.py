@@ -27,6 +27,7 @@ from app.api.auth.services.user_manager import (
     cookie_auth_backend,
     fastapi_user_manager,
 )
+from app.api.common.audit import AuditAction, audit_event
 from app.api.common.routers.openapi import mark_router_routes_public
 from app.core.redis import OptionalRedisDep
 
@@ -43,10 +44,20 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 async def _authenticate_first_factor(
     credentials: OAuth2PasswordRequestForm,
     user_manager: UserManager,
+    transport: str,
 ) -> User:
     """Authenticate password credentials and return the active user."""
     user = await user_manager.authenticate(credentials)
     if user is None or not user.is_active:
+        audit_event(
+            None,
+            AuditAction.LOGIN_FAILURE,
+            "auth",
+            "credentials",
+            outcome="denied",
+            transport=transport,
+            reason="bad_credentials",
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ErrorCode.LOGIN_BAD_CREDENTIALS)
     return user
 
@@ -68,16 +79,18 @@ async def bearer_login(
     bearer_strategy: Annotated[Strategy, Depends(bearer_auth_backend.get_strategy)],
 ) -> RefreshTokenResponse | MfaPendingResponse:
     """Authenticate a bearer client and return access and refresh tokens in JSON."""
-    user = await _authenticate_first_factor(credentials, user_manager)
+    user = await _authenticate_first_factor(credentials, user_manager, "bearer")
     if user.mfa_enabled:
         response.status_code = status.HTTP_202_ACCEPTED
         return await login_completion.create_mfa_pending_response(redis, user, "bearer")
-    return await login_completion.issue_bearer_login_response(
+    result = await login_completion.issue_bearer_login_response(
         user=user,
         user_manager=user_manager,
         redis=redis,
         bearer_strategy=bearer_strategy,
     )
+    audit_event(user.id, AuditAction.LOGIN_SUCCESS, User, user.id, transport="bearer")
+    return result
 
 
 @router.post(
@@ -97,7 +110,7 @@ async def session_login(
     cookie_strategy: Annotated[Strategy, Depends(cookie_auth_backend.get_strategy)],
 ) -> MfaPendingResponse | None:
     """Authenticate a browser client and return MFA challenge only when MFA is enabled."""
-    user = await _authenticate_first_factor(credentials, user_manager)
+    user = await _authenticate_first_factor(credentials, user_manager, "session")
     if user.mfa_enabled:
         response.status_code = status.HTTP_202_ACCEPTED
         return await login_completion.create_mfa_pending_response(redis, user, "session")
@@ -108,6 +121,7 @@ async def session_login(
         redis=redis,
         cookie_strategy=cookie_strategy,
     )
+    audit_event(user.id, AuditAction.LOGIN_SUCCESS, User, user.id, transport="session")
     return None
 
 

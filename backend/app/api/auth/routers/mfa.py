@@ -21,6 +21,7 @@ from app.api.auth.schemas import (
 from app.api.auth.services import login_completion, mfa_enrollment, mfa_service
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend
+from app.api.common.audit import AuditAction, audit_event
 from app.core.redis import OptionalRedisDep
 
 router = APIRouter(prefix="/mfa", tags=["auth"], dependencies=[limiter.dependency(LOGIN_RATE_LIMIT)])
@@ -84,10 +85,19 @@ async def confirm_totp_setup(
         secret=setup.secret,
         code=payload.code,
     ):
+        audit_event(
+            current_user.id,
+            AuditAction.MFA_FAILURE,
+            "mfa",
+            current_user.id,
+            outcome="denied",
+            reason="invalid_totp_setup_code",
+        )
         raise MfaCodeInvalidError
     setup = await mfa_service.consume_totp_setup(redis, setup_token, user_id=current_user.id)
 
     await mfa_enrollment.enable_totp(user_manager, user, setup.secret)
+    audit_event(current_user.id, AuditAction.MFA_SUCCESS, "mfa", current_user.id, flow="totp_setup")
 
 
 @router.post(
@@ -121,6 +131,14 @@ async def complete_mfa_challenge(
     challenge = await mfa_service.get_login_challenge(redis, mfa_token)
     user = await user_manager.get(challenge.user_id)
     if not user.mfa_enabled or not user.mfa_totp_secret:
+        audit_event(
+            user.id,
+            AuditAction.MFA_FAILURE,
+            "mfa",
+            user.id,
+            outcome="denied",
+            reason="mfa_not_enabled",
+        )
         raise MfaCodeInvalidError
     if not await mfa_service.verify_totp_code_once(
         redis,
@@ -128,9 +146,25 @@ async def complete_mfa_challenge(
         secret=user.mfa_totp_secret,
         code=payload.code,
     ):
+        audit_event(
+            user.id,
+            AuditAction.MFA_FAILURE,
+            "mfa",
+            user.id,
+            outcome="denied",
+            reason="invalid_totp_code",
+        )
         raise MfaCodeInvalidError
 
     challenge = await mfa_service.consume_login_challenge(redis, mfa_token)
+    audit_event(
+        user.id,
+        AuditAction.MFA_SUCCESS,
+        "mfa",
+        user.id,
+        transport=challenge.transport,
+        flow="login_challenge",
+    )
     if challenge.transport == mfa_service.SESSION_TRANSPORT:
         await login_completion.issue_session_login_response(
             response=response,

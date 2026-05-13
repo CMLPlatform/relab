@@ -16,6 +16,7 @@ from app.api.auth.schemas import UserCreate
 from app.api.auth.services import mfa_service
 from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.api.auth.services.user_database import UserDatabaseAsync
+from app.api.common.audit import AuditAction
 
 from .shared import (
     COOKIE_EMAIL,
@@ -276,6 +277,24 @@ class TestLoginEndpoint:
         assert "mfa_token" not in data
         assert "refresh_token" not in response.cookies
 
+    async def test_bearer_login_without_totp_emits_success_event(self, api_client: AsyncClient) -> None:
+        """Successful bearer login should emit a structured auth event."""
+        user_data = {
+            "email": "bearer-event@example.com",
+            "password": TEST_PASSWORD,
+            "username": "bearer_event_user",
+        }
+        await api_client.post("/v1/auth/register", json=user_data)
+
+        with patch("app.api.auth.routers.auth.audit_event") as log_event:
+            response = await api_client.post(
+                "/v1/auth/bearer/login",
+                data={"username": user_data["email"], "password": user_data["password"]},
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert any(call.args[1] == AuditAction.LOGIN_SUCCESS for call in log_event.call_args_list)
+
     async def test_authenticated_totp_setup_enables_mfa(
         self,
         api_client: AsyncClient,
@@ -482,6 +501,44 @@ class TestLoginEndpoint:
         assert token_data["access_token"]
         assert token_data["refresh_token"]
 
+    async def test_mfa_challenge_emits_failure_and_success_events(
+        self,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+    ) -> None:
+        """MFA challenge attempts should be visible in structured auth events."""
+        secret = mfa_service.generate_totp_secret()
+        user = await create_active_user(
+            db_session,
+            email="mfa-event@example.com",
+            username="mfa_event",
+            mfa_enabled=True,
+            mfa_totp_secret=secret,
+        )
+        login_response = await api_client.post(
+            "/v1/auth/bearer/login",
+            data={"username": user.email, "password": TEST_PASSWORD},
+        )
+        mfa_token = login_response.json()["mfa_token"]
+        valid_code = mfa_service.generate_totp_code(secret)
+        invalid_code = "000000" if valid_code != "000000" else "000001"
+
+        with patch("app.api.auth.routers.mfa.audit_event") as log_event:
+            invalid_response = await api_client.post(
+                "/v1/auth/mfa/challenge",
+                json={"mfa_token": mfa_token, "code": invalid_code},
+            )
+            valid_response = await api_client.post(
+                "/v1/auth/mfa/challenge",
+                json={"mfa_token": mfa_token, "code": valid_code},
+            )
+
+        assert invalid_response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert valid_response.status_code == status.HTTP_200_OK
+        actions = [call.args[1] for call in log_event.call_args_list]
+        assert AuditAction.MFA_FAILURE in actions
+        assert AuditAction.MFA_SUCCESS in actions
+
     async def test_invalid_totp_challenge_does_not_consume_login_token(
         self,
         api_client: AsyncClient,
@@ -575,11 +632,21 @@ class TestLoginEndpoint:
 
     async def test_bearer_login_invalid_credentials(self, api_client: AsyncClient) -> None:
         """Test logging in with invalid credentials."""
-        response = await api_client.post(
-            "/v1/auth/bearer/login",
-            data={"username": INVALID_EMAIL, "password": INVALID_PASSWORD},
-        )
+        with patch("app.api.auth.routers.auth.audit_event") as log_event:
+            response = await api_client.post(
+                "/v1/auth/bearer/login",
+                data={"username": INVALID_EMAIL, "password": INVALID_PASSWORD},
+            )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+        log_event.assert_any_call(
+            None,
+            AuditAction.LOGIN_FAILURE,
+            "auth",
+            "credentials",
+            outcome="denied",
+            transport="bearer",
+            reason="bad_credentials",
+        )
 
     async def test_session_cookie_login(self, api_client: AsyncClient) -> None:
         """Test logging in with email and password to get session cookies."""
@@ -593,8 +660,11 @@ class TestLoginEndpoint:
             )
             await api_client.post("/v1/auth/register", json=user_data)
 
-        await login_session(api_client, email=user_data["email"], password=user_data["password"])
+        with patch("app.api.auth.routers.auth.audit_event") as log_event:
+            await login_session(api_client, email=user_data["email"], password=user_data["password"])
+
         assert api_client.cookies
+        assert any(call.args[1] == AuditAction.LOGIN_SUCCESS for call in log_event.call_args_list)
 
     async def test_session_logout_clears_browser_storage(self, api_client: AsyncClient) -> None:
         """Session logout should clear cookies and browser-side cached session data."""
@@ -613,6 +683,41 @@ class TestLoginEndpoint:
         set_cookie_headers = response.headers.get_list("set-cookie")
         assert any(header.startswith(f"{AUTH_COOKIE_NAME}=") for header in set_cookie_headers)
         assert any(header.startswith(f"{REFRESH_COOKIE_NAME}=") for header in set_cookie_headers)
+
+    async def test_session_logout_emits_logout_event(self, api_client: AsyncClient) -> None:
+        """Session logout should emit a structured logout event."""
+        user_data = {
+            "email": "session-logout-event@example.com",
+            "password": TEST_PASSWORD,
+            "username": "session_logout_event",
+        }
+        await api_client.post("/v1/auth/register", json=user_data)
+        await login_session(api_client, email=user_data["email"], password=user_data["password"])
+
+        with patch("app.api.auth.routers.refresh.audit_event") as log_event:
+            response = await api_client.post("/v1/auth/session/logout")
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert any(call.args[1] == AuditAction.LOGOUT for call in log_event.call_args_list)
+
+    async def test_revoke_all_sessions_emits_structured_event(
+        self,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+    ) -> None:
+        """Revoking all sessions should emit a structured auth event."""
+        user = await create_active_user(
+            db_session,
+            email="revoke-all-event@example.com",
+            username="revoke_all_event",
+        )
+        await login_bearer_and_authorize(api_client, email=user.email)
+
+        with patch("app.api.auth.routers.refresh.audit_event") as log_event:
+            response = await api_client.post("/v1/auth/sessions/revoke-all")
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert any(call.args[1] == AuditAction.SESSIONS_REVOKED for call in log_event.call_args_list)
 
 
 class TestLogoutEndpoint:
