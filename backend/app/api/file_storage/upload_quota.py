@@ -114,7 +114,7 @@ async def recompute_user_upload_quota(session: AsyncSession, *, user_id: UUID) -
         update(User)
         .where(User.id == user_id)
         .values(
-            upload_file_count=upload_totals.c.file_count,
-            upload_total_bytes=upload_totals.c.total_bytes,
+            upload_file_count=select(upload_totals.c.file_count).scalar_subquery(),
+            upload_total_bytes=select(upload_totals.c.total_bytes).scalar_subquery(),
         )
     )
