@@ -174,7 +174,6 @@ async def delete_all_product_type_files(db: AsyncSession, product_type_id: int) 
     """Delete all files attached to a product type."""
     await delete_all_parent_media(
         db,
-        parent_model=ProductType,
         parent_type=MediaParentType.PRODUCT_TYPE,
         storage_model=File,
         parent_id=product_type_id,
@@ -235,7 +234,6 @@ async def delete_all_product_type_images(db: AsyncSession, product_type_id: int)
     """Delete all images attached to a product type."""
     await delete_all_parent_media(
         db,
-        parent_model=ProductType,
         parent_type=MediaParentType.PRODUCT_TYPE,
         storage_model=Image,
         parent_id=product_type_id,

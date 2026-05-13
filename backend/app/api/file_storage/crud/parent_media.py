@@ -141,7 +141,6 @@ async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: Storag
 async def delete_all_parent_media[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
-    parent_model: type[Base],
     parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
@@ -248,7 +247,6 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
         """Delete all storage items associated with a parent."""
         await delete_all_parent_media(
             db,
-            parent_model=self.parent_model,
             parent_type=self.parent_type,
             storage_model=self.storage_model,
             parent_id=parent_id,
