@@ -12,8 +12,6 @@ just dev
 
 The docs site runs on <http://localhost:8000>.
 
-The docs app targets Node `24.x` and `pnpm 10.x`.
-
 ## Common Commands
 
 ```bash
