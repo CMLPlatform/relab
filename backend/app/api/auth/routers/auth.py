@@ -13,9 +13,10 @@ from pydantic import EmailStr  # Needed for Fastapi dependency injection
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.routers import password_reset, refresh, register
+from app.api.auth.runtime_dependencies import get_email_checker
 from app.api.auth.schemas import RefreshTokenResponse, UserRead
 from app.api.auth.services import refresh_token_service
-from app.api.auth.services.email_checker import EmailChecker, get_email_checker_dependency
+from app.api.auth.services.email_checker import EmailChecker
 from app.api.auth.services.rate_limiter import (
     LOGIN_RATE_LIMIT,
     VERIFY_RATE_LIMIT,
@@ -120,7 +121,7 @@ router.include_router(password_reset.router)
 @router.get("/validate-email")
 async def validate_email(
     email: EmailStr,
-    email_checker: Annotated[EmailChecker | None, Depends(get_email_checker_dependency)],
+    email_checker: Annotated[EmailChecker | None, Depends(get_email_checker)],
 ) -> dict:
     """Validate email address for registration."""
     is_disposable = False
