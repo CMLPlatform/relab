@@ -177,6 +177,7 @@ class CoreSettings(RelabBaseSettings):
     malware_scan_enabled: bool = False
     clamav_host: str = ""
     clamav_port: int = Field(default=3310, ge=1, le=65535)
+    clamav_scan_timeout_seconds: float = Field(default=60.0, ge=1.0, le=300.0)
     api_read_rate_limit: str = "300/minute"
     api_write_rate_limit: str = "120/minute"
     api_upload_rate_limit: str = "30/minute"
