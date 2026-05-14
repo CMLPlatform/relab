@@ -35,7 +35,6 @@ import time
 import uuid
 from typing import TYPE_CHECKING, cast
 
-from app.api.plugins.rpi_cam.websocket.runtime_state import get_blocking_redis
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
@@ -67,6 +66,7 @@ _RESP_TTL_MIN_SECONDS = 120
 # dropped via LTRIM after the RPUSH; stale commands also self-filter on the
 # listener side via their ``deadline`` field.
 _CMD_QUEUE_MAX_LEN = 256
+_BLPOP_POLL_SECONDS = 1
 
 
 def _resp_ttl_seconds(timeout_s: float) -> int:
@@ -78,6 +78,12 @@ async def _await_redis_result[T](result: Awaitable[T] | T) -> T:
     if inspect.isawaitable(result):
         return await cast("Awaitable[T]", result)
     return cast("T", result)
+
+
+async def _blpop_once(redis: Redis, key: str) -> tuple[str, str] | None:
+    """Run one finite BLPOP poll so relay waits outlive the shared client's socket timeout."""
+    result = await _await_redis_result(redis.blpop(key, timeout=_BLPOP_POLL_SECONDS))
+    return cast("tuple[str, str] | None", result)
 
 
 # ── Requesting-worker side ─────────────────────────────────────────────────────
@@ -137,18 +143,13 @@ async def relay_cross_worker(
         msg = f"Relay deadline already passed before waiting for response: {path}"
         raise RuntimeError(msg)
 
-    # Use the blocking client (socket_timeout=None) so BLPOP can wait for the
-    # full relay timeout without the socket being closed prematurely.
-    blocking_redis = get_blocking_redis() or redis
     try:
         async with asyncio.timeout(remaining):
-            result = await _await_redis_result(blocking_redis.blpop(resp_key, timeout=0))
+            while (result := await _blpop_once(redis, resp_key)) is None:
+                continue
     except TimeoutError as exc:
         msg = f"Cross-worker relay timed out waiting for camera response: {path}"
         raise RuntimeError(msg) from exc
-    if result is None:
-        msg = f"Cross-worker relay timed out waiting for camera response: {path}"
-        raise RuntimeError(msg)
 
     _key, raw_resp = result
     try:
@@ -198,21 +199,17 @@ async def run_relay_listener(
     """
     cmd_key = _cmd_key(camera_id)
     camera_log_id = sanitize_log_value(camera_id)
-    # Use the blocking client (socket_timeout=None) for the indefinite BLPOP.
-    blocking_redis = get_blocking_redis() or redis
     logger.debug("Cross-worker relay listener started for camera %s", camera_log_id)
 
     try:
         while True:
             # Block until a command arrives or the task is cancelled.
-            # timeout=0 means "block indefinitely" in redis-py.
             try:
-                result = await _await_redis_result(blocking_redis.blpop(cmd_key, timeout=0))
+                result = await _blpop_once(redis, cmd_key)
             except asyncio.CancelledError:
                 break
 
             if result is None:
-                # Should not happen with timeout=0, but guard defensively.
                 continue
 
             _key, raw_cmd = result
