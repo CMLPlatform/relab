@@ -24,7 +24,7 @@ from app.api.plugins.rpi_cam.websocket.runtime_state import set_connection_manag
 from app.core.cache import close_cache, init_cache
 from app.core.clients import create_http_client
 from app.core.config import Environment, settings
-from app.core.database import async_engine, async_sessionmaker_factory
+from app.core.database import async_engine, async_sessionmaker_factory, check_database_connection, close_async_engine
 from app.core.logging import cleanup_logging, setup_logging
 from app.core.observability import init_telemetry, shutdown_telemetry
 from app.core.redis import close_redis, init_redis
@@ -119,6 +119,7 @@ async def initialize_runtime_services(app: FastAPI) -> AppServices:
     """Create and initialize all long-lived runtime services."""
     services = reset_app_services(app)
     try:
+        await check_database_connection()
         await _initialize_cache_services(services)
         await _initialize_camera_services(services)
         await _initialize_storage_services(app, services)
@@ -164,14 +165,14 @@ def _shutdown_steps(app: FastAPI, services: AppServices) -> tuple[ShutdownStep, 
             expected_errors=(RuntimeError, OSError),
         ),
         ShutdownStep(
-            label="primary Redis client",
-            close=lambda: _close_redis_client(services.redis),
-            expected_errors=(ConnectionError, OSError),
-        ),
-        ShutdownStep(
             label="endpoint cache",
             close=close_cache,
             expected_errors=(RuntimeError,),
+        ),
+        ShutdownStep(
+            label="primary Redis client",
+            close=lambda: _close_redis_client(services.redis),
+            expected_errors=(ConnectionError, OSError),
         ),
         ShutdownStep(
             label="file cleanup manager",
@@ -184,6 +185,11 @@ def _shutdown_steps(app: FastAPI, services: AppServices) -> tuple[ShutdownStep, 
             expected_errors=(CloseError,),
         ),
         ShutdownStep(label="telemetry", close=lambda: shutdown_telemetry(app)),
+        ShutdownStep(
+            label="database engine",
+            close=close_async_engine,
+            expected_errors=(RuntimeError, OSError),
+        ),
     )
 
 

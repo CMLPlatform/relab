@@ -6,12 +6,11 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.__version__ import version as app_version
 from app.core.config import settings
-from app.core.database import async_engine
+from app.core.database import check_database_connection
 from app.core.redis import ping_redis
 from app.core.runtime import get_request_services
 
@@ -42,10 +41,7 @@ def unhealthy_check(component: str, error: str) -> dict[str, Any]:
 async def check_database() -> dict[str, Any]:
     """Check PostgreSQL database connectivity."""
     try:
-        async with async_engine.connect() as conn:
-            result = await conn.execute(text("SELECT 1"))
-            if result.scalar_one() != 1:
-                return unhealthy_check("database", "Database SELECT 1 returned unexpected result")
+        await check_database_connection()
         return healthy_check("database", details={"driver": "postgresql"})
     except SQLAlchemyError, OSError, RuntimeError:
         logger.exception("Database health check failed")

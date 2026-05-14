@@ -35,6 +35,12 @@ async def get_async_session() -> AsyncGenerator[AsyncSession]:
         yield session
 
 
+async def check_database_connection() -> None:
+    """Open a pooled connection so SQLAlchemy verifies PostgreSQL on checkout."""
+    async with async_engine.connect():
+        pass
+
+
 async def close_async_engine() -> None:
     """Dispose the shared async engine and close pooled DB connections."""
     await async_engine.dispose()
