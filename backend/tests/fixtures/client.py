@@ -10,7 +10,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from app.api.auth.dependencies import (
     current_active_superuser,
@@ -102,6 +102,7 @@ def test_app() -> Generator[FastAPI]:
 @pytest.fixture
 async def api_client(
     test_app: FastAPI,
+    async_engine: AsyncEngine,
     db_session: AsyncSession,
     mock_redis_dependency: Redis,
     tmp_path: Path,
@@ -127,6 +128,8 @@ async def api_client(
     outbound_http_client = httpx.AsyncClient(transport=_NoNetworkTransport())
 
     with (
+        patch("app.core.database.async_engine", new=async_engine),
+        patch("app.core.lifecycle.async_engine", new=async_engine),
         patch("app.core.lifecycle.init_redis", return_value=mock_redis_dependency),
         patch("app.core.lifecycle.create_http_client", return_value=outbound_http_client),
     ):

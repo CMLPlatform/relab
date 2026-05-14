@@ -46,6 +46,7 @@ class RuntimePatchConfig:
     common_password_checker: AsyncMock | None = None
     file_cleanup_manager: MagicMock | None = None
     http_client: AsyncMock | None = None
+    check_database_side_effect: BaseException | type[BaseException] | None = None
     init_redis_side_effect: BaseException | type[BaseException] | None = None
     init_email_checker_side_effect: BaseException | type[BaseException] | None = None
     validate_scanner_side_effect: BaseException | type[BaseException] | None = None
@@ -81,6 +82,8 @@ class RuntimeMocks:
     create_camera_connection_manager: MagicMock
     file_cleanup_cls: MagicMock
     create_http_client: MagicMock
+    check_database_connection: AsyncMock
+    close_async_engine: AsyncMock
     set_connection_manager: MagicMock
 
 
@@ -107,7 +110,15 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
             raise config.init_redis_side_effect
         return mock_redis
 
+    async def check_database_side_effect() -> None:
+        if config.check_database_side_effect is not None:
+            raise config.check_database_side_effect
+
     with (
+        patch(
+            "app.core.lifecycle.check_database_connection",
+            side_effect=check_database_side_effect,
+        ) as check_database_connection,
         patch(
             "app.core.lifecycle.init_redis",
             side_effect=init_redis_side_effect,
@@ -137,6 +148,7 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
         patch("app.core.lifecycle.create_camera_connection_manager", return_value=mock_camera_manager) as create_camera,
         patch("app.core.lifecycle.FileCleanupManager", return_value=mock_file_cleanup_manager) as file_cleanup_cls,
         patch("app.core.lifecycle.create_http_client", return_value=mock_http_client) as create_http_client,
+        patch("app.core.lifecycle.close_async_engine") as close_async_engine,
         patch("app.core.lifecycle.set_connection_manager") as set_connection_manager,
     ):
         yield RuntimeMocks(
@@ -162,6 +174,8 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
             create_camera_connection_manager=create_camera,
             file_cleanup_cls=file_cleanup_cls,
             create_http_client=create_http_client,
+            check_database_connection=check_database_connection,
+            close_async_engine=close_async_engine,
             set_connection_manager=set_connection_manager,
         )
 
@@ -256,6 +270,13 @@ class TestLifespan:
 
         runtime.close_cache.assert_awaited_once()
         runtime.shutdown_telemetry.assert_called_once_with(runtime_app)
+        runtime.close_async_engine.assert_awaited_once()
+
+    async def test_shutdown_closes_cache_before_redis(self, runtime_app: FastAPI) -> None:
+        """Endpoint cache should release Redis-backed resources before Redis closes."""
+        labels = [step.label for step in lifecycle._shutdown_steps(runtime_app, AppServices(redis=MagicMock()))]  # noqa: SLF001
+
+        assert labels.index("endpoint cache") < labels.index("primary Redis client")
 
     async def test_startup_failure_cleans_up_initialized_services(self, runtime_app: FastAPI) -> None:
         """A later startup failure should close services initialized earlier."""
@@ -283,6 +304,23 @@ class TestLifespan:
             async with lifecycle.runtime_lifespan(runtime_app):
                 pass
 
+        runtime.init_email_checker.assert_not_awaited()
+        runtime.init_common_password_checker.assert_not_awaited()
+        runtime.init_cache.assert_not_called()
+        assert isinstance(runtime_app.state.services, AppServices)
+        assert runtime_app.state.services.redis is None
+
+    async def test_startup_fails_when_database_is_unavailable(self, runtime_app: FastAPI) -> None:
+        """PostgreSQL is required for application startup."""
+        config = RuntimePatchConfig(check_database_side_effect=ConnectionError("database unavailable"))
+        with (
+            patched_runtime_services(config) as runtime,
+            pytest.raises(ConnectionError, match="database unavailable"),
+        ):
+            async with lifecycle.runtime_lifespan(runtime_app):
+                pass
+
+        runtime.init_redis.assert_not_awaited()
         runtime.init_email_checker.assert_not_awaited()
         runtime.init_common_password_checker.assert_not_awaited()
         runtime.init_cache.assert_not_called()
@@ -318,6 +356,7 @@ class TestLifespan:
         runtime.file_cleanup_manager.close.assert_awaited_once()
         runtime.http_client.aclose.assert_awaited_once()
         runtime.shutdown_telemetry.assert_called_once_with(runtime_app)
+        runtime.close_async_engine.assert_awaited_once()
 
     async def test_startup_failure_cleans_up_logging_when_configured(
         self,

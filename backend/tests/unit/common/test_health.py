@@ -38,50 +38,19 @@ class TestCheckDatabase:
     """Tests for check_database function."""
 
     async def test_database_healthy(self) -> None:
-        """Test healthy result when DB returns SELECT 1."""
-        mock_conn = AsyncMock()
-        mock_result = MagicMock()
-        mock_result.scalar_one.return_value = 1
-        mock_conn.execute = AsyncMock(return_value=mock_result)
-
-        mock_engine_ctx = AsyncMock()
-        mock_engine_ctx.__aenter__ = AsyncMock(return_value=mock_conn)
-        mock_engine_ctx.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("app.api.common.routers.health.async_engine") as mock_engine:
-            mock_engine.connect.return_value = mock_engine_ctx
+        """Test healthy result when database verification succeeds."""
+        with patch("app.api.common.routers.health.check_database_connection", new=AsyncMock()):
             result = await check_database()
 
         assert result["status"] == HEALTHY_STATUS
         assert result["component"] == "database"
 
-    async def test_database_unexpected_result(self) -> None:
-        """Test unhealthy result when SELECT 1 returns wrong value."""
-        mock_conn = AsyncMock()
-        mock_result = MagicMock()
-        mock_result.scalar_one.return_value = 0  # Wrong value
-        mock_conn.execute = AsyncMock(return_value=mock_result)
-
-        mock_engine_ctx = AsyncMock()
-        mock_engine_ctx.__aenter__ = AsyncMock(return_value=mock_conn)
-        mock_engine_ctx.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("app.api.common.routers.health.async_engine") as mock_engine:
-            mock_engine.connect.return_value = mock_engine_ctx
-            result = await check_database()
-
-        assert result["status"] == UNHEALTHY_STATUS
-        assert result["component"] == "database"
-        assert "unexpected" in result["error"].lower()
-
     async def test_database_connection_error(self) -> None:
-        """Test unhealthy result when DB raises an exception."""
-        mock_engine_ctx = AsyncMock()
-        mock_engine_ctx.__aenter__ = AsyncMock(side_effect=SQLAlchemyError("connection refused"))
-        mock_engine_ctx.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("app.api.common.routers.health.async_engine") as mock_engine:
-            mock_engine.connect.return_value = mock_engine_ctx
+        """Test unhealthy result when database verification raises."""
+        with patch(
+            "app.api.common.routers.health.check_database_connection",
+            new=AsyncMock(side_effect=SQLAlchemyError("connection refused")),
+        ):
             result = await check_database()
 
         assert result["status"] == UNHEALTHY_STATUS
