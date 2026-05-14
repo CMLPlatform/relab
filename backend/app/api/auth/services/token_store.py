@@ -92,7 +92,7 @@ async def read_token_metadata[ErrorT: Exception](
     error_cls: Callable[[], ErrorT],
     consume: bool = False,
 ) -> dict[str, object]:
-    """Read token metadata, optionally consuming it atomically with GETDEL."""
+    """Read token metadata, optionally consuming it atomically."""
     key = token_key(key_prefix, token)
     raw_value = await redis.getdel(key) if consume else await redis.get(key)
     return decode_token_metadata(raw_value, error_cls=error_cls)

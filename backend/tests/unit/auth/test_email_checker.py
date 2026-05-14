@@ -10,7 +10,6 @@ from unittest.mock import AsyncMock
 
 from app.api.auth.services.email_checker import (
     DISPOSABLE_DOMAINS_URL,
-    REDIS_DISPOSABLE_DOMAINS_KEY,
     EmailChecker,
     load_local_disposable_domains,
 )
@@ -37,20 +36,19 @@ async def test_email_checker_seeds_and_checks_redis(redis_client: Redis) -> None
     await checker._store_domains({"mailinator.com"})
     checker._initialized = True
 
-    assert await redis_client.sismember(REDIS_DISPOSABLE_DOMAINS_KEY, "mailinator.com")
     assert await checker.is_disposable("user@mailinator.com")
 
 
 async def test_email_checker_keeps_existing_redis_cache_on_seed(redis_client: Redis) -> None:
     """Disposable-email startup should not overwrite an existing periodically refreshed cache."""
-    await redis_client.sadd(REDIS_DISPOSABLE_DOMAINS_KEY, "cached.example")
     checker = EmailChecker(redis_client)
+    await checker._store_domains({"cached.example"})
 
     await checker._seed_domains()
     checker._initialized = True
 
     assert await checker.is_disposable("user@cached.example")
-    assert await redis_client.scard(REDIS_DISPOSABLE_DOMAINS_KEY) == 1
+    assert not await checker.is_disposable("user@mailinator.com")
 
 
 async def test_email_checker_remote_refresh_replaces_redis_cache(redis_client: Redis) -> None:

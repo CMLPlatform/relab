@@ -1,136 +1,24 @@
 """Unit tests for authentication utilities."""
-# spell-checker: ignore nmailinator
-# ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
+# Private member behaviour is tested here, so we want to allow it.
 
 from __future__ import annotations
 
-import asyncio
-from typing import TYPE_CHECKING, Any, cast
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
 from app.api.auth.schemas import TrustedUserCreate
-from app.api.auth.services.email_checker import EmailChecker, load_local_disposable_domains
 from app.api.auth.services.programmatic_user_crud import create_user
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from sqlalchemy.ext.asyncio import AsyncSession
 
 # Constants for test values
 PW_TOO_SHORT = "Too short"
 PASSWORD_INVALID_MSG = f"Password is invalid: {PW_TOO_SHORT}"
-
-
-# Allow private method access for testing purposes
-@pytest.fixture
-def mock_redis() -> MagicMock:
-    """Fixture for a mock Redis client."""
-    redis = MagicMock()
-    redis.exists = AsyncMock(return_value=False)
-    redis.sismember = AsyncMock(return_value=False)
-    redis.pipeline.return_value.execute = AsyncMock()
-    return redis
-
-
-class TestEmailChecker:
-    """Tests for the EmailChecker utility."""
-
-    async def test_initialize_seeds_redis_and_keeps_local_fallback(self, mock_redis: MagicMock) -> None:
-        """Initialization seeds Redis while keeping local fallback domains available."""
-        mock_redis.exists.return_value = False
-        checker = EmailChecker(redis_client=mock_redis)
-
-        with patch(
-            "app.api.auth.services.email_checker.load_local_disposable_domains",
-            return_value={"temp-mail.org"},
-        ):
-            await checker.initialize()
-
-            assert checker._initialized is True
-            assert checker._domains == {"temp-mail.org"}
-            mock_redis.pipeline.return_value.execute.assert_awaited_once()
-
-        await checker.close()
-
-    async def test_refresh_domains_success(self, mock_redis: MagicMock) -> None:
-        """Test successful domain refresh."""
-        checker = EmailChecker(redis_client=mock_redis)
-        checker._initialized = True
-
-        with patch.object(
-            checker,
-            "_fetch_remote_domains",
-            AsyncMock(return_value={"mailinator.com", "temp-mail.org"}),
-        ):
-            await checker.run_once()
-
-        assert checker._domains == {"mailinator.com", "temp-mail.org"}
-
-    async def test_refresh_domains_failure(self, mock_redis: MagicMock) -> None:
-        """Test domain refresh failure handles exceptions gracefully."""
-        checker = EmailChecker(redis_client=mock_redis)
-        checker._initialized = True
-
-        with patch.object(checker, "_fetch_remote_domains", AsyncMock(side_effect=RuntimeError("Refresh failed"))):
-            await checker.run_once()
-
-        assert checker._domains == set()
-
-    def test_load_local_disposable_domains(self, tmp_path: Path) -> None:
-        """Local fallback files should ignore comments and blank lines."""
-        domains_file = tmp_path / "domains.txt"
-        domains_file.write_text("# comment\nTemp-Mail.org\n\nmailinator.com\n", encoding="utf-8")
-
-        assert load_local_disposable_domains(domains_file) == {"mailinator.com", "temp-mail.org"}
-
-    async def test_is_disposable_true(self) -> None:
-        """Test identifying disposable email."""
-        checker = EmailChecker(redis_client=AsyncMock())
-        checker._initialized = True
-        checker.redis_client.sismember.return_value = True
-
-        result = await checker.is_disposable("test@temp-mail.org")
-
-        assert result is True
-
-    async def test_is_disposable_false(self) -> None:
-        """Test identifying non-disposable email."""
-        checker = EmailChecker(redis_client=AsyncMock())
-        checker._initialized = True
-        checker.redis_client.sismember.return_value = False
-
-        result = await checker.is_disposable("user@example.com")
-
-        assert result is False
-
-    async def test_is_disposable_not_initialized(self) -> None:
-        """Test check when checker is not initialized."""
-        checker = EmailChecker(redis_client=AsyncMock())
-
-        result = await checker.is_disposable("user@example.com")
-
-        assert result is False
-
-    async def test_close_cancels_task(self) -> None:
-        """Test close cancels the refresh task."""
-        checker = EmailChecker(redis_client=AsyncMock())
-        checker._initialized = True
-
-        mock_task = cast("Any", asyncio.Future())
-        mock_task.set_result(None)
-        mock_task.cancel = MagicMock()
-
-        checker._task = mock_task
-
-        await checker.close()
-
-        mock_task.cancel.assert_called_once()
-        assert checker._initialized is False
 
 
 class TestProgrammaticUserCrud:

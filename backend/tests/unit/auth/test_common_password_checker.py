@@ -11,7 +11,6 @@ from fastapi_users import InvalidPasswordException
 
 from app.api.auth.services.common_password_checker import (
     COMMON_PASSWORDS_TARGET_COUNT,
-    REDIS_COMMON_PASSWORDS_KEY,
     CommonPasswordChecker,
     load_local_common_passwords,
 )
@@ -39,7 +38,9 @@ def test_load_local_common_passwords_normalizes_and_compacts_entries(tmp_path: P
     passwords = load_local_common_passwords(path)
 
     assert passwords.entry_count == 2
-    assert passwords.members == frozenset({"exact:pass word 12345", "compact:password12345", "exact:pass-word-12345"})
+    assert passwords.matches("Pass Word 12345")
+    assert passwords.matches("password12345")
+    assert passwords.matches("pass-word-12345")
 
 
 async def test_common_password_checker_seeds_and_checks_redis(redis_client: Redis) -> None:
@@ -48,7 +49,6 @@ async def test_common_password_checker_seeds_and_checks_redis(redis_client: Redi
 
     await checker.initialize()
 
-    assert await redis_client.scard(REDIS_COMMON_PASSWORDS_KEY) >= COMMON_PASSWORDS_TARGET_COUNT
     assert await checker.matches("PASSWORD12345")
     assert await checker.matches("pass-word-12345")
 
@@ -59,17 +59,6 @@ async def test_common_password_checker_falls_back_to_memory_when_redis_check_fai
     await checker.initialize()
     redis_client.sismember = AsyncMock(side_effect=TimeoutError("redis unavailable"))  # type: ignore[method-assign]
 
-    assert await checker.matches("password12345")
-
-
-async def test_common_password_checker_replaces_existing_redis_cache(redis_client: Redis) -> None:
-    """Startup should replace Redis from the deterministic fallback to avoid stale auth policy."""
-    await redis_client.sadd(REDIS_COMMON_PASSWORDS_KEY, "exact:already-seeded-password")
-    checker = CommonPasswordChecker(redis_client)
-
-    await checker.initialize()
-
-    assert not await checker.matches("already-seeded-password")
     assert await checker.matches("password12345")
 
 

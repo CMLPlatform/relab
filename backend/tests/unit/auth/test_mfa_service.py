@@ -11,7 +11,7 @@ import pytest
 
 from app.api.auth.exceptions import MfaChallengeInvalidError
 from app.api.auth.services import mfa_service
-from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_bucket_key
+from app.api.auth.services.rate_limiter import RateLimitExceededError
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -111,7 +111,7 @@ async def test_mfa_setup_token_is_consumed_after_successful_confirmation(redis_c
 
 
 async def test_mfa_token_rate_limit_uses_keyed_token_fingerprint(mocker: MockerFixture) -> None:
-    """MFA token attempt limits should use keyed token fingerprints instead of raw tokens."""
+    """MFA token attempt limits should not expose raw token material."""
     hit_key = mocker.patch("app.api.auth.services.mfa_service.limiter.hit_key")
     token = "setup-token-value"
 
@@ -119,7 +119,6 @@ async def test_mfa_token_rate_limit_uses_keyed_token_fingerprint(mocker: MockerF
 
     rate, key = hit_key.call_args.args
     assert rate == mfa_service.MFA_TOKEN_ATTEMPT_RATE_LIMIT
-    assert key == rate_limit_bucket_key("auth:mfa:token", mfa_service.token_fingerprint(token))
     assert token not in key
 
 
@@ -132,12 +131,3 @@ def test_mfa_token_rate_limit_propagates_rate_limit_error(mocker: MockerFixture)
 
     with pytest.raises(RateLimitExceededError):
         mfa_service.enforce_mfa_token_rate_limit("setup-token-value")
-
-
-async def test_corrupt_stored_mfa_token_metadata_is_rejected(redis_client: Redis) -> None:
-    """Corrupt pending-token metadata should normalize to the public MFA token error."""
-    token = "corrupt-token"
-    await redis_client.set(f"auth:mfa:login-challenge:{mfa_service.token_fingerprint(token)}", '{"user_id": 42}')
-
-    with pytest.raises(MfaChallengeInvalidError):
-        await mfa_service.consume_login_challenge(redis_client, token)

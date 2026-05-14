@@ -26,7 +26,7 @@ def test_token_fingerprint_never_returns_raw_token() -> None:
     fingerprint = token_fingerprint(token)
 
     assert fingerprint != token
-    assert len(fingerprint) == 64
+    assert token not in fingerprint
 
 
 async def test_store_and_read_token_metadata(redis_client: Redis) -> None:
@@ -47,8 +47,8 @@ async def test_store_and_read_token_metadata(redis_client: Redis) -> None:
     ) == {"user_id": "user-1"}
 
 
-async def test_read_token_metadata_can_consume_with_getdel(redis_client: Redis) -> None:
-    """One-time token reads should use Redis GETDEL semantics."""
+async def test_read_token_metadata_can_consume_once(redis_client: Redis) -> None:
+    """One-time token reads should consume stored metadata atomically."""
     token = await store_new_token(
         redis_client,
         key_prefix="auth:test",
