@@ -37,6 +37,7 @@ from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter, rate_l
 from app.api.auth.services.user_database import get_user_db
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.routers.dependencies import get_external_http_client
+from app.core.runtime import require_connection_redis, require_redis
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -74,8 +75,7 @@ def _sensitive_update_fields(user_update: UserUpdate) -> set[str]:
 
 async def _revoke_user_refresh_tokens(user_id: UUID4, request: Request | None) -> None:
     """Revoke every refresh-token session for a user in the current request context."""
-    services = getattr(request.app.state, "services", None) if request else None
-    redis = getattr(services, "redis", None)
+    redis = require_redis(None) if request is None else require_connection_redis(request)
     await refresh_token_service.revoke_all_user_tokens(redis, user_id)
 
 
