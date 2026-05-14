@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from fastapi import HTTPException
 from opentelemetry.propagate import inject
 from pydantic import UUID4
-from relab_rpi_cam_models import extract_safe_relay_headers, relay_command_is_allowed
+from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL, extract_safe_relay_headers, relay_command_is_allowed
 
 from app.api.plugins.rpi_cam.relay_response import RelayResponse
 from app.api.plugins.rpi_cam.websocket import cross_worker_circuit_breaker as circuit_breaker
@@ -110,7 +110,7 @@ async def relay_via_websocket(
     """
     normalized_method = method.upper()
     if not relay_command_is_allowed(normalized_method, path):
-        raise HTTPException(status_code=403, detail=f"Relay command is not allowed: {normalized_method} {path}")
+        raise HTTPException(status_code=403, detail=f"{RELAY_COMMAND_FORBIDDEN_DETAIL}: {normalized_method} {path}")
 
     manager = get_connection_manager()
     timeout = BINARY_COMMAND_TIMEOUT if expect_binary else DEFAULT_COMMAND_TIMEOUT

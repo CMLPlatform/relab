@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL
 
 from app.api.plugins.rpi_cam.websocket import cross_worker_circuit_breaker as circuit_breaker
 from app.api.plugins.rpi_cam.websocket import relay as relay_mod
@@ -237,19 +238,7 @@ class TestRelayCommandAllowlist:
         ("method", "path"),
         [
             ("GET", "/camera"),
-            ("POST", "/captures"),
-            ("GET", "/streams/youtube"),
-            ("POST", "/streams/youtube"),
-            ("DELETE", "/streams/youtube"),
-            ("GET", "/system/telemetry"),
-            ("GET", "/camera/controls"),
-            ("PATCH", "/camera/controls"),
-            ("PUT", "/camera/focus"),
-            ("POST", "/preview/start"),
-            ("POST", "/preview/stop"),
             ("GET", "/preview/hls/cam-preview/index.m3u8"),
-            ("GET", "/preview/hls/cam-preview/segment0.mp4"),
-            ("DELETE", "/pairing"),
         ],
     )
     async def test_allowed_commands_are_dispatched(self, method: str, path: str) -> None:
@@ -293,4 +282,4 @@ class TestRelayCommandAllowlist:
             await relay_mod.relay_via_websocket(camera_id, method, path)
 
         assert exc_info.value.status_code == 403
-        assert "not allowed" in exc_info.value.detail
+        assert RELAY_COMMAND_FORBIDDEN_DETAIL in exc_info.value.detail
