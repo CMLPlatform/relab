@@ -7,76 +7,28 @@ from typing import Annotated
 from fastapi import Depends, Path, Request
 from fastapi_pagination import Page
 from pydantic import PositiveInt
-from sqlalchemy import Select, select
 from starlette.responses import Response  # noqa: TC002 # Runtime annotation evaluation needs this.
 
-from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, apply_filter, create_filter_dependency
-from app.api.common.crud.loading import apply_loader_profile
-from app.api.common.crud.pagination import paginate_select
-from app.api.common.crud.query import require_model
+from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.schemas import FileReadWithinParent, ImageReadWithinParent
-from app.api.reference_data.crud.materials import (
-    list_material_files,
-    list_material_images,
-)
+from app.api.reference_data.crud.categorized_resources import MATERIAL_RESOURCE
 from app.api.reference_data.dependencies import CategoryFilterDep, MaterialFilterWithRelationshipsDep
 from app.api.reference_data.models import Category, CategoryMaterialLink, Material
+from app.api.reference_data.routers.categorized_reads import (
+    list_categorized_reference_categories,
+    page_categorized_references,
+    require_categorized_reference,
+)
 from app.api.reference_data.routers.public_support import ReferenceDataAPIRouter
+from app.api.reference_data.routers.reference_media import list_reference_file_reads, list_reference_image_reads
 from app.api.reference_data.schemas import CategoryRead, MaterialReadWithRelationships
 from app.core.responses import conditional_json_response
 
 router = ReferenceDataAPIRouter(prefix="/materials", tags=["materials"])
 _FILE_FILTER_DEPENDENCY = create_filter_dependency(FileFilter)
 _IMAGE_FILTER_DEPENDENCY = create_filter_dependency(ImageFilter)
-
-
-async def _require_material(session: AsyncSessionDep, material_id: PositiveInt) -> Material:
-    """Load a material with the standard public relationships."""
-    return await require_model(
-        session,
-        Material,
-        model_id=material_id,
-        loaders={"categories", "images", "files"},
-        read_schema=MaterialReadWithRelationships,
-    )
-
-
-async def _page_materials(
-    session: AsyncSessionDep,
-    *,
-    material_filter: MaterialFilterWithRelationshipsDep,
-) -> Page[Material]:
-    """Page public materials from an explicit material query."""
-    statement: Select[tuple[Material]] = select(Material)
-    statement = apply_filter(statement, Material, material_filter)
-    statement = apply_loader_profile(
-        statement,
-        Material,
-        {"categories", "images", "files"},
-        read_schema=MaterialReadWithRelationships,
-    )
-    return await paginate_select(session, statement, model=Material)
-
-
-async def _list_material_categories(
-    session: AsyncSessionDep,
-    *,
-    material_id: PositiveInt,
-    category_filter: CategoryFilterDep,
-) -> list[Category]:
-    """List categories linked to a material."""
-    await require_model(session, Material, material_id)
-    statement: Select[tuple[Category]] = (
-        select(Category)
-        .join(CategoryMaterialLink, Category.id == CategoryMaterialLink.category_id)
-        .where(CategoryMaterialLink.material_id == material_id)
-    )
-    statement = apply_filter(statement, Category, category_filter)
-    statement = apply_loader_profile(statement, Category, read_schema=CategoryRead)
-    statement = statement.limit(SUB_RESOURCE_LIMIT)
-    return list((await session.execute(statement)).scalars().unique().all())
 
 
 @router.get(
@@ -90,7 +42,12 @@ async def get_materials(
     material_filter: MaterialFilterWithRelationshipsDep,
 ) -> Page[Material] | Response:
     """Get all materials with all relationships loaded."""
-    payload = await _page_materials(session, material_filter=material_filter)
+    payload = await page_categorized_references(
+        session,
+        Material,
+        parent_filter=material_filter,
+        read_schema=MaterialReadWithRelationships,
+    )
     return conditional_json_response(request, payload)
 
 
@@ -104,7 +61,12 @@ async def get_material(
     material_id: PositiveInt,
 ) -> Material | Response:
     """Get material by ID with all relationships loaded."""
-    payload = await _require_material(session, material_id)
+    payload = await require_categorized_reference(
+        session,
+        Material,
+        material_id,
+        read_schema=MaterialReadWithRelationships,
+    )
     return conditional_json_response(request, payload)
 
 
@@ -119,7 +81,14 @@ async def get_material_categories(
     category_filter: CategoryFilterDep,
 ) -> list[Category]:
     """Get categories linked to a material."""
-    return await _list_material_categories(session, material_id=material_id, category_filter=category_filter)
+    return await list_categorized_reference_categories(
+        session,
+        parent_model=Material,
+        parent_id=material_id,
+        link_model=CategoryMaterialLink,
+        link_parent_id_attr=CategoryMaterialLink.material_id,
+        category_filter=category_filter,
+    )
 
 
 @router.get(
@@ -133,8 +102,7 @@ async def get_material_files(
     item_filter: FileFilter = Depends(_FILE_FILTER_DEPENDENCY),
 ) -> list[FileReadWithinParent]:
     """Get all files associated with a material."""
-    items = await list_material_files(session, material_id, filter_params=item_filter)
-    return [FileReadWithinParent.model_validate(item) for item in items]
+    return await list_reference_file_reads(session, MATERIAL_RESOURCE.files, material_id, item_filter)
 
 
 @router.get(
@@ -148,5 +116,4 @@ async def get_material_images(
     item_filter: ImageFilter = Depends(_IMAGE_FILTER_DEPENDENCY),
 ) -> list[ImageReadWithinParent]:
     """Get all images associated with a material."""
-    items = await list_material_images(session, material_id, filter_params=item_filter)
-    return [ImageReadWithinParent.model_validate(item) for item in items]
+    return await list_reference_image_reads(session, MATERIAL_RESOURCE.images, material_id, item_filter)

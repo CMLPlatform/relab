@@ -89,6 +89,8 @@ class TestOpenAPIEndpoints:
         assert "/v1/organizations" not in paths
         assert "/v1/admin/organizations" not in paths
         assert "/v1/users/me/organization" not in paths
+        assert "/v1/admin/materials/{material_id}/categories/{category_id}" not in paths
+        assert "/v1/admin/product-types/{product_type_id}/categories/{category_id}" not in paths
         assert_paths_present(
             paths,
             {

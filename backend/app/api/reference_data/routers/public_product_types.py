@@ -7,74 +7,26 @@ from typing import Annotated
 from fastapi import Depends, Path
 from fastapi_pagination import Page
 from pydantic import PositiveInt
-from sqlalchemy import Select, select
 
-from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, apply_filter, create_filter_dependency
-from app.api.common.crud.loading import apply_loader_profile
-from app.api.common.crud.pagination import paginate_select
-from app.api.common.crud.query import require_model
+from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.schemas import FileReadWithinParent, ImageReadWithinParent
-from app.api.reference_data.crud.product_types import (
-    list_product_type_files,
-    list_product_type_images,
-)
+from app.api.reference_data.crud.categorized_resources import PRODUCT_TYPE_RESOURCE
 from app.api.reference_data.dependencies import CategoryFilterDep, ProductTypeFilterWithRelationshipsDep
 from app.api.reference_data.models import Category, CategoryProductTypeLink, ProductType
+from app.api.reference_data.routers.categorized_reads import (
+    list_categorized_reference_categories,
+    page_categorized_references,
+    require_categorized_reference,
+)
 from app.api.reference_data.routers.public_support import ReferenceDataAPIRouter
+from app.api.reference_data.routers.reference_media import list_reference_file_reads, list_reference_image_reads
 from app.api.reference_data.schemas import CategoryRead, ProductTypeReadWithRelationships
 
 router = ReferenceDataAPIRouter(prefix="/product-types", tags=["product-types"])
 _FILE_FILTER_DEPENDENCY = create_filter_dependency(FileFilter)
 _IMAGE_FILTER_DEPENDENCY = create_filter_dependency(ImageFilter)
-
-
-async def _require_product_type(session: AsyncSessionDep, product_type_id: PositiveInt) -> ProductType:
-    """Load a product type with the standard public relationships."""
-    return await require_model(
-        session,
-        ProductType,
-        product_type_id,
-        loaders={"categories", "images", "files"},
-        read_schema=ProductTypeReadWithRelationships,
-    )
-
-
-async def _page_product_types(
-    session: AsyncSessionDep,
-    *,
-    product_type_filter: ProductTypeFilterWithRelationshipsDep,
-) -> Page[ProductType]:
-    """Page public product types from an explicit product-type query."""
-    statement: Select[tuple[ProductType]] = select(ProductType)
-    statement = apply_filter(statement, ProductType, product_type_filter)
-    statement = apply_loader_profile(
-        statement,
-        ProductType,
-        {"categories", "images", "files"},
-        read_schema=ProductTypeReadWithRelationships,
-    )
-    return await paginate_select(session, statement, model=ProductType)
-
-
-async def _list_product_type_categories(
-    session: AsyncSessionDep,
-    *,
-    product_type_id: PositiveInt,
-    category_filter: CategoryFilterDep,
-) -> list[Category]:
-    """List categories linked to a product type."""
-    await require_model(session, ProductType, product_type_id)
-    statement: Select[tuple[Category]] = (
-        select(Category)
-        .join(CategoryProductTypeLink, Category.id == CategoryProductTypeLink.category_id)
-        .where(CategoryProductTypeLink.product_type_id == product_type_id)
-    )
-    statement = apply_filter(statement, Category, category_filter)
-    statement = apply_loader_profile(statement, Category, read_schema=CategoryRead)
-    statement = statement.limit(SUB_RESOURCE_LIMIT)
-    return list((await session.execute(statement)).scalars().unique().all())
 
 
 @router.get(
@@ -87,7 +39,12 @@ async def get_product_types(
     product_type_filter: ProductTypeFilterWithRelationshipsDep,
 ) -> Page[ProductType]:
     """Get a list of all product types with all relationships loaded."""
-    return await _page_product_types(session, product_type_filter=product_type_filter)
+    return await page_categorized_references(
+        session,
+        ProductType,
+        parent_filter=product_type_filter,
+        read_schema=ProductTypeReadWithRelationships,
+    )
 
 
 @router.get(
@@ -100,7 +57,12 @@ async def get_product_type(
     product_type_id: PositiveInt,
 ) -> ProductType:
     """Get a single product type by ID with all relationships loaded."""
-    return await _require_product_type(session, product_type_id)
+    return await require_categorized_reference(
+        session,
+        ProductType,
+        product_type_id,
+        read_schema=ProductTypeReadWithRelationships,
+    )
 
 
 @router.get(
@@ -114,9 +76,12 @@ async def get_product_type_categories(
     category_filter: CategoryFilterDep,
 ) -> list[Category]:
     """Get categories linked to a product type."""
-    return await _list_product_type_categories(
+    return await list_categorized_reference_categories(
         session,
-        product_type_id=product_type_id,
+        parent_model=ProductType,
+        parent_id=product_type_id,
+        link_model=CategoryProductTypeLink,
+        link_parent_id_attr=CategoryProductTypeLink.product_type_id,
         category_filter=category_filter,
     )
 
@@ -132,8 +97,7 @@ async def get_product_type_files(
     item_filter: FileFilter = Depends(_FILE_FILTER_DEPENDENCY),
 ) -> list[FileReadWithinParent]:
     """Get all files associated with a product type."""
-    items = await list_product_type_files(session, product_type_id, filter_params=item_filter)
-    return [FileReadWithinParent.model_validate(item) for item in items]
+    return await list_reference_file_reads(session, PRODUCT_TYPE_RESOURCE.files, product_type_id, item_filter)
 
 
 @router.get(
@@ -147,5 +111,4 @@ async def get_product_type_images(
     item_filter: ImageFilter = Depends(_IMAGE_FILTER_DEPENDENCY),
 ) -> list[ImageReadWithinParent]:
     """Get all images associated with a product type."""
-    items = await list_product_type_images(session, product_type_id, filter_params=item_filter)
-    return [ImageReadWithinParent.model_validate(item) for item in items]
+    return await list_reference_image_reads(session, PRODUCT_TYPE_RESOURCE.images, product_type_id, item_filter)

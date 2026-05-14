@@ -10,47 +10,20 @@ from pydantic import UUID4, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import current_active_superuser
 from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
-from app.api.common.form_json import parse_optional_json_object
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.file_storage.models import MediaParentType
-from app.api.file_storage.schemas import (
-    FileCreate,
-    FileReadWithinParent,
-    ImageCreateFromForm,
-    ImageReadWithinParent,
-    empty_str_to_none,
-)
-from app.api.reference_data.crud.product_types import (
-    add_categories_to_product_type as add_product_type_categories,
-)
-from app.api.reference_data.crud.product_types import (
-    add_category_to_product_type as add_product_type_category,
-)
-from app.api.reference_data.crud.product_types import (
-    create_product_type as create_product_type_record,
-)
-from app.api.reference_data.crud.product_types import (
-    create_product_type_file,
-    create_product_type_image,
-)
-from app.api.reference_data.crud.product_types import (
-    delete_product_type as delete_product_type_record,
-)
-from app.api.reference_data.crud.product_types import (
-    delete_product_type_file as delete_product_type_file_record,
-)
-from app.api.reference_data.crud.product_types import (
-    delete_product_type_image as delete_product_type_image_record,
-)
-from app.api.reference_data.crud.product_types import (
-    remove_categories_from_product_type as remove_product_type_categories,
-)
-from app.api.reference_data.crud.product_types import (
-    update_product_type as update_product_type_record,
+from app.api.file_storage.schemas import FileReadWithinParent, ImageReadWithinParent, empty_str_to_none
+from app.api.reference_data.crud.categorized_resources import (
+    PRODUCT_TYPE_RESOURCE,
+    add_categorized_reference_categories,
+    create_categorized_reference,
+    delete_categorized_reference,
+    remove_categorized_reference_categories,
+    update_categorized_reference,
 )
 from app.api.reference_data.examples import CATEGORY_IDS_OPENAPI_EXAMPLES
 from app.api.reference_data.models import Category, ProductType
+from app.api.reference_data.routers.reference_media import reference_file_create, reference_image_create
 from app.api.reference_data.schemas import (
     CategoryRead,
     ProductTypeCreateWithCategories,
@@ -59,40 +32,6 @@ from app.api.reference_data.schemas import (
 )
 
 router = APIRouter(prefix="/product-types", tags=["product-types"])
-
-
-def _product_type_file_create(
-    product_type_id: int,
-    *,
-    file: UploadFile,
-    description: str | None,
-) -> FileCreate:
-    """Build the canonical product-type file create payload."""
-    return FileCreate(
-        file=file,
-        description=description,
-        parent_id=product_type_id,
-        parent_type=MediaParentType.PRODUCT_TYPE,
-    )
-
-
-def _product_type_image_create(
-    product_type_id: int,
-    *,
-    file: UploadFile,
-    description: str | None,
-    image_metadata: str | None,
-) -> ImageCreateFromForm:
-    """Build the canonical product-type image create payload."""
-    return ImageCreateFromForm.model_validate(
-        {
-            "file": file,
-            "description": description,
-            "image_metadata": parse_optional_json_object(image_metadata, field_name="image_metadata"),
-            "parent_id": product_type_id,
-            "parent_type": MediaParentType.PRODUCT_TYPE,
-        }
-    )
 
 
 @router.post(
@@ -106,7 +45,7 @@ async def create_product_type(
     payload: ProductTypeCreateWithCategories,
 ) -> ProductType:
     """Create a product type."""
-    return await create_product_type_record(session, payload)
+    return await create_categorized_reference(session, PRODUCT_TYPE_RESOURCE, payload)
 
 
 @router.patch(
@@ -120,7 +59,7 @@ async def update_product_type(
     payload: ProductTypeUpdate,
 ) -> ProductType:
     """Update a product type."""
-    return await update_product_type_record(session, product_type_id, payload)
+    return await update_categorized_reference(session, PRODUCT_TYPE_RESOURCE, product_type_id, payload)
 
 
 @router.delete(
@@ -133,7 +72,7 @@ async def delete_product_type(
     session: AsyncSessionDep,
 ) -> None:
     """Delete a product type."""
-    await delete_product_type_record(session, product_type_id)
+    await delete_categorized_reference(session, PRODUCT_TYPE_RESOURCE, product_type_id)
 
 
 @router.post(
@@ -154,22 +93,9 @@ async def add_categories_to_product_type(
     ],
 ) -> list[Category]:
     """Add multiple categories to a product type."""
-    return await add_product_type_categories(session, product_type_id, set(category_ids))
-
-
-@router.post(
-    "/{product_type_id}/categories/{category_id}",
-    response_model=CategoryRead,
-    summary="Add a category to the product type",
-    status_code=201,
-)
-async def add_category_to_product_type(
-    product_type_id: Annotated[int, Path(description="Product Type ID", gt=0)],
-    category_id: Annotated[int, Path(description="ID of category to add to the product type", gt=0)],
-    session: AsyncSessionDep,
-) -> Category:
-    """Add a single category to a product type."""
-    return await add_product_type_category(session, product_type_id, category_id)
+    return list(
+        await add_categorized_reference_categories(session, PRODUCT_TYPE_RESOURCE, product_type_id, set(category_ids))
+    )
 
 
 @router.delete(
@@ -189,21 +115,7 @@ async def remove_categories_from_product_type(
     ],
 ) -> None:
     """Remove multiple categories from a product type."""
-    await remove_product_type_categories(session, product_type_id, set(category_ids))
-
-
-@router.delete(
-    "/{product_type_id}/categories/{category_id}",
-    summary="Remove a category from the product type",
-    status_code=204,
-)
-async def remove_category_from_product_type(
-    product_type_id: Annotated[int, Path(description="Product Type ID", gt=0)],
-    category_id: Annotated[int, Path(description="ID of category to remove from the product type", gt=0)],
-    session: AsyncSessionDep,
-) -> None:
-    """Remove a single category from a product type."""
-    await remove_product_type_categories(session, product_type_id, category_id)
+    await remove_categorized_reference_categories(session, PRODUCT_TYPE_RESOURCE, product_type_id, set(category_ids))
 
 
 @router.post(
@@ -220,10 +132,15 @@ async def upload_product_type_file(
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
     """Upload a new file for the product type."""
-    item = await create_product_type_file(
+    item = await PRODUCT_TYPE_RESOURCE.files.create(
         session,
         product_type_id,
-        _product_type_file_create(product_type_id, file=file, description=description),
+        reference_file_create(
+            product_type_id,
+            parent_type=PRODUCT_TYPE_RESOURCE.files.parent_type,
+            file=file,
+            description=description,
+        ),
     )
     return FileReadWithinParent.model_validate(item)
 
@@ -240,7 +157,7 @@ async def delete_product_type_file(
     session: AsyncSessionDep,
 ) -> None:
     """Remove a file from the product type."""
-    await delete_product_type_file_record(session, product_type_id, file_id)
+    await PRODUCT_TYPE_RESOURCE.files.delete(session, product_type_id, file_id)
 
 
 @router.post(
@@ -265,11 +182,12 @@ async def upload_product_type_image(
     ] = None,
 ) -> ImageReadWithinParent:
     """Upload a new image for the product type."""
-    item = await create_product_type_image(
+    item = await PRODUCT_TYPE_RESOURCE.images.create(
         session,
         product_type_id,
-        _product_type_image_create(
+        reference_image_create(
             product_type_id,
+            parent_type=PRODUCT_TYPE_RESOURCE.images.parent_type,
             file=file,
             description=description,
             image_metadata=image_metadata,
@@ -290,4 +208,4 @@ async def delete_product_type_image(
     session: AsyncSessionDep,
 ) -> None:
     """Remove an image from the product type."""
-    await delete_product_type_image_record(session, product_type_id, image_id)
+    await PRODUCT_TYPE_RESOURCE.images.delete(session, product_type_id, image_id)
