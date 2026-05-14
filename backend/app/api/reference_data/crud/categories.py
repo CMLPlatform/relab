@@ -16,7 +16,7 @@ from app.api.reference_data.filters import CategoryFilter, CategoryFilterWithRel
 from app.api.reference_data.models import Category, Taxonomy, TaxonomyDomain
 from app.api.reference_data.schemas import CategoryCreate, CategoryUpdate
 
-from .shared import delete_background_model, update_background_model
+from .persistence import delete_reference_model, update_reference_model
 
 if TYPE_CHECKING:
     from sqlalchemy import Select
@@ -51,8 +51,8 @@ async def resolve_category_parents(
 
 async def validate_category_taxonomy_domains(
     db: AsyncSession, category_ids: set[int], expected_domains: TaxonomyDomain | set[TaxonomyDomain]
-) -> None:
-    """Validate that categories belong to taxonomies with expected domains."""
+) -> list[Category]:
+    """Return categories after validating that their taxonomies include expected domains."""
     categories_statement: Select[tuple[Category]] = (
         select(Category)
         .join(Taxonomy)
@@ -76,6 +76,8 @@ async def validate_category_taxonomy_domains(
             f"outside of domains: {enum_format_id_set(expected_domains)}"
         )
         raise BadRequestError(err_msg)
+
+    return categories
 
 
 async def get_category_trees(
@@ -150,9 +152,9 @@ async def create_category(
 
 async def update_category(db: AsyncSession, category_id: int, category: CategoryUpdate) -> Category:
     """Update an existing category in the database."""
-    return await update_background_model(db, Category, category_id, category)
+    return await update_reference_model(db, Category, category_id, category)
 
 
 async def delete_category(db: AsyncSession, category_id: int) -> None:
     """Delete a category from the database."""
-    await delete_background_model(db, Category, category_id)
+    await delete_reference_model(db, Category, category_id)

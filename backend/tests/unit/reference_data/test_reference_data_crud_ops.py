@@ -1,34 +1,26 @@
-"""CRUD-operation tests for reference data domain modules."""
+"""CRUD-operation tests for categorized reference data."""
 
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.api.reference_data.crud.categories import delete_category, update_category
-from app.api.reference_data.crud.materials import (
-    add_categories_to_material,
-    create_material,
-    delete_material,
-    update_material,
+from app.api.reference_data.crud.categorized_resources import (
+    MATERIAL_RESOURCE,
+    PRODUCT_TYPE_RESOURCE,
+    add_categorized_reference_categories,
+    create_categorized_reference,
+    delete_categorized_reference,
+    remove_categorized_reference_categories,
 )
-from app.api.reference_data.crud.product_types import (
-    add_categories_to_product_type,
-    create_product_type,
-    delete_product_type,
-    update_product_type,
+from app.api.reference_data.models import (
+    CategoryMaterialLink,
+    CategoryProductTypeLink,
+    Material,
+    ProductType,
+    TaxonomyDomain,
 )
-from app.api.reference_data.crud.taxonomies import create_taxonomy, delete_taxonomy, update_taxonomy
-from app.api.reference_data.models import Category, Material, ProductType, Taxonomy, TaxonomyDomain
-from app.api.reference_data.schemas import (
-    CategoryUpdate,
-    MaterialCreate,
-    MaterialUpdate,
-    ProductTypeCreate,
-    ProductTypeUpdate,
-    TaxonomyCreate,
-    TaxonomyUpdate,
-)
-from tests.factories.models import CategoryFactory, MaterialFactory, ProductTypeFactory, TaxonomyFactory
+from app.api.reference_data.schemas import MaterialCreateWithCategories, ProductTypeCreateWithCategories
+from tests.factories.models import CategoryFactory, MaterialFactory, ProductTypeFactory
 
 
 def _make_session() -> AsyncMock:
@@ -36,202 +28,177 @@ def _make_session() -> AsyncMock:
     session.add = MagicMock()
     session.flush = AsyncMock()
     session.commit = AsyncMock()
-    session.refresh = AsyncMock()
     session.delete = AsyncMock()
     session.execute = AsyncMock()
     return session
 
 
-class TestCategoryCrud:
-    """Cover category CRUD helpers."""
+class TestCategorizedReferenceCrud:
+    """Cover categorized material/product-type CRUD behavior."""
 
-    async def test_update_category_name(self) -> None:
-        """Updates a category name and persists the change."""
+    async def test_create_categorized_reference_links_material_categories(self) -> None:
+        """Creates a material and links validated material-domain categories."""
         session = _make_session()
-        db_category = CategoryFactory.build(id=1, name="Old Name")
-        category_update = CategoryUpdate(name="New Name")
-
-        with patch("app.api.reference_data.crud.shared.require_model", return_value=db_category):
-            result = await update_category(session, 1, category_update)
-
-        assert result.name == "New Name"
-        session.add.assert_called_once()
-        session.commit.assert_called_once()
-
-    async def test_delete_category_success(self) -> None:
-        """Deletes a category and commits the removal."""
-        session = _make_session()
-        db_category = CategoryFactory.build(id=1)
-
-        with patch("app.api.reference_data.crud.shared.require_locked_model", return_value=db_category) as get_category:
-            await delete_category(session, 1)
-
-        get_category.assert_awaited_once_with(session, Category, 1)
-        session.delete.assert_called_once_with(db_category)
-        session.commit.assert_called_once()
-
-
-class TestTaxonomyCrud:
-    """Cover taxonomy CRUD helpers."""
-
-    async def test_create_taxonomy_simple(self) -> None:
-        """Creates a taxonomy from a minimal payload."""
-        session = _make_session()
-        taxonomy_create = TaxonomyCreate(
-            name="EN 45554 Repairability Scoring", domains={TaxonomyDomain.PRODUCTS}, version="1.0"
-        )
-
-        result = await create_taxonomy(session, taxonomy_create)
-
-        assert isinstance(result, Taxonomy)
-        assert result.name == "EN 45554 Repairability Scoring"
-
-    async def test_update_taxonomy_name(self) -> None:
-        """Updates a taxonomy name."""
-        session = _make_session()
-        db_taxonomy = TaxonomyFactory.build(id=10, name="Old Name")
-        taxonomy_update = TaxonomyUpdate(name="New Name")
-
-        with patch("app.api.reference_data.crud.shared.require_model", return_value=db_taxonomy):
-            result = await update_taxonomy(session, 10, taxonomy_update)
-
-        assert result.name == "New Name"
-        session.commit.assert_called_once()
-
-    async def test_delete_taxonomy_success(self) -> None:
-        """Deletes a taxonomy and commits the change."""
-        session = _make_session()
-        db_taxonomy = TaxonomyFactory.build(id=10)
-
-        with patch("app.api.reference_data.crud.shared.require_locked_model", return_value=db_taxonomy) as get_taxonomy:
-            await delete_taxonomy(session, 10)
-
-        get_taxonomy.assert_awaited_once_with(session, Taxonomy, 10)
-        session.delete.assert_called_once_with(db_taxonomy)
-        session.commit.assert_called_once()
-
-
-class TestMaterialCrud:
-    """Cover material CRUD helpers."""
-
-    async def test_create_material_simple(self) -> None:
-        """Creates a material from a minimal payload."""
-        session = _make_session()
-        material_create = MaterialCreate(name="Aluminum")
-
-        result = await create_material(session, material_create)
-
-        assert isinstance(result, Material)
-        assert result.name == "Aluminum"
-
-    async def test_update_material_name(self) -> None:
-        """Updates a material name."""
-        session = _make_session()
-        db_material = MaterialFactory.build(id=1, name="Old Material")
-        material_update = MaterialUpdate(name="New Material")
-
-        with patch("app.api.reference_data.crud.shared.require_model", return_value=db_material):
-            result = await update_material(session, 1, material_update)
-
-        assert result.name == "New Material"
-        session.commit.assert_called_once()
-
-    async def test_delete_material_success(self) -> None:
-        """Deletes a material and its related assets."""
-        session = _make_session()
-        db_material = MaterialFactory.build(id=1)
+        payload = MaterialCreateWithCategories(name="Steel", category_ids={1, 2})
+        db_categories = [CategoryFactory.build(id=1), CategoryFactory.build(id=2)]
 
         with (
             patch(
-                "app.api.reference_data.crud.materials.require_locked_model",
-                return_value=db_material,
-            ) as get_material,
-            patch("app.api.reference_data.crud.materials.delete_all_material_files"),
-            patch("app.api.reference_data.crud.materials.delete_all_material_images"),
+                "app.api.reference_data.crud.categorized_resources.validate_category_taxonomy_domains",
+                return_value=db_categories,
+            ) as validate_categories,
+            patch("app.api.reference_data.crud.categorized_resources.add_links", new=AsyncMock()) as add_links,
+            patch("app.api.reference_data.crud.categorized_resources.commit_and_refresh", new=AsyncMock()) as commit,
         ):
-            await delete_material(session, 1)
+            commit.side_effect = lambda _session, model, **_kwargs: model
+            result = await create_categorized_reference(session, MATERIAL_RESOURCE, payload)
 
-        get_material.assert_awaited_once_with(session, Material, 1)
-        session.delete.assert_called_once_with(db_material)
-        session.commit.assert_called_once()
+        assert isinstance(result, Material)
+        assert result.name == "Steel"
+        validate_categories.assert_awaited_once_with(session, {1, 2}, {TaxonomyDomain.MATERIALS})
+        add_links.assert_awaited_once_with(
+            session,
+            id1=result.id,
+            id1_attr=CategoryMaterialLink.material_id,
+            id2_set={1, 2},
+            id2_attr=CategoryMaterialLink.category_id,
+            link_model=CategoryMaterialLink,
+        )
 
-    async def test_add_categories_to_material_creates_first_link(self) -> None:
-        """Creates category links when a material has none yet."""
+    async def test_create_categorized_reference_links_product_type_categories(self) -> None:
+        """Creates a product type and links validated product-domain categories."""
+        session = _make_session()
+        payload = ProductTypeCreateWithCategories(name="Laptop", category_ids={3})
+
+        with (
+            patch(
+                "app.api.reference_data.crud.categorized_resources.validate_category_taxonomy_domains",
+                return_value=[CategoryFactory.build(id=3)],
+            ),
+            patch("app.api.reference_data.crud.categorized_resources.add_links", new=AsyncMock()) as add_links,
+            patch("app.api.reference_data.crud.categorized_resources.commit_and_refresh", new=AsyncMock()) as commit,
+        ):
+            commit.side_effect = lambda _session, model, **_kwargs: model
+            result = await create_categorized_reference(session, PRODUCT_TYPE_RESOURCE, payload)
+
+        assert isinstance(result, ProductType)
+        assert result.name == "Laptop"
+        add_links.assert_awaited_once_with(
+            session,
+            id1=result.id,
+            id1_attr=CategoryProductTypeLink.product_type_id,
+            id2_set={3},
+            id2_attr=CategoryProductTypeLink.category_id,
+            link_model=CategoryProductTypeLink,
+        )
+
+    async def test_add_categorized_material_categories_returns_validated_categories(self) -> None:
+        """Adds material category links using the material link model."""
         session = _make_session()
         db_material = MaterialFactory.build(id=1)
         db_material.categories = []
         db_categories = [CategoryFactory.build(id=1)]
 
         with (
-            patch("app.api.reference_data.crud.shared.require_model", return_value=db_material),
-            patch("app.api.reference_data.crud.shared.require_models", return_value=db_categories),
-            patch("app.api.reference_data.crud.materials.validate_category_taxonomy_domains", new=AsyncMock()),
-            patch("app.api.reference_data.crud.shared.add_links", new=AsyncMock()) as mock_create_links,
+            patch("app.api.reference_data.crud.categorized_resources.require_model", return_value=db_material),
+            patch(
+                "app.api.reference_data.crud.categorized_resources.validate_category_taxonomy_domains",
+                new=AsyncMock(return_value=db_categories),
+            ),
+            patch("app.api.reference_data.crud.categorized_resources.add_links", new=AsyncMock()) as add_links,
         ):
-            result = await add_categories_to_material(session, 1, {1})
+            result = await add_categorized_reference_categories(session, MATERIAL_RESOURCE, 1, {1})
 
         assert result == db_categories
-        mock_create_links.assert_awaited_once()
+        add_links.assert_awaited_once_with(
+            session,
+            id1=1,
+            id1_attr=CategoryMaterialLink.material_id,
+            id2_set={1},
+            id2_attr=CategoryMaterialLink.category_id,
+            link_model=CategoryMaterialLink,
+        )
 
-
-class TestProductTypeCrud:
-    """Cover product type CRUD helpers."""
-
-    async def test_add_categories_to_product_type_creates_first_link(self) -> None:
-        """Creates category links when a product type has none yet."""
+    async def test_add_categorized_product_type_categories_returns_validated_categories(self) -> None:
+        """Adds product-type category links using the product-type link model."""
         session = _make_session()
         db_product_type = ProductTypeFactory.build(id=1)
         db_product_type.categories = []
         db_categories = [CategoryFactory.build(id=1)]
 
         with (
-            patch("app.api.reference_data.crud.shared.require_model", return_value=db_product_type),
-            patch("app.api.reference_data.crud.shared.require_models", return_value=db_categories),
-            patch("app.api.reference_data.crud.product_types.validate_category_taxonomy_domains", new=AsyncMock()),
-            patch("app.api.reference_data.crud.shared.add_links", new=AsyncMock()) as mock_create_links,
+            patch("app.api.reference_data.crud.categorized_resources.require_model", return_value=db_product_type),
+            patch(
+                "app.api.reference_data.crud.categorized_resources.validate_category_taxonomy_domains",
+                new=AsyncMock(return_value=db_categories),
+            ),
+            patch("app.api.reference_data.crud.categorized_resources.add_links", new=AsyncMock()) as add_links,
         ):
-            result = await add_categories_to_product_type(session, 1, {1})
+            result = await add_categorized_reference_categories(session, PRODUCT_TYPE_RESOURCE, 1, {1})
 
         assert result == db_categories
-        mock_create_links.assert_awaited_once()
+        add_links.assert_awaited_once_with(
+            session,
+            id1=1,
+            id1_attr=CategoryProductTypeLink.product_type_id,
+            id2_set={1},
+            id2_attr=CategoryProductTypeLink.category_id,
+            link_model=CategoryProductTypeLink,
+        )
 
-    async def test_create_product_type_simple(self) -> None:
-        """Creates a product type from a minimal payload."""
+    async def test_remove_categorized_material_categories_deletes_existing_links(self) -> None:
+        """Removes material category links after confirming they exist."""
         session = _make_session()
-        pt_create = ProductTypeCreate(name="Laptop")
+        db_material = MaterialFactory.build(id=1)
+        db_material.categories = [CategoryFactory.build(id=2)]
+        material_link = CategoryMaterialLink(material_id=1, category_id=2)
+        session.execute.return_value = _scalar_result([material_link])
 
-        result = await create_product_type(session, pt_create)
+        with patch("app.api.reference_data.crud.categorized_resources.require_model", return_value=db_material):
+            await remove_categorized_reference_categories(session, MATERIAL_RESOURCE, 1, {2})
 
-        assert isinstance(result, ProductType)
-        assert result.name == "Laptop"
-
-    async def test_update_product_type(self) -> None:
-        """Updates a product type name."""
-        session = _make_session()
-        db_pt = ProductTypeFactory.build(id=1, name="Old Type")
-        pt_update = ProductTypeUpdate(name="New Type")
-
-        with patch("app.api.reference_data.crud.shared.require_model", return_value=db_pt):
-            result = await update_product_type(session, 1, pt_update)
-
-        assert result.name == "New Type"
+        session.delete.assert_awaited_once_with(material_link)
         session.commit.assert_called_once()
 
-    async def test_delete_product_type(self) -> None:
-        """Deletes a product type and its related assets."""
+    async def test_remove_categorized_product_type_categories_deletes_existing_links(self) -> None:
+        """Removes product-type category links after confirming they exist."""
         session = _make_session()
-        db_pt = ProductTypeFactory.build(id=1)
+        db_product_type = ProductTypeFactory.build(id=1)
+        db_product_type.categories = [CategoryFactory.build(id=2)]
+        product_type_link = CategoryProductTypeLink(product_type_id=1, category_id=2)
+        session.execute.return_value = _scalar_result([product_type_link])
+
+        with patch("app.api.reference_data.crud.categorized_resources.require_model", return_value=db_product_type):
+            await remove_categorized_reference_categories(session, PRODUCT_TYPE_RESOURCE, 1, {2})
+
+        session.delete.assert_awaited_once_with(product_type_link)
+        session.commit.assert_called_once()
+
+    async def test_delete_categorized_reference_deletes_media_before_resource(self) -> None:
+        """Deletes attached files/images before deleting the reference-data resource."""
+        session = _make_session()
+        db_material = MaterialFactory.build(id=1)
 
         with (
             patch(
-                "app.api.reference_data.crud.product_types.require_locked_model",
-                return_value=db_pt,
-            ) as get_product_type,
-            patch("app.api.reference_data.crud.product_types.delete_all_product_type_files"),
-            patch("app.api.reference_data.crud.product_types.delete_all_product_type_images"),
+                "app.api.reference_data.crud.categorized_resources.require_locked_model",
+                return_value=db_material,
+            ) as require_resource,
+            patch.object(MATERIAL_RESOURCE.files, "delete_all", new=AsyncMock()) as delete_files,
+            patch.object(MATERIAL_RESOURCE.images, "delete_all", new=AsyncMock()) as delete_images,
         ):
-            await delete_product_type(session, 1)
+            await delete_categorized_reference(session, MATERIAL_RESOURCE, 1)
 
-        get_product_type.assert_awaited_once_with(session, ProductType, 1)
-        session.delete.assert_called_once_with(db_pt)
+        require_resource.assert_awaited_once_with(session, Material, 1)
+        delete_files.assert_awaited_once_with(session, 1)
+        delete_images.assert_awaited_once_with(session, 1)
+        session.delete.assert_called_once_with(db_material)
         session.commit.assert_called_once()
+
+
+def _scalar_result(items: list[object]) -> MagicMock:
+    result = MagicMock()
+    scalars = MagicMock()
+    scalars.all.return_value = items
+    result.scalars.return_value = scalars
+    return result

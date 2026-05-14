@@ -85,7 +85,9 @@ class TestTaxonomyDomainValidation:
         mock_result.scalars.return_value = mock_scalars
         mock_session.execute = AsyncMock(return_value=mock_result)
 
-        await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
+        result = await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
+
+        assert result == [cat1, cat2]
 
     async def test_validate_domains_missing_category(self, mock_session: AsyncMock) -> None:
         """Raises when some requested categories are missing."""

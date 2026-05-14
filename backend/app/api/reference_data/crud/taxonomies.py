@@ -7,12 +7,12 @@ from app.api.reference_data.models import Taxonomy
 from app.api.reference_data.schemas import TaxonomyCreate, TaxonomyCreateWithCategories, TaxonomyUpdate
 
 from .categories import create_category
-from .shared import create_background_model, delete_background_model, update_background_model
+from .persistence import create_reference_model, delete_reference_model, update_reference_model
 
 
 async def create_taxonomy(db: AsyncSession, taxonomy: TaxonomyCreate | TaxonomyCreateWithCategories) -> Taxonomy:
     """Create a new taxonomy in the database."""
-    db_taxonomy = await create_background_model(db, Taxonomy, taxonomy, exclude_fields={"categories"})
+    db_taxonomy = await create_reference_model(db, Taxonomy, taxonomy, exclude_fields={"categories"})
 
     if isinstance(taxonomy, TaxonomyCreateWithCategories) and taxonomy.categories:
         for category_data in taxonomy.categories:
@@ -23,9 +23,9 @@ async def create_taxonomy(db: AsyncSession, taxonomy: TaxonomyCreate | TaxonomyC
 
 async def update_taxonomy(db: AsyncSession, taxonomy_id: int, taxonomy: TaxonomyUpdate) -> Taxonomy:
     """Update an existing taxonomy in the database."""
-    return await update_background_model(db, Taxonomy, taxonomy_id, taxonomy)
+    return await update_reference_model(db, Taxonomy, taxonomy_id, taxonomy)
 
 
 async def delete_taxonomy(db: AsyncSession, taxonomy_id: int) -> None:
     """Delete a taxonomy from the database, including its categories."""
-    await delete_background_model(db, Taxonomy, taxonomy_id)
+    await delete_reference_model(db, Taxonomy, taxonomy_id)
