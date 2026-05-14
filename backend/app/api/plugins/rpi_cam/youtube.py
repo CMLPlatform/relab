@@ -1,4 +1,4 @@
-"""Camera interaction services."""
+"""YouTube livestream API client for RPi camera recording."""
 
 from __future__ import annotations
 

@@ -1,7 +1,6 @@
 """Custom exceptions for the Raspberry Pi camera plugin."""
 
 from app.api.common.exceptions import (
-    BadRequestError,
     ConflictError,
     FailedDependencyError,
     ForbiddenError,
@@ -24,13 +23,6 @@ class RecordingSessionNotFoundError(ConflictError):
 
     def __init__(self) -> None:
         super().__init__("No cached YouTube recording session found for this camera.")
-
-
-class InvalidRecordingSessionDataError(BadRequestError):
-    """Raised when cached recording session data cannot be validated."""
-
-    def __init__(self, details: str) -> None:
-        super().__init__("Invalid recording session data.", details=details)
 
 
 class GoogleOAuthAssociationRequiredError(ForbiddenError):

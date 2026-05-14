@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import UUID4, BaseModel
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -109,12 +109,8 @@ class RecordingSession(TimeStampMixinBare, Base):
     __tablename__ = "recording_session"
 
     camera_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("camera.id", ondelete="CASCADE"), primary_key=True)
-    product_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    title: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[str] = mapped_column(String, nullable=False)
-    stream_url: Mapped[str] = mapped_column(String, nullable=False)
+    video_id: Mapped[int] = mapped_column(ForeignKey("video.id", ondelete="CASCADE"), nullable=False)
     broadcast_key: Mapped[str] = mapped_column(EncryptedString(), nullable=False)
-    video_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
 
     camera: Mapped[Camera] = relationship(
         primaryjoin="RecordingSession.camera_id == Camera.id",
