@@ -11,7 +11,7 @@ from httpx import Request, Response
 
 from app.api.plugins.rpi_cam.exceptions import GoogleOAuthAssociationRequiredError
 from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
-from app.api.plugins.rpi_cam.services import YOUTUBE_API_BASE_URL, YouTubeAPIError, YouTubeService
+from app.api.plugins.rpi_cam.youtube import YOUTUBE_API_BASE_URL, YouTubeAPIError, YouTubeService
 from tests.unit.plugins.rpi_cam.service_test_support import (
     FAKE_ACCESS_TOKEN,
     FAKE_BROADCAST_ID,
@@ -76,7 +76,7 @@ async def test_request_youtube_api_retries_on_503(
     youtube_fx: YouTubeServiceFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Transient 5xx responses must retry and then succeed."""
-    monkeypatch.setattr("app.api.plugins.rpi_cam.services.asyncio.sleep", AsyncMock())
+    monkeypatch.setattr("app.api.plugins.rpi_cam.youtube.asyncio.sleep", AsyncMock())
     request = Request("GET", f"{YOUTUBE_API_BASE_URL}/test-endpoint")
     failure = Response(503, json={"error": {"message": "try later"}}, request=request)
     success = Response(200, json={"ok": True}, request=request)
@@ -92,7 +92,7 @@ async def test_request_youtube_api_does_not_retry_4xx(
     youtube_fx: YouTubeServiceFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """4xx responses must raise immediately without retrying."""
-    monkeypatch.setattr("app.api.plugins.rpi_cam.services.asyncio.sleep", AsyncMock())
+    monkeypatch.setattr("app.api.plugins.rpi_cam.youtube.asyncio.sleep", AsyncMock())
     request = Request("POST", f"{YOUTUBE_API_BASE_URL}/liveBroadcasts")
     youtube_fx.http_client.request.return_value = Response(
         403, json={"error": {"message": "forbidden"}}, request=request

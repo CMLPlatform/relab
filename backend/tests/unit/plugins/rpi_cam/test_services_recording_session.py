@@ -11,7 +11,7 @@ import pytest
 
 from app.api.common.exceptions import ConflictError, ServiceUnavailableError
 from app.api.plugins.rpi_cam.runtime_recording import (
-    YOUTUBE_RECORDING_SESSION_TTL_SECONDS,
+    YouTubeRecordingSession,
     load_recording_session,
     store_recording_session,
 )
@@ -20,14 +20,18 @@ if TYPE_CHECKING:
     from typing import Any
 
 
+def build_recording_session(*, video_id: int = 42) -> YouTubeRecordingSession:
+    """Return a valid active recording session."""
+    return YouTubeRecordingSession(video_id=video_id, broadcast_key="broadcast")
+
+
 @patch("app.api.plugins.rpi_cam.runtime_recording.set_redis_value", new_callable=AsyncMock, return_value=False)
 async def test_store_recording_session_raises_internal_error_when_redis_set_fails(
     mock_set_redis_value: AsyncMock, mock_session: Any
 ) -> None:
     """Failed Redis writes should surface as internal API errors."""
     redis_mock = AsyncMock()
-    session = MagicMock()
-    session.model_dump_json.return_value = '{"product_id":1}'
+    session = build_recording_session()
     mock_session.get.side_effect = [None, MagicMock()]
 
     with pytest.raises(ServiceUnavailableError, match="Failed to store YouTube recording session in Redis"):
@@ -42,18 +46,16 @@ async def test_store_recording_session_uses_48_hour_ttl(mock_set_redis_value: As
     """Recording sessions should live long enough for long-running broadcasts."""
     redis_mock = AsyncMock()
     camera_id = uuid4()
-    session = MagicMock()
-    session.model_dump_json.return_value = '{"product_id":1}'
+    session = build_recording_session()
 
     await store_recording_session(redis_mock, mock_session, camera_id, session)
 
     mock_set_redis_value.assert_awaited_once_with(
         redis_mock,
         f"rpi_cam:youtube_recording:{camera_id}",
-        '{"product_id":1}',
+        session.model_dump_json(),
         ex=60 * 60 * 48,
     )
-    assert YOUTUBE_RECORDING_SESSION_TTL_SECONDS == 60 * 60 * 48
     assert mock_session.commit.await_count == 1
 
 
@@ -77,20 +79,16 @@ async def test_load_recording_session_falls_back_to_db_on_invalid_payload(
 ) -> None:
     """Invalid cached payloads should fall back to the durable DB row."""
     redis_mock = AsyncMock()
-    mock_get_redis_value.return_value = '{"product_id":"not-an-int"}'
+    mock_get_redis_value.return_value = '{"video_id":"not-an-int"}'
     mock_session.get.return_value = MagicMock(
-        product_id=1,
-        title="title",
-        description="desc",
-        stream_url="https://example.com/live",
+        video_id=42,
         broadcast_key="broadcast",
-        video_metadata={"fps": 30},
     )
 
     loaded = await load_recording_session(redis_mock, mock_session, uuid4())
 
     assert loaded.broadcast_key == "broadcast"
-    assert loaded.product_id == 1
+    assert loaded.video_id == 42
 
 
 @patch("app.api.plugins.rpi_cam.runtime_recording.get_redis_value", new_callable=AsyncMock, return_value=None)
@@ -104,16 +102,13 @@ async def test_load_recording_session_repopulates_redis_from_db_backstop(
     camera_id = uuid4()
     redis_mock = AsyncMock()
     mock_session.get.return_value = MagicMock(
-        product_id=2,
-        title="title",
-        description="desc",
-        stream_url="https://example.com/live",
+        video_id=43,
         broadcast_key="broadcast",
-        video_metadata={"fps": 30},
     )
 
     loaded = await load_recording_session(redis_mock, mock_session, camera_id)
 
     assert loaded.broadcast_key == "broadcast"
+    assert loaded.video_id == 43
     mock_get_redis_value.assert_awaited_once()
     mock_set_redis_value.assert_awaited_once()

@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.api.plugins.rpi_cam.services import YouTubeService
+from app.api.plugins.rpi_cam.youtube import YouTubeService
 
 if TYPE_CHECKING:
     from typing import Any
