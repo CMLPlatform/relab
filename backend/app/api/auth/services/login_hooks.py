@@ -17,7 +17,7 @@ from app.api.auth.services.auth_backends import (
     set_browser_auth_cookie,
 )
 from app.api.auth.services.email import mask_email_for_log
-from app.core.runtime import get_request_services
+from app.core.runtime import require_connection_redis
 
 if TYPE_CHECKING:
     from starlette.requests import Request
@@ -51,9 +51,7 @@ async def maybe_set_refresh_token_cookie(user: User, request: Request | None, re
     if request is None or response is None or not _has_browser_auth_cookie(response):
         return
 
-    redis = get_request_services(request).redis
-    if redis is None:
-        return
+    redis = require_connection_redis(request)
     refresh_token = await refresh_token_service.create_refresh_token(redis, user.id)
     set_refresh_token_cookie(response, refresh_token)
 

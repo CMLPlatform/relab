@@ -7,24 +7,16 @@ from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
     CookieTransport,
-    JWTStrategy,
     RedisStrategy,
     Strategy,
 )
-from pydantic import UUID4, SecretStr
+from pydantic import UUID4
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.models import User
-from app.api.common.exceptions import ServiceUnavailableError
-from app.core.config import Environment
-from app.core.config import settings as core_settings
-from app.core.redis import OptionalRedisDep
+from app.core.redis import RedisDep
 
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
-SECRET: SecretStr = auth_settings.auth_token_secret
-_AUTHENTICATION_SERVICE_UNAVAILABLE = "Authentication service unavailable."
-AUTH_JWT_ALGORITHM = "HS256"
-AUTH_TOKEN_AUDIENCE = "fastapi-users:auth"  # noqa: S105 # This value is not a secret
 
 
 # Session cookies are host-only to avoid exposing credentials to sibling subdomains.
@@ -76,26 +68,9 @@ def clear_auth_cookies(response: Response) -> None:
 bearer_transport = BearerTransport(tokenUrl="auth/bearer/login")
 
 
-def get_token_strategy(redis: OptionalRedisDep) -> Strategy[User, UUID4]:
+def get_token_strategy(redis: RedisDep) -> Strategy[User, UUID4]:
     """Return an authentication token strategy."""
-    if redis:
-        return cast("Strategy[User, UUID4]", RedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL))
-
-    if core_settings.environment not in (Environment.DEV, Environment.TESTING):
-        raise ServiceUnavailableError(
-            _AUTHENTICATION_SERVICE_UNAVAILABLE,
-            log_message="Authentication service unavailable: Redis is required.",
-        )
-
-    return cast(
-        "Strategy[User, UUID4]",
-        JWTStrategy(
-            secret=SECRET.get_secret_value(),
-            lifetime_seconds=ACCESS_TOKEN_TTL,
-            token_audience=[AUTH_TOKEN_AUDIENCE],
-            algorithm=AUTH_JWT_ALGORITHM,
-        ),
-    )
+    return cast("Strategy[User, UUID4]", RedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL))
 
 
 def build_authentication_backends() -> tuple[AuthenticationBackend[User, UUID4], AuthenticationBackend[User, UUID4]]:

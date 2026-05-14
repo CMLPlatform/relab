@@ -16,7 +16,7 @@ from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.crud.query import page_models
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.core.redis import OptionalRedisDep
+from app.core.redis import RedisDep
 
 router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
 
@@ -71,7 +71,7 @@ async def delete_user(
     user_id: Annotated[UUID4, Path(description="The user's ID")],
     user_manager: UserManagerDep,
     actor: CurrentActiveSuperUserDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> None:
     """Delete a user by ID."""
     user = await user_manager.get(user_id)

@@ -9,7 +9,7 @@ import pytest
 from fastapi import status
 
 from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
-from app.api.auth.services.refresh_token_service import create_refresh_token, refresh_token_fingerprint
+from app.api.auth.services.refresh_token_service import create_refresh_token
 from tests.factories.models import UserFactory
 
 from .shared import INVALID_REFRESH_TOKEN, hash_test_password
@@ -170,7 +170,8 @@ class TestRefreshTokenEndpoint:
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert response.headers["clear-site-data"] == '"cache", "cookies", "storage"'
-        assert await mock_redis_dependency.exists(f"auth:rt_blacklist:{refresh_token_fingerprint(refresh_token)}")
+        replay_response = await api_client_user.post("/v1/auth/bearer/refresh", json={"refresh_token": refresh_token})
+        assert replay_response.status_code == status.HTTP_401_UNAUTHORIZED
         set_cookie_headers = response.headers.get_list("set-cookie")
         assert any(header.startswith(f"{AUTH_COOKIE_NAME}=") for header in set_cookie_headers)
         assert any(header.startswith(f"{REFRESH_COOKIE_NAME}=") for header in set_cookie_headers)

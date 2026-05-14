@@ -22,7 +22,7 @@ from app.api.auth.services import login_completion, mfa_enrollment, mfa_service
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend
 from app.api.common.audit import AuditAction, AuditContext, audit_event
-from app.core.redis import OptionalRedisDep
+from app.core.redis import RedisDep
 
 router = APIRouter(prefix="/mfa", tags=["auth"], dependencies=[limiter.dependency(LOGIN_RATE_LIMIT)])
 
@@ -40,7 +40,7 @@ def _get_mfa_token(token: SecretStr) -> str:
 )
 async def start_totp_setup(
     current_user: CurrentActiveUserDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> MfaTotpSetupResponse:
     """Start authenticated TOTP enrollment for an account that opted into MFA."""
     if current_user.mfa_enabled or current_user.mfa_totp_secret:
@@ -71,7 +71,7 @@ async def confirm_totp_setup(
     payload: MfaTotpConfirmRequest,
     current_user: CurrentActiveUserDep,
     user_manager: UserManagerDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> None:
     """Confirm authenticated TOTP enrollment."""
     setup_token = _get_mfa_token(payload.setup_token)
@@ -107,7 +107,7 @@ async def confirm_totp_setup(
 )
 async def claim_oauth_mfa_handoff(
     payload: MfaOAuthClaimRequest,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> MfaPendingResponse:
     """Claim a one-time OAuth MFA handoff and return pending MFA state."""
     handoff = _get_mfa_token(payload.mfa_handoff)
@@ -123,7 +123,7 @@ async def complete_mfa_challenge(
     payload: MfaChallengeRequest,
     response: Response,
     user_manager: UserManagerDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     bearer_strategy: Annotated[Strategy, Depends(bearer_auth_backend.get_strategy)],
     cookie_strategy: Annotated[Strategy, Depends(cookie_auth_backend.get_strategy)],
 ) -> RefreshTokenResponse | None:

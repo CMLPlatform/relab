@@ -29,7 +29,7 @@ from app.api.auth.services.user_manager import (
 )
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.routers.openapi import mark_router_routes_public
-from app.core.redis import OptionalRedisDep
+from app.core.redis import RedisDep
 
 if TYPE_CHECKING:
     from typing import Any
@@ -73,7 +73,7 @@ async def bearer_login(
     response: Response,
     credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
     user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     bearer_strategy: Annotated[Strategy, Depends(bearer_auth_backend.get_strategy)],
 ) -> RefreshTokenResponse | MfaPendingResponse:
     """Authenticate a bearer client and return access and refresh tokens in JSON."""
@@ -104,7 +104,7 @@ async def session_login(
     response: Response,
     credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
     user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     cookie_strategy: Annotated[Strategy, Depends(cookie_auth_backend.get_strategy)],
 ) -> MfaPendingResponse | None:
     """Authenticate a browser client and return MFA challenge only when MFA is enabled."""

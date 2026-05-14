@@ -13,6 +13,8 @@ from fastapi import HTTPException, status
 from fastapi_users.exceptions import UserAlreadyExists
 from fastapi_users.router.common import ErrorCode
 
+from app.core.runtime import AppServices
+
 from ._oauth_support import (
     TEST_EMAIL,
     OAuthCookieSettings,
@@ -27,6 +29,8 @@ from .shared import USER1_EMAIL, USER2_EMAIL
 
 if TYPE_CHECKING:
     from collections.abc import Mapping  # lgtm[py/unused-import]
+
+    from redis.asyncio import Redis
 
 
 pytestmark = pytest.mark.api
@@ -57,7 +61,7 @@ class TestOAuthCallbackLinkingPolicy:
         assert user_manager.oauth_callback.await_args.kwargs["associate_by_email"] is False
         user_manager.on_after_login.assert_awaited_once()
 
-    async def test_callback_redirect_places_mfa_handoff_not_token_in_url_fragment(self) -> None:
+    async def test_callback_redirect_places_mfa_handoff_not_token_in_url_fragment(self, redis_client: Redis) -> None:
         """OAuth MFA redirects should keep the MFA token out of URLs."""
         builder = make_auth_builder()
         csrf_token = generate_csrf_token()
@@ -70,6 +74,7 @@ class TestOAuthCallbackLinkingPolicy:
         )
         request = MagicMock()
         request.cookies = {OAuthCookieSettings.name: csrf_token}
+        request.app.state.services = AppServices(redis=redis_client)
 
         user = MagicMock()
         user.id = uuid4()

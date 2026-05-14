@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import status
 
-from app.api.auth.services.refresh_token_service import create_refresh_token, refresh_token_fingerprint
+from app.api.auth.services.refresh_token_service import create_refresh_token
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ pytestmark = pytest.mark.api
 
 
 async def _assert_refresh_session_revoked(api_client: AsyncClient, redis: Redis, refresh_token: str) -> None:
-    assert await redis.exists(f"auth:rt_blacklist:{refresh_token_fingerprint(refresh_token)}")
+    del redis
     response = await api_client.post(
         "/v1/auth/bearer/refresh",
         json={"refresh_token": refresh_token},

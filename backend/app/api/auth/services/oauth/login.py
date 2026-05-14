@@ -15,7 +15,6 @@ from pydantic import UUID4
 from app.api.auth.exceptions import (
     OAuthEmailUnavailableError,
     OAuthInactiveUserHTTPError,
-    OAuthInvalidRedirectURIError,
     OAuthUserAlreadyExistsHTTPError,
 )
 from app.api.auth.models import User
@@ -24,11 +23,9 @@ from app.api.auth.services.oauth_utils import (
     ACCESS_TOKEN_KEY,
     OAuth2AuthorizeResponse,
     OAuthCookieSettings,
-    generate_csrf_token,
-    generate_state_token,
 )
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager
-from app.core.runtime import get_request_services
+from app.core.runtime import require_connection_redis
 
 from .base import BaseOAuthRouterBuilder
 
@@ -114,25 +111,11 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
         request: Request,
         response: Response,
     ) -> OAuth2AuthorizeResponse:
-        authorize_redirect_url = self.redirect_url
-        if authorize_redirect_url is None:
-            authorize_redirect_url = str(request.url_for(self.callback_route_name))
-
-        csrf_token = generate_csrf_token()
-        redirect_uri = request.query_params.get("redirect_uri")
-        if redirect_uri and not self._is_allowed_frontend_redirect(redirect_uri):
-            raise OAuthInvalidRedirectURIError
-
-        extra_claims = {"frontend_redirect_uri": redirect_uri} if redirect_uri else None
-        state = generate_state_token(self.build_state_data(csrf_token, extra_claims), self.state_secret)
-        authorization_url = await self.oauth_client.get_authorization_url(
-            authorize_redirect_url,
-            state,
-            None,
+        return await self.build_authorize_response(
+            request,
+            response,
+            callback_route_name=self.callback_route_name,
         )
-
-        self.set_csrf_cookie(response, csrf_token)
-        return OAuth2AuthorizeResponse(authorization_url=authorization_url)
 
     async def _get_callback_handler(  # noqa: PLR0911 - OAuth callback branches map distinct protocol outcomes.
         self,
@@ -185,7 +168,7 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
                 return self._create_success_redirect(frontend_redirect, response)
             return response
 
-        redis = get_request_services(request).redis
+        redis = require_connection_redis(request)
         transport = "session" if self.backend.name == COOKIE_BACKEND_NAME else "bearer"
         mfa_response = await login_completion.create_mfa_pending_response(redis, user, transport=transport)
         if frontend_redirect:

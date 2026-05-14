@@ -1,5 +1,9 @@
 """Helpers for completing authentication after MFA."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from fastapi import Response, status
 from fastapi_users.authentication import Strategy
 
@@ -8,12 +12,15 @@ from app.api.auth.models import User
 from app.api.auth.schemas import MfaPendingResponse, RefreshTokenResponse
 from app.api.auth.services import mfa_service, refresh_token_service
 from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME, set_browser_auth_cookie
-from app.api.auth.services.user_manager import UserManager
-from app.core.redis import OptionalRedisDep
+
+if TYPE_CHECKING:
+    from redis.asyncio import Redis
+
+    from app.api.auth.services.user_manager import UserManager
 
 
 async def create_mfa_pending_response(
-    redis: OptionalRedisDep,
+    redis: Redis,
     user: User,
     transport: mfa_service.MfaTransport,
 ) -> MfaPendingResponse:
@@ -22,7 +29,7 @@ async def create_mfa_pending_response(
     return MfaPendingResponse(mfa_token=token)
 
 
-async def create_oauth_mfa_handoff(redis: OptionalRedisDep, pending: MfaPendingResponse) -> str:
+async def create_oauth_mfa_handoff(redis: Redis, pending: MfaPendingResponse) -> str:
     """Create a one-time OAuth redirect handoff for pending MFA state."""
     return await mfa_service.create_oauth_handoff(
         redis,
@@ -35,7 +42,7 @@ async def issue_session_login_response(
     response: Response,
     user: User,
     user_manager: UserManager,
-    redis: OptionalRedisDep,
+    redis: Redis,
     cookie_strategy: Strategy,
 ) -> None:
     """Issue session cookies after all authentication factors succeed."""
@@ -61,7 +68,7 @@ async def issue_bearer_login_response(
     *,
     user: User,
     user_manager: UserManager,
-    redis: OptionalRedisDep,
+    redis: Redis,
     bearer_strategy: Strategy,
 ) -> RefreshTokenResponse:
     """Issue bearer tokens after all authentication factors succeed."""

@@ -22,7 +22,7 @@ from app.api.auth.services.auth_backends import (
 )
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend
 from app.api.common.audit import AuditAction, AuditContext, audit_event
-from app.core.redis import OptionalRedisDep
+from app.core.redis import RedisDep
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/bearer/login", auto_error=False)
 SESSION_LOGOUT_CLEAR_SITE_DATA = '"cache", "cookies", "storage"'
@@ -33,7 +33,7 @@ router = APIRouter()
 async def _refresh_tokens_for_active_user(
     user_manager: UserManagerDep,
     strategy: Strategy,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     refresh_token: str,
 ) -> tuple[str, str]:
     user_id = await refresh_token_service.verify_refresh_token(redis, refresh_token)
@@ -55,7 +55,7 @@ async def _refresh_tokens_for_active_user(
 async def refresh_access_token(
     user_manager: UserManagerDep,
     strategy: Annotated[Strategy, Depends(bearer_auth_backend.get_strategy)],
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     request: RefreshTokenRequest | None = None,
 ) -> RefreshTokenResponse:
     """Refresh access token using refresh token for bearer auth.
@@ -89,7 +89,7 @@ async def refresh_access_token_cookie(
     response: Response,
     user_manager: UserManagerDep,
     strategy: Annotated[Strategy, Depends(cookie_auth_backend.get_strategy)],
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     refresh_token: Annotated[str | None, Cookie(alias=REFRESH_COOKIE_NAME)] = None,
 ) -> None:
     """Refresh access token using refresh token from cookie.
@@ -126,7 +126,7 @@ async def refresh_access_token_cookie(
 async def logout_bearer(
     current_user: CurrentActiveUserDep,
     strategy: Annotated[Strategy, Depends(bearer_auth_backend.get_strategy)],
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     bearer_token: Annotated[str | None, Depends(oauth2_scheme)] = None,
     request: RefreshTokenRequest | None = None,
 ) -> None:
@@ -154,7 +154,7 @@ async def logout_session(
     response: Response,
     current_user: CurrentActiveUserDep,
     strategy: Annotated[Strategy, Depends(cookie_auth_backend.get_strategy)],
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     cookie_refresh_token: Annotated[str | None, Cookie(alias=REFRESH_COOKIE_NAME)] = None,
     cookie_auth_token: Annotated[str | None, Cookie(alias=AUTH_COOKIE_NAME)] = None,
 ) -> None:
@@ -187,7 +187,7 @@ async def logout_session(
 async def revoke_all_sessions(
     response: Response,
     current_user: CurrentActiveUserDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> None:
     """Revoke all refresh tokens for the current user and clear browser session state."""
     await refresh_token_service.revoke_all_user_tokens(redis, current_user.id)

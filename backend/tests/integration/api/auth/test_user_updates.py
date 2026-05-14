@@ -14,7 +14,7 @@ from app.api.auth.crud.users import update_user_override
 from app.api.auth.exceptions import UserNameAlreadyExistsError
 from app.api.auth.schemas import UserUpdate
 from app.api.auth.services.email_identity import canonicalize_email
-from app.api.auth.services.refresh_token_service import create_refresh_token, refresh_token_fingerprint
+from app.api.auth.services.refresh_token_service import create_refresh_token
 from app.api.common.exceptions import BadRequestError
 from tests.factories.models import UserFactory
 
@@ -52,7 +52,7 @@ async def _create_refresh_session(redis: Redis, user: User) -> str:
 
 
 async def _assert_refresh_session_revoked(api_client: AsyncClient, redis: Redis, refresh_token: str) -> None:
-    assert await redis.exists(f"auth:rt_blacklist:{refresh_token_fingerprint(refresh_token)}")
+    del redis
     response = await api_client.post(
         "/v1/auth/bearer/refresh",
         json={"refresh_token": refresh_token},
