@@ -88,9 +88,9 @@ def load_local_common_passwords(path: Path = COMMON_PASSWORDS_FALLBACK_PATH) -> 
 
 
 class CommonPasswordChecker:
-    """Common-password blocker with optional Redis-backed set storage."""
+    """Common-password blocker backed by Redis with a local policy fallback."""
 
-    def __init__(self, redis_client: Redis | None) -> None:
+    def __init__(self, redis_client: Redis) -> None:
         self.redis_client = redis_client
         self._passwords: _CommonPasswordBlocklist | None = None
         self._initialized = False
@@ -99,9 +99,6 @@ class CommonPasswordChecker:
         """Seed the checker from the committed fallback file."""
         self._passwords = load_local_common_passwords()
         self._initialized = True
-        if self.redis_client is None:
-            logger.info("Loaded %d common passwords from local fallback (in-memory)", self._passwords.entry_count)
-            return
 
         try:
             await self._store_passwords(self._passwords)
@@ -125,9 +122,6 @@ class CommonPasswordChecker:
 
     async def _store_passwords(self, passwords: _CommonPasswordBlocklist) -> None:
         """Replace the Redis password sets."""
-        if self.redis_client is None:
-            return
-
         await replace_redis_set(
             self.redis_client,
             REDIS_COMMON_PASSWORDS_KEY,
@@ -135,7 +129,7 @@ class CommonPasswordChecker:
         )
 
 
-async def init_common_password_checker(redis: Redis | None) -> CommonPasswordChecker | None:
+async def init_common_password_checker(redis: Redis) -> CommonPasswordChecker | None:
     """Initialize the CommonPasswordChecker instance."""
     try:
         checker = CommonPasswordChecker(redis)

@@ -40,9 +40,9 @@ def load_local_disposable_domains(path: Path = DISPOSABLE_DOMAINS_FALLBACK_PATH)
 
 
 class EmailChecker(PeriodicBackgroundTask):
-    """Disposable-email blocker with optional Redis-backed domain storage."""
+    """Disposable-email blocker backed by Redis with a local policy fallback."""
 
-    def __init__(self, redis_client: Redis | None) -> None:
+    def __init__(self, redis_client: Redis) -> None:
         super().__init__(interval_seconds=60 * 60 * 24)
         self.redis_client = redis_client
         self._domains: set[str] = set()
@@ -78,21 +78,20 @@ class EmailChecker(PeriodicBackgroundTask):
             return False
         try:
             domain = canonical_email_domain(email)
-            if self.redis_client is not None:
-                return await redis_set_contains(self.redis_client, REDIS_DISPOSABLE_DOMAINS_KEY, domain)
         except _RECOVERABLE_ERRORS:
-            logger.exception("Failed to check if email is disposable. Allowing registration.")
+            logger.exception("Failed to normalize email for disposable-domain check. Allowing registration.")
             return False
-        else:
+
+        try:
+            return await redis_set_contains(self.redis_client, REDIS_DISPOSABLE_DOMAINS_KEY, domain)
+        except _RECOVERABLE_ERRORS:
+            logger.exception("Failed to check disposable-domain Redis cache; using local fallback")
             return domain in self._domains
 
     async def _seed_domains(self) -> None:
         """Seed from the committed fallback file, skipping if Redis already has data."""
         domains = load_local_disposable_domains()
-        if self.redis_client is None:
-            self._domains = domains
-            logger.info("Loaded %d disposable domains from local fallback (in-memory)", len(domains))
-            return
+        self._domains = domains
 
         if await self.redis_client.exists(REDIS_DISPOSABLE_DOMAINS_KEY):
             logger.info("Disposable domains already cached in Redis, skipping seed")
@@ -102,11 +101,8 @@ class EmailChecker(PeriodicBackgroundTask):
         logger.info("Seeded Redis with %d disposable domains from local fallback", len(domains))
 
     async def _store_domains(self, domains: set[str]) -> None:
-        """Replace the stored domain set (in-memory or Redis)."""
-        if self.redis_client is None:
-            self._domains = domains
-            return
-
+        """Replace the stored domain set in Redis and local fallback memory."""
+        self._domains = domains
         await replace_redis_set(self.redis_client, REDIS_DISPOSABLE_DOMAINS_KEY, domains)
 
     async def _fetch_remote_domains(self) -> set[str]:
@@ -117,7 +113,7 @@ class EmailChecker(PeriodicBackgroundTask):
         return load_blocklist_text(response.text, str.lower)
 
 
-async def init_email_checker(redis: Redis | None) -> EmailChecker | None:
+async def init_email_checker(redis: Redis) -> EmailChecker | None:
     """Initialize the EmailChecker instance."""
     if settings.environment in (Environment.DEV, Environment.TESTING):
         return None

@@ -62,16 +62,6 @@ async def test_common_password_checker_falls_back_to_memory_when_redis_check_fai
     assert await checker.matches("password12345")
 
 
-async def test_common_password_checker_uses_in_memory_store_without_redis() -> None:
-    """The checker should remain useful in development and unit tests without Redis."""
-    checker = CommonPasswordChecker(None)
-
-    await checker.initialize()
-
-    assert await checker.matches("password12345")
-    assert not await checker.matches("correct-horse-battery-staple-v42")
-
-
 async def test_common_password_checker_replaces_existing_redis_cache(redis_client: Redis) -> None:
     """Startup should replace Redis from the deterministic fallback to avoid stale auth policy."""
     await redis_client.sadd(REDIS_COMMON_PASSWORDS_KEY, "exact:already-seeded-password")

@@ -66,16 +66,20 @@ async def test_email_checker_remote_refresh_replaces_redis_cache(redis_client: R
     assert await checker.is_disposable("user@new.example")
 
 
-async def test_email_checker_fails_open_when_redis_check_fails(redis_client: Redis) -> None:
-    """Redis lookup failures should not block registration."""
+async def test_email_checker_uses_local_fallback_when_redis_check_fails(redis_client: Redis) -> None:
+    """Redis lookup failures should fall back to the committed local policy."""
     checker = EmailChecker(redis_client)
     checker._initialized = True
+    checker._domains = {"mailinator.com"}
     redis_client.sismember = AsyncMock(side_effect=TimeoutError("redis unavailable"))  # type: ignore[method-assign]
 
-    assert not await checker.is_disposable("user@mailinator.com")
+    assert await checker.is_disposable("user@mailinator.com")
 
 
-async def test_email_checker_remote_refresh_uses_shared_http_client(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_email_checker_remote_refresh_uses_shared_http_client(
+    monkeypatch: pytest.MonkeyPatch,
+    redis_client: Redis,
+) -> None:
     """Remote blocklist refreshes should inherit the shared outbound HTTP policy."""
 
     class FakeResponse:
@@ -102,7 +106,7 @@ async def test_email_checker_remote_refresh_uses_shared_http_client(monkeypatch:
 
     fake_client = FakeHttpClient()
     monkeypatch.setattr("app.api.auth.services.email_checker.create_http_client", lambda: fake_client)
-    checker = EmailChecker(redis_client=None)
+    checker = EmailChecker(redis_client)
 
     domains = await checker._fetch_remote_domains()
 
