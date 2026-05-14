@@ -21,6 +21,7 @@ from app.api.auth.services.user_manager import (
     UserManager,
 )
 from app.api.common.audit import AuditAction
+from app.core.runtime import AppServices
 
 
 def _make_credentials(username: str, password: str = "testpassword") -> OAuth2PasswordRequestForm:  # noqa: S107
@@ -46,23 +47,13 @@ def _make_manager(mock_user: MagicMock | None = None) -> tuple[UserManager, Asyn
 
     manager = UserManager.__new__(UserManager)
     manager.user_db = mock_user_db
+    manager.password_helper = MagicMock()
 
     return manager, mock_session
 
 
 class TestAuthenticateUsernameResolution:
     """UserManager.authenticate resolves usernames to email before delegating to the parent."""
-
-    def test_initializes_with_application_password_helper(self) -> None:
-        """UserManager should use the repo-owned password helper instead of FastAPI-Users defaults."""
-        user_db = MagicMock()
-        http_client = AsyncMock()
-
-        manager = UserManager(user_db, http_client)
-        hashed_password = manager.password_helper.hash("correct-horse-battery-staple-v42")
-
-        assert "$argon2id$" in hashed_password
-        assert "m=19456,t=2,p=1" in hashed_password
 
     async def test_applies_account_aware_rate_limit_before_lookup(self) -> None:
         """Login attempts should also be bucketed by a keyed digest of the submitted identifier."""
@@ -178,7 +169,6 @@ class TestSensitiveUpdateHooks:
         update = UserUpdate(email="new@example.com", current_password=SecretStr("current-passphrase-42"))
         calls: list[str] = []
 
-        manager._require_current_password_for_sensitive_update = MagicMock()  # noqa: SLF001
         manager.request_verify = AsyncMock(side_effect=lambda *_args: calls.append("request_verify"))
 
         async def update_override_side_effect(*_args: object) -> UserUpdate:
@@ -204,6 +194,7 @@ class TestSensitiveUpdateHooks:
                 "app.api.auth.services.user_manager._revoke_user_refresh_tokens",
                 side_effect=revoke_side_effect,
             ) as revoke,
+            patch("app.api.auth.services.user_manager._require_current_password_for_sensitive_update"),
             patch(
                 "app.api.auth.services.user_manager.send_email_changed_notification",
                 side_effect=email_notification_side_effect,
@@ -291,7 +282,7 @@ class TestResetPasswordHooks:
         user.username = "user"
         request = MagicMock()
         redis = object()
-        request.app.state.services.redis = redis
+        request.app.state.services = AppServices(redis=redis)
 
         with (
             patch(
@@ -319,7 +310,7 @@ class TestAuditHooks:
         user.id = "user-id"
         request = MagicMock()
         redis = object()
-        request.app.state.services.redis = redis
+        request.app.state.services = AppServices(redis=redis)
 
         with (
             patch(

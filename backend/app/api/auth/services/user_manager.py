@@ -1,5 +1,7 @@
 """User management service."""
 
+from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING, cast
 
@@ -44,6 +46,7 @@ if TYPE_CHECKING:
 
     from fastapi_users.authentication import AuthenticationBackend
     from fastapi_users.jwt import SecretType
+    from fastapi_users.password import PasswordHelper
     from httpx import AsyncClient
     from starlette.requests import Request
     from starlette.responses import Response
@@ -71,6 +74,34 @@ def _login_identifier_rate_limit_key(identifier: str) -> str:
 def _sensitive_update_fields(user_update: UserUpdate) -> set[str]:
     """Return sensitive account fields included in a user update."""
     return set(user_update.model_dump(exclude_unset=True)) & SENSITIVE_UPDATE_FIELDS
+
+
+def _require_current_password_for_sensitive_update(
+    *,
+    password_helper: PasswordHelper,
+    user_update: UserUpdate,
+    user: User,
+    sensitive_fields: set[str],
+) -> None:
+    """Require password reauthentication before e-mail or password changes."""
+    if not sensitive_fields:
+        return
+
+    if not user_update.current_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is required for this account update.",
+        )
+
+    is_valid, _ = password_helper.verify_and_update(
+        user_update.current_password.get_secret_value(),
+        user.hashed_password,
+    )
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is invalid.",
+        )
 
 
 async def _revoke_user_refresh_tokens(user_id: UUID4, request: Request | None) -> None:
@@ -154,7 +185,12 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         # Will raise exceptions like UserNameAlreadyExistsError if validation fails
         real_user_update = cast("UserUpdate", user_update)
         sensitive_fields = _sensitive_update_fields(real_user_update)
-        self._require_current_password_for_sensitive_update(real_user_update, user, sensitive_fields)
+        _require_current_password_for_sensitive_update(
+            password_helper=self.password_helper,
+            user_update=real_user_update,
+            user=user,
+            sensitive_fields=sensitive_fields,
+        )
         real_user_update = await update_user_override(self.user_db, user, real_user_update)
         user_update = cast("schemas.UU", real_user_update)
 
@@ -173,29 +209,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
             await send_password_changed_notification(updated_user.email, updated_user.username)
 
         return updated_user
-
-    def _require_current_password_for_sensitive_update(
-        self, user_update: UserUpdate, user: User, sensitive_fields: set[str]
-    ) -> None:
-        """Require password reauthentication before e-mail or password changes."""
-        if not sensitive_fields:
-            return
-
-        if not user_update.current_password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Current password is required for this account update.",
-            )
-
-        is_valid, _ = self.password_helper.verify_and_update(
-            user_update.current_password.get_secret_value(),
-            user.hashed_password,
-        )
-        if not is_valid:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Current password is invalid.",
-            )
 
     async def on_after_request_verify(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
         """Send verification email after verification is requested."""
