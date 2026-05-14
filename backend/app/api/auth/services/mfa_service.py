@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
-import secrets
 import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
@@ -15,6 +12,7 @@ from pydantic import UUID4
 
 from app.api.auth.exceptions import MfaChallengeInvalidError
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter, rate_limit_bucket_key
+from app.api.auth.services.token_store import read_token_metadata, store_new_token, token_fingerprint
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -32,8 +30,10 @@ MfaTransport = Literal["bearer", "session"]
 _PendingTokenKind = Literal["login-challenge", "totp-setup", "oauth-handoff"]
 SESSION_TRANSPORT: MfaTransport = "session"
 
-_memory_pending_tokens: dict[str, tuple[float, str]] = {}
-_memory_used_totp: dict[str, float] = {}
+
+def _pending_token_key_prefix(kind: _PendingTokenKind) -> str:
+    """Return the shared token-store prefix for one pending MFA token kind."""
+    return f"auth:mfa:{kind}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,72 +52,36 @@ class TotpSetup:
     secret: str
 
 
-def token_fingerprint(token: str) -> str:
-    """Return a stable non-secret token fingerprint."""
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()
-
-
-def _pending_token_key(kind: _PendingTokenKind, token: str) -> str:
-    return f"auth:mfa:{kind}:{token_fingerprint(token)}"
-
-
-def _new_token() -> str:
-    return secrets.token_urlsafe(MFA_TOKEN_BYTES)
-
-
-def _encode_metadata(payload: dict[str, str]) -> str:
-    return json.dumps(payload, separators=(",", ":"))
-
-
-def _decode_metadata(raw_value: bytes | str | None) -> dict[str, str]:
-    if raw_value is None:
-        raise MfaChallengeInvalidError
-    try:
-        payload = json.loads(raw_value.decode("utf-8") if isinstance(raw_value, bytes) else raw_value)
-    except (TypeError, json.JSONDecodeError) as err:
-        raise MfaChallengeInvalidError from err
-    if not isinstance(payload, dict) or not all(isinstance(key, str) for key in payload):
-        raise MfaChallengeInvalidError
-    return {key: str(value) for key, value in payload.items()}
-
-
 async def _store_pending_token(
-    redis: Redis | None,
+    redis: Redis,
     *,
     kind: _PendingTokenKind,
     payload: dict[str, str],
 ) -> str:
-    token = _new_token()
-    metadata = _encode_metadata(payload)
-    key = _pending_token_key(kind, token)
-    if redis is None:
-        _memory_pending_tokens[key] = (time.monotonic() + MFA_TOKEN_TTL_SECONDS, metadata)
-        return token
-    await redis.setex(key, MFA_TOKEN_TTL_SECONDS, metadata)
-    return token
+    return await store_new_token(
+        redis,
+        key_prefix=_pending_token_key_prefix(kind),
+        payload=payload,
+        ttl_seconds=MFA_TOKEN_TTL_SECONDS,
+        token_bytes=MFA_TOKEN_BYTES,
+    )
 
 
 async def _read_pending_token(
-    redis: Redis | None,
+    redis: Redis,
     *,
     kind: _PendingTokenKind,
     token: str,
     consume: bool,
 ) -> dict[str, str]:
-    key = _pending_token_key(kind, token)
-    if redis is None:
-        expires_at, raw_metadata = _memory_pending_tokens.get(key, (0.0, ""))
-        if expires_at <= time.monotonic():
-            _memory_pending_tokens.pop(key, None)
-            raise MfaChallengeInvalidError
-        if consume:
-            _memory_pending_tokens.pop(key, None)
-    else:
-        raw_metadata = await redis.getdel(key) if consume else await redis.get(key)
-        if raw_metadata is None:
-            raise MfaChallengeInvalidError
-
-    return _decode_metadata(raw_metadata)
+    metadata = await read_token_metadata(
+        redis,
+        key_prefix=_pending_token_key_prefix(kind),
+        token=token,
+        error_cls=MfaChallengeInvalidError,
+        consume=consume,
+    )
+    return {key: str(value) for key, value in metadata.items()}
 
 
 def _parse_user_id(metadata: dict[str, str]) -> UUID:
@@ -168,7 +132,7 @@ def _matching_totp_counter(secret: str, code: str, *, for_time: int | None = Non
 
 
 async def verify_totp_code_once(
-    redis: Redis | None,
+    redis: Redis,
     *,
     user_id: UUID4,
     secret: str,
@@ -182,14 +146,6 @@ async def verify_totp_code_once(
 
     key = f"auth:mfa:totp-used:{user_id}:{counter}"
     ttl = (TOTP_VALID_WINDOW + 2) * TOTP_PERIOD_SECONDS
-    if redis is None:
-        now = time.monotonic()
-        expires_at = _memory_used_totp.get(key)
-        if expires_at and expires_at > now:
-            return False
-        _memory_used_totp[key] = now + ttl
-        return True
-
     return bool(await redis.set(key, "1", ex=ttl, nx=True))
 
 
@@ -198,7 +154,7 @@ def build_totp_uri(*, secret: str, email: str, username: str | None = None) -> s
     return _totp(secret).provisioning_uri(name=username or email, issuer_name=MFA_ISSUER)
 
 
-async def create_login_challenge(redis: Redis | None, *, user_id: UUID4, transport: MfaTransport) -> str:
+async def create_login_challenge(redis: Redis, *, user_id: UUID4, transport: MfaTransport) -> str:
     """Create a short-lived one-time MFA login challenge token."""
     return await _store_pending_token(
         redis,
@@ -207,7 +163,7 @@ async def create_login_challenge(redis: Redis | None, *, user_id: UUID4, transpo
     )
 
 
-async def create_oauth_handoff(redis: Redis | None, *, mfa_token: str) -> str:
+async def create_oauth_handoff(redis: Redis, *, mfa_token: str) -> str:
     """Create a short-lived one-time OAuth handoff token for MFA completion."""
     return await _store_pending_token(
         redis,
@@ -216,7 +172,7 @@ async def create_oauth_handoff(redis: Redis | None, *, mfa_token: str) -> str:
     )
 
 
-async def consume_oauth_handoff(redis: Redis | None, token: str) -> str:
+async def consume_oauth_handoff(redis: Redis, token: str) -> str:
     """Consume a one-time OAuth MFA handoff token."""
     metadata = await _read_pending_token(redis, kind="oauth-handoff", token=token, consume=True)
     mfa_token = metadata.get("mfa_token")
@@ -225,20 +181,20 @@ async def consume_oauth_handoff(redis: Redis | None, token: str) -> str:
     return mfa_token
 
 
-async def consume_login_challenge(redis: Redis | None, token: str) -> MfaChallenge:
+async def consume_login_challenge(redis: Redis, token: str) -> MfaChallenge:
     """Consume a one-time MFA login challenge token."""
     metadata = await _read_pending_token(redis, kind="login-challenge", token=token, consume=True)
     return MfaChallenge(user_id=_parse_user_id(metadata), transport=_parse_transport(metadata))
 
 
-async def get_login_challenge(redis: Redis | None, token: str) -> MfaChallenge:
+async def get_login_challenge(redis: Redis, token: str) -> MfaChallenge:
     """Read an MFA login challenge without consuming it."""
     metadata = await _read_pending_token(redis, kind="login-challenge", token=token, consume=False)
     return MfaChallenge(user_id=_parse_user_id(metadata), transport=_parse_transport(metadata))
 
 
 async def create_totp_setup(
-    redis: Redis | None,
+    redis: Redis,
     *,
     user_id: UUID4,
     secret: str,
@@ -260,13 +216,13 @@ def _totp_setup_from_metadata(metadata: dict[str, str], *, user_id: UUID4 | None
     return TotpSetup(user_id=_parse_user_id(metadata), secret=secret)
 
 
-async def get_totp_setup(redis: Redis | None, token: str, *, user_id: UUID4 | None = None) -> TotpSetup:
+async def get_totp_setup(redis: Redis, token: str, *, user_id: UUID4 | None = None) -> TotpSetup:
     """Read a pending TOTP setup without consuming it."""
     metadata = await _read_pending_token(redis, kind="totp-setup", token=token, consume=False)
     return _totp_setup_from_metadata(metadata, user_id=user_id)
 
 
-async def consume_totp_setup(redis: Redis | None, token: str, *, user_id: UUID4 | None = None) -> TotpSetup:
+async def consume_totp_setup(redis: Redis, token: str, *, user_id: UUID4 | None = None) -> TotpSetup:
     """Consume a one-time TOTP setup token for ``user_id``."""
     metadata = await _read_pending_token(redis, kind="totp-setup", token=token, consume=True)
     return _totp_setup_from_metadata(metadata, user_id=user_id)

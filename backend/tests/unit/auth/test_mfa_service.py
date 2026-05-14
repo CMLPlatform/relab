@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import json
 import time
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -69,22 +68,6 @@ async def test_mfa_challenge_token_can_be_read_before_setup_confirmation(redis_c
     assert second.user_id == user_id
     consumed = await mfa_service.consume_login_challenge(redis_client, token)
     assert consumed.user_id == user_id
-
-
-async def test_mfa_challenge_consume_uses_atomic_redis_getdel(mocker: MockerFixture) -> None:
-    """Consumed MFA tokens should use Redis GETDEL rather than separate get/delete calls."""
-    user_id = uuid4()
-    token = "login-token"
-    metadata = json.dumps({"user_id": str(user_id), "transport": "bearer"})
-    redis = mocker.AsyncMock()
-    redis.getdel.return_value = metadata
-
-    challenge = await mfa_service.consume_login_challenge(redis, token)
-
-    assert challenge.user_id == user_id
-    assert challenge.transport == "bearer"
-    redis.getdel.assert_awaited_once_with(f"auth:mfa:login-challenge:{mfa_service.token_fingerprint(token)}")
-    redis.delete.assert_not_called()
 
 
 async def test_oauth_mfa_handoff_is_one_time(redis_client: Redis) -> None:

@@ -1,16 +1,14 @@
 """Refresh token service for managing long-lived authentication tokens.
 
-This module supports both Redis-backed storage and an in-memory fallback
-used when Redis is unavailable (convenient for local development).
+Redis is required for refresh-token storage so auth fails closed when token
+state is unavailable.
 """
 
 from __future__ import annotations
 
-import hashlib
-import json
 import re
-import secrets
 import time
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -18,6 +16,13 @@ from pydantic import UUID4
 
 from app.api.auth.config import settings
 from app.api.auth.exceptions import RefreshTokenInvalidError, RefreshTokenRevokedError
+from app.api.auth.services.token_store import (
+    new_token,
+    read_token_metadata,
+    store_token_metadata,
+    token_fingerprint,
+    token_key,
+)
 from app.core.constants import HOUR
 from app.core.redis import redis_int, redis_str_set
 
@@ -25,29 +30,20 @@ if TYPE_CHECKING:
     from redis.asyncio import Redis
 
 
-# In-memory stores used when Redis is not available. Keys are refresh token fingerprints.
-# Values for _memory_tokens: fingerprint -> refresh-token metadata
-# Values for _memory_blacklist: fingerprint -> expire_ts
-_memory_tokens: dict[str, dict[str, str | int]] = {}
-_memory_blacklist: dict[str, float] = {}
-
 _USER_TOKENS_KEY_PREFIX = "auth:rt:user:"
+_REFRESH_TOKEN_KEY_PREFIX = "auth:rt"  # noqa: S105 - Redis key prefix, not a secret.
+_REFRESH_TOKEN_BLACKLIST_KEY_PREFIX = "auth:rt_blacklist"  # noqa: S105 - Redis key prefix, not a secret.
 _REFRESH_TOKEN_BYTES = 48
 _REFRESH_TOKEN_MIN_LENGTH = 32
 _REFRESH_TOKEN_PATTERN = re.compile(rf"^[A-Za-z0-9_-]{{{_REFRESH_TOKEN_MIN_LENGTH},}}$")
 
 
-def refresh_token_fingerprint(token: str) -> str:
-    """Return a stable non-secret fingerprint for refresh-token storage keys."""
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+def _refresh_token_key_from_fingerprint(fingerprint: str) -> str:
+    return f"{_REFRESH_TOKEN_KEY_PREFIX}:{fingerprint}"
 
 
-def _refresh_token_key(token_fingerprint: str) -> str:
-    return f"auth:rt:{token_fingerprint}"
-
-
-def _refresh_token_blacklist_key(token_fingerprint: str) -> str:
-    return f"auth:rt_blacklist:{token_fingerprint}"
+def _blacklist_key_from_fingerprint(fingerprint: str) -> str:
+    return f"{_REFRESH_TOKEN_BLACKLIST_KEY_PREFIX}:{fingerprint}"
 
 
 def _refresh_token_ttl_seconds() -> int:
@@ -63,84 +59,67 @@ def _validate_refresh_token_shape(token: str) -> None:
         raise RefreshTokenInvalidError
 
 
-def _new_refresh_token() -> str:
-    return secrets.token_urlsafe(_REFRESH_TOKEN_BYTES)
+@dataclass(frozen=True, slots=True)
+class RefreshTokenMetadata:
+    """Validated refresh-token metadata persisted in Redis."""
+
+    user_id: UUID
+    absolute_expires_at: int
+
+    @classmethod
+    def new(cls, user_id: UUID, *, absolute_expires_at: int | None = None) -> RefreshTokenMetadata:
+        """Build metadata for a new refresh token or a rotation."""
+        return cls(
+            user_id=user_id,
+            absolute_expires_at=absolute_expires_at or int(time.time()) + _absolute_session_ttl_seconds(),
+        )
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, object]) -> RefreshTokenMetadata:
+        """Validate Redis payload data as refresh-token metadata."""
+        try:
+            return cls(
+                user_id=UUID(str(payload["user_id"])),
+                absolute_expires_at=int(payload["absolute_expires_at"]),
+            )
+        except (KeyError, TypeError, ValueError) as err:
+            raise RefreshTokenInvalidError from err
+
+    def to_payload(self) -> dict[str, str | int]:
+        """Serialize metadata for Redis JSON storage."""
+        return {
+            "user_id": str(self.user_id),
+            "absolute_expires_at": self.absolute_expires_at,
+        }
+
+    def ttl_seconds(self) -> int:
+        """Return the Redis TTL constrained by sliding and absolute expiry."""
+        remaining_absolute_ttl = self.absolute_expires_at - int(time.time())
+        return min(_refresh_token_ttl_seconds(), remaining_absolute_ttl)
 
 
-def _build_token_metadata(
-    user_id: UUID,
-    *,
-    absolute_expires_at: int | None = None,
-) -> dict[str, str | int]:
-    now = int(time.time())
-    return {
-        "user_id": str(user_id),
-        "absolute_expires_at": absolute_expires_at or now + _absolute_session_ttl_seconds(),
-    }
-
-
-def _metadata_ttl_seconds(metadata: dict[str, str | int]) -> int:
-    absolute_expires_at = int(metadata["absolute_expires_at"])
-    remaining_absolute_ttl = absolute_expires_at - int(time.time())
-    return min(_refresh_token_ttl_seconds(), remaining_absolute_ttl)
-
-
-def _blacklist_memory_fingerprint(token_fingerprint: str, ttl_seconds: int | None = None) -> None:
-    token_data = _memory_tokens.get(token_fingerprint)
-    if ttl_seconds is None:
-        ttl_seconds = max(int(int(token_data["absolute_expires_at"]) - time.time()), HOUR) if token_data else HOUR
-
-    _memory_blacklist[token_fingerprint] = time.time() + ttl_seconds
-    _memory_tokens.pop(token_fingerprint, None)
-
-
-def _decode_token_metadata(raw_value: bytes | str | None) -> dict[str, str | int]:
-    if raw_value is None:
-        raise RefreshTokenInvalidError
-    try:
-        payload = json.loads(raw_value.decode("utf-8") if isinstance(raw_value, bytes) else raw_value)
-    except json.JSONDecodeError as err:
-        raise RefreshTokenInvalidError from err
-
-    if not isinstance(payload, dict):
-        raise RefreshTokenInvalidError
-
-    try:
-        user_id = str(payload["user_id"])
-        absolute_expires_at = int(payload["absolute_expires_at"])
-    except (KeyError, TypeError, ValueError) as err:
-        raise RefreshTokenInvalidError from err
-    return {
-        "user_id": user_id,
-        "absolute_expires_at": absolute_expires_at,
-    }
-
-
-async def _load_active_token_metadata(redis: Redis | None, token: str) -> dict[str, str | int]:
+async def _load_active_token_metadata(redis: Redis, token: str) -> RefreshTokenMetadata:
     _validate_refresh_token_shape(token)
-    now = time.time()
-    token_fingerprint = refresh_token_fingerprint(token)
 
-    if redis is None:
-        bl_expire = _memory_blacklist.get(token_fingerprint)
-        if bl_expire and bl_expire > now:
-            raise RefreshTokenRevokedError
-        metadata = _memory_tokens.get(token_fingerprint)
-        if not metadata:
-            raise RefreshTokenInvalidError
-    else:
-        if await redis.exists(_refresh_token_blacklist_key(token_fingerprint)):
-            raise RefreshTokenRevokedError
-        metadata = _decode_token_metadata(await redis.get(_refresh_token_key(token_fingerprint)))
+    if await redis.exists(token_key(_REFRESH_TOKEN_BLACKLIST_KEY_PREFIX, token)):
+        raise RefreshTokenRevokedError
+    metadata = RefreshTokenMetadata.from_payload(
+        await read_token_metadata(
+            redis,
+            key_prefix=_REFRESH_TOKEN_KEY_PREFIX,
+            token=token,
+            error_cls=RefreshTokenInvalidError,
+        )
+    )
 
-    if int(metadata["absolute_expires_at"]) <= int(now):
+    if metadata.absolute_expires_at <= int(time.time()):
         await blacklist_token(redis, token)
         raise RefreshTokenInvalidError
     return metadata
 
 
 async def create_refresh_token(
-    redis: Redis | None,
+    redis: Redis,
     user_id: UUID4,
     *,
     absolute_expires_at: int | None = None,
@@ -148,37 +127,38 @@ async def create_refresh_token(
     """Create a new refresh token.
 
     Args:
-        redis: Redis client or None for in-memory fallback
+        redis: Redis client
         user_id: User's UUID
         absolute_expires_at: Existing absolute session expiry timestamp to preserve during rotation
 
     Returns:
         Refresh token string
     """
-    token = _new_refresh_token()
-    metadata = _build_token_metadata(
+    token = new_token(_REFRESH_TOKEN_BYTES)
+    metadata = RefreshTokenMetadata.new(
         user_id,
         absolute_expires_at=absolute_expires_at,
     )
-    ttl = _metadata_ttl_seconds(metadata)
+    ttl = metadata.ttl_seconds()
     if ttl <= 0:
         raise RefreshTokenInvalidError
 
-    token_fingerprint = refresh_token_fingerprint(token)
-    if redis is None:
-        _memory_tokens[token_fingerprint] = metadata
-        return token
-
-    token_key = _refresh_token_key(token_fingerprint)
+    fingerprint = token_fingerprint(token)
     user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id}"
-    await redis.setex(token_key, ttl, json.dumps(metadata, separators=(",", ":")))
-    await redis_int(redis.sadd(user_tokens_key, token_fingerprint))
+    await store_token_metadata(
+        redis,
+        key_prefix=_REFRESH_TOKEN_KEY_PREFIX,
+        token=token,
+        payload=metadata.to_payload(),
+        ttl_seconds=ttl,
+    )
+    await redis_int(redis.sadd(user_tokens_key, fingerprint))
     await redis.expire(user_tokens_key, ttl)
     return token
 
 
 async def verify_refresh_token(
-    redis: Redis | None,
+    redis: Redis,
     token: str,
 ) -> UUID:
     """Verify a refresh token and return the user ID.
@@ -194,11 +174,11 @@ async def verify_refresh_token(
         RefreshTokenError: If token is invalid, expired, or blacklisted
     """
     metadata = await _load_active_token_metadata(redis, token)
-    return UUID(str(metadata["user_id"]))
+    return metadata.user_id
 
 
 async def blacklist_token(
-    redis: Redis | None,
+    redis: Redis,
     token: str,
     ttl_seconds: int | None = None,
 ) -> None:
@@ -209,66 +189,59 @@ async def blacklist_token(
         token: Refresh token to blacklist
         ttl_seconds: TTL for blacklist entry (if None, uses remaining token TTL)
     """
-    token_fingerprint = refresh_token_fingerprint(token)
-    token_key = _refresh_token_key(token_fingerprint)
-
-    if redis is None:
-        _blacklist_memory_fingerprint(token_fingerprint, ttl_seconds)
-        return
-
-    blacklist_key = _refresh_token_blacklist_key(token_fingerprint)
-
+    metadata_key = token_key(_REFRESH_TOKEN_KEY_PREFIX, token)
     if ttl_seconds is None:
-        ttl_seconds = await redis.ttl(token_key)
+        ttl_seconds = int(await redis.ttl(metadata_key))
         if ttl_seconds <= 0:
             ttl_seconds = HOUR
 
-    raw_token_metadata = await redis.get(token_key)
-    token_metadata = _decode_token_metadata(raw_token_metadata) if raw_token_metadata else None
+    try:
+        metadata = RefreshTokenMetadata.from_payload(
+            await read_token_metadata(
+                redis,
+                key_prefix=_REFRESH_TOKEN_KEY_PREFIX,
+                token=token,
+                error_cls=RefreshTokenInvalidError,
+                consume=True,
+            )
+        )
+    except RefreshTokenInvalidError:
+        metadata = None
 
-    await redis.setex(blacklist_key, ttl_seconds, "1")
-    await redis.delete(token_key)
+    await redis.setex(token_key(_REFRESH_TOKEN_BLACKLIST_KEY_PREFIX, token), ttl_seconds, "1")
 
-    if token_metadata:
-        user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{token_metadata['user_id']}"
-        await redis_int(redis.srem(user_tokens_key, token_fingerprint))
+    if metadata:
+        user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{metadata.user_id}"
+        await redis_int(redis.srem(user_tokens_key, token_fingerprint(token)))
 
 
 async def revoke_all_user_tokens(
-    redis: Redis | None,
+    redis: Redis,
     user_id: UUID4,
 ) -> None:
     """Revoke all active refresh tokens for a user.
 
     Args:
-        redis: Redis client or None for in-memory fallback
+        redis: Redis client
         user_id: User's UUID
     """
     user_id_str = str(user_id)
 
-    if redis is None:
-        fingerprints_to_revoke = [
-            fingerprint for fingerprint, metadata in list(_memory_tokens.items()) if metadata["user_id"] == user_id_str
-        ]
-        for fingerprint in fingerprints_to_revoke:
-            _blacklist_memory_fingerprint(fingerprint)
-        return
-
     user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id_str}"
     tokens = await redis_str_set(redis.smembers(user_tokens_key))
     for stored_token_id in tokens:
-        token_key = _refresh_token_key(stored_token_id)
-        ttl_seconds = await redis.ttl(token_key)
+        stored_token_key = _refresh_token_key_from_fingerprint(stored_token_id)
+        ttl_seconds = await redis.ttl(stored_token_key)
         if ttl_seconds <= 0:
             ttl_seconds = HOUR
-        blacklist_key = _refresh_token_blacklist_key(stored_token_id)
+        blacklist_key = _blacklist_key_from_fingerprint(stored_token_id)
         await redis.setex(blacklist_key, ttl_seconds, "1")
-        await redis.delete(token_key)
+        await redis.delete(stored_token_key)
     await redis.delete(user_tokens_key)
 
 
 async def rotate_refresh_token(
-    redis: Redis | None,
+    redis: Redis,
     old_token: str,
 ) -> str:
     """Rotate a refresh token (create new, blacklist old).
@@ -284,12 +257,10 @@ async def rotate_refresh_token(
         RefreshTokenError: If old token is invalid
     """
     metadata = await _load_active_token_metadata(redis, old_token)
-    user_id = UUID(str(metadata["user_id"]))
-
     new_token = await create_refresh_token(
         redis,
-        user_id,
-        absolute_expires_at=int(metadata["absolute_expires_at"]),
+        metadata.user_id,
+        absolute_expires_at=metadata.absolute_expires_at,
     )
 
     # Blacklist old token; if it fails, invalidate the new token too so neither is usable
