@@ -8,7 +8,6 @@ from fastapi.responses import JSONResponse
 from fastapi_users.authentication import Strategy  # Used at runtime in __annotations__ dict
 from fastapi_users.exceptions import UserAlreadyExists
 from fastapi_users.router.common import ErrorCode
-from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
 from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token  # Used at runtime for FastAPI validation
 from pydantic import UUID4
 
@@ -21,6 +20,7 @@ from app.api.auth.models import User
 from app.api.auth.services import login_completion
 from app.api.auth.services.oauth_utils import (
     ACCESS_TOKEN_KEY,
+    FRONTEND_REDIRECT_URI_KEY,
     OAuth2AuthorizeResponse,
     OAuthCookieSettings,
 )
@@ -65,10 +65,7 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
         router = APIRouter()
 
         callback_route_name = self.callback_route_name
-        if self.redirect_url is not None:
-            oauth2_authorize_callback = OAuth2AuthorizeCallback(self.oauth_client, redirect_url=self.redirect_url)
-        else:
-            oauth2_authorize_callback = OAuth2AuthorizeCallback(self.oauth_client, route_name=callback_route_name)
+        oauth2_authorize_callback = self.authorize_callback_dependency(callback_route_name)
 
         @router.get(
             "/authorize",
@@ -126,7 +123,7 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
     ) -> Response:
         token, state = access_token_state
         state_data = self.verify_state(request, state)
-        frontend_redirect = state_data.get("frontend_redirect_uri")
+        frontend_redirect = state_data.get(FRONTEND_REDIRECT_URI_KEY)
 
         account_id, account_email = await self.oauth_client.get_id_email(token["access_token"])
         if account_email is None:

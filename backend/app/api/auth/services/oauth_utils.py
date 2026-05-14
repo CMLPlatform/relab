@@ -18,6 +18,7 @@ OAUTH_STATE_JWT_ALGORITHM = "HS256"
 CSRF_TOKEN_KEY = "csrftoken"  # noqa: S105 # This value is not a secret
 OAUTH_PROVIDER_KEY = "oauth_provider"
 OAUTH_FLOW_KEY = "oauth_flow"
+FRONTEND_REDIRECT_URI_KEY = "frontend_redirect_uri"
 CSRF_TOKEN_COOKIE_NAME = "__Host-relab-oauth-csrf"  # noqa: S105 # This value is not a secret
 SET_COOKIE_HEADER = b"set-cookie"
 ACCESS_TOKEN_KEY = "access_token"  # noqa: S105 # This value is not a secret

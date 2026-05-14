@@ -7,7 +7,6 @@ from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import Response as FastAPIResponse
 from fastapi_users import schemas
 from fastapi_users.models import UserOAuthProtocol
-from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
 from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token  # Used at runtime for FastAPI validation
 from pydantic import UUID4
 from sqlalchemy import select
@@ -16,15 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth.exceptions import (
     OAuthAccountAlreadyLinkedError,
     OAuthEmailUnavailableError,
-    OAuthInvalidRedirectURIError,
     OAuthInvalidStateError,
 )
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services.oauth_utils import (
+    FRONTEND_REDIRECT_URI_KEY,
     OAuth2AuthorizeResponse,
     OAuthCookieSettings,
-    generate_csrf_token,
-    generate_state_token,
 )
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager
 
@@ -92,7 +89,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         *,
         requires_verification: bool = False,
         route_name_key: str | None = None,
-        authorize_extras_params: dict[str, Any] | None = None,
+        extras_params: dict[str, Any] | None = None,
     ) -> None:
         """Initialize association router builder.
 
@@ -101,7 +98,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         clients that share the same OAuth ``name`` (e.g. ``google`` and
         ``google-youtube``) to avoid duplicate route-name conflicts.
 
-        ``authorize_extras_params`` is forwarded to
+        ``extras_params`` is forwarded to
         ``oauth_client.get_authorization_url`` as ``extras_params``. Use this
         to pass provider-specific flags such as ``{"access_type": "offline",
         "prompt": "consent"}`` for the Google YouTube scope-upgrade flow.
@@ -111,7 +108,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         self.authenticator = authenticator
         self.user_schema = user_schema
         self.requires_verification = requires_verification
-        self.authorize_extras_params = authorize_extras_params
+        self.extras_params = extras_params
         self.callback_route_name = f"oauth-associate:{key}.callback"
 
     def build(self) -> APIRouter:
@@ -120,10 +117,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         get_current_active_user = self.authenticator.current_user(active=True, verified=self.requires_verification)
 
         callback_route_name = self.callback_route_name
-        if self.redirect_url is not None:
-            oauth2_authorize_callback = OAuth2AuthorizeCallback(self.oauth_client, redirect_url=self.redirect_url)
-        else:
-            oauth2_authorize_callback = OAuth2AuthorizeCallback(self.oauth_client, route_name=callback_route_name)
+        oauth2_authorize_callback = self.authorize_callback_dependency(callback_route_name)
 
         authorize_route_name = self.callback_route_name.replace(".callback", ".authorize")
 
@@ -171,28 +165,13 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         response: Response,
         user: User,
     ) -> OAuth2AuthorizeResponse:
-        authorize_redirect_url = self.redirect_url
-        if authorize_redirect_url is None:
-            authorize_redirect_url = str(request.url_for(self.callback_route_name))
-
-        csrf_token = generate_csrf_token()
-        redirect_uri = request.query_params.get("redirect_uri")
-        if redirect_uri and not self._is_allowed_frontend_redirect(redirect_uri):
-            raise OAuthInvalidRedirectURIError
-
-        extra_claims = {"sub": str(user.id)}
-        if redirect_uri:
-            extra_claims["frontend_redirect_uri"] = redirect_uri
-        state = generate_state_token(self.build_state_data(csrf_token, extra_claims), self.state_secret)
-        authorization_url = await self.oauth_client.get_authorization_url(
-            authorize_redirect_url,
-            state,
-            None,
-            extras_params=self.authorize_extras_params,
+        return await self.build_authorize_response(
+            request,
+            response,
+            callback_route_name=self.callback_route_name,
+            state_claims={"sub": str(user.id)},
+            extras_params=self.extras_params,
         )
-
-        self.set_csrf_cookie(response, csrf_token)
-        return OAuth2AuthorizeResponse(authorization_url=authorization_url)
 
     async def _get_callback_handler(
         self,
@@ -249,7 +228,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
                 request,
             )
 
-        frontend_redirect = state_data.get("frontend_redirect_uri")
+        frontend_redirect = state_data.get(FRONTEND_REDIRECT_URI_KEY)
         if frontend_redirect:
             return self._create_success_redirect(frontend_redirect, FastAPIResponse())
 

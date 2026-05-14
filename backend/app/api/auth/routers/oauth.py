@@ -86,7 +86,7 @@ def _include_oauth_routes(target_router: APIRouter, *, public_callback_prefix: s
             # Force Google to show the consent screen so the user explicitly grants
             # YouTube scopes, even if they already authorized the app for base scopes.
             # access_type=offline ensures we get a refresh token for background calls.
-            authorize_extras_params={"access_type": "offline", "prompt": "consent"},
+            extras_params={"access_type": "offline", "prompt": "consent"},
         ).build(),
         prefix="/google-youtube/associate",
     )

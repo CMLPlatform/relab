@@ -10,10 +10,12 @@ import jwt
 from fastapi import Request, Response
 from fastapi.responses import RedirectResponse
 from fastapi_users.jwt import SecretType, decode_jwt
+from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
 from httpx_oauth.oauth2 import BaseOAuth2  # noqa: TC002 # Used at runtime for FastAPI validation
 
 from app.api.auth.config import normalize_oauth_redirect_uri, settings
 from app.api.auth.exceptions import (
+    OAuthInvalidRedirectURIError,
     OAuthInvalidStateError,
     OAuthStateDecodeError,
     OAuthStateExpiredError,
@@ -21,12 +23,16 @@ from app.api.auth.exceptions import (
 from app.api.auth.services.oauth_utils import (
     ACCESS_TOKEN_KEY,
     CSRF_TOKEN_KEY,
+    FRONTEND_REDIRECT_URI_KEY,
     OAUTH_FLOW_KEY,
     OAUTH_PROVIDER_KEY,
     OAUTH_STATE_JWT_ALGORITHM,
     SET_COOKIE_HEADER,
     STATE_TOKEN_AUDIENCE,
+    OAuth2AuthorizeResponse,
     OAuthCookieSettings,
+    generate_csrf_token,
+    generate_state_token,
     set_csrf_cookie,
 )
 
@@ -53,6 +59,12 @@ class BaseOAuthRouterBuilder:
         self.redirect_url = redirect_url
         self.cookie_settings = cookie_settings or OAuthCookieSettings()
 
+    def authorize_callback_dependency(self, callback_route_name: str) -> OAuth2AuthorizeCallback:
+        """Build the httpx-oauth callback dependency for this route."""
+        if self.redirect_url is not None:
+            return OAuth2AuthorizeCallback(self.oauth_client, redirect_url=self.redirect_url)
+        return OAuth2AuthorizeCallback(self.oauth_client, route_name=callback_route_name)
+
     def build_state_data(self, csrf_token: str, extra: dict[str, str] | None = None) -> dict[str, str]:
         """Build signed OAuth state claims for this builder's transaction."""
         return {
@@ -62,9 +74,38 @@ class BaseOAuthRouterBuilder:
             OAUTH_FLOW_KEY: self.oauth_flow,
         }
 
-    def set_csrf_cookie(self, response: Response, csrf_token: str) -> None:
-        """Set the CSRF cookie on the response."""
+    async def build_authorize_response(
+        self,
+        request: Request,
+        response: Response,
+        *,
+        callback_route_name: str,
+        state_claims: dict[str, str] | None = None,
+        extras_params: dict[str, Any] | None = None,
+    ) -> OAuth2AuthorizeResponse:
+        """Build an OAuth authorization response with RELab state binding."""
+        authorize_redirect_url = self.redirect_url
+        if authorize_redirect_url is None:
+            authorize_redirect_url = str(request.url_for(callback_route_name))
+
+        csrf_token = generate_csrf_token()
+        claims = dict(state_claims or {})
+        redirect_uri = request.query_params.get("redirect_uri")
+        if redirect_uri:
+            if not self._is_allowed_frontend_redirect(redirect_uri):
+                raise OAuthInvalidRedirectURIError
+            claims[FRONTEND_REDIRECT_URI_KEY] = redirect_uri
+
+        state = generate_state_token(self.build_state_data(csrf_token, claims), self.state_secret)
+        authorization_url = await self.oauth_client.get_authorization_url(
+            authorize_redirect_url,
+            state,
+            None,
+            extras_params=extras_params,
+        )
+
         set_csrf_cookie(response, self.cookie_settings, csrf_token)
+        return OAuth2AuthorizeResponse(authorization_url=authorization_url)
 
     def verify_state(self, request: Request, state: str) -> dict[str, Any]:
         """Decode the state JWT and verify CSRF and transaction binding."""
