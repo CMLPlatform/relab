@@ -9,10 +9,9 @@ from fastapi import Depends, Request
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from app.api.common.exceptions import ServiceUnavailableError
 from app.core.config import settings
 from app.core.logging import sanitize_log_value
-from app.core.runtime import get_request_services
+from app.core.runtime import get_request_services, require_redis
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -20,7 +19,6 @@ if TYPE_CHECKING:
     from redis.typing import EncodableT
 
 logger = logging.getLogger(__name__)
-_REQUIRED_SERVICE_UNAVAILABLE = "Required service is temporarily unavailable."
 
 
 # Typed adapters for redis-py async operations.
@@ -46,11 +44,6 @@ async def redis_str_set(coro: Any) -> set[str]:  # noqa: ANN401
     return set(result) if result else set()
 
 
-def _redis_from_request(request: Request) -> Redis | None:
-    """Return the Redis client from app state when available."""
-    return get_request_services(request).redis
-
-
 async def _execute_redis_operation[T](
     operation_name: str,
     operation: Callable[[], Awaitable[T]],
@@ -69,18 +62,16 @@ async def _execute_redis_operation[T](
         return failure_result
 
 
-async def init_redis(*, blocking: bool = False) -> Redis | None:
+async def init_redis() -> Redis:
     """Initialize Redis client instance with connection pooling.
 
     Returns:
-        Redis: Async Redis client with connection pooling, or None if connection fails
+        Redis: Async Redis client with connection pooling.
 
     This should be called once during application startup.
-    Gracefully handles connection failures and returns None if Redis is unavailable.
     """
     try:
         password = settings.redis_password.get_secret_value() if settings.redis_password else None
-        socket_timeout = None if blocking else 5
         if settings.redis_tls:
             redis_client = Redis(
                 host=settings.redis_host,
@@ -89,7 +80,7 @@ async def init_redis(*, blocking: bool = False) -> Redis | None:
                 password=password,
                 decode_responses=True,
                 socket_connect_timeout=5,
-                socket_timeout=socket_timeout,
+                socket_timeout=5,
                 ssl=True,
                 ssl_cert_reqs=ssl.CERT_REQUIRED,
                 ssl_ca_certs=str(settings.redis_tls_ca_file) if settings.redis_tls_ca_file is not None else None,
@@ -103,33 +94,18 @@ async def init_redis(*, blocking: bool = False) -> Redis | None:
                 password=password,
                 decode_responses=True,
                 socket_connect_timeout=5,
-                socket_timeout=socket_timeout,
+                socket_timeout=5,
                 ssl=False,
             )
 
         # Verify connection on startup
         await redis_bool(redis_client.ping())
-        if blocking:
-            logger.info(
-                "Blocking Redis client initialized and connected: %s:%s",
-                settings.redis_host,
-                settings.redis_port,
-            )
-        else:
-            logger.info("Redis client initialized and connected: %s:%s", settings.redis_host, settings.redis_port)
+        logger.info("Redis client initialized and connected: %s:%s", settings.redis_host, settings.redis_port)
 
     except (TimeoutError, RedisError, OSError, ConnectionError) as e:
-        if blocking:
-            logger.warning(
-                "Failed to connect to Redis (blocking client) during initialization: %s. "
-                "Cross-worker relay will be unavailable.",
-                e,
-            )
-        else:
-            logger.warning(
-                "Failed to connect to Redis during initialization: %s. Application will continue without Redis.", e
-            )
-        return None
+        logger.warning("Failed to connect to Redis during initialization: %s.", e)
+        msg = "Redis is required during application startup."
+        raise RuntimeError(msg) from e
     else:
         return redis_client
 
@@ -240,15 +216,9 @@ def get_redis(request: Request) -> Redis:
         Redis client from the runtime service container
 
     Raises:
-        RuntimeError: If Redis not initialized or unavailable
+        ServiceUnavailableError: If Redis is not initialized or unavailable.
     """
-    redis_client = _redis_from_request(request)
-
-    if redis_client is None:
-        msg = "Redis not available. Check Redis connection settings."
-        raise RuntimeError(msg)
-
-    return redis_client
+    return require_redis(get_request_services(request).redis)
 
 
 # Type annotation for Redis dependency injection
@@ -258,20 +228,10 @@ RedisDep = Annotated[Redis, Depends(get_redis)]
 def get_redis_optional(request: Request) -> Redis | None:
     """FastAPI dependency that returns Redis client or None without raising.
 
-    Use this where Redis is optional (e.g. in development where Redis may be unavailable).
+    Use this where the caller handles partially initialized runtime services directly.
     """
-    return _redis_from_request(request)
+    return get_request_services(request).redis
 
 
 # Optional Redis dependency annotation
 OptionalRedisDep = Annotated[Redis | None, Depends(get_redis_optional)]
-
-
-def require_redis(redis_client: Redis | None) -> Redis:
-    """Raise an HTTP-style error if Redis is unavailable."""
-    if redis_client is None:
-        raise ServiceUnavailableError(
-            _REQUIRED_SERVICE_UNAVAILABLE,
-            log_message="Redis is required for this operation.",
-        )
-    return redis_client

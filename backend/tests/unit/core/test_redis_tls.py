@@ -78,8 +78,8 @@ async def test_init_redis_uses_certificate_required_tls_when_enabled(
     assert FakeRedis.instances[0].kwargs["ssl_check_hostname"] is True
 
 
-async def test_init_redis_blocking_uses_same_tls_options(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The blocking Redis client should not drift from the normal client TLS policy."""
+async def test_init_redis_tls_keeps_bounded_socket_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Redis clients should keep command socket timeouts bounded even with TLS."""
     FakeRedis.instances.clear()
     monkeypatch.setattr(redis_module, "Redis", FakeRedis)
     monkeypatch.setattr(
@@ -93,10 +93,10 @@ async def test_init_redis_blocking_uses_same_tls_options(monkeypatch: pytest.Mon
         ),
     )
 
-    await redis_module.init_redis(blocking=True)
+    await redis_module.init_redis()
 
     assert FakeRedis.instances[0].kwargs["ssl"] is True
-    assert FakeRedis.instances[0].kwargs["socket_timeout"] is None
+    assert FakeRedis.instances[0].kwargs["socket_timeout"] == 5
     assert FakeRedis.instances[0].kwargs["ssl_cert_reqs"] == ssl.CERT_REQUIRED
     assert FakeRedis.instances[0].kwargs["ssl_ca_certs"] is None
     assert FakeRedis.instances[0].kwargs["ssl_check_hostname"] is True

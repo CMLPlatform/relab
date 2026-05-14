@@ -20,7 +20,7 @@ from app.api.auth.services.email_checker import init_email_checker
 from app.api.common.routers.file_mounts import mount_static_directories, register_favicon_route
 from app.api.file_storage.services.manager import FileCleanupManager
 from app.api.file_storage.upload_security import validate_malware_scanner_configuration
-from app.api.plugins.rpi_cam.websocket.runtime_state import set_blocking_redis, set_connection_manager
+from app.api.plugins.rpi_cam.websocket.runtime_state import set_connection_manager
 from app.core.cache import close_cache, init_cache
 from app.core.clients import create_http_client
 from app.core.config import Environment, settings
@@ -88,9 +88,6 @@ async def _initialize_cache_services(services: AppServices) -> None:
     services.email_checker = await init_email_checker(services.redis)
     services.common_password_checker = await init_common_password_checker(services.redis)
     init_cache(services.redis)
-
-    services.blocking_redis = await init_redis(blocking=True)
-    set_blocking_redis(services.blocking_redis)
 
 
 async def _initialize_camera_services(services: AppServices) -> None:
@@ -172,11 +169,6 @@ def _shutdown_steps(app: FastAPI, services: AppServices) -> tuple[ShutdownStep, 
             expected_errors=(ConnectionError, OSError),
         ),
         ShutdownStep(
-            label="blocking Redis client",
-            close=lambda: _close_redis_client(services.blocking_redis),
-            expected_errors=(ConnectionError, OSError),
-        ),
-        ShutdownStep(
             label="endpoint cache",
             close=close_cache,
             expected_errors=(RuntimeError,),
@@ -205,7 +197,6 @@ async def shutdown_runtime_services(app: FastAPI, *, raise_unexpected: bool = Tr
                 unexpected_errors.extend([error])
         services.telemetry_enabled = False
     finally:
-        set_blocking_redis(None)
         set_connection_manager(None)
         reset_app_services(app)
     if unexpected_errors and raise_unexpected:

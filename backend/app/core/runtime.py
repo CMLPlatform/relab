@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, cast
 
 from fastapi import FastAPI, Request
 
+from app.api.common.exceptions import ServiceUnavailableError
+
 if TYPE_CHECKING:
     import anyio
     from httpx import AsyncClient
@@ -18,13 +20,14 @@ if TYPE_CHECKING:
     from app.api.file_storage.services.manager import FileCleanupManager
     from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 
+_REQUIRED_SERVICE_UNAVAILABLE = "Required service is temporarily unavailable."
+
 
 @dataclass(slots=True)
 class AppServices:
     """Typed container for long-lived runtime services."""
 
     redis: Redis | None = None
-    blocking_redis: Redis | None = None
     email_checker: EmailChecker | None = None
     common_password_checker: CommonPasswordChecker | None = None
     camera_connection_manager: CameraConnectionManager | None = None
@@ -68,11 +71,6 @@ def get_connection_redis(connection: HTTPConnection) -> Redis | None:
     return get_connection_services(connection).redis
 
 
-def get_connection_blocking_redis(connection: HTTPConnection) -> Redis | None:
-    """Return the shared blocking Redis client for a request or websocket."""
-    return get_connection_services(connection).blocking_redis
-
-
 def get_connection_http_client(connection: HTTPConnection) -> AsyncClient | None:
     """Return the shared outbound HTTP client for a request or websocket."""
     return get_connection_services(connection).http_client
@@ -102,13 +100,19 @@ def require_connection_camera_manager(connection: HTTPConnection) -> CameraConne
     return manager
 
 
+def require_redis(redis_client: Redis | None) -> Redis:
+    """Raise an HTTP-style error if Redis is unavailable."""
+    if redis_client is None:
+        raise ServiceUnavailableError(
+            _REQUIRED_SERVICE_UNAVAILABLE,
+            log_message="Redis is required for this operation.",
+        )
+    return redis_client
+
+
 def require_connection_redis(connection: HTTPConnection) -> Redis:
     """Return the shared Redis client, raising when runtime init is incomplete."""
-    redis = get_connection_redis(connection)
-    if redis is None:
-        msg = "Redis is not initialized"
-        raise RuntimeError(msg)
-    return redis
+    return require_redis(get_connection_redis(connection))
 
 
 def require_connection_http_client(connection: HTTPConnection) -> AsyncClient:

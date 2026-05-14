@@ -42,7 +42,6 @@ class RuntimePatchConfig:
     """Overrides for patched runtime services."""
 
     redis: MagicMock | None = None
-    blocking_redis: MagicMock | None = None
     email_checker: AsyncMock | None = None
     common_password_checker: AsyncMock | None = None
     file_cleanup_manager: MagicMock | None = None
@@ -61,7 +60,6 @@ class RuntimeMocks:
     """Mocks installed by patched_runtime_services."""
 
     redis: MagicMock
-    blocking_redis: MagicMock | None
     email_checker: AsyncMock
     common_password_checker: AsyncMock
     camera_manager: MagicMock
@@ -83,7 +81,6 @@ class RuntimeMocks:
     create_camera_connection_manager: MagicMock
     file_cleanup_cls: MagicMock
     create_http_client: MagicMock
-    set_blocking_redis: MagicMock
     set_connection_manager: MagicMock
 
 
@@ -92,7 +89,6 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
     """Patch external runtime services and expose the mocks used by a test."""
     config = RuntimePatchConfig() if config is None else config
     mock_redis = MagicMock() if config.redis is None else config.redis
-    mock_blocking_redis = config.blocking_redis
     mock_email_checker = AsyncMock() if config.email_checker is None else config.email_checker
     mock_common_password_checker = (
         AsyncMock() if config.common_password_checker is None else config.common_password_checker
@@ -106,10 +102,10 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
     mock_http_client = AsyncMock() if config.http_client is None else config.http_client
     mock_http_client.aclose = AsyncMock(side_effect=config.http_client_close_side_effect)
 
-    async def init_redis_side_effect(*, blocking: bool = False) -> MagicMock | None:
+    async def init_redis_side_effect() -> MagicMock | None:
         if config.init_redis_side_effect is not None:
             raise config.init_redis_side_effect
-        return mock_blocking_redis if blocking else mock_redis
+        return mock_redis
 
     with (
         patch(
@@ -141,12 +137,10 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
         patch("app.core.lifecycle.create_camera_connection_manager", return_value=mock_camera_manager) as create_camera,
         patch("app.core.lifecycle.FileCleanupManager", return_value=mock_file_cleanup_manager) as file_cleanup_cls,
         patch("app.core.lifecycle.create_http_client", return_value=mock_http_client) as create_http_client,
-        patch("app.core.lifecycle.set_blocking_redis") as set_blocking_redis,
         patch("app.core.lifecycle.set_connection_manager") as set_connection_manager,
     ):
         yield RuntimeMocks(
             redis=mock_redis,
-            blocking_redis=mock_blocking_redis,
             email_checker=mock_email_checker,
             common_password_checker=mock_common_password_checker,
             camera_manager=mock_camera_manager,
@@ -168,7 +162,6 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
             create_camera_connection_manager=create_camera,
             file_cleanup_cls=file_cleanup_cls,
             create_http_client=create_http_client,
-            set_blocking_redis=set_blocking_redis,
             set_connection_manager=set_connection_manager,
         )
 
@@ -186,8 +179,7 @@ class TestLifespan:
                 assert services.email_checker is runtime.email_checker
                 assert services.common_password_checker is runtime.common_password_checker
 
-        assert runtime.init_redis.await_args_list[0].kwargs == {}
-        assert runtime.init_redis.await_args_list[1].kwargs == {"blocking": True}
+        runtime.init_redis.assert_awaited_once_with()
         runtime.init_email_checker.assert_awaited_once_with(runtime.redis)
         runtime.init_common_password_checker.assert_awaited_once_with(runtime.redis)
 
@@ -281,6 +273,22 @@ class TestLifespan:
         assert isinstance(runtime_app.state.services, AppServices)
         assert runtime_app.state.services.redis is None
 
+    async def test_startup_fails_when_primary_redis_is_unavailable(self, runtime_app: FastAPI) -> None:
+        """Redis is required for application startup."""
+        config = RuntimePatchConfig(init_redis_side_effect=RuntimeError("Redis is required"))
+        with (
+            patched_runtime_services(config) as runtime,
+            pytest.raises(RuntimeError, match="Redis is required"),
+        ):
+            async with lifecycle.runtime_lifespan(runtime_app):
+                pass
+
+        runtime.init_email_checker.assert_not_awaited()
+        runtime.init_common_password_checker.assert_not_awaited()
+        runtime.init_cache.assert_not_called()
+        assert isinstance(runtime_app.state.services, AppServices)
+        assert runtime_app.state.services.redis is None
+
     async def test_startup_failure_preserves_original_error_when_cleanup_fails(self, runtime_app: FastAPI) -> None:
         """Cleanup failures during failed startup should not replace the startup exception."""
         config = RuntimePatchConfig(
@@ -349,13 +357,10 @@ class TestLifespan:
 
     async def test_shutdown_clears_global_runtime_hooks(self, runtime_app: FastAPI) -> None:
         """Shutdown should clear module-level globals that point at runtime resources."""
-        blocking_redis = MagicMock()
-
-        with patched_runtime_services(RuntimePatchConfig(blocking_redis=blocking_redis)) as runtime:
+        with patched_runtime_services() as runtime:
             async with lifecycle.runtime_lifespan(runtime_app):
                 pass
 
-        assert runtime.set_blocking_redis.call_args_list[-1].args == (None,)
         assert runtime.set_connection_manager.call_args_list[-1].args == (None,)
 
     async def test_clearing_runtime_hooks_does_not_import_connection_manager(self) -> None:
