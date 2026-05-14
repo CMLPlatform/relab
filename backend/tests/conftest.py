@@ -197,8 +197,6 @@ def get_alembic_config(test_database_name: str) -> Config:
 
     project_root: Path = Path(__file__).parents[1]
     alembic_cfg = Config(toml_file=str(project_root / "pyproject.toml"))
-    alembic_cfg.set_main_option("script_location", str(project_root / "alembic"))
-    alembic_cfg.set_main_option("is_test", "true")
     alembic_cfg.set_main_option("sqlalchemy.url", sync_test_database_url)
     return alembic_cfg
 

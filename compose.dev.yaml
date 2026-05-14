@@ -54,6 +54,10 @@ services:
   redis:
     ports:
       - "127.0.0.1:6379:6379"
+    networks:
+      # Accessible to edge to allow for local development interactions
+      - edge
+      - data
     secrets:
       - redis_password
     healthcheck:
@@ -68,6 +72,10 @@ services:
   postgres:
     ports:
       - "127.0.0.1:5432:5432"
+    networks:
+      # Accessible to edge to allow for local development interactions
+      - edge
+      - data
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DB: relab_db
