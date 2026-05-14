@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import UploadFile
 
-from app.api.auth.services.stats import refresh_profile_stats_after_mutation
+from app.api.auth.services.profile_stats import refresh_profile_stats_after_mutation
 from app.api.common.form_json import parse_optional_json_object
 from app.api.data_collection.crud.storage import (
     create_product_file,

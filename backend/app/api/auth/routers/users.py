@@ -19,7 +19,7 @@ from app.api.auth.schemas import (
     normalize_username,
 )
 from app.api.auth.services.privacy import can_view_profile
-from app.api.auth.services.stats import get_profile_stats, recompute_user_profile_stats
+from app.api.auth.services.profile_stats import get_profile_stats, recompute_user_profile_stats
 from app.api.auth.services.user_manager import fastapi_user_manager
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
 
-from app.api.auth.services.stats import refresh_profile_stats_after_mutation
+from app.api.auth.services.profile_stats import refresh_profile_stats_after_mutation
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.crud.persistence import commit_and_refresh

@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import User
-from app.api.auth.services.stats import recompute_user_profile_stats
+from app.api.auth.services.profile_stats import recompute_user_profile_stats
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import ProductType
 
