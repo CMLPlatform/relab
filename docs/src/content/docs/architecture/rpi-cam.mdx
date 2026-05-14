@@ -135,8 +135,9 @@ sequenceDiagram
 
 ## Contract ownership
 
-- **Frontend -> backend** uses only backend-owned public routes and schemas.
-- **Backend -> plugin** uses a smaller private device seam: pairing register/poll payloads, relay command/response envelopes, local-access info, and direct upload/self-unpair acknowledgements.
+- **Frontend -> backend** uses only backend-owned public app API routes and schemas.
+- **Pi -> backend** uses the backend-owned device API for callbacks and pairing routes.
+- **Backend -> plugin** uses a smaller private shared DTO seam: pairing register/poll payloads, relay command/response envelopes, local-access info, and direct upload/self-unpair acknowledgements.
 - **Shared models** exist to keep that private seam typed and versioned without leaking plugin implementation details into the frontend contract.
 
 ## Protocol boundaries
@@ -169,15 +170,9 @@ The backend sends command envelopes to the device:
 
 The device replies with a matching response envelope. The shared model package owns the exact envelope schema so the backend and plugin stay in lockstep.
 
-The relay allowlist is intentionally small:
-
-- `GET /camera`
-- `POST /captures`
-- `GET|POST|DELETE /streams/youtube`
-- `GET /system/telemetry`
-- `GET /system/local-access`
-- `DELETE /pairing`
-- `GET /preview/hls/*`
+The relay allowlist is intentionally small and lives in the shared
+`relab_rpi_cam_models` package. Backend and plugin code both enforce that
+contract-owned policy instead of maintaining separate route lists.
 
 Captured image bytes do not travel through the WebSocket. After a capture command succeeds, the Pi uploads the file and metadata directly to `/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload`.
 

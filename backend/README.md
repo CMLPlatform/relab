@@ -63,7 +63,7 @@ The Raspberry Pi camera integration has two intentional contract layers:
 
 - **Public/frontend contract**: backend routes and OpenAPI remain the only app-facing API surface
 - **Public device/plugin contract**: `/openapi.device.json` documents the supported device integration surface, with the human reference hosted by the docs site
-- **Private device seam**: `relab-rpi-cam-models` owns the backend\<->plugin transport DTOs for pairing, relay envelopes, local-access bootstrap, and direct upload acknowledgements
+- **Private device seam**: `relab-rpi-cam-models` owns the backend\<->plugin transport DTOs for pairing, relay envelopes, relay allowlist policy, local-access bootstrap, and direct upload acknowledgements
 
 Frontend code should keep consuming backend-generated OpenAPI types rather than importing private device-seam DTOs directly.
 
