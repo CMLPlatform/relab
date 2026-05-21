@@ -78,7 +78,7 @@ services:
       - migrations
 
   redis:
-    image: redis:8-alpine@sha256:81b6f81d6a6c5b9019231a2e8eb10085e3a139a34f833dcc965a8a959b040b72
+    image: redis:8-alpine@sha256:d146f83b1e0f02fc27c26a50cee39338c736674c5959db84363e6ae3cd9e02d2
     restart: unless-stopped
     healthcheck:
       <<: *healthcheck-defaults
@@ -87,7 +87,7 @@ services:
     command: [ "sh", "-c", "redis-server --appendonly yes --save 60 1 $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}" ] # spell-checker: ignore requirepass
 
   postgres:
-    image: postgres:18
+    image: postgres:18@sha256:8ff36f3c66371cba71d20ceedccfc3de9669a68737607888c4ef0af93abe8e39
     restart: unless-stopped
     volumes:
       - database_data:/var/lib/postgresql
