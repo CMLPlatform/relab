@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 
 # Multi-target Dockerfile for the Astro web frontend
 #   - `dev`     → hot-reload dev server (use with `docker compose watch`)
@@ -7,7 +7,7 @@
 ARG WORKDIR=/opt/relab/frontend-web
 
 # --- Shared deps stage ---
-FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS deps
+FROM node:24-slim@sha256:242549cd46785b480c832479a730f4f2a20865d61ea2e404fdb2a5c3d3b73ecf AS deps
 
 ARG WORKDIR
 WORKDIR $WORKDIR
@@ -53,7 +53,7 @@ COPY ".env.$BUILD_MODE" ".env.$BUILD_MODE"
 RUN pnpm run build:$BUILD_MODE
 
 # --- Runtime stage (default) ---
-FROM caddy:2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d AS runtime
+FROM caddy:2-alpine@sha256:86deaf5e3d3408a6ccec08fbb79989783dd26e206ae10bcf78a801dc8c9ab794 AS runtime
 
 ARG WORKDIR
 
