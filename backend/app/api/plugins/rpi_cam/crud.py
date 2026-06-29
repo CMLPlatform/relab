@@ -11,12 +11,7 @@ from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraUpdate
 async def create_camera(db: AsyncSession, camera: CameraCreate, owner_id: UUID4) -> Camera:
     """Create a new WebSocket-relayed camera in the database."""
     camera_data = camera.model_dump(exclude_unset=True)
-    public_key = camera_data.pop("relay_public_key_jwk")
-    db_camera = Camera(
-        **camera_data,
-        owner_id=owner_id,
-        relay_public_key_jwk=public_key,
-    )
+    db_camera = Camera(**camera_data, owner_id=owner_id)
     return await commit_and_refresh(db, db_camera)
 
 
