@@ -17,6 +17,7 @@ from relab_rpi_cam_models import RELAY_WS_TEXT_FRAME_LIMIT_BYTES, RelayMessageTy
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, limiter, rate_limit_bucket_key
+from app.api.common.exceptions import ServiceUnavailableError
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.runtime_status import mark_camera_offline, mark_camera_online
@@ -26,7 +27,7 @@ from app.core.config import settings
 from app.core.database import get_async_session
 from app.core.logging import sanitize_log_value
 from app.core.middleware.client_ip import extract_client_ip
-from app.core.runtime import get_connection_redis, require_connection_camera_manager, require_connection_redis
+from app.core.runtime import require_connection_camera_manager, require_connection_redis
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -57,7 +58,7 @@ class _RelayWebSocketSession:
 
     camera_id: UUID4
     manager: CameraConnectionManager
-    redis: Redis | None
+    redis: Redis
     last_pong_at: float = field(default_factory=monotonic)
     pending_binary_response: _PendingBinaryResponse | None = None
 
@@ -76,12 +77,10 @@ class _RelayWebSocketSession:
         msg_type = msg.get("type")
         if msg_type == RelayMessageType.PONG:
             self.last_pong_at = monotonic()
-            if self.redis:
-                await mark_camera_online(self.redis, self.camera_id)
+            await mark_camera_online(self.redis, self.camera_id)
         elif msg_type == RelayMessageType.PING:
             await self.manager.handle_ping(self.camera_id)
-            if self.redis:
-                await mark_camera_online(self.redis, self.camera_id)
+            await mark_camera_online(self.redis, self.camera_id)
         elif msg_type == RelayMessageType.RESPONSE:
             self._handle_response(msg)
 
@@ -131,7 +130,7 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
     manager: CameraConnectionManager = require_connection_camera_manager(websocket)
     await manager.register(camera_id, websocket)
 
-    redis = get_connection_redis(websocket)
+    redis = require_connection_redis(websocket)
 
     session = _RelayWebSocketSession(camera_id=camera_id, manager=manager, redis=redis)
     heartbeat = asyncio.create_task(
@@ -140,12 +139,10 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
     )
     # Cross-worker relay listener: allows other Uvicorn worker processes to
     # dispatch relay commands to this worker (the one holding the WebSocket).
-    relay_listener: asyncio.Task | None = None
-    if redis is not None:
-        relay_listener = asyncio.create_task(
-            run_relay_listener(redis, camera_id, manager),
-            name=f"ws-relay-listener-{camera_id}",
-        )
+    relay_listener = asyncio.create_task(
+        run_relay_listener(redis, camera_id, manager),
+        name=f"ws-relay-listener-{camera_id}",
+    )
     try:
         await _receive_loop(websocket, session)
     except WebSocketDisconnect:
@@ -154,15 +151,12 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
     except Exception:
         logger.exception("Unexpected error in WebSocket receive loop for camera %s", sanitize_log_value(camera_id))
     finally:
-        tasks_to_cancel: list[asyncio.Task[object]] = [heartbeat]
-        if relay_listener is not None:
-            tasks_to_cancel.append(relay_listener)
+        tasks_to_cancel: list[asyncio.Task[object]] = [heartbeat, relay_listener]
         for task in tasks_to_cancel:
             task.cancel()
         await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
         manager.unregister(camera_id)
-        if redis:
-            await mark_camera_offline(redis, camera_id)
+        await mark_camera_offline(redis, camera_id)
 
 
 async def _enforce_ws_auth_rate_limit(websocket: WebSocket, client_ip_bucket: str, camera_key: str) -> bool:
@@ -201,7 +195,7 @@ async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
 
     try:
         redis = require_connection_redis(websocket)
-    except RuntimeError as exc:
+    except ServiceUnavailableError as exc:
         logger.warning("Redis is required for RPi camera relay assertion replay protection: %s", exc)
         await websocket.close(code=status.WS_1011_INTERNAL_ERROR, reason="Authentication service unavailable.")
         return False

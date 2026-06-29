@@ -25,7 +25,7 @@ from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.exceptions import InvalidCameraResponseError
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.runtime_status import get_cached_telemetry, store_telemetry
-from app.core.redis import OptionalRedisDep
+from app.core.redis import RedisDep
 
 router = PublicAPIRouter()
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ async def get_camera_telemetry(
     camera_id: UUID4,
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     *,
     force_refresh: bool = False,
 ) -> TelemetrySnapshot:
@@ -75,6 +75,6 @@ async def get_camera_telemetry(
     # ``force_refresh=True`` bypasses the cache on both read AND write —
     # the caller explicitly doesn't trust the cache layer this time, so we
     # don't taint the next cached read with the forced result either.
-    if redis is not None and not force_refresh:
+    if not force_refresh:
         await store_telemetry(redis, camera_id, snapshot)
     return snapshot

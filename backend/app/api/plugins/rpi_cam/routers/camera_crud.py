@@ -24,7 +24,7 @@ from app.api.plugins.rpi_cam.runtime_preview import get_preview_thumbnail_path, 
 from app.api.plugins.rpi_cam.runtime_status import get_camera_status as fetch_camera_status
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead, CameraReadWithStatus, CameraUpdate
 from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
-from app.core.redis import OptionalRedisDep
+from app.core.redis import RedisDep
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -47,7 +47,7 @@ async def get_user_cameras(
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
     camera_filter: CameraFilterDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     *,
     include_status: bool = Query(
         default=False,
@@ -93,7 +93,7 @@ async def get_user_cameras(
 )
 async def get_user_camera(
     db_camera: UserOwnedCameraDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     *,
     include_status: bool = Query(
         default=False,
@@ -125,7 +125,7 @@ async def get_user_camera(
 )
 async def get_user_camera_status(
     db_camera: UserOwnedCameraDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> CameraStatus:
     """Get Raspberry Pi camera online status."""
     return await fetch_camera_status(redis, db_camera.id)
@@ -165,7 +165,7 @@ async def delete_user_camera(
     background_tasks: BackgroundTasks,
     db: AsyncSessionDep,
     camera: UserOwnedCameraDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> None:
     """Delete Raspberry Pi camera."""
     preview_thumbnail_path = get_preview_thumbnail_path(camera.id)
@@ -209,7 +209,7 @@ async def self_unpair_camera(
 )
 async def get_camera_local_access(
     db_camera: UserOwnedCameraDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> LocalAccessInfo:
     """Relay local access info from the Pi to the authenticated frontend user."""
     response = await relay_via_websocket(
@@ -222,7 +222,7 @@ async def get_camera_local_access(
     return LocalAccessInfo.model_validate(response.json())
 
 
-async def _notify_camera_unpair(camera_id: UUID4, redis: Redis | None) -> None:
+async def _notify_camera_unpair(camera_id: UUID4, redis: Redis) -> None:
     """Best-effort relay of DELETE /pairing to the camera.
 
     Logs a warning and continues if the camera is offline or unresponsive —

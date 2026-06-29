@@ -34,7 +34,7 @@ from app.api.plugins.rpi_cam.runtime_capture import capture_and_store_image
 from app.api.plugins.rpi_cam.runtime_preview import get_preview_thumbnail_path, get_preview_thumbnail_url
 from app.api.plugins.rpi_cam.utils.metadata import validate_rpi_cam_metadata_object
 from app.core.config import settings
-from app.core.redis import OptionalRedisDep
+from app.core.redis import RedisDep
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -78,7 +78,7 @@ async def capture_image(
     camera_id: UUID4,
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     *,
     product_id: Annotated[
         PositiveInt,

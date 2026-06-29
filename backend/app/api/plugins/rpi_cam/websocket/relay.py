@@ -110,7 +110,13 @@ async def relay_via_websocket(
     """
     normalized_method = method.upper()
     if not relay_command_is_allowed(normalized_method, path):
-        raise HTTPException(status_code=403, detail=f"{RELAY_COMMAND_FORBIDDEN_DETAIL}: {normalized_method} {path}")
+        logger.warning(
+            "Blocked relay command %s %s for camera %s.",
+            sanitize_log_value(normalized_method),
+            sanitize_log_value(path),
+            sanitize_log_value(camera_id),
+        )
+        raise HTTPException(status_code=403, detail=RELAY_COMMAND_FORBIDDEN_DETAIL)
 
     manager = get_connection_manager()
     timeout = BINARY_COMMAND_TIMEOUT if expect_binary else DEFAULT_COMMAND_TIMEOUT

@@ -32,12 +32,13 @@ async def test_fetch_from_camera_url_delegates_to_relay(monkeypatch: pytest.Monk
     """fetch_from_camera_url should delegate entirely to relay_via_websocket."""
     camera = build_camera()
     mock_relay = AsyncMock(return_value=AsyncMock(status_code=200))
+    redis = AsyncMock()
     monkeypatch.setattr(
         "app.api.plugins.rpi_cam.routers.camera_interaction.utils.relay_via_websocket",
         mock_relay,
     )
 
-    await fetch_from_camera_url(camera, endpoint="/camera", method=HttpMethod.GET)
+    await fetch_from_camera_url(camera, endpoint="/camera", method=HttpMethod.GET, redis=redis)
 
     mock_relay.assert_awaited_once_with(
         camera.id,
@@ -46,7 +47,7 @@ async def test_fetch_from_camera_url_delegates_to_relay(monkeypatch: pytest.Monk
         body=None,
         error_msg=None,
         expect_binary=False,
-        redis=None,
+        redis=redis,
     )
 
 
@@ -54,6 +55,7 @@ async def test_fetch_from_camera_url_passes_body_and_flags(monkeypatch: pytest.M
     """fetch_from_camera_url should forward body, error_msg, and expect_binary."""
     camera = build_camera()
     mock_relay = AsyncMock(return_value=AsyncMock(status_code=200))
+    redis = AsyncMock()
     monkeypatch.setattr(
         "app.api.plugins.rpi_cam.routers.camera_interaction.utils.relay_via_websocket",
         mock_relay,
@@ -66,6 +68,7 @@ async def test_fetch_from_camera_url_passes_body_and_flags(monkeypatch: pytest.M
         error_msg="Failed",
         body={"key": "val"},
         expect_binary=True,
+        redis=redis,
     )
 
     mock_relay.assert_awaited_once_with(
@@ -75,7 +78,7 @@ async def test_fetch_from_camera_url_passes_body_and_flags(monkeypatch: pytest.M
         body={"key": "val"},
         error_msg="Failed",
         expect_binary=True,
-        redis=None,
+        redis=redis,
     )
 
 

@@ -21,9 +21,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get_user_owned_camera(
-    session: AsyncSession, camera_id: UUID4, user_id: UUID4, redis: Redis | None = None
-) -> Camera:
+async def get_user_owned_camera(session: AsyncSession, camera_id: UUID4, user_id: UUID4, redis: Redis) -> Camera:
     """Get a camera owned by a user, verifying it is connected."""
     camera = await get_user_owned_object(session, Camera, camera_id, user_id)
     camera_status = await get_camera_status(redis, camera.id)
@@ -43,7 +41,7 @@ async def fetch_from_camera_url(
     body: dict | None = None,
     *,
     expect_binary: bool = False,
-    redis: Redis | None = None,
+    redis: Redis,
 ) -> RelayResponse:
     """Send a request to the camera through its active WebSocket relay."""
     return await relay_via_websocket(
@@ -59,7 +57,7 @@ async def fetch_from_camera_url(
 
 def build_camera_request(
     camera: Camera,
-    redis: Redis | None = None,
+    redis: Redis,
 ) -> Callable[..., Awaitable[RelayResponse]]:
     """Build a reusable request callable bound to one camera.
 

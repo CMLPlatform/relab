@@ -282,4 +282,4 @@ class TestRelayCommandAllowlist:
             await relay_mod.relay_via_websocket(camera_id, method, path)
 
         assert exc_info.value.status_code == 403
-        assert RELAY_COMMAND_FORBIDDEN_DETAIL in exc_info.value.detail
+        assert exc_info.value.detail == RELAY_COMMAND_FORBIDDEN_DETAIL

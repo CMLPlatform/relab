@@ -50,7 +50,7 @@ async def test_session_text_frame_sanitizes_camera_id_in_log() -> None:
     """Invalid JSON logging should neutralize line breaks in camera IDs."""
     camera_id = uuid4()
     manager = MagicMock(spec=[])
-    session = _RelayWebSocketSession(camera_id=camera_id, manager=manager, redis=None, last_pong_at=0.0)
+    session = _RelayWebSocketSession(camera_id=camera_id, manager=manager, redis=AsyncMock(), last_pong_at=0.0)
 
     with patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger:
         await session.handle_text_frame("{not-json")
@@ -64,7 +64,7 @@ async def test_session_text_frame_ignores_malformed_response_envelope() -> None:
     """Malformed response envelopes should not tear down the receive loop."""
     camera_id = uuid4()
     manager = MagicMock()
-    session = _RelayWebSocketSession(camera_id=camera_id, manager=manager, redis=None, last_pong_at=0.0)
+    session = _RelayWebSocketSession(camera_id=camera_id, manager=manager, redis=AsyncMock(), last_pong_at=0.0)
 
     with patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger:
         await session.handle_text_frame('{"type":"response","id":"msg-1","status":"not-an-int"}')
@@ -82,7 +82,7 @@ async def test_session_text_frame_ignores_non_object_json() -> None:
     """Valid JSON text frames that are not objects should be ignored."""
     camera_id = uuid4()
     manager = MagicMock()
-    session = _RelayWebSocketSession(camera_id=camera_id, manager=manager, redis=None, last_pong_at=0.0)
+    session = _RelayWebSocketSession(camera_id=camera_id, manager=manager, redis=AsyncMock(), last_pong_at=0.0)
 
     await session.handle_text_frame('["response"]')
 
@@ -141,7 +141,7 @@ async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:
     websocket.close = AsyncMock()
     websocket.send_text = AsyncMock()
     camera_id = uuid4()
-    session = _RelayWebSocketSession(camera_id=camera_id, manager=MagicMock(), redis=None, last_pong_at=0.0)
+    session = _RelayWebSocketSession(camera_id=camera_id, manager=MagicMock(), redis=AsyncMock(), last_pong_at=0.0)
 
     with (
         patch("app.api.plugins.rpi_cam.websocket.router.asyncio.sleep", new=AsyncMock()),
@@ -173,7 +173,7 @@ async def test_receive_loop_closes_on_oversized_text_frame(monkeypatch: pytest.M
     )
     websocket.close = AsyncMock()
 
-    await _receive_loop(websocket, _RelayWebSocketSession(camera_id=uuid4(), manager=MagicMock(), redis=None))
+    await _receive_loop(websocket, _RelayWebSocketSession(camera_id=uuid4(), manager=MagicMock(), redis=AsyncMock()))
 
     websocket.close.assert_awaited_once()
 
@@ -189,7 +189,7 @@ async def test_receive_loop_accepts_binary_frames_after_server_level_size_checks
     )
     websocket.close = AsyncMock()
 
-    await _receive_loop(websocket, _RelayWebSocketSession(camera_id=uuid4(), manager=MagicMock(), redis=None))
+    await _receive_loop(websocket, _RelayWebSocketSession(camera_id=uuid4(), manager=MagicMock(), redis=AsyncMock()))
 
     websocket.close.assert_not_awaited()
 
@@ -197,7 +197,7 @@ async def test_receive_loop_accepts_binary_frames_after_server_level_size_checks
 async def test_session_updates_last_pong_at_from_pong_frame() -> None:
     """The receive session should own heartbeat timestamp updates."""
     manager = MagicMock()
-    session = _RelayWebSocketSession(camera_id=uuid4(), manager=manager, redis=None, last_pong_at=1.0)
+    session = _RelayWebSocketSession(camera_id=uuid4(), manager=manager, redis=AsyncMock(), last_pong_at=1.0)
 
     with patch("app.api.plugins.rpi_cam.websocket.router.monotonic", return_value=123.0):
         await session.handle_text_frame('{"type":"pong"}')
@@ -208,7 +208,7 @@ async def test_session_updates_last_pong_at_from_pong_frame() -> None:
 async def test_session_pairs_binary_frame_with_pending_response() -> None:
     """The receive session should pair a binary frame with its pending JSON response."""
     manager = MagicMock()
-    session = _RelayWebSocketSession(camera_id=uuid4(), manager=manager, redis=None)
+    session = _RelayWebSocketSession(camera_id=uuid4(), manager=manager, redis=AsyncMock())
     await session.handle_text_frame('{"type":"response","id":"msg-1","status":200,"has_binary":true}')
 
     session.handle_binary_frame(b"payload")

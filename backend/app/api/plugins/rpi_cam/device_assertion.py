@@ -18,11 +18,10 @@ from fastapi import Depends, HTTPException, Request, status
 from jwt import InvalidTokenError, PyJWK
 from pydantic import UUID4
 
-from app.api.common.exceptions import ServiceUnavailableError
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.models import Camera
 from app.core.logging import sanitize_log_value
-from app.core.runtime import get_connection_redis
+from app.core.runtime import require_connection_redis
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -31,7 +30,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_AUTHENTICATION_SERVICE_UNAVAILABLE = "Authentication service unavailable."
 ASSERTION_AUDIENCE = "relab-rpi-cam-relay"
 ASSERTION_ALGORITHMS = ("ES256",)
 REPLAY_KEY_PREFIX = "rpi_cam:relay_assertion_jti:"
@@ -111,12 +109,7 @@ async def _authenticated_camera(
     if camera is None or not camera.credential_is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed.")
 
-    redis = get_connection_redis(request)
-    if redis is None:
-        raise ServiceUnavailableError(
-            _AUTHENTICATION_SERVICE_UNAVAILABLE,
-            log_message="Redis is required for device assertion replay protection.",
-        )
+    redis = require_connection_redis(request)
 
     try:
         await verify_device_assertion(assertion, camera, redis)

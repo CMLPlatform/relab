@@ -45,11 +45,8 @@ async def mark_camera_offline(redis_client: Redis, camera_id: UUID4) -> None:
     await delete_redis_key(redis_client, get_camera_online_cache_key(camera_id))
 
 
-async def get_camera_status(redis_client: Redis | None, camera_id: UUID4) -> CameraStatus:
+async def get_camera_status(redis_client: Redis, camera_id: UUID4) -> CameraStatus:
     """Fetch connection status globally from Redis cache."""
-    if not redis_client:
-        return CameraStatus(connection=CameraConnectionStatus.OFFLINE)
-
     pipeline = redis_client.pipeline()
     pipeline.get(get_camera_online_cache_key(camera_id))
     pipeline.get(get_camera_last_seen_cache_key(camera_id))
@@ -80,12 +77,10 @@ async def store_telemetry(
 
 
 async def get_cached_telemetry(
-    redis_client: Redis | None,
+    redis_client: Redis,
     camera_id: UUID4,
 ) -> TelemetrySnapshot | None:
     """Return the most recent cached telemetry snapshot, or ``None`` on miss."""
-    if not redis_client:
-        return None
     payload = await get_redis_value(redis_client, get_telemetry_cache_key(camera_id))
     if payload is None:
         return None

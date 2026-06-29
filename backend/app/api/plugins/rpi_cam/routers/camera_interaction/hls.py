@@ -32,7 +32,7 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
     build_camera_request,
     get_user_owned_camera,
 )
-from app.core.redis import OptionalRedisDep
+from app.core.redis import RedisDep
 
 # Exponential backoff for LL-HLS manifest 404 retries. Totals ~7.75s; fast at the
 # start for the hot path, longer tail for a cold MediaMTX warm-up.
@@ -60,7 +60,7 @@ async def proxy_hls(
     hls_path: str,
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> Response:
     """Proxy an LL-HLS URL through the camera's WebSocket relay."""
     _validate_hls_path(hls_path)

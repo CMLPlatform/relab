@@ -190,12 +190,16 @@ class TestAuthenticatedCameraDep:
         request = _request_with_auth()
 
         with (
-            patch.object(da, "get_connection_redis", return_value=None),
+            patch.object(
+                da,
+                "require_connection_redis",
+                side_effect=ServiceUnavailableError("Required service is temporarily unavailable."),
+            ),
             pytest.raises(ServiceUnavailableError) as exc_info,
         ):
             await da._authenticated_camera(request, camera.id, session)
         assert exc_info.value.http_status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-        assert exc_info.value.message == "Authentication service unavailable."
+        assert exc_info.value.message == "Required service is temporarily unavailable."
 
     async def test_invalid_assertion_returns_401(self) -> None:
         """A malformed JWT in the Authorization header is rejected with 401."""
@@ -206,7 +210,7 @@ class TestAuthenticatedCameraDep:
         request = _request_with_auth("not-a-jwt")
 
         with (
-            patch.object(da, "get_connection_redis", return_value=redis),
+            patch.object(da, "require_connection_redis", return_value=redis),
             pytest.raises(HTTPException) as exc_info,
         ):
             await da._authenticated_camera(request, camera.id, session)
@@ -222,7 +226,7 @@ class TestAuthenticatedCameraDep:
         assertion = _sign(camera, private_key)
         request = _request_with_auth(assertion)
 
-        with patch.object(da, "get_connection_redis", return_value=redis):
+        with patch.object(da, "require_connection_redis", return_value=redis):
             result = await da._authenticated_camera(request, camera.id, session)
         assert result is camera
         redis.set.assert_awaited_once()
@@ -238,7 +242,7 @@ class TestAuthenticatedCameraDep:
         request = _request_with_auth(assertion)
 
         with (
-            patch.object(da, "get_connection_redis", return_value=redis),
+            patch.object(da, "require_connection_redis", return_value=redis),
             pytest.raises(HTTPException) as exc_info,
         ):
             await da._authenticated_camera(request, camera.id, session)

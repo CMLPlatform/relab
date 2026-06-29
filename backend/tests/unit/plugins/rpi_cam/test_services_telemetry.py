@@ -81,11 +81,6 @@ class TestStoreTelemetry:
 class TestGetCachedTelemetry:
     """Loading from the cache handles hit / miss / malformed blobs gracefully."""
 
-    async def test_none_redis_returns_none(self) -> None:
-        """Ensure None Redis is handled gracefully."""
-        result = await get_cached_telemetry(None, uuid4())
-        assert result is None
-
     async def test_cache_hit_parses_json(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Ensure cache hits are parsed correctly."""
         snapshot = _snapshot()

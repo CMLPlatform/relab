@@ -88,7 +88,7 @@ class CameraReadWithStatus(CameraRead):
     async def from_db_model_with_status(
         cls,
         db_model: Camera,
-        redis: Redis | None,
+        redis: Redis,
         *,
         include_telemetry: bool = False,
         preview_thumbnail_url: str | None = None,

@@ -12,9 +12,9 @@ just dev
 ```
 
 The API is then available at <http://127.0.0.1:8010>.
-Use Docker Compose for local PostgreSQL and Redis. Development uses Redis-backed caching when Redis is available, and falls back to in-memory
-caching only when Redis is not running. Create `.env.dev` only when you need backend-only non-secret overrides;
-local backend secrets live in `../secrets/dev/`.
+Use Docker Compose for local PostgreSQL and Redis. Redis is required at backend startup and backs auth, rate limiting,
+runtime relay state, and endpoint caching. Create `.env.dev` only when you need backend-only non-secret overrides; local
+backend secrets live in `../secrets/dev/`.
 
 - Filtered public contracts: <http://127.0.0.1:8010/openapi.public.json> and <http://127.0.0.1:8010/openapi.device.json>
 - Public API reference UI: <http://127.0.0.1:8012/api/public/>
