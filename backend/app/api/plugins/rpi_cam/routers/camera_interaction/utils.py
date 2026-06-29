@@ -33,28 +33,6 @@ async def get_user_owned_camera(session: AsyncSession, camera_id: UUID4, user_id
     return camera
 
 
-async def fetch_from_camera_url(
-    camera: Camera,
-    endpoint: str,
-    method: HttpMethod,
-    error_msg: str | None = None,
-    body: dict | None = None,
-    *,
-    expect_binary: bool = False,
-    redis: Redis,
-) -> RelayResponse:
-    """Send a request to the camera through its active WebSocket relay."""
-    return await relay_via_websocket(
-        camera.id,
-        method.value,
-        endpoint,
-        body=body,
-        error_msg=error_msg,
-        expect_binary=expect_binary,
-        redis=redis,
-    )
-
-
 def build_camera_request(
     camera: Camera,
     redis: Redis,
@@ -73,12 +51,12 @@ def build_camera_request(
         *,
         expect_binary: bool = False,
     ) -> RelayResponse:
-        return await fetch_from_camera_url(
-            camera=camera,
-            endpoint=endpoint,
-            method=method,
-            error_msg=error_msg,
+        return await relay_via_websocket(
+            camera.id,
+            method.value,
+            endpoint,
             body=body,
+            error_msg=error_msg,
             expect_binary=expect_binary,
             redis=redis,
         )

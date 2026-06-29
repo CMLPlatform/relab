@@ -10,8 +10,6 @@ from fastapi import HTTPException
 
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraCredentialStatus, CameraStatus
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
-    HttpMethod,
-    fetch_from_camera_url,
     get_user_owned_camera,
 )
 
@@ -25,60 +23,6 @@ def build_camera() -> Camera:
         relay_key_id="test-key-id",
         relay_credential_status=CameraCredentialStatus.ACTIVE,
         owner_id=uuid4(),
-    )
-
-
-async def test_fetch_from_camera_url_delegates_to_relay(monkeypatch: pytest.MonkeyPatch) -> None:
-    """fetch_from_camera_url should delegate entirely to relay_via_websocket."""
-    camera = build_camera()
-    mock_relay = AsyncMock(return_value=AsyncMock(status_code=200))
-    redis = AsyncMock()
-    monkeypatch.setattr(
-        "app.api.plugins.rpi_cam.routers.camera_interaction.utils.relay_via_websocket",
-        mock_relay,
-    )
-
-    await fetch_from_camera_url(camera, endpoint="/camera", method=HttpMethod.GET, redis=redis)
-
-    mock_relay.assert_awaited_once_with(
-        camera.id,
-        "GET",
-        "/camera",
-        body=None,
-        error_msg=None,
-        expect_binary=False,
-        redis=redis,
-    )
-
-
-async def test_fetch_from_camera_url_passes_body_and_flags(monkeypatch: pytest.MonkeyPatch) -> None:
-    """fetch_from_camera_url should forward body, error_msg, and expect_binary."""
-    camera = build_camera()
-    mock_relay = AsyncMock(return_value=AsyncMock(status_code=200))
-    redis = AsyncMock()
-    monkeypatch.setattr(
-        "app.api.plugins.rpi_cam.routers.camera_interaction.utils.relay_via_websocket",
-        mock_relay,
-    )
-
-    await fetch_from_camera_url(
-        camera,
-        endpoint="/captures",
-        method=HttpMethod.POST,
-        error_msg="Failed",
-        body={"key": "val"},
-        expect_binary=True,
-        redis=redis,
-    )
-
-    mock_relay.assert_awaited_once_with(
-        camera.id,
-        "POST",
-        "/captures",
-        body={"key": "val"},
-        error_msg="Failed",
-        expect_binary=True,
-        redis=redis,
     )
 
 
