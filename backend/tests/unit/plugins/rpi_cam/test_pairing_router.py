@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 from fakeredis.aioredis import FakeRedis
+from relab_rpi_cam_models import PairingRegisterRequest
 
 from app.api.auth.services.rate_limiter import rate_limit_bucket_key
 from app.api.plugins.rpi_cam.exceptions import PairingCodeNotFoundError
@@ -19,7 +20,7 @@ from app.api.plugins.rpi_cam.routers.pairing import (
     poll_pairing_status,
     register_pairing_code,
 )
-from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest, PairingRegisterRequest
+from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest
 from app.api.plugins.rpi_cam.utils.device_contracts import (
     build_claimed_bootstrap,
     build_claimed_record,
