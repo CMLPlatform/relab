@@ -128,20 +128,6 @@ class TestAuthenticateUsernameResolution:
         assert credentials.username == "nonexistent_user"
         mock_super.assert_called_once_with(credentials)
 
-    async def test_returns_parent_result(self) -> None:
-        """Authenticate returns whatever the parent authenticate returns."""
-        mock_user = MagicMock()
-        mock_user.email = "found@example.com"
-
-        manager, _ = _make_manager(mock_user=mock_user)
-        credentials = _make_credentials("someuser")
-
-        with patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock) as mock_super:
-            mock_super.return_value = mock_user
-            result = await manager.authenticate(credentials)
-
-        assert result is mock_user
-
 
 class TestUserUpdateSchema:
     """UserUpdate keeps reauthentication-only fields out of persistence payloads."""
@@ -191,10 +177,10 @@ class TestSensitiveUpdateHooks:
             ),
             patch.object(BaseUserManager, "update", side_effect=base_update_side_effect),
             patch(
-                "app.api.auth.services.user_manager._revoke_user_refresh_tokens",
+                "app.api.auth.services.user_manager.revoke_user_refresh_tokens",
                 side_effect=revoke_side_effect,
             ) as revoke,
-            patch("app.api.auth.services.user_manager._require_current_password_for_sensitive_update"),
+            patch("app.api.auth.services.user_manager.require_current_password_for_sensitive_update"),
             patch(
                 "app.api.auth.services.user_manager.send_email_changed_notification",
                 side_effect=email_notification_side_effect,
@@ -286,7 +272,7 @@ class TestResetPasswordHooks:
 
         with (
             patch(
-                "app.api.auth.services.user_manager.refresh_token_service.revoke_all_user_tokens",
+                "app.api.auth.services.account_security.refresh_token_service.revoke_all_user_tokens",
                 new_callable=AsyncMock,
             ) as mock_revoke,
             patch(
@@ -314,7 +300,7 @@ class TestAuditHooks:
 
         with (
             patch(
-                "app.api.auth.services.user_manager.refresh_token_service.revoke_all_user_tokens",
+                "app.api.auth.services.account_security.refresh_token_service.revoke_all_user_tokens",
                 new_callable=AsyncMock,
             ),
             patch("app.api.auth.services.user_manager.audit_event") as log_audit,

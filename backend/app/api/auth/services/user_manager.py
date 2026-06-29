@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, cast
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users import FastAPIUsers, UUIDIDMixin, schemas
 from fastapi_users.manager import BaseUserManager
@@ -17,7 +17,11 @@ from app.api.auth.crud.users import update_user_override
 from app.api.auth.models import User
 from app.api.auth.runtime_dependencies import get_common_password_checker
 from app.api.auth.schemas import UserCreateBase, UserUpdate
-from app.api.auth.services import refresh_token_service
+from app.api.auth.services.account_security import (
+    require_current_password_for_sensitive_update,
+    revoke_user_refresh_tokens,
+    sensitive_update_fields,
+)
 from app.api.auth.services.auth_backends import build_authentication_backends
 from app.api.auth.services.email import (
     mask_email_for_log,
@@ -39,14 +43,12 @@ from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter, rate_l
 from app.api.auth.services.user_database import get_user_db
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.routers.dependencies import get_external_http_client
-from app.core.runtime import require_connection_redis, require_redis
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from fastapi_users.authentication import AuthenticationBackend
     from fastapi_users.jwt import SecretType
-    from fastapi_users.password import PasswordHelper
     from httpx import AsyncClient
     from starlette.requests import Request
     from starlette.responses import Response
@@ -63,51 +65,11 @@ RESET_TOKEN_TTL = auth_settings.reset_password_token_ttl_seconds
 VERIFICATION_TOKEN_TTL = auth_settings.verification_token_ttl_seconds
 RESET_PASSWORD_TOKEN_AUDIENCE = "fastapi-users:reset"  # noqa: S105 # This value is not a secret.
 VERIFICATION_TOKEN_AUDIENCE = "fastapi-users:verify"  # noqa: S105 # This value is not a secret.
-SENSITIVE_UPDATE_FIELDS = frozenset({"email", "password"})
 
 
 def _login_identifier_rate_limit_key(identifier: str) -> str:
     """Return a privacy-preserving login rate-limit key for a submitted identifier."""
     return rate_limit_bucket_key("auth:login:account", identifier)
-
-
-def _sensitive_update_fields(user_update: UserUpdate) -> set[str]:
-    """Return sensitive account fields included in a user update."""
-    return set(user_update.model_dump(exclude_unset=True)) & SENSITIVE_UPDATE_FIELDS
-
-
-def _require_current_password_for_sensitive_update(
-    *,
-    password_helper: PasswordHelper,
-    user_update: UserUpdate,
-    user: User,
-    sensitive_fields: set[str],
-) -> None:
-    """Require password reauthentication before e-mail or password changes."""
-    if not sensitive_fields:
-        return
-
-    if not user_update.current_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Current password is required for this account update.",
-        )
-
-    is_valid, _ = password_helper.verify_and_update(
-        user_update.current_password.get_secret_value(),
-        user.hashed_password,
-    )
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Current password is invalid.",
-        )
-
-
-async def _revoke_user_refresh_tokens(user_id: UUID4, request: Request | None) -> None:
-    """Revoke every refresh-token session for a user in the current request context."""
-    redis = require_redis(None) if request is None else require_connection_redis(request)
-    await refresh_token_service.revoke_all_user_tokens(redis, user_id)
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: ignore UUIDID
@@ -184,8 +146,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         """Update a user, injecting custom username validation first."""
         # Will raise exceptions like UserNameAlreadyExistsError if validation fails
         real_user_update = cast("UserUpdate", user_update)
-        sensitive_fields = _sensitive_update_fields(real_user_update)
-        _require_current_password_for_sensitive_update(
+        sensitive_fields = sensitive_update_fields(real_user_update)
+        require_current_password_for_sensitive_update(
             password_helper=self.password_helper,
             user_update=real_user_update,
             user=user,
@@ -200,7 +162,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         updated_user = await super().update(user_update, user, safe=safe, request=request)
 
         if sensitive_fields:
-            await _revoke_user_refresh_tokens(updated_user.id, request)
+            await revoke_user_refresh_tokens(updated_user.id, request)
 
         if real_user_update.email is not None and updated_user.email != old_email:
             await self.request_verify(updated_user, request)
@@ -233,13 +195,13 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
 
     async def on_after_reset_password(self, user: User, request: Request | None = None) -> None:
         """Revoke active refresh tokens and notify the user after a password reset."""
-        await _revoke_user_refresh_tokens(user.id, request)
+        await revoke_user_refresh_tokens(user.id, request)
         await send_password_reset_confirmation_email(user.email, user.username)
 
     async def on_after_update(self, user: User, update_dict: dict, request: Request | None = None) -> None:
         """Revoke all refresh tokens when a user is deactivated."""
         if update_dict.get("is_active") is False:
-            await _revoke_user_refresh_tokens(user.id, request)
+            await revoke_user_refresh_tokens(user.id, request)
             audit_event(user.id, AuditAction.DEACTIVATE, User, user.id)
 
     async def on_after_login(

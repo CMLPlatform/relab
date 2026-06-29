@@ -3,7 +3,7 @@ title: Authentication
 description: RELab authentication flows, token handling, and browser session behavior.
 ---
 
-RELab supports bearer tokens for API clients and httpOnly cookies for browser sessions. Redis backs token storage and rate limiting outside local development.
+RELab supports bearer tokens for API clients and httpOnly cookies for browser sessions. Redis backs auth token storage, MFA challenge state, and rate limiting.
 
 Authentication is built on [FastAPI-Users](https://fastapi-users.github.io/fastapi-users/latest/) with RELab-specific refresh-token, session-cookie, OAuth, and validation logic.
 
@@ -56,24 +56,19 @@ Auth logs record successful logins and rate-limit events. They do not include pl
 sequenceDiagram
     participant User
     participant API
-    participant TokenStore as Redis/JWT
+    participant TokenStore as Redis
     participant DB as Database
 
     User->>API: POST /v1/auth/bearer/login or /v1/auth/session/login
     API->>DB: Validate credentials
     API->>DB: Update last login metadata
-    API->>TokenStore: Create access token
-    alt Redis is available
-        API->>TokenStore: Create refresh token
-        API-->>User: Bearer JSON tokens or browser cookies
-    else Redis is unavailable
-        API-->>User: Access token only
-    end
+    API->>TokenStore: Create access and refresh tokens
+    API-->>User: Bearer JSON tokens or browser cookies
 ```
 
-Access tokens are short-lived: the application access-token lifetime is 15 minutes. In development and tests, access-token storage can fall back to signed JWTs if Redis is unavailable. In production-like environments, Redis is expected to be present.
+Access tokens are short-lived: the application access-token lifetime is 15 minutes. Auth flows require Redis and fail closed when Redis-backed token state is unavailable.
 
-Successful login updates `last_login_at` without storing full login IP addresses on user accounts. Client IP addresses may still be processed transiently for Redis-backed rate limiting. When Redis is available, login also creates a refresh token. Browser sessions receive refresh and access cookies; bearer clients receive tokens in the response body.
+Successful login updates `last_login_at` without storing full login IP addresses on user accounts. Client IP addresses may still be processed transiently for Redis-backed rate limiting. Login also creates a refresh token. Browser sessions receive refresh and access cookies; bearer clients receive tokens in the response body.
 
 Refresh-token rotation uses dedicated endpoints:
 
@@ -91,7 +86,7 @@ Token revocation events:
 
 Existing access tokens are not tracked in a separate revocation list. Authenticated requests still require a resolvable active user, and any residual access-token exposure is bounded by the 15-minute lifetime.
 
-Refresh tokens are random bearer secrets. Redis and the local development fallback store them under SHA-256 fingerprints rather than raw token values, so storage keys are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with AES-256-GCM using the backend `DATA_ENCRYPTION_KEY`.
+Refresh tokens are random bearer secrets. Redis stores them under SHA-256 fingerprints rather than raw token values, so storage keys are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with AES-256-GCM using the backend `DATA_ENCRYPTION_KEY`.
 
 Encryption is not used as a substitute for authorization. Authenticated API handlers must still check resource ownership and route-level permissions before returning or mutating data.
 
@@ -115,7 +110,7 @@ Callbacks use a CSRF cookie and signed state token. Frontend redirect targets mu
 
 The public backend origin comes from `API_PUBLIC_URL`; production uses `https://api.cml-relab.org`. Bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when enabled for a client.
 
-When OAuth login needs MFA, the backend redirects back to the login screen with a short-lived one-time handoff in the URL fragment. The app claims that handoff through the API, stores the returned pending MFA challenge in app runtime/session storage, routes immediately to the MFA screen, and clears the browser URL. The MFA challenge token is never placed in query strings or URL fragments.
+Frontend OAuth callback results are carried only in the URL fragment: `#status=success`, `#status=error&error=<code>`, or `#status=mfa_required&mfa_handoff=<one-time-handoff>`. The app handles the fragment, clears it from browser history, and never receives RELab access tokens through callback URLs. When OAuth login needs MFA, the app claims the one-time handoff through the API, stores the returned pending MFA challenge in app runtime/session storage, and routes immediately to the MFA screen. The MFA challenge token itself is never placed in query strings or URL fragments.
 
 ```mermaid
 sequenceDiagram

@@ -17,6 +17,7 @@ from sqlalchemy import select
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
 from app.api.auth.services import refresh_token_service
+from app.api.auth.services.token_store import token_key
 from tests.integration.api.auth.shared import login_bearer, login_session
 
 if TYPE_CHECKING:
@@ -113,8 +114,7 @@ class TestCompleteAuthFlow:
         assert logout_response.status_code == status.HTTP_204_NO_CONTENT
 
         # Verify token is now blacklisted in Redis
-        token_fingerprint = refresh_token_service.refresh_token_fingerprint(refresh_token)
-        is_blacklisted = await mock_redis_dependency.exists(f"auth:rt_blacklist:{token_fingerprint}")
+        is_blacklisted = await mock_redis_dependency.exists(token_key("auth:rt_blacklist", refresh_token))
         assert is_blacklisted
 
         # Step 7: Try to use blacklisted token (should fail)
@@ -203,8 +203,7 @@ class TestErrorHandling:
         token = await refresh_token_service.create_refresh_token(mock_redis_dependency, user_id)
 
         # Delete the token (simulate expiry)
-        token_fingerprint = refresh_token_service.refresh_token_fingerprint(token)
-        await mock_redis_dependency.delete(f"auth:rt:{token_fingerprint}")
+        await mock_redis_dependency.delete(token_key("auth:rt", token))
 
         # Try to refresh
         refresh_data = {"refresh_token": token}

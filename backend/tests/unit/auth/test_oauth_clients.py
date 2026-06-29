@@ -9,13 +9,13 @@ from __future__ import annotations
 from httpx_oauth.clients.google import BASE_SCOPES as GOOGLE_BASE_SCOPES
 
 from app.api.auth.config import settings
-from app.api.auth.routers import oauth as oauth_router_module
 from app.api.auth.services.oauth import (
     GOOGLE_YOUTUBE_SCOPES,
     github_oauth_client,
     google_oauth_client,
     google_youtube_oauth_client,
 )
+from app.api.auth.services.oauth import routes as oauth_routes
 
 
 def test_google_login_client_uses_base_scopes_only() -> None:
@@ -37,8 +37,8 @@ def test_google_youtube_client_extends_login_scopes() -> None:
 
 def test_login_router_wiring_uses_standard_google_client() -> None:
     """Ensure the auth router is wired to the normal Google login client, not the YouTube client."""
-    assert oauth_router_module.google_oauth_client is google_oauth_client
-    assert oauth_router_module.google_oauth_client is not google_youtube_oauth_client
+    assert oauth_routes.google_oauth_client is google_oauth_client
+    assert oauth_routes.google_oauth_client is not google_youtube_oauth_client
 
 
 async def test_oauth_clients_use_shared_outbound_http_policy() -> None:

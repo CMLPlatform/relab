@@ -20,9 +20,10 @@ from app.api.auth.services.oauth import (
     generate_csrf_token,
     generate_state_token,
 )
+from app.api.auth.services.oauth.base import verify_oauth_state
 from app.api.auth.services.oauth_utils import OAUTH_FLOW_KEY, OAUTH_PROVIDER_KEY, OAUTH_STATE_JWT_ALGORITHM
 
-from ._oauth_support import TEST_STATE_JWT_SECRET, make_base_builder, make_oauth_state
+from ._oauth_support import TEST_STATE_JWT_SECRET, make_base_config, make_oauth_state
 from .shared import FRONTEND_REDIRECT_URI, JWT_DOT_COUNT
 
 pytestmark = pytest.mark.api
@@ -66,17 +67,17 @@ class TestOAuthHelpers:
         assert decoded[CSRF_TOKEN_KEY] == csrf
 
 
-class TestOAuthRouterBuilderCSRF:
-    """Cover CSRF verification in the OAuth router builder."""
+class TestOAuthStateVerification:
+    """Cover CSRF and transaction verification for OAuth state."""
 
     def test_verify_state_raises_on_invalid_jwt(self) -> None:
         """Rejects state values that are not valid JWTs."""
-        builder = make_base_builder()
+        config = make_base_config()
         mock_request = MagicMock()
         mock_request.cookies = {}
 
         with pytest.raises(HTTPException) as exc_info:
-            builder.verify_state(mock_request, "not-a-valid-jwt")
+            verify_oauth_state(config, mock_request, "not-a-valid-jwt")
 
         assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -103,18 +104,18 @@ class TestOAuthRouterBuilderCSRF:
     )
     def test_verify_state_raises_400_for_invalid_token_context(self, state: str) -> None:
         """Wrong-audience and unsupported-algorithm state JWTs should fail with controlled 400s."""
-        builder = make_base_builder()
+        config = make_base_config()
         mock_request = MagicMock()
         mock_request.cookies = {OAuthCookieSettings.name: "csrf"}
 
         with pytest.raises(HTTPException) as exc_info:
-            builder.verify_state(mock_request, state)
+            verify_oauth_state(config, mock_request, state)
 
         assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_verify_state_preserves_expired_state_error(self) -> None:
         """Expired but otherwise valid state JWTs keep the existing expired-state error contract."""
-        builder = make_base_builder()
+        config = make_base_config()
         csrf_token = generate_csrf_token()
         state = jwt.encode(
             {
@@ -129,24 +130,24 @@ class TestOAuthRouterBuilderCSRF:
         mock_request.cookies = {OAuthCookieSettings.name: csrf_token}
 
         with pytest.raises(OAuthStateExpiredError):
-            builder.verify_state(mock_request, state)
+            verify_oauth_state(config, mock_request, state)
 
     def test_verify_state_raises_on_csrf_mismatch(self) -> None:
         """Rejects state values whose CSRF token does not match the cookie."""
-        builder = make_base_builder()
+        config = make_base_config()
         csrf_token = generate_csrf_token()
         state = generate_state_token({CSRF_TOKEN_KEY: csrf_token}, TEST_STATE_JWT_SECRET)
         mock_request = MagicMock()
         mock_request.cookies = {OAuthCookieSettings.name: "wrong-csrf-token"}
 
         with pytest.raises(HTTPException) as exc_info:
-            builder.verify_state(mock_request, state)
+            verify_oauth_state(config, mock_request, state)
 
         assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_verify_state_succeeds_with_matching_csrf(self) -> None:
         """Accepts state values with a matching CSRF cookie."""
-        builder = make_base_builder()
+        config = make_base_config()
         csrf_token = generate_csrf_token()
         state = make_oauth_state(
             csrf_token,
@@ -157,7 +158,7 @@ class TestOAuthRouterBuilderCSRF:
         mock_request = MagicMock()
         mock_request.cookies = {OAuthCookieSettings.name: csrf_token}
 
-        state_data = builder.verify_state(mock_request, state)
+        state_data = verify_oauth_state(config, mock_request, state)
 
         assert state_data[CSRF_TOKEN_KEY] == csrf_token
         assert state_data["frontend_redirect_uri"] == FRONTEND_REDIRECT_URI
@@ -176,12 +177,12 @@ class TestOAuthRouterBuilderCSRF:
         state_data: dict[str, str],
     ) -> None:
         """State must be bound to the expected provider and RELab OAuth flow."""
-        builder = make_base_builder()
+        config = make_base_config()
         state = generate_state_token(state_data, TEST_STATE_JWT_SECRET)
         mock_request = MagicMock()
         mock_request.cookies = {OAuthCookieSettings.name: "csrf"}
 
         with pytest.raises(HTTPException) as exc_info:
-            builder.verify_state(mock_request, state)
+            verify_oauth_state(config, mock_request, state)
 
         assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST

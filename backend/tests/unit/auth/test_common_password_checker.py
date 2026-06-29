@@ -11,6 +11,7 @@ from fastapi_users import InvalidPasswordException
 
 from app.api.auth.services.common_password_checker import (
     COMMON_PASSWORDS_TARGET_COUNT,
+    REDIS_COMMON_PASSWORDS_KEY,
     CommonPasswordChecker,
     load_local_common_passwords,
 )
@@ -49,6 +50,7 @@ async def test_common_password_checker_seeds_and_checks_redis(redis_client: Redi
 
     await checker.initialize()
 
+    assert await redis_client.scard(REDIS_COMMON_PASSWORDS_KEY) >= COMMON_PASSWORDS_TARGET_COUNT
     assert await checker.matches("PASSWORD12345")
     assert await checker.matches("pass-word-12345")
 

@@ -1,4 +1,4 @@
-"""Shared helpers for OAuth router unit tests."""
+"""Shared helpers for OAuth router tests."""
 
 from __future__ import annotations
 
@@ -9,13 +9,11 @@ from fastapi import Response, status
 
 from app.api.auth.services.oauth import (
     CSRF_TOKEN_KEY,
-    BaseOAuthRouterBuilder,
-    CustomOAuthAssociateRouterBuilder,
-    CustomOAuthRouterBuilder,
     OAuthCookieSettings,
     generate_csrf_token,
     generate_state_token,
 )
+from app.api.auth.services.oauth.base import OAuthFlowConfig
 from app.api.auth.services.oauth_utils import OAUTH_FLOW_KEY, OAUTH_PROVIDER_KEY
 
 from .shared import TEST_EMAIL, TEST_STATE_JWT_SECRET
@@ -24,11 +22,11 @@ if TYPE_CHECKING:
     from httpx_oauth.oauth2 import OAuth2Token
 
 
-def make_base_builder() -> BaseOAuthRouterBuilder:
-    """Create a base OAuth builder with a mock client."""
+def make_base_config() -> OAuthFlowConfig:
+    """Create a base OAuth flow config with a mock client."""
     mock_client = MagicMock()
     mock_client.name = "github"
-    return BaseOAuthRouterBuilder(
+    return OAuthFlowConfig(
         oauth_client=mock_client,
         state_secret=TEST_STATE_JWT_SECRET,
         oauth_flow="github:associate",
@@ -36,13 +34,13 @@ def make_base_builder() -> BaseOAuthRouterBuilder:
     )
 
 
-def make_auth_builder(
+def make_auth_flow(
     *,
     provider_name: str = "github",
     backend_name: str = "cookie",
     oauth_flow: str = "github:session",
-) -> CustomOAuthRouterBuilder:
-    """Create an auth OAuth builder with mock client/backend."""
+) -> tuple[OAuthFlowConfig, MagicMock]:
+    """Create an auth OAuth flow config and backend with mock clients."""
     mock_client = MagicMock()
     mock_client.name = provider_name
     mock_client.get_authorization_url = AsyncMock(return_value="https://github.com/login/oauth/authorize")
@@ -52,38 +50,34 @@ def make_auth_builder(
     mock_backend.name = backend_name
     mock_backend.login = AsyncMock(return_value=Response(status_code=status.HTTP_200_OK))
 
-    return CustomOAuthRouterBuilder(
+    config = OAuthFlowConfig(
         oauth_client=mock_client,
-        backend=mock_backend,
         state_secret=TEST_STATE_JWT_SECRET,
         oauth_flow=oauth_flow,
         cookie_settings=OAuthCookieSettings(),
     )
+    return config, mock_backend
 
 
-def make_associate_builder(
+def make_associate_flow(
     *,
     provider_name: str = "github",
-    route_name_key: str | None = None,
     oauth_flow: str = "github:associate",
-) -> CustomOAuthAssociateRouterBuilder:
-    """Create an associate OAuth builder with mock client/authenticator."""
+) -> tuple[OAuthFlowConfig, MagicMock]:
+    """Create an associate OAuth flow config with mock client/schema."""
     mock_client = MagicMock()
     mock_client.name = provider_name
     mock_client.get_id_email = AsyncMock(return_value=("provider-account-id", TEST_EMAIL))
-    mock_authenticator = MagicMock()
     mock_schema = MagicMock()
     mock_schema.model_validate.side_effect = lambda value: {"user_id": str(value.id), "email": value.email}
 
-    return CustomOAuthAssociateRouterBuilder(
+    config = OAuthFlowConfig(
         oauth_client=mock_client,
-        authenticator=mock_authenticator,
-        user_schema=mock_schema,
         state_secret=TEST_STATE_JWT_SECRET,
         oauth_flow=oauth_flow,
         cookie_settings=OAuthCookieSettings(),
-        route_name_key=route_name_key,
     )
+    return config, mock_schema
 
 
 def make_oauth_state(

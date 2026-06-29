@@ -27,6 +27,7 @@ def test_token_fingerprint_never_returns_raw_token() -> None:
 
     assert fingerprint != token
     assert token not in fingerprint
+    assert len(fingerprint) == 64
 
 
 async def test_store_and_read_token_metadata(redis_client: Redis) -> None:

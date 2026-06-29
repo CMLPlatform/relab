@@ -1,4 +1,4 @@
-"""OAuth services and router builders."""
+"""OAuth services and router factories."""
 
 from app.api.auth.services.oauth_clients import (
     GOOGLE_YOUTUBE_SCOPES,
@@ -18,9 +18,8 @@ from app.api.auth.services.oauth_utils import (
     generate_state_token,
 )
 
-from .associate import CustomOAuthAssociateRouterBuilder
-from .base import BaseOAuthRouterBuilder
-from .login import CustomOAuthRouterBuilder
+from .associate import build_oauth_associate_router
+from .login import build_oauth_login_router
 
 __all__ = [
     "ACCESS_TOKEN_KEY",
@@ -29,11 +28,10 @@ __all__ = [
     "FRONTEND_REDIRECT_URI_KEY",
     "GOOGLE_YOUTUBE_SCOPES",
     "STATE_TOKEN_AUDIENCE",
-    "BaseOAuthRouterBuilder",
-    "CustomOAuthAssociateRouterBuilder",
-    "CustomOAuthRouterBuilder",
     "OAuth2AuthorizeResponse",
     "OAuthCookieSettings",
+    "build_oauth_associate_router",
+    "build_oauth_login_router",
     "generate_csrf_token",
     "generate_state_token",
     "github_oauth_client",

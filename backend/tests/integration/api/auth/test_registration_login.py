@@ -286,7 +286,7 @@ class TestLoginEndpoint:
         }
         await api_client.post("/v1/auth/register", json=user_data)
 
-        with patch("app.api.auth.routers.auth.audit_event") as log_event:
+        with patch("app.api.auth.services.login_flow.audit_event") as log_event:
             response = await api_client.post(
                 "/v1/auth/bearer/login",
                 data={"username": user_data["email"], "password": user_data["password"]},
@@ -523,7 +523,7 @@ class TestLoginEndpoint:
         valid_code = mfa_service.generate_totp_code(secret)
         invalid_code = "000000" if valid_code != "000000" else "000001"
 
-        with patch("app.api.auth.routers.mfa.audit_event") as log_event:
+        with patch("app.api.auth.services.mfa_flow.audit_event") as log_event:
             invalid_response = await api_client.post(
                 "/v1/auth/mfa/challenge",
                 json={"mfa_token": mfa_token, "code": invalid_code},
@@ -632,7 +632,7 @@ class TestLoginEndpoint:
 
     async def test_bearer_login_invalid_credentials(self, api_client: AsyncClient) -> None:
         """Test logging in with invalid credentials."""
-        with patch("app.api.auth.routers.auth.audit_event") as log_event:
+        with patch("app.api.auth.services.login_flow.audit_event") as log_event:
             response = await api_client.post(
                 "/v1/auth/bearer/login",
                 data={"username": INVALID_EMAIL, "password": INVALID_PASSWORD},
@@ -658,7 +658,7 @@ class TestLoginEndpoint:
             )
             await api_client.post("/v1/auth/register", json=user_data)
 
-        with patch("app.api.auth.routers.auth.audit_event") as log_event:
+        with patch("app.api.auth.services.login_flow.audit_event") as log_event:
             await login_session(api_client, email=user_data["email"], password=user_data["password"])
 
         assert api_client.cookies
@@ -692,7 +692,7 @@ class TestLoginEndpoint:
         await api_client.post("/v1/auth/register", json=user_data)
         await login_session(api_client, email=user_data["email"], password=user_data["password"])
 
-        with patch("app.api.auth.routers.refresh.audit_event") as log_event:
+        with patch("app.api.auth.services.session_flow.audit_event") as log_event:
             response = await api_client.post("/v1/auth/session/logout")
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
@@ -711,7 +711,7 @@ class TestLoginEndpoint:
         )
         await login_bearer_and_authorize(api_client, email=user.email)
 
-        with patch("app.api.auth.routers.refresh.audit_event") as log_event:
+        with patch("app.api.auth.services.session_flow.audit_event") as log_event:
             response = await api_client.post("/v1/auth/sessions/revoke-all")
 
         assert response.status_code == status.HTTP_204_NO_CONTENT

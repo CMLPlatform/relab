@@ -46,6 +46,18 @@ def _blacklist_key_from_fingerprint(fingerprint: str) -> str:
     return f"{_REFRESH_TOKEN_BLACKLIST_KEY_PREFIX}:{fingerprint}"
 
 
+def _refresh_token_key(token: str) -> str:
+    return token_key(_REFRESH_TOKEN_KEY_PREFIX, token)
+
+
+def _blacklist_key(token: str) -> str:
+    return token_key(_REFRESH_TOKEN_BLACKLIST_KEY_PREFIX, token)
+
+
+def _user_tokens_key(user_id: UUID | UUID4 | str) -> str:
+    return f"{_USER_TOKENS_KEY_PREFIX}{user_id}"
+
+
 def _refresh_token_ttl_seconds() -> int:
     return settings.refresh_token_expire_days * 86_400
 
@@ -101,7 +113,7 @@ class RefreshTokenMetadata:
 async def _load_active_token_metadata(redis: Redis, token: str) -> RefreshTokenMetadata:
     _validate_refresh_token_shape(token)
 
-    if await redis.exists(token_key(_REFRESH_TOKEN_BLACKLIST_KEY_PREFIX, token)):
+    if await redis.exists(_blacklist_key(token)):
         raise RefreshTokenRevokedError
     metadata = RefreshTokenMetadata.from_payload(
         await read_token_metadata(
@@ -116,6 +128,10 @@ async def _load_active_token_metadata(redis: Redis, token: str) -> RefreshTokenM
         await blacklist_token(redis, token)
         raise RefreshTokenInvalidError
     return metadata
+
+
+async def _blacklist_fingerprint(redis: Redis, fingerprint: str, ttl_seconds: int) -> None:
+    await redis.setex(_blacklist_key_from_fingerprint(fingerprint), ttl_seconds, "1")
 
 
 async def create_refresh_token(
@@ -144,7 +160,7 @@ async def create_refresh_token(
         raise RefreshTokenInvalidError
 
     fingerprint = token_fingerprint(token)
-    user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id}"
+    user_tokens_key = _user_tokens_key(user_id)
     await store_token_metadata(
         redis,
         key_prefix=_REFRESH_TOKEN_KEY_PREFIX,
@@ -189,7 +205,7 @@ async def blacklist_token(
         token: Refresh token to blacklist
         ttl_seconds: TTL for blacklist entry (if None, uses remaining token TTL)
     """
-    metadata_key = token_key(_REFRESH_TOKEN_KEY_PREFIX, token)
+    metadata_key = _refresh_token_key(token)
     if ttl_seconds is None:
         ttl_seconds = int(await redis.ttl(metadata_key))
         if ttl_seconds <= 0:
@@ -208,10 +224,10 @@ async def blacklist_token(
     except RefreshTokenInvalidError:
         metadata = None
 
-    await redis.setex(token_key(_REFRESH_TOKEN_BLACKLIST_KEY_PREFIX, token), ttl_seconds, "1")
+    await _blacklist_fingerprint(redis, token_fingerprint(token), ttl_seconds)
 
     if metadata:
-        user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{metadata.user_id}"
+        user_tokens_key = _user_tokens_key(metadata.user_id)
         await redis_int(redis.srem(user_tokens_key, token_fingerprint(token)))
 
 
@@ -225,17 +241,14 @@ async def revoke_all_user_tokens(
         redis: Redis client
         user_id: User's UUID
     """
-    user_id_str = str(user_id)
-
-    user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id_str}"
+    user_tokens_key = _user_tokens_key(user_id)
     tokens = await redis_str_set(redis.smembers(user_tokens_key))
     for stored_token_id in tokens:
         stored_token_key = _refresh_token_key_from_fingerprint(stored_token_id)
         ttl_seconds = await redis.ttl(stored_token_key)
         if ttl_seconds <= 0:
             ttl_seconds = HOUR
-        blacklist_key = _blacklist_key_from_fingerprint(stored_token_id)
-        await redis.setex(blacklist_key, ttl_seconds, "1")
+        await _blacklist_fingerprint(redis, stored_token_id, ttl_seconds)
         await redis.delete(stored_token_key)
     await redis.delete(user_tokens_key)
 

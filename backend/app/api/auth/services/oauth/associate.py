@@ -1,5 +1,7 @@
-"""OAuth account association router builder."""
+"""OAuth account-association router factory."""
 # spell-checker: ignore annotationlib
+
+from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Any, Protocol, cast
 
@@ -18,6 +20,13 @@ from app.api.auth.exceptions import (
     OAuthInvalidStateError,
 )
 from app.api.auth.models import OAuthAccount, User
+from app.api.auth.services.oauth.base import (
+    OAuthFlowConfig,
+    authorize_callback_dependency,
+    build_authorize_response,
+    create_oauth_result_redirect,
+    verify_oauth_state,
+)
 from app.api.auth.services.oauth_utils import (
     FRONTEND_REDIRECT_URI_KEY,
     OAuth2AuthorizeResponse,
@@ -25,15 +34,9 @@ from app.api.auth.services.oauth_utils import (
 )
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager
 
-from .base import BaseOAuthRouterBuilder
-
 if TYPE_CHECKING:
     from fastapi_users.authentication import Authenticator
     from fastapi_users.jwt import SecretType
-
-
-# Pure callback-flow helpers — extracted so each branch is directly testable with plain values,
-# without constructing a Request / User / UserManager.
 
 
 class _HasUserId(Protocol):
@@ -74,162 +77,136 @@ def _require_account_not_linked_elsewhere(existing_account: _HasUserId | None, u
         raise OAuthAccountAlreadyLinkedError
 
 
-class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
-    """Builder for the OAuth association router."""
+def build_oauth_associate_router(
+    oauth_client: BaseOAuth2,
+    authenticator: Authenticator[User, UUID4],
+    user_schema: type[schemas.U],
+    state_secret: SecretType,
+    oauth_flow: str,
+    redirect_url: str | None = None,
+    cookie_settings: OAuthCookieSettings | None = None,
+    *,
+    requires_verification: bool = False,
+    route_name_key: str | None = None,
+    extras_params: dict[str, Any] | None = None,
+) -> APIRouter:
+    """Build the OAuth account-association router."""
+    router = APIRouter()
+    key = route_name_key or oauth_client.name
+    callback_route_name = f"oauth-associate:{key}.callback"
+    authorize_route_name = f"oauth-associate:{key}.authorize"
+    config = OAuthFlowConfig(
+        oauth_client=oauth_client,
+        state_secret=state_secret,
+        oauth_flow=oauth_flow,
+        redirect_url=redirect_url,
+        cookie_settings=cookie_settings or OAuthCookieSettings(),
+    )
+    get_current_active_user = authenticator.current_user(active=True, verified=requires_verification)
+    oauth2_authorize_callback = authorize_callback_dependency(config, callback_route_name)
 
-    def __init__(
-        self,
-        oauth_client: BaseOAuth2,
-        authenticator: Authenticator[User, UUID4],
-        user_schema: type[schemas.U],
-        state_secret: SecretType,
-        oauth_flow: str,
-        redirect_url: str | None = None,
-        cookie_settings: OAuthCookieSettings | None = None,
-        *,
-        requires_verification: bool = False,
-        route_name_key: str | None = None,
-        extras_params: dict[str, Any] | None = None,
-    ) -> None:
-        """Initialize association router builder.
-
-        ``route_name_key`` overrides the key used in FastAPI route names
-        (e.g. ``oauth-associate:{key}.callback``). Useful when registering two
-        clients that share the same OAuth ``name`` (e.g. ``google`` and
-        ``google-youtube``) to avoid duplicate route-name conflicts.
-
-        ``extras_params`` is forwarded to
-        ``oauth_client.get_authorization_url`` as ``extras_params``. Use this
-        to pass provider-specific flags such as ``{"access_type": "offline",
-        "prompt": "consent"}`` for the Google YouTube scope-upgrade flow.
-        """
-        key = route_name_key if route_name_key is not None else oauth_client.name
-        super().__init__(oauth_client, state_secret, oauth_flow, redirect_url, cookie_settings)
-        self.authenticator = authenticator
-        self.user_schema = user_schema
-        self.requires_verification = requires_verification
-        self.extras_params = extras_params
-        self.callback_route_name = f"oauth-associate:{key}.callback"
-
-    def build(self) -> APIRouter:
-        """Construct the APIRouter."""
-        router = APIRouter()
-        get_current_active_user = self.authenticator.current_user(active=True, verified=self.requires_verification)
-
-        callback_route_name = self.callback_route_name
-        oauth2_authorize_callback = self.authorize_callback_dependency(callback_route_name)
-
-        authorize_route_name = self.callback_route_name.replace(".callback", ".authorize")
-
-        @router.get(
-            "/authorize",
-            name=authorize_route_name,
-            response_model=OAuth2AuthorizeResponse,
-        )
-        async def authorize(
-            request: Request,
-            response: Response,
-            user: Annotated[User, Depends(get_current_active_user)],
-        ) -> OAuth2AuthorizeResponse:
-            return await self._get_authorize_handler(request, response, user)
-
-        # Python 3.14 (annotationlib) cannot resolve local-scope variables referenced in
-        # annotations of inner functions when Pydantic rebuilds the schema. Setting
-        # __annotations__ explicitly (as a plain dict of already-evaluated types) bypasses
-        # annotationlib's lazy ForwardRef evaluation.
-        async def callback(request, user, access_token_state, user_manager):  # noqa: ANN001, ANN202
-            return await self._get_callback_handler(request, user, access_token_state, user_manager)
-
-        callback.__annotations__ = {
-            "request": Request,
-            "user": Annotated[User, Depends(get_current_active_user)],
-            "access_token_state": Annotated[tuple[OAuth2Token, str], Depends(oauth2_authorize_callback)],
-            "user_manager": Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
-            "return": Response | schemas.U,
-        }
-
-        router.add_api_route(
-            "/callback",
-            callback,
-            response_model=self.user_schema,
-            name=callback_route_name,
-            methods=["GET"],
-            description="The response varies based on the authentication backend used.",
-        )
-
-        return router
-
-    async def _get_authorize_handler(
-        self,
+    @router.get(
+        "/authorize",
+        name=authorize_route_name,
+        response_model=OAuth2AuthorizeResponse,
+    )
+    async def authorize(
         request: Request,
         response: Response,
-        user: User,
+        user: Annotated[User, Depends(get_current_active_user)],
     ) -> OAuth2AuthorizeResponse:
-        return await self.build_authorize_response(
+        return await build_authorize_response(
+            config,
             request,
             response,
-            callback_route_name=self.callback_route_name,
+            callback_route_name=callback_route_name,
             state_claims={"sub": str(user.id)},
-            extras_params=self.extras_params,
+            extras_params=extras_params,
         )
 
-    async def _get_callback_handler(
-        self,
-        request: Request,
-        user: User,
-        access_token_state: tuple[OAuth2Token, str],
-        user_manager: UserManager,
-    ) -> Response | schemas.U:
-        token, state = access_token_state
-        state_data = self.verify_state(request, state)
-        _require_state_belongs_to_user(state_data, user.id)
-
-        account_id, account_email = await self.oauth_client.get_id_email(token["access_token"])
-        _require_account_email(account_email)
-
-        existing_account = await _find_existing_oauth_account(
-            user_manager.user_db.session,
-            oauth_name=self.oauth_client.name,
-            account_id=account_id,
+    # Python 3.14 (annotationlib) cannot resolve local-scope variables referenced in
+    # annotations of inner functions when Pydantic rebuilds the schema. Setting
+    # __annotations__ explicitly (as a plain dict of already-evaluated types) bypasses
+    # annotationlib's lazy ForwardRef evaluation.
+    async def callback(request, user, access_token_state, user_manager):  # noqa: ANN001, ANN202
+        return await handle_oauth_associate_callback(
+            config,
+            request,
+            user,
+            access_token_state,
+            user_manager,
+            user_schema=user_schema,
         )
-        _require_account_not_linked_elsewhere(existing_account, user.id)
 
-        if existing_account:
-            # Same user — upgrade the stored token in-place.
-            # This happens when re-running an associate flow to gain additional
-            # OAuth scopes (e.g. upgrading a plain Google token to include
-            # YouTube API scopes). fastapi-users' oauth_associate_callback calls
-            # add_oauth_account (INSERT), which would fail on the unique
-            # constraint — so we update directly instead.
-            updated_user = await user_manager.user_db.update_oauth_account(
-                cast("UserOAuthProtocol[UUID4, OAuthAccount]", user),
-                existing_account,
-                {
-                    "access_token": token["access_token"],
-                    "expires_at": token.get("expires_at"),
-                    "refresh_token": token.get("refresh_token"),
-                },
-            )
-            user = cast("User", updated_user)
-        else:
-            oauth_associate_callback = cast(
-                "Any",
-                user_manager.oauth_associate_callback,
-            )
+    callback.__annotations__ = {
+        "request": Request,
+        "user": Annotated[User, Depends(get_current_active_user)],
+        "access_token_state": Annotated[tuple[OAuth2Token, str], Depends(oauth2_authorize_callback)],
+        "user_manager": Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
+        "return": Response | schemas.U,
+    }
 
-            user = await oauth_associate_callback(
-                user,
-                self.oauth_client.name,
-                token["access_token"],
-                account_id,
-                account_email,
-                token.get("expires_at"),
-                token.get("refresh_token"),
-                request,
-            )
+    router.add_api_route(
+        "/callback",
+        callback,
+        response_model=user_schema,
+        name=callback_route_name,
+        methods=["GET"],
+        description="The response varies based on the authentication backend used.",
+    )
+    return router
 
-        frontend_redirect = state_data.get(FRONTEND_REDIRECT_URI_KEY)
-        if frontend_redirect:
-            return self._create_success_redirect(frontend_redirect, FastAPIResponse())
 
-        return cast("schemas.U", self.user_schema.model_validate(user))
+async def handle_oauth_associate_callback(
+    config: OAuthFlowConfig,
+    request: Request,
+    user: User,
+    access_token_state: tuple[OAuth2Token, str],
+    user_manager: UserManager,
+    *,
+    user_schema: type[schemas.U],
+) -> Response | schemas.U:
+    """Handle one OAuth account-association callback after provider token exchange."""
+    token, state = access_token_state
+    state_data = verify_oauth_state(config, request, state)
+    _require_state_belongs_to_user(state_data, user.id)
+
+    account_id, account_email = await config.oauth_client.get_id_email(token["access_token"])
+    _require_account_email(account_email)
+
+    existing_account = await _find_existing_oauth_account(
+        user_manager.user_db.session,
+        oauth_name=config.oauth_client.name,
+        account_id=account_id,
+    )
+    _require_account_not_linked_elsewhere(existing_account, user.id)
+
+    if existing_account:
+        updated_user = await user_manager.user_db.update_oauth_account(
+            cast("UserOAuthProtocol[UUID4, OAuthAccount]", user),
+            existing_account,
+            {
+                "access_token": token["access_token"],
+                "expires_at": token.get("expires_at"),
+                "refresh_token": token.get("refresh_token"),
+            },
+        )
+        user = cast("User", updated_user)
+    else:
+        oauth_associate_callback = cast("Any", user_manager.oauth_associate_callback)
+        user = await oauth_associate_callback(
+            user,
+            config.oauth_client.name,
+            token["access_token"],
+            account_id,
+            account_email,
+            token.get("expires_at"),
+            token.get("refresh_token"),
+            request,
+        )
+
+    frontend_redirect = state_data.get(FRONTEND_REDIRECT_URI_KEY)
+    if frontend_redirect:
+        return create_oauth_result_redirect(frontend_redirect, status="success", response=FastAPIResponse())
+
+    return cast("schemas.U", user_schema.model_validate(user))

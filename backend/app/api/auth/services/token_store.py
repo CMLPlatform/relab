@@ -57,11 +57,10 @@ async def store_token_metadata(
     token: str,
     payload: dict[str, object],
     ttl_seconds: int,
-) -> str:
-    """Store metadata for an existing token and return its Redis key."""
+) -> None:
+    """Store metadata for an existing token."""
     key = token_key(key_prefix, token)
     await redis.setex(key, ttl_seconds, encode_token_metadata(payload))
-    return key
 
 
 async def store_new_token(
