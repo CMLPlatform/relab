@@ -115,16 +115,16 @@
   script_location  = "alembic"
 
   [[tool.alembic.post_write_hooks]]
-    executable = "%(here)s/.venv/bin/ruff"
     name       = "ruff"
+    module     = "ruff"
     options    = "check --fix REVISION_SCRIPT_FILENAME"
-    type       = "exec"
+    type       = "module"
 
   [[tool.alembic.post_write_hooks]]
-    executable = "%(here)s/.venv/bin/ruff"
     name       = "ruff_format"
+    module     = "ruff"
     options    = "format REVISION_SCRIPT_FILENAME"
-    type       = "exec"
+    type       = "module"
 
 [tool.pytest.ini_options]
   addopts = "-ra --strict-markers --strict-config"
