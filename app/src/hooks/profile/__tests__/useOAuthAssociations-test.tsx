@@ -38,8 +38,13 @@ jest.mock('@/services/api/oauthFlow', () => ({
   isExpectedOAuthCallbackUrl: jest.fn(() => true),
   openOAuthBrowserSession: jest.fn(async () => ({
     type: 'success',
-    url: 'relab-app://profile?success=true',
+    url: 'relab-app://profile#status=success',
   })),
+  parseOAuthCallbackUrl: jest.fn((url: string) =>
+    url.includes('status=success')
+      ? { status: 'success' }
+      : { status: 'error', error: 'access_denied' },
+  ),
 }));
 
 describe('useOAuthAssociations', () => {
@@ -58,7 +63,7 @@ describe('useOAuthAssociations', () => {
     jest.mocked(isExpectedOAuthCallbackUrl).mockReturnValue(true);
     jest.mocked(openOAuthBrowserSession).mockImplementation(async () => ({
       type: 'success',
-      url: 'relab-app://profile?success=true',
+      url: 'relab-app://profile#status=success',
     }));
     mockRefetch.mockImplementation(async () => undefined);
     mockSetYoutubeEnabled.mockImplementation(async () => undefined);
@@ -118,7 +123,7 @@ describe('useOAuthAssociations', () => {
   it('shows a YouTube-specific error when authorization returns a denied callback', async () => {
     jest.mocked(openOAuthBrowserSession).mockImplementation(async () => ({
       type: 'success',
-      url: 'relab-app://profile?error=access_denied&detail=No%20thanks',
+      url: 'relab-app://profile#status=error&error=access_denied',
     }));
 
     const { result } = renderHook(() =>
@@ -133,7 +138,10 @@ describe('useOAuthAssociations', () => {
       await result.current.youtube.toggle(true);
     });
 
-    expect(mockFeedback.error).toHaveBeenCalledWith('No thanks', 'YouTube authorization failed');
+    expect(mockFeedback.error).toHaveBeenCalledWith(
+      'access_denied',
+      'YouTube authorization failed',
+    );
     expect(mockSetYoutubeEnabled).not.toHaveBeenCalledWith(true);
   });
 

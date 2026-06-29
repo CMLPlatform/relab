@@ -3,13 +3,13 @@ import { apiFetch } from '@/services/api/client';
 
 const OAUTH_BROWSER_TIMEOUT_MS = 5 * 60 * 1000;
 const ALLOWED_OAUTH_HOSTNAMES = new Set(['accounts.google.com', 'github.com']);
+const LEADING_HASH_PATTERN = /^#/;
 
 export type OAuthSessionResult = Awaited<ReturnType<typeof openAuthSessionAsync>>;
 
 export type OAuthCallbackResult = {
-  success: boolean;
+  status: 'success' | 'error' | 'mfa_required';
   error?: string;
-  detail?: string;
   mfaHandoff?: string;
 };
 
@@ -54,18 +54,12 @@ export function isExpectedOAuthCallbackUrl(url: string, redirectUri: string): bo
 
 export function parseOAuthCallbackUrl(url: string): OAuthCallbackResult {
   const callbackUrl = new URL(url);
-  const params = new URLSearchParams(callbackUrl.search);
-  if (callbackUrl.hash) {
-    const fragmentParams = new URLSearchParams(callbackUrl.hash.slice(1));
-    fragmentParams.forEach((value, key) => {
-      params.set(key, value);
-    });
-  }
+  const params = new URLSearchParams(callbackUrl.hash.replace(LEADING_HASH_PATTERN, ''));
+  const status = params.get('status');
 
   return {
-    success: params.get('success') === 'true',
+    status: status === 'success' || status === 'mfa_required' ? status : 'error',
     error: params.get('error') ?? undefined,
-    detail: params.get('detail') ?? undefined,
     mfaHandoff: params.get('mfa_handoff') ?? undefined,
   };
 }

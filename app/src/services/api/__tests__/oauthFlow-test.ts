@@ -19,28 +19,35 @@ describe('OAuth URL validation', () => {
 
   it('accepts callbacks whose scheme host and path match the generated redirect URI', () => {
     expect(
-      isExpectedOAuthCallbackUrl(
-        'relab-app://profile?success=true&detail=ok',
-        'relab-app://profile',
-      ),
+      isExpectedOAuthCallbackUrl('relab-app://profile#status=success', 'relab-app://profile'),
     ).toBe(true);
   });
 
   it('parses OAuth MFA handoff callback data from URL fragments', () => {
     expect(
-      parseOAuthCallbackUrl('relab-app://login#success=false&mfa_handoff=handoff-token'),
+      parseOAuthCallbackUrl('relab-app://login#status=mfa_required&mfa_handoff=handoff-token'),
     ).toEqual({
-      success: false,
+      status: 'mfa_required',
       mfaHandoff: 'handoff-token',
+    });
+  });
+
+  it('parses OAuth error callback data from URL fragments', () => {
+    expect(parseOAuthCallbackUrl('relab-app://login#status=error&error=access_denied')).toEqual({
+      status: 'error',
+      error: 'access_denied',
     });
   });
 
   it('rejects callbacks for a different scheme host or path', () => {
     expect(
-      isExpectedOAuthCallbackUrl('https://example.com/profile?success=true', 'relab-app://profile'),
+      isExpectedOAuthCallbackUrl(
+        'https://example.com/profile#status=success',
+        'relab-app://profile',
+      ),
     ).toBe(false);
     expect(
-      isExpectedOAuthCallbackUrl('relab-app://login?success=true', 'relab-app://profile'),
+      isExpectedOAuthCallbackUrl('relab-app://login#status=success', 'relab-app://profile'),
     ).toBe(false);
     expect(isExpectedOAuthCallbackUrl('not a url', 'relab-app://profile')).toBe(false);
   });

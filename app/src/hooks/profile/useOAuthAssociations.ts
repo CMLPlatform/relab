@@ -8,9 +8,8 @@ import {
   isAllowedOAuthRedirectUrl,
   isExpectedOAuthCallbackUrl,
   openOAuthBrowserSession,
+  parseOAuthCallbackUrl,
 } from '@/services/api/oauthFlow';
-
-const OAUTH_DETAIL_PATTERN = /[?&]detail=([^&]*)/;
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
@@ -78,18 +77,19 @@ export function useOAuthAssociations({
     setYoutubeAuthPending(true);
     try {
       const result = await startAssociationFlow('/oauth/google-youtube/associate/authorize');
-      if (result.type === 'success' && result.url?.includes('success=true')) {
+      if (
+        result.type === 'success' &&
+        result.url &&
+        parseOAuthCallbackUrl(result.url).status === 'success'
+      ) {
         await setYoutubeEnabled(true);
         await refetch(false);
         return;
       }
 
       if (result.type === 'success') {
-        const detail = result.url?.match(OAUTH_DETAIL_PATTERN)?.[1];
-        feedback.error(
-          detail ? decodeURIComponent(detail) : 'Access was denied.',
-          'YouTube authorization failed',
-        );
+        const error = result.url ? parseOAuthCallbackUrl(result.url).error : undefined;
+        feedback.error(error ?? 'Access was denied.', 'YouTube authorization failed');
       }
     } catch (error: unknown) {
       feedback.error(

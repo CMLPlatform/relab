@@ -41,16 +41,8 @@ function useKeyboardShownState() {
 
 export function useLoginScreen() {
   const router = useRouter();
-  const {
-    redirectTo,
-    success: oauthSuccess,
-    error: oauthError,
-    detail: oauthDetail,
-  } = useLocalSearchParams<{
+  const { redirectTo } = useLocalSearchParams<{
     redirectTo?: string | string[];
-    success?: string | string[];
-    error?: string | string[];
-    detail?: string | string[];
   }>();
   const dialog = useDialog();
   const { user, isLoading: authLoading, refetch } = useAuth();
@@ -112,9 +104,6 @@ export function useLoginScreen() {
     completeSuccessfulLogin,
     showAccountAlreadyRegisteredDialog,
     postLoginRedirect,
-    oauthSuccess,
-    oauthError,
-    oauthDetail,
     handleMfaPending: (pending) => routeToMfa(pending, true),
   });
 

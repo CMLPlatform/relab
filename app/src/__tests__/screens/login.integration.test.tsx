@@ -468,20 +468,36 @@ describe('Login screen', () => {
     }
   });
 
-  it('hydrates a web OAuth callback returned by page redirect params', async () => {
+  it('hydrates a web OAuth callback returned by URL fragment', async () => {
     mockPlatform('web');
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ success: 'true' });
+    const originalLocationDescriptor = Object.getOwnPropertyDescriptor(window, 'location');
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        href: 'https://app.example.test/login#status=success',
+        hash: '#status=success',
+        pathname: '/login',
+      },
+    });
     mockedGetUser.mockResolvedValueOnce(
       mockUser({ username: 'oauth_user', email: 'oauth@example.com' }),
     );
 
-    renderWithProviders(<Login />, { withDialog: true });
+    try {
+      renderWithProviders(<Login />, { withDialog: true });
 
-    await waitFor(() => {
-      expect(mockedMarkWebSessionActive).toHaveBeenCalled();
-      expect(getUser).toHaveBeenCalledWith(true);
-      expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
-    });
+      await waitFor(() => {
+        expect(mockedMarkWebSessionActive).toHaveBeenCalled();
+        expect(getUser).toHaveBeenCalledWith(true);
+        expect(mockReplace).toHaveBeenCalledWith(
+          expect.objectContaining({ pathname: '/products' }),
+        );
+      });
+    } finally {
+      if (originalLocationDescriptor) {
+        Object.defineProperty(window, 'location', originalLocationDescriptor);
+      }
+    }
   });
 
   it('claims and routes a web OAuth MFA callback handoff from URL fragment params', async () => {
@@ -496,8 +512,8 @@ describe('Login screen', () => {
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: {
-        href: 'https://app.example.test/login#success=false&mfa_handoff=oauth-handoff-token',
-        hash: '#success=false&mfa_handoff=oauth-handoff-token',
+        href: 'https://app.example.test/login#status=mfa_required&mfa_handoff=oauth-handoff-token',
+        hash: '#status=mfa_required&mfa_handoff=oauth-handoff-token',
         pathname: '/login',
       },
     });
@@ -524,36 +540,64 @@ describe('Login screen', () => {
 
   it('routes OAuth callback without username to onboarding', async () => {
     mockPlatform('web');
+    const originalLocationDescriptor = Object.getOwnPropertyDescriptor(window, 'location');
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        href: 'https://app.example.test/login?redirectTo=%2Fprofile#status=success',
+        hash: '#status=success',
+        pathname: '/login',
+      },
+    });
     (useLocalSearchParams as jest.Mock).mockReturnValue({
-      success: 'true',
       redirectTo: '/profile',
     });
     mockedGetUser.mockResolvedValueOnce(mockUser({ username: null, email: 'oauth@example.com' }));
 
-    renderWithProviders(<Login />, { withDialog: true });
+    try {
+      renderWithProviders(<Login />, { withDialog: true });
 
-    await waitFor(() => {
-      expect(mockedMarkWebSessionActive).toHaveBeenCalled();
-      expect(mockReplace).toHaveBeenCalledWith('/onboarding');
-      expect(mockReplace).not.toHaveBeenCalledWith('/profile');
-    });
+      await waitFor(() => {
+        expect(mockedMarkWebSessionActive).toHaveBeenCalled();
+        expect(mockReplace).toHaveBeenCalledWith('/onboarding');
+        expect(mockReplace).not.toHaveBeenCalledWith('/profile');
+      });
+    } finally {
+      if (originalLocationDescriptor) {
+        Object.defineProperty(window, 'location', originalLocationDescriptor);
+      }
+    }
   });
 
-  it('shows error when OAuth provider denies access via web page redirect', async () => {
+  it('shows error when OAuth provider denies access via web URL fragment', async () => {
     mockPlatform('web');
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ error: 'access_denied' });
-
-    renderWithProviders(<Login />, { withDialog: true });
-
-    await waitFor(() => {
-      expect(mockDialogApi.alert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'Login Failed',
-          message: expect.stringMatching(YOU_DENIED_ACCESS_PATTERN),
-        }),
-      );
-      expect(mockReplace).not.toHaveBeenCalled();
+    const originalLocationDescriptor = Object.getOwnPropertyDescriptor(window, 'location');
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        href: 'https://app.example.test/login#status=error&error=access_denied',
+        hash: '#status=error&error=access_denied',
+        pathname: '/login',
+      },
     });
+
+    try {
+      renderWithProviders(<Login />, { withDialog: true });
+
+      await waitFor(() => {
+        expect(mockDialogApi.alert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Login Failed',
+            message: expect.stringMatching(YOU_DENIED_ACCESS_PATTERN),
+          }),
+        );
+        expect(mockReplace).not.toHaveBeenCalled();
+      });
+    } finally {
+      if (originalLocationDescriptor) {
+        Object.defineProperty(window, 'location', originalLocationDescriptor);
+      }
+    }
   });
 
   it('shows explicit account-linking guidance when OAuth account already exists', async () => {
@@ -585,7 +629,7 @@ describe('Login screen', () => {
     mockPlatform('android');
     mockedOpenOAuthBrowserSession.mockResolvedValueOnce({
       type: 'success',
-      url: 'exp://localhost/login?error=access_denied',
+      url: 'exp://localhost/login#status=error&error=access_denied',
     });
 
     renderWithProviders(<Login />, { withDialog: true });
@@ -607,8 +651,8 @@ describe('Login screen', () => {
     mockPlatform('android');
     mockedOpenOAuthBrowserSession.mockResolvedValueOnce({
       type: 'success',
-      // No known error code or detail; falls through to platform-specific guidance
-      url: 'exp://localhost/login?success=false',
+      // No known error code; falls through to platform-specific guidance
+      url: 'exp://localhost/login#status=error',
     });
 
     renderWithProviders(<Login />, { withDialog: true });
@@ -630,7 +674,7 @@ describe('Login screen', () => {
     mockPlatform('android');
     mockedOpenOAuthBrowserSession.mockResolvedValueOnce({
       type: 'success',
-      url: 'exp://localhost/login?success=true',
+      url: 'exp://localhost/login#status=success',
     });
     mockedGetUser
       .mockRejectedValueOnce(new Error('Network error')) // first getUser attempt fails
@@ -655,7 +699,7 @@ describe('Login screen', () => {
     mockPlatform('android');
     mockedOpenOAuthBrowserSession.mockResolvedValueOnce({
       type: 'success',
-      url: 'exp://localhost/login?success=true',
+      url: 'exp://localhost/login#status=success',
     });
     mockedGetUser.mockResolvedValue(
       mockUser({ username: 'suspended_user', email: 'suspended@example.com', isActive: false }),
@@ -827,7 +871,7 @@ describe('Login screen', () => {
     mockPlatform('android');
     mockedOpenOAuthBrowserSession.mockResolvedValueOnce({
       type: 'success',
-      url: 'exp://evil.example/login?success=true',
+      url: 'exp://evil.example/login#status=success',
     });
 
     renderWithProviders(<Login />, { withDialog: true });
