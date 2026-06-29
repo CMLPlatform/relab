@@ -7,6 +7,11 @@ Routes are organised by domain, not by HTTP verb. The same API serves the resear
 
 For live schemas and request models, start from the [API reference overview](/api-reference/). Use the [public API reference](/api/public/) for application routes, the [device API reference](/api/device/) for backend-facing device integration, and the [RPi camera API reference](/api/rpi-cam/) for the local camera service. For practical usage guidance, see the [API interaction guide](../../user-guides/api/).
 
+Architecture changes should keep these surfaces explicit: the public app API is
+the frontend and external-client contract, the device API is the Pi-originated
+HTTP callback contract, and the private shared DTO seam is limited to backend
+device integration plus the RPI camera plugin.
+
 ## Route organisation
 
 ### Authentication and user management

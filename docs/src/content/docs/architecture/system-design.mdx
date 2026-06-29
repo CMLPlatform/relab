@@ -140,3 +140,9 @@ At startup the backend:
 - preserve a path toward dataset publication and external reuse
 - keep identifiers and exports stable enough to link with other datasets
 - avoid infrastructure complexity that isn't justified by the project scale
+
+Architecture modernization should keep RELab as a modular monolith until a real
+deployment or runtime boundary justifies a split. The backend should continue to
+evolve around explicit bounded contexts: identity and access, data collection,
+reference data, media and storage, publication and export, and device
+integration.
