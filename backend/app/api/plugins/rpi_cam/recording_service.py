@@ -121,7 +121,7 @@ async def start_youtube_recording(
                 broadcast_key=youtube_config.broadcast_key.get_secret_value(),
             ),
         )
-    except HTTPException, APIError:
+    except (HTTPException, APIError):
         await _roll_back_started_recording(
             session=session,
             camera_id=camera_id,
