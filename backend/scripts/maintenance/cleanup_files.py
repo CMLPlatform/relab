@@ -30,7 +30,7 @@ async def async_main(*, force: bool = False) -> None:
     try:
         logger.info("Starting file cleanup...")
         logger.info("Environment: %s", settings.environment)
-        logger.info("Database: %s", settings.database_host)
+        logger.info("Database: %s", settings.database.host)
         logger.info("File storage path: %s", settings.file_storage_path)
         logger.info("Image storage path: %s", settings.image_storage_path)
 
@@ -45,7 +45,7 @@ def _confirm_prod_deletion() -> bool:
     """Prompt the user to confirm destructive deletion in production."""
     print(  # noqa: T201
         f"\nWARNING: You are about to PERMANENTLY DELETE files in PRODUCTION\n"
-        f"   Database: {settings.database_host}\n"
+        f"   Database: {settings.database.host}\n"
         f"   File storage: {settings.file_storage_path}\n"
         f"\nType '{_PROD_CONFIRMATION}' to confirm: ",
         end="",

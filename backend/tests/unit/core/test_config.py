@@ -13,7 +13,7 @@ from pydantic_core import ValidationError
 from sqlalchemy.engine import make_url
 
 from app.api.auth.config import AuthSettings
-from app.core.config import DEFAULT_CORS_ORIGIN_REGEX, CoreSettings, Environment
+from app.core.config import DEFAULT_CORS_ORIGIN_REGEX, CoreSettings, DatabaseSettings, Environment, RedisSettings
 from app.core.env import get_env_file, get_secrets_dir
 
 if TYPE_CHECKING:
@@ -24,15 +24,17 @@ TEST_DATA_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 TEST_CACHE_SIGNING_SECRET = "cache-signing-secret-with-32-bytes"
 
 
-def _database_role_kwargs() -> dict[str, Any]:
-    """Return valid split-role database credentials for production-like settings."""
+def _database_role_kwargs() -> dict[str, DatabaseSettings]:
+    """Return a DatabaseSettings with valid split-role credentials for production-like settings."""
     return {
-        "database_app_user": "relab_app",
-        "database_app_password": SecretStr("app-password"),
-        "database_migration_user": "relab_migrator",
-        "database_migration_password": SecretStr("migration-password"),
-        "database_backup_user": "relab_backup",
-        "database_backup_password": SecretStr("backup-password"),
+        "database": DatabaseSettings(
+            app_user="relab_app",
+            app_password=SecretStr("app-password"),
+            migration_user="relab_migrator",
+            migration_password=SecretStr("migration-password"),
+            backup_user="relab_backup",
+            backup_password=SecretStr("backup-password"),
+        )
     }
 
 
@@ -44,14 +46,14 @@ def _production_core_settings_kwargs(**overrides: object) -> dict[str, Any]:
         "site_public_url": HttpUrl("https://cml-relab.org"),
         "app_public_url": HttpUrl("https://app.cml-relab.org"),
         "docs_public_url": HttpUrl("https://docs.cml-relab.org"),
-        "postgres_password": SecretStr("admin-password"),
         **_database_role_kwargs(),
-        "redis_password": SecretStr("test-password"),
+        "redis": RedisSettings(password=SecretStr("test-password")),
         "bootstrap_superuser_password": SecretStr("test-password"),
         "bootstrap_superuser_email": "test@example.com",
         "data_encryption_key": SecretStr(TEST_DATA_ENCRYPTION_KEY),
         "cache_signing_secret": SecretStr(TEST_CACHE_SIGNING_SECRET),
     }
+    # postgres_password is part of DatabaseSettings now; if caller overrides "database", use that
     kwargs.update(overrides)
     return kwargs
 
@@ -212,13 +214,15 @@ class TestCoreSettingsCors:
         """Database URL construction should safely encode reserved password characters."""
         settings = CoreSettings(
             environment=Environment.DEV,
-            database_host="database.internal",
-            database_port=5432,
-            database_app_user="relab_user",
-            database_app_password=SecretStr("p@ss:word/with?chars"),
+            database=DatabaseSettings(
+                host="database.internal",
+                port=5432,
+                app_user="relab_user",
+                app_password=SecretStr("p@ss:word/with?chars"),
+            ),
         )
 
-        url = settings.build_database_url("asyncpg", "relab_db")
+        url = settings.database.build_database_url("asyncpg", "relab_db")
         parsed = make_url(url)
 
         assert parsed.drivername == "postgresql+asyncpg"
@@ -232,13 +236,15 @@ class TestCoreSettingsCors:
         """Redis URL construction should safely encode reserved password characters."""
         settings = CoreSettings(
             environment=Environment.DEV,
-            redis_host="redis.internal",
-            redis_port=6379,
-            redis_db=2,
-            redis_password=SecretStr("p@ss:word/with?chars"),
+            redis=RedisSettings(
+                host="redis.internal",
+                port=6379,
+                db=2,
+                password=SecretStr("p@ss:word/with?chars"),
+            ),
         )
 
-        url = settings.cache_url
+        url = settings.redis.cache_url
 
         RedisDsn(url)
         assert url == "redis://:p%40ss%3Aword%2Fwith%3Fchars@redis.internal:6379/2"
@@ -252,15 +258,17 @@ class TestCoreSettingsCors:
         """Application and migration URLs should use distinct database roles."""
         settings = CoreSettings(
             environment=Environment.DEV,
-            database_host="database.internal",
-            database_app_user="relab_app",
-            database_app_password=SecretStr("app-password"),
-            database_migration_user="relab_migrator",
-            database_migration_password=SecretStr("migration-password"),
+            database=DatabaseSettings(
+                host="database.internal",
+                app_user="relab_app",
+                app_password=SecretStr("app-password"),
+                migration_user="relab_migrator",
+                migration_password=SecretStr("migration-password"),
+            ),
         )
 
-        async_url = make_url(settings.async_database_url)
-        migration_url = make_url(settings.sync_migration_database_url)
+        async_url = make_url(settings.database.async_url)
+        migration_url = make_url(settings.database.sync_migration_url)
 
         assert async_url.username == "relab_app"
         assert async_url.password == "app-password"
@@ -275,22 +283,27 @@ class TestCoreSettingsCors:
         (tmp_path / "database_migration_password").write_text("migration-secret", encoding="utf-8")
         (tmp_path / "database_backup_password").write_text("backup-secret", encoding="utf-8")
         (tmp_path / "redis_password").write_text("redis-secret", encoding="utf-8")
-        settings_config: Any = {**CoreSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
-        monkeypatch.setattr(CoreSettings, "model_config", settings_config)
 
+        db = DatabaseSettings(
+            _env_file=None,
+            _secrets_dir=tmp_path,
+            app_user="relab_app",
+            migration_user="relab_migrator",
+            backup_user="relab_backup",
+        )
+        redis = RedisSettings(_env_file=None, _secrets_dir=tmp_path)
         settings = CoreSettings(
             environment=Environment.DEV,
-            database_app_user="relab_app",
-            database_migration_user="relab_migrator",
-            database_backup_user="relab_backup",
+            database=db,
+            redis=redis,
             data_encryption_key=SecretStr(TEST_DATA_ENCRYPTION_KEY),
             cache_signing_secret=SecretStr(TEST_CACHE_SIGNING_SECRET),
         )
 
-        assert settings.database_app_password.get_secret_value() == "app-secret"
-        assert settings.database_migration_password.get_secret_value() == "migration-secret"
-        assert settings.database_backup_password.get_secret_value() == "backup-secret"
-        assert settings.redis_password.get_secret_value() == "redis-secret"
+        assert settings.database.app_password.get_secret_value() == "app-secret"
+        assert settings.database.migration_password.get_secret_value() == "migration-secret"
+        assert settings.database.backup_password.get_secret_value() == "backup-secret"
+        assert settings.redis.password.get_secret_value() == "redis-secret"
 
     def test_secret_files_override_backend_dotenv_secret_values(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -339,28 +352,34 @@ class TestCoreSettingsCors:
         (tmp_path / "bootstrap_superuser_password").write_text("superuser-secret", encoding="utf-8")
         (tmp_path / "data_encryption_key").write_text(TEST_DATA_ENCRYPTION_KEY, encoding="utf-8")
         (tmp_path / "cache_signing_secret").write_text(TEST_CACHE_SIGNING_SECRET, encoding="utf-8")
+
         settings_config: Any = {**CoreSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
         monkeypatch.setattr(CoreSettings, "model_config", settings_config)
 
+        db = DatabaseSettings(
+            _env_file=None,
+            _secrets_dir=tmp_path,
+            app_user="relab_app",
+            migration_user="relab_migrator",
+            backup_user="relab_backup",
+        )
+        redis = RedisSettings(_env_file=None, _secrets_dir=tmp_path)
+
         kwargs = _production_core_settings_kwargs()
-        for name in (
-            "postgres_password",
-            "database_app_password",
-            "database_migration_password",
-            "database_backup_password",
-            "redis_password",
-            "bootstrap_superuser_password",
-            "data_encryption_key",
-            "cache_signing_secret",
-        ):
+        # Remove the pre-built database/redis and supply secret-file-loaded ones instead
+        kwargs["database"] = db
+        kwargs["redis"] = redis
+        # Remove secrets that should come from files
+        for name in ("bootstrap_superuser_password", "data_encryption_key", "cache_signing_secret"):
             kwargs.pop(name)
+
         settings = CoreSettings(**kwargs)
 
-        assert settings.postgres_password.get_secret_value() == "admin-secret"
-        assert settings.database_app_password.get_secret_value() == "app-secret"
-        assert settings.database_migration_password.get_secret_value() == "migration-secret"
-        assert settings.database_backup_password.get_secret_value() == "backup-secret"
-        assert settings.redis_password.get_secret_value() == "redis-secret"
+        assert settings.database.postgres_password.get_secret_value() == "admin-secret"
+        assert settings.database.app_password.get_secret_value() == "app-secret"
+        assert settings.database.migration_password.get_secret_value() == "migration-secret"
+        assert settings.database.backup_password.get_secret_value() == "backup-secret"
+        assert settings.redis.password.get_secret_value() == "redis-secret"
         assert settings.bootstrap_superuser_password.get_secret_value() == "superuser-secret"
         assert settings.data_encryption_key.get_secret_value() == TEST_DATA_ENCRYPTION_KEY
         assert settings.cache_signing_secret.get_secret_value() == TEST_CACHE_SIGNING_SECRET
@@ -369,31 +388,31 @@ class TestCoreSettingsCors:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Production-like settings should fail when Redis has no password source."""
-        (tmp_path / "database_app_password").write_text("app-secret", encoding="utf-8")
-        (tmp_path / "database_migration_password").write_text("migration-secret", encoding="utf-8")
-        (tmp_path / "database_backup_password").write_text("backup-secret", encoding="utf-8")
-        settings_config: Any = {**CoreSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
-        monkeypatch.setattr(CoreSettings, "model_config", settings_config)
+        db = DatabaseSettings(
+            _env_file=None,
+            _secrets_dir=tmp_path,
+            app_user="relab_app",
+            app_password=SecretStr("app-secret"),
+            migration_user="relab_migrator",
+            migration_password=SecretStr("migration-secret"),
+            backup_user="relab_backup",
+            backup_password=SecretStr("backup-secret"),
+        )
 
         kwargs = _production_core_settings_kwargs()
-        for name in (
-            "database_app_password",
-            "database_migration_password",
-            "database_backup_password",
-            "redis_password",
-        ):
-            kwargs.pop(name)
+        kwargs["database"] = db
+        # redis deliberately omitted — empty password triggers the error
 
         with pytest.raises(ValidationError, match="REDIS_PASSWORD must not be empty"):
-            CoreSettings(**kwargs)
+            CoreSettings(**{**kwargs, "redis": RedisSettings()})
 
     def test_sync_database_url_disables_tls_by_default(self) -> None:
         """Sync DB URLs should explicitly disable TLS for the internal Postgres service."""
         settings = CoreSettings(
             environment=Environment.DEV,
-            database_migration_password=SecretStr("test-password"),
+            database=DatabaseSettings(migration_password=SecretStr("test-password")),
         )
-        parsed = make_url(settings.sync_migration_database_url)
+        parsed = make_url(settings.database.sync_migration_url)
         assert parsed.query["sslmode"] == "disable"
 
     def test_sync_database_url_supports_verify_full_tls(self, tmp_path: Path) -> None:
@@ -402,31 +421,41 @@ class TestCoreSettingsCors:
         ca_file.write_text("test CA path", encoding="utf-8")
         settings = CoreSettings(
             environment=Environment.DEV,
-            database_tls=True,
-            database_tls_ca_file=ca_file,
-            database_migration_password=SecretStr("test-password"),
+            database=DatabaseSettings(
+                tls=True,
+                tls_ca_file=ca_file,
+                migration_password=SecretStr("test-password"),
+            ),
         )
 
-        parsed = make_url(settings.sync_migration_database_url)
+        parsed = make_url(settings.database.sync_migration_url)
 
         assert parsed.query["sslmode"] == "verify-full"
         assert parsed.query["sslrootcert"] == str(ca_file)
 
     def test_database_tls_rejects_non_boolean_values(self) -> None:
         """Database TLS should stay a simple boolean toggle."""
-        with pytest.raises(ValidationError, match="database_tls"):
-            CoreSettings(environment=Environment.DEV, database_tls="require")
+        with pytest.raises(ValidationError, match="tls"):
+            DatabaseSettings(tls="require")
 
     def test_async_database_connect_args_disable_tls_by_default(self) -> None:
         """Async DB connections should not inherit accidental PGSSL* env vars by default."""
         settings = CoreSettings(environment=Environment.DEV)
-        assert settings.async_database_connect_args == {"ssl": False}
+        assert settings.database.async_connect_args == {"ssl": False}
 
     def test_async_database_connect_args_verify_full_uses_ssl_context(self) -> None:
         """Full DB certificate verification should use a default verifying SSL context."""
-        settings = CoreSettings(**_production_core_settings_kwargs(database_tls=True))
+        settings = CoreSettings(**_production_core_settings_kwargs(database=DatabaseSettings(
+            app_user="relab_app",
+            app_password=SecretStr("app-password"),
+            migration_user="relab_migrator",
+            migration_password=SecretStr("migration-password"),
+            backup_user="relab_backup",
+            backup_password=SecretStr("backup-password"),
+            tls=True,
+        )))
 
-        connect_args = settings.async_database_connect_args
+        connect_args = settings.database.async_connect_args
 
         assert isinstance(connect_args["ssl"], ssl.SSLContext)
         assert connect_args["ssl"].verify_mode == ssl.CERT_REQUIRED
@@ -436,14 +465,16 @@ class TestCoreSettingsCors:
         """Redis TLS should be reflected in the cache URL scheme."""
         settings = CoreSettings(
             environment=Environment.DEV,
-            redis_host="redis.internal",
-            redis_port=6379,
-            redis_db=2,
-            redis_password=SecretStr("p@ss:word/with?chars"),
-            redis_tls=True,
+            redis=RedisSettings(
+                host="redis.internal",
+                port=6379,
+                db=2,
+                password=SecretStr("p@ss:word/with?chars"),
+                tls=True,
+            ),
         )
 
-        url = settings.cache_url
+        url = settings.redis.cache_url
 
         RedisDsn(url)
         assert url == "rediss://:p%40ss%3Aword%2Fwith%3Fchars@redis.internal:6379/2"
@@ -465,28 +496,29 @@ class TestCoreSettingsCors:
     @pytest.mark.parametrize(
         ("field", "value", "message"),
         [
-            ("database_app_user", "postgres", "DATABASE_APP_USER must not use the bootstrap/admin role"),
-            ("database_migration_user", "postgres", "DATABASE_MIGRATION_USER must not use the bootstrap/admin role"),
-            ("database_backup_user", "postgres", "DATABASE_BACKUP_USER must not use the bootstrap/admin role"),
-            ("database_app_password", SecretStr(""), "DATABASE_APP_PASSWORD must not be empty"),
-            ("database_migration_password", SecretStr(""), "DATABASE_MIGRATION_PASSWORD must not be empty"),
-            ("database_backup_password", SecretStr(""), "DATABASE_BACKUP_PASSWORD must not be empty"),
+            ("app_user", "postgres", "DATABASE_APP_USER must not use the bootstrap/admin role"),
+            ("migration_user", "postgres", "DATABASE_MIGRATION_USER must not use the bootstrap/admin role"),
+            ("backup_user", "postgres", "DATABASE_BACKUP_USER must not use the bootstrap/admin role"),
+            ("app_password", SecretStr(""), "DATABASE_APP_PASSWORD must not be empty"),
+            ("migration_password", SecretStr(""), "DATABASE_MIGRATION_PASSWORD must not be empty"),
+            ("backup_password", SecretStr(""), "DATABASE_BACKUP_PASSWORD must not be empty"),
         ],
     )
     def test_production_rejects_unsafe_database_role_settings(
         self, field: str, value: str | SecretStr, message: str
     ) -> None:
         """Production should fail fast when role credentials break least privilege."""
-        kwargs = _production_core_settings_kwargs()
-        kwargs[field] = value
-
+        base_db = _database_role_kwargs()["database"]
+        overridden = DatabaseSettings(**{**base_db.model_dump(), field: value})
         with pytest.raises(ValidationError, match=message):
-            CoreSettings(**kwargs)
+            CoreSettings(**_production_core_settings_kwargs(database=overridden))
 
     def test_production_rejects_duplicate_database_runtime_roles(self) -> None:
         """Production database runtime, migration, and backup roles must be distinct."""
+        base_db = _database_role_kwargs()["database"]
+        dup_db = DatabaseSettings(**{**base_db.model_dump(), "migration_user": "relab_app"})
         with pytest.raises(ValidationError, match="Database app, migration, and backup users must be distinct"):
-            CoreSettings(**_production_core_settings_kwargs(database_migration_user="relab_app"))
+            CoreSettings(**_production_core_settings_kwargs(database=dup_db))
 
     def test_otel_enabled_tracks_endpoint(self) -> None:
         """Telemetry is enabled iff an exporter endpoint is configured."""

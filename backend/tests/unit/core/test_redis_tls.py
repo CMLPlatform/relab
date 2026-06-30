@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, ClassVar
 from pydantic import SecretStr
 
 from app.core import redis as redis_module
-from app.core.config import CoreSettings, Environment
+from app.core.config import CoreSettings, Environment, RedisSettings
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -38,7 +38,7 @@ async def test_init_redis_omits_tls_options_when_tls_disabled(monkeypatch: pytes
     monkeypatch.setattr(
         redis_module,
         "settings",
-        CoreSettings(environment=Environment.DEV, redis_tls=False),
+        CoreSettings(environment=Environment.DEV, redis=RedisSettings(tls=False)),
     )
 
     await redis_module.init_redis()
@@ -63,10 +63,7 @@ async def test_init_redis_uses_certificate_required_tls_when_enabled(
         "settings",
         CoreSettings(
             environment=Environment.DEV,
-            redis_host="redis.internal",
-            redis_password=SecretStr("redis-secret"),
-            redis_tls=True,
-            redis_tls_ca_file=ca_file,
+            redis=RedisSettings(host="redis.internal", password=SecretStr("redis-secret"), tls=True, tls_ca_file=ca_file),
         ),
     )
 
@@ -87,9 +84,7 @@ async def test_init_redis_tls_keeps_bounded_socket_timeout(monkeypatch: pytest.M
         "settings",
         CoreSettings(
             environment=Environment.DEV,
-            redis_host="redis.internal",
-            redis_password=SecretStr("redis-secret"),
-            redis_tls=True,
+            redis=RedisSettings(host="redis.internal", password=SecretStr("redis-secret"), tls=True),
         ),
     )
 

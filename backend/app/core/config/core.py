@@ -1,30 +1,27 @@
 """Configuration settings for the FastAPI app."""
-# spell-checker: ignore PGSSL, pwnedpasswords
+# spell-checker: ignore pwnedpasswords
 
 from __future__ import annotations
 
 import re
-import ssl
 from functools import cached_property
 from ipaddress import ip_network
-from pathlib import Path  # noqa: TC003 # Runtime use is needed for Pydantic validation of settings
+from pathlib import Path  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated
-from urllib.parse import quote, urlsplit
+from urllib.parse import urlsplit
 
 from pydantic import (
     AnyUrl,
     EmailStr,
     Field,
     HttpUrl,
-    PostgresDsn,
-    RedisDsn,
     SecretStr,
     UrlConstraints,
     field_validator,
     model_validator,
 )
-from sqlalchemy.engine import URL
 
+from app.core.config.connection import DatabaseSettings, RedisSettings
 from app.core.config.models import (
     DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL,
     DEFAULT_CORS_ORIGIN_REGEX,
@@ -41,12 +38,6 @@ if TYPE_CHECKING:
 
 
 ### Constants ###
-# Database drivers and SSL modes.
-DATABASE_DRIVER_PSYCOPG = "psycopg"
-DATABASE_DRIVER_ASYNCPG = "asyncpg"
-DATABASE_SSLMODE_DISABLE = "disable"
-DATABASE_SSLMODE_VERIFY_FULL = "verify-full"
-# Allowed outbound HTTPS URL settings
 HTTPS_SCHEME = "https"
 OutboundHttpsUrl = Annotated[AnyUrl, UrlConstraints(allowed_schemes=[HTTPS_SCHEME], host_required=True)]
 DEFAULT_OUTBOUND_HTTP_ALLOWED_URLS: tuple[OutboundHttpsUrl, ...] = (
@@ -70,28 +61,9 @@ class CoreSettings(RelabBaseSettings):
     # ── Environment ──────────────────────────────────────────────────────────────
     environment: Environment = Environment.DEV
 
-    # ── Database ─────────────────────────────────────────────────────────────────
-    database_host: str = "localhost"
-    database_port: int = Field(default=5432, ge=1, le=65535)
-    database_tls: bool = False
-    database_tls_ca_file: Path | None = None
-    postgres_user: str = "postgres"
-    postgres_password: SecretStr = SecretStr("")
-    postgres_db: str = "relab_db"
-    database_app_user: str = "relab_app"
-    database_app_password: SecretStr = SecretStr("")
-    database_migration_user: str = "relab_migrator"
-    database_migration_password: SecretStr = SecretStr("")
-    database_backup_user: str = "relab_backup"
-    database_backup_password: SecretStr = SecretStr("")
-
-    # ── Redis ─────────────────────────────────────────────────────────────────────
-    redis_host: str = "localhost"
-    redis_port: int = Field(default=6379, ge=1, le=65535)
-    redis_db: int = Field(default=0, ge=0, le=15)
-    redis_password: SecretStr = SecretStr("")
-    redis_tls: bool = False
-    redis_tls_ca_file: Path | None = None
+    # ── Database & Redis ─────────────────────────────────────────────────────────
+    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    redis: RedisSettings = Field(default_factory=RedisSettings)
 
     # ── Superuser ─────────────────────────────────────────────────────────────────
     bootstrap_superuser_email: EmailStr = DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL
@@ -262,87 +234,6 @@ class CoreSettings(RelabBaseSettings):
     static_files_path: Path = BACKEND_DIR / "app" / "static"
     log_path: Path = BACKEND_DIR / "logs"
 
-    def build_database_url(
-        self,
-        driver: str,
-        database: str,
-        *,
-        username: str | None = None,
-        password: SecretStr | None = None,
-    ) -> str:
-        """Build and validate PostgreSQL database URL."""
-        query: dict[str, str] = {}
-        if driver == DATABASE_DRIVER_PSYCOPG:
-            query = {"sslmode": DATABASE_SSLMODE_VERIFY_FULL if self.database_tls else DATABASE_SSLMODE_DISABLE}
-            if self.database_tls and self.database_tls_ca_file is not None:
-                query["sslrootcert"] = str(self.database_tls_ca_file)
-
-        url = URL.create(
-            f"postgresql+{driver}",
-            username=username or self.database_app_user,
-            password=(password or self.database_app_password).get_secret_value(),
-            host=self.database_host,
-            port=self.database_port,
-            database=database,
-            query=query,
-        )
-        rendered = url.render_as_string(hide_password=False)
-        PostgresDsn(rendered)
-        return rendered
-
-    @cached_property
-    def async_database_url(self) -> str:
-        """Get async database URL."""
-        return self.build_database_url(DATABASE_DRIVER_ASYNCPG, self.postgres_db)
-
-    @cached_property
-    def sync_database_url(self) -> str:
-        """Get sync database URL."""
-        return self.build_database_url(DATABASE_DRIVER_PSYCOPG, self.postgres_db)
-
-    @cached_property
-    def sync_migration_database_url(self) -> str:
-        """Get sync migration database URL."""
-        return self.build_database_url(
-            DATABASE_DRIVER_PSYCOPG,
-            self.postgres_db,
-            username=self.database_migration_user,
-            password=self.database_migration_password,
-        )
-
-    @cached_property
-    def sync_backup_database_url(self) -> str:
-        """Get sync backup database URL."""
-        return self.build_database_url(
-            DATABASE_DRIVER_PSYCOPG,
-            self.postgres_db,
-            username=self.database_backup_user,
-            password=self.database_backup_password,
-        )
-
-    @cached_property
-    def async_database_connect_args(self) -> dict[str, bool | ssl.SSLContext]:
-        """Get async engine connect args.
-
-        Be explicit about SSL so asyncpg does not inherit PGSSL* environment
-        variables from the container when talking to the internal Docker
-        Postgres service.
-        """
-        if not self.database_tls:
-            return {"ssl": False}
-
-        cafile = str(self.database_tls_ca_file) if self.database_tls_ca_file is not None else None
-        return {"ssl": ssl.create_default_context(cafile=cafile)}
-
-    @cached_property
-    def cache_url(self) -> str:
-        """Get Redis cache URL."""
-        password = quote(self.redis_password.get_secret_value(), safe="")
-        scheme = "rediss" if self.redis_tls else "redis"
-        rendered = f"{scheme}://:{password}@{self.redis_host}:{self.redis_port}/{self.redis_db}"
-        RedisDsn(rendered)
-        return rendered
-
     @property
     def debug(self) -> bool:
         """Enable SQL echo and DEBUG logging in development only."""
@@ -387,34 +278,6 @@ class CoreSettings(RelabBaseSettings):
             raise ValueError(msg)
         return self
 
-    def _database_role_security_errors(self) -> list[str]:
-        """Collect least-privilege database role validation errors."""
-        errors: list[str] = []
-
-        database_role_credentials = {
-            "DATABASE_APP_PASSWORD": self.database_app_password,
-            "DATABASE_MIGRATION_PASSWORD": self.database_migration_password,
-            "DATABASE_BACKUP_PASSWORD": self.database_backup_password,
-        }
-        for name, value in database_role_credentials.items():
-            if not value.get_secret_value():
-                errors.append(f"{name} must not be empty in production")
-
-        bootstrap_user = self.postgres_user.casefold()
-        database_roles = {
-            "DATABASE_APP_USER": self.database_app_user,
-            "DATABASE_MIGRATION_USER": self.database_migration_user,
-            "DATABASE_BACKUP_USER": self.database_backup_user,
-        }
-        for name, value in database_roles.items():
-            if value.casefold() == bootstrap_user:
-                errors.append(f"{name} must not use the bootstrap/admin role")
-
-        if len({value.casefold() for value in database_roles.values()}) != len(database_roles):
-            errors.append("Database app, migration, and backup users must be distinct")
-
-        return errors
-
     def _production_security_errors(self) -> list[str]:
         """Collect environment-specific security validation errors."""
         errors: list[str] = []
@@ -422,9 +285,9 @@ class CoreSettings(RelabBaseSettings):
         if self.cors_origin_regex == DEFAULT_CORS_ORIGIN_REGEX:
             errors.append("CORS_ORIGIN_REGEX must not be set in production/staging")
 
-        errors.extend(self._database_role_security_errors())
+        errors.extend(self.database._role_security_errors())
 
-        if not self.redis_password.get_secret_value():
+        if not self.redis.password.get_secret_value():
             errors.append("REDIS_PASSWORD must not be empty in production")
 
         if not self.bootstrap_superuser_password.get_secret_value():

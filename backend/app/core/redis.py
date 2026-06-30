@@ -71,26 +71,27 @@ async def init_redis() -> Redis:
     This should be called once during application startup.
     """
     try:
-        password = settings.redis_password.get_secret_value() if settings.redis_password else None
-        if settings.redis_tls:
+        redis_cfg = settings.redis
+        password = redis_cfg.password.get_secret_value() if redis_cfg.password else None
+        if redis_cfg.tls:
             redis_client = Redis(
-                host=settings.redis_host,
-                port=settings.redis_port,
-                db=settings.redis_db,
+                host=redis_cfg.host,
+                port=redis_cfg.port,
+                db=redis_cfg.db,
                 password=password,
                 decode_responses=True,
                 socket_connect_timeout=5,
                 socket_timeout=5,
                 ssl=True,
                 ssl_cert_reqs=ssl.CERT_REQUIRED,
-                ssl_ca_certs=str(settings.redis_tls_ca_file) if settings.redis_tls_ca_file is not None else None,
+                ssl_ca_certs=str(redis_cfg.tls_ca_file) if redis_cfg.tls_ca_file is not None else None,
                 ssl_check_hostname=True,
             )
         else:
             redis_client = Redis(
-                host=settings.redis_host,
-                port=settings.redis_port,
-                db=settings.redis_db,
+                host=redis_cfg.host,
+                port=redis_cfg.port,
+                db=redis_cfg.db,
                 password=password,
                 decode_responses=True,
                 socket_connect_timeout=5,
@@ -100,7 +101,7 @@ async def init_redis() -> Redis:
 
         # Verify connection on startup
         await redis_bool(redis_client.ping())
-        logger.info("Redis client initialized and connected: %s:%s", settings.redis_host, settings.redis_port)
+        logger.info("Redis client initialized and connected: %s:%s", redis_cfg.host, redis_cfg.port)
 
     except (TimeoutError, RedisError, OSError, ConnectionError) as e:
         logger.warning("Failed to connect to Redis during initialization: %s.", e)

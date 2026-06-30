@@ -20,7 +20,7 @@ if not database_url:
     from app.core.logging import setup_logging
 
     setup_logging()
-    database_url = settings.sync_migration_database_url
+    database_url = settings.database.sync_migration_url
 
 config.set_main_option("sqlalchemy.url", str(database_url))
 

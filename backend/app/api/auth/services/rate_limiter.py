@@ -123,7 +123,7 @@ def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONRespons
 
 limiter = Limiter(
     key_func=request_ip_rate_limit_key,
-    storage_uri=core_settings.cache_url,
+    storage_uri=core_settings.redis.cache_url,
     strategy="fixed-window",
     enabled=core_settings.enable_rate_limit,
 )

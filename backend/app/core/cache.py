@@ -58,7 +58,7 @@ def _get_cache_backend_location(redis_client: Redis | None) -> str:
     """Return the configured cache backend URL for the current runtime."""
     if not settings.enable_caching or redis_client is None:
         return _MEMORY_CACHE_BACKEND
-    return settings.cache_url
+    return settings.redis.cache_url
 
 
 def _log_cache_backend_selection(redis_client: Redis | None, backend_location: str) -> None:

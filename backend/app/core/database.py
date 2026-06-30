@@ -18,8 +18,8 @@ load_models()
 
 ### Async database connection
 async_engine: AsyncEngine = create_async_engine(
-    settings.async_database_url,
-    connect_args=settings.async_database_connect_args,
+    settings.database.async_url,
+    connect_args=settings.database.async_connect_args,
     echo=settings.debug,
     pool_size=settings.db_pool_size,
     max_overflow=settings.db_pool_max_overflow,

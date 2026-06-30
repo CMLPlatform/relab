@@ -30,7 +30,7 @@ class TestCacheLifecycle:
 
         with patch("app.core.cache.settings") as mock_settings, patch.object(_backend, "setup") as mock_setup:
             mock_settings.enable_caching = True
-            mock_settings.cache_url = "redis://cache"
+            mock_settings.redis.cache_url = "redis://cache"
             mock_settings.cache_signing_secret = SecretStr("cache-signing-secret")
             with patch.dict(_cache_state, {"initialized": False}):
                 init_cache(redis_client)
