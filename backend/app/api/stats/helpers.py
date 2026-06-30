@@ -3,10 +3,6 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
 
 # Default lookback window per granularity, expressed as timedelta.
 # Approximate for month/year — exact enough given SQL date_trunc rounding.

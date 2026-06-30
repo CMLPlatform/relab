@@ -4,15 +4,16 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query
+from fastapi import HTTPException, Query
 
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.stats.helpers import resolve_date_range
 from app.api.stats.queries import compute_categories, compute_series, compute_totals
 from app.api.stats.schemas import CategoriesResponse, SeriesResponse, TotalsResponse
 from app.core.cache import cache
 
-router = APIRouter(prefix="/stats", tags=["stats"])
+router = PublicAPIRouter(prefix="/stats", tags=["stats"])
 
 _STATS_CACHE_TTL = 43200  # 12 hours
 
@@ -54,6 +55,9 @@ async def get_stats_series(
     start_date = date.fromisoformat(start) if start else None
     end_date = date.fromisoformat(end) if end else None
     effective_start, effective_end = resolve_date_range(granularity, start_date, end_date)
+
+    if effective_start > effective_end:
+        raise HTTPException(status_code=422, detail="start must not be after end")
 
     series, generated_at = await compute_series(session, granularity, effective_start, effective_end)
     return SeriesResponse(

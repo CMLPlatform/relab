@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
 from sqlalchemy import func, select
@@ -86,8 +86,6 @@ async def compute_series(
     end: date,
 ) -> tuple[list[SeriesPoint], datetime]:
     """Return time-bucketed activity series for the given date window."""
-    from datetime import timedelta, timezone
-
     start_dt = datetime(start.year, start.month, start.day, tzinfo=timezone.utc)
     end_dt = datetime(end.year, end.month, end.day, tzinfo=timezone.utc) + timedelta(days=1)
 
