@@ -57,38 +57,14 @@ def get_request_services(request: Request) -> AppServices:
     return get_connection_services(request)
 
 
-def require_connection_services(connection: HTTPConnection) -> AppServices:
-    """Return runtime services for a connection.
-
-    This helper documents intent at call sites that expect the container to be
-    present as part of normal application startup.
-    """
-    return get_connection_services(connection)
-
-
 def get_connection_redis(connection: HTTPConnection) -> Redis | None:
     """Return the shared Redis client for a request or websocket."""
     return get_connection_services(connection).redis
 
 
-def get_connection_http_client(connection: HTTPConnection) -> AsyncClient | None:
-    """Return the shared outbound HTTP client for a request or websocket."""
-    return get_connection_services(connection).http_client
-
-
 def get_connection_camera_manager(connection: HTTPConnection) -> CameraConnectionManager | None:
     """Return the shared camera connection manager for a request or websocket."""
     return get_connection_services(connection).camera_connection_manager
-
-
-def get_connection_image_resize_limiter(connection: HTTPConnection) -> anyio.CapacityLimiter | None:
-    """Return the shared image resize limiter for a request or websocket."""
-    return get_connection_services(connection).image_resize_limiter
-
-
-def get_connection_file_cleanup_manager(connection: HTTPConnection) -> FileCleanupManager | None:
-    """Return the shared file cleanup manager for a request or websocket."""
-    return get_connection_services(connection).file_cleanup_manager
 
 
 def require_connection_camera_manager(connection: HTTPConnection) -> CameraConnectionManager:
@@ -113,15 +89,6 @@ def require_redis(redis_client: Redis | None) -> Redis:
 def require_connection_redis(connection: HTTPConnection) -> Redis:
     """Return the shared Redis client, raising when runtime init is incomplete."""
     return require_redis(get_connection_redis(connection))
-
-
-def require_connection_http_client(connection: HTTPConnection) -> AsyncClient:
-    """Return the shared outbound HTTP client, raising when runtime init is incomplete."""
-    http_client = get_connection_http_client(connection)
-    if http_client is None:
-        msg = "HTTP client is not initialized"
-        raise RuntimeError(msg)
-    return http_client
 
 
 def reset_app_services(app: FastAPI) -> AppServices:
