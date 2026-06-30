@@ -41,9 +41,9 @@ async def compute_totals(session: AsyncSession) -> tuple[Totals, datetime]:
 
     return (
         Totals(
-            teardowns=int(product_row.teardowns) if product_row else 0,
-            parts=int(product_row.parts) if product_row else 0,
-            mass_kg=round(float(product_row.total_weight_g or 0) / 1000.0, 2) if product_row else 0.0,
+            teardowns=int(product_row.teardowns),
+            parts=int(product_row.parts),
+            mass_kg=round(float(product_row.total_weight_g or 0) / 1000.0, 2),
             images=image_count,
             users=user_count,
         ),

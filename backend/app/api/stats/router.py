@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Annotated, Literal
 
 from fastapi import HTTPException, Query
@@ -50,8 +51,6 @@ async def get_stats_series(
     end: Annotated[str | None, Query(pattern=r"^\d{4}-\d{2}-\d{2}$")] = None,
 ) -> SeriesResponse:
     """Time-bucketed activity series. Granularity: day | week | month | year."""
-    from datetime import date
-
     start_date = date.fromisoformat(start) if start else None
     end_date = date.fromisoformat(end) if end else None
     effective_start, effective_end = resolve_date_range(granularity, start_date, end_date)
