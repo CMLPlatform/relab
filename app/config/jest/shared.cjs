@@ -11,8 +11,6 @@ const sharedConfig = {
   },
   maxWorkers: '50%',
   testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
-  testTimeout: 15_000,
-  watchman: false,
   transformIgnorePatterns: [
     'node_modules/(?!(?:.pnpm/.*?/node_modules/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|msw|@mswjs|@open-draft/.*|until-async|rettime))',
   ],
@@ -27,7 +25,6 @@ const sharedConfig = {
     '^msw/node$': '<rootDir>/node_modules/msw/lib/node/index.js',
   },
   coverageDirectory: 'coverage',
-  coverageReporters: ['json', 'lcov', 'text', 'clover', 'cobertura'],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/__tests__/**',
