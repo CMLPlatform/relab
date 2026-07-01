@@ -36,8 +36,7 @@ class _NoNetworkTransport(httpx.AsyncBaseTransport):
     - Any other callers that fail open on non-OK responses are also fine.
     """
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        _ = request
+    async def handle_async_request(self, _request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, content=b"")
 
 
@@ -46,8 +45,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from redis.asyncio import Redis
-
-    from app.api.auth.models import User
 
 
 def _configure_test_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

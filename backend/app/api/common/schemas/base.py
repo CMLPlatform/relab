@@ -12,8 +12,9 @@ from pydantic import (
     field_serializer,
 )
 
+from app.api.common.models.associations import MAX_MATERIAL_QUANTITY
+from app.api.common.models.enums import Unit
 from app.api.common.schemas.field_mixins import (
-    MaterialFields,
     PhysicalPropertiesFields,
     ProductCircularityPropertiesFields,
     ProductFields,
@@ -99,17 +100,17 @@ class BaseUpdateSchema(BaseInputSchema):
     """Base schema for all update operations."""
 
 
-### Base Schemas to avoid Circular Dependencies ###
-# These are defined in the same file to avoid circular dependencies with other schemas
+class MaterialProductLinkBase(BaseModel):
+    """Pydantic base for material-product link schemas (shared by data_collection and reference_data)."""
+
+    quantity: float = Field(gt=0, le=MAX_MATERIAL_QUANTITY, description="Quantity of the material in the product")
+    unit: Unit = Field(
+        default=Unit.KILOGRAM,
+        description=f"Unit of the quantity, e.g. {', '.join([u.value for u in Unit][:3])}",
+    )
 
 
-## Material Schemas ##
-class MaterialRead(IntIdReadSchema, MaterialFields):
-    """Schema for reading material information."""
-
-
-## Product Schemas ##
-class _ProductReadFields(
+class ProductReadBase(
     IntIdReadSchemaWithTimeStamp, ProductFields, PhysicalPropertiesFields, ProductCircularityPropertiesFields
 ):
     """Shared read fields for base products and components."""
@@ -118,27 +119,11 @@ class _ProductReadFields(
     thumbnail_url: str | None = None
 
 
-class ProductRead(_ProductReadFields):
-    """Read schema for base products (top of a product tree).
-
-    Base products carry an ``owner_id`` and never have a ``parent_id`` or
-    ``amount_in_parent``. Components are represented by :class:`ComponentRead`.
-    """
+# This schema stays in common (not data_collection) — reference_data needs ProductRead for
+# MaterialProductLinkReadWithinMaterial, and data_collection→reference_data already,
+# so moving it there would be circular.
+class ProductRead(ProductReadBase):
+    """Read schema for base products (top of a product tree)."""
 
     owner_id: UUID4 | None = None
-    owner_username: str | None = None
-
-
-class ComponentRead(_ProductReadFields):
-    """Read schema for components (nested inside a base product tree).
-
-    Components denormalize their root base product's ``owner_id``, but we
-    don't expose it to API clients (the role distinction belongs in the
-    response shape, not the payload). ``parent_id`` and ``amount_in_parent``
-    are required by the database's role invariant.
-    """
-
-    parent_id: PositiveInt
-    amount_in_parent: int = Field(description="Quantity within parent product")
-    # Exposed so privacy-respecting UIs can attribute components to the base product's owner.
     owner_username: str | None = None

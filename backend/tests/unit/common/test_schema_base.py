@@ -12,34 +12,31 @@ class ExampleReadSchema(IntIdReadSchemaWithTimeStamp):
 
     name: str
 
+def test_model_validate_reads_attributes_from_objects() -> None:
+    """Read schemas should accept attribute-based ORM-like inputs by default."""
 
-class TestBaseReadSchemaWithTimeStamp:
-    """Tests for common read-schema behavior."""
+    class ExampleORMRow:
+        id = 1
+        name = "example"
+        created_at = datetime(2026, 3, 30, 10, 11, 12, tzinfo=UTC)
+        updated_at = datetime(2026, 3, 30, 10, 12, 13, tzinfo=UTC)
 
-    def test_model_validate_reads_attributes_from_objects(self) -> None:
-        """Read schemas should accept attribute-based ORM-like inputs by default."""
+    result = ExampleReadSchema.model_validate(ExampleORMRow())
 
-        class ExampleORMRow:
-            id = 1
-            name = "example"
-            created_at = datetime(2026, 3, 30, 10, 11, 12, tzinfo=UTC)
-            updated_at = datetime(2026, 3, 30, 10, 12, 13, tzinfo=UTC)
+    assert result.id == 1
+    assert result.name == "example"
 
-        result = ExampleReadSchema.model_validate(ExampleORMRow())
+def test_model_dump_serializes_timestamps_with_z_suffix() -> None:
+    """Timestamp serializer should emit stable UTC ``Z`` strings."""
+    result = ExampleReadSchema(
+        id=1,
+        name="example",
+        created_at=datetime(2026, 3, 30, 10, 11, 12, tzinfo=UTC),
+        updated_at=datetime(2026, 3, 30, 10, 12, 13, tzinfo=UTC),
+    )
 
-        assert result.id == 1
-        assert result.name == "example"
+    dumped = result.model_dump()
 
-    def test_model_dump_serializes_timestamps_with_z_suffix(self) -> None:
-        """Timestamp serializer should emit stable UTC ``Z`` strings."""
-        result = ExampleReadSchema(
-            id=1,
-            name="example",
-            created_at=datetime(2026, 3, 30, 10, 11, 12, tzinfo=UTC),
-            updated_at=datetime(2026, 3, 30, 10, 12, 13, tzinfo=UTC),
-        )
+    assert dumped["created_at"] == "2026-03-30T10:11:12Z"
+    assert dumped["updated_at"] == "2026-03-30T10:12:13Z"
 
-        dumped = result.model_dump()
-
-        assert dumped["created_at"] == "2026-03-30T10:11:12Z"
-        assert dumped["updated_at"] == "2026-03-30T10:12:13Z"

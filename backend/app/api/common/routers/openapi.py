@@ -10,7 +10,7 @@ from fastapi.responses import Response
 from fastapi.routing import APIRoute
 
 from app.__version__ import version as service_version
-from app.api.audiences import OPENAPI_AUDIENCE_EXTENSION, PublicAPIRouter, RouteAudience, merge_audience_extra
+from app.api.common.audiences import RouteAudience, merge_audience_extra, route_audiences
 from app.api.common.config import settings as api_settings
 from app.core.responses import conditional_json_response
 
@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from starlette.routing import BaseRoute
 
 __all__ = [
-    "PublicAPIRouter",
     "build_device_openapi",
     "build_public_openapi",
     "init_openapi_docs",
@@ -125,15 +124,6 @@ def _filter_openapi_routes(
     return [route for route in routes if not isinstance(route, APIRoute) or include_route(route)]
 
 
-def _route_audiences(route: APIRoute) -> set[str]:
-    audiences = (route.openapi_extra or {}).get(OPENAPI_AUDIENCE_EXTENSION, [])
-    if isinstance(audiences, str):
-        return {audiences}
-    if isinstance(audiences, list):
-        return {audience for audience in audiences if isinstance(audience, str)}
-    return set()
-
-
 def _route_tags(route: APIRoute) -> set[str]:
     tags = route.tags
     if isinstance(tags, list):
@@ -142,7 +132,7 @@ def _route_tags(route: APIRoute) -> set[str]:
 
 
 def _is_public_route(route: APIRoute) -> bool:
-    audiences = _route_audiences(route)
+    audiences = set(route_audiences(route))
     return (
         (route.openapi_extra or {}).get(OPENAPI_PUBLIC_INCLUSION_EXTENSION, False)
         or RouteAudience.PUBLIC.value in audiences
@@ -151,13 +141,13 @@ def _is_public_route(route: APIRoute) -> bool:
 
 
 def _is_admin_route(route: APIRoute) -> bool:
-    audiences = _route_audiences(route)
+    audiences = set(route_audiences(route))
     tags = _route_tags(route)
     return RouteAudience.ADMIN.value in audiences or ADMIN_TAG in tags or route.path.startswith(f"/{API_MAJOR}/admin/")
 
 
 def _is_device_route(route: APIRoute) -> bool:
-    audiences = _route_audiences(route)
+    audiences = set(route_audiences(route))
     if RouteAudience.DEVICE.value in audiences:
         return True
     return route.path.startswith(f"/{API_MAJOR}/plugins/rpi-cam/pairing/") or route.path.endswith(DEVICE_ROUTE_SUFFIXES)

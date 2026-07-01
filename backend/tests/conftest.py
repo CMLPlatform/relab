@@ -63,14 +63,7 @@ _MASTER_WORKER = "master"
 _SAFE_DB_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
-# Global container instance for entire test session
-class _PostgresContainerState:
-    """Mutable holder for the session Postgres container."""
-
-    container: PostgresContainer | None = None
-
-
-_POSTGRES_CONTAINER_STATE = _PostgresContainerState()
+_postgres_container: PostgresContainer | None = None
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -84,20 +77,21 @@ def pytest_configure(config: pytest.Config) -> None:
 
 def _ensure_testcontainers_postgres() -> None:
     """Start Testcontainers Postgres once and publish its coordinates."""
-    if _POSTGRES_CONTAINER_STATE.container is not None:
+    global _postgres_container  # noqa: PLW0603
+    if _postgres_container is not None:
         return
 
     logger.info("Starting Testcontainers Postgres...")
-    _POSTGRES_CONTAINER_STATE.container = PostgresContainer(
+    _postgres_container = PostgresContainer(
         "postgres:18-alpine",
         username="postgres",
         password="postgres",  # Test-password only
         dbname="postgres",
     )
-    _POSTGRES_CONTAINER_STATE.container.start()
+    _postgres_container.start()
 
-    host = _POSTGRES_CONTAINER_STATE.container.get_container_host_ip()
-    port = _POSTGRES_CONTAINER_STATE.container.get_exposed_port(5432)
+    host = _postgres_container.get_container_host_ip()
+    port = _postgres_container.get_exposed_port(5432)
 
     os.environ["DATABASE_HOST"] = str(host)
     os.environ["DATABASE_PORT"] = str(port)
@@ -123,11 +117,12 @@ def _quoted_test_database_identifier(database_name: str) -> str:
 
 def pytest_unconfigure(config: pytest.Config) -> None:
     """Stop Testcontainers after all tests complete."""
+    global _postgres_container  # noqa: PLW0603
     del config
-    if _POSTGRES_CONTAINER_STATE.container:
+    if _postgres_container:
         logger.info("Stopping Testcontainers Postgres...")
-        _POSTGRES_CONTAINER_STATE.container.stop()
-        _POSTGRES_CONTAINER_STATE.container = None
+        _postgres_container.stop()
+        _postgres_container = None
 
 
 def _get_worker_test_db_name() -> str:

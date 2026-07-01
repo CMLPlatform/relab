@@ -81,81 +81,39 @@ class UserFactory(BaseModelFactory[User]):
 
     __model__ = User
     email_canonical = Ignore()
+    hashed_password = "not_really_hashed"
+    is_active = True
+    is_superuser = False
+    is_verified = True
+    mfa_enabled = False
+    mfa_totp_secret = None
+    mfa_confirmed_at = None
+    upload_file_count = 0
+    upload_total_bytes = 0
 
     @classmethod
     def email(cls) -> str:
-        """Generate mock value."""
         return cls.__faker__.email()
 
     @classmethod
-    def hashed_password(cls) -> str:
-        """Generate mock value."""
-        return "not_really_hashed"
-
-    @classmethod
-    def is_active(cls) -> bool:
-        """Generate mock value."""
-        return True
-
-    @classmethod
-    def is_superuser(cls) -> bool:
-        """Generate mock value."""
-        return False
-
-    @classmethod
-    def is_verified(cls) -> bool:
-        """Generate mock value."""
-        return True
-
-    @classmethod
-    def mfa_enabled(cls) -> bool:
-        """Generate model-default MFA state."""
-        return False
-
-    @classmethod
-    def mfa_totp_secret(cls) -> None:
-        """Generate model-default MFA state."""
-        return
-
-    @classmethod
-    def mfa_confirmed_at(cls) -> None:
-        """Generate model-default MFA state."""
-        return
-
-    @classmethod
     def username(cls) -> str:
-        """Generate mock value."""
         return cls.__faker__.user_name()
 
     @classmethod
     def products(cls) -> list:
-        """Generate mock value."""
         return []
 
     @classmethod
     def oauth_accounts(cls) -> list:
-        """Generate mock value."""
         return []
 
     @classmethod
     def preferences(cls) -> dict[str, Any]:
-        """Generate valid user preferences."""
         return {}
 
     @classmethod
     def profile_stats(cls) -> dict[str, Any]:
-        """Generate valid public profile stats."""
         return {}
-
-    @classmethod
-    def upload_file_count(cls) -> int:
-        """Generate valid upload quota count."""
-        return 0
-
-    @classmethod
-    def upload_total_bytes(cls) -> int:
-        """Generate valid upload quota byte total."""
-        return 0
 
 
 class TaxonomyFactory(BaseModelFactory[Taxonomy]):
@@ -165,22 +123,18 @@ class TaxonomyFactory(BaseModelFactory[Taxonomy]):
 
     @classmethod
     def name(cls) -> str:
-        """Generate mock value."""
         return cls.__faker__.catch_phrase()
 
     @classmethod
     def version(cls) -> str:
-        """Generate mock value."""
         return cls.__faker__.numerify(text="v#.#.#")
 
     @classmethod
     def description(cls) -> str | None:
-        """Generate mock value."""
         return cls.__faker__.text(max_nb_chars=200) if cls.__faker__.boolean() else None
 
     @classmethod
     def domains(cls) -> set[TaxonomyDomain]:
-        """Generate mock value."""
         # Return at least one domain
         domains = [TaxonomyDomain.MATERIALS]
         if cls.__faker__.boolean():
@@ -189,12 +143,10 @@ class TaxonomyFactory(BaseModelFactory[Taxonomy]):
 
     @classmethod
     def categories(cls) -> list[Category]:
-        """Generate mock value."""
         return []
 
     @classmethod
     def source(cls) -> str | None:
-        """Generate mock value."""
         return cls.__faker__.url() if cls.__faker__.boolean() else None
 
 
@@ -205,30 +157,20 @@ class CategoryFactory(BaseModelFactory[Category]):
 
     @classmethod
     def name(cls) -> str:
-        """Generate mock value."""
         return cls.__faker__.word().title()
 
     @classmethod
     def description(cls) -> str | None:
-        """Generate mock value."""
         return cls.__faker__.sentence() if cls.__faker__.boolean() else None
 
     @classmethod
     def external_id(cls) -> str | None:
-        """Generate mock value."""
         return cls.__faker__.uuid4() if cls.__faker__.boolean() else None
 
-    @classmethod
-    def supercategory_id(cls) -> int | None:
-        """Generate mock value."""
-        return None
+    supercategory_id = None
+    supercategory = None
 
-    @classmethod
-    def supercategory(cls) -> None:
-        """Generate mock value."""
-        return
-
-    # taxonomy_id and supercategory_id should be set explicitly in tests
+    # taxonomy_id should be set explicitly in tests
 
 
 class MaterialFactory(BaseModelFactory[Material]):
@@ -238,23 +180,19 @@ class MaterialFactory(BaseModelFactory[Material]):
 
     @classmethod
     def name(cls) -> str:
-        """Generate mock value."""
         materials = ["Steel", "Aluminum", "Copper", "Titanium", "Carbon Fiber", "Glass", "Ceramic"]
         return cls.__faker__.random_element(elements=materials)
 
     @classmethod
     def description(cls) -> str | None:
-        """Generate mock value."""
         return cls.__faker__.sentence() if cls.__faker__.boolean() else None
 
     @classmethod
     def source(cls) -> str | None:
-        """Generate mock value."""
         return cls.__faker__.url() if cls.__faker__.boolean() else None
 
     @classmethod
     def density_kg_m3(cls) -> float | None:
-        """Generate mock value."""
         return (
             round(cls.__faker__.pyfloat(min_value=100, max_value=20000), 2)
             if cls.__faker__.boolean(chance_of_getting_true=80)
@@ -263,7 +201,6 @@ class MaterialFactory(BaseModelFactory[Material]):
 
     @classmethod
     def is_crm(cls) -> bool | None:
-        """Generate mock value."""
         return cls.__faker__.boolean() if cls.__faker__.boolean(chance_of_getting_true=80) else None
 
 
@@ -274,13 +211,11 @@ class ProductTypeFactory(BaseModelFactory[ProductType]):
 
     @classmethod
     def name(cls) -> str:
-        """Generate mock value."""
         product_types = ["Electronics", "Furniture", "Appliances", "Tools", "Packaging", "Automotive Parts"]
         return cls.__faker__.random_element(elements=product_types)
 
     @classmethod
     def description(cls) -> str | None:
-        """Generate mock value."""
         return cls.__faker__.sentence() if cls.__faker__.boolean() else None
 
 
@@ -307,48 +242,31 @@ class ProductFactory(BaseModelFactory[Product]):
 
     @classmethod
     def name(cls) -> str:
-        """Generate mock value."""
         return cls.__faker__.bs().title()
 
     @classmethod
     def description(cls) -> str | None:
-        """Generate mock value."""
         return cls.__faker__.text(max_nb_chars=200)
 
     @classmethod
     def brand(cls) -> str | None:
-        """Generate mock value."""
         return cls.__faker__.company()
 
     @classmethod
     def model(cls) -> str | None:
-        """Generate mock value."""
         return cls.__faker__.bothify(text="??-####")
 
-    @classmethod
-    def parent_id(cls) -> int | None:
-        """Generate mock value."""
-        return None
-
-    @classmethod
-    def amount_in_parent(cls) -> int | None:
-        """Generate mock value."""
-        return None
+    parent_id = None
+    amount_in_parent = None
+    circularity_properties = None
 
     @classmethod
     def components(cls) -> list:
-        """Generate mock value."""
         return []
 
     @classmethod
     def bill_of_materials(cls) -> list:
-        """Generate mock value."""
         return []
-
-    @classmethod
-    def circularity_properties(cls) -> None:
-        """Generate mock value."""
-        return
 
 
 class MaterialProductLinkFactory(BaseModelFactory[MaterialProductLink]):
@@ -358,5 +276,4 @@ class MaterialProductLinkFactory(BaseModelFactory[MaterialProductLink]):
 
     @classmethod
     def quantity(cls) -> float:
-        """Generate mock value."""
         return cls.__faker__.pyfloat(positive=True, min_value=0.1, max_value=10.0)

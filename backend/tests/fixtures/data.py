@@ -78,46 +78,28 @@ async def db_product_type(db_session: AsyncSession) -> ProductType:
 
 
 @pytest.fixture
-async def setup_product(db_session: AsyncSession, db_superuser: User) -> Product:
+async def setup_product(db_session: AsyncSession, db_superuser: User, db_product_type: ProductType) -> Product:
     """Create a top-level product owned by the authenticated superuser."""
-    product_type = ProductType(
-        name="Power Tool",
-        description="Handheld electric tools for construction and DIY",
-    )
-    product = Product(
-        owner_id=db_superuser.id,
-        name=PRODUCT_BASE_NAME,
-        brand=BRAND_X,
-        product_type=product_type,
-    )
-    db_session.add_all([product_type, product])
+    product = Product(owner_id=db_superuser.id, name=PRODUCT_BASE_NAME, brand=BRAND_X, product_type=db_product_type)
+    db_session.add(product)
     await db_session.flush()
     return product
 
 
 @pytest.fixture
-async def setup_product_graph(db_session: AsyncSession, db_superuser: User) -> ProductGraph:
+async def setup_product_graph(db_session: AsyncSession, db_superuser: User, db_product_type: ProductType) -> ProductGraph:
     """Create a compact product graph with a root product and one child component."""
-    product_type = ProductType(
-        name="Power Tool",
-        description="Handheld electric tools for construction and DIY",
-    )
-    product = Product(
-        owner_id=db_superuser.id,
-        name=PRODUCT_BASE_NAME,
-        brand=BRAND_X,
-        product_type=product_type,
-    )
+    product = Product(owner_id=db_superuser.id, name=PRODUCT_BASE_NAME, brand=BRAND_X, product_type=db_product_type)
     component = Product(
         owner_id=db_superuser.id,
         name=COMPONENT_NAME,
-        product_type=product_type,
+        product_type=db_product_type,
         parent=product,
         amount_in_parent=1,
     )
-    db_session.add_all([product_type, product, component])
+    db_session.add_all([product, component])
     await db_session.flush()
-    return ProductGraph(product_type=product_type, product=product, component=component)
+    return ProductGraph(product_type=db_product_type, product=product, component=component)
 
 
 @pytest.fixture

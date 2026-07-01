@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 PRODUCT_BASE_NAME = "Test Product Base"
 BRAND_X = "Brand X"
-START_TIME = datetime(2020, 1, 1, tzinfo=UTC)
-END_TIME = datetime(2020, 1, 2, tzinfo=UTC)
 COMPONENT_NAME = "Test Component"
 NEW_PRODUCT_NAME = "New API Product"
 PRODUCT_DESC = "Via API"

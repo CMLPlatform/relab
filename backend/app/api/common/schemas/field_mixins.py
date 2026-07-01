@@ -9,7 +9,6 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api.common.validation import MultilineUserText
-from app.api.reference_data.models import TaxonomyDomain
 
 
 class PhysicalPropertiesFields(BaseModel):
@@ -99,34 +98,3 @@ class MaterialFields(BaseModel):
     is_crm: bool | None = Field(default=None, description="Is this material a Critical Raw Material (CRM)?")
 
 
-class ProductTypeFields(BaseModel):
-    """Shared product-type fields for API schemas."""
-
-    name: str = Field(min_length=2, max_length=100, description="Name of the Product Type.")
-    description: str | None = Field(default=None, max_length=500, description="Description of the Product Type.")
-
-
-class CategoryFields(BaseModel):
-    """Shared category fields for API schemas."""
-
-    name: str = Field(min_length=2, max_length=250, description="Name of the category")
-    description: str | None = Field(default=None, max_length=500, description="Description of the category")
-    external_id: str | None = Field(default=None, description="ID of the category in the external taxonomy")
-
-
-class TaxonomyFields(BaseModel):
-    """Shared taxonomy fields for API schemas."""
-
-    model_config = ConfigDict(use_enum_values=True)
-
-    name: str = Field(min_length=2, max_length=100)
-    version: str | None = Field(min_length=1, max_length=50)
-    description: str | None = Field(default=None, max_length=500)
-    domains: set[TaxonomyDomain] = Field(
-        description=f"Domains of the taxonomy, e.g. {{{', '.join([d.value for d in TaxonomyDomain][:3])}}}"
-    )
-    source: str | None = Field(
-        default=None,
-        max_length=500,
-        description="Source of the taxonomy data, e.g. URL, IRI or citation key",
-    )

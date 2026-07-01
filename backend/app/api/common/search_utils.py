@@ -63,24 +63,3 @@ def apply_ts_rank_ordering(query: Select[Any], search_vector_col: ColumnElement[
     """
     rank = func.ts_rank(search_vector_col, func.websearch_to_tsquery("english", search)).label("ts_rank_score")
     return query.add_columns(rank).order_by(rank.desc())
-
-
-# ─── Mixin ────────────────────────────────────────────────────────────────────
-
-
-class TSVectorSearchMixin:
-    """Mixin documenting the methods required for tsvector + trigram search."""
-
-    @classmethod
-    def search_vector_column(cls) -> ColumnElement[Any]:
-        """Return the tsvector column for this model. Must be implemented by the subclass."""
-        msg = f"{cls.__name__} must implement search_vector_column()"
-        raise NotImplementedError(msg)
-
-    @classmethod
-    def trigram_columns(cls) -> list[SearchableColumn]:
-        """Return the list of text columns to fuzzy-match with trigram similarity.
-
-        Override in the subclass to enable trigram fallback on specific fields.
-        """
-        return []

@@ -23,14 +23,6 @@ class RouteAudience(StrEnum):
     APP = "app"
     ADMIN = "admin"
     DEVICE = "device"
-    OPERATIONS = "operations"
-    WEB = "web"
-    CANONICAL_ONLY = "canonical-only"
-
-
-def audience_extra(*audiences: RouteAudience | str) -> dict[str, list[str]]:
-    """Build OpenAPI metadata for route audience filtering."""
-    return {OPENAPI_AUDIENCE_EXTENSION: [str(audience) for audience in audiences]}
 
 
 def merge_audience_extra(
@@ -55,9 +47,7 @@ def route_audiences(route: APIRoute) -> tuple[str, ...]:
 def _coerce_audiences(value: object) -> list[str]:
     if isinstance(value, str):
         return [value]
-    if isinstance(value, list) and all(isinstance(item, str) for item in value):
-        return [item for item in value if isinstance(item, str)]
-    if isinstance(value, tuple) and all(isinstance(item, str) for item in value):
+    if isinstance(value, (list, tuple)):
         return [item for item in value if isinstance(item, str)]
     return []
 

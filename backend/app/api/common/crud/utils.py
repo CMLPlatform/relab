@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from uuid import UUID
 
 
-### Error Handling Utilities ###
 def ensure_model_exists(db_result: MT | None, model_type: type[MT], model_id: IDT) -> MT:
     """Ensure a model with a given ID exists, providing type-safe return.
 
@@ -37,8 +36,7 @@ def ensure_model_exists(db_result: MT | None, model_type: type[MT], model_id: ID
     return cast("MT", db_result)
 
 
-### Linked Item Validation ###
-def validate_linked_items(
+def _validate_linked_items(
     item_ids: set[int] | set[UUID],
     existing_items: Sequence[Any] | None,
     model_name_plural: str,
@@ -78,7 +76,6 @@ def validate_linked_items(
             raise LinkedItemsMissingError(model_name_plural, missing)
 
 
-### Formatting Utilities ###
 def format_id_set(id_set: set[Any]) -> str:
     """Format a set of IDs as a comma-separated string."""
     return ", ".join(map(str, sorted(id_set)))
@@ -97,7 +94,7 @@ def validate_no_duplicate_linked_items(
     id_attr: str = "id",
 ) -> None:
     """Validate that new items are not already in the existing items list."""
-    validate_linked_items(
+    _validate_linked_items(
         new_ids,
         existing_items,
         model_name_plural,
@@ -115,7 +112,7 @@ def validate_linked_items_exist(
     id_attr: str = "id",
 ) -> None:
     """Validate that all item_ids are present in existing_items."""
-    validate_linked_items(
+    _validate_linked_items(
         item_ids,
         existing_items,
         model_name_plural,
