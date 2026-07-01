@@ -1,5 +1,5 @@
 import { Platform, useWindowDimensions } from 'react-native';
-import { breakpoints } from '@/constants/layout';
+import { breakpoints } from '@/constants';
 
 /**
  * Returns true when running on web with a viewport >= desktop breakpoint.

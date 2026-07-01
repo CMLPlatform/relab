@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { radius, spacing } from '@/constants/layout';
+import { radius, spacing } from '@/constants';
 
 export const styles = StyleSheet.create({
   sectionSummary: {

@@ -1,6 +1,6 @@
 import type * as ImagePicker from 'expo-image-picker';
 import { resolveApiMediaUrl } from '@/services/api/media';
-import { processImage } from '@/services/media/imageProcessing';
+import { processImage } from '@/services/imageProcessing';
 
 export function appendCapturedImage(
   images: { url: string; description: string; id?: string }[],

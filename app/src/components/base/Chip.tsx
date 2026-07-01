@@ -1,7 +1,7 @@
 import type React from 'react';
 import { Pressable, type PressableProps, StyleSheet } from 'react-native';
 import { Text } from '@/components/base/Text';
-import { radius, spacing } from '@/constants/layout';
+import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 
 interface Props extends PressableProps {

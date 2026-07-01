@@ -3,7 +3,7 @@ import { type JSX, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text, Tooltip } from 'react-native-paper';
 import { OverlaySurface } from '@/components/common/OverlaySurface';
-import { radius, spacing } from '@/constants/layout';
+import { radius, spacing } from '@/constants';
 import { alpha, useAppTheme } from '@/theme';
 
 const MOBILE_USER_AGENT_PATTERN = /iPhone|iPad|iPod|Android/i;
