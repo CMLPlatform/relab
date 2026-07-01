@@ -5,8 +5,8 @@ import { MutedText } from '@/components/base/MutedText';
 import {
   resolveEffectiveCameraConnection,
   useEffectiveCameraConnection,
-} from '@/hooks/useEffectiveCameraConnection';
-import { useCamerasQuery } from '@/hooks/useRpiCameras';
+} from '@/hooks/cameras/useEffectiveCameraConnection';
+import { useCamerasQuery } from '@/hooks/cameras/data/hooks';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
 

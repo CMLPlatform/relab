@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { resolveEffectiveCameraConnection } from '../useEffectiveCameraConnection';
+import { resolveEffectiveCameraConnection } from '@/hooks/cameras/useEffectiveCameraConnection';
 
 describe('resolveEffectiveCameraConnection', () => {
   it('uses relay reachability when the backend status is online', () => {

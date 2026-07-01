@@ -3,12 +3,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
 import { useThemeMode } from '@/context/themeMode';
-import { useOAuthAssociations } from '@/hooks/profile/useOAuthAssociations';
-import { useOwnProfileStats } from '@/hooks/profile/useOwnProfileStats';
+import { useOAuthAssociations } from './useOAuthAssociations';
+import { useOwnProfileStats } from './useOwnProfileStats';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { useStopYouTubeStreamMutation } from '@/hooks/useRpiCameras';
-import { useRpiIntegration } from '@/hooks/useRpiIntegration';
-import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
+import { useStopYouTubeStreamMutation } from '@/hooks/cameras/data/hooks';
+import { useRpiIntegration } from '@/hooks/cameras/useRpiIntegration';
+import { useYouTubeIntegration } from '@/hooks/cameras/useYouTubeIntegration';
 import {
   logout,
   revokeAllSessions,

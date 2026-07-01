@@ -72,15 +72,15 @@ jest.mock('@/hooks/useAppFeedback', () => ({
   useAppFeedback: () => mockFeedback,
 }));
 
-jest.mock('@/hooks/useRpiIntegration', () => ({
+jest.mock('@/hooks/cameras/useRpiIntegration', () => ({
   useRpiIntegration: () => mockRpiIntegrationState,
 }));
 
-jest.mock('@/hooks/useYouTubeIntegration', () => ({
+jest.mock('@/hooks/cameras/useYouTubeIntegration', () => ({
   useYouTubeIntegration: () => mockYoutubeIntegrationState,
 }));
 
-jest.mock('@/hooks/useRpiCameras', () => ({
+jest.mock('@/hooks/cameras/data/hooks', () => ({
   useStopYouTubeStreamMutation: () => ({
     mutate: (...args: unknown[]) => mockStopStreamMutate(...args),
     isPending: false,

@@ -21,7 +21,7 @@ import {
   useClaimPairingMutation,
   useDeleteCameraMutation,
   useUpdateCameraMutation,
-} from '../useRpiCameras';
+} from '@/hooks/cameras/data/hooks';
 
 jest.mock('@/services/api/rpiCamera', () => ({
   fetchCameras: jest.fn(),
@@ -288,7 +288,8 @@ describe('RPi camera mutation hooks', () => {
     });
 
     expect(mockedCaptureImageFromCamera).toHaveBeenCalledWith('cam-5', 42);
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['product', 42] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['baseProduct', 42] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['component', 42] });
   });
 });
 

@@ -14,10 +14,10 @@ import {
   useCameraStreamingController,
 } from '@/hooks/cameras/stateControllers';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { resolveEffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
+import { resolveEffectiveCameraConnection } from '@/hooks/cameras/useEffectiveCameraConnection';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
-import { useBaseProductQuery } from '@/hooks/useProductQueries';
-import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/useRpiCameras';
+import { useBaseProductQuery } from '@/hooks/products/queries';
+import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/cameras/data/hooks';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 
 function useCamerasAuthRedirect(

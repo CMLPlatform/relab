@@ -38,7 +38,7 @@ jest.mock('@/hooks/useAppFeedback', () => ({
   }),
 }));
 
-jest.mock('@/hooks/useEffectiveCameraConnection', () => ({
+jest.mock('@/hooks/cameras/useEffectiveCameraConnection', () => ({
   resolveEffectiveCameraConnection: () => ({ isReachable: true }),
 }));
 
@@ -46,7 +46,7 @@ jest.mock('@/hooks/useIsDesktop', () => ({
   useIsDesktop: () => false,
 }));
 
-jest.mock('@/hooks/useProductQueries', () => ({
+jest.mock('@/hooks/products/queries', () => ({
   useBaseProductQuery: () => ({ data: null }),
 }));
 
@@ -57,7 +57,7 @@ const mockCamerasQueryData = [
   },
 ];
 
-jest.mock('@/hooks/useRpiCameras', () => ({
+jest.mock('@/hooks/cameras/data/hooks', () => ({
   useCamerasQuery: () => ({
     data: mockCamerasQueryData,
     isLoading: false,

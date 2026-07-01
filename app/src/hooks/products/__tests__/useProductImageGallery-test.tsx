@@ -32,11 +32,11 @@ jest.mock('@/hooks/useAppFeedback', () => ({
   }),
 }));
 
-jest.mock('@/hooks/useRpiIntegration', () => ({
+jest.mock('@/hooks/cameras/useRpiIntegration', () => ({
   useRpiIntegration: () => mockUseRpiIntegration(),
 }));
 
-jest.mock('@/hooks/useRpiCameras', () => ({
+jest.mock('@/hooks/cameras/data/hooks', () => ({
   useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
   useCaptureImageMutation: () => ({ mutate: mockCaptureMutate }),
 }));

@@ -2,8 +2,8 @@ import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
 import { useStreamSession } from '@/context/streamSession';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
-import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/hooks/useRpiCameras';
-import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
+import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/hooks/cameras/data/hooks';
+import { useYouTubeIntegration } from './useYouTubeIntegration';
 import { openExternalUrl } from '@/services/externalLinks';
 
 export function useYouTubeStreamCard(cameraId: string, isOnline: boolean) {

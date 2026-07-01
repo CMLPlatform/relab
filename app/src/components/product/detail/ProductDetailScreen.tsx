@@ -5,7 +5,7 @@ import { ProductPageContent } from '@/components/product/detail/Content';
 import { ProductFabControls } from '@/components/product/detail/FabControls';
 import { ProductPageErrorState, ProductPageLoadingState } from '@/components/product/detail/States';
 import { useProductPageScreen } from '@/hooks/products/useProductPageScreen';
-import type { UseProductFormOptions } from '@/hooks/useProductForm';
+import type { UseProductFormOptions } from '@/hooks/products/useProductForm';
 import { isProductNotFoundError } from '@/services/api/products';
 
 function useFabPressHandler({

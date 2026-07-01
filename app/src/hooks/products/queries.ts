@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { searchProductBrands } from '@/services/api/productSuggestions';
 import {
   allProducts,
@@ -141,6 +141,14 @@ export function useProductTypesQuery() {
 
 export function useSearchProductTypesQuery(search: string) {
   return useQuery(productTypesSearchQueryOptions(search));
+}
+
+// ─── Cache invalidation helpers ───────────────────────────────────────────────
+
+export function invalidateProductQuery(queryClient: QueryClient, productId: number) {
+  // Camera modules don't know the product's role, so invalidate both keys.
+  void queryClient.invalidateQueries({ queryKey: ['baseProduct', productId] });
+  void queryClient.invalidateQueries({ queryKey: ['component', productId] });
 }
 
 // ─── Save / delete mutations ───────────────────────────────────────────────────

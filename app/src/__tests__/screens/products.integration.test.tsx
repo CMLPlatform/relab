@@ -171,7 +171,7 @@ jest.mock('@tanstack/react-query', () => {
   };
 });
 
-jest.mock('@/hooks/useProductQueries', () => ({
+jest.mock('@/hooks/products/queries', () => ({
   DEFAULT_PRODUCT_SORT: ['-created_at'],
   productsQueryOptions: (...args: unknown[]) => ({
     __mockResult: mockUseProductsQuery(...args),

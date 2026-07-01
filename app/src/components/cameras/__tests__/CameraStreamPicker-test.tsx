@@ -116,7 +116,8 @@ describe('CameraStreamPicker', () => {
       title: 'Live teardown',
       description: '',
     });
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['product', 9] });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['baseProduct', 9] });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['component', 9] });
     expect(onDismiss).toHaveBeenCalled();
   });
 

@@ -22,7 +22,7 @@ import {
   useSaveProductMutation,
   useSearchBrandsQuery,
   useSearchProductTypesQuery,
-} from '../useProductQueries';
+} from '@/hooks/products/queries';
 
 jest.mock('@/services/api/productSuggestions', () => ({
   allProductBrands: jest.fn(),

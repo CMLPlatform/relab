@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
-import { resolveEffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
+import { resolveEffectiveCameraConnection } from '@/hooks/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { renderWithProviders } from '@/test-utils/index';
 import { CameraCard } from '../CameraCard';

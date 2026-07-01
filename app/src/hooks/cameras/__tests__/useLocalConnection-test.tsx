@@ -8,7 +8,7 @@ import {
   storeLocalConnection,
   USB_GADGET_DEFAULT,
 } from '@/hooks/local-connection/shared';
-import { useLocalConnection } from '@/hooks/useLocalConnection';
+import { useLocalConnection } from '@/hooks/cameras/useLocalConnection';
 import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
 
 jest.mock('@/hooks/local-connection/shared', () => ({

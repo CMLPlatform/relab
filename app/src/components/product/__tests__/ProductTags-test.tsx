@@ -8,7 +8,7 @@ import ProductTags from '../ProductTags';
 const BRAND_PATTERN = /CircularTech/;
 const MODEL_PATTERN = /X100/;
 
-jest.mock('@/hooks/useProductQueries', () => ({
+jest.mock('@/hooks/products/queries', () => ({
   useSearchBrandsQuery: jest.fn(() => ({
     data: ['Apple', 'Samsung', 'Sony'],
     isLoading: false,

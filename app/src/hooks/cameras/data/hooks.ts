@@ -6,21 +6,21 @@ import {
   invalidateCameraDetailQuery,
   invalidateCameraListQuery,
   invalidateCameraStreamStatusQuery,
-  invalidateProductQuery,
   resolveCaptureImageRequest,
   restoreOptimisticStreamStatus,
-} from '@/hooks/camera-data/mutations';
+} from './mutations';
+import { invalidateProductQuery } from '@/hooks/products/queries';
 import {
   type CameraLivePreviewResult,
   resolveCameraLivePreview,
-} from '@/hooks/camera-data/previews';
+} from './previews';
 import {
   cameraQueryOptions,
   camerasQueryOptions,
   cameraTelemetryQueryOptions,
   streamStatusQueryOptions,
-} from '@/hooks/camera-data/queries';
-import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
+} from './queries';
+import type { CameraConnectionInfo } from '@/hooks/cameras/useLocalConnection';
 import type {
   CameraUpdate,
   PairingClaimRequest,
@@ -182,9 +182,9 @@ export function useCaptureAllMutation(connectionInfoMap?: Record<string, CameraC
   );
 }
 
-export type { CaptureAllResult } from '@/hooks/camera-data/mutations';
+export type { CaptureAllResult } from './mutations';
 // biome-ignore lint/performance/noBarrelFile: this module intentionally exposes the camera-data surface for hook consumers.
 export {
   cameraQueryOptions,
   camerasQueryOptions,
-} from '@/hooks/camera-data/queries';
+} from './queries';

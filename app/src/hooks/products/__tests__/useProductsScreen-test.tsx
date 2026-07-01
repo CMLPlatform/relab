@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useProductsScreen } from '@/hooks/products/useProductsScreen';
-import { productsQueryOptions } from '@/hooks/useProductQueries';
+import { productsQueryOptions } from '@/hooks/products/queries';
 
 let mockSearchParams: Record<string, string> = {};
 const mockSetParams: jest.Mock = jest.fn();
@@ -53,7 +53,7 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockAuthState,
 }));
 
-jest.mock('@/hooks/useProductQueries', () => ({
+jest.mock('@/hooks/products/queries', () => ({
   DEFAULT_PRODUCT_SORT: ['-created_at'],
   PRODUCT_SORT_OPTIONS: [
     { label: 'Relevance', value: [] },

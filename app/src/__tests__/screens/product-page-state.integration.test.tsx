@@ -6,8 +6,8 @@ import type { Text as RNText } from 'react-native';
 import ProductPage from '@/app/products/[id]';
 import { ProductDetailScreen } from '@/components/product/detail/ProductDetailScreen';
 import { useAncestorTrail } from '@/hooks/products/useAncestorTrail';
-import { useProductForm } from '@/hooks/useProductForm';
-import { useBaseProductQuery } from '@/hooks/useProductQueries';
+import { useProductForm } from '@/hooks/products/useProductForm';
+import { useBaseProductQuery } from '@/hooks/products/queries';
 import { ProductNotFoundError } from '@/services/api/products';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 
@@ -59,11 +59,11 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/hooks/useProductForm', () => ({
+jest.mock('@/hooks/products/useProductForm', () => ({
   useProductForm: jest.fn(),
 }));
 
-jest.mock('@/hooks/useProductQueries', () => ({
+jest.mock('@/hooks/products/queries', () => ({
   useBaseProductQuery: jest.fn(),
   useComponentQuery: jest.fn(),
 }));

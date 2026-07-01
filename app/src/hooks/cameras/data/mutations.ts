@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
+import type { CameraConnectionInfo } from '@/hooks/cameras/useLocalConnection';
 import type { StreamView } from '@/services/api/rpiCamera';
 import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera';
 
@@ -18,10 +18,6 @@ export interface CaptureAllResult {
   succeeded: number;
   failed: number;
   errors: Array<{ cameraId: string; error: Error }>;
-}
-
-export function invalidateProductQuery(queryClient: QueryClient, productId: number) {
-  queryClient.invalidateQueries({ queryKey: ['product', productId] }).catch(() => {});
 }
 
 export function invalidateCameraListQuery(queryClient: QueryClient) {

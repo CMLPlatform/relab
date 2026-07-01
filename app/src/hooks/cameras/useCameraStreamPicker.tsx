@@ -6,6 +6,7 @@ import {
 } from '@/components/cameras/streamingFeedback';
 import { useStreamSession } from '@/context/streamSession';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
+import { invalidateProductQuery } from '@/hooks/products/queries';
 import { addProductVideo } from '@/services/api/products';
 import type { CameraReadWithStatus, YouTubePrivacyStatus } from '@/services/api/rpiCamera';
 import { startYouTubeStream } from '@/services/api/rpiCamera';
@@ -69,7 +70,7 @@ export function useCameraStreamPicker({
         title: config.title.trim() || 'Live stream',
         description: '',
       }).catch(() => {});
-      void queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      invalidateProductQuery(queryClient, productId);
       handleDismiss();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
+import type { CameraConnectionInfo } from '@/hooks/cameras/useLocalConnection';
 
 export function useCameraDetailDialogs(localConnection: CameraConnectionInfo) {
   const [editNameVisible, setEditNameVisible] = useState(false);

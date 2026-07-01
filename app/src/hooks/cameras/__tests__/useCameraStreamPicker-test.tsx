@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
-import { useCameraStreamPicker } from '@/hooks/useCameraStreamPicker';
+import { useCameraStreamPicker } from '@/hooks/cameras/useCameraStreamPicker';
 import { addProductVideo } from '@/services/api/products';
 import { startYouTubeStream } from '@/services/api/rpiCamera';
 
@@ -160,7 +160,8 @@ describe('useCameraStreamPicker', () => {
       title: 'Live teardown',
       description: '',
     });
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['product', 9] });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['baseProduct', 9] });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['component', 9] });
     expect(onDismiss).toHaveBeenCalled();
     expect(result.current.state.isStarting).toBe(false);
   });

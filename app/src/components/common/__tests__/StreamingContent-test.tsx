@@ -43,14 +43,14 @@ jest.mock('@/hooks/useElapsed', () => ({
   useElapsed: () => '2:34',
 }));
 
-jest.mock('@/hooks/useRpiCameras', () => ({
+jest.mock('@/hooks/cameras/data/hooks', () => ({
   useStopYouTubeStreamMutation: () => ({
     mutate: (...args: unknown[]) => mockStopMutate(...args),
     isPending: false,
   }),
 }));
 
-jest.mock('@/hooks/camera-data/mutations', () => ({
+jest.mock('@/hooks/products/queries', () => ({
   invalidateProductQuery: (...args: unknown[]) => mockInvalidateProductQuery(...args),
 }));
 

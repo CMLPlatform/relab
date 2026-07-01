@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
+import type { CameraConnectionInfo } from '@/hooks/cameras/useLocalConnection';
 import { renderWithProviders } from '@/test-utils/index';
 import CamerasScreen from '../index';
 
@@ -17,7 +17,7 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/hooks/useRpiCameras', () => ({
+jest.mock('@/hooks/cameras/data/hooks', () => ({
   useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
   useCaptureAllMutation: () => ({
     mutate: mockCaptureMutate,
@@ -25,7 +25,7 @@ jest.mock('@/hooks/useRpiCameras', () => ({
   }),
 }));
 
-jest.mock('@/hooks/useLocalConnection', () => ({
+jest.mock('@/hooks/cameras/useLocalConnection', () => ({
   useLocalConnection: (...args: unknown[]) => mockUseLocalConnection(...args),
 }));
 

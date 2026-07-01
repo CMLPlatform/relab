@@ -19,7 +19,7 @@ import { LivePreview, PreviewErrorBoundary } from '../LivePreview';
 
 const mockUseCameraLivePreview = jest.fn();
 
-jest.mock('@/hooks/useRpiCameras', () => ({
+jest.mock('@/hooks/cameras/data/hooks', () => ({
   useCameraLivePreview: (...args: unknown[]) => mockUseCameraLivePreview(...args),
 }));
 

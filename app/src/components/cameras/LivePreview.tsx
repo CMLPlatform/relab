@@ -7,8 +7,8 @@ import { getLivePreviewCaption } from '@/components/cameras/live-preview/caption
 import { PreviewPlayer } from '@/components/cameras/live-preview/PreviewPlayer';
 import { PreviewShell } from '@/components/cameras/live-preview/shared';
 import { createLivePreviewStyles } from '@/components/cameras/live-preview/styles';
-import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
-import { useCameraLivePreview } from '@/hooks/useRpiCameras';
+import type { CameraConnectionInfo } from '@/hooks/cameras/useLocalConnection';
+import { useCameraLivePreview } from '@/hooks/cameras/data/hooks';
 import type { CameraRead } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
 

@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import { useAuth } from '@/context/auth';
 import { updateUser } from '@/services/api/authentication';
 import type { User } from '@/types/User';
-import { useRpiIntegration } from '../useRpiIntegration';
+import { useRpiIntegration } from '@/hooks/cameras/useRpiIntegration';
 
 jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(),

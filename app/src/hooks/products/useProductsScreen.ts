@@ -7,7 +7,7 @@ import { useDebounce } from 'use-debounce';
 import type { DialogContextType } from '@/components/common/dialogContext';
 import { useDialog } from '@/components/common/dialogContext';
 import { useAuth } from '@/context/auth';
-import { useProductsWelcomeCard } from '@/hooks/products/useProductsWelcomeCard';
+import { useProductsWelcomeCard } from './useProductsWelcomeCard';
 
 type CurrentUser = { isVerified: boolean };
 
@@ -53,7 +53,7 @@ import {
   productsQueryOptions,
   useSearchBrandsQuery,
   useSearchProductTypesQuery,
-} from '@/hooks/useProductQueries';
+} from './queries';
 import type { Product } from '@/types/Product';
 
 export type ProductFilter = 'all' | 'mine';

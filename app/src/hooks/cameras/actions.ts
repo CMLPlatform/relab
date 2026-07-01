@@ -8,7 +8,8 @@ import {
 } from '@/components/cameras/streamingFeedback';
 import { useStreamSession } from '@/context/streamSession';
 import type { StreamDialogState } from '@/hooks/cameras/stateControllers';
-import type { EffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
+import type { EffectiveCameraConnection } from '@/hooks/cameras/useEffectiveCameraConnection';
+import { invalidateProductQuery } from '@/hooks/products/queries';
 import { addProductVideo } from '@/services/api/products';
 import { type CameraReadWithStatus, startYouTubeStream } from '@/services/api/rpiCamera';
 
@@ -215,7 +216,7 @@ export function useCameraStreamActions({
         title: streamDialog.title.trim() || 'Live stream',
         description: '',
       }).catch(() => {});
-      void queryClient.invalidateQueries({ queryKey: ['product', streamProductId] });
+      invalidateProductQuery(queryClient, streamProductId);
       setSnackbar(`Now live: ${streamDialog.cameraName}`);
       await new Promise((resolve) => setTimeout(resolve, 800));
       router.back();

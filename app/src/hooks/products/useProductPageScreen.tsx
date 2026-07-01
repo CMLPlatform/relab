@@ -11,12 +11,12 @@ import {
   useSavedIndicator,
   useSlowLoading,
   useStreamPrompt,
-} from '@/hooks/products/productPageHelpers';
-import { useAncestorTrail } from '@/hooks/products/useAncestorTrail';
+} from './productPageHelpers';
+import { useAncestorTrail } from './useAncestorTrail';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { type UseProductFormOptions, useProductForm } from '@/hooks/useProductForm';
-import { useRpiIntegration } from '@/hooks/useRpiIntegration';
-import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
+import { type UseProductFormOptions, useProductForm } from './useProductForm';
+import { useRpiIntegration } from '@/hooks/cameras/useRpiIntegration';
+import { useYouTubeIntegration } from '@/hooks/cameras/useYouTubeIntegration';
 import { useAppTheme } from '@/theme';
 
 type SearchParams = {

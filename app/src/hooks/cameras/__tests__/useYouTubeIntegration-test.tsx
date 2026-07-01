@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import { useAuth } from '@/context/auth';
 import { updateUser } from '@/services/api/authentication';
 import type { User } from '@/types/User';
-import { useYouTubeIntegration } from '../useYouTubeIntegration';
+import { useYouTubeIntegration } from '@/hooks/cameras/useYouTubeIntegration';
 
 jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(),

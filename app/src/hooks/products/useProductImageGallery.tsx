@@ -14,10 +14,10 @@ import {
   appendCapturedImage,
   buildImportedImages,
   hasRpiCamerasConfigured,
-} from '@/hooks/products/productImageGalleryHelpers';
+} from './productImageGalleryHelpers';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { useCamerasQuery, useCaptureImageMutation } from '@/hooks/useRpiCameras';
-import { useRpiIntegration } from '@/hooks/useRpiIntegration';
+import { useCamerasQuery, useCaptureImageMutation } from '@/hooks/cameras/data/hooks';
+import { useRpiIntegration } from '@/hooks/cameras/useRpiIntegration';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import type { Product } from '@/types/Product';
 

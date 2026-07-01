@@ -1,4 +1,4 @@
-import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
+import type { CameraConnectionInfo } from '@/hooks/cameras/useLocalConnection';
 import { buildCameraHlsUrl, buildLocalHlsUrl } from '@/services/api/rpiCamera';
 
 export interface CameraLivePreviewResult {

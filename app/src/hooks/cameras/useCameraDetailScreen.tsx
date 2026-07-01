@@ -4,12 +4,12 @@ import { useAuth } from '@/context/auth';
 import { createCameraDetailActions } from '@/hooks/cameras/detailActions';
 import { useCameraDetailDialogs } from '@/hooks/cameras/detailControllers';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { useEffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
+import { useEffectiveCameraConnection } from '@/hooks/cameras/useEffectiveCameraConnection';
 import {
   useCameraQuery,
   useDeleteCameraMutation,
   useUpdateCameraMutation,
-} from '@/hooks/useRpiCameras';
+} from '@/hooks/cameras/data/hooks';
 
 export function useCameraDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

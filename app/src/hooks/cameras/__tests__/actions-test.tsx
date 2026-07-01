@@ -219,7 +219,8 @@ describe('camera action hooks', () => {
     });
     expect(closeStreamDialog).toHaveBeenCalled();
     expect(mockAddProductVideo).toHaveBeenCalled();
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['product', 42] });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['baseProduct', 42] });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['component', 42] });
     expect(setSnackbar).toHaveBeenCalledWith('Now live: Camera 1');
     expect(mockBack).toHaveBeenCalled();
     expect(setIsStartingStream).toHaveBeenLastCalledWith(false);

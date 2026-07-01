@@ -63,19 +63,19 @@ jest.mock('@/context/streamSession', () => ({
   }),
 }));
 
-jest.mock('@/hooks/useRpiIntegration', () => ({
+jest.mock('@/hooks/cameras/useRpiIntegration', () => ({
   useRpiIntegration: () => ({ enabled: true }),
 }));
 
-jest.mock('@/hooks/useYouTubeIntegration', () => ({
+jest.mock('@/hooks/cameras/useYouTubeIntegration', () => ({
   useYouTubeIntegration: () => ({ enabled: true }),
 }));
 
-jest.mock('@/hooks/useProductForm', () => ({
+jest.mock('@/hooks/products/useProductForm', () => ({
   useProductForm: (...args: unknown[]) => mockUseProductForm(...args),
 }));
 
-jest.mock('@/hooks/useProductQueries', () => ({
+jest.mock('@/hooks/products/queries', () => ({
   useBaseProductQuery: (...args: unknown[]) => mockUseProductQuery(...args),
   useComponentQuery: (...args: unknown[]) => mockUseProductQuery(...args),
 }));

@@ -6,10 +6,10 @@ import { LivePreview } from '@/components/cameras/LivePreview';
 import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
 import type { StreamSession } from '@/context/streamSession';
 import { useStreamSession } from '@/context/streamSession';
-import { invalidateProductQuery } from '@/hooks/camera-data/mutations';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
-import { useStopYouTubeStreamMutation } from '@/hooks/useRpiCameras';
+import { useStopYouTubeStreamMutation } from '@/hooks/cameras/data/hooks';
+import { invalidateProductQuery } from '@/hooks/products/queries';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
 

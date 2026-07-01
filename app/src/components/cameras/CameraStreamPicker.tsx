@@ -2,7 +2,7 @@ import {
   CameraSelectionStep,
   CameraStreamConfigDialog,
 } from '@/components/cameras/CameraStreamPickerSections';
-import { useCameraStreamPicker } from '@/hooks/useCameraStreamPicker';
+import { useCameraStreamPicker } from '@/hooks/cameras/useCameraStreamPicker';
 
 interface CameraStreamPickerProps {
   productId: number;

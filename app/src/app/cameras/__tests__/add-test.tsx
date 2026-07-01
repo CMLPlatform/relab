@@ -11,7 +11,7 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/hooks/useRpiCameras', () => ({
+jest.mock('@/hooks/cameras/data/hooks', () => ({
   useClaimPairingMutation: () => mockUseClaimPairingMutation(),
   useCamerasQuery: jest.fn(),
   useCaptureAllMutation: jest.fn(),

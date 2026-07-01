@@ -5,8 +5,8 @@ import {
   clearOptimisticStreamStatus,
   resolveCaptureImageRequest,
   restoreOptimisticStreamStatus,
-} from '@/hooks/camera-data/mutations';
-import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
+} from '@/hooks/cameras/data/mutations';
+import type { CameraConnectionInfo } from '@/hooks/cameras/useLocalConnection';
 import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera';
 
 jest.mock('@/services/api/rpiCamera', () => ({

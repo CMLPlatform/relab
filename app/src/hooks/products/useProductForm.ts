@@ -16,7 +16,7 @@ import {
   useComponentQuery,
   useDeleteProductMutation,
   useSaveProductMutation,
-} from '@/hooks/useProductQueries';
+} from './queries';
 import { newProduct } from '@/services/api/products';
 import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';

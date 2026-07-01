@@ -4,12 +4,12 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { useAuth } from '@/context/auth';
 import type { Product } from '@/types/Product';
-import { useProductForm } from '../useProductForm';
+import { useProductForm } from '@/hooks/products/useProductForm';
 import {
   useBaseProductQuery,
   useDeleteProductMutation,
   useSaveProductMutation,
-} from '../useProductQueries';
+} from '@/hooks/products/queries';
 
 jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(() => ({ user: { id: '1', username: 'test' }, refetch: jest.fn() })),
@@ -29,7 +29,7 @@ jest.mock('@/components/common/dialogContext', () => {
   };
 });
 
-jest.mock('../useProductQueries', () => ({
+jest.mock('@/hooks/products/queries', () => ({
   useBaseProductQuery: jest.fn(() => ({ data: undefined, isLoading: false })),
   useComponentQuery: jest.fn(() => ({ data: undefined, isLoading: false })),
   useSaveProductMutation: jest.fn(),
