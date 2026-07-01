@@ -7,8 +7,7 @@ from pydantic import PositiveInt
 
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.reference_data.crud.categories import create_category as create_category_record
-from app.api.reference_data.crud.categories import delete_category as delete_category_record
-from app.api.reference_data.crud.categories import update_category as update_category_record
+from app.api.reference_data.crud.persistence import delete_reference_model, update_reference_model
 from app.api.reference_data.models import Category
 from app.api.reference_data.schemas import CategoryCreate, CategoryRead, CategoryUpdate
 
@@ -35,10 +34,10 @@ async def update_category(
     session: AsyncSessionDep,
 ) -> Category:
     """Update an existing category."""
-    return await update_category_record(session, category_id, category)
+    return await update_reference_model(session, Category, category_id, category)
 
 
 @router.delete("/{category_id}", summary="Delete category", status_code=204)
 async def delete_category(category_id: PositiveInt, session: AsyncSessionDep) -> None:
     """Delete a category by ID, including its subcategories."""
-    await delete_category_record(session, category_id)
+    await delete_reference_model(session, Category, category_id)

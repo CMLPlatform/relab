@@ -1,16 +1,17 @@
 """Pydantic models used to validate CRUD operations for reference data."""
 
-from pydantic import ConfigDict, Field, PositiveInt
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt
 
-from app.api.common.schemas.associations import MaterialProductLinkReadWithinMaterial
 from app.api.common.schemas.base import (
+    AssociationModelReadSchemaWithTimeStamp,
     BaseCreateSchema,
     BaseUpdateSchema,
     IntIdReadSchema,
     IntIdReadSchemaWithTimeStamp,
-    MaterialRead,
+    MaterialProductLinkBase,
+    ProductRead,
 )
-from app.api.common.schemas.field_mixins import CategoryFields, ProductTypeFields, TaxonomyFields
+from app.api.common.schemas.field_mixins import MaterialFields
 from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.file_storage.schemas import FileRead, ImageRead
 from app.api.reference_data.examples import (
@@ -21,13 +22,81 @@ from app.api.reference_data.examples import (
     TAXONOMY_READ_EXAMPLES,
     TAXONOMY_READ_WITH_TREE_EXAMPLES,
 )
-from app.api.reference_data.models import (
-    CategoryBase,
-    MaterialBase,
-    ProductTypeBase,
-    TaxonomyBase,
-    TaxonomyDomain,
-)
+from app.api.reference_data.models import TaxonomyDomain
+
+
+class TaxonomyBase(BaseModel):
+    model_config = ConfigDict(use_enum_values=True)
+    name: SingleLineUserText = Field(min_length=2, max_length=100)
+    version: SingleLineUserText | None = Field(default=None, min_length=1, max_length=50)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
+    domains: set[TaxonomyDomain] = set()
+    source: SingleLineUserText | None = Field(default=None, max_length=500)
+
+
+class CategoryBase(BaseModel):
+    name: SingleLineUserText = Field(min_length=2, max_length=250)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
+    external_id: SingleLineUserText | None = None
+
+
+class MaterialBase(BaseModel):
+    name: SingleLineUserText = Field(min_length=2, max_length=100)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
+    source: SingleLineUserText | None = Field(default=None, max_length=100)
+    density_kg_m3: float | None = Field(default=None, gt=0)
+    is_crm: bool | None = None
+
+
+class ProductTypeBase(BaseModel):
+    name: SingleLineUserText = Field(min_length=2, max_length=100)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
+
+
+class CategoryFields(BaseModel):
+    """Shared category fields for API schemas."""
+
+    name: str = Field(min_length=2, max_length=250, description="Name of the category")
+    description: str | None = Field(default=None, max_length=500, description="Description of the category")
+    external_id: str | None = Field(default=None, description="ID of the category in the external taxonomy")
+
+
+class ProductTypeFields(BaseModel):
+    """Shared product-type fields for API schemas."""
+
+    name: str = Field(min_length=2, max_length=100, description="Name of the Product Type.")
+    description: str | None = Field(default=None, max_length=500, description="Description of the Product Type.")
+
+
+class TaxonomyFields(BaseModel):
+    """Shared taxonomy fields for API schemas."""
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    name: str = Field(min_length=2, max_length=100)
+    version: str | None = Field(min_length=1, max_length=50)
+    description: str | None = Field(default=None, max_length=500)
+    domains: set[TaxonomyDomain] = Field(
+        description=f"Domains of the taxonomy, e.g. {{{', '.join([d.value for d in TaxonomyDomain][:3])}}}"
+    )
+    source: str | None = Field(
+        default=None,
+        max_length=500,
+        description="Source of the taxonomy data, e.g. URL, IRI or citation key",
+    )
+
+
+### Material base schemas ###
+
+class MaterialRead(IntIdReadSchema, MaterialFields):
+    """Schema for reading material information."""
+
+
+class MaterialProductLinkReadWithinMaterial(AssociationModelReadSchemaWithTimeStamp, MaterialProductLinkBase):
+    """Schema for reading material-product links from the material side."""
+
+    product_id: PositiveInt
+    product: ProductRead
 
 
 ### Category Schemas ###
@@ -129,10 +198,6 @@ class CategoryUpdate(BaseUpdateSchema):
 
 ### Taxonomy Schemas ###
 ## Create Schemas ##
-class TaxonomyCreate(BaseCreateSchema, TaxonomyBase):
-    """Schema for creating a new taxonomy without categories."""
-
-
 class TaxonomyCreateWithCategories(BaseCreateSchema, TaxonomyBase):
     """Schema for creating a new taxonomy, optionally with new categories."""
 
@@ -172,10 +237,6 @@ class TaxonomyUpdate(BaseUpdateSchema):
 
 ### Material Schemas ###
 ## Create Schemas ##
-class MaterialCreate(BaseCreateSchema, MaterialBase):
-    """Schema for creating a material."""
-
-
 class MaterialCreateWithCategories(BaseCreateSchema, MaterialBase):
     """Schema for creating a material with links to existing categories."""
 
@@ -183,9 +244,6 @@ class MaterialCreateWithCategories(BaseCreateSchema, MaterialBase):
 
 
 ## Read Schemas ##
-# Note that MaterialRead is defined in the common module to avoid circular imports
-
-
 class MaterialReadWithRelationships(MaterialRead):
     """Schema for reading material information with all relationships."""
 
@@ -214,10 +272,6 @@ class MaterialUpdate(BaseUpdateSchema):
 
 ### ProductType Schemas ###
 ## Create Schemas ##
-class ProductTypeCreate(BaseCreateSchema, ProductTypeBase):
-    """Schema for creating a product type."""
-
-
 class ProductTypeCreateWithCategories(BaseCreateSchema, ProductTypeBase):
     """Schema for creating a product type with links to existing categories."""
 

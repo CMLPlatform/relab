@@ -6,12 +6,10 @@ from fastapi import APIRouter
 from pydantic import PositiveInt
 
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.reference_data.crud.taxonomies import create_taxonomy as create_taxonomy_record
-from app.api.reference_data.crud.taxonomies import delete_taxonomy as delete_taxonomy_record
-from app.api.reference_data.crud.taxonomies import update_taxonomy as update_taxonomy_record
+from app.api.reference_data.crud.persistence import delete_reference_model, update_reference_model
+from app.api.reference_data.crud.taxonomies import create_taxonomy
 from app.api.reference_data.models import Taxonomy
 from app.api.reference_data.schemas import (
-    TaxonomyCreate,
     TaxonomyCreateWithCategories,
     TaxonomyRead,
     TaxonomyUpdate,
@@ -21,12 +19,12 @@ router = APIRouter(prefix="/taxonomies", tags=["taxonomies"])
 
 
 @router.post("", response_model=TaxonomyRead, summary="Create a new taxonomy", status_code=201)
-async def create_taxonomy(
-    taxonomy: TaxonomyCreate | TaxonomyCreateWithCategories,
+async def create_taxonomy_endpoint(
+    taxonomy: TaxonomyCreateWithCategories,
     session: AsyncSessionDep,
 ) -> Taxonomy:
     """Create a new taxonomy, optionally with categories."""
-    return await create_taxonomy_record(session, taxonomy)
+    return await create_taxonomy(session, taxonomy)
 
 
 @router.patch("/{taxonomy_id}", response_model=TaxonomyRead, summary="Update taxonomy")
@@ -36,10 +34,10 @@ async def update_taxonomy(
     session: AsyncSessionDep,
 ) -> Taxonomy:
     """Update an existing taxonomy."""
-    return await update_taxonomy_record(session, taxonomy_id, taxonomy)
+    return await update_reference_model(session, Taxonomy, taxonomy_id, taxonomy)
 
 
 @router.delete("/{taxonomy_id}", summary="Delete taxonomy, including categories", status_code=204)
 async def delete_taxonomy(taxonomy_id: PositiveInt, session: AsyncSessionDep) -> None:
     """Delete a taxonomy by ID, including its categories."""
-    await delete_taxonomy_record(session, taxonomy_id)
+    await delete_reference_model(session, Taxonomy, taxonomy_id)

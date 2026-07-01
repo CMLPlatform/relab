@@ -19,8 +19,8 @@ from app.api.reference_data.crud.categorized_resources import (
     create_categorized_reference,
     delete_categorized_reference,
     remove_categorized_reference_categories,
-    update_categorized_reference,
 )
+from app.api.reference_data.crud.persistence import update_reference_model
 from app.api.reference_data.examples import CATEGORY_IDS_OPENAPI_EXAMPLES
 from app.api.reference_data.models import Category, Material
 from app.api.reference_data.routers.reference_media import reference_file_create, reference_image_create
@@ -54,7 +54,7 @@ async def update_material(
     payload: MaterialUpdate,
 ) -> Material:
     """Update a material."""
-    return await update_categorized_reference(session, MATERIAL_RESOURCE, material_id, payload)
+    return await update_reference_model(session, Material, material_id, payload)
 
 
 @router.delete(

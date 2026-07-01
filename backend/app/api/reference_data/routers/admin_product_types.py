@@ -19,8 +19,8 @@ from app.api.reference_data.crud.categorized_resources import (
     create_categorized_reference,
     delete_categorized_reference,
     remove_categorized_reference_categories,
-    update_categorized_reference,
 )
+from app.api.reference_data.crud.persistence import update_reference_model
 from app.api.reference_data.examples import CATEGORY_IDS_OPENAPI_EXAMPLES
 from app.api.reference_data.models import Category, ProductType
 from app.api.reference_data.routers.reference_media import reference_file_create, reference_image_create
@@ -59,7 +59,7 @@ async def update_product_type(
     payload: ProductTypeUpdate,
 ) -> ProductType:
     """Update a product type."""
-    return await update_categorized_reference(session, PRODUCT_TYPE_RESOURCE, product_type_id, payload)
+    return await update_reference_model(session, ProductType, product_type_id, payload)
 
 
 @router.delete(

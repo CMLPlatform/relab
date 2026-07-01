@@ -24,7 +24,7 @@ from app.api.reference_data.models import (
     TaxonomyDomain,
 )
 
-from .persistence import create_reference_model, update_reference_model
+from .persistence import create_reference_model
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -111,16 +111,6 @@ async def create_categorized_reference[ResourceT: CategorizedReference, LinkT: C
         )
 
     return await commit_and_refresh(db, db_parent, add_before_commit=False)
-
-
-async def update_categorized_reference[ResourceT: CategorizedReference, LinkT: CategoryLink](
-    db: AsyncSession,
-    spec: CategorizedReferenceSpec[ResourceT, LinkT],
-    parent_id: int,
-    payload: SupportsModelDump,
-) -> ResourceT:
-    """Apply a partial update to a categorized reference-data resource."""
-    return await update_reference_model(db, spec.model, parent_id, payload)
 
 
 async def delete_categorized_reference[ResourceT: CategorizedReference, LinkT: CategoryLink](

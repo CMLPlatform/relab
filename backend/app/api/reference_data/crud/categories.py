@@ -14,9 +14,7 @@ from app.api.common.exceptions import BadRequestError
 from app.api.common.sa_typing import orm_attr
 from app.api.reference_data.filters import CategoryFilter, CategoryFilterWithRelationships
 from app.api.reference_data.models import Category, Taxonomy, TaxonomyDomain
-from app.api.reference_data.schemas import CategoryCreate, CategoryUpdate
-
-from .persistence import delete_reference_model, update_reference_model
+from app.api.reference_data.schemas import CategoryCreate
 
 if TYPE_CHECKING:
     from sqlalchemy import Select
@@ -150,11 +148,3 @@ async def create_category(
     return db_category
 
 
-async def update_category(db: AsyncSession, category_id: int, category: CategoryUpdate) -> Category:
-    """Update an existing category in the database."""
-    return await update_reference_model(db, Category, category_id, category)
-
-
-async def delete_category(db: AsyncSession, category_id: int) -> None:
-    """Delete a category from the database."""
-    await delete_reference_model(db, Category, category_id)

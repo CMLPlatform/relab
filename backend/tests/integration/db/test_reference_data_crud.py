@@ -17,9 +17,7 @@ if TYPE_CHECKING:
 
     from app.api.reference_data.models import Taxonomy
 
-
 pytestmark = pytest.mark.db
-
 
 async def test_create_categorized_material_persists_category_links(
     db_session: AsyncSession,

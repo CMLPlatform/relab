@@ -11,7 +11,7 @@ from sqlalchemy import inspect
 from sqlalchemy.exc import NoInspectionAvailable
 from sqlalchemy.orm.base import ATTR_EMPTY
 
-from app.api.common.routers.openapi import PublicAPIRouter
+from app.api.common.audiences import PublicAPIRouter
 from app.api.reference_data.models import Category
 from app.api.reference_data.schemas import (
     CategoryRead,
