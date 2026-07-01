@@ -11,7 +11,7 @@ from pydantic import SecretStr
 from app.api.auth.models import User
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.schemas import RelayPublicKeyJWK
-from app.api.plugins.rpi_cam.youtube import YoutubeStreamConfigWithID
+from app.api.plugins.rpi_cam.services.youtube import YoutubeStreamConfigWithID
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:

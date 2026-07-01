@@ -13,7 +13,7 @@ from fastapi import HTTPException
 from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL
 
 from app.api.plugins.rpi_cam.websocket import cross_worker_circuit_breaker as circuit_breaker
-from app.api.plugins.rpi_cam.websocket import relay as relay_mod
+from app.api.plugins.rpi_cam.websocket import message_relay as relay_mod
 
 
 async def test_relay_via_websocket_returns_retry_after_when_camera_is_disconnected() -> None:
@@ -25,9 +25,9 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_is_disconnect
     redis.exists = AsyncMock(return_value=0)
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         patch(
-            "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
             AsyncMock(side_effect=RuntimeError("camera offline in all workers")),
         ),
         pytest.raises(HTTPException) as exc_info,
@@ -45,9 +45,9 @@ async def test_relay_via_websocket_forwards_trace_headers_to_local_manager() -> 
     manager.send_command.return_value = ({"status": 200, "data": {"ok": True}}, None)
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         patch(
-            "app.api.plugins.rpi_cam.websocket.relay._build_relay_trace_headers",
+            "app.api.plugins.rpi_cam.websocket.message_relay._build_relay_trace_headers",
             return_value={"traceparent": "00-abc-def-01", "tracestate": "vendor=value"},
         ),
     ):
@@ -75,8 +75,8 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_times_out() -
     manager.send_command.side_effect = _never_returns
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.DEFAULT_COMMAND_TIMEOUT", 0.001),
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.DEFAULT_COMMAND_TIMEOUT", 0.001),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         pytest.raises(HTTPException) as exc_info,
     ):
         await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=AsyncMock())
@@ -95,7 +95,7 @@ async def test_relay_via_websocket_sanitizes_path_and_response_in_warning_log(ca
     )
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         pytest.raises(HTTPException),
         caplog.at_level("WARNING"),
     ):
@@ -114,9 +114,9 @@ async def test_cross_worker_relay_opens_circuit_after_three_failures() -> None:
     circuit_breaker.reset_for_tests()
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         patch(
-            "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
             AsyncMock(side_effect=RuntimeError("camera offline")),
         ) as relay_cross_worker,
     ):
@@ -143,13 +143,13 @@ async def test_cross_worker_relay_forwards_trace_headers() -> None:
     circuit_breaker.reset_for_tests()
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         patch(
-            "app.api.plugins.rpi_cam.websocket.relay._build_relay_trace_headers",
+            "app.api.plugins.rpi_cam.websocket.message_relay._build_relay_trace_headers",
             return_value={"traceparent": "00-abc-def-01", "baggage": "user_id=42"},
         ),
         patch(
-            "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
             AsyncMock(return_value=({"status": 200, "data": {"ok": True}}, None)),
         ) as relay_cross_worker,
     ):
@@ -178,9 +178,9 @@ async def test_cross_worker_relay_success_resets_circuit() -> None:
     circuit_breaker.reset_for_tests()
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         patch(
-            "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
             AsyncMock(
                 side_effect=[
                     RuntimeError("camera offline"),
@@ -219,9 +219,9 @@ async def test_cross_worker_relay_half_opens_after_cooldown() -> None:
     )
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         patch(
-            "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
             AsyncMock(side_effect=RuntimeError("camera still offline")),
         ) as relay_cross_worker,
         pytest.raises(HTTPException),
@@ -242,7 +242,7 @@ async def test_allowed_commands_are_dispatched(method: str, path: str) -> None:
     manager = AsyncMock()
     manager.send_command = AsyncMock(return_value=({"status": 200, "data": {}}, None))
 
-    with patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager):
+    with patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager):
         response = await relay_mod.relay_via_websocket(camera_id, method, path, redis=AsyncMock())
 
     assert response.status_code == 200
@@ -278,4 +278,3 @@ async def test_blocked_commands_raise_403(method: str, path: str) -> None:
 
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == RELAY_COMMAND_FORBIDDEN_DETAIL
-

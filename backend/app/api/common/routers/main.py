@@ -4,10 +4,10 @@ from fastapi import APIRouter
 
 from app.api.auth.routers import all_routers as auth_routers
 from app.api.data_collection.routers import router as data_collection_router
+from app.api.data_collection.stats.router import router as stats_router
 from app.api.plugins.rpi_cam.routers import router as rpi_cam_router
 from app.api.reference_data.routers.admin import router as reference_data_admin_router
 from app.api.reference_data.routers.public import router as reference_data_public_router
-from app.api.stats.router import router as stats_router
 
 router = APIRouter()
 

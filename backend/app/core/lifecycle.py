@@ -26,9 +26,9 @@ from app.core.clients import create_http_client
 from app.core.config import Environment, settings
 from app.core.database import async_engine, async_sessionmaker_factory, check_database_connection, close_async_engine
 from app.core.logging import cleanup_logging, setup_logging
-from app.core.observability import init_telemetry, shutdown_telemetry
 from app.core.redis import close_redis, init_redis
 from app.core.runtime import AppServices, get_app_services, reset_app_services
+from app.core.telemetry import init_telemetry, shutdown_telemetry
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Awaitable, Callable

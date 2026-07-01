@@ -47,7 +47,8 @@ def test_returns_200_with_correct_shape(client: TestClient) -> None:
     assert "generated_at" in body
 
 def test_returns_200_with_categories(client: TestClient) -> None:
-    with patch("app.api.data_collection.stats.router.compute_categories", AsyncMock(return_value=(_FAKE_CATEGORIES, _NOW))):
+    mock = AsyncMock(return_value=(_FAKE_CATEGORIES, _NOW))
+    with patch("app.api.data_collection.stats.router.compute_categories", mock):
         resp = client.get("/v1/stats/categories")
     assert resp.status_code == 200
     body = resp.json()

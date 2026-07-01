@@ -21,14 +21,14 @@ from app.api.plugins.rpi_cam.examples import (
     CAMERA_START_RECORDING_TITLE_OPENAPI_EXAMPLES,
 )
 from app.api.plugins.rpi_cam.exceptions import InvalidCameraResponseError
-from app.api.plugins.rpi_cam.recording_service import (
+from app.api.plugins.rpi_cam.runtime.relay import build_camera_request, get_user_owned_camera
+from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
+from app.api.plugins.rpi_cam.services.recording_service import (
     get_youtube_recording_monitor_stream,
     start_youtube_recording,
     stop_youtube_recording,
 )
-from app.api.plugins.rpi_cam.runtime.relay import build_camera_request, get_user_owned_camera
-from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
-from app.api.plugins.rpi_cam.youtube import YouTubePrivacyStatus
+from app.api.plugins.rpi_cam.services.youtube import YouTubePrivacyStatus
 from app.core.redis import RedisDep
 
 # Initialize router

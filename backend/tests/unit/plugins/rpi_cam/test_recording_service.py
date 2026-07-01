@@ -16,14 +16,14 @@ from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Video
 from app.api.plugins.rpi_cam.constants import PLUGIN_STREAM_ENDPOINT
 from app.api.plugins.rpi_cam.exceptions import RecordingSessionStoreError
-from app.api.plugins.rpi_cam.recording_service import (
+from app.api.plugins.rpi_cam.runtime.recording import YouTubeRecordingSession
+from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
+from app.api.plugins.rpi_cam.services.recording_service import (
     get_youtube_recording_monitor_stream,
     start_youtube_recording,
     stop_youtube_recording,
 )
-from app.api.plugins.rpi_cam.runtime.recording import YouTubeRecordingSession
-from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
-from app.api.plugins.rpi_cam.youtube import YouTubePrivacyStatus
+from app.api.plugins.rpi_cam.services.youtube import YouTubePrivacyStatus
 from tests.unit.plugins.rpi_cam.stream_router_test_support import (
     FAKE_ACCESS_TOKEN,
     FAKE_ACCOUNT_EMAIL,
@@ -67,11 +67,11 @@ def build_recording_session(*, video_id: int = 42) -> YouTubeRecordingSession:
     """Return an active recording session."""
     return YouTubeRecordingSession(video_id=video_id, broadcast_key=FAKE_BROADCAST_KEY)
 
-@patch("app.api.plugins.rpi_cam.recording_service.get_user_owned_camera")
-@patch("app.api.plugins.rpi_cam.recording_service.build_camera_request")
-@patch("app.api.plugins.rpi_cam.recording_service.YouTubeService")
-@patch("app.api.plugins.rpi_cam.recording_service.get_user_owned_object")
-@patch("app.api.plugins.rpi_cam.recording_service.create_video", new_callable=AsyncMock)
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
+@patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")
+@patch("app.api.plugins.rpi_cam.services.recording_service.YouTubeService")
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_object")
+@patch("app.api.plugins.rpi_cam.services.recording_service.create_video", new_callable=AsyncMock)
 async def test_start_youtube_recording_creates_video_and_stores_session_video_id(
     mock_create_video: AsyncMock,
     mock_product_ownership: MagicMock,
@@ -132,10 +132,10 @@ async def test_start_youtube_recording_creates_video_and_stores_session_video_id
     cached_session = YouTubeRecordingSession.model_validate_json(payload)
     assert cached_session == build_recording_session(video_id=42)
 
-@patch("app.api.plugins.rpi_cam.recording_service.get_user_owned_camera")
-@patch("app.api.plugins.rpi_cam.recording_service.YouTubeService")
-@patch("app.api.plugins.rpi_cam.recording_service.get_user_owned_object")
-@patch("app.api.plugins.rpi_cam.recording_service.create_video", new_callable=AsyncMock)
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
+@patch("app.api.plugins.rpi_cam.services.recording_service.YouTubeService")
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_object")
+@patch("app.api.plugins.rpi_cam.services.recording_service.create_video", new_callable=AsyncMock)
 async def test_start_youtube_recording_rejects_product_not_owned_by_camera_owner(
     mock_create_video: AsyncMock,
     mock_get_owned_product: MagicMock,
@@ -170,11 +170,11 @@ async def test_start_youtube_recording_rejects_product_not_owned_by_camera_owner
     mock_yt_service_class.assert_not_called()
     mock_create_video.assert_not_awaited()
 
-@patch("app.api.plugins.rpi_cam.recording_service.get_user_owned_camera")
-@patch("app.api.plugins.rpi_cam.recording_service.build_camera_request")
-@patch("app.api.plugins.rpi_cam.recording_service.YouTubeService")
-@patch("app.api.plugins.rpi_cam.recording_service.get_user_owned_object")
-@patch("app.api.plugins.rpi_cam.recording_service.create_video", new_callable=AsyncMock)
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
+@patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")
+@patch("app.api.plugins.rpi_cam.services.recording_service.YouTubeService")
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_object")
+@patch("app.api.plugins.rpi_cam.services.recording_service.create_video", new_callable=AsyncMock)
 async def test_start_youtube_recording_is_idempotent_when_session_already_active(
     mock_create_video: AsyncMock,
     mock_product_ownership: MagicMock,
@@ -219,13 +219,13 @@ async def test_start_youtube_recording_is_idempotent_when_session_already_active
     mock_create_video.assert_not_awaited()
     redis_mock.set.assert_not_awaited()
 
-@patch("app.api.plugins.rpi_cam.recording_service.get_user_owned_camera")
-@patch("app.api.plugins.rpi_cam.recording_service.build_camera_request")
-@patch("app.api.plugins.rpi_cam.recording_service.YouTubeService")
-@patch("app.api.plugins.rpi_cam.recording_service.get_user_owned_object")
-@patch("app.api.plugins.rpi_cam.recording_service.store_recording_session", new_callable=AsyncMock)
-@patch("app.api.plugins.rpi_cam.recording_service.delete_video", new_callable=AsyncMock)
-@patch("app.api.plugins.rpi_cam.recording_service.create_video", new_callable=AsyncMock)
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
+@patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")
+@patch("app.api.plugins.rpi_cam.services.recording_service.YouTubeService")
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_object")
+@patch("app.api.plugins.rpi_cam.services.recording_service.store_recording_session", new_callable=AsyncMock)
+@patch("app.api.plugins.rpi_cam.services.recording_service.delete_video", new_callable=AsyncMock)
+@patch("app.api.plugins.rpi_cam.services.recording_service.create_video", new_callable=AsyncMock)
 async def test_start_youtube_recording_rolls_back_created_video_when_session_storage_fails(
     mock_create_video: AsyncMock,
     mock_delete_video: AsyncMock,
@@ -282,10 +282,10 @@ async def test_start_youtube_recording_rolls_back_created_video_when_session_sto
     mock_delete_video.assert_awaited_once_with(session_mock, 42)
     mock_yt_service.end_livestream.assert_awaited_once_with(FAKE_BROADCAST_KEY)
 
-@patch("app.api.plugins.rpi_cam.recording_service.get_user_owned_camera")
-@patch("app.api.plugins.rpi_cam.recording_service.build_camera_request")
-@patch("app.api.plugins.rpi_cam.recording_service.YouTubeService")
-@patch("app.api.plugins.rpi_cam.recording_service.require_model", new_callable=AsyncMock)
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
+@patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")
+@patch("app.api.plugins.rpi_cam.services.recording_service.YouTubeService")
+@patch("app.api.plugins.rpi_cam.services.recording_service.require_model", new_callable=AsyncMock)
 async def test_stop_youtube_recording_returns_existing_video_and_tolerates_camera_cleanup_failure(
     mock_require_model: AsyncMock,
     mock_yt_service_class: MagicMock,
@@ -331,9 +331,9 @@ async def test_stop_youtube_recording_returns_existing_video_and_tolerates_camer
     mock_yt_service.end_livestream.assert_awaited_once_with(FAKE_BROADCAST_KEY)
     redis_mock.delete.assert_awaited_once()
 
-@patch("app.api.plugins.rpi_cam.recording_service.get_user_owned_camera")
-@patch("app.api.plugins.rpi_cam.recording_service.build_camera_request")
-@patch("app.api.plugins.rpi_cam.recording_service.YouTubeService")
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
+@patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")
+@patch("app.api.plugins.rpi_cam.services.recording_service.YouTubeService")
 async def test_get_youtube_recording_monitor_stream(
     mock_yt_service_class: MagicMock,
     mock_build_camera_request: MagicMock,

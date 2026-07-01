@@ -22,7 +22,7 @@ from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, Camer
 from app.api.plugins.rpi_cam.runtime.preview import get_preview_thumbnail_path, get_preview_thumbnail_urls_per_camera
 from app.api.plugins.rpi_cam.runtime.status import get_camera_status as fetch_camera_status
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead, CameraReadWithStatus, CameraUpdate
-from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
+from app.api.plugins.rpi_cam.websocket.message_relay import relay_via_websocket
 from app.core.redis import RedisDep
 
 if TYPE_CHECKING:

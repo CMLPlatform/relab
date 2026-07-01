@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
-from app.api.plugins.rpi_cam.youtube import YouTubeService
+from app.api.plugins.rpi_cam.services.youtube import YouTubeService
 
 if TYPE_CHECKING:
     from typing import Any

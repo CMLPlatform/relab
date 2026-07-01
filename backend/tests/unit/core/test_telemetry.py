@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 from fastapi import FastAPI
 
 from app.core.logging import RequestContextFilter
-from app.core.observability.telemetry import _telemetry_state, init_telemetry, shutdown_telemetry
+from app.core.telemetry import _telemetry_state, init_telemetry, shutdown_telemetry
 
 if TYPE_CHECKING:
     import pytest
@@ -98,7 +98,7 @@ def test_init_telemetry_returns_false_when_disabled(monkeypatch: pytest.MonkeyPa
     app = FastAPI()
     async_engine = MagicMock()
 
-    monkeypatch.setattr("app.core.observability.telemetry.settings.otel_exporter_otlp_endpoint", None)
+    monkeypatch.setattr("app.core.telemetry.settings.otel_exporter_otlp_endpoint", None)
 
     assert init_telemetry(app, async_engine) is False
 
@@ -111,9 +111,9 @@ def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyP
     httpx_instrumentor = MagicMock()
 
     monkeypatch.setattr(
-        "app.core.observability.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces"
+        "app.core.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces"
     )
-    monkeypatch.setattr("app.core.observability.telemetry.settings.environment", "testing")
+    monkeypatch.setattr("app.core.telemetry.settings.environment", "testing")
 
     fake_modules = _build_fake_otel_modules(fastapi_instrumentor, sqlalchemy_instrumentor, httpx_instrumentor)
     trace_module = fake_modules["opentelemetry.trace"]
@@ -144,7 +144,7 @@ def test_init_telemetry_returns_false_when_dependencies_missing(monkeypatch: pyt
     async_engine = MagicMock()
 
     monkeypatch.setattr(
-        "app.core.observability.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces"
+        "app.core.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces"
     )
 
     # Setting a module to None in sys.modules causes ImportError on import

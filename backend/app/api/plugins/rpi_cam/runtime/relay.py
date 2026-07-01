@@ -11,7 +11,7 @@ from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus
 from app.api.plugins.rpi_cam.relay_response import RelayResponse
 from app.api.plugins.rpi_cam.runtime.status import get_camera_status
-from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
+from app.api.plugins.rpi_cam.websocket.message_relay import relay_via_websocket
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
