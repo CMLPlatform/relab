@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { getResizedImageUrl, resolveApiMediaUrl } from '../media';
+import { resolveApiMediaUrl } from '../media';
 
 const ORIGINAL_ENV = process.env.EXPO_PUBLIC_API_URL;
 
@@ -49,40 +49,5 @@ describe('resolveApiMediaUrl', () => {
     expect(resolveApiMediaUrl('uploads/images/test.jpg')).toBe(
       'http://127.0.0.1:8010/uploads/images/test.jpg',
     );
-  });
-});
-
-describe('getResizedImageUrl', () => {
-  beforeEach(() => {
-    process.env.EXPO_PUBLIC_API_URL = 'http://127.0.0.1:18010';
-  });
-
-  afterEach(() => {
-    process.env.EXPO_PUBLIC_API_URL = ORIGINAL_ENV;
-  });
-
-  it('returns the resolved image URL when imageId is provided', () => {
-    const result = getResizedImageUrl('/uploads/img.jpg', '7', 400);
-    expect(result).toBe('http://127.0.0.1:8010/uploads/img.jpg');
-  });
-
-  it('returns resolved original URL when imageId is undefined', () => {
-    const result = getResizedImageUrl('/uploads/img.jpg', undefined, 400);
-    expect(result).toBe('http://127.0.0.1:8010/uploads/img.jpg');
-  });
-
-  it('returns resolved original URL for blob: URI (no resize)', () => {
-    const result = getResizedImageUrl('blob:http://localhost/abc', '5', 400);
-    expect(result).toBe('blob:http://localhost/abc');
-  });
-
-  it('returns resolved original URL for file: URI (no resize)', () => {
-    const result = getResizedImageUrl('file:///data/image.jpg', '5', 400);
-    expect(result).toBe('file:///data/image.jpg');
-  });
-
-  it('returns undefined when the image URL is unsafe', () => {
-    const result = getResizedImageUrl('javascript:alert(1)', '5', 400);
-    expect(result).toBeUndefined();
   });
 });

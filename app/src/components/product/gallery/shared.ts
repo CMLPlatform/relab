@@ -1,6 +1,6 @@
 import { type GestureResponderEvent, Platform, FlatList as RNFlatList } from 'react-native';
 import { FlatList as GHFlatList } from 'react-native-gesture-handler';
-import { getResizedImageUrl, resolveApiMediaUrl } from '@/services/api/media';
+import { resolveApiMediaUrl } from '@/services/api/media';
 import type { Product } from '@/types/Product';
 
 export const GalleryFlatList: typeof GHFlatList =
@@ -41,8 +41,8 @@ export function buildGalleryMedia(product: Product) {
       {
         image,
         thumbnailUrl,
-        mediumUrl: getResizedImageUrl(image.url, image.id, 800) ?? imageUrl,
-        largeUrl: getResizedImageUrl(image.url, image.id, 1600) ?? imageUrl,
+        mediumUrl: imageUrl,
+        largeUrl: imageUrl,
       },
     ];
   });

@@ -1,11 +1,7 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
-import { loadCPV, resetCPVCacheForTests } from '../cpv';
+import { describe, expect, it } from '@jest/globals';
+import { loadCPV } from '../cpv';
 
 describe('CPV service', () => {
-  beforeEach(() => {
-    resetCPVCacheForTests();
-  });
-
   it('loads CPV data successfully', async () => {
     const data = await loadCPV();
     expect(data).toBeDefined();

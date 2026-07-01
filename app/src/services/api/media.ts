@@ -23,13 +23,3 @@ export function resolveApiMediaUrl(path?: string | null): string | undefined {
   const normalizedPath = trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
   return `${apiBaseUrl}${normalizedPath}`;
 }
-
-export function getResizedImageUrl(
-  imageUrl: string,
-  imageId: string | undefined,
-  width: number,
-): string | undefined {
-  void imageId;
-  void width;
-  return resolveApiMediaUrl(imageUrl);
-}
