@@ -16,7 +16,6 @@ from app.core.middleware.response_policy import HSTS_HEADER_VALUE
 if TYPE_CHECKING:
     import pytest
 
-
 def _create_composed_middleware_app() -> FastAPI:
     app = FastAPI()
     register_middleware(app)
@@ -30,7 +29,6 @@ def _create_composed_middleware_app() -> FastAPI:
         return {"payload": await request.json()}
 
     return app
-
 
 async def test_composed_middleware_wraps_trusted_host_failures(monkeypatch: pytest.MonkeyPatch) -> None:
     """Response policy must wrap framework-level responses created before routing."""
@@ -48,7 +46,6 @@ async def test_composed_middleware_wraps_trusted_host_failures(monkeypatch: pyte
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["strict-transport-security"] == HSTS_HEADER_VALUE
 
-
 async def test_composed_middleware_exposes_request_id_through_cors(monkeypatch: pytest.MonkeyPatch) -> None:
     """CORS should allow clients to read the request ID produced by the request middleware."""
     monkeypatch.setattr(settings, "allowed_hosts", ["*"])
@@ -63,7 +60,6 @@ async def test_composed_middleware_exposes_request_id_through_cors(monkeypatch: 
     assert response.status_code == 200
     assert response.headers[REQUEST_ID_HEADER]
     assert response.headers["access-control-expose-headers"] == REQUEST_ID_HEADER
-
 
 async def test_composed_middleware_keeps_api_guards(monkeypatch: pytest.MonkeyPatch) -> None:
     """Method policy, content negotiation, and request size limits should compose together."""
@@ -87,7 +83,6 @@ async def test_composed_middleware_keeps_api_guards(monkeypatch: pytest.MonkeyPa
     assert method_response.headers["allow"] == ALLOW_HEADER_VALUE
     assert negotiation_response.status_code == 406
     assert size_response.status_code == 413
-
 
 async def test_composed_middleware_uses_shared_method_policy_for_cors(monkeypatch: pytest.MonkeyPatch) -> None:
     """CORS and 405 Allow headers should be derived from the same method policy."""

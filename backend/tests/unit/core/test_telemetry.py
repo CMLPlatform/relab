@@ -16,12 +16,10 @@ from app.core.observability.telemetry import _telemetry_state, init_telemetry, s
 if TYPE_CHECKING:
     import pytest
 
-
 class _FakeResource:
     @staticmethod
     def create(attributes: dict[str, object]) -> dict[str, object]:
         return attributes
-
 
 class _FakeTracerProvider:
     def __init__(self, *, resource: dict[str, object]) -> None:
@@ -32,7 +30,6 @@ class _FakeTracerProvider:
     def add_span_processor(self, processor: object) -> None:
         self.processors.append(processor)
 
-
 class _FakeLoggerProvider:
     def __init__(self, *, resource: dict[str, object]) -> None:
         self.resource = resource
@@ -41,7 +38,6 @@ class _FakeLoggerProvider:
 
     def add_log_record_processor(self, processor: object) -> None:
         self.processors.append(processor)
-
 
 class _FakeLoggingHandler(logging.Handler):
     def __init__(self, *, level: int, logger_provider: _FakeLoggerProvider) -> None:
@@ -52,7 +48,6 @@ class _FakeLoggingHandler(logging.Handler):
     def handle(self, record: logging.LogRecord) -> bool:
         del record
         return True
-
 
 def _build_fake_otel_modules(
     fastapi_instrumentor: MagicMock,
@@ -98,7 +93,6 @@ def _build_fake_otel_modules(
         ),
     }
 
-
 def test_init_telemetry_returns_false_when_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Disabled telemetry should not import or instrument anything."""
     app = FastAPI()
@@ -107,7 +101,6 @@ def test_init_telemetry_returns_false_when_disabled(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr("app.core.observability.telemetry.settings.otel_exporter_otlp_endpoint", None)
 
     assert init_telemetry(app, async_engine) is False
-
 
 def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Enabled telemetry should set up the tracer provider and instrumentors."""
@@ -144,7 +137,6 @@ def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyP
     httpx_instrumentor.uninstrument.assert_called_once_with()
     assert _telemetry_state.log_handler is None
     assert _telemetry_state.log_provider is None
-
 
 def test_init_telemetry_returns_false_when_dependencies_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     """Missing optional telemetry dependencies should fail closed, not crash startup."""

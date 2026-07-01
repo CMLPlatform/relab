@@ -18,7 +18,6 @@ def _create_method_policy_app() -> FastAPI:
 
     return app
 
-
 async def test_method_policy_allows_supported_methods() -> None:
     """Normal application methods should pass through to routing."""
     app = _create_method_policy_app()
@@ -28,7 +27,6 @@ async def test_method_policy_allows_supported_methods() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-
 
 async def test_method_policy_blocks_dangerous_unused_methods() -> None:
     """TRACE/TRACK/CONNECT should be blocked before route handling."""

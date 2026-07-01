@@ -15,9 +15,7 @@ from tests.factories.models import CategoryFactory
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
-
 pytestmark = pytest.mark.db
-
 
 async def test_taxonomy_categories_relationship_loads_children(
     db_session: AsyncSession,

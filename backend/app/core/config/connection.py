@@ -116,7 +116,7 @@ class DatabaseSettings(RelabBaseSettings):
         cafile = str(self.tls_ca_file) if self.tls_ca_file is not None else None
         return {"ssl": ssl.create_default_context(cafile=cafile)}
 
-    def _role_security_errors(self) -> list[str]:
+    def role_security_errors(self) -> list[str]:
         """Collect least-privilege database role validation errors."""
         errors: list[str] = []
 

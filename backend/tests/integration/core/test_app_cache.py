@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import pickle
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 import pytest
@@ -21,11 +22,29 @@ from app.core.cache import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Callable
+    from contextlib import AbstractAsyncContextManager
 
 EXPIRE_60 = 60
 EXPIRE_1 = 1
 
+@pytest.fixture
+async def mount_cache_client() -> AsyncGenerator[Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]]]:
+    """Reset the cache once and hand back a helper that serves a router via an in-memory-cached client."""
+    await close_cache()
+    init_cache(None)
+
+    @asynccontextmanager
+    async def _serve(router: APIRouter) -> AsyncGenerator[AsyncClient]:
+        app = FastAPI()
+        app.include_router(router)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            yield client
+
+    try:
+        yield _serve
+    finally:
+        await close_cache()
 
 @pytest.fixture
 async def cache_app() -> AsyncGenerator[FastAPI]:
@@ -50,325 +69,272 @@ async def cache_app() -> AsyncGenerator[FastAPI]:
     finally:
         await close_cache()
 
+async def test_cache_hit_on_second_request(cache_app: FastAPI) -> None:
+    """Test that second request returns cached response with HIT header."""
+    async with AsyncClient(transport=ASGITransport(app=cache_app), base_url="http://test") as client:
+        response1 = await client.get("/cached-endpoint?value=test")
+        assert response1.status_code == 200
+        assert response1.json() == {"result": "processed_test", "call_count": 1}
 
-class TestAppCacheIntegration:
-    """Integration tests for cached FastAPI endpoints."""
+        response2 = await client.get("/cached-endpoint?value=test")
+        assert response2.status_code == 200
+        assert response2.json() == {"result": "processed_test", "call_count": 1}
 
-    async def test_cache_hit_on_second_request(self, cache_app: FastAPI) -> None:
-        """Test that second request returns cached response with HIT header."""
-        async with AsyncClient(transport=ASGITransport(app=cache_app), base_url="http://test") as client:
-            response1 = await client.get("/cached-endpoint?value=test")
-            assert response1.status_code == 200
-            assert response1.json() == {"result": "processed_test", "call_count": 1}
+async def test_different_params_different_cache(cache_app: FastAPI) -> None:
+    """Test that different parameters create separate cache entries."""
+    async with AsyncClient(transport=ASGITransport(app=cache_app), base_url="http://test") as client:
+        response1 = await client.get("/cached-endpoint?value=test1")
+        assert response1.status_code == 200
+        assert response1.json()["call_count"] == 1
 
-            response2 = await client.get("/cached-endpoint?value=test")
-            assert response2.status_code == 200
-            assert response2.json() == {"result": "processed_test", "call_count": 1}
+        response2 = await client.get("/cached-endpoint?value=test2")
+        assert response2.status_code == 200
+        assert response2.json()["call_count"] == 2
 
-    async def test_different_params_different_cache(self, cache_app: FastAPI) -> None:
-        """Test that different parameters create separate cache entries."""
-        async with AsyncClient(transport=ASGITransport(app=cache_app), base_url="http://test") as client:
-            response1 = await client.get("/cached-endpoint?value=test1")
-            assert response1.status_code == 200
+        response3 = await client.get("/cached-endpoint?value=test1")
+        assert response3.status_code == 200
+        assert response3.json()["call_count"] == 1
+
+async def test_cache_ttl_expiration(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that cache entries expire after TTL."""
+    fake_now = {"value": 1_700_000_000.0}
+
+    def _fake_time() -> float:
+        return fake_now["value"]
+
+    monkeypatch.setattr(memory_backend.time, "time", _fake_time)
+    await close_cache()
+    init_cache(None)
+
+    app = FastAPI()
+    router = APIRouter()
+    call_count = {"short_ttl": 0}
+
+    @router.get("/short-ttl")
+    @cache(expire=EXPIRE_1)
+    async def short_ttl_endpoint(value: str) -> dict:
+        call_count["short_ttl"] += 1
+        return {"result": f"processed_{value}", "call_count": call_count["short_ttl"]}
+
+    app.include_router(router)
+
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response1 = await client.get("/short-ttl?value=test")
             assert response1.json()["call_count"] == 1
 
-            response2 = await client.get("/cached-endpoint?value=test2")
-            assert response2.status_code == 200
-            assert response2.json()["call_count"] == 2
+            response2 = await client.get("/short-ttl?value=test")
+            assert response2.json()["call_count"] == 1
 
-            response3 = await client.get("/cached-endpoint?value=test1")
-            assert response3.status_code == 200
-            assert response3.json()["call_count"] == 1
+            fake_now["value"] += 1.1
 
-    async def test_cache_ttl_expiration(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test that cache entries expire after TTL."""
-        fake_now = {"value": 1_700_000_000.0}
-
-        def _fake_time() -> float:
-            return fake_now["value"]
-
-        monkeypatch.setattr(memory_backend.time, "time", _fake_time)
+            response3 = await client.get("/short-ttl?value=test")
+            assert response3.json()["call_count"] == 2
+    finally:
         await close_cache()
-        init_cache(None)
 
-        app = FastAPI()
-        router = APIRouter()
-        call_count = {"short_ttl": 0}
+async def test_session_exclusion_from_cache_key(
+    mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
+) -> None:
+    """Dependencies should not affect the cache key when request params are unchanged."""
+    router = APIRouter()
+    call_count = {"cached_with_dependency": 0}
 
-        @router.get("/short-ttl")
-        @cache(expire=EXPIRE_1)
-        async def short_ttl_endpoint(value: str) -> dict:
-            call_count["short_ttl"] += 1
-            return {"result": f"processed_{value}", "call_count": call_count["short_ttl"]}
+    async def get_context() -> dict[str, str]:
+        return {"request_id": "123"}
 
-        app.include_router(router)
+    @router.get("/cached-with-dependency", dependencies=[Depends(get_context)])
+    @cache(expire=EXPIRE_60)
+    async def cached_with_dependency(value: str) -> dict:
+        call_count["cached_with_dependency"] += 1
+        return {"result": f"processed_{value}", "call_count": call_count["cached_with_dependency"]}
 
-        try:
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-                response1 = await client.get("/short-ttl?value=test")
-                assert response1.json()["call_count"] == 1
+    async with mount_cache_client(router) as client:
+        response1 = await client.get("/cached-with-dependency?value=test")
+        assert response1.status_code == 200
+        assert response1.json()["result"] == "processed_test"
+        assert response1.json()["call_count"] == 1
 
-                response2 = await client.get("/short-ttl?value=test")
-                assert response2.json()["call_count"] == 1
+        response2 = await client.get("/cached-with-dependency?value=test")
+        assert response2.status_code == 200
+        assert response2.json()["call_count"] == 1
 
-                fake_now["value"] += 1.1
-
-                response3 = await client.get("/short-ttl?value=test")
-                assert response3.json()["call_count"] == 2
-        finally:
-            await close_cache()
-
-    async def test_session_exclusion_from_cache_key(self) -> None:
-        """Dependencies should not affect the cache key when request params are unchanged."""
-        await close_cache()
-        init_cache(None)
-
-        app = FastAPI()
-        router = APIRouter()
-        call_count = {"cached_with_dependency": 0}
-
-        async def get_context() -> dict[str, str]:
-            return {"request_id": "123"}
-
-        @router.get("/cached-with-dependency", dependencies=[Depends(get_context)])
-        @cache(expire=EXPIRE_60)
-        async def cached_with_dependency(value: str) -> dict:
-            call_count["cached_with_dependency"] += 1
-            return {"result": f"processed_{value}", "call_count": call_count["cached_with_dependency"]}
-
-        app.include_router(router)
-
-        try:
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-                response1 = await client.get("/cached-with-dependency?value=test")
-                assert response1.status_code == 200
-                assert response1.json()["result"] == "processed_test"
-                assert response1.json()["call_count"] == 1
-
-                response2 = await client.get("/cached-with-dependency?value=test")
-                assert response2.status_code == 200
-                assert response2.json()["call_count"] == 1
-        finally:
-            await close_cache()
-
-    async def test_concurrent_requests_same_endpoint(self, cache_app: FastAPI) -> None:
-        """Concurrent requests should all succeed even before the cache warms."""
-        async with AsyncClient(transport=ASGITransport(app=cache_app), base_url="http://test") as client:
-            responses = await asyncio.gather(
-                client.get("/cached-endpoint?value=concurrent"),
-                client.get("/cached-endpoint?value=concurrent"),
-                client.get("/cached-endpoint?value=concurrent"),
-            )
-
-            assert all(r.status_code == 200 for r in responses)
-            call_counts = [r.json()["call_count"] for r in responses]
-            assert 1 in call_counts
-
-    async def test_cache_different_endpoints_separate(self) -> None:
-        """Different endpoints should maintain separate cache entries."""
-        await close_cache()
-        init_cache(None)
-
-        app = FastAPI()
-        router = APIRouter()
-        call_count = {"endpoint1": 0, "endpoint2": 0}
-
-        @router.get("/endpoint1")
-        @cache(expire=EXPIRE_60)
-        async def endpoint1() -> dict:
-            call_count["endpoint1"] += 1
-            return {"endpoint": "1", "call_count": call_count["endpoint1"]}
-
-        @router.get("/endpoint2")
-        @cache(expire=EXPIRE_60)
-        async def endpoint2() -> dict:
-            call_count["endpoint2"] += 1
-            return {"endpoint": "2", "call_count": call_count["endpoint2"]}
-
-        app.include_router(router)
-
-        try:
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-                response1 = await client.get("/endpoint1")
-                assert response1.json()["call_count"] == 1
-
-                response2 = await client.get("/endpoint2")
-                assert response2.json()["call_count"] == 1
-
-                response3 = await client.get("/endpoint1")
-                assert response3.json()["call_count"] == 1
-        finally:
-            await close_cache()
-
-    async def test_cache_clear_namespace(self) -> None:
-        """Clearing a namespace should invalidate matching cached endpoints."""
-        await close_cache()
-        init_cache(None)
-
-        app = FastAPI()
-        router = APIRouter()
-        call_count = {"namespaced": 0}
-
-        @router.get("/namespaced")
-        @cache(expire=EXPIRE_60, namespace="test-namespace")
-        async def namespaced_endpoint(value: str) -> dict:
-            call_count["namespaced"] += 1
-            return {"result": value, "call_count": call_count["namespaced"]}
-
-        app.include_router(router)
-
-        try:
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-                response1 = await client.get("/namespaced?value=test")
-                assert response1.json()["call_count"] == 1
-
-                response2 = await client.get("/namespaced?value=test")
-                assert response2.json()["call_count"] == 1
-
-                await clear_cache_namespace("test-namespace")
-
-                response3 = await client.get("/namespaced?value=test")
-                assert response3.json()["call_count"] == 2
-        finally:
-            await close_cache()
-
-    async def test_cached_response_supports_conditional_get(self) -> None:
-        """Cached Response objects should still support ETag-based 304 responses."""
-        await close_cache()
-        init_cache(None)
-
-        app = FastAPI()
-        router = APIRouter()
-        call_count = {"etagged": 0}
-
-        @router.get("/etagged")
-        @cache(expire=EXPIRE_60)
-        async def etagged_endpoint(request: Request) -> JSONResponse:
-            _ = request
-            call_count["etagged"] += 1
-            return JSONResponse({"value": "fresh"}, headers={"ETag": '"profile-v1"'})
-
-        app.include_router(router)
-
-        try:
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-                response1 = await client.get("/etagged")
-                assert response1.status_code == 200
-                assert response1.json() == {"value": "fresh"}
-
-                response2 = await client.get("/etagged", headers={"If-None-Match": '"profile-v1"'})
-                assert response2.status_code == 304
-                assert call_count["etagged"] == 1
-        finally:
-            await close_cache()
-
-    async def test_authorized_requests_bypass_endpoint_cache(self) -> None:
-        """Credentialed responses should not be read from or written to the endpoint cache."""
-        await close_cache()
-        init_cache(None)
-
-        app = FastAPI()
-        router = APIRouter()
-        call_count = {"private": 0}
-
-        @router.get("/private")
-        @cache(expire=EXPIRE_60)
-        async def private_endpoint(request: Request) -> dict:
-            assert request.headers.get("authorization")
-            call_count["private"] += 1
-            return {"call_count": call_count["private"]}
-
-        app.include_router(router)
-
-        try:
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-                response1 = await client.get("/private", headers={"Authorization": "Bearer token-1"})
-                response2 = await client.get("/private", headers={"Authorization": "Bearer token-1"})
-
-            assert response1.json()["call_count"] == 1
-            assert response2.json()["call_count"] == 2
-        finally:
-            await close_cache()
-
-    async def test_no_store_responses_are_not_cached(self) -> None:
-        """Responses that opt out of storage should not be replayed from the endpoint cache."""
-        await close_cache()
-        init_cache(None)
-
-        app = FastAPI()
-        router = APIRouter()
-        call_count = {"sensitive": 0}
-
-        @router.get("/sensitive")
-        @cache(expire=EXPIRE_60)
-        async def sensitive_endpoint() -> JSONResponse:
-            call_count["sensitive"] += 1
-            return JSONResponse(
-                {"call_count": call_count["sensitive"]},
-                headers={"Cache-Control": "no-store"},
-            )
-
-        app.include_router(router)
-
-        try:
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-                response1 = await client.get("/sensitive")
-                response2 = await client.get("/sensitive")
-
-            assert response1.json()["call_count"] == 1
-            assert response2.json()["call_count"] == 2
-        finally:
-            await close_cache()
-
-    def test_cached_response_survives_pickle_round_trip(self) -> None:
-        """Redis backends store cached values via pickle; Response objects must round-trip intact."""
-        original = JSONResponse(
-            {"value": "fresh"},
-            status_code=201,
-            headers={"ETag": '"v1"', "X-Custom": "keep-me"},
+async def test_concurrent_requests_same_endpoint(cache_app: FastAPI) -> None:
+    """Concurrent requests should all succeed even before the cache warms."""
+    async with AsyncClient(transport=ASGITransport(app=cache_app), base_url="http://test") as client:
+        responses = await asyncio.gather(
+            client.get("/cached-endpoint?value=concurrent"),
+            client.get("/cached-endpoint?value=concurrent"),
+            client.get("/cached-endpoint?value=concurrent"),
         )
 
-        restored = pickle.loads(pickle.dumps(original))  # noqa: S301 # Pickling is fine in this test context
+        assert all(r.status_code == 200 for r in responses)
+        call_counts = [r.json()["call_count"] for r in responses]
+        assert 1 in call_counts
 
-        assert isinstance(restored, JSONResponse)
-        assert restored.status_code == original.status_code
-        assert restored.body == original.body
-        assert restored.media_type == original.media_type
-        assert dict(restored.headers) == dict(original.headers)
+async def test_cache_different_endpoints_separate(
+    mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
+) -> None:
+    """Different endpoints should maintain separate cache entries."""
+    router = APIRouter()
+    call_count = {"endpoint1": 0, "endpoint2": 0}
 
-    async def test_cold_not_modified_response_is_not_cached_as_canonical_response(self) -> None:
-        """A cold 304 should not poison the cache for later unconditional requests."""
-        await close_cache()
-        init_cache(None)
+    @router.get("/endpoint1")
+    @cache(expire=EXPIRE_60)
+    async def endpoint1() -> dict:
+        call_count["endpoint1"] += 1
+        return {"endpoint": "1", "call_count": call_count["endpoint1"]}
 
-        app = FastAPI()
-        router = APIRouter()
-        call_count = {"conditional": 0}
+    @router.get("/endpoint2")
+    @cache(expire=EXPIRE_60)
+    async def endpoint2() -> dict:
+        call_count["endpoint2"] += 1
+        return {"endpoint": "2", "call_count": call_count["endpoint2"]}
 
-        @router.get("/conditional")
-        @cache(expire=EXPIRE_60)
-        async def conditional_endpoint(if_none_match: str | None = None) -> Response:
-            call_count["conditional"] += 1
-            headers = {"ETag": '"resource-v1"'}
-            if if_none_match == '"resource-v1"':
-                return Response(status_code=304, headers=headers)
-            return JSONResponse({"value": "fresh"}, headers=headers)
+    async with mount_cache_client(router) as client:
+        response1 = await client.get("/endpoint1")
+        assert response1.json()["call_count"] == 1
 
-        app.include_router(router)
+        response2 = await client.get("/endpoint2")
+        assert response2.json()["call_count"] == 1
 
-        try:
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-                response1 = await client.get("/conditional?if_none_match=%22resource-v1%22")
-                assert response1.status_code == 304
+        response3 = await client.get("/endpoint1")
+        assert response3.json()["call_count"] == 1
 
-                response2 = await client.get("/conditional")
-                assert response2.status_code == 200
-                assert response2.json() == {"value": "fresh"}
-                assert call_count["conditional"] == 2
+async def test_cache_clear_namespace(
+    mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
+) -> None:
+    """Clearing a namespace should invalidate matching cached endpoints."""
+    router = APIRouter()
+    call_count = {"namespaced": 0}
 
-                response3 = await client.get("/conditional")
-                assert response3.status_code == 200
-                assert response3.json() == {"value": "fresh"}
-                assert call_count["conditional"] == 2
-        finally:
-            await close_cache()
+    @router.get("/namespaced")
+    @cache(expire=EXPIRE_60, namespace="test-namespace")
+    async def namespaced_endpoint(value: str) -> dict:
+        call_count["namespaced"] += 1
+        return {"result": value, "call_count": call_count["namespaced"]}
+
+    async with mount_cache_client(router) as client:
+        response1 = await client.get("/namespaced?value=test")
+        assert response1.json()["call_count"] == 1
+
+        response2 = await client.get("/namespaced?value=test")
+        assert response2.json()["call_count"] == 1
+
+        await clear_cache_namespace("test-namespace")
+
+        response3 = await client.get("/namespaced?value=test")
+        assert response3.json()["call_count"] == 2
+
+def test_cached_response_survives_pickle_round_trip() -> None:
+    """Redis backends store cached values via pickle; Response objects must round-trip intact."""
+    original = JSONResponse(
+        {"value": "fresh"},
+        status_code=201,
+        headers={"ETag": '"v1"', "X-Custom": "keep-me"},
+    )
+
+    restored = pickle.loads(pickle.dumps(original))  # noqa: S301 # Pickling is fine in this test context
+
+    assert isinstance(restored, JSONResponse)
+    assert restored.status_code == original.status_code
+    assert restored.body == original.body
+    assert restored.media_type == original.media_type
+    assert dict(restored.headers) == dict(original.headers)
+
+async def test_cached_response_supports_conditional_get(
+    mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
+) -> None:
+    """Cached Response objects should still support ETag-based 304 responses."""
+    router = APIRouter()
+    call_count = {"etagged": 0}
+
+    @router.get("/etagged")
+    @cache(expire=EXPIRE_60)
+    async def etagged_endpoint(request: Request) -> JSONResponse:
+        _ = request
+        call_count["etagged"] += 1
+        return JSONResponse({"value": "fresh"}, headers={"ETag": '"profile-v1"'})
+
+    async with mount_cache_client(router) as client:
+        response1 = await client.get("/etagged")
+        assert response1.status_code == 200
+        assert response1.json() == {"value": "fresh"}
+
+        response2 = await client.get("/etagged", headers={"If-None-Match": '"profile-v1"'})
+        assert response2.status_code == 304
+        assert call_count["etagged"] == 1
+
+async def test_authorized_requests_bypass_endpoint_cache(
+    mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
+) -> None:
+    """Credentialed responses should not be read from or written to the endpoint cache."""
+    router = APIRouter()
+    call_count = {"private": 0}
+
+    @router.get("/private")
+    @cache(expire=EXPIRE_60)
+    async def private_endpoint(request: Request) -> dict:
+        assert request.headers.get("authorization")
+        call_count["private"] += 1
+        return {"call_count": call_count["private"]}
+
+    async with mount_cache_client(router) as client:
+        response1 = await client.get("/private", headers={"Authorization": "Bearer token-1"})
+        response2 = await client.get("/private", headers={"Authorization": "Bearer token-1"})
+
+    assert response1.json()["call_count"] == 1
+    assert response2.json()["call_count"] == 2
+
+async def test_no_store_responses_are_not_cached(
+    mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
+) -> None:
+    """Responses that opt out of storage should not be replayed from the endpoint cache."""
+    router = APIRouter()
+    call_count = {"sensitive": 0}
+
+    @router.get("/sensitive")
+    @cache(expire=EXPIRE_60)
+    async def sensitive_endpoint() -> JSONResponse:
+        call_count["sensitive"] += 1
+        return JSONResponse(
+            {"call_count": call_count["sensitive"]},
+            headers={"Cache-Control": "no-store"},
+        )
+
+    async with mount_cache_client(router) as client:
+        response1 = await client.get("/sensitive")
+        response2 = await client.get("/sensitive")
+
+    assert response1.json()["call_count"] == 1
+    assert response2.json()["call_count"] == 2
+
+async def test_cold_not_modified_response_is_not_cached_as_canonical_response(
+    mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
+) -> None:
+    """A cold 304 should not poison the cache for later unconditional requests."""
+    router = APIRouter()
+    call_count = {"conditional": 0}
+
+    @router.get("/conditional")
+    @cache(expire=EXPIRE_60)
+    async def conditional_endpoint(if_none_match: str | None = None) -> Response:
+        call_count["conditional"] += 1
+        headers = {"ETag": '"resource-v1"'}
+        if if_none_match == '"resource-v1"':
+            return Response(status_code=304, headers=headers)
+        return JSONResponse({"value": "fresh"}, headers=headers)
+
+    async with mount_cache_client(router) as client:
+        response1 = await client.get("/conditional?if_none_match=%22resource-v1%22")
+        assert response1.status_code == 304
+
+        response2 = await client.get("/conditional")
+        assert response2.status_code == 200
+        assert response2.json() == {"value": "fresh"}
+        assert call_count["conditional"] == 2
+
+        response3 = await client.get("/conditional")
+        assert response3.status_code == 200
+        assert response3.json() == {"value": "fresh"}
+        assert call_count["conditional"] == 2

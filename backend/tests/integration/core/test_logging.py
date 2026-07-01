@@ -11,19 +11,16 @@ from app.core.logging import configure_logging_handlers
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-
 def test_standard_logging_configured() -> None:
     """Verify that standard logging messages are handled by the root logger."""
     assert logging.root.handlers
     assert all(handler.level <= logging.INFO for handler in logging.root.handlers)
-
 
 def test_noisy_loggers_configured() -> None:
     """Verify that noisy loggers like uvicorn and sqlalchemy are propagated to root."""
     noisy_logger = logging.getLogger("sqlalchemy.engine")
     assert noisy_logger.propagate is True
     assert len(noisy_logger.handlers) == 0
-
 
 def test_configure_logging_handlers_dev_environment(mocker: MockerFixture) -> None:
     """Verify that DEV keeps a human-readable console handler."""
@@ -37,7 +34,6 @@ def test_configure_logging_handlers_dev_environment(mocker: MockerFixture) -> No
     formatter = handler.setFormatter.call_args.args[0]
     assert not isinstance(formatter, JsonFormatter)
 
-
 def test_configure_logging_handlers_prod_environment(mocker: MockerFixture) -> None:
     """Verify that PROD enables a JSON console formatter."""
     mock_handler_cls = mocker.patch("app.core.logging.logging.StreamHandler")
@@ -49,7 +45,6 @@ def test_configure_logging_handlers_prod_environment(mocker: MockerFixture) -> N
     handler.setLevel.assert_called_once_with(logging.INFO)
     formatter = handler.setFormatter.call_args.args[0]
     assert isinstance(formatter, JsonFormatter)
-
 
 def test_configure_logging_handlers_staging_environment(mocker: MockerFixture) -> None:
     """Verify that STAGING matches PROD console logging behavior."""

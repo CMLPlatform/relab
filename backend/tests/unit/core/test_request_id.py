@@ -14,10 +14,8 @@ if TYPE_CHECKING:
 
     import pytest
 
-
 def _record_value(record: logging.LogRecord, key: str) -> object:
     return getattr(record, key)
-
 
 def _create_test_app() -> FastAPI:
     app = FastAPI()
@@ -28,7 +26,6 @@ def _create_test_app() -> FastAPI:
         return {"status": "ok"}
 
     return app
-
 
 async def test_request_id_middleware_generates_response_header(caplog: pytest.LogCaptureFixture) -> None:
     """Requests without an ID should receive a generated request ID."""
@@ -50,7 +47,6 @@ async def test_request_id_middleware_generates_response_header(caplog: pytest.Lo
     latency_ms = _record_value(record, "http_latency_ms")
     assert isinstance(latency_ms, int | float)
     assert latency_ms >= 0
-
 
 async def test_request_id_middleware_preserves_incoming_header(caplog: pytest.LogCaptureFixture) -> None:
     """Requests with an ID should echo the same request ID back to callers."""

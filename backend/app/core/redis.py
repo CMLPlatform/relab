@@ -63,41 +63,26 @@ async def _execute_redis_operation[T](
 
 
 async def init_redis() -> Redis:
-    """Initialize Redis client instance with connection pooling.
-
-    Returns:
-        Redis: Async Redis client with connection pooling.
-
-    This should be called once during application startup.
-    """
+    """Initialize Redis client with connection pooling. Call once at startup."""
     try:
         redis_cfg = settings.redis
-        password = redis_cfg.password.get_secret_value() if redis_cfg.password else None
+        kwargs: dict[str, Any] = {
+            "host": redis_cfg.host,
+            "port": redis_cfg.port,
+            "db": redis_cfg.db,
+            "password": redis_cfg.password.get_secret_value() or None,
+            "decode_responses": True,
+            "socket_connect_timeout": 5,
+            "socket_timeout": 5,
+            "ssl": redis_cfg.tls,
+        }
         if redis_cfg.tls:
-            redis_client = Redis(
-                host=redis_cfg.host,
-                port=redis_cfg.port,
-                db=redis_cfg.db,
-                password=password,
-                decode_responses=True,
-                socket_connect_timeout=5,
-                socket_timeout=5,
-                ssl=True,
-                ssl_cert_reqs=ssl.CERT_REQUIRED,
-                ssl_ca_certs=str(redis_cfg.tls_ca_file) if redis_cfg.tls_ca_file is not None else None,
-                ssl_check_hostname=True,
-            )
-        else:
-            redis_client = Redis(
-                host=redis_cfg.host,
-                port=redis_cfg.port,
-                db=redis_cfg.db,
-                password=password,
-                decode_responses=True,
-                socket_connect_timeout=5,
-                socket_timeout=5,
-                ssl=False,
-            )
+            kwargs.update({
+                "ssl_cert_reqs": ssl.CERT_REQUIRED,
+                "ssl_ca_certs": str(redis_cfg.tls_ca_file) if redis_cfg.tls_ca_file is not None else None,
+                "ssl_check_hostname": True,
+            })
+        redis_client = Redis(**kwargs)
 
         # Verify connection on startup
         await redis_bool(redis_client.ping())
@@ -112,29 +97,13 @@ async def init_redis() -> Redis:
 
 
 async def close_redis(redis_client: Redis) -> None:
-    """Close Redis connection and connection pool.
-
-    Args:
-        redis_client: Redis client to close
-
-    This properly closes all connections in the pool.
-    """
-    if redis_client:
-        await redis_client.aclose()
-        logger.info("Redis connection pool closed")
+    """Close Redis connection and connection pool."""
+    await redis_client.aclose()
+    logger.info("Redis connection pool closed")
 
 
 async def ping_redis(redis_client: Redis) -> bool:
-    """Check if Redis is available (health check).
-
-    Args:
-        redis_client: Redis client to ping
-
-    Returns:
-        bool: True if Redis is responding, False otherwise
-
-    This is useful for health check endpoints.
-    """
+    """Return True if Redis is responding, False otherwise."""
     return await _execute_redis_operation(
         "ping",
         lambda: redis_bool(redis_client.ping()),
@@ -143,36 +112,15 @@ async def ping_redis(redis_client: Redis) -> bool:
 
 
 async def get_redis_value(redis_client: Redis, key: str) -> str | None:
-    """Get value from Redis.
-
-    Args:
-        redis_client: Redis client
-        key: Redis key
-
-    Returns:
-        Value as string, or None if not found
-    """
+    """Return a string value from Redis, or None if missing."""
     return await _execute_redis_operation("get", lambda: redis_client.get(key), None, log_key=key)
 
 
 async def set_redis_value(redis_client: Redis, key: str, value: EncodableT, ex: int | None = None) -> bool:
-    """Set value in Redis.
-
-    Args:
-        redis_client: Redis client
-        key: Redis key
-        value: Value to store
-        ex: Expiration time in seconds (optional)
-
-    Returns:
-        bool: True if successful, False otherwise
-    """
-
-    async def operation() -> bool:
-        await redis_client.set(key, value, ex=ex)
-        return True
-
-    return await _execute_redis_operation("set", operation, failure_result=False, log_key=key)
+    """Store a value in Redis. Returns True on success, False on failure."""
+    return await _execute_redis_operation(
+        "set", lambda: redis_bool(redis_client.set(key, value, ex=ex)), failure_result=False, log_key=key
+    )
 
 
 async def set_redis_value_nx(redis_client: Redis, key: str, value: EncodableT, ex: int | None = None) -> bool:
@@ -190,35 +138,14 @@ async def set_redis_value_nx(redis_client: Redis, key: str, value: EncodableT, e
 
 
 async def delete_redis_key(redis_client: Redis, key: str) -> bool:
-    """Delete a key from Redis.
-
-    Args:
-        redis_client: Redis client
-        key: Redis key
-
-    Returns:
-        bool: True if successful, False otherwise
-    """
-
-    async def operation() -> bool:
-        await redis_client.delete(key)
-        return True
-
-    return await _execute_redis_operation("delete", operation, failure_result=False, log_key=key)
+    """Delete a key from Redis. Returns True on success, False on failure."""
+    return await _execute_redis_operation(
+        "delete", lambda: redis_bool(redis_client.delete(key)), failure_result=False, log_key=key
+    )
 
 
 def get_redis(request: Request) -> Redis:
-    """FastAPI dependency to get the shared Redis client (raises if unavailable).
-
-    Args:
-        request: FastAPI request bound to the application's runtime services
-
-    Returns:
-        Redis client from the runtime service container
-
-    Raises:
-        ServiceUnavailableError: If Redis is not initialized or unavailable.
-    """
+    """FastAPI dependency returning the shared Redis client (raises if unavailable)."""
     return require_redis(get_request_services(request).redis)
 
 

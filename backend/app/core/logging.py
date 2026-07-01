@@ -15,7 +15,6 @@ from app.core.config import Environment, settings
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from pathlib import Path
 
 ### Logging formats
 LOG_FORMAT = "%(asctime)s | %(levelname)-8s | req=%(request_id)s | %(name)s:%(funcName)s:%(lineno)d - %(message)s"
@@ -102,15 +101,8 @@ def configure_logging_handlers(base_log_level: str) -> list[logging.Handler]:
     return [handler]
 
 
-def setup_logging(
-    log_dir: Path | None = LOG_DIR,
-    base_log_level: str = BASE_LOG_LEVEL,
-    *,
-    stdout_only: bool = True,
-) -> None:
+def setup_logging(base_log_level: str = BASE_LOG_LEVEL) -> None:
     """Setup stdlib logging for application and framework logs."""
-    del log_dir, stdout_only
-
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
         handler.close()
@@ -129,7 +121,6 @@ def setup_logging(
         "uvicorn",
         "uvicorn.error",
         "uvicorn.access",
-        "watchfiles.main",
         "sqlalchemy",
         "sqlalchemy.engine",
         "sqlalchemy.engine.Engine",

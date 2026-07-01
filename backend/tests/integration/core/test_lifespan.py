@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
-
 @pytest.fixture
 def runtime_app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     """Return a fresh app with isolated storage settings for one lifespan test."""
@@ -35,7 +34,6 @@ def runtime_app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     app = FastAPI()
     app.state.services = AppServices()
     return app
-
 
 @dataclass(slots=True)
 class RuntimePatchConfig:
@@ -54,7 +52,6 @@ class RuntimePatchConfig:
     close_cache_side_effect: BaseException | type[BaseException] | None = None
     cleanup_manager_close_side_effect: BaseException | type[BaseException] | None = None
     http_client_close_side_effect: BaseException | type[BaseException] | None = None
-
 
 @dataclass(slots=True)
 class RuntimeMocks:
@@ -85,7 +82,6 @@ class RuntimeMocks:
     check_database_connection: AsyncMock
     close_async_engine: AsyncMock
     set_connection_manager: MagicMock
-
 
 @contextmanager
 def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterator[RuntimeMocks]:
@@ -179,233 +175,230 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
             set_connection_manager=set_connection_manager,
         )
 
+async def test_startup_sets_runtime_services_on_app_state(runtime_app: FastAPI) -> None:
+    """Startup should populate the typed runtime container."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app):
+            services = runtime_app.state.services
+            assert isinstance(services, AppServices)
+            assert services.redis is runtime.redis
+            assert services.email_checker is runtime.email_checker
+            assert services.common_password_checker is runtime.common_password_checker
 
-class TestLifespan:
-    """Application lifespan startup and shutdown."""
+    runtime.init_redis.assert_awaited_once_with()
+    runtime.init_email_checker.assert_awaited_once_with(runtime.redis)
+    runtime.init_common_password_checker.assert_awaited_once_with(runtime.redis)
 
-    async def test_startup_sets_runtime_services_on_app_state(self, runtime_app: FastAPI) -> None:
-        """Startup should populate the typed runtime container."""
-        with patched_runtime_services() as runtime:
-            async with lifecycle.runtime_lifespan(runtime_app):
-                services = runtime_app.state.services
-                assert isinstance(services, AppServices)
-                assert services.redis is runtime.redis
-                assert services.email_checker is runtime.email_checker
-                assert services.common_password_checker is runtime.common_password_checker
+async def test_startup_initializes_storage_on_app_state(runtime_app: FastAPI) -> None:
+    """Startup should ensure storage, mount static files, and mark storage ready."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app):
+            assert runtime_app.state.services.storage_ready is True
 
-        runtime.init_redis.assert_awaited_once_with()
-        runtime.init_email_checker.assert_awaited_once_with(runtime.redis)
-        runtime.init_common_password_checker.assert_awaited_once_with(runtime.redis)
+    runtime.ensure_storage.assert_called_once()
+    runtime.mount_static.assert_called_once_with(runtime_app)
+    runtime.register_favicon.assert_called_once_with(runtime_app)
 
-    async def test_startup_initializes_storage_on_app_state(self, runtime_app: FastAPI) -> None:
-        """Startup should ensure storage, mount static files, and mark storage ready."""
-        with patched_runtime_services() as runtime:
-            async with lifecycle.runtime_lifespan(runtime_app):
-                assert runtime_app.state.services.storage_ready is True
+async def test_shutdown_closes_email_checker_and_redis(runtime_app: FastAPI) -> None:
+    """Shutdown should close Redis-backed services."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-        runtime.ensure_storage.assert_called_once()
-        runtime.mount_static.assert_called_once_with(runtime_app)
-        runtime.register_favicon.assert_called_once_with(runtime_app)
+    runtime.email_checker.close.assert_awaited_once()
+    runtime.close_redis.assert_any_await(runtime.redis)
 
-    async def test_shutdown_closes_email_checker_and_redis(self, runtime_app: FastAPI) -> None:
-        """Shutdown should close Redis-backed services."""
-        with patched_runtime_services() as runtime:
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+async def test_shutdown_tolerates_email_checker_close_error(runtime_app: FastAPI) -> None:
+    """An expected email checker close error should not prevent Redis cleanup."""
+    email_checker = AsyncMock()
+    email_checker.close.side_effect = RuntimeError("checker gone")
 
-        runtime.email_checker.close.assert_awaited_once()
-        runtime.close_redis.assert_any_await(runtime.redis)
+    with patched_runtime_services(RuntimePatchConfig(email_checker=email_checker)) as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-    async def test_shutdown_tolerates_email_checker_close_error(self, runtime_app: FastAPI) -> None:
-        """An expected email checker close error should not prevent Redis cleanup."""
-        email_checker = AsyncMock()
-        email_checker.close.side_effect = RuntimeError("checker gone")
+    runtime.close_redis.assert_any_await(runtime.redis)
 
-        with patched_runtime_services(RuntimePatchConfig(email_checker=email_checker)) as runtime:
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+async def test_shutdown_tolerates_redis_close_error(runtime_app: FastAPI) -> None:
+    """An expected Redis close error should not propagate out of the lifespan."""
+    with patched_runtime_services(RuntimePatchConfig(close_redis_side_effect=ConnectionError("redis gone"))):
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-        runtime.close_redis.assert_any_await(runtime.redis)
+async def test_shutdown_tolerates_file_cleanup_manager_cancellation(runtime_app: FastAPI) -> None:
+    """A cancelled cleanup manager close should not prevent HTTP client cleanup."""
+    config = RuntimePatchConfig(cleanup_manager_close_side_effect=asyncio.CancelledError())
+    with patched_runtime_services(config) as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-    async def test_shutdown_tolerates_redis_close_error(self, runtime_app: FastAPI) -> None:
-        """An expected Redis close error should not propagate out of the lifespan."""
-        with patched_runtime_services(RuntimePatchConfig(close_redis_side_effect=ConnectionError("redis gone"))):
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+    runtime.file_cleanup_manager.close.assert_awaited_once()
+    runtime.http_client.aclose.assert_awaited_once()
 
-    async def test_shutdown_tolerates_file_cleanup_manager_cancellation(self, runtime_app: FastAPI) -> None:
-        """A cancelled cleanup manager close should not prevent HTTP client cleanup."""
-        config = RuntimePatchConfig(cleanup_manager_close_side_effect=asyncio.CancelledError())
-        with patched_runtime_services(config) as runtime:
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+async def test_shutdown_tolerates_http_client_close_error(runtime_app: FastAPI) -> None:
+    """A CloseError from the shared HTTP client should not prevent shutdown."""
+    with patched_runtime_services(
+        RuntimePatchConfig(http_client_close_side_effect=CloseError("client gone"))
+    ) as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-        runtime.file_cleanup_manager.close.assert_awaited_once()
-        runtime.http_client.aclose.assert_awaited_once()
+    runtime.file_cleanup_manager.close.assert_awaited_once()
+    runtime.http_client.aclose.assert_awaited_once()
 
-    async def test_shutdown_tolerates_http_client_close_error(self, runtime_app: FastAPI) -> None:
-        """A CloseError from the shared HTTP client should not prevent shutdown."""
-        with patched_runtime_services(
-            RuntimePatchConfig(http_client_close_side_effect=CloseError("client gone"))
-        ) as runtime:
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+async def test_startup_initializes_telemetry(runtime_app: FastAPI) -> None:
+    """Startup should invoke telemetry initialization with the shared async engine."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-        runtime.file_cleanup_manager.close.assert_awaited_once()
-        runtime.http_client.aclose.assert_awaited_once()
+    runtime.init_telemetry.assert_called_once_with(runtime_app, async_engine)
 
-    async def test_startup_initializes_telemetry(self, runtime_app: FastAPI) -> None:
-        """Startup should invoke telemetry initialization with the shared async engine."""
-        with patched_runtime_services() as runtime:
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+async def test_shutdown_shuts_down_telemetry(runtime_app: FastAPI) -> None:
+    """Shutdown should uninstrument telemetry even when no exporter is enabled."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-        runtime.init_telemetry.assert_called_once_with(runtime_app, async_engine)
+    runtime.close_cache.assert_awaited_once()
+    runtime.shutdown_telemetry.assert_called_once_with(runtime_app)
+    runtime.close_async_engine.assert_awaited_once()
 
-    async def test_shutdown_shuts_down_telemetry(self, runtime_app: FastAPI) -> None:
-        """Shutdown should uninstrument telemetry even when no exporter is enabled."""
-        with patched_runtime_services() as runtime:
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+async def test_shutdown_closes_cache_before_redis(runtime_app: FastAPI) -> None:
+    """Endpoint cache should release Redis-backed resources before Redis closes."""
+    labels = [step.label for step in lifecycle._shutdown_steps(runtime_app, AppServices(redis=MagicMock()))]  # noqa: SLF001
 
-        runtime.close_cache.assert_awaited_once()
-        runtime.shutdown_telemetry.assert_called_once_with(runtime_app)
-        runtime.close_async_engine.assert_awaited_once()
+    assert labels.index("endpoint cache") < labels.index("primary Redis client")
 
-    async def test_shutdown_closes_cache_before_redis(self, runtime_app: FastAPI) -> None:
-        """Endpoint cache should release Redis-backed resources before Redis closes."""
-        labels = [step.label for step in lifecycle._shutdown_steps(runtime_app, AppServices(redis=MagicMock()))]  # noqa: SLF001
+async def test_startup_failure_cleans_up_initialized_services(runtime_app: FastAPI) -> None:
+    """A later startup failure should close services initialized earlier."""
+    config = RuntimePatchConfig(validate_scanner_side_effect=RuntimeError("bad scan config"))
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(RuntimeError, match="bad scan config"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-        assert labels.index("endpoint cache") < labels.index("primary Redis client")
+    runtime.email_checker.close.assert_awaited_once()
+    runtime.close_cache.assert_awaited_once()
+    runtime.close_redis.assert_any_await(runtime.redis)
+    assert isinstance(runtime_app.state.services, AppServices)
+    assert runtime_app.state.services.redis is None
 
-    async def test_startup_failure_cleans_up_initialized_services(self, runtime_app: FastAPI) -> None:
-        """A later startup failure should close services initialized earlier."""
-        config = RuntimePatchConfig(validate_scanner_side_effect=RuntimeError("bad scan config"))
-        with (
-            patched_runtime_services(config) as runtime,
-            pytest.raises(RuntimeError, match="bad scan config"),
-        ):
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+async def test_startup_fails_when_primary_redis_is_unavailable(runtime_app: FastAPI) -> None:
+    """Redis is required for application startup."""
+    config = RuntimePatchConfig(init_redis_side_effect=RuntimeError("Redis is required"))
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(RuntimeError, match="Redis is required"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-        runtime.email_checker.close.assert_awaited_once()
-        runtime.close_cache.assert_awaited_once()
-        runtime.close_redis.assert_any_await(runtime.redis)
-        assert isinstance(runtime_app.state.services, AppServices)
-        assert runtime_app.state.services.redis is None
+    runtime.init_email_checker.assert_not_awaited()
+    runtime.init_common_password_checker.assert_not_awaited()
+    runtime.init_cache.assert_not_called()
+    assert isinstance(runtime_app.state.services, AppServices)
+    assert runtime_app.state.services.redis is None
 
-    async def test_startup_fails_when_primary_redis_is_unavailable(self, runtime_app: FastAPI) -> None:
-        """Redis is required for application startup."""
-        config = RuntimePatchConfig(init_redis_side_effect=RuntimeError("Redis is required"))
-        with (
-            patched_runtime_services(config) as runtime,
-            pytest.raises(RuntimeError, match="Redis is required"),
-        ):
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+async def test_startup_fails_when_database_is_unavailable(runtime_app: FastAPI) -> None:
+    """PostgreSQL is required for application startup."""
+    config = RuntimePatchConfig(check_database_side_effect=ConnectionError("database unavailable"))
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(ConnectionError, match="database unavailable"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-        runtime.init_email_checker.assert_not_awaited()
-        runtime.init_common_password_checker.assert_not_awaited()
-        runtime.init_cache.assert_not_called()
-        assert isinstance(runtime_app.state.services, AppServices)
-        assert runtime_app.state.services.redis is None
+    runtime.init_redis.assert_not_awaited()
+    runtime.init_email_checker.assert_not_awaited()
+    runtime.init_common_password_checker.assert_not_awaited()
+    runtime.init_cache.assert_not_called()
+    assert isinstance(runtime_app.state.services, AppServices)
+    assert runtime_app.state.services.redis is None
 
-    async def test_startup_fails_when_database_is_unavailable(self, runtime_app: FastAPI) -> None:
-        """PostgreSQL is required for application startup."""
-        config = RuntimePatchConfig(check_database_side_effect=ConnectionError("database unavailable"))
-        with (
-            patched_runtime_services(config) as runtime,
-            pytest.raises(ConnectionError, match="database unavailable"),
-        ):
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+async def test_startup_failure_preserves_original_error_when_cleanup_fails(runtime_app: FastAPI) -> None:
+    """Cleanup failures during failed startup should not replace the startup exception."""
+    config = RuntimePatchConfig(
+        validate_scanner_side_effect=RuntimeError("bad scan config"),
+        close_cache_side_effect=ValueError("cache cleanup failed"),
+    )
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(RuntimeError, match="bad scan config"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-        runtime.init_redis.assert_not_awaited()
-        runtime.init_email_checker.assert_not_awaited()
-        runtime.init_common_password_checker.assert_not_awaited()
-        runtime.init_cache.assert_not_called()
-        assert isinstance(runtime_app.state.services, AppServices)
-        assert runtime_app.state.services.redis is None
+    runtime.close_cache.assert_awaited_once()
+    runtime.close_redis.assert_any_await(runtime.redis)
 
-    async def test_startup_failure_preserves_original_error_when_cleanup_fails(self, runtime_app: FastAPI) -> None:
-        """Cleanup failures during failed startup should not replace the startup exception."""
-        config = RuntimePatchConfig(
-            validate_scanner_side_effect=RuntimeError("bad scan config"),
-            close_cache_side_effect=ValueError("cache cleanup failed"),
-        )
-        with (
-            patched_runtime_services(config) as runtime,
-            pytest.raises(RuntimeError, match="bad scan config"),
-        ):
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+async def test_unexpected_shutdown_error_still_runs_later_cleanup(runtime_app: FastAPI) -> None:
+    """Unexpected shutdown errors should be raised after all cleanup is attempted."""
+    config = RuntimePatchConfig(close_cache_side_effect=ValueError("cache exploded"))
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(ValueError, match="cache exploded"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-        runtime.close_cache.assert_awaited_once()
-        runtime.close_redis.assert_any_await(runtime.redis)
+    runtime.file_cleanup_manager.close.assert_awaited_once()
+    runtime.http_client.aclose.assert_awaited_once()
+    runtime.shutdown_telemetry.assert_called_once_with(runtime_app)
+    runtime.close_async_engine.assert_awaited_once()
 
-    async def test_unexpected_shutdown_error_still_runs_later_cleanup(self, runtime_app: FastAPI) -> None:
-        """Unexpected shutdown errors should be raised after all cleanup is attempted."""
-        config = RuntimePatchConfig(close_cache_side_effect=ValueError("cache exploded"))
-        with (
-            patched_runtime_services(config) as runtime,
-            pytest.raises(ValueError, match="cache exploded"),
-        ):
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+async def test_startup_failure_cleans_up_logging_when_configured(
 
-        runtime.file_cleanup_manager.close.assert_awaited_once()
-        runtime.http_client.aclose.assert_awaited_once()
-        runtime.shutdown_telemetry.assert_called_once_with(runtime_app)
-        runtime.close_async_engine.assert_awaited_once()
+    runtime_app: FastAPI,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Logging initialized before startup should be cleaned up when startup fails."""
+    monkeypatch.setattr(settings, "environment", Environment.DEV)
 
-    async def test_startup_failure_cleans_up_logging_when_configured(
-        self,
-        runtime_app: FastAPI,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        """Logging initialized before startup should be cleaned up when startup fails."""
-        monkeypatch.setattr(settings, "environment", Environment.DEV)
+    with (
+        patch("app.core.lifecycle.setup_logging") as setup_logging,
+        patched_runtime_services(
+            RuntimePatchConfig(init_redis_side_effect=RuntimeError("redis unavailable"))
+        ) as runtime,
+        pytest.raises(RuntimeError, match="redis unavailable"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-        with (
-            patch("app.core.lifecycle.setup_logging") as setup_logging,
-            patched_runtime_services(
-                RuntimePatchConfig(init_redis_side_effect=RuntimeError("redis unavailable"))
-            ) as runtime,
-            pytest.raises(RuntimeError, match="redis unavailable"),
-        ):
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+    setup_logging.assert_called_once()
+    runtime.cleanup_logging.assert_awaited_once()
 
-        setup_logging.assert_called_once()
-        runtime.cleanup_logging.assert_awaited_once()
+async def test_startup_cancellation_cleans_up_initialized_services(runtime_app: FastAPI) -> None:
+    """Cancellation during startup should still close services initialized earlier."""
+    config = RuntimePatchConfig(init_email_checker_side_effect=asyncio.CancelledError())
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(asyncio.CancelledError),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-    async def test_startup_cancellation_cleans_up_initialized_services(self, runtime_app: FastAPI) -> None:
-        """Cancellation during startup should still close services initialized earlier."""
-        config = RuntimePatchConfig(init_email_checker_side_effect=asyncio.CancelledError())
-        with (
-            patched_runtime_services(config) as runtime,
-            pytest.raises(asyncio.CancelledError),
-        ):
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+    runtime.close_cache.assert_awaited_once()
+    runtime.close_redis.assert_any_await(runtime.redis)
+    assert isinstance(runtime_app.state.services, AppServices)
+    assert runtime_app.state.services.redis is None
 
-        runtime.close_cache.assert_awaited_once()
-        runtime.close_redis.assert_any_await(runtime.redis)
-        assert isinstance(runtime_app.state.services, AppServices)
-        assert runtime_app.state.services.redis is None
+async def test_shutdown_clears_global_runtime_hooks(runtime_app: FastAPI) -> None:
+    """Shutdown should clear module-level globals that point at runtime resources."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app):
+            pass
 
-    async def test_shutdown_clears_global_runtime_hooks(self, runtime_app: FastAPI) -> None:
-        """Shutdown should clear module-level globals that point at runtime resources."""
-        with patched_runtime_services() as runtime:
-            async with lifecycle.runtime_lifespan(runtime_app):
-                pass
+    assert runtime.set_connection_manager.call_args_list[-1].args == (None,)
 
-        assert runtime.set_connection_manager.call_args_list[-1].args == (None,)
+async def test_clearing_runtime_hooks_does_not_import_connection_manager() -> None:
+    """Clearing globals should stay dependency-light for failed startup cleanup."""
+    sys.modules.pop("app.api.plugins.rpi_cam.websocket.connection_manager", None)
 
-    async def test_clearing_runtime_hooks_does_not_import_connection_manager(self) -> None:
-        """Clearing globals should stay dependency-light for failed startup cleanup."""
-        sys.modules.pop("app.api.plugins.rpi_cam.websocket.connection_manager", None)
+    lifecycle.set_connection_manager(None)
 
-        lifecycle.set_connection_manager(None)
+    assert "app.api.plugins.rpi_cam.websocket.connection_manager" not in sys.modules
 
-        assert "app.api.plugins.rpi_cam.websocket.connection_manager" not in sys.modules

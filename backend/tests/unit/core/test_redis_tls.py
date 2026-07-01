@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
     import pytest
 
-
 class FakeRedis:
     """Capture Redis constructor kwargs without opening a socket."""
 
@@ -29,7 +28,6 @@ class FakeRedis:
     async def ping(self) -> bool:
         """Pretend the Redis connection is healthy."""
         return True
-
 
 async def test_init_redis_omits_tls_options_when_tls_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Plain Redis connections should not receive TLS-only constructor options."""
@@ -48,7 +46,6 @@ async def test_init_redis_omits_tls_options_when_tls_disabled(monkeypatch: pytes
     assert "ssl_cert_reqs" not in FakeRedis.instances[0].kwargs
     assert "ssl_ca_certs" not in FakeRedis.instances[0].kwargs
     assert "ssl_check_hostname" not in FakeRedis.instances[0].kwargs
-
 
 async def test_init_redis_uses_certificate_required_tls_when_enabled(
     monkeypatch: pytest.MonkeyPatch,
@@ -73,7 +70,6 @@ async def test_init_redis_uses_certificate_required_tls_when_enabled(
     assert FakeRedis.instances[0].kwargs["ssl_cert_reqs"] == ssl.CERT_REQUIRED
     assert FakeRedis.instances[0].kwargs["ssl_ca_certs"] == str(ca_file)
     assert FakeRedis.instances[0].kwargs["ssl_check_hostname"] is True
-
 
 async def test_init_redis_tls_keeps_bounded_socket_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     """Redis clients should keep command socket timeouts bounded even with TLS."""

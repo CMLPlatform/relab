@@ -285,7 +285,7 @@ class CoreSettings(RelabBaseSettings):
         if self.cors_origin_regex == DEFAULT_CORS_ORIGIN_REGEX:
             errors.append("CORS_ORIGIN_REGEX must not be set in production/staging")
 
-        errors.extend(self.database._role_security_errors())
+        errors.extend(self.database.role_security_errors())
 
         if not self.redis.password.get_secret_value():
             errors.append("REDIS_PASSWORD must not be empty in production")
