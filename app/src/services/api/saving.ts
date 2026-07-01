@@ -1,5 +1,5 @@
 import { API_URL } from '@/config';
-import { getToken } from '@/services/api/authentication';
+import { getToken } from '@/services/api/auth/authentication';
 import { apiFetch } from '@/services/api/client';
 import type { Product } from '@/types/Product';
 

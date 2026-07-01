@@ -1,4 +1,4 @@
-import { fetchWithAuth } from '@/services/api/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authentication';
 import type { LocalAccessInfo } from './shared';
 import { CAMERA_BASE, isLocalAccessInfo } from './shared';
 

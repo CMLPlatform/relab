@@ -1,4 +1,4 @@
-import { fetchWithAuth } from '@/services/api/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authentication';
 import { createRequestId } from '@/services/api/request';
 import type { CapturedImage } from './shared';
 import { CAMERA_BASE } from './shared';

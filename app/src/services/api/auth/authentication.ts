@@ -1,6 +1,7 @@
 import { API_URL } from '@/config';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
+import { fetchWithTimeout } from '../request';
 import { extractApiErrorDetail } from './authHelpers';
 import {
   type LoginResult,
@@ -19,7 +20,6 @@ import {
 import { authRuntime } from './authRuntime';
 import { isWeb, hasWebSessionFlag as readWebSessionFlag, setWebSessionFlag } from './authSession';
 import { getUser as getUserFlow } from './authUser';
-import { fetchWithTimeout } from './request';
 
 const apiURL = API_URL;
 

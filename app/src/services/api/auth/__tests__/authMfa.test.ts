@@ -7,7 +7,7 @@ import {
   setPendingMfaLogin,
 } from '../authMfa';
 
-jest.mock('../request', () => ({
+jest.mock('../../request', () => ({
   fetchWithTimeout: jest.fn(),
 }));
 
@@ -79,7 +79,7 @@ describe('authMfa pending login storage', () => {
   });
 
   it('claims OAuth MFA handoff without exposing MFA tokens in callback URLs', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../request') as {
+    const { fetchWithTimeout } = jest.requireMock('../../request') as {
       fetchWithTimeout: jest.Mock;
     };
     fetchWithTimeout.mockResolvedValueOnce({

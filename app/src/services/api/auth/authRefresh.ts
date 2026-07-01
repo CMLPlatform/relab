@@ -1,4 +1,5 @@
 import { logError } from '@/utils/logging';
+import { createRequestId, fetchWithTimeout } from '../request';
 import { getAuthRefreshPath } from './authHelpers';
 import { authRuntime } from './authRuntime';
 import {
@@ -12,7 +13,6 @@ import {
   persistStoredRefreshToken,
   setWebSessionFlag,
 } from './authSession';
-import { createRequestId, fetchWithTimeout } from './request';
 
 export async function persistAccessToken(nextToken: string): Promise<void> {
   authRuntime.token = nextToken;

@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { Product } from '@/types/Product';
-import { getToken } from '../authentication';
+import { getToken } from '../auth/authentication';
 import { apiFetch } from '../client';
 import { getBaseProduct } from '../products';
 import { deleteProduct, saveProduct } from '../saving';
 
 // Mock dependencies
-jest.mock('@/services/api/authentication', () => ({
+jest.mock('@/services/api/auth/authentication', () => ({
   getToken: jest.fn(),
 }));
 jest.mock('@/services/api/client', () => ({

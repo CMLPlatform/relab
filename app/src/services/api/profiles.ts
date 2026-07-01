@@ -1,5 +1,5 @@
 import { API_URL } from '@/config';
-import { getToken } from './authentication';
+import { getToken } from './auth/authentication';
 import { apiFetch } from './client';
 
 export type PublicProfileView = {

@@ -1,9 +1,9 @@
 import { API_URL } from '@/config';
+import { fetchWithTimeout } from '../request';
 import { extractApiErrorDetail } from './authHelpers';
 import { persistAccessToken, persistRefreshToken } from './authRefresh';
 import { authRuntime } from './authRuntime';
 import { isWeb, setWebSessionFlag } from './authSession';
-import { fetchWithTimeout } from './request';
 
 export type TotpSetup = {
   setupToken: string;

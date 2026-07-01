@@ -1,4 +1,4 @@
-import { fetchWithAuth } from '@/services/api/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authentication';
 import type { CameraRead, PairingClaimRequest } from './shared';
 import { PAIRING_BASE, throwFromResponse } from './shared';
 

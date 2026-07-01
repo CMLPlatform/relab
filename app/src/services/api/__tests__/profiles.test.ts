@@ -1,8 +1,8 @@
-import { getToken } from '../authentication';
+import { getToken } from '../auth/authentication';
 import { apiFetch } from '../client';
 import { getPublicProfile } from '../profiles';
 
-jest.mock('../authentication');
+jest.mock('../auth/authentication');
 jest.mock('../client');
 
 const mockedGetToken = jest.mocked(getToken);

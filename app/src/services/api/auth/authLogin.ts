@@ -1,5 +1,6 @@
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
+import { fetchWithTimeout } from '../request';
 import { extractApiErrorDetail, getAuthLoginPath } from './authHelpers';
 import { type MfaLoginPending, parseMfaPendingPayload } from './authMfa';
 import { authRuntime } from './authRuntime';
@@ -9,7 +10,6 @@ import {
   loadStoredRefreshToken,
   setWebSessionFlag,
 } from './authSession';
-import { fetchWithTimeout } from './request';
 
 export type LoginResult =
   | { status: 'authenticated' }

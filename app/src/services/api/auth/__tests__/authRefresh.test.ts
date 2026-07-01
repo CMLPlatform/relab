@@ -14,7 +14,7 @@ jest.mock('../authSession', () => ({
   clearStoredRefreshToken: jest.fn(),
 }));
 
-jest.mock('../request', () => ({
+jest.mock('../../request', () => ({
   createRequestId: () => 'req-123',
   fetchWithTimeout: jest.fn(),
 }));
@@ -31,7 +31,7 @@ describe('authRefresh', () => {
   });
 
   it('stores refreshed token on native refresh success', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../request') as {
+    const { fetchWithTimeout } = jest.requireMock('../../request') as {
       fetchWithTimeout: jest.Mock;
     };
     const { loadStoredRefreshToken, persistStoredAccessToken, persistStoredRefreshToken } =
@@ -62,7 +62,7 @@ describe('authRefresh', () => {
   });
 
   it('retries an authenticated request after a 401 and refresh', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../request') as {
+    const { fetchWithTimeout } = jest.requireMock('../../request') as {
       fetchWithTimeout: jest.Mock;
     };
     const { loadStoredRefreshToken } = jest.requireMock('../authSession') as {

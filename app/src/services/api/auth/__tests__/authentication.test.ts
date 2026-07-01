@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { resetAuthRuntimeForTests } from '@/services/api/authRuntime';
-import { setWebSessionFlag } from '@/services/api/authSession';
+import { resetAuthRuntimeForTests } from '@/services/api/auth/authRuntime';
+import { setWebSessionFlag } from '@/services/api/auth/authSession';
 import { mockPlatform, mockResponse, restorePlatform, setupFetchMock } from '@/test-utils/index';
 
 const SecureStore = require('expo-secure-store') as typeof import('expo-secure-store');

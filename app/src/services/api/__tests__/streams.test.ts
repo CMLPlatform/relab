@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fetchWithAuth } from '@/services/api/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authentication';
 import {
   buildCameraHlsUrl,
   getStreamStatus,
@@ -7,7 +7,7 @@ import {
   stopYouTubeStream,
 } from '@/services/api/rpiCamera/streams';
 
-jest.mock('@/services/api/authentication', () => ({
+jest.mock('@/services/api/auth/authentication', () => ({
   fetchWithAuth: jest.fn(),
 }));
 
