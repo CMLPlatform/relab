@@ -1,3 +1,5 @@
+import type { AppTheme } from '@/theme/types';
+
 const RGBA_ALPHA_PATTERN = /rgba\((.+),\s*[^,]+\)$/;
 
 export function alpha(color: string, opacity: number) {
@@ -23,4 +25,25 @@ export function alpha(color: string, opacity: number) {
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   }
   return color;
+}
+
+export function getStatusColor(
+  theme: AppTheme,
+  status: 'online' | 'offline' | 'unauthorized' | 'forbidden' | 'error',
+) {
+  switch (status) {
+    case 'online':
+      return theme.tokens.status.success;
+    case 'offline':
+      return theme.tokens.status.offline;
+    case 'unauthorized':
+    case 'forbidden':
+      return theme.tokens.status.warning;
+    case 'error':
+      return theme.tokens.status.danger;
+  }
+}
+
+export function getStatusTone(color: string, opacity = 0.12) {
+  return alpha(color, opacity);
 }

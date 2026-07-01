@@ -36,9 +36,7 @@ export type AppTokens = {
 };
 
 export type AppTheme = MD3Theme & {
-  dark: boolean;
   scheme: AppScheme;
-  isDark: boolean;
   tokens: AppTokens;
 };
 

@@ -25,7 +25,7 @@ export function TelemetryBadge({ telemetry }: { telemetry: CameraTelemetry | nul
       <Chip
         mode="flat"
         compact
-        style={[styles.chip, { backgroundColor: getStatusTone(theme, color), borderColor: color }]}
+        style={[styles.chip, { backgroundColor: getStatusTone(color), borderColor: color }]}
         textStyle={{ color, fontSize: 11 }}
       >
         {label}

@@ -4,7 +4,7 @@ import { memo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
-import type { EffectiveCameraConnection } from '@/hooks/cameras/useEffectiveCameraConnection';
+import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { getStatusColor, getStatusTone, useAppTheme } from '@/theme';
 
@@ -20,7 +20,7 @@ function StatusBadge({ status }: { status: CameraConnectionStatus }) {
   const theme = useAppTheme();
   const color = getStatusColor(theme, status);
   return (
-    <View style={[styles.statusBadge, { backgroundColor: getStatusTone(theme, color) }]}>
+    <View style={[styles.statusBadge, { backgroundColor: getStatusTone(color) }]}>
       <Text style={{ color, fontSize: 12, fontWeight: '700' }}>{STATUS_LABEL[status]}</Text>
     </View>
   );

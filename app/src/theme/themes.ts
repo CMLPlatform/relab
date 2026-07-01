@@ -2,9 +2,18 @@ import {
   DarkTheme as navigationDarkTheme,
   DefaultTheme as navigationLightTheme,
 } from '@react-navigation/native';
-import { adaptNavigationTheme, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
+import {
+  adaptNavigationTheme,
+  MD3DarkTheme,
+  MD3LightTheme,
+  useTheme as usePaperTheme,
+} from 'react-native-paper';
 import { createTokens } from '@/theme/tokens';
 import type { AppScheme, AppTheme } from '@/theme/types';
+
+export function useAppTheme() {
+  return usePaperTheme<AppTheme>();
+}
 
 function createThemeColors(isDark: boolean, baseColors: typeof MD3LightTheme.colors) {
   return {
@@ -64,7 +73,6 @@ function createTheme(
     roundness: 1,
     dark: isDark,
     scheme,
-    isDark,
     tokens: createTokens(scheme, colors),
   };
 }
