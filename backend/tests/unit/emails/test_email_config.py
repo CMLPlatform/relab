@@ -14,7 +14,6 @@ def test_email_config_uses_a_valid_sender_address() -> None:
     assert sender
     assert TypeAdapter(EmailStr).validate_python(sender) == sender
 
-
 def test_email_config_reuses_the_parsed_sender_name() -> None:
     """The mail config should reuse the shared parsed sender config."""
     sender = auth_settings.email.sender

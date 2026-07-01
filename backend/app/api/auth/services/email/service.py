@@ -8,8 +8,7 @@ from urllib.parse import urlencode, urljoin
 from pydantic import AnyUrl, EmailStr
 
 from app.api.auth.config import settings as auth_settings
-from app.api.auth.services.email.messages import EmailMessage
-from app.api.auth.services.email.providers import EmailProvider, build_email_provider
+from app.api.auth.services.email.providers import EmailMessage, EmailProvider, build_email_provider
 from app.api.auth.services.email.templates import (
     ACCOUNT_RECOVERY_TEMPLATE,
     POST_VERIFICATION_TEMPLATE,
@@ -18,7 +17,6 @@ from app.api.auth.services.email.templates import (
     EmailTemplateBody,
     EmailTemplateName,
     render_email_template,
-    validate_template_body,
 )
 from app.core.config import settings as core_settings
 
@@ -86,7 +84,6 @@ async def send_templated_email(
     provider: EmailProvider | None = None,
 ) -> None:
     """Send one validated templated email through the configured provider."""
-    validate_template_body(template_name, template_body)
     selected_provider = provider or default_email_provider
     message = _build_message(to_email, subject, render_email_template(template_name, template_body))
     log_label = f"Email (template={template_name}, provider={selected_provider.__class__.__name__})"

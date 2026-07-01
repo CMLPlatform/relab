@@ -18,7 +18,6 @@ def test_render_email_template_includes_context_values() -> None:
     assert "Ada" in html
     assert "https://app.example.test/verify?token=abc" in html
 
-
 def test_render_email_template_rejects_missing_required_context() -> None:
     """Missing context should fail before any provider sends."""
     with pytest.raises(ValueError, match="verification_link"):

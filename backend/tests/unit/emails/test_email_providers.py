@@ -11,9 +11,9 @@ from pydantic import NameEmail, SecretStr
 
 from app.api.auth.config import GraphEmailSettings, ResolvedEmailSettings
 from app.api.auth.services.email import providers as providers_module
-from app.api.auth.services.email.messages import EmailMessage
 from app.api.auth.services.email.providers import (
     EmailDeliveryError,
+    EmailMessage,
     MicrosoftGraphEmailProvider,
     SmtpEmailProvider,
 )
@@ -28,7 +28,6 @@ def _message() -> EmailMessage:
         html_body="<p>Hello Ada</p>",
     )
 
-
 async def test_smtp_provider_sends_rendered_html_message() -> None:
     """SMTP sends the rendered HTML body without provider-owned template rendering."""
     client = AsyncMock()
@@ -42,7 +41,6 @@ async def test_smtp_provider_sends_rendered_html_message() -> None:
     assert sent_message.body == "<p>Hello Ada</p>"
     assert sent_message.recipients[0].email == "ada@example.com"
     assert sent_message.reply_to[0].email == "support@example.com"
-
 
 class FakeResponse:
     """Small httpx.Response stand-in for provider unit tests."""
@@ -62,7 +60,6 @@ class FakeResponse:
             msg = f"HTTP {self.status_code}"
             raise RuntimeError(msg)
 
-
 class FakeGraphClient:
     """Capture Graph HTTP calls."""
 
@@ -81,7 +78,6 @@ class FakeGraphClient:
             )
         return FakeResponse(self.send_status)
 
-
 class ContextManagedFakeGraphClient(FakeGraphClient):
     """Fake Graph client that records context-manager ownership."""
 
@@ -97,7 +93,6 @@ class ContextManagedFakeGraphClient(FakeGraphClient):
     async def __aexit__(self, *args: object) -> None:
         self.exited += 1
 
-
 def _graph_settings() -> GraphEmailSettings:
     return GraphEmailSettings(
         tenant_id="tenant-id",
@@ -106,7 +101,6 @@ def _graph_settings() -> GraphEmailSettings:
         sender_user="relab@example.com",
         save_to_sent_items=False,
     )
-
 
 async def test_graph_provider_requests_token_and_posts_send_mail_payload() -> None:
     """Graph provider should use client credentials and send the expected JSON payload."""
@@ -135,7 +129,6 @@ async def test_graph_provider_requests_token_and_posts_send_mail_payload() -> No
         "saveToSentItems": False,
     }
 
-
 async def test_graph_provider_reuses_cached_token() -> None:
     """A valid cached token avoids repeated token requests."""
     client = FakeGraphClient()
@@ -149,7 +142,6 @@ async def test_graph_provider_reuses_cached_token() -> None:
     assert len(token_calls) == 1
     assert len(send_calls) == 2
 
-
 async def test_graph_provider_refreshes_nearly_expired_cached_token() -> None:
     """Nearly expired cached tokens should not be reused."""
     client = FakeGraphClient()
@@ -162,7 +154,6 @@ async def test_graph_provider_refreshes_nearly_expired_cached_token() -> None:
     token_calls = [call for call in client.posts if "login.microsoftonline.com" in str(call["url"])]
     assert len(token_calls) == 1
 
-
 async def test_graph_provider_raises_delivery_error_on_token_failure() -> None:
     """Token failures should surface as controlled delivery errors."""
     provider = MicrosoftGraphEmailProvider(settings=_graph_settings(), client=FakeGraphClient(token_status=401))
@@ -170,14 +161,12 @@ async def test_graph_provider_raises_delivery_error_on_token_failure() -> None:
     with pytest.raises(EmailDeliveryError, match="token"):
         await provider.send(_message())
 
-
 async def test_graph_provider_raises_delivery_error_on_send_failure() -> None:
     """Send failures should surface as controlled delivery errors."""
     provider = MicrosoftGraphEmailProvider(settings=_graph_settings(), client=FakeGraphClient(send_status=500))
 
     with pytest.raises(EmailDeliveryError, match="send"):
         await provider.send(_message())
-
 
 async def test_graph_provider_default_client_uses_shared_http_policy(monkeypatch: pytest.MonkeyPatch) -> None:
     """Graph email calls should create and close an owned shared HTTP client."""
@@ -191,7 +180,6 @@ async def test_graph_provider_default_client_uses_shared_http_policy(monkeypatch
     assert client.entered == 1
     assert client.exited == 1
     assert len(client.posts) == 2
-
 
 def test_smtp_provider_builds_from_resolved_email_settings() -> None:
     """SMTP provider construction should preserve existing SMTP config semantics."""

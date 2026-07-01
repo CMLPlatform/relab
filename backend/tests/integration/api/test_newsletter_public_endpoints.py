@@ -10,9 +10,7 @@ from fastapi import status
 if TYPE_CHECKING:
     from httpx import AsyncClient
 
-
 pytestmark = pytest.mark.api
-
 
 async def test_subscribe_endpoint_is_not_exposed(api_client: AsyncClient) -> None:
     """The removed public signup route should return 404."""

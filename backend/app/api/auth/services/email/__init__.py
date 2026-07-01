@@ -1,8 +1,8 @@
 """Transactional email services."""
 
-from .messages import EmailMessage
 from .providers import (
     EmailDeliveryError,
+    EmailMessage,
     EmailProvider,
     MicrosoftGraphEmailProvider,
     SmtpEmailProvider,

@@ -2,19 +2,29 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 from urllib.parse import quote
 
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
+from pydantic import NameEmail
 
 from app.api.auth.config import AuthSettings, EmailProviderName, GraphEmailSettings, ResolvedEmailSettings
-from app.api.auth.services.email.messages import EmailMessage
 from app.core.clients.http import create_http_client
 from app.core.config import settings as core_settings
 
-if TYPE_CHECKING:
-    from pydantic import NameEmail
+
+@dataclass(frozen=True, slots=True)
+class EmailMessage:
+    """Rendered email ready for provider delivery."""
+
+    subject: str
+    recipients: list[NameEmail]
+    sender: NameEmail | None
+    reply_to: list[NameEmail] = field(default_factory=list)
+    html_body: str = ""
+
 
 MICROSOFT_GRAPH_SCOPE = "https://graph.microsoft.com/.default"
 MICROSOFT_GRAPH_TOKEN_REFRESH_MARGIN_SECONDS = 60

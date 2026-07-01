@@ -9,13 +9,11 @@ from app.core.config.models import Environment
 
 VALID_SECRET = "x" * 32
 
-
 def test_email_provider_defaults_to_smtp() -> None:
     """SMTP remains the default provider for backward compatibility."""
     settings = AuthSettings()
 
     assert settings.email_provider == EmailProviderName.SMTP
-
 
 def test_build_email_provider_uses_smtp_by_default() -> None:
     """Default auth settings should build an SMTP provider."""
@@ -30,7 +28,6 @@ def test_build_email_provider_uses_smtp_by_default() -> None:
     provider = build_email_provider(settings=settings, suppress_send=True)
 
     assert isinstance(provider, SmtpEmailProvider)
-
 
 def test_build_email_provider_uses_microsoft_graph_when_configured() -> None:
     """Graph provider should be selected entirely by config."""
@@ -48,7 +45,6 @@ def test_build_email_provider_uses_microsoft_graph_when_configured() -> None:
 
     assert isinstance(provider, MicrosoftGraphEmailProvider)
 
-
 def test_graph_email_settings_require_all_credentials() -> None:
     """Graph settings should fail fast when credentials are incomplete."""
     with pytest.raises(ValidationError):
@@ -59,7 +55,6 @@ def test_graph_email_settings_require_all_credentials() -> None:
             sender_user="relab@example.com",
             save_to_sent_items=False,
         )
-
 
 def test_production_validation_is_provider_specific_for_graph() -> None:
     """Graph production config should not require SMTP host credentials."""
@@ -81,7 +76,6 @@ def test_production_validation_is_provider_specific_for_graph() -> None:
     )
 
     assert settings.email_provider == EmailProviderName.MICROSOFT_GRAPH
-
 
 def test_production_validation_requires_graph_credentials() -> None:
     """Graph production config should require Graph credentials."""
