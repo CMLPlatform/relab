@@ -1,6 +1,7 @@
 // biome-ignore-all lint/performance/noBarrelFile: this is the intended public theme entrypoint for app code.
 
 export { alpha, getStatusColor, getStatusTone } from '@/theme/color';
+export { memoizeByTheme } from '@/theme/memoizeByTheme';
 export {
   createNavigationThemes,
   darkTheme,

@@ -1,7 +1,8 @@
 import { Platform, StyleSheet } from 'react-native';
 import type { AppTheme } from '@/theme';
+import { memoizeByTheme } from '@/theme';
 
-export function createCameraScreenStyles(theme: AppTheme) {
+export const createCameraScreenStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
     center: {
       flex: 1,
@@ -71,4 +72,4 @@ export function createCameraScreenStyles(theme: AppTheme) {
       marginTop: 4,
     },
   });
-}
+});

@@ -1,8 +1,8 @@
 import { StyleSheet } from 'react-native';
 import type { AppTheme } from '@/theme';
-import { alpha } from '@/theme';
+import { alpha, memoizeByTheme } from '@/theme';
 
-export function createGalleryStyles(theme: AppTheme) {
+export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
     galleryContainer: {
       position: 'relative',
@@ -92,4 +92,4 @@ export function createGalleryStyles(theme: AppTheme) {
       gap: 12,
     },
   });
-}
+});

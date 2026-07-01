@@ -1,7 +1,8 @@
 import { StyleSheet } from 'react-native';
 import type { AppTheme } from '@/theme';
+import { memoizeByTheme } from '@/theme';
 
-export function createLivePreviewStyles(theme: AppTheme) {
+export const createLivePreviewStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
     card: {
       marginHorizontal: 16,
@@ -40,4 +41,4 @@ export function createLivePreviewStyles(theme: AppTheme) {
       marginTop: 4,
     },
   });
-}
+});

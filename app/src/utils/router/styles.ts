@@ -1,6 +1,7 @@
 import type { AppTheme } from '@/theme';
+import { memoizeByTheme } from '@/theme';
 
-export function createHeaderRightPillStyles(theme: AppTheme) {
+export const createHeaderRightPillStyles = memoizeByTheme((theme: AppTheme) => {
   return {
     pill: {
       flexDirection: 'row' as const,
@@ -18,7 +19,7 @@ export function createHeaderRightPillStyles(theme: AppTheme) {
       fontSize: 14,
     },
   };
-}
+});
 
 export function getProductsHeaderStyle(theme: AppTheme) {
   return {
