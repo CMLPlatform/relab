@@ -4,8 +4,8 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { openAuthSessionAsync, WebBrowserResultType } from 'expo-web-browser';
 import Login from '@/app/(auth)/login';
-import { getToken, getUser, login, markWebSessionActive } from '@/services/api/authentication';
-import { claimOAuthMfaHandoff, setPendingMfaLogin } from '@/services/api/authMfa';
+import { getToken, getUser, login, markWebSessionActive } from '@/services/api/auth/authentication';
+import { claimOAuthMfaHandoff, setPendingMfaLogin } from '@/services/api/auth/authMfa';
 import {
   buildOAuthAuthorizeUrl,
   fetchOAuthAuthorizationUrl,
@@ -127,7 +127,7 @@ jest.mock('@/components/auth/LoginSections', () => {
   };
 });
 
-jest.mock('@/services/api/authentication', () => ({
+jest.mock('@/services/api/auth/authentication', () => ({
   login: jest.fn(),
   getUser: jest.fn(),
   getToken: jest.fn(),
@@ -142,8 +142,10 @@ jest.mock('@/services/api/oauthFlow', () => ({
   openOAuthBrowserSession: jest.fn(),
 }));
 
-jest.mock('@/services/api/authMfa', () => ({
-  ...jest.requireActual<typeof import('@/services/api/authMfa')>('@/services/api/authMfa'),
+jest.mock('@/services/api/auth/authMfa', () => ({
+  ...jest.requireActual<typeof import('@/services/api/auth/authMfa')>(
+    '@/services/api/auth/authMfa',
+  ),
   claimOAuthMfaHandoff: jest.fn(),
   setPendingMfaLogin: jest.fn(),
 }));
@@ -163,9 +165,9 @@ jest.mock('expo-linking', () => ({
   createURL: jest.fn().mockReturnValue('exp://localhost/login'),
 }));
 
-jest.mock('@/components/common/dialogContext', () => {
-  const actual = jest.requireActual<typeof import('@/components/common/dialogContext')>(
-    '@/components/common/dialogContext',
+jest.mock('@/components/base/dialogContext', () => {
+  const actual = jest.requireActual<typeof import('@/components/base/dialogContext')>(
+    '@/components/base/dialogContext',
   );
   return {
     ...actual,
@@ -302,7 +304,7 @@ describe('Login screen', () => {
   });
 
   it('redirects to the requested route after successful login', async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/profile' });
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/account' });
     mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValueOnce(mockUser());
 
@@ -318,12 +320,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith('/profile');
+      expect(mockReplace).toHaveBeenCalledWith('/account');
     });
   });
 
   it('routes successful login without username to onboarding before requested redirect', async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/profile' });
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/account' });
     mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValueOnce(mockUser({ username: null }));
 
@@ -340,12 +342,12 @@ describe('Login screen', () => {
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/onboarding');
-      expect(mockReplace).not.toHaveBeenCalledWith('/profile');
+      expect(mockReplace).not.toHaveBeenCalledWith('/account');
     });
   });
 
   it('preserves requested redirect when password login requires MFA', async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/profile' });
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/account' });
     mockedLogin.mockResolvedValue({ status: 'mfa_required', mfaToken: 'mfa-token' });
 
     renderWithProviders(<Login />, { withDialog: true });
@@ -363,7 +365,7 @@ describe('Login screen', () => {
       expect(mockedSetPendingMfaLogin).toHaveBeenCalledWith({
         status: 'mfa_required',
         mfaToken: 'mfa-token',
-        redirectTo: '/profile',
+        redirectTo: '/account',
       });
       expect(mockPush).toHaveBeenCalledWith('/mfa');
     });
@@ -550,7 +552,7 @@ describe('Login screen', () => {
       },
     });
     (useLocalSearchParams as jest.Mock).mockReturnValue({
-      redirectTo: '/profile',
+      redirectTo: '/account',
     });
     mockedGetUser.mockResolvedValueOnce(mockUser({ username: null, email: 'oauth@example.com' }));
 
@@ -560,7 +562,7 @@ describe('Login screen', () => {
       await waitFor(() => {
         expect(mockedMarkWebSessionActive).toHaveBeenCalled();
         expect(mockReplace).toHaveBeenCalledWith('/onboarding');
-        expect(mockReplace).not.toHaveBeenCalledWith('/profile');
+        expect(mockReplace).not.toHaveBeenCalledWith('/account');
       });
     } finally {
       if (originalLocationDescriptor) {

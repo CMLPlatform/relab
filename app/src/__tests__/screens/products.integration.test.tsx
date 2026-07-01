@@ -29,7 +29,7 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/hooks/products/useProductsWelcomeCard', () => {
+jest.mock('@/features/products/useProductsWelcomeCard', () => {
   const React = require('react');
 
   return {
@@ -63,9 +63,9 @@ jest.mock('@/hooks/products/useProductsWelcomeCard', () => {
   };
 });
 
-jest.mock('@/components/common/dialogContext', () => {
-  const actual = jest.requireActual<typeof import('@/components/common/dialogContext')>(
-    '@/components/common/dialogContext',
+jest.mock('@/components/base/dialogContext', () => {
+  const actual = jest.requireActual<typeof import('@/components/base/dialogContext')>(
+    '@/components/base/dialogContext',
   );
   return {
     ...actual,
@@ -136,7 +136,7 @@ jest.mock('expo-linear-gradient', () => {
   return { LinearGradient: View };
 });
 
-jest.mock('@/components/common/ProductCard', () => {
+jest.mock('@/components/product/ProductCard', () => {
   return function ProductCardMock({ product }: { product: { name: string } }) {
     const React = jest.requireActual<typeof import('react')>('react');
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -144,7 +144,7 @@ jest.mock('@/components/common/ProductCard', () => {
   };
 });
 
-jest.mock('@/components/common/ProductCardSkeleton', () => {
+jest.mock('@/components/product/ProductCardSkeleton', () => {
   return function ProductCardSkeletonMock() {
     const React = jest.requireActual<typeof import('react')>('react');
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -171,7 +171,7 @@ jest.mock('@tanstack/react-query', () => {
   };
 });
 
-jest.mock('@/hooks/products/queries', () => ({
+jest.mock('@/features/products/queries', () => ({
   DEFAULT_PRODUCT_SORT: ['-created_at'],
   productsQueryOptions: (...args: unknown[]) => ({
     __mockResult: mockUseProductsQuery(...args),
@@ -352,7 +352,7 @@ describe('Products screen', () => {
 
     expect(screen.getByText('Ready to add products')).toBeOnTheScreen();
     expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
-    expect(screen.getByText('profile')).toBeOnTheScreen();
+    expect(screen.getByText('account')).toBeOnTheScreen();
   });
 
   it('prompts unverified signed-in users to verify their email', async () => {
@@ -362,13 +362,13 @@ describe('Products screen', () => {
 
     expect(screen.getByText('Verify your email to start creating')).toBeOnTheScreen();
     expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
-    expect(screen.getByText('profile')).toBeOnTheScreen();
+    expect(screen.getByText('account')).toBeOnTheScreen();
     expect(screen.getByText('Got it')).toBeOnTheScreen();
     expect(screen.getByText('Verify email')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByRole('button', { name: 'Verify email' }));
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/profile');
+      expect(mockPush).toHaveBeenCalledWith('/account');
     });
   });
 
@@ -378,7 +378,7 @@ describe('Products screen', () => {
     renderProducts();
 
     expect(screen.getByText('Got it')).toBeOnTheScreen();
-    expect(screen.getByText('profile')).toBeOnTheScreen();
+    expect(screen.getByText('account')).toBeOnTheScreen();
   });
 });
 

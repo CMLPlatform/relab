@@ -8,8 +8,9 @@ import { Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { PaperProvider } from 'react-native-paper';
-import { ActiveStreamBanner } from '@/components/common/ActiveStreamBanner';
-import { DialogProvider } from '@/components/common/DialogProvider';
+import { DialogProvider } from '@/components/base/DialogProvider';
+import { HeaderRightPill } from '@/components/base/HeaderRightPill';
+import { ActiveStreamBanner } from '@/components/cameras/ActiveStreamBanner';
 import { AuthProvider } from '@/context/AuthProvider';
 import { useAuth } from '@/context/auth';
 import { StreamSessionProvider } from '@/context/StreamSessionProvider';
@@ -18,7 +19,6 @@ import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/utils/router/background';
-import { HeaderRightPill } from '@/utils/router/HeaderRightPill';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
 
@@ -47,12 +47,11 @@ export function HeaderRight() {
 function AppBackground({
   BackgroundComponent,
   overlayColor,
-  showBackground,
   showOverlay,
 }: ReturnType<typeof useAnimatedBackground>) {
   return (
     <>
-      {showBackground && BackgroundComponent ? <BackgroundComponent /> : null}
+      {BackgroundComponent ? <BackgroundComponent /> : null}
       {showOverlay ? (
         <View
           style={{
@@ -85,9 +84,9 @@ function AppStack({ isDark, router }: { isDark: boolean; router: ReturnType<type
         }}
       />
       <Stack.Screen
-        name="profile"
+        name="account"
         options={{
-          title: 'Profile',
+          title: 'Account',
           headerLeft: (props) => (
             <HeaderBackButton {...props} onPress={() => router.replace('/products')} />
           ),
@@ -133,8 +132,7 @@ function AppShell() {
   const theme = getAppTheme(colorScheme);
   const { user, isLoading: authLoading } = useAuth();
   const { activeStream } = useStreamSession();
-  const { BackgroundComponent, overlayColor, showBackground, showOverlay } =
-    useAnimatedBackground(isDark);
+  const { BackgroundComponent, overlayColor, showOverlay } = useAnimatedBackground(isDark);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !activeStream) return;
@@ -165,7 +163,6 @@ function AppShell() {
       <AppBackground
         BackgroundComponent={BackgroundComponent}
         overlayColor={overlayColor}
-        showBackground={showBackground}
         showOverlay={showOverlay}
       />
       <AppStack isDark={isDark} router={router} />

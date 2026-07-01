@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import MfaScreen from '@/app/(auth)/mfa';
-import { getUser } from '@/services/api/authentication';
-import { completeMfaChallenge, setPendingMfaLogin } from '@/services/api/authMfa';
+import { getUser } from '@/services/api/auth/authentication';
+import { completeMfaChallenge, setPendingMfaLogin } from '@/services/api/auth/authMfa';
 import { mockUser, renderWithProviders } from '@/test-utils/index';
 
 let mockPendingMfaLogin:
@@ -15,7 +15,7 @@ jest.mock('expo-router', () => ({
   useRouter: jest.fn(),
 }));
 
-jest.mock('@/services/api/authMfa', () => ({
+jest.mock('@/services/api/auth/authMfa', () => ({
   clearPendingMfaLogin: jest.fn(() => {
     mockPendingMfaLogin = undefined;
   }),
@@ -26,7 +26,7 @@ jest.mock('@/services/api/authMfa', () => ({
   }),
 }));
 
-jest.mock('@/services/api/authentication', () => ({
+jest.mock('@/services/api/auth/authentication', () => ({
   getUser: jest.fn(),
 }));
 
@@ -87,7 +87,7 @@ describe('MfaScreen challenge flow', () => {
   });
 
   it('routes to the preserved redirect after completing MFA', async () => {
-    setPendingMfaLogin({ status: 'mfa_required', mfaToken: 'mfa-token', redirectTo: '/profile' });
+    setPendingMfaLogin({ status: 'mfa_required', mfaToken: 'mfa-token', redirectTo: '/account' });
     mockedCompleteMfaChallenge.mockResolvedValueOnce();
 
     renderMfaScreen();
@@ -96,7 +96,7 @@ describe('MfaScreen challenge flow', () => {
     fireEvent.press(screen.getByText('Continue'));
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith('/profile');
+      expect(mockReplace).toHaveBeenCalledWith('/account');
     });
     expect(mockedGetUser).toHaveBeenCalledWith(true);
   });
