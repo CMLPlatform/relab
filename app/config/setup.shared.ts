@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeEach, jest } from '@jest/globals';
 import { cleanup } from '@testing-library/react-native';
 import type React from 'react';
-import { server } from '../../src/test-utils/server';
+import { server } from '../src/test-utils/server';
 
 process.env.EXPO_PUBLIC_API_URL = 'http://127.0.0.1:18010';
 

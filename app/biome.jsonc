@@ -53,7 +53,7 @@
       // Test files routinely contain dummy secrets and looser fixture setup.
       "includes": [
         "babel.config.*",
-        "config/jest/**",
+        "config/**",
         "e2e/**",
         "jest.config.*",
         "jest.setup.*",
