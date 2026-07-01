@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { Animated, Platform } from 'react-native';
-import { ensureWebAnimatedPatch } from '@/lib/router/animatedPatch';
+import { ensureWebAnimatedPatch } from '@/utils/router/animatedPatch';
 
 describe('animatedPatch', () => {
   const originalTiming = Animated.timing;

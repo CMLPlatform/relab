@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
 import { Dimensions } from 'react-native';
-import { breakpoints } from '@/constants/layout';
+import { breakpoints } from '@/constants';
 import { mockPlatform, restorePlatform } from '@/test-utils/index';
 import { useIsDesktop } from '../useIsDesktop';
 

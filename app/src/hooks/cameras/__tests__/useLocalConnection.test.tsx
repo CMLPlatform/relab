@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
+import { useLocalConnection } from '@/hooks/cameras/useLocalConnection';
 import {
   clearStoredLocalConnection,
   loadLocalConnection,
@@ -8,7 +9,6 @@ import {
   storeLocalConnection,
   USB_GADGET_DEFAULT,
 } from '@/hooks/local-connection/shared';
-import { useLocalConnection } from '@/hooks/cameras/useLocalConnection';
 import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
 
 jest.mock('@/hooks/local-connection/shared', () => ({

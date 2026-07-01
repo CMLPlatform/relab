@@ -10,7 +10,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type React from 'react';
 import { StyleSheet, View, type ViewProps } from 'react-native';
-import { processImage } from '@/services/media/imageProcessing';
+import { processImage } from '@/services/imageProcessing';
 import { baseProduct, mockPlatform, renderWithProviders } from '@/test-utils/index';
 import { lightTheme } from '@/theme';
 import type { Product } from '@/types/Product';
@@ -68,7 +68,7 @@ jest.mock('@/components/common/dialogContext', () => {
   };
 });
 
-jest.mock('@/services/media/imageProcessing', () => ({
+jest.mock('@/services/imageProcessing', () => ({
   processImage: jest.fn(),
 }));
 

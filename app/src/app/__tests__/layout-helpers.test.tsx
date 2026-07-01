@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook, screen } from '@testing-library/react-native';
 import type { ComponentType } from 'react';
 import { Animated, Platform } from 'react-native';
-import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/lib/router/background';
-import { loadAnimatedBackground } from '@/lib/router/backgroundLoader';
-import { HeaderRightPill } from '@/lib/router/HeaderRightPill';
-import { getUsernameOnboardingRedirect } from '@/lib/router/onboarding';
-import { getProductsHeaderStyle } from '@/lib/router/styles';
 import { renderWithProviders } from '@/test-utils/index';
 import { getAppTheme } from '@/theme';
+import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/utils/router/background';
+import { loadAnimatedBackground } from '@/utils/router/backgroundLoader';
+import { HeaderRightPill } from '@/utils/router/HeaderRightPill';
+import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
+import { getProductsHeaderStyle } from '@/utils/router/styles';
 
 // spell-checker: ignore averyverylongu
 
@@ -29,7 +29,7 @@ jest.mock('@/components/common/AnimatedBackground', () => ({
   AnimatedBackground: () => null,
 }));
 
-jest.mock('@/lib/router/backgroundLoader', () => ({
+jest.mock('@/utils/router/backgroundLoader', () => ({
   loadAnimatedBackground: jest.fn(),
 }));
 

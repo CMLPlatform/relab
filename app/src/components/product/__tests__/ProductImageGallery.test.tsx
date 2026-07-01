@@ -42,7 +42,7 @@ jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(),
 }));
 
-jest.mock('@/services/media/imageProcessing', () => ({
+jest.mock('@/services/imageProcessing', () => ({
   processImage: jest.fn(),
 }));
 

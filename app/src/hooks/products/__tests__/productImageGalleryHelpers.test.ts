@@ -8,7 +8,7 @@ import {
 
 const mockProcessImage: jest.Mock = jest.fn();
 
-jest.mock('@/services/media/imageProcessing', () => ({
+jest.mock('@/services/imageProcessing', () => ({
   processImage: (...args: unknown[]) => mockProcessImage(...args),
 }));
 

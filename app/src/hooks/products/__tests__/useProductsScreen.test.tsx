@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { useProductsScreen } from '@/hooks/products/useProductsScreen';
 import { productsQueryOptions } from '@/hooks/products/queries';
+import { useProductsScreen } from '@/hooks/products/useProductsScreen';
 
 let mockSearchParams: Record<string, string> = {};
 const mockSetParams: jest.Mock = jest.fn();

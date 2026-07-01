@@ -8,9 +8,9 @@ jest.mock('@/services/api/rpiCamera', () => ({
   captureImageFromCamera: jest.fn(),
 }));
 
+import { useCaptureAllMutation } from '@/hooks/cameras/data/hooks';
 // Imports that depend on the mock above MUST come after the jest.mock call.
 import { captureImageFromCamera } from '@/services/api/rpiCamera';
-import { useCaptureAllMutation } from '@/hooks/cameras/data/hooks';
 
 const mockedCapture = jest.mocked(captureImageFromCamera);
 

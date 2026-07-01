@@ -3,14 +3,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import {
-  captureImageFromCamera,
-  claimPairingCode,
-  deleteCamera,
-  fetchCamera,
-  fetchCameras,
-  updateCamera,
-} from '@/services/api/rpiCamera';
-import {
   cameraQueryOptions,
   camerasQueryOptions,
   useCameraLivePreview,
@@ -22,6 +14,14 @@ import {
   useDeleteCameraMutation,
   useUpdateCameraMutation,
 } from '@/hooks/cameras/data/hooks';
+import {
+  captureImageFromCamera,
+  claimPairingCode,
+  deleteCamera,
+  fetchCamera,
+  fetchCameras,
+  updateCamera,
+} from '@/services/api/rpiCamera';
 
 jest.mock('@/services/api/rpiCamera', () => ({
   fetchCameras: jest.fn(),

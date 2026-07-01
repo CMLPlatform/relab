@@ -3,13 +3,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { useAuth } from '@/context/auth';
-import type { Product } from '@/types/Product';
-import { useProductForm } from '@/hooks/products/useProductForm';
 import {
   useBaseProductQuery,
   useDeleteProductMutation,
   useSaveProductMutation,
 } from '@/hooks/products/queries';
+import { useProductForm } from '@/hooks/products/useProductForm';
+import type { Product } from '@/types/Product';
 
 jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(() => ({ user: { id: '1', username: 'test' }, refetch: jest.fn() })),

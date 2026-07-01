@@ -2,6 +2,16 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
+import {
+  useBaseProductQuery,
+  useComponentQuery,
+  useDeleteProductMutation,
+  useProductsQuery,
+  useProductTypesQuery,
+  useSaveProductMutation,
+  useSearchBrandsQuery,
+  useSearchProductTypesQuery,
+} from '@/hooks/products/queries';
 import { searchProductBrands } from '@/services/api/productSuggestions';
 import {
   allProducts,
@@ -13,16 +23,6 @@ import {
 import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
-import {
-  useBaseProductQuery,
-  useComponentQuery,
-  useDeleteProductMutation,
-  useProductsQuery,
-  useProductTypesQuery,
-  useSaveProductMutation,
-  useSearchBrandsQuery,
-  useSearchProductTypesQuery,
-} from '@/hooks/products/queries';
 
 jest.mock('@/services/api/productSuggestions', () => ({
   allProductBrands: jest.fn(),
