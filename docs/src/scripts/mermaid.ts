@@ -177,7 +177,11 @@ const bindThemeObserver = () => {
   });
 };
 
-export const initMermaidChrome = () => {
+const initMermaidChrome = () => {
   bindThemeObserver();
   renderMermaid().catch(reportMermaidError);
 };
+
+document.addEventListener('astro:page-load', initMermaidChrome);
+document.addEventListener('astro:after-swap', initMermaidChrome);
+initMermaidChrome();
