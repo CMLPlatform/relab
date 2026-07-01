@@ -25,7 +25,6 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.api
 
-
 @pytest.fixture
 async def regular_user_product(db_session: AsyncSession, db_user: User) -> Product:
     """Create a base product owned by the regular authenticated user."""
@@ -39,7 +38,6 @@ async def regular_user_product(db_session: AsyncSession, db_user: User) -> Produ
     await db_session.flush()
     return product
 
-
 @pytest.fixture
 async def db_unverified_user(db_session: AsyncSession) -> User:
     """Create an active user whose email is not verified."""
@@ -51,11 +49,9 @@ async def db_unverified_user(db_session: AsyncSession) -> User:
         refresh_instance=True,
     )
 
-
 def assert_status(response_status: int, expected_status: int, case_name: str) -> None:
     """Assert one authorization matrix decision with a readable failure label."""
     assert response_status == expected_status, f"{case_name}: expected {expected_status}, got {response_status}"
-
 
 async def test_authorization_matrix_for_representative_route_classes(
     api_client: AsyncClient,

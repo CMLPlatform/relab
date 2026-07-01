@@ -6,7 +6,7 @@ parameter handling, not the SQL queries themselves.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -18,7 +18,7 @@ from app.api.stats.schemas import CategoryStat, SeriesPoint, Totals
 from app.core.cache import _cache_state, init_cache
 from app.core.database import get_async_session
 
-_NOW = datetime(2026, 6, 30, 6, 0, 0, tzinfo=timezone.utc)
+_NOW = datetime(2026, 6, 30, 6, 0, 0, tzinfo=UTC)
 
 _FAKE_TOTALS = Totals(teardowns=10, parts=50, mass_kg=5.5, images=200, users=8)
 _FAKE_CATEGORIES = [CategoryStat(name="Electronics", teardowns=6, parts=30)]
@@ -27,7 +27,7 @@ _FAKE_SERIES = [SeriesPoint(period="2026-06", teardowns=2, parts=10, mass_kg=1.1
 @pytest.fixture
 def client() -> TestClient:
     """Minimal FastAPI app with only the stats router, cache backed by in-memory."""
-    # ponytail: init_cache(None) uses mem:// — no Redis needed, no network.
+    # NOTE: init_cache(None) uses mem:// — no Redis needed, no network.
     # Reset state so init_cache runs fresh each time (idempotent guard otherwise skips it).
     _cache_state["initialized"] = False
     init_cache(None)

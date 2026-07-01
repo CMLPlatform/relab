@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
     from httpx import AsyncClient
 
-
 @pytest.fixture
 async def setup_data(db_session: AsyncSession, db_superuser: User) -> dict[str, Any]:
     """Set up test products and users.
@@ -51,12 +50,10 @@ async def setup_data(db_session: AsyncSession, db_superuser: User) -> dict[str, 
         "component": component,
     }
 
-
 async def set_profile_visibility(db_session: AsyncSession, user: User, visibility: str) -> None:
     """Persist a profile visibility setting for a user."""
     user.preferences = {"profile_visibility": visibility}
     await db_session.flush()
-
 
 @pytest.fixture
 async def owner_client(
@@ -70,7 +67,6 @@ async def owner_client(
     with override_authenticated_user(test_app, user):
         yield api_client_light
 
-
 @pytest.fixture
 async def other_user_client(
     api_client_light: AsyncClient, setup_data: dict[str, Any], test_app: FastAPI
@@ -83,7 +79,6 @@ async def other_user_client(
     with override_authenticated_user(test_app, user):
         yield api_client_light
 
-
 @pytest.fixture
 async def superuser_client_light(
     api_client_light: AsyncClient, db_superuser: User, test_app: FastAPI
@@ -92,155 +87,152 @@ async def superuser_client_light(
     with override_authenticated_user(test_app, db_superuser, superuser=True):
         yield api_client_light
 
+async def test_public_profile_visibility(api_client: AsyncClient, setup_data: dict[str, Any]) -> None:
+    """Public profiles are visible to everyone."""
+    username = setup_data["user"].username
+    response = await api_client.get(f"/v1/profiles/{username}")
+    assert response.status_code == status.HTTP_200_OK
 
-class TestPrivacyRedaction:
-    """Tests for profile visibility and username redaction."""
+async def test_community_profile_visibility_guest(
+    db_session: AsyncSession, api_client: AsyncClient, setup_data: dict[str, Any]
+) -> None:
+    """Community profiles are hidden from guests."""
+    user = setup_data["user"]
+    await set_profile_visibility(db_session, user, "community")
 
-    async def test_public_profile_visibility(self, api_client: AsyncClient, setup_data: dict[str, Any]) -> None:
-        """Public profiles are visible to everyone."""
-        username = setup_data["user"].username
-        response = await api_client.get(f"/v1/profiles/{username}")
-        assert response.status_code == status.HTTP_200_OK
+    response = await api_client.get(f"/v1/profiles/{user.username}")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    async def test_community_profile_visibility_guest(
-        self, db_session: AsyncSession, api_client: AsyncClient, setup_data: dict[str, Any]
-    ) -> None:
-        """Community profiles are hidden from guests."""
-        user = setup_data["user"]
-        await set_profile_visibility(db_session, user, "community")
+async def test_community_profile_visibility_logged_in(
+    db_session: AsyncSession, owner_client: AsyncClient, setup_data: dict[str, Any]
+) -> None:
+    """Community profiles are visible to logged-in users."""
+    user = setup_data["user"]
+    await set_profile_visibility(db_session, user, "community")
 
-        response = await api_client.get(f"/v1/profiles/{user.username}")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+    response = await owner_client.get(f"/v1/profiles/{user.username}")
+    assert response.status_code == status.HTTP_200_OK
 
-    async def test_community_profile_visibility_logged_in(
-        self, db_session: AsyncSession, owner_client: AsyncClient, setup_data: dict[str, Any]
-    ) -> None:
-        """Community profiles are visible to logged-in users."""
-        user = setup_data["user"]
-        await set_profile_visibility(db_session, user, "community")
+async def test_private_profile_visibility_guest(
+    db_session: AsyncSession, api_client: AsyncClient, setup_data: dict[str, Any]
+) -> None:
+    """Private profiles are hidden from everyone (except self/admin)."""
+    user = setup_data["user"]
+    await set_profile_visibility(db_session, user, "private")
 
-        response = await owner_client.get(f"/v1/profiles/{user.username}")
-        assert response.status_code == status.HTTP_200_OK
+    response = await api_client.get(f"/v1/profiles/{user.username}")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    async def test_private_profile_visibility_guest(
-        self, db_session: AsyncSession, api_client: AsyncClient, setup_data: dict[str, Any]
-    ) -> None:
-        """Private profiles are hidden from everyone (except self/admin)."""
-        user = setup_data["user"]
-        await set_profile_visibility(db_session, user, "private")
+async def test_private_profile_visibility_owner_preserves_owner_identity(
+    db_session: AsyncSession, owner_client: AsyncClient, setup_data: dict[str, Any]
+) -> None:
+    """Owners can still view private profiles and retain visible ownership on list routes."""
+    user = setup_data["user"]
+    await set_profile_visibility(db_session, user, "private")
 
-        response = await api_client.get(f"/v1/profiles/{user.username}")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+    profile_response = await owner_client.get(f"/v1/profiles/{user.username}")
+    assert profile_response.status_code == status.HTTP_200_OK
 
-    async def test_private_profile_visibility_owner_preserves_owner_identity(
-        self, db_session: AsyncSession, owner_client: AsyncClient, setup_data: dict[str, Any]
-    ) -> None:
-        """Owners can still view private profiles and retain visible ownership on list routes."""
-        user = setup_data["user"]
-        await set_profile_visibility(db_session, user, "private")
+    products_response = await owner_client.get("/v1/products")
+    assert products_response.status_code == status.HTTP_200_OK
+    data = products_response.json()
+    product_item = next((p for p in data["items"] if p["id"] == setup_data["product"].id), None)
+    assert product_item is not None
+    assert product_item["owner_username"] == user.username
 
-        profile_response = await owner_client.get(f"/v1/profiles/{user.username}")
-        assert profile_response.status_code == status.HTTP_200_OK
+async def test_private_profile_visibility_superuser_preserves_detail_identity(
+    db_session: AsyncSession, superuser_client_light: AsyncClient, setup_data: dict[str, Any]
+) -> None:
+    """Superusers can view private profiles and private owner names on product detail."""
+    user = setup_data["user"]
+    await set_profile_visibility(db_session, user, "private")
 
-        products_response = await owner_client.get("/v1/products")
-        assert products_response.status_code == status.HTTP_200_OK
-        data = products_response.json()
-        product_item = next((p for p in data["items"] if p["id"] == setup_data["product"].id), None)
-        assert product_item is not None
-        assert product_item["owner_username"] == user.username
+    profile_response = await superuser_client_light.get(f"/v1/profiles/{user.username}")
+    assert profile_response.status_code == status.HTTP_200_OK
 
-    async def test_private_profile_visibility_superuser_preserves_detail_identity(
-        self, db_session: AsyncSession, superuser_client_light: AsyncClient, setup_data: dict[str, Any]
-    ) -> None:
-        """Superusers can view private profiles and private owner names on product detail."""
-        user = setup_data["user"]
-        await set_profile_visibility(db_session, user, "private")
+    detail_response = await superuser_client_light.get(f"/v1/products/{setup_data['product'].id}")
+    assert detail_response.status_code == status.HTTP_200_OK
+    assert detail_response.json()["owner_username"] == user.username
 
-        profile_response = await superuser_client_light.get(f"/v1/profiles/{user.username}")
-        assert profile_response.status_code == status.HTTP_200_OK
+async def test_private_profile_redacts_identity_for_regular_users_across_product_routes(
+    db_session: AsyncSession, other_user_client: AsyncClient, setup_data: dict[str, Any]
+) -> None:
+    """Regular users should not see private owner usernames on list or detail routes."""
+    user = setup_data["user"]
+    await set_profile_visibility(db_session, user, "private")
 
-        detail_response = await superuser_client_light.get(f"/v1/products/{setup_data['product'].id}")
-        assert detail_response.status_code == status.HTTP_200_OK
-        assert detail_response.json()["owner_username"] == user.username
+    products_response = await other_user_client.get("/v1/products")
+    assert products_response.status_code == status.HTTP_200_OK
+    list_data = products_response.json()
+    product_item = next((p for p in list_data["items"] if p["id"] == setup_data["product"].id), None)
+    assert product_item is not None
+    assert product_item["owner_username"] is None
 
-    async def test_private_profile_redacts_identity_for_regular_users_across_product_routes(
-        self, db_session: AsyncSession, other_user_client: AsyncClient, setup_data: dict[str, Any]
-    ) -> None:
-        """Regular users should not see private owner usernames on list or detail routes."""
-        user = setup_data["user"]
-        await set_profile_visibility(db_session, user, "private")
+    detail_response = await other_user_client.get(f"/v1/products/{setup_data['product'].id}")
+    assert detail_response.status_code == status.HTTP_200_OK
+    detail_data = detail_response.json()
+    assert detail_data["owner_username"] is None
+    assert detail_data["components"][0]["owner_username"] is None
 
-        products_response = await other_user_client.get("/v1/products")
-        assert products_response.status_code == status.HTTP_200_OK
-        list_data = products_response.json()
-        product_item = next((p for p in list_data["items"] if p["id"] == setup_data["product"].id), None)
-        assert product_item is not None
-        assert product_item["owner_username"] is None
+async def test_private_profile_redacts_identity_for_regular_users_across_component_routes(
+    db_session: AsyncSession, other_user_client: AsyncClient, setup_data: dict[str, Any]
+) -> None:
+    """Regular users should not see private owner usernames on component routes."""
+    user = setup_data["user"]
+    product = setup_data["product"]
+    component = setup_data["component"]
+    await set_profile_visibility(db_session, user, "private")
 
-        detail_response = await other_user_client.get(f"/v1/products/{setup_data['product'].id}")
-        assert detail_response.status_code == status.HTTP_200_OK
-        detail_data = detail_response.json()
-        assert detail_data["owner_username"] is None
-        assert detail_data["components"][0]["owner_username"] is None
+    component_response = await other_user_client.get(f"/v1/components/{component.id}")
+    assert component_response.status_code == status.HTTP_200_OK
+    assert component_response.json()["owner_username"] is None
 
-    async def test_private_profile_redacts_identity_for_regular_users_across_component_routes(
-        self, db_session: AsyncSession, other_user_client: AsyncClient, setup_data: dict[str, Any]
-    ) -> None:
-        """Regular users should not see private owner usernames on component routes."""
-        user = setup_data["user"]
-        product = setup_data["product"]
-        component = setup_data["component"]
-        await set_profile_visibility(db_session, user, "private")
+    components_response = await other_user_client.get(f"/v1/products/{product.id}/components")
+    assert components_response.status_code == status.HTTP_200_OK
+    assert components_response.json()[0]["owner_username"] is None
 
-        component_response = await other_user_client.get(f"/v1/components/{component.id}")
-        assert component_response.status_code == status.HTTP_200_OK
-        assert component_response.json()["owner_username"] is None
+    subtree_response = await other_user_client.get(f"/v1/products/{product.id}/components/tree?recursion_depth=1")
+    assert subtree_response.status_code == status.HTTP_200_OK
+    assert subtree_response.json()[0]["owner_username"] is None
 
-        components_response = await other_user_client.get(f"/v1/products/{product.id}/components")
-        assert components_response.status_code == status.HTTP_200_OK
-        assert components_response.json()[0]["owner_username"] is None
+async def test_community_profile_redacts_owner_identity_for_guests_on_product_list(
 
-        subtree_response = await other_user_client.get(f"/v1/products/{product.id}/components/tree?recursion_depth=1")
-        assert subtree_response.status_code == status.HTTP_200_OK
-        assert subtree_response.json()[0]["owner_username"] is None
+    db_session: AsyncSession,
+    api_client: AsyncClient,
+    setup_data: dict[str, Any],
+) -> None:
+    """Community visibility must hide owner identity from unauthenticated guests on list + detail."""
+    user = setup_data["user"]
+    await set_profile_visibility(db_session, user, "community")
 
-    async def test_community_profile_redacts_owner_identity_for_guests_on_product_list(
-        self,
-        db_session: AsyncSession,
-        api_client: AsyncClient,
-        setup_data: dict[str, Any],
-    ) -> None:
-        """Community visibility must hide owner identity from unauthenticated guests on list + detail."""
-        user = setup_data["user"]
-        await set_profile_visibility(db_session, user, "community")
+    list_response = await api_client.get("/v1/products")
+    assert list_response.status_code == status.HTTP_200_OK
+    items = list_response.json()["items"]
+    product_item = next((p for p in items if p["id"] == setup_data["product"].id), None)
+    assert product_item is not None
+    assert product_item["owner_username"] is None, "community+guest list leaked owner_username"
+    assert product_item["owner_id"] is None, "community+guest list leaked owner_id"
 
-        list_response = await api_client.get("/v1/products")
-        assert list_response.status_code == status.HTTP_200_OK
-        items = list_response.json()["items"]
-        product_item = next((p for p in items if p["id"] == setup_data["product"].id), None)
-        assert product_item is not None
-        assert product_item["owner_username"] is None, "community+guest list leaked owner_username"
-        assert product_item["owner_id"] is None, "community+guest list leaked owner_id"
+    detail_response = await api_client.get(f"/v1/products/{setup_data['product'].id}")
+    assert detail_response.status_code == status.HTTP_200_OK
+    detail_data = detail_response.json()
+    assert detail_data["owner_username"] is None, "community+guest detail leaked owner_username"
+    assert detail_data["components"][0]["owner_username"] is None, (
+        "community+guest detail leaked nested component owner_username"
+    )
 
-        detail_response = await api_client.get(f"/v1/products/{setup_data['product'].id}")
-        assert detail_response.status_code == status.HTTP_200_OK
-        detail_data = detail_response.json()
-        assert detail_data["owner_username"] is None, "community+guest detail leaked owner_username"
-        assert detail_data["components"][0]["owner_username"] is None, (
-            "community+guest detail leaked nested component owner_username"
-        )
+async def test_identity_redaction_on_user_products(
+    db_session: AsyncSession, owner_client: AsyncClient, setup_data: dict[str, Any]
+) -> None:
+    """The user-scoped products route should also preserve owner identity for the owner."""
+    user = setup_data["user"]
+    await set_profile_visibility(db_session, user, "private")
 
-    async def test_identity_redaction_on_user_products(
-        self, db_session: AsyncSession, owner_client: AsyncClient, setup_data: dict[str, Any]
-    ) -> None:
-        """The user-scoped products route should also preserve owner identity for the owner."""
-        user = setup_data["user"]
-        await set_profile_visibility(db_session, user, "private")
+    response = await owner_client.get(f"/v1/users/{user.id}/products")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
 
-        response = await owner_client.get(f"/v1/users/{user.id}/products")
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+    product_item = next((p for p in data["items"] if p["id"] == setup_data["product"].id), None)
+    assert product_item is not None
+    assert product_item["owner_username"] == user.username
 
-        product_item = next((p for p in data["items"] if p["id"] == setup_data["product"].id), None)
-        assert product_item is not None
-        assert product_item["owner_username"] == user.username
