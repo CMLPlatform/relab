@@ -8,18 +8,12 @@ from fastapi import Body, Depends, Path
 from pydantic import PositiveInt
 from sqlalchemy import select
 
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.associations import require_link
 from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, apply_filter, create_filter_dependency
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
-from app.api.common.schemas.associations import (
-    MaterialProductLinkCreateWithinProduct,
-    MaterialProductLinkCreateWithinProductAndMaterial,
-    MaterialProductLinkReadWithinProduct,
-    MaterialProductLinkUpdate,
-)
 from app.api.data_collection.crud.material_links import (
     add_material_to_product as add_material_to_product_link,
 )
@@ -33,6 +27,7 @@ from app.api.data_collection.crud.material_links import (
 from app.api.data_collection.crud.material_links import (
     remove_materials_from_product as remove_materials_from_product_links,
 )
+from app.api.data_collection.crud.video import create_video, delete_video, update_video
 from app.api.data_collection.dependencies import BaseProductDep, MaterialProductLinkFilterDep, UserOwnedBaseProductDep
 from app.api.data_collection.examples import (
     PRODUCT_MATERIAL_ID_PATH_OPENAPI_EXAMPLES,
@@ -44,7 +39,12 @@ from app.api.data_collection.models.product import (
     MaterialProductLink,
     Product,
 )
-from app.api.file_storage.crud.video import create_video, delete_video, update_video
+from app.api.data_collection.schemas import (
+    MaterialProductLinkCreateWithinProduct,
+    MaterialProductLinkCreateWithinProductAndMaterial,
+    MaterialProductLinkReadWithinProduct,
+    MaterialProductLinkUpdate,
+)
 from app.api.file_storage.filters import VideoFilter
 from app.api.file_storage.models import Video
 from app.api.file_storage.schemas import VideoCreateWithinProduct, VideoReadWithinProduct, VideoUpdateWithinProduct

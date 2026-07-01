@@ -10,11 +10,11 @@ from pydantic import UUID4, BeforeValidator
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
-from app.api.data_collection.dependencies import ComponentDep, get_user_owned_component_id_from_component
+from app.api.data_collection.dependencies import ComponentDep, UserOwnedComponentDep
 from app.api.data_collection.routers.media_handlers import (
     handle_delete_file,
     handle_delete_image,
@@ -70,13 +70,13 @@ async def get_component_file(
 )
 async def upload_component_file(
     session: AsyncSessionDep,
-    parent_id: Annotated[int, Depends(get_user_owned_component_id_from_component)],
+    db_component: UserOwnedComponentDep,
     file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
     current_user: CurrentActiveVerifiedUserDep,
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
     """Upload a new file for a component."""
-    return await handle_upload_file(session, parent_id, file=file, description=description, current_user=current_user)
+    return await handle_upload_file(session, db_component.id, file=file, description=description, current_user=current_user)
 
 
 @component_media_router.delete(
@@ -85,12 +85,12 @@ async def upload_component_file(
     status_code=204,
 )
 async def delete_component_file(
-    parent_id: Annotated[int, Depends(get_user_owned_component_id_from_component)],
+    db_component: UserOwnedComponentDep,
     file_id: Annotated[UUID4, Path(description="ID of the file")],
     session: AsyncSessionDep,
 ) -> None:
     """Remove a file from a component."""
-    await handle_delete_file(session, parent_id, file_id)
+    await handle_delete_file(session, db_component.id, file_id)
 
 
 @component_media_router.get(
@@ -130,7 +130,7 @@ async def get_component_image(
 )
 async def upload_component_image(
     session: AsyncSessionDep,
-    parent_id: Annotated[int, Depends(get_user_owned_component_id_from_component)],
+    db_component: UserOwnedComponentDep,
     file: Annotated[UploadFile, FastAPIFile(description="An image to upload")],
     current_user: CurrentActiveVerifiedUserDep,
     description: Annotated[str | None, Form()] = None,
@@ -146,7 +146,7 @@ async def upload_component_image(
     """Upload a new image for a component."""
     return await handle_upload_image(
         session,
-        parent_id,
+        db_component.id,
         file=file,
         description=description,
         image_metadata=image_metadata,
@@ -160,9 +160,9 @@ async def upload_component_image(
     status_code=204,
 )
 async def delete_component_image(
-    parent_id: Annotated[int, Depends(get_user_owned_component_id_from_component)],
+    db_component: UserOwnedComponentDep,
     image_id: Annotated[UUID4, Path(description="ID of the image")],
     session: AsyncSessionDep,
 ) -> None:
     """Remove an image from a component."""
-    await handle_delete_image(session, parent_id, image_id)
+    await handle_delete_image(session, db_component.id, image_id)

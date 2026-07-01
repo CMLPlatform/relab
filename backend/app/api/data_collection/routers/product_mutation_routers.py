@@ -15,10 +15,10 @@ from pydantic import UUID4, BeforeValidator
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY, API_WRITE_RATE_LIMIT_DEPENDENCY
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.base import ProductRead
 from app.api.data_collection.crud.product_commands import create_component
 from app.api.data_collection.crud.product_commands import create_product as create_product_record
@@ -27,13 +27,12 @@ from app.api.data_collection.crud.product_commands import update_product as upda
 from app.api.data_collection.dependencies import (
     BaseProductDep,
     UserOwnedBaseProductDep,
-    get_user_owned_base_product_id,
 )
 from app.api.data_collection.examples import (
     COMPONENT_CREATE_OPENAPI_EXAMPLES,
     PRODUCT_CREATE_OPENAPI_EXAMPLES,
 )
-from app.api.data_collection.presentation.product_reads import to_component_read, to_product_read
+from app.api.data_collection.presentation.product_reads import to_read_model
 from app.api.data_collection.routers.media_handlers import (
     handle_delete_file,
     handle_delete_image,
@@ -83,7 +82,7 @@ async def create_product(
     """Create a new product."""
     created = await create_product_record(session, product, current_user.id)
     await session.refresh(created, attribute_names=["owner"])
-    return to_product_read(created, ProductRead, current_user)
+    return to_read_model(created, ProductRead, current_user)
 
 
 @product_mutation_router.patch(
@@ -101,7 +100,7 @@ async def update_product(
     """Update an existing base product. Use ``PATCH /components/{id}`` for components."""
     updated = await update_product_record(session, db_product.id, product_update)
     await session.refresh(updated, attribute_names=["owner"])
-    return to_product_read(updated, ProductRead, current_user)
+    return to_read_model(updated, ProductRead, current_user)
 
 
 @product_mutation_router.delete(
@@ -138,7 +137,7 @@ async def add_component_to_product(
         parent_product=db_product,
     )
     await session.refresh(created, attribute_names=["owner", "components"])
-    return to_component_read(created, ComponentReadWithRecursiveComponents, current_user)
+    return to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
 
 
 ### File routes (scoped to base products only) ###
@@ -181,13 +180,13 @@ async def get_product_file(
 )
 async def upload_product_file(
     session: AsyncSessionDep,
-    parent_id: Annotated[int, Depends(get_user_owned_base_product_id)],
+    db_product: UserOwnedBaseProductDep,
     file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
     current_user: CurrentActiveVerifiedUserDep,
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
     """Upload a new file for a base product."""
-    return await handle_upload_file(session, parent_id, file=file, description=description, current_user=current_user)
+    return await handle_upload_file(session, db_product.id, file=file, description=description, current_user=current_user)
 
 
 @product_mutation_router.delete(
@@ -196,12 +195,12 @@ async def upload_product_file(
     status_code=204,
 )
 async def delete_product_file(
-    parent_id: Annotated[int, Depends(get_user_owned_base_product_id)],
+    db_product: UserOwnedBaseProductDep,
     file_id: Annotated[UUID4, Path(description="ID of the file")],
     session: AsyncSessionDep,
 ) -> None:
     """Remove a file from a base product."""
-    await handle_delete_file(session, parent_id, file_id)
+    await handle_delete_file(session, db_product.id, file_id)
 
 
 ### Image routes (scoped to base products only) ###
@@ -244,7 +243,7 @@ async def get_product_image(
 )
 async def upload_product_image(
     session: AsyncSessionDep,
-    parent_id: Annotated[int, Depends(get_user_owned_base_product_id)],
+    db_product: UserOwnedBaseProductDep,
     file: Annotated[UploadFile, FastAPIFile(description="An image to upload")],
     current_user: CurrentActiveVerifiedUserDep,
     description: Annotated[str | None, Form()] = None,
@@ -260,7 +259,7 @@ async def upload_product_image(
     """Upload a new image for a base product."""
     return await handle_upload_image(
         session,
-        parent_id,
+        db_product.id,
         file=file,
         description=description,
         image_metadata=image_metadata,
@@ -274,9 +273,9 @@ async def upload_product_image(
     status_code=204,
 )
 async def delete_product_image(
-    parent_id: Annotated[int, Depends(get_user_owned_base_product_id)],
+    db_product: UserOwnedBaseProductDep,
     image_id: Annotated[UUID4, Path(description="ID of the image")],
     session: AsyncSessionDep,
 ) -> None:
     """Remove an image from a base product."""
-    await handle_delete_image(session, parent_id, image_id)
+    await handle_delete_image(session, db_product.id, image_id)

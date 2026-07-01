@@ -13,7 +13,7 @@ from uuid import uuid4
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from app.api.common.schemas.associations import MAX_MATERIAL_QUANTITY
+from app.api.common.models.associations import MAX_MATERIAL_QUANTITY
 from app.api.data_collection.schemas import (
     MAX_BOM_ENTRIES,
     MAX_COMPONENT_AMOUNT,
@@ -32,7 +32,6 @@ from app.api.file_storage.schemas import ImageRead
 def _validate_model[T: BaseModel](schema: type[T], data: object) -> T:
     """Validate schema data without unpacking loosely typed dicts."""
     return schema.model_validate(data)
-
 
 @pytest.mark.parametrize(
     ("schema_cls", "field", "max_len"),
@@ -57,7 +56,6 @@ def test_field_max_length_enforced(schema_cls: type[BaseModel], field: str, max_
     with pytest.raises(ValidationError):
         _validate_model(schema_cls, data_bad)
 
-
 @pytest.mark.parametrize("field", ["recyclability", "disassemblability", "remanufacturability"])
 def test_circularity_property_notes_max_length_enforced(field: str) -> None:
     """Circularity JSON note fields reject inputs that are too long."""
@@ -71,7 +69,6 @@ def test_circularity_property_notes_max_length_enforced(field: str) -> None:
     with pytest.raises(ValidationError):
         _validate_model(ProductCreateBaseProduct, data_bad)
 
-
 def test_circularity_properties_reject_unknown_nested_keys() -> None:
     """Circularity JSON API shape is restricted to the supported note fields."""
     with pytest.raises(ValidationError):
@@ -82,7 +79,6 @@ def test_circularity_properties_reject_unknown_nested_keys() -> None:
                 "circularity_properties": {"repairability": "old field name"},
             },
         )
-
 
 def test_circularity_properties_trim_strings() -> None:
     """Circularity note strings are stripped consistently with other input strings."""
@@ -96,7 +92,6 @@ def test_circularity_properties_trim_strings() -> None:
 
     assert product.circularity_properties is not None
     assert product.circularity_properties.recyclability == "easy to sort"
-
 
 @pytest.mark.parametrize(
     "value",
@@ -115,12 +110,10 @@ def test_empty_circularity_properties_normalize_to_none(value: object) -> None:
 
     assert product.circularity_properties is None
 
-
 def test_product_name_min_length() -> None:
     """Product name must be at least 2 characters."""
     with pytest.raises(ValidationError):
         _validate_model(ProductCreateBaseProduct, {"name": "A"})
-
 
 def test_product_list_fields_default_to_empty() -> None:
     """Videos and bill_of_materials default to empty lists."""
@@ -128,14 +121,12 @@ def test_product_list_fields_default_to_empty() -> None:
     assert product.videos == []
     assert product.bill_of_materials == []
 
-
 def test_incomplete_product_create_remains_valid_for_progressive_collection() -> None:
     """Progressive data entry allows products before the completed tree is audited."""
     product = _validate_model(ProductCreateWithComponents, {"name": "Dyson V15 Detect"})
 
     assert product.components == []
     assert product.bill_of_materials == []
-
 
 def test_incomplete_component_create_remains_valid_for_progressive_collection() -> None:
     """Progressive data entry allows components before materials are known."""
@@ -146,7 +137,6 @@ def test_incomplete_component_create_remains_valid_for_progressive_collection() 
 
     assert component.components == []
     assert component.bill_of_materials == []
-
 
 @pytest.mark.parametrize(
     ("schema_cls", "payload"),
@@ -170,7 +160,6 @@ def test_product_write_schemas_reject_client_controlled_ownership_fields(
     """Clients cannot set ownership or hierarchy fields that authorization derives server-side."""
     with pytest.raises(ValidationError):
         _validate_model(schema_cls, payload)
-
 
 @pytest.mark.parametrize(
     ("field", "items"),
@@ -197,7 +186,6 @@ def test_product_create_rejects_oversized_lists(field: str, items: list[dict[str
     with pytest.raises(ValidationError):
         _validate_model(ProductCreateWithComponents, {"name": "Cordless drill", field: items})
 
-
 def test_component_create_rejects_excessive_amount_in_parent() -> None:
     """Component multiplicity has a practical upper business limit."""
     with pytest.raises(ValidationError):
@@ -205,7 +193,6 @@ def test_component_create_rejects_excessive_amount_in_parent() -> None:
             ComponentCreateWithComponents,
             {"name": "Tiny screw", "amount_in_parent": MAX_COMPONENT_AMOUNT + 1},
         )
-
 
 def test_bill_of_material_rejects_excessive_quantity() -> None:
     """Material quantities have a practical upper business limit."""
@@ -220,7 +207,6 @@ def test_bill_of_material_rejects_excessive_quantity() -> None:
             },
         )
 
-
 def test_product_brand_lowercased() -> None:
     """Brand field is normalized to lowercase."""
     product = _validate_model(
@@ -229,19 +215,16 @@ def test_product_brand_lowercased() -> None:
     )
     assert product.brand == "bosch"
 
-
 def test_product_create_normalizes_user_text_to_nfc() -> None:
     """Product create text fields are normalized before persistence."""
     product = _validate_model(ProductCreateBaseProduct, {"name": "Cafe\u0301 grinder"})
 
     assert product.name == "Café grinder"
 
-
 def test_product_update_rejects_hidden_control_characters() -> None:
     """Product update text fields reject invisible control characters."""
     with pytest.raises(ValidationError):
         _validate_model(ProductUpdate, {"description": "looks normal\u0000but is not"})
-
 
 def test_circularity_note_allows_multiline_text() -> None:
     """Circularity notes are free-form text and may contain line breaks."""
@@ -255,7 +238,6 @@ def test_circularity_note_allows_multiline_text() -> None:
 
     assert product.circularity_properties is not None
     assert product.circularity_properties.recyclability == "Step 1\nStep 2"
-
 
 def test_product_read_thumbnail_url_with_images() -> None:
     """Thumbnail URL is computed from the first image."""
@@ -297,7 +279,6 @@ def test_product_read_thumbnail_url_with_images() -> None:
     )
 
     assert product.thumbnail_url == "/uploads/images/front-panel.png"
-
 
 def test_product_read_thumbnail_url_without_images() -> None:
     """Thumbnail URL is None when no images are present."""

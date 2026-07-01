@@ -7,22 +7,19 @@ from typing import Annotated
 from fastapi import Body, Path
 from pydantic import PositiveInt
 
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.associations import require_link
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
-from app.api.common.schemas.associations import (
-    MaterialProductLinkCreateWithinProduct,
-    MaterialProductLinkCreateWithinProductAndMaterial,
-    MaterialProductLinkReadWithinProduct,
-    MaterialProductLinkUpdate,
-)
 from app.api.data_collection.crud.material_links import (
     add_material_to_product as add_material_to_product_link,
 )
 from app.api.data_collection.crud.material_links import (
     add_materials_to_product as add_materials_to_product_links,
 )
-from app.api.data_collection.crud.material_links import list_material_links_for_product, update_material_within_product
+from app.api.data_collection.crud.material_links import (
+    list_material_links_for_product,
+    update_material_within_product,
+)
 from app.api.data_collection.crud.material_links import (
     remove_materials_from_product as remove_materials_from_product_links,
 )
@@ -34,6 +31,12 @@ from app.api.data_collection.examples import (
     PRODUCT_SINGLE_MATERIAL_LINK_OPENAPI_EXAMPLES,
 )
 from app.api.data_collection.models.product import MaterialProductLink
+from app.api.data_collection.schemas import (
+    MaterialProductLinkCreateWithinProduct,
+    MaterialProductLinkCreateWithinProductAndMaterial,
+    MaterialProductLinkReadWithinProduct,
+    MaterialProductLinkUpdate,
+)
 
 component_material_router = PublicAPIRouter(prefix="/components", tags=["components"])
 

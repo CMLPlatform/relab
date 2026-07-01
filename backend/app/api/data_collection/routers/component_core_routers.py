@@ -9,10 +9,9 @@ from pydantic import PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, OptionalCurrentActiveUserDep
 from app.api.auth.services.rate_limiter import API_WRITE_RATE_LIMIT_DEPENDENCY
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
-from app.api.common.schemas.base import ComponentRead
 from app.api.data_collection.crud.product_commands import create_component
 from app.api.data_collection.crud.product_commands import delete_product as delete_product_record
 from app.api.data_collection.crud.product_commands import update_product as update_product_record
@@ -20,9 +19,10 @@ from app.api.data_collection.crud.product_tree_queries import PRODUCT_READ_DETAI
 from app.api.data_collection.dependencies import UserOwnedComponentDep
 from app.api.data_collection.examples import COMPONENT_CREATE_OPENAPI_EXAMPLES
 from app.api.data_collection.models.product import Product
-from app.api.data_collection.presentation.product_reads import to_component_read
+from app.api.data_collection.presentation.product_reads import to_read_model
 from app.api.data_collection.schemas import (
     ComponentCreateWithComponents,
+    ComponentRead,
     ComponentReadWithRecursiveComponents,
     ComponentReadWithRelationshipsAndFlatComponents,
     ProductUpdate,
@@ -48,7 +48,7 @@ async def get_component(
             status_code=404,
             detail=f"ID {component_id} belongs to a base product; use /products/{{id}} instead.",
         )
-    return to_component_read(product, ComponentReadWithRelationshipsAndFlatComponents, current_user)
+    return to_read_model(product, ComponentReadWithRelationshipsAndFlatComponents, current_user)
 
 
 @component_core_router.post(
@@ -74,7 +74,7 @@ async def add_component_to_component(
         parent_product=db_component,
     )
     await session.refresh(created, attribute_names=["owner", "components"])
-    return to_component_read(created, ComponentReadWithRecursiveComponents, current_user)
+    return to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
 
 
 @component_core_router.patch(
@@ -91,7 +91,7 @@ async def update_component(
 ) -> ComponentRead:
     """Update a component. Response is the lean :class:`ComponentRead` shape (no relationships)."""
     updated = await update_product_record(session, db_component.id, component_update)
-    return to_component_read(updated, ComponentRead, current_user)
+    return to_read_model(updated, ComponentRead, current_user)
 
 
 @component_core_router.delete(

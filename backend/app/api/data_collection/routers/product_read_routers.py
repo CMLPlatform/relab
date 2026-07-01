@@ -11,32 +11,41 @@ from sqlalchemy import select
 from starlette.responses import Response  # noqa: TC002 # Runtime annotation evaluation needs this.
 
 from app.api.auth.dependencies import CurrentActiveUserDep, OptionalCurrentActiveUserDep
+from app.api.auth.services.rate_limiter import API_READ_RATE_LIMIT_DEPENDENCY
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
 from app.api.common.crud.utils import ensure_model_exists
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
-from app.api.common.schemas.base import ComponentRead, ProductRead
+from app.api.common.schemas.base import ProductRead
+from app.api.common.validation import MAX_QUERY_TEXT_LENGTH
 from app.api.data_collection.crud.product_tree_queries import (
     PRODUCT_READ_SUMMARY_RELATIONSHIPS,
     apply_product_detail_loaders,
     load_component_subtree,
 )
 from app.api.data_collection.dependencies import ProductFilterWithRelationshipsDep
+from app.api.data_collection.filters import (
+    get_brand_search_statement,
+    get_model_search_statement,
+    get_product_facet_statement,
+)
 from app.api.data_collection.models.product import Product
 from app.api.data_collection.presentation.product_reads import (
     render_component_tree,
-    to_component_reads,
-    to_product_read,
-    to_product_reads,
+    to_read_model,
 )
 from app.api.data_collection.schemas import (
+    ComponentRead,
     ComponentReadWithRecursiveComponents,
+    ProductFacetsRead,
+    ProductFacetValue,
     ProductReadWithRelationshipsAndFlatComponents,
 )
 from app.api.reference_data.routers.public import RecursionDepthQueryParam
+from app.core.cache import cache
 from app.core.responses import conditional_json_response
 
 if TYPE_CHECKING:
@@ -47,6 +56,8 @@ if TYPE_CHECKING:
 user_product_router = PublicAPIRouter(prefix="/users/{user_id}/products", tags=["products"])
 product_read_router = PublicAPIRouter(prefix="/products", tags=["products"])
 CURRENT_USER_OWNER = "me"
+ProductFacetField = Literal["brand", "model"]
+PRODUCT_FACET_BRAND: ProductFacetField = "brand"
 
 
 async def _require_product_summary(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
@@ -89,7 +100,7 @@ async def _page_base_products(
         session,
         statement,
         model=Product,
-        transform=lambda rows: to_product_reads(rows, ProductRead, viewer),
+        transform=lambda rows: [to_read_model(r, ProductRead, viewer) for r in rows],
     )
     return cast("Page[ProductRead]", page)
 
@@ -165,7 +176,7 @@ async def get_product(
             status_code=404,
             detail="Product is a component; fetch it via /products/{parent_id}/components/{component_id}.",
         )
-    payload = to_product_read(product, ProductReadWithRelationshipsAndFlatComponents, current_user)
+    payload = to_read_model(product, ProductReadWithRelationshipsAndFlatComponents, current_user)
     return conditional_json_response(request, payload)
 
 
@@ -212,4 +223,77 @@ async def get_product_components(
     """Get all direct components of a product."""
     await _require_product_summary(session, product_id)
     components = await _list_direct_components(session, product_id=product_id, product_filter=product_filter)
-    return to_component_reads(list(components), ComponentRead, current_user)
+    return [to_read_model(c, ComponentRead, current_user) for c in components]
+
+
+### Ancillary search/facet routes ###
+
+
+@product_read_router.get(
+    "/suggestions/brands",
+    response_model=Page[str],
+    summary="Get product brand suggestions",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
+)
+@cache(expire=60)
+async def get_brand_suggestions(
+    session: AsyncSessionDep,
+    search: Annotated[
+        str | None,
+        Query(description="Search brand (case-insensitive)", max_length=MAX_QUERY_TEXT_LENGTH),
+    ] = None,
+    order: Annotated[Literal["asc", "desc"], Query(description="Sort order: 'asc' or 'desc'")] = "asc",
+) -> Page[str]:
+    """Get a paginated, searchable list of unique product brands derived from product data."""
+    statement = get_brand_search_statement(search=search, order=order)
+    page = await paginate_select(session, statement)
+    page.items = [brand.title() for brand in page.items if brand]
+    return page
+
+
+@product_read_router.get(
+    "/suggestions/models",
+    response_model=Page[str],
+    summary="Get product model suggestions",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
+)
+@cache(expire=60)
+async def get_model_suggestions(
+    session: AsyncSessionDep,
+    search: Annotated[
+        str | None,
+        Query(description="Search model name (case-insensitive)", max_length=MAX_QUERY_TEXT_LENGTH),
+    ] = None,
+    order: Annotated[Literal["asc", "desc"], Query(description="Sort order: 'asc' or 'desc'")] = "asc",
+) -> Page[str]:
+    """Get a paginated, searchable list of unique product model names derived from product data."""
+    statement = get_model_search_statement(search=search, order=order)
+    page = await paginate_select(session, statement)
+    page.items = [model for model in page.items if model]
+    return page
+
+
+@product_read_router.get(
+    "/facets",
+    response_model=ProductFacetsRead,
+    summary="Get derived product facets",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
+)
+@cache(expire=60)
+async def get_product_facets(
+    session: AsyncSessionDep,
+    fields: Annotated[
+        list[ProductFacetField] | None,
+        Query(description="Product fields to facet. Repeat the parameter for multiple fields."),
+    ] = None,
+) -> ProductFacetsRead:
+    """Return derived filter values and counts for product browsing."""
+    facets: ProductFacetsRead = {}
+    for field in fields or [PRODUCT_FACET_BRAND]:
+        rows = (await session.execute(get_product_facet_statement(field))).all()
+        facets[field] = [
+            ProductFacetValue(value=value.title() if field == PRODUCT_FACET_BRAND else value, count=count)
+            for value, count in rows
+            if value
+        ]
+    return facets

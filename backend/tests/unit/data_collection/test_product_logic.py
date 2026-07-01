@@ -15,111 +15,108 @@ ERR_MIN_CONTENT = "must have at least one material or one component"
 
 _VALIDATE_PRODUCT = validate_product
 
+def test_thumbnail_url_is_none_without_preloaded_image_payload() -> None:
+    """Test that list-safe thumbnail URLs are supplied by read models, not resize aliases."""
+    product = ProductFactory.build(id=1, owner_id=uuid4(), bill_of_materials=[MaterialProductLinkFactory.build()])
+    object.__setattr__(product, "first_image_id", None)
 
-class TestProductLogic:
-    """Tests for product model business logic like cycle detection and validation."""
+    assert product.thumbnail_url is None
 
-    def test_thumbnail_url_is_none_without_preloaded_image_payload(self) -> None:
-        """Test that list-safe thumbnail URLs are supplied by read models, not resize aliases."""
-        product = ProductFactory.build(id=1, owner_id=uuid4(), bill_of_materials=[MaterialProductLinkFactory.build()])
-        object.__setattr__(product, "first_image_id", None)
+def test_has_cycles_no_cycle() -> None:
+    """Test that a valid tree has no cycles."""
+    # A -> B -> C
+    c = ProductFactory.build(id=uuid4(), components=[])
+    b = ProductFactory.build(id=uuid4(), components=[c])
+    a = ProductFactory.build(id=uuid4(), components=[b])
 
-        assert product.thumbnail_url is None
+    assert a.has_cycles() is False
 
-    def test_has_cycles_no_cycle(self) -> None:
-        """Test that a valid tree has no cycles."""
-        # A -> B -> C
-        c = ProductFactory.build(id=uuid4(), components=[])
-        b = ProductFactory.build(id=uuid4(), components=[c])
-        a = ProductFactory.build(id=uuid4(), components=[b])
+def test_has_cycles_direct_cycle() -> None:
+    """Test detection of a product containing itself."""
+    a = ProductFactory.build(id=uuid4())
+    a.components = [a]  # Direct cycle
 
-        assert a.has_cycles() is False
+    assert a.has_cycles() is True
 
-    def test_has_cycles_direct_cycle(self) -> None:
-        """Test detection of a product containing itself."""
-        a = ProductFactory.build(id=uuid4())
-        a.components = [a]  # Direct cycle
+def test_has_cycles_indirect_cycle() -> None:
+    """Test detection of an indirect cycle A -> B -> A."""
+    a = ProductFactory.build(id=uuid4())
+    b = ProductFactory.build(id=uuid4(), components=[a])
+    a.components = [b]
 
-        assert a.has_cycles() is True
+    assert a.has_cycles() is True
 
-    def test_has_cycles_indirect_cycle(self) -> None:
-        """Test detection of an indirect cycle A -> B -> A."""
-        a = ProductFactory.build(id=uuid4())
-        b = ProductFactory.build(id=uuid4(), components=[a])
-        a.components = [b]
+def test_components_resolve_to_materials_valid() -> None:
+    """Test that validation passes when all leaves have materials."""
+    # A -> B (Material)
+    #   -> C (Material)
 
-        assert a.has_cycles() is True
+    # Leaf B
+    link_b = MaterialProductLinkFactory.build()
+    b = ProductFactory.build(id=uuid4(), components=[], bill_of_materials=[link_b])
 
-    def test_components_resolve_to_materials_valid(self) -> None:
-        """Test that validation passes when all leaves have materials."""
-        # A -> B (Material)
-        #   -> C (Material)
+    # Leaf C
+    link_c = MaterialProductLinkFactory.build()
+    c = ProductFactory.build(id=uuid4(), components=[], bill_of_materials=[link_c])
 
-        # Leaf B
-        link_b = MaterialProductLinkFactory.build()
-        b = ProductFactory.build(id=uuid4(), components=[], bill_of_materials=[link_b])
+    # Root A
+    a = ProductFactory.build(id=uuid4(), components=[b, c])
 
-        # Leaf C
-        link_c = MaterialProductLinkFactory.build()
-        c = ProductFactory.build(id=uuid4(), components=[], bill_of_materials=[link_c])
+    assert a.components_resolve_to_materials() is True
 
-        # Root A
-        a = ProductFactory.build(id=uuid4(), components=[b, c])
+def test_components_resolve_to_materials_invalid() -> None:
+    """Test that validation fails when a leaf has no materials."""
+    # A -> B (No Material)
 
-        assert a.components_resolve_to_materials() is True
+    b = ProductFactory.build(id=uuid4(), components=[], bill_of_materials=[])
+    a = ProductFactory.build(id=uuid4(), components=[b])
 
-    def test_components_resolve_to_materials_invalid(self) -> None:
-        """Test that validation fails when a leaf has no materials."""
-        # A -> B (No Material)
+    assert a.components_resolve_to_materials() is False
 
-        b = ProductFactory.build(id=uuid4(), components=[], bill_of_materials=[])
-        a = ProductFactory.build(id=uuid4(), components=[b])
+def test_validate_product_base_valid() -> None:
+    """Test validation of a valid base product."""
+    # Base product (no parent_id) must have content
+    link = MaterialProductLinkFactory.build()
 
-        assert a.components_resolve_to_materials() is False
+    # Should not raise
+    p = ProductFactory.build(
+        name="Valid Base", owner_id=uuid4(), bill_of_materials=[link], parent_id=None, amount_in_parent=None
+    )
+    _VALIDATE_PRODUCT(p)
 
-    def test_validate_product_base_valid(self) -> None:
-        """Test validation of a valid base product."""
-        # Base product (no parent_id) must have content
-        link = MaterialProductLinkFactory.build()
+def test_validate_product_base_invalid_no_content() -> None:
+    """Test validation fails for base product with no content."""
+    p = ProductFactory.build(
+        name="Empty Base",
+        owner_id=uuid4(),
+        bill_of_materials=[],
+        components=[],
+        parent_id=None,
+        amount_in_parent=None,
+    )
 
-        # Should not raise
-        p = ProductFactory.build(
-            name="Valid Base", owner_id=uuid4(), bill_of_materials=[link], parent_id=None, amount_in_parent=None
-        )
+    with pytest.raises(ValueError, match=ERR_MIN_CONTENT):
         _VALIDATE_PRODUCT(p)
 
-    def test_validate_product_base_invalid_no_content(self) -> None:
-        """Test validation fails for base product with no content."""
-        p = ProductFactory.build(
-            name="Empty Base",
-            owner_id=uuid4(),
-            bill_of_materials=[],
-            components=[],
-            parent_id=None,
-            amount_in_parent=None,
-        )
+def test_validate_product_intermediate_valid() -> None:
+    """Test validation of a valid intermediate product."""
+    link = MaterialProductLinkFactory.build()
 
-        with pytest.raises(ValueError, match=ERR_MIN_CONTENT):
-            _VALIDATE_PRODUCT(p)
+    # Intermediate product
+    p = ProductFactory.build(
+        name="Valid Intermediate",
+        owner_id=uuid4(),
+        bill_of_materials=[link],
+        parent_id=uuid4(),  # Has parent
+        amount_in_parent=AMOUNT_IN_PARENT_5,
+    )
+    _VALIDATE_PRODUCT(p)
 
-    def test_validate_product_intermediate_valid(self) -> None:
-        """Test validation of a valid intermediate product."""
-        link = MaterialProductLinkFactory.build()
+def test_validate_cycle_detection_on_init() -> None:
+    """Test that cycles are detected during validation."""
+    a = ProductFactory.build(id=uuid4())
+    a.components = [a]
 
-        # Intermediate product
-        p = ProductFactory.build(
-            name="Valid Intermediate",
-            owner_id=uuid4(),
-            bill_of_materials=[link],
-            parent_id=uuid4(),  # Has parent
-            amount_in_parent=AMOUNT_IN_PARENT_5,
-        )
-        _VALIDATE_PRODUCT(p)
+    with pytest.raises(ValueError, match="Cycle detected"):
+        _VALIDATE_PRODUCT(a)
 
-    def test_validate_cycle_detection_on_init(self) -> None:
-        """Test that cycles are detected during validation."""
-        a = ProductFactory.build(id=uuid4())
-        a.components = [a]
-
-        with pytest.raises(ValueError, match="Cycle detected"):
-            _VALIDATE_PRODUCT(a)

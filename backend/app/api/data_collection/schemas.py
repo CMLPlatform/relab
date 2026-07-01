@@ -11,27 +11,30 @@ from pydantic import (
     model_validator,
 )
 
-from app.api.common.schemas.associations import (
-    MaterialProductLinkCreateWithinProduct,
-    MaterialProductLinkReadWithinProduct,
-)
+from app.api.common.models.associations import MAX_MATERIAL_QUANTITY
+from app.api.common.models.enums import Unit
 from app.api.common.schemas.base import (
+    AssociationModelReadSchemaWithTimeStamp,
     BaseCreateSchema,
     BaseUpdateSchema,
-    ComponentRead,
+    MaterialProductLinkBase,
     ProductRead,
+    ProductReadBase,
 )
-from app.api.common.schemas.field_mixins import ProductCircularityPropertiesInputFields
+from app.api.common.schemas.field_mixins import (
+    PhysicalPropertiesFields,
+    ProductCircularityPropertiesInputFields,
+)
 from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.data_collection.examples import PRODUCT_CREATE_EXAMPLES
-from app.api.data_collection.models.base import NormalizedBrandText, ProductBase
+from app.api.data_collection.models.base import NormalizedBrandText
 from app.api.file_storage.schemas import (
     FileRead,
     ImageRead,
     VideoCreateWithinProduct,
     VideoReadWithinProduct,
 )
-from app.api.reference_data.schemas import ProductTypeRead
+from app.api.reference_data.schemas import MaterialRead, ProductTypeRead
 
 if TYPE_CHECKING:
     from collections.abc import Collection
@@ -53,6 +56,55 @@ def validate_material_or_components(bill_of_materials: Collection, components: C
         # TODO: raise error again once we implement Bill of materials UI
         # that allows users to add materials at product creation instead of only components
         logger.warning("Validation warning: %s. This will become an error in the future.", err_msg)
+
+
+class ProductBase(PhysicalPropertiesFields, ProductCircularityPropertiesInputFields, BaseModel):
+    """Write-side base for product create schemas."""
+
+    name: SingleLineUserText = Field(min_length=2, max_length=100)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
+    brand: NormalizedBrandText = Field(default=None, max_length=100)
+    model: SingleLineUserText | None = Field(default=None, max_length=100)
+    weight_g: float | None = Field(default=None, gt=0)
+    height_cm: float | None = Field(default=None, gt=0)
+    width_cm: float | None = Field(default=None, gt=0)
+    depth_cm: float | None = Field(default=None, gt=0)
+
+
+### Component read schema ###
+
+class ComponentRead(ProductReadBase):
+    """Read schema for components (nested inside a base product tree)."""
+
+    parent_id: PositiveInt
+    amount_in_parent: int = Field(description="Quantity within parent product")
+    owner_username: str | None = None
+
+
+### Material-product link schemas ###
+
+class MaterialProductLinkCreateWithinProductAndMaterial(BaseCreateSchema, MaterialProductLinkBase):
+    """Schema for creating material-product links with an external material ID."""
+
+
+class MaterialProductLinkCreateWithinProduct(BaseCreateSchema, MaterialProductLinkBase):
+    """Schema for creating material-product links from the product side."""
+
+    material_id: PositiveInt = Field(description="ID of the material in the product")
+
+
+class MaterialProductLinkReadWithinProduct(AssociationModelReadSchemaWithTimeStamp, MaterialProductLinkBase):
+    """Schema for reading material-product links from the product side."""
+
+    material_id: PositiveInt
+    material: MaterialRead
+
+
+class MaterialProductLinkUpdate(BaseUpdateSchema):
+    """Schema for updating material-product links."""
+
+    quantity: float | None = Field(default=None, gt=0, le=MAX_MATERIAL_QUANTITY)
+    unit: Unit | None = Field(default=Unit.KILOGRAM)
 
 
 ### Create Schemas ###
@@ -146,44 +198,34 @@ class ProductCreateWithComponents(ProductCreateBaseProduct):
 
 
 ### Read Schemas ###
-# Note that the base ProductRead schema is imported from app.api.common.schemas.base to avoid circular dependencies
 
 
-class ProductReadWithRelationships(ProductRead):
+class _MediaRelationships(BaseModel):
+    """Shared relationship fields and thumbnail validator for product/component detail reads."""
+
+    thumbnail_url: str | None = None
+    product_type: ProductTypeRead | None = None
+    images: list[ImageRead] = Field(default_factory=list, description="Product images")
+    files: list[FileRead] = Field(default_factory=list, description="Product files")
+    bill_of_materials: list[MaterialProductLinkReadWithinProduct] = Field(
+        default_factory=list, description="Bill of materials with quantities and units"
+    )
+
+    @model_validator(mode="after")
+    def populate_thumbnail_url_from_images(self) -> Self:
+        if self.thumbnail_url is None and self.images:
+            self.thumbnail_url = self.images[0].image_url
+        return self
+
+
+class ProductReadWithRelationships(_MediaRelationships, ProductRead):
     """Schema for reading a base product with all relationships."""
 
-    product_type: ProductTypeRead | None = None
-    images: list[ImageRead] = Field(default_factory=list, description="Product images")
     videos: list[VideoReadWithinProduct] = Field(default_factory=list, description="Disassembly videos")
-    files: list[FileRead] = Field(default_factory=list, description="Product files")
-    bill_of_materials: list[MaterialProductLinkReadWithinProduct] = Field(
-        default_factory=list, description="Bill of materials with quantities and units"
-    )
-
-    @model_validator(mode="after")
-    def populate_thumbnail_url_from_images(self) -> Self:
-        """Fill thumbnail_url from the first image when the field is otherwise unset."""
-        if self.thumbnail_url is None and self.images:
-            self.thumbnail_url = self.images[0].image_url
-        return self
 
 
-class ComponentReadWithRelationships(ComponentRead):
+class ComponentReadWithRelationships(_MediaRelationships, ComponentRead):
     """Schema for reading a component with all relationships."""
-
-    product_type: ProductTypeRead | None = None
-    images: list[ImageRead] = Field(default_factory=list, description="Product images")
-    files: list[FileRead] = Field(default_factory=list, description="Product files")
-    bill_of_materials: list[MaterialProductLinkReadWithinProduct] = Field(
-        default_factory=list, description="Bill of materials with quantities and units"
-    )
-
-    @model_validator(mode="after")
-    def populate_thumbnail_url_from_images(self) -> Self:
-        """Fill thumbnail_url from the first image when the field is otherwise unset."""
-        if self.thumbnail_url is None and self.images:
-            self.thumbnail_url = self.images[0].image_url
-        return self
 
 
 class ProductReadWithRelationshipsAndFlatComponents(ProductReadWithRelationships):

@@ -12,20 +12,17 @@ from typing import TYPE_CHECKING
 
 from fastapi import UploadFile
 
-from app.api.auth.services.profile_stats import refresh_profile_stats_after_mutation
 from app.api.common.form_json import parse_optional_json_object
-from app.api.data_collection.crud.storage import (
-    create_product_file,
-    create_product_image,
-    delete_product_file,
-    delete_product_image,
-    get_product_file,
-    get_product_image,
-    list_product_files,
-    list_product_images,
-)
+from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
 from app.api.data_collection.models.product import Product
-from app.api.file_storage.models import MediaParentType
+from app.api.file_storage.crud.parent_media import (
+    create_parent_media,
+    delete_parent_media,
+    get_parent_media,
+    list_parent_media,
+)
+from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
+from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import (
     FileCreate,
     FileReadWithinParent,
@@ -73,13 +70,27 @@ async def handle_list_files(
     session: AsyncSession, parent_id: int, item_filter: FileFilter
 ) -> list[FileReadWithinParent]:
     """List files attached to the given parent (product or component)."""
-    items = await list_product_files(session, parent_id, filter_params=item_filter)
+    items = await list_parent_media(
+        session,
+        parent_model=Product,
+        parent_type=MediaParentType.PRODUCT,
+        storage_model=File,
+        parent_id=parent_id,
+        filter_params=item_filter,
+    )
     return [FileReadWithinParent.model_validate(item) for item in items]
 
 
 async def handle_get_file(session: AsyncSession, parent_id: int, file_id: UUID4) -> FileReadWithinParent:
     """Fetch a single file attached to the given parent."""
-    item = await get_product_file(session, parent_id, file_id)
+    item = await get_parent_media(
+        session,
+        parent_model=Product,
+        parent_type=MediaParentType.PRODUCT,
+        storage_model=File,
+        parent_id=parent_id,
+        item_id=file_id,
+    )
     return FileReadWithinParent.model_validate(item)
 
 
@@ -87,10 +98,12 @@ async def handle_upload_file(
     session: AsyncSession, parent_id: int, *, file: UploadFile, description: str | None, current_user: User
 ) -> FileReadWithinParent:
     """Attach a new file to the given parent."""
-    item = await create_product_file(
+    item = await create_parent_media(
         session,
-        parent_id,
-        _product_file_create(parent_id, file=file, description=description),
+        parent_id=parent_id,
+        parent_type=MediaParentType.PRODUCT,
+        storage_service=file_storage_service,
+        item_data=_product_file_create(parent_id, file=file, description=description),
         quota_user_id=current_user.id,
     )
     return FileReadWithinParent.model_validate(item)
@@ -98,7 +111,15 @@ async def handle_upload_file(
 
 async def handle_delete_file(session: AsyncSession, parent_id: int, file_id: UUID4) -> None:
     """Detach and delete a file from the given parent."""
-    await delete_product_file(session, parent_id, file_id)
+    await delete_parent_media(
+        session,
+        parent_model=Product,
+        parent_type=MediaParentType.PRODUCT,
+        storage_model=File,
+        parent_id=parent_id,
+        item_id=file_id,
+        storage_service=file_storage_service,
+    )
 
 
 ### Image handlers ###
@@ -108,13 +129,27 @@ async def handle_list_images(
     session: AsyncSession, parent_id: int, item_filter: ImageFilter
 ) -> list[ImageReadWithinParent]:
     """List images attached to the given parent (product or component)."""
-    items = await list_product_images(session, parent_id, filter_params=item_filter)
+    items = await list_parent_media(
+        session,
+        parent_model=Product,
+        parent_type=MediaParentType.PRODUCT,
+        storage_model=Image,
+        parent_id=parent_id,
+        filter_params=item_filter,
+    )
     return [ImageReadWithinParent.model_validate(item) for item in items]
 
 
 async def handle_get_image(session: AsyncSession, parent_id: int, image_id: UUID4) -> ImageReadWithinParent:
     """Fetch a single image attached to the given parent."""
-    item = await get_product_image(session, parent_id, image_id)
+    item = await get_parent_media(
+        session,
+        parent_model=Product,
+        parent_type=MediaParentType.PRODUCT,
+        storage_model=Image,
+        parent_id=parent_id,
+        item_id=image_id,
+    )
     return ImageReadWithinParent.model_validate(item)
 
 
@@ -128,10 +163,12 @@ async def handle_upload_image(
     current_user: User,
 ) -> ImageReadWithinParent:
     """Attach a new image to the given parent and refresh user stats."""
-    item = await create_product_image(
+    item = await create_parent_media(
         session,
-        parent_id,
-        _product_image_create(
+        parent_id=parent_id,
+        parent_type=MediaParentType.PRODUCT,
+        storage_service=image_storage_service,
+        item_data=_product_image_create(
             parent_id,
             file=file,
             description=description,
@@ -139,7 +176,7 @@ async def handle_upload_image(
         ),
         quota_user_id=current_user.id,
     )
-    await refresh_profile_stats_after_mutation(session, current_user.id)
+    await recompute_user_profile_stats(session, current_user.id)
     await session.commit()
     return ImageReadWithinParent.model_validate(item)
 
@@ -151,7 +188,15 @@ async def handle_delete_image(session: AsyncSession, parent_id: int, image_id: U
     resolves correctly for either role.
     """
     product = await session.get(Product, parent_id)
-    await delete_product_image(session, parent_id, image_id)
+    await delete_parent_media(
+        session,
+        parent_model=Product,
+        parent_type=MediaParentType.PRODUCT,
+        storage_model=Image,
+        parent_id=parent_id,
+        item_id=image_id,
+        storage_service=image_storage_service,
+    )
     if product and product.owner_id is not None:
-        await refresh_profile_stats_after_mutation(session, product.owner_id)
+        await recompute_user_profile_stats(session, product.owner_id)
         await session.commit()

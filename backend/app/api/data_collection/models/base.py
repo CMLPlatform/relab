@@ -7,17 +7,12 @@ without triggering the full data_collection/models.py import chain.
 
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator, computed_field
-from pydantic import Field as PydanticField
+from pydantic import AfterValidator, BeforeValidator, computed_field
 from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.api.common.schemas.field_mixins import (
-    PhysicalPropertiesFields,
-    ProductCircularityPropertiesInputFields,
-)
-from app.api.common.validation import MultilineUserText, SingleLineUserText, normalize_user_text
+from app.api.common.validation import normalize_user_text
 
 
 def _normalize_brand_text(value: object) -> object:
@@ -74,20 +69,3 @@ class ProductFieldsMixin(PhysicalPropertiesMixin, CircularityPropertiesMixin):
     model: Mapped[str | None] = mapped_column(String(100), default=None)
 
 
-### Pydantic base schema (shared with schemas.py) ###
-class ProductBase(PhysicalPropertiesFields, ProductCircularityPropertiesInputFields, BaseModel):
-    """Base schema for Product. Used by Pydantic CREATE schemas, not ORM.
-
-    Includes validation constraints (max_length, gt, min_length) for write operations.
-    """
-
-    name: SingleLineUserText = PydanticField(min_length=2, max_length=100)
-    description: MultilineUserText | None = PydanticField(default=None, max_length=500)
-    brand: NormalizedBrandText = PydanticField(default=None, max_length=100)
-    model: SingleLineUserText | None = PydanticField(default=None, max_length=100)
-
-    # Physical properties with write-side constraints
-    weight_g: float | None = PydanticField(default=None, gt=0)
-    height_cm: float | None = PydanticField(default=None, gt=0)
-    width_cm: float | None = PydanticField(default=None, gt=0)
-    depth_cm: float | None = PydanticField(default=None, gt=0)

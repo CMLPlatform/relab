@@ -59,31 +59,31 @@ async def get_component_by_id(
 ComponentDep = Annotated[Product, Depends(get_component_by_id)]
 
 
+async def _fetch_owned_product(
+    session: AsyncSessionDep,
+    item_id: int,
+    current_user: CurrentActiveVerifiedUserDep,
+) -> Product:
+    """Fetch a product with superuser bypass. Owner_id is denormalized on every row, so this is O(1)."""
+    if current_user.is_superuser:
+        audit_event(current_user.id, AuditAction.SUPERUSER_ACCESS, Product, item_id)
+        return await require_model(session, Product, item_id)
+    return await get_user_owned_object(session, Product, item_id, current_user.id)
+
+
 async def get_user_owned_product(
     product_id: Annotated[PositiveInt, Path()],
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
 ) -> Product:
-    """Verify that the current user owns the specified product.
-
-    Components denormalize their root base product's ``owner_id``, so this is
-    a single indexed lookup regardless of role.
-    """
-    if current_user.is_superuser:
-        audit_event(current_user.id, AuditAction.SUPERUSER_ACCESS, Product, product_id)
-        return await require_model(session, Product, product_id)
-    return await get_user_owned_object(session, Product, product_id, current_user.id)
+    return await _fetch_owned_product(session, product_id, current_user)
 
 
 UserOwnedProductDep = Annotated[Product, Depends(get_user_owned_product)]
 
 
 async def get_user_owned_base_product(product: UserOwnedProductDep) -> Product:
-    """Like :func:`get_user_owned_product` but 404s when the row is a component.
-
-    Used by ``/products/{id}`` routes so that component ids are rejected with a
-    redirect hint to ``/components/{id}`` instead of silently accepted.
-    """
+    """Like :func:`get_user_owned_product` but 404s when the row is a component."""
     if not product.is_base_product:
         raise HTTPException(
             status_code=404,
@@ -100,16 +100,7 @@ async def get_user_owned_component(
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
 ) -> Product:
-    """Resolve ``/components/{component_id}`` and 404 when the id is a base product.
-
-    Component rows denormalize their root's ``owner_id``, so ownership is an
-    indexed single-row lookup regardless of tree depth.
-    """
-    if current_user.is_superuser:
-        audit_event(current_user.id, AuditAction.SUPERUSER_ACCESS, Product, component_id)
-        product = await require_model(session, Product, component_id)
-    else:
-        product = await get_user_owned_object(session, Product, component_id, current_user.id)
+    product = await _fetch_owned_product(session, component_id, current_user)
     if product.is_base_product:
         raise HTTPException(
             status_code=404,
@@ -121,11 +112,3 @@ async def get_user_owned_component(
 UserOwnedComponentDep = Annotated[Product, Depends(get_user_owned_component)]
 
 
-async def get_user_owned_base_product_id(base_product: UserOwnedBaseProductDep) -> int:
-    """ID dep for product-scoped media routes (upload/delete under /products/{id})."""
-    return base_product.id
-
-
-async def get_user_owned_component_id_from_component(component: UserOwnedComponentDep) -> int:
-    """ID dep for component-scoped media routes (upload/delete under /components/{id})."""
-    return component.id

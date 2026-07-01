@@ -1,4 +1,4 @@
-"""Services for persisted profile-stat snapshots."""
+"""Profile-stat snapshot computation for product owners."""
 
 from __future__ import annotations
 
@@ -9,35 +9,13 @@ from pydantic import UUID4
 from sqlalchemy import func, select
 
 from app.api.auth.models import User
-from app.api.auth.profile_stats import ProfileStatsData, dump_profile_stats, load_profile_stats
+from app.api.auth.profile_stats import ProfileStatsData, dump_profile_stats
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.reference_data.models import ProductType
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-
-
-def _normalize_weight_g(weight_g: float | None) -> int:
-    """Normalize a possibly-null product weight to a persisted integer gram value."""
-    return round(weight_g or 0)
-
-
-def _persist_profile_stats(
-    user: User,
-    stats: ProfileStatsData,
-    *,
-    computed_at: datetime | None = None,
-) -> None:
-    """Persist a typed stats snapshot back onto the user row."""
-    user.profile_stats = dump_profile_stats(stats)
-    if computed_at is not None:
-        user.profile_stats_computed_at = computed_at
-
-
-def get_profile_stats(user: User) -> ProfileStatsData:
-    """Return the current typed snapshot for one user."""
-    return load_profile_stats(user.profile_stats)
 
 
 async def recompute_user_profile_stats(session: AsyncSession, user_id: UUID4) -> ProfileStatsData:
@@ -49,7 +27,7 @@ async def recompute_user_profile_stats(session: AsyncSession, user_id: UUID4) ->
 
     row = (await session.execute(stmt)).fetchone()
     product_count = int(row.product_count) if row and row.product_count else 0
-    total_weight_g = _normalize_weight_g(row.total_weight_g if row else None)
+    total_weight_g = round(row.total_weight_g or 0) if row else 0
 
     image_stmt = (
         select(func.count(Image.id))
@@ -77,16 +55,8 @@ async def recompute_user_profile_stats(session: AsyncSession, user_id: UUID4) ->
 
     user = await session.get(User, user_id)
     if user is not None:
-        _persist_profile_stats(
-            user,
-            stats,
-            computed_at=datetime.now(UTC),
-        )
+        user.profile_stats = dump_profile_stats(stats)
+        user.profile_stats_computed_at = datetime.now(UTC)
         session.add(user)
 
     return stats
-
-
-async def refresh_profile_stats_after_mutation(session: AsyncSession, user_id: UUID4) -> ProfileStatsData:
-    """Refresh one user's profile-stat snapshot after a source-table mutation."""
-    return await recompute_user_profile_stats(session, user_id)

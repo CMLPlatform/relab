@@ -16,15 +16,12 @@ if TYPE_CHECKING:
 
     from app.api.auth.models import User
 
-
 pytestmark = pytest.mark.db
-
 
 async def test_product_requires_owner(db_session: AsyncSession) -> None:
     """Products without an owner should fail the database constraint."""
     with pytest.raises(IntegrityError):
         await db_session.execute(insert(Product).values(name="Orphan Product", owner_id=None))
-
 
 async def test_product_hierarchy_links_parent_and_child(db_session: AsyncSession, db_superuser: User) -> None:
     """Parent and child products should preserve the hierarchy fields."""
@@ -49,7 +46,6 @@ async def test_product_hierarchy_links_parent_and_child(db_session: AsyncSession
     assert child.amount_in_parent == 2
     assert child.is_base_product is False
     assert child.parent is not None
-
 
 async def test_product_bom_and_owner_relationships_are_accessible(db_session: AsyncSession, db_superuser: User) -> None:
     """Owner and BOM relationships should remain available after persistence."""

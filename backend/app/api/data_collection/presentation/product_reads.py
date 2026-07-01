@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel
 
 from app.api.auth.services.privacy import should_redact_owner_identity
-from app.api.common.schemas.base import ComponentRead
-from app.api.data_collection.schemas import ComponentReadWithRecursiveComponents
+from app.api.data_collection.schemas import ComponentRead, ComponentReadWithRecursiveComponents
 
 if TYPE_CHECKING:
     from app.api.auth.models import User
@@ -47,36 +46,6 @@ def to_read_model[ReadSchemaT: BaseModel](
     return read_model
 
 
-def to_product_read[ReadSchemaT: BaseModel](
-    row: Product,
-    schema: type[ReadSchemaT],
-    viewer: User | None,
-) -> ReadSchemaT:
-    """Validate a base product row with viewer-aware owner redaction."""
-    return to_read_model(row, schema, viewer)
-
-
-def to_product_reads[ReadSchemaT: BaseModel](
-    rows: list[Product], schema: type[ReadSchemaT], viewer: User | None
-) -> list[ReadSchemaT]:
-    """Validate multiple product rows with viewer-aware owner redaction."""
-    return [to_product_read(row, schema, viewer) for row in rows]
-
-
-def to_component_read[ReadSchemaT: BaseModel](
-    row: Product, schema: type[ReadSchemaT], viewer: User | None
-) -> ReadSchemaT:
-    """Validate a component row with viewer-aware owner redaction."""
-    return to_read_model(row, schema, viewer)
-
-
-def to_component_reads[ReadSchemaT: BaseModel](
-    rows: list[Product], schema: type[ReadSchemaT], viewer: User | None
-) -> list[ReadSchemaT]:
-    """Validate multiple component rows with viewer-aware owner redaction."""
-    return [to_component_read(row, schema, viewer) for row in rows]
-
-
 def _promote_to_recursive(
     validated: ComponentRead, components: list[ComponentReadWithRecursiveComponents]
 ) -> ComponentReadWithRecursiveComponents:
@@ -102,7 +71,7 @@ def render_component_subtree(
     visited = (visited or frozenset()) | {node.id}
     return [
         _promote_to_recursive(
-            to_component_read(child, ComponentRead, viewer),
+            to_read_model(child, ComponentRead, viewer),
             render_component_subtree(
                 child,
                 children_by_parent_id=children_by_parent_id,
@@ -128,7 +97,7 @@ def render_component_tree(
     """Serialize component roots and their bounded descendants."""
     return [
         _promote_to_recursive(
-            to_component_read(root, ComponentRead, viewer),
+            to_read_model(root, ComponentRead, viewer),
             render_component_subtree(
                 root,
                 children_by_parent_id=children_by_parent_id,

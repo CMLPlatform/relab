@@ -13,7 +13,6 @@ from app.api.common.sa_typing import column_expr
 from app.api.common.search_utils import build_text_search_clause
 from app.api.common.validation import normalize_bounded_query_text
 from app.api.data_collection.models.product import MaterialProductLink, Product
-from app.api.reference_data.filters import MaterialFilter, ProductTypeFilter
 from app.api.reference_data.models import Material, ProductType
 
 _TEXT_OPERATORS = [FilterOperator.ilike]
@@ -135,11 +134,9 @@ class ProductFilterWithRelationships(ProductFilter):
 
 
 __all__ = [
-    "MaterialFilter",
     "MaterialProductLinkFilter",
     "ProductFilter",
     "ProductFilterWithRelationships",
-    "ProductTypeFilter",
     "get_brand_search_statement",
     "get_model_search_statement",
     "get_product_facet_statement",

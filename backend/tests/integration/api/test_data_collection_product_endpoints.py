@@ -31,7 +31,6 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.api
 
-
 async def test_get_products(api_client: AsyncClient, db_session: AsyncSession, db_superuser: User) -> None:
     """GET /products returns the current product page."""
     product_type = ProductType(name="Power Tool", description="Handheld electric tools for construction and DIY")
@@ -51,7 +50,6 @@ async def test_get_products(api_client: AsyncClient, db_session: AsyncSession, d
     assert data["items"]
     assert data["items"][0]["name"] == PRODUCT_BASE_NAME
 
-
 async def test_get_product_components_tree_includes_nested_components(
     api_client: AsyncClient,
     setup_product_graph: ProductGraph,
@@ -62,7 +60,6 @@ async def test_get_product_components_tree_includes_nested_components(
     assert response.status_code == status.HTTP_200_OK
     assert [component["id"] for component in response.json()] == [setup_product_graph.component.id]
 
-
 async def test_get_product_by_id(api_client: AsyncClient, setup_product: Product) -> None:
     """GET /products/{id} returns the requested product."""
     response = await api_client.get(f"/v1/products/{setup_product.id}")
@@ -71,7 +68,6 @@ async def test_get_product_by_id(api_client: AsyncClient, setup_product: Product
     data = response.json()
     assert data["id"] == setup_product.id
     assert data["name"] == PRODUCT_BASE_NAME
-
 
 async def test_get_product_by_id_supports_conditional_get(api_client: AsyncClient, setup_product: Product) -> None:
     """GET /products/{id} returns 304 when the entity tag matches."""
@@ -85,7 +81,6 @@ async def test_get_product_by_id_supports_conditional_get(api_client: AsyncClien
     )
 
     assert second_response.status_code == status.HTTP_304_NOT_MODIFIED
-
 
 async def test_create_product(api_client_superuser: AsyncClient, db_session: AsyncSession) -> None:
     """POST /products creates a new product."""
@@ -111,7 +106,6 @@ async def test_create_product(api_client_superuser: AsyncClient, db_session: Asy
     assert data["circularity_properties"]["recyclability"] == RECYCLABILITY_GOOD
     assert "id" in data
 
-
 async def test_create_product_normalizes_empty_circularity_properties(
     api_client_superuser: AsyncClient,
     db_session: AsyncSession,
@@ -131,7 +125,6 @@ async def test_create_product_normalizes_empty_circularity_properties(
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json()["circularity_properties"] is None
 
-
 async def test_update_product(api_client_superuser: AsyncClient, setup_product: Product) -> None:
     """PATCH /products/{id} updates a product."""
     response = await api_client_superuser.patch(f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})
@@ -139,13 +132,11 @@ async def test_update_product(api_client_superuser: AsyncClient, setup_product: 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["name"] == UPDATED_PRODUCT_NAME
 
-
 async def test_delete_product(api_client_superuser: AsyncClient, setup_product: Product) -> None:
     """DELETE /products/{id} removes the product."""
     response = await api_client_superuser.delete(f"/v1/products/{setup_product.id}")
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
-
 
 async def test_non_owner_cannot_update_product(api_client_user: AsyncClient, setup_product: Product) -> None:
     """PATCH /products/{id} hides products owned by another user."""
@@ -153,13 +144,11 @@ async def test_non_owner_cannot_update_product(api_client_user: AsyncClient, set
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
-
 async def test_non_owner_cannot_delete_product(api_client_user: AsyncClient, setup_product: Product) -> None:
     """DELETE /products/{id} hides products owned by another user."""
     response = await api_client_user.delete(f"/v1/products/{setup_product.id}")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-
 
 async def test_product_media_reads_are_public(api_client: AsyncClient, setup_product: Product) -> None:
     """Base-product media reads should not require ownership."""
@@ -169,14 +158,12 @@ async def test_product_media_reads_are_public(api_client: AsyncClient, setup_pro
     assert files_response.status_code == status.HTTP_200_OK
     assert images_response.status_code == status.HTTP_200_OK
 
-
 async def test_current_user_products_filter(api_client_superuser: AsyncClient, db_superuser: User) -> None:
     """GET /v1/products?owner=me returns the authenticated user's products."""
     del db_superuser
     response = await api_client_superuser.get("/v1/products?owner=me")
 
     assert response.status_code == status.HTTP_200_OK
-
 
 async def test_product_materials_reject_component_ids(
     api_client_superuser: AsyncClient,
@@ -186,7 +173,6 @@ async def test_product_materials_reject_component_ids(
     response = await api_client_superuser.get(f"/v1/products/{setup_product_graph.component.id}/materials")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-
 
 async def test_product_videos_reject_component_ids(
     api_client_superuser: AsyncClient,

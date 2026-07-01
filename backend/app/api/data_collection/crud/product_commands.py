@@ -4,13 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import select
-
-from app.api.auth.services.profile_stats import refresh_profile_stats_after_mutation
 from app.api.common.audit import AuditAction, audit_event
-from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.query import require_locked_model, require_model, require_models
+from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
 from app.api.data_collection.crud.storage import cleanup_product_media_storage, delete_product_media
 from app.api.data_collection.exceptions import ProductOwnerRequiredError
 from app.api.data_collection.models.product import MaterialProductLink, Product
@@ -22,20 +19,6 @@ from app.api.reference_data.models import Material, ProductType
 if TYPE_CHECKING:
     from pydantic import UUID4
     from sqlalchemy.ext.asyncio import AsyncSession
-
-
-def product_payload(
-    product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
-) -> dict[str, Any]:
-    """Return the shared payload used to create a product or component."""
-    return product_data.model_dump(
-        exclude={
-            "components",
-            "owner_id",
-            "videos",
-            "bill_of_materials",
-        }
-    )
 
 
 async def create_product_record(
@@ -51,7 +34,7 @@ async def create_product_record(
     base product's owner (their caller passes ``parent_product.owner_id``).
     """
     db_product = Product(
-        **product_payload(product_data),
+        **product_data.model_dump(exclude={"components", "owner_id", "videos", "bill_of_materials"}),
         owner_id=owner_id,
         parent=parent_product,
     )
@@ -65,16 +48,10 @@ def create_product_videos(
     product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
     db_product: Product,
 ) -> None:
-    """Create video rows linked to the product."""
     if not isinstance(product_data, ProductCreateWithComponents) or not product_data.videos:
         return
-
-    videos: list[Video] = db_product.videos if db_product.videos is not None else []
-    db_product.videos = videos
-    for video in product_data.videos:
-        db_video = Video(**video.model_dump())
-        videos.append(db_video)
-        db.add(db_video)
+    db_product.videos = [Video(**v.model_dump()) for v in product_data.videos]
+    db.add_all(db_product.videos)
 
 
 async def create_product_bill_of_materials(
@@ -165,22 +142,9 @@ async def create_product(
     """Create a new product in the database."""
     db_product = await create_and_persist_product_tree(db, product, owner_id=owner_id)
     if owner_id:
-        await refresh_profile_stats_after_mutation(db, owner_id)
+        await recompute_user_profile_stats(db, owner_id)
         await db.commit()
     return db_product
-
-
-async def get_owned_component(db: AsyncSession, *, parent_product_id: int, component_id: int) -> Product:
-    """Load a component only when it belongs to the requested parent product."""
-    component = await db.scalar(
-        select(Product).where(
-            Product.id == component_id,
-            Product.parent_id == parent_product_id,
-        )
-    )
-    if component is None:
-        raise DependentModelOwnershipError(Product, component_id, Product, parent_product_id)
-    return component
 
 
 async def validate_product_type(db: AsyncSession, product_type_id: int | None) -> None:
@@ -204,7 +168,7 @@ async def update_product(db: AsyncSession, product_id: int, product: ProductUpda
 
     res = await commit_and_refresh(db, db_product)
     if db_product.owner_id is not None:
-        await refresh_profile_stats_after_mutation(db, db_product.owner_id)
+        await recompute_user_profile_stats(db, db_product.owner_id)
         await db.commit()
     return res
 
@@ -219,7 +183,7 @@ async def delete_product(db: AsyncSession, product_id: int) -> None:
     if owner_id is not None:
         await db.flush()
         await recompute_user_upload_quota(db, user_id=owner_id)
-        await refresh_profile_stats_after_mutation(db, owner_id)
+        await recompute_user_profile_stats(db, owner_id)
     await db.commit()
     audit_event(owner_id, AuditAction.DELETE, Product, product_id)
     await cleanup_product_media_storage(storage_cleanups)
