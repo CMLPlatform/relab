@@ -6,8 +6,8 @@ const SRC_ROOT = path.resolve(__dirname, '..');
 const ASSET_THEME_IMPORT_PATTERN = /@\/assets\/themes\/(light|dark)/;
 const HARD_CODED_COLOR_PATTERN = /#[0-9A-Fa-f]{3,8}|rgba\(/;
 const MODERNIZED_FILES = [
-  'lib/router/styles.ts',
-  'lib/router/background.ts',
+  'utils/router/styles.ts',
+  'utils/router/background.ts',
   'components/auth/LoginSections.tsx',
   'components/auth/NewAccountSections.tsx',
   'components/cameras/CameraCard.tsx',

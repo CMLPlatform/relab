@@ -92,7 +92,7 @@ Styling in `app` follows a single-theme setup built on React Native Paper MD3.
 - Prefer semantic tokens like `theme.tokens.status.live`, `theme.tokens.text.muted`, and `theme.tokens.surface.accent` over raw hex or `rgba(...)` literals
 - Keep static layout in `StyleSheet.create()`
 - For theme-dependent styles, use small colocated factories like `createStyles(theme)`
-- Keep `src/app/` route-only; router helpers belong under `src/lib/router/`
+- Keep `src/app/` route-only; router helpers belong under `src/utils/router/`
 
 In practice, that means:
 

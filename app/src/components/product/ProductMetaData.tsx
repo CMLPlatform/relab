@@ -2,9 +2,9 @@ import { Link } from 'expo-router';
 import { View } from 'react-native';
 import { Text } from '@/components/base/Text';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
-import { getProfileHref } from '@/lib/router/profiles';
 import { useAppTheme } from '@/theme';
 import { entityLabel, entityLabelTitle, type Product } from '@/types/Product';
+import { getProfileHref } from '@/utils/router/profiles';
 
 interface Props {
   product: Product;

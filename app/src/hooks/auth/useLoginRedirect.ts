@@ -1,8 +1,8 @@
 import type { Href, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import type { useAuth } from '@/context/auth';
-import { needsUsernameOnboarding } from '@/lib/router/onboarding';
 import type { User } from '@/types/User';
+import { needsUsernameOnboarding } from '@/utils/router/onboarding';
 
 export type SafeRedirectTarget = Extract<Href, string>;
 

@@ -24,8 +24,8 @@ src/
 ├── services/         # Backend integration: api/, media/, storage, domain stores.
 ├── context/          # React context providers (auth session, theme, etc.).
 ├── types/            # Hand-written types + api.generated.ts (do not edit).
-├── constants/        # Static values (routes, colors, env-derived constants).
-├── utils/            # Pure helpers, no React.
+├── constants.ts      # Static values (routes, colors, env-derived constants).
+├── utils/            # Framework-agnostic helpers, incl. router/ (Expo Router glue).
 ├── test-utils/       # Shared test fixtures, MSW handlers, render helpers.
 ├── assets/           # Fonts, images, icons.
 └── public/           # Files copied verbatim into the web export.

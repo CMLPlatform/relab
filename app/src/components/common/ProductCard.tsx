@@ -6,9 +6,9 @@ import { Card, Icon } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
 import { Text } from '@/components/base/Text';
 import ImagePlaceholder from '@/components/common/ImagePlaceholder';
-import { getProfileHref } from '@/lib/router/profiles';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
+import { getProfileHref } from '@/utils/router/profiles';
 
 const rtf = new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' });
 

@@ -3,9 +3,9 @@ import { useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
 import { Text } from '@/components/base/Text';
 import { useAuth } from '@/context/auth';
-import { needsUsernameOnboarding } from '@/lib/router/onboarding';
-import { createHeaderRightPillStyles } from '@/lib/router/styles';
 import { useAppTheme } from '@/theme';
+import { needsUsernameOnboarding } from '@/utils/router/onboarding';
+import { createHeaderRightPillStyles } from '@/utils/router/styles';
 
 function truncateUsername(username: string) {
   return username.length > 16 ? `${username.slice(0, 14)}…` : username;

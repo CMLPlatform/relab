@@ -16,11 +16,11 @@ import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
-import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/lib/router/background';
-import { HeaderRightPill } from '@/lib/router/HeaderRightPill';
-import { getUsernameOnboardingRedirect } from '@/lib/router/onboarding';
-import { getProductsHeaderStyle } from '@/lib/router/styles';
 import { createNavigationThemes, getAppTheme } from '@/theme';
+import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/utils/router/background';
+import { HeaderRightPill } from '@/utils/router/HeaderRightPill';
+import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
+import { getProductsHeaderStyle } from '@/utils/router/styles';
 
 ensureWebAnimatedPatch();
 const queryClient = new QueryClient({

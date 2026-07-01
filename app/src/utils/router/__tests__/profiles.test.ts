@@ -1,4 +1,4 @@
-import { getProfileHref } from '@/lib/router/profiles';
+import { getProfileHref } from '@/utils/router/profiles';
 
 describe('profile routes', () => {
   it('builds encoded public profile hrefs', () => {
