@@ -57,7 +57,7 @@ If you want to go deeper:
 
 Infrastructure is orchestrated with Docker Compose from the repo root.
 
-Shared brand assets live in `assets/brand/` and are synced into the consumer
+Shared brand assets live in `assets/` and are synced into the consumer
 subrepos with `just assets-sync`.
 
 Configuration has five homes: committed public prod/staging identity in

@@ -128,7 +128,7 @@ repos:
         name: brand-assets-check
         entry: just assets-check
         language: system
-        files: ^(?:assets/brand/.*|scripts/sync_brand_assets\.py|justfile|docs/src/styles/brand\.css|www/src/styles/brand\.css|app/src/assets/images/(?:bg-(?:light|dark)\.jpg|favicon\.png)|docs/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|bg-(?:light|dark)\.jpg|favicon\.(?:ico|svg)|logo\.svg))|www/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|bg-(?:light|dark)\.jpg|favicon\.(?:ico|svg)|logo\.(?:png|svg)))|backend/app/static/favicon\.ico)$
+        files: ^(?:assets/.*|scripts/sync_brand_assets\.py|justfile|docs/src/styles/brand\.css|www/src/styles/brand\.css|app/src/assets/images/(?:bg-(?:light|dark)\.jpg|favicon\.png)|docs/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|bg-(?:light|dark)\.jpg|favicon\.(?:ico|svg)|logo\.svg))|www/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|bg-(?:light|dark)\.jpg|favicon\.(?:ico|svg)|logo\.(?:png|svg)))|backend/app/static/favicon\.ico)$
         pass_filenames: false
       - id: backend-openapi-check
         name: backend-openapi-check

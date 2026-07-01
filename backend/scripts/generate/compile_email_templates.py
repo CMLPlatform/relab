@@ -53,7 +53,7 @@ def load_brand_tokens() -> dict[str, str]:
 
 
 def expand_brand_tokens(mjml_content: str, brand_tokens: dict[str, str]) -> str:
-    """Expand {{brand:--token}} directives from assets/brand/brand.css."""
+    """Expand {{brand:--token}} directives from assets/brand.css."""
 
     def replace_token(match: re.Match[str]) -> str:
         token_name = match.group(1)

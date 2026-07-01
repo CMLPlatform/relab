@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONVERT = "convert"
-LOGO_SOURCE = ROOT / "assets/brand/logo.svg"
+LOGO_SOURCE = ROOT / "assets/logo.svg"
 
 
 def root_path(path: str) -> Path:
@@ -27,14 +27,14 @@ WEB_FONT_FILES = (
 
 COPY_ASSETS = (
     (
-        root_path("assets/brand/brand.css"),
+        root_path("assets/brand.css"),
         (
             root_path("docs/src/styles/brand.css"),
             root_path("www/src/styles/brand.css"),
         ),
     ),
     (
-        root_path("assets/brand/images/bg-light.jpg"),
+        root_path("assets/images/bg-light.jpg"),
         (
             root_path("app/src/assets/images/bg-light.jpg"),
             root_path("docs/public/images/bg-light.jpg"),
@@ -42,7 +42,7 @@ COPY_ASSETS = (
         ),
     ),
     (
-        root_path("assets/brand/images/bg-dark.jpg"),
+        root_path("assets/images/bg-dark.jpg"),
         (
             root_path("app/src/assets/images/bg-dark.jpg"),
             root_path("docs/public/images/bg-dark.jpg"),
@@ -60,7 +60,7 @@ COPY_ASSETS = (
     ),
     *(
         (
-            root_path(f"assets/brand/fonts/{font_file}"),
+            root_path(f"assets/fonts/{font_file}"),
             (
                 root_path(f"docs/public/fonts/{font_file}"),
                 root_path(f"www/public/fonts/{font_file}"),
