@@ -4,7 +4,7 @@ import { render } from '@testing-library/react-native';
 import type React from 'react';
 import { PaperProvider } from 'react-native-paper';
 import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
-import { DialogProvider } from '@/components/common/DialogProvider';
+import { DialogProvider } from '@/components/base/DialogProvider';
 import { AuthProvider } from '@/context/AuthProvider';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
@@ -46,7 +46,7 @@ export function renderWithProviders(
   });
 
   // withThemeMode requires auth since ThemeModeProvider calls useAuth()
-  const needsAuth = withAuth ? true : withThemeMode;
+  const needsAuth = withAuth || withThemeMode;
   const safeAreaMetrics = initialWindowMetrics ?? {
     frame: { x: 0, y: 0, width: 320, height: 640 },
     insets: { top: 0, right: 0, bottom: 0, left: 0 },

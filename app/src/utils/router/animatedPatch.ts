@@ -2,60 +2,30 @@ import { Animated, Platform } from 'react-native';
 
 let animatedPatchApplied = false;
 
-function patchAnimatedTiming() {
-  const originalTiming = Animated.timing;
-  Object.defineProperty(Animated, 'timing', {
-    value: (
-      value: Parameters<typeof Animated.timing>[0],
-      config: Parameters<typeof Animated.timing>[1],
-    ) => originalTiming(value, { ...config, useNativeDriver: false }),
-    writable: true,
-    configurable: true,
-  });
-}
-
-function patchAnimatedSpring() {
-  const originalSpring = Animated.spring;
-  Object.defineProperty(Animated, 'spring', {
-    value: (
-      value: Parameters<typeof Animated.spring>[0],
-      config: Parameters<typeof Animated.spring>[1],
-    ) => originalSpring(value, { ...config, useNativeDriver: false }),
-    writable: true,
-    configurable: true,
-  });
-}
-
-function patchAnimatedDecay() {
-  const originalDecay = Animated.decay;
-  Object.defineProperty(Animated, 'decay', {
-    value: (
-      value: Parameters<typeof Animated.decay>[0],
-      config: Parameters<typeof Animated.decay>[1],
-    ) => originalDecay(value, { ...config, useNativeDriver: false }),
-    writable: true,
-    configurable: true,
-  });
-}
-
-function patchAnimatedEvent() {
-  const originalEvent = Animated.event;
-  Object.defineProperty(Animated, 'event', {
-    value: (...args: Parameters<typeof originalEvent>) => {
-      const [argMapping, config] = args;
-      return originalEvent(argMapping, { ...config, useNativeDriver: false });
-    },
-    writable: true,
-    configurable: true,
-  });
-}
+// ponytail: web has no native driver; force useNativeDriver:false on each Animated entry point.
+const VALUE_CONFIG_METHODS = ['timing', 'spring', 'decay'] as const;
 
 export function ensureWebAnimatedPatch() {
   if (Platform.OS !== 'web' || animatedPatchApplied) return;
 
-  patchAnimatedTiming();
-  patchAnimatedSpring();
-  patchAnimatedDecay();
-  patchAnimatedEvent();
+  for (const name of VALUE_CONFIG_METHODS) {
+    const original = Animated[name] as (value: unknown, config: object) => unknown;
+    Object.defineProperty(Animated, name, {
+      value: (value: unknown, config: object) =>
+        original(value, { ...config, useNativeDriver: false }),
+      writable: true,
+      configurable: true,
+    });
+  }
+
+  // `event` takes (argMapping, config) rather than (value, config), so patch it separately.
+  const originalEvent = Animated.event;
+  Object.defineProperty(Animated, 'event', {
+    value: (...args: Parameters<typeof originalEvent>) =>
+      originalEvent(args[0], { ...args[1], useNativeDriver: false }),
+    writable: true,
+    configurable: true,
+  });
+
   animatedPatchApplied = true;
 }

@@ -15,8 +15,9 @@ export function getUsernameOnboardingRedirect({
 }): '/onboarding' | '/products' | null {
   if (!user) return null;
 
-  const isOnboardingPath = pathname === '/onboarding' || pathname.endsWith('/onboarding');
-  if (needsUsernameOnboarding(user) && !isOnboardingPath) return '/onboarding';
-  if (!needsUsernameOnboarding(user) && isOnboardingPath) return '/products';
+  const isOnboardingPath = pathname.endsWith('/onboarding');
+  const needsOnboarding = needsUsernameOnboarding(user);
+  if (needsOnboarding && !isOnboardingPath) return '/onboarding';
+  if (!needsOnboarding && isOnboardingPath) return '/products';
   return null;
 }
