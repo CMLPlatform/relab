@@ -35,6 +35,7 @@ module.exports = {
   rootDir: __dirname,
   testTimeout: 15_000,
   watchman: false,
+  coverageProvider: 'v8',
   coverageDirectory: 'coverage',
   coverageReporters: ['json', 'lcov', 'text', 'clover', 'cobertura'],
   collectCoverageFrom: [
