@@ -3,7 +3,18 @@ import { Platform, View } from 'react-native';
 import { AnimatedFAB, Button, Text } from 'react-native-paper';
 import { useAppTheme } from '@/theme';
 import { productsScreenStyles as styles } from './shared';
-import type { ProductsErrorBannerProps, ProductsFabProps } from './types';
+
+type ProductsErrorBannerProps = {
+  error: unknown;
+  onRetry: () => void;
+};
+
+type ProductsFabProps = {
+  extended: boolean;
+  isAuthenticated: boolean;
+  highlight: boolean;
+  onPress: () => void;
+};
 
 export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps) {
   const theme = useAppTheme();

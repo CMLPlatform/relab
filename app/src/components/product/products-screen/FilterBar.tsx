@@ -1,8 +1,40 @@
+import type { ComponentProps } from 'react';
 import { ScrollView } from 'react-native';
 import { Chip, Menu } from 'react-native-paper';
 import FilterSelectionModal from '@/components/base/FilterSelectionModal';
+import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { PRODUCTS_DATE_PRESETS, productsScreenStyles as styles } from './shared';
-import type { ProductsFilterBarProps } from './types';
+
+type SelectionModalProps = ComponentProps<typeof FilterSelectionModal>;
+
+type ProductsFilterBarProps = {
+  isAuthenticated: boolean;
+  filterMode: ProductFilter;
+  activeDatePreset: number | null;
+  activeBrands: string[];
+  activeProductTypes: string[];
+  dateMenuVisible: boolean;
+  brandModalVisible: boolean;
+  typeModalVisible: boolean;
+  brandResults?: SelectionModalProps['items'];
+  brandsLoading: boolean;
+  typeResults?: SelectionModalProps['items'];
+  typesLoading: boolean;
+  brandSearch: string;
+  typeSearch: string;
+  onToggleMine: () => void;
+  onClearMine: () => void;
+  onSetDateMenuVisible: (visible: boolean) => void;
+  onDateChange: (days?: string) => void;
+  onSetBrandModalVisible: (visible: boolean) => void;
+  onBrandSelectionChange: (values: string[]) => void;
+  onSetBrandSearch: (value: string) => void;
+  onClearBrands: () => void;
+  onSetTypeModalVisible: (visible: boolean) => void;
+  onTypeSelectionChange: (values: string[]) => void;
+  onSetTypeSearch: (value: string) => void;
+  onClearTypes: () => void;
+};
 
 export function ProductsFilterBar({
   isAuthenticated,

@@ -1,17 +1,51 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useMemo } from 'react';
-import { type DimensionValue, FlatList, RefreshControl, View } from 'react-native';
+import {
+  type DimensionValue,
+  FlatList,
+  type FlatListProps,
+  RefreshControl,
+  View,
+} from 'react-native';
 import { ActivityIndicator, Button, Card, Text } from 'react-native-paper';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
+import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { useAppTheme } from '@/theme';
+import type { Product } from '@/types/Product';
 import { NewProductPill } from './InlinePills';
 import { PAGE_SIZE, productsScreenStyles as styles } from './shared';
-import type {
-  PaginationControlsProps,
-  ProductsHeaderFadeProps,
-  ProductsListContentProps,
-} from './types';
+
+type PaginationControlsProps = {
+  page: number;
+  totalPages: number;
+  total: number;
+  isFetching: boolean;
+  setPage: (page: number) => void;
+};
+
+type ProductsHeaderFadeProps = {
+  headerBottom: number;
+  overlayColor: string;
+};
+
+type ProductsListContentProps = {
+  numColumns: number;
+  productList: Product[];
+  filterMode: ProductFilter;
+  isFetching: boolean;
+  isLoading: boolean;
+  slowLoading: boolean;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+  effectivePage: number;
+  searchQuery: string;
+  isAuthenticated: boolean;
+  onScroll: FlatListProps<Product>['onScroll'];
+  onRefresh: () => void;
+  onSetPage: (page: number) => void;
+};
 
 function PaginationControls({
   page,

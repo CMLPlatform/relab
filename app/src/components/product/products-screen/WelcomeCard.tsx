@@ -4,7 +4,19 @@ import { Button, Card, Text } from 'react-native-paper';
 import { useAppTheme } from '@/theme';
 import { NewProductPill, ProfilePill } from './InlinePills';
 import { productsScreenStyles as styles } from './shared';
-import type { ProductsWelcomeCardProps } from './types';
+
+type CurrentUser = {
+  isVerified?: boolean;
+};
+
+type ProductsWelcomeCardProps = {
+  isAuthenticated: boolean;
+  currentUser?: CurrentUser | null;
+  visible: boolean | null;
+  onDismiss: () => void;
+  onSignIn: () => void;
+  onGoToProfile: () => void;
+};
 
 export function ProductsWelcomeCard({
   isAuthenticated,

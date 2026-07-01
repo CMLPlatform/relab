@@ -1,7 +1,25 @@
 import { View } from 'react-native';
 import { IconButton, Menu, Searchbar } from 'react-native-paper';
 import { productsScreenStyles as styles } from './shared';
-import type { ProductsSearchToolbarProps } from './types';
+
+type SortOption = {
+  label: string;
+  value: readonly string[];
+};
+
+type ProductsSearchToolbarProps = {
+  searchQuery: string;
+  debouncedSearchQuery: string;
+  isFetching: boolean;
+  searchQueryURL: string;
+  sortBy: string[];
+  sortOptions: readonly SortOption[];
+  sortMenuVisible: boolean;
+  onSearchChange: (value: string) => void;
+  onClearSearch: () => void;
+  onSetSortMenuVisible: (visible: boolean) => void;
+  onSortChange: (sort: readonly string[]) => void;
+};
 
 export function ProductsSearchToolbar({
   searchQuery,
