@@ -5,13 +5,9 @@
 import argparse
 import logging
 import sys
-from pathlib import Path
+from functools import partial
 
 from anyio import run
-
-# Add project root to sys.path to allow imports from app
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from functools import partial
 
 from app.api.file_storage.services.cleanup import cleanup_unreferenced_files
 from app.core.config import Environment, settings

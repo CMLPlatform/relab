@@ -64,10 +64,11 @@ _FRAME_READ_ERR = "Failed to read frame from webcam"
 
 
 class _CameraState:
-    """Mutable container for the shared webcam handle, avoiding module-level globals."""
+    """Mutable container for shared webcam state, avoiding module-level globals."""
 
     camera: cv2.VideoCapture | None = None
     lock = threading.Lock()
+    ws_captured_images: dict[str, bytes] = {}
 
 
 def _ensure_camera() -> cv2.VideoCapture:
@@ -162,9 +163,6 @@ def run_http(port: int, host: str = "127.0.0.1") -> None:
 # WebSocket mode — connects outbound to the backend relay
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_ws_captured_images: dict[str, bytes] = {}
-
-
 def run_websocket(backend_url: str, camera_id: str, api_key: str) -> None:
     """Start the WebSocket fake camera client."""
     asyncio.run(_ws_main(backend_url, camera_id, api_key))
@@ -236,7 +234,7 @@ async def _handle_command(ws: websockets.ClientConnection, msg_id: str, method: 
     if method == _METHOD_POST and path == _PATH_IMAGES:
         jpeg = await loop.run_in_executor(None, lambda: grab_frame(quality=92))
         image_id = str(uuid.uuid4())
-        _ws_captured_images[image_id] = jpeg
+        _CameraState.ws_captured_images[image_id] = jpeg
         logger.info("Captured image %s (%d bytes)", image_id[:8], len(jpeg))
         await ws.send(
             json.dumps(
@@ -259,7 +257,7 @@ async def _handle_command(ws: websockets.ClientConnection, msg_id: str, method: 
 
     elif method == _METHOD_GET and path.startswith(_PATH_IMAGES_PREFIX):
         image_id = path.split(_PATH_IMAGES_PREFIX, 1)[1]
-        jpeg = _ws_captured_images.pop(image_id, None)
+        jpeg = _CameraState.ws_captured_images.pop(image_id, None)
         if jpeg is None:
             jpeg = await loop.run_in_executor(None, lambda: grab_frame(quality=92))
         await ws.send(

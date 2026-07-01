@@ -119,13 +119,11 @@ just perf-baseline
 
 ## Recording Results
 
-`just perf-baseline` writes a raw `k6` summary export to `reports/performance/latest-k6-summary.json`.
+`just perf-baseline` writes a raw `k6` summary export to `reports/performance/latest-k6-summary.json` (gitignored — local only).
 
-After a meaningful run, save a short dated markdown summary in `reports/performance/` so the numbers are easy to review in PRs.
+To recalibrate thresholds, run the `Performance Baseline` workflow with `workflow_dispatch`, download the `backend-perf-baseline-artifacts` artifact, then use the maintainer-only perf helpers in `backend/justfile` to refresh thresholds in `perf/k6-baseline.js`. Commit the updated thresholds. Include key numbers in the PR description rather than committing dated report files.
 
-To recalibrate thresholds, run the `Performance Baseline` workflow with `workflow_dispatch`, download the `backend-perf-baseline-artifacts` artifact, replace `reports/performance/latest-k6-summary.json` with the artifact copy, then use the maintainer-only perf helpers in `backend/justfile` to write a dated report and refresh thresholds in `perf/k6-baseline.js`. Commit the dated report and updated thresholds together.
-
-Report writing and threshold refresh are maintenance operations, not routine commands. They are available as hidden backend `just` recipes to keep the public task surface small.
+Threshold refresh is a maintenance operation, not a routine command. The helper recipes are hidden in `backend/justfile` to keep the public task surface small.
 
 ## Measurement Scope
 

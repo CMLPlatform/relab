@@ -15,65 +15,62 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
+def test_normalize_domains_deduplicates_and_sorts() -> None:
+    """Normalization should strip, lowercase, deduplicate, and sort entries."""
+    raw_text = "Temp-Mail.org\nmailinator.com\n# comment\nTEMP-mail.org\n\n"
 
-class TestRefreshDisposableEmailDomainsScript:
-    """Verify disposable-domain refresh behavior."""
+    domains = refresh_script._normalize_domains(raw_text)
 
-    def test_normalize_domains_deduplicates_and_sorts(self) -> None:
-        """Normalization should strip, lowercase, deduplicate, and sort entries."""
-        raw_text = "Temp-Mail.org\nmailinator.com\n# comment\nTEMP-mail.org\n\n"
+    assert domains == ["mailinator.com", "temp-mail.org"]
 
-        domains = refresh_script._normalize_domains(raw_text)
+def test_validate_rendered_size_warns_before_hard_limit(mocker: MockerFixture) -> None:
+    """Large but allowed files should emit a warning."""
+    warning_mock = mocker.patch.object(refresh_script.logger, "warning")
+    content = "a" * (refresh_script._WARN_FILE_SIZE_BYTES + 1)
 
-        assert domains == ["mailinator.com", "temp-mail.org"]
+    refresh_script._validate_rendered_size(content)
 
-    def test_validate_rendered_size_warns_before_hard_limit(self, mocker: MockerFixture) -> None:
-        """Large but allowed files should emit a warning."""
-        warning_mock = mocker.patch.object(refresh_script.logger, "warning")
-        content = "a" * (refresh_script._WARN_FILE_SIZE_BYTES + 1)
+    warning_mock.assert_called_once()
 
+def test_validate_rendered_size_raises_above_hard_limit() -> None:
+    """Oversized files should fail fast."""
+    content = "a" * (refresh_script._MAX_FILE_SIZE_BYTES + 1)
+
+    with pytest.raises(ValueError, match="hard limit"):
         refresh_script._validate_rendered_size(content)
 
-        warning_mock.assert_called_once()
+async def test_refresh_disposable_domains_writes_rendered_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
+) -> None:
+    """Refreshing should download, normalize, and write the fallback file."""
+    output_path = tmp_path / "auth" / "domains.txt"
+    mock_response = mocker.Mock()
+    mock_response.text = "Temp-Mail.org\nmailinator.com\nTEMP-mail.org\n"
+    mock_response.raise_for_status.return_value = None
 
-    def test_validate_rendered_size_raises_above_hard_limit(self) -> None:
-        """Oversized files should fail fast."""
-        content = "a" * (refresh_script._MAX_FILE_SIZE_BYTES + 1)
+    client_mock = mocker.AsyncMock()
+    client_mock.get.return_value = mock_response
+    client_mock.__aenter__.return_value = client_mock
+    client_mock.__aexit__.return_value = None
 
-        with pytest.raises(ValueError, match="hard limit"):
-            refresh_script._validate_rendered_size(content)
+    monkeypatch.setattr(refresh_script.httpx, "AsyncClient", mocker.Mock(return_value=client_mock))
+    to_thread_mock = mocker.patch.object(
+        refresh_script.asyncio,
+        "to_thread",
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
+    )
 
-    async def test_refresh_disposable_domains_writes_rendered_file(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
-    ) -> None:
-        """Refreshing should download, normalize, and write the fallback file."""
-        output_path = tmp_path / "auth" / "domains.txt"
-        mock_response = mocker.Mock()
-        mock_response.text = "Temp-Mail.org\nmailinator.com\nTEMP-mail.org\n"
-        mock_response.raise_for_status.return_value = None
+    exit_code = await refresh_script.refresh_disposable_domains(output_path)
 
-        client_mock = mocker.AsyncMock()
-        client_mock.get.return_value = mock_response
-        client_mock.__aenter__.return_value = client_mock
-        client_mock.__aexit__.return_value = None
+    assert exit_code == 0
+    to_thread_mock.assert_awaited_once()
+    assert output_path.exists()
+    assert output_path.read_text(encoding="utf-8") == (
+        "# Curated local fallback for disposable email validation.\n"
+        f"# Source: {refresh_script.DISPOSABLE_DOMAINS_URL}\n"
+        "# Refresh from upstream with: `just refresh-disposable-email-domains`\n"
+        "mailinator.com\n"
+        "temp-mail.org\n"
+    )
+    client_mock.get.assert_awaited_once_with(refresh_script.DISPOSABLE_DOMAINS_URL, timeout=20.0)
 
-        monkeypatch.setattr(refresh_script.httpx, "AsyncClient", mocker.Mock(return_value=client_mock))
-        to_thread_mock = mocker.patch.object(
-            refresh_script.asyncio,
-            "to_thread",
-            side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
-        )
-
-        exit_code = await refresh_script.refresh_disposable_domains(output_path)
-
-        assert exit_code == 0
-        to_thread_mock.assert_awaited_once()
-        assert output_path.exists()
-        assert output_path.read_text(encoding="utf-8") == (
-            "# Curated local fallback for disposable email validation.\n"
-            f"# Source: {refresh_script.DISPOSABLE_DOMAINS_URL}\n"
-            "# Refresh from upstream with: `just refresh-disposable-email-domains`\n"
-            "mailinator.com\n"
-            "temp-mail.org\n"
-        )
-        client_mock.get.assert_awaited_once_with(refresh_script.DISPOSABLE_DOMAINS_URL, timeout=20.0)
