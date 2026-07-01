@@ -11,8 +11,8 @@ import {
 import { ProductsSearchToolbar } from '@/components/product/products-screen/Toolbar';
 import { ProductsWelcomeCard } from '@/components/product/products-screen/WelcomeCard';
 import { useEffectiveColorScheme } from '@/context/themeMode';
-import { PRODUCT_SORT_OPTIONS } from '@/hooks/products/queries';
-import { useProductsScreen } from '@/hooks/products/useProductsScreen';
+import { PRODUCT_SORT_OPTIONS } from '@/features/products/queries';
+import { useProductsScreen } from '@/features/products/useProductsScreen';
 import { getAppTheme } from '@/theme';
 
 const SORT_OPTIONS = PRODUCT_SORT_OPTIONS;

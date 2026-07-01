@@ -24,13 +24,13 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/hooks/cameras/data/hooks', () => ({
+jest.mock('@/features/cameras/hooks', () => ({
   useCameraQuery: (...args: unknown[]) => mockUseCameraQuery(...args),
   useUpdateCameraMutation: () => mockUseUpdateCameraMutation(),
   useDeleteCameraMutation: () => mockUseDeleteCameraMutation(),
 }));
 
-jest.mock('@/hooks/cameras/useEffectiveCameraConnection', () => ({
+jest.mock('@/features/cameras/useEffectiveCameraConnection', () => ({
   useEffectiveCameraConnection: (...args: unknown[]) => mockUseEffectiveCameraConnection(...args),
 }));
 

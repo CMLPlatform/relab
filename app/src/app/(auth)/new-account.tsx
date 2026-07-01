@@ -4,7 +4,7 @@ import {
   NewAccountPasswordStep,
   NewAccountUsernameStep,
 } from '@/components/auth/NewAccountSections';
-import { useNewAccountScreen } from '@/hooks/auth/useNewAccountScreen';
+import { useNewAccountScreen } from '@/features/auth/useNewAccountScreen';
 
 export default function NewAccount() {
   const { ui, flow, form, actions } = useNewAccountScreen();

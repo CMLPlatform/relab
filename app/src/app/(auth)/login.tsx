@@ -6,7 +6,7 @@ import {
   LoginOAuthSection,
   LoginSecondaryAction,
 } from '@/components/auth/LoginSections';
-import { useLoginScreen } from '@/hooks/auth/useLoginScreen';
+import { useLoginScreen } from '@/features/auth/useLoginScreen';
 
 export default function Login() {
   const { ui, form, actions } = useLoginScreen();

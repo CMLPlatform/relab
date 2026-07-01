@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text } from 'react-native-paper';
 import { API_URL } from '@/config';
 import { useAuth } from '@/context/auth';
-import { useSensitiveAuthToken } from '@/hooks/auth/useSensitiveAuthToken';
+import { useSensitiveAuthToken } from '@/features/auth/useSensitiveAuthToken';
 import { apiFetch } from '@/services/api/client';
 import { useAppTheme } from '@/theme';
 import { logError } from '@/utils/logging';

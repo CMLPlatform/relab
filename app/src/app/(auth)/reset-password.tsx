@@ -5,7 +5,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
 import { API_URL } from '@/config';
-import { useSensitiveAuthToken } from '@/hooks/auth/useSensitiveAuthToken';
+import { useSensitiveAuthToken } from '@/features/auth/useSensitiveAuthToken';
 import { apiFetch } from '@/services/api/client';
 import {
   type ResetPasswordFormValues,

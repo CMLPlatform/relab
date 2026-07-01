@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Dialog, Divider, Portal, Text, TextInput } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
 import { useAuth } from '@/context/auth';
-import { useClaimPairingMutation } from '@/hooks/cameras/data/hooks';
+import { useClaimPairingMutation } from '@/features/cameras/hooks';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { ApiError } from '@/services/api/rpiCamera/shared';
 import { useAppTheme } from '@/theme';
