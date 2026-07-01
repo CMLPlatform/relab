@@ -383,7 +383,7 @@ describe('Saving API Service', () => {
         images: [image],
       };
       mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetchOk({ id: 'abc-123', url: 'http://cdn.example.com/stored.jpg' }); // POST image
+      mockApiFetchOk({ id: 'abc-123', image_url: 'http://cdn.example.com/stored.jpg' }); // POST image
 
       await saveProduct(product, [], []);
 

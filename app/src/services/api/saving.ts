@@ -104,12 +104,15 @@ function toNewProductPayload(product: Product): NewProductPayload {
   };
 }
 
-function authHeaders(token: string | undefined): Record<string, string> {
+function acceptAuthHeaders(token: string | undefined): Record<string, string> {
   return {
-    'Content-Type': 'application/json',
     Accept: 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
+}
+
+function authHeaders(token: string | undefined): Record<string, string> {
+  return { 'Content-Type': 'application/json', ...acceptAuthHeaders(token) };
 }
 
 async function throwOnError(response: Response, label: string): Promise<void> {
@@ -213,7 +216,7 @@ async function updateProductImages(
 async function deleteImage(product: Product, image: { id: string }, token: string | undefined) {
   return await apiFetch(productImageUrl(product, image.id), {
     method: 'DELETE',
-    headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: acceptAuthHeaders(token),
   });
 }
 
@@ -232,10 +235,7 @@ async function addImage(
   token: string | undefined,
 ) {
   const url = productImagesUrl(product);
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+  const headers = acceptAuthHeaders(token);
   const body = new FormData();
 
   if (image.url.startsWith('data:')) {
@@ -281,9 +281,8 @@ async function addImage(
         // mutate the object in-place so callers see the updated id/url
         image.id = data.id;
       }
-      const newUrl = data.url || data.image_url || data.file_url || data.path || data.location;
-      if (newUrl) {
-        image.url = newUrl;
+      if (data.image_url) {
+        image.url = data.image_url;
       }
     } catch {
       // ignore mutation errors
@@ -339,10 +338,7 @@ async function updateProductVideos(
       .map((vid) =>
         apiFetch(new URL(`${baseUrl}/products/${product.id}/videos/${vid.id}`), {
           method: 'DELETE',
-          headers: {
-            Accept: 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers: acceptAuthHeaders(token),
         }),
       ),
     ...videosToUpdate
@@ -369,10 +365,8 @@ async function updateProductVideos(
 export async function deleteProduct(product: Product): Promise<void> {
   if (typeof product.id !== 'number') return; // Unsaved drafts: nothing to delete.
   const token = await getToken();
-  const headers = {
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-  await apiFetch(productRootUrl(product), { method: 'DELETE', headers });
-  return;
+  await apiFetch(productRootUrl(product), {
+    method: 'DELETE',
+    headers: acceptAuthHeaders(token),
+  });
 }
