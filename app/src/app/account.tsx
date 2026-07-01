@@ -4,17 +4,17 @@ import {
   ProfileAccountSection,
   ProfileDangerZoneSection,
   ProfileLinkedAccountsSection,
-} from '@/components/profile/sections/AccountSections';
-import { ProfileDialogs } from '@/components/profile/sections/Dialogs';
-import { ProfileHero, ProfileStatsSection } from '@/components/profile/sections/HeroStats';
-import { ProfileIntegrationsSection } from '@/components/profile/sections/Integrations';
+} from '@/components/profile/AccountSections';
+import { ProfileDialogs } from '@/components/profile/Dialogs';
+import { ProfileHero, ProfileStatsSection } from '@/components/profile/HeroStats';
+import { ProfileIntegrationsSection } from '@/components/profile/Integrations';
 import {
   ProfileAppearanceSection,
   ProfileEmailUpdatesSection,
   ProfileVisibilitySection,
-} from '@/components/profile/sections/Preferences';
-import { ProfileLayout } from '@/components/profile/sections/shared';
-import { useProfileScreen } from '@/hooks/profile/useProfileScreen';
+} from '@/components/profile/Preferences';
+import { ProfileLayout } from '@/components/profile/shared';
+import { useProfileScreen } from '@/features/profile/useProfileScreen';
 
 maybeCompleteAuthSession({ skipRedirectCheck: true });
 

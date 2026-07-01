@@ -39,11 +39,11 @@ jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(),
 }));
 
-jest.mock('@/hooks/cameras/useRpiIntegration', () => ({
+jest.mock('@/features/cameras/useRpiIntegration', () => ({
   useRpiIntegration: () => ({ enabled: false, loading: false, setEnabled: jest.fn() }),
 }));
 
-jest.mock('@/hooks/cameras/data/hooks', () => ({
+jest.mock('@/features/cameras/hooks', () => ({
   useStopYouTubeStreamMutation: () => ({
     mutate: (...args: unknown[]) => mockStopStreamMutate(...args),
     isPending: false,
@@ -59,7 +59,7 @@ jest.mock('@/services/api/profiles', () => ({
   getPublicProfile: jest.fn(),
 }));
 
-jest.mock('@/services/api/authentication', () => ({
+jest.mock('@/services/api/auth/authentication', () => ({
   getToken: jest.fn().mockResolvedValue('mock-token'),
   logout: mockLogout,
   unlinkOAuth: jest.fn().mockResolvedValue(undefined),
@@ -73,11 +73,11 @@ jest.mock('expo-web-browser', () => ({
 }));
 
 jest.mock('expo-linking', () => ({
-  createURL: jest.fn().mockReturnValue('relab-app://profile'),
+  createURL: jest.fn().mockReturnValue('relab-app://account'),
   openURL: jest.fn(),
 }));
 
-jest.mock('@/components/profile/sections/shared', () => {
+jest.mock('@/components/profile/shared', () => {
   const React = require('react');
   return {
     ProfileLayout: ({ children }: { children: React.ReactNode }) =>
@@ -85,7 +85,7 @@ jest.mock('@/components/profile/sections/shared', () => {
   };
 });
 
-jest.mock('@/components/profile/sections/HeroStats', () => {
+jest.mock('@/components/profile/HeroStats', () => {
   const React = require('react');
   const { Pressable, Text, View } = require('react-native');
 
@@ -131,7 +131,7 @@ jest.mock('@/components/profile/sections/HeroStats', () => {
   };
 });
 
-jest.mock('@/components/profile/sections/Preferences', () => {
+jest.mock('@/components/profile/Preferences', () => {
   const React = require('react');
   const { Pressable, Text, View } = require('react-native');
 
@@ -208,7 +208,7 @@ jest.mock('@/components/profile/sections/Preferences', () => {
   };
 });
 
-jest.mock('@/components/profile/sections/AccountSections', () => {
+jest.mock('@/components/profile/AccountSections', () => {
   const React = require('react');
   const { Pressable, Text, View } = require('react-native');
 
@@ -296,7 +296,7 @@ jest.mock('@/components/profile/sections/AccountSections', () => {
   };
 });
 
-jest.mock('@/components/profile/sections/Dialogs', () => {
+jest.mock('@/components/profile/Dialogs', () => {
   const React = require('react');
   const { Pressable, Text, TextInput, View } = require('react-native');
 
@@ -407,7 +407,7 @@ jest.mock('@/components/profile/sections/Dialogs', () => {
   };
 });
 
-jest.mock('@/components/profile/sections/Integrations', () => ({
+jest.mock('@/components/profile/Integrations', () => ({
   ProfileIntegrationsSection: () => null,
 }));
 
@@ -433,7 +433,7 @@ const defaultUser = {
 
 /** Render the profile tab and wait for all initial async effects to settle. */
 async function renderProfile() {
-  const ProfileTab = require('../profile.tsx').default;
+  const ProfileTab = require('../account.tsx').default;
   const result = render(<ProfileTab />, {
     wrapper: ({ children }) => <PaperProvider>{children}</PaperProvider>,
   });
@@ -499,7 +499,7 @@ describe('ProfileTab', () => {
 
     expect(mockRouterReplace).toHaveBeenCalledWith({
       pathname: '/login',
-      params: { redirectTo: '/profile' },
+      params: { redirectTo: '/account' },
     });
   });
 
@@ -515,7 +515,7 @@ describe('ProfileTab', () => {
       // Stall getPublicProfile so the loading state stays visible
       (getPublicProfile as jest.Mock).mockReturnValue(new Promise(() => {}));
 
-      const ProfileTab = require('../profile.tsx').default;
+      const ProfileTab = require('../account.tsx').default;
       const { getAllByText } = render(<ProfileTab />, {
         wrapper: ({ children }) => <PaperProvider>{children}</PaperProvider>,
       });

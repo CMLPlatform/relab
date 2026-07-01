@@ -40,7 +40,7 @@ export function ProfilePill() {
       ]}
     >
       <MaterialCommunityIcons name="account-circle" size={14} color={theme.colors.onBackground} />
-      <Text style={[styles.inlineProfileText, { color: theme.colors.onBackground }]}>profile</Text>
+      <Text style={[styles.inlineProfileText, { color: theme.colors.onBackground }]}>account</Text>
     </View>
   );
 }

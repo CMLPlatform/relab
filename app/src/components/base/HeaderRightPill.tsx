@@ -25,7 +25,7 @@ export function HeaderRightPill() {
         onPress={() => router.push(needsOnboarding ? '/onboarding' : '/account')}
         style={pill}
         accessibilityRole="button"
-        accessibilityLabel={needsOnboarding ? 'Complete profile' : `Profile: ${username}`}
+        accessibilityLabel={needsOnboarding ? 'Complete profile' : `Account: ${username}`}
       >
         <MaterialCommunityIcons name="account-circle" size={18} color={theme.colors.onBackground} />
         <Text style={primaryText} numberOfLines={1}>
