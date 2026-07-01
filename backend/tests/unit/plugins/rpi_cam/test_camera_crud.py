@@ -30,7 +30,6 @@ async def test_delete_user_camera_schedules_unpair_notification(mock_camera: Cam
     assert background_tasks.add_task.call_args_list[0].args[1:] == (mock_camera.id, None)
     mock_notify.assert_not_called()
 
-
 async def test_notify_camera_unpair_skips_relay_when_camera_is_offline() -> None:
     """Offline cameras should not wait on relay timeout during delete cleanup."""
     camera_id = uuid4()
@@ -45,7 +44,6 @@ async def test_notify_camera_unpair_skips_relay_when_camera_is_offline() -> None
         await _notify_camera_unpair(camera_id, None)
 
     relay_mock.assert_not_awaited()
-
 
 async def test_notify_camera_unpair_relays_when_camera_is_online() -> None:
     """Online cameras should still receive the best-effort unpair command."""

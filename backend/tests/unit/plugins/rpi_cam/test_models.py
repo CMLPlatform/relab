@@ -25,7 +25,6 @@ PUBLIC_JWK = {
     "kid": "key-12345",
 }
 
-
 def build_camera() -> Camera:
     """Build a camera for model tests."""
     return Camera(
@@ -38,36 +37,29 @@ def build_camera() -> Camera:
         owner_id=uuid4(),
     )
 
+def test_to_http_error() -> None:
+    """Test conversion of connection status to HTTP error tuples."""
+    assert CameraConnectionStatus.ONLINE.to_http_error() == (HTTP_OK, "Camera is online")
+    assert CameraConnectionStatus.OFFLINE.to_http_error() == (HTTP_SERVICE_UNAVAILABLE, "Camera is offline")
+    assert CameraConnectionStatus.UNAUTHORIZED.to_http_error() == (
+        HTTP_UNAUTHORIZED,
+        "Unauthorized access to camera",
+    )
+    assert CameraConnectionStatus.FORBIDDEN.to_http_error() == (HTTP_FORBIDDEN, "Forbidden access to camera")
+    assert CameraConnectionStatus.ERROR.to_http_error() == (HTTP_INTERNAL_ERROR, "Camera access error")
 
-class TestCameraConnectionStatus:
-    """Test suite for CameraConnectionStatus enum utilities."""
+@pytest.fixture
+def camera() -> Camera:
+    """Return a camera instance for testing."""
+    return build_camera()
 
-    def test_to_http_error(self) -> None:
-        """Test conversion of connection status to HTTP error tuples."""
-        assert CameraConnectionStatus.ONLINE.to_http_error() == (HTTP_OK, "Camera is online")
-        assert CameraConnectionStatus.OFFLINE.to_http_error() == (HTTP_SERVICE_UNAVAILABLE, "Camera is offline")
-        assert CameraConnectionStatus.UNAUTHORIZED.to_http_error() == (
-            HTTP_UNAUTHORIZED,
-            "Unauthorized access to camera",
-        )
-        assert CameraConnectionStatus.FORBIDDEN.to_http_error() == (HTTP_FORBIDDEN, "Forbidden access to camera")
-        assert CameraConnectionStatus.ERROR.to_http_error() == (HTTP_INTERNAL_ERROR, "Camera access error")
+def test_str(camera: Camera) -> None:
+    """Test string representation of the camera model."""
+    assert str(camera) == f"{TEST_CAMERA_NAME} (id: {camera.id})"
 
+def test_credential_is_active(camera: Camera) -> None:
+    """Test credential status helper."""
+    assert camera.credential_is_active is True
+    camera.relay_credential_status = CameraCredentialStatus.REVOKED
+    assert camera.credential_is_active is False
 
-class TestCameraModel:
-    """Test suite for the Camera model functionality."""
-
-    @pytest.fixture
-    def camera(self) -> Camera:
-        """Return a camera instance for testing."""
-        return build_camera()
-
-    def test_str(self, camera: Camera) -> None:
-        """Test string representation of the camera model."""
-        assert str(camera) == f"{TEST_CAMERA_NAME} (id: {camera.id})"
-
-    def test_credential_is_active(self, camera: Camera) -> None:
-        """Test credential status helper."""
-        assert camera.credential_is_active is True
-        camera.relay_credential_status = CameraCredentialStatus.REVOKED
-        assert camera.credential_is_active is False

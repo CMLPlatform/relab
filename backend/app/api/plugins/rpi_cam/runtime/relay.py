@@ -1,4 +1,4 @@
-"""Utilities for the camera interaction endpoints."""
+"""Camera access helpers shared across the relay service layer and router handlers."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from app.api.common.ownership import get_user_owned_object
 from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus
 from app.api.plugins.rpi_cam.relay_response import RelayResponse
-from app.api.plugins.rpi_cam.runtime_status import get_camera_status
+from app.api.plugins.rpi_cam.runtime.status import get_camera_status
 from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 
 if TYPE_CHECKING:

@@ -34,17 +34,14 @@ PUBLIC_JWK = {
 KEY_ID = "key-12345"
 NEW_KEY_ID = "key-67890"
 
-
 def require_uuid(value: UUID | None) -> UUID:
     """Narrow optional UUID values produced by Pydantic models."""
     assert value is not None
     return value
 
-
 def build_camera(*, owner_id: UUID, name: str = TEST_OLD_NAME) -> Camera:
     """Build a camera for CRUD tests."""
     return Camera(name=name, owner_id=owner_id, relay_public_key_jwk=PUBLIC_JWK, relay_key_id=KEY_ID)
-
 
 async def test_create_camera(db_session: AsyncSession, db_superuser: User) -> None:
     """Test creating a new camera entry with device public key metadata."""
@@ -68,7 +65,6 @@ async def test_create_camera(db_session: AsyncSession, db_superuser: User) -> No
     assert db_camera is not None
     assert db_camera.name == TEST_CAMERA_NAME
 
-
 async def test_update_camera(db_session: AsyncSession, db_superuser: User) -> None:
     """Test updating mutable camera metadata and credential status."""
     owner_id = require_uuid(db_superuser.id)
@@ -87,7 +83,6 @@ async def test_update_camera(db_session: AsyncSession, db_superuser: User) -> No
     await db_session.refresh(camera)
     assert camera.name == TEST_NEW_NAME
     assert camera.relay_credential_status == CameraCredentialStatus.REVOKED
-
 
 async def test_update_camera_does_not_change_owner() -> None:
     """Camera updates no longer carry public ownership transfer data."""

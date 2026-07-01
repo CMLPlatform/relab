@@ -10,12 +10,6 @@ if TYPE_CHECKING:
     from fastapi.openapi.models import Example
 
 
-INCLUDE_STATUS_DISABLED = False
-INCLUDE_STATUS_ENABLED = True
-FORCE_REFRESH_DISABLED = False
-FORCE_REFRESH_ENABLED = True
-
-
 CAMERA_CREATE_EXAMPLES = [
     {
         "name": "Workbench Camera",
@@ -51,13 +45,13 @@ CAMERA_UPDATE_EXAMPLES = [
 ]
 
 CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
-    disabled=openapi_example(INCLUDE_STATUS_DISABLED, summary="Return camera metadata only"),
-    enabled=openapi_example(INCLUDE_STATUS_ENABLED, summary="Include current online status"),
+    disabled=openapi_example(False, summary="Return camera metadata only"),
+    enabled=openapi_example(True, summary="Include current online status"),
 )
 
 CAMERA_FORCE_REFRESH_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
-    cached=openapi_example(FORCE_REFRESH_DISABLED, summary="Use cached status when available"),
-    refresh=openapi_example(FORCE_REFRESH_ENABLED, summary="Bypass cache and query the camera directly"),
+    cached=openapi_example(False, summary="Use cached status when available"),
+    refresh=openapi_example(True, summary="Bypass cache and query the camera directly"),
 )
 
 CAMERA_MODE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(

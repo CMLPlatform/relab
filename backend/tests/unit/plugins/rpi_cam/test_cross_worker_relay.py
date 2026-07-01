@@ -30,378 +30,355 @@ def _mock_redis() -> MagicMock:
     redis.blpop = AsyncMock()
     return redis
 
-
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+def test_floor() -> None:
+    """Below-floor timeouts use the configured minimum TTL."""
+    assert cwr._resp_ttl_seconds(1.0) == cwr._RESP_TTL_MIN_SECONDS
 
-class TestRespTtl:
-    """Cover the response-key TTL bounds helper."""
+def test_above_floor_uses_timeout_plus_margin() -> None:
+    """Above the floor, TTL follows the request timeout plus a small margin."""
+    assert cwr._resp_ttl_seconds(200) == 210
 
-    def test_floor(self) -> None:
-        """Below-floor timeouts use the configured minimum TTL."""
-        assert cwr._resp_ttl_seconds(1.0) == cwr._RESP_TTL_MIN_SECONDS
+async def test_uses_finite_poll_timeout() -> None:
+    """The shared Redis client must never use an indefinite BLPOP wait here."""
+    redis = _mock_redis()
+    redis.blpop.return_value = ("key", "payload")
 
-    def test_above_floor_uses_timeout_plus_margin(self) -> None:
-        """Above the floor, TTL follows the request timeout plus a small margin."""
-        assert cwr._resp_ttl_seconds(200) == 210
+    result = await cwr._blpop_once(redis, "relay-key")
 
-
-class TestBlpopOnce:
-    """Cover the finite Redis BLPOP helper used by relay wait loops."""
-
-    async def test_uses_finite_poll_timeout(self) -> None:
-        """The shared Redis client must never use an indefinite BLPOP wait here."""
-        redis = _mock_redis()
-        redis.blpop.return_value = ("key", "payload")
-
-        result = await cwr._blpop_once(redis, "relay-key")
-
-        assert result == ("key", "payload")
-        redis.blpop.assert_awaited_once_with("relay-key", timeout=cwr._BLPOP_POLL_SECONDS)
-
+    assert result == ("key", "payload")
+    redis.blpop.assert_awaited_once_with("relay-key", timeout=cwr._BLPOP_POLL_SECONDS)
 
 # ── relay_cross_worker ───────────────────────────────────────────────────────
 
+async def test_happy_path_roundtrip() -> None:
+    """A valid response with binary payload round-trips cleanly back to the caller."""
+    redis = _mock_redis()
+    binary = b"\x00\x01\x02\x03"
+    response = {
+        "status": 200,
+        "data": {"ok": True},
+        "binary_b64": base64.b64encode(binary).decode(),
+    }
+    redis.blpop.return_value = ("key", json.dumps(response))
 
-class TestRelayCrossWorker:
-    """Cover the requesting-worker side of the relay: command push + response wait."""
+    json_resp, got_binary = await cwr.relay_cross_worker(
+        redis,
+        uuid4(),
+        "GET",
+        "/hls/segment",
+        params=None,
+        body=None,
+        headers=None,
+        timeout_s=30,
+    )
 
-    async def test_happy_path_roundtrip(self) -> None:
-        """A valid response with binary payload round-trips cleanly back to the caller."""
-        redis = _mock_redis()
-        binary = b"\x00\x01\x02\x03"
-        response = {
-            "status": 200,
-            "data": {"ok": True},
-            "binary_b64": base64.b64encode(binary).decode(),
-        }
-        redis.blpop.return_value = ("key", json.dumps(response))
+    assert json_resp == {"status": 200, "data": {"ok": True}}
+    assert got_binary == binary
+    redis.rpush.assert_awaited_once()
+    redis.ltrim.assert_awaited_once()
+    assert redis.blpop.await_args.kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS}
 
-        json_resp, got_binary = await cwr.relay_cross_worker(
-            redis,
-            uuid4(),
-            "GET",
-            "/hls/segment",
-            params=None,
-            body=None,
-            headers=None,
-            timeout_s=30,
-        )
+async def test_blpop_none_polls_until_response() -> None:
+    """Finite BLPOP waits should be retried inside the overall relay timeout."""
+    redis = _mock_redis()
+    response = {"status": 200, "data": {"ok": True}}
+    redis.blpop.side_effect = [None, ("key", json.dumps(response))]
 
-        assert json_resp == {"status": 200, "data": {"ok": True}}
-        assert got_binary == binary
-        redis.rpush.assert_awaited_once()
-        redis.ltrim.assert_awaited_once()
-        assert redis.blpop.await_args.kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS}
+    json_resp, got_binary = await cwr.relay_cross_worker(
+        redis,
+        uuid4(),
+        "GET",
+        "/status",
+        params=None,
+        body=None,
+        headers=None,
+        timeout_s=30,
+    )
 
-    async def test_blpop_none_polls_until_response(self) -> None:
-        """Finite BLPOP waits should be retried inside the overall relay timeout."""
-        redis = _mock_redis()
-        response = {"status": 200, "data": {"ok": True}}
-        redis.blpop.side_effect = [None, ("key", json.dumps(response))]
+    assert json_resp == {"status": 200, "data": {"ok": True}}
+    assert got_binary is None
+    assert redis.blpop.await_count == 2
+    assert all(call.kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS} for call in redis.blpop.await_args_list)
 
-        json_resp, got_binary = await cwr.relay_cross_worker(
-            redis,
-            uuid4(),
-            "GET",
-            "/status",
-            params=None,
-            body=None,
-            headers=None,
-            timeout_s=30,
-        )
+async def test_command_payload_shape() -> None:
+    """The pushed command must carry the fields the listener reads."""
+    redis = _mock_redis()
+    redis.blpop.return_value = ("key", json.dumps({"status": 200, "data": {}}))
+    camera_id = uuid4()
 
-        assert json_resp == {"status": 200, "data": {"ok": True}}
-        assert got_binary is None
-        assert redis.blpop.await_count == 2
-        assert all(call.kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS} for call in redis.blpop.await_args_list)
+    await cwr.relay_cross_worker(
+        redis,
+        camera_id,
+        "POST",
+        "/capture",
+        params={"q": "1"},
+        body={"name": "x"},
+        headers={"X-Test": "1"},
+        timeout_s=10,
+    )
 
-    async def test_command_payload_shape(self) -> None:
-        """The pushed command must carry the fields the listener reads."""
-        redis = _mock_redis()
-        redis.blpop.return_value = ("key", json.dumps({"status": 200, "data": {}}))
-        camera_id = uuid4()
+    cmd_key, raw_cmd = redis.rpush.await_args.args
+    assert cmd_key == f"rpi_cam:relay_cmd:{camera_id}"
+    cmd = json.loads(raw_cmd)
+    assert cmd["method"] == "POST"
+    assert cmd["path"] == "/capture"
+    assert cmd["params"] == {"q": "1"}
+    assert cmd["body"] == {"name": "x"}
+    assert cmd["headers"] == {"X-Test": "1"}
+    assert cmd["timeout_s"] == 10
+    assert "msg_id" in cmd
+    assert "deadline" in cmd
 
+async def test_timeout_raises_runtime_error() -> None:
+    """If BLPOP never returns within the deadline, the caller sees RuntimeError (→ HTTP 503)."""
+    redis = _mock_redis()
+
+    async def _hang(*_a: object, **_kw: object) -> None:
+        await asyncio.sleep(10)
+
+    redis.blpop.side_effect = _hang
+
+    with pytest.raises(RuntimeError, match="timed out"):
         await cwr.relay_cross_worker(
             redis,
-            camera_id,
-            "POST",
-            "/capture",
-            params={"q": "1"},
-            body={"name": "x"},
-            headers={"X-Test": "1"},
-            timeout_s=10,
+            uuid4(),
+            "GET",
+            "/x",
+            None,
+            None,
+            None,
+            timeout_s=0.05,
         )
 
-        cmd_key, raw_cmd = redis.rpush.await_args.args
-        assert cmd_key == f"rpi_cam:relay_cmd:{camera_id}"
-        cmd = json.loads(raw_cmd)
-        assert cmd["method"] == "POST"
-        assert cmd["path"] == "/capture"
-        assert cmd["params"] == {"q": "1"}
-        assert cmd["body"] == {"name": "x"}
-        assert cmd["headers"] == {"X-Test": "1"}
-        assert cmd["timeout_s"] == 10
-        assert "msg_id" in cmd
-        assert "deadline" in cmd
+async def test_blpop_none_raises() -> None:
+    """Repeated finite BLPOP misses are bounded by the overall relay timeout."""
+    redis = _mock_redis()
 
-    async def test_timeout_raises_runtime_error(self) -> None:
-        """If BLPOP never returns within the deadline, the caller sees RuntimeError (→ HTTP 503)."""
-        redis = _mock_redis()
+    async def _miss(*_a: object, **_kw: object) -> None:
+        await asyncio.sleep(0.001)
 
-        async def _hang(*_a: object, **_kw: object) -> None:
-            await asyncio.sleep(10)
-
-        redis.blpop.side_effect = _hang
-
-        with pytest.raises(RuntimeError, match="timed out"):
-            await cwr.relay_cross_worker(
-                redis,
-                uuid4(),
-                "GET",
-                "/x",
-                None,
-                None,
-                None,
-                timeout_s=0.05,
-            )
-
-    async def test_blpop_none_raises(self) -> None:
-        """Repeated finite BLPOP misses are bounded by the overall relay timeout."""
-        redis = _mock_redis()
-
-        async def _miss(*_a: object, **_kw: object) -> None:
-            await asyncio.sleep(0.001)
-
-        redis.blpop.side_effect = _miss
-        with pytest.raises(RuntimeError, match="timed out"):
-            await cwr.relay_cross_worker(
-                redis,
-                uuid4(),
-                "GET",
-                "/x",
-                None,
-                None,
-                None,
-                timeout_s=0.01,
-            )
-
-    async def test_malformed_response_raises(self) -> None:
-        """Corrupt response JSON on the wire is reported as a relay failure."""
-        redis = _mock_redis()
-        redis.blpop.return_value = ("key", "{not-json")
-        with pytest.raises(RuntimeError, match="malformed response"):
-            await cwr.relay_cross_worker(
-                redis,
-                uuid4(),
-                "GET",
-                "/x",
-                None,
-                None,
-                None,
-                timeout_s=1,
-            )
-
-    async def test_error_field_propagates(self) -> None:
-        """An ``error`` field in the response surfaces as a RuntimeError carrying the remote message."""
-        redis = _mock_redis()
-        redis.blpop.return_value = ("key", json.dumps({"error": "camera gone"}))
-        with pytest.raises(RuntimeError, match="camera gone"):
-            await cwr.relay_cross_worker(
-                redis,
-                uuid4(),
-                "GET",
-                "/x",
-                None,
-                None,
-                None,
-                timeout_s=1,
-            )
-
-    async def test_bad_base64_raises(self) -> None:
-        """Binary payloads with invalid base64 are rejected (don't silently corrupt data)."""
-        redis = _mock_redis()
-        redis.blpop.return_value = (
-            "key",
-            json.dumps({"status": 200, "data": {}, "binary_b64": "!!!not-base64!!!"}),
+    redis.blpop.side_effect = _miss
+    with pytest.raises(RuntimeError, match="timed out"):
+        await cwr.relay_cross_worker(
+            redis,
+            uuid4(),
+            "GET",
+            "/x",
+            None,
+            None,
+            None,
+            timeout_s=0.01,
         )
-        with pytest.raises(RuntimeError, match="binary payload"):
-            await cwr.relay_cross_worker(
-                redis,
-                uuid4(),
-                "GET",
-                "/x",
-                None,
-                None,
-                None,
-                timeout_s=1,
-            )
 
+async def test_malformed_response_raises() -> None:
+    """Corrupt response JSON on the wire is reported as a relay failure."""
+    redis = _mock_redis()
+    redis.blpop.return_value = ("key", "{not-json")
+    with pytest.raises(RuntimeError, match="malformed response"):
+        await cwr.relay_cross_worker(
+            redis,
+            uuid4(),
+            "GET",
+            "/x",
+            None,
+            None,
+            None,
+            timeout_s=1,
+        )
+
+async def test_error_field_propagates() -> None:
+    """An ``error`` field in the response surfaces as a RuntimeError carrying the remote message."""
+    redis = _mock_redis()
+    redis.blpop.return_value = ("key", json.dumps({"error": "camera gone"}))
+    with pytest.raises(RuntimeError, match="camera gone"):
+        await cwr.relay_cross_worker(
+            redis,
+            uuid4(),
+            "GET",
+            "/x",
+            None,
+            None,
+            None,
+            timeout_s=1,
+        )
+
+async def test_bad_base64_raises() -> None:
+    """Binary payloads with invalid base64 are rejected (don't silently corrupt data)."""
+    redis = _mock_redis()
+    redis.blpop.return_value = (
+        "key",
+        json.dumps({"status": 200, "data": {}, "binary_b64": "!!!not-base64!!!"}),
+    )
+    with pytest.raises(RuntimeError, match="binary payload"):
+        await cwr.relay_cross_worker(
+            redis,
+            uuid4(),
+            "GET",
+            "/x",
+            None,
+            None,
+            None,
+            timeout_s=1,
+        )
 
 # ── _execute_and_respond ─────────────────────────────────────────────────────
 
+async def test_success_pushes_response_and_expire() -> None:
+    """On success the JSON response and any binary payload are pushed to the per-msg response list."""
+    redis = _mock_redis()
+    manager = MagicMock()
+    binary = b"payload"
+    manager.send_command = AsyncMock(return_value=({"status": 200, "data": {"k": 1}}, binary))
+    cmd = {"msg_id": "m1", "method": "GET", "path": "/p", "timeout_s": 30}
 
-class TestExecuteAndRespond:
-    """Cover the camera-owning-worker side: execute one relayed command and push the result."""
+    await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m1")
 
-    async def test_success_pushes_response_and_expire(self) -> None:
-        """On success the JSON response and any binary payload are pushed to the per-msg response list."""
-        redis = _mock_redis()
-        manager = MagicMock()
-        binary = b"payload"
-        manager.send_command = AsyncMock(return_value=({"status": 200, "data": {"k": 1}}, binary))
-        cmd = {"msg_id": "m1", "method": "GET", "path": "/p", "timeout_s": 30}
+    redis.rpush.assert_awaited_once()
+    redis.expire.assert_awaited_once()
+    resp_key, raw = redis.rpush.await_args.args
+    assert resp_key == "rpi_cam:relay_resp:m1"
+    assert json.loads(raw) == {
+        "status": 200,
+        "data": {"k": 1},
+        "binary_b64": base64.b64encode(binary).decode(),
+    }
 
-        await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m1")
+async def test_camera_disconnected_writes_error() -> None:
+    """RuntimeError from send_command (camera gone) is serialised as an ``error`` payload."""
+    redis = _mock_redis()
+    manager = MagicMock()
+    manager.send_command = AsyncMock(side_effect=RuntimeError("socket closed"))
+    cmd = {"msg_id": "m2", "method": "GET", "path": "/p", "timeout_s": 5}
 
-        redis.rpush.assert_awaited_once()
-        redis.expire.assert_awaited_once()
-        resp_key, raw = redis.rpush.await_args.args
-        assert resp_key == "rpi_cam:relay_resp:m1"
-        assert json.loads(raw) == {
-            "status": 200,
-            "data": {"k": 1},
-            "binary_b64": base64.b64encode(binary).decode(),
-        }
+    await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m2")
 
-    async def test_camera_disconnected_writes_error(self) -> None:
-        """RuntimeError from send_command (camera gone) is serialised as an ``error`` payload."""
-        redis = _mock_redis()
-        manager = MagicMock()
-        manager.send_command = AsyncMock(side_effect=RuntimeError("socket closed"))
-        cmd = {"msg_id": "m2", "method": "GET", "path": "/p", "timeout_s": 5}
+    raw = redis.rpush.await_args.args[1]
+    assert json.loads(raw) == {"error": "socket closed"}
 
-        await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m2")
+async def test_unexpected_exception_writes_internal_error() -> None:
+    """Non-RuntimeError failures are wrapped as ``Internal relay error`` so callers still unblock."""
+    redis = _mock_redis()
+    manager = MagicMock()
+    manager.send_command = AsyncMock(side_effect=ValueError("boom"))
+    cmd = {"msg_id": "m3", "method": "GET", "path": "/p", "timeout_s": 5}
 
-        raw = redis.rpush.await_args.args[1]
-        assert json.loads(raw) == {"error": "socket closed"}
+    await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m3")
 
-    async def test_unexpected_exception_writes_internal_error(self) -> None:
-        """Non-RuntimeError failures are wrapped as ``Internal relay error`` so callers still unblock."""
-        redis = _mock_redis()
-        manager = MagicMock()
-        manager.send_command = AsyncMock(side_effect=ValueError("boom"))
-        cmd = {"msg_id": "m3", "method": "GET", "path": "/p", "timeout_s": 5}
-
-        await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m3")
-
-        raw = redis.rpush.await_args.args[1]
-        assert json.loads(raw) == {"error": "Internal relay error: boom"}
-
+    raw = redis.rpush.await_args.args[1]
+    assert json.loads(raw) == {"error": "Internal relay error: boom"}
 
 # ── run_relay_listener ───────────────────────────────────────────────────────
 
+async def test_skips_expired_command() -> None:
+    """Commands whose deadline is in the past must be dropped before dispatch."""
+    redis = _mock_redis()
+    manager = MagicMock()
+    manager.send_command = AsyncMock()
 
-class TestRunRelayListener:
-    """Cover the listener's pre-processing: filter bad / stale commands before executing them."""
+    expired_cmd = {"msg_id": "m", "deadline": 1.0, "method": "GET", "path": "/"}
+    responses: list[object] = [("k", json.dumps(expired_cmd))]
 
-    async def test_skips_expired_command(self) -> None:
-        """Commands whose deadline is in the past must be dropped before dispatch."""
-        redis = _mock_redis()
-        manager = MagicMock()
-        manager.send_command = AsyncMock()
+    async def _blpop(*_a: object, **_kw: object) -> object:
+        if responses:
+            return responses.pop(0)
+        raise asyncio.CancelledError
 
-        expired_cmd = {"msg_id": "m", "deadline": 1.0, "method": "GET", "path": "/"}
-        responses: list[object] = [("k", json.dumps(expired_cmd))]
+    redis.blpop.side_effect = _blpop
 
-        async def _blpop(*_a: object, **_kw: object) -> object:
-            if responses:
-                return responses.pop(0)
-            raise asyncio.CancelledError
+    await cwr.run_relay_listener(redis, uuid4(), manager)
 
-        redis.blpop.side_effect = _blpop
+    manager.send_command.assert_not_called()
 
-        await cwr.run_relay_listener(redis, uuid4(), manager)
+async def test_skips_malformed_json() -> None:
+    """A malformed JSON command should be caught and skipped, not crash the listener."""
+    redis = _mock_redis()
+    manager = MagicMock()
+    manager.send_command = AsyncMock()
+    responses: list[object] = [("k", "{not-json")]
 
-        manager.send_command.assert_not_called()
+    async def _blpop(*_a: object, **_kw: object) -> object:
+        if responses:
+            return responses.pop(0)
+        raise asyncio.CancelledError
 
-    async def test_skips_malformed_json(self) -> None:
-        """A malformed JSON command should be caught and skipped, not crash the listener."""
-        redis = _mock_redis()
-        manager = MagicMock()
-        manager.send_command = AsyncMock()
-        responses: list[object] = [("k", "{not-json")]
+    redis.blpop.side_effect = _blpop
+    await cwr.run_relay_listener(redis, uuid4(), manager)
+    manager.send_command.assert_not_called()
 
-        async def _blpop(*_a: object, **_kw: object) -> object:
-            if responses:
-                return responses.pop(0)
-            raise asyncio.CancelledError
+async def test_skips_missing_msg_id() -> None:
+    """Commands without a msg_id cannot be replied to, so they must be skipped."""
+    redis = _mock_redis()
+    manager = MagicMock()
+    manager.send_command = AsyncMock()
+    responses: list[object] = [("k", json.dumps({"method": "GET", "path": "/"}))]
 
-        redis.blpop.side_effect = _blpop
-        await cwr.run_relay_listener(redis, uuid4(), manager)
-        manager.send_command.assert_not_called()
+    async def _blpop(*_a: object, **_kw: object) -> object:
+        if responses:
+            return responses.pop(0)
+        raise asyncio.CancelledError
 
-    async def test_skips_missing_msg_id(self) -> None:
-        """Commands without a msg_id cannot be replied to, so they must be skipped."""
-        redis = _mock_redis()
-        manager = MagicMock()
-        manager.send_command = AsyncMock()
-        responses: list[object] = [("k", json.dumps({"method": "GET", "path": "/"}))]
+    redis.blpop.side_effect = _blpop
+    await cwr.run_relay_listener(redis, uuid4(), manager)
+    manager.send_command.assert_not_called()
 
-        async def _blpop(*_a: object, **_kw: object) -> object:
-            if responses:
-                return responses.pop(0)
-            raise asyncio.CancelledError
+async def test_dispatches_valid_command() -> None:
+    """A well-formed command with a future deadline should be dispatched to the manager."""
+    redis = _mock_redis()
+    manager = MagicMock()
+    manager.send_command = AsyncMock(return_value=({"status": 200, "data": {}}, None))
 
-        redis.blpop.side_effect = _blpop
-        await cwr.run_relay_listener(redis, uuid4(), manager)
-        manager.send_command.assert_not_called()
+    cmd = {
+        "msg_id": "m1",
+        "method": "GET",
+        "path": "/hls",
+        "params": None,
+        "body": None,
+        "headers": {},
+        "deadline": 0,  # 0 means "no deadline" per module convention
+        "timeout_s": 30,
+    }
+    responses: list[object] = [("k", json.dumps(cmd))]
 
-    async def test_dispatches_valid_command(self) -> None:
-        """A well-formed command with a future deadline should be dispatched to the manager."""
-        redis = _mock_redis()
-        manager = MagicMock()
-        manager.send_command = AsyncMock(return_value=({"status": 200, "data": {}}, None))
+    async def _blpop(*_a: object, **_kw: object) -> object:
+        if responses:
+            return responses.pop(0)
+        raise asyncio.CancelledError
 
-        cmd = {
-            "msg_id": "m1",
-            "method": "GET",
-            "path": "/hls",
-            "params": None,
-            "body": None,
-            "headers": {},
-            "deadline": 0,  # 0 means "no deadline" per module convention
-            "timeout_s": 30,
-        }
-        responses: list[object] = [("k", json.dumps(cmd))]
+    redis.blpop.side_effect = _blpop
+    await cwr.run_relay_listener(redis, uuid4(), manager)
 
-        async def _blpop(*_a: object, **_kw: object) -> object:
-            if responses:
-                return responses.pop(0)
-            raise asyncio.CancelledError
+    manager.send_command.assert_awaited_once()
+    assert redis.blpop.await_args_list[0].kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS}
+    assert any(call.args[0] == "rpi_cam:relay_resp:m1" for call in redis.rpush.await_args_list)
 
-        redis.blpop.side_effect = _blpop
-        await cwr.run_relay_listener(redis, uuid4(), manager)
+async def test_empty_blpop_result_keeps_polling() -> None:
+    """A finite BLPOP timeout should keep the listener alive until a command arrives."""
+    redis = _mock_redis()
+    manager = MagicMock()
+    manager.send_command = AsyncMock(return_value=({"status": 200, "data": {}}, None))
+    cmd = {
+        "msg_id": "m1",
+        "method": "GET",
+        "path": "/hls",
+        "params": None,
+        "body": None,
+        "headers": {},
+        "deadline": 0,
+        "timeout_s": 30,
+    }
+    responses: list[object | None] = [None, ("k", json.dumps(cmd))]
 
-        manager.send_command.assert_awaited_once()
-        assert redis.blpop.await_args_list[0].kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS}
-        assert any(call.args[0] == "rpi_cam:relay_resp:m1" for call in redis.rpush.await_args_list)
+    async def _blpop(*_a: object, **_kw: object) -> object | None:
+        if responses:
+            return responses.pop(0)
+        raise asyncio.CancelledError
 
-    async def test_empty_blpop_result_keeps_polling(self) -> None:
-        """A finite BLPOP timeout should keep the listener alive until a command arrives."""
-        redis = _mock_redis()
-        manager = MagicMock()
-        manager.send_command = AsyncMock(return_value=({"status": 200, "data": {}}, None))
-        cmd = {
-            "msg_id": "m1",
-            "method": "GET",
-            "path": "/hls",
-            "params": None,
-            "body": None,
-            "headers": {},
-            "deadline": 0,
-            "timeout_s": 30,
-        }
-        responses: list[object | None] = [None, ("k", json.dumps(cmd))]
+    redis.blpop.side_effect = _blpop
+    await cwr.run_relay_listener(redis, uuid4(), manager)
 
-        async def _blpop(*_a: object, **_kw: object) -> object | None:
-            if responses:
-                return responses.pop(0)
-            raise asyncio.CancelledError
+    manager.send_command.assert_awaited_once()
+    assert redis.blpop.await_count == 3
+    assert all(call.kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS} for call in redis.blpop.await_args_list)
 
-        redis.blpop.side_effect = _blpop
-        await cwr.run_relay_listener(redis, uuid4(), manager)
-
-        manager.send_command.assert_awaited_once()
-        assert redis.blpop.await_count == 3
-        assert all(call.kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS} for call in redis.blpop.await_args_list)

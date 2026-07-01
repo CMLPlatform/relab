@@ -1,6 +1,6 @@
 """Main router for camera interaction."""
 
-from app.api.common.routers.openapi import PublicAPIRouter
+from app.api.common.audiences import PublicAPIRouter
 from app.api.plugins.rpi_cam.routers.camera_interaction.hls import router as hls_router
 from app.api.plugins.rpi_cam.routers.camera_interaction.images import device_router as device_images_router
 from app.api.plugins.rpi_cam.routers.camera_interaction.images import router as images_router

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 from fastapi_filters import FilterField, FilterOperator
-from pydantic import UUID4, ConfigDict, Field, field_validator
+from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 from relab_rpi_cam_models import DevicePublicKeyJWK
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 
@@ -14,11 +14,16 @@ from app.api.common.crud.filtering import BaseFilterSet, RelationshipFilterJoin
 from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
 from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.plugins.rpi_cam.examples import CAMERA_CREATE_EXAMPLES, CAMERA_READ_EXAMPLES, CAMERA_UPDATE_EXAMPLES
-from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraCredentialStatus, CameraStatus
-from app.api.plugins.rpi_cam.runtime_status import get_cached_telemetry, get_camera_status
+from app.api.plugins.rpi_cam.models import Camera, CameraCredentialStatus, CameraStatus
+from app.api.plugins.rpi_cam.runtime.status import get_cached_telemetry, get_camera_status
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
+
+
+class CameraBase(BaseModel):
+    name: SingleLineUserText
+    description: MultilineUserText | None = None
 
 
 class CameraFilter(BaseFilterSet):

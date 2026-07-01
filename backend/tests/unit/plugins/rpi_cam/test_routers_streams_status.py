@@ -19,7 +19,6 @@ from tests.unit.plugins.rpi_cam.stream_router_test_support import (
 if TYPE_CHECKING:
     from app.api.plugins.rpi_cam.models import Camera
 
-
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.build_camera_request")
 async def test_get_camera_stream_status_success(

@@ -12,13 +12,13 @@ from relab_rpi_cam_models.stream import StreamMode, StreamView
 from sqlalchemy import select
 
 from app.api.auth.models import OAuthAccount
-from app.api.auth.services.oauth_clients import google_youtube_oauth_client
+from app.api.auth.services.oauth import google_youtube_oauth_client
 from app.api.common.crud.query import require_model
 from app.api.common.exceptions import APIError
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.schemas.base import serialize_datetime_with_z
+from app.api.data_collection.crud.video import create_video, delete_video
 from app.api.data_collection.models.product import Product
-from app.api.file_storage.crud.video import create_video, delete_video
 from app.api.file_storage.models import Video
 from app.api.file_storage.schemas import VideoCreate, VideoRead
 from app.api.plugins.rpi_cam.constants import PLUGIN_STREAM_ENDPOINT, HttpMethod
@@ -28,13 +28,13 @@ from app.api.plugins.rpi_cam.exceptions import (
     NoActiveYouTubeRecordingError,
     RecordingSessionNotFoundError,
 )
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
-from app.api.plugins.rpi_cam.runtime_recording import (
+from app.api.plugins.rpi_cam.runtime.recording import (
     YouTubeRecordingSession,
     clear_recording_session,
     load_recording_session,
     store_recording_session,
 )
+from app.api.plugins.rpi_cam.runtime.relay import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
 from app.api.plugins.rpi_cam.youtube import YouTubePrivacyStatus, YouTubeService
 from app.core.logging import sanitize_log_value

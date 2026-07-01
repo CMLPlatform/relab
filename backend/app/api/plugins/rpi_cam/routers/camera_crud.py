@@ -8,11 +8,10 @@ from pydantic import UUID4
 from relab_rpi_cam_models import LocalAccessInfo
 from sqlalchemy import select
 
-from app.api.audiences import DeviceAPIRouter
 from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam import crud
 from app.api.plugins.rpi_cam.dependencies import CameraFilterDep, UserOwnedCameraDep
 from app.api.plugins.rpi_cam.device_assertion import AuthenticatedCameraDep
@@ -20,8 +19,8 @@ from app.api.plugins.rpi_cam.examples import (
     CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
 )
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraStatus
-from app.api.plugins.rpi_cam.runtime_preview import get_preview_thumbnail_path, get_preview_thumbnail_urls_per_camera
-from app.api.plugins.rpi_cam.runtime_status import get_camera_status as fetch_camera_status
+from app.api.plugins.rpi_cam.runtime.preview import get_preview_thumbnail_path, get_preview_thumbnail_urls_per_camera
+from app.api.plugins.rpi_cam.runtime.status import get_camera_status as fetch_camera_status
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead, CameraReadWithStatus, CameraUpdate
 from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 from app.core.redis import RedisDep

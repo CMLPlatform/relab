@@ -24,151 +24,146 @@ if TYPE_CHECKING:
 
     from app.api.plugins.rpi_cam.models import Camera
 
-
 def _jpeg_upload(filename: str = "preview.jpg") -> UploadFile:
     buffer = BytesIO()
     PILImage.new("RGB", (10, 10), color="blue").save(buffer, format="JPEG")
     buffer.seek(0)
     return UploadFile(file=buffer, filename=filename, headers=Headers({"content-type": "image/jpeg"}))
 
+@pytest.mark.parametrize(
+    ("capture_metadata", "upload_metadata", "expected_detail"),
+    [
+        ("{", '{"product_id": 1}', "capture_metadata must be valid JSON"),
+        ("{}", "{", "upload_metadata must be valid JSON"),
+        ("[]", '{"product_id": 1}', "capture_metadata must be a JSON object"),
+        ("{}", "[]", "upload_metadata must be a JSON object"),
+    ],
+)
+async def test_rejects_invalid_json_metadata(
 
-class TestReceiveCameraUpload:
-    """Tests for device-pushed image uploads."""
+    mock_camera: Camera,
+    capture_metadata: str,
+    upload_metadata: str,
+    expected_detail: str,
+) -> None:
+    """Device uploads should only accept JSON object metadata fields."""
+    upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
 
-    @pytest.mark.parametrize(
-        ("capture_metadata", "upload_metadata", "expected_detail"),
-        [
-            ("{", '{"product_id": 1}', "capture_metadata must be valid JSON"),
-            ("{}", "{", "upload_metadata must be valid JSON"),
-            ("[]", '{"product_id": 1}', "capture_metadata must be a JSON object"),
-            ("{}", "[]", "upload_metadata must be a JSON object"),
-        ],
-    )
-    async def test_rejects_invalid_json_metadata(
-        self,
-        mock_camera: Camera,
-        capture_metadata: str,
-        upload_metadata: str,
-        expected_detail: str,
-    ) -> None:
-        """Device uploads should only accept JSON object metadata fields."""
-        upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
-
-        with pytest.raises(HTTPException) as exc_info:
-            await receive_camera_upload(
-                camera_id=mock_camera.id,
-                camera=mock_camera,
-                session=MagicMock(),
-                file=upload,
-                capture_metadata=capture_metadata,
-                upload_metadata=upload_metadata,
-            )
-
-        assert exc_info.value.status_code == 400
-        assert str(exc_info.value.detail).startswith(expected_detail)
-
-    async def test_rejects_oversized_metadata(
-        self,
-        mock_camera: Camera,
-    ) -> None:
-        """Device uploads should bound parsed metadata before storage work."""
-        upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
-
-        with pytest.raises(HTTPException) as exc_info:
-            await receive_camera_upload(
-                camera_id=mock_camera.id,
-                camera=mock_camera,
-                session=MagicMock(),
-                file=upload,
-                capture_metadata="{}",
-                upload_metadata='{"product_id": 1, "description": "' + ("x" * 5000) + '"}',
-            )
-
-        assert exc_info.value.status_code == 400
-        assert str(exc_info.value.detail).startswith("upload_metadata")
-
-    async def test_rejects_upload_for_product_not_owned_by_camera_owner(self, mock_camera: Camera) -> None:
-        """A paired device may only attach captures to products owned by its owner."""
-        upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
-        foreign_product_id = 1
-
-        with (
-            patch(
-                "app.api.plugins.rpi_cam.routers.camera_interaction.images.get_user_owned_object",
-                new=AsyncMock(
-                    side_effect=UserOwnershipError(Product, foreign_product_id, mock_camera.owner_id),
-                ),
-            ),
-            patch(
-                "app.api.plugins.rpi_cam.routers.camera_interaction.images.create_image",
-                new=AsyncMock(),
-            ) as mock_create_image,
-            pytest.raises(UserOwnershipError),
-        ):
-            await receive_camera_upload(
-                camera_id=mock_camera.id,
-                camera=mock_camera,
-                session=MagicMock(),
-                file=upload,
-                capture_metadata="{}",
-                upload_metadata=f'{{"product_id": {foreign_product_id}}}',
-            )
-
-        mock_create_image.assert_not_awaited()
-
-
-class TestReceivePreviewThumbnailUpload:
-    """Tests for cached preview-thumbnail uploads from the Pi."""
-
-    async def test_persists_deterministic_preview_thumbnail_and_returns_url(
-        self,
-        mock_camera: Camera,
-        tmp_path: Path,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        """A device upload should overwrite the deterministic preview-thumbnail cache file."""
-        monkeypatch.setattr(settings, "image_storage_path", tmp_path)
-        upload = _jpeg_upload()
-
-        ack = await receive_preview_thumbnail_upload(camera_id=mock_camera.id, camera=mock_camera, file=upload)
-
-        path = tmp_path / "rpi-cam-preview" / f"{mock_camera.id}.jpg"
-        assert path.read_bytes().startswith(b"\xff\xd8")
-        expected_mtime = int(path.stat().st_mtime)
-        assert ack.preview_thumbnail_url == f"/uploads/images/rpi-cam-preview/{mock_camera.id}.jpg?v={expected_mtime}"
-
-    async def test_rejects_empty_preview_thumbnail_upload(
-        self,
-        mock_camera: Camera,
-        tmp_path: Path,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        """Empty uploads should fail with a client error instead of writing a bogus cache file."""
-        monkeypatch.setattr(settings, "image_storage_path", tmp_path)
-        upload = UploadFile(filename="preview.jpg", file=BytesIO(b""))
-
-        with pytest.raises(HTTPException) as exc_info:
-            await receive_preview_thumbnail_upload(camera_id=mock_camera.id, camera=mock_camera, file=upload)
-
-        assert exc_info.value.status_code == 400
-        assert "empty" in str(exc_info.value.detail).lower()
-
-    async def test_rejects_invalid_preview_thumbnail_image(
-        self,
-        mock_camera: Camera,
-        tmp_path: Path,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        """Preview thumbnails must be valid images before they are exposed under /uploads."""
-        monkeypatch.setattr(settings, "image_storage_path", tmp_path)
-        upload = UploadFile(
-            filename="preview.jpg",
-            file=BytesIO(b"not an image"),
-            headers=Headers({"content-type": "image/jpeg"}),
+    with pytest.raises(HTTPException) as exc_info:
+        await receive_camera_upload(
+            camera_id=mock_camera.id,
+            camera=mock_camera,
+            session=MagicMock(),
+            file=upload,
+            capture_metadata=capture_metadata,
+            upload_metadata=upload_metadata,
         )
 
-        with pytest.raises(HTTPException) as exc_info:
-            await receive_preview_thumbnail_upload(camera_id=mock_camera.id, camera=mock_camera, file=upload)
+    assert exc_info.value.status_code == 400
+    assert str(exc_info.value.detail).startswith(expected_detail)
 
-        assert exc_info.value.status_code == 400
-        assert "invalid image" in str(exc_info.value.detail).lower()
+async def test_rejects_oversized_metadata(
+
+    mock_camera: Camera,
+) -> None:
+    """Device uploads should bound parsed metadata before storage work."""
+    upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await receive_camera_upload(
+            camera_id=mock_camera.id,
+            camera=mock_camera,
+            session=MagicMock(),
+            file=upload,
+            capture_metadata="{}",
+            upload_metadata='{"product_id": 1, "description": "' + ("x" * 5000) + '"}',
+        )
+
+    assert exc_info.value.status_code == 400
+    assert str(exc_info.value.detail).startswith("upload_metadata")
+
+async def test_rejects_upload_for_product_not_owned_by_camera_owner(mock_camera: Camera) -> None:
+    """A paired device may only attach captures to products owned by its owner."""
+    upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
+    foreign_product_id = 1
+
+    mock_storage = MagicMock()
+    mock_storage.create = AsyncMock()
+
+    with (
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.images.get_user_owned_object",
+            new=AsyncMock(
+                side_effect=UserOwnershipError(Product, foreign_product_id, mock_camera.owner_id),
+            ),
+        ),
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.images.image_storage_service",
+            mock_storage,
+        ),
+        pytest.raises(UserOwnershipError),
+    ):
+        await receive_camera_upload(
+            camera_id=mock_camera.id,
+            camera=mock_camera,
+            session=MagicMock(),
+            file=upload,
+            capture_metadata="{}",
+            upload_metadata=f'{{"product_id": {foreign_product_id}}}',
+        )
+
+    mock_storage.create.assert_not_awaited()
+
+async def test_persists_deterministic_preview_thumbnail_and_returns_url(
+
+    mock_camera: Camera,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A device upload should overwrite the deterministic preview-thumbnail cache file."""
+    monkeypatch.setattr(settings, "image_storage_path", tmp_path)
+    upload = _jpeg_upload()
+
+    ack = await receive_preview_thumbnail_upload(camera_id=mock_camera.id, camera=mock_camera, file=upload)
+
+    path = tmp_path / "rpi-cam-preview" / f"{mock_camera.id}.jpg"
+    assert path.read_bytes().startswith(b"\xff\xd8")
+    expected_mtime = int(path.stat().st_mtime)
+    assert ack.preview_thumbnail_url == f"/uploads/images/rpi-cam-preview/{mock_camera.id}.jpg?v={expected_mtime}"
+
+async def test_rejects_empty_preview_thumbnail_upload(
+
+    mock_camera: Camera,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Empty uploads should fail with a client error instead of writing a bogus cache file."""
+    monkeypatch.setattr(settings, "image_storage_path", tmp_path)
+    upload = UploadFile(filename="preview.jpg", file=BytesIO(b""))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await receive_preview_thumbnail_upload(camera_id=mock_camera.id, camera=mock_camera, file=upload)
+
+    assert exc_info.value.status_code == 400
+    assert "empty" in str(exc_info.value.detail).lower()
+
+async def test_rejects_invalid_preview_thumbnail_image(
+
+    mock_camera: Camera,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Preview thumbnails must be valid images before they are exposed under /uploads."""
+    monkeypatch.setattr(settings, "image_storage_path", tmp_path)
+    upload = UploadFile(
+        filename="preview.jpg",
+        file=BytesIO(b"not an image"),
+        headers=Headers({"content-type": "image/jpeg"}),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await receive_preview_thumbnail_upload(camera_id=mock_camera.id, camera=mock_camera, file=upload)
+
+    assert exc_info.value.status_code == 400
+    assert "invalid image" in str(exc_info.value.detail).lower()
+

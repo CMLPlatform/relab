@@ -30,7 +30,6 @@ PUBLIC_JWK = {
 }
 KEY_ID = "integration-key-1"
 
-
 def build_camera_payload(name: str = CAM_NAME, description: str | None = CAM_DESC) -> dict[str, object]:
     """Build a WebSocket-only camera create payload."""
     return {
@@ -39,7 +38,6 @@ def build_camera_payload(name: str = CAM_NAME, description: str | None = CAM_DES
         "relay_public_key_jwk": PUBLIC_JWK,
         "relay_key_id": KEY_ID,
     }
-
 
 async def test_camera_lifecycle_and_constraints(api_client_superuser: AsyncClient, db_superuser: User) -> None:
     """Test the lifecycle of a camera and DB constraints.
@@ -84,7 +82,6 @@ async def test_camera_lifecycle_and_constraints(api_client_superuser: AsyncClien
     response = await api_client_superuser.get(f"/v1/plugins/rpi-cam/cameras/{camera_id}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
-
 async def test_plugin_camera_routes(api_client_superuser: AsyncClient) -> None:
     """The plugin-scoped camera route should expose the CRUD flow."""
     camera_data = build_camera_payload()
@@ -101,7 +98,6 @@ async def test_plugin_camera_routes(api_client_superuser: AsyncClient) -> None:
 
     response = await api_client_superuser.delete(f"/v1/plugins/rpi-cam/cameras/{camera_id}")
     assert response.status_code == status.HTTP_204_NO_CONTENT
-
 
 async def test_non_owner_cannot_access_camera(
     api_client_user: AsyncClient,
@@ -132,7 +128,6 @@ async def test_non_owner_cannot_access_camera(
     assert patch_response.status_code == status.HTTP_404_NOT_FOUND
     assert delete_response.status_code == status.HTTP_404_NOT_FOUND
 
-
 async def test_camera_unique_constraints(api_client_superuser: AsyncClient) -> None:
     """Test unique constraints if any."""
     camera_data = build_camera_payload(name=DUPLICATE_CAM_NAME)
@@ -144,7 +139,6 @@ async def test_camera_unique_constraints(api_client_superuser: AsyncClient) -> N
     # Second camera
     response = await api_client_superuser.post("/v1/plugins/rpi-cam/cameras", json=camera_data)
     assert response.status_code == status.HTTP_201_CREATED
-
 
 async def test_camera_required_fields(api_client_superuser: AsyncClient) -> None:
     """Test API structure validation for required fields."""

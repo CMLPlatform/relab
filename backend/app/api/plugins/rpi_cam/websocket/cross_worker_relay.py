@@ -28,7 +28,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
-import inspect
 import json
 import logging
 import time
@@ -38,8 +37,6 @@ from typing import TYPE_CHECKING, cast
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable
-
     from pydantic import UUID4
     from redis.asyncio import Redis
 
@@ -73,17 +70,66 @@ def _resp_ttl_seconds(timeout_s: float) -> int:
     return max(_RESP_TTL_MIN_SECONDS, int(timeout_s) + 10)
 
 
-async def _await_redis_result[T](result: Awaitable[T] | T) -> T:
-    """Await Redis calls only when the type checker cannot prove they are async."""
-    if inspect.isawaitable(result):
-        return await cast("Awaitable[T]", result)
-    return cast("T", result)
-
-
 async def _blpop_once(redis: Redis, key: str) -> tuple[str, str] | None:
     """Run one finite BLPOP poll so relay waits outlive the shared client's socket timeout."""
-    result = await _await_redis_result(redis.blpop(key, timeout=_BLPOP_POLL_SECONDS))
-    return cast("tuple[str, str] | None", result)
+    return cast("tuple[str, str] | None", await redis.blpop(key, timeout=_BLPOP_POLL_SECONDS))
+
+
+# ── Codec ─────────────────────────────────────────────────────────────────────
+
+
+def _encode_command(
+    msg_id: str,
+    method: str,
+    path: str,
+    params: dict | None,
+    body: dict | None,
+    headers: dict[str, str] | None,
+    deadline: float,
+    timeout_s: float,
+) -> str:
+    return json.dumps(
+        {
+            "msg_id": msg_id,
+            "method": method,
+            "path": path,
+            "params": params,
+            "body": body,
+            "headers": headers or {},
+            "deadline": deadline,  # wall-clock for cross-process comparison
+            "timeout_s": timeout_s,
+        }
+    )
+
+
+def _decode_response(raw: str) -> tuple[dict, bytes | None]:
+    try:
+        resp = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        msg = f"Cross-worker relay received malformed response JSON: {raw!r}"
+        raise RuntimeError(msg) from exc
+
+    if error := resp.get("error"):
+        raise RuntimeError(error)
+
+    json_resp: dict = {"status": resp.get("status", 500), "data": resp.get("data") or {}}
+
+    binary: bytes | None = None
+    if binary_b64 := resp.get("binary_b64"):
+        try:
+            binary = base64.b64decode(binary_b64)
+        except Exception as exc:
+            msg = "Cross-worker relay could not decode binary payload"
+            raise RuntimeError(msg) from exc
+
+    return json_resp, binary
+
+
+def _encode_response(json_resp: dict, binary: bytes | None) -> str:
+    response: dict = {"status": json_resp.get("status", 500), "data": json_resp.get("data")}
+    if binary is not None:
+        response["binary_b64"] = base64.b64encode(binary).decode()
+    return json.dumps(response)
 
 
 # ── Requesting-worker side ─────────────────────────────────────────────────────
@@ -117,26 +163,15 @@ async def relay_cross_worker(
     msg_id = str(uuid.uuid4())
     deadline = time.monotonic() + timeout_s
 
-    command_payload = json.dumps(
-        {
-            "msg_id": msg_id,
-            "method": method,
-            "path": path,
-            "params": params,
-            "body": body,
-            "headers": headers or {},
-            "deadline": time.time() + timeout_s,  # wall-clock for cross-process comparison
-            "timeout_s": timeout_s,
-        }
-    )
+    command_payload = _encode_command(msg_id, method, path, params, body, headers, time.time() + timeout_s, timeout_s)
 
     resp_key = _resp_key(msg_id)
 
     cmd_key = _cmd_key(camera_id)
-    await _await_redis_result(redis.rpush(cmd_key, command_payload))
+    await redis.rpush(cmd_key, command_payload)
     # Keep only the most recent _CMD_QUEUE_MAX_LEN entries; older ones self-expire
     # via their deadline on the listener side.
-    await _await_redis_result(redis.ltrim(cmd_key, -_CMD_QUEUE_MAX_LEN, -1))
+    await redis.ltrim(cmd_key, -_CMD_QUEUE_MAX_LEN, -1)
 
     remaining = deadline - time.monotonic()
     if remaining <= 0:
@@ -152,31 +187,7 @@ async def relay_cross_worker(
         raise RuntimeError(msg) from exc
 
     _key, raw_resp = result
-    try:
-        resp = json.loads(raw_resp)
-    except json.JSONDecodeError as exc:
-        msg = f"Cross-worker relay received malformed response JSON: {raw_resp!r}"
-        raise RuntimeError(msg) from exc
-
-    if error := resp.get("error"):
-        raise RuntimeError(error)
-
-    json_data: dict = resp.get("data") or {}
-    # Restore the full relay response structure the caller expects.
-    json_resp = {
-        "status": resp.get("status", 500),
-        "data": json_data,
-    }
-
-    binary: bytes | None = None
-    if binary_b64 := resp.get("binary_b64"):
-        try:
-            binary = base64.b64decode(binary_b64)
-        except Exception as exc:
-            msg = "Cross-worker relay could not decode binary payload"
-            raise RuntimeError(msg) from exc
-
-    return json_resp, binary
+    return _decode_response(raw_resp)
 
 
 # ── Camera-owning-worker side ──────────────────────────────────────────────────
@@ -283,8 +294,8 @@ async def _execute_and_respond(
         )
         error_payload = json.dumps({"error": str(exc)})
         with contextlib.suppress(Exception):
-            await _await_redis_result(redis.rpush(resp_key, error_payload))
-            await _await_redis_result(redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0))))
+            await redis.rpush(resp_key, error_payload)
+            await redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0)))
         return
     except Exception as exc:
         logger.exception(
@@ -294,20 +305,13 @@ async def _execute_and_respond(
         )
         error_payload = json.dumps({"error": f"Internal relay error: {exc}"})
         with contextlib.suppress(Exception):
-            await _await_redis_result(redis.rpush(resp_key, error_payload))
-            await _await_redis_result(redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0))))
+            await redis.rpush(resp_key, error_payload)
+            await redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0)))
         return
 
-    response: dict = {
-        "status": json_resp.get("status", 500),
-        "data": json_resp.get("data"),
-    }
-    if binary is not None:
-        response["binary_b64"] = base64.b64encode(binary).decode()
-
     try:
-        await _await_redis_result(redis.rpush(resp_key, json.dumps(response)))
-        await _await_redis_result(redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0))))
+        await redis.rpush(resp_key, _encode_response(json_resp, binary))
+        await redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0)))
     except Exception:
         logger.exception(
             "Relay listener: failed to push response for command %s (camera %s)",

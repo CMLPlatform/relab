@@ -4,11 +4,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
+from unittest.mock import AsyncMock
 
 from app.api.plugins.rpi_cam.youtube import YouTubeService
 
@@ -43,17 +40,6 @@ class GoogleOAuthClientStub:
         self.refresh_token = AsyncMock()
 
 
-class SessionStub:
-    """Typed database session stub for service tests."""
-
-    def __init__(self) -> None:
-        self.add = MagicMock()
-        self.commit = AsyncMock()
-        self.delete = AsyncMock()
-        self.refresh = AsyncMock()
-        self.get = AsyncMock(return_value=None)
-
-
 class HTTPClientStub:
     """Typed HTTP client stub for service tests."""
 
@@ -61,45 +47,9 @@ class HTTPClientStub:
         self.request = AsyncMock()
 
 
-@pytest.fixture
-def mock_session() -> SessionStub:
-    """Return a mock database session."""
-    return SessionStub()
-
-
-@pytest.fixture
-def mock_google_oauth_client() -> GoogleOAuthClientStub:
-    """Return a mock Google OAuth client."""
-    return GoogleOAuthClientStub()
-
-
-@pytest.fixture
-def mock_http_client() -> HTTPClientStub:
-    """Return a mock shared HTTP client."""
-    return HTTPClientStub()
-
-
-@pytest.fixture
-def mock_oauth_account() -> OAuthAccountStub:
-    """Return a mock OAuth account."""
-    return OAuthAccountStub(
-        access_token=FAKE_ACCESS_TOKEN,
-        refresh_token=FAKE_REFRESH_TOKEN,
-        expires_at=(datetime.now(UTC) + timedelta(hours=1)).timestamp(),
-    )
-
-
 @dataclass
 class YouTubeServiceFixture:
-    """Bundle the YouTubeService under test with its typed stub dependencies.
-
-    Tests read the service through ``service`` and assert on the stubs directly (e.g.
-    ``fx.google_client.refresh_token.assert_called_once()``) — no ``cast("Any", service.X)``
-    gymnastics to pierce the service's real types.
-
-    ``session`` is deliberately ``Any`` — the underlying fixture is an ``AsyncMock`` at the
-    pytest-session scope, shared with tests that expect a real AsyncSession shape.
-    """
+    """Bundle the YouTubeService under test with its typed stub dependencies."""
 
     service: YouTubeService
     oauth_account: OAuthAccountStub

@@ -9,8 +9,8 @@ from pydantic import UUID4, PositiveInt, ValidationError
 from relab_rpi_cam_models.stream import StreamView
 
 from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
-from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.file_storage.schemas import VideoRead
 from app.api.plugins.rpi_cam.constants import PLUGIN_STREAM_ENDPOINT, HttpMethod
@@ -26,7 +26,7 @@ from app.api.plugins.rpi_cam.recording_service import (
     start_youtube_recording,
     stop_youtube_recording,
 )
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
+from app.api.plugins.rpi_cam.runtime.relay import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
 from app.api.plugins.rpi_cam.youtube import YouTubePrivacyStatus
 from app.core.redis import RedisDep

@@ -9,17 +9,16 @@ from fastapi import Body, File, Form, HTTPException, UploadFile
 from pydantic import UUID4, PositiveInt
 from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
 
-from app.api.audiences import DeviceAPIRouter
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
+from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
 from app.api.common.exceptions import APIError, InternalServerError
 from app.api.common.form_json import parse_required_json_object
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.validation import MultilineUserText
 from app.api.data_collection.models.product import Product
-from app.api.file_storage.crud.media_queries import create_image
+from app.api.file_storage.crud.support_services import image_storage_service
 from app.api.file_storage.crud.support_uploads import validate_upload_size
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal, ImageRead
@@ -29,9 +28,9 @@ from app.api.plugins.rpi_cam.examples import (
     CAMERA_CAPTURE_IMAGE_DESCRIPTION_OPENAPI_EXAMPLES,
     CAMERA_CAPTURE_IMAGE_PRODUCT_ID_OPENAPI_EXAMPLES,
 )
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
-from app.api.plugins.rpi_cam.runtime_capture import capture_and_store_image
-from app.api.plugins.rpi_cam.runtime_preview import get_preview_thumbnail_path, get_preview_thumbnail_url
+from app.api.plugins.rpi_cam.runtime.capture import capture_and_store_image
+from app.api.plugins.rpi_cam.runtime.preview import get_preview_thumbnail_path, get_preview_thumbnail_url
+from app.api.plugins.rpi_cam.runtime.relay import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.utils.metadata import validate_rpi_cam_metadata_object
 from app.core.config import settings
 from app.core.redis import RedisDep
@@ -175,7 +174,7 @@ async def receive_camera_upload(
         product_id_int,
         file.filename,
     )
-    image = await create_image(session, image_data, quota_user_id=camera.owner_id)
+    image = await image_storage_service.create(session, image_data, quota_user_id=camera.owner_id)
 
     # ImageRead computes the public `image_url` via a model_validator based on
     # the image's storage path. Round-trip through it to reuse that logic.

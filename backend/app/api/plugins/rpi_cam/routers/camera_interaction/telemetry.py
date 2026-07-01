@@ -4,11 +4,6 @@ The mosaic dashboard polls one camera's telemetry every ~5s; with the cache,
 those polls cost a Redis GET and no relay round-trip. The first poll (cold
 cache) forwards to the Pi's ``GET /system/telemetry`` endpoint, caches the snapshot
 for 120s, and returns it. Subsequent polls within 120s hit the cache.
-
-The backend telemetry contract lives in ``app.api.plugins.rpi_cam.telemetry``
-and is kept byte-compatible with the shared ``relab_rpi_cam_models.telemetry``
-module (shared package 0.3.0+). When 0.5.0 publishes to PyPI, swap the local
-copy for a straight import and delete this note.
 """
 
 from __future__ import annotations
@@ -19,12 +14,12 @@ from pydantic import UUID4, ValidationError
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 
 from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.exceptions import InvalidCameraResponseError
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
-from app.api.plugins.rpi_cam.runtime_status import get_cached_telemetry, store_telemetry
+from app.api.plugins.rpi_cam.runtime.relay import build_camera_request, get_user_owned_camera
+from app.api.plugins.rpi_cam.runtime.status import get_cached_telemetry, store_telemetry
 from app.core.redis import RedisDep
 
 router = PublicAPIRouter()

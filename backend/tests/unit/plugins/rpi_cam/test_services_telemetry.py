@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot, ThermalState
 
-from app.api.plugins.rpi_cam.runtime_status import (
+from app.api.plugins.rpi_cam.runtime.status import (
     TELEMETRY_CACHE_PREFIX,
     TELEMETRY_CACHE_TTL_SECONDS,
     get_cached_telemetry,
@@ -19,7 +19,6 @@ from app.api.plugins.rpi_cam.runtime_status import (
 
 if TYPE_CHECKING:
     import pytest
-
 
 def _snapshot() -> TelemetrySnapshot:
     """Return a sample telemetry snapshot."""
@@ -35,104 +34,89 @@ def _snapshot() -> TelemetrySnapshot:
         current_preview_size=None,
     )
 
+def test_key_includes_the_camera_id() -> None:
+    """Ensure the cache key includes the camera ID."""
+    camera_id = uuid4()
+    key = get_telemetry_cache_key(camera_id)
+    assert key == f"{TELEMETRY_CACHE_PREFIX}:{camera_id}"
 
-class TestTelemetryCacheKeys:
-    """The Redis key namespace for telemetry should be stable across releases."""
+def test_prefix_and_ttl_are_what_the_router_expects() -> None:
+    """Ensure the prefix and TTL match the router's expectations."""
+    # The router tests rely on these values; pin them so accidental drift fails here first.
+    assert TELEMETRY_CACHE_PREFIX == "rpi_cam:telemetry"
+    assert TELEMETRY_CACHE_TTL_SECONDS == 120
 
-    def test_key_includes_the_camera_id(self) -> None:
-        """Ensure the cache key includes the camera ID."""
-        camera_id = uuid4()
-        key = get_telemetry_cache_key(camera_id)
-        assert key == f"{TELEMETRY_CACHE_PREFIX}:{camera_id}"
+async def test_store_telemetry_writes_with_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure telemetry is stored with the correct TTL."""
+    redis = AsyncMock()
+    set_mock = AsyncMock(return_value=True)
+    monkeypatch.setattr(
+        "app.api.plugins.rpi_cam.runtime.status.set_redis_value",
+        set_mock,
+    )
 
-    def test_prefix_and_ttl_are_what_the_router_expects(self) -> None:
-        """Ensure the prefix and TTL match the router's expectations."""
-        # The router tests rely on these values; pin them so accidental drift fails here first.
-        assert TELEMETRY_CACHE_PREFIX == "rpi_cam:telemetry"
-        assert TELEMETRY_CACHE_TTL_SECONDS == 120
+    snapshot = _snapshot()
+    camera_id = uuid4()
+    await store_telemetry(redis, camera_id, snapshot)
 
+    set_mock.assert_awaited_once()
+    assert set_mock.await_args is not None
+    args, kwargs = set_mock.await_args
+    assert args[0] is redis
+    assert args[1] == get_telemetry_cache_key(camera_id)
+    # The payload must round-trip back to the exact same snapshot.
+    assert TelemetrySnapshot.model_validate_json(args[2]) == snapshot
+    assert kwargs == {"ex": TELEMETRY_CACHE_TTL_SECONDS}
 
-class TestStoreTelemetry:
-    """Storing a snapshot writes the JSON blob with the expected TTL."""
+async def test_cache_hit_parses_json(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure cache hits are parsed correctly."""
+    snapshot = _snapshot()
+    monkeypatch.setattr(
+        "app.api.plugins.rpi_cam.runtime.status.get_redis_value",
+        AsyncMock(return_value=snapshot.model_dump_json()),
+    )
 
-    async def test_store_telemetry_writes_with_ttl(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Ensure telemetry is stored with the correct TTL."""
-        redis = AsyncMock()
-        set_mock = AsyncMock(return_value=True)
-        monkeypatch.setattr(
-            "app.api.plugins.rpi_cam.runtime_status.set_redis_value",
-            set_mock,
-        )
+    result = await get_cached_telemetry(AsyncMock(), uuid4())
+    assert result == snapshot
 
-        snapshot = _snapshot()
-        camera_id = uuid4()
-        await store_telemetry(redis, camera_id, snapshot)
+async def test_cache_miss_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure cache misses are handled gracefully."""
+    monkeypatch.setattr(
+        "app.api.plugins.rpi_cam.runtime.status.get_redis_value",
+        AsyncMock(return_value=None),
+    )
+    result = await get_cached_telemetry(AsyncMock(), uuid4())
+    assert result is None
 
-        set_mock.assert_awaited_once()
-        assert set_mock.await_args is not None
-        args, kwargs = set_mock.await_args
-        assert args[0] is redis
-        assert args[1] == get_telemetry_cache_key(camera_id)
-        # The payload must round-trip back to the exact same snapshot.
-        assert TelemetrySnapshot.model_validate_json(args[2]) == snapshot
-        assert kwargs == {"ex": TELEMETRY_CACHE_TTL_SECONDS}
+async def test_malformed_payload_returns_none_and_logs(
 
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Ensure malformed payloads are handled gracefully."""
+    monkeypatch.setattr(
+        "app.api.plugins.rpi_cam.runtime.status.get_redis_value",
+        AsyncMock(return_value='{"not": "a snapshot"}'),
+    )
 
-class TestGetCachedTelemetry:
-    """Loading from the cache handles hit / miss / malformed blobs gracefully."""
-
-    async def test_cache_hit_parses_json(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Ensure cache hits are parsed correctly."""
-        snapshot = _snapshot()
-        monkeypatch.setattr(
-            "app.api.plugins.rpi_cam.runtime_status.get_redis_value",
-            AsyncMock(return_value=snapshot.model_dump_json()),
-        )
-
+    with caplog.at_level("WARNING"):
         result = await get_cached_telemetry(AsyncMock(), uuid4())
-        assert result == snapshot
 
-    async def test_cache_miss_returns_none(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Ensure cache misses are handled gracefully."""
-        monkeypatch.setattr(
-            "app.api.plugins.rpi_cam.runtime_status.get_redis_value",
-            AsyncMock(return_value=None),
-        )
-        result = await get_cached_telemetry(AsyncMock(), uuid4())
-        assert result is None
+    assert result is None
+    assert "malformed cached telemetry" in caplog.text
 
-    async def test_malformed_payload_returns_none_and_logs(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        """Ensure malformed payloads are handled gracefully."""
-        monkeypatch.setattr(
-            "app.api.plugins.rpi_cam.runtime_status.get_redis_value",
-            AsyncMock(return_value='{"not": "a snapshot"}'),
-        )
+def test_required_fields_are_stable() -> None:
+    """The Pi emits these fields on every snapshot; relaxing any of them is a contract break."""
+    schema = TelemetrySnapshot.model_json_schema()
+    assert set(schema["required"]) == {
+        "timestamp",
+        "cpu_percent",
+        "mem_percent",
+        "disk_percent",
+        "thermal_state",
+    }
 
-        with caplog.at_level("WARNING"):
-            result = await get_cached_telemetry(AsyncMock(), uuid4())
+def test_thermal_state_enum_values_are_stable() -> None:
+    """Thermal bands are load-bearing for the governor; changes require coordinated deploys."""
+    assert {state.value for state in ThermalState} == {"normal", "warm", "throttle", "critical"}
 
-        assert result is None
-        assert "malformed cached telemetry" in caplog.text
-
-
-class TestTelemetrySchemaContract:
-    """Pin the shared-package ``TelemetrySnapshot`` shape so Pi-side changes fail here first."""
-
-    def test_required_fields_are_stable(self) -> None:
-        """The Pi emits these fields on every snapshot; relaxing any of them is a contract break."""
-        schema = TelemetrySnapshot.model_json_schema()
-        assert set(schema["required"]) == {
-            "timestamp",
-            "cpu_percent",
-            "mem_percent",
-            "disk_percent",
-            "thermal_state",
-        }
-
-    def test_thermal_state_enum_values_are_stable(self) -> None:
-        """Thermal bands are load-bearing for the governor; changes require coordinated deploys."""
-        assert {state.value for state in ThermalState} == {"normal", "warm", "throttle", "critical"}

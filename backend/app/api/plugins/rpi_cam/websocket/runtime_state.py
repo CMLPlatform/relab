@@ -7,18 +7,18 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 
-_manager_state: dict[str, CameraConnectionManager | None] = {"manager": None}
+_manager: CameraConnectionManager | None = None
 
 
 def get_connection_manager() -> CameraConnectionManager:
     """Return the global CameraConnectionManager initialized at startup."""
-    manager = _manager_state["manager"]
-    if manager is None:
+    if _manager is None:
         msg = "CameraConnectionManager is not initialized."
         raise RuntimeError(msg)
-    return manager
+    return _manager
 
 
 def set_connection_manager(manager: CameraConnectionManager | None) -> None:
     """Set or clear the process-local camera connection manager."""
-    _manager_state["manager"] = manager
+    global _manager
+    _manager = manager

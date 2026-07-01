@@ -29,7 +29,6 @@ async def test_refresh_token_if_needed_not_expired(youtube_fx: YouTubeServiceFix
     await youtube_fx.service.refresh_token_if_needed()
     youtube_fx.google_client.refresh_token.assert_not_called()
 
-
 async def test_refresh_token_if_needed_expired_success(youtube_fx: YouTubeServiceFixture) -> None:
     """Expired tokens should be refreshed and persisted."""
     youtube_fx.oauth_account.expires_at = (datetime.now(UTC) - timedelta(hours=1)).timestamp()
@@ -45,7 +44,6 @@ async def test_refresh_token_if_needed_expired_success(youtube_fx: YouTubeServic
     youtube_fx.session.add.assert_called_once()
     youtube_fx.session.commit.assert_awaited_once()
 
-
 async def test_refresh_token_missing_token(youtube_fx: YouTubeServiceFixture) -> None:
     """Refreshing without a refresh token should fail loudly."""
     youtube_fx.oauth_account.expires_at = (datetime.now(UTC) - timedelta(hours=1)).timestamp()
@@ -53,7 +51,6 @@ async def test_refresh_token_missing_token(youtube_fx: YouTubeServiceFixture) ->
 
     with pytest.raises(GoogleOAuthAssociationRequiredError, match="Google OAuth account association required"):
         await youtube_fx.service.refresh_token_if_needed()
-
 
 async def test_request_youtube_api_uses_bearer_auth(youtube_fx: YouTubeServiceFixture) -> None:
     """YouTube API requests should use bearer authentication."""
@@ -71,7 +68,6 @@ async def test_request_youtube_api_uses_bearer_auth(youtube_fx: YouTubeServiceFi
         headers={"Authorization": f"Bearer {FAKE_ACCESS_TOKEN}"},
     )
 
-
 async def test_request_youtube_api_retries_on_503(
     youtube_fx: YouTubeServiceFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -86,7 +82,6 @@ async def test_request_youtube_api_retries_on_503(
 
     assert result == {"ok": True}
     assert youtube_fx.http_client.request.await_count == 2
-
 
 async def test_request_youtube_api_does_not_retry_4xx(
     youtube_fx: YouTubeServiceFixture, monkeypatch: pytest.MonkeyPatch
@@ -104,7 +99,6 @@ async def test_request_youtube_api_does_not_retry_4xx(
     assert excinfo.value.http_status_code == 403
     youtube_fx.http_client.request.assert_awaited_once()
 
-
 @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)
 @patch.object(YouTubeService, "refresh_token_if_needed", new_callable=AsyncMock)
 async def test_end_livestream_success(
@@ -120,7 +114,6 @@ async def test_end_livestream_success(
         "liveBroadcasts/transition",
         params={"broadcastStatus": "complete", "id": FAKE_BROADCAST_ID, "part": "status"},
     )
-
 
 @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)
 @patch.object(YouTubeService, "refresh_token_if_needed", new_callable=AsyncMock)
@@ -143,7 +136,6 @@ async def test_setup_livestream_success(
     assert result.broadcast_key.get_secret_value() == FAKE_BROADCAST_ID
     assert result.stream_id == FAKE_STREAM_ID
 
-
 @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)
 @patch.object(YouTubeService, "refresh_token_if_needed", new_callable=AsyncMock)
 async def test_validate_stream_status_active(
@@ -155,7 +147,6 @@ async def test_validate_stream_status_active(
     del mock_refresh
     mock_request_youtube_api.return_value = {"items": [{"status": {"streamStatus": "active"}}]}
     assert await youtube_fx.service.validate_stream_status(FAKE_STREAM_ID) is True
-
 
 @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)
 @patch.object(YouTubeService, "refresh_token_if_needed", new_callable=AsyncMock)
@@ -189,7 +180,6 @@ async def test_get_broadcast_monitor_stream_success(
         embedHtml="<iframe />",
     )
 
-
 @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)
 @patch.object(YouTubeService, "refresh_token_if_needed", new_callable=AsyncMock)
 async def test_setup_livestream_invalid_stream_response(
@@ -206,7 +196,6 @@ async def test_setup_livestream_invalid_stream_response(
 
     assert exc_info.value.details is not None
     assert "Invalid YouTube stream response" in exc_info.value.details
-
 
 @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)
 @patch.object(YouTubeService, "refresh_token_if_needed", new_callable=AsyncMock)

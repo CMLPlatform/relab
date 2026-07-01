@@ -97,7 +97,7 @@ async def relay_via_websocket(
     *,
     error_msg: str | None = None,
     expect_binary: bool = False,
-    redis: Redis | None = None,
+    redis: Redis,
 ) -> RelayResponse:
     """Send an allowlisted command to a camera over its WebSocket connection.
 
@@ -105,8 +105,7 @@ async def relay_via_websocket(
     directly (fast path).  When it lives in a different worker process,
     ``redis`` is used to bridge the request via ``cross_worker_relay`` — the
     owning worker picks up the command, forwards it to the Pi, and posts the
-    response back.  Pass ``redis=None`` to disable cross-worker bridging (the
-    call will raise 503 when the camera is not connected locally).
+    response back.
     """
     normalized_method = method.upper()
     if not relay_command_is_allowed(normalized_method, path):
@@ -132,15 +131,8 @@ async def relay_via_websocket(
                 body=body,
                 headers=relay_headers or None,
             )
-    except RuntimeError as exc:
+    except RuntimeError:
         # Camera not connected in this worker — try the cross-worker bridge.
-        if redis is None:
-            logger.warning(
-                "Camera %s not connected for relay: %s",
-                sanitize_log_value(camera_id),
-                sanitize_log_value(exc),
-            )
-            raise _camera_not_connected() from exc
         try:
             json_resp, binary = await _attempt_cross_worker_relay(
                 redis,

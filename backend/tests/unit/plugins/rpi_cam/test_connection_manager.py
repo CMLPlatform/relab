@@ -16,14 +16,12 @@ from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectio
 if TYPE_CHECKING:
     import pytest
 
-
 @dataclass
 class _RelayCommand:
     payload: dict
 
     def model_dump_json(self) -> str:
         return json.dumps(self.payload)
-
 
 async def test_send_command_uses_model_package_command_builder_and_resolves_response(
     monkeypatch: pytest.MonkeyPatch,

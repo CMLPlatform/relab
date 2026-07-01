@@ -21,7 +21,6 @@ def build_camera(*, owner_id: uuid.UUID) -> Camera:
         relay_key_id="test-key-id",
     )
 
-
 async def test_camera_update_accepts_regular_updates_without_owner_transfer() -> None:
     """Regular camera updates remain valid without ownership transfer support."""
     session = AsyncMock()
@@ -31,7 +30,6 @@ async def test_camera_update_accepts_regular_updates_without_owner_transfer() ->
     assert camera.owner_id is not None
     assert camera_in.name == "Updated"
     session.add.assert_not_called()
-
 
 def test_camera_update_rejects_public_owner_transfer() -> None:
     """Public camera updates must not accept owner_id transfer payloads."""

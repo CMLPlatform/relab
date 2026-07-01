@@ -9,9 +9,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraCredentialStatus, CameraStatus
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
-    get_user_owned_camera,
-)
+from app.api.plugins.rpi_cam.runtime.relay import get_user_owned_camera
 
 
 def build_camera() -> Camera:
@@ -25,7 +23,6 @@ def build_camera() -> Camera:
         owner_id=uuid4(),
     )
 
-
 async def test_get_user_owned_camera_returns_camera_when_online() -> None:
     """Should return the camera when it is online."""
     camera = build_camera()
@@ -36,11 +33,11 @@ async def test_get_user_owned_camera_returns_camera_when_online() -> None:
 
     with (
         patch(
-            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_user_owned_object",
+            "app.api.plugins.rpi_cam.runtime.relay.get_user_owned_object",
             new=AsyncMock(return_value=camera),
         ),
         patch(
-            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_camera_status",
+            "app.api.plugins.rpi_cam.runtime.relay.get_camera_status",
             new=get_status_mock,
         ),
     ):
@@ -48,7 +45,6 @@ async def test_get_user_owned_camera_returns_camera_when_online() -> None:
 
     assert result is camera
     get_status_mock.assert_awaited_once_with(redis, camera.id)
-
 
 async def test_get_user_owned_camera_raises_503_when_offline() -> None:
     """Should raise HTTP 503 when the camera is offline."""
@@ -60,11 +56,11 @@ async def test_get_user_owned_camera_raises_503_when_offline() -> None:
 
     with (
         patch(
-            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_user_owned_object",
+            "app.api.plugins.rpi_cam.runtime.relay.get_user_owned_object",
             new=AsyncMock(return_value=camera),
         ),
         patch(
-            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_camera_status",
+            "app.api.plugins.rpi_cam.runtime.relay.get_camera_status",
             new=get_status_mock,
         ),
         pytest.raises(HTTPException) as exc_info,
@@ -74,7 +70,6 @@ async def test_get_user_owned_camera_raises_503_when_offline() -> None:
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera is offline"
     get_status_mock.assert_awaited_once_with(redis, camera.id)
-
 
 async def test_get_user_owned_camera_raises_401_when_unauthorized() -> None:
     """Should raise HTTP 401 when the camera returns unauthorized status."""
@@ -86,11 +81,11 @@ async def test_get_user_owned_camera_raises_401_when_unauthorized() -> None:
 
     with (
         patch(
-            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_user_owned_object",
+            "app.api.plugins.rpi_cam.runtime.relay.get_user_owned_object",
             new=AsyncMock(return_value=camera),
         ),
         patch(
-            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_camera_status",
+            "app.api.plugins.rpi_cam.runtime.relay.get_camera_status",
             new=get_status_mock,
         ),
         pytest.raises(HTTPException) as exc_info,

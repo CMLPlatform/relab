@@ -20,7 +20,7 @@ from app.api.auth.services.rate_limiter import RateLimitExceededError, limiter, 
 from app.api.common.exceptions import ServiceUnavailableError
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion
 from app.api.plugins.rpi_cam.models import Camera
-from app.api.plugins.rpi_cam.runtime_status import mark_camera_offline, mark_camera_online
+from app.api.plugins.rpi_cam.runtime.status import mark_camera_offline, mark_camera_online
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import run_relay_listener
 from app.core.config import settings
