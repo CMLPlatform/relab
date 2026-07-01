@@ -7,10 +7,11 @@ import { useDialog } from '@/components/base/dialogContext';
 import { TextInput } from '@/components/base/TextInput';
 import { StreamingContent } from '@/components/cameras/StreamingContent';
 import type { StreamSession } from '@/context/streamSession';
-import { extractYouTubeVideoId, isValidHttpUrl } from '@/services/api/validation/productSchema';
+import { extractYouTubeVideoId } from '@/services/api/validation/productSchema';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
+import { isHttpUrl } from '@/utils/urlSafety';
 
 interface Video {
   id?: number;
@@ -86,9 +87,9 @@ export default function ProductVideo({
         { text: 'Cancel' },
         {
           text: 'Add',
-          disabled: (value) => !(value?.trim() && isValidHttpUrl(value)),
+          disabled: (value) => !(value?.trim() && isHttpUrl(value)),
           onPress: (url) => {
-            if (!(url && isValidHttpUrl(url))) return;
+            if (!(url && isHttpUrl(url))) return;
             const updated = [...videos, { url: url.trim(), title: '', description: '' }];
             setVideos(updated);
             onVideoChange?.(updated);
@@ -270,7 +271,7 @@ function VideoRow({
             value={video.url}
             onChangeText={(value) => onVideoChange(idx, 'url', value)}
             errorOnEmpty
-            customValidation={isValidHttpUrl}
+            customValidation={isHttpUrl}
             editable={editMode}
           />
         ) : (

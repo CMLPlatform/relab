@@ -5,14 +5,6 @@ export const PRODUCT_NAME_MIN_LENGTH = 2;
 export const PRODUCT_NAME_MAX_LENGTH = 100;
 // spell-checker: ignore youtu.be
 
-/**
- * Validates that a string is a properly-formatted URL (http or https).
- * Used by ProductVideo component and video schema validation.
- */
-export function isValidHttpUrl(value: string | undefined): boolean {
-  return isHttpUrl(value);
-}
-
 const isYouTubeHostname = (hostname: string) => {
   const normalizedHostname = hostname.toLowerCase();
   return (
