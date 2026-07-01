@@ -60,10 +60,9 @@ export const usernameSchema = z
 
 export const emailSchema = z
   .string({ message: 'Email is required' })
+  .trim()
   .min(1, 'Email is required')
-  .transform((val) => val.trim())
-  .refine((val) => val.length > 0, 'Email is required')
-  .refine((val) => z.string().email().safeParse(val).success, 'Please enter a valid email address');
+  .email('Please enter a valid email address');
 
 export const passwordSchema = z
   .string({ message: 'Password is required' })

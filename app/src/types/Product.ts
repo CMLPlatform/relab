@@ -38,7 +38,7 @@ export type CircularityProperties = {
 };
 
 export function entityLabel(product: Pick<Product, 'role'>): 'product' | 'component' {
-  return product.role === 'component' ? 'component' : 'product';
+  return product.role;
 }
 
 export function entityLabelTitle(product: Pick<Product, 'role'>): 'Product' | 'Component' {
