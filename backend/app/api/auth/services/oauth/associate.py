@@ -27,12 +27,13 @@ from app.api.auth.services.oauth.base import (
     create_oauth_result_redirect,
     verify_oauth_state,
 )
-from app.api.auth.services.oauth_utils import (
+from app.api.auth.services.user_manager import UserManager, fastapi_user_manager
+
+from .utils import (
     FRONTEND_REDIRECT_URI_KEY,
     OAuth2AuthorizeResponse,
     OAuthCookieSettings,
 )
-from app.api.auth.services.user_manager import UserManager, fastapi_user_manager
 
 if TYPE_CHECKING:
     from fastapi_users.authentication import Authenticator

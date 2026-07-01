@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
-from app.api.auth.crud.users import validate_user_create
+from app.api.auth.crud import validate_user_create
 from app.api.auth.dependencies import UserManagerDep
 from app.api.auth.exceptions import (
     RegistrationInvalidPasswordHTTPError,
@@ -16,7 +16,7 @@ from app.api.auth.exceptions import (
 )
 from app.api.auth.models import User
 from app.api.auth.runtime_dependencies import get_email_checker
-from app.api.auth.schemas import UserReadPublic, UserRegister
+from app.api.auth.schemas import UserReadProfile, UserRegister
 from app.api.auth.services.email import mask_email_for_log
 from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT, limiter
 from app.api.common.exceptions import APIError
@@ -28,7 +28,7 @@ router = APIRouter()
 
 @router.post(
     "/register",
-    response_model=UserReadPublic,
+    response_model=UserReadProfile,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
     dependencies=[limiter.dependency(REGISTER_RATE_LIMIT)],

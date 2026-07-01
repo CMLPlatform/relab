@@ -13,7 +13,6 @@ from app.api.auth.services.oauth import routes
 if TYPE_CHECKING:
     import pytest
 
-
 def test_public_callback_url_uses_configured_backend_base(monkeypatch: pytest.MonkeyPatch) -> None:
     """Public OAuth callbacks should be built from the configured backend URL."""
     monkeypatch.setattr(
@@ -24,7 +23,6 @@ def test_public_callback_url_uses_configured_backend_base(monkeypatch: pytest.Mo
     assert routes.public_callback_url(f"{routes.PUBLIC_OAUTH_CALLBACK_PREFIX}/google/associate/callback") == (
         "https://api-test.cml-relab.org/v1/oauth/google/associate/callback"
     )
-
 
 def test_include_oauth_routes_uses_dedicated_state_secret(monkeypatch: pytest.MonkeyPatch) -> None:
     """OAuth route builders should receive OAUTH_STATE_SECRET, not AUTH_TOKEN_SECRET."""

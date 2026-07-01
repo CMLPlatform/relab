@@ -13,7 +13,7 @@ from pydantic import UUID4, EmailStr, SecretStr, TypeAdapter, ValidationError
 from sqlalchemy import select
 
 from app.api.auth.config import settings as auth_settings
-from app.api.auth.crud.users import update_user_override
+from app.api.auth.crud import update_user_override
 from app.api.auth.models import User
 from app.api.auth.runtime_dependencies import get_common_password_checker
 from app.api.auth.schemas import UserCreateBase, UserUpdate

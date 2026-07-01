@@ -14,7 +14,7 @@ from app.api.auth.services.oauth import (
     generate_state_token,
 )
 from app.api.auth.services.oauth.base import OAuthFlowConfig
-from app.api.auth.services.oauth_utils import OAUTH_FLOW_KEY, OAUTH_PROVIDER_KEY
+from app.api.auth.services.oauth.utils import OAUTH_FLOW_KEY, OAUTH_PROVIDER_KEY
 
 from .shared import TEST_EMAIL, TEST_STATE_JWT_SECRET
 

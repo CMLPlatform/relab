@@ -16,7 +16,7 @@ from app.api.auth.schemas import (
     MfaTotpSetupResponse,
     RefreshTokenResponse,
 )
-from app.api.auth.services import login_completion, mfa_enrollment, mfa_service
+from app.api.auth.services import login_completion, mfa_service
 from app.api.auth.services.user_manager import UserManager
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.redis import Redis
@@ -75,7 +75,7 @@ async def confirm_totp_setup(
         raise MfaCodeInvalidError
 
     setup = await mfa_service.consume_totp_setup(redis, setup_token, user_id=current_user.id)
-    await mfa_enrollment.enable_totp(user_manager, user, setup.secret)
+    await mfa_service.enable_totp(user_manager, user, setup.secret)
     audit_event(
         current_user.id, AuditAction.MFA_SUCCESS, "mfa", current_user.id, context=AuditContext(flow="totp_setup")
     )

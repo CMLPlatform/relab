@@ -45,7 +45,6 @@ def test_profile_visibility_policy_matrix(
     assert can_view_profile(owner, viewer) is expected_can_view
     assert should_redact_owner_identity(owner, viewer) is expected_redacts
 
-
 def test_user_preferences_keep_enum_instances_at_runtime() -> None:
     """Typed preferences should stay typed until JSON serialization."""
     preferences = UserPreferences.model_validate(
@@ -61,19 +60,16 @@ def test_user_preferences_keep_enum_instances_at_runtime() -> None:
     assert preferences.email_updates_enabled is True
     assert preferences.model_dump(mode="json")["profile_visibility"] == "private"
 
-
 def test_user_preferences_default_email_updates_to_disabled() -> None:
     """Recurring email updates should default to opt-out until a workflow exists."""
     preferences = UserPreferences()
 
     assert preferences.email_updates_enabled is False
 
-
 def test_user_preferences_update_rejects_unknown_keys() -> None:
     """Clients should not persist arbitrary preference keys."""
     with pytest.raises(ValidationError):
         UserPreferencesUpdate.model_validate({"unknown_feature_flag": True})
-
 
 def test_malformed_stored_profile_visibility_falls_back_closed_for_privacy() -> None:
     """Bad persisted visibility values should not leak profile or owner identity."""

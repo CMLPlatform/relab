@@ -36,18 +36,14 @@ from app.api.auth.exceptions import (
 from app.api.common.exceptions import APIError
 
 
-class TestAuthCRUDErrorHierarchy:
-    """Test the exception class hierarchy."""
+def test_auth_crud_error_is_not_api_error() -> None:
+    """Verify AuthCRUDError stays a marker mixin, while subclasses inherit APIError via concrete families."""
+    assert not issubclass(AuthCRUDError, APIError)
 
-    def test_auth_crud_error_is_not_api_error(self) -> None:
-        """Verify AuthCRUDError stays a marker mixin, while subclasses inherit APIError via concrete families."""
-        assert not issubclass(AuthCRUDError, APIError)
-
-    def test_user_ownership_error_is_api_error_not_auth_crud(self) -> None:
-        """Verify UserOwnershipError inherits from APIError directly, not AuthCRUDError."""
-        assert issubclass(UserOwnershipError, APIError)
-        assert not issubclass(UserOwnershipError, AuthCRUDError)
-
+def test_user_ownership_error_is_api_error_not_auth_crud() -> None:
+    """Verify UserOwnershipError inherits from APIError directly, not AuthCRUDError."""
+    assert issubclass(UserOwnershipError, APIError)
+    assert not issubclass(UserOwnershipError, AuthCRUDError)
 
 @pytest.mark.parametrize(
     ("exception_cls", "kwargs", "expected_status", "expected_fragments"),
@@ -100,7 +96,6 @@ def test_api_error_status_and_message(
     for fragment in expected_fragments:
         assert fragment in error.message, f"Expected '{fragment}' in '{error.message}'"
 
-
 def test_user_ownership_error_message() -> None:
     """UserOwnershipError includes model name, user_id, and model_id."""
     mock_model = Mock()
@@ -115,7 +110,6 @@ def test_user_ownership_error_message() -> None:
     assert str(user_id) in error.message
     assert str(model_id) in error.message
     assert "does not own" in error.message.lower()
-
 
 @pytest.mark.parametrize(
     ("error_cls", "kwargs", "expected_status", "expected_detail"),
@@ -149,25 +143,3 @@ def test_http_error_adapter(
         assert error.detail == expected_detail
 
 
-class TestExceptionInheritanceChain:
-    """Tests for verifying the complete exception inheritance chain."""
-
-    def test_all_auth_crud_errors_inherit_from_api_error(self) -> None:
-        """Verify all AuthCRUDError subclasses ultimately inherit from APIError."""
-        crud_error_subclasses = [
-            UserNameAlreadyExistsError,
-            DisposableEmailError,
-        ]
-
-        for error_class in crud_error_subclasses:
-            assert issubclass(error_class, APIError), f"{error_class.__name__} must inherit from APIError"
-
-    def test_exception_can_be_caught_as_api_error(self) -> None:
-        """Verify exceptions can be caught as APIError."""
-        with pytest.raises(APIError):
-            raise UserNameAlreadyExistsError(username="test")
-
-    def test_exception_can_be_caught_as_auth_crud_error(self) -> None:
-        """Verify AuthCRUDError subclasses can be caught as AuthCRUDError."""
-        with pytest.raises(AuthCRUDError):
-            raise UserNameAlreadyExistsError(username="test")

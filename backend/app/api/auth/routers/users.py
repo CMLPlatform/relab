@@ -12,6 +12,7 @@ from app.api.auth.dependencies import (
     optional_current_active_user,
 )
 from app.api.auth.models import User
+from app.api.auth.profile_stats import load_profile_stats
 from app.api.auth.schemas import (
     PublicProfileView,
     UserRead,
@@ -19,10 +20,10 @@ from app.api.auth.schemas import (
     normalize_username,
 )
 from app.api.auth.services.privacy import can_view_profile
-from app.api.auth.services.profile_stats import get_profile_stats, recompute_user_profile_stats
 from app.api.auth.services.user_manager import fastapi_user_manager
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
+from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
 
 ### User self-management routes ###
 
@@ -76,7 +77,7 @@ async def get_public_profile(
         stats = await recompute_user_profile_stats(session, user.id)
         await session.commit()
     else:
-        stats = get_profile_stats(user)
+        stats = load_profile_stats(user.profile_stats)
 
     return PublicProfileView.from_profile_stats(
         username=lookup_username,

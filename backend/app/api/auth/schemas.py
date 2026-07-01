@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime  # noqa: TC003 # Used at runtime for Pydantic model annotations
+from datetime import datetime  # Used at runtime for Pydantic model annotations
 from typing import Annotated, ClassVar
 
 from fastapi_users import schemas as fastapi_users_schemas
@@ -11,7 +11,6 @@ from pydantic import (
     BaseModel,
     BeforeValidator,
     ConfigDict,
-    EmailStr,
     Field,
     SecretStr,
     StringConstraints,
@@ -25,11 +24,15 @@ from app.api.auth.examples import (
     USER_READ_EXAMPLES,
     USER_UPDATE_EXAMPLES,
 )
-from app.api.auth.models import UserBase
 from app.api.auth.preferences import UserPreferences, UserPreferencesUpdate
 from app.api.auth.profile_stats import ProfileStatsData
 
 # Note: These auth schemas stay together to avoid circular imports during model/schema construction.
+
+
+class UserBase(BaseModel):
+    username: str | None = None
+    model_config = {"use_enum_values": True}
 
 
 ### Users ###
@@ -126,12 +129,6 @@ class OAuthAccountRead(BaseModel):
     oauth_name: str
     account_id: str
     account_email: str
-
-
-class UserReadPublic(UserBase):
-    """Public read schema for users."""
-
-    email: EmailStr
 
 
 class UserReadProfile(UserBase):

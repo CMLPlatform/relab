@@ -11,7 +11,7 @@ from app.api.auth.examples import ADMIN_USERS_RESPONSE_EXAMPLES
 from app.api.auth.filters import UserFilter
 from app.api.auth.models import User
 from app.api.auth.schemas import UserRead
-from app.api.auth.services import mfa_enrollment, refresh_token_service
+from app.api.auth.services import mfa_service, refresh_token_service
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.crud.query import page_models
@@ -92,5 +92,5 @@ async def reset_user_mfa(
 ) -> None:
     """Reset TOTP MFA after an administrator performs identity-proofed recovery."""
     user = await user_manager.get(user_id)
-    await mfa_enrollment.clear_totp(user_manager, user)
+    await mfa_service.clear_totp(user_manager, user)
     audit_event(actor.id, AuditAction.SUPERUSER_ACCESS, User, user_id, context=AuditContext(operation="mfa_reset"))

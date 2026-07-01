@@ -21,7 +21,8 @@ from app.api.auth.exceptions import (
     OAuthStateDecodeError,
     OAuthStateExpiredError,
 )
-from app.api.auth.services.oauth_utils import (
+
+from .utils import (
     ACCESS_TOKEN_KEY,
     CSRF_TOKEN_KEY,
     FRONTEND_REDIRECT_URI_KEY,

@@ -4,7 +4,6 @@ import uuid  # noqa: TC003 # Used at runtime for ORM mapped annotations
 from datetime import datetime  # noqa: TC003 # Used at runtime for ORM mapped annotations
 from typing import Any  # noqa: TC003 # Used at runtime for ORM mapped annotations
 
-from pydantic import BaseModel
 from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -12,17 +11,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.api.auth.services.user_database import BaseOAuthAccountDB, BaseUserDB
 from app.api.common.models.base import TimeStampMixinBare
 from app.core.crypto.sqlalchemy import EncryptedString
-
-# Note: Keeping auth models together avoids circular imports in SQLAlchemy/Pydantic schema building.
-
-
-### Pydantic base schemas (shared with schemas.py) ###
-class UserBase(BaseModel):
-    """Base schema for user data. Used by Pydantic schemas only, not ORM."""
-
-    username: str | None = None
-
-    model_config = {"use_enum_values": True}
 
 
 class User(BaseUserDB, TimeStampMixinBare):

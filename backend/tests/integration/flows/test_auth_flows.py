@@ -25,7 +25,6 @@ if TYPE_CHECKING:
     from redis.asyncio import Redis
     from sqlalchemy.ext.asyncio import AsyncSession
 
-
 pytestmark = pytest.mark.flow
 
 # Constants for test values
@@ -46,209 +45,201 @@ TEST_IP = "192.168.1.1"
 UA_MOBILE = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0)"
 UA_DESKTOP = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0"
 
-
 async def get_user_by_email(db_session: AsyncSession, email: str) -> User | None:
     """Get a user from the database by email."""
     statement = select(User).where(User.email == email)
     result = await db_session.execute(statement)
     return result.scalars().first()
 
+async def test_full_bearer_auth_flow(
+    api_client: AsyncClient, mock_redis_dependency: Redis, db_session: AsyncSession
+) -> None:
+    """Test complete bearer auth flow: register -> login -> refresh -> logout."""
+    # Step 1: Register a new user
+    register_data = {
+        "email": FLOW_TEST_EMAIL,
+        "password": FLOW_TEST_PASSWORD,
+        "username": FLOW_TEST_USERNAME,
+    }
 
-class TestCompleteAuthFlow:
-    """Test complete authentication flow from registration to logout."""
-
-    async def test_full_bearer_auth_flow(
-        self, api_client: AsyncClient, mock_redis_dependency: Redis, db_session: AsyncSession
-    ) -> None:
-        """Test complete bearer auth flow: register -> login -> refresh -> logout."""
-        # Step 1: Register a new user
-        register_data = {
-            "email": FLOW_TEST_EMAIL,
-            "password": FLOW_TEST_PASSWORD,
-            "username": FLOW_TEST_USERNAME,
-        }
-
-        with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
-            mock_override.return_value = UserCreate(
-                email=register_data["email"],
-                password=register_data["password"],
-                username=register_data["username"],
-            )
-            register_response = await api_client.post("/v1/auth/register", json=register_data)
-
-        assert register_response.status_code == status.HTTP_201_CREATED, "Registration failed"
-
-        # Fetch user from database to verify registration
-        user = await get_user_by_email(db_session, register_data["email"])
-        assert user is not None, "User not found in database after registration"
-
-        # Step 2: Login with bearer authentication.
-        login_result = await login_bearer(
-            api_client,
+    with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
+        mock_override.return_value = UserCreate(
             email=register_data["email"],
             password=register_data["password"],
+            username=register_data["username"],
         )
+        register_response = await api_client.post("/v1/auth/register", json=register_data)
 
-        access_token = login_result.get("access_token")
-        refresh_token = login_result.get("refresh_token")
+    assert register_response.status_code == status.HTTP_201_CREATED, "Registration failed"
 
-        # Verify tokens are present
-        assert access_token is not None
-        assert refresh_token is not None
+    # Fetch user from database to verify registration
+    user = await get_user_by_email(db_session, register_data["email"])
+    assert user is not None, "User not found in database after registration"
 
-        # Step 5: Refresh the access token
-        refresh_data = {"refresh_token": refresh_token}
-        refresh_response = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
-        assert refresh_response.status_code == status.HTTP_200_OK
-        refresh_result = refresh_response.json()
-        new_access_token = refresh_result["access_token"]
-        assert new_access_token is not None
-        assert new_access_token != access_token  # Should be a new token
+    # Step 2: Login with bearer authentication.
+    login_result = await login_bearer(
+        api_client,
+        email=register_data["email"],
+        password=register_data["password"],
+    )
 
-        # Step 6: Logout through the custom auth route so the refresh cookie is blacklisted too.
-        logout_response = await api_client.post(
-            "/v1/auth/bearer/logout",
-            json={"refresh_token": refresh_token},
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        assert logout_response.status_code == status.HTTP_204_NO_CONTENT
+    access_token = login_result.get("access_token")
+    refresh_token = login_result.get("refresh_token")
 
-        # Verify token is now blacklisted in Redis
-        is_blacklisted = await mock_redis_dependency.exists(token_key("auth:rt_blacklist", refresh_token))
-        assert is_blacklisted
+    # Verify tokens are present
+    assert access_token is not None
+    assert refresh_token is not None
 
-        # Step 7: Try to use blacklisted token (should fail)
-        retry_refresh = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
-        assert retry_refresh.status_code == status.HTTP_401_UNAUTHORIZED
+    # Step 5: Refresh the access token
+    refresh_data = {"refresh_token": refresh_token}
+    refresh_response = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
+    assert refresh_response.status_code == status.HTTP_200_OK
+    refresh_result = refresh_response.json()
+    new_access_token = refresh_result["access_token"]
+    assert new_access_token is not None
+    assert new_access_token != access_token  # Should be a new token
 
-    async def test_login_tracking(
-        self, api_client: AsyncClient, mock_redis_dependency: Redis, db_session: AsyncSession
-    ) -> None:
-        """Test that login timestamp tracking is updated without retaining IP addresses."""
-        del mock_redis_dependency
-        # Step 1: Register user
-        register_data = {
-            "email": TRACKING_TEST_EMAIL,
-            "password": FLOW_TEST_PASSWORD,
-            "username": TRACKING_TEST_USERNAME,
-        }
+    # Step 6: Logout through the custom auth route so the refresh cookie is blacklisted too.
+    logout_response = await api_client.post(
+        "/v1/auth/bearer/logout",
+        json={"refresh_token": refresh_token},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert logout_response.status_code == status.HTTP_204_NO_CONTENT
 
-        with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
-            mock_override.return_value = UserCreate(
-                email=register_data["email"],
-                password=register_data["password"],
-                username=register_data["username"],
-            )
-            register_response = await api_client.post("/v1/auth/register", json=register_data)
+    # Verify token is now blacklisted in Redis
+    is_blacklisted = await mock_redis_dependency.exists(token_key("auth:rt_blacklist", refresh_token))
+    assert is_blacklisted
 
-        assert register_response.status_code == status.HTTP_201_CREATED
+    # Step 7: Try to use blacklisted token (should fail)
+    retry_refresh = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
+    assert retry_refresh.status_code == status.HTTP_401_UNAUTHORIZED
 
-        # Fetch user from database to get ID (registration response doesn't include it)
-        user = await get_user_by_email(db_session, register_data["email"])
-        assert user is not None, "User not found in database after registration"
+async def test_login_tracking(
+    api_client: AsyncClient, mock_redis_dependency: Redis, db_session: AsyncSession
+) -> None:
+    """Test that login timestamp tracking is updated without retaining IP addresses."""
+    del mock_redis_dependency
+    # Step 1: Register user
+    register_data = {
+        "email": TRACKING_TEST_EMAIL,
+        "password": FLOW_TEST_PASSWORD,
+        "username": TRACKING_TEST_USERNAME,
+    }
 
-        # Verify user doesn't have login tracking yet
-        assert user.last_login_at is None
-
-        # Step 2: Login.
-        await login_bearer(api_client, email=register_data["email"], password=register_data["password"])
-
-        # Step 3: Verify login tracking was updated
-        # Clear session cache to ensure we get fresh data from DB
-        db_session.expire_all()
-        user_after = await get_user_by_email(db_session, register_data["email"])
-        assert user_after is not None
-        assert user_after.last_login_at is not None, "last_login_at was not updated"
-
-    async def test_session_auth_flow(self, api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
-        """Test session-based authentication flow."""
-        del mock_redis_dependency
-        # Step 1: Register user
-        register_data = {
-            "email": COOKIE_FLOW_EMAIL,
-            "password": FLOW_TEST_PASSWORD,
-            "username": COOKIE_FLOW_USERNAME,
-        }
-
-        with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
-            mock_override.return_value = UserCreate(
-                email=register_data["email"],
-                password=register_data["password"],
-                username=register_data["username"],
-            )
-            register_response = await api_client.post("/v1/auth/register", json=register_data)
-
-        assert register_response.status_code == status.HTTP_201_CREATED
-
-        # Step 2: Login with session transport.
-        await login_session(api_client, email=register_data["email"], password=register_data["password"])
-
-        # Verify cookies were set on the client.
-        assert api_client.cookies
-
-        # Step 3: Access protected endpoint using cookies
-
-        # Step 4: Logout (clear cookies)
-        await api_client.post("/v1/auth/session/logout")
-
-
-class TestErrorHandling:
-    """Test error handling in authentication flows."""
-
-    async def test_refresh_with_expired_token(self, api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
-        """Test refreshing with an expired token returns 401."""
-        # Create a refresh token manually and then delete it (simulate expiry)
-        user_id = TEST_USER_ID
-
-        token = await refresh_token_service.create_refresh_token(mock_redis_dependency, user_id)
-
-        # Delete the token (simulate expiry)
-        await mock_redis_dependency.delete(token_key("auth:rt", token))
-
-        # Try to refresh
-        refresh_data = {"refresh_token": token}
-        response = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
-
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    async def test_concurrent_logout_and_refresh(self, api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
-        """Test handling of concurrent logout and refresh operations."""
-        del mock_redis_dependency
-        # Register and login
-        register_data = {
-            "email": "concurrent@example.com",
-            "password": FLOW_TEST_PASSWORD,
-            "username": "concurrent",
-        }
-
-        with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
-            mock_override.return_value = UserCreate(
-                email=register_data["email"],
-                password=register_data["password"],
-                username=register_data["username"],
-            )
-            await api_client.post("/v1/auth/register", json=register_data)
-
-        # Get bearer tokens from the JSON response.
-        login_result = await login_bearer(
-            api_client,
+    with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
+        mock_override.return_value = UserCreate(
             email=register_data["email"],
             password=register_data["password"],
+            username=register_data["username"],
         )
-        access_token = login_result.get("access_token")
-        refresh_token = login_result.get("refresh_token")
-        assert refresh_token is not None, "No refresh token in login response"
+        register_response = await api_client.post("/v1/auth/register", json=register_data)
 
-        # Logout via the custom route so the refresh token cookie is blacklisted.
-        logout_response = await api_client.post(
-            "/v1/auth/bearer/logout",
-            json={"refresh_token": refresh_token},
-            headers={"Authorization": f"Bearer {access_token}"} if access_token else {},
+    assert register_response.status_code == status.HTTP_201_CREATED
+
+    # Fetch user from database to get ID (registration response doesn't include it)
+    user = await get_user_by_email(db_session, register_data["email"])
+    assert user is not None, "User not found in database after registration"
+
+    # Verify user doesn't have login tracking yet
+    assert user.last_login_at is None
+
+    # Step 2: Login.
+    await login_bearer(api_client, email=register_data["email"], password=register_data["password"])
+
+    # Step 3: Verify login tracking was updated
+    # Clear session cache to ensure we get fresh data from DB
+    db_session.expire_all()
+    user_after = await get_user_by_email(db_session, register_data["email"])
+    assert user_after is not None
+    assert user_after.last_login_at is not None, "last_login_at was not updated"
+
+async def test_session_auth_flow(api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
+    """Test session-based authentication flow."""
+    del mock_redis_dependency
+    # Step 1: Register user
+    register_data = {
+        "email": COOKIE_FLOW_EMAIL,
+        "password": FLOW_TEST_PASSWORD,
+        "username": COOKIE_FLOW_USERNAME,
+    }
+
+    with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
+        mock_override.return_value = UserCreate(
+            email=register_data["email"],
+            password=register_data["password"],
+            username=register_data["username"],
         )
-        assert logout_response.status_code == status.HTTP_204_NO_CONTENT
+        register_response = await api_client.post("/v1/auth/register", json=register_data)
 
-        # Try to refresh immediately after logout
-        refresh_data = {"refresh_token": refresh_token}
-        refresh_response = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
+    assert register_response.status_code == status.HTTP_201_CREATED
 
-        assert refresh_response.status_code == status.HTTP_401_UNAUTHORIZED
+    # Step 2: Login with session transport.
+    await login_session(api_client, email=register_data["email"], password=register_data["password"])
+
+    # Verify cookies were set on the client.
+    assert api_client.cookies
+
+    # Step 3: Access protected endpoint using cookies
+
+    # Step 4: Logout (clear cookies)
+    await api_client.post("/v1/auth/session/logout")
+
+async def test_refresh_with_expired_token(api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
+    """Test refreshing with an expired token returns 401."""
+    # Create a refresh token manually and then delete it (simulate expiry)
+    user_id = TEST_USER_ID
+
+    token = await refresh_token_service.create_refresh_token(mock_redis_dependency, user_id)
+
+    # Delete the token (simulate expiry)
+    await mock_redis_dependency.delete(token_key("auth:rt", token))
+
+    # Try to refresh
+    refresh_data = {"refresh_token": token}
+    response = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+async def test_concurrent_logout_and_refresh(api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
+    """Test handling of concurrent logout and refresh operations."""
+    del mock_redis_dependency
+    # Register and login
+    register_data = {
+        "email": "concurrent@example.com",
+        "password": FLOW_TEST_PASSWORD,
+        "username": "concurrent",
+    }
+
+    with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
+        mock_override.return_value = UserCreate(
+            email=register_data["email"],
+            password=register_data["password"],
+            username=register_data["username"],
+        )
+        await api_client.post("/v1/auth/register", json=register_data)
+
+    # Get bearer tokens from the JSON response.
+    login_result = await login_bearer(
+        api_client,
+        email=register_data["email"],
+        password=register_data["password"],
+    )
+    access_token = login_result.get("access_token")
+    refresh_token = login_result.get("refresh_token")
+    assert refresh_token is not None, "No refresh token in login response"
+
+    # Logout via the custom route so the refresh token cookie is blacklisted.
+    logout_response = await api_client.post(
+        "/v1/auth/bearer/logout",
+        json={"refresh_token": refresh_token},
+        headers={"Authorization": f"Bearer {access_token}"} if access_token else {},
+    )
+    assert logout_response.status_code == status.HTTP_204_NO_CONTENT
+
+    # Try to refresh immediately after logout
+    refresh_data = {"refresh_token": refresh_token}
+    refresh_response = await api_client.post("/v1/auth/bearer/refresh", json=refresh_data)
+
+    assert refresh_response.status_code == status.HTTP_401_UNAUTHORIZED
+

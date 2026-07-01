@@ -3,7 +3,7 @@
 from fastapi import APIRouter, status
 
 from app.api.auth.dependencies import CurrentActiveUserDep
-from app.api.auth.services import oauth_accounts
+from app.api.auth.services.oauth import accounts as oauth_accounts
 from app.api.auth.services.oauth.routes import (
     PUBLIC_OAUTH_CALLBACK_PREFIX,
     include_oauth_routes,

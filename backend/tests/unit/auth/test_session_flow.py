@@ -41,7 +41,6 @@ async def test_refresh_tokens_for_active_user_rotates_and_writes_access_token() 
     assert access_token == "access-token"
     assert refresh_token == "new-refresh"
 
-
 async def test_refresh_bearer_tokens_returns_public_token_response() -> None:
     """Bearer refresh should return the existing public response schema."""
     with patch(
@@ -59,7 +58,6 @@ async def test_refresh_bearer_tokens_returns_public_token_response() -> None:
     assert result.access_token == "access-token"
     assert result.refresh_token == "new-refresh"
     assert result.token_type == "bearer"
-
 
 async def test_logout_session_clears_cookies_storage_and_audits() -> None:
     """Session logout should clear browser state, blacklist refresh state, and audit logout."""
@@ -94,7 +92,6 @@ async def test_logout_session_clears_cookies_storage_and_audits() -> None:
         user.id,
         context=AuditContext(transport="session"),
     )
-
 
 async def test_revoke_all_sessions_revokes_clears_and_audits() -> None:
     """Revoke-all should invalidate refresh tokens and clear browser state."""

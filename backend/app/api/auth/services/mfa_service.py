@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
@@ -16,6 +17,9 @@ from app.api.auth.services.token_store import read_token_metadata, store_new_tok
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
+
+    from app.api.auth.models import User
+    from app.api.auth.services.user_manager import UserManager
 
 MFA_TOKEN_BYTES = 32
 TOTP_SECRET_CHARS = 32
@@ -226,3 +230,23 @@ async def consume_totp_setup(redis: Redis, token: str, *, user_id: UUID4 | None 
     """Consume a one-time TOTP setup token for ``user_id``."""
     metadata = await _read_pending_token(redis, kind="totp-setup", token=token, consume=True)
     return _totp_setup_from_metadata(metadata, user_id=user_id)
+
+
+async def enable_totp(user_manager: UserManager, user: User, secret: str) -> User:
+    """Persist a confirmed TOTP enrollment."""
+    user.mfa_totp_secret = secret
+    user.mfa_enabled = True
+    user.mfa_confirmed_at = datetime.now(UTC)
+    user_manager.user_db.session.add(user)
+    await user_manager.user_db.session.commit()
+    await user_manager.user_db.session.refresh(user)
+    return user
+
+
+async def clear_totp(user_manager: UserManager, user: User) -> None:
+    """Clear a user's TOTP enrollment."""
+    user.mfa_totp_secret = None
+    user.mfa_enabled = False
+    user.mfa_confirmed_at = None
+    user_manager.user_db.session.add(user)
+    await user_manager.user_db.session.commit()

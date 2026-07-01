@@ -13,7 +13,6 @@ from app.api.auth.services.oauth.routes import PUBLIC_OAUTH_CALLBACK_PREFIX, inc
 if TYPE_CHECKING:
     import pytest
 
-
 def test_public_callback_url_uses_configured_backend_base(monkeypatch: pytest.MonkeyPatch) -> None:
     """Public OAuth callbacks should be built from the configured backend URL."""
     monkeypatch.setattr(
@@ -25,7 +24,6 @@ def test_public_callback_url_uses_configured_backend_base(monkeypatch: pytest.Mo
         "https://api-test.cml-relab.org/v1/oauth/google/associate/callback"
     )
 
-
 def test_public_callback_url_normalizes_slashes(monkeypatch: pytest.MonkeyPatch) -> None:
     """Callback URL construction should be stable regardless of input slashes."""
     monkeypatch.setattr(
@@ -36,7 +34,6 @@ def test_public_callback_url_normalizes_slashes(monkeypatch: pytest.MonkeyPatch)
     assert public_callback_url(f"{PUBLIC_OAUTH_CALLBACK_PREFIX}/google/session/callback") == (
         "https://api-test.cml-relab.org/v1/oauth/google/session/callback"
     )
-
 
 def test_oauth_routes_use_dedicated_state_secret(monkeypatch: pytest.MonkeyPatch) -> None:
     """OAuth route factories should receive OAUTH_STATE_SECRET, not AUTH_TOKEN_SECRET."""

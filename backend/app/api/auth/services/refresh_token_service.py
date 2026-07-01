@@ -130,8 +130,19 @@ async def _load_active_token_metadata(redis: Redis, token: str) -> RefreshTokenM
     return metadata
 
 
-async def _blacklist_fingerprint(redis: Redis, fingerprint: str, ttl_seconds: int) -> None:
-    await redis.setex(_blacklist_key_from_fingerprint(fingerprint), ttl_seconds, "1")
+async def _blacklist_fingerprint(redis: Redis, fingerprint: str, ttl_seconds: int, *, value: str = "1") -> None:
+    # value carries the owning user_id when known, so a replayed (already-rotated)
+    # token can be traced back to its session family for reuse detection.
+    await redis.setex(_blacklist_key_from_fingerprint(fingerprint), ttl_seconds, value)
+
+
+def _blacklist_user_id(raw: bytes | str) -> UUID | None:
+    """Recover the user_id stored in a blacklist entry, if any."""
+    value = raw.decode("utf-8") if isinstance(raw, bytes) else str(raw)
+    try:
+        return UUID(value)
+    except ValueError:
+        return None
 
 
 async def create_refresh_token(
@@ -224,11 +235,17 @@ async def blacklist_token(
     except RefreshTokenInvalidError:
         metadata = None
 
-    await _blacklist_fingerprint(redis, token_fingerprint(token), ttl_seconds)
+    fingerprint = token_fingerprint(token)
+    await _blacklist_fingerprint(
+        redis,
+        fingerprint,
+        ttl_seconds,
+        value=str(metadata.user_id) if metadata else "1",
+    )
 
     if metadata:
         user_tokens_key = _user_tokens_key(metadata.user_id)
-        await redis_int(redis.srem(user_tokens_key, token_fingerprint(token)))
+        await redis_int(redis.srem(user_tokens_key, fingerprint))
 
 
 async def revoke_all_user_tokens(
@@ -248,7 +265,7 @@ async def revoke_all_user_tokens(
         ttl_seconds = await redis.ttl(stored_token_key)
         if ttl_seconds <= 0:
             ttl_seconds = HOUR
-        await _blacklist_fingerprint(redis, stored_token_id, ttl_seconds)
+        await _blacklist_fingerprint(redis, stored_token_id, ttl_seconds, value=str(user_id))
         await redis.delete(stored_token_key)
     await redis.delete(user_tokens_key)
 
@@ -267,20 +284,42 @@ async def rotate_refresh_token(
         New refresh token
 
     Raises:
-        RefreshTokenError: If old token is invalid
+        RefreshTokenError: If old token is invalid or being replayed
     """
-    metadata = await _load_active_token_metadata(redis, old_token)
-    new_token = await create_refresh_token(
+    _validate_refresh_token_shape(old_token)
+
+    # Reuse detection: an old token that is already blacklisted is being replayed
+    # (it was rotated or revoked before). Treat it as a stolen-token signal and
+    # revoke the whole session family, then reject.
+    blacklisted = await redis.get(_blacklist_key(old_token))
+    if blacklisted is not None:
+        user_id = _blacklist_user_id(blacklisted)
+        if user_id is not None:
+            await revoke_all_user_tokens(redis, user_id)
+        raise RefreshTokenRevokedError
+
+    # Atomically consume the old token's metadata so two concurrent rotations of
+    # the same token cannot both succeed: only the GETDEL winner gets the payload.
+    metadata = RefreshTokenMetadata.from_payload(
+        await read_token_metadata(
+            redis,
+            key_prefix=_REFRESH_TOKEN_KEY_PREFIX,
+            token=old_token,
+            error_cls=RefreshTokenInvalidError,
+            consume=True,
+        )
+    )
+
+    fingerprint = token_fingerprint(old_token)
+    blacklist_ttl = max(metadata.absolute_expires_at - int(time.time()), HOUR)
+    await _blacklist_fingerprint(redis, fingerprint, blacklist_ttl, value=str(metadata.user_id))
+    await redis_int(redis.srem(_user_tokens_key(metadata.user_id), fingerprint))
+
+    if metadata.absolute_expires_at <= int(time.time()):
+        raise RefreshTokenInvalidError
+
+    return await create_refresh_token(
         redis,
         metadata.user_id,
         absolute_expires_at=metadata.absolute_expires_at,
     )
-
-    # Blacklist old token; if it fails, invalidate the new token too so neither is usable
-    try:
-        await blacklist_token(redis, old_token)
-    except Exception:
-        await blacklist_token(redis, new_token)
-        raise
-
-    return new_token
