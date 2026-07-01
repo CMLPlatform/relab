@@ -40,13 +40,11 @@ GIF_BYTES = (
     b"\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
 )
 
-
 def _tiff_bytes() -> bytes:
     """Return a tiny valid TIFF payload."""
     buffer = BytesIO()
     PILImage.new("RGB", (1, 1), color="red").save(buffer, format="TIFF")
     return buffer.getvalue()
-
 
 def _upload_request(kind: str) -> tuple[str, dict[str, tuple[str, bytes, str]], dict[str, str], str, str]:
     """Return the endpoint and multipart payload for a file/image upload."""
@@ -66,7 +64,6 @@ def _upload_request(kind: str) -> tuple[str, dict[str, tuple[str, bytes, str]], 
         "image_url",
     )
 
-
 @pytest.fixture
 async def setup_product_for_files(db_session: AsyncSession, db_superuser: User) -> Product:
     """Fixture to set up a product for file storage testing."""
@@ -78,351 +75,348 @@ async def setup_product_for_files(db_session: AsyncSession, db_superuser: User) 
         name=PRODUCT_FILES_NAME,
     )
 
+@pytest.mark.parametrize(
+    ("kind", "description"),
+    [("file", FILE_DESC), ("images", IMAGE_DESC)],
+)
+async def test_upload_media_returns_the_stored_contract(
 
-class TestFileStorageEndpoints:
-    """Tests for file storage API endpoints."""
-
-    @pytest.mark.parametrize(
-        ("kind", "description"),
-        [("file", FILE_DESC), ("images", IMAGE_DESC)],
+    api_client_superuser: AsyncClient,
+    setup_product_for_files: Product,
+    kind: str,
+    description: str,
+) -> None:
+    """Uploading media should return the stored file/image contract."""
+    request_kind = "file" if kind == "file" else "image"
+    endpoint, files, data, filename, url_field = _upload_request(request_kind)
+    response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/{endpoint}",
+        files=files,
+        data=data,
     )
-    async def test_upload_media_returns_the_stored_contract(
-        self,
-        api_client_superuser: AsyncClient,
-        setup_product_for_files: Product,
-        kind: str,
-        description: str,
-    ) -> None:
-        """Uploading media should return the stored file/image contract."""
-        request_kind = "file" if kind == "file" else "image"
-        endpoint, files, data, filename, url_field = _upload_request(request_kind)
-        response = await api_client_superuser.post(
+
+    assert response.status_code == status.HTTP_201_CREATED, response.text
+    resp_data = response.json()
+    assert resp_data["filename"].endswith(filename)
+    assert resp_data["description"] == description
+    assert url_field in resp_data
+    assert "id" in resp_data
+
+@pytest.mark.parametrize(
+    ("kind", "endpoint"),
+    [("file", "files"), ("image", "images")],
+)
+async def test_delete_uploaded_media_removes_the_resource(
+    api_client_superuser: AsyncClient, setup_product_for_files: Product, kind: str, endpoint: str
+) -> None:
+    """Deleting uploaded media should make follow-up reads return 404."""
+    _, files, data, _, _ = _upload_request(kind)
+    create_response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/{endpoint}",
+        files=files,
+        data=data,
+    )
+    media_id = create_response.json()["id"]
+
+    response_del = await api_client_superuser.delete(
+        f"/v1/products/{setup_product_for_files.id}/{endpoint}/{media_id}"
+    )
+    response_get_deleted = await api_client_superuser.get(
+        f"/v1/products/{setup_product_for_files.id}/{endpoint}/{media_id}"
+    )
+
+    assert response_del.status_code == status.HTTP_204_NO_CONTENT
+    assert response_get_deleted.status_code == status.HTTP_404_NOT_FOUND
+
+@pytest.mark.parametrize(
+    ("image_metadata", "expected_detail"),
+    [
+        ("{", "image_metadata must be valid JSON"),
+        ("[]", "image_metadata must be a JSON object"),
+    ],
+)
+async def test_upload_image_rejects_invalid_metadata_json(
+
+    api_client_superuser: AsyncClient,
+    setup_product_for_files: Product,
+    image_metadata: str,
+    expected_detail: str,
+) -> None:
+    """Image metadata form fields must be JSON objects."""
+    response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/images",
+        files={"file": (IMAGE_NAME, GIF_BYTES, IMAGE_MIMETYPE)},
+        data={"description": IMAGE_DESC, "image_metadata": image_metadata},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json()["detail"].startswith(expected_detail)
+
+@pytest.mark.parametrize(
+    ("filename", "content_type", "content"),
+    [
+        ("cube.hdr", "text/plain", b"ENVI\nsamples = 1\nlines = 1\nbands = 224\n"),
+        ("cube.raw", "application/octet-stream", b"\x00\x01\x02\x03"),
+        ("cube.h5", "application/x-hdf5", b"\x89HDF\r\n\x1a\n"),
+        ("scene.ntf", "application/octet-stream", b"NITF02.10"),
+        ("geocube.tif", "image/tiff", _tiff_bytes()),
+    ],
+)
+async def test_upload_file_accepts_hyperspectral_research_formats(
+
+    api_client_superuser: AsyncClient,
+    setup_product_for_files: Product,
+    filename: str,
+    content_type: str,
+    content: bytes,
+) -> None:
+    """Hyperspectral datasets are accepted as generic files."""
+    response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/files",
+        files={"file": (filename, content, content_type)},
+        data={"description": FILE_DESC},
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED, response.text
+    body = response.json()
+    assert body["filename"] == filename
+    assert body["file_url"].startswith("/uploads/files/")
+    assert filename not in body["file_url"]
+
+async def test_upload_file_rejects_unsupported_extension(
+
+    api_client_superuser: AsyncClient,
+    setup_product_for_files: Product,
+) -> None:
+    """Unsupported generic files are rejected before they reach public storage."""
+    response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/files",
+        files={"file": ("payload.svg", b"<svg><script>alert(1)</script></svg>", "image/svg+xml")},
+        data={"description": FILE_DESC},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "not supported" in response.text
+
+async def test_upload_file_rejects_stable_format_content_mismatch(
+
+    api_client_superuser: AsyncClient,
+    setup_product_for_files: Product,
+) -> None:
+    """Stable generic file formats must match their expected content signature."""
+    response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/files",
+        files={"file": ("manual.pdf", b"<html>not a pdf</html>", "application/pdf")},
+        data={"description": FILE_DESC},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "does not match" in response.text
+
+async def test_upload_image_rejects_hyperspectral_data_file(
+
+    api_client_superuser: AsyncClient,
+    setup_product_for_files: Product,
+) -> None:
+    """Hyperspectral files must use file routes rather than image processing routes."""
+    response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/images",
+        files={"file": ("cube.h5", b"\x89HDF\r\n\x1a\n", "application/x-hdf5")},
+        data={"description": IMAGE_DESC},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "not supported for image uploads" in response.text
+
+async def test_upload_image_rejects_extension_mismatch(
+
+    api_client_superuser: AsyncClient,
+    setup_product_for_files: Product,
+) -> None:
+    """Image uploads require extension, MIME type, and signature to agree."""
+    response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/images",
+        files={"file": ("image.png", GIF_BYTES, "image/png")},
+        data={"description": IMAGE_DESC},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "does not match" in response.text
+
+@pytest.mark.parametrize(
+    ("kind", "endpoint"),
+    [("file", "files"), ("image", "images")],
+)
+async def test_product_media_routes_reject_component_ids(
+
+    api_client_superuser: AsyncClient,
+    setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+    kind: str,
+    endpoint: str,
+) -> None:
+    """``/products/{id}/{files,images}`` 404s when the id is a component."""
+    _, files, data, _, _ = _upload_request(kind)
+    response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_graph.component.id}/{endpoint}",
+        files=files,
+        data=data,
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+@pytest.mark.parametrize(
+    ("kind", "endpoint"),
+    [("file", "files"), ("image", "images")],
+)
+async def test_component_media_upload_and_delete(
+
+    api_client_superuser: AsyncClient,
+    setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+    kind: str,
+    endpoint: str,
+) -> None:
+    """``/components/{id}/{files,images}`` round-trips upload + delete."""
+    _, files, data, filename, url_field = _upload_request(kind)
+    create = await api_client_superuser.post(
+        f"/v1/components/{setup_product_graph.component.id}/{endpoint}",
+        files=files,
+        data=data,
+    )
+    assert create.status_code == status.HTTP_201_CREATED, create.text
+    created = create.json()
+    assert created["filename"].endswith(filename)
+    assert url_field in created
+
+    delete = await api_client_superuser.delete(
+        f"/v1/components/{setup_product_graph.component.id}/{endpoint}/{created['id']}"
+    )
+    follow_up = await api_client_superuser.get(
+        f"/v1/components/{setup_product_graph.component.id}/{endpoint}/{created['id']}"
+    )
+
+    assert delete.status_code == status.HTTP_204_NO_CONTENT
+    assert follow_up.status_code == status.HTTP_404_NOT_FOUND
+
+@pytest.mark.parametrize(
+    ("kind", "endpoint"),
+    [("file", "files"), ("image", "images")],
+)
+async def test_component_media_routes_reject_base_product_ids(
+
+    api_client_superuser: AsyncClient,
+    setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+    kind: str,
+    endpoint: str,
+) -> None:
+    """``/components/{id}/{files,images}`` 404s when the id is a base product."""
+    _, files, data, _, _ = _upload_request(kind)
+    response = await api_client_superuser.post(
+        f"/v1/components/{setup_product_graph.product.id}/{endpoint}",
+        files=files,
+        data=data,
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+@pytest.mark.parametrize(
+    ("kind", "endpoint"),
+    [("file", "files"), ("image", "images")],
+)
+async def test_non_owner_cannot_upload_product_media(
+
+    api_client_user: AsyncClient,
+    setup_product_for_files: Product,
+    kind: str,
+    endpoint: str,
+) -> None:
+    """Product media upload routes hide products owned by another user."""
+    _, files, data, _, _ = _upload_request(kind)
+    response = await api_client_user.post(
+        f"/v1/products/{setup_product_for_files.id}/{endpoint}",
+        files=files,
+        data=data,
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+@pytest.mark.parametrize(
+    ("kind", "endpoint"),
+    [("file", "files"), ("image", "images")],
+)
+async def test_non_owner_cannot_delete_product_media(
+
+    api_client: AsyncClient,
+    test_app: FastAPI,
+    db_user: User,
+    db_superuser: User,
+    setup_product_for_files: Product,
+    kind: str,
+    endpoint: str,
+) -> None:
+    """Product media delete routes hide products owned by another user."""
+    _, files, data, _, _ = _upload_request(kind)
+    with override_authenticated_user(test_app, db_superuser, superuser=True):
+        create_response = await api_client.post(
             f"/v1/products/{setup_product_for_files.id}/{endpoint}",
             files=files,
             data=data,
         )
+    media_id = create_response.json()["id"]
 
-        assert response.status_code == status.HTTP_201_CREATED, response.text
-        resp_data = response.json()
-        assert resp_data["filename"].endswith(filename)
-        assert resp_data["description"] == description
-        assert url_field in resp_data
-        assert "id" in resp_data
+    with override_authenticated_user(test_app, db_user):
+        response = await api_client.delete(f"/v1/products/{setup_product_for_files.id}/{endpoint}/{media_id}")
 
-    @pytest.mark.parametrize(
-        ("kind", "endpoint"),
-        [("file", "files"), ("image", "images")],
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+@pytest.mark.parametrize(
+    ("kind", "endpoint"),
+    [("file", "files"), ("image", "images")],
+)
+async def test_non_owner_cannot_upload_component_media(
+
+    api_client_user: AsyncClient,
+    setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+    kind: str,
+    endpoint: str,
+) -> None:
+    """Component media upload routes hide components owned by another user."""
+    _, files, data, _, _ = _upload_request(kind)
+    response = await api_client_user.post(
+        f"/v1/components/{setup_product_graph.component.id}/{endpoint}",
+        files=files,
+        data=data,
     )
-    async def test_delete_uploaded_media_removes_the_resource(
-        self, api_client_superuser: AsyncClient, setup_product_for_files: Product, kind: str, endpoint: str
-    ) -> None:
-        """Deleting uploaded media should make follow-up reads return 404."""
-        _, files, data, _, _ = _upload_request(kind)
-        create_response = await api_client_superuser.post(
-            f"/v1/products/{setup_product_for_files.id}/{endpoint}",
-            files=files,
-            data=data,
-        )
-        media_id = create_response.json()["id"]
 
-        response_del = await api_client_superuser.delete(
-            f"/v1/products/{setup_product_for_files.id}/{endpoint}/{media_id}"
-        )
-        response_get_deleted = await api_client_superuser.get(
-            f"/v1/products/{setup_product_for_files.id}/{endpoint}/{media_id}"
-        )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
-        assert response_del.status_code == status.HTTP_204_NO_CONTENT
-        assert response_get_deleted.status_code == status.HTTP_404_NOT_FOUND
+@pytest.mark.parametrize(
+    ("kind", "endpoint"),
+    [("file", "files"), ("image", "images")],
+)
+async def test_non_owner_cannot_delete_component_media(
 
-    @pytest.mark.parametrize(
-        ("image_metadata", "expected_detail"),
-        [
-            ("{", "image_metadata must be valid JSON"),
-            ("[]", "image_metadata must be a JSON object"),
-        ],
-    )
-    async def test_upload_image_rejects_invalid_metadata_json(
-        self,
-        api_client_superuser: AsyncClient,
-        setup_product_for_files: Product,
-        image_metadata: str,
-        expected_detail: str,
-    ) -> None:
-        """Image metadata form fields must be JSON objects."""
-        response = await api_client_superuser.post(
-            f"/v1/products/{setup_product_for_files.id}/images",
-            files={"file": (IMAGE_NAME, GIF_BYTES, IMAGE_MIMETYPE)},
-            data={"description": IMAGE_DESC, "image_metadata": image_metadata},
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json()["detail"].startswith(expected_detail)
-
-    @pytest.mark.parametrize(
-        ("filename", "content_type", "content"),
-        [
-            ("cube.hdr", "text/plain", b"ENVI\nsamples = 1\nlines = 1\nbands = 224\n"),
-            ("cube.raw", "application/octet-stream", b"\x00\x01\x02\x03"),
-            ("cube.h5", "application/x-hdf5", b"\x89HDF\r\n\x1a\n"),
-            ("scene.ntf", "application/octet-stream", b"NITF02.10"),
-            ("geocube.tif", "image/tiff", _tiff_bytes()),
-        ],
-    )
-    async def test_upload_file_accepts_hyperspectral_research_formats(
-        self,
-        api_client_superuser: AsyncClient,
-        setup_product_for_files: Product,
-        filename: str,
-        content_type: str,
-        content: bytes,
-    ) -> None:
-        """Hyperspectral datasets are accepted as generic files."""
-        response = await api_client_superuser.post(
-            f"/v1/products/{setup_product_for_files.id}/files",
-            files={"file": (filename, content, content_type)},
-            data={"description": FILE_DESC},
-        )
-
-        assert response.status_code == status.HTTP_201_CREATED, response.text
-        body = response.json()
-        assert body["filename"] == filename
-        assert body["file_url"].startswith("/uploads/files/")
-        assert filename not in body["file_url"]
-
-    async def test_upload_file_rejects_unsupported_extension(
-        self,
-        api_client_superuser: AsyncClient,
-        setup_product_for_files: Product,
-    ) -> None:
-        """Unsupported generic files are rejected before they reach public storage."""
-        response = await api_client_superuser.post(
-            f"/v1/products/{setup_product_for_files.id}/files",
-            files={"file": ("payload.svg", b"<svg><script>alert(1)</script></svg>", "image/svg+xml")},
-            data={"description": FILE_DESC},
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "not supported" in response.text
-
-    async def test_upload_file_rejects_stable_format_content_mismatch(
-        self,
-        api_client_superuser: AsyncClient,
-        setup_product_for_files: Product,
-    ) -> None:
-        """Stable generic file formats must match their expected content signature."""
-        response = await api_client_superuser.post(
-            f"/v1/products/{setup_product_for_files.id}/files",
-            files={"file": ("manual.pdf", b"<html>not a pdf</html>", "application/pdf")},
-            data={"description": FILE_DESC},
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "does not match" in response.text
-
-    async def test_upload_image_rejects_hyperspectral_data_file(
-        self,
-        api_client_superuser: AsyncClient,
-        setup_product_for_files: Product,
-    ) -> None:
-        """Hyperspectral files must use file routes rather than image processing routes."""
-        response = await api_client_superuser.post(
-            f"/v1/products/{setup_product_for_files.id}/images",
-            files={"file": ("cube.h5", b"\x89HDF\r\n\x1a\n", "application/x-hdf5")},
-            data={"description": IMAGE_DESC},
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "not supported for image uploads" in response.text
-
-    async def test_upload_image_rejects_extension_mismatch(
-        self,
-        api_client_superuser: AsyncClient,
-        setup_product_for_files: Product,
-    ) -> None:
-        """Image uploads require extension, MIME type, and signature to agree."""
-        response = await api_client_superuser.post(
-            f"/v1/products/{setup_product_for_files.id}/images",
-            files={"file": ("image.png", GIF_BYTES, "image/png")},
-            data={"description": IMAGE_DESC},
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "does not match" in response.text
-
-    @pytest.mark.parametrize(
-        ("kind", "endpoint"),
-        [("file", "files"), ("image", "images")],
-    )
-    async def test_product_media_routes_reject_component_ids(
-        self,
-        api_client_superuser: AsyncClient,
-        setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
-        kind: str,
-        endpoint: str,
-    ) -> None:
-        """``/products/{id}/{files,images}`` 404s when the id is a component."""
-        _, files, data, _, _ = _upload_request(kind)
-        response = await api_client_superuser.post(
-            f"/v1/products/{setup_product_graph.component.id}/{endpoint}",
-            files=files,
-            data=data,
-        )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    @pytest.mark.parametrize(
-        ("kind", "endpoint"),
-        [("file", "files"), ("image", "images")],
-    )
-    async def test_component_media_upload_and_delete(
-        self,
-        api_client_superuser: AsyncClient,
-        setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
-        kind: str,
-        endpoint: str,
-    ) -> None:
-        """``/components/{id}/{files,images}`` round-trips upload + delete."""
-        _, files, data, filename, url_field = _upload_request(kind)
-        create = await api_client_superuser.post(
+    api_client: AsyncClient,
+    test_app: FastAPI,
+    db_user: User,
+    db_superuser: User,
+    setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+    kind: str,
+    endpoint: str,
+) -> None:
+    """Component media delete routes hide components owned by another user."""
+    _, files, data, _, _ = _upload_request(kind)
+    with override_authenticated_user(test_app, db_superuser, superuser=True):
+        create_response = await api_client.post(
             f"/v1/components/{setup_product_graph.component.id}/{endpoint}",
             files=files,
             data=data,
         )
-        assert create.status_code == status.HTTP_201_CREATED, create.text
-        created = create.json()
-        assert created["filename"].endswith(filename)
-        assert url_field in created
+    media_id = create_response.json()["id"]
 
-        delete = await api_client_superuser.delete(
-            f"/v1/components/{setup_product_graph.component.id}/{endpoint}/{created['id']}"
-        )
-        follow_up = await api_client_superuser.get(
-            f"/v1/components/{setup_product_graph.component.id}/{endpoint}/{created['id']}"
+    with override_authenticated_user(test_app, db_user):
+        response = await api_client.delete(
+            f"/v1/components/{setup_product_graph.component.id}/{endpoint}/{media_id}"
         )
 
-        assert delete.status_code == status.HTTP_204_NO_CONTENT
-        assert follow_up.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    @pytest.mark.parametrize(
-        ("kind", "endpoint"),
-        [("file", "files"), ("image", "images")],
-    )
-    async def test_component_media_routes_reject_base_product_ids(
-        self,
-        api_client_superuser: AsyncClient,
-        setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
-        kind: str,
-        endpoint: str,
-    ) -> None:
-        """``/components/{id}/{files,images}`` 404s when the id is a base product."""
-        _, files, data, _, _ = _upload_request(kind)
-        response = await api_client_superuser.post(
-            f"/v1/components/{setup_product_graph.product.id}/{endpoint}",
-            files=files,
-            data=data,
-        )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    @pytest.mark.parametrize(
-        ("kind", "endpoint"),
-        [("file", "files"), ("image", "images")],
-    )
-    async def test_non_owner_cannot_upload_product_media(
-        self,
-        api_client_user: AsyncClient,
-        setup_product_for_files: Product,
-        kind: str,
-        endpoint: str,
-    ) -> None:
-        """Product media upload routes hide products owned by another user."""
-        _, files, data, _, _ = _upload_request(kind)
-        response = await api_client_user.post(
-            f"/v1/products/{setup_product_for_files.id}/{endpoint}",
-            files=files,
-            data=data,
-        )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    @pytest.mark.parametrize(
-        ("kind", "endpoint"),
-        [("file", "files"), ("image", "images")],
-    )
-    async def test_non_owner_cannot_delete_product_media(
-        self,
-        api_client: AsyncClient,
-        test_app: FastAPI,
-        db_user: User,
-        db_superuser: User,
-        setup_product_for_files: Product,
-        kind: str,
-        endpoint: str,
-    ) -> None:
-        """Product media delete routes hide products owned by another user."""
-        _, files, data, _, _ = _upload_request(kind)
-        with override_authenticated_user(test_app, db_superuser, superuser=True):
-            create_response = await api_client.post(
-                f"/v1/products/{setup_product_for_files.id}/{endpoint}",
-                files=files,
-                data=data,
-            )
-        media_id = create_response.json()["id"]
-
-        with override_authenticated_user(test_app, db_user):
-            response = await api_client.delete(f"/v1/products/{setup_product_for_files.id}/{endpoint}/{media_id}")
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    @pytest.mark.parametrize(
-        ("kind", "endpoint"),
-        [("file", "files"), ("image", "images")],
-    )
-    async def test_non_owner_cannot_upload_component_media(
-        self,
-        api_client_user: AsyncClient,
-        setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
-        kind: str,
-        endpoint: str,
-    ) -> None:
-        """Component media upload routes hide components owned by another user."""
-        _, files, data, _, _ = _upload_request(kind)
-        response = await api_client_user.post(
-            f"/v1/components/{setup_product_graph.component.id}/{endpoint}",
-            files=files,
-            data=data,
-        )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    @pytest.mark.parametrize(
-        ("kind", "endpoint"),
-        [("file", "files"), ("image", "images")],
-    )
-    async def test_non_owner_cannot_delete_component_media(
-        self,
-        api_client: AsyncClient,
-        test_app: FastAPI,
-        db_user: User,
-        db_superuser: User,
-        setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
-        kind: str,
-        endpoint: str,
-    ) -> None:
-        """Component media delete routes hide components owned by another user."""
-        _, files, data, _, _ = _upload_request(kind)
-        with override_authenticated_user(test_app, db_superuser, superuser=True):
-            create_response = await api_client.post(
-                f"/v1/components/{setup_product_graph.component.id}/{endpoint}",
-                files=files,
-                data=data,
-            )
-        media_id = create_response.json()["id"]
-
-        with override_authenticated_user(test_app, db_user):
-            response = await api_client.delete(
-                f"/v1/components/{setup_product_graph.component.id}/{endpoint}/{media_id}"
-            )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND

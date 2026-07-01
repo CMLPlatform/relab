@@ -20,27 +20,11 @@ def _path_as_str(path: AnyIOPath) -> str:
     return str(path)
 
 
-async def _resolve_storage_path(path_like: object, *, storage_dir: Path | str | None = None) -> AnyIOPath | None:
-    """Resolve a storage field value to an absolute path when possible."""
-    name_attr = getattr(path_like, "name", None)
-    if isinstance(name_attr, str) and storage_dir is not None:
-        candidate = Path(storage_dir) / name_attr
-        return await AnyIOPath(str(candidate)).resolve()
-
-    if isinstance(path_like, str):
-        candidate = Path(path_like)
-        if not candidate.is_absolute() and storage_dir is not None:
-            candidate = Path(storage_dir) / candidate
-        return await AnyIOPath(str(candidate)).resolve()
-
+async def _resolve_storage_path(path_like: object) -> AnyIOPath | None:
+    """Resolve a StorageFile/StorageImage field to its absolute filesystem path."""
     path_attr = getattr(path_like, "path", None)
     if isinstance(path_attr, str):
         return await AnyIOPath(path_attr).resolve()
-
-    file_attr = getattr(path_like, "file", None)
-    if file_attr is not None:
-        return await _resolve_storage_path(file_attr, storage_dir=storage_dir)
-
     return None
 
 
@@ -61,14 +45,14 @@ async def get_referenced_files(session: AsyncSession) -> set[AnyIOPath]:
     file_stmt = select(File)
     files = (await session.execute(file_stmt)).scalars().all()
     for f in files:
-        resolved_path = await _resolve_storage_path(getattr(f, "file", None), storage_dir=settings.file_storage_path)
+        resolved_path = await _resolve_storage_path(getattr(f, "file", None))
         if resolved_path is not None:
             referenced_paths.add(resolved_path)
 
     image_stmt = select(Image)
     images = (await session.execute(image_stmt)).scalars().all()
     for img in images:
-        resolved_path = await _resolve_storage_path(getattr(img, "file", None), storage_dir=settings.image_storage_path)
+        resolved_path = await _resolve_storage_path(getattr(img, "file", None))
         if resolved_path is not None:
             referenced_paths.add(resolved_path)
             referenced_paths.update(_get_thumbnail_paths(str(resolved_path)))

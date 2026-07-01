@@ -22,7 +22,6 @@ from app.api.file_storage.upload_security import (
 def _upload(content: bytes = b"clean") -> UploadFile:
     return UploadFile(filename="manual.pdf", file=BytesIO(content), size=len(content))
 
-
 async def test_optional_scanner_none_accepts_uploads() -> None:
     """The dev/test no-op path should leave clean uploads readable from the start."""
     upload = _upload()
@@ -31,18 +30,15 @@ async def test_optional_scanner_none_accepts_uploads() -> None:
 
     assert upload.file.tell() == 0
 
-
 class _InfectedScanner:
     async def scan(self, fileobj) -> None:  # noqa: ANN001
         del fileobj
         signature = "EICAR-Test-File"
         raise MalwareDetectedError(signature)
 
-
 class _CleanScanner:
     async def scan(self, fileobj) -> None:  # noqa: ANN001
         fileobj.seek(0, 2)
-
 
 async def test_scan_upload_accepts_clean_scanner_results() -> None:
     """Clean scanner results should leave uploads readable from the start."""
@@ -52,12 +48,10 @@ async def test_scan_upload_accepts_clean_scanner_results() -> None:
 
     assert upload.file.tell() == 0
 
-
 async def test_scan_upload_rejects_infected_files() -> None:
     """Scanner detections must reject uploads before storage."""
     with pytest.raises(MalwareDetectedError, match="malicious"):
         await scan_upload_or_raise(_upload(), scanner=_InfectedScanner())
-
 
 async def test_scan_upload_fails_closed_when_enabled_scanner_is_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
     """Enabled production scanning must fail closed when no scanner is available."""
@@ -66,7 +60,6 @@ async def test_scan_upload_fails_closed_when_enabled_scanner_is_unavailable(monk
 
     with pytest.raises(ServiceUnavailableError, match="Malware scanning is unavailable"):
         await scan_upload_or_raise(_upload(), scanner=None)
-
 
 class _ClamAVResponseStream:
     def __init__(self, response: bytes) -> None:
@@ -85,7 +78,6 @@ class _ClamAVResponseStream:
     async def receive(self, max_bytes: int) -> bytes:
         del max_bytes
         return self.response
-
 
 @pytest.mark.parametrize(
     ("response", "expected_error"),
@@ -120,7 +112,6 @@ async def test_clamav_scanner_parses_terminal_response_markers(
     with pytest.raises(expected_error):
         await scanner.scan(BytesIO(b"clean"))
 
-
 def test_get_upload_scanner_uses_configured_clamav_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     """The scanner timeout should be deploy-configurable for ClamAV reload windows."""
     monkeypatch.setattr("app.api.file_storage.upload_security.settings.malware_scan_enabled", True)
@@ -132,7 +123,6 @@ def test_get_upload_scanner_uses_configured_clamav_timeout(monkeypatch: pytest.M
 
     assert isinstance(scanner, ClamAVScanner)
     assert scanner.timeout_seconds == 45.0
-
 
 async def test_clamav_scanner_reports_broken_stream_as_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
     """Dropped clamd connections should produce a controlled fail-closed error."""
@@ -160,7 +150,6 @@ async def test_clamav_scanner_reports_broken_stream_as_unavailable(monkeypatch: 
     with pytest.raises(ServiceUnavailableError, match="Malware scanning is unavailable"):
         await scanner.scan(BytesIO(b"clean"))
 
-
 def test_enabled_malware_scanning_requires_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     """Startup should fail closed when enabled upload scanning has no scanner host."""
     monkeypatch.setattr("app.api.file_storage.upload_security.settings.malware_scan_enabled", True)
@@ -168,7 +157,6 @@ def test_enabled_malware_scanning_requires_configuration(monkeypatch: pytest.Mon
 
     with pytest.raises(RuntimeError, match="Malware scanning is enabled"):
         validate_malware_scanner_configuration()
-
 
 def test_disabled_malware_scanning_does_not_block_deployed_startup(monkeypatch: pytest.MonkeyPatch) -> None:
     """Existing deployments should not fail startup unless upload scanning is explicitly enabled."""

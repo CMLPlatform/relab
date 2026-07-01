@@ -16,13 +16,11 @@ if TYPE_CHECKING:
 
     import pytest
 
-
 @dataclass(frozen=True)
 class FakeStoredFile:
     """Typed stand-in for StorageFile/StorageImage — exposes only what helpers read."""
 
     path: str
-
 
 def test_file_read_within_parent_model_validate_returns_public_url(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -48,7 +46,6 @@ def test_file_read_within_parent_model_validate_returns_public_url(
     assert storage_item_exists(file) is True
     assert read_model.file_url == f"/uploads/files/{stored_file.relative_to(storage_root)}"
 
-
 def test_image_read_within_parent_model_validate_returns_urls(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Image read schema should build image and thumbnail URLs."""
     storage_root = tmp_path / "images"
@@ -72,7 +69,6 @@ def test_image_read_within_parent_model_validate_returns_urls(tmp_path: Path, mo
 
     assert read_model.image_url == f"/uploads/images/{stored_file.relative_to(storage_root)}"
     assert read_model.thumbnail_url == f"/uploads/images/{thumbnail_file.relative_to(storage_root)}"
-
 
 def test_image_read_model_validate_from_orm(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Image read schemas should validate raw ORM rows with derived URLs."""
@@ -98,7 +94,6 @@ def test_image_read_model_validate_from_orm(tmp_path: Path, monkeypatch: pytest.
     assert read_model.parent_id == 1
     assert read_model.parent_type == MediaParentType.PRODUCT
 
-
 def test_missing_storage_file_returns_no_urls(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Read schema should omit URLs when the backing file is missing."""
     storage_root = tmp_path / "files"
@@ -114,7 +109,6 @@ def test_missing_storage_file_returns_no_urls(tmp_path: Path, monkeypatch: pytes
 
     assert storage_item_exists(file) is False
     assert FileReadWithinParent.model_validate(file).file_url is None
-
 
 def test_file_read_omits_url_for_path_outside_storage_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Malformed stored paths must not become public upload URLs."""
@@ -134,7 +128,6 @@ def test_file_read_omits_url_for_path_outside_storage_root(tmp_path: Path, monke
     )
 
     assert FileReadWithinParent.model_validate(file).file_url is None
-
 
 def test_image_read_omits_urls_for_path_outside_storage_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Malformed stored image paths must not become public upload URLs."""

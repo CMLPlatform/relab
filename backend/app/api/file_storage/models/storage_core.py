@@ -65,10 +65,6 @@ class BaseStorage(ABC):
     async def write_upload(self, upload_file: UploadFile, name: str) -> str:
         """Persist an uploaded file asynchronously and return the stored name."""
 
-    @abstractmethod
-    async def write_image_upload(self, upload_file: UploadFile, name: str) -> str:
-        """Validate and persist an uploaded image asynchronously."""
-
 
 class StorageFile(str):
     """String-like file wrapper returned from storage-backed columns."""
@@ -123,7 +119,3 @@ class StorageImage(StorageFile):
     """Storage file wrapper for image files."""
 
     __slots__ = ()
-
-    def __new__(cls, *, name: str, storage: BaseStorage) -> Self:
-        """Create the string value from the resolved storage path."""
-        return str.__new__(cls, storage.get_path(name))

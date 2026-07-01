@@ -90,6 +90,3 @@ class FileSystemStorage(BaseStorage):
         await upload_file.close()
         return filename
 
-    async def write_image_upload(self, upload_file: UploadFile, name: str) -> str:
-        """Write an uploaded image using async file I/O."""
-        return await self.write_upload(upload_file, name)

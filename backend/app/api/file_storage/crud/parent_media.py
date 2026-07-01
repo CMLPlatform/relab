@@ -19,7 +19,7 @@ from app.api.file_storage.models import Image, MediaParentType
 from app.core.logging import sanitize_log_value
 
 from .support_paths import delete_file_from_storage, delete_image_from_storage, storage_item_exists, stored_file_path
-from .support_queries import get_parent_owned_storage_item, list_parent_storage_items
+from .support_services import get_parent_owned_storage_item, list_parent_storage_items
 from .support_types import StorageCreateSchema, StorageModel
 
 if TYPE_CHECKING:

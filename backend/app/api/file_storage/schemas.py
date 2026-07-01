@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Self
 from urllib.parse import quote
 
 from fastapi import UploadFile
-from pydantic import AfterValidator, ConfigDict, Field, PositiveInt, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, PositiveInt, model_validator
 
 from app.api.common.schemas.base import (
     BaseCreateSchema,
@@ -22,7 +22,7 @@ from app.api.file_storage.examples import (
     VIDEO_READ_WITHIN_PRODUCT_EXAMPLES,
     VIDEO_UPDATE_WITHIN_PRODUCT_EXAMPLES,
 )
-from app.api.file_storage.models import FileBase, ImageBase, MediaParentType, VideoBase
+from app.api.file_storage.models import MediaParentType
 from app.core.config import settings
 from app.core.images import thumbnail_path_for
 
@@ -30,6 +30,22 @@ if TYPE_CHECKING:
     from os import PathLike
 
 PARENT_TYPE_DESCRIPTION = f"Type of the parent object, e.g. {', '.join(parent.value for parent in MediaParentType)}"
+
+
+class FileBase(BaseModel):
+    description: MultilineUserText | None = None
+
+
+class ImageBase(BaseModel):
+    description: MultilineUserText | None = None
+    image_metadata: dict[str, Any] | None = None
+
+
+class VideoBase(BaseModel):
+    url: str
+    title: SingleLineUserText | None = None
+    description: MultilineUserText | None = None
+    video_metadata: dict[str, Any] | None = None
 
 
 def validate_filename(file: UploadFile | None) -> UploadFile | None:
@@ -103,11 +119,6 @@ FileUpload = Annotated[
     AfterValidator(validate_filename),
 ]
 
-ImageUpload = Annotated[
-    UploadFile,
-    AfterValidator(validate_filename),
-]
-
 
 class FileCreateWithinParent(BaseCreateSchema, FileBase):
     """Schema for creating a file within a parent object."""
@@ -154,7 +165,7 @@ class FileUpdate(BaseUpdateSchema, FileBase):
 class ImageCreateInternal(BaseCreateSchema, ImageBase):
     """Schema for creating a new image internally, without a form upload."""
 
-    file: ImageUpload
+    file: FileUpload
     parent_id: int = Field(description="ID of the parent object")
     parent_type: MediaParentType = Field(description=PARENT_TYPE_DESCRIPTION)
 

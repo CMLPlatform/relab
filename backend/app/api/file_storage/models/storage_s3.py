@@ -155,6 +155,3 @@ class S3Storage(BaseStorage):
         await upload_file.close()
         return filename
 
-    async def write_image_upload(self, upload_file: UploadFile, name: str) -> str:
-        """Upload an image to S3."""
-        return await self.write_upload(upload_file, name)

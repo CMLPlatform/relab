@@ -35,76 +35,70 @@ ZIP_MEMBER_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 ZIP_TIMESTAMP_A = 1_710_000_000
 ZIP_TIMESTAMP_B = 1_710_000_120
 
+def test_sanitize_filename() -> None:
+    """Test filename sanitization."""
+    assert sanitize_filename(TEST_SAN_RAW) == TEST_SAN_CLEAN
+    assert sanitize_filename(ARC_TAR_GZ) == ARC_TAR_GZ
+    assert sanitize_filename("Résumé photo 01.JPG") == "Resume-photo-01.JPG"
 
-class TestFileStorageCrudUtils:
-    """Test utility functions for file storage."""
+    long_name = "a" * 50 + ".pdf"
+    sanitized = sanitize_filename(long_name, max_length=10)
+    assert sanitized.endswith(".pdf")
+    assert len(sanitized) <= 15
 
-    def test_sanitize_filename(self) -> None:
-        """Test filename sanitization."""
-        assert sanitize_filename(TEST_SAN_RAW) == TEST_SAN_CLEAN
-        assert sanitize_filename(ARC_TAR_GZ) == ARC_TAR_GZ
-        assert sanitize_filename("Résumé photo 01.JPG") == "Resume-photo-01.JPG"
+def test_process_uploadfile_name_success() -> None:
+    """Test UploadFile name processing."""
+    mock_file = MagicMock(spec=UploadFile)
+    mock_file.filename = MY_DOC_RAW
 
-        long_name = "a" * 50 + ".pdf"
-        sanitized = sanitize_filename(long_name, max_length=10)
-        assert sanitized.endswith(".pdf")
-        assert len(sanitized) <= 15
+    file, file_id, original, stored = process_uploadfile_name(mock_file)
 
-    def test_process_uploadfile_name_success(self) -> None:
-        """Test UploadFile name processing."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = MY_DOC_RAW
+    assert original == MY_DOC_PDF
+    assert file_id is not None
+    assert stored == f"{file_id.hex}.pdf"
+    assert file.filename == stored
 
-        file, file_id, original, stored = process_uploadfile_name(mock_file)
+def test_process_uploadfile_name_empty() -> None:
+    """Test UploadFile name processing with empty filename."""
+    mock_file = MagicMock(spec=UploadFile)
+    mock_file.filename = None
 
-        assert original == MY_DOC_PDF
-        assert file_id is not None
-        assert stored == f"{file_id.hex}.pdf"
-        assert file.filename == stored
+    with pytest.raises(BadRequestError, match="File name is empty"):
+        process_uploadfile_name(mock_file)
 
-    def test_process_uploadfile_name_empty(self) -> None:
-        """Test UploadFile name processing with empty filename."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = None
+async def test_delete_image_from_storage_removes_thumbnails_and_original() -> None:
+    """Image storage cleanup removes generated thumbnails before the original."""
+    image_path = Path(FAKE_IMAGE_PATH)
 
-        with pytest.raises(BadRequestError, match="File name is empty"):
-            process_uploadfile_name(mock_file)
+    with (
+        patch("app.api.file_storage.crud.support_paths.to_thread.run_sync", new=AsyncMock()) as mock_run_sync,
+        patch(
+            "app.api.file_storage.crud.support_paths.delete_file_from_storage",
+            new=AsyncMock(),
+        ) as mock_delete_file,
+    ):
+        await delete_image_from_storage(image_path)
 
-    async def test_delete_image_from_storage_removes_thumbnails_and_original(self) -> None:
-        """Image storage cleanup removes generated thumbnails before the original."""
-        image_path = Path(FAKE_IMAGE_PATH)
+    mock_run_sync.assert_awaited_once()
+    mock_delete_file.assert_awaited_once_with(image_path)
 
-        with (
-            patch("app.api.file_storage.crud.support_paths.to_thread.run_sync", new=AsyncMock()) as mock_run_sync,
-            patch(
-                "app.api.file_storage.crud.support_paths.delete_file_from_storage",
-                new=AsyncMock(),
-            ) as mock_delete_file,
-        ):
-            await delete_image_from_storage(image_path)
+async def test_delete_file_from_storage_ignores_files_already_removed(tmp_path: Path) -> None:
+    """Deletion should tolerate a concurrent remover winning the unlink race."""
+    await delete_file_from_storage(tmp_path / "missing.txt")
 
-        mock_run_sync.assert_awaited_once()
-        mock_delete_file.assert_awaited_once_with(image_path)
-
-    async def test_delete_file_from_storage_ignores_files_already_removed(self, tmp_path: Path) -> None:
-        """Deletion should tolerate a concurrent remover winning the unlink race."""
-        await delete_file_from_storage(tmp_path / "missing.txt")
-
-    async def test_delete_file_from_storage_surfaces_unexpected_os_errors(self) -> None:
-        """Only a missing file is benign; other unlink errors should stay visible."""
-        with (
-            patch(
-                "app.api.file_storage.crud.support_paths.AnyIOPath.unlink",
-                new=AsyncMock(side_effect=PermissionError("denied")),
-            ),
-            pytest.raises(PermissionError, match="denied"),
-        ):
-            await delete_file_from_storage(Path(FAKE_IMAGE_PATH))
-
+async def test_delete_file_from_storage_surfaces_unexpected_os_errors() -> None:
+    """Only a missing file is benign; other unlink errors should stay visible."""
+    with (
+        patch(
+            "app.api.file_storage.crud.support_paths.AnyIOPath.unlink",
+            new=AsyncMock(side_effect=PermissionError("denied")),
+        ),
+        pytest.raises(PermissionError, match="denied"),
+    ):
+        await delete_file_from_storage(Path(FAKE_IMAGE_PATH))
 
 def _upload(filename: str, content_type: str, content: bytes = b"sample") -> UploadFile:
     return UploadFile(file=BytesIO(content), filename=filename, headers=Headers({"content-type": content_type}))
-
 
 def _zip_bytes(paths: list[str]) -> bytes:
     buffer = BytesIO()
@@ -113,7 +107,6 @@ def _zip_bytes(paths: list[str]) -> bytes:
             archive.writestr(ZipInfo(path, date_time=ZIP_MEMBER_TIMESTAMP), "<xml />", compress_type=ZIP_DEFLATED)
     return buffer.getvalue()
 
-
 def _zip_bytes_with_info(entries: list[tuple[ZipInfo, bytes]]) -> bytes:
     buffer = BytesIO()
     with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
@@ -121,7 +114,6 @@ def _zip_bytes_with_info(entries: list[tuple[ZipInfo, bytes]]) -> bytes:
             info.date_time = ZIP_MEMBER_TIMESTAMP
             archive.writestr(info, content, compress_type=ZIP_DEFLATED)
     return buffer.getvalue()
-
 
 def test_zip_bytes_are_deterministic_when_collection_times_differ(monkeypatch: pytest.MonkeyPatch) -> None:
     """Generated parametrized zip fixtures must not depend on worker collection time."""
@@ -133,183 +125,179 @@ def test_zip_bytes_are_deterministic_when_collection_times_differ(monkeypatch: p
 
     assert first == second
 
+DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+PPTX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
-class TestUploadPolicy:
-    """Tests for centralized upload allowlists."""
+@pytest.mark.parametrize(
+    ("filename", "content_type"),
+    [
+        ("manual.pdf", "application/pdf"),
+        ("measurements.csv", "text/csv"),
+        ("notes.md", "text/markdown"),
+        ("metadata.json", "application/json"),
+        ("report.docx", DOCX_CONTENT_TYPE),
+        ("cube.hdr", "text/plain"),
+        ("cube.raw", "application/octet-stream"),
+        ("cube.dat", "application/octet-stream"),
+        ("cube.img", "application/octet-stream"),
+        ("cube.h5", "application/x-hdf5"),
+        ("cube.hdf5", "application/x-hdf5"),
+        ("scene.ntf", "application/octet-stream"),
+        ("scene.nitf", "application/octet-stream"),
+        ("geocube.tif", "image/tiff"),
+        ("geocube.tiff", "image/tiff"),
+    ],
+)
+def test_generic_file_upload_policy_accepts_research_and_hyperspectral_extensions(
+    filename: str, content_type: str
+) -> None:
+    """Generic file uploads allow research docs and hyperspectral data formats."""
+    assert validate_generic_file_upload_metadata(_upload(filename, content_type)).filename == filename
 
-    DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    PPTX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-    XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+@pytest.mark.parametrize("extension", sorted(HYPERSPECTRAL_FILE_EXTENSIONS))
+def test_image_upload_policy_rejects_hyperspectral_extensions(extension: str) -> None:
+    """Hyperspectral data belongs in file uploads, not image processing routes."""
+    with pytest.raises(BadRequestError, match="not supported for image uploads"):
+        validate_image_upload_metadata(_upload(f"cube{extension}", "image/tiff"))
 
-    @pytest.mark.parametrize(
-        ("filename", "content_type"),
-        [
-            ("manual.pdf", "application/pdf"),
-            ("measurements.csv", "text/csv"),
-            ("notes.md", "text/markdown"),
-            ("metadata.json", "application/json"),
-            ("report.docx", DOCX_CONTENT_TYPE),
-            ("cube.hdr", "text/plain"),
-            ("cube.raw", "application/octet-stream"),
-            ("cube.dat", "application/octet-stream"),
-            ("cube.img", "application/octet-stream"),
-            ("cube.h5", "application/x-hdf5"),
-            ("cube.hdf5", "application/x-hdf5"),
-            ("scene.ntf", "application/octet-stream"),
-            ("scene.nitf", "application/octet-stream"),
-            ("geocube.tif", "image/tiff"),
-            ("geocube.tiff", "image/tiff"),
-        ],
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "run.exe",
+        "archive.zip",
+        "report.pdf.exe",
+        "payload.jpg.php",
+        "diagram.svg",
+        ".hidden.pdf",
+        " leading.pdf",
+        "nested/manual.pdf",
+        "nested\\manual.pdf",
+    ],
+)
+def test_generic_file_upload_policy_rejects_dangerous_or_unknown_names(filename: str) -> None:
+    """Dangerous names and unsupported extensions are rejected before storage."""
+    with pytest.raises(BadRequestError, match=r"not supported|must not|multiple extensions"):
+        validate_generic_file_upload_metadata(_upload(filename, "application/octet-stream"))
+
+@pytest.mark.parametrize(
+    ("filename", "content_type", "content"),
+    [
+        ("manual.pdf", "application/pdf", b"%PDF-1.7\n"),
+        ("metadata.json", "application/json", b'{"bands": 224}'),
+        ("cube.h5", "application/x-hdf5", b"\x89HDF\r\n\x1a\n"),
+        ("scene.ntf", "application/octet-stream", b"NITF02.10"),
+        ("geocube.tif", "image/tiff", b"II*\x00"),
+        ("report.docx", DOCX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "word/document.xml"])),
+        ("table.xlsx", XLSX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "xl/workbook.xml"])),
+        ("deck.pptx", PPTX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "ppt/presentation.xml"])),
+    ],
+)
+def test_generic_file_upload_content_accepts_stable_format_signatures(
+    filename: str, content_type: str, content: bytes
+) -> None:
+    """Stable research file formats get lightweight content sanity checks."""
+    upload = _upload(filename, content_type, content)
+
+    assert validate_generic_file_upload_content(upload).filename == filename
+    assert upload.file.tell() == 0
+
+@pytest.mark.parametrize(
+    ("filename", "content_type", "content"),
+    [
+        ("manual.pdf", "application/pdf", b"<html>not a pdf</html>"),
+        ("metadata.json", "application/json", b"{not json"),
+        ("cube.h5", "application/x-hdf5", b"not hdf5"),
+        ("scene.ntf", "application/octet-stream", b"not nitf"),
+        ("geocube.tif", "image/tiff", b"not tiff"),
+        ("report.docx", DOCX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "xl/workbook.xml"])),
+        ("table.xlsx", XLSX_CONTENT_TYPE, b"not a zip"),
+    ],
+)
+def test_generic_file_upload_content_rejects_stable_format_mismatches(
+    filename: str, content_type: str, content: bytes
+) -> None:
+    """Allowed extensions with clearly mismatched bytes are rejected."""
+    upload = _upload(filename, content_type, content)
+
+    with pytest.raises(BadRequestError, match="does not match"):
+        validate_generic_file_upload_content(upload)
+    assert upload.file.tell() == 0
+
+@pytest.mark.parametrize(
+    ("paths", "message"),
+    [
+        (["[Content_Types].xml", "word/document.xml", "../evil.xml"], "path information"),
+        (["[Content_Types].xml", "word/document.xml", "/absolute.xml"], "path information"),
+        (["[Content_Types].xml", "word/document.xml", "nested\\evil.xml"], "path information"),
+    ],
+)
+def test_ooxml_upload_rejects_zip_slip_paths(paths: list[str], message: str) -> None:
+    """Compressed uploads must ignore user-provided path tricks before processing."""
+    upload = _upload("report.docx", DOCX_CONTENT_TYPE, _zip_bytes(paths))
+
+    with pytest.raises(BadRequestError, match=message):
+        validate_generic_file_upload_content(upload)
+    assert upload.file.tell() == 0
+
+def test_ooxml_upload_rejects_too_many_files(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Compressed uploads must cap member count before accepting the archive."""
+    monkeypatch.setattr("app.api.file_storage.upload_policy.MAX_COMPRESSED_FILE_COUNT", 2)
+    upload = _upload(
+        "report.docx",
+        DOCX_CONTENT_TYPE,
+        _zip_bytes(["[Content_Types].xml", "word/document.xml", "extra.xml"]),
     )
-    def test_generic_file_upload_policy_accepts_research_and_hyperspectral_extensions(
-        self, filename: str, content_type: str
-    ) -> None:
-        """Generic file uploads allow research docs and hyperspectral data formats."""
-        assert validate_generic_file_upload_metadata(_upload(filename, content_type)).filename == filename
 
-    @pytest.mark.parametrize("extension", sorted(HYPERSPECTRAL_FILE_EXTENSIONS))
-    def test_image_upload_policy_rejects_hyperspectral_extensions(self, extension: str) -> None:
-        """Hyperspectral data belongs in file uploads, not image processing routes."""
-        with pytest.raises(BadRequestError, match="not supported for image uploads"):
-            validate_image_upload_metadata(_upload(f"cube{extension}", "image/tiff"))
+    with pytest.raises(BadRequestError, match="too many files"):
+        validate_generic_file_upload_content(upload)
+    assert upload.file.tell() == 0
 
-    @pytest.mark.parametrize(
-        "filename",
-        [
-            "run.exe",
-            "archive.zip",
-            "report.pdf.exe",
-            "payload.jpg.php",
-            "diagram.svg",
-            ".hidden.pdf",
-            " leading.pdf",
-            "nested/manual.pdf",
-            "nested\\manual.pdf",
-        ],
+def test_ooxml_upload_rejects_excessive_uncompressed_size(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Compressed uploads must cap unpacked size before accepting the archive."""
+    monkeypatch.setattr("app.api.file_storage.upload_policy._max_compressed_unpacked_size_bytes", lambda: 10)
+    upload = _upload(
+        "report.docx",
+        DOCX_CONTENT_TYPE,
+        _zip_bytes_with_info(
+            [
+                (ZipInfo("[Content_Types].xml"), b"<xml />"),
+                (ZipInfo("word/document.xml"), b"x" * 20),
+            ]
+        ),
     )
-    def test_generic_file_upload_policy_rejects_dangerous_or_unknown_names(self, filename: str) -> None:
-        """Dangerous names and unsupported extensions are rejected before storage."""
-        with pytest.raises(BadRequestError, match=r"not supported|must not|multiple extensions"):
-            validate_generic_file_upload_metadata(_upload(filename, "application/octet-stream"))
 
-    @pytest.mark.parametrize(
-        ("filename", "content_type", "content"),
-        [
-            ("manual.pdf", "application/pdf", b"%PDF-1.7\n"),
-            ("metadata.json", "application/json", b'{"bands": 224}'),
-            ("cube.h5", "application/x-hdf5", b"\x89HDF\r\n\x1a\n"),
-            ("scene.ntf", "application/octet-stream", b"NITF02.10"),
-            ("geocube.tif", "image/tiff", b"II*\x00"),
-            ("report.docx", DOCX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "word/document.xml"])),
-            ("table.xlsx", XLSX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "xl/workbook.xml"])),
-            ("deck.pptx", PPTX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "ppt/presentation.xml"])),
-        ],
+    with pytest.raises(BadRequestError, match="uncompressed size"):
+        validate_generic_file_upload_content(upload)
+    assert upload.file.tell() == 0
+
+def test_ooxml_upload_rejects_symlink_members() -> None:
+    """Compressed uploads must reject symlink entries."""
+    symlink = ZipInfo("word/link.xml")
+    symlink.create_system = 3
+    symlink.external_attr = 0o120777 << 16
+    upload = _upload(
+        "report.docx",
+        DOCX_CONTENT_TYPE,
+        _zip_bytes_with_info(
+            [
+                (ZipInfo("[Content_Types].xml"), b"<xml />"),
+                (ZipInfo("word/document.xml"), b"<xml />"),
+                (symlink, b"target"),
+            ]
+        ),
     )
-    def test_generic_file_upload_content_accepts_stable_format_signatures(
-        self, filename: str, content_type: str, content: bytes
-    ) -> None:
-        """Stable research file formats get lightweight content sanity checks."""
-        upload = _upload(filename, content_type, content)
 
-        assert validate_generic_file_upload_content(upload).filename == filename
-        assert upload.file.tell() == 0
+    with pytest.raises(BadRequestError, match="symlink"):
+        validate_generic_file_upload_content(upload)
+    assert upload.file.tell() == 0
 
-    @pytest.mark.parametrize(
-        ("filename", "content_type", "content"),
-        [
-            ("manual.pdf", "application/pdf", b"<html>not a pdf</html>"),
-            ("metadata.json", "application/json", b"{not json"),
-            ("cube.h5", "application/x-hdf5", b"not hdf5"),
-            ("scene.ntf", "application/octet-stream", b"not nitf"),
-            ("geocube.tif", "image/tiff", b"not tiff"),
-            ("report.docx", DOCX_CONTENT_TYPE, _zip_bytes(["[Content_Types].xml", "xl/workbook.xml"])),
-            ("table.xlsx", XLSX_CONTENT_TYPE, b"not a zip"),
-        ],
-    )
-    def test_generic_file_upload_content_rejects_stable_format_mismatches(
-        self, filename: str, content_type: str, content: bytes
-    ) -> None:
-        """Allowed extensions with clearly mismatched bytes are rejected."""
-        upload = _upload(filename, content_type, content)
+def test_image_upload_content_rejects_pixel_flood_images() -> None:
+    """Image uploads must reject dimensions over the configured pixel cap before storage."""
+    buffer = BytesIO()
+    PILImage.new("RGB", (8001, 1), color="red").save(buffer, format="PNG")
+    upload = _upload("photo.png", "image/png", buffer.getvalue())
 
-        with pytest.raises(BadRequestError, match="does not match"):
-            validate_generic_file_upload_content(upload)
-        assert upload.file.tell() == 0
-
-    @pytest.mark.parametrize(
-        ("paths", "message"),
-        [
-            (["[Content_Types].xml", "word/document.xml", "../evil.xml"], "path information"),
-            (["[Content_Types].xml", "word/document.xml", "/absolute.xml"], "path information"),
-            (["[Content_Types].xml", "word/document.xml", "nested\\evil.xml"], "path information"),
-        ],
-    )
-    def test_ooxml_upload_rejects_zip_slip_paths(self, paths: list[str], message: str) -> None:
-        """Compressed uploads must ignore user-provided path tricks before processing."""
-        upload = _upload("report.docx", self.DOCX_CONTENT_TYPE, _zip_bytes(paths))
-
-        with pytest.raises(BadRequestError, match=message):
-            validate_generic_file_upload_content(upload)
-        assert upload.file.tell() == 0
-
-    def test_ooxml_upload_rejects_too_many_files(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Compressed uploads must cap member count before accepting the archive."""
-        monkeypatch.setattr("app.api.file_storage.upload_policy.MAX_COMPRESSED_FILE_COUNT", 2)
-        upload = _upload(
-            "report.docx",
-            self.DOCX_CONTENT_TYPE,
-            _zip_bytes(["[Content_Types].xml", "word/document.xml", "extra.xml"]),
-        )
-
-        with pytest.raises(BadRequestError, match="too many files"):
-            validate_generic_file_upload_content(upload)
-        assert upload.file.tell() == 0
-
-    def test_ooxml_upload_rejects_excessive_uncompressed_size(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Compressed uploads must cap unpacked size before accepting the archive."""
-        monkeypatch.setattr("app.api.file_storage.upload_policy._max_compressed_unpacked_size_bytes", lambda: 10)
-        upload = _upload(
-            "report.docx",
-            self.DOCX_CONTENT_TYPE,
-            _zip_bytes_with_info(
-                [
-                    (ZipInfo("[Content_Types].xml"), b"<xml />"),
-                    (ZipInfo("word/document.xml"), b"x" * 20),
-                ]
-            ),
-        )
-
-        with pytest.raises(BadRequestError, match="uncompressed size"):
-            validate_generic_file_upload_content(upload)
-        assert upload.file.tell() == 0
-
-    def test_ooxml_upload_rejects_symlink_members(self) -> None:
-        """Compressed uploads must reject symlink entries."""
-        symlink = ZipInfo("word/link.xml")
-        symlink.create_system = 3
-        symlink.external_attr = 0o120777 << 16
-        upload = _upload(
-            "report.docx",
-            self.DOCX_CONTENT_TYPE,
-            _zip_bytes_with_info(
-                [
-                    (ZipInfo("[Content_Types].xml"), b"<xml />"),
-                    (ZipInfo("word/document.xml"), b"<xml />"),
-                    (symlink, b"target"),
-                ]
-            ),
-        )
-
-        with pytest.raises(BadRequestError, match="symlink"):
-            validate_generic_file_upload_content(upload)
-        assert upload.file.tell() == 0
-
-    def test_image_upload_content_rejects_pixel_flood_images(self) -> None:
-        """Image uploads must reject dimensions over the configured pixel cap before storage."""
-        buffer = BytesIO()
-        PILImage.new("RGB", (8001, 1), color="red").save(buffer, format="PNG")
-        upload = _upload("photo.png", "image/png", buffer.getvalue())
-
-        with pytest.raises(BadRequestError, match="exceed"):
-            validate_image_upload_content(upload)
-        assert upload.file.tell() == 0
+    with pytest.raises(BadRequestError, match="exceed"):
+        validate_image_upload_content(upload)
+    assert upload.file.tell() == 0

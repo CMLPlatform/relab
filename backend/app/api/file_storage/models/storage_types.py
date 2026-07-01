@@ -59,7 +59,7 @@ class FileType(_BaseStorageType):
         super().__init__(_get_file_storage(), *args, **kwargs)
 
     def _process_upload_value(self, value: UploadValue, file_obj: BinaryIO) -> str:
-        file = StorageFile(name=value.filename, storage=_get_file_storage())
+        file = StorageFile(name=value.filename, storage=self.storage)
         file.write(file=file_obj)
         return file.name
 
@@ -68,7 +68,7 @@ class FileType(_BaseStorageType):
         del dialect
         if value is None:
             return value
-        return StorageFile(name=value, storage=_get_file_storage())
+        return StorageFile(name=value, storage=self.storage)
 
 
 class ImageType(_BaseStorageType):
@@ -82,7 +82,7 @@ class ImageType(_BaseStorageType):
     def _process_upload_value(self, value: UploadValue, file_obj: BinaryIO) -> str:
         validate_image_file(file_obj)
         file_obj.seek(0)
-        image = StorageImage(name=value.filename, storage=_get_image_storage())
+        image = StorageImage(name=value.filename, storage=self.storage)
         image.write(file=file_obj)
         return image.name
 
@@ -91,4 +91,4 @@ class ImageType(_BaseStorageType):
         del dialect
         if value is None:
             return value
-        return StorageImage(name=value, storage=_get_image_storage())
+        return StorageImage(name=value, storage=self.storage)

@@ -24,7 +24,6 @@ def mock_session() -> AsyncMock:
     session.execute = AsyncMock()
     return session
 
-
 async def test_reserve_product_upload_quota_uses_single_conditional_update(mock_session: AsyncMock) -> None:
     """Successful reservations should be one atomic DB update without aggregate reads."""
     user_id = uuid4()
@@ -42,7 +41,6 @@ async def test_reserve_product_upload_quota_uses_single_conditional_update(mock_
     assert "upload_total_bytes" in rendered_statement
     assert "RETURNING" in rendered_statement
 
-
 async def test_reserve_product_upload_quota_raises_generic_quota_error_on_rejection(
     mock_session: AsyncMock,
 ) -> None:
@@ -57,7 +55,6 @@ async def test_reserve_product_upload_quota_raises_generic_quota_error_on_reject
 
     mock_session.execute.assert_awaited_once()
     mock_session.get.assert_not_awaited()
-
 
 async def test_release_product_upload_quota_for_media_decrements_product_owned_media(mock_session: AsyncMock) -> None:
     """Deleting product media should release one file and its stored bytes without going negative."""
@@ -74,7 +71,6 @@ async def test_release_product_upload_quota_for_media_decrements_product_owned_m
     assert "product" in rendered_statement.lower()
     mock_session.get.assert_not_awaited()
 
-
 async def test_release_product_upload_quota_for_media_ignores_reference_media(mock_session: AsyncMock) -> None:
     """Reference-data media should not affect product upload quota ledgers."""
     item = MagicMock(parent_type=MediaParentType.MATERIAL, parent_id=1, upload_size_bytes=128)
@@ -83,7 +79,6 @@ async def test_release_product_upload_quota_for_media_ignores_reference_media(mo
 
     mock_session.get.assert_not_awaited()
     mock_session.execute.assert_not_awaited()
-
 
 async def test_recompute_user_upload_quota_persists_product_owned_media_totals(mock_session: AsyncMock) -> None:
     """Maintenance recompute should rebuild the ledger from files plus images."""

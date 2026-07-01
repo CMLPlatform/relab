@@ -1,20 +1,26 @@
-"""Service classes for file-backed media CRUD."""
+"""Service classes and query helpers for file-backed media CRUD."""
 
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from anyio import to_thread
 from fastapi import UploadFile
 from pydantic import UUID4
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.common.crud.exceptions import ModelNotFoundError
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.query import require_locked_model, require_model
 from app.api.common.exceptions import BadRequestError
+from app.api.common.models.base import Base
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, ModelFileNotFoundError
-from app.api.file_storage.models import File, Image
+from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.models.storage_resolver import _get_file_storage, _get_image_storage
+from app.api.file_storage.parents import parent_model_for_type
 from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm, ImageCreateInternal
 from app.api.file_storage.upload_policy import (
     validate_generic_file_upload_content,
@@ -28,7 +34,6 @@ from app.core.config import settings
 from app.core.images import generate_thumbnails, process_image_for_storage
 
 from .support_paths import delete_file_from_storage, delete_image_from_storage, stored_file_path
-from .support_queries import ensure_parent_exists, ensure_storage_item_found, get_optional_storage_item
 from .support_types import StorageCreateSchema, StorageModel
 from .support_uploads import build_storage_instance, process_uploadfile_name, validate_upload_size
 
@@ -36,7 +41,79 @@ if TYPE_CHECKING:
     from pathlib import Path
     from uuid import UUID
 
+    from app.api.common.crud.filtering import BaseFilterSet
+
 logger = logging.getLogger(__name__)
+
+
+async def ensure_parent_exists(db: AsyncSession, parent_type: MediaParentType, parent_id: int) -> None:
+    """Validate that the target parent record exists."""
+    parent_model = parent_model_for_type(parent_type)
+    await require_model(db, parent_model, parent_id)
+
+
+async def get_optional_storage_item[StorageModelT: StorageModel](
+    db: AsyncSession,
+    model: type[StorageModelT],
+    item_id: UUID4,
+) -> StorageModelT | None:
+    """Return a storage item directly from SQLAlchemy or None when missing."""
+    return await db.get(model, item_id)
+
+
+def ensure_storage_item_found[StorageModelT: StorageModel](
+    model: type[StorageModelT],
+    item_id: UUID4,
+    db_item: StorageModelT | None,
+) -> StorageModelT:
+    """Raise the standard not-found error when a storage item is missing."""
+    if db_item is None:
+        raise ModelNotFoundError(model, item_id)
+    return db_item
+
+
+async def get_parent_owned_storage_item[StorageModelT: StorageModel](
+    db: AsyncSession,
+    *,
+    parent_model: type[Base],
+    model: type[StorageModelT],
+    parent_id: int,
+    item_id: UUID4,
+    parent_type: MediaParentType,
+) -> StorageModelT:
+    """Fetch a storage item and verify that it belongs to the scoped parent."""
+    await require_model(db, parent_model, parent_id)
+    try:
+        statement = select(model).where(
+            model.id == item_id,
+            model.parent_id == parent_id,
+            model.parent_type == parent_type,
+        )
+        db_item = (await db.execute(statement)).scalars().unique().one_or_none()
+    except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
+        raise ModelFileNotFoundError(model, item_id, details=str(e)) from e
+
+    return ensure_storage_item_found(model, item_id, db_item)
+
+
+async def list_parent_storage_items[StorageModelT: StorageModel](
+    db: AsyncSession,
+    *,
+    model: type[StorageModelT],
+    parent_type: MediaParentType,
+    parent_id: int,
+    filter_params: BaseFilterSet | None = None,
+    limit: int | None = None,
+) -> list[StorageModelT]:
+    """List storage items owned by one parent/type scope."""
+    statement: Select[tuple[StorageModelT]] = select(model).where(
+        model.parent_type == parent_type,
+        model.parent_id == parent_id,
+    )
+    statement = apply_filter(statement, model, filter_params)
+    if limit is not None:
+        statement = statement.limit(limit)
+    return list((await db.execute(statement)).scalars().all())
 
 
 async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
@@ -61,7 +138,7 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
     return db_image
 
 
-class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
+class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](ABC):
     """Explicit service for create/delete operations on stored media."""
 
     def __init__(
@@ -72,15 +149,13 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         self.model = model
 
     @property
+    @abstractmethod
     def max_size_mb(self) -> int:
         """Return the upload size limit for this media type."""
-        msg = "Subclasses must define max_size_mb."
-        raise NotImplementedError(msg)
 
+    @abstractmethod
     async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
         """Persist an uploaded file to storage."""
-        msg = "Subclasses must implement write_upload()."
-        raise NotImplementedError(msg)
 
     async def after_create(self, db: AsyncSession, item: StorageModelT) -> StorageModelT:
         """Hook for post-create processing."""
@@ -198,7 +273,7 @@ class ImageStorageService(StoredMediaService[Image, ImageCreateFromForm | ImageC
 
     async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
         """Persist an image upload."""
-        return await _get_image_storage().write_image_upload(upload_file, filename)
+        return await _get_image_storage().write_upload(upload_file, filename)
 
     def validate_upload_metadata(self, upload_file: UploadFile) -> None:
         """Validate image upload metadata."""

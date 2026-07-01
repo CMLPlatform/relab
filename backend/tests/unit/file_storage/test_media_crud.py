@@ -11,12 +11,10 @@ import pytest
 from fastapi import UploadFile
 from pydantic import ValidationError
 
-from app.api.file_storage.crud.media_queries import create_file, create_image, delete_file, delete_image
 from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
 from app.api.file_storage.exceptions import ModelFileNotFoundError, UploadTooLargeError
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import FileCreate, ImageCreateInternal
-from tests.factories.models import ProductFactory
 
 TEST_FILE_DESC = "Test file"
 TEST_FILENAME = "test.txt"
@@ -28,261 +26,155 @@ CONTENT_TYPE_PNG = "image/png"
 MB = 1024 * 1024
 
 
-class TestFileStorageCrud:
-    """Test CRUD operations for generic files."""
+def test_file_create_rejects_quota_user_fields() -> None:
+    """Upload payload schemas should not expose quota-accounting fields."""
+    mock_file = MagicMock(spec=UploadFile)
+    mock_file.filename = TEST_FILENAME
 
-    async def test_create_file_success(self, mock_session: AsyncMock) -> None:
-        """Creates a file record for a valid upload."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = TEST_FILENAME
-        mock_file.size = 1024
-        mock_file.file = BytesIO(b"test content")
-
-        quota_user_id = uuid4()
-        quota_mock = AsyncMock()
-        file_create = FileCreate(
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        FileCreate(
             file=mock_file,
             description=TEST_FILE_DESC,
             parent_id=1,
             parent_type=MediaParentType.PRODUCT,
+            quota_user_id=uuid4(),
         )
 
-        with (
-            patch("app.api.file_storage.crud.support_queries.parent_model_for_type") as mock_parent_model,
-            patch("app.api.file_storage.crud.support_queries.require_model"),
-            patch("app.api.file_storage.crud.support_services.reserve_product_upload_quota", new=quota_mock),
-            patch("app.api.file_storage.crud.support_services._get_file_storage") as mock_get_storage,
-        ):
-            mock_parent_model.return_value = MagicMock()
-            mock_storage = mock_get_storage.return_value
-            mock_storage.write_upload = AsyncMock(return_value="stored_test.txt")
 
-            result = await create_file(mock_session, file_create, quota_user_id=quota_user_id)
+async def test_create_file_rejects_oversized_upload(mock_session: AsyncMock) -> None:
+    """Rejects file uploads above the size limit."""
+    mock_file = MagicMock(spec=UploadFile)
+    mock_file.filename = TEST_FILENAME
+    mock_file.size = 51 * MB
+    mock_file.file = BytesIO(b"")
 
-        assert isinstance(result, File)
-        assert result.description == TEST_FILE_DESC
-        assert result.filename == TEST_FILENAME
-        assert result.parent_type == MediaParentType.PRODUCT
-        assert result.parent_id == 1
-        assert result.upload_size_bytes == 1024
-        quota_mock.assert_awaited_once_with(mock_session, user_id=quota_user_id, upload_size_bytes=1024)
+    file_create = FileCreate(
+        file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+    )
 
-    def test_file_create_rejects_quota_user_fields(self) -> None:
-        """Upload payload schemas should not expose quota-accounting fields."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = TEST_FILENAME
-
-        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-            FileCreate(
-                file=mock_file,
-                description=TEST_FILE_DESC,
-                parent_id=1,
-                parent_type=MediaParentType.PRODUCT,
-                quota_user_id=uuid4(),
-            )
-
-    async def test_create_file_rejects_oversized_upload(self, mock_session: AsyncMock) -> None:
-        """Rejects file uploads above the size limit."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = TEST_FILENAME
-        mock_file.size = 51 * MB
-        mock_file.file = BytesIO(b"")
-
-        file_create = FileCreate(
-            file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
-        )
-
-        with pytest.raises(UploadTooLargeError, match="Maximum size: 50 MB"):
-            await create_file(mock_session, file_create)
-
-    async def test_create_file_uses_configured_upload_size_limit(
-        self, mock_session: AsyncMock, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Generic file uploads should use the configured limit instead of a module constant."""
-        monkeypatch.setattr("app.api.file_storage.crud.support_services.settings.max_file_upload_size_mb", 2)
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = TEST_FILENAME
-        mock_file.size = 3 * MB
-        mock_file.file = BytesIO(b"")
-
-        file_create = FileCreate(
-            file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
-        )
-
-        with pytest.raises(UploadTooLargeError, match="Maximum size: 2 MB"):
-            await create_file(mock_session, file_create)
-
-    def test_file_service_does_not_keep_legacy_fallback_upload_limit(self) -> None:
-        """The file upload service should read limits from settings only."""
-        assert not hasattr(file_storage_service, "_max_size_mb")
-
-    async def test_delete_file_success(self, mock_session: AsyncMock) -> None:
-        """Deletes a stored file and its database record."""
-        file_id = uuid4()
-        mock_db_file = MagicMock(spec=File)
-        mock_db_file.file.path = FAKE_PATH
-
-        with (
-            patch("app.api.file_storage.crud.support_services.require_locked_model", return_value=mock_db_file),
-            patch("app.api.file_storage.crud.support_services.delete_file_from_storage") as mock_delete_from_storage,
-            patch("app.api.file_storage.crud.support_services.release_product_upload_quota_for_media", new=AsyncMock()),
-        ):
-            await delete_file(mock_session, file_id)
-
-        mock_session.delete.assert_called_once_with(mock_db_file)
-        mock_delete_from_storage.assert_called_once_with(Path(FAKE_PATH))
-
-    async def test_delete_product_file_releases_upload_quota(self, mock_session: AsyncMock) -> None:
-        """Deleting product-owned files should release the owner's upload ledger."""
-        file_id = uuid4()
-        mock_db_file = MagicMock(spec=File)
-        mock_db_file.file.path = FAKE_PATH
-        mock_db_file.parent_type = MediaParentType.PRODUCT
-        mock_db_file.parent_id = 1
-        mock_db_file.upload_size_bytes = 1024
-
-        with (
-            patch("app.api.file_storage.crud.support_services.require_locked_model", return_value=mock_db_file),
-            patch("app.api.file_storage.crud.support_services.delete_file_from_storage"),
-            patch(
-                "app.api.file_storage.crud.support_services.release_product_upload_quota_for_media",
-                new=AsyncMock(),
-            ) as release_quota,
-        ):
-            await delete_file(mock_session, file_id)
-
-        release_quota.assert_awaited_once_with(mock_session, mock_db_file)
+    with pytest.raises(UploadTooLargeError, match="Maximum size: 50 MB"):
+        await file_storage_service.create(mock_session, file_create)
 
 
-class TestImageStorageCrud:
-    """Test CRUD operations for image files."""
+async def test_create_file_uses_configured_upload_size_limit(
+    mock_session: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Generic file uploads should use the configured limit instead of a module constant."""
+    monkeypatch.setattr("app.api.file_storage.crud.support_services.settings.max_file_upload_size_mb", 2)
+    mock_file = MagicMock(spec=UploadFile)
+    mock_file.filename = TEST_FILENAME
+    mock_file.size = 3 * MB
+    mock_file.file = BytesIO(b"")
 
-    async def test_create_image_internal_success(self, mock_session: AsyncMock) -> None:
-        """Creates an image record for a valid upload."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = IMAGE_FILENAME
-        mock_file.content_type = CONTENT_TYPE_PNG
-        mock_file.size = 1024
-        mock_file.file = BytesIO(b"fake image bytes")
-        mock_file.path = None
+    file_create = FileCreate(
+        file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+    )
 
-        quota_user_id = uuid4()
-        quota_mock = AsyncMock()
-        image_create = ImageCreateInternal(
+    with pytest.raises(UploadTooLargeError, match="Maximum size: 2 MB"):
+        await file_storage_service.create(mock_session, file_create)
+
+
+def test_file_service_does_not_keep_legacy_fallback_upload_limit() -> None:
+    """The file upload service should read limits from settings only."""
+    assert not hasattr(file_storage_service, "_max_size_mb")
+
+
+async def test_delete_product_file_releases_upload_quota(mock_session: AsyncMock) -> None:
+    """Deleting product-owned files should release the owner's upload ledger."""
+    file_id = uuid4()
+    mock_db_file = MagicMock(spec=File)
+    mock_db_file.file.path = FAKE_PATH
+    mock_db_file.parent_type = MediaParentType.PRODUCT
+    mock_db_file.parent_id = 1
+    mock_db_file.upload_size_bytes = 1024
+
+    with (
+        patch("app.api.file_storage.crud.support_services.require_locked_model", return_value=mock_db_file),
+        patch("app.api.file_storage.crud.support_services.delete_file_from_storage"),
+        patch(
+            "app.api.file_storage.crud.support_services.release_product_upload_quota_for_media",
+            new=AsyncMock(),
+        ) as release_quota,
+    ):
+        await file_storage_service.delete(mock_session, file_id)
+
+    release_quota.assert_awaited_once_with(mock_session, mock_db_file)
+
+
+def test_image_create_rejects_quota_user_fields() -> None:
+    """Image upload payload schemas should not expose quota-accounting fields."""
+    mock_file = MagicMock(spec=UploadFile)
+    mock_file.filename = IMAGE_FILENAME
+
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        ImageCreateInternal(
             file=mock_file,
             description=TEST_IMAGE_DESC,
             parent_id=1,
             parent_type=MediaParentType.PRODUCT,
+            quota_user_id=uuid4(),
         )
 
-        with (
-            patch(
-                "app.api.file_storage.crud.support_queries.require_model",
-                return_value=ProductFactory.build(id=1, owner_id=uuid4(), first_image_id=uuid4()),
-            ),
-            patch("app.api.file_storage.crud.support_services.reserve_product_upload_quota", new=quota_mock),
-            patch("app.api.file_storage.crud.support_services._get_image_storage") as mock_get_storage,
-            patch.object(image_storage_service, "validate_upload_content") as mock_validate_content,
-        ):
-            mock_storage = mock_get_storage.return_value
-            mock_storage.write_image_upload = AsyncMock(return_value="stored_image.png")
-            result = await create_image(mock_session, image_create, quota_user_id=quota_user_id)
 
-        assert isinstance(result, Image)
-        assert result.description == TEST_IMAGE_DESC
-        mock_validate_content.assert_called_once_with(mock_file)
-        assert result.filename == IMAGE_FILENAME
-        assert result.upload_size_bytes == 1024
-        quota_mock.assert_awaited_once_with(mock_session, user_id=quota_user_id, upload_size_bytes=1024)
+async def test_create_image_rejects_oversized_upload(mock_session: AsyncMock) -> None:
+    """Rejects image uploads above the size limit."""
+    mock_file = MagicMock(spec=UploadFile)
+    mock_file.filename = IMAGE_FILENAME
+    mock_file.content_type = CONTENT_TYPE_PNG
+    mock_file.size = 11 * MB
+    mock_file.file = BytesIO(b"")
 
-    def test_image_create_rejects_quota_user_fields(self) -> None:
-        """Image upload payload schemas should not expose quota-accounting fields."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = IMAGE_FILENAME
+    image_create = ImageCreateInternal(
+        file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+    )
 
-        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-            ImageCreateInternal(
-                file=mock_file,
-                description=TEST_IMAGE_DESC,
-                parent_id=1,
-                parent_type=MediaParentType.PRODUCT,
-                quota_user_id=uuid4(),
-            )
+    with pytest.raises(UploadTooLargeError, match="Maximum size: 10 MB"):
+        await image_storage_service.create(mock_session, image_create)
 
-    async def test_create_image_rejects_oversized_upload(self, mock_session: AsyncMock) -> None:
-        """Rejects image uploads above the size limit."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = IMAGE_FILENAME
-        mock_file.content_type = CONTENT_TYPE_PNG
-        mock_file.size = 11 * MB
-        mock_file.file = BytesIO(b"")
 
-        image_create = ImageCreateInternal(
-            file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
-        )
+async def test_create_image_uses_configured_upload_size_limit(
+    mock_session: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Image uploads should use the configured limit instead of a module constant."""
+    monkeypatch.setattr("app.api.file_storage.crud.support_services.settings.max_image_upload_size_mb", 2)
+    mock_file = MagicMock(spec=UploadFile)
+    mock_file.filename = IMAGE_FILENAME
+    mock_file.content_type = CONTENT_TYPE_PNG
+    mock_file.size = 3 * MB
+    mock_file.file = BytesIO(b"")
 
-        with pytest.raises(UploadTooLargeError, match="Maximum size: 10 MB"):
-            await create_image(mock_session, image_create)
+    image_create = ImageCreateInternal(
+        file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+    )
 
-    async def test_create_image_uses_configured_upload_size_limit(
-        self, mock_session: AsyncMock, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Image uploads should use the configured limit instead of a module constant."""
-        monkeypatch.setattr("app.api.file_storage.crud.support_services.settings.max_image_upload_size_mb", 2)
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = IMAGE_FILENAME
-        mock_file.content_type = CONTENT_TYPE_PNG
-        mock_file.size = 3 * MB
-        mock_file.file = BytesIO(b"")
+    with pytest.raises(UploadTooLargeError, match="Maximum size: 2 MB"):
+        await image_storage_service.create(mock_session, image_create)
 
-        image_create = ImageCreateInternal(
-            file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
-        )
 
-        with pytest.raises(UploadTooLargeError, match="Maximum size: 2 MB"):
-            await create_image(mock_session, image_create)
+def test_image_service_does_not_keep_legacy_fallback_upload_limit() -> None:
+    """The image upload service should read limits from settings only."""
+    assert not hasattr(image_storage_service, "_max_size_mb")
 
-    def test_image_service_does_not_keep_legacy_fallback_upload_limit(self) -> None:
-        """The image upload service should read limits from settings only."""
-        assert not hasattr(image_storage_service, "_max_size_mb")
 
-    async def test_delete_image_success(self, mock_session: AsyncMock) -> None:
-        """Deletes a stored image and its database record."""
-        image_id = uuid4()
-        mock_db_image = MagicMock(spec=Image)
-        mock_db_image.file.path = FAKE_IMAGE_PATH
+async def test_delete_image_cleans_thumbnails_when_original_is_missing(mock_session: AsyncMock) -> None:
+    """Cleans up derived image files when the original file record is missing."""
+    image_id = uuid4()
+    mock_db_image = MagicMock(spec=Image)
+    mock_db_image.file.path = FAKE_IMAGE_PATH
+    mock_session.get.return_value = mock_db_image
 
-        with (
-            patch("app.api.file_storage.crud.support_services.require_locked_model", return_value=mock_db_image),
-            patch(
-                "app.api.file_storage.crud.support_services.delete_image_from_storage",
-                new=AsyncMock(),
-            ) as mock_delete_image,
-            patch("app.api.file_storage.crud.support_services.release_product_upload_quota_for_media", new=AsyncMock()),
-        ):
-            await delete_image(mock_session, image_id)
-        mock_session.delete.assert_called_once_with(mock_db_image)
-        mock_delete_image.assert_awaited_once_with(Path(FAKE_IMAGE_PATH))
+    with (
+        patch(
+            "app.api.file_storage.crud.support_services.require_locked_model",
+            side_effect=ModelFileNotFoundError(Image, image_id),
+        ),
+        patch(
+            "app.api.file_storage.crud.support_services.delete_image_from_storage",
+            new=AsyncMock(),
+        ) as mock_delete_image,
+        patch("app.api.file_storage.crud.support_services.release_product_upload_quota_for_media", new=AsyncMock()),
+    ):
+        await image_storage_service.delete(mock_session, image_id)
 
-    async def test_delete_image_cleans_thumbnails_when_original_is_missing(self, mock_session: AsyncMock) -> None:
-        """Cleans up derived image files when the original file record is missing."""
-        image_id = uuid4()
-        mock_db_image = MagicMock(spec=Image)
-        mock_db_image.file.path = FAKE_IMAGE_PATH
-        mock_session.get.return_value = mock_db_image
-
-        with (
-            patch(
-                "app.api.file_storage.crud.support_services.require_locked_model",
-                side_effect=ModelFileNotFoundError(Image, image_id),
-            ),
-            patch(
-                "app.api.file_storage.crud.support_services.delete_image_from_storage",
-                new=AsyncMock(),
-            ) as mock_delete_image,
-            patch("app.api.file_storage.crud.support_services.release_product_upload_quota_for_media", new=AsyncMock()),
-        ):
-            await delete_image(mock_session, image_id)
-
-        mock_session.delete.assert_called_once_with(mock_db_image)
-        mock_delete_image.assert_awaited_once_with(Path(FAKE_IMAGE_PATH))
+    mock_session.delete.assert_called_once_with(mock_db_image)
+    mock_delete_image.assert_awaited_once_with(Path(FAKE_IMAGE_PATH))

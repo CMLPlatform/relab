@@ -6,14 +6,16 @@ from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import MediaParentType
 from app.api.reference_data.models import Material, ProductType
 
+_PARENT_MODELS: dict[MediaParentType, type[Base]] = {
+    MediaParentType.PRODUCT: Product,
+    MediaParentType.PRODUCT_TYPE: ProductType,
+    MediaParentType.MATERIAL: Material,
+}
+
 
 def parent_model_for_type(parent_type: MediaParentType) -> type[Base]:
     """Return the ORM model for a storage parent type."""
-    if parent_type == parent_type.PRODUCT:
-        return Product
-    if parent_type == parent_type.PRODUCT_TYPE:
-        return ProductType
-    if parent_type == parent_type.MATERIAL:
-        return Material
-    err_msg = f"Invalid parent type: {parent_type}"
-    raise BadRequestError(err_msg)
+    try:
+        return _PARENT_MODELS[parent_type]
+    except KeyError:
+        raise BadRequestError(f"Invalid parent type: {parent_type}") from None

@@ -4,39 +4,14 @@ import uuid
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel
 from sqlalchemy import CheckConstraint, ForeignKey, Index
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.api.common.models.base import Base, TimeStampMixinBare
-from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.file_storage.models.storage_core import StorageFile, StorageImage
 from app.api.file_storage.models.storage_types import FileType, ImageType
-
-
-### Pydantic base schemas (shared with schemas.py) ###
-class FileBase(BaseModel):
-    """Base schema for File. Used by Pydantic schemas only, not ORM."""
-
-    description: MultilineUserText | None = None
-
-
-class ImageBase(BaseModel):
-    """Base schema for Image. Used by Pydantic schemas only, not ORM."""
-
-    description: MultilineUserText | None = None
-    image_metadata: dict[str, Any] | None = None
-
-
-class VideoBase(BaseModel):
-    """Base schema for Video. Used by Pydantic schemas only, not ORM."""
-
-    url: str
-    title: SingleLineUserText | None = None
-    description: MultilineUserText | None = None
-    video_metadata: dict[str, Any] | None = None
 
 
 class MediaParentType(StrEnum):

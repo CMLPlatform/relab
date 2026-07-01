@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
-
 def test_custom_storage_is_lazy_about_creating_directories(tmp_path: Path) -> None:
     """Test that FileSystemStorage does not create the storage directory until a file is written."""
     storage_dir = tmp_path / "files"
@@ -36,7 +35,6 @@ def test_custom_storage_is_lazy_about_creating_directories(tmp_path: Path) -> No
     assert storage_dir.exists()
     assert written_path.exists()
     assert written_path.read_bytes() == data
-
 
 def test_custom_storage_calls_mkdir_on_each_write(tmp_path: Path, mocker: MockerFixture) -> None:
     """Test that FileSystemStorage triggers directory creation on each write."""
@@ -61,7 +59,6 @@ def test_custom_storage_calls_mkdir_on_each_write(tmp_path: Path, mocker: Mocker
     storage2.write(file=io.BytesIO(b"third"), name="3.txt")
     assert mock_mkdir.call_count == 3
 
-
 def test_ensure_storage_directories_creates_expected_paths(mocker: MockerFixture) -> None:
     """Test that startup storage directory creation calls mkdir for both paths."""
     mock_mkdir = mocker.patch("pathlib.Path.mkdir")
@@ -73,7 +70,6 @@ def test_ensure_storage_directories_creates_expected_paths(mocker: MockerFixture
     assert mock_mkdir.call_count == 2
     assert mock_named_tempfile.call_count == 2
 
-
 def test_ensure_storage_directories_raises_when_storage_path_is_not_writable(mocker: MockerFixture) -> None:
     """Test that startup fails fast when a storage path exists but is not writable."""
     mocker.patch("pathlib.Path.mkdir")
@@ -82,27 +78,6 @@ def test_ensure_storage_directories_raises_when_storage_path_is_not_writable(moc
 
     with pytest.raises(RuntimeError, match="Storage path is not writable"):
         ensure_storage_directories()
-
-
-async def test_filesystem_write_image_upload_stores_without_policy_validation(
-    tmp_path: Path, mocker: MockerFixture
-) -> None:
-    """Filesystem storage should not duplicate image upload policy validation."""
-    mock_validate = mocker.patch(
-        "app.api.file_storage.models.storage_filesystem.validate_image_upload_content",
-        create=True,
-    )
-    upload = mocker.MagicMock()
-    upload.seek = mocker.AsyncMock()
-    upload.read = mocker.AsyncMock(side_effect=[b"image-bytes", b""])
-    upload.close = mocker.AsyncMock()
-
-    storage = FileSystemStorage(path=str(tmp_path))
-
-    assert await storage.write_image_upload(upload, "photo.jpg") == "photo.jpg"
-    assert (tmp_path / "photo.jpg").read_bytes() == b"image-bytes"
-    mock_validate.assert_not_called()
-
 
 async def test_filesystem_write_upload_refuses_to_overwrite_existing_file(tmp_path: Path) -> None:
     """Unexpected stored-name collisions must not replace existing upload bytes."""

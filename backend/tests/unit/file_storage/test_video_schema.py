@@ -14,7 +14,6 @@ def test_video_create_accepts_http_urls(url: str) -> None:
 
     assert str(video.url) == url
 
-
 @pytest.mark.parametrize(
     "url", ["javascript:alert(1)", "data:text/html,<script>alert(1)</script>", "ftp://example.com/video"]
 )
@@ -22,7 +21,6 @@ def test_video_create_rejects_non_http_urls(url: str) -> None:
     """Video creation rejects schemes that should not be rendered or opened."""
     with pytest.raises(ValidationError):
         VideoCreateWithinProduct.model_validate({"url": url, "title": "Demo", "description": ""})
-
 
 def test_video_update_rejects_non_http_url() -> None:
     """Video updates keep the same HTTP(S)-only URL boundary."""
