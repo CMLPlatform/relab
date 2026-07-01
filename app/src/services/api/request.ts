@@ -55,37 +55,29 @@ export async function fetchWithTimeout(
     return fetch(url, { ...requestOptions, signal });
   }
 
-  const controller = new AbortController();
-  let didTimeout = false;
-  const onAbort = () => controller.abort();
+  // setTimeout (not AbortSignal.timeout) so Jest's fake timers can drive it;
+  // AbortSignal.any merges it with any caller-provided signal.
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
 
-  if (signal?.aborted) {
-    controller.abort();
-  }
-
-  signal?.addEventListener('abort', onAbort, { once: true });
-
-  const timeoutId = setTimeout(() => {
-    didTimeout = true;
-    controller.abort();
-  }, timeoutMs);
-
-  // If we're in a Node.js environment (like Jest), unref the timer so it doesn't
-  // keep the process alive if the request is still pending during teardown.
+  // In Node (e.g. Jest) unref the timer so a pending request can't keep the
+  // process alive during teardown.
   if (timeoutId && typeof timeoutId === 'object' && 'unref' in timeoutId) {
     (timeoutId as { unref(): void }).unref();
   }
 
+  const combinedSignal = signal
+    ? AbortSignal.any([signal, timeoutController.signal])
+    : timeoutController.signal;
+
   try {
-    return await fetch(url, { ...requestOptions, signal: controller.signal });
+    return await fetch(url, { ...requestOptions, signal: combinedSignal });
   } catch (error) {
-    if (didTimeout) {
+    if (timeoutController.signal.aborted && !signal?.aborted) {
       throw new TimeoutError(timeoutMs);
     }
-
     throw error;
   } finally {
     clearTimeout(timeoutId);
-    signal?.removeEventListener('abort', onAbort);
   }
 }
