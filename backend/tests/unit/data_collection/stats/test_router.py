@@ -13,8 +13,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.stats.router import router
-from app.api.stats.schemas import CategoryStat, SeriesPoint, Totals
+from app.api.data_collection.stats.router import router
+from app.api.data_collection.stats.schemas import CategoryStat, SeriesPoint, Totals
 from app.core.cache import _cache_state, init_cache
 from app.core.database import get_async_session
 
@@ -38,7 +38,7 @@ def client() -> TestClient:
     return TestClient(app)
 
 def test_returns_200_with_correct_shape(client: TestClient) -> None:
-    with patch("app.api.stats.router.compute_totals", AsyncMock(return_value=(_FAKE_TOTALS, _NOW))):
+    with patch("app.api.data_collection.stats.router.compute_totals", AsyncMock(return_value=(_FAKE_TOTALS, _NOW))):
         resp = client.get("/v1/stats/totals")
     assert resp.status_code == 200
     body = resp.json()
@@ -47,7 +47,7 @@ def test_returns_200_with_correct_shape(client: TestClient) -> None:
     assert "generated_at" in body
 
 def test_returns_200_with_categories(client: TestClient) -> None:
-    with patch("app.api.stats.router.compute_categories", AsyncMock(return_value=(_FAKE_CATEGORIES, _NOW))):
+    with patch("app.api.data_collection.stats.router.compute_categories", AsyncMock(return_value=(_FAKE_CATEGORIES, _NOW))):
         resp = client.get("/v1/stats/categories")
     assert resp.status_code == 200
     body = resp.json()
@@ -56,7 +56,7 @@ def test_returns_200_with_categories(client: TestClient) -> None:
 
 def test_limit_param_forwarded(client: TestClient) -> None:
     mock = AsyncMock(return_value=(_FAKE_CATEGORIES, _NOW))
-    with patch("app.api.stats.router.compute_categories", mock):
+    with patch("app.api.data_collection.stats.router.compute_categories", mock):
         resp = client.get("/v1/stats/categories?limit=10")
     assert resp.status_code == 200
     mock.assert_awaited_once()
@@ -71,7 +71,7 @@ def test_limit_below_1_rejected(client: TestClient) -> None:
     assert resp.status_code == 422
 
 def test_returns_200_with_series(client: TestClient) -> None:
-    with patch("app.api.stats.router.compute_series", AsyncMock(return_value=(_FAKE_SERIES, _NOW))):
+    with patch("app.api.data_collection.stats.router.compute_series", AsyncMock(return_value=(_FAKE_SERIES, _NOW))):
         resp = client.get("/v1/stats/series")
     assert resp.status_code == 200
     body = resp.json()
@@ -84,7 +84,7 @@ def test_invalid_granularity_rejected(client: TestClient) -> None:
     assert resp.status_code == 422
 
 def test_explicit_dates_accepted(client: TestClient) -> None:
-    with patch("app.api.stats.router.compute_series", AsyncMock(return_value=(_FAKE_SERIES, _NOW))):
+    with patch("app.api.data_collection.stats.router.compute_series", AsyncMock(return_value=(_FAKE_SERIES, _NOW))):
         resp = client.get("/v1/stats/series?granularity=day&start=2025-01-01&end=2025-12-31")
     assert resp.status_code == 200
 
@@ -93,6 +93,6 @@ def test_invalid_date_format_rejected(client: TestClient) -> None:
     assert resp.status_code == 422
 
 def test_response_echoes_granularity(client: TestClient) -> None:
-    with patch("app.api.stats.router.compute_series", AsyncMock(return_value=(_FAKE_SERIES, _NOW))):
+    with patch("app.api.data_collection.stats.router.compute_series", AsyncMock(return_value=(_FAKE_SERIES, _NOW))):
         resp = client.get("/v1/stats/series?granularity=year")
     assert resp.json()["granularity"] == "year"
