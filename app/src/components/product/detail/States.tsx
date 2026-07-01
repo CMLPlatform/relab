@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
-import ProductDetailsSkeleton from '@/components/common/ProductDetailsSkeleton';
+import ProductDetailsSkeleton from '@/components/product/ProductDetailsSkeleton';
 import { entityLabel, entityLabelTitle } from '@/types/Product';
 
 type ProductPageErrorStateProps = {

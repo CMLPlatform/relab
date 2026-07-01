@@ -1,7 +1,7 @@
 import { Link } from 'expo-router';
 import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
+import LogoutConfirm from '@/components/auth/LogoutConfirm';
 import { Text } from '@/components/base/Text';
-import LogoutConfirm from '@/components/common/LogoutConfirm';
 import { useAppTheme } from '@/theme';
 import { createProfileSectionStyles } from './styles';
 

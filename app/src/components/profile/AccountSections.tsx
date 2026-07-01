@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { createProfileSectionStyles } from '@/components/profile/sections/styles';
+import { createProfileSectionStyles } from '@/components/profile/styles';
 import { useAppTheme } from '@/theme';
 import { type OAuthAccount, ProfileAction, ProfileSectionHeader } from './shared';
 

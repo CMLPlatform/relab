@@ -46,7 +46,7 @@ jest.mock('@/services/imageProcessing', () => ({
   processImage: jest.fn(),
 }));
 
-jest.mock('@/components/common/ZoomableImage', () => {
+jest.mock('@/components/base/ZoomableImage', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return function ZoomableImageStub({ uri }: { uri: string }) {
@@ -129,11 +129,11 @@ const mockUseCamerasQuery = jest.fn();
 const mockCaptureMutate = jest.fn();
 const mockUseCaptureImageMutation = jest.fn();
 
-jest.mock('@/hooks/cameras/useRpiIntegration', () => ({
+jest.mock('@/features/cameras/useRpiIntegration', () => ({
   useRpiIntegration: () => mockUseRpiIntegration(),
 }));
 
-jest.mock('@/hooks/cameras/data/hooks', () => ({
+jest.mock('@/features/cameras/hooks', () => ({
   useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
   useCaptureImageMutation: () => mockUseCaptureImageMutation(),
 }));

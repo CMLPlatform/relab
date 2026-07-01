@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { IconButton, Portal, Surface, Text } from 'react-native-paper';
-import { OverlaySurface } from '@/components/common/OverlaySurface';
+import { OverlaySurface } from '@/components/base/OverlaySurface';
 import type { StreamSession } from '@/context/streamSession';
 import { useAppTheme } from '@/theme';
 import { getFloatingPosition, getStreamingSheetBottomPadding } from '@/utils/platformLayout';

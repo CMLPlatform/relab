@@ -4,8 +4,8 @@ import { ActivityIndicator, View } from 'react-native';
 import { ProductPageContent } from '@/components/product/detail/Content';
 import { ProductFabControls } from '@/components/product/detail/FabControls';
 import { ProductPageErrorState, ProductPageLoadingState } from '@/components/product/detail/States';
-import type { UseProductFormOptions } from '@/hooks/products/useProductForm';
-import { useProductPageScreen } from '@/hooks/products/useProductPageScreen';
+import type { UseProductFormOptions } from '@/features/products/useProductForm';
+import { useProductPageScreen } from '@/features/products/useProductPageScreen';
 import { isProductNotFoundError } from '@/services/api/products';
 
 function useFabPressHandler({

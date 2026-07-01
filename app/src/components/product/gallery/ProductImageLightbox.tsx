@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon } from 'react-native-paper';
-import ZoomableImage from '@/components/common/ZoomableImage';
+import ZoomableImage from '@/components/base/ZoomableImage';
 import {
   GalleryFlatList,
   getTouchPointX,

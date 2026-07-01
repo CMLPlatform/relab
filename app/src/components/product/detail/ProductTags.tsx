@@ -2,11 +2,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type JSX, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/base/Chip';
+import { useDialog } from '@/components/base/dialogContext';
+import FilterSelectionModal from '@/components/base/FilterSelectionModal';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { Text } from '@/components/base/Text';
-import { useDialog } from '@/components/common/dialogContext';
-import FilterSelectionModal from '@/components/common/FilterSelectionModal';
-import { useSearchBrandsQuery } from '@/hooks/products/queries';
+import { useSearchBrandsQuery } from '@/features/products/queries';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 

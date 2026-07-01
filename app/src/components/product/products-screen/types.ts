@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import type { DimensionValue, FlatListProps } from 'react-native';
-import type FilterSelectionModal from '@/components/common/FilterSelectionModal';
-import type { ProductFilter } from '@/hooks/products/useProductsScreen';
+import type FilterSelectionModal from '@/components/base/FilterSelectionModal';
+import type { ProductFilter } from '@/features/products/useProductsScreen';
 import type { Product } from '@/types/Product';
 
 export type SortOption = {

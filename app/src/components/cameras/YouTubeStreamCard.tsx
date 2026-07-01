@@ -1,5 +1,5 @@
 import { YouTubeStreamCardView } from '@/components/cameras/YouTubeStreamCardSections';
-import { useYouTubeStreamCard } from '@/hooks/cameras/useYouTubeStreamCard';
+import { useYouTubeStreamCard } from '@/features/cameras/useYouTubeStreamCard';
 
 interface YouTubeStreamCardProps {
   cameraId: string;

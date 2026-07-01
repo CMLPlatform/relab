@@ -1,7 +1,7 @@
 import { Pressable, View } from 'react-native';
 import { Icon, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
-import { createProfileSectionStyles } from '@/components/profile/sections/styles';
+import { createProfileSectionStyles } from '@/components/profile/styles';
 import { useAppTheme } from '@/theme';
 import type { ThemeMode, User } from '@/types/User';
 import { ProfileSectionHeader } from './shared';

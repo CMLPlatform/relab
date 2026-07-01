@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
-import { StreamingContent } from '@/components/common/StreamingContent';
+import { StreamingContent } from '@/components/cameras/StreamingContent';
 import { openExternalUrl } from '@/services/externalLinks';
 import { renderWithProviders } from '@/test-utils/index';
 
@@ -43,14 +43,14 @@ jest.mock('@/hooks/useElapsed', () => ({
   useElapsed: () => '2:34',
 }));
 
-jest.mock('@/hooks/cameras/data/hooks', () => ({
+jest.mock('@/features/cameras/hooks', () => ({
   useStopYouTubeStreamMutation: () => ({
     mutate: (...args: unknown[]) => mockStopMutate(...args),
     isPending: false,
   }),
 }));
 
-jest.mock('@/hooks/products/queries', () => ({
+jest.mock('@/features/products/queries', () => ({
   invalidateProductQuery: (...args: unknown[]) => mockInvalidateProductQuery(...args),
 }));
 

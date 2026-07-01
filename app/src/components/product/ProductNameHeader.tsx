@@ -3,7 +3,7 @@ import { type ColorValue, View } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import { Text } from 'react-native-paper';
 import { TextInput } from '@/components/base/TextInput';
-import { truncateHeaderLabel } from '@/hooks/products/truncateHeaderLabel';
+import { truncateHeaderLabel } from '@/features/products/truncateHeaderLabel';
 import { PRODUCT_NAME_MAX_LENGTH, productSchema } from '@/services/api/validation/productSchema';
 
 /**

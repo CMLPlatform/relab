@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { Button } from 'react-native-paper';
-import { useDialog } from '@/components/common/dialogContext';
+import { useDialog } from '@/components/base/dialogContext';
 import { useAppTheme } from '@/theme';
 import { entityLabel, entityLabelTitle, type Product } from '@/types/Product';
 

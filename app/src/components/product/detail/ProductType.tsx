@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import CPVCard from '@/components/common/CPVCard';
-import DetailSectionHeader from '@/components/common/DetailSectionHeader';
+import DetailSectionHeader from '@/components/base/DetailSectionHeader';
+import CPVCard from '@/components/product/CPVCard';
 import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
 import { entityLabel, type Product } from '@/types/Product';

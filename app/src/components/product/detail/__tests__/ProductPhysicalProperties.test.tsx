@@ -5,7 +5,7 @@ import type { Product } from '@/types/Product';
 import ProductPhysicalProperties from '../ProductPhysicalProperties';
 
 // Mock SVGCube to avoid react-native-svg in tests
-jest.mock('@/components/common/SVGCube', () => 'SVGCube');
+jest.mock('@/components/base/SVGCube', () => 'SVGCube');
 
 const baseProduct: Product = {
   ..._base,

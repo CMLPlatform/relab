@@ -4,8 +4,8 @@ import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import { Text } from 'react-native-paper';
-import { truncateHeaderLabel } from '@/hooks/products/truncateHeaderLabel';
-import type { AncestorCrumb } from '@/hooks/products/useAncestorTrail';
+import { truncateHeaderLabel } from '@/features/products/truncateHeaderLabel';
+import type { AncestorCrumb } from '@/features/products/useAncestorTrail';
 
 export function AncestorTrailHeader({
   ancestors,

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
-import { StreamingSheet } from '@/components/common/StreamingSheet';
+import { StreamingSheet } from '@/components/cameras/StreamingSheet';
 import { renderWithProviders } from '@/test-utils/index';
 
 const mockStreamingContent = jest.fn();
 
-jest.mock('@/components/common/StreamingContent', () => ({
+jest.mock('@/components/cameras/StreamingContent', () => ({
   StreamingContent: (props: unknown) => {
     mockStreamingContent(props);
     return null;

@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import type { CameraConnectionInfo } from '@/hooks/cameras/useLocalConnection';
+import type { CameraConnectionInfo } from '@/features/cameras/useLocalConnection';
 import type { CameraConnectionStatus } from '@/services/api/rpiCamera';
 import type { AppTheme } from '@/theme';
 

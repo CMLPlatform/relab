@@ -8,7 +8,7 @@ import ProductComponents from '../ProductComponents';
 
 const COMPONENTS_EMPTY_PATTERN = /Components \(0\)/;
 
-jest.mock('@/components/common/ProductCard', () => {
+jest.mock('@/components/product/ProductCard', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
     Text: typeof RNText;

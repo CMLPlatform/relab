@@ -2,11 +2,11 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Dialog, Icon, Portal, Text } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
-import { useCamerasQuery } from '@/hooks/cameras/data/hooks';
+import { useCamerasQuery } from '@/features/cameras/hooks';
 import {
   resolveEffectiveCameraConnection,
   useEffectiveCameraConnection,
-} from '@/hooks/cameras/useEffectiveCameraConnection';
+} from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
 

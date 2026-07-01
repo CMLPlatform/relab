@@ -7,7 +7,7 @@ import { ProductImageGalleryContent } from '@/components/product/gallery/Product
 import { ProductImageLightbox } from '@/components/product/gallery/ProductImageLightbox';
 import { ProductImagePlaceholder } from '@/components/product/gallery/ProductImagePlaceholder';
 import { ProductImageThumbnails } from '@/components/product/gallery/ProductImageThumbnails';
-import { useProductImageGallery } from '@/hooks/products/useProductImageGallery';
+import { useProductImageGallery } from '@/features/products/useProductImageGallery';
 import type { Product } from '@/types/Product';
 
 interface Props {

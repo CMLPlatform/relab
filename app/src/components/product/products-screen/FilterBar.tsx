@@ -1,6 +1,6 @@
 import { ScrollView } from 'react-native';
 import { Chip, Menu } from 'react-native-paper';
-import FilterSelectionModal from '@/components/common/FilterSelectionModal';
+import FilterSelectionModal from '@/components/base/FilterSelectionModal';
 import { PRODUCTS_DATE_PRESETS, productsScreenStyles as styles } from './shared';
 import type { ProductsFilterBarProps } from './types';
 

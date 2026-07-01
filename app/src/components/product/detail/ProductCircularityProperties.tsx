@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { Text } from '@/components/base/Text';
 import { TextInput } from '@/components/base/TextInput';
-import DetailSectionHeader from '@/components/common/DetailSectionHeader';
-import { styles } from '@/components/product/circularity/styles';
+import { styles } from '@/components/product/detail/styles';
 import { useAppTheme } from '@/theme';
 import type { CircularityProperties, Product } from '@/types/Product';
 

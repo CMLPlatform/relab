@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { Icon, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
-import { createProfileSectionStyles } from '@/components/profile/sections/styles';
+import { createProfileSectionStyles } from '@/components/profile/styles';
 import { DOCS_URL } from '@/config';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';

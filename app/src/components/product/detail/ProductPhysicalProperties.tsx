@@ -1,8 +1,8 @@
 import { View } from 'react-native';
 import { Divider } from 'react-native-paper';
+import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import LocalizedFloatInput from '@/components/base/LocalizedFloatInput';
-import DetailSectionHeader from '@/components/common/DetailSectionHeader';
-import Cube from '@/components/common/SVGCube';
+import Cube from '@/components/base/SVGCube';
 import type { PhysicalProperties, Product } from '@/types/Product';
 
 interface Props {

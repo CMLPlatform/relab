@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import ImagePlaceholder from '@/components/common/ImagePlaceholder';
+import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { IMAGE_HEIGHT } from '@/components/product/gallery/shared';
 
 export function ProductImagePlaceholder({ width, label }: { width: number; label: string }) {

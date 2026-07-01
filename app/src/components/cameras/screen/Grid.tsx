@@ -8,7 +8,7 @@ import { createCameraScreenStyles } from '@/components/cameras/screen/styles';
 import {
   type EffectiveCameraConnection,
   useEffectiveCameraConnection,
-} from '@/hooks/cameras/useEffectiveCameraConnection';
+} from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
 

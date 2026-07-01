@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
 import { ActivityIndicator, Button, Card, IconButton, Text } from 'react-native-paper';
 import { LivePreview } from '@/components/cameras/LivePreview';
-import type { CameraConnectionInfo } from '@/hooks/cameras/useLocalConnection';
+import type { CameraConnectionInfo } from '@/features/cameras/useLocalConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
 import {

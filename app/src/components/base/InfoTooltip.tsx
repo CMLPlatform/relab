@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type JSX, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text, Tooltip } from 'react-native-paper';
-import { OverlaySurface } from '@/components/common/OverlaySurface';
+import { OverlaySurface } from '@/components/base/OverlaySurface';
 import { radius, spacing } from '@/constants';
 import { alpha, useAppTheme } from '@/theme';
 

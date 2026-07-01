@@ -58,9 +58,9 @@ jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(),
 }));
 
-jest.mock('@/components/common/dialogContext', () => {
-  const actual = jest.requireActual<typeof import('@/components/common/dialogContext')>(
-    '@/components/common/dialogContext',
+jest.mock('@/components/base/dialogContext', () => {
+  const actual = jest.requireActual<typeof import('@/components/base/dialogContext')>(
+    '@/components/base/dialogContext',
   );
   return {
     ...actual,
@@ -72,7 +72,7 @@ jest.mock('@/services/imageProcessing', () => ({
   processImage: jest.fn(),
 }));
 
-jest.mock('@/components/common/ZoomableImage', () => {
+jest.mock('@/components/base/ZoomableImage', () => {
   return function ZoomableImageMock(props: ZoomableImageMockProps) {
     mockZoomableImageCalls.push(props);
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -164,11 +164,11 @@ const mockUseRpiIntegration = jest.fn();
 const mockUseCamerasQuery = jest.fn();
 const mockUseCaptureImageMutation = jest.fn();
 
-jest.mock('@/hooks/cameras/useRpiIntegration', () => ({
+jest.mock('@/features/cameras/useRpiIntegration', () => ({
   useRpiIntegration: () => mockUseRpiIntegration(),
 }));
 
-jest.mock('@/hooks/cameras/data/hooks', () => ({
+jest.mock('@/features/cameras/hooks', () => ({
   useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
   useCaptureImageMutation: () => mockUseCaptureImageMutation(),
 }));

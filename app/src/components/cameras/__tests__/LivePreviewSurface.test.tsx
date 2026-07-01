@@ -1,8 +1,8 @@
 import { render } from '@testing-library/react-native';
-import { useCameraLivePreview } from '@/hooks/cameras/data/hooks';
+import { useCameraLivePreview } from '@/features/cameras/hooks';
 import { LivePreview } from '../LivePreview';
 
-jest.mock('@/hooks/cameras/data/hooks');
+jest.mock('@/features/cameras/hooks');
 jest.mock('@/components/cameras/live-preview/caption', () => ({
   getLivePreviewCaption: jest.fn((isLocalStream: boolean) =>
     isLocalStream ? 'Live preview · Direct' : 'Live preview · LL-HLS',

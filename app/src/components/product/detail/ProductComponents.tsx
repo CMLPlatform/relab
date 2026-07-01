@@ -2,9 +2,9 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Button } from 'react-native-paper';
+import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { Text } from '@/components/base/Text';
-import DetailSectionHeader from '@/components/common/DetailSectionHeader';
-import ProductCard from '@/components/common/ProductCard';
+import ProductCard from '@/components/product/ProductCard';
 import { entityLabel, type Product } from '@/types/Product';
 
 interface Props {

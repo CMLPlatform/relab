@@ -6,7 +6,7 @@ import {
   DialogContext,
   type DialogContextType,
   type DialogOptions,
-} from '@/components/common/dialogContext';
+} from '@/components/base/dialogContext';
 import { useAppTheme } from '@/theme';
 
 export function DialogProvider({ children }: { children: ReactNode }) {

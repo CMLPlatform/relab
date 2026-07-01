@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, type TextStyle, View } from 'react-native';
 import { Divider, Icon } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
-import { createProfileSectionStyles } from '@/components/profile/sections/styles';
+import { createProfileSectionStyles } from '@/components/profile/styles';
 import { useAppTheme } from '@/theme';
 
 export type OAuthAccount = {

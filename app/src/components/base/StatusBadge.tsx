@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/base/Text';
-import { getStatusTone, useAppTheme } from '@/theme';
+import { getStatusTone } from '@/theme';
 
 type StatusBadgeProps = {
   label: string;
@@ -8,9 +8,8 @@ type StatusBadgeProps = {
 };
 
 export function StatusBadge({ label, color }: StatusBadgeProps) {
-  const theme = useAppTheme();
   return (
-    <View style={[styles.container, { backgroundColor: getStatusTone(theme, color) }]}>
+    <View style={[styles.container, { backgroundColor: getStatusTone(color) }]}>
       <Text style={[styles.label, { color }]}>{label}</Text>
     </View>
   );
