@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { ProductNameHeader } from '@/hooks/products/ProductNameHeader';
+import { ProductNameHeader } from '@/components/product/ProductNameHeader';
 import { getAppTheme } from '@/theme';
 
 const theme = getAppTheme('light');

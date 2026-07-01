@@ -3,14 +3,12 @@ import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
-import { AncestorTrailHeader } from '@/hooks/products/AncestorTrailHeader';
-import { ProductNameHeader } from '@/hooks/products/ProductNameHeader';
-import { truncateHeaderLabel } from '@/hooks/products/truncateHeaderLabel';
-import type { AncestorCrumb } from '@/hooks/products/useAncestorTrail';
+import { AncestorTrailHeader } from '@/components/product/AncestorTrailHeader';
+import { ProductNameHeader } from '@/components/product/ProductNameHeader';
+import { truncateHeaderLabel } from './truncateHeaderLabel';
+import type { AncestorCrumb } from './useAncestorTrail';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import type { Product } from '@/types/Product';
-
-export { truncateHeaderLabel };
 
 export function useSlowLoading(isLoading: boolean) {
   const [slowLoading, setSlowLoading] = useState(false);
