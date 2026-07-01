@@ -1,23 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { HttpResponse, http } from 'msw';
 import { API_URL } from '@/config';
-import { getToken, getUser } from '@/services/api/authentication';
+import { getToken, getUser } from '@/services/api/auth/authentication';
 import { allProductBrands, searchProductBrands } from '@/services/api/productSuggestions';
 import {
-  allProducts,
   getBaseProduct,
   getComponent,
   isProductNotFoundError,
-  myProducts,
   newProduct,
   ProductNotFoundError,
+  products,
 } from '@/services/api/products';
 import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
 import { mockUser, server } from '@/test-utils/index';
 
-jest.mock('@/services/api/authentication', () => {
-  const actual = jest.requireActual<typeof import('@/services/api/authentication')>(
-    '@/services/api/authentication',
+jest.mock('@/services/api/auth/authentication', () => {
+  const actual = jest.requireActual<typeof import('@/services/api/auth/authentication')>(
+    '@/services/api/auth/authentication',
   );
   return {
     ...actual,
@@ -271,22 +270,22 @@ describe('Fetching API Service logic', () => {
     });
   });
 
-  // ─── allProducts ────────────────────────────────────────
+  // ─── products (all) ─────────────────────────────────────
 
-  describe('allProducts', () => {
+  describe('products', () => {
     it('fetches and returns mapped products in a paginated response', async () => {
       server.use(
         http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([rawProductData]))),
       );
 
-      const products = await allProducts();
+      const result = await products();
 
-      expect(products.items).toHaveLength(1);
-      expect(products.items[0].name).toBe('Recycled Aluminum Laptop Stand');
-      expect(products.total).toBe(1);
-      expect(products.page).toBe(1);
-      expect(products.size).toBe(50);
-      expect(products.pages).toBe(1);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].name).toBe('Recycled Aluminum Laptop Stand');
+      expect(result.total).toBe(1);
+      expect(result.page).toBe(1);
+      expect(result.size).toBe(50);
+      expect(result.pages).toBe(1);
     });
 
     it('returns an empty paginated response when items is empty', async () => {
@@ -294,11 +293,11 @@ describe('Fetching API Service logic', () => {
         http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([], { pages: 0 }))),
       );
 
-      const products = await allProducts();
+      const result = await products();
 
-      expect(products.items).toHaveLength(0);
-      expect(products.total).toBe(0);
-      expect(products.pages).toBe(0);
+      expect(result.items).toHaveLength(0);
+      expect(result.total).toBe(0);
+      expect(result.pages).toBe(0);
     });
 
     it('sends multiple brands as a single comma-separated brand[in] param', async () => {
@@ -310,7 +309,7 @@ describe('Fetching API Service logic', () => {
         }),
       );
 
-      await allProducts(1, 50, undefined, undefined, ['Dell', 'Apple']);
+      await products({ brands: ['Dell', 'Apple'] });
 
       expect(capturedUrl?.searchParams.get('brand[in]')).toBe('Dell,Apple');
       expect(capturedUrl?.searchParams.getAll('brand[in]')).toHaveLength(1);
@@ -325,7 +324,7 @@ describe('Fetching API Service logic', () => {
         }),
       );
 
-      await allProducts(1, 50, undefined, ['-created_at', '+name']);
+      await products({ orderBy: ['-created_at', '+name'] });
 
       expect(capturedUrl?.searchParams.get('order_by')).toBe('-created_at,+name');
       expect(capturedUrl?.searchParams.getAll('order_by')).toHaveLength(1);
@@ -340,10 +339,7 @@ describe('Fetching API Service logic', () => {
         }),
       );
 
-      await allProducts(1, 50, undefined, undefined, undefined, undefined, [
-        'Electronics',
-        'Furniture',
-      ]);
+      await products({ productTypeNames: ['Electronics', 'Furniture'] });
 
       expect(capturedUrl?.searchParams.get('product_type_name[in]')).toBe('Electronics,Furniture');
       expect(capturedUrl?.searchParams.getAll('product_type_name[in]')).toHaveLength(1);
@@ -358,7 +354,7 @@ describe('Fetching API Service logic', () => {
         }),
       );
 
-      await allProducts(1, 50, undefined, [], [], undefined, []);
+      await products({ orderBy: [], brands: [], productTypeNames: [] });
 
       expect(capturedUrl?.searchParams.has('brand[in]')).toBe(false);
       expect(capturedUrl?.searchParams.has('order_by')).toBe(false);
@@ -368,19 +364,19 @@ describe('Fetching API Service logic', () => {
     it('throws on HTTP error', async () => {
       server.use(http.get(`${API_URL}/products`, () => HttpResponse.json({}, { status: 500 })));
 
-      await expect(allProducts()).rejects.toThrow('HTTP error');
+      await expect(products()).rejects.toThrow('HTTP error');
     });
   });
 
-  // ─── myProducts ─────────────────────────────────────────
+  // ─── products (owner: 'me') ─────────────────────────────
 
-  describe('myProducts', () => {
+  describe("products (owner: 'me')", () => {
     it('returns an empty paginated response when no token is available', async () => {
       jest.mocked(getToken).mockResolvedValueOnce(undefined);
 
-      const products = await myProducts();
+      const result = await products({ owner: 'me' });
 
-      expect(products).toEqual({
+      expect(result).toEqual({
         items: [],
         total: 0,
         page: 1,
@@ -397,9 +393,9 @@ describe('Fetching API Service logic', () => {
         ),
       );
 
-      const products = await myProducts();
+      const result = await products({ owner: 'me' });
 
-      expect(products).toEqual({
+      expect(result).toEqual({
         items: [],
         total: 0,
         page: 1,
@@ -414,14 +410,14 @@ describe('Fetching API Service logic', () => {
         http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([rawProductData]))),
       );
 
-      const products = await myProducts();
+      const result = await products({ owner: 'me' });
 
-      expect(products.items).toHaveLength(1);
-      expect(products.items[0].name).toBe('Recycled Aluminum Laptop Stand');
-      expect(products.total).toBe(1);
-      expect(products.page).toBe(1);
-      expect(products.size).toBe(50);
-      expect(products.pages).toBe(1);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].name).toBe('Recycled Aluminum Laptop Stand');
+      expect(result.total).toBe(1);
+      expect(result.page).toBe(1);
+      expect(result.size).toBe(50);
+      expect(result.pages).toBe(1);
     });
 
     it('sends multiple brands as a single comma-separated brand[in] param', async () => {
@@ -434,7 +430,7 @@ describe('Fetching API Service logic', () => {
         }),
       );
 
-      await myProducts(1, 50, undefined, undefined, ['Dell', 'Apple']);
+      await products({ owner: 'me', brands: ['Dell', 'Apple'] });
 
       expect(capturedUrl?.searchParams.get('owner')).toBe('me');
       expect(capturedUrl?.searchParams.get('brand[in]')).toBe('Dell,Apple');
@@ -445,7 +441,7 @@ describe('Fetching API Service logic', () => {
       jest.mocked(getToken).mockResolvedValueOnce('test-token');
       server.use(http.get(`${API_URL}/products`, () => HttpResponse.json({}, { status: 500 })));
 
-      await expect(myProducts()).rejects.toThrow('HTTP error');
+      await expect(products({ owner: 'me' })).rejects.toThrow('HTTP error');
     });
   });
 
@@ -489,7 +485,7 @@ describe('Fetching API Service logic', () => {
       }),
     );
 
-    await allProducts();
+    await products();
 
     expect(capturedUrl?.pathname).toBe('/v1/products');
   });

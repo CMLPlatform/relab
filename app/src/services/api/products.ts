@@ -44,16 +44,12 @@ type ProductMapperPayload =
   | ApiComponentChildItem
   | ApiComponentDetail;
 
-function toBaseProduct(
-  data: ApiBaseProductDetail | ApiBaseProductPageItem,
-  meId?: string,
-): Product {
-  const ownerId = data.owner_id;
+// Fields mapped identically for base products and components.
+function commonProductFields(data: ProductMapperPayload) {
   const components =
     'components' in data ? (data.components?.map((component) => toComponent(component)) ?? []) : [];
   return {
     id: Number(data.id),
-    role: 'product',
     name: data.name,
     brand: data.brand ?? undefined,
     model: data.model ?? undefined,
@@ -61,8 +57,6 @@ function toBaseProduct(
     createdAt: data.created_at ?? undefined,
     updatedAt: data.updated_at ?? undefined,
     productTypeID: data.product_type_id ?? undefined,
-    ownedBy: ownerId && ownerId === meId ? 'me' : (ownerId ?? ''),
-    amountInParent: undefined,
     physicalProperties: {
       weight: data.weight_g ?? NaN,
       height: data.height_cm ?? NaN,
@@ -85,6 +79,22 @@ function toBaseProduct(
         description: img.description ?? '',
       })) ?? [],
     thumbnailUrl: resolveApiMediaUrl(data.thumbnail_url),
+    ...('product_type' in data && data.product_type?.name
+      ? { productTypeName: data.product_type.name }
+      : {}),
+  };
+}
+
+function toBaseProduct(
+  data: ApiBaseProductDetail | ApiBaseProductPageItem,
+  meId?: string,
+): Product {
+  const ownerId = data.owner_id;
+  return {
+    ...commonProductFields(data),
+    role: 'product',
+    ownedBy: ownerId && ownerId === meId ? 'me' : (ownerId ?? ''),
+    amountInParent: undefined,
     videos:
       ('videos' in data ? data.videos : undefined)?.map((vid: ApiVideoRead) => ({
         id: Number(vid.id),
@@ -92,54 +102,17 @@ function toBaseProduct(
         description: vid.description ?? '',
         title: vid.title ?? '',
       })) ?? [],
-    ...('product_type' in data && data.product_type?.name
-      ? { productTypeName: data.product_type.name }
-      : {}),
   };
 }
 
 function toComponent(data: ApiComponentChildItem | ApiComponentDetail): Product {
-  const components =
-    'components' in data ? (data.components?.map((component) => toComponent(component)) ?? []) : [];
   return {
-    id: Number(data.id),
+    ...commonProductFields(data),
     role: 'component',
     parentID: data.parent_id,
-    name: data.name,
-    brand: data.brand ?? undefined,
-    model: data.model ?? undefined,
-    description: data.description ?? undefined,
-    createdAt: data.created_at ?? undefined,
-    updatedAt: data.updated_at ?? undefined,
-    productTypeID: data.product_type_id ?? undefined,
     ownedBy: '',
     amountInParent: data.amount_in_parent,
-    physicalProperties: {
-      weight: data.weight_g ?? NaN,
-      height: data.height_cm ?? NaN,
-      width: data.width_cm ?? NaN,
-      depth: data.depth_cm ?? NaN,
-    },
-    circularityProperties: {
-      recyclability: data.circularity_properties?.recyclability ?? null,
-      disassemblability: data.circularity_properties?.disassemblability ?? null,
-      remanufacturability: data.circularity_properties?.remanufacturability ?? null,
-    },
-    ownerUsername: data.owner_username ?? undefined,
-    componentIDs: components.map(({ id }) => Number(id)).filter((id) => Number.isFinite(id)),
-    components,
-    images:
-      ('images' in data ? data.images : undefined)?.map((img: ApiImageRead) => ({
-        id: String(img.id),
-        url: resolveApiMediaUrl(img.image_url) ?? img.image_url ?? '',
-        thumbnailUrl: resolveApiMediaUrl(img.thumbnail_url),
-        description: img.description ?? '',
-      })) ?? [],
-    thumbnailUrl: resolveApiMediaUrl(data.thumbnail_url),
     videos: [],
-    ...('product_type' in data && data.product_type?.name
-      ? { productTypeName: data.product_type.name }
-      : {}),
   };
 }
 
@@ -208,27 +181,30 @@ export function newProduct(
   };
 }
 
-function buildProductsUrl(
-  path: string,
-  page: number,
-  size: number,
-  search?: string,
-  orderBy?: string[],
-  brands?: string[],
-  createdAfter?: Date,
-  productTypeNames?: string[],
-  owner?: 'me',
-): URL {
-  const url = new URL(baseUrl + path);
-  url.searchParams.append('page', page.toString());
-  url.searchParams.append('size', size.toString());
-  if (search) url.searchParams.append('search', search);
-  if (brands?.length) url.searchParams.append('brand[in]', brands.join(','));
-  if (createdAfter) url.searchParams.append('created_at[ge]', createdAfter.toISOString());
-  if (productTypeNames?.length)
-    url.searchParams.append('product_type_name[in]', productTypeNames.join(','));
-  if (orderBy?.length) url.searchParams.append('order_by', orderBy.join(','));
-  if (owner) url.searchParams.append('owner', owner);
+export type ProductsQuery = {
+  page?: number;
+  size?: number;
+  search?: string;
+  orderBy?: string[];
+  brands?: string[];
+  createdAfter?: Date;
+  productTypeNames?: string[];
+  /** 'me' scopes the query to the signed-in user's own products (authenticated). */
+  owner?: 'me';
+};
+
+function buildProductsUrl(query: ProductsQuery): URL {
+  const url = new URL(`${baseUrl}/products`);
+  url.searchParams.append('page', String(query.page ?? 1));
+  url.searchParams.append('size', String(query.size ?? 50));
+  if (query.search) url.searchParams.append('search', query.search);
+  if (query.brands?.length) url.searchParams.append('brand[in]', query.brands.join(','));
+  if (query.createdAfter)
+    url.searchParams.append('created_at[ge]', query.createdAfter.toISOString());
+  if (query.productTypeNames?.length)
+    url.searchParams.append('product_type_name[in]', query.productTypeNames.join(','));
+  if (query.orderBy?.length) url.searchParams.append('order_by', query.orderBy.join(','));
+  if (query.owner) url.searchParams.append('owner', query.owner);
   return url;
 }
 
@@ -239,105 +215,34 @@ async function parseProductsResponse(data: {
   size: number;
   pages: number;
 }): Promise<PaginatedResponse<Product>> {
-  let meId: string | undefined;
-  if (Platform.OS === 'web') {
-    meId = getCachedUser()?.id;
-  } else {
-    meId = await getUser().then((u) => u?.id);
-  }
+  const meId = await resolveMeId();
   const items = data.items.map((item) => toBaseProduct(item, meId));
   return { items, total: data.total, page: data.page, size: data.size, pages: data.pages };
 }
 
-async function fetchProducts(
-  path: string,
-  page = 1,
-  size = 50,
-  search?: string,
-  orderBy?: string[],
-  brands?: string[],
-  createdAfter?: Date,
-  productTypeNames?: string[],
-  options?: { authenticated?: boolean; owner?: 'me' },
-): Promise<PaginatedResponse<Product>> {
-  const url = buildProductsUrl(
-    path,
-    page,
-    size,
-    search,
-    orderBy,
-    brands,
-    createdAfter,
-    productTypeNames,
-    options?.owner,
-  );
+export async function products(query: ProductsQuery = {}): Promise<PaginatedResponse<Product>> {
+  const authenticated = query.owner === 'me';
+  const emptyPage: PaginatedResponse<Product> = {
+    items: [],
+    total: 0,
+    page: 1,
+    size: 50,
+    pages: 0,
+  };
   const headers: Record<string, string> = { Accept: 'application/json' };
 
-  if (options?.authenticated && Platform.OS !== 'web') {
+  if (authenticated && Platform.OS !== 'web') {
     const authToken = await getToken();
-    if (!authToken) {
-      return { items: [], total: 0, page: 1, size: 50, pages: 0 };
-    }
+    if (!authToken) return emptyPage;
     headers.Authorization = `Bearer ${authToken}`;
   }
 
-  const response = await apiFetch(url, { method: 'GET', headers });
+  const response = await apiFetch(buildProductsUrl(query), { method: 'GET', headers });
 
-  if (options?.authenticated && response.status === 401) {
-    return { items: [], total: 0, page: 1, size: 50, pages: 0 };
-  }
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! Status: ${response.status}`);
-  }
+  if (authenticated && response.status === 401) return emptyPage;
+  if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
   return parseProductsResponse(await response.json());
-}
-
-export async function allProducts(
-  page = 1,
-  size = 50,
-  search?: string,
-  orderBy?: string[],
-  brands?: string[],
-  createdAfter?: Date,
-  productTypeNames?: string[],
-): Promise<PaginatedResponse<Product>> {
-  return fetchProducts(
-    '/products',
-    page,
-    size,
-    search,
-    orderBy,
-    brands,
-    createdAfter,
-    productTypeNames,
-  );
-}
-
-export async function myProducts(
-  page = 1,
-  size = 50,
-  search?: string,
-  orderBy?: string[],
-  brands?: string[],
-  createdAfter?: Date,
-  productTypeNames?: string[],
-): Promise<PaginatedResponse<Product>> {
-  return fetchProducts(
-    '/products',
-    page,
-    size,
-    search,
-    orderBy,
-    brands,
-    createdAfter,
-    productTypeNames,
-    {
-      authenticated: true,
-      owner: 'me',
-    },
-  );
 }
 
 export async function addProductVideo(
