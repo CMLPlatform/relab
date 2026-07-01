@@ -5,9 +5,9 @@ import type { ReactElement, ReactNode } from 'react';
 import type { Text as RNText } from 'react-native';
 import ProductPage from '@/app/products/[id]';
 import { ProductDetailScreen } from '@/components/product/detail/ProductDetailScreen';
+import { useBaseProductQuery } from '@/hooks/products/queries';
 import { useAncestorTrail } from '@/hooks/products/useAncestorTrail';
 import { useProductForm } from '@/hooks/products/useProductForm';
-import { useBaseProductQuery } from '@/hooks/products/queries';
 import { ProductNotFoundError } from '@/services/api/products';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 

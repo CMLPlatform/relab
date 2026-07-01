@@ -47,6 +47,7 @@ function createProductAction({
   router.push('/products/new');
 }
 
+import type { Product } from '@/types/Product';
 import {
   DEFAULT_PRODUCT_SORT,
   PRODUCT_SORT_OPTIONS,
@@ -54,7 +55,6 @@ import {
   useSearchBrandsQuery,
   useSearchProductTypesQuery,
 } from './queries';
-import type { Product } from '@/types/Product';
 
 export type ProductFilter = 'all' | 'mine';
 type RouterSetParams = Parameters<ReturnType<typeof useRouter>['setParams']>[0];

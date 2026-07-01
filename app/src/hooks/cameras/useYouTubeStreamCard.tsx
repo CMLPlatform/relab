@@ -1,10 +1,10 @@
 import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
 import { useStreamSession } from '@/context/streamSession';
+import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/hooks/cameras/data/hooks';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
-import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/hooks/cameras/data/hooks';
-import { useYouTubeIntegration } from './useYouTubeIntegration';
 import { openExternalUrl } from '@/services/externalLinks';
+import { useYouTubeIntegration } from './useYouTubeIntegration';
 
 export function useYouTubeStreamCard(cameraId: string, isOnline: boolean) {
   const { enabled: youtubeEnabled } = useYouTubeIntegration();

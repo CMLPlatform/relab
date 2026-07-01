@@ -3,12 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
 import { useThemeMode } from '@/context/themeMode';
-import { useOAuthAssociations } from './useOAuthAssociations';
-import { useOwnProfileStats } from './useOwnProfileStats';
-import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useStopYouTubeStreamMutation } from '@/hooks/cameras/data/hooks';
 import { useRpiIntegration } from '@/hooks/cameras/useRpiIntegration';
 import { useYouTubeIntegration } from '@/hooks/cameras/useYouTubeIntegration';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
 import {
   logout,
   revokeAllSessions,
@@ -17,6 +15,8 @@ import {
   verify,
 } from '@/services/api/authentication';
 import type { ThemeMode } from '@/types/User';
+import { useOAuthAssociations } from './useOAuthAssociations';
+import { useOwnProfileStats } from './useOwnProfileStats';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;

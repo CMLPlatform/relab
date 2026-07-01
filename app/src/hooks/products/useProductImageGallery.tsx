@@ -8,18 +8,18 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, Platform } from 'react-native';
 import { buildGalleryMedia, type ScrollableListHandle } from '@/components/product/gallery/shared';
+import { useCamerasQuery, useCaptureImageMutation } from '@/hooks/cameras/data/hooks';
+import { useRpiIntegration } from '@/hooks/cameras/useRpiIntegration';
 import { useGalleryIndexPersistence } from '@/hooks/gallery/useGalleryIndexPersistence';
 import { useGalleryKeyboardNavigation } from '@/hooks/gallery/useGalleryKeyboardNavigation';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { Product } from '@/types/Product';
 import {
   appendCapturedImage,
   buildImportedImages,
   hasRpiCamerasConfigured,
 } from './productImageGalleryHelpers';
-import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { useCamerasQuery, useCaptureImageMutation } from '@/hooks/cameras/data/hooks';
-import { useRpiIntegration } from '@/hooks/cameras/useRpiIntegration';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
-import type { Product } from '@/types/Product';
 
 function useProductGalleryMedia(product: Product) {
   const { images, thumbnailUrls, mediumUrls, largeUrls } = useMemo(

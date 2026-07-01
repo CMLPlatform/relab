@@ -1,26 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  type CaptureAllResult,
-  captureFromMultipleCameras,
-  clearOptimisticStreamStatus,
-  invalidateCameraDetailQuery,
-  invalidateCameraListQuery,
-  invalidateCameraStreamStatusQuery,
-  resolveCaptureImageRequest,
-  restoreOptimisticStreamStatus,
-} from './mutations';
-import { invalidateProductQuery } from '@/hooks/products/queries';
-import {
-  type CameraLivePreviewResult,
-  resolveCameraLivePreview,
-} from './previews';
-import {
-  cameraQueryOptions,
-  camerasQueryOptions,
-  cameraTelemetryQueryOptions,
-  streamStatusQueryOptions,
-} from './queries';
 import type { CameraConnectionInfo } from '@/hooks/cameras/useLocalConnection';
+import { invalidateProductQuery } from '@/hooks/products/queries';
 import type {
   CameraUpdate,
   PairingClaimRequest,
@@ -33,6 +13,23 @@ import {
   stopYouTubeStream,
   updateCamera,
 } from '@/services/api/rpiCamera';
+import {
+  type CaptureAllResult,
+  captureFromMultipleCameras,
+  clearOptimisticStreamStatus,
+  invalidateCameraDetailQuery,
+  invalidateCameraListQuery,
+  invalidateCameraStreamStatusQuery,
+  resolveCaptureImageRequest,
+  restoreOptimisticStreamStatus,
+} from './mutations';
+import { type CameraLivePreviewResult, resolveCameraLivePreview } from './previews';
+import {
+  cameraQueryOptions,
+  camerasQueryOptions,
+  cameraTelemetryQueryOptions,
+  streamStatusQueryOptions,
+} from './queries';
 
 function useInvalidateOnSuccessMutation<TVariables, TData = unknown>(
   mutationFn: (variables: TVariables) => Promise<TData>,

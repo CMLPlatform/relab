@@ -10,6 +10,9 @@ import {
 } from 'react-hook-form';
 import { useDialog } from '@/components/common/dialogContext';
 import { useAuth } from '@/context/auth';
+import { newProduct } from '@/services/api/products';
+import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
+import type { Product } from '@/types/Product';
 import {
   type ProductRole,
   useBaseProductQuery,
@@ -17,9 +20,6 @@ import {
   useDeleteProductMutation,
   useSaveProductMutation,
 } from './queries';
-import { newProduct } from '@/services/api/products';
-import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
-import type { Product } from '@/types/Product';
 
 /** Recursively extract the first error message from possibly nested FieldErrors. */
 function getFirstFormError(errors: FieldErrors): string | undefined {

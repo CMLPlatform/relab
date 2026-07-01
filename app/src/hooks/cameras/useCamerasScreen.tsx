@@ -6,6 +6,7 @@ import {
   useCameraConnectionSnapshots,
   useCameraStreamActions,
 } from '@/hooks/cameras/actions';
+import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/cameras/data/hooks';
 import { useCameraScreenData, useCamerasHeader } from '@/hooks/cameras/helpers';
 import { useCameraRouteModes } from '@/hooks/cameras/routeModes';
 import {
@@ -13,11 +14,10 @@ import {
   useCameraSelectionController,
   useCameraStreamingController,
 } from '@/hooks/cameras/stateControllers';
-import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { resolveEffectiveCameraConnection } from '@/hooks/cameras/useEffectiveCameraConnection';
-import { useIsDesktop } from '@/hooks/useIsDesktop';
 import { useBaseProductQuery } from '@/hooks/products/queries';
-import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/cameras/data/hooks';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
+import { useIsDesktop } from '@/hooks/useIsDesktop';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 
 function useCamerasAuthRedirect(

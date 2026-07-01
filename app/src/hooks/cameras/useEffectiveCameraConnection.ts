@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
+import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
 import {
   type CameraConnectionInfo,
   type UseLocalConnectionResult,
   useLocalConnection,
 } from './useLocalConnection';
-import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
 
 export type EffectiveCameraTransport = 'direct' | 'relay' | 'unreachable';
 

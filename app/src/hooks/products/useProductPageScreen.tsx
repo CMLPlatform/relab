@@ -1,9 +1,13 @@
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useDialog } from '@/components/common/dialogContext';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
+import { useRpiIntegration } from '@/hooks/cameras/useRpiIntegration';
+import { useYouTubeIntegration } from '@/hooks/cameras/useYouTubeIntegration';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
+import { useAppTheme } from '@/theme';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import {
   getPrimaryFabIcon,
   getProductCapabilities,
@@ -13,11 +17,7 @@ import {
   useStreamPrompt,
 } from './productPageHelpers';
 import { useAncestorTrail } from './useAncestorTrail';
-import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { type UseProductFormOptions, useProductForm } from './useProductForm';
-import { useRpiIntegration } from '@/hooks/cameras/useRpiIntegration';
-import { useYouTubeIntegration } from '@/hooks/cameras/useYouTubeIntegration';
-import { useAppTheme } from '@/theme';
 
 type SearchParams = {
   id: string;

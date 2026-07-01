@@ -1,15 +1,15 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { useAuth } from '@/context/auth';
-import { createCameraDetailActions } from '@/hooks/cameras/detailActions';
-import { useCameraDetailDialogs } from '@/hooks/cameras/detailControllers';
-import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { useEffectiveCameraConnection } from '@/hooks/cameras/useEffectiveCameraConnection';
 import {
   useCameraQuery,
   useDeleteCameraMutation,
   useUpdateCameraMutation,
 } from '@/hooks/cameras/data/hooks';
+import { createCameraDetailActions } from '@/hooks/cameras/detailActions';
+import { useCameraDetailDialogs } from '@/hooks/cameras/detailControllers';
+import { useEffectiveCameraConnection } from '@/hooks/cameras/useEffectiveCameraConnection';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
 
 export function useCameraDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

@@ -5,10 +5,10 @@ import { ActivityIndicator } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import { AncestorTrailHeader } from '@/components/product/AncestorTrailHeader';
 import { ProductNameHeader } from '@/components/product/ProductNameHeader';
-import { truncateHeaderLabel } from './truncateHeaderLabel';
-import type { AncestorCrumb } from './useAncestorTrail';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import type { Product } from '@/types/Product';
+import { truncateHeaderLabel } from './truncateHeaderLabel';
+import type { AncestorCrumb } from './useAncestorTrail';
 
 export function useSlowLoading(isLoading: boolean) {
   const [slowLoading, setSlowLoading] = useState(false);
