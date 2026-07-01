@@ -82,8 +82,8 @@ function dangerousMethodPolicy(caddyfile: string) {
 
 describe('Caddy baseline security headers', () => {
   it.each([
-    ['www', readCaddyfile('../../Caddyfile')],
-    ['docs', readCaddyfile('../../../docs/Caddyfile')],
+    ['www', readCaddyfile('../Caddyfile')],
+    ['docs', readCaddyfile('../../docs/Caddyfile')],
   ])('%s blocks dangerous unsupported HTTP methods', (_name, caddyfile) => {
     const policy = dangerousMethodPolicy(caddyfile);
 
@@ -93,15 +93,15 @@ describe('Caddy baseline security headers', () => {
   });
 
   it.each([
-    ['www', readCaddyfile('../../Caddyfile')],
-    ['docs', readCaddyfile('../../../docs/Caddyfile')],
+    ['www', readCaddyfile('../Caddyfile')],
+    ['docs', readCaddyfile('../../docs/Caddyfile')],
   ])('%s sets the deployed OWASP HSTS policy', (_name, caddyfile) => {
     expect(hsts(caddyfile)).toBe(HSTS_POLICY);
   });
 
   it.each([
-    ['www', readCaddyfile('../../Caddyfile')],
-    ['docs', readCaddyfile('../../../docs/Caddyfile')],
+    ['www', readCaddyfile('../Caddyfile')],
+    ['docs', readCaddyfile('../../docs/Caddyfile')],
   ])('%s sets the browser baseline headers recommended by OWASP', (_name, caddyfile) => {
     expect(contentTypeOptions(caddyfile)).toBe('nosniff');
     expect(referrerPolicy(caddyfile)).toBe('no-referrer');
@@ -110,8 +110,8 @@ describe('Caddy baseline security headers', () => {
   });
 
   it.each([
-    ['www', readCaddyfile('../../Caddyfile')],
-    ['docs', readCaddyfile('../../../docs/Caddyfile')],
+    ['www', readCaddyfile('../Caddyfile')],
+    ['docs', readCaddyfile('../../docs/Caddyfile')],
   ])('%s omits Permissions-Policy when no browser capabilities are used', (_name, caddyfile) => {
     expect(caddyfile).not.toMatch(PERMISSIONS_POLICY_HEADER_PATTERN);
   });
@@ -119,8 +119,8 @@ describe('Caddy baseline security headers', () => {
 
 describe('Caddy CSP security headers', () => {
   it.each([
-    ['www', readCaddyfile('../../Caddyfile')],
-    ['docs', readCaddyfile('../../../docs/Caddyfile')],
+    ['www', readCaddyfile('../Caddyfile')],
+    ['docs', readCaddyfile('../../docs/Caddyfile')],
   ])('%s enforces the OWASP baseline CSP directives', (_name, caddyfile) => {
     const policy = enforcedCsp(caddyfile);
 
@@ -133,8 +133,8 @@ describe('Caddy CSP security headers', () => {
   });
 
   it.each([
-    ['www', readCaddyfile('../../Caddyfile'), false],
-    ['docs', readCaddyfile('../../../docs/Caddyfile'), true],
+    ['www', readCaddyfile('../Caddyfile'), false],
+    ['docs', readCaddyfile('../../docs/Caddyfile'), true],
   ])('%s has the expected inline-script enforcement posture', (_name, caddyfile, allowsInline) => {
     const scriptPolicy = cspDirective(enforcedCsp(caddyfile), 'script-src');
 
@@ -147,7 +147,7 @@ describe('Caddy CSP security headers', () => {
   });
 
   it.each([
-    ['docs', readCaddyfile('../../../docs/Caddyfile')],
+    ['docs', readCaddyfile('../../docs/Caddyfile')],
   ])('%s observes a stricter script policy without unsafe eval', (_name, caddyfile) => {
     const scriptPolicy = cspDirective(reportOnlyCsp(caddyfile), 'script-src');
 
@@ -156,8 +156,8 @@ describe('Caddy CSP security headers', () => {
   });
 
   it.each([
-    ['www', readCaddyfile('../../Caddyfile')],
-    ['docs', readCaddyfile('../../../docs/Caddyfile')],
+    ['www', readCaddyfile('../Caddyfile')],
+    ['docs', readCaddyfile('../../docs/Caddyfile')],
   ])('%s does not allow wildcard scripts or javascript URLs', (_name, caddyfile) => {
     const enforced = enforcedCsp(caddyfile);
     const reportOnly = reportOnlyCsp(caddyfile);
