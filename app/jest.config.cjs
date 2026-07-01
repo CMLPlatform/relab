@@ -26,7 +26,17 @@ const base = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^msw/node$': '<rootDir>/node_modules/msw/lib/node/index.js',
   },
+};
+
+// Coverage is a global (root-only) concern in multi-project mode — Jest ignores
+// these keys if set per project — so they live here, not in `base`.
+// Run a single lane with `jest --selectProjects unit` (or integration).
+module.exports = {
+  rootDir: __dirname,
+  testTimeout: 15_000,
+  watchman: false,
   coverageDirectory: 'coverage',
+  coverageReporters: ['json', 'lcov', 'text', 'clover', 'cobertura'],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/__tests__/**',
@@ -36,20 +46,12 @@ const base = {
     '!**/coverage/**',
     '!**/node_modules/**',
     '!src/app/_layout.tsx',
-    '!src/components/common/SVGCube.tsx',
-    '!src/components/common/ProductCardSkeleton.tsx',
+    '!src/components/base/SVGCube.tsx',
+    '!src/components/product/ProductCardSkeleton.tsx',
   ],
   coverageThreshold: {
     global: { statements: 70, branches: 65, functions: 65 },
   },
-};
-
-// Run a single lane with `jest --selectProjects unit` (or integration).
-module.exports = {
-  rootDir: __dirname,
-  coverageReporters: ['json', 'lcov', 'text', 'clover', 'cobertura'],
-  testTimeout: 15_000,
-  watchman: false,
   projects: [
     {
       ...base,
