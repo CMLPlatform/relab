@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
 
-from app.api.data_collection.stats.helpers import format_period, resolve_date_range
+from app.api.stats.helpers import format_period, resolve_date_range
 
 
 def test_explicit_start_and_end_returned_unchanged() -> None:

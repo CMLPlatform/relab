@@ -10,10 +10,10 @@ from sqlalchemy import func, select
 
 from app.api.auth.models import User
 from app.api.data_collection.models.product import Product
-from app.api.data_collection.stats.helpers import format_period
-from app.api.data_collection.stats.schemas import CategoryStat, SeriesPoint, Totals
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.reference_data.models import ProductType
+from app.api.stats.helpers import format_period
+from app.api.stats.schemas import CategoryStat, SeriesPoint, Totals
 
 if TYPE_CHECKING:
     from datetime import date

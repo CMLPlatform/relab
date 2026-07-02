@@ -9,9 +9,9 @@ from fastapi import HTTPException, Query
 
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.data_collection.stats.helpers import resolve_date_range
-from app.api.data_collection.stats.queries import compute_categories, compute_series, compute_totals
-from app.api.data_collection.stats.schemas import CategoriesResponse, SeriesResponse, TotalsResponse
+from app.api.stats.helpers import resolve_date_range
+from app.api.stats.queries import compute_categories, compute_series, compute_totals
+from app.api.stats.schemas import CategoriesResponse, SeriesResponse, TotalsResponse
 from app.core.cache import cache
 
 router = PublicAPIRouter(prefix="/stats", tags=["stats"])
