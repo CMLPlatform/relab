@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+// biome-ignore-all lint/style/useGlobalThis: window is the correct reference for browser DOM APIs; happy-dom exposes localStorage/matchMedia on window, not globalThis.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -23,12 +24,12 @@ function mockMatchMedia(prefersDark: boolean) {
       return true;
     },
   } as unknown as MediaQueryList;
-  globalThis.matchMedia = vi.fn().mockReturnValue(mql);
+  window.matchMedia = vi.fn().mockReturnValue(mql);
   return mql;
 }
 
 beforeEach(() => {
-  globalThis.localStorage.clear();
+  window.localStorage.clear();
   document.documentElement.removeAttribute('data-theme');
   document.documentElement.removeAttribute('data-theme-preference');
   document.head.innerHTML = '';
@@ -46,12 +47,12 @@ describe('getStoredTheme', () => {
   });
 
   it('returns the stored theme when it is a valid name', () => {
-    globalThis.localStorage.setItem(STORAGE_KEY, 'dark');
+    window.localStorage.setItem(STORAGE_KEY, 'dark');
     expect(getStoredTheme()).toBe('dark');
   });
 
   it('falls back to "system" for invalid stored values', () => {
-    globalThis.localStorage.setItem(STORAGE_KEY, 'neon');
+    window.localStorage.setItem(STORAGE_KEY, 'neon');
     expect(getStoredTheme()).toBe('system');
   });
 });
@@ -110,11 +111,11 @@ describe('initThemeControl', () => {
 
     expect(getStoredTheme()).toBe('system');
     button.click();
-    expect(globalThis.localStorage.getItem(STORAGE_KEY)).toBe('light');
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('light');
     button.click();
-    expect(globalThis.localStorage.getItem(STORAGE_KEY)).toBe('dark');
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('dark');
     button.click();
-    expect(globalThis.localStorage.getItem(STORAGE_KEY)).toBe('system');
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('system');
   });
 
   it('is idempotent when called twice', () => {
@@ -124,6 +125,6 @@ describe('initThemeControl', () => {
     expect(control.dataset.initialized).toBe('true');
     button.click();
     // Only one listener wired, so exactly one step forward.
-    expect(globalThis.localStorage.getItem(STORAGE_KEY)).toBe('light');
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('light');
   });
 });

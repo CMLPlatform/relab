@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/useGlobalThis: window is the correct reference for browser DOM APIs (localStorage/matchMedia); happy-dom exposes these on window, not globalThis.
 const STORAGE_KEY = 'relab-theme';
 const THEMES = ['system', 'light', 'dark'] as const;
 type ThemeName = (typeof THEMES)[number];
@@ -7,7 +8,7 @@ function isThemeName(value: string | null | undefined): value is ThemeName {
   return value === 'system' || value === 'light' || value === 'dark';
 }
 
-function getStoredTheme(storage: Storage = globalThis.localStorage): ThemeName {
+function getStoredTheme(storage: Storage = window.localStorage): ThemeName {
   const storedTheme = storage.getItem(STORAGE_KEY);
   if (isThemeName(storedTheme)) {
     return storedTheme;
@@ -17,7 +18,7 @@ function getStoredTheme(storage: Storage = globalThis.localStorage): ThemeName {
 
 function resolveTheme(
   theme: ThemeName,
-  mediaQuery: MediaQueryList = globalThis.matchMedia('(prefers-color-scheme: dark)'),
+  mediaQuery: MediaQueryList = window.matchMedia('(prefers-color-scheme: dark)'),
 ): ResolvedTheme {
   if (theme === 'light' || theme === 'dark') {
     return theme;
@@ -89,12 +90,12 @@ function initThemeControl() {
     const currentIndex = THEMES.indexOf(currentTheme);
     const nextTheme = THEMES[(currentIndex + 1) % THEMES.length];
 
-    globalThis.localStorage.setItem(STORAGE_KEY, nextTheme);
+    window.localStorage.setItem(STORAGE_KEY, nextTheme);
     applyTheme(nextTheme);
     updateThemeToggle(control, nextTheme);
   };
 
-  const mediaQuery = globalThis.matchMedia('(prefers-color-scheme: dark)');
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   const handleMediaChange = () => {
     if (getStoredTheme() === 'system') {
       syncTheme();
