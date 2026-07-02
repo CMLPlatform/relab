@@ -46,7 +46,7 @@ body::after {
 :root[data-theme="dark"] body::after {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--relab-brand-surface-wash) 94%, #09111d 6%) 0%,
+    color-mix(in srgb, var(--relab-brand-surface-wash) 94%, rgb(9, 17, 29) 6%) 0%,
     color-mix(in srgb, var(--relab-brand-surface-wash) 90%, transparent) 100%
   );
 }

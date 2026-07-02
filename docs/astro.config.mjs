@@ -109,7 +109,10 @@ const STARLIGHT_OPTIONS = {
   },
 };
 const modeFlagIndex = process.argv.indexOf(MODE_FLAG);
-const buildMode = modeFlagIndex >= 0 ? process.argv[modeFlagIndex + 1] : 'prod';
+let buildMode = 'prod';
+if (modeFlagIndex >= 0) {
+  buildMode = process.argv[modeFlagIndex + 1];
+}
 const site = process.env.PUBLIC_DOCS_URL?.trim() || MODE_SITES[buildMode] || MODE_SITES.prod;
 
 export default defineConfig({
