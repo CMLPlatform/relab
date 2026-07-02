@@ -1,5 +1,6 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
+import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 
 // Variables prefixed with 'mock' can be referenced inside jest.mock() factories.
 // babel-jest hoists jest.mock() calls but exempts 'mock'-prefixed variables from TDZ.
@@ -435,7 +436,11 @@ const defaultUser = {
 async function renderProfile() {
   const ProfileTab = require('../account.tsx').default;
   const result = render(<ProfileTab />, {
-    wrapper: ({ children }) => <PaperProvider>{children}</PaperProvider>,
+    wrapper: ({ children }) => (
+      <PaperProvider>
+        <StreamSessionProvider>{children}</StreamSessionProvider>
+      </PaperProvider>
+    ),
   });
   // Flush pending microtasks so profile stats loading effects settle
   // inside act() and don't trigger "not wrapped in act" warnings.
@@ -517,7 +522,11 @@ describe('ProfileTab', () => {
 
       const ProfileTab = require('../account.tsx').default;
       const { getAllByText } = render(<ProfileTab />, {
-        wrapper: ({ children }) => <PaperProvider>{children}</PaperProvider>,
+        wrapper: ({ children }) => (
+          <PaperProvider>
+            <StreamSessionProvider>{children}</StreamSessionProvider>
+          </PaperProvider>
+        ),
       });
       // statsLoading=true renders '...' for each of the four stat values
       expect(getAllByText('...').length).toBeGreaterThanOrEqual(1);

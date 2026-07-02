@@ -11,6 +11,7 @@ const mockUseStreamStatusQuery = jest.fn();
 const mockUseStopYouTubeStreamMutation = jest.fn();
 
 jest.mock('@/context/streamSession', () => ({
+  ...jest.requireActual<typeof import('@/context/streamSession')>('@/context/streamSession'),
   useStreamSession: () => ({
     setActiveStream: mockSetActiveStream,
   }),

@@ -32,6 +32,7 @@ jest.mock('@/components/cameras/LivePreview', () => ({
 }));
 
 jest.mock('@/context/streamSession', () => ({
+  ...jest.requireActual<typeof import('@/context/streamSession')>('@/context/streamSession'),
   useStreamSession: () => ({ setActiveStream: mockSetActiveStream }),
 }));
 

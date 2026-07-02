@@ -14,6 +14,7 @@ jest.mock('@/components/cameras/StreamingSheet', () => ({
 }));
 
 jest.mock('@/context/streamSession', () => ({
+  ...jest.requireActual<typeof import('@/context/streamSession')>('@/context/streamSession'),
   useStreamSession: () => mockUseStreamSession(),
 }));
 

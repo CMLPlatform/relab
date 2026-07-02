@@ -21,6 +21,7 @@ jest.mock('@tanstack/react-query', () => {
 });
 
 jest.mock('@/context/streamSession', () => ({
+  ...jest.requireActual<typeof import('@/context/streamSession')>('@/context/streamSession'),
   useStreamSession: () => ({
     setActiveStream: mockSetActiveStream,
   }),

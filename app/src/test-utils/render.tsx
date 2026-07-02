@@ -6,6 +6,7 @@ import { PaperProvider } from 'react-native-paper';
 import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { AuthProvider } from '@/context/AuthProvider';
+import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { getAppTheme } from '@/theme';
@@ -61,7 +62,10 @@ export function renderWithProviders(
         scale: 0,
       },
     };
+    // StreamSessionProvider is always mounted in the app's Providers stack and is
+    // dependency-free, so include it unconditionally rather than behind a flag.
     let content = withDialog ? <DialogProvider>{children}</DialogProvider> : children;
+    content = <StreamSessionProvider>{content}</StreamSessionProvider>;
     if (withThemeMode) content = <ThemeModeProvider>{content}</ThemeModeProvider>;
     const withPaper = <PaperProvider theme={testTheme}>{content}</PaperProvider>;
     const withSafeArea = (
