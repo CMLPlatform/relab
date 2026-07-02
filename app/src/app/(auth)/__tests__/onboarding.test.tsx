@@ -44,20 +44,10 @@ beforeEach(() => {
 });
 
 describe('Onboarding screen rendering', () => {
-  it('renders the Welcome text and Continue button', () => {
-    renderOnboardingScreen();
-    expect(screen.getByText('Welcome!')).toBeOnTheScreen();
-    expect(screen.getByText('Continue')).toBeOnTheScreen();
-  });
-
-  it('renders the Welcome text and username input', () => {
+  it('renders the Welcome text, username input and Continue button', () => {
     renderOnboardingScreen();
     expect(screen.getByText('Welcome!')).toBeOnTheScreen();
     expect(screen.getByPlaceholderText('e.g. awesome_user')).toBeOnTheScreen();
-  });
-
-  it('renders Continue button', () => {
-    renderOnboardingScreen();
     expect(screen.getByText('Continue')).toBeOnTheScreen();
   });
 });

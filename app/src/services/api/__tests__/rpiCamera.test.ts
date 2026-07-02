@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetchWithAuth } from '../auth/authentication';
 import {
-  buildCameraHlsUrl,
   buildLocalHlsUrl,
   captureImageFromCamera,
   captureImageLocally,
@@ -187,11 +186,6 @@ describe('rpiCamera API service', () => {
     await expect(captureImageFromCamera('cam-9', 42)).rejects.toThrow(
       'Failed to capture image (502)',
     );
-  });
-
-  it('builds the LL-HLS playlist URL for a camera id', () => {
-    const url = buildCameraHlsUrl('cam-live');
-    expect(url).toContain('/plugins/rpi-cam/cameras/cam-live/hls/cam-preview/index.m3u8');
   });
 
   it('builds the local LL-HLS playlist URL through the Pi FastAPI proxy', () => {

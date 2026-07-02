@@ -2,8 +2,13 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
+import { getAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
 import CPVCard from '../CPVCard';
+
+jest.mock('@/context/themeMode', () => ({
+  useEffectiveColorScheme: jest.fn(() => 'light'),
+}));
 
 const mockCPV: CPVCategory = {
   id: 1,
@@ -27,10 +32,12 @@ describe('CPVCard', () => {
     expect(screen.getByText('03000000-1')).toBeOnTheScreen();
   });
 
-  it("applies error style when CPV.name is 'undefined'", () => {
+  it("applies the error text color when CPV.name is 'undefined'", () => {
     const errorCPV = { ...mockCPV, name: 'undefined' };
     renderWithProviders(<CPVCard CPV={errorCPV} />);
-    expect(screen.toJSON()).toBeTruthy();
+    expect(screen.getByText('Agricultural products')).toHaveStyle({
+      color: getAppTheme('light').colors.onErrorContainer,
+    });
   });
 
   it('calls onPress when pressed', async () => {

@@ -55,6 +55,10 @@ describe('<TextInput />', () => {
     renderWithProviders(
       <TextInput testID="passing-validation" value="okay" customValidation={passValidation} />,
     );
-    expect(screen.getByTestId('passing-validation')).toBeOnTheScreen();
+    const input = screen.getByTestId('passing-validation');
+    expect(input).not.toHaveStyle({
+      backgroundColor: getAppTheme('light').colors.errorContainer,
+    });
+    expect(input).toHaveStyle({ color: getAppTheme('light').colors.onSurface });
   });
 });

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
 import { useProductImageGallery } from '@/features/products/useProductImageGallery';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { baseProduct as _base } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 const mockPush = jest.fn();
@@ -32,11 +33,11 @@ jest.mock('@/hooks/useAppFeedback', () => ({
   }),
 }));
 
-jest.mock('@/features/cameras/useRpiIntegration', () => ({
+jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
   useRpiIntegration: () => mockUseRpiIntegration(),
 }));
 
-jest.mock('@/features/cameras/hooks', () => ({
+jest.mock('@/features/cameras/rpi/hooks', () => ({
   useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
   useCaptureImageMutation: () => ({ mutate: mockCaptureMutate }),
 }));
@@ -53,12 +54,12 @@ jest.mock('@/features/gallery/useGalleryKeyboardNavigation', () => ({
   useGalleryKeyboardNavigation: jest.fn(),
 }));
 
-const baseProduct = {
+const baseProduct: Product = {
+  ..._base,
   id: 42,
   name: 'Radio',
   images: [{ id: '1', url: 'https://example.com/image.jpg', description: '' }],
-  ownedBy: 'me',
-} as unknown as Product;
+};
 
 describe('useProductImageGallery', () => {
   beforeEach(() => {

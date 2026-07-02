@@ -141,7 +141,7 @@ describe('ProductTags', () => {
         withDialog: true,
       },
     );
-    expect(screen.toJSON()).toBeTruthy();
+    expect(screen.queryByText('Unknown')).toBeNull();
   });
 });
 

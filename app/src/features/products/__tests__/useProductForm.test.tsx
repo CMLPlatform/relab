@@ -9,6 +9,7 @@ import {
   useSaveProductMutation,
 } from '@/features/products/queries';
 import { useProductForm } from '@/features/products/useProductForm';
+import { baseProduct } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 jest.mock('@/context/auth', () => ({
@@ -59,21 +60,10 @@ jest.mock('expo-router', () => ({
 }));
 
 const mockProduct = {
+  ...baseProduct,
   id: 123,
-  role: 'product',
-  name: 'Recycled Aluminum Laptop Stand',
   brand: 'CircularTech',
-  componentIDs: [],
-  components: [],
   physicalProperties: { weight: 0, width: 0, height: 0, depth: 0 },
-  circularityProperties: {
-    recyclability: null,
-    disassemblability: null,
-    remanufacturability: null,
-  },
-  images: [],
-  videos: [],
-  ownedBy: 'me',
 } satisfies Product;
 
 const queryClient = new QueryClient({
