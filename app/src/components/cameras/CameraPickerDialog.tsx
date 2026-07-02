@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Dialog, Icon, Portal, Text } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
-import { useCamerasQuery } from '@/features/cameras/hooks';
+import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
 import {
   resolveEffectiveCameraConnection,
   useEffectiveCameraConnection,

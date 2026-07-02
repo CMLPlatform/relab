@@ -57,7 +57,7 @@ const mockCamerasQueryData = [
   },
 ];
 
-jest.mock('@/features/cameras/hooks', () => ({
+jest.mock('@/features/cameras/rpi/hooks', () => ({
   useCamerasQuery: () => ({
     data: mockCamerasQueryData,
     isLoading: false,

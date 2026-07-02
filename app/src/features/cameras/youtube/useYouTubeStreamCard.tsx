@@ -1,6 +1,6 @@
 import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
 import { useStreamSession } from '@/context/streamSession';
-import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/features/cameras/hooks';
+import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/features/cameras/rpi/hooks';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
 import { openExternalUrl } from '@/services/externalLinks';

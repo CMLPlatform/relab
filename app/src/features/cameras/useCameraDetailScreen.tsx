@@ -2,12 +2,12 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { useAuth } from '@/context/auth';
 import { createCameraDetailActions } from '@/features/cameras/detailActions';
-import { useCameraDetailDialogs } from '@/features/cameras/detailControllers';
+import { useCameraDetailDialogs } from '@/features/cameras/detailState';
 import {
   useCameraQuery,
   useDeleteCameraMutation,
   useUpdateCameraMutation,
-} from '@/features/cameras/hooks';
+} from '@/features/cameras/rpi/hooks';
 import { useEffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 

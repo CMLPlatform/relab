@@ -1,20 +1,20 @@
 import { useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/auth';
+import { setCamerasHeaderOptions, useCameraScreenData } from '@/features/cameras/helpers';
+import { useCameraRouteModes } from '@/features/cameras/routeModes';
 import {
   useCameraCaptureActions,
   useCameraConnectionSnapshots,
-  useCameraStreamActions,
-} from '@/features/cameras/actions';
-import { useCameraScreenData, useCamerasHeader } from '@/features/cameras/helpers';
-import { useCamerasQuery, useCaptureAllMutation } from '@/features/cameras/hooks';
-import { useCameraRouteModes } from '@/features/cameras/routeModes';
+} from '@/features/cameras/rpi/captureActions';
+import { useCamerasQuery, useCaptureAllMutation } from '@/features/cameras/rpi/hooks';
 import {
   useCameraSelectionActions,
   useCameraSelectionController,
   useCameraStreamingController,
-} from '@/features/cameras/stateControllers';
+} from '@/features/cameras/state';
 import { resolveEffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
+import { useCameraStreamActions } from '@/features/cameras/youtube/streamActions';
 import { useBaseProductQuery } from '@/features/products/queries';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
@@ -31,111 +31,7 @@ function useCamerasAuthRedirect(
   }, [user, router]);
 }
 
-function buildCamerasScreenState({
-  user,
-  screenData,
-  isLoading,
-  isFetching,
-  isError,
-  error,
-  refetch,
-  selectionMode,
-  selectedIds,
-  selectedCount,
-  captureAllPending,
-  handleSelectAll,
-  clearSelection,
-  handleCaptureSelected,
-  streamDialog,
-  isStartingStream,
-  snackbarMessage,
-  dismissSnackbar,
-  closeStreamDialog,
-  setStreamTitle,
-  setStreamPrivacy,
-  handleStartStream,
-  handleCardTap,
-  handleCardLongPress,
-  handleEffectiveConnectionChange,
-  openAddCamera,
-}: {
-  user: ReturnType<typeof useAuth>['user'];
-  screenData: {
-    rows: CameraReadWithStatus[];
-    onlineCount: number;
-    numColumns: number;
-    captureModeEnabled: boolean;
-    streamModeEnabled: boolean;
-  };
-  isLoading: boolean;
-  isFetching: boolean;
-  isError: boolean;
-  error: unknown;
-  refetch: ReturnType<typeof useCamerasQuery>['refetch'];
-  selectionMode: ReturnType<typeof useCameraSelectionController>['selectionMode'];
-  selectedIds: ReturnType<typeof useCameraSelectionController>['selectedIds'];
-  selectedCount: number;
-  captureAllPending: boolean;
-  handleSelectAll: ReturnType<typeof useCameraSelectionActions>['handleSelectAll'];
-  clearSelection: ReturnType<typeof useCameraSelectionController>['clearSelection'];
-  handleCaptureSelected: ReturnType<typeof useCameraCaptureActions>['handleCaptureSelected'];
-  streamDialog: ReturnType<typeof useCameraStreamingController>['streamDialog'];
-  isStartingStream: boolean;
-  snackbarMessage: string | null;
-  dismissSnackbar: () => void;
-  closeStreamDialog: ReturnType<typeof useCameraStreamingController>['closeStreamDialog'];
-  setStreamTitle: ReturnType<typeof useCameraStreamingController>['setStreamTitle'];
-  setStreamPrivacy: ReturnType<typeof useCameraStreamingController>['setStreamPrivacy'];
-  handleStartStream: ReturnType<typeof useCameraStreamActions>['handleStartStream'];
-  handleCardTap: ReturnType<typeof useCameraStreamActions>['handleCardTap'];
-  handleCardLongPress: ReturnType<typeof useCameraCaptureActions>['handleCardLongPress'];
-  handleEffectiveConnectionChange: ReturnType<
-    typeof useCameraConnectionSnapshots
-  >['handleEffectiveConnectionChange'];
-  openAddCamera: () => void;
-}) {
-  return {
-    screen: {
-      user,
-      rows: screenData.rows,
-      isLoading,
-      isFetching,
-      isError,
-      error,
-      refetch,
-      numColumns: screenData.numColumns,
-      onlineCount: screenData.onlineCount,
-      captureModeEnabled: screenData.captureModeEnabled,
-      streamModeEnabled: screenData.streamModeEnabled,
-    },
-    selection: {
-      selectionMode,
-      selectedIds,
-      selectedCount,
-      captureAllPending,
-      handleSelectAll,
-      clearSelection,
-      handleCaptureSelected,
-    },
-    streaming: {
-      streamDialog,
-      isStartingStream,
-      snackbarMessage,
-      dismissSnackbar,
-      closeStreamDialog,
-      setStreamTitle,
-      setStreamPrivacy,
-      handleStartStream,
-    },
-    actions: {
-      handleCardTap,
-      handleCardLongPress,
-      handleEffectiveConnectionChange,
-      openAddCamera,
-    },
-  };
-}
-
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: cameras-screen orchestration is intentionally exposed through one screen hook.
 export function useCamerasScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -162,13 +58,15 @@ export function useCamerasScreen() {
   const captureAll = useCaptureAllMutation();
 
   useCamerasAuthRedirect(user, router);
-  useCamerasHeader({
-    navigation,
-    router,
-    captureAllProductId,
-    streamProductId,
-    streamModeEnabled,
-  });
+  useEffect(() => {
+    setCamerasHeaderOptions({
+      navigation,
+      router,
+      captureAllProductId,
+      streamProductId,
+      streamModeEnabled,
+    });
+  }, [navigation, router, captureAllProductId, streamProductId, streamModeEnabled]);
 
   const isCameraReachable = useCallback(
     (camera: CameraReadWithStatus) =>
@@ -218,32 +116,44 @@ export function useCamerasScreen() {
     router.push('/cameras/add');
   }, [router]);
 
-  return buildCamerasScreenState({
-    user,
-    screenData,
-    isLoading,
-    isFetching,
-    isError,
-    error,
-    refetch,
-    selectionMode: selection.selectionMode,
-    selectedIds: selection.selectedIds,
-    selectedCount: selection.selectedCount,
-    captureAllPending: captureAll.isPending,
-    handleSelectAll,
-    clearSelection: selection.clearSelection,
-    handleCaptureSelected,
-    streamDialog: streaming.streamDialog,
-    isStartingStream: streaming.isStartingStream,
-    snackbarMessage: streaming.snackbarMessage,
-    dismissSnackbar: streaming.dismissSnackbar,
-    closeStreamDialog: streaming.closeStreamDialog,
-    setStreamTitle: streaming.setStreamTitle,
-    setStreamPrivacy: streaming.setStreamPrivacy,
-    handleStartStream,
-    handleCardTap,
-    handleCardLongPress,
-    handleEffectiveConnectionChange,
-    openAddCamera,
-  });
+  return {
+    screen: {
+      user,
+      rows: screenData.rows,
+      isLoading,
+      isFetching,
+      isError,
+      error,
+      refetch,
+      numColumns: screenData.numColumns,
+      onlineCount: screenData.onlineCount,
+      captureModeEnabled: screenData.captureModeEnabled,
+      streamModeEnabled: screenData.streamModeEnabled,
+    },
+    selection: {
+      selectionMode: selection.selectionMode,
+      selectedIds: selection.selectedIds,
+      selectedCount: selection.selectedCount,
+      captureAllPending: captureAll.isPending,
+      handleSelectAll,
+      clearSelection: selection.clearSelection,
+      handleCaptureSelected,
+    },
+    streaming: {
+      streamDialog: streaming.streamDialog,
+      isStartingStream: streaming.isStartingStream,
+      snackbarMessage: streaming.snackbarMessage,
+      dismissSnackbar: streaming.dismissSnackbar,
+      closeStreamDialog: streaming.closeStreamDialog,
+      setStreamTitle: streaming.setStreamTitle,
+      setStreamPrivacy: streaming.setStreamPrivacy,
+      handleStartStream,
+    },
+    actions: {
+      handleCardTap,
+      handleCardLongPress,
+      handleEffectiveConnectionChange,
+      openAddCamera,
+    },
+  };
 }

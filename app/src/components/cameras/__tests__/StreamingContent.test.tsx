@@ -44,7 +44,7 @@ jest.mock('@/hooks/useElapsed', () => ({
   useElapsed: () => '2:34',
 }));
 
-jest.mock('@/features/cameras/hooks', () => ({
+jest.mock('@/features/cameras/rpi/hooks', () => ({
   useStopYouTubeStreamMutation: () => ({
     mutate: (...args: unknown[]) => mockStopMutate(...args),
     isPending: false,

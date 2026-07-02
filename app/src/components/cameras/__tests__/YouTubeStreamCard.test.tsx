@@ -28,11 +28,11 @@ jest.mock('@/hooks/useElapsed', () => ({
   useElapsed: () => '1:23',
 }));
 
-jest.mock('@/features/cameras/useYouTubeIntegration', () => ({
+jest.mock('@/features/cameras/youtube/useYouTubeIntegration', () => ({
   useYouTubeIntegration: () => mockUseYouTubeIntegration(),
 }));
 
-jest.mock('@/features/cameras/hooks', () => ({
+jest.mock('@/features/cameras/rpi/hooks', () => ({
   useStreamStatusQuery: (...args: unknown[]) => mockUseStreamStatusQuery(...args),
   useStopYouTubeStreamMutation: (...args: unknown[]) => mockUseStopYouTubeStreamMutation(...args),
 }));

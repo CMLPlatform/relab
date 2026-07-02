@@ -13,7 +13,7 @@ import {
   useClaimPairingMutation,
   useDeleteCameraMutation,
   useUpdateCameraMutation,
-} from '@/features/cameras/hooks';
+} from '@/features/cameras/rpi/hooks';
 import {
   captureImageFromCamera,
   claimPairingCode,

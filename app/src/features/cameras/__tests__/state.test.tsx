@@ -5,7 +5,7 @@ import {
   useCameraSelectionActions,
   useCameraSelectionController,
   useCameraStreamingController,
-} from '@/features/cameras/stateControllers';
+} from '@/features/cameras/state';
 
 const mockUseLocalSearchParams = jest.fn();
 

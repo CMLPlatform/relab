@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { resolveCameraLivePreview } from '@/features/cameras/previews';
+import { resolveCameraLivePreview } from '@/features/cameras/rpi/previews';
 
 jest.mock('@/services/api/rpiCamera', () => ({
   __esModule: true,

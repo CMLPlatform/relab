@@ -6,7 +6,7 @@ import { LivePreview } from '@/components/cameras/LivePreview';
 import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
 import type { StreamSession } from '@/context/streamSession';
 import { useStreamSession } from '@/context/streamSession';
-import { useStopYouTubeStreamMutation } from '@/features/cameras/hooks';
+import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
 import { invalidateProductQuery } from '@/features/products/queries';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';

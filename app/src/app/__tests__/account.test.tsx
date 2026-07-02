@@ -40,11 +40,11 @@ jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(),
 }));
 
-jest.mock('@/features/cameras/useRpiIntegration', () => ({
+jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
   useRpiIntegration: () => ({ enabled: false, loading: false, setEnabled: jest.fn() }),
 }));
 
-jest.mock('@/features/cameras/hooks', () => ({
+jest.mock('@/features/cameras/rpi/hooks', () => ({
   useStopYouTubeStreamMutation: () => ({
     mutate: (...args: unknown[]) => mockStopStreamMutate(...args),
     isPending: false,

@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { QueryClient } from '@tanstack/react-query';
+import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import {
   captureFromMultipleCameras,
   clearOptimisticStreamStatus,
   resolveCaptureImageRequest,
   restoreOptimisticStreamStatus,
-} from '@/features/cameras/mutations';
-import type { CameraConnectionInfo } from '@/features/cameras/useLocalConnection';
+} from '@/features/cameras/rpi/mutations';
 import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera';
 
 jest.mock('@/services/api/rpiCamera', () => ({

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
-import { useCameraDetailDialogs } from '@/features/cameras/detailControllers';
+import { useCameraDetailDialogs } from '@/features/cameras/detailState';
 
 describe('camera detail controllers', () => {
   const localConnection = {

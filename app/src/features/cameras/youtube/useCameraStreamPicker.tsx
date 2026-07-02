@@ -1,15 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import {
-  showGoogleAccountRequired,
-  showStreamStartFailed,
-} from '@/components/cameras/streamingFeedback';
 import { useStreamSession } from '@/context/streamSession';
-import { invalidateProductQuery } from '@/features/products/queries';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { addProductVideo } from '@/services/api/products';
 import type { CameraReadWithStatus, YouTubePrivacyStatus } from '@/services/api/rpiCamera';
-import { startYouTubeStream } from '@/services/api/rpiCamera';
+import { startYouTubeStreamFlow } from './streamFlow';
 
 type CameraStreamPickerParams = {
   productId: number;
@@ -52,33 +46,18 @@ export function useCameraStreamPicker({
 
     setIsStarting(true);
     try {
-      const result = await startYouTubeStream(config.camera.id, {
-        product_id: productId,
-        title: config.title.trim() || undefined,
-        privacy_status: config.privacy,
-      });
-      setActiveStream({
+      const started = await startYouTubeStreamFlow({
         cameraId: config.camera.id,
         cameraName: config.camera.name,
         productId,
         productName,
-        startedAt: result.started_at,
-        youtubeUrl: result.url,
+        title: config.title,
+        privacy: config.privacy,
+        queryClient,
+        setActiveStream,
+        feedback,
       });
-      addProductVideo(productId, {
-        url: result.url,
-        title: config.title.trim() || 'Live stream',
-        description: '',
-      }).catch(() => {});
-      invalidateProductQuery(queryClient, productId);
-      handleDismiss();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message === 'GOOGLE_OAUTH_REQUIRED') {
-        showGoogleAccountRequired(feedback);
-      } else {
-        showStreamStartFailed(feedback, error);
-      }
+      if (started) handleDismiss();
     } finally {
       setIsStarting(false);
     }

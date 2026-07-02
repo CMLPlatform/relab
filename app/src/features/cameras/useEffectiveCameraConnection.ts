@@ -4,7 +4,7 @@ import {
   type CameraConnectionInfo,
   type UseLocalConnectionResult,
   useLocalConnection,
-} from './useLocalConnection';
+} from './local-connection/useLocalConnection';
 
 export type EffectiveCameraTransport = 'direct' | 'relay' | 'unreachable';
 

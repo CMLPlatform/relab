@@ -21,16 +21,6 @@ export const MAX_FAILURES_BEFORE_RELAY = 2;
 export const urlKey = (cameraId: string) => `localConnection:${cameraId}:url`;
 export const apiKeySecureKey = (cameraId: string) => `localConnection_${cameraId}_apiKey`;
 
-export function deriveMediaUrl(baseUrl: string): string {
-  try {
-    const url = new URL(baseUrl);
-    url.port = '8888';
-    return url.origin;
-  } catch {
-    return baseUrl.replace(':8018', ':8888');
-  }
-}
-
 export function buildLocalProbeCandidates(candidateUrls: string[]): string[] {
   return [...candidateUrls, USB_GADGET_DEFAULT].filter(
     (url, index, all) => all.indexOf(url) === index,

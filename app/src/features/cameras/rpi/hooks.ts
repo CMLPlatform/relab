@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { CameraConnectionInfo } from '@/features/cameras/useLocalConnection';
+import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import { invalidateProductQuery } from '@/features/products/queries';
 import type {
   CameraUpdate,
@@ -31,36 +31,20 @@ import {
   streamStatusQueryOptions,
 } from './queries';
 
-function useInvalidateOnSuccessMutation<TVariables, TData = unknown>(
-  mutationFn: (variables: TVariables) => Promise<TData>,
-  onSuccess: () => void,
-) {
-  return useMutation({
-    mutationFn,
-    onSuccess,
-  });
-}
-
+// Shared by useDeleteCameraMutation and useClaimPairingMutation, which both
+// just need the camera list invalidated on success.
 function useCameraListInvalidationMutation<TVariables, TData = unknown>(
   mutationFn: (variables: TVariables) => Promise<TData>,
 ) {
   const queryClient = useQueryClient();
-  return useInvalidateOnSuccessMutation(mutationFn, () => {
-    invalidateCameraListQuery(queryClient);
+  return useMutation({
+    mutationFn,
+    onSuccess: () => invalidateCameraListQuery(queryClient),
   });
 }
 
-function useCameraDetailAndListInvalidationMutation<TVariables, TData = unknown>(
-  cameraId: string,
-  mutationFn: (variables: TVariables) => Promise<TData>,
-) {
-  const queryClient = useQueryClient();
-  return useInvalidateOnSuccessMutation(mutationFn, () => {
-    invalidateCameraDetailQuery(queryClient, cameraId);
-    invalidateCameraListQuery(queryClient);
-  });
-}
-
+// Shared by useCaptureImageMutation and useCaptureAllMutation, which both
+// need the owning product's query invalidated on success.
 function useProductInvalidationMutation<TVariables, TData = unknown>(
   mutationFn: (variables: TVariables) => Promise<TData>,
 ) {
@@ -69,33 +53,6 @@ function useProductInvalidationMutation<TVariables, TData = unknown>(
     mutationFn,
     onSuccess: (_data, variables) => {
       invalidateProductQuery(queryClient, (variables as { productId: number }).productId);
-    },
-  });
-}
-
-function useCameraStreamInvalidationMutation<TVariables, TData = unknown>(
-  cameraId: string,
-  mutationFn: (variables: TVariables) => Promise<TData>,
-) {
-  const queryClient = useQueryClient();
-  return useInvalidateOnSuccessMutation(mutationFn, () => {
-    invalidateCameraStreamStatusQuery(queryClient, cameraId);
-  });
-}
-
-function useOptimisticCameraStreamMutation<TData = unknown>(
-  cameraId: string,
-  mutationFn: () => Promise<TData>,
-) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn,
-    onMutate: async () => clearOptimisticStreamStatus(queryClient, cameraId),
-    onError: (_err, _vars, context) => {
-      restoreOptimisticStreamStatus(queryClient, cameraId, context?.previous);
-    },
-    onSuccess: () => {
-      invalidateCameraStreamStatusQuery(queryClient, cameraId);
     },
   });
 }
@@ -126,9 +83,14 @@ export function useCameraTelemetryQuery(
 }
 
 export function useUpdateCameraMutation(id: string) {
-  return useCameraDetailAndListInvalidationMutation(id, (data: CameraUpdate) =>
-    updateCamera(id, data),
-  );
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CameraUpdate) => updateCamera(id, data),
+    onSuccess: () => {
+      invalidateCameraDetailQuery(queryClient, id);
+      invalidateCameraListQuery(queryClient);
+    },
+  });
 }
 
 export function useDeleteCameraMutation() {
@@ -163,13 +125,23 @@ export function useStreamStatusQuery(
 }
 
 export function useStartYouTubeStreamMutation(cameraId: string) {
-  return useCameraStreamInvalidationMutation(cameraId, (params: StartYouTubeStreamParams) =>
-    startYouTubeStream(cameraId, params),
-  );
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: StartYouTubeStreamParams) => startYouTubeStream(cameraId, params),
+    onSuccess: () => invalidateCameraStreamStatusQuery(queryClient, cameraId),
+  });
 }
 
 export function useStopYouTubeStreamMutation(cameraId: string) {
-  return useOptimisticCameraStreamMutation(cameraId, () => stopYouTubeStream(cameraId));
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => stopYouTubeStream(cameraId),
+    onMutate: async () => clearOptimisticStreamStatus(queryClient, cameraId),
+    onError: (_err, _vars, context) => {
+      restoreOptimisticStreamStatus(queryClient, cameraId, context?.previous);
+    },
+    onSuccess: () => invalidateCameraStreamStatusQuery(queryClient, cameraId),
+  });
 }
 
 export function useCaptureAllMutation(connectionInfoMap?: Record<string, CameraConnectionInfo>) {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
-import { useCameraStreamPicker } from '@/features/cameras/useCameraStreamPicker';
+import { useCameraStreamPicker } from '@/features/cameras/youtube/useCameraStreamPicker';
 import { addProductVideo } from '@/services/api/products';
 import { startYouTubeStream } from '@/services/api/rpiCamera';
 

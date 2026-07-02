@@ -1,6 +1,6 @@
 import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
 import type { Router } from 'expo-router';
-import { createElement, useEffect } from 'react';
+import { createElement } from 'react';
 
 const DESKTOP_COLUMNS = 3;
 const MOBILE_COLUMNS = 2;
@@ -67,10 +67,4 @@ export function setCamerasHeaderOptions({
         },
       }),
   });
-}
-
-export function useCamerasHeader(args: Parameters<typeof setCamerasHeaderOptions>[0]) {
-  useEffect(() => {
-    setCamerasHeaderOptions(args);
-  }, [args]);
 }

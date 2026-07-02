@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { CameraConnectionInfo } from '@/features/cameras/useLocalConnection';
+import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import type { StreamView } from '@/services/api/rpiCamera';
 import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera';
 
