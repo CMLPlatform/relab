@@ -25,34 +25,21 @@
 }
 
 :root {
+  color-scheme: light dark;
   --relab-brand-font: "IBM Plex Sans";
-  --relab-brand-primary: #006783;
-  --relab-brand-primary-strong: #004f65;
-  --relab-brand-primary-soft: rgba(0, 103, 131, 0.08);
-  --relab-brand-accent: #5c5b7d;
-  --relab-brand-text: #13263a;
-  --relab-brand-surface-wash: rgba(248, 250, 252, 0.8);
-  --relab-brand-theme-color: #eef4f7;
+  --relab-brand-primary: light-dark(#006783, #63d3ff);
+  --relab-brand-primary-strong: light-dark(#004f65, #a7e9ff);
+  --relab-brand-primary-soft: light-dark(rgba(0, 103, 131, 0.08), rgba(99, 211, 255, 0.14));
+  --relab-brand-accent: light-dark(#5c5b7d, #d2cbff);
+  --relab-brand-text: light-dark(#13263a, #f2f8ff);
+  --relab-brand-surface-wash: light-dark(rgba(248, 250, 252, 0.8), rgba(12, 23, 36, 0.74));
+  --relab-brand-theme-color: light-dark(#eef4f7, #09131b);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --relab-brand-primary: #63d3ff;
-  --relab-brand-primary-strong: #a7e9ff;
-  --relab-brand-primary-soft: rgba(99, 211, 255, 0.14);
-  --relab-brand-accent: #d2cbff;
-  --relab-brand-text: #f2f8ff;
-  --relab-brand-surface-wash: rgba(12, 23, 36, 0.74);
-  --relab-brand-theme-color: #09131b;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    --relab-brand-primary: #63d3ff;
-    --relab-brand-primary-strong: #a7e9ff;
-    --relab-brand-primary-soft: rgba(99, 211, 255, 0.14);
-    --relab-brand-accent: #d2cbff;
-    --relab-brand-text: #f2f8ff;
-    --relab-brand-surface-wash: rgba(12, 23, 36, 0.74);
-    --relab-brand-theme-color: #09131b;
-  }
+  color-scheme: dark;
 }
