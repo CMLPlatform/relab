@@ -18,6 +18,7 @@ from app.api.stats.schemas import CategoryStat, SeriesPoint, Totals
 if TYPE_CHECKING:
     from datetime import date
 
+    from sqlalchemy import ColumnElement
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -80,7 +81,8 @@ async def compute_series(
     start_dt = datetime(start.year, start.month, start.day, tzinfo=UTC)
     end_dt = datetime(end.year, end.month, end.day, tzinfo=UTC) + timedelta(days=1)
 
-    trunc = lambda col: func.date_trunc(granularity, col)  # noqa: E731
+    def trunc(col: ColumnElement) -> ColumnElement:
+        return func.date_trunc(granularity, col)
 
     product_stmt = (
         select(

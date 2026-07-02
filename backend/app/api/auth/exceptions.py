@@ -49,8 +49,8 @@ class UserOwnershipError(ForbiddenError):
 class DisposableEmailError(BadRequestError, AuthCRUDError):
     """Raised when a disposable email address is used."""
 
-    def __init__(self, email: str) -> None:  # noqa: ARG002
-        msg = "Disposable email providers are not allowed."
+    def __init__(self, email: str) -> None:
+        msg = f"Disposable email providers are not allowed: {email}."
         super().__init__(msg)
 
 
