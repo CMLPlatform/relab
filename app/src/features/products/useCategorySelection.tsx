@@ -1,6 +1,11 @@
-import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  type NativeStackHeaderBackProps,
+  useLocalSearchParams,
+  useNavigation,
+  useRouter,
+} from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { useAuth } from '@/context/auth';
 import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
@@ -22,16 +27,18 @@ export function useCategorySelection() {
     }
   }, [user, id, router]);
 
+  const goToProduct = useCallback(
+    () => router.replace({ pathname: '/products/[id]', params: { id } }),
+    [router, id],
+  );
+
   useEffect(() => {
     navigation.setOptions({
-      headerLeft: (props: HeaderBackButtonProps) => (
-        <HeaderBackButton
-          {...props}
-          onPress={() => router.replace({ pathname: '/products/[id]', params: { id } })}
-        />
+      headerLeft: (props: NativeStackHeaderBackProps) => (
+        <HeaderBackButton {...props} onPress={goToProduct} />
       ),
     });
-  }, [navigation, router, id]);
+  }, [navigation, goToProduct]);
 
   useEffect(() => {
     let isMounted = true;

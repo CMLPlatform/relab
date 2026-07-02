@@ -24,8 +24,6 @@ export const apiKeySecureKey = (cameraId: string) => `localConnection_${cameraId
 // candidate_urls is server-controlled; only probe (and attach the device API key to)
 // hosts on the local network so a hostile backend can't turn us into an SSRF/port
 // scanner or leak the key to an arbitrary public host.
-// ponytail: covers RFC1918 + link-local + loopback + mDNS .local; widen if a camera
-// ever legitimately lives outside these ranges.
 export function isPrivateLocalHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
   if (host === 'localhost' || host.endsWith('.local')) return true;

@@ -6,13 +6,19 @@ import { useAuth } from '@/context/auth';
 import { renderWithProviders } from '@/test-utils/index';
 import { HeaderRight, Providers } from '../_layout';
 
-jest.mock('expo-router', () => ({
-  useRouter: jest.fn(() => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-  })),
-  usePathname: jest.fn(() => '/products'),
-}));
+jest.mock('expo-router', () => {
+  const { DefaultTheme, DarkTheme, ThemeProvider } = require('@react-navigation/native');
+  return {
+    DefaultTheme,
+    DarkTheme,
+    ThemeProvider,
+    useRouter: jest.fn(() => ({
+      push: jest.fn(),
+      replace: jest.fn(),
+    })),
+    usePathname: jest.fn(() => '/products'),
+  };
+});
 
 jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(() => ({ user: null, refetch: jest.fn() })),

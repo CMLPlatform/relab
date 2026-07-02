@@ -1,4 +1,4 @@
-import type { Router } from 'expo-router';
+import type { ImperativeRouter } from 'expo-router';
 
 type CameraDetailFeedback = {
   alert: (options: { title: string; message: string; buttons: { text: string }[] }) => void;
@@ -68,7 +68,7 @@ export function createCameraDetailActions({
 }: {
   camera: { id: string } | null | undefined;
   refetch: () => unknown;
-  router: Pick<Router, 'replace'>;
+  router: Pick<ImperativeRouter, 'replace'>;
   feedback: CameraDetailFeedback;
   localConnection: CameraDetailLocalConnection;
   dialogs: CameraDetailDialogsState;

@@ -1,7 +1,11 @@
+// Type-only import (erased at build, so it does not trip expo-router's runtime
+// react-navigation guard): react-native-paper's adaptNavigationTheme is typed against
+// react-navigation's Theme, while expo-router re-exports the same objects under its own type.
+import type { Theme } from '@react-navigation/native';
 import {
   DarkTheme as navigationDarkTheme,
   DefaultTheme as navigationLightTheme,
-} from '@react-navigation/native';
+} from 'expo-router';
 import {
   adaptNavigationTheme,
   MD3DarkTheme,
@@ -86,8 +90,8 @@ export function getAppTheme(scheme: AppScheme) {
 
 export function createNavigationThemes() {
   const { LightTheme, DarkTheme } = adaptNavigationTheme({
-    reactNavigationLight: navigationLightTheme,
-    reactNavigationDark: navigationDarkTheme,
+    reactNavigationLight: navigationLightTheme as Theme,
+    reactNavigationDark: navigationDarkTheme as Theme,
     materialLight: lightTheme,
     materialDark: darkTheme,
   });

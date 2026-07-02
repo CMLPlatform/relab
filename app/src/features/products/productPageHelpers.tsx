@@ -1,8 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
+import type { NativeStackHeaderBackProps } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
+import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { AncestorTrailHeader } from '@/components/product/AncestorTrailHeader';
 import { ProductNameHeader } from '@/components/product/ProductNameHeader';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
@@ -64,7 +65,7 @@ export function useProductPageHeader({
   navigation: {
     setOptions: (options: {
       title?: string;
-      headerLeft?: (props: HeaderBackButtonProps) => React.ReactNode;
+      headerLeft?: (props: NativeStackHeaderBackProps) => React.ReactNode;
       headerTitle?: (() => React.ReactNode) | undefined;
       headerRight?: (() => React.ReactNode) | undefined;
     }) => void;
@@ -78,6 +79,7 @@ export function useProductPageHeader({
   onProductNameChange?: (newName: string) => void;
 }) {
   useEffect(() => {
+    // biome-ignore lint/suspicious/noUnnecessaryConditions: product/name may be nullish at runtime despite the type.
     const name = product?.name ?? '';
     const showTrail = isProductComponent && ancestors.length > 0;
     // In edit mode the header *is* the name field, so always render a custom
@@ -96,7 +98,7 @@ export function useProductPageHeader({
 
     navigation.setOptions({
       title: needsCustomTitle ? undefined : truncateHeaderLabel(name, 36),
-      headerLeft: (props: HeaderBackButtonProps) => (
+      headerLeft: (props: NativeStackHeaderBackProps) => (
         <HeaderBackButton {...props} onPress={goBackWithGuards} />
       ),
       headerTitle: needsCustomTitle

@@ -89,7 +89,7 @@ function mockCreateSectionStub(label: string) {
   };
 }
 
-jest.mock('@react-navigation/elements', () => {
+jest.mock('@/components/base/HeaderBackButton', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
   const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
 

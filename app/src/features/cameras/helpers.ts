@@ -1,6 +1,6 @@
-import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
-import type { Router } from 'expo-router';
+import type { ImperativeRouter, NativeStackHeaderBackProps } from 'expo-router';
 import { createElement } from 'react';
+import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 
 const DESKTOP_COLUMNS = 3;
 const MOBILE_COLUMNS = 2;
@@ -43,7 +43,7 @@ export function setCamerasHeaderOptions({
   streamModeEnabled,
 }: {
   navigation: { setOptions: (options: object) => void };
-  router: Pick<Router, 'replace'>;
+  router: Pick<ImperativeRouter, 'replace'>;
   captureAllProductId: number | null;
   streamProductId: number | null;
   streamModeEnabled: boolean;
@@ -52,7 +52,7 @@ export function setCamerasHeaderOptions({
 
   navigation.setOptions({
     title: streamModeEnabled ? 'Select camera to stream' : 'My Cameras',
-    headerLeft: (props: HeaderBackButtonProps) =>
+    headerLeft: (props: NativeStackHeaderBackProps) =>
       createElement(HeaderBackButton, {
         ...props,
         onPress: () => {

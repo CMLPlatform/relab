@@ -1,14 +1,13 @@
-import { HeaderBackButton } from '@react-navigation/elements';
-import { ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack, usePathname, useRouter } from 'expo-router';
+import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useCallback, useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { PaperProvider } from 'react-native-paper';
 import { DialogProvider } from '@/components/base/DialogProvider';
+import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { HeaderRightPill } from '@/components/base/HeaderRightPill';
 import { ActiveStreamBanner } from '@/components/cameras/ActiveStreamBanner';
 import { AuthProvider } from '@/context/AuthProvider';
@@ -71,6 +70,8 @@ function AppBackground({
 
 function AppStack({ isDark, router }: { isDark: boolean; router: ReturnType<typeof useRouter> }) {
   const theme = getAppTheme(isDark ? 'dark' : 'light');
+  const goToProducts = useCallback(() => router.replace('/products'), [router]);
+  const goToCameras = useCallback(() => router.replace('/cameras'), [router]);
   return (
     <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -87,9 +88,7 @@ function AppStack({ isDark, router }: { isDark: boolean; router: ReturnType<type
         name="account"
         options={{
           title: 'Account',
-          headerLeft: (props) => (
-            <HeaderBackButton {...props} onPress={() => router.replace('/products')} />
-          ),
+          headerLeft: (props) => <HeaderBackButton {...props} onPress={goToProducts} />,
         }}
       />
       <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
@@ -106,18 +105,14 @@ function AppStack({ isDark, router }: { isDark: boolean; router: ReturnType<type
         name="cameras/add"
         options={{
           title: 'Add Camera',
-          headerLeft: (props) => (
-            <HeaderBackButton {...props} onPress={() => router.replace('/cameras')} />
-          ),
+          headerLeft: (props) => <HeaderBackButton {...props} onPress={goToCameras} />,
         }}
       />
       <Stack.Screen
         name="cameras/[id]"
         options={{
           title: 'Camera',
-          headerLeft: (props) => (
-            <HeaderBackButton {...props} onPress={() => router.replace('/cameras')} />
-          ),
+          headerLeft: (props) => <HeaderBackButton {...props} onPress={goToCameras} />,
         }}
       />
     </Stack>

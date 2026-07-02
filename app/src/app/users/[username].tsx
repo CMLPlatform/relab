@@ -1,9 +1,10 @@
-import { HeaderBackButton } from '@react-navigation/elements';
 import { useQuery } from '@tanstack/react-query';
 import { Stack, useGlobalSearchParams, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Icon } from 'react-native-paper';
 
+import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { Text } from '@/components/base/Text';
 import { useAuth } from '@/context/auth';
 import { getPublicProfile } from '@/services/api/profiles';
@@ -33,19 +34,20 @@ export default function UserProfileScreen() {
   const loading = Boolean(usernameValue) && isPending;
   const error =
     queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null;
+  const errorMessage =
+    error === 'Profile not found' ? 'This profile is private or does not exist.' : error;
+  const goToProducts = useCallback(() => router.replace('/products'), [router]);
 
   return (
     <>
       <Stack.Screen
         options={{
           title: '',
-          headerLeft: (props) => (
-            <HeaderBackButton {...props} onPress={() => router.replace('/products')} />
-          ),
+          headerLeft: (props) => <HeaderBackButton {...props} onPress={goToProducts} />,
         }}
       />
       <ScrollView contentContainerStyle={styles.container}>
-        {loading && (
+        {loading ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator
               testID="activity-indicator"
@@ -53,18 +55,16 @@ export default function UserProfileScreen() {
               color={theme.colors.primary}
             />
           </View>
-        )}
+        ) : null}
 
-        {error && (
+        {error ? (
           <View style={styles.centerContainer}>
             <Icon source="account-cancel-outline" size={48} color={theme.colors.error} />
-            <Text style={{ ...styles.errorText, color: theme.colors.error }}>
-              {error === 'Profile not found' ? 'This profile is private or does not exist.' : error}
-            </Text>
+            <Text style={{ ...styles.errorText, color: theme.colors.error }}>{errorMessage}</Text>
           </View>
-        )}
+        ) : null}
 
-        {!(loading || error) && profile && (
+        {!(loading || error) && profile ? (
           <View style={styles.profileContainer}>
             <View style={styles.heroSection}>
               <View
@@ -124,7 +124,7 @@ export default function UserProfileScreen() {
               </Card>
             </View>
           </View>
-        )}
+        ) : null}
       </ScrollView>
     </>
   );
