@@ -2,13 +2,13 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Button, HelperText, Text, TextInput } from 'react-native-paper';
-import { getSafeRedirectTarget, routeAuthenticatedUser } from '@/hooks/auth/useLoginRedirect';
-import { getUser } from '@/services/api/authentication';
+import { getSafeRedirectTarget, routeAuthenticatedUser } from '@/features/auth/useLoginRedirect';
+import { getUser } from '@/services/api/auth/authentication';
 import {
   clearPendingMfaLogin,
   completeMfaChallenge,
   getPendingMfaLogin,
-} from '@/services/api/authMfa';
+} from '@/services/api/auth/authMfa';
 
 function normalizeTotpCode(value: string): string {
   return value.replace(/\D/g, '').slice(0, 6);

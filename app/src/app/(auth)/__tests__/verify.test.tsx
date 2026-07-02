@@ -4,12 +4,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { HttpResponse, http } from 'msw';
 import { Platform } from 'react-native';
 import { API_URL } from '@/config';
-import { getToken, getUser } from '@/services/api/authentication';
+import { getToken, getUser } from '@/services/api/auth/authentication';
 import { renderWithProviders } from '@/test-utils/index';
 import { server } from '@/test-utils/server';
 import VerifyEmailScreen from '../verify';
 
-jest.mock('@/services/api/authentication', () => ({
+jest.mock('@/services/api/auth/authentication', () => ({
   getToken: jest.fn(),
   getUser: jest.fn(),
   hasWebSessionFlag: jest.fn().mockReturnValue(false),

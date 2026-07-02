@@ -2,7 +2,7 @@ import { type ReactNode, useCallback, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import { useAuth } from '@/context/auth';
 import { ThemeModeContext, type ThemeModeContextValue } from '@/context/themeMode';
-import { updateUser } from '@/services/api/authentication';
+import { updateUser } from '@/services/api/auth/authentication';
 import type { ThemeMode } from '@/types/User';
 
 export function ThemeModeProvider({ children }: { children: ReactNode }) {

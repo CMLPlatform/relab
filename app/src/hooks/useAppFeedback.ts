@@ -1,4 +1,4 @@
-import { useOptionalDialog } from '@/components/common/dialogContext';
+import { useOptionalDialog } from '@/components/base/dialogContext';
 
 export function useAppFeedback() {
   const dialog = useOptionalDialog();

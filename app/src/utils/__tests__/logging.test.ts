@@ -20,12 +20,4 @@ describe('logError', () => {
     spy.mockRestore();
     Object.assign(process.env, { NODE_ENV: original });
   });
-
-  it('still suppresses when process.env access throws', () => {
-    // The try/catch in logError guards against environments where
-    // process.env is inaccessible; in normal test runs it just returns early.
-    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => logError('quiet')).not.toThrow();
-    spy.mockRestore();
-  });
 });

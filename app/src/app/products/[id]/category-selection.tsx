@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator, HelperText, Icon, Searchbar } from 'react-native-paper';
 
-import CPVCard from '@/components/common/CPVCard';
+import CPVCard from '@/components/product/CPVCard';
 import { useAuth } from '@/context/auth';
 import { loadCPV } from '@/services/cpv';
 import { useAppTheme } from '@/theme';

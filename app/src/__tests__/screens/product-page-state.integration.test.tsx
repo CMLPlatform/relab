@@ -5,9 +5,9 @@ import type { ReactElement, ReactNode } from 'react';
 import type { Text as RNText } from 'react-native';
 import ProductPage from '@/app/products/[id]';
 import { ProductDetailScreen } from '@/components/product/detail/ProductDetailScreen';
-import { useBaseProductQuery } from '@/hooks/products/queries';
-import { useAncestorTrail } from '@/hooks/products/useAncestorTrail';
-import { useProductForm } from '@/hooks/products/useProductForm';
+import { useBaseProductQuery } from '@/features/products/queries';
+import { useAncestorTrail } from '@/features/products/useAncestorTrail';
+import { useProductForm } from '@/features/products/useProductForm';
 import { ProductNotFoundError } from '@/services/api/products';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 
@@ -59,16 +59,16 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/hooks/products/useProductForm', () => ({
+jest.mock('@/features/products/useProductForm', () => ({
   useProductForm: jest.fn(),
 }));
 
-jest.mock('@/hooks/products/queries', () => ({
+jest.mock('@/features/products/queries', () => ({
   useBaseProductQuery: jest.fn(),
   useComponentQuery: jest.fn(),
 }));
 
-jest.mock('@/hooks/products/useAncestorTrail', () => ({
+jest.mock('@/features/products/useAncestorTrail', () => ({
   useAncestorTrail: jest.fn(),
 }));
 
@@ -146,10 +146,10 @@ jest.mock('react-native-paper', () => {
   };
 });
 
-jest.mock('@/components/product/ProductCircularityProperties', () =>
+jest.mock('@/components/product/detail/ProductCircularityProperties', () =>
   mockCreateSectionStub('ProductCircularityProperties'),
 );
-jest.mock('@/components/product/ProductComponents', () =>
+jest.mock('@/components/product/detail/ProductComponents', () =>
   mockCreateSectionStub('ProductComponents'),
 );
 jest.mock('@/components/product/ProductDelete', () => mockCreateSectionStub('ProductDelete'));
@@ -168,7 +168,7 @@ jest.mock('@/components/product/ProductDescription', () => {
 jest.mock('@/components/product/ProductImageGallery', () =>
   mockCreateSectionStub('ProductImageGallery'),
 );
-jest.mock('@/components/product/ProductMetaData', () => {
+jest.mock('@/components/product/detail/ProductMetaData', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
     Text: typeof RNText;
@@ -180,11 +180,11 @@ jest.mock('@/components/product/ProductMetaData', () => {
 
   return ProductMetaDataMock;
 });
-jest.mock('@/components/product/ProductPhysicalProperties', () =>
+jest.mock('@/components/product/detail/ProductPhysicalProperties', () =>
   mockCreateSectionStub('ProductPhysicalProperties'),
 );
-jest.mock('@/components/product/ProductTags', () => mockCreateSectionStub('ProductTags'));
-jest.mock('@/components/product/ProductType', () => mockCreateSectionStub('ProductType'));
+jest.mock('@/components/product/detail/ProductTags', () => mockCreateSectionStub('ProductTags'));
+jest.mock('@/components/product/detail/ProductType', () => mockCreateSectionStub('ProductType'));
 jest.mock('@/components/product/ProductVideo', () => mockCreateSectionStub('ProductVideo'));
 
 describe('ProductPage state handling', () => {

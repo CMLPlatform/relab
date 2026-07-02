@@ -10,11 +10,11 @@ function shouldShowOverlay(pathname: string) {
   return !NO_OVERLAY_PATHS.some((path) => pathname.includes(path));
 }
 
-function useLazyAnimatedBackground(showBackground: boolean) {
+function useLazyAnimatedBackground() {
   const [BackgroundComponent, setBackgroundComponent] = useState<ComponentType | null>(null);
 
   useEffect(() => {
-    if (!showBackground || BackgroundComponent) return;
+    if (BackgroundComponent) return;
 
     let isMounted = true;
     loadAnimatedBackground()
@@ -27,7 +27,7 @@ function useLazyAnimatedBackground(showBackground: boolean) {
     return () => {
       isMounted = false;
     };
-  }, [BackgroundComponent, showBackground]);
+  }, [BackgroundComponent]);
 
   return BackgroundComponent;
 }
@@ -38,15 +38,13 @@ export function ensureWebAnimatedPatch() {
 
 export function useAnimatedBackground(isDark: boolean) {
   const pathname = usePathname();
-  const showBackground = true;
   const showOverlay = shouldShowOverlay(pathname);
   const overlayColor = getAppTheme(isDark ? 'dark' : 'light').tokens.overlay.page;
-  const BackgroundComponent = useLazyAnimatedBackground(showBackground);
+  const BackgroundComponent = useLazyAnimatedBackground();
 
   return {
     BackgroundComponent,
     overlayColor,
-    showBackground,
     showOverlay,
   };
 }

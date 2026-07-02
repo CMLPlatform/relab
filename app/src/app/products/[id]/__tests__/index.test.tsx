@@ -73,20 +73,20 @@ function mockCreateSectionStub(label: string) {
 jest.mock('@/components/product/ProductImageGallery', () =>
   mockCreateSectionStub('ProductImageGallery'),
 );
-jest.mock('@/components/product/ProductCircularityProperties', () =>
+jest.mock('@/components/product/detail/ProductCircularityProperties', () =>
   mockCreateSectionStub('ProductCircularityProperties'),
 );
-jest.mock('@/components/product/ProductComponents', () =>
+jest.mock('@/components/product/detail/ProductComponents', () =>
   mockCreateSectionStub('ProductComponents'),
 );
 jest.mock('@/components/product/ProductDelete', () => mockCreateSectionStub('ProductDelete'));
-jest.mock('@/components/product/ProductPhysicalProperties', () =>
+jest.mock('@/components/product/detail/ProductPhysicalProperties', () =>
   mockCreateSectionStub('ProductPhysicalProperties'),
 );
-jest.mock('@/components/product/ProductTags', () => mockCreateSectionStub('ProductTags'));
-jest.mock('@/components/product/ProductType', () => mockCreateSectionStub('ProductType'));
+jest.mock('@/components/product/detail/ProductTags', () => mockCreateSectionStub('ProductTags'));
+jest.mock('@/components/product/detail/ProductType', () => mockCreateSectionStub('ProductType'));
 jest.mock('@/components/product/ProductVideo', () => mockCreateSectionStub('ProductVideo'));
-jest.mock('@/components/product/ProductMetaData', () => {
+jest.mock('@/components/product/detail/ProductMetaData', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
     Text: typeof RNText;

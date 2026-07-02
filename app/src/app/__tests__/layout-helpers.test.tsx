@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook, screen } from '@testing-library/react-native';
 import type { ComponentType } from 'react';
 import { Animated, Platform } from 'react-native';
+import { HeaderRightPill } from '@/components/base/HeaderRightPill';
 import { renderWithProviders } from '@/test-utils/index';
 import { getAppTheme } from '@/theme';
 import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/utils/router/background';
 import { loadAnimatedBackground } from '@/utils/router/backgroundLoader';
-import { HeaderRightPill } from '@/utils/router/HeaderRightPill';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
 
@@ -25,7 +25,7 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/components/common/AnimatedBackground', () => ({
+jest.mock('@/components/base/AnimatedBackground', () => ({
   AnimatedBackground: () => null,
 }));
 
@@ -136,7 +136,6 @@ describe('layout helpers rendering', () => {
       {
         BackgroundComponent: ComponentType | null;
         overlayColor: string;
-        showBackground: boolean;
         showOverlay: boolean;
       },
       { isDark: boolean }
@@ -144,7 +143,6 @@ describe('layout helpers rendering', () => {
       initialProps: { isDark: false },
     });
 
-    expect(result.current.showBackground).toBe(true);
     expect(result.current.showOverlay).toBe(true);
     expect(result.current.overlayColor).toBe('rgba(242,242,242,0.95)');
 

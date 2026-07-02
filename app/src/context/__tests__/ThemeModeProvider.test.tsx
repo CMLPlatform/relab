@@ -6,7 +6,7 @@ jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(),
 }));
 
-jest.mock('@/services/api/authentication', () => ({
+jest.mock('@/services/api/auth/authentication', () => ({
   updateUser: jest.fn().mockResolvedValue({}),
 }));
 
@@ -14,7 +14,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import { useAuth } from '@/context/auth';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme, useThemeMode } from '@/context/themeMode';
-import { updateUser } from '@/services/api/authentication';
+import { updateUser } from '@/services/api/auth/authentication';
 
 const mockRefetch = jest.fn();
 

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import NewAccount from '@/app/(auth)/new-account';
-import { login, register } from '@/services/api/authentication';
+import { login, register } from '@/services/api/auth/authentication';
 import { renderWithProviders } from '@/test-utils/index';
 import type { User } from '@/types/User';
 
@@ -17,7 +17,7 @@ jest.mock('expo-router', () => ({
   useRouter: jest.fn(),
 }));
 
-jest.mock('@/services/api/authentication', () => ({
+jest.mock('@/services/api/auth/authentication', () => ({
   login: jest.fn(),
   register: jest.fn(),
 }));
@@ -42,9 +42,9 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/components/common/dialogContext', () => {
-  const actual = jest.requireActual<typeof import('@/components/common/dialogContext')>(
-    '@/components/common/dialogContext',
+jest.mock('@/components/base/dialogContext', () => {
+  const actual = jest.requireActual<typeof import('@/components/base/dialogContext')>(
+    '@/components/base/dialogContext',
   );
   return {
     ...actual,

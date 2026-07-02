@@ -3,7 +3,7 @@ import type { ComponentType } from 'react';
 export async function importAnimatedBackgroundModule(): Promise<{
   AnimatedBackground: ComponentType;
 }> {
-  return import('@/components/common/AnimatedBackground');
+  return import('@/components/base/AnimatedBackground');
 }
 
 export async function loadAnimatedBackground(

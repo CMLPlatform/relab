@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { renderHook } from '@testing-library/react-native';
-import { useOptionalDialog } from '@/components/common/dialogContext';
+import { useOptionalDialog } from '@/components/base/dialogContext';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 
-jest.mock('@/components/common/dialogContext', () => {
-  const actual = jest.requireActual<typeof import('@/components/common/dialogContext')>(
-    '@/components/common/dialogContext',
+jest.mock('@/components/base/dialogContext', () => {
+  const actual = jest.requireActual<typeof import('@/components/base/dialogContext')>(
+    '@/components/base/dialogContext',
   );
   return {
     ...actual,
