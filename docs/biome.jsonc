@@ -29,7 +29,6 @@
       "correctness": {
         "noNodejsModules": "off"
       },
-      "style": "on",
       "suspicious": "on"
     }
   },

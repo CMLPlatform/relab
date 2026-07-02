@@ -10,7 +10,6 @@
       "correctness": {
         "noUnresolvedImports": "off"
       },
-      "style": "on",
       "suspicious": "on"
     }
   },
