@@ -1,97 +1,23 @@
-import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator, HelperText, Icon, Searchbar } from 'react-native-paper';
 
 import CPVCard from '@/components/product/CPVCard';
-import { useAuth } from '@/context/auth';
-import { loadCPV } from '@/services/cpv';
+import { useCategorySelection } from '@/features/products/useCategorySelection';
 import { useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
 
-type searchParams = {
-  id: string;
-};
-
 export default function CategorySelection() {
-  // Hooks
-  const router = useRouter();
-  const navigation = useNavigation();
-  const { user } = useAuth();
-  const { id } = useLocalSearchParams<searchParams>();
-
-  // States
-  // No local `isAuthorized` state; rely on `user` from context.
-  const [cpv, setCpv] = useState<Record<string, CPVCategory> | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [cpvClass, setCpvClass] = useState<CPVCategory | null>(null);
-  const [history, setHistory] = useState<CPVCategory[]>([]);
-
-  useEffect(() => {
-    if (!user) {
-      router.replace({ pathname: '/login', params: { redirectTo: `/products/${id}` } });
-    }
-  }, [user, id, router]);
-
-  useEffect(() => {
-    navigation.setOptions({
-      headerLeft: (props: HeaderBackButtonProps) => (
-        <HeaderBackButton
-          {...props}
-          onPress={() => router.replace({ pathname: '/products/[id]', params: { id } })}
-        />
-      ),
-    });
-  }, [navigation, router, id]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    loadCPV()
-      .then((data) => {
-        if (!isMounted) return;
-        setCpv(data);
-        setCpvClass(data.root);
-        setHistory([data.root]);
-      })
-      .catch(() => {});
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Callbacks
-  const selectedBranch = (item: CPVCategory) => {
-    setHistory((h) => [...h, item]);
-    setCpvClass(item);
-  };
-
-  const moveUp = () => {
-    setHistory((h) => {
-      const newHistory = h.slice(0, -1);
-      setCpvClass(newHistory[newHistory.length - 1]);
-      return newHistory;
-    });
-  };
-
-  const typeSelected = (selectedTypeID: number) => {
-    const params = { id: id, typeSelection: selectedTypeID };
-    router.dismissTo({ pathname: '/products/[id]', params: params });
-  };
-
-  // Methods
-  const filtered = useMemo((): CPVCategory[] => {
-    if (!(cpv && cpvClass)) return [];
-    if (!searchQuery) return cpvClass.directChildren.map((id) => cpv[id]);
-    const unfiltered = cpvClass.allChildren.map((id) => cpv[id]);
-    return unfiltered.filter(
-      (item) =>
-        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-  }, [cpv, searchQuery, cpvClass]);
+  const {
+    user,
+    cpvClass,
+    history,
+    filtered,
+    searchQuery,
+    setSearchQuery,
+    selectBranch,
+    moveUp,
+    selectType,
+  } = useCategorySelection();
 
   if (!user) return null;
   if (!cpvClass) {
@@ -102,7 +28,6 @@ export default function CategorySelection() {
     );
   }
 
-  // Render
   return (
     <View style={{ flex: 1 }}>
       <Searchbar
@@ -128,10 +53,8 @@ export default function CategorySelection() {
           <View>
             <CPVCard
               CPV={item}
-              onPress={() => {
-                typeSelected(item.id);
-              }}
-              actionElement={<CPVLink CPV={item} onPress={() => selectedBranch(item)} />}
+              onPress={() => selectType(item.id)}
+              actionElement={<CPVLink CPV={item} onPress={() => selectBranch(item)} />}
             />
           </View>
         )}
