@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
@@ -13,6 +13,51 @@ export default function ResetPasswordScreen() {
   const { control, fieldError, isValid, isSubmitting, success, error, submit } =
     useResetPassword(token);
   const [showPassword, setShowPassword] = useState(false);
+  const toggleShowPassword = useCallback(() => setShowPassword((s) => !s), []);
+  const goToLogin = useCallback(() => router.push('/login'), [router]);
+  const renderPassword = useCallback(
+    ({
+      field: { onChange, value },
+    }: {
+      field: { onChange: (text: string) => void; value: string };
+    }) => (
+      <TextInput
+        label="New Password"
+        testID="password-input"
+        value={value}
+        onChangeText={onChange}
+        secureTextEntry={!showPassword}
+        autoCapitalize="none"
+        autoComplete="password-new"
+        textContentType="newPassword"
+        disabled={isSubmitting}
+        right={
+          <TextInput.Icon icon={showPassword ? 'eye-off' : 'eye'} onPress={toggleShowPassword} />
+        }
+      />
+    ),
+    [showPassword, isSubmitting, toggleShowPassword],
+  );
+  const renderConfirmPassword = useCallback(
+    ({
+      field: { onChange, value },
+    }: {
+      field: { onChange: (text: string) => void; value: string };
+    }) => (
+      <TextInput
+        label="Confirm New Password"
+        testID="confirm-password-input"
+        value={value}
+        onChangeText={onChange}
+        secureTextEntry={!showPassword}
+        autoCapitalize="none"
+        autoComplete="password-new"
+        textContentType="newPassword"
+        disabled={isSubmitting}
+      />
+    ),
+    [showPassword, isSubmitting],
+  );
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
@@ -29,53 +74,15 @@ export default function ResetPasswordScreen() {
             </View>
           ) : (
             <>
-              <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    label="New Password"
-                    testID="password-input"
-                    value={value}
-                    onChangeText={onChange}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    autoComplete="password-new"
-                    textContentType="newPassword"
-                    disabled={isSubmitting}
-                    right={
-                      <TextInput.Icon
-                        icon={showPassword ? 'eye-off' : 'eye'}
-                        onPress={() => setShowPassword(!showPassword)}
-                      />
-                    }
-                  />
-                )}
-              />
+              <Controller control={control} name="password" render={renderPassword} />
 
-              <Controller
-                control={control}
-                name="confirmPassword"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    label="Confirm New Password"
-                    testID="confirm-password-input"
-                    value={value}
-                    onChangeText={onChange}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    autoComplete="password-new"
-                    textContentType="newPassword"
-                    disabled={isSubmitting}
-                  />
-                )}
-              />
+              <Controller control={control} name="confirmPassword" render={renderConfirmPassword} />
 
-              {(error || fieldError) && (
+              {error || fieldError ? (
                 <HelperText type="error" visible>
                   {error ?? fieldError}
                 </HelperText>
-              )}
+              ) : null}
 
               <Button
                 mode="contained"
@@ -89,7 +96,7 @@ export default function ResetPasswordScreen() {
               <View
                 style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}
               >
-                <Button mode="text" onPress={() => router.push('/login')}>
+                <Button mode="text" onPress={goToLogin}>
                   Back to Login
                 </Button>
               </View>

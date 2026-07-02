@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/base/Text';
 import { useStreamSession } from '@/context/streamSession';
@@ -12,6 +12,8 @@ export function ActiveStreamBanner() {
   const { activeStream } = useStreamSession();
   const elapsed = useElapsed(activeStream?.startedAt ?? null);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const openSheet = useCallback(() => setSheetVisible(true), []);
+  const closeSheet = useCallback(() => setSheetVisible(false), []);
 
   if (!activeStream) return null;
 
@@ -31,7 +33,7 @@ export function ActiveStreamBanner() {
                 : { shadowColor: theme.tokens.status.live }),
             },
           ]}
-          onPress={() => setSheetVisible(true)}
+          onPress={openSheet}
           accessibilityRole="button"
           accessibilityLabel="Manage live stream"
         >
@@ -43,11 +45,7 @@ export function ActiveStreamBanner() {
         </Pressable>
       </View>
 
-      <StreamingSheet
-        visible={sheetVisible}
-        onDismiss={() => setSheetVisible(false)}
-        session={activeStream}
-      />
+      <StreamingSheet visible={sheetVisible} onDismiss={closeSheet} session={activeStream} />
     </>
   );
 }

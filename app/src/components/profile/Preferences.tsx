@@ -1,9 +1,14 @@
+import { useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { Icon, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import { createProfileSectionStyles } from '@/components/profile/styles';
 import { useAppTheme } from '@/theme';
 import type { ThemeMode, User } from '@/types/User';
+
+type ProfileSectionStyles = ReturnType<typeof createProfileSectionStyles>;
+type VisibilityId = 'public' | 'community' | 'private';
+
 import { ProfileSectionHeader } from './shared';
 
 type ProfileAppearanceSectionProps = {
@@ -28,17 +33,15 @@ export function ProfileAppearanceSection({
               { mode: 'dark', icon: 'moon-waning-crescent', label: 'Dark' },
             ] as const
           ).map(({ mode, icon, label }) => (
-            <Pressable
+            <ThemeModeOption
               key={mode}
-              style={[styles.themeModeOption, themeMode === mode && styles.themeModeOptionActive]}
-              onPress={() => onSetThemeMode(mode)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: themeMode === mode }}
-              accessibilityLabel={`${label} theme`}
-            >
-              <Icon source={icon} size={22} />
-              <Text style={styles.themeModeLabel}>{label}</Text>
-            </Pressable>
+              mode={mode}
+              icon={icon}
+              label={label}
+              active={themeMode === mode}
+              styles={styles}
+              onSetThemeMode={onSetThemeMode}
+            />
           ))}
         </View>
       </View>
@@ -59,6 +62,7 @@ export function ProfileVisibilitySection({
 }: ProfileVisibilitySectionProps) {
   const theme = useAppTheme();
   const styles = createProfileSectionStyles(theme);
+  // biome-ignore lint/suspicious/noUnnecessaryConditions: preferences may be absent at runtime despite the type.
   const activeVisibility = profile.preferences?.profile_visibility || 'public';
 
   return (
@@ -86,35 +90,17 @@ export function ProfileVisibilitySection({
               icon: 'eye-off',
             },
           ] as const
-        ).map((option) => {
-          const isActive = activeVisibility === option.id;
-
-          return (
-            <Pressable
-              key={option.id}
-              style={[styles.visibilityOption, isActive && styles.visibilityOptionActive]}
-              onPress={() => onChangeVisibility(option.id)}
-              disabled={visibilitySaving}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: isActive }}
-            >
-              <View style={styles.visibilityIcon}>
-                <Icon
-                  source={option.icon}
-                  size={24}
-                  color={isActive ? theme.colors.primary : theme.tokens.text.muted}
-                />
-              </View>
-              <View style={styles.actionCopy}>
-                <Text style={[styles.actionTitle, isActive && { color: theme.colors.primary }]}>
-                  {option.title}
-                </Text>
-                <Text style={styles.actionSubtitle}>{option.subtitle}</Text>
-              </View>
-              {isActive ? <Icon source="check" size={20} color={theme.colors.primary} /> : null}
-            </Pressable>
-          );
-        })}
+        ).map((option) => (
+          <VisibilityOption
+            key={option.id}
+            option={option}
+            isActive={activeVisibility === option.id}
+            saving={visibilitySaving}
+            theme={theme}
+            styles={styles}
+            onChangeVisibility={onChangeVisibility}
+          />
+        ))}
       </View>
     </>
   );
@@ -152,5 +138,82 @@ export function ProfileEmailUpdatesSection({
         </View>
       </View>
     </>
+  );
+}
+
+function ThemeModeOption({
+  mode,
+  icon,
+  label,
+  active,
+  styles,
+  onSetThemeMode,
+}: {
+  mode: ThemeMode;
+  icon: string;
+  label: string;
+  active: boolean;
+  styles: ProfileSectionStyles;
+  onSetThemeMode: (mode: ThemeMode) => void;
+}) {
+  const handlePress = useCallback(() => onSetThemeMode(mode), [onSetThemeMode, mode]);
+
+  return (
+    <Pressable
+      style={[styles.themeModeOption, active && styles.themeModeOptionActive]}
+      onPress={handlePress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={`${label} theme`}
+    >
+      <Icon source={icon} size={22} />
+      <Text style={styles.themeModeLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function VisibilityOption({
+  option,
+  isActive,
+  saving,
+  theme,
+  styles,
+  onChangeVisibility,
+}: {
+  option: { id: VisibilityId; title: string; subtitle: string; icon: string };
+  isActive: boolean;
+  saving: boolean;
+  theme: ReturnType<typeof useAppTheme>;
+  styles: ProfileSectionStyles;
+  onChangeVisibility: (visibility: VisibilityId) => void;
+}) {
+  const handlePress = useCallback(
+    () => onChangeVisibility(option.id),
+    [onChangeVisibility, option.id],
+  );
+
+  return (
+    <Pressable
+      style={[styles.visibilityOption, isActive && styles.visibilityOptionActive]}
+      onPress={handlePress}
+      disabled={saving}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: isActive }}
+    >
+      <View style={styles.visibilityIcon}>
+        <Icon
+          source={option.icon}
+          size={24}
+          color={isActive ? theme.colors.primary : theme.tokens.text.muted}
+        />
+      </View>
+      <View style={styles.actionCopy}>
+        <Text style={[styles.actionTitle, isActive && { color: theme.colors.primary }]}>
+          {option.title}
+        </Text>
+        <Text style={styles.actionSubtitle}>{option.subtitle}</Text>
+      </View>
+      {isActive ? <Icon source="check" size={20} color={theme.colors.primary} /> : null}
+    </Pressable>
   );
 }

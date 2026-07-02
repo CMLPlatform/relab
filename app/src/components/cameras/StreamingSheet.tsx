@@ -49,7 +49,7 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   sheet: {
     position: getFloatingPosition(),

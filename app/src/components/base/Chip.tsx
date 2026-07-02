@@ -1,5 +1,11 @@
 import type React from 'react';
-import { Pressable, type PressableProps, StyleSheet } from 'react-native';
+import { useCallback } from 'react';
+import {
+  Pressable,
+  type PressableProps,
+  type PressableStateCallbackType,
+  StyleSheet,
+} from 'react-native';
 import { Text } from '@/components/base/Text';
 import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
@@ -14,22 +20,24 @@ interface Props extends PressableProps {
 export const Chip = ({ style, children, title, icon, error, ...props }: Props) => {
   const theme = useAppTheme();
 
+  const resolveStyle = useCallback(
+    (state: PressableStateCallbackType) => {
+      const resolvedStyle = typeof style === 'function' ? style(state) : style;
+      return [
+        styles.container,
+        { backgroundColor: error ? theme.colors.surfaceVariant : theme.colors.primaryContainer },
+        state.pressed && { opacity: 0.5 },
+        resolvedStyle,
+      ];
+    },
+    [style, error, theme],
+  );
+
   return (
-    <Pressable
-      style={(state) => {
-        const resolvedStyle = typeof style === 'function' ? style(state) : style;
-        return [
-          styles.container,
-          { backgroundColor: error ? theme.colors.surfaceVariant : theme.colors.primaryContainer },
-          state.pressed && { opacity: 0.5 },
-          resolvedStyle,
-        ];
-      }}
-      {...props}
-    >
-      {title && (
+    <Pressable style={resolveStyle} {...props}>
+      {title ? (
         <Text style={[styles.titleText, { color: theme.colors.onPrimaryContainer }]}>{title}</Text>
-      )}
+      ) : null}
       <Text
         style={[
           styles.text,
@@ -40,7 +48,7 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
         ]}
       >
         {children}
-        {icon && '   '}
+        {icon ? '   ' : null}
         {icon}
       </Text>
     </Pressable>

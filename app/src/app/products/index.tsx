@@ -1,4 +1,5 @@
-import { useWindowDimensions, View } from 'react-native';
+import { useCallback } from 'react';
+import { type LayoutChangeEvent, useWindowDimensions, View } from 'react-native';
 import {
   ProductsErrorBanner,
   ProductsFab,
@@ -32,15 +33,16 @@ export default function Products() {
     await actions.dismissWelcomeCard();
     actions.goToProfile();
   };
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) =>
+      list.setHeaderBottom(event.nativeEvent.layout.y + event.nativeEvent.layout.height),
+    [list],
+  );
+  const handleRetry = useCallback(() => list.refetch(), [list]);
 
   return (
     <>
-      <View
-        style={{ padding: 10, gap: 10 }}
-        onLayout={(event) =>
-          list.setHeaderBottom(event.nativeEvent.layout.y + event.nativeEvent.layout.height)
-        }
-      >
+      <View style={{ padding: 10, gap: 10 }} onLayout={handleLayout}>
         <ProductsWelcomeCard
           visible={screen.showWelcomeCard}
           isAuthenticated={screen.isAuthenticated}
@@ -93,7 +95,7 @@ export default function Products() {
           onClearTypes={filters.clearTypes}
         />
 
-        <ProductsErrorBanner error={list.error} onRetry={() => list.refetch()} />
+        <ProductsErrorBanner error={list.error} onRetry={handleRetry} />
       </View>
 
       <View style={{ flex: 1 }}>
@@ -111,7 +113,7 @@ export default function Products() {
           searchQuery={search.query}
           isAuthenticated={screen.isAuthenticated}
           onScroll={list.onScroll}
-          onRefresh={() => list.refetch()}
+          onRefresh={handleRetry}
           onSetPage={list.setPage}
         />
       </View>

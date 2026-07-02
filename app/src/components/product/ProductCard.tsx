@@ -61,6 +61,8 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
     router.push(getProfileHref(product.ownerUsername));
   }, [product.ownerUsername, router]);
 
+  const handleImageError = useCallback(() => setHadError(true), []);
+
   return (
     <Card elevation={2} onPress={enabled ? navigateToProduct : undefined} style={styles.card}>
       <View style={styles.row}>
@@ -71,7 +73,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                 source={{ uri: product.thumbnailUrl }}
                 style={styles.thumbnailImage}
                 contentFit="cover"
-                onError={() => setHadError(true)}
+                onError={handleImageError}
                 testID="product-thumbnail"
               />
             </View>
@@ -91,17 +93,17 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
           <MutedText style={styles.description} numberOfLines={1} ellipsizeMode="tail">
             {product.description}
           </MutedText>
-          {hasMetadata && (
+          {hasMetadata ? (
             <View style={styles.metadataRow}>
-              {createdAgo && (
+              {createdAgo ? (
                 <View style={styles.metadataItem}>
                   <Icon source="clock-outline" size={12} color={theme.colors.outline} />
                   <Text style={[styles.metadataText, { color: theme.colors.outline }]}>
                     {createdAgo}
                   </Text>
                 </View>
-              )}
-              {ownerLabel && (
+              ) : null}
+              {ownerLabel ? (
                 <View style={styles.metadataItem}>
                   <Icon source="account-outline" size={12} color={theme.colors.outline} />
                   <Text
@@ -112,9 +114,9 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                     {ownerLabel}
                   </Text>
                 </View>
-              )}
+              ) : null}
             </View>
-          )}
+          ) : null}
         </View>
       </View>
     </Card>

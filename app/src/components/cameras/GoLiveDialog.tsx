@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Dialog, Portal, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera';
@@ -32,6 +33,11 @@ export function GoLiveDialog({
   onSecondary,
   showSpacer = false,
 }: GoLiveDialogProps) {
+  const handleValueChange = useCallback(
+    (value: string) => onChangePrivacy(value as YouTubePrivacyStatus),
+    [onChangePrivacy],
+  );
+
   return (
     <Portal>
       <Dialog visible={visible} onDismiss={onDismiss}>
@@ -49,7 +55,7 @@ export function GoLiveDialog({
           </Text>
           <SegmentedButtons
             value={privacy}
-            onValueChange={(value) => onChangePrivacy(value as YouTubePrivacyStatus)}
+            onValueChange={handleValueChange}
             buttons={[
               { value: 'private', label: 'Private', icon: 'lock' },
               { value: 'unlisted', label: 'Unlisted', icon: 'eye-off' },

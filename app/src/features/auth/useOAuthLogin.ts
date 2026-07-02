@@ -174,7 +174,7 @@ async function startOAuthLogin({
 
     const result = await openOAuthBrowserSession(authorization.authorizationUrl, redirectUri);
 
-    if (!result || result.type !== 'success' || !result.url) return;
+    if (result?.type !== 'success' || !result.url) return;
 
     if (!isExpectedOAuthCallbackUrl(result.url, redirectUri)) {
       throw new Error('Unexpected OAuth callback URL received. Please try again.');

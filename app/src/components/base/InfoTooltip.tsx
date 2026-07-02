@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { type JSX, useEffect, useState } from 'react';
+import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text, Tooltip } from 'react-native-paper';
 import { OverlaySurface } from '@/components/base/OverlaySurface';
@@ -16,6 +16,8 @@ const getIsMobileWeb = () =>
 export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   const theme = useAppTheme();
   const [visible, setVisible] = useState(false);
+  const show = useCallback(() => setVisible(true), []);
+  const hide = useCallback(() => setVisible(false), []);
   const tooltipShadowStyle = {
     boxShadow: `0px 2px 4px ${alpha(theme.colors.shadow, 0.25)}`,
   };
@@ -34,7 +36,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
     return (
       <View>
         <Pressable
-          onPress={() => setVisible(true)}
+          onPress={show}
           style={styles.iconContainer}
           testID="info-pressable"
           accessibilityRole="button"
@@ -48,15 +50,10 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           />
         </Pressable>
 
-        <Modal
-          visible={visible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setVisible(false)}
-        >
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={hide}>
           <Pressable
             style={[styles.overlay, { backgroundColor: theme.tokens.overlay.scrim }]}
-            onPress={() => setVisible(false)}
+            onPress={hide}
           >
             <OverlaySurface
               style={[

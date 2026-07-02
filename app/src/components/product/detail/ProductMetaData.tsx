@@ -20,16 +20,16 @@ export default function ProductMetaData({ product }: Props) {
       />
 
       <View style={{ gap: 8, marginBottom: 8 }}>
-        {product.createdAt && (
+        {product.createdAt ? (
           <Text style={{ opacity: 0.7 }}>
             Created: {new Date(product.createdAt).toLocaleDateString()}
           </Text>
-        )}
-        {product.updatedAt && (
+        ) : null}
+        {product.updatedAt ? (
           <Text style={{ opacity: 0.7 }}>
             Last Updated: {new Date(product.updatedAt).toLocaleDateString()}
           </Text>
-        )}
+        ) : null}
         <Text style={{ opacity: 0.7 }}>
           Owner:{' '}
           {product.ownerUsername ? (

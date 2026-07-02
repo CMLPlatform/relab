@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { View } from 'react-native';
 import { Divider } from 'react-native-paper';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
@@ -31,10 +32,13 @@ export default function ProductPhysicalProperties({
   onChangePhysicalProperties,
 }: Props) {
   // Callbacks
-  const onChangeProperty = (key: string, value: number | undefined) => {
-    const newProperties = { ...product.physicalProperties, [key]: value };
-    onChangePhysicalProperties?.(newProperties);
-  };
+  const onChangeProperty = useCallback(
+    (key: string, value: number | undefined) => {
+      const newProperties = { ...product.physicalProperties, [key]: value };
+      onChangePhysicalProperties?.(newProperties);
+    },
+    [product.physicalProperties, onChangePhysicalProperties],
+  );
 
   // Render
   return (
@@ -50,19 +54,46 @@ export default function ProductPhysicalProperties({
         depth={product.physicalProperties.depth}
       />
       {Object.keys(product.physicalProperties).map((prop) => (
-        <View key={prop}>
-          <Divider />
-          <LocalizedFloatInput
-            label={nameMap[prop as keyof PhysicalProperties]}
-            value={product.physicalProperties[prop as keyof PhysicalProperties]}
-            unit={unitMap[prop as keyof PhysicalProperties]}
-            editable={editMode}
-            onChange={(value: number | undefined) => onChangeProperty(prop, value)}
-            min={0}
-            placeholder="> 0"
-          />
-        </View>
+        <PhysicalPropertyRow
+          key={prop}
+          propKey={prop as keyof PhysicalProperties}
+          product={product}
+          editMode={editMode}
+          onChangeProperty={onChangeProperty}
+        />
       ))}
+    </View>
+  );
+}
+
+function PhysicalPropertyRow({
+  propKey,
+  product,
+  editMode,
+  onChangeProperty,
+}: {
+  propKey: keyof PhysicalProperties;
+  product: Product;
+  editMode: boolean;
+  onChangeProperty: (key: string, value: number | undefined) => void;
+}) {
+  const handleChange = useCallback(
+    (value: number | undefined) => onChangeProperty(propKey, value),
+    [onChangeProperty, propKey],
+  );
+
+  return (
+    <View>
+      <Divider />
+      <LocalizedFloatInput
+        label={nameMap[propKey]}
+        value={product.physicalProperties[propKey]}
+        unit={unitMap[propKey]}
+        editable={editMode}
+        onChange={handleChange}
+        min={0}
+        placeholder="> 0"
+      />
     </View>
   );
 }

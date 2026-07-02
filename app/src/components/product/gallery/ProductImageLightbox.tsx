@@ -1,4 +1,14 @@
-import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
+import {
+  type Dispatch,
+  memo,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Dimensions,
   type GestureResponderEvent,
@@ -15,10 +25,12 @@ import ZoomableImage from '@/components/base/ZoomableImage';
 import {
   GalleryFlatList,
   getTouchPointX,
+  indexKeyExtractor,
+  makeHorizontalItemLayout,
   type ScrollableListHandle,
   type ScrollEvent,
 } from '@/components/product/gallery/shared';
-import { useAppTheme } from '@/theme';
+import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
 // spell-checker: ignore Zoomable
 
@@ -180,6 +192,28 @@ export function ProductImageLightbox({
     [isTouchWeb, isZoomed, navigateBy, screenWidth],
   );
 
+  const setScrollRef = useCallback((instance: ScrollableListHandle | null) => {
+    scrollRef.current = instance;
+  }, []);
+  const getItemLayout = useMemo(() => makeHorizontalItemLayout(screenWidth), [screenWidth]);
+  const renderItem = useCallback(
+    ({ item }: { item: string }) => (
+      <LightboxSlide
+        uri={item}
+        styles={styles}
+        screenWidth={screenWidth}
+        screenHeight={screenHeight}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        setIsZoomed={setIsZoomed}
+        navigateBy={navigateBy}
+      />
+    ),
+    [styles, screenWidth, screenHeight, handleTouchStart, handleTouchEnd, navigateBy],
+  );
+  const goPrev = useCallback(() => navigateBy(-1), [navigateBy]);
+  const goNext = useCallback(() => navigateBy(1), [navigateBy]);
+
   if (!visible) return null;
 
   return (
@@ -201,9 +235,7 @@ export function ProductImageLightbox({
         </Pressable>
 
         <GalleryFlatList
-          ref={(instance: ScrollableListHandle | null) => {
-            scrollRef.current = instance;
-          }}
+          ref={setScrollRef}
           data={images}
           horizontal
           pagingEnabled
@@ -215,38 +247,19 @@ export function ProductImageLightbox({
           snapToAlignment="center"
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(_, itemIndex: number) => String(itemIndex)}
-          getItemLayout={(_data, itemIndex: number) => ({
-            length: screenWidth,
-            offset: screenWidth * itemIndex,
-            index: itemIndex,
-          })}
+          keyExtractor={indexKeyExtractor}
+          getItemLayout={getItemLayout}
           onScrollBeginDrag={handleScrollBeginDrag}
           onScrollEndDrag={handleScrollEnd}
           onMomentumScrollEnd={handleScrollEnd}
-          renderItem={({ item }: { item: string }) => (
-            <View
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-              style={[styles.slide, { width: screenWidth, height: screenHeight }]}
-            >
-              <ZoomableImage
-                uri={item}
-                setIsZoomed={setIsZoomed}
-                onSwipe={(direction) => {
-                  setIsZoomed(false);
-                  navigateBy(direction);
-                }}
-              />
-            </View>
-          )}
+          renderItem={renderItem}
         />
 
         {images.length > 1 ? (
           <View style={styles.footerWrap}>
             <View style={styles.footerBar}>
               <Pressable
-                onPress={() => navigateBy(-1)}
+                onPress={goPrev}
                 hitSlop={15}
                 style={[styles.navButton, index === 0 && styles.navButtonDisabled]}
                 disabled={index === 0}
@@ -261,7 +274,7 @@ export function ProductImageLightbox({
               </Text>
 
               <Pressable
-                onPress={() => navigateBy(1)}
+                onPress={goNext}
                 hitSlop={15}
                 style={[styles.navButton, index === images.length - 1 && styles.navButtonDisabled]}
                 disabled={index === images.length - 1}
@@ -278,8 +291,46 @@ export function ProductImageLightbox({
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>) {
-  return StyleSheet.create({
+const LightboxSlide = memo(function LightboxSlide({
+  uri,
+  styles,
+  screenWidth,
+  screenHeight,
+  onTouchStart,
+  onTouchEnd,
+  setIsZoomed,
+  navigateBy,
+}: {
+  uri: string;
+  styles: ReturnType<typeof createStyles>;
+  screenWidth: number;
+  screenHeight: number;
+  onTouchStart: (event: GestureResponderEvent) => void;
+  onTouchEnd: (event: GestureResponderEvent) => void;
+  setIsZoomed: Dispatch<SetStateAction<boolean>>;
+  navigateBy: (delta: number, animated?: boolean) => void;
+}) {
+  const handleSwipe = useCallback(
+    (direction: number) => {
+      setIsZoomed(false);
+      navigateBy(direction);
+    },
+    [setIsZoomed, navigateBy],
+  );
+
+  return (
+    <View
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      style={[styles.slide, { width: screenWidth, height: screenHeight }]}
+    >
+      <ZoomableImage uri={uri} setIsZoomed={setIsZoomed} onSwipe={handleSwipe} />
+    </View>
+  );
+});
+
+const createStyles = memoizeByTheme((theme: AppTheme) =>
+  StyleSheet.create({
     root: {
       flex: 1,
       backgroundColor: theme.tokens.overlay.media,
@@ -329,5 +380,5 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       minWidth: 60,
       textAlign: 'center',
     },
-  });
-}
+  }),
+);

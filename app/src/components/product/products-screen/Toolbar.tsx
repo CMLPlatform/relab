@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { View } from 'react-native';
 import { IconButton, Menu, Searchbar } from 'react-native-paper';
 import { productsScreenStyles as styles } from './shared';
@@ -34,14 +35,23 @@ export function ProductsSearchToolbar({
   onSetSortMenuVisible,
   onSortChange,
 }: ProductsSearchToolbarProps) {
+  const handleSearchChange = useCallback(
+    (text: string) => {
+      onSearchChange(text);
+      if (!text) {
+        onClearSearch();
+      }
+    },
+    [onSearchChange, onClearSearch],
+  );
+  const closeSortMenu = useCallback(() => onSetSortMenuVisible(false), [onSetSortMenuVisible]);
+  const openSortMenu = useCallback(() => onSetSortMenuVisible(true), [onSetSortMenuVisible]);
+
   return (
     <View style={styles.searchToolbar}>
       <Searchbar
         placeholder="Search products"
-        onChangeText={(text) => {
-          onSearchChange(text);
-          if (!text) onClearSearch();
-        }}
+        onChangeText={handleSearchChange}
         value={searchQuery}
         icon="magnify"
         clearIcon="close"
@@ -50,12 +60,12 @@ export function ProductsSearchToolbar({
       />
       <Menu
         visible={sortMenuVisible}
-        onDismiss={() => onSetSortMenuVisible(false)}
+        onDismiss={closeSortMenu}
         anchor={
           <IconButton
             icon="sort"
             mode="contained-tonal"
-            onPress={() => onSetSortMenuVisible(true)}
+            onPress={openSortMenu}
             accessibilityLabel="Sort products"
           />
         }
@@ -63,17 +73,40 @@ export function ProductsSearchToolbar({
         {sortOptions
           .filter((option) => searchQueryURL || option.value.length > 0)
           .map((option) => (
-            <Menu.Item
+            <SortMenuItem
               key={option.label}
-              title={option.label}
-              trailingIcon={sortBy.join(',') === option.value.join(',') ? 'check' : undefined}
-              onPress={() => {
-                onSortChange(option.value);
-                onSetSortMenuVisible(false);
-              }}
+              option={option}
+              active={sortBy.join(',') === option.value.join(',')}
+              onSortChange={onSortChange}
+              onCloseMenu={closeSortMenu}
             />
           ))}
       </Menu>
     </View>
+  );
+}
+
+function SortMenuItem({
+  option,
+  active,
+  onSortChange,
+  onCloseMenu,
+}: {
+  option: SortOption;
+  active: boolean;
+  onSortChange: (sort: readonly string[]) => void;
+  onCloseMenu: () => void;
+}) {
+  const handlePress = useCallback(() => {
+    onSortChange(option.value);
+    onCloseMenu();
+  }, [onSortChange, onCloseMenu, option.value]);
+
+  return (
+    <Menu.Item
+      title={option.label}
+      trailingIcon={active ? 'check' : undefined}
+      onPress={handlePress}
+    />
   );
 }

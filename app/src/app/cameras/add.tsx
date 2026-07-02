@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Dialog, Divider, Portal, Text, TextInput } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
@@ -20,16 +20,19 @@ function PairingCodeInput({
   pairingCode: string;
   setPairingCode: (value: string) => void;
 }) {
+  const handleChange = useCallback(
+    (v: string) =>
+      setPairingCode(
+        v.toUpperCase().replace(NON_ALPHANUMERIC_PAIRING_CODE_PATTERN, '').slice(0, 6),
+      ),
+    [setPairingCode],
+  );
   return (
     <TextInput
       mode="outlined"
       label="Pairing code"
       value={pairingCode}
-      onChangeText={(v) =>
-        setPairingCode(
-          v.toUpperCase().replace(NON_ALPHANUMERIC_PAIRING_CODE_PATTERN, '').slice(0, 6),
-        )
-      }
+      onChangeText={handleChange}
       maxLength={6}
       autoCapitalize="characters"
       style={[styles.input, { fontFamily: 'monospace', fontSize: 20 }]}

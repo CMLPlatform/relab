@@ -1,6 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { type JSX, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { type JSX, useCallback, useState } from 'react';
+import {
+  Pressable,
+  type PressableStateCallbackType,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { Chip } from '@/components/base/Chip';
 import { useDialog } from '@/components/base/dialogContext';
 import FilterSelectionModal from '@/components/base/FilterSelectionModal';
@@ -36,6 +42,14 @@ export default function ProductTags({
   const [brandSearch, setBrandSearch] = useState('');
 
   const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(brandSearch);
+
+  const closeBrandModal = useCallback(() => setBrandModalVisible(false), []);
+  const handleBrandSelection = useCallback(
+    (vals: string[]) => {
+      onBrandChange?.(vals.length > 0 ? vals[0] : '');
+    },
+    [onBrandChange],
+  );
 
   const onEditBrand = () => {
     if (!editMode) return;
@@ -86,20 +100,18 @@ export default function ProductTags({
       >
         {product.model ?? 'Unknown'}
       </Chip>
-      {isComponent && (
+      {isComponent ? (
         <AmountChip product={product} editMode={editMode} onAmountChange={onAmountChange} />
-      )}
+      ) : null}
 
       <FilterSelectionModal
         visible={brandModalVisible}
-        onDismiss={() => setBrandModalVisible(false)}
+        onDismiss={closeBrandModal}
         title="Select Brand"
         items={brandResults ?? []}
         isLoading={brandsLoading}
         selectedValues={product.brand ? [product.brand] : []}
-        onSelectionChange={(vals) => {
-          onBrandChange?.(vals.length > 0 ? vals[0] : '');
-        }}
+        onSelectionChange={handleBrandSelection}
         searchQuery={brandSearch}
         onSearchChange={setBrandSearch}
         searchPlaceholder="Search or type a brand…"
@@ -123,25 +135,36 @@ function AmountChip({
   const [draftValue, setDraftValue] = useState<string | null>(null);
   const inputValue = draftValue ?? String(amount);
 
-  const commit = (n: number) => {
-    const clamped = Math.min(Math.max(n, 1), 10000);
-    onAmountChange?.(clamped);
-    setDraftValue(null);
-  };
+  const commit = useCallback(
+    (n: number) => {
+      const clamped = Math.min(Math.max(n, 1), 10000);
+      onAmountChange?.(clamped);
+      setDraftValue(null);
+    },
+    [onAmountChange],
+  );
 
-  const handleTextChange = (text: string) => {
-    const numeric = text.replace(/[^0-9]/g, '');
-    setDraftValue(numeric);
-    if (numeric !== '') commit(parseInt(numeric, 10));
-  };
+  const handleTextChange = useCallback(
+    (text: string) => {
+      const numeric = text.replace(/[^0-9]/g, '');
+      setDraftValue(numeric);
+      if (numeric !== '') {
+        commit(parseInt(numeric, 10));
+      }
+    },
+    [commit],
+  );
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     if (inputValue === '' || inputValue === '0') {
       commit(1);
       return;
     }
     setDraftValue(null);
-  };
+  }, [inputValue, commit]);
+
+  const decrease = useCallback(() => commit(amount - 1), [commit, amount]);
+  const increase = useCallback(() => commit(amount + 1), [commit, amount]);
 
   return (
     <View style={[amountStyles.container, { backgroundColor: colors.primaryContainer }]}>
@@ -151,18 +174,13 @@ function AmountChip({
       </View>
       {editMode ? (
         <View style={[amountStyles.editorRow, { backgroundColor: colors.primary }]}>
-          <Pressable
-            onPress={() => commit(amount - 1)}
+          <StepButton
+            icon="minus"
+            color={colors.onPrimary}
+            onPress={decrease}
             disabled={amount <= 1}
-            style={({ pressed }) => [
-              amountStyles.stepBtn,
-              (pressed || amount <= 1) && { opacity: 0.4 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Decrease amount"
-          >
-            <MaterialCommunityIcons name="minus" size={14} color={colors.onPrimary} />
-          </Pressable>
+            label="Decrease amount"
+          />
           <TextInput
             value={inputValue}
             onChangeText={handleTextChange}
@@ -171,18 +189,13 @@ function AmountChip({
             style={[amountStyles.input, { color: colors.onPrimary }]}
             accessibilityLabel="Amount"
           />
-          <Pressable
-            onPress={() => commit(amount + 1)}
+          <StepButton
+            icon="plus"
+            color={colors.onPrimary}
+            onPress={increase}
             disabled={amount >= 10000}
-            style={({ pressed }) => [
-              amountStyles.stepBtn,
-              (pressed || amount >= 10000) && { opacity: 0.4 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Increase amount"
-          >
-            <MaterialCommunityIcons name="plus" size={14} color={colors.onPrimary} />
-          </Pressable>
+            label="Increase amount"
+          />
         </View>
       ) : (
         <Text
@@ -195,6 +208,40 @@ function AmountChip({
         </Text>
       )}
     </View>
+  );
+}
+
+function StepButton({
+  icon,
+  color,
+  onPress,
+  disabled,
+  label,
+}: {
+  icon: 'minus' | 'plus';
+  color: string;
+  onPress: () => void;
+  disabled: boolean;
+  label: string;
+}) {
+  const style = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      amountStyles.stepBtn,
+      (pressed || disabled) && { opacity: 0.4 },
+    ],
+    [disabled],
+  );
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={style}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <MaterialCommunityIcons name={icon} size={14} color={color} />
+    </Pressable>
   );
 }
 

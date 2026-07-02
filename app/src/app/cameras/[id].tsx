@@ -82,6 +82,7 @@ function CameraDetailContent({
 export default function CameraDetailScreen() {
   const { screen, preview, dialogs, actions } = useCameraDetailScreen();
 
+  // biome-ignore lint/suspicious/noUnnecessaryConditions: user is nullable at runtime (auth context) despite the narrowed type; this guards the render during the login redirect.
   if (!screen.user) return null;
   if (screen.isLoading) return <CenteredSpinner />;
 

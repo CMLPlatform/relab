@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { Button, HelperText, Text, TextInput } from 'react-native-paper';
 import { getSafeRedirectTarget, routeAuthenticatedUser } from '@/features/auth/useLoginRedirect';
@@ -23,6 +23,7 @@ export default function MfaScreen() {
   const [isSubmitting, setSubmitting] = useState(false);
   const canSubmit = Boolean(token) && code.length === 6;
   const visibleError = error ?? (pending ? null : 'MFA session expired. Please log in again.');
+  const handleCodeChange = useCallback((value: string) => setCode(normalizeTotpCode(value)), []);
 
   const submit = async () => {
     if (!token) {
@@ -57,7 +58,7 @@ export default function MfaScreen() {
       <TextInput
         mode="outlined"
         value={code}
-        onChangeText={(value) => setCode(normalizeTotpCode(value))}
+        onChangeText={handleCodeChange}
         keyboardType="number-pad"
         autoComplete="one-time-code"
         textContentType="oneTimeCode"

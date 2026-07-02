@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { type ColorValue, View } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import { Text } from 'react-native-paper';
@@ -26,6 +26,13 @@ export function ProductNameHeader({
   const [draft, setDraft] = useState<string | null>(null);
   const value = draft ?? name;
 
+  const handleBlur = useCallback(() => {
+    const trimmedValue = value.trim();
+    if (trimmedValue !== name) {
+      onProductNameChange?.(trimmedValue);
+    }
+  }, [value, name, onProductNameChange]);
+
   if (!editMode) {
     return (
       <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, fontWeight: '700' }}>
@@ -42,9 +49,7 @@ export function ProductNameHeader({
       <TextInput
         value={value}
         onChangeText={setDraft}
-        onBlur={() => {
-          if (trimmed !== name) onProductNameChange?.(trimmed);
-        }}
+        onBlur={handleBlur}
         placeholder="Product name"
         maxLength={PRODUCT_NAME_MAX_LENGTH}
         style={{

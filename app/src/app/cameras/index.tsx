@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
 import { GoLiveDialog } from '@/components/cameras/GoLiveDialog';
@@ -8,7 +9,9 @@ import { useCamerasScreen } from '@/features/cameras/useCamerasScreen';
 
 export default function CamerasScreen() {
   const { screen, selection, streaming, actions } = useCamerasScreen();
+  const { refetch } = screen;
   const handleStartStream = async () => streaming.handleStartStream();
+  const handleRetry = useCallback(() => refetch(), [refetch]);
 
   if (!screen.user) return null;
   if (screen.isLoading) return <CenteredSpinner />;
@@ -16,7 +19,7 @@ export default function CamerasScreen() {
     return (
       <ErrorState
         message={String(screen.error) || 'Failed to load cameras.'}
-        onRetry={() => screen.refetch()}
+        onRetry={handleRetry}
       />
     );
   }
@@ -38,7 +41,7 @@ export default function CamerasScreen() {
         numColumns={screen.numColumns}
         selectedIds={selection.selectedIds}
         isFetching={screen.isFetching}
-        onRefresh={() => screen.refetch()}
+        onRefresh={handleRetry}
         onCardPress={actions.handleCardTap}
         onCardLongPress={actions.handleCardLongPress}
         onEffectiveConnectionChange={actions.handleEffectiveConnectionChange}

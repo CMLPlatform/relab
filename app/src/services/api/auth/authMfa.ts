@@ -93,6 +93,7 @@ function markMfaWebSessionActive(): void {
 function mapTotpSetup(data: unknown): TotpSetup {
   const payload = data as { setup_token?: unknown; secret?: unknown; otpauth_uri?: unknown };
   if (
+    // biome-ignore lint/suspicious/noUnnecessaryConditions: data is unknown at runtime; guard against a null payload.
     typeof payload?.setup_token !== 'string' ||
     typeof payload.secret !== 'string' ||
     typeof payload.otpauth_uri !== 'string'

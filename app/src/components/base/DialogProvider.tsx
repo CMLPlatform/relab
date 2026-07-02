@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { type GestureResponderEvent, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Button, Snackbar, Text, TextInput } from 'react-native-paper';
 import {
   type DialogButton,
@@ -83,46 +83,69 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
     [inputValue],
   );
 
-  const buttons = options?.buttons ?? [{ text: 'OK' }];
+  const buttons = useMemo(() => options?.buttons ?? [{ text: 'OK' }], [options?.buttons]);
+
+  const stopPropagation = useCallback((e: GestureResponderEvent) => e.stopPropagation(), []);
+  const handleSubmitEditing = useCallback(() => {
+    handleClose(buttons[buttons.length - 1]);
+  }, [handleClose, buttons]);
 
   return (
     <Pressable
       style={{ backgroundColor: theme.colors.surface, ...styles.container }}
-      onPress={(e) => e.stopPropagation()}
+      onPress={stopPropagation}
     >
-      {options?.title && <Text style={styles.title}>{options.title}</Text>}
-      {options?.message && <Text style={styles.message}>{options.message}</Text>}
+      {options?.title ? <Text style={styles.title}>{options.title}</Text> : null}
+      {options?.message ? <Text style={styles.message}>{options.message}</Text> : null}
 
-      {options?.input && (
+      {options?.input ? (
         <TextInput
           value={inputValue}
           onChangeText={setInputValue}
-          onSubmitEditing={() => handleClose(buttons[buttons.length - 1])}
+          onSubmitEditing={handleSubmitEditing}
           placeholder={options.placeholder}
           error={options.error}
           autoFocus
         />
-      )}
+      ) : null}
 
-      {options?.input && options?.helperText && (
+      {options?.input && options?.helperText ? (
         <Text style={[styles.helperText, options.error && { color: theme.colors.error }]}>
           {options.helperText}
         </Text>
-      )}
+      ) : null}
 
       <View style={styles.buttonRow}>
         {buttons.map((btn) => (
-          <Button
+          <DialogActionButton
             key={btn.text}
-            onPress={() => handleClose(btn)}
+            button={btn}
+            onSelect={handleClose}
             disabled={isButtonDisabled(btn)}
-            style={styles.button}
-          >
-            {btn.text}
-          </Button>
+          />
         ))}
       </View>
     </Pressable>
+  );
+}
+
+function DialogActionButton({
+  button,
+  onSelect,
+  disabled,
+}: {
+  button: DialogButton;
+  onSelect: (btn: DialogButton) => void;
+  disabled: boolean;
+}) {
+  const handlePress = useCallback(() => {
+    onSelect(button);
+  }, [onSelect, button]);
+
+  return (
+    <Button onPress={handlePress} disabled={disabled} style={styles.button}>
+      {button.text}
+    </Button>
   );
 }
 

@@ -197,10 +197,10 @@ async function updateProductImages(
   originalImages: Product['images'],
   token: string | undefined,
 ) {
-  const imagesToDelete = originalImages.filter(
-    (img) => !product.images.some((i) => i.id === img.id),
-  );
-  const imagesToAdd = product.images.filter((img) => !img.id);
+  const currentImages = originalImages ?? [];
+  const productImages = product.images ?? [];
+  const imagesToDelete = currentImages.filter((img) => !productImages.some((i) => i.id === img.id));
+  const imagesToAdd = productImages.filter((img) => !img.id);
 
   // Deletes can run in parallel
   await Promise.all(
@@ -317,11 +317,10 @@ async function updateProductVideos(
   if (isComponent(product)) return;
 
   const currentVideos = originalVideos || [];
-  const videosToDelete = currentVideos.filter(
-    (vid) => !product.videos.some((v) => v.id === vid.id),
-  );
-  const videosToAdd = product.videos.filter((vid) => !vid.id);
-  const videosToUpdate = product.videos.filter((vid) => {
+  const productVideos = product.videos ?? [];
+  const videosToDelete = currentVideos.filter((vid) => !productVideos.some((v) => v.id === vid.id));
+  const videosToAdd = productVideos.filter((vid) => !vid.id);
+  const videosToUpdate = productVideos.filter((vid) => {
     const orig = currentVideos.find((v) => v.id === vid.id);
     return (
       orig &&

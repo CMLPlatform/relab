@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
 import { GoLiveDialog } from '@/components/cameras/GoLiveDialog';
 import { useCameraStreamPicker } from '@/features/cameras/youtube/useCameraStreamPicker';
@@ -20,7 +21,8 @@ export function CameraStreamPicker({
     productName,
     onDismiss,
   });
-  const handleStart = async () => actions.handleStartStream();
+  const { handleStartStream } = actions;
+  const handleStart = useCallback(async () => handleStartStream(), [handleStartStream]);
 
   return (
     <>

@@ -54,6 +54,9 @@ function PaginationControls({
   isFetching,
   setPage,
 }: PaginationControlsProps) {
+  const goPrev = useCallback(() => setPage(page - 1), [setPage, page]);
+  const goNext = useCallback(() => setPage(page + 1), [setPage, page]);
+
   if (totalPages <= 1) return null;
 
   const getPageNumbers = (): (number | 'ellipsis-start' | 'ellipsis-end')[] => {
@@ -88,7 +91,7 @@ function PaginationControls({
         <Button
           mode="outlined"
           compact
-          onPress={() => setPage(page - 1)}
+          onPress={goPrev}
           disabled={page <= 1 || isFetching}
           accessibilityLabel="Previous page"
         >
@@ -100,22 +103,19 @@ function PaginationControls({
               …
             </Text>
           ) : (
-            <Button
+            <PageButton
               key={pageValue}
-              mode={pageValue === page ? 'contained' : 'outlined'}
-              compact
-              onPress={() => setPage(pageValue)}
-              disabled={isFetching}
-              accessibilityLabel={`Page ${pageValue}`}
-            >
-              {String(pageValue)}
-            </Button>
+              pageValue={pageValue}
+              currentPage={page}
+              isFetching={isFetching}
+              setPage={setPage}
+            />
           ),
         )}
         <Button
           mode="outlined"
           compact
-          onPress={() => setPage(page + 1)}
+          onPress={goNext}
           disabled={page >= totalPages || isFetching}
           accessibilityLabel="Next page"
         >
@@ -123,6 +123,32 @@ function PaginationControls({
         </Button>
       </View>
     </View>
+  );
+}
+
+function PageButton({
+  pageValue,
+  currentPage,
+  isFetching,
+  setPage,
+}: {
+  pageValue: number;
+  currentPage: number;
+  isFetching: boolean;
+  setPage: (page: number) => void;
+}) {
+  const handlePress = useCallback(() => setPage(pageValue), [setPage, pageValue]);
+
+  return (
+    <Button
+      mode={pageValue === currentPage ? 'contained' : 'outlined'}
+      compact
+      onPress={handlePress}
+      disabled={isFetching}
+      accessibilityLabel={`Page ${pageValue}`}
+    >
+      {String(pageValue)}
+    </Button>
   );
 }
 
@@ -145,6 +171,8 @@ function ProductsListFooter({
   totalPages: number;
   setPage: (page: number) => void;
 }) {
+  const loadMore = useCallback(() => setPage(page + 1), [setPage, page]);
+
   if (isDesktopWeb) {
     return (
       <PaginationControls
@@ -177,7 +205,7 @@ function ProductsListFooter({
       ) : (
         <Button
           mode="outlined"
-          onPress={() => setPage(page + 1)}
+          onPress={loadMore}
           disabled={isFetching}
           accessibilityLabel="Load more products"
         >
@@ -217,6 +245,8 @@ export function ProductsListContent({
     ),
     [numColumns, showOwner],
   );
+  const skeletonKeyExtractor = useCallback((_: unknown, index: number) => `skeleton-${index}`, []);
+  const productKeyExtractor = useCallback((item: Product) => (item.id ?? 'draft').toString(), []);
 
   const listFooter = useMemo(
     () => (
@@ -248,7 +278,7 @@ export function ProductsListContent({
       <View style={styles.listContainer}>
         <FlatList
           data={Array.from({ length: 8 })}
-          keyExtractor={(_, index) => `skeleton-${index}`}
+          keyExtractor={skeletonKeyExtractor}
           renderItem={renderSkeleton}
           scrollEnabled={false}
         />
@@ -274,7 +304,7 @@ export function ProductsListContent({
       refreshControl={<RefreshControl refreshing={isFetching} onRefresh={onRefresh} />}
       data={productList}
       extraData={showOwner}
-      keyExtractor={(item) => (item.id ?? 'draft').toString()}
+      keyExtractor={productKeyExtractor}
       renderItem={renderProduct}
       ListFooterComponent={listFooter}
       ListEmptyComponent={

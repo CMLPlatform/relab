@@ -185,16 +185,16 @@ describe('Fetching API Service logic', () => {
       expect(p.physicalProperties.weight).toBe(100);
       expect(p.physicalProperties.height).toBe(10);
       expect(p.componentIDs).toEqual([1]);
-      expect(p.components).toHaveLength(1);
-      expect(p.components[0]).toMatchObject({
+      expect(p.components ?? []).toHaveLength(1);
+      expect(p.components?.[0]).toMatchObject({
         id: 1,
         name: 'Part A',
         role: 'component',
         parentID: 42,
         amountInParent: 2,
       });
-      expect(p.images[0].description).toBe('Main image');
-      expect(p.videos[0].title).toBe('Demo');
+      expect(p.images?.[0]?.description).toBe('Main image');
+      expect(p.videos?.[0]?.title).toBe('Demo');
       expect(p.ownedBy).toBe('me');
     });
 

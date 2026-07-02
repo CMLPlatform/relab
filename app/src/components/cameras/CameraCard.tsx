@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { memo, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { StatusBadge } from '@/components/base/StatusBadge';
@@ -41,6 +41,10 @@ function CameraCardComponent({
   const isOnline = connection === 'online';
   const thumbnailUrl = camera.preview_thumbnail_url ?? null;
   const hasThumbnail = isOnline && Boolean(thumbnailUrl) && failedThumbnailUrl !== thumbnailUrl;
+  const handleThumbnailError = useCallback(
+    () => setFailedThumbnailUrl(thumbnailUrl),
+    [thumbnailUrl],
+  );
 
   return (
     <Card
@@ -59,7 +63,7 @@ function CameraCardComponent({
             style={styles.thumbnail}
             contentFit="cover"
             transition={150}
-            onError={() => setFailedThumbnailUrl(thumbnailUrl)}
+            onError={handleThumbnailError}
           />
         ) : (
           <View style={styles.thumbnailPlaceholder}>

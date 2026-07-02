@@ -1,4 +1,12 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback } from 'react';
+import {
+  FlatList,
+  Pressable,
+  type PressableStateCallbackType,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { ActivityIndicator, HelperText, Icon, Searchbar } from 'react-native-paper';
 
 import CPVCard from '@/components/product/CPVCard';
@@ -18,6 +26,13 @@ export default function CategorySelection() {
     moveUp,
     selectType,
   } = useCategorySelection();
+
+  const renderItem = useCallback(
+    ({ item }: { item: CPVCategory }) => (
+      <CategoryListItem item={item} onSelectType={selectType} onSelectBranch={selectBranch} />
+    ),
+    [selectType, selectBranch],
+  );
 
   if (!user) return null;
   if (!cpvClass) {
@@ -49,15 +64,29 @@ export default function CategorySelection() {
           marginBottom: 20,
         }}
         data={filtered}
-        renderItem={({ item }) => (
-          <View>
-            <CPVCard
-              CPV={item}
-              onPress={() => selectType(item.id)}
-              actionElement={<CPVLink CPV={item} onPress={() => selectBranch(item)} />}
-            />
-          </View>
-        )}
+        renderItem={renderItem}
+      />
+    </View>
+  );
+}
+
+function CategoryListItem({
+  item,
+  onSelectType,
+  onSelectBranch,
+}: {
+  item: CPVCategory;
+  onSelectType: (id: CPVCategory['id']) => void;
+  onSelectBranch: (item: CPVCategory) => void;
+}) {
+  const handleSelect = useCallback(() => onSelectType(item.id), [onSelectType, item.id]);
+  const handleBranch = useCallback(() => onSelectBranch(item), [onSelectBranch, item]);
+  return (
+    <View>
+      <CPVCard
+        CPV={item}
+        onPress={handleSelect}
+        actionElement={<CPVLink CPV={item} onPress={handleBranch} />}
       />
     </View>
   );
@@ -65,13 +94,17 @@ export default function CategorySelection() {
 
 function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: () => void }) {
   const { colors } = useAppTheme();
+  const historyStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.historyContainer,
+      { backgroundColor: colors.tertiaryContainer },
+      pressed && { opacity: 0.5 },
+    ],
+    [colors],
+  );
   return (
     <Pressable
-      style={({ pressed }) => [
-        styles.historyContainer,
-        { backgroundColor: colors.tertiaryContainer },
-        pressed && { opacity: 0.5 },
-      ]}
+      style={historyStyle}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="Go back to parent category"
@@ -90,6 +123,14 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
 
 function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
   const { colors } = useAppTheme();
+  const linkStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.linkContainer,
+      { backgroundColor: colors.secondaryContainer },
+      pressed && { opacity: 0.5 },
+    ],
+    [colors],
+  );
 
   if (CPV.directChildren.length <= 0) {
     return <View style={{ height: 50 }} />;
@@ -97,11 +138,7 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
 
   return (
     <Pressable
-      style={({ pressed }) => [
-        styles.linkContainer,
-        { backgroundColor: colors.secondaryContainer },
-        pressed && { opacity: 0.5 },
-      ]}
+      style={linkStyle}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Browse ${CPV.directChildren.length} subcategories`}

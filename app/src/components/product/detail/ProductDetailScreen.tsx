@@ -41,6 +41,9 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
     isNew: capabilities.isNew,
   });
 
+  const { refetch } = screen;
+  const handleRetry = useCallback(() => refetch(), [refetch]);
+
   if (screen.isLoading) {
     return (
       <ProductPageLoadingState
@@ -57,7 +60,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
         entityRole={formOptions.role}
         isNotFound={isProductNotFoundError(screen.error)}
         onBack={actions.goBackWithGuards}
-        onRetry={() => screen.refetch()}
+        onRetry={handleRetry}
         themeColors={{
           error: theme.colors.error,
           onSurfaceVariant: theme.colors.onSurfaceVariant,

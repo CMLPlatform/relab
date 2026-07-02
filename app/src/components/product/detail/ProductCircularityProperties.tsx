@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { Text } from '@/components/base/Text';
 import { TextInput } from '@/components/base/TextInput';
 import { styles } from '@/components/product/detail/styles';
-import { useAppTheme } from '@/theme';
+import { type AppColors, useAppTheme } from '@/theme';
 import type { CircularityProperties, Product } from '@/types/Product';
 
 type CircularityNoteKey = keyof CircularityProperties;
@@ -45,12 +45,16 @@ export default function ProductCircularityProperties({
   const noteCount = visibleNoteCount(circularityProperties);
   const toggleSectionLabel = isSectionExpanded ? 'Hide' : 'Show';
 
-  const updateNote = (key: CircularityNoteKey, value: string) => {
-    onChangeCircularityProperties?.({
-      ...circularityProperties,
-      [key]: value,
-    });
-  };
+  const toggleSection = useCallback(() => setIsSectionExpanded((value) => !value), []);
+  const updateNote = useCallback(
+    (key: CircularityNoteKey, value: string) => {
+      onChangeCircularityProperties?.({
+        ...circularityProperties,
+        [key]: value,
+      });
+    },
+    [circularityProperties, onChangeCircularityProperties],
+  );
 
   return (
     <View>
@@ -59,7 +63,7 @@ export default function ProductCircularityProperties({
         tooltipTitle="Add optional recyclability, disassemblability, and remanufacturability notes."
         rightElement={
           <Pressable
-            onPress={() => setIsSectionExpanded((value) => !value)}
+            onPress={toggleSection}
             accessibilityRole="button"
             accessibilityLabel={`${toggleSectionLabel.toLowerCase()} circularity properties`}
           >
@@ -74,38 +78,73 @@ export default function ProductCircularityProperties({
         <View style={styles.propertyFields}>
           {NOTE_FIELDS.map(({ key, label }) => {
             const value = circularityProperties[key] ?? '';
-            if (!editMode && !hasContent(value)) return null;
+            if (!editMode && !hasContent(value)) {
+              return null;
+            }
 
             return (
-              <View key={key} style={styles.propertySection}>
-                <Text style={styles.propertyTitle}>{label}</Text>
-                {editMode ? (
-                  <TextInput
-                    value={value}
-                    onChangeText={(text) => updateNote(key, text)}
-                    multiline
-                    numberOfLines={3}
-                    maxLength={500}
-                    style={[
-                      styles.input,
-                      styles.multilineInput,
-                      {
-                        borderColor: colors.outline,
-                        backgroundColor: colors.surface,
-                        color: colors.onSurface,
-                      },
-                    ]}
-                  />
-                ) : (
-                  <Text style={[styles.sectionSummary, { color: colors.onSurface }]}>{value}</Text>
-                )}
-              </View>
+              <CircularityNoteField
+                key={key}
+                noteKey={key}
+                label={label}
+                value={value}
+                editMode={editMode}
+                colors={colors}
+                onUpdate={updateNote}
+              />
             );
           })}
           {!editMode && noteCount === 0 ? (
             <Text style={styles.sectionSummary}>No associated circularity properties.</Text>
           ) : null}
         </View>
+      )}
+    </View>
+  );
+}
+
+function CircularityNoteField({
+  noteKey,
+  label,
+  value,
+  editMode,
+  colors,
+  onUpdate,
+}: {
+  noteKey: CircularityNoteKey;
+  label: string;
+  value: string;
+  editMode: boolean;
+  colors: AppColors;
+  onUpdate: (key: CircularityNoteKey, value: string) => void;
+}) {
+  const handleChangeText = useCallback(
+    (text: string) => onUpdate(noteKey, text),
+    [onUpdate, noteKey],
+  );
+
+  return (
+    <View style={styles.propertySection}>
+      <Text style={styles.propertyTitle}>{label}</Text>
+      {editMode ? (
+        <TextInput
+          value={value}
+          onChangeText={handleChangeText}
+          multiline
+          numberOfLines={3}
+          maxLength={500}
+          style={[
+            styles.input,
+            styles.multilineInput,
+            {
+              borderColor: colors.outline,
+              backgroundColor: colors.surface,
+              color: colors.onSurface,
+            },
+          ]}
+        />
+      ) : (
+        <Text style={[styles.sectionSummary, { color: colors.onSurface }]}>{value}</Text>
       )}
     </View>
   );

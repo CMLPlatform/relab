@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from 'react-native-paper';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
@@ -52,8 +52,9 @@ export default function ProductVideo({
   onNavigateToProfile,
   onNavigateToActiveStream,
 }: Props) {
-  const [videos, setVideos] = useState<Video[]>(product.videos || []);
+  const [videos, setVideos] = useState<Video[]>(product.videos ?? []);
   const [expanded, setExpanded] = useState(false);
+  const toggleExpanded = useCallback(() => setExpanded((value) => !value), []);
   const dialog = useDialog();
   const theme = useAppTheme();
   const linkColor = theme.tokens.text.link;
@@ -133,7 +134,7 @@ export default function ProductVideo({
             videoCount={videos.length}
             linkColor={linkColor}
             onAdd={handleAdd}
-            onToggleExpanded={() => setExpanded((value) => !value)}
+            onToggleExpanded={toggleExpanded}
           />
         }
       />
@@ -249,6 +250,20 @@ function VideoRow({
   onVideoChange: (idx: number, field: 'url' | 'title' | 'description', value: string) => void;
   onRemove: (idx: number) => void;
 }) {
+  const handleTitleChange = useCallback(
+    (value: string) => onVideoChange(idx, 'title', value),
+    [onVideoChange, idx],
+  );
+  const handleUrlChange = useCallback(
+    (value: string) => onVideoChange(idx, 'url', value),
+    [onVideoChange, idx],
+  );
+  const handleDescriptionChange = useCallback(
+    (value: string) => onVideoChange(idx, 'description', value),
+    [onVideoChange, idx],
+  );
+  const handleRemove = useCallback(() => onRemove(idx), [onRemove, idx]);
+
   return (
     <View style={styles.videoRow}>
       <View style={styles.videoFields}>
@@ -256,7 +271,7 @@ function VideoRow({
           style={[styles.titleInput, { color: textColor }]}
           placeholder="Title"
           value={video.title}
-          onChangeText={(value) => onVideoChange(idx, 'title', value)}
+          onChangeText={handleTitleChange}
           editable={editMode}
           errorOnEmpty
         />
@@ -265,7 +280,7 @@ function VideoRow({
             style={[styles.bodyInput, { color: textColor }]}
             placeholder="Video URL"
             value={video.url}
-            onChangeText={(value) => onVideoChange(idx, 'url', value)}
+            onChangeText={handleUrlChange}
             errorOnEmpty
             customValidation={isHttpUrl}
             editable={editMode}
@@ -273,20 +288,20 @@ function VideoRow({
         ) : (
           <VideoEmbed url={video.url} linkColor={linkColor} />
         )}
-        {(editMode || Boolean(video.description)) && (
+        {editMode || video.description ? (
           <TextInput
             style={[styles.descriptionInput, { color: textColor }]}
             placeholder="Add description (optional)"
             value={video.description}
-            onChangeText={(value) => onVideoChange(idx, 'description', value)}
+            onChangeText={handleDescriptionChange}
             editable={editMode}
           />
-        )}
+        ) : null}
       </View>
       {editMode ? (
         <TouchableOpacity
           testID={`delete-video-${idx}`}
-          onPress={() => onRemove(idx)}
+          onPress={handleRemove}
           style={styles.deleteButton}
         >
           <MaterialCommunityIcons name="delete" size={24} color="red" />
@@ -310,7 +325,7 @@ function GoLiveCTA({
   const dialog = useDialog();
   const ready = isGoogleLinked && youtubeEnabled;
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     if (!ready) {
       const message = !isGoogleLinked
         ? 'Link your Google account in your profile to enable live streaming.'
@@ -323,7 +338,7 @@ function GoLiveCTA({
       return;
     }
     onGoLivePress();
-  };
+  }, [ready, isGoogleLinked, dialog, onNavigateToProfile, onGoLivePress]);
 
   return (
     <Button

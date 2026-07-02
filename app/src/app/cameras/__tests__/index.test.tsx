@@ -176,7 +176,9 @@ jest.mock('@/components/cameras/screen/Grid', () => {
               ),
             )
           : rows.map((row) => {
-              const localConnection = mockUseLocalConnection() as Partial<CameraConnectionInfo>;
+              const localConnection = mockUseLocalConnection() as
+                | Partial<CameraConnectionInfo>
+                | undefined;
               const isLocallyReachable =
                 localConnection?.mode === 'local' && Boolean(localConnection?.localBaseUrl);
               const statusLabel =

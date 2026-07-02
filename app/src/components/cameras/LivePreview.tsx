@@ -61,7 +61,7 @@ export class PreviewErrorBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean }
 > {
-  state = { hasError: false };
+  state: { hasError: boolean } = { hasError: false };
 
   static getDerivedStateFromError(): { hasError: boolean } {
     return { hasError: true };

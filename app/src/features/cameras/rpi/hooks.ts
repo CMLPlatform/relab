@@ -108,6 +108,7 @@ export function useCameraLivePreview(
     connectionInfo,
   }: { enabled?: boolean; connectionInfo?: CameraConnectionInfo } = {},
 ): CameraLivePreviewResult {
+  // biome-ignore lint/suspicious/noUnnecessaryConditions: false positive — camera?.id is string | undefined and the callee requires string | null.
   return resolveCameraLivePreview(camera?.id ?? null, { enabled, connectionInfo });
 }
 

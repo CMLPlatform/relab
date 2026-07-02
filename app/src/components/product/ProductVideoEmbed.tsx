@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { extractYouTubeVideoId } from '@/services/api/validation/productSchema';
 import { openExternalUrl } from '@/services/externalLinks';
@@ -17,7 +17,8 @@ const embedContainerStyle = {
 export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string }) {
   const [loaded, setLoaded] = useState(false);
   const videoId = extractYouTubeVideoId(url);
-  const handleOpenUrl = async () => openExternalUrl(url);
+  const handleOpenUrl = useCallback(async () => openExternalUrl(url), [url]);
+  const handleLoad = useCallback(() => setLoaded(true), []);
   if (!videoId) {
     return (
       <TouchableOpacity onPress={handleOpenUrl}>
@@ -29,7 +30,7 @@ export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string 
   if (!loaded) {
     return (
       <View style={styles.videoActions}>
-        <TouchableOpacity onPress={() => setLoaded(true)}>
+        <TouchableOpacity onPress={handleLoad}>
           <Text style={[styles.videoLink, { color: linkColor }]}>Load video</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleOpenUrl}>

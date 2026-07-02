@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/base/Text';
 import { TextInput } from '@/components/base/TextInput';
@@ -37,6 +37,12 @@ export default function ProductDescription({ product, editMode, onChangeDescript
   const isLongDescription = useMemo(() => shouldCollapseDescription(text), [text]);
   const expanded = editMode ? true : isExpanded || !isLongDescription;
 
+  const toggleExpanded = useCallback(() => setIsExpanded((current) => !current), []);
+  const handleBlur = useCallback(
+    () => onChangeDescription?.(draftText),
+    [onChangeDescription, draftText],
+  );
+
   // Render
   if (!editMode) {
     return (
@@ -49,7 +55,7 @@ export default function ProductDescription({ product, editMode, onChangeDescript
         </Text>
         {isLongDescription && (
           <Pressable
-            onPress={() => setIsExpanded((current) => !current)}
+            onPress={toggleExpanded}
             accessibilityRole="button"
             accessibilityLabel={expanded ? 'Show less of description' : 'Show more of description'}
           >
@@ -66,7 +72,7 @@ export default function ProductDescription({ product, editMode, onChangeDescript
       placeholder={`Add a ${entityLabel(product)} description`}
       value={draftText}
       onChangeText={setDraftText}
-      onBlur={() => onChangeDescription?.(draftText)}
+      onBlur={handleBlur}
       editable={editMode}
       multiline
       numberOfLines={undefined}

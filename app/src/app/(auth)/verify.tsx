@@ -13,12 +13,12 @@ export default function VerifyEmailScreen() {
         <Card.Content style={styles.cardContent}>
           <Text variant="headlineMedium">Verify Email</Text>
 
-          {isLoading && (
+          {isLoading ? (
             <View style={styles.centeredState}>
               <ActivityIndicator size="large" />
               <Text variant="bodyLarge">Verifying your email...</Text>
             </View>
-          )}
+          ) : null}
 
           {error && !isLoading && (
             <View style={styles.centeredState}>

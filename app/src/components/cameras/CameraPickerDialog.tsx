@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Dialog, Icon, Portal, Text } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
@@ -33,6 +34,11 @@ export function CameraPickerDialog({
   const router = useRouter();
   const { data: cameras, isLoading } = useCamerasQuery(true, { enabled: visible });
 
+  const handleManage = useCallback(() => {
+    onDismiss();
+    router.push('/cameras');
+  }, [onDismiss, router]);
+
   const sorted = [...(cameras ?? [])].sort((a, b) => {
     const aReachable = resolveEffectiveCameraConnection(a).isReachable ? 0 : 1;
     const bReachable = resolveEffectiveCameraConnection(b).isReachable ? 0 : 1;
@@ -56,14 +62,7 @@ export function CameraPickerDialog({
           )}
         </Dialog.Content>
         <Dialog.Actions>
-          <Button
-            onPress={() => {
-              onDismiss();
-              router.push('/cameras');
-            }}
-            icon="cog"
-            compact
-          >
+          <Button onPress={handleManage} icon="cog" compact>
             Manage
           </Button>
           <View style={styles.spacer} />
@@ -84,13 +83,16 @@ function CameraPickerRow({
   const theme = useAppTheme();
   const effectiveConnection = useEffectiveCameraConnection(camera);
   const isReachable = effectiveConnection.isReachable;
+  const handleSelect = useCallback(() => {
+    if (!isReachable) {
+      return;
+    }
+    onSelect(camera);
+  }, [isReachable, onSelect, camera]);
 
   return (
     <Pressable
-      onPress={() => {
-        if (!isReachable) return;
-        onSelect(camera);
-      }}
+      onPress={handleSelect}
       accessibilityRole="button"
       style={[
         styles.row,

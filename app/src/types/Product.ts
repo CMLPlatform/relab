@@ -13,13 +13,13 @@ export type Product = {
   productTypeID?: number;
   productTypeName?: string;
   componentIDs: number[];
-  components: Product[];
+  components?: Product[];
   ownerUsername?: string;
   physicalProperties: PhysicalProperties;
   circularityProperties: CircularityProperties;
-  images: { id?: string; url: string; thumbnailUrl?: string; description: string }[];
+  images?: { id?: string; url: string; thumbnailUrl?: string; description: string }[];
   thumbnailUrl?: string;
-  videos: { id?: number; url: string; description: string; title: string }[];
+  videos?: { id?: number; url: string; description: string; title: string }[];
   ownedBy: 'me' | string;
   amountInParent?: number;
 };

@@ -1,5 +1,6 @@
 // spell-checker: ignore Zoomable
 
+import { useCallback } from 'react';
 import { View } from 'react-native';
 import { ProductImageCameraDialogs } from '@/components/product/gallery/ProductImageCameraDialogs';
 import { ProductImageEmptyEditState } from '@/components/product/gallery/ProductImageEmptyEditState';
@@ -24,6 +25,10 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
   });
   const handleTakePhoto = async () => actions.takePhoto();
   const handlePickImage = async () => actions.pickImage();
+  const handleDeleteImage = useCallback(
+    () => actions.deleteImage(viewer.selectedIndex),
+    [actions, viewer.selectedIndex],
+  );
 
   if (media.imageCount === 0 && !editMode) {
     return <ProductImagePlaceholder width={media.width} label={product.name} />;
@@ -52,7 +57,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
           onTakePhoto={handleTakePhoto}
           onPickImage={handlePickImage}
           onRpiCapture={actions.requestRpiCapture}
-          onDeleteImage={() => actions.deleteImage(viewer.selectedIndex)}
+          onDeleteImage={handleDeleteImage}
         />
       ) : editMode ? (
         <ProductImageEmptyEditState

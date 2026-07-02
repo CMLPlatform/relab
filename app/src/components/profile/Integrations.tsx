@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { View } from 'react-native';
 import { Icon, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
@@ -30,6 +31,11 @@ export function ProfileIntegrationsSection({
 }: ProfileIntegrationsSectionProps) {
   const theme = useAppTheme();
   const styles = createProfileSectionStyles(theme);
+  const openDocs = useCallback(() => {
+    if (DOCS_URL) {
+      void openExternalUrl(new URL('/user-guides/rpi-cam', DOCS_URL).toString());
+    }
+  }, []);
   return (
     <>
       <ProfileSectionHeader title="Integrations" />
@@ -42,14 +48,7 @@ export function ProfileIntegrationsSection({
             <Text style={styles.actionTitle}>RPi Camera</Text>
             <Text style={styles.actionSubtitle}>
               Capture images with a Raspberry Pi camera during disassembly.{' '}
-              <Text
-                style={styles.docsLink}
-                onPress={() => {
-                  if (DOCS_URL) {
-                    void openExternalUrl(new URL('/user-guides/rpi-cam', DOCS_URL).toString());
-                  }
-                }}
-              >
+              <Text style={styles.docsLink} onPress={openDocs}>
                 Learn more
               </Text>
             </Text>

@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { Pressable } from 'react-native';
 import { Text } from '@/components/base/Text';
 import { useAuth } from '@/context/auth';
@@ -16,13 +17,18 @@ export function HeaderRightPill() {
   const router = useRouter();
   const theme = useAppTheme();
   const { pill, primaryText } = createHeaderRightPillStyles(theme);
+  const needsOnboarding = user ? needsUsernameOnboarding(user) : false;
+
+  const goToAccount = useCallback(() => {
+    router.push(needsOnboarding ? '/onboarding' : '/account');
+  }, [router, needsOnboarding]);
+  const goToLogin = useCallback(() => router.push('/login'), [router]);
 
   if (user) {
-    const needsOnboarding = needsUsernameOnboarding(user);
     const username = needsOnboarding ? 'Complete profile' : truncateUsername(user.username ?? '');
     return (
       <Pressable
-        onPress={() => router.push(needsOnboarding ? '/onboarding' : '/account')}
+        onPress={goToAccount}
         style={pill}
         accessibilityRole="button"
         accessibilityLabel={needsOnboarding ? 'Complete profile' : `Account: ${username}`}
@@ -37,7 +43,7 @@ export function HeaderRightPill() {
 
   return (
     <Pressable
-      onPress={() => router.push('/login')}
+      onPress={goToLogin}
       style={pill}
       accessibilityRole="button"
       accessibilityLabel="Sign in"

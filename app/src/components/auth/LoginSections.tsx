@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import type { RefObject } from 'react';
-import type { Control } from 'react-hook-form';
+import { type RefObject, useCallback } from 'react';
+import type { Control, ControllerRenderProps } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import type { TextStyle } from 'react-native';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
@@ -26,7 +26,7 @@ export function LoginLayout({ keyboardShown, children, onBrowse }: LoginLayoutPr
       <View style={[styles.overlayContent, { bottom: keyboardHeight }]}>
         <LinearGradient
           colors={['transparent', theme.colors.background]}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
         />
         {children}
       </View>
@@ -65,44 +65,57 @@ export function LoginFormSection({
   onSubmit,
   onForgotPassword,
 }: LoginFormSectionProps) {
+  const setEmailRef = useCallback(
+    (instance: { focus(): void } | null) => {
+      emailRef.current = instance;
+    },
+    [emailRef],
+  );
+  const renderEmail = useCallback(
+    ({
+      field: { onChange, value },
+    }: {
+      field: ControllerRenderProps<LoginFormValues, 'email'>;
+    }) => (
+      <TextInput
+        ref={setEmailRef}
+        mode="outlined"
+        value={value}
+        onChangeText={onChange}
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="username"
+        textContentType="username"
+        placeholder="Email or username"
+      />
+    ),
+    [setEmailRef],
+  );
+  const renderPassword = useCallback(
+    ({
+      field: { onChange, value },
+    }: {
+      field: ControllerRenderProps<LoginFormValues, 'password'>;
+    }) => (
+      <TextInput
+        mode="outlined"
+        value={value}
+        onChangeText={onChange}
+        autoCapitalize="none"
+        autoComplete="current-password"
+        textContentType="password"
+        secureTextEntry
+        placeholder="Password"
+        onSubmitEditing={onSubmit}
+      />
+    ),
+    [onSubmit],
+  );
+
   return (
     <>
-      <Controller
-        control={control}
-        name="email"
-        render={({ field: { onChange, value } }) => (
-          <TextInput
-            ref={(instance: { focus(): void } | null) => {
-              emailRef.current = instance;
-            }}
-            mode="outlined"
-            value={value}
-            onChangeText={onChange}
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="username"
-            textContentType="username"
-            placeholder="Email or username"
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="password"
-        render={({ field: { onChange, value } }) => (
-          <TextInput
-            mode="outlined"
-            value={value}
-            onChangeText={onChange}
-            autoCapitalize="none"
-            autoComplete="current-password"
-            textContentType="password"
-            secureTextEntry
-            placeholder="Password"
-            onSubmitEditing={onSubmit}
-          />
-        )}
-      />
+      <Controller control={control} name="email" render={renderEmail} />
+      <Controller control={control} name="password" render={renderPassword} />
       <Button mode="contained" style={{ width: '100%', padding: 5 }} onPress={onSubmit}>
         Login
       </Button>

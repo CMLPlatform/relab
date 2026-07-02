@@ -27,7 +27,7 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
     });
   };
 
-  if (typeof product?.id !== 'number' || !editMode) {
+  if (typeof product.id !== 'number' || !editMode) {
     return null;
   }
 

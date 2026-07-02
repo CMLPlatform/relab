@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { maybeCompleteAuthSession } from 'expo-web-browser';
+import { useCallback } from 'react';
 import {
   ProfileAccountSection,
   ProfileDangerZoneSection,
@@ -21,6 +22,7 @@ maybeCompleteAuthSession({ skipRedirectCheck: true });
 export default function ProfileTab() {
   const router = useRouter();
   const { profile, integrations, dialogs, actions } = useProfileScreen();
+  const goToCameras = useCallback(() => router.push('/cameras'), [router]);
 
   if (!profile.profile) return null;
 
@@ -34,7 +36,7 @@ export default function ProfileTab() {
         rpiEnabled={integrations.rpiEnabled}
         rpiLoading={integrations.rpiLoading}
         onSetRpiEnabled={integrations.setRpiEnabled}
-        onManageCameras={() => router.push('/cameras')}
+        onManageCameras={goToCameras}
         youtubeEnabled={integrations.youtubeEnabled}
         youtubeLoading={integrations.youtubeLoading}
         youtubeAuthPending={integrations.youtubeAuthPending}

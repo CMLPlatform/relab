@@ -39,6 +39,7 @@ async function walkAncestors(startParentID: number): Promise<AncestorCrumb[]> {
     const nodeId = typeof node.id === 'number' ? node.id : cursor;
     trail.unshift({
       id: nodeId,
+      // biome-ignore lint/suspicious/noUnnecessaryConditions: node.name may be nullish at runtime despite the type.
       name: node.name ?? '',
       role: node.role,
     });

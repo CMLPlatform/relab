@@ -58,8 +58,9 @@ jest.mock('../CameraPickerDialog', () => ({
   }) => {
     if (!visible) return null;
     const { Pressable, Text } = require('react-native');
+    const handlePress = () => onSelect({ id: 'cam-1', name: 'Bench Cam' });
     return (
-      <Pressable onPress={() => onSelect({ id: 'cam-1', name: 'Bench Cam' })}>
+      <Pressable onPress={handlePress}>
         <Text>Select camera</Text>
       </Pressable>
     );

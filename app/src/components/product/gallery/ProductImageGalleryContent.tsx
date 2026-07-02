@@ -1,9 +1,12 @@
 import { Image } from 'expo-image';
+import { memo, useCallback, useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { ActivityIndicator, Icon } from 'react-native-paper';
 import {
   GalleryFlatList,
   IMAGE_HEIGHT,
+  indexKeyExtractor,
+  makeHorizontalItemLayout,
   type ScrollableListHandle,
   type ScrollEvent,
 } from '@/components/product/gallery/shared';
@@ -57,38 +60,38 @@ export function ProductImageGalleryContent({
 }: Props) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
+
+  const setGalleryRef = useCallback(
+    (instance: ScrollableListHandle | null) => {
+      galleryRef.current = instance;
+    },
+    [galleryRef],
+  );
+  const getItemLayout = useMemo(() => makeHorizontalItemLayout(width), [width]);
+  const renderItem = useCallback(
+    ({ item, index }: { item: string; index: number }) => (
+      <GalleryImageItem
+        uri={item}
+        index={index}
+        width={width}
+        onSelectIndex={onSelectIndex}
+        onOpenLightbox={onOpenLightbox}
+      />
+    ),
+    [width, onSelectIndex, onOpenLightbox],
+  );
+
   return (
     <View style={styles.galleryContainer}>
       <GalleryFlatList
-        ref={(instance: ScrollableListHandle | null) => {
-          galleryRef.current = instance;
-        }}
+        ref={setGalleryRef}
         data={mediumUrls}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(_, index: number) => String(index)}
-        getItemLayout={(_data, index: number) => ({
-          length: width,
-          offset: width * index,
-          index,
-        })}
-        renderItem={({ item, index }: { item: string; index: number }) => (
-          <Pressable
-            onPress={() => {
-              onSelectIndex(index);
-              onOpenLightbox(index);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`View image ${index + 1}`}
-          >
-            <Image
-              source={{ uri: item }}
-              contentFit="cover"
-              style={{ width, height: IMAGE_HEIGHT }}
-            />
-          </Pressable>
-        )}
+        keyExtractor={indexKeyExtractor}
+        getItemLayout={getItemLayout}
+        renderItem={renderItem}
         onMomentumScrollEnd={onScrollEnd}
         onScrollEndDrag={onScrollEnd}
       />
@@ -161,6 +164,35 @@ export function ProductImageGalleryContent({
     </View>
   );
 }
+
+const GalleryImageItem = memo(function GalleryImageItem({
+  uri,
+  index,
+  width,
+  onSelectIndex,
+  onOpenLightbox,
+}: {
+  uri: string;
+  index: number;
+  width: number;
+  onSelectIndex: (index: number) => void;
+  onOpenLightbox: (index: number) => void;
+}) {
+  const handlePress = useCallback(() => {
+    onSelectIndex(index);
+    onOpenLightbox(index);
+  }, [onSelectIndex, onOpenLightbox, index]);
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={`View image ${index + 1}`}
+    >
+      <Image source={{ uri }} contentFit="cover" style={{ width, height: IMAGE_HEIGHT }} />
+    </Pressable>
+  );
+});
 
 function OverlayActionButton({
   onPress,

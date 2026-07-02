@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Chip, Text } from 'react-native-paper';
 import { LivePreview } from '@/components/cameras/LivePreview';
@@ -35,9 +36,12 @@ export function StreamingContent({
   const elapsed = useElapsed(session.startedAt);
   const stopMutation = useStopYouTubeStreamMutation(session.cameraId);
 
-  const handleWatch = async () => openExternalUrl(session.youtubeUrl);
+  const handleWatch = useCallback(
+    async () => openExternalUrl(session.youtubeUrl),
+    [session.youtubeUrl],
+  );
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     stopMutation.mutate(undefined, {
       onSuccess: () => {
         setActiveStream(null);
@@ -46,12 +50,12 @@ export function StreamingContent({
       },
       onError: (err) => showStreamStopFailed(feedback, err),
     });
-  };
+  }, [stopMutation, setActiveStream, queryClient, session.productId, onStop, feedback]);
 
-  const handleGoToProduct = () => {
+  const handleGoToProduct = useCallback(() => {
     router.push({ pathname: '/products/[id]', params: { id: String(session.productId) } });
     onStop?.();
-  };
+  }, [router, session.productId, onStop]);
 
   return (
     <View style={styles.root}>
@@ -92,7 +96,7 @@ export function StreamingContent({
       </View>
 
       {/* Product link (sheet mode only) */}
-      {showProductLink && (
+      {showProductLink ? (
         <Button
           mode="text"
           onPress={handleGoToProduct}
@@ -102,7 +106,7 @@ export function StreamingContent({
         >
           Go to {session.productName}
         </Button>
-      )}
+      ) : null}
     </View>
   );
 }

@@ -1,6 +1,24 @@
+import { useCallback } from 'react';
 import { ScrollView, View } from 'react-native';
 import { ActivityIndicator, Button, Chip, Dialog, Portal, Searchbar } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
+
+function SelectableChip({
+  item,
+  selected,
+  onToggle,
+}: {
+  item: string;
+  selected: boolean;
+  onToggle: (value: string) => void;
+}) {
+  const handlePress = useCallback(() => onToggle(item), [onToggle, item]);
+  return (
+    <Chip onPress={handlePress} selected={selected} mode={selected ? 'flat' : 'outlined'}>
+      {item}
+    </Chip>
+  );
+}
 
 type Props = {
   visible: boolean;
@@ -32,18 +50,29 @@ export default function FilterSelectionModal({
   searchPlaceholder = 'Search…',
   singleSelect = false,
 }: Props) {
-  const toggle = (value: string) => {
+  const toggle = useCallback(
+    (value: string) => {
+      if (singleSelect) {
+        onSelectionChange([value]);
+        onDismiss();
+        return;
+      }
+      if (selectedValues.includes(value)) {
+        onSelectionChange(selectedValues.filter((v) => v !== value));
+      } else {
+        onSelectionChange([...selectedValues, value]);
+      }
+    },
+    [singleSelect, onSelectionChange, onDismiss, selectedValues],
+  );
+
+  const addNew = useCallback(() => toggle(searchQuery.trim()), [toggle, searchQuery]);
+  const handleClearAll = useCallback(() => {
+    onSelectionChange([]);
     if (singleSelect) {
-      onSelectionChange([value]);
       onDismiss();
-      return;
     }
-    if (selectedValues.includes(value)) {
-      onSelectionChange(selectedValues.filter((v) => v !== value));
-    } else {
-      onSelectionChange([...selectedValues, value]);
-    }
-  };
+  }, [onSelectionChange, singleSelect, onDismiss]);
 
   // Always show selected values at the top, even if not in the current search results.
   const selectedNotInResults = selectedValues.filter((v) => !items.includes(v));
@@ -75,46 +104,29 @@ export default function FilterSelectionModal({
           ) : (
             <ScrollView style={{ maxHeight: 320 }}>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 8 }}>
-                {canAddNew && (
-                  <Chip
-                    key="__new__"
-                    icon="plus"
-                    mode="outlined"
-                    onPress={() => toggle(searchQuery.trim())}
-                  >
+                {canAddNew ? (
+                  <Chip key="__new__" icon="plus" mode="outlined" onPress={addNew}>
                     {searchQuery.trim()}
                   </Chip>
-                )}
-                {visibleItems.map((item) => {
-                  const selected = selectedValues.includes(item);
-                  return (
-                    <Chip
-                      key={item}
-                      onPress={() => toggle(item)}
-                      selected={selected}
-                      mode={selected ? 'flat' : 'outlined'}
-                    >
-                      {item}
-                    </Chip>
-                  );
-                })}
+                ) : null}
+                {visibleItems.map((item) => (
+                  <SelectableChip
+                    key={item}
+                    item={item}
+                    selected={selectedValues.includes(item)}
+                    onToggle={toggle}
+                  />
+                ))}
               </View>
             </ScrollView>
           )}
         </Dialog.Content>
         <Dialog.Actions>
-          {selectedValues.length > 0 && (
-            <Button
-              onPress={() => {
-                onSelectionChange([]);
-                if (singleSelect) onDismiss();
-              }}
-            >
-              {singleSelect ? 'Clear' : 'Clear all'}
-            </Button>
-          )}
-          {!singleSelect && <Button onPress={onDismiss}>Done</Button>}
-          {singleSelect && <Button onPress={onDismiss}>Cancel</Button>}
+          {selectedValues.length > 0 ? (
+            <Button onPress={handleClearAll}>{singleSelect ? 'Clear' : 'Clear all'}</Button>
+          ) : null}
+          {!singleSelect ? <Button onPress={onDismiss}>Done</Button> : null}
+          {singleSelect ? <Button onPress={onDismiss}>Cancel</Button> : null}
         </Dialog.Actions>
       </Dialog>
     </Portal>

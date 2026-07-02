@@ -109,7 +109,7 @@ export default function LocalizedFloatInput({
         editable={editable}
         ref={textInput}
       />
-      {unit && (
+      {unit ? (
         <Text
           style={{
             fontWeight: 'bold',
@@ -118,7 +118,7 @@ export default function LocalizedFloatInput({
         >
           {unit}
         </Text>
-      )}
+      ) : null}
     </>
   );
 

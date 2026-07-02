@@ -1,7 +1,14 @@
-import type { ReactNode } from 'react';
-import type { Control, FieldErrors } from 'react-hook-form';
+import { type ReactNode, useCallback } from 'react';
+import type { Control, ControllerRenderProps, FieldErrors } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  type PressableStateCallbackType,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Button, HelperText, TextInput } from 'react-native-paper';
 import { WEBSITE_URL } from '@/config';
 import type { NewAccountFormValues } from '@/services/api/validation/userSchema';
@@ -99,15 +106,18 @@ export function PrivacyPolicy() {
   const theme = useAppTheme();
   const url = WEBSITE_URL ? new URL('/privacy', WEBSITE_URL).toString() : '';
   const textColor = theme.colors.onBackground;
+  const openPrivacy = useCallback(() => {
+    if (url) {
+      void openExternalUrl(url);
+    }
+  }, [url]);
 
   return (
     <Text style={[styles.privacyText, { color: textColor }]}>
       By creating an account, you agree to our{' '}
       <Text
         style={[styles.privacyLink, { color: textColor }]}
-        onPress={() => {
-          if (url) void openExternalUrl(url);
-        }}
+        onPress={openPrivacy}
         accessibilityRole="link"
       >
         Privacy Policy
@@ -122,6 +132,38 @@ export function NewAccountUsernameStep({
   headlineColor,
   onAdvance,
 }: SharedStepProps & { onAdvance: () => void }) {
+  const renderUsername = useCallback(
+    ({
+      field: { onChange, value },
+    }: {
+      field: ControllerRenderProps<NewAccountFormValues, 'username'>;
+    }) => (
+      <TextInput
+        style={styles.textInput}
+        mode="outlined"
+        value={value}
+        onChangeText={onChange}
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="username-new"
+        textContentType="username"
+        placeholder="Username"
+        returnKeyType="next"
+        onSubmitEditing={onAdvance}
+        error={Boolean(errors.username)}
+      />
+    ),
+    [onAdvance, errors.username],
+  );
+  const arrowStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.arrowButton,
+      errors.username ? styles.arrowButtonDisabled : null,
+      pressed && !errors.username ? { opacity: 0.7 } : null,
+    ],
+    [errors.username],
+  );
+
   return (
     <View>
       <Text style={[styles.welcomeText, { color: headlineColor }]}>Welcome to</Text>
@@ -129,37 +171,14 @@ export function NewAccountUsernameStep({
       <Text style={[styles.questionText, { color: headlineColor }]}>Who are you?</Text>
       <View style={styles.inputContainer}>
         <View style={styles.inputRow}>
-          <Controller
-            control={control}
-            name="username"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={styles.textInput}
-                mode="outlined"
-                value={value}
-                onChangeText={onChange}
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="username-new"
-                textContentType="username"
-                placeholder="Username"
-                returnKeyType="next"
-                onSubmitEditing={onAdvance}
-                error={Boolean(errors.username)}
-              />
-            )}
-          />
+          <Controller control={control} name="username" render={renderUsername} />
           <Pressable
             testID="username-next"
             accessibilityRole="button"
             accessibilityLabel="Continue to email"
             disabled={Boolean(errors.username)}
             onPress={onAdvance}
-            style={({ pressed }) => [
-              styles.arrowButton,
-              errors.username ? styles.arrowButtonDisabled : null,
-              pressed && !errors.username ? { opacity: 0.7 } : null,
-            ]}
+            style={arrowStyle}
           >
             <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
           </Pressable>
@@ -187,6 +206,39 @@ export function NewAccountEmailStep({
   onAdvance: () => void;
   onBack: () => void;
 }) {
+  const renderEmail = useCallback(
+    ({
+      field: { onChange, value },
+    }: {
+      field: ControllerRenderProps<NewAccountFormValues, 'email'>;
+    }) => (
+      <TextInput
+        style={styles.textInput}
+        mode="outlined"
+        value={value}
+        onChangeText={onChange}
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="email"
+        textContentType="emailAddress"
+        keyboardType="email-address"
+        placeholder="Email address"
+        returnKeyType="next"
+        onSubmitEditing={onAdvance}
+        error={Boolean(errors.email)}
+      />
+    ),
+    [onAdvance, errors.email],
+  );
+  const arrowStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.arrowButton,
+      errors.email ? styles.arrowButtonDisabled : null,
+      pressed && !errors.email ? { opacity: 0.7 } : null,
+    ],
+    [errors.email],
+  );
+
   return (
     <View>
       <Text style={[styles.welcomeText, { color: headlineColor }]}>Hi</Text>
@@ -194,38 +246,14 @@ export function NewAccountEmailStep({
       <Text style={[styles.questionText, { color: headlineColor }]}>How do we reach you?</Text>
       <View style={styles.inputContainer}>
         <View style={styles.inputRow}>
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={styles.textInput}
-                mode="outlined"
-                value={value}
-                onChangeText={onChange}
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="email"
-                textContentType="emailAddress"
-                keyboardType="email-address"
-                placeholder="Email address"
-                returnKeyType="next"
-                onSubmitEditing={onAdvance}
-                error={Boolean(errors.email)}
-              />
-            )}
-          />
+          <Controller control={control} name="email" render={renderEmail} />
           <Pressable
             testID="email-next"
             accessibilityRole="button"
             accessibilityLabel="Continue to password"
             disabled={Boolean(errors.email)}
             onPress={onAdvance}
-            style={({ pressed }) => [
-              styles.arrowButton,
-              errors.email ? styles.arrowButtonDisabled : null,
-              pressed && !errors.email ? { opacity: 0.7 } : null,
-            ]}
+            style={arrowStyle}
           >
             <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
           </Pressable>
@@ -264,6 +292,30 @@ export function NewAccountPasswordStep({
   onSubmit: () => void;
   onBack: () => void;
 }) {
+  const renderPassword = useCallback(
+    ({
+      field: { onChange, value },
+    }: {
+      field: ControllerRenderProps<NewAccountFormValues, 'password'>;
+    }) => (
+      <TextInput
+        style={styles.textInput}
+        mode="outlined"
+        value={value}
+        onChangeText={onChange}
+        autoCapitalize="none"
+        autoComplete="password-new"
+        textContentType="newPassword"
+        secureTextEntry
+        placeholder="Password"
+        returnKeyType="done"
+        onSubmitEditing={onSubmit}
+        error={Boolean(errors.password)}
+      />
+    ),
+    [onSubmit, errors.password],
+  );
+
   return (
     <View>
       <Text style={[styles.welcomeText, { color: headlineColor }]}>Finally,</Text>
@@ -271,26 +323,7 @@ export function NewAccountPasswordStep({
       <Text style={[styles.questionText, { color: headlineColor }]}>How will you log in?</Text>
       <View style={styles.inputContainer}>
         <View style={styles.inputRow}>
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={styles.textInput}
-                mode="outlined"
-                value={value}
-                onChangeText={onChange}
-                autoCapitalize="none"
-                autoComplete="password-new"
-                textContentType="newPassword"
-                secureTextEntry
-                placeholder="Password"
-                returnKeyType="done"
-                onSubmitEditing={onSubmit}
-                error={Boolean(errors.password)}
-              />
-            )}
-          />
+          <Controller control={control} name="password" render={renderPassword} />
           <Button
             mode="contained"
             onPress={onSubmit}

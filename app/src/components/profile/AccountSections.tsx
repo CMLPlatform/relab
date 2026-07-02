@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { View } from 'react-native';
 import { createProfileSectionStyles } from '@/components/profile/styles';
 import { useAppTheme } from '@/theme';
@@ -63,6 +64,10 @@ export function ProfileLinkedAccountsSection({
   onRequestUnlink,
 }: ProfileLinkedAccountsSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
+  const unlinkGoogle = useCallback(() => onRequestUnlink('google'), [onRequestUnlink]);
+  const linkGoogle = useCallback(() => onLinkOAuth('google'), [onLinkOAuth]);
+  const unlinkGithub = useCallback(() => onRequestUnlink('github'), [onRequestUnlink]);
+  const linkGithub = useCallback(() => onLinkOAuth('github'), [onLinkOAuth]);
   return (
     <>
       <ProfileSectionHeader title="Linked Accounts" />
@@ -71,14 +76,14 @@ export function ProfileLinkedAccountsSection({
           <ProfileAction
             title="Unlink Google"
             subtitle={`Connected as ${googleAccount?.account_email ?? ''}`}
-            onPress={() => onRequestUnlink('google')}
+            onPress={unlinkGoogle}
             titleStyle={styles.danger}
           />
         ) : (
           <ProfileAction
             title="Link Google Account"
             subtitle="Continue with Google"
-            onPress={() => onLinkOAuth('google')}
+            onPress={linkGoogle}
           />
         )}
 
@@ -86,14 +91,14 @@ export function ProfileLinkedAccountsSection({
           <ProfileAction
             title="Unlink GitHub"
             subtitle={`Connected as ${githubAccount?.account_email ?? ''}`}
-            onPress={() => onRequestUnlink('github')}
+            onPress={unlinkGithub}
             titleStyle={styles.danger}
           />
         ) : (
           <ProfileAction
             title="Link GitHub Account"
             subtitle="Continue with GitHub"
-            onPress={() => onLinkOAuth('github')}
+            onPress={linkGithub}
           />
         )}
       </View>

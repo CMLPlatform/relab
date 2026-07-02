@@ -38,10 +38,10 @@ let keydownHandler: ((event: { key: string }) => void) | null = null;
 
 jest.mock('expo-image', () => ({
   Image: Object.assign(
-    ({ source }: { source: { uri: string } }) => {
+    ({ source }: { source?: { uri?: string } }) => {
       const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
       const React = jest.requireActual<typeof import('react')>('react');
-      return React.createElement(Text, null, `img:${source?.uri}`);
+      return React.createElement(Text, null, `img:${source?.uri ?? ''}`);
     },
     { prefetch: jest.fn() },
   ),
@@ -345,7 +345,7 @@ describe('ProductImages', () => {
 
     await waitFor(() => {
       expect(onImagesChange).toHaveBeenCalledWith([
-        ...baseProduct.images,
+        ...(baseProduct.images ?? []),
         { url: 'file://processed.jpg', description: '' },
       ]);
     });
@@ -719,7 +719,7 @@ describe('ProductImages', () => {
       expect(mockedRequestCameraPermissionsAsync).toHaveBeenCalled();
       expect(mockedLaunchCameraAsync).toHaveBeenCalled();
       expect(onImagesChange).toHaveBeenCalledWith([
-        ...baseProduct.images,
+        ...(baseProduct.images ?? []),
         { url: 'file://processed.jpg', description: '' },
       ]);
     });

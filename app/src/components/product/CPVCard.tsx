@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback } from 'react';
+import { Pressable, type PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { Icon } from 'react-native-paper';
 import { useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
@@ -16,13 +17,21 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
   const bgColor = error ? colors.errorContainer : colors.primaryContainer;
   const textColor = error ? colors.onErrorContainer : colors.onPrimaryContainer;
 
+  const pressableStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.pressableContent,
+      pressed && onPress && { opacity: 0.5 },
+    ],
+    [onPress],
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={CPV.description}
-        style={({ pressed }) => [styles.pressableContent, pressed && onPress && { opacity: 0.5 }]}
+        style={pressableStyle}
       >
         <Text style={[styles.text, { color: textColor }]} numberOfLines={3} ellipsizeMode="tail">
           {CPV.description}

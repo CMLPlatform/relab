@@ -1,6 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { memo, useCallback, useEffect } from 'react';
-import { FlatList, Pressable, RefreshControl, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  type PressableStateCallbackType,
+  RefreshControl,
+  View,
+} from 'react-native';
 import { Text } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
 import { CameraCard } from '@/components/cameras/CameraCard';
@@ -37,6 +43,7 @@ export function CamerasGrid({
 }: CamerasGridProps) {
   const theme = useAppTheme();
   const styles = createCameraScreenStyles(theme);
+  const keyExtractor = useCallback((item: CameraReadWithStatus) => item.id, []);
   const renderCameraCell = useCallback(
     ({ item }: { item: CameraReadWithStatus }) => (
       <CameraGridCell
@@ -54,7 +61,7 @@ export function CamerasGrid({
     <FlatList
       data={rows}
       extraData={selectedIds}
-      keyExtractor={(item) => item.id}
+      keyExtractor={keyExtractor}
       renderItem={renderCameraCell}
       numColumns={numColumns}
       key={`grid-${numColumns}`}
@@ -98,6 +105,17 @@ const CameraGridCell = memo(function CameraGridCell({
   const styles = createCameraScreenStyles(theme);
   const effectiveConnection = useEffectiveCameraConnection(camera);
 
+  const handlePress = useCallback(() => onPress(camera), [onPress, camera]);
+  const handleLongPress = useCallback(() => onLongPress(camera), [onLongPress, camera]);
+  const cellStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.cellPressable,
+      pressed ? styles.cellPressed : null,
+      selected ? styles.cellSelected : null,
+    ],
+    [styles, selected],
+  );
+
   useEffect(() => {
     onEffectiveConnectionChange(camera.id, {
       isReachable: effectiveConnection.isReachable,
@@ -113,14 +131,10 @@ const CameraGridCell = memo(function CameraGridCell({
   return (
     <View style={styles.cell}>
       <Pressable
-        onPress={() => onPress(camera)}
-        onLongPress={() => onLongPress(camera)}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
         delayLongPress={350}
-        style={({ pressed }) => [
-          styles.cellPressable,
-          pressed ? styles.cellPressed : null,
-          selected ? styles.cellSelected : null,
-        ]}
+        style={cellStyle}
       >
         <CameraCard camera={camera} effectiveConnection={effectiveConnection} />
       </Pressable>

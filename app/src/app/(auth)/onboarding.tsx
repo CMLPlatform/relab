@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Keyboard, Platform, StyleSheet, type TextStyle, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
@@ -40,27 +41,31 @@ function OnboardingBody({
   const theme = useAppTheme();
   const textShadowStyle = getOnboardingTextShadow(theme.colors.background);
   const styles = createStyles(theme);
+  const renderUsername = useCallback(
+    ({
+      field: { onChange, value },
+    }: {
+      field: { onChange: (text: string) => void; value: string };
+    }) => (
+      <TextInput
+        mode="outlined"
+        value={value}
+        onChangeText={onChange}
+        autoCapitalize="none"
+        autoCorrect={false}
+        placeholder="e.g. awesome_user"
+        onSubmitEditing={submitUsername}
+      />
+    ),
+    [submitUsername],
+  );
 
   return (
     <View style={[styles.body, { bottom: getKeyboardHeight() }]}>
       <LinearGradient colors={['transparent', theme.colors.background]} style={styles.gradient} />
       <Text style={[styles.title, textShadowStyle]}>Welcome!</Text>
       <Text style={[styles.subtitle, textShadowStyle]}>Choose a username to continue.</Text>
-      <Controller
-        control={control}
-        name="username"
-        render={({ field: { onChange, value } }) => (
-          <TextInput
-            mode="outlined"
-            value={value}
-            onChangeText={onChange}
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="e.g. awesome_user"
-            onSubmitEditing={submitUsername}
-          />
-        )}
-      />
+      <Controller control={control} name="username" render={renderUsername} />
       <Button
         mode="contained"
         loading={isSubmitting}

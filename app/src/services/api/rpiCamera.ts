@@ -1,5 +1,6 @@
 // Public entry point for Raspberry Pi camera API calls.
 // Re-exports the rpiCamera/ submodules under a single stable import path.
+// biome-ignore lint/performance/noBarrelFile: intentional stable public import path for the rpiCamera/ submodules.
 export { buildLocalHlsUrl, fetchLocalAccessInfo } from './rpiCamera/access';
 export {
   deleteCamera,

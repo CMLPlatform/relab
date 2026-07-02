@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { Button } from 'react-native-paper';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
@@ -17,6 +17,7 @@ export default function ProductComponents({ product, editMode }: Props) {
   const [expanded, setExpanded] = useState(false);
   const components = product.components ?? [];
   const label = entityLabel(product);
+  const toggleExpanded = useCallback(() => setExpanded((current) => !current), []);
 
   const newComponent = () => {
     if (typeof product.id !== 'number') return;
@@ -45,7 +46,7 @@ export default function ProductComponents({ product, editMode }: Props) {
         <ProductCard key={component.id} product={component} enabled={!editMode} />
       ))}
       {components.length > 5 && (
-        <Button compact={true} mode="text" onPress={() => setExpanded((current) => !current)}>
+        <Button compact={true} mode="text" onPress={toggleExpanded}>
           {expanded ? 'Show less' : `Show ${hiddenCount} more`}
         </Button>
       )}

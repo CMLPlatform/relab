@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { Controller } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
@@ -11,6 +12,25 @@ export default function ForgotPasswordScreen() {
   const { control, fieldError, isValid, isSubmitting, success, error, submit } =
     useForgotPassword();
   const goToLogin = () => router.push('/login');
+  const goBack = useCallback(() => router.back(), [router]);
+  const renderEmail = useCallback(
+    ({
+      field: { onChange, value },
+    }: {
+      field: { onChange: (text: string) => void; value: string };
+    }) => (
+      <TextInput
+        label="Email"
+        value={value}
+        onChangeText={onChange}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoComplete="email"
+        disabled={isSubmitting}
+      />
+    ),
+    [isSubmitting],
+  );
 
   return (
     <View style={styles.screen}>
@@ -37,27 +57,13 @@ export default function ForgotPasswordScreen() {
                 password.
               </Text>
 
-              <Controller
-                control={control}
-                name="email"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    label="Email"
-                    value={value}
-                    onChangeText={onChange}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    disabled={isSubmitting}
-                  />
-                )}
-              />
+              <Controller control={control} name="email" render={renderEmail} />
 
-              {(error || fieldError) && (
+              {error || fieldError ? (
                 <HelperText type="error" visible>
                   {error ?? fieldError}
                 </HelperText>
-              )}
+              ) : null}
 
               <Button
                 mode="contained"
@@ -69,7 +75,7 @@ export default function ForgotPasswordScreen() {
               </Button>
 
               <View style={styles.actions}>
-                <Button mode="text" onPress={() => router.back()}>
+                <Button mode="text" onPress={goBack}>
                   Back to Login
                 </Button>
               </View>

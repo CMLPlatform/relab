@@ -21,6 +21,18 @@ export type ScrollableListHandle = {
 
 export const IMAGE_HEIGHT = 300;
 
+/** Stable FlatList keyExtractor that keys rows by index. */
+export const indexKeyExtractor = (_: unknown, index: number) => String(index);
+
+/** Builds a FlatList getItemLayout for a horizontally-paged list of fixed-width items. */
+export function makeHorizontalItemLayout(width: number) {
+  return (_data: ArrayLike<unknown> | null | undefined, index: number) => ({
+    length: width,
+    offset: width * index,
+    index,
+  });
+}
+
 export function getTouchPointX(event: GestureResponderEvent, type: 'start' | 'end'): number | null {
   const touch =
     type === 'start'

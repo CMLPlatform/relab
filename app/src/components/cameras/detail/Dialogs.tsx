@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
@@ -18,6 +18,7 @@ function EditNameDialog({
 }) {
   const [value, setValue] = useState(initialName);
   const valid = value.trim().length >= 2 && value.trim().length <= 100;
+  const handleSave = useCallback(() => onSave(value.trim()), [onSave, value]);
 
   return (
     <Dialog visible onDismiss={onDismiss}>
@@ -37,7 +38,7 @@ function EditNameDialog({
         <Button onPress={onDismiss} disabled={loading}>
           Cancel
         </Button>
-        <Button onPress={() => onSave(value.trim())} disabled={!valid || loading} loading={loading}>
+        <Button onPress={handleSave} disabled={!valid || loading} loading={loading}>
           Save
         </Button>
       </Dialog.Actions>
@@ -57,6 +58,7 @@ function EditDescriptionDialog({
   loading: boolean;
 }) {
   const [value, setValue] = useState(initialDescription);
+  const handleSave = useCallback(() => onSave(value.trim()), [onSave, value]);
 
   return (
     <Dialog visible onDismiss={onDismiss}>
@@ -77,7 +79,7 @@ function EditDescriptionDialog({
         <Button onPress={onDismiss} disabled={loading}>
           Cancel
         </Button>
-        <Button onPress={() => onSave(value.trim())} disabled={loading} loading={loading}>
+        <Button onPress={handleSave} disabled={loading} loading={loading}>
           Save
         </Button>
       </Dialog.Actions>
