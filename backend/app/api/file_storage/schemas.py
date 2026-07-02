@@ -77,6 +77,8 @@ def _build_storage_url(path: str | PathLike[str] | None, storage_root: Path, url
     """Build a public URL for a stored file-backed object from its filesystem path."""
     if path is None:
         return None
+    if str(path).startswith(("http://", "https://")):  # S3 backend: get_path() already returns a public URL
+        return str(path)
 
     file_path = Path(path)
     if not file_path.exists():
@@ -98,6 +100,8 @@ def _build_image_urls(
     """
     if file_path is None:
         return None, None
+    if file_path.startswith(("http://", "https://")):  # S3 backend: path is already a public URL, no local thumbnail
+        return file_path, file_path
     path = Path(file_path)
     if not path.exists():
         return None, None
@@ -105,13 +109,13 @@ def _build_image_urls(
     if relative_path is None:
         return None, None
     image_url = f"/uploads/images/{quote(str(relative_path))}"
+    thumbnail_url = image_url  # fall back to the full image when no thumbnail is available
     thumbnail_path = thumbnail_path_for(path, 200)
-    if not thumbnail_path.exists():
-        return image_url, image_url
-    thumbnail_relative_path = _relative_to_storage_root(thumbnail_path, storage_root)
-    if thumbnail_relative_path is None:
-        return image_url, image_url
-    return image_url, f"/uploads/images/{quote(str(thumbnail_relative_path))}"
+    if thumbnail_path.exists():
+        thumbnail_relative_path = _relative_to_storage_root(thumbnail_path, storage_root)
+        if thumbnail_relative_path is not None:
+            thumbnail_url = f"/uploads/images/{quote(str(thumbnail_relative_path))}"
+    return image_url, thumbnail_url
 
 
 FileUpload = Annotated[
