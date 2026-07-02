@@ -2,7 +2,7 @@ import { Animated, Platform } from 'react-native';
 
 let animatedPatchApplied = false;
 
-// ponytail: web has no native driver; force useNativeDriver:false on each Animated entry point.
+// NOTE: web has no native driver; force useNativeDriver:false on each Animated entry point.
 const VALUE_CONFIG_METHODS = ['timing', 'spring', 'decay'] as const;
 
 export function ensureWebAnimatedPatch() {

@@ -7,7 +7,7 @@ import { Card, Icon } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import { useAuth } from '@/context/auth';
 import { getPublicProfile } from '@/services/api/profiles';
-import { alpha, type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+import { type AppTheme, alpha, memoizeByTheme, useAppTheme } from '@/theme';
 
 export default function UserProfileScreen() {
   const { username } = useGlobalSearchParams();
@@ -31,7 +31,8 @@ export default function UserProfileScreen() {
   });
 
   const loading = Boolean(usernameValue) && isPending;
-  const error = queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null;
+  const error =
+    queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null;
 
   return (
     <>
