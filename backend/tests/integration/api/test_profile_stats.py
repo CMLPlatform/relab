@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import User
@@ -15,6 +14,7 @@ from app.api.reference_data.models import ProductType
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
+
 
 async def create_root_with_component(db_session: AsyncSession, user: User) -> None:
     """Create one base product and one component with separate weights."""
@@ -36,6 +36,7 @@ async def create_root_with_component(db_session: AsyncSession, user: User) -> No
     db_session.add_all([product_type, root, component])
     await db_session.flush()
 
+
 async def test_recompute_user_profile_stats_counts_base_product_weight_only(
     db_session: AsyncSession,
     db_superuser: User,
@@ -48,7 +49,7 @@ async def test_recompute_user_profile_stats_counts_base_product_weight_only(
     assert stats.product_count == 1
     assert stats.total_weight_g == 35_000
 
-@pytest.mark.usefixtures("db_session")
+
 async def test_public_profile_returns_latest_snapshot_without_external_cache(
     db_session: AsyncSession,
     api_client: AsyncClient,
@@ -81,7 +82,7 @@ async def test_public_profile_returns_latest_snapshot_without_external_cache(
     assert fresh_response.status_code == 200
     assert fresh_response.json()["total_weight_kg"] == 72.0
 
-@pytest.mark.usefixtures("db_session")
+
 async def test_public_profile_does_not_resolve_uuid_identifiers(
     api_client: AsyncClient,
     db_superuser: User,
@@ -90,6 +91,7 @@ async def test_public_profile_does_not_resolve_uuid_identifiers(
     response = await api_client.get(f"/v1/profiles/{db_superuser.id}")
 
     assert response.status_code == 404
+
 
 async def test_public_profile_does_not_resolve_users_without_username(
     api_client: AsyncClient,

@@ -17,9 +17,11 @@ from app.main import create_app
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
+
 def assert_paths_present(paths: dict[str, object], expected_paths: set[str]) -> None:
     """Assert that all expected paths are present in an OpenAPI paths object."""
     assert expected_paths <= paths.keys()
+
 
 @pytest.fixture
 async def openapi_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient]:
@@ -31,11 +33,16 @@ async def openapi_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient]:
     ) as client:
         yield client
 
-def test_route_endpoint_annotations_resolve_at_runtime(test_app: FastAPI) -> None:
-    """Endpoint annotations should be resolvable by FastAPI/OpenAPI introspection."""
+
+def test_route_endpoint_annotations_resolve_without_raising(test_app: FastAPI) -> None:
+    """Startup smoke check: endpoint annotations resolve via get_type_hints without raising.
+
+    Not a behavioral test — it only proves the app boots cleanly.
+    """
     for route in test_app.routes:
         if isinstance(route, APIRoute):
             get_type_hints(route.endpoint, include_extras=True)
+
 
 async def test_openapi_registration_can_exclude_internal_contracts_explicitly() -> None:
     """OpenAPI route registration should not read global environment state."""
@@ -53,6 +60,7 @@ async def test_openapi_registration_can_exclude_internal_contracts_explicitly() 
     assert canonical_schema.status_code == status.HTTP_404_NOT_FOUND
     assert admin_schema.status_code == status.HTTP_404_NOT_FOUND
 
+
 async def test_openapi_registration_can_include_internal_contracts_explicitly() -> None:
     """Development/testing callers should be able to opt into full/admin contracts."""
     app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
@@ -64,6 +72,7 @@ async def test_openapi_registration_can_include_internal_contracts_explicitly() 
 
     assert canonical_schema.status_code == status.HTTP_200_OK
     assert admin_schema.status_code == status.HTTP_200_OK
+
 
 async def test_canonical_openapi_json_can_be_generated(openapi_client: AsyncClient) -> None:
     """The canonical OpenAPI schema endpoint should return the complete API contract."""
@@ -115,6 +124,7 @@ async def test_canonical_openapi_json_can_be_generated(openapi_client: AsyncClie
     )
     assert categories_name_filter_param["schema"]["anyOf"][0]["type"] == "string"
 
+
 async def test_public_openapi_json_filters_to_app_schema(openapi_client: AsyncClient) -> None:
     """The public OpenAPI schema should contain app-facing routes only."""
     response = await openapi_client.get("/openapi.public.json")
@@ -141,6 +151,7 @@ async def test_public_openapi_json_filters_to_app_schema(openapi_client: AsyncCl
     assert "ProductRead" in payload["components"]["schemas"]
     assert "MaterialCreateWithCategories" not in payload["components"]["schemas"]
 
+
 async def test_admin_openapi_json_filters_to_admin_schema(openapi_client: AsyncClient) -> None:
     """The admin OpenAPI schema should contain admin routes only."""
     response = await openapi_client.get("/openapi.admin.json")
@@ -163,6 +174,7 @@ async def test_admin_openapi_json_filters_to_admin_schema(openapi_client: AsyncC
     )
     assert admin_users_email_filter_param["schema"]["anyOf"][0]["type"] == "string"
 
+
 async def test_device_openapi_json_filters_to_device_schema(openapi_client: AsyncClient) -> None:
     """The device OpenAPI schema should contain device-originated plugin routes."""
     response = await openapi_client.get("/openapi.device.json")
@@ -181,6 +193,7 @@ async def test_device_openapi_json_filters_to_device_schema(openapi_client: Asyn
     assert "PairingRegisterResponse" in payload["components"]["schemas"]
     assert "ProductRead" not in payload["components"]["schemas"]
 
+
 async def test_openapi_etag_supports_conditional_get(openapi_client: AsyncClient) -> None:
     """The public OpenAPI schema should return 304 for matching ETags."""
     first_response = await openapi_client.get("/openapi.json")
@@ -195,8 +208,8 @@ async def test_openapi_etag_supports_conditional_get(openapi_client: AsyncClient
 
     assert second_response.status_code == status.HTTP_304_NOT_MODIFIED
 
-async def test_internal_openapi_json_is_not_registered_in_production(
 
+async def test_internal_openapi_json_is_not_registered_in_production(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Production should expose public/device contracts but not full/admin contracts."""
@@ -214,6 +227,7 @@ async def test_internal_openapi_json_is_not_registered_in_production(
     assert canonical_schema.status_code == status.HTTP_404_NOT_FOUND
     assert admin_schema.status_code == status.HTTP_404_NOT_FOUND
 
+
 async def test_internal_openapi_json_remains_registered_in_testing(openapi_client: AsyncClient) -> None:
     """Testing keeps internal schemas available for client generation and contract checks."""
     canonical_schema = await openapi_client.get("/openapi.json")
@@ -226,10 +240,10 @@ async def test_internal_openapi_json_remains_registered_in_testing(openapi_clien
     assert device_schema.status_code == status.HTTP_200_OK
     assert public_schema.status_code == status.HTTP_200_OK
 
+
 @pytest.mark.parametrize("path", ["/docs", "/docs/public", "/docs/device", "/docs/admin", "/redoc"])
 async def test_backend_does_not_host_openapi_html_docs(openapi_client: AsyncClient, path: str) -> None:
     """The backend should expose JSON contracts only; docs UI lives in the docs site."""
     response = await openapi_client.get(path)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-

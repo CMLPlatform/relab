@@ -26,6 +26,7 @@ NONEXISTENT_ID = "99999"
 
 pytestmark = pytest.mark.api
 
+
 async def test_create_taxonomy_contract(api_client_superuser: AsyncClient) -> None:
     """Admin taxonomy creation should return the created resource contract."""
     response = await api_client_superuser.post(
@@ -40,6 +41,7 @@ async def test_create_taxonomy_contract(api_client_superuser: AsyncClient) -> No
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json()["name"] == TAXONOMY_NAME
+
 
 async def test_get_taxonomy_returns_expected_shape(api_client: AsyncClient, db_taxonomy: Taxonomy) -> None:
     """Public taxonomy reads should expose the stable response contract."""
@@ -57,10 +59,12 @@ async def test_get_taxonomy_returns_expected_shape(api_client: AsyncClient, db_t
         "updated_at": IsStr,
     }
 
+
 async def test_unknown_taxonomy_returns_404(api_client: AsyncClient) -> None:
     """Missing taxonomies should return 404."""
     response = await api_client.get(f"/v1/taxonomies/{NONEXISTENT_ID}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 async def test_list_taxonomies_returns_paginated_items(
     api_client: AsyncClient,
@@ -79,6 +83,7 @@ async def test_list_taxonomies_returns_paginated_items(
 
     assert response.status_code == status.HTTP_200_OK
     assert len(response.json()["items"]) >= 2
+
 
 async def test_taxonomy_category_endpoints_return_flat_and_tree_views(
     api_client: AsyncClient,
@@ -102,6 +107,7 @@ async def test_taxonomy_category_endpoints_return_flat_and_tree_views(
     assert tree_response.status_code == status.HTTP_200_OK
     assert tree_response.json()["items"][0]["name"] == PARENT_CATEGORY
     assert tree_response.json()["items"][0]["subcategories"][0]["name"] == CHILD_CATEGORY
+
 
 async def test_category_tree_endpoints_return_bounded_recursive_children(
     api_client: AsyncClient,
@@ -128,6 +134,7 @@ async def test_category_tree_endpoints_return_bounded_recursive_children(
     assert subtree.status_code == status.HTTP_200_OK
     assert [item["id"] for item in subtree.json()] == [child.id]
 
+
 async def test_category_reads_support_conditional_get(api_client: AsyncClient, db_category: Category) -> None:
     """Category detail responses should return 304 when the ETag matches."""
     first_response = await api_client.get(f"/v1/categories/{db_category.id}")
@@ -138,6 +145,7 @@ async def test_category_reads_support_conditional_get(api_client: AsyncClient, d
 
     assert first_response.status_code == status.HTTP_200_OK
     assert second_response.status_code == status.HTTP_304_NOT_MODIFIED
+
 
 async def test_admin_category_creation_supports_nested_subcategories(
     api_client_superuser: AsyncClient,
@@ -155,6 +163,7 @@ async def test_admin_category_creation_supports_nested_subcategories(
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json()["name"] == PARENT_CATEGORY
+
 
 async def test_admin_category_creation_inherits_taxonomy_from_supercategory(
     api_client_superuser: AsyncClient,
@@ -180,6 +189,7 @@ async def test_admin_category_creation_inherits_taxonomy_from_supercategory(
     assert response.json()["taxonomy_id"] == db_taxonomy.id
     assert response.json()["supercategory_id"] == parent.id
 
+
 async def test_material_validation_rejects_negative_density(api_client_superuser: AsyncClient) -> None:
     """Materials with negative density should fail schema validation."""
     response = await api_client_superuser.post(
@@ -188,6 +198,7 @@ async def test_material_validation_rejects_negative_density(api_client_superuser
     )
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
 
 async def test_product_type_creation_returns_created_resource(api_client_superuser: AsyncClient) -> None:
     """Admin product-type creation should return the created item."""
@@ -198,6 +209,7 @@ async def test_product_type_creation_returns_created_resource(api_client_superus
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json()["name"] == "Test API Product Type"
+
 
 async def test_units_endpoint_returns_available_units(api_client: AsyncClient) -> None:
     """The units endpoint should return the supported unit values."""

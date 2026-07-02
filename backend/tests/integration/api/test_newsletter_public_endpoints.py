@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.api
 
+
 async def test_subscribe_endpoint_is_not_exposed(api_client: AsyncClient) -> None:
     """The removed public signup route should return 404."""
     response = await api_client.post("/v1/newsletter/subscribe", json="new@example.com")

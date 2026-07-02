@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.api
 
+
 async def test_get_product_components(api_client: AsyncClient, setup_product_graph: ProductGraph) -> None:
     """GET /products/{id}/components returns the direct children."""
     response = await api_client.get(f"/v1/products/{setup_product_graph.product.id}/components")
@@ -33,6 +34,7 @@ async def test_get_product_components(api_client: AsyncClient, setup_product_gra
     data = response.json()
     assert len(data) >= 1
     assert data[0]["name"] == COMPONENT_NAME
+
 
 async def test_get_component_by_id(api_client: AsyncClient, setup_product_graph: ProductGraph) -> None:
     """GET /components/{id} returns the requested component via its stable URL."""
@@ -43,6 +45,7 @@ async def test_get_component_by_id(api_client: AsyncClient, setup_product_graph:
     assert data["id"] == setup_product_graph.component.id
     assert "videos" not in data
 
+
 async def test_get_component_rejects_base_product_id(
     api_client: AsyncClient, setup_product_graph: ProductGraph
 ) -> None:
@@ -51,11 +54,13 @@ async def test_get_component_rejects_base_product_id(
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
+
 async def test_get_product_rejects_component_id(api_client: AsyncClient, setup_product_graph: ProductGraph) -> None:
     """GET /products/{id} 404s when the id belongs to a component."""
     response = await api_client.get(f"/v1/products/{setup_product_graph.component.id}")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 async def test_get_product_component_tree(
     api_client: AsyncClient,
@@ -66,6 +71,7 @@ async def test_get_product_component_tree(
 
     assert response.status_code == status.HTTP_200_OK
     assert [item["id"] for item in response.json()] == [setup_product_graph.component.id]
+
 
 async def test_add_component_to_product(
     api_client_superuser: AsyncClient, db_session: AsyncSession, setup_product: Product
@@ -84,6 +90,7 @@ async def test_add_component_to_product(
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json()["name"] == NEW_COMPONENT_NAME
+
 
 async def test_add_component_to_product_rejects_component_parent(
     api_client_superuser: AsyncClient,
@@ -106,6 +113,7 @@ async def test_add_component_to_product_rejects_component_parent(
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 async def test_add_nested_component_to_component(
     api_client_superuser: AsyncClient,
@@ -130,6 +138,7 @@ async def test_add_nested_component_to_component(
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json()["name"] == NEW_COMPONENT_NAME
 
+
 async def test_add_component_rejects_videos(
     api_client_superuser: AsyncClient, db_session: AsyncSession, setup_product: Product
 ) -> None:
@@ -147,6 +156,7 @@ async def test_add_component_rejects_videos(
     response = await api_client_superuser.post(f"/v1/products/{setup_product.id}/components", json=payload)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
 
 async def test_component_materials_routes_use_component_scope(
     api_client_superuser: AsyncClient,
@@ -169,11 +179,13 @@ async def test_component_materials_routes_use_component_scope(
     assert list_response.status_code == status.HTTP_200_OK
     assert list_response.json()[0]["material_id"] == material.id
 
+
 async def test_delete_component(api_client_superuser: AsyncClient, setup_product_graph: ProductGraph) -> None:
     """DELETE /components/{id} removes the component."""
     response = await api_client_superuser.delete(f"/v1/components/{setup_product_graph.component.id}")
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
+
 
 async def test_patch_component(api_client_superuser: AsyncClient, setup_product_graph: ProductGraph) -> None:
     """PATCH /components/{id} updates the component and preserves amount_in_parent."""
@@ -184,6 +196,7 @@ async def test_patch_component(api_client_superuser: AsyncClient, setup_product_
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["name"] == "Renamed Component"
+
 
 async def test_non_owner_cannot_patch_component(
     api_client_user: AsyncClient,
@@ -197,6 +210,7 @@ async def test_non_owner_cannot_patch_component(
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
+
 async def test_non_owner_cannot_delete_component(
     api_client_user: AsyncClient,
     setup_product_graph: ProductGraph,
@@ -205,6 +219,7 @@ async def test_non_owner_cannot_delete_component(
     response = await api_client_user.delete(f"/v1/components/{setup_product_graph.component.id}")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 async def test_component_media_reads_are_public(api_client: AsyncClient, setup_product_graph: ProductGraph) -> None:
     """Component media reads should not require ownership."""

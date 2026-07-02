@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.api
 
+
 async def seed_brands(
     db_session: AsyncSession,
     owner_id: object,
@@ -40,6 +41,7 @@ async def seed_brands(
     db_session.add_all([product_type, *products])
     await db_session.flush()
 
+
 async def test_get_brand_suggestions(api_client_light: AsyncClient, setup_product: Product) -> None:
     """GET /v1/products/suggestions/brands returns unique brands derived from products."""
     del setup_product
@@ -48,12 +50,14 @@ async def test_get_brand_suggestions(api_client_light: AsyncClient, setup_produc
     assert response.status_code == status.HTTP_200_OK
     assert BRAND_X in response.json()["items"]
 
+
 async def test_returns_empty_when_no_products(api_client_light: AsyncClient) -> None:
     """GET /v1/products/suggestions/brands returns an empty page when no products exist."""
     response = await api_client_light.get("/v1/products/suggestions/brands")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["items"] == []
+
 
 async def test_returns_brands(api_client_light: AsyncClient, db_session: AsyncSession, db_superuser: User) -> None:
     """GET /v1/products/suggestions/brands title-cases product brands."""
@@ -64,6 +68,7 @@ async def test_returns_brands(api_client_light: AsyncClient, db_session: AsyncSe
     assert response.status_code == status.HTTP_200_OK
     assert "Apple" in response.json()["items"]
 
+
 async def test_deduplicates_brands(api_client_light: AsyncClient, db_session: AsyncSession, db_superuser: User) -> None:
     """GET /v1/products/suggestions/brands collapses case-insensitive duplicates."""
     await seed_brands(db_session, db_superuser.id, "dell", "DELL")
@@ -72,6 +77,7 @@ async def test_deduplicates_brands(api_client_light: AsyncClient, db_session: As
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["items"].count("Dell") == 1
+
 
 async def test_excludes_null_brands(
     api_client_light: AsyncClient, db_session: AsyncSession, db_superuser: User
@@ -83,6 +89,7 @@ async def test_excludes_null_brands(
 
     assert response.status_code == status.HTTP_200_OK
     assert None not in response.json()["items"]
+
 
 async def test_search_filters_brands(
     api_client_light: AsyncClient, db_session: AsyncSession, db_superuser: User
@@ -97,6 +104,7 @@ async def test_search_filters_brands(
     assert "Apple" in brands
     assert "Samsung" not in brands
 
+
 async def test_order_asc(api_client_light: AsyncClient, db_session: AsyncSession, db_superuser: User) -> None:
     """GET /v1/products/suggestions/brands returns ascending order by default."""
     await seed_brands(db_session, db_superuser.id, "zebra", "apple")
@@ -107,6 +115,7 @@ async def test_order_asc(api_client_light: AsyncClient, db_session: AsyncSession
     brands = response.json()["items"]
     assert brands.index("Apple") < brands.index("Zebra")
 
+
 async def test_order_desc(api_client_light: AsyncClient, db_session: AsyncSession, db_superuser: User) -> None:
     """GET /v1/products/suggestions/brands returns descending order when requested."""
     await seed_brands(db_session, db_superuser.id, "zebra", "apple")
@@ -116,6 +125,7 @@ async def test_order_desc(api_client_light: AsyncClient, db_session: AsyncSessio
     assert response.status_code == status.HTTP_200_OK
     brands = response.json()["items"]
     assert brands.index("Zebra") < brands.index("Apple")
+
 
 async def test_product_facets_return_counts(
     api_client_light: AsyncClient, db_session: AsyncSession, db_superuser: User

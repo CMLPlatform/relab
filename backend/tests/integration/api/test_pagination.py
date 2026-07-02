@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
+
 async def test_response_contains_consistent_pagination_metadata(
     api_client_light: AsyncClient, db_session: AsyncSession
 ) -> None:
@@ -36,9 +37,8 @@ async def test_response_contains_consistent_pagination_metadata(
         assert key in body, f"Missing pagination key: '{key}'"
     assert body["total"] == len(body["items"])
 
-async def test_size_and_pages_parameters_are_applied(
-    api_client_light: AsyncClient, db_session: AsyncSession
-) -> None:
+
+async def test_size_and_pages_parameters_are_applied(api_client_light: AsyncClient, db_session: AsyncSession) -> None:
     """Pagination parameters should limit returned items and report page counts."""
     for i in range(3):
         await MaterialFactory.create_async(session=db_session, name=f"PageMeta{i}")
@@ -49,14 +49,14 @@ async def test_size_and_pages_parameters_are_applied(
     assert body["pages"] >= 2
     assert len(body["items"]) == 2
 
-async def test_page_beyond_total_returns_empty_items(
-    api_client_light: AsyncClient, db_session: AsyncSession
-) -> None:
+
+async def test_page_beyond_total_returns_empty_items(api_client_light: AsyncClient, db_session: AsyncSession) -> None:
     """Requesting a page past the last page must return an empty items list."""
     await MaterialFactory.create_async(session=db_session)
     response = await api_client_light.get("/v1/materials?size=1&page=9999")
     body = response.json()
     assert body["items"] == []
+
 
 @pytest.mark.parametrize(
     ("path", "factory"),
@@ -66,7 +66,6 @@ async def test_page_beyond_total_returns_empty_items(
     ],
 )
 async def test_endpoint_returns_page_envelope(
-
     api_client_light: AsyncClient,
     db_session: AsyncSession,
     path: str,
@@ -78,9 +77,9 @@ async def test_endpoint_returns_page_envelope(
     assert response.status_code == status.HTTP_200_OK
     assert "items" in response.json()
 
+
 async def test_admin_users_returns_page_envelope(api_client_superuser_light: AsyncClient) -> None:
     """GET /admin/users must return a Page envelope."""
     response = await api_client_superuser_light.get("/v1/admin/users")
     assert response.status_code == status.HTTP_200_OK
     assert "items" in response.json()
-

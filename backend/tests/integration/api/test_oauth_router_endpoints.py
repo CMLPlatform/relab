@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
+
 def _detail_text(payload: dict[str, object]) -> str:
     """Return a comparable error-detail string across supported error shapes."""
     detail = payload["detail"]
@@ -25,10 +26,12 @@ def _detail_text(payload: dict[str, object]) -> str:
         return str(detail_dict.get("message") or "")
     return str(detail)
 
+
 @pytest.fixture
 async def active_user(db_session: AsyncSession) -> User:
     """Create a regular active user for OAuth route tests."""
     return await UserFactory.create_async(session=db_session, is_superuser=False, is_active=True, is_verified=True)
+
 
 @pytest.fixture
 async def active_user_client(
@@ -38,12 +41,14 @@ async def active_user_client(
     with override_authenticated_user(test_app, active_user, optional=False):
         yield api_client
 
+
 async def test_rejects_invalid_provider(active_user_client: AsyncClient) -> None:
     """Unsupported providers should return a stable 400 response."""
     response = await active_user_client.delete("/v1/oauth/discord/associate")
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "invalid oauth provider" in _detail_text(response.json()).lower()
+
 
 async def test_returns_404_when_account_not_linked(active_user_client: AsyncClient) -> None:
     """Deleting a missing OAuth association should return 404."""
@@ -52,8 +57,8 @@ async def test_returns_404_when_account_not_linked(active_user_client: AsyncClie
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert "not linked" in _detail_text(response.json()).lower()
 
-async def test_deletes_existing_oauth_account(
 
+async def test_deletes_existing_oauth_account(
     active_user_client: AsyncClient,
     active_user: User,
     db_session: AsyncSession,
@@ -75,4 +80,3 @@ async def test_deletes_existing_oauth_account(
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert await db_session.get(OAuthAccount, oauth_account.id) is None
-
