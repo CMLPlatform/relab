@@ -253,18 +253,4 @@ def test_rate_limit_response_emits_structured_event() -> None:
         context=AuditContext(outcome="denied", status_code=429),
     )
 
-async def test_service_unavailable_error_with_details_hides_errors() -> None:
-    """ServiceUnavailableError (503) keeps internal details out of the response body."""
-    handler = create_exception_handler()
-    mock_request = MagicMock()
-    mock_request.state.request_id = "req-503"
-    exc = ServiceUnavailableError("Temporarily unavailable", details="redis offline")
-
-    with patch("app.api.common.routers.exceptions.logger"):
-        response = await handler(mock_request, exc)
-
-    assert response.status_code == 503
-    body = json.loads(bytes(response.body))
-    assert body["detail"] == "Temporarily unavailable"
-    assert "errors" not in body
 

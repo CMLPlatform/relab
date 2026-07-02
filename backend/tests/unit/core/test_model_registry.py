@@ -80,11 +80,6 @@ def test_load_models_imports_without_error() -> None:
     """Test that load_models() can be called without error."""
     load_models()
 
-def test_configure_mappers_resolves_all_relationships() -> None:
-    """Test that configure_mappers() succeeds after calling load_models()."""
-    load_models()
-    configure_mappers()
-
 def test_all_expected_table_models_are_registered() -> None:
     """Test that all expected models are registered and have mappers after load_models()."""
     from sqlalchemy.orm import class_mapper

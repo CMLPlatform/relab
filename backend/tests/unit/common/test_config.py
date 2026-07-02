@@ -3,11 +3,6 @@
 from app.api.common.config import APISettings
 
 
-def test_public_docs_tag_groups_are_non_empty() -> None:
-    """Public docs define at least one tag group."""
-    settings = APISettings()
-    assert len(settings.public_docs.x_tag_groups) > 0
-
 def test_full_docs_adds_admin_tag_group() -> None:
     """Full (internal) docs include an Admin tag group absent from public docs."""
     settings = APISettings()

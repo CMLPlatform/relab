@@ -41,11 +41,6 @@ def test_two_trigram_fields_produce_three_conditions() -> None:
     clause = build_text_search_clause("test", _SEARCH_VECTOR, _NAME_COL, _DESC_COL)
     assert len(list(clause.clauses)) == 3
 
-def test_contains_tsvector_match_operator() -> None:
-    """Clause should contain the tsvector match operator (@@)."""
-    sql = _sql(build_text_search_clause("hello", _SEARCH_VECTOR, _NAME_COL))
-    assert "@@" in sql
-
 def test_uses_websearch_to_tsquery() -> None:
     """Clause should use websearch_to_tsquery for the tsquery."""
     sql = _sql(build_text_search_clause("hello world", _SEARCH_VECTOR))

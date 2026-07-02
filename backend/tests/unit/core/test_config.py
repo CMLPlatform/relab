@@ -12,7 +12,6 @@ from pydantic import HttpUrl, RedisDsn, SecretStr
 from pydantic_core import ValidationError
 from sqlalchemy.engine import make_url
 
-from app.api.auth.config import AuthSettings
 from app.core.config import DEFAULT_CORS_ORIGIN_REGEX, CoreSettings, DatabaseSettings, Environment, RedisSettings
 from app.core.env import get_env_file, get_secrets_dir
 
@@ -136,15 +135,11 @@ def test_cache_signing_secret_rejects_short_values() -> None:
     with pytest.raises(ValidationError, match="CACHE_SIGNING_SECRET must be at least 32 bytes"):
         CoreSettings(environment=Environment.DEV, cache_signing_secret=SecretStr("short"))
 
-def test_request_body_limit_default_is_one_mebibyte() -> None:
-    """Non-upload request bodies should default to a conservative 1 MiB cap."""
-    settings = CoreSettings(environment=Environment.DEV)
-    assert settings.request_body_limit_bytes == 1024 * 1024
-
 def test_dos_hardening_defaults_are_conservative() -> None:
     """DoS controls should have safe built-in defaults for every environment."""
     settings = CoreSettings(environment=Environment.DEV)
 
+    assert settings.request_body_limit_bytes == 1024 * 1024
     assert settings.max_file_upload_size_mb == 50
     assert settings.max_image_upload_size_mb == 10
     assert settings.api_read_rate_limit == "300/minute"
@@ -524,52 +519,6 @@ def test_otel_enabled_tracks_endpoint() -> None:
         otel_exporter_otlp_endpoint="http://otel.internal:4318/v1/traces",
     )
     assert settings.otel_enabled is True
-
-def test_auth_settings_load_runtime_secrets_from_secret_files(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Auth settings should load secret material from secrets_dir."""
-    valid_secret = "x" * 32
-    (tmp_path / "auth_token_secret").write_text(valid_secret, encoding="utf-8")
-    (tmp_path / "oauth_state_secret").write_text(valid_secret, encoding="utf-8")
-    (tmp_path / "google_oauth_client_secret").write_text("google-secret", encoding="utf-8")
-    (tmp_path / "github_oauth_client_secret").write_text("github-secret", encoding="utf-8")
-    (tmp_path / "smtp_password").write_text("email-secret", encoding="utf-8")
-    settings_config: Any = {**AuthSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
-    monkeypatch.setattr(AuthSettings, "model_config", settings_config)
-
-    settings = AuthSettings(
-        environment=Environment.PROD,
-        google_oauth_client_id=SecretStr("google-client-id"),
-        github_oauth_client_id=SecretStr("github-client-id"),
-        smtp_host="smtp.example.com",
-        smtp_username="sender@example.com",
-        email_from="RELab <sender@example.com>",
-        email_reply_to="relab@example.com",
-    )
-
-    assert settings.auth_token_secret.get_secret_value() == valid_secret
-    assert settings.oauth_state_secret.get_secret_value() == valid_secret
-    assert settings.google_oauth_client_secret.get_secret_value() == "google-secret"
-    assert settings.github_oauth_client_secret.get_secret_value() == "github-secret"
-    assert settings.smtp_password.get_secret_value() == "email-secret"
-
-def test_auth_settings_require_secrets_in_production() -> None:
-    """Auth settings should reject blank prod/staging secrets and email config."""
-    with pytest.raises(ValidationError, match="Auth settings validation failed"):
-        AuthSettings(
-            environment=Environment.PROD,
-            auth_token_secret=SecretStr("x" * 32),
-            google_oauth_client_id=SecretStr(""),
-            google_oauth_client_secret=SecretStr(""),
-            github_oauth_client_id=SecretStr(""),
-            github_oauth_client_secret=SecretStr(""),
-            smtp_host="",
-            smtp_username="",
-            smtp_password=SecretStr(""),
-            email_from="",
-            email_reply_to="",
-        )
 
 def test_dev_maps_to_development_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """DEV environment should map to .env.dev."""

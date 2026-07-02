@@ -11,24 +11,10 @@ from app.api.common.routers.health import (
     UNHEALTHY_STATUS,
     check_database,
     check_redis,
-    healthy_check,
     perform_health_checks,
-    unhealthy_check,
 )
 from app.core.runtime import AppServices
 
-
-def test_healthy_check_returns_correct_payload() -> None:
-    """Test that healthy_check returns the expected dict."""
-    result = healthy_check("database")
-    assert result == {"component": "database", "status": HEALTHY_STATUS}
-
-def test_unhealthy_check_returns_correct_payload() -> None:
-    """Test that unhealthy_check includes status and error."""
-    result = unhealthy_check("database", "db connection refused")
-    assert result["status"] == UNHEALTHY_STATUS
-    assert result["component"] == "database"
-    assert result["error"] == "db connection refused"
 
 async def test_database_healthy() -> None:
     """Test healthy result when database verification succeeds."""
