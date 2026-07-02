@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     };
-    initializeAuth().catch(() => {});
+    void initializeAuth();
   }, []);
 
   const refetch = useCallback(async (forceRefresh = true) => {

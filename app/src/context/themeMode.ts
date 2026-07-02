@@ -10,10 +10,14 @@ export type ThemeModeContextValue = {
 
 export const ThemeModeContext = createContext<ThemeModeContextValue | null>(null);
 
+/** Normalize react-native's `string | null | undefined` scheme to a concrete light/dark. */
+export function useSystemColorScheme(): 'light' | 'dark' {
+  return useColorScheme() === 'dark' ? 'dark' : 'light';
+}
+
 export function useEffectiveColorScheme(): 'light' | 'dark' {
   const ctx = useContext(ThemeModeContext);
-  const rawScheme = useColorScheme();
-  const systemScheme: 'light' | 'dark' = rawScheme === 'dark' ? 'dark' : 'light';
+  const systemScheme = useSystemColorScheme();
   return ctx?.effectiveColorScheme ?? systemScheme;
 }
 

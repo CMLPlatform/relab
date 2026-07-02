@@ -1,13 +1,15 @@
 import { type ReactNode, useCallback, useMemo } from 'react';
-import { useColorScheme } from 'react-native';
 import { useAuth } from '@/context/auth';
-import { ThemeModeContext, type ThemeModeContextValue } from '@/context/themeMode';
+import {
+  ThemeModeContext,
+  type ThemeModeContextValue,
+  useSystemColorScheme,
+} from '@/context/themeMode';
 import { updateUser } from '@/services/api/auth/authentication';
 import type { ThemeMode } from '@/types/User';
 
 export function ThemeModeProvider({ children }: { children: ReactNode }) {
-  const rawSystemScheme = useColorScheme();
-  const systemScheme: 'light' | 'dark' = rawSystemScheme === 'dark' ? 'dark' : 'light';
+  const systemScheme = useSystemColorScheme();
   const { user, refetch } = useAuth();
 
   const themeMode: ThemeMode = user?.preferences?.theme_mode ?? 'auto';

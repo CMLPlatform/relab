@@ -7,6 +7,7 @@ export function useAppFeedback() {
       globalThis.alert(message);
     }
   };
+  const toast = (message: string) => (dialog ? dialog.toast(message) : fallbackAlert(message));
 
   return {
     alert: (options: {
@@ -24,20 +25,8 @@ export function useAppFeedback() {
       primary?.onPress?.();
     },
     input: dialog?.input ?? (() => {}),
-    toast: (message: string) => {
-      if (dialog) {
-        dialog.toast(message);
-        return;
-      }
-      fallbackAlert(message);
-    },
-    success(message: string) {
-      if (dialog) {
-        dialog.toast(message);
-        return;
-      }
-      fallbackAlert(message);
-    },
+    toast,
+    success: toast,
     error(message: string, title = 'Something went wrong') {
       if (dialog) {
         dialog.alert({ title, message, buttons: [{ text: 'OK' }] });

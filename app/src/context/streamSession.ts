@@ -14,11 +14,10 @@ interface StreamSessionContextValue {
   setActiveStream: (session: StreamSession | null) => void;
 }
 
-export const StreamSessionContext = createContext<StreamSessionContextValue>({
-  activeStream: null,
-  setActiveStream: () => {},
-});
+export const StreamSessionContext = createContext<StreamSessionContextValue | null>(null);
 
 export function useStreamSession() {
-  return useContext(StreamSessionContext);
+  const ctx = useContext(StreamSessionContext);
+  if (!ctx) throw new Error('useStreamSession must be used within StreamSessionProvider');
+  return ctx;
 }
