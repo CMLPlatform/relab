@@ -35,19 +35,6 @@ export const cameraDetailStyles = StyleSheet.create({
     paddingBottom: 48,
     gap: 12,
   },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  errorMessage: {
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 16,
-  },
   card: {
     borderRadius: 12,
   },

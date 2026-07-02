@@ -1,3 +1,5 @@
+import { CenteredSpinner } from '@/components/base/CenteredSpinner';
+import { ErrorState } from '@/components/base/ErrorState';
 import {
   CamerasFab,
   CamerasSelectionOverlay,
@@ -5,18 +7,17 @@ import {
   CamerasStreamDialog,
 } from '@/components/cameras/screen/Chrome';
 import { CamerasGrid } from '@/components/cameras/screen/Grid';
-import { CamerasErrorState, CamerasLoadingState } from '@/components/cameras/screen/States';
-import { useCamerasScreen } from '@/hooks/cameras/useCamerasScreen';
+import { useCamerasScreen } from '@/features/cameras/useCamerasScreen';
 
 export default function CamerasScreen() {
   const { screen, selection, streaming, actions } = useCamerasScreen();
   const handleStartStream = async () => streaming.handleStartStream();
 
   if (!screen.user) return null;
-  if (screen.isLoading) return <CamerasLoadingState />;
+  if (screen.isLoading) return <CenteredSpinner />;
   if (screen.isError) {
     return (
-      <CamerasErrorState
+      <ErrorState
         message={String(screen.error) || 'Failed to load cameras.'}
         onRetry={() => screen.refetch()}
       />

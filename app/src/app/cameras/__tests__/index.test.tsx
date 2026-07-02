@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import type { CameraConnectionInfo } from '@/hooks/cameras/useLocalConnection';
+import type { CameraConnectionInfo } from '@/features/cameras/useLocalConnection';
 import { renderWithProviders } from '@/test-utils/index';
 import CamerasScreen from '../index';
 
@@ -17,7 +17,7 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/hooks/cameras/data/hooks', () => ({
+jest.mock('@/features/cameras/hooks', () => ({
   useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
   useCaptureAllMutation: () => ({
     mutate: mockCaptureMutate,
@@ -25,7 +25,7 @@ jest.mock('@/hooks/cameras/data/hooks', () => ({
   }),
 }));
 
-jest.mock('@/hooks/cameras/useLocalConnection', () => ({
+jest.mock('@/features/cameras/useLocalConnection', () => ({
   useLocalConnection: (...args: unknown[]) => mockUseLocalConnection(...args),
 }));
 
@@ -33,13 +33,19 @@ jest.mock('@/hooks/useIsDesktop', () => ({
   useIsDesktop: () => mockUseIsDesktop(),
 }));
 
-jest.mock('@/components/cameras/screen/States', () => {
+jest.mock('@/components/base/CenteredSpinner', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    CenteredSpinner: () => React.createElement(View, { testID: 'cameras-loading-state' }),
+  };
+});
+
+jest.mock('@/components/base/ErrorState', () => {
   const React = require('react');
   const { Pressable, Text, View } = require('react-native');
-
   return {
-    CamerasLoadingState: () => React.createElement(View, { testID: 'cameras-loading-state' }),
-    CamerasErrorState: ({ message, onRetry }: { message: string; onRetry: () => void }) =>
+    ErrorState: ({ message, onRetry }: { message: string; onRetry: () => void }) =>
       React.createElement(
         View,
         null,

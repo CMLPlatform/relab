@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
-import { ActivityIndicator, Button, IconButton, Text } from 'react-native-paper';
+import { Button, IconButton, Text } from 'react-native-paper';
 import { cameraDetailStyles } from '@/components/cameras/detail/styles';
 import { useAppTheme } from '@/theme';
 
@@ -10,33 +10,6 @@ type CameraDetailLayoutProps = {
 
 export function CameraDetailLayout({ children }: CameraDetailLayoutProps) {
   return <ScrollView contentContainerStyle={styles.container}>{children}</ScrollView>;
-}
-
-export function CameraDetailLoadingState() {
-  return (
-    <View style={styles.center}>
-      <ActivityIndicator size="large" />
-    </View>
-  );
-}
-
-type CameraDetailErrorStateProps = {
-  message: string;
-  onRetry: () => void;
-};
-
-export function CameraDetailErrorState({ message, onRetry }: CameraDetailErrorStateProps) {
-  const theme = useAppTheme();
-
-  return (
-    <View style={styles.center}>
-      <Text style={{ color: theme.colors.error, fontSize: 48 }}>!</Text>
-      <Text style={styles.errorMessage}>{message}</Text>
-      <Button mode="contained" onPress={onRetry} style={styles.retryButton}>
-        Retry
-      </Button>
-    </View>
-  );
 }
 
 export function DetailRow({

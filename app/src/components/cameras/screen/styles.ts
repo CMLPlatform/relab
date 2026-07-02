@@ -4,20 +4,6 @@ import { memoizeByTheme } from '@/theme';
 
 export const createCameraScreenStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
-    center: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 24,
-      gap: 12,
-    },
-    errorText: {
-      marginTop: 12,
-      textAlign: 'center',
-    },
-    retryButton: {
-      marginTop: 16,
-    },
     list: {
       padding: 12,
       paddingBottom: 88,

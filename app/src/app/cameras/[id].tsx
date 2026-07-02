@@ -1,3 +1,5 @@
+import { CenteredSpinner } from '@/components/base/CenteredSpinner';
+import { ErrorState } from '@/components/base/ErrorState';
 import {
   CameraConnectionCard,
   CameraPreviewSection,
@@ -8,12 +10,8 @@ import {
   CameraDetailsCard,
   CameraStreamingSection,
 } from '@/components/cameras/detail/StreamingDetails';
-import {
-  CameraDetailErrorState,
-  CameraDetailLayout,
-  CameraDetailLoadingState,
-} from '@/components/cameras/detail/shared';
-import { useCameraDetailScreen } from '@/hooks/cameras/useCameraDetailScreen';
+import { CameraDetailLayout } from '@/components/cameras/detail/shared';
+import { useCameraDetailScreen } from '@/features/cameras/useCameraDetailScreen';
 
 function CameraDetailContent({
   screen,
@@ -85,14 +83,11 @@ export default function CameraDetailScreen() {
   const { screen, preview, dialogs, actions } = useCameraDetailScreen();
 
   if (!screen.user) return null;
-  if (screen.isLoading) return <CameraDetailLoadingState />;
+  if (screen.isLoading) return <CenteredSpinner />;
 
   if (screen.isError || !screen.camera) {
     return (
-      <CameraDetailErrorState
-        message={String(screen.error) || 'Camera not found.'}
-        onRetry={actions.refresh}
-      />
+      <ErrorState message={String(screen.error) || 'Camera not found.'} onRetry={actions.refresh} />
     );
   }
 
