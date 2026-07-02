@@ -2,7 +2,6 @@ import { Platform, StyleSheet } from 'react-native';
 import type { AppTheme } from '@/theme';
 import { memoizeByTheme } from '@/theme';
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: keeping profile section tokens in one style factory makes theme-driven maintenance easier.
 export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
     container: {

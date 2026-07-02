@@ -79,8 +79,7 @@ export function useProductPageHeader({
   onProductNameChange?: (newName: string) => void;
 }) {
   useEffect(() => {
-    // biome-ignore lint/suspicious/noUnnecessaryConditions: product/name may be nullish at runtime despite the type.
-    const name = product?.name ?? '';
+    const name = product.name;
     const showTrail = isProductComponent && ancestors.length > 0;
     // In edit mode the header *is* the name field, so always render a custom
     // title (input). In view mode, a plain-string title is enough for base

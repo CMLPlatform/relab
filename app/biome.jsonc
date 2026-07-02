@@ -71,6 +71,18 @@
           }
         }
       }
+    },
+    {
+      // Style modules are flat StyleSheet token maps: declarative data, not
+      // control flow. The line-count heuristic misfires on them.
+      "includes": ["**/styles.ts", "**/styles.tsx"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          }
+        }
+      }
     }
   ]
 }

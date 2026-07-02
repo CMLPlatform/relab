@@ -62,8 +62,7 @@ export function ProfileVisibilitySection({
 }: ProfileVisibilitySectionProps) {
   const theme = useAppTheme();
   const styles = createProfileSectionStyles(theme);
-  // biome-ignore lint/suspicious/noUnnecessaryConditions: preferences may be absent at runtime despite the type.
-  const activeVisibility = profile.preferences?.profile_visibility || 'public';
+  const activeVisibility = profile.preferences.profile_visibility || 'public';
 
   return (
     <>
