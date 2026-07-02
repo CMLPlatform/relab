@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.db
 
+
 async def test_preview_thumbnail_helper_returns_public_url_when_file_exists(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -30,6 +31,7 @@ async def test_preview_thumbnail_helper_returns_public_url_when_file_exists(
 
     expected_mtime = int(path.stat().st_mtime)
     assert result[camera_id] == f"/uploads/images/rpi-cam-preview/{camera_id}.jpg?v={expected_mtime}"
+
 
 async def test_preview_thumbnail_helper_returns_none_when_file_is_missing(
     tmp_path: Path,

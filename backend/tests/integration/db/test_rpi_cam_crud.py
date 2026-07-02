@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import uuid
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from app.api.plugins.rpi_cam.crud import create_camera, update_camera
 from app.api.plugins.rpi_cam.models import Camera, CameraCredentialStatus
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraUpdate, RelayPublicKeyJWK
+from tests.factories.models import CameraFactory
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -32,16 +31,13 @@ PUBLIC_JWK = {
     "kid": "key-12345",
 }
 KEY_ID = "key-12345"
-NEW_KEY_ID = "key-67890"
+
 
 def require_uuid(value: UUID | None) -> UUID:
     """Narrow optional UUID values produced by Pydantic models."""
     assert value is not None
     return value
 
-def build_camera(*, owner_id: UUID, name: str = TEST_OLD_NAME) -> Camera:
-    """Build a camera for CRUD tests."""
-    return Camera(name=name, owner_id=owner_id, relay_public_key_jwk=PUBLIC_JWK, relay_key_id=KEY_ID)
 
 async def test_create_camera(db_session: AsyncSession, db_superuser: User) -> None:
     """Test creating a new camera entry with device public key metadata."""
@@ -65,13 +61,11 @@ async def test_create_camera(db_session: AsyncSession, db_superuser: User) -> No
     assert db_camera is not None
     assert db_camera.name == TEST_CAMERA_NAME
 
+
 async def test_update_camera(db_session: AsyncSession, db_superuser: User) -> None:
     """Test updating mutable camera metadata and credential status."""
     owner_id = require_uuid(db_superuser.id)
-    camera = build_camera(owner_id=owner_id)
-    db_session.add(camera)
-    await db_session.commit()
-    await db_session.refresh(camera)
+    camera = await CameraFactory.create_async(db_session, owner_id=owner_id, name=TEST_OLD_NAME)
 
     update_data = CameraUpdate(name=TEST_NEW_NAME, relay_credential_status=CameraCredentialStatus.REVOKED)
 
@@ -79,21 +73,9 @@ async def test_update_camera(db_session: AsyncSession, db_superuser: User) -> No
 
     assert updated_camera.name == TEST_NEW_NAME
     assert updated_camera.relay_credential_status == CameraCredentialStatus.REVOKED
+    assert updated_camera.owner_id == owner_id
 
     await db_session.refresh(camera)
     assert camera.name == TEST_NEW_NAME
     assert camera.relay_credential_status == CameraCredentialStatus.REVOKED
-
-async def test_update_camera_does_not_change_owner() -> None:
-    """Camera updates no longer carry public ownership transfer data."""
-    mock_session = AsyncMock()
-    mock_session.add = MagicMock()
-    owner_id = uuid.uuid4()
-    camera = build_camera(owner_id=owner_id)
-    update_data = CameraUpdate.model_validate({"relay_key_id": NEW_KEY_ID})
-
-    updated_camera = await update_camera(mock_session, camera, update_data)
-
-    assert updated_camera.owner_id == owner_id
-    assert updated_camera.relay_key_id == NEW_KEY_ID
-    mock_session.commit.assert_awaited_once()
+    assert camera.owner_id == owner_id

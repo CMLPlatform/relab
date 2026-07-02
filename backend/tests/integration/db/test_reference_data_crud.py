@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.db
 
+
 async def test_create_categorized_material_persists_category_links(
     db_session: AsyncSession,
     db_taxonomy: Taxonomy,

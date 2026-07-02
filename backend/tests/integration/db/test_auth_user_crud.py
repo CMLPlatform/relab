@@ -26,9 +26,11 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.db
 VALID_TEST_PASSWORD = "correct-horse-battery-staple-v42"
 
+
 def _make_user_db(db_session: AsyncSession) -> UserDatabaseAsync:
     """Build a UserDatabaseAsync wired to the test session."""
     return UserDatabaseAsync(db_session, User, OAuthAccount)
+
 
 async def test_returns_user_create_unchanged_when_valid(db_session: AsyncSession) -> None:
     """No conflicts or checks → returns the same UserCreate unchanged."""
@@ -39,6 +41,7 @@ async def test_returns_user_create_unchanged_when_valid(db_session: AsyncSession
 
     assert isinstance(result, UserCreate)
     assert result.email == user_create.email
+
 
 async def test_raises_when_username_already_taken(db_session: AsyncSession) -> None:
     """Duplicate username must raise UserNameAlreadyExistsError."""
@@ -53,6 +56,7 @@ async def test_raises_when_username_already_taken(db_session: AsyncSession) -> N
     with pytest.raises(UserNameAlreadyExistsError):
         await validate_user_create(user_db, user_create)
 
+
 async def test_allows_omitted_username_for_internal_creation(db_session: AsyncSession) -> None:
     """Internal/OAuth creation may omit username for onboarding completion later."""
     user_db = _make_user_db(db_session)
@@ -61,6 +65,7 @@ async def test_allows_omitted_username_for_internal_creation(db_session: AsyncSe
     result = await validate_user_create(user_db, user_create)
 
     assert result.username is None
+
 
 async def test_raises_for_disposable_email(db_session: AsyncSession) -> None:
     """A disposable email flagged by the checker must raise DisposableEmailError."""
@@ -73,6 +78,7 @@ async def test_raises_for_disposable_email(db_session: AsyncSession) -> None:
     with pytest.raises(DisposableEmailError):
         await validate_user_create(user_db, user_create, email_checker=mock_checker)
 
+
 async def test_skips_disposable_check_when_checker_is_none(db_session: AsyncSession) -> None:
     """No email_checker → disposable check is skipped, validation passes."""
     user_db = _make_user_db(db_session)
@@ -81,6 +87,7 @@ async def test_skips_disposable_check_when_checker_is_none(db_session: AsyncSess
     result = await validate_user_create(user_db, user_create, email_checker=None)
 
     assert result.email == user_create.email
+
 
 def test_rejects_removed_organization_fields() -> None:
     """User creation no longer accepts organization fields."""
@@ -91,11 +98,13 @@ def test_rejects_removed_organization_fields() -> None:
             organization_id="1fa85f64-5717-4562-b3fc-2c963f66afa6",
         )
 
+
 def test_user_database_uses_official_sqlalchemy_adapter(db_session: AsyncSession) -> None:
     """The local adapter should extend, not duplicate, FastAPI-Users SQLAlchemy CRUD."""
     user_db = _make_user_db(db_session)
 
     assert isinstance(user_db, SQLAlchemyUserDatabase)
+
 
 async def test_get_by_email_matches_canonical_equivalent(db_session: AsyncSession) -> None:
     """Different casing should resolve to the same stored user."""
@@ -111,6 +120,7 @@ async def test_get_by_email_matches_canonical_equivalent(db_session: AsyncSessio
     assert result is not None
     assert result.id == user.id
 
+
 async def test_returns_user_when_found(db_session: AsyncSession) -> None:
     """Existing username → returns the matching User instance."""
     user = await UserFactory.create_async(db_session, email="user@example.com", username="find_me")
@@ -120,8 +130,8 @@ async def test_returns_user_when_found(db_session: AsyncSession) -> None:
     assert result.id == user.id
     assert result.username == "find_me"
 
+
 async def test_raises_when_username_not_found(db_session: AsyncSession) -> None:
     """Non-existent username → raises NotFoundError with descriptive message."""
     with pytest.raises(NotFoundError, match="not found"):
         await get_user_by_username(db_session, "ghost_user")
-

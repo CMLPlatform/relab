@@ -13,6 +13,7 @@ from app.api.data_collection.models.product import (
     MaterialProductLink,
     Product,
 )
+from app.api.plugins.rpi_cam.models import Camera
 from app.api.reference_data.models import (
     Category,
     CategoryMaterialLink,
@@ -277,3 +278,31 @@ class MaterialProductLinkFactory(BaseModelFactory[MaterialProductLink]):
     @classmethod
     def quantity(cls) -> float:
         return cls.__faker__.pyfloat(positive=True, min_value=0.1, max_value=10.0)
+
+
+class CameraFactory(BaseModelFactory[Camera]):
+    """Factory for creating Camera test instances."""
+
+    __model__ = Camera
+
+    @classmethod
+    def name(cls) -> str:
+        return cls.__faker__.catch_phrase()
+
+    @classmethod
+    def description(cls) -> str | None:
+        return cls.__faker__.sentence() if cls.__faker__.boolean() else None
+
+    @classmethod
+    def relay_public_key_jwk(cls) -> dict[str, str]:
+        return {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": cls.__faker__.bothify(text="?" * 43),
+            "y": cls.__faker__.bothify(text="?" * 43),
+            "kid": cls.__faker__.uuid4(),
+        }
+
+    @classmethod
+    def relay_key_id(cls) -> str:
+        return cls.__faker__.uuid4()
