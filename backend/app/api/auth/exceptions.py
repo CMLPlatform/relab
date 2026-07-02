@@ -50,8 +50,11 @@ class DisposableEmailError(BadRequestError, AuthCRUDError):
     """Raised when a disposable email address is used."""
 
     def __init__(self, email: str) -> None:
-        msg = f"Disposable email providers are not allowed: {email}."
-        super().__init__(msg)
+        # Don't reflect the submitted address back to the client; keep it in the server log only.
+        super().__init__(
+            "Disposable email providers are not allowed.",
+            log_message=f"Disposable email providers are not allowed: {email}.",
+        )
 
 
 class InvalidOAuthProviderError(BadRequestError):

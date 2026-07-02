@@ -75,11 +75,14 @@ async def add_materials_to_product(
         MaterialProductLink(**material_link.model_dump(), product_id=product_id) for material_link in material_links
     ]
     db.add_all(db_material_product_links)
-    await db.flush()
-    link_ids = [link.id for link in db_material_product_links]
     await db.commit()
 
-    result = await db.execute(select(MaterialProductLink).where(MaterialProductLink.id.in_(link_ids)))
+    # MaterialProductLink has a composite (material_id, product_id) PK — no single id.
+    result = await db.execute(
+        select(MaterialProductLink)
+        .where(MaterialProductLink.product_id == product_id)
+        .where(MaterialProductLink.material_id.in_(normalized_material_ids))
+    )
     return list(result.scalars().all())
 
 

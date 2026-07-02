@@ -1,14 +1,13 @@
 """Storage backend resolution helpers."""
 
-from functools import cache
-
 from app.api.file_storage.models.storage_core import BaseStorage
 from app.api.file_storage.models.storage_filesystem import FileSystemStorage
 from app.api.file_storage.models.storage_s3 import S3Storage
 from app.core.config import StorageBackend, settings
 
 
-@cache
+# Resolved per call (not cached) so the backend always reflects the current
+# settings.*_storage_path — tests repoint these at temp dirs at runtime.
 def _get_file_storage() -> BaseStorage:
     """Return the configured storage backend for generic files."""
     if settings.storage_backend == StorageBackend.S3:
@@ -24,7 +23,6 @@ def _get_file_storage() -> BaseStorage:
     return FileSystemStorage(path=str(settings.file_storage_path))
 
 
-@cache
 def _get_image_storage() -> BaseStorage:
     """Return the configured storage backend for image files."""
     if settings.storage_backend == StorageBackend.S3:

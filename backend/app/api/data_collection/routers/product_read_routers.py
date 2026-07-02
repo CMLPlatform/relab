@@ -156,6 +156,33 @@ async def get_products(
     return conditional_json_response(request, payload)
 
 
+# Declared before "/{product_id}" so the single-segment static path wins over the dynamic param.
+@product_read_router.get(
+    "/facets",
+    response_model=ProductFacetsRead,
+    summary="Get derived product facets",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
+)
+@cache(expire=60)
+async def get_product_facets(
+    session: AsyncSessionDep,
+    fields: Annotated[
+        list[ProductFacetField] | None,
+        Query(description="Product fields to facet. Repeat the parameter for multiple fields."),
+    ] = None,
+) -> ProductFacetsRead:
+    """Return derived filter values and counts for product browsing."""
+    facets: ProductFacetsRead = {}
+    for field in fields or [PRODUCT_FACET_BRAND]:
+        rows = (await session.execute(get_product_facet_statement(field))).all()
+        facets[field] = [
+            ProductFacetValue(value=value.title() if field == PRODUCT_FACET_BRAND else value, count=count)
+            for value, count in rows
+            if value
+        ]
+    return facets
+
+
 @product_read_router.get(
     "/{product_id}",
     response_model=ProductReadWithRelationshipsAndFlatComponents,
@@ -269,29 +296,3 @@ async def get_model_suggestions(
     page = await paginate_select(session, statement)
     page.items = [model for model in page.items if model]
     return page
-
-
-@product_read_router.get(
-    "/facets",
-    response_model=ProductFacetsRead,
-    summary="Get derived product facets",
-    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
-)
-@cache(expire=60)
-async def get_product_facets(
-    session: AsyncSessionDep,
-    fields: Annotated[
-        list[ProductFacetField] | None,
-        Query(description="Product fields to facet. Repeat the parameter for multiple fields."),
-    ] = None,
-) -> ProductFacetsRead:
-    """Return derived filter values and counts for product browsing."""
-    facets: ProductFacetsRead = {}
-    for field in fields or [PRODUCT_FACET_BRAND]:
-        rows = (await session.execute(get_product_facet_statement(field))).all()
-        facets[field] = [
-            ProductFacetValue(value=value.title() if field == PRODUCT_FACET_BRAND else value, count=count)
-            for value, count in rows
-            if value
-        ]
-    return facets

@@ -7,7 +7,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.requests import Request
 from fastapi.responses import Response
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, RouteContext, iter_route_contexts
 
 from app.__version__ import version as service_version
 from app.api.common.audiences import RouteAudience, merge_audience_extra, route_audiences
@@ -36,8 +36,14 @@ DEVICE_ROUTE_SUFFIXES = ("/image-upload", "/preview-thumbnail-upload", "/self")
 
 ### Route inclusion functions ###
 def mark_router_routes_public(router: APIRouter) -> None:
-    """Mark all routes in a router as public."""
-    for route in router.routes:
+    """Mark all routes in a router as public, including nested included sub-routers.
+
+    FastAPI wraps ``include_router`` children in ``_IncludedRouter`` objects, so a
+    shallow scan of ``router.routes`` misses them; ``iter_route_contexts`` flattens
+    the tree to the underlying ``APIRoute`` objects we need to tag.
+    """
+    for ctx in iter_route_contexts(router.routes):
+        route = ctx.original_route
         if isinstance(route, APIRoute):
             existing_extra = route.openapi_extra or {}
             route.openapi_extra = {
@@ -118,10 +124,17 @@ def _add_schema_metadata(schema: dict[str, Any], *, tag_groups: list[dict[str, s
 def _filter_openapi_routes(
     routes: Sequence[BaseRoute],
     *,
-    include_route: Callable[[APIRoute], bool],
-) -> list[BaseRoute]:
-    """Return routes for FastAPI's OpenAPI generator, filtering only API routes."""
-    return [route for route in routes if not isinstance(route, APIRoute) or include_route(route)]
+    include_route: Callable[[RouteContext], bool],
+) -> list[RouteContext]:
+    """Return route contexts for FastAPI's OpenAPI generator, filtering only API routes.
+
+    FastAPI nests included routers under ``_IncludedRouter`` wrappers, so ``app.routes``
+    no longer exposes flat ``APIRoute`` objects. ``iter_route_contexts`` flattens the
+    tree into contexts that carry each route's effective (prefixed) path; ``get_openapi``
+    accepts those contexts back directly.
+    """
+    contexts = list(iter_route_contexts(routes))
+    return [ctx for ctx in contexts if not isinstance(ctx.route, APIRoute) or include_route(ctx)]
 
 
 def _route_tags(route: APIRoute) -> set[str]:
@@ -131,7 +144,8 @@ def _route_tags(route: APIRoute) -> set[str]:
     return set()
 
 
-def _is_public_route(route: APIRoute) -> bool:
+def _is_public_route(ctx: RouteContext) -> bool:
+    route = ctx.route
     audiences = set(route_audiences(route))
     return (
         (route.openapi_extra or {}).get(OPENAPI_PUBLIC_INCLUSION_EXTENSION, False)
@@ -140,17 +154,17 @@ def _is_public_route(route: APIRoute) -> bool:
     )
 
 
-def _is_admin_route(route: APIRoute) -> bool:
-    audiences = set(route_audiences(route))
-    tags = _route_tags(route)
-    return RouteAudience.ADMIN.value in audiences or ADMIN_TAG in tags or route.path.startswith(f"/{API_MAJOR}/admin/")
+def _is_admin_route(ctx: RouteContext) -> bool:
+    audiences = set(route_audiences(ctx.route))
+    tags = _route_tags(ctx.route)
+    return RouteAudience.ADMIN.value in audiences or ADMIN_TAG in tags or ctx.path.startswith(f"/{API_MAJOR}/admin/")
 
 
-def _is_device_route(route: APIRoute) -> bool:
-    audiences = set(route_audiences(route))
+def _is_device_route(ctx: RouteContext) -> bool:
+    audiences = set(route_audiences(ctx.route))
     if RouteAudience.DEVICE.value in audiences:
         return True
-    return route.path.startswith(f"/{API_MAJOR}/plugins/rpi-cam/pairing/") or route.path.endswith(DEVICE_ROUTE_SUFFIXES)
+    return ctx.path.startswith(f"/{API_MAJOR}/plugins/rpi-cam/pairing/") or ctx.path.endswith(DEVICE_ROUTE_SUFFIXES)
 
 
 def _register_internal_docs(router: APIRouter, app: FastAPI) -> None:
