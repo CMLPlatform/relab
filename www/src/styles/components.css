@@ -115,13 +115,13 @@
 }
 
 .btn-primary {
-  background: #0b5970;
-  color: #ffffff;
+  background: rgb(11, 89, 112);
+  color: rgb(255, 255, 255);
   box-shadow: 0 10px 20px rgba(12, 91, 114, 0.18);
 }
 
 .btn-primary:hover {
-  background: #084b5e;
+  background: rgb(8, 75, 94);
 }
 
 .btn-muted {

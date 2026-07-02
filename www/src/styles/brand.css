@@ -27,13 +27,13 @@
 :root {
   color-scheme: light dark;
   --relab-brand-font: "IBM Plex Sans";
-  --relab-brand-primary: light-dark(#006783, #63d3ff);
-  --relab-brand-primary-strong: light-dark(#004f65, #a7e9ff);
+  --relab-brand-primary: light-dark(rgb(0, 103, 131), rgb(99, 211, 255));
+  --relab-brand-primary-strong: light-dark(rgb(0, 79, 101), rgb(167, 233, 255));
   --relab-brand-primary-soft: light-dark(rgba(0, 103, 131, 0.08), rgba(99, 211, 255, 0.14));
-  --relab-brand-accent: light-dark(#5c5b7d, #d2cbff);
-  --relab-brand-text: light-dark(#13263a, #f2f8ff);
+  --relab-brand-accent: light-dark(rgb(92, 91, 125), rgb(210, 203, 255));
+  --relab-brand-text: light-dark(rgb(19, 38, 58), rgb(242, 248, 255));
   --relab-brand-surface-wash: light-dark(rgba(248, 250, 252, 0.8), rgba(12, 23, 36, 0.74));
-  --relab-brand-theme-color: light-dark(#eef4f7, #09131b);
+  --relab-brand-theme-color: light-dark(rgb(238, 244, 247), rgb(9, 19, 27));
 }
 
 :root[data-theme="light"] {

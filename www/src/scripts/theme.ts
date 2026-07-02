@@ -7,20 +7,26 @@ function isThemeName(value: string | null | undefined): value is ThemeName {
   return value === 'system' || value === 'light' || value === 'dark';
 }
 
-function getStoredTheme(storage: Storage = window.localStorage): ThemeName {
+function getStoredTheme(storage: Storage = globalThis.localStorage): ThemeName {
   const storedTheme = storage.getItem(STORAGE_KEY);
-  return isThemeName(storedTheme) ? storedTheme : 'system';
+  if (isThemeName(storedTheme)) {
+    return storedTheme;
+  }
+  return 'system';
 }
 
 function resolveTheme(
   theme: ThemeName,
-  mediaQuery: MediaQueryList = window.matchMedia('(prefers-color-scheme: dark)'),
+  mediaQuery: MediaQueryList = globalThis.matchMedia('(prefers-color-scheme: dark)'),
 ): ResolvedTheme {
   if (theme === 'light' || theme === 'dark') {
     return theme;
   }
 
-  return mediaQuery.matches ? 'dark' : 'light';
+  if (mediaQuery.matches) {
+    return 'dark';
+  }
+  return 'light';
 }
 
 function updateThemeMeta(theme: ResolvedTheme) {
@@ -32,7 +38,11 @@ function updateThemeMeta(theme: ResolvedTheme) {
     return;
   }
 
-  themeMeta.setAttribute('content', theme === 'dark' ? '#0a141d' : '#eef4f7');
+  let themeColor = '#eef4f7';
+  if (theme === 'dark') {
+    themeColor = '#0a141d';
+  }
+  themeMeta.setAttribute('content', themeColor);
 }
 
 function applyTheme(theme: ThemeName) {
@@ -79,12 +89,12 @@ function initThemeControl() {
     const currentIndex = THEMES.indexOf(currentTheme);
     const nextTheme = THEMES[(currentIndex + 1) % THEMES.length];
 
-    window.localStorage.setItem(STORAGE_KEY, nextTheme);
+    globalThis.localStorage.setItem(STORAGE_KEY, nextTheme);
     applyTheme(nextTheme);
     updateThemeToggle(control, nextTheme);
   };
 
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const mediaQuery = globalThis.matchMedia('(prefers-color-scheme: dark)');
   const handleMediaChange = () => {
     if (getStoredTheme() === 'system') {
       syncTheme();

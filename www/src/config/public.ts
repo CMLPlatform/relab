@@ -27,15 +27,22 @@ function validateHttpUrl(value: string, key: string): string {
 
 export function readSiteUrl(env: EnvSource, fallback?: string): string {
   const value = getOptional(env, 'PUBLIC_SITE_URL') ?? fallback;
-  return value ? validateHttpUrl(value, 'PUBLIC_SITE_URL') : '';
+  if (value) {
+    return validateHttpUrl(value, 'PUBLIC_SITE_URL');
+  }
+  return '';
 }
 
 export function readPublicSiteConfig(env: EnvSource): PublicSiteConfig {
   const linkedInUrl = getOptional(env, 'PUBLIC_LINKEDIN_URL');
+  let validatedLinkedInUrl: string | undefined;
+  if (linkedInUrl) {
+    validatedLinkedInUrl = validateHttpUrl(linkedInUrl, 'PUBLIC_LINKEDIN_URL');
+  }
   return {
     appUrl: validateHttpUrl(getRequired(env, 'PUBLIC_APP_URL', LABEL), 'PUBLIC_APP_URL'),
     docsUrl: validateHttpUrl(getRequired(env, 'PUBLIC_DOCS_URL', LABEL), 'PUBLIC_DOCS_URL'),
-    linkedInUrl: linkedInUrl ? validateHttpUrl(linkedInUrl, 'PUBLIC_LINKEDIN_URL') : undefined,
+    linkedInUrl: validatedLinkedInUrl,
     contactEmail: getOptional(env, 'PUBLIC_CONTACT_EMAIL') ?? 'relab@cml.leidenuniv.nl',
     siteUrl: validateHttpUrl(getRequired(env, 'PUBLIC_SITE_URL', LABEL), 'PUBLIC_SITE_URL'),
   };

@@ -23,12 +23,12 @@ function mockMatchMedia(prefersDark: boolean) {
       return true;
     },
   } as unknown as MediaQueryList;
-  window.matchMedia = vi.fn().mockReturnValue(mql);
+  globalThis.matchMedia = vi.fn().mockReturnValue(mql);
   return mql;
 }
 
 beforeEach(() => {
-  window.localStorage.clear();
+  globalThis.localStorage.clear();
   document.documentElement.removeAttribute('data-theme');
   document.documentElement.removeAttribute('data-theme-preference');
   document.head.innerHTML = '';
@@ -46,12 +46,12 @@ describe('getStoredTheme', () => {
   });
 
   it('returns the stored theme when it is a valid name', () => {
-    window.localStorage.setItem(STORAGE_KEY, 'dark');
+    globalThis.localStorage.setItem(STORAGE_KEY, 'dark');
     expect(getStoredTheme()).toBe('dark');
   });
 
   it('falls back to "system" for invalid stored values', () => {
-    window.localStorage.setItem(STORAGE_KEY, 'neon');
+    globalThis.localStorage.setItem(STORAGE_KEY, 'neon');
     expect(getStoredTheme()).toBe('system');
   });
 });
@@ -110,11 +110,11 @@ describe('initThemeControl', () => {
 
     expect(getStoredTheme()).toBe('system');
     button.click();
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('light');
+    expect(globalThis.localStorage.getItem(STORAGE_KEY)).toBe('light');
     button.click();
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('dark');
+    expect(globalThis.localStorage.getItem(STORAGE_KEY)).toBe('dark');
     button.click();
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('system');
+    expect(globalThis.localStorage.getItem(STORAGE_KEY)).toBe('system');
   });
 
   it('is idempotent when called twice', () => {
@@ -124,6 +124,6 @@ describe('initThemeControl', () => {
     expect(control.dataset.initialized).toBe('true');
     button.click();
     // Only one listener wired, so exactly one step forward.
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('light');
+    expect(globalThis.localStorage.getItem(STORAGE_KEY)).toBe('light');
   });
 });

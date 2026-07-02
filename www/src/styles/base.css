@@ -13,7 +13,7 @@ body {
   color: var(--color-text);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-surface) 92%, #d4e5ee) 0%,
+    color-mix(in srgb, var(--color-surface) 92%, rgb(212, 229, 238)) 0%,
     var(--color-surface) 18%,
     color-mix(in srgb, var(--color-surface) 86%, white) 100%
   );

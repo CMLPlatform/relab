@@ -8,9 +8,10 @@ interface Props {
 }
 
 const { title, intro, meta, compact = true } = Astro.props;
-const contentPageClass = compact
-  ? 'content-page content-page-compact stack-md'
-  : 'content-page stack-md';
+let contentPageClass = 'content-page stack-md';
+if (compact) {
+  contentPageClass = 'content-page content-page-compact stack-md';
+}
 ---
 
 <div class={contentPageClass}>

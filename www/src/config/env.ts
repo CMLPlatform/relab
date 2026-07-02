@@ -9,7 +9,7 @@ export type EnvSource = Record<string, string | undefined>;
 
 export function getOptional(env: EnvSource, key: string): string | undefined {
   const value = env[key]?.trim();
-  return value ? value : undefined;
+  return value || undefined;
 }
 
 export function getRequired(env: EnvSource, key: string, label = 'env var'): string {
