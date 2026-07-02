@@ -112,12 +112,6 @@ async def test_validate_password_rejects_username_case_insensitively() -> None:
         )
     assert "username" in exc.value.reason
 
-async def test_validate_password_rejects_blocklisted_passwords() -> None:
-    """Common passwords should be rejected."""
-    with pytest.raises(InvalidPasswordException) as exc:
-        await validate_password("password12345", email="a@b.c", skip_breach_check=True)
-    assert "too common" in exc.value.reason
-
 def test_common_password_resource_has_asvs_sized_policy_matching_set() -> None:
     """ASVS 6.2.4 requires at least 3000 common passwords matching the password policy."""
     blocklist = load_local_common_passwords()

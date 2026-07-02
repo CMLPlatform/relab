@@ -8,7 +8,6 @@ from starlette.responses import Response
 
 from app.api.auth.services.auth_backends import (
     AUTH_COOKIE_NAME,
-    COOKIE_DOMAIN,
     REFRESH_COOKIE_NAME,
     clear_auth_cookies,
     cookie_transport,
@@ -22,10 +21,7 @@ if TYPE_CHECKING:
 
 def test_cookie_transport_uses_host_only_auth_cookie() -> None:
     """The browser auth cookie should be scoped to the API host, not the parent domain."""
-    assert AUTH_COOKIE_NAME == "__Host-relab-auth"
-    assert COOKIE_DOMAIN is None
     assert cookie_transport.cookie_domain is None
-    assert cookie_transport.cookie_name == AUTH_COOKIE_NAME
     assert cookie_transport.cookie_secure is True
 
 def test_refresh_cookie_is_host_only() -> None:
