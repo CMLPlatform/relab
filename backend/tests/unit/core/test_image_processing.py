@@ -18,7 +18,6 @@ from app.core.images import (
     delete_thumbnails,
     generate_thumbnails,
     process_image_for_storage,
-    resize_image,
     strip_sensitive_exif,
     thumbnail_path_for,
     validate_image_dimensions,
@@ -59,57 +58,6 @@ def _make_jpeg_with_exif(
 def _make_upload_file(content_type: str) -> UploadFile:
     """Create a minimal UploadFile for MIME type validation tests."""
     return UploadFile(file=io.BytesIO(b""), filename="test.bin", headers=Headers({"content-type": content_type}))
-
-# ---------------------------------------------------------------------------
-# resize_image
-# ---------------------------------------------------------------------------
-
-def test_resize_image_width(sample_image: Path) -> None:
-    """Test resizing by width only."""
-    resized_bytes = resize_image(sample_image, width=100)
-
-    with PILImage.open(io.BytesIO(resized_bytes)) as img:
-        assert img.width == 100
-        assert img.height == 50  # Aspect ratio 2:1 maintained
-
-def test_resize_image_height(sample_image: Path) -> None:
-    """Test resizing by height only."""
-    resized_bytes = resize_image(sample_image, height=100)
-
-    with PILImage.open(io.BytesIO(resized_bytes)) as img:
-        assert img.height == 100
-        assert img.width == 200  # Aspect ratio 2:1 maintained
-
-def test_resize_image_both(sample_image: Path) -> None:
-    """Test resizing by both width and height."""
-    resized_bytes = resize_image(sample_image, width=50, height=50)
-
-    with PILImage.open(io.BytesIO(resized_bytes)) as img:
-        assert img.width == 50
-        assert img.height == 50
-
-def test_resize_image_none(sample_image: Path) -> None:
-    """Test resizing with neither width nor height (should return original size)."""
-    resized_bytes = resize_image(sample_image)
-
-    with PILImage.open(io.BytesIO(resized_bytes)) as img:
-        assert img.width == 400
-        assert img.height == 200
-
-def test_resize_image_not_found() -> None:
-    """Test error when image file is not found."""
-    with pytest.raises(FileNotFoundError):
-        resize_image(Path("non_existent.png"), width=100)
-
-def test_resize_image_accepts_anyio_path(sample_image: Path) -> None:
-    """Resize should work with anyio.Path without touching async exists()."""
-    async_path = AnyIOPath(str(sample_image))
-
-    resized_bytes = resize_image(async_path, width=100)
-
-    with PILImage.open(io.BytesIO(resized_bytes)) as img:
-        assert img.width == 100
-        assert img.height == 50
 
 # ---------------------------------------------------------------------------
 # validate_image_dimensions

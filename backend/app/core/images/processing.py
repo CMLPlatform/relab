@@ -4,13 +4,12 @@
 from __future__ import annotations
 
 import contextlib
-import io
 from typing import TYPE_CHECKING
 
 from PIL import Image as PILImage
 from PIL import ImageOps
 
-from .constants import FORMAT_JPEG, FORMAT_WEBP, RESAMPLE_FILTER
+from .constants import FORMAT_JPEG
 from .exif import get_exif_orientation
 from .validation import validate_image_dimensions
 
@@ -49,24 +48,3 @@ def process_image_for_storage(image_path: PathLike[str]) -> None:
         save_kwargs.update({"quality": 95, "optimize": True})
 
     processed.save(image_path, **save_kwargs)
-
-
-def resize_image(image_path: PathLike[str], width: int | None = None, height: int | None = None) -> bytes:
-    """Resize an image while maintaining aspect ratio, returning WebP bytes."""
-    with PILImage.open(image_path) as img:
-        current_width, current_height = img.size
-        if width and not height:
-            height = int((width / current_width) * current_height)
-        elif height and not width:
-            width = int((height / current_height) * current_width)
-        elif not width and not height:
-            width, height = current_width, current_height
-
-        final_width = width or current_width
-        final_height = height or current_height
-
-        resized = img.resize((final_width, final_height), RESAMPLE_FILTER)
-
-        buf = io.BytesIO()
-        resized.save(buf, format=FORMAT_WEBP, quality=85, method=6)
-        return buf.getvalue()
