@@ -16,11 +16,6 @@ from app.api.reference_data.models import Category, Taxonomy, TaxonomyDomain
 from tests.factories.models import CategoryFactory, TaxonomyFactory
 
 
-def _make_session() -> AsyncMock:
-    session = AsyncMock()
-    session.execute = AsyncMock()
-    return session
-
 async def test_inherits_taxonomy_from_supercategory(mock_session: AsyncMock) -> None:
     """When a supercategory is supplied, its taxonomy wins over any passed-in value."""
     category_create = AsyncMock()
@@ -109,49 +104,45 @@ async def test_validate_domains_invalid_domain(mock_session: AsyncMock) -> None:
     with pytest.raises(BadRequestError, match="belong to taxonomies outside of domains"):
         await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
 
-async def test_raises_when_both_ids_provided() -> None:
+async def test_raises_when_both_ids_provided(mock_session: AsyncMock) -> None:
     """Rejects requests that mix taxonomy and supercategory filters."""
-    session = _make_session()
     with pytest.raises(BadRequestError, match="not both"):
-        await get_category_trees(session, supercategory_id=1, taxonomy_id=2)
+        await get_category_trees(mock_session, supercategory_id=1, taxonomy_id=2)
 
-async def test_returns_top_level_categories() -> None:
+async def test_returns_top_level_categories(mock_session: AsyncMock) -> None:
     """Returns top-level categories when no filters are provided."""
-    session = _make_session()
     cat = CategoryFactory.build(id=1)
     mock_scalars = MagicMock()
     mock_scalars.all.return_value = [cat]
     mock_result = MagicMock()
     mock_result.scalars.return_value = mock_scalars
-    session.execute.return_value = mock_result
-    result = await get_category_trees(session)
+    mock_session.execute.return_value = mock_result
+    result = await get_category_trees(mock_session)
     assert result == [cat]
 
-async def test_filters_by_taxonomy_id() -> None:
+async def test_filters_by_taxonomy_id(mock_session: AsyncMock) -> None:
     """Filters category trees by taxonomy id."""
-    session = _make_session()
     cat = CategoryFactory.build(id=1, taxonomy_id=10)
     mock_scalars = MagicMock()
     mock_scalars.all.return_value = [cat]
     mock_result = MagicMock()
     mock_result.scalars.return_value = mock_scalars
-    session.execute.return_value = mock_result
+    mock_session.execute.return_value = mock_result
 
     with patch("app.api.reference_data.crud.categories.require_model"):
-        result = await get_category_trees(session, taxonomy_id=10)
+        result = await get_category_trees(mock_session, taxonomy_id=10)
     assert result == [cat]
 
-async def test_filters_by_supercategory_id() -> None:
+async def test_filters_by_supercategory_id(mock_session: AsyncMock) -> None:
     """Filters category trees by supercategory id."""
-    session = _make_session()
     child_cat = CategoryFactory.build(id=2, supercategory_id=1)
     mock_scalars = MagicMock()
     mock_scalars.all.return_value = [child_cat]
     mock_result = MagicMock()
     mock_result.scalars.return_value = mock_scalars
-    session.execute.return_value = mock_result
+    mock_session.execute.return_value = mock_result
 
     with patch("app.api.reference_data.crud.categories.require_model"):
-        result = await get_category_trees(session, supercategory_id=1)
+        result = await get_category_trees(mock_session, supercategory_id=1)
     assert result == [child_cat]
 

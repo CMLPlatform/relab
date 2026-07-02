@@ -19,19 +19,11 @@ from app.api.reference_data.models import (
 from tests.factories.models import CategoryFactory, MaterialFactory, ProductTypeFactory
 
 
-def _make_session() -> AsyncMock:
-    session = AsyncMock()
-    session.add = MagicMock()
-    session.flush = AsyncMock()
-    session.commit = AsyncMock()
-    session.delete = AsyncMock()
-    session.execute = AsyncMock()
-    return session
-
-
-async def test_add_categorized_material_categories_returns_validated_categories() -> None:
+async def test_add_categorized_material_categories_returns_validated_categories(
+    mock_session: AsyncMock,
+) -> None:
     """Adds material category links using the material link model."""
-    session = _make_session()
+    session = mock_session
     db_material = MaterialFactory.build(id=1)
     db_material.categories = []
     db_categories = [CategoryFactory.build(id=1)]
@@ -57,9 +49,11 @@ async def test_add_categorized_material_categories_returns_validated_categories(
     )
 
 
-async def test_add_categorized_product_type_categories_returns_validated_categories() -> None:
+async def test_add_categorized_product_type_categories_returns_validated_categories(
+    mock_session: AsyncMock,
+) -> None:
     """Adds product-type category links using the product-type link model."""
-    session = _make_session()
+    session = mock_session
     db_product_type = ProductTypeFactory.build(id=1)
     db_product_type.categories = []
     db_categories = [CategoryFactory.build(id=1)]
@@ -85,9 +79,11 @@ async def test_add_categorized_product_type_categories_returns_validated_categor
     )
 
 
-async def test_remove_categorized_material_categories_deletes_existing_links() -> None:
+async def test_remove_categorized_material_categories_deletes_existing_links(
+    mock_session: AsyncMock,
+) -> None:
     """Removes material category links after confirming they exist."""
-    session = _make_session()
+    session = mock_session
     db_material = MaterialFactory.build(id=1)
     db_material.categories = [CategoryFactory.build(id=2)]
     material_link = CategoryMaterialLink(material_id=1, category_id=2)
@@ -100,9 +96,11 @@ async def test_remove_categorized_material_categories_deletes_existing_links() -
     session.commit.assert_called_once()
 
 
-async def test_remove_categorized_product_type_categories_deletes_existing_links() -> None:
+async def test_remove_categorized_product_type_categories_deletes_existing_links(
+    mock_session: AsyncMock,
+) -> None:
     """Removes product-type category links after confirming they exist."""
-    session = _make_session()
+    session = mock_session
     db_product_type = ProductTypeFactory.build(id=1)
     db_product_type.categories = [CategoryFactory.build(id=2)]
     product_type_link = CategoryProductTypeLink(product_type_id=1, category_id=2)
@@ -115,9 +113,11 @@ async def test_remove_categorized_product_type_categories_deletes_existing_links
     session.commit.assert_called_once()
 
 
-async def test_delete_categorized_reference_deletes_media_before_resource() -> None:
+async def test_delete_categorized_reference_deletes_media_before_resource(
+    mock_session: AsyncMock,
+) -> None:
     """Deletes attached files/images before deleting the reference-data resource."""
-    session = _make_session()
+    session = mock_session
     db_material = MaterialFactory.build(id=1)
 
     with (

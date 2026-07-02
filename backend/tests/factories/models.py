@@ -16,8 +16,6 @@ from app.api.data_collection.models.product import (
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.reference_data.models import (
     Category,
-    CategoryMaterialLink,
-    CategoryProductTypeLink,
     Material,
     ProductType,
     Taxonomy,
@@ -218,22 +216,6 @@ class ProductTypeFactory(BaseModelFactory[ProductType]):
     @classmethod
     def description(cls) -> str | None:
         return cls.__faker__.sentence() if cls.__faker__.boolean() else None
-
-
-class CategoryMaterialLinkFactory(BaseModelFactory[CategoryMaterialLink]):
-    """Factory for creating CategoryMaterialLink instances."""
-
-    __model__ = CategoryMaterialLink
-
-    # category_id and material_id should be set explicitly
-
-
-class CategoryProductTypeLinkFactory(BaseModelFactory[CategoryProductTypeLink]):
-    """Factory for creating CategoryProductTypeLink instances."""
-
-    __model__ = CategoryProductTypeLink
-
-    # category_id and product_type_id should be set explicitly
 
 
 class ProductFactory(BaseModelFactory[Product]):

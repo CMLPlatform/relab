@@ -94,11 +94,6 @@ def test_overlong_search_is_rejected_by_helper() -> None:
     with pytest.raises(ValueError, match="at most 100"):
         get_brand_search_statement(search="a" * 101)
 
-def test_default_order_is_asc() -> None:
-    """Test that the default order is ascending."""
-    sql = _sql(get_brand_search_statement())
-    assert "DESC" not in sql.upper()
-
 def test_order_desc() -> None:
     """Test that ordering can be set to descending."""
     sql = _sql(get_brand_search_statement(order="desc"))

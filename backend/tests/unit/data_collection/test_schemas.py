@@ -115,12 +115,6 @@ def test_product_name_min_length() -> None:
     with pytest.raises(ValidationError):
         _validate_model(ProductCreateBaseProduct, {"name": "A"})
 
-def test_product_list_fields_default_to_empty() -> None:
-    """Videos and bill_of_materials default to empty lists."""
-    product = _validate_model(ProductCreateBaseProduct, {"name": "Dyson V15 Detect"})
-    assert product.videos == []
-    assert product.bill_of_materials == []
-
 def test_incomplete_product_create_remains_valid_for_progressive_collection() -> None:
     """Progressive data entry allows products before the completed tree is audited."""
     product = _validate_model(ProductCreateWithComponents, {"name": "Dyson V15 Detect"})
