@@ -61,6 +61,7 @@ export async function refreshAuthToken(apiUrl: string): Promise<boolean> {
   const url = new URL(apiUrl + authPath);
 
   authRuntime.refreshPromise = (async () => {
+    const capturedGeneration = authRuntime.authGeneration;
     try {
       const refreshToken = web ? undefined : await loadStoredRefreshToken();
       if (!web && !refreshToken) return false;
@@ -79,6 +80,10 @@ export async function refreshAuthToken(apiUrl: string): Promise<boolean> {
         authRuntime.explicitlyLoggedOut = true;
         return false;
       }
+
+      // A logout that landed while this refresh was in flight bumps the
+      // generation; don't resurrect the session by re-persisting a token.
+      if (authRuntime.authGeneration !== capturedGeneration) return false;
 
       if (web) {
         setWebSessionFlag(true);

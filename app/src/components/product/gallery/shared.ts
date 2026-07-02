@@ -2,6 +2,7 @@ import { type GestureResponderEvent, Platform, FlatList as RNFlatList } from 're
 import { FlatList as GHFlatList } from 'react-native-gesture-handler';
 import { resolveApiMediaUrl } from '@/services/api/media';
 import type { Product } from '@/types/Product';
+import { isSafeImageUrl } from '@/utils/urlSafety';
 
 export const GalleryFlatList: typeof GHFlatList =
   Platform.OS === 'web' ? (RNFlatList as unknown as typeof GHFlatList) : GHFlatList;
@@ -32,7 +33,10 @@ export function getTouchPointX(event: GestureResponderEvent, type: 'start' | 'en
 export function buildGalleryMedia(product: Product) {
   const images = product.images ?? [];
   const media = images.flatMap((image) => {
-    const imageUrl = resolveApiMediaUrl(image.url);
+    // resolveApiMediaUrl is http-only; fall back to the raw url for
+    // locally-picked images (file:/blob:/content:) that never hit the API.
+    const imageUrl =
+      resolveApiMediaUrl(image.url) ?? (isSafeImageUrl(image.url) ? image.url : undefined);
     if (!imageUrl) {
       return [];
     }

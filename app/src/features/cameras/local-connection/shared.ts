@@ -21,10 +21,38 @@ export const MAX_FAILURES_BEFORE_RELAY = 2;
 export const urlKey = (cameraId: string) => `localConnection:${cameraId}:url`;
 export const apiKeySecureKey = (cameraId: string) => `localConnection_${cameraId}_apiKey`;
 
-export function buildLocalProbeCandidates(candidateUrls: string[]): string[] {
-  return [...candidateUrls, USB_GADGET_DEFAULT].filter(
-    (url, index, all) => all.indexOf(url) === index,
+// candidate_urls is server-controlled; only probe (and attach the device API key to)
+// hosts on the local network so a hostile backend can't turn us into an SSRF/port
+// scanner or leak the key to an arbitrary public host.
+// ponytail: covers RFC1918 + link-local + loopback + mDNS .local; widen if a camera
+// ever legitimately lives outside these ranges.
+export function isPrivateLocalHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host === 'localhost' || host.endsWith('.local')) return true;
+  const octets = host.split('.').map(Number);
+  if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
+    return false;
+  }
+  const [a, b] = octets;
+  return (
+    a === 10 ||
+    a === 127 ||
+    (a === 192 && b === 168) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 169 && b === 254)
   );
+}
+
+export function buildLocalProbeCandidates(candidateUrls: string[]): string[] {
+  return [...candidateUrls, USB_GADGET_DEFAULT]
+    .filter((url) => {
+      try {
+        return isPrivateLocalHost(new URL(url).hostname);
+      } catch {
+        return false;
+      }
+    })
+    .filter((url, index, all) => all.indexOf(url) === index);
 }
 
 export async function probeLocalUrl(baseUrl: string, apiKey: string | null): Promise<boolean> {

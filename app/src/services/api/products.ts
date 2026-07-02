@@ -74,7 +74,7 @@ function commonProductFields(data: ProductMapperPayload) {
     images:
       ('images' in data ? data.images : undefined)?.map((img: ApiImageRead) => ({
         id: String(img.id),
-        url: resolveApiMediaUrl(img.image_url) ?? img.image_url ?? '',
+        url: resolveApiMediaUrl(img.image_url) ?? '',
         thumbnailUrl: resolveApiMediaUrl(img.thumbnail_url),
         description: img.description ?? '',
       })) ?? [],

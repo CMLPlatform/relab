@@ -74,8 +74,7 @@ export function normalizeCameraReadWithStatus<T extends { preview_thumbnail_url?
 ): T {
   return {
     ...camera,
-    preview_thumbnail_url:
-      resolveApiMediaUrl(camera.preview_thumbnail_url) ?? camera.preview_thumbnail_url ?? null,
+    preview_thumbnail_url: resolveApiMediaUrl(camera.preview_thumbnail_url) ?? null,
   };
 }
 
@@ -84,7 +83,9 @@ export function isLocalAccessInfo(value: unknown): value is LocalAccessInfo {
   const candidate = value as Record<string, unknown>;
   return (
     typeof candidate.local_api_key === 'string' &&
+    candidate.local_api_key.length > 0 &&
     Array.isArray(candidate.candidate_urls) &&
+    candidate.candidate_urls.length <= 16 &&
     candidate.candidate_urls.every((url) => typeof url === 'string') &&
     (candidate.mdns_name === null || typeof candidate.mdns_name === 'string')
   );

@@ -35,8 +35,8 @@ describe('resolveApiMediaUrl', () => {
     'blob:http://localhost/abc',
     'file:///data/image.jpg',
     'content://media/image/1',
-  ])('passes through local image URI %s unchanged', (uri) => {
-    expect(resolveApiMediaUrl(uri)).toBe(uri);
+  ])('rejects local-scheme URI %s (only legitimate for on-device picks)', (uri) => {
+    expect(resolveApiMediaUrl(uri)).toBeUndefined();
   });
 
   it('prepends the API base URL to root-relative paths', () => {

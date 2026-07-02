@@ -75,7 +75,17 @@ export function localConnectionReducer(
 ): LocalConnectionState {
   switch (action.type) {
     case 'restore': {
-      const { localBaseUrl, localApiKey } = action.payload;
+      const { localApiKey } = action.payload;
+      // Re-validate the persisted URL; a tampered/legacy value must not reach the
+      // HLS player or a keyed fetch just because it came from storage.
+      let localBaseUrl: string | null = null;
+      try {
+        localBaseUrl = action.payload.localBaseUrl
+          ? normalizeLocalConnectionUrl(action.payload.localBaseUrl)
+          : null;
+      } catch {
+        localBaseUrl = null;
+      }
       return {
         ...state,
         localBaseUrl,

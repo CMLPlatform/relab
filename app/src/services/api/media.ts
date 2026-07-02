@@ -1,5 +1,5 @@
 import { API_ORIGIN_URL } from '@/config';
-import { hasUrlScheme, isSafeImageUrl } from '@/utils/urlSafety';
+import { hasUrlScheme, isHttpUrl } from '@/utils/urlSafety';
 
 const apiBaseUrl = API_ORIGIN_URL.replace(/\/+$/, '');
 
@@ -9,7 +9,9 @@ export function resolveApiMediaUrl(path?: string | null): string | undefined {
     return;
   }
 
-  if (isSafeImageUrl(trimmedPath) && !trimmedPath.startsWith('/')) {
+  // Absolute URLs from the API must be http(s); file:/blob:/content: are only
+  // legitimate for locally-picked images, never for server-supplied paths.
+  if (isHttpUrl(trimmedPath)) {
     return trimmedPath;
   }
   if (trimmedPath.startsWith('//') || hasUrlScheme(trimmedPath)) {

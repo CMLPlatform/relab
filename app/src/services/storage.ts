@@ -5,8 +5,12 @@ import { Platform } from 'react-native';
 export const isWeb = () => Platform.OS === 'web';
 const getWebLocalStorage = () => globalThis.localStorage;
 const getWebSessionStorage = () => globalThis.sessionStorage;
+// Key-name lint only: this catches a caller *naming* a slot like a credential,
+// not a token smuggled under an innocuous key — the guard cannot see values.
+// The real protection is that all tokens route through setSecureItem (below),
+// which throws on web rather than ever touching localStorage.
 const SENSITIVE_LOCAL_STORAGE_KEY_PATTERN =
-  /(^|[^a-z0-9])(token|secret|password|auth|session)($|[^a-z0-9])|(?:access|refresh)token|api[^a-z0-9]*key/i;
+  /(^|[^a-z0-9])(token|secret|password|auth|session|jwt|bearer|credential|cookie)($|[^a-z0-9])|(?:access|refresh)token|api[^a-z0-9]*key/i;
 
 // Throw rather than fall back to localStorage: any XSS could exfiltrate it.
 const SECURE_STORAGE_WEB_ERROR =
