@@ -64,6 +64,14 @@ don't mirror it into Zustand.
 | Integration | Jest + jest-expo | `src/**/*.integration.test.ts(x)` | Multiple components wired together, realistic nav.                |
 | E2E         | Playwright       | `e2e/`                            | Full-stack against the built web export + docker-compose backend. |
 
+**Location rule:** co-locate every Jest test in a `__tests__/` folder beside the
+code it covers — the Jest lane is chosen by the filename **suffix**, not the
+folder (`.integration.test.*` → integration lane, everything else → unit). The
+unit lane auto-mocks `expo-router` (see `config/setup.unit.ts`); the integration
+lane doesn't, so integration tests mock it locally. Root-level/cross-cutting
+tests with no single home (config, security policy, theme regressions) live in
+`src/__tests__/`.
+
 Run via `just test-unit`, `just test-integration`, `just test-e2e`. See
 [README.md](README.md) for profiling tips.
 
