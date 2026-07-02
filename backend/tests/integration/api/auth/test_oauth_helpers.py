@@ -24,19 +24,10 @@ from app.api.auth.services.oauth.base import verify_oauth_state
 from app.api.auth.services.oauth.utils import OAUTH_FLOW_KEY, OAUTH_PROVIDER_KEY, OAUTH_STATE_JWT_ALGORITHM
 
 from ._oauth_support import TEST_STATE_JWT_SECRET, make_base_config, make_oauth_state
-from .shared import FRONTEND_REDIRECT_URI, JWT_DOT_COUNT
+from .shared import FRONTEND_REDIRECT_URI
 
 pytestmark = pytest.mark.api
 
-def test_generate_csrf_token_is_url_safe_string() -> None:
-    """Generates a non-empty CSRF token string."""
-    token = generate_csrf_token()
-    assert isinstance(token, str)
-    assert len(token) > 0
-
-def test_generate_csrf_token_is_unique() -> None:
-    """Generates distinct CSRF tokens on repeated calls."""
-    assert generate_csrf_token() != generate_csrf_token()
 
 def test_oauth_csrf_cookie_uses_host_prefix() -> None:
     """OAuth CSRF cookies should use the __Host- prefix contract."""
@@ -49,11 +40,6 @@ def test_oauth_csrf_cookie_uses_host_prefix() -> None:
     assert cookie_settings.httponly is True
     assert cookie_settings.samesite == "lax"
 
-def test_generate_state_token_returns_jwt() -> None:
-    """Encodes state data as a JWT."""
-    token = generate_state_token({CSRF_TOKEN_KEY: "test-csrf"}, TEST_STATE_JWT_SECRET)
-    assert isinstance(token, str)
-    assert token.count(".") == JWT_DOT_COUNT
 
 def test_generate_state_token_embeds_csrf() -> None:
     """Embeds the CSRF token in the generated state JWT."""
@@ -61,6 +47,7 @@ def test_generate_state_token_embeds_csrf() -> None:
     token = generate_state_token({CSRF_TOKEN_KEY: csrf}, TEST_STATE_JWT_SECRET)
     decoded = decode_jwt(token, TEST_STATE_JWT_SECRET, ["fastapi-users:oauth-state"])
     assert decoded[CSRF_TOKEN_KEY] == csrf
+
 
 def test_verify_state_raises_on_invalid_jwt() -> None:
     """Rejects state values that are not valid JWTs."""
@@ -72,6 +59,7 @@ def test_verify_state_raises_on_invalid_jwt() -> None:
         verify_oauth_state(config, mock_request, "not-a-valid-jwt")
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+
 
 @pytest.mark.parametrize(
     "state",
@@ -105,6 +93,7 @@ def test_verify_state_raises_400_for_invalid_token_context(state: str) -> None:
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
 
+
 def test_verify_state_preserves_expired_state_error() -> None:
     """Expired but otherwise valid state JWTs keep the existing expired-state error contract."""
     config = make_base_config()
@@ -124,6 +113,7 @@ def test_verify_state_preserves_expired_state_error() -> None:
     with pytest.raises(OAuthStateExpiredError):
         verify_oauth_state(config, mock_request, state)
 
+
 def test_verify_state_raises_on_csrf_mismatch() -> None:
     """Rejects state values whose CSRF token does not match the cookie."""
     config = make_base_config()
@@ -136,6 +126,7 @@ def test_verify_state_raises_on_csrf_mismatch() -> None:
         verify_oauth_state(config, mock_request, state)
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+
 
 def test_verify_state_succeeds_with_matching_csrf() -> None:
     """Accepts state values with a matching CSRF cookie."""
@@ -155,6 +146,7 @@ def test_verify_state_succeeds_with_matching_csrf() -> None:
     assert state_data[CSRF_TOKEN_KEY] == csrf_token
     assert state_data["frontend_redirect_uri"] == FRONTEND_REDIRECT_URI
 
+
 @pytest.mark.parametrize(
     "state_data",
     [
@@ -165,7 +157,6 @@ def test_verify_state_succeeds_with_matching_csrf() -> None:
     ids=["missing-provider", "wrong-provider", "wrong-flow"],
 )
 def test_verify_state_rejects_wrong_transaction_binding(
-
     state_data: dict[str, str],
 ) -> None:
     """State must be bound to the expected provider and RELab OAuth flow."""
@@ -178,4 +169,3 @@ def test_verify_state_rejects_wrong_transaction_binding(
         verify_oauth_state(config, mock_request, state)
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
-

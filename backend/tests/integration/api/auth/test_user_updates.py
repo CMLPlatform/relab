@@ -26,6 +26,7 @@ from .shared import (
     USER1_USERNAME,
     USER2_EMAIL,
     USER2_USERNAME,
+    assert_refresh_session_revoked,
     hash_test_password,
     login_bearer,
 )
@@ -40,22 +41,25 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.api
 UPDATED_PASSWORD = "updated-test-credential-42"
 
+
 async def _login_bearer(api_client: AsyncClient, user: User, password: str = TEST_PASSWORD) -> str:
     token_data = await login_bearer(api_client, email=user.email, password=password)
     return str(token_data["access_token"])
 
+
 async def _create_refresh_session(redis: Redis, user: User) -> str:
     return await create_refresh_token(redis, user.id)
 
-async def _assert_refresh_session_revoked(api_client: AsyncClient, redis: Redis, refresh_token: str) -> None:
-    del redis
-    response = await api_client.post(
-        "/v1/auth/bearer/refresh",
-        json={"refresh_token": refresh_token},
-    )
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-async def test_update_username_to_available_name_succeeds(db_session: AsyncSession) -> None:
+@pytest.fixture
+def mock_user_db(db_session: AsyncSession) -> MagicMock:
+    """Build a mocked user DB adapter backed by the real test session."""
+    user_db = MagicMock()
+    user_db.session = db_session
+    return user_db
+
+
+async def test_update_username_to_available_name_succeeds(db_session: AsyncSession, mock_user_db: MagicMock) -> None:
     """Updating to an available username should succeed."""
     user = await UserFactory.create_async(
         db_session,
@@ -63,12 +67,11 @@ async def test_update_username_to_available_name_succeeds(db_session: AsyncSessi
         username=USER1_USERNAME,
         hashed_password="pw",
     )
-    user_db = MagicMock()
-    user_db.session = db_session
-    result = await update_user_override(user_db, user, UserUpdate(username=NEW_USERNAME))
+    result = await update_user_override(mock_user_db, user, UserUpdate(username=NEW_USERNAME))
     assert result.username == NEW_USERNAME
 
-async def test_update_username_from_null_succeeds(db_session: AsyncSession) -> None:
+
+async def test_update_username_from_null_succeeds(db_session: AsyncSession, mock_user_db: MagicMock) -> None:
     """Incomplete OAuth users can choose their username during onboarding."""
     user = await UserFactory.create_async(
         db_session,
@@ -76,14 +79,13 @@ async def test_update_username_from_null_succeeds(db_session: AsyncSession) -> N
         username=None,
         hashed_password="pw",
     )
-    user_db = MagicMock()
-    user_db.session = db_session
 
-    result = await update_user_override(user_db, user, UserUpdate(username=NEW_USERNAME))
+    result = await update_user_override(mock_user_db, user, UserUpdate(username=NEW_USERNAME))
 
     assert result.username == NEW_USERNAME
 
-async def test_update_username_to_same_name_succeeds(db_session: AsyncSession) -> None:
+
+async def test_update_username_to_same_name_succeeds(db_session: AsyncSession, mock_user_db: MagicMock) -> None:
     """Updating to the same username should succeed."""
     user = await UserFactory.create_async(
         db_session,
@@ -91,12 +93,11 @@ async def test_update_username_to_same_name_succeeds(db_session: AsyncSession) -
         username=USER1_USERNAME,
         hashed_password="pw",
     )
-    user_db = MagicMock()
-    user_db.session = db_session
-    result = await update_user_override(user_db, user, UserUpdate(username=USER1_USERNAME))
+    result = await update_user_override(mock_user_db, user, UserUpdate(username=USER1_USERNAME))
     assert result.username == USER1_USERNAME
 
-async def test_update_username_to_taken_name_raises(db_session: AsyncSession) -> None:
+
+async def test_update_username_to_taken_name_raises(db_session: AsyncSession, mock_user_db: MagicMock) -> None:
     """Updating to a taken username should raise an error."""
     await UserFactory.create_async(db_session, email=USER1_EMAIL, username=TAKEN_USERNAME, hashed_password="pw")
     user2 = await UserFactory.create_async(
@@ -105,13 +106,12 @@ async def test_update_username_to_taken_name_raises(db_session: AsyncSession) ->
         username=USER2_USERNAME,
         hashed_password="pw",
     )
-    user_db = MagicMock()
-    user_db.session = db_session
 
     with pytest.raises(UserNameAlreadyExistsError):
-        await update_user_override(user_db, user2, UserUpdate(username=TAKEN_USERNAME))
+        await update_user_override(mock_user_db, user2, UserUpdate(username=TAKEN_USERNAME))
 
-async def test_update_without_username_change_passes_through(db_session: AsyncSession) -> None:
+
+async def test_update_without_username_change_passes_through(db_session: AsyncSession, mock_user_db: MagicMock) -> None:
     """Updating without changing the username should pass through."""
     user = await UserFactory.create_async(
         db_session,
@@ -119,12 +119,11 @@ async def test_update_without_username_change_passes_through(db_session: AsyncSe
         username=USER1_USERNAME,
         hashed_password="pw",
     )
-    user_db = MagicMock()
-    user_db.session = db_session
-    result = await update_user_override(user_db, user, UserUpdate())
+    result = await update_user_override(mock_user_db, user, UserUpdate())
     assert result.username is None
 
-async def test_update_username_to_null_raises(db_session: AsyncSession) -> None:
+
+async def test_update_username_to_null_raises(db_session: AsyncSession, mock_user_db: MagicMock) -> None:
     """Username can be changed but cannot be cleared."""
     user = await UserFactory.create_async(
         db_session,
@@ -132,13 +131,14 @@ async def test_update_username_to_null_raises(db_session: AsyncSession) -> None:
         username=USER1_USERNAME,
         hashed_password="pw",
     )
-    user_db = MagicMock()
-    user_db.session = db_session
 
     with pytest.raises(BadRequestError, match="Username cannot be cleared"):
-        await update_user_override(user_db, user, UserUpdate(username=None))
+        await update_user_override(mock_user_db, user, UserUpdate(username=None))
 
-async def test_update_preferences_merges_with_existing_typed_values(db_session: AsyncSession) -> None:
+
+async def test_update_preferences_merges_with_existing_typed_values(
+    db_session: AsyncSession, mock_user_db: MagicMock
+) -> None:
     """Preference updates should merge into the existing persisted JSON payload."""
     user = await UserFactory.create_async(
         db_session,
@@ -147,11 +147,9 @@ async def test_update_preferences_merges_with_existing_typed_values(db_session: 
         hashed_password="pw",
         preferences={"profile_visibility": "private"},
     )
-    user_db = MagicMock()
-    user_db.session = db_session
 
     result = await update_user_override(
-        user_db,
+        mock_user_db,
         user,
         UserUpdate.model_validate({"preferences": {"theme_mode": "dark"}}),
     )
@@ -165,7 +163,8 @@ async def test_update_preferences_merges_with_existing_typed_values(db_session: 
         "youtube_streaming_enabled": False,
     }
 
-async def test_update_preferences_can_enable_email_updates(db_session: AsyncSession) -> None:
+
+async def test_update_preferences_can_enable_email_updates(db_session: AsyncSession, mock_user_db: MagicMock) -> None:
     """Preference updates should persist the recurring email opt-in flag."""
     user = await UserFactory.create_async(
         db_session,
@@ -174,11 +173,9 @@ async def test_update_preferences_can_enable_email_updates(db_session: AsyncSess
         hashed_password="pw",
         preferences={"theme_mode": "light"},
     )
-    user_db = MagicMock()
-    user_db.session = db_session
 
     result = await update_user_override(
-        user_db,
+        mock_user_db,
         user,
         UserUpdate.model_validate({"preferences": {"email_updates_enabled": True}}),
     )
@@ -192,23 +189,26 @@ async def test_update_preferences_can_enable_email_updates(db_session: AsyncSess
         "youtube_streaming_enabled": False,
     }
 
+
 def test_update_preferences_rejects_invalid_theme_mode() -> None:
     """Preference validation should reject unsupported theme values."""
     with pytest.raises(ValidationError):
         UserUpdate.model_validate({"preferences": {"theme_mode": "sepia"}})
+
 
 async def test_update_user_unauthenticated_returns_401(api_client: AsyncClient) -> None:
     """Test that updating a user without authentication returns 401."""
     response = await api_client.patch("/v1/users/me", json={"username": "any_name"})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
+
 async def test_get_me_unauthenticated_returns_401(api_client: AsyncClient) -> None:
     """Test that getting user info without authentication returns 401."""
     response = await api_client.get("/v1/users/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-async def test_password_update_requires_current_password(
 
+async def test_password_update_requires_current_password(
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
@@ -230,8 +230,8 @@ async def test_password_update_requires_current_password(
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "current password" in response.json()["detail"].lower()
 
-async def test_password_update_accepts_valid_current_password(
 
+async def test_password_update_accepts_valid_current_password(
     api_client: AsyncClient,
     db_session: AsyncSession,
     mock_email_sending: AsyncMock,
@@ -260,8 +260,8 @@ async def test_password_update_accepts_valid_current_password(
     assert message.recipients[0].email == "reauth-valid@example.com"
     assert "password was changed" in message.subject.lower()
 
-async def test_password_update_revokes_existing_refresh_sessions(
 
+async def test_password_update_revokes_existing_refresh_sessions(
     api_client: AsyncClient,
     db_session: AsyncSession,
     mock_redis_dependency: Redis,
@@ -285,10 +285,10 @@ async def test_password_update_revokes_existing_refresh_sessions(
         headers={"Authorization": f"Bearer {token}"},
     )
     assert update_response.status_code == status.HTTP_200_OK
-    await _assert_refresh_session_revoked(api_client, mock_redis_dependency, old_refresh_token)
+    await assert_refresh_session_revoked(api_client, old_refresh_token)
+
 
 async def test_username_update_does_not_require_current_password(
-
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
@@ -310,6 +310,7 @@ async def test_username_update_does_not_require_current_password(
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["username"] == "reauth_username_new"
 
+
 @pytest.mark.parametrize(
     ("field_name", "value"),
     [
@@ -319,7 +320,6 @@ async def test_username_update_does_not_require_current_password(
     ],
 )
 async def test_update_me_rejects_privileged_fields_without_mutating_user(
-
     api_client: AsyncClient,
     db_session: AsyncSession,
     field_name: str,
@@ -350,8 +350,8 @@ async def test_update_me_rejects_privileged_fields_without_mutating_user(
     assert user.is_superuser is False
     assert user.is_verified is False
 
-async def test_email_update_verifies_new_address_and_notifies_old_address(
 
+async def test_email_update_verifies_new_address_and_notifies_old_address(
     api_client: AsyncClient,
     db_session: AsyncSession,
     mock_email_sending: AsyncMock,
@@ -385,8 +385,8 @@ async def test_email_update_verifies_new_address_and_notifies_old_address(
     sent_to = [call.args[0].recipients[0].email for call in email_mock.await_args_list]
     assert sent_to == ["New-Address@example.com", old_email]
 
-async def test_email_update_revokes_existing_refresh_sessions(
 
+async def test_email_update_revokes_existing_refresh_sessions(
     api_client: AsyncClient,
     db_session: AsyncSession,
     mock_email_sending: AsyncMock,
@@ -410,5 +410,4 @@ async def test_email_update_revokes_existing_refresh_sessions(
     )
     assert update_response.status_code == status.HTTP_200_OK
     assert mock_email_sending.await_count == 2
-    await _assert_refresh_session_revoked(api_client, mock_redis_dependency, old_refresh_token)
-
+    await assert_refresh_session_revoked(api_client, old_refresh_token)

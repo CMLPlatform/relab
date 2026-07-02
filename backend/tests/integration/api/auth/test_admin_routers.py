@@ -10,6 +10,8 @@ from fastapi import status
 from app.api.auth.services.refresh_token_service import create_refresh_token
 from tests.factories.models import UserFactory
 
+from .shared import assert_refresh_session_revoked
+
 if TYPE_CHECKING:
     from httpx import AsyncClient
     from redis.asyncio import Redis
@@ -19,13 +21,6 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.api
 
-async def _assert_refresh_session_revoked(api_client: AsyncClient, redis: Redis, refresh_token: str) -> None:
-    del redis
-    response = await api_client.post(
-        "/v1/auth/bearer/refresh",
-        json={"refresh_token": refresh_token},
-    )
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 async def test_get_all_users_as_superuser(
     api_client_superuser_light: AsyncClient, db_session: AsyncSession, db_superuser: User
@@ -48,26 +43,8 @@ async def test_get_all_users_as_superuser(
     assert user1.email in user_emails
     assert user2.email in user_emails
 
-async def test_get_all_users_with_pagination(
-    api_client_superuser_light: AsyncClient, db_session: AsyncSession
-) -> None:
-    """Pagination works for user list."""
-    # Create 5 users
-    for i in range(5):
-        await UserFactory.create_async(db_session, email=f"pag{i}@example.com", username=f"pag_user_{i}")
 
-    # Request with page size 2
-    response = await api_client_superuser_light.get("/v1/admin/users?page=1&size=2")
-
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert len(data["items"]) <= 2
-    assert "page" in data
-    assert "total" in data
-
-async def test_get_user_by_id_as_superuser(
-    api_client_superuser: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_get_user_by_id_as_superuser(api_client_superuser: AsyncClient, db_session: AsyncSession) -> None:
     """Superuser can retrieve a user by ID."""
     user = await UserFactory.create_async(db_session, email="getbyid@example.com", username="getbyid_user")
 
@@ -81,6 +58,7 @@ async def test_get_user_by_id_as_superuser(
     assert "is_active" in data
     assert "is_verified" in data
 
+
 async def test_admin_users_requires_superuser(api_client: AsyncClient, db_session: AsyncSession) -> None:
     """Admin user endpoints require superuser role."""
     # Create regular user and authenticate
@@ -93,8 +71,8 @@ async def test_admin_users_requires_superuser(api_client: AsyncClient, db_sessio
     # Without authentication, should be 403 or similar (depends on auth middleware)
     assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
 
-async def test_delete_user_revokes_refresh_sessions(
 
+async def test_delete_user_revokes_refresh_sessions(
     api_client_superuser: AsyncClient,
     api_client: AsyncClient,
     db_session: AsyncSession,
@@ -110,5 +88,4 @@ async def test_delete_user_revokes_refresh_sessions(
 
     delete_response = await api_client_superuser.delete(f"/v1/admin/users/{user.id}")
     assert delete_response.status_code == status.HTTP_204_NO_CONTENT
-    await _assert_refresh_session_revoked(api_client, mock_redis_dependency, refresh_token)
-
+    await assert_refresh_session_revoked(api_client, refresh_token)

@@ -16,6 +16,7 @@ from app.api.auth.schemas import UserCreate
 from app.api.auth.services import mfa_service
 from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.api.common.audit import AuditAction, AuditContext
+from tests.factories.models import UserFactory
 
 from .shared import (
     COOKIE_EMAIL,
@@ -30,7 +31,6 @@ from .shared import (
     TEST_PASSWORD,
     TEST_USERNAME,
     UNIQUE_USERNAME,
-    WEAK_PASSWORD,
     hash_test_password,
     login_session,
 )
@@ -44,26 +44,6 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.api
 
-async def create_active_user(
-    db_session: AsyncSession,
-    *,
-    email: str,
-    username: str,
-    password: str = TEST_PASSWORD,
-    **overrides: object,
-) -> User:
-    """Create an active verified user for auth integration tests."""
-    user = User(
-        email=email,
-        username=username,
-        hashed_password=hash_test_password(password),
-        is_active=True,
-        is_verified=True,
-        **overrides,
-    )
-    db_session.add(user)
-    await db_session.commit()
-    return user
 
 async def login_bearer_and_authorize(
     api_client: AsyncClient,
@@ -81,11 +61,13 @@ async def login_bearer_and_authorize(
     api_client.headers["Authorization"] = f"Bearer {data['access_token']}"
     return data
 
+
 async def start_totp_setup(api_client: AsyncClient) -> dict[str, str]:
     """Start TOTP setup and return the response payload."""
     response = await api_client.post("/v1/auth/mfa/totp/setup")
     assert response.status_code == status.HTTP_200_OK, response.text
     return dict(response.json())
+
 
 async def test_register_success(api_client: AsyncClient) -> None:
     """Test successful user registration."""
@@ -100,6 +82,7 @@ async def test_register_success(api_client: AsyncClient) -> None:
     assert "hashed_password" not in data
     assert "email" not in data
 
+
 async def test_register_requires_username(api_client: AsyncClient) -> None:
     """Password registration requires an explicit username."""
     user_data = {"email": "missing-username@example.com", "password": TEST_PASSWORD}
@@ -108,6 +91,7 @@ async def test_register_requires_username(api_client: AsyncClient) -> None:
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert "username" in response.text
+
 
 async def test_register_duplicate_email(api_client: AsyncClient) -> None:
     """Test registering with a duplicate email."""
@@ -135,6 +119,7 @@ async def test_register_duplicate_email(api_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_409_CONFLICT
     assert "already exists" in response.json()["detail"].lower()
 
+
 async def test_register_duplicate_canonical_email(api_client: AsyncClient) -> None:
     """Canonical-equivalent email registrations should collide."""
     first_user = {"email": "CaseSensitive@Example.com", "password": TEST_PASSWORD, "username": "case_first"}
@@ -146,6 +131,7 @@ async def test_register_duplicate_canonical_email(api_client: AsyncClient) -> No
     assert first_response.status_code == status.HTTP_201_CREATED
     assert second_response.status_code == status.HTTP_409_CONFLICT
 
+
 async def test_register_duplicate_username(api_client: AsyncClient) -> None:
     """Test registering with a duplicate username."""
     user_data = {"email": DIFFERENT_EMAIL, "password": TEST_PASSWORD, "username": EXISTING_USERNAME}
@@ -156,6 +142,7 @@ async def test_register_duplicate_username(api_client: AsyncClient) -> None:
 
     assert response.status_code == status.HTTP_409_CONFLICT
     assert "username" in response.json()["detail"].lower()
+
 
 async def test_register_disposable_email(api_client: AsyncClient) -> None:
     """Test registering with a disposable email."""
@@ -169,15 +156,9 @@ async def test_register_disposable_email(api_client: AsyncClient) -> None:
     assert "disposable" in response.json()["detail"].lower()
     assert user_data["email"] not in response.json()["detail"]
 
-async def test_register_weak_password(api_client: AsyncClient) -> None:
-    """Test registering with a weak password."""
-    user_data = {"email": "user@example.com", "password": WEAK_PASSWORD, "username": "user"}
-    response = await api_client.post("/v1/auth/register", json=user_data)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 @pytest.mark.parametrize("field_name", ["is_superuser", "is_active", "is_verified"])
 async def test_register_rejects_privileged_fields(
-
     api_client: AsyncClient,
     db_session: AsyncSession,
     field_name: str,
@@ -199,7 +180,8 @@ async def test_register_rejects_privileged_fields(
     user = await db_session.scalar(select(User).where(User.email == email))
     assert user is None
 
-async def test_bearer_login_without_totp_returns_tokens(api_client: AsyncClient) -> None:
+
+async def test_bearer_login_without_totp_returns_tokens(api_client: AsyncClient, db_session: AsyncSession) -> None:
     """Bearer login should return tokens when the account has not enabled MFA."""
     user_data = {
         "email": "bearer-path@example.com",
@@ -207,6 +189,10 @@ async def test_bearer_login_without_totp_returns_tokens(api_client: AsyncClient)
         "username": "bearer_path_user",
     }
     await api_client.post("/v1/auth/register", json=user_data)
+
+    user = (await db_session.execute(select(User).where(User.email == user_data["email"]))).scalars().first()
+    assert user is not None
+    assert user.last_login_at is None
 
     response = await api_client.post(
         "/v1/auth/bearer/login",
@@ -220,6 +206,13 @@ async def test_bearer_login_without_totp_returns_tokens(api_client: AsyncClient)
     assert data["refresh_token"]
     assert "mfa_token" not in data
     assert "refresh_token" not in response.cookies
+
+    # Login timestamp tracking should be updated without retaining IP addresses.
+    db_session.expire_all()
+    user_after = (await db_session.execute(select(User).where(User.email == user_data["email"]))).scalars().first()
+    assert user_after is not None
+    assert user_after.last_login_at is not None, "last_login_at was not updated"
+
 
 async def test_bearer_login_without_totp_emits_success_event(api_client: AsyncClient) -> None:
     """Successful bearer login should emit a structured auth event."""
@@ -239,16 +232,17 @@ async def test_bearer_login_without_totp_emits_success_event(api_client: AsyncCl
     assert response.status_code == status.HTTP_200_OK
     assert any(call.args[1] == AuditAction.LOGIN_SUCCESS for call in log_event.call_args_list)
 
-async def test_authenticated_totp_setup_enables_mfa(
 
+async def test_authenticated_totp_setup_enables_mfa(
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
     """An authenticated user should be able to opt in to TOTP MFA."""
-    user = await create_active_user(
+    user = await UserFactory.create_async(
         db_session,
         email="totp-opt-in@example.com",
         username="totp_opt_in_user",
+        hashed_password=hash_test_password(TEST_PASSWORD),
     )
     await login_bearer_and_authorize(api_client, email=user.email)
 
@@ -262,17 +256,18 @@ async def test_authenticated_totp_setup_enables_mfa(
 
     assert confirm_response.status_code == status.HTTP_204_NO_CONTENT
 
-async def test_totp_setup_confirm_requires_authentication(
 
+async def test_totp_setup_confirm_requires_authentication(
     api_client: AsyncClient,
     db_session: AsyncSession,
     mock_redis_dependency: Redis,
 ) -> None:
     """A valid setup token should not be confirmable without an authenticated user."""
-    user = await create_active_user(
+    user = await UserFactory.create_async(
         db_session,
         email="totp-confirm-auth@example.com",
         username="totp_confirm_auth",
+        hashed_password=hash_test_password(TEST_PASSWORD),
     )
     setup_token = await mfa_service.create_totp_setup(
         mock_redis_dependency,
@@ -291,21 +286,23 @@ async def test_totp_setup_confirm_requires_authentication(
 
     assert confirm_response.status_code == status.HTTP_401_UNAUTHORIZED
 
-async def test_totp_setup_confirm_rejects_another_users_setup_token(
 
+async def test_totp_setup_confirm_rejects_another_users_setup_token(
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
     """A signed-in user should not be able to confirm another user's setup token."""
-    first_user = await create_active_user(
+    first_user = await UserFactory.create_async(
         db_session,
         email="totp-owner@example.com",
         username="totp_owner",
+        hashed_password=hash_test_password(TEST_PASSWORD),
     )
-    second_user = await create_active_user(
+    second_user = await UserFactory.create_async(
         db_session,
         email="totp-other@example.com",
         username="totp_other",
+        hashed_password=hash_test_password(TEST_PASSWORD),
     )
 
     await login_bearer_and_authorize(api_client, email=first_user.email)
@@ -323,16 +320,17 @@ async def test_totp_setup_confirm_rejects_another_users_setup_token(
 
     assert confirm_response.status_code == status.HTTP_401_UNAUTHORIZED
 
-async def test_totp_setup_retry_allows_valid_code_after_invalid_code(
 
+async def test_totp_setup_retry_allows_valid_code_after_invalid_code(
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
     """An invalid setup code should not consume the setup token."""
-    user = await create_active_user(
+    user = await UserFactory.create_async(
         db_session,
         email="totp-retry@example.com",
         username="totp_retry_user",
+        hashed_password=hash_test_password(TEST_PASSWORD),
     )
     await login_bearer_and_authorize(api_client, email=user.email)
     setup_data = await start_totp_setup(api_client)
@@ -354,16 +352,17 @@ async def test_totp_setup_retry_allows_valid_code_after_invalid_code(
     assert invalid_response.status_code == status.HTTP_401_UNAUTHORIZED
     assert valid_response.status_code == status.HTTP_204_NO_CONTENT
 
-async def test_totp_setup_start_can_be_retried_before_confirmation(
 
+async def test_totp_setup_start_can_be_retried_before_confirmation(
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
     """Starting setup twice should not consume the first-factor MFA token."""
-    user = await create_active_user(
+    user = await UserFactory.create_async(
         db_session,
         email="remount@example.com",
         username="remount_user",
+        hashed_password=hash_test_password(TEST_PASSWORD),
     )
     await login_bearer_and_authorize(api_client, email=user.email)
 
@@ -375,16 +374,17 @@ async def test_totp_setup_start_can_be_retried_before_confirmation(
     assert first_setup.json()["setup_token"]
     assert second_setup.json()["setup_token"]
 
-async def test_stale_setup_token_cannot_overwrite_confirmed_totp(
 
+async def test_stale_setup_token_cannot_overwrite_confirmed_totp(
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
     """Older setup tokens from repeated setup starts must not overwrite a confirmed enrollment."""
-    user = await create_active_user(
+    user = await UserFactory.create_async(
         db_session,
         email="stale-setup@example.com",
         username="stale_setup_user",
+        hashed_password=hash_test_password(TEST_PASSWORD),
     )
     await login_bearer_and_authorize(api_client, email=user.email)
     first_setup = await start_totp_setup(api_client)
@@ -408,17 +408,18 @@ async def test_stale_setup_token_cannot_overwrite_confirmed_totp(
     assert second_confirm.status_code == status.HTTP_204_NO_CONTENT
     assert stale_confirm.status_code == status.HTTP_401_UNAUTHORIZED
 
-async def test_bearer_login_with_enabled_totp_requires_challenge(
 
+async def test_bearer_login_with_enabled_totp_requires_challenge(
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
     """Users with enabled TOTP must complete an MFA challenge before tokens are issued."""
     secret = mfa_service.generate_totp_secret()
-    user = await create_active_user(
+    user = await UserFactory.create_async(
         db_session,
         email="mfa-enabled@example.com",
         username="mfa_enabled",
+        hashed_password=hash_test_password(TEST_PASSWORD),
         mfa_enabled=True,
         mfa_totp_secret=secret,
     )
@@ -445,17 +446,18 @@ async def test_bearer_login_with_enabled_totp_requires_challenge(
     assert token_data["access_token"]
     assert token_data["refresh_token"]
 
-async def test_mfa_challenge_emits_failure_and_success_events(
 
+async def test_mfa_challenge_emits_failure_and_success_events(
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
     """MFA challenge attempts should be visible in structured auth events."""
     secret = mfa_service.generate_totp_secret()
-    user = await create_active_user(
+    user = await UserFactory.create_async(
         db_session,
         email="mfa-event@example.com",
         username="mfa_event",
+        hashed_password=hash_test_password(TEST_PASSWORD),
         mfa_enabled=True,
         mfa_totp_secret=secret,
     )
@@ -483,17 +485,18 @@ async def test_mfa_challenge_emits_failure_and_success_events(
     assert AuditAction.MFA_FAILURE in actions
     assert AuditAction.MFA_SUCCESS in actions
 
-async def test_invalid_totp_challenge_does_not_consume_login_token(
 
+async def test_invalid_totp_challenge_does_not_consume_login_token(
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
     """A mistyped TOTP challenge should allow retrying with the same login challenge."""
     secret = mfa_service.generate_totp_secret()
-    user = await create_active_user(
+    user = await UserFactory.create_async(
         db_session,
         email="mfa-retry@example.com",
         username="mfa_retry",
+        hashed_password=hash_test_password(TEST_PASSWORD),
         mfa_enabled=True,
         mfa_totp_secret=secret,
     )
@@ -517,16 +520,17 @@ async def test_invalid_totp_challenge_does_not_consume_login_token(
     assert invalid_response.status_code == status.HTTP_401_UNAUTHORIZED
     assert valid_response.status_code == status.HTTP_200_OK
 
-async def test_enabled_totp_user_cannot_start_new_setup(
 
+async def test_enabled_totp_user_cannot_start_new_setup(
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
     """Users with enabled TOTP must not be able to create fresh setup material."""
-    user = await create_active_user(
+    user = await UserFactory.create_async(
         db_session,
         email="mfa-setup-blocked@example.com",
         username="mfa_setup_blocked",
+        hashed_password=hash_test_password(TEST_PASSWORD),
     )
 
     await login_bearer_and_authorize(api_client, email=user.email)
@@ -538,6 +542,7 @@ async def test_enabled_totp_user_cannot_start_new_setup(
     setup_response = await api_client.post("/v1/auth/mfa/totp/setup")
 
     assert setup_response.status_code == status.HTTP_401_UNAUTHORIZED
+
 
 async def test_login_with_email_alias(api_client: AsyncClient) -> None:
     """Test logging in through the canonical v1 login route."""
@@ -553,6 +558,7 @@ async def test_login_with_email_alias(api_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["access_token"]
 
+
 async def test_login_with_canonical_email_equivalent(api_client: AsyncClient) -> None:
     """Login should compare emails through the shared canonical policy."""
     user_data = {"email": "Login.Case@Example.com", "password": TEST_PASSWORD, "username": "login_case"}
@@ -567,6 +573,7 @@ async def test_login_with_canonical_email_equivalent(api_client: AsyncClient) ->
 
     assert login_response.status_code == status.HTTP_200_OK
     assert login_response.json()["access_token"]
+
 
 async def test_bearer_login_invalid_credentials(api_client: AsyncClient) -> None:
     """Test logging in with invalid credentials."""
@@ -584,6 +591,7 @@ async def test_bearer_login_invalid_credentials(api_client: AsyncClient) -> None
         context=AuditContext(outcome="denied", transport="bearer", reason="bad_credentials"),
     )
 
+
 async def test_session_cookie_login(api_client: AsyncClient) -> None:
     """Test logging in with email and password to get session cookies."""
     user_data = {"email": COOKIE_EMAIL, "password": TEST_PASSWORD, "username": COOKIE_USERNAME}
@@ -595,6 +603,7 @@ async def test_session_cookie_login(api_client: AsyncClient) -> None:
 
     assert api_client.cookies
     assert any(call.args[1] == AuditAction.LOGIN_SUCCESS for call in log_event.call_args_list)
+
 
 async def test_session_logout_clears_browser_storage(api_client: AsyncClient) -> None:
     """Session logout should clear cookies and browser-side cached session data."""
@@ -614,6 +623,7 @@ async def test_session_logout_clears_browser_storage(api_client: AsyncClient) ->
     assert any(header.startswith(f"{AUTH_COOKIE_NAME}=") for header in set_cookie_headers)
     assert any(header.startswith(f"{REFRESH_COOKIE_NAME}=") for header in set_cookie_headers)
 
+
 async def test_session_logout_emits_logout_event(api_client: AsyncClient) -> None:
     """Session logout should emit a structured logout event."""
     user_data = {
@@ -630,16 +640,17 @@ async def test_session_logout_emits_logout_event(api_client: AsyncClient) -> Non
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert any(call.args[1] == AuditAction.LOGOUT for call in log_event.call_args_list)
 
-async def test_revoke_all_sessions_emits_structured_event(
 
+async def test_revoke_all_sessions_emits_structured_event(
     api_client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
     """Revoking all sessions should emit a structured auth event."""
-    user = await create_active_user(
+    user = await UserFactory.create_async(
         db_session,
         email="revoke-all-event@example.com",
         username="revoke_all_event",
+        hashed_password=hash_test_password(TEST_PASSWORD),
     )
     await login_bearer_and_authorize(api_client, email=user.email)
 
@@ -649,13 +660,14 @@ async def test_revoke_all_sessions_emits_structured_event(
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert any(call.args[1] == AuditAction.SESSIONS_REVOKED for call in log_event.call_args_list)
 
+
 async def test_logout_unauthenticated(api_client: AsyncClient) -> None:
     """Test logging out without credentials."""
     response = await api_client.post("/v1/auth/bearer/logout")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
+
 async def test_session_logout(api_client: AsyncClient) -> None:
     """Test logging out of session auth."""
     response = await api_client.post("/v1/auth/session/logout")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-

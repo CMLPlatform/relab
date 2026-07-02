@@ -17,6 +17,7 @@ pytestmark = pytest.mark.api
 ALLOWED_NATIVE_REDIRECT_URI = "relab-app://login"
 ALLOWED_WEB_REDIRECT_URI = "https://app.example.com/auth/callback"
 
+
 async def test_authorize_rejects_untrusted_redirect_uri(monkeypatch: pytest.MonkeyPatch) -> None:
     """Rejects redirect URIs outside the configured allowlist."""
     config, _ = make_auth_flow()
@@ -36,39 +37,30 @@ async def test_authorize_rejects_untrusted_redirect_uri(monkeypatch: pytest.Monk
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     assert exc_info.value.detail == "Invalid redirect_uri"
 
-async def test_authorize_accepts_exact_allowlisted_web_redirect_uri(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Accepts an exact allowlisted HTTPS redirect URI."""
-    config, _ = make_auth_flow()
 
-    monkeypatch.setattr(
-        "app.api.auth.services.oauth.base.settings.oauth_allowed_redirect_uris",
-        [ALLOWED_WEB_REDIRECT_URI],
-    )
-
-    mock_request = MagicMock()
-    mock_request.query_params = {"redirect_uri": ALLOWED_WEB_REDIRECT_URI}
-    mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
-
-    result = await build_authorize_response(config, mock_request, Response(), callback_route_name="oauth:callback")
-    assert result.authorization_url == "https://github.com/login/oauth/authorize"
-
-async def test_authorize_accepts_exact_allowlisted_native_redirect_uri(
-    monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize(
+    "redirect_uri",
+    [ALLOWED_WEB_REDIRECT_URI, ALLOWED_NATIVE_REDIRECT_URI],
+    ids=["web", "native"],
+)
+async def test_authorize_accepts_exact_allowlisted_redirect_uri(
+    redirect_uri: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Accepts an exact allowlisted native redirect URI."""
+    """Accepts an exact allowlisted redirect URI, whether web or native."""
     config, _ = make_auth_flow()
 
     monkeypatch.setattr(
         "app.api.auth.services.oauth.base.settings.oauth_allowed_redirect_uris",
-        [ALLOWED_NATIVE_REDIRECT_URI],
+        [redirect_uri],
     )
 
     mock_request = MagicMock()
-    mock_request.query_params = {"redirect_uri": ALLOWED_NATIVE_REDIRECT_URI}
+    mock_request.query_params = {"redirect_uri": redirect_uri}
     mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
     result = await build_authorize_response(config, mock_request, Response(), callback_route_name="oauth:callback")
     assert result.authorization_url == "https://github.com/login/oauth/authorize"
+
 
 @pytest.mark.parametrize(
     "redirect_uri",
@@ -102,6 +94,7 @@ async def test_authorize_rejects_non_exact_or_unsafe_redirect_uri(
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     assert exc_info.value.detail == "Invalid redirect_uri"
 
+
 def test_success_redirect_uses_fragment_status_and_removes_access_tokens() -> None:
     """OAuth redirect results live in fragments and strip leaked access tokens."""
     response = create_oauth_result_redirect(
@@ -116,4 +109,3 @@ def test_success_redirect_uses_fragment_status_and_removes_access_tokens() -> No
     assert "access_token" not in fragment
     assert query.get("foo") == ["bar"]
     assert fragment.get("status") == ["success"]
-

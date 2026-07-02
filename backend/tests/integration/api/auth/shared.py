@@ -58,3 +58,12 @@ async def login_session(api_client: AsyncClient, *, email: str, password: str) -
         data={"username": email, "password": password},
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
+
+
+async def assert_refresh_session_revoked(api_client: AsyncClient, refresh_token: str) -> None:
+    """Assert that a refresh token can no longer be used to obtain new tokens."""
+    response = await api_client.post(
+        "/v1/auth/bearer/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

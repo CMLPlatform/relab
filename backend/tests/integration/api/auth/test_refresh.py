@@ -23,13 +23,13 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.api
 
-async def test_session_refresh_token_requires_cookie(
-    api_client: AsyncClient, mock_redis_dependency: Redis
-) -> None:
+
+async def test_session_refresh_token_requires_cookie(api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
     """Test that the session refresh endpoint requires a refresh token cookie."""
     del mock_redis_dependency
     response = await api_client.post("/v1/auth/session/refresh")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
 
 async def test_bearer_refresh_token_invalid(api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
     """Test that the bearer refresh endpoint rejects invalid refresh tokens."""
@@ -37,8 +37,8 @@ async def test_bearer_refresh_token_invalid(api_client: AsyncClient, mock_redis_
     response = await api_client.post("/v1/auth/bearer/refresh", json={"refresh_token": INVALID_REFRESH_TOKEN})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-async def test_bearer_refresh_requires_json_body_even_when_cookie_present(
 
+async def test_bearer_refresh_requires_json_body_even_when_cookie_present(
     api_client: AsyncClient,
     mock_redis_dependency: Redis,
     db_session: AsyncSession,
@@ -56,8 +56,8 @@ async def test_bearer_refresh_requires_json_body_even_when_cookie_present(
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-async def test_session_refresh_requires_cookie_even_when_json_body_present(
 
+async def test_session_refresh_requires_cookie_even_when_json_body_present(
     api_client: AsyncClient,
     mock_redis_dependency: Redis,
     db_session: AsyncSession,
@@ -74,8 +74,8 @@ async def test_session_refresh_requires_cookie_even_when_json_body_present(
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-async def test_bearer_refresh_rotates_and_replay_fails(
 
+async def test_bearer_refresh_rotates_and_replay_fails(
     api_client: AsyncClient,
     mock_redis_dependency: Redis,
     db_session: AsyncSession,
@@ -108,8 +108,8 @@ async def test_bearer_refresh_rotates_and_replay_fails(
     second_refresh = await api_client.post("/v1/auth/bearer/refresh", json={"refresh_token": new_refresh_token})
     assert second_refresh.status_code == status.HTTP_200_OK
 
-async def test_session_refresh_rotates_and_replay_fails(
 
+async def test_session_refresh_rotates_and_replay_fails(
     api_client: AsyncClient,
     mock_redis_dependency: Redis,
     db_session: AsyncSession,
@@ -152,8 +152,8 @@ async def test_session_refresh_rotates_and_replay_fails(
 
     api_client.cookies.clear()
 
-async def test_revoke_all_sessions_revokes_refresh_tokens_and_clears_browser_state(
 
+async def test_revoke_all_sessions_revokes_refresh_tokens_and_clears_browser_state(
     api_client_user: AsyncClient,
     mock_redis_dependency: Redis,
     db_user: User,
@@ -171,9 +171,9 @@ async def test_revoke_all_sessions_revokes_refresh_tokens_and_clears_browser_sta
     assert any(header.startswith(f"{AUTH_COOKIE_NAME}=") for header in set_cookie_headers)
     assert any(header.startswith(f"{REFRESH_COOKIE_NAME}=") for header in set_cookie_headers)
 
+
 async def test_revoke_all_sessions_requires_authentication(api_client: AsyncClient) -> None:
     """Remote session invalidation is only available to active users."""
     response = await api_client.post("/v1/auth/sessions/revoke-all")
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-

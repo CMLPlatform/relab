@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.api
 
+
 async def test_callback_passes_associate_by_email_false() -> None:
     """Disables implicit email-based account linking."""
     config, backend = make_auth_flow()
@@ -65,6 +66,7 @@ async def test_callback_passes_associate_by_email_false() -> None:
     assert user_manager.oauth_callback.await_args is not None
     assert user_manager.oauth_callback.await_args.kwargs["associate_by_email"] is False
     user_manager.on_after_login.assert_awaited_once()
+
 
 async def test_callback_redirect_places_mfa_handoff_not_token_in_url_fragment(redis_client: Redis) -> None:
     """OAuth MFA redirects should keep the MFA token out of URLs."""
@@ -110,6 +112,7 @@ async def test_callback_redirect_places_mfa_handoff_not_token_in_url_fragment(re
     assert fragment["status"] == ["mfa_required"]
     assert fragment["mfa_handoff"][0]
 
+
 async def test_callback_redirect_returns_typed_existing_user_error() -> None:
     """Maps duplicate-user errors to a typed fragment redirect when a frontend redirect exists."""
     config, backend = make_auth_flow()
@@ -143,6 +146,7 @@ async def test_callback_redirect_returns_typed_existing_user_error() -> None:
     assert fragment["status"] == ["error"]
     assert fragment["error"] == [ErrorCode.OAUTH_USER_ALREADY_EXISTS.value]
 
+
 async def test_callback_raises_existing_user_error_without_frontend_redirect() -> None:
     """API-style callbacks keep the HTTP error contract when no frontend redirect is present."""
     config, backend = make_auth_flow()
@@ -167,6 +171,7 @@ async def test_callback_raises_existing_user_error_without_frontend_redirect() -
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     assert exc_info.value.detail == ErrorCode.OAUTH_USER_ALREADY_EXISTS
 
+
 async def test_callback_rejects_state_from_different_provider_flow() -> None:
     """A Google login state cannot be replayed into the GitHub callback flow."""
     config, backend = make_auth_flow(provider_name="github", oauth_flow="github:session")
@@ -189,6 +194,7 @@ async def test_callback_rejects_state_from_different_provider_flow() -> None:
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     config.oauth_client.get_id_email.assert_not_awaited()
+
 
 async def test_associate_callback_links_provider_for_current_user() -> None:
     """Associates the provider when it is not already linked elsewhere."""
@@ -223,6 +229,7 @@ async def test_associate_callback_links_provider_for_current_user() -> None:
 
     assert result["email"] == TEST_EMAIL
     assert user_manager.oauth_associate_callback.await_count == 1
+
 
 async def test_associate_callback_rejects_provider_linked_to_other_user() -> None:
     """Rejects association when the provider belongs to a different user."""
@@ -259,6 +266,7 @@ async def test_associate_callback_rejects_provider_linked_to_other_user() -> Non
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     assert exc_info.value.detail == "This account is already linked to another user."
 
+
 async def test_associate_callback_rejects_standard_google_state_for_youtube_flow() -> None:
     """A normal Google association state cannot be replayed into the YouTube scope-upgrade flow."""
     config, user_schema = make_associate_flow(
@@ -289,4 +297,3 @@ async def test_associate_callback_rejects_standard_google_state_for_youtube_flow
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     config.oauth_client.get_id_email.assert_not_awaited()
-
