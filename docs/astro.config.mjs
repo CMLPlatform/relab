@@ -130,8 +130,9 @@ export default defineConfig({
       },
     },
     build: {
-      // Mermaid is lazy-loaded and ships a large minified chunk; suppress the warning for it.
-      chunkSizeWarningLimit: 1500,
+      // Scalar API reference (~2.8M) and Mermaid ship large minified chunks, each
+      // isolated to its own lazy route; nothing to code-split, so suppress the warning.
+      chunkSizeWarningLimit: 3000,
     },
   },
   integrations: [starlight(STARLIGHT_OPTIONS), mdx()],
