@@ -1,17 +1,12 @@
 """Structured audit logging for sensitive operations."""
 
-from __future__ import annotations
-
 import logging
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from uuid import UUID  # noqa: TC003 # kept at runtime so inspect.signature() can resolve audit_event's annotations
 
 from app.api.common.models.base import get_model_label
 from app.core.logging import sanitize_log_value
-
-if TYPE_CHECKING:
-    from uuid import UUID
 
 _audit_logger = logging.getLogger("audit")
 

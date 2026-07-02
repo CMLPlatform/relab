@@ -1,7 +1,6 @@
 """Unit tests for the auth module configuration."""
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 import pytest
 from pydantic import SecretStr
@@ -9,6 +8,10 @@ from pydantic_core import ValidationError
 
 from app.api.auth.config import AuthSettings
 from app.core.config import Environment
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Any
 
 VALID_SECRET = "x" * 32
 

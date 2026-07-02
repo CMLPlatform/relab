@@ -26,6 +26,8 @@ from app.api.reference_data.models import TaxonomyDomain
 
 
 class TaxonomyBase(BaseModel):
+    """Shared base fields for taxonomy schemas."""
+
     model_config = ConfigDict(use_enum_values=True)
     name: SingleLineUserText = Field(min_length=2, max_length=100)
     version: SingleLineUserText | None = Field(default=None, min_length=1, max_length=50)
@@ -35,12 +37,16 @@ class TaxonomyBase(BaseModel):
 
 
 class CategoryBase(BaseModel):
+    """Shared base fields for category schemas."""
+
     name: SingleLineUserText = Field(min_length=2, max_length=250)
     description: MultilineUserText | None = Field(default=None, max_length=500)
     external_id: SingleLineUserText | None = None
 
 
 class MaterialBase(BaseModel):
+    """Shared base fields for material schemas."""
+
     name: SingleLineUserText = Field(min_length=2, max_length=100)
     description: MultilineUserText | None = Field(default=None, max_length=500)
     source: SingleLineUserText | None = Field(default=None, max_length=100)
@@ -49,6 +55,8 @@ class MaterialBase(BaseModel):
 
 
 class ProductTypeBase(BaseModel):
+    """Shared base fields for product-type schemas."""
+
     name: SingleLineUserText = Field(min_length=2, max_length=100)
     description: MultilineUserText | None = Field(default=None, max_length=500)
 

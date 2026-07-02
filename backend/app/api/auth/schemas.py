@@ -1,7 +1,5 @@
 """DTO schemas for users."""
 
-from __future__ import annotations
-
 import uuid
 from datetime import datetime  # Used at runtime for Pydantic model annotations
 from typing import Annotated, ClassVar
@@ -31,6 +29,8 @@ from app.api.auth.profile_stats import ProfileStatsData
 
 
 class UserBase(BaseModel):
+    """Shared base fields common to all user schemas."""
+
     username: str | None = None
     model_config = {"use_enum_values": True}
 

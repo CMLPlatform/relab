@@ -76,6 +76,7 @@ async def get_user_owned_product(
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
 ) -> Product:
+    """Resolve the product owned by the current user from the path ID."""
     return await _fetch_owned_product(session, product_id, current_user)
 
 
@@ -100,6 +101,7 @@ async def get_user_owned_component(
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
 ) -> Product:
+    """Resolve the component owned by the current user from the path ID."""
     product = await _fetch_owned_product(session, component_id, current_user)
     if product.is_base_product:
         raise HTTPException(

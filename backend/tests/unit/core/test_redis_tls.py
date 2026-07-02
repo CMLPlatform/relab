@@ -1,7 +1,5 @@
 """Tests for Redis transport configuration."""
 
-from __future__ import annotations
-
 import ssl
 from typing import TYPE_CHECKING, ClassVar
 
@@ -22,7 +20,7 @@ class FakeRedis:
 
     instances: ClassVar[list[FakeRedis]] = []
 
-    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401 - mirrors redis-py constructor surface
+    def __init__(self, **kwargs: Any) -> None:
         self.kwargs = kwargs
         self.instances.append(self)
 

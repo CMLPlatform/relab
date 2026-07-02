@@ -1,8 +1,6 @@
 """Integration tests for file storage endpoints."""
 # spell-checker: ignore ENVI geocube hyperspectral NITF
 
-from __future__ import annotations
-
 import json
 from io import BytesIO
 from typing import TYPE_CHECKING
@@ -253,7 +251,7 @@ async def test_upload_image_rejects_extension_mismatch(
 )
 async def test_product_media_routes_reject_component_ids(
     api_client_superuser: AsyncClient,
-    setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+    setup_product_graph,
     kind: str,
     endpoint: str,
 ) -> None:
@@ -274,7 +272,7 @@ async def test_product_media_routes_reject_component_ids(
 )
 async def test_component_media_upload_and_delete(
     api_client_superuser: AsyncClient,
-    setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+    setup_product_graph,
     kind: str,
     endpoint: str,
 ) -> None:
@@ -307,7 +305,7 @@ async def test_component_media_upload_and_delete(
 )
 async def test_component_media_routes_reject_base_product_ids(
     api_client_superuser: AsyncClient,
-    setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+    setup_product_graph,
     kind: str,
     endpoint: str,
 ) -> None:

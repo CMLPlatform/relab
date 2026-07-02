@@ -1,8 +1,6 @@
 """Tests for ASVS V5 malware scanning controls."""
 # spell-checker: ignore clamav, clamd, EICAR
 
-from __future__ import annotations
-
 from io import BytesIO
 
 import anyio
@@ -33,14 +31,14 @@ async def test_optional_scanner_none_accepts_uploads() -> None:
 
 
 class _InfectedScanner:
-    async def scan(self, fileobj) -> None:  # noqa: ANN001
+    async def scan(self, fileobj) -> None:
         del fileobj
         signature = "EICAR-Test-File"
         raise MalwareDetectedError(signature)
 
 
 class _CleanScanner:
-    async def scan(self, fileobj) -> None:  # noqa: ANN001
+    async def scan(self, fileobj) -> None:
         fileobj.seek(0, 2)
 
 
@@ -76,7 +74,7 @@ class _ClamAVResponseStream:
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, *args) -> None:  # noqa: ANN002
+    async def __aexit__(self, *args) -> None:
         del args
 
     async def send(self, data: bytes) -> None:
@@ -104,7 +102,7 @@ async def test_clamav_scanner_parses_terminal_response_markers(
 ) -> None:
     """ClamAV response handling should use terminal status markers only."""
 
-    async def _connect_tcp(host: str, port: int):  # noqa: ANN202
+    async def _connect_tcp(host: str, port: int):
         assert host == "clamav"
         assert port == 3310
         return _ClamAVResponseStream(response)
@@ -141,14 +139,14 @@ async def test_clamav_scanner_reports_broken_stream_as_unavailable(monkeypatch: 
         async def __aenter__(self):
             return self
 
-        async def __aexit__(self, *args) -> None:  # noqa: ANN002
+        async def __aexit__(self, *args) -> None:
             del args
 
         async def send(self, data: bytes) -> None:
             del data
             raise anyio.BrokenResourceError
 
-    async def _connect_tcp(host: str, port: int):  # noqa: ANN202
+    async def _connect_tcp(host: str, port: int):
         assert host == "clamav"
         assert port == 3310
         return _BrokenStream()

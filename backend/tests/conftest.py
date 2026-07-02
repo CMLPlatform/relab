@@ -16,8 +16,6 @@ Architecture:
 - This keeps pure unit test runs from paying the Docker startup cost
 """
 
-from __future__ import annotations
-
 # spell-checker: ignore datname, collectonly
 import asyncio
 import logging
@@ -77,7 +75,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
 def _ensure_testcontainers_postgres() -> None:
     """Start Testcontainers Postgres once and publish its coordinates."""
-    global _postgres_container  # noqa: PLW0603
+    global _postgres_container
     if _postgres_container is not None:
         return
 
@@ -117,7 +115,7 @@ def _quoted_test_database_identifier(database_name: str) -> str:
 
 def pytest_unconfigure(config: pytest.Config) -> None:
     """Stop Testcontainers after all tests complete."""
-    global _postgres_container  # noqa: PLW0603
+    global _postgres_container
     del config
     if _postgres_container:
         logger.info("Stopping Testcontainers Postgres...")

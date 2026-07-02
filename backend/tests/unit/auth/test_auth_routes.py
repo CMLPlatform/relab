@@ -1,32 +1,37 @@
 """Unit tests for auth router composition."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.routing import APIRoute
 from fastapi_users import exceptions
 from fastapi_users.router.reset import ErrorCode
 from starlette.requests import Request
 
-from app.api.auth.routers.auth import FORGOT_PASSWORD_PATH, RESET_PASSWORD_PATH, router
 from app.api.auth.routers.password_reset import (
+    FORGOT_PASSWORD_PATH,
+    RESET_PASSWORD_PATH,
     _password_reset_identifier_rate_limit_key,
     forgot_password,
     reset_password,
+    router,
 )
 from app.api.auth.services.rate_limiter import PASSWORD_RESET_RATE_LIMIT, rate_limit_bucket_key
 
 
-def _dependency_names(route: APIRoute) -> set[str]:
-    """Return dependency function names attached directly to a route."""
+def _router_dependency_names(api_router: APIRouter) -> set[str]:
+    """Return dependency function names attached at the router level."""
     return {
         getattr(dependency.dependency, "__name__", "")
-        for dependency in route.dependencies
+        for dependency in api_router.dependencies
         if dependency.dependency is not None
     }
+
+
+def _has_route(api_router: APIRouter, path: str) -> bool:
+    """Return whether the router owns an APIRoute for the given path."""
+    return any(isinstance(route, APIRoute) and route.path == path for route in api_router.routes)
 
 
 def _request() -> Request:
@@ -36,20 +41,14 @@ def _request() -> Request:
 
 def test_forgot_password_route_is_rate_limited() -> None:
     """The password-reset e-mail request endpoint should use the limiter dependency."""
-    route = next(
-        route for route in router.routes if isinstance(route, APIRoute) and route.path == f"/auth{FORGOT_PASSWORD_PATH}"
-    )
-
-    assert "rate_limit" in _dependency_names(route)
+    assert _has_route(router, FORGOT_PASSWORD_PATH)
+    assert "rate_limit" in _router_dependency_names(router)
 
 
 def test_reset_password_route_is_rate_limited() -> None:
     """The password-reset submission endpoint should use the limiter dependency."""
-    route = next(
-        route for route in router.routes if isinstance(route, APIRoute) and route.path == f"/auth{RESET_PASSWORD_PATH}"
-    )
-
-    assert "rate_limit" in _dependency_names(route)
+    assert _has_route(router, RESET_PASSWORD_PATH)
+    assert "rate_limit" in _router_dependency_names(router)
 
 
 def test_forgot_password_account_rate_limit_key_uses_normalized_keyed_bucket() -> None:

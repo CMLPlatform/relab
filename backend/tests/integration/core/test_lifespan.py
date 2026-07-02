@@ -1,7 +1,5 @@
 """Integration tests for the FastAPI application lifespan."""
 
-from __future__ import annotations
-
 import asyncio
 import sys
 from contextlib import contextmanager
@@ -275,7 +273,7 @@ async def test_shutdown_shuts_down_telemetry(runtime_app: FastAPI) -> None:
 
 async def test_shutdown_closes_cache_before_redis(runtime_app: FastAPI) -> None:
     """Endpoint cache should release Redis-backed resources before Redis closes."""
-    labels = [step.label for step in lifecycle._shutdown_steps(runtime_app, AppServices(redis=MagicMock()))]  # noqa: SLF001
+    labels = [step.label for step in lifecycle._shutdown_steps(runtime_app, AppServices(redis=MagicMock()))]
 
     assert labels.index("endpoint cache") < labels.index("primary Redis client")
 

@@ -56,7 +56,9 @@ def main() -> None:
         namespace = CacheNamespace(namespace_arg)
     except ValueError:
         valid_namespaces = ", ".join([ns.value for ns in CacheNamespace])
-        logger.error("Invalid namespace '%s'. Valid namespaces: %s", namespace_arg, valid_namespaces)
+        logger.error(  # noqa: TRY400 # user input error, traceback adds no value
+            "Invalid namespace '%s'. Valid namespaces: %s", namespace_arg, valid_namespaces
+        )
         raise SystemExit(1) from None
 
     logger.info("Clearing cache namespace: %s", namespace)

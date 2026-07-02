@@ -33,15 +33,21 @@ PARENT_TYPE_DESCRIPTION = f"Type of the parent object, e.g. {', '.join(parent.va
 
 
 class FileBase(BaseModel):
+    """Shared base fields for file schemas."""
+
     description: MultilineUserText | None = None
 
 
 class ImageBase(BaseModel):
+    """Shared base fields for image schemas."""
+
     description: MultilineUserText | None = None
     image_metadata: dict[str, Any] | None = None
 
 
 class VideoBase(BaseModel):
+    """Shared base fields for video schemas."""
+
     url: str
     title: SingleLineUserText | None = None
     description: MultilineUserText | None = None

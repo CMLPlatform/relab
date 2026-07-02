@@ -284,7 +284,7 @@ def test_database_urls_use_least_privilege_roles() -> None:
     assert migration_url.password == "migration-password"
 
 
-def test_database_role_passwords_can_load_from_secret_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_database_role_passwords_can_load_from_secret_files(tmp_path: Path) -> None:
     """Production credentials should be loadable from Docker-style secret files."""
     (tmp_path / "database_app_password").write_text("app-secret", encoding="utf-8")
     (tmp_path / "database_migration_password").write_text("migration-secret", encoding="utf-8")
@@ -393,7 +393,7 @@ def test_production_can_load_runtime_passwords_from_secret_files(
     assert settings.cache_signing_secret.get_secret_value() == TEST_CACHE_SIGNING_SECRET
 
 
-def test_production_rejects_missing_redis_secret_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_rejects_missing_redis_secret_file(tmp_path: Path) -> None:
     """Production-like settings should fail when Redis has no password source."""
     db = DatabaseSettings(
         _env_file=None,

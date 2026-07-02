@@ -54,11 +54,11 @@ def resolve_light_value(value: str) -> str:
     inner = value[len("light-dark(") : -1]
     depth = 0
     for index, char in enumerate(inner):
-        if char in "([":
+        if char in "([":  # noqa: PLR2004 # bracket tokens read clearer inline
             depth += 1
-        elif char in ")]":
+        elif char in ")]":  # noqa: PLR2004
             depth -= 1
-        elif char == "," and depth == 0:
+        elif char == "," and depth == 0:  # noqa: PLR2004
             return inner[:index].strip()
 
     msg = f"Could not split light-dark() value: {value}"

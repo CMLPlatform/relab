@@ -1,9 +1,7 @@
 """Unit tests for disposable-email blocklist loading and Redis caching."""
 # spell-checker: ignore nmailinator
 
-# ruff: noqa: SLF001 # Private member behaviour is tested here to avoid background task timing.
-
-from __future__ import annotations
+# Private member behaviour is tested here to avoid background task timing.
 
 from typing import TYPE_CHECKING, Self
 from unittest.mock import AsyncMock
@@ -97,7 +95,7 @@ async def test_email_checker_remote_refresh_uses_shared_http_client(
         async def __aexit__(self, *args: object) -> None:
             return None
 
-        async def get(self, url: str, *, timeout: float) -> FakeResponse:  # noqa: ASYNC109 - mirrors httpx API
+        async def get(self, url: str, *, timeout: float) -> FakeResponse:
             self.urls.append(url)
             self.timeouts.append(timeout)
             return FakeResponse()

@@ -1,7 +1,5 @@
 """Unit tests for username/email login resolution in the UserManager service."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -24,7 +22,7 @@ from app.api.common.audit import AuditAction
 from app.core.runtime import AppServices
 
 
-def _make_credentials(username: str, password: str = "testpassword") -> OAuth2PasswordRequestForm:  # noqa: S107
+def _make_credentials(username: str, password: str = "testpassword") -> OAuth2PasswordRequestForm:
     form = MagicMock(spec=OAuth2PasswordRequestForm)
     form.username = username
     form.password = password

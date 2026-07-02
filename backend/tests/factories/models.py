@@ -47,7 +47,7 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
         return super()._get_type_from_type_engine(type_engine)
 
     @classmethod
-    def build(cls, **kwargs: Any) -> T:  # noqa: ANN401 # Polyfactory accepts Any-typed kwargs for model fields
+    def build(cls, **kwargs: Any) -> T:  # Polyfactory accepts Any-typed kwargs for model fields
         """Build an instance while skipping DB-computed columns like generated TSVECTOR fields."""
         build_context = cls._get_build_context(kwargs.get("_build_context"))
         build_context["skip_computed_fields"] = True
@@ -60,7 +60,7 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
         session: AsyncSession | None = None,
         *,
         refresh_instance: bool = False,
-        **kwargs: Any,  # noqa: ANN401 - Any-typed kwargs are expected by the parent class signature.
+        **kwargs: Any,
     ) -> T:
         """Create a new instance, optionally using a provided session."""
         if session:
@@ -92,26 +92,32 @@ class UserFactory(BaseModelFactory[User]):
 
     @classmethod
     def email(cls) -> str:
+        """Provide the default `email` value for generated instances."""
         return cls.__faker__.email()
 
     @classmethod
     def username(cls) -> str:
+        """Provide the default `username` value for generated instances."""
         return cls.__faker__.user_name()
 
     @classmethod
     def products(cls) -> list:
+        """Provide the default `products` value for generated instances."""
         return []
 
     @classmethod
     def oauth_accounts(cls) -> list:
+        """Provide the default `oauth_accounts` value for generated instances."""
         return []
 
     @classmethod
     def preferences(cls) -> dict[str, Any]:
+        """Provide the default `preferences` value for generated instances."""
         return {}
 
     @classmethod
     def profile_stats(cls) -> dict[str, Any]:
+        """Provide the default `profile_stats` value for generated instances."""
         return {}
 
 
@@ -122,18 +128,22 @@ class TaxonomyFactory(BaseModelFactory[Taxonomy]):
 
     @classmethod
     def name(cls) -> str:
+        """Provide the default `name` value for generated instances."""
         return cls.__faker__.catch_phrase()
 
     @classmethod
     def version(cls) -> str:
+        """Provide the default `version` value for generated instances."""
         return cls.__faker__.numerify(text="v#.#.#")
 
     @classmethod
     def description(cls) -> str | None:
+        """Provide the default `description` value for generated instances."""
         return cls.__faker__.text(max_nb_chars=200) if cls.__faker__.boolean() else None
 
     @classmethod
     def domains(cls) -> set[TaxonomyDomain]:
+        """Provide the default `domains` value for generated instances."""
         # Return at least one domain
         domains = [TaxonomyDomain.MATERIALS]
         if cls.__faker__.boolean():
@@ -142,10 +152,12 @@ class TaxonomyFactory(BaseModelFactory[Taxonomy]):
 
     @classmethod
     def categories(cls) -> list[Category]:
+        """Provide the default `categories` value for generated instances."""
         return []
 
     @classmethod
     def source(cls) -> str | None:
+        """Provide the default `source` value for generated instances."""
         return cls.__faker__.url() if cls.__faker__.boolean() else None
 
 
@@ -156,14 +168,17 @@ class CategoryFactory(BaseModelFactory[Category]):
 
     @classmethod
     def name(cls) -> str:
+        """Provide the default `name` value for generated instances."""
         return cls.__faker__.word().title()
 
     @classmethod
     def description(cls) -> str | None:
+        """Provide the default `description` value for generated instances."""
         return cls.__faker__.sentence() if cls.__faker__.boolean() else None
 
     @classmethod
     def external_id(cls) -> str | None:
+        """Provide the default `external_id` value for generated instances."""
         return cls.__faker__.uuid4() if cls.__faker__.boolean() else None
 
     supercategory_id = None
@@ -179,19 +194,23 @@ class MaterialFactory(BaseModelFactory[Material]):
 
     @classmethod
     def name(cls) -> str:
+        """Provide the default `name` value for generated instances."""
         materials = ["Steel", "Aluminum", "Copper", "Titanium", "Carbon Fiber", "Glass", "Ceramic"]
         return cls.__faker__.random_element(elements=materials)
 
     @classmethod
     def description(cls) -> str | None:
+        """Provide the default `description` value for generated instances."""
         return cls.__faker__.sentence() if cls.__faker__.boolean() else None
 
     @classmethod
     def source(cls) -> str | None:
+        """Provide the default `source` value for generated instances."""
         return cls.__faker__.url() if cls.__faker__.boolean() else None
 
     @classmethod
     def density_kg_m3(cls) -> float | None:
+        """Provide the default `density_kg_m3` value for generated instances."""
         return (
             round(cls.__faker__.pyfloat(min_value=100, max_value=20000), 2)
             if cls.__faker__.boolean(chance_of_getting_true=80)
@@ -200,6 +219,7 @@ class MaterialFactory(BaseModelFactory[Material]):
 
     @classmethod
     def is_crm(cls) -> bool | None:
+        """Provide the default `is_crm` value for generated instances."""
         return cls.__faker__.boolean() if cls.__faker__.boolean(chance_of_getting_true=80) else None
 
 
@@ -210,11 +230,13 @@ class ProductTypeFactory(BaseModelFactory[ProductType]):
 
     @classmethod
     def name(cls) -> str:
+        """Provide the default `name` value for generated instances."""
         product_types = ["Electronics", "Furniture", "Appliances", "Tools", "Packaging", "Automotive Parts"]
         return cls.__faker__.random_element(elements=product_types)
 
     @classmethod
     def description(cls) -> str | None:
+        """Provide the default `description` value for generated instances."""
         return cls.__faker__.sentence() if cls.__faker__.boolean() else None
 
 
@@ -225,18 +247,22 @@ class ProductFactory(BaseModelFactory[Product]):
 
     @classmethod
     def name(cls) -> str:
+        """Provide the default `name` value for generated instances."""
         return cls.__faker__.bs().title()
 
     @classmethod
     def description(cls) -> str | None:
+        """Provide the default `description` value for generated instances."""
         return cls.__faker__.text(max_nb_chars=200)
 
     @classmethod
     def brand(cls) -> str | None:
+        """Provide the default `brand` value for generated instances."""
         return cls.__faker__.company()
 
     @classmethod
     def model(cls) -> str | None:
+        """Provide the default `model` value for generated instances."""
         return cls.__faker__.bothify(text="??-####")
 
     parent_id = None
@@ -245,10 +271,12 @@ class ProductFactory(BaseModelFactory[Product]):
 
     @classmethod
     def components(cls) -> list:
+        """Provide the default `components` value for generated instances."""
         return []
 
     @classmethod
     def bill_of_materials(cls) -> list:
+        """Provide the default `bill_of_materials` value for generated instances."""
         return []
 
 
@@ -259,6 +287,7 @@ class MaterialProductLinkFactory(BaseModelFactory[MaterialProductLink]):
 
     @classmethod
     def quantity(cls) -> float:
+        """Provide the default `quantity` value for generated instances."""
         return cls.__faker__.pyfloat(positive=True, min_value=0.1, max_value=10.0)
 
 
@@ -269,14 +298,17 @@ class CameraFactory(BaseModelFactory[Camera]):
 
     @classmethod
     def name(cls) -> str:
+        """Provide the default `name` value for generated instances."""
         return cls.__faker__.catch_phrase()
 
     @classmethod
     def description(cls) -> str | None:
+        """Provide the default `description` value for generated instances."""
         return cls.__faker__.sentence() if cls.__faker__.boolean() else None
 
     @classmethod
     def relay_public_key_jwk(cls) -> dict[str, str]:
+        """Provide the default `relay_public_key_jwk` value for generated instances."""
         return {
             "kty": "EC",
             "crv": "P-256",
@@ -287,4 +319,5 @@ class CameraFactory(BaseModelFactory[Camera]):
 
     @classmethod
     def relay_key_id(cls) -> str:
+        """Provide the default `relay_key_id` value for generated instances."""
         return cls.__faker__.uuid4()

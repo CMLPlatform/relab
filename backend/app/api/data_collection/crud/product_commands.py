@@ -1,7 +1,5 @@
 """Command helpers for product creation, mutation, and deletion."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 
 from app.api.common.audit import AuditAction, audit_event
@@ -48,6 +46,7 @@ def create_product_videos(
     product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
     db_product: Product,
 ) -> None:
+    """Attach any videos from the create payload to the product."""
     if not isinstance(product_data, ProductCreateWithComponents) or not product_data.videos:
         return
     db_product.videos = [Video(**v.model_dump()) for v in product_data.videos]

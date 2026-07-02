@@ -1,7 +1,5 @@
 """Tests for email provider adapters."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 from typing import Self, cast
 from unittest.mock import AsyncMock
@@ -154,8 +152,8 @@ async def test_graph_provider_refreshes_nearly_expired_cached_token() -> None:
     """Nearly expired cached tokens should not be reused."""
     client = FakeGraphClient()
     provider = MicrosoftGraphEmailProvider(settings=_graph_settings(), client=client)
-    provider._token = "old-token"  # noqa: SLF001 - explicit cache-state test
-    provider._token_expires_at = datetime.now(UTC) + timedelta(seconds=10)  # noqa: SLF001
+    provider._token = "old-token"
+    provider._token_expires_at = datetime.now(UTC) + timedelta(seconds=10)
 
     await provider.send(_message())
 

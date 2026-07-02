@@ -1,8 +1,5 @@
 """Tests for test database identifier validation and quoting."""
 # Private test harness helpers are the behavior under test here.
-# ruff: noqa: SLF001
-
-from __future__ import annotations
 
 import pytest
 

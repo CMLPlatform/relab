@@ -18,4 +18,5 @@ def parent_model_for_type(parent_type: MediaParentType) -> type[Base]:
     try:
         return _PARENT_MODELS[parent_type]
     except KeyError:
-        raise BadRequestError(f"Invalid parent type: {parent_type}") from None
+        msg = f"Invalid parent type: {parent_type}"
+        raise BadRequestError(msg) from None

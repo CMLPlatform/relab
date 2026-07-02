@@ -1,8 +1,6 @@
 """Shared fixtures for unit tests (no database required)."""
 # spell-checker: ignore fixturenames
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
@@ -21,7 +19,7 @@ _FORBIDDEN_UNIT_FIXTURES = {
 
 
 @pytest.fixture
-def mock_session() -> Any:  # noqa: ANN401
+def mock_session() -> Any:
     """Async database session mock with common SQLAlchemy methods.
 
     Returns ``Any`` so the mock slots into parameters typed as ``AsyncSession`` (or anything

@@ -2,7 +2,7 @@
 
 import uuid
 from enum import StrEnum
-from typing import Any
+from typing import Any  # noqa: TC003 # Used at runtime for ORM mapped annotations
 
 from sqlalchemy import CheckConstraint, ForeignKey, Index
 from sqlalchemy import Enum as SAEnum
