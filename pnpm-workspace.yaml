@@ -25,8 +25,10 @@ overrides:
 
 catalog:
   "@astrojs/check": ^0.9.9
-  "@axe-core/playwright": ^4.11.3
-  "@biomejs/biome": ^2.4.15
-  "@playwright/test": ^1.59.1
-  "@types/node": ^25.6.2
-  typescript: ^5.9.3
+  "@axe-core/playwright": ^4.12.1
+  "@biomejs/biome": ^2.5.2
+  astro: 7.0.5
+  "@playwright/test": ^1.61.1
+  "@types/node": ^26.1.0
+  playwright: ^1.61.1
+  typescript: ^6.0.3

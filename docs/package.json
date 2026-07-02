@@ -27,12 +27,12 @@
     "audit": "pnpm audit --prod --audit-level moderate"
   },
   "dependencies": {
-    "@astrojs/mdx": "^5.0.4",
-    "@astrojs/starlight": "^0.39.2",
-    "@mermaid-js/layout-elk": "^0.2.1",
-    "@scalar/api-reference": "^1.55.3",
-    "astro": "^6.3.1",
-    "mermaid": "^11.14.0"
+    "@astrojs/mdx": "7.0.1",
+    "@astrojs/starlight": "0.41.2",
+    "@mermaid-js/layout-elk": "^0.2.2",
+    "@scalar/api-reference": "^1.62.0",
+    "astro": "catalog:",
+    "mermaid": "^11.16.0"
   },
   "devDependencies": {
     "@astrojs/check": "catalog:",
@@ -42,7 +42,7 @@
     "@types/node": "catalog:",
     "linkinator": "^7.6.1",
     "markdownlint-cli2": "^0.22.1",
-    "playwright": "^1.59.1",
+    "playwright": "catalog:",
     "typescript": "catalog:"
   }
 }

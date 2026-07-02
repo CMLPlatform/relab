@@ -7,7 +7,7 @@
 ARG WORKDIR=/opt/relab
 
 # --- Shared deps stage ---
-FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS deps
+FROM node:26-slim@sha256:a1d9d671994fc2d26e297ac56b4b1522a8bc7fa71c43b14cd1b1fe6c5116f7dc AS deps
 
 ARG WORKDIR
 WORKDIR $WORKDIR

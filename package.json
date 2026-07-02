@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "packageManager": "pnpm@11.1.1",
   "engines": {
-    "node": "24.x",
+    "node": "26.x",
     "pnpm": "11.x"
   },
   "scripts": {
@@ -17,6 +17,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "cspell": "^10.0.0"
+    "cspell": "^10.0.1"
   }
 }
