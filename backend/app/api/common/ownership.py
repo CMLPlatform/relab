@@ -1,17 +1,23 @@
 """Ownership validation helpers shared across API modules."""
 
+from typing import TYPE_CHECKING
+
 from pydantic import UUID4
 from sqlalchemy import inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.exceptions import ModelNotFoundError
-from app.api.common.models.custom_types import IDT, MT
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from app.api.common.models.base import Base
 
 
-async def get_user_owned_object(
+async def get_user_owned_object[MT: Base](
     db: AsyncSession,
     model: type[MT],
-    model_id: IDT,
+    model_id: int | UUID,
     owner_id: UUID4,
     user_fk: str = "owner_id",
 ) -> MT:

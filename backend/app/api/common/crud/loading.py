@@ -10,7 +10,6 @@ from sqlalchemy.orm.attributes import QueryableAttribute
 
 from app.api.common.crud.exceptions import CRUDConfigurationError
 from app.api.common.models.base import Base
-from app.api.common.models.custom_types import MT
 
 
 class RelationshipLoadStrategy(StrEnum):
@@ -28,7 +27,7 @@ class LoaderProfile(frozenset[str]):
         return cast("Self", super().__new__(cls, relationships))
 
 
-def _get_model_relationships(model: type[MT]) -> dict[str, QueryableAttribute[Any]]:
+def _get_model_relationships(model: type[Base]) -> dict[str, QueryableAttribute[Any]]:
     """Return relationship attributes keyed by relationship name."""
     mapper = inspect(model)
     if not mapper:
@@ -37,12 +36,12 @@ def _get_model_relationships(model: type[MT]) -> dict[str, QueryableAttribute[An
     return {rel.key: cast("QueryableAttribute[Any]", getattr(model, rel.key)) for rel in mapper.relationships}
 
 
-def relationship_names(model: type[MT]) -> set[str]:
+def relationship_names(model: type[Base]) -> set[str]:
     """Return valid relationship names for a model."""
     return set(_get_model_relationships(model))
 
 
-def relationship_attr(model: type[MT], name: str) -> QueryableAttribute[Any]:
+def relationship_attr(model: type[Base], name: str) -> QueryableAttribute[Any]:
     """Return a typed relationship attribute by name."""
     relationships = _get_model_relationships(model)
     try:

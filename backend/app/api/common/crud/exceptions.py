@@ -4,16 +4,18 @@ from typing import TYPE_CHECKING
 
 from app.api.common.exceptions import BadRequestError, ConflictError, InternalServerError, NotFoundError
 from app.api.common.models.base import get_model_label, get_model_label_plural
-from app.api.common.models.custom_types import IDT, MT
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from uuid import UUID
+
+    from app.api.common.models.base import Base
 
 
 class ModelNotFoundError(NotFoundError):
     """Exception raised when a model is not found in the database."""
 
-    def __init__(self, model_type: type[MT] | None = None, model_id: IDT | None = None) -> None:
+    def __init__(self, model_type: type[Base] | None = None, model_id: int | UUID | None = None) -> None:
         self.model_type = model_type
         self.model_id = model_id
         model_name = get_model_label(model_type)
@@ -28,10 +30,10 @@ class DependentModelOwnershipError(BadRequestError):
 
     def __init__(
         self,
-        dependent_model: type[MT],
-        dependent_id: IDT,
-        parent_model: type[MT],
-        parent_id: IDT,
+        dependent_model: type[Base],
+        dependent_id: int | UUID,
+        parent_model: type[Base],
+        parent_id: int | UUID,
     ) -> None:
         dependent_model_name = get_model_label(dependent_model)
         parent_model_name = get_model_label(parent_model)
@@ -54,7 +56,7 @@ class CRUDConfigurationError(InternalServerError):
 class ModelsNotFoundError(NotFoundError):
     """Exception raised when one or more requested models do not exist."""
 
-    def __init__(self, model_type: type[MT], missing_ids: Iterable[IDT]) -> None:
+    def __init__(self, model_type: type[Base], missing_ids: Iterable[int | UUID]) -> None:
         model_name = get_model_label_plural(model_type)
         formatted_ids = ", ".join(map(str, sorted(missing_ids)))
         super().__init__(message=f"The following {model_name} do not exist: {formatted_ids}")
@@ -70,7 +72,7 @@ class NoLinkedItemsError(BadRequestError):
 class LinkedItemsAlreadyAssignedError(ConflictError):
     """Exception raised when attempting to add already-linked items."""
 
-    def __init__(self, model_name_plural: str, duplicate_ids: Iterable[IDT]) -> None:
+    def __init__(self, model_name_plural: str, duplicate_ids: Iterable[int | UUID]) -> None:
         formatted_ids = ", ".join(map(str, sorted(duplicate_ids)))
         super().__init__(message=f"{model_name_plural} with id {formatted_ids} are already assigned")
 
@@ -78,6 +80,6 @@ class LinkedItemsAlreadyAssignedError(ConflictError):
 class LinkedItemsMissingError(NotFoundError):
     """Exception raised when expected linked items are missing."""
 
-    def __init__(self, model_name_plural: str, missing_ids: Iterable[IDT]) -> None:
+    def __init__(self, model_name_plural: str, missing_ids: Iterable[int | UUID]) -> None:
         formatted_ids = ", ".join(map(str, sorted(missing_ids)))
         super().__init__(message=f"{model_name_plural} with id {formatted_ids} not found")

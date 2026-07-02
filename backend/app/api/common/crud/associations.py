@@ -8,15 +8,16 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from app.api.common.exceptions import BadRequestError
 from app.api.common.models.base import get_model_label
-from app.api.common.models.custom_types import LMT
 
 if TYPE_CHECKING:
     from uuid import UUID
 
     from sqlalchemy import Select
 
+    from app.api.common.models.base import Base
 
-async def require_link(
+
+async def require_link[LMT: Base](
     db: AsyncSession,
     link_model: type[LMT],
     id1: int | UUID,
@@ -40,7 +41,7 @@ async def add_links(
     id1_attr: InstrumentedAttribute[int | UUID],
     id2_set: set[int] | set[UUID],
     id2_attr: InstrumentedAttribute[int | UUID],
-    link_model: type[LMT],
+    link_model: type[Base],
 ) -> None:
     """Create association rows between one parent ID and many dependent IDs."""
     links = [link_model(**{id1_attr.key: id1, id2_attr.key: id2}) for id2 in id2_set]

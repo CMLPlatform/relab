@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from functools import wraps
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from cashews import Cache
 from cashews.exceptions import UnSecureDataError
@@ -27,9 +27,6 @@ if TYPE_CHECKING:
     from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
-
-P = ParamSpec("P")
-T = TypeVar("T")
 
 _MEMORY_CACHE_BACKEND = "mem://"
 _ETAG_WILDCARD = "*"
@@ -181,7 +178,7 @@ def _cacheable_result(result: object, *, request_has_auth_material: bool = False
     return not isinstance(result, Response) or result.status_code <= _SUCCESS_STATUS_MAX
 
 
-def cache(
+def cache[**P, T](
     *,
     expire: int,
     namespace: str = "",

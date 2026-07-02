@@ -1,5 +1,7 @@
 """Custom exceptions for authentication and user operations."""
 
+from typing import TYPE_CHECKING
+
 from fastapi import HTTPException, status
 from fastapi_users.router.common import ErrorCode
 from pydantic import UUID4
@@ -12,7 +14,11 @@ from app.api.common.exceptions import (
     UnauthorizedError,
 )
 from app.api.common.models.base import get_model_label
-from app.api.common.models.custom_types import IDT, MT
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from app.api.common.models.base import Base
 
 
 class AuthCRUDError(Exception):
@@ -32,8 +38,8 @@ class UserOwnershipError(ForbiddenError):
 
     def __init__(
         self,
-        model_type: type[MT],
-        model_id: IDT,
+        model_type: type[Base],
+        model_id: int | UUID,
         user_id: UUID4,
     ) -> None:
         model_name = get_model_label(model_type)

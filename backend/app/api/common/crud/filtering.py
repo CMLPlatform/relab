@@ -14,12 +14,13 @@ from pydantic import TypeAdapter
 from sqlalchemy import ColumnElement, Select, or_
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from app.api.common.models.custom_types import MT
 from app.api.common.search_utils import apply_ts_rank_ordering, build_text_search_clause
 from app.api.common.validation import BoundedQueryText, BoundedQueryTextList
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from app.api.common.models.base import Base
 
 SUB_RESOURCE_LIMIT: int = 200
 
@@ -112,7 +113,7 @@ def _relationship_columns(model_filter: BaseFilterSet) -> dict[str, ColumnElemen
     return {join.field: join.column for join in model_filter.relationship_joins}
 
 
-def _apply_relationship_joins(statement: Select[tuple[MT]], model_filter: BaseFilterSet) -> Select[tuple[MT]]:
+def _apply_relationship_joins[MT: Base](statement: Select[tuple[MT]], model_filter: BaseFilterSet) -> Select[tuple[MT]]:
     active_fields = {*model_filter.filter_values, *(field for field, _direction, _nulls in model_filter.sorting)}
     join_lookup = _relationship_join_lookup(model_filter)
     applied: set[InstrumentedAttribute[Any]] = set()
@@ -129,7 +130,7 @@ def _apply_relationship_joins(statement: Select[tuple[MT]], model_filter: BaseFi
     return statement
 
 
-def apply_filter(
+def apply_filter[MT: Base](
     statement: Select[tuple[MT]],
     _model: type[MT],
     model_filter: BaseFilterSet | None,

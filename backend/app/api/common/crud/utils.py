@@ -10,14 +10,16 @@ from app.api.common.crud.exceptions import (
     ModelNotFoundError,
     NoLinkedItemsError,
 )
-from app.api.common.models.custom_types import ET, IDT, MT
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from enum import Enum
     from uuid import UUID
 
+    from app.api.common.models.base import Base
 
-def ensure_model_exists(db_result: MT | None, model_type: type[MT], model_id: IDT) -> MT:
+
+def ensure_model_exists[MT: Base](db_result: MT | None, model_type: type[MT], model_id: int | UUID) -> MT:
     """Ensure a model with a given ID exists, providing type-safe return.
 
     Args:
@@ -81,7 +83,7 @@ def format_id_set(id_set: set[Any]) -> str:
     return ", ".join(map(str, sorted(id_set)))
 
 
-def enum_format_id_set(enum_set: set[ET]) -> str:
+def enum_format_id_set[ET: Enum](enum_set: set[ET]) -> str:
     """Format a set of enum values as a comma-separated string."""
     return ", ".join(str(e.value) for e in sorted(enum_set, key=lambda x: x.value))
 
