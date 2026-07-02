@@ -78,7 +78,7 @@
   seed-taxonomies = ["openpyxl>=3.1.5", "pandas>=2.3.3", "requests>=2.32.0"]
 
   # Heavy deps for scripts/plugins/rpi_cam/webcam_fake_camera.py (local dev only)
-  fake-camera = ["opencv-python>=4.0", "websockets>=14.0"]
+  fake-camera = ["opencv-python-headless>=4.0", "websockets>=14.0"]
 
   # Unit and integration test dependencies
   tests = [
