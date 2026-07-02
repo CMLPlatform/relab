@@ -16,14 +16,6 @@ from app.api.file_storage.upload_quota import (
 )
 
 
-@pytest.fixture
-def mock_session() -> AsyncMock:
-    """Provide a minimal async session mock without loading global app fixtures."""
-    session = AsyncMock()
-    session.get = AsyncMock()
-    session.execute = AsyncMock()
-    return session
-
 async def test_reserve_product_upload_quota_uses_single_conditional_update(mock_session: AsyncMock) -> None:
     """Successful reservations should be one atomic DB update without aggregate reads."""
     user_id = uuid4()

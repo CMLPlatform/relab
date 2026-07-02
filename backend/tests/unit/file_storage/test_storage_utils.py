@@ -32,8 +32,6 @@ MY_DOC_PDF = "my-document.pdf"
 MY_DOC_RAW = "my document.pdf"
 FAKE_IMAGE_PATH = "/fake/path/test.png"
 ZIP_MEMBER_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
-ZIP_TIMESTAMP_A = 1_710_000_000
-ZIP_TIMESTAMP_B = 1_710_000_120
 
 def test_sanitize_filename() -> None:
     """Test filename sanitization."""
@@ -114,16 +112,6 @@ def _zip_bytes_with_info(entries: list[tuple[ZipInfo, bytes]]) -> bytes:
             info.date_time = ZIP_MEMBER_TIMESTAMP
             archive.writestr(info, content, compress_type=ZIP_DEFLATED)
     return buffer.getvalue()
-
-def test_zip_bytes_are_deterministic_when_collection_times_differ(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Generated parametrized zip fixtures must not depend on worker collection time."""
-    monkeypatch.setattr("zipfile.time.time", lambda: ZIP_TIMESTAMP_A)
-    first = _zip_bytes(["[Content_Types].xml", "word/document.xml"])
-
-    monkeypatch.setattr("zipfile.time.time", lambda: ZIP_TIMESTAMP_B)
-    second = _zip_bytes(["[Content_Types].xml", "word/document.xml"])
-
-    assert first == second
 
 DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 PPTX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.presentation"

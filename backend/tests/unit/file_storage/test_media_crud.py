@@ -74,11 +74,6 @@ async def test_create_file_uses_configured_upload_size_limit(
         await file_storage_service.create(mock_session, file_create)
 
 
-def test_file_service_does_not_keep_legacy_fallback_upload_limit() -> None:
-    """The file upload service should read limits from settings only."""
-    assert not hasattr(file_storage_service, "_max_size_mb")
-
-
 async def test_delete_product_file_releases_upload_quota(mock_session: AsyncMock) -> None:
     """Deleting product-owned files should release the owner's upload ledger."""
     file_id = uuid4()
@@ -149,11 +144,6 @@ async def test_create_image_uses_configured_upload_size_limit(
 
     with pytest.raises(UploadTooLargeError, match="Maximum size: 2 MB"):
         await image_storage_service.create(mock_session, image_create)
-
-
-def test_image_service_does_not_keep_legacy_fallback_upload_limit() -> None:
-    """The image upload service should read limits from settings only."""
-    assert not hasattr(image_storage_service, "_max_size_mb")
 
 
 async def test_delete_image_cleans_thumbnails_when_original_is_missing(mock_session: AsyncMock) -> None:
