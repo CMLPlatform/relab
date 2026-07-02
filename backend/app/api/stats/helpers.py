@@ -1,8 +1,6 @@
 """Pure helper functions for the stats endpoints."""
 
-from __future__ import annotations
-
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 # Default lookback window per granularity, expressed as timedelta.
 # Approximate for month/year — exact enough given SQL date_trunc rounding.
@@ -27,7 +25,7 @@ def resolve_date_range(
     end: date | None,
 ) -> tuple[date, date]:
     """Return the effective (start, end) date range for a series query."""
-    effective_end = end or date.today()
+    effective_end = end or datetime.now(UTC).date()
     effective_start = start if start is not None else effective_end - _DEFAULT_DELTAS[granularity]
     return effective_start, effective_end
 

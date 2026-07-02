@@ -1,13 +1,13 @@
 """Response schemas for the public system-wide stats endpoints."""
 
-from __future__ import annotations
-
 from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
 
 class Totals(BaseModel):
+    """System-wide cumulative counts across all data."""
+
     model_config = ConfigDict(frozen=True)
 
     teardowns: int
@@ -18,6 +18,8 @@ class Totals(BaseModel):
 
 
 class TotalsResponse(BaseModel):
+    """Response payload for the totals endpoint."""
+
     model_config = ConfigDict(frozen=True)
 
     generated_at: datetime
@@ -25,6 +27,8 @@ class TotalsResponse(BaseModel):
 
 
 class CategoryStat(BaseModel):
+    """Teardown and part counts for a single category."""
+
     model_config = ConfigDict(frozen=True)
 
     name: str
@@ -33,6 +37,8 @@ class CategoryStat(BaseModel):
 
 
 class CategoriesResponse(BaseModel):
+    """Response payload for the top-categories endpoint."""
+
     model_config = ConfigDict(frozen=True)
 
     generated_at: datetime
@@ -41,6 +47,8 @@ class CategoriesResponse(BaseModel):
 
 
 class SeriesPoint(BaseModel):
+    """Aggregated metrics for one period of a time series."""
+
     model_config = ConfigDict(frozen=True)
 
     period: str
@@ -53,6 +61,8 @@ class SeriesPoint(BaseModel):
 
 
 class SeriesResponse(BaseModel):
+    """Response payload for the time-series endpoint."""
+
     model_config = ConfigDict(frozen=True)
 
     granularity: str

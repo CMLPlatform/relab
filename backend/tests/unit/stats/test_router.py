@@ -4,8 +4,6 @@ Query functions are mocked — this tests HTTP shape, status codes, and
 parameter handling, not the SQL queries themselves.
 """
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
@@ -42,6 +40,7 @@ def client() -> TestClient:
 
 
 def test_returns_200_with_correct_shape(client: TestClient) -> None:
+    """Returns 200 with correct shape."""
     with patch("app.api.stats.router.compute_totals", AsyncMock(return_value=(_FAKE_TOTALS, _NOW))):
         resp = client.get("/v1/stats/totals")
     assert resp.status_code == 200
@@ -52,6 +51,7 @@ def test_returns_200_with_correct_shape(client: TestClient) -> None:
 
 
 def test_returns_200_with_categories(client: TestClient) -> None:
+    """Returns 200 with categories."""
     mock = AsyncMock(return_value=(_FAKE_CATEGORIES, _NOW))
     with patch("app.api.stats.router.compute_categories", mock):
         resp = client.get("/v1/stats/categories")
@@ -62,6 +62,7 @@ def test_returns_200_with_categories(client: TestClient) -> None:
 
 
 def test_limit_param_forwarded(client: TestClient) -> None:
+    """Limit param forwarded."""
     mock = AsyncMock(return_value=(_FAKE_CATEGORIES, _NOW))
     with patch("app.api.stats.router.compute_categories", mock):
         resp = client.get("/v1/stats/categories?limit=10")
@@ -71,16 +72,19 @@ def test_limit_param_forwarded(client: TestClient) -> None:
 
 
 def test_limit_above_100_rejected(client: TestClient) -> None:
+    """Limit above 100 rejected."""
     resp = client.get("/v1/stats/categories?limit=101")
     assert resp.status_code == 422
 
 
 def test_limit_below_1_rejected(client: TestClient) -> None:
+    """Limit below 1 rejected."""
     resp = client.get("/v1/stats/categories?limit=0")
     assert resp.status_code == 422
 
 
 def test_returns_200_with_series(client: TestClient) -> None:
+    """Returns 200 with series."""
     with patch("app.api.stats.router.compute_series", AsyncMock(return_value=(_FAKE_SERIES, _NOW))):
         resp = client.get("/v1/stats/series")
     assert resp.status_code == 200
@@ -91,22 +95,26 @@ def test_returns_200_with_series(client: TestClient) -> None:
 
 
 def test_invalid_granularity_rejected(client: TestClient) -> None:
+    """Invalid granularity rejected."""
     resp = client.get("/v1/stats/series?granularity=quarter")
     assert resp.status_code == 422
 
 
 def test_explicit_dates_accepted(client: TestClient) -> None:
+    """Explicit dates accepted."""
     with patch("app.api.stats.router.compute_series", AsyncMock(return_value=(_FAKE_SERIES, _NOW))):
         resp = client.get("/v1/stats/series?granularity=day&start=2025-01-01&end=2025-12-31")
     assert resp.status_code == 200
 
 
 def test_invalid_date_format_rejected(client: TestClient) -> None:
+    """Invalid date format rejected."""
     resp = client.get("/v1/stats/series?start=01/01/2025")
     assert resp.status_code == 422
 
 
 def test_response_echoes_granularity(client: TestClient) -> None:
+    """Response echoes granularity."""
     with patch("app.api.stats.router.compute_series", AsyncMock(return_value=(_FAKE_SERIES, _NOW))):
         resp = client.get("/v1/stats/series?granularity=year")
     assert resp.json()["granularity"] == "year"
