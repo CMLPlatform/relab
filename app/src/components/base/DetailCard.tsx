@@ -5,13 +5,12 @@ import { Card } from 'react-native-paper';
 interface Props {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
-  contentStyle?: StyleProp<ViewStyle>;
 }
 
-export default function DetailCard({ children, style, contentStyle }: Props) {
+export default function DetailCard({ children, style }: Props) {
   return (
     <Card elevation={2} style={[styles.card, style]}>
-      <Card.Content style={[styles.content, contentStyle]}>{children}</Card.Content>
+      <Card.Content style={styles.content}>{children}</Card.Content>
     </Card>
   );
 }

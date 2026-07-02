@@ -3,28 +3,12 @@ import { Image } from 'expo-image';
 import { memo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
+import { StatusBadge } from '@/components/base/StatusBadge';
+import { STATUS_LABEL } from '@/components/cameras/detail/styles';
 import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
-import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
-import { getStatusColor, getStatusTone, useAppTheme } from '@/theme';
-
-const STATUS_LABEL: Record<CameraConnectionStatus, string> = {
-  online: 'Online',
-  offline: 'Offline',
-  unauthorized: 'Unauthorized',
-  forbidden: 'Forbidden',
-  error: 'Error',
-};
-
-function StatusBadge({ status }: { status: CameraConnectionStatus }) {
-  const theme = useAppTheme();
-  const color = getStatusColor(theme, status);
-  return (
-    <View style={[styles.statusBadge, { backgroundColor: getStatusTone(color) }]}>
-      <Text style={{ color, fontSize: 12, fontWeight: '700' }}>{STATUS_LABEL[status]}</Text>
-    </View>
-  );
-}
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { getStatusColor, useAppTheme } from '@/theme';
 
 /**
  * Format an ISO-8601 timestamp as a compact relative string for the offline
@@ -125,7 +109,10 @@ function CameraCardComponent({
             </Text>
           ) : null}
           <View style={styles.cardChips}>
-            <StatusBadge status={connection} />
+            <StatusBadge
+              label={STATUS_LABEL[connection]}
+              color={getStatusColor(theme, connection)}
+            />
             {isOnline ? (
               effectiveConnection?.detailLabel ? (
                 <Text variant="labelSmall" style={styles.lastSeenText}>
@@ -157,11 +144,6 @@ const styles = StyleSheet.create({
   },
   cardOffline: {
     opacity: 0.6,
-  },
-  statusBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
   },
   thumbnailFrame: {
     width: '100%',

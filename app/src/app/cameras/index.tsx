@@ -1,11 +1,8 @@
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
-import {
-  CamerasFab,
-  CamerasSelectionOverlay,
-  CamerasSnackbar,
-  CamerasStreamDialog,
-} from '@/components/cameras/screen/Chrome';
+import { GoLiveDialog } from '@/components/cameras/GoLiveDialog';
+import { SelectionBar } from '@/components/cameras/SelectionBar';
+import { CamerasFab, CamerasSnackbar } from '@/components/cameras/screen/Chrome';
 import { CamerasGrid } from '@/components/cameras/screen/Grid';
 import { useCamerasScreen } from '@/features/cameras/useCamerasScreen';
 
@@ -26,7 +23,7 @@ export default function CamerasScreen() {
 
   return (
     <>
-      <CamerasSelectionOverlay
+      <SelectionBar
         visible={selection.selectionMode}
         selectedCount={selection.selectedCount}
         onlineCount={screen.onlineCount}
@@ -51,13 +48,18 @@ export default function CamerasScreen() {
 
       <CamerasSnackbar message={streaming.snackbarMessage} onDismiss={streaming.dismissSnackbar} />
 
-      <CamerasStreamDialog
-        state={streaming.streamDialog}
+      <GoLiveDialog
+        visible={streaming.streamDialog.cameraId !== null}
+        cameraName={streaming.streamDialog.cameraName}
+        title={streaming.streamDialog.title}
+        privacy={streaming.streamDialog.privacy}
         loading={streaming.isStartingStream}
         onDismiss={streaming.closeStreamDialog}
         onChangeTitle={streaming.setStreamTitle}
         onChangePrivacy={streaming.setStreamPrivacy}
         onStart={handleStartStream}
+        secondaryLabel="Cancel"
+        onSecondary={streaming.closeStreamDialog}
       />
     </>
   );

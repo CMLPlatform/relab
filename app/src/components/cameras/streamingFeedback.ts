@@ -26,7 +26,3 @@ export function showStreamStartFailed(feedback: FeedbackApi, error: unknown) {
 export function showStreamStopFailed(feedback: FeedbackApi, error: unknown) {
   feedback.error(`Failed to stop stream: ${getErrorMessage(error)}`, 'Stop failed');
 }
-
-export function showStreamLinkRequired(feedback: FeedbackApi) {
-  showGoogleAccountRequired(feedback);
-}

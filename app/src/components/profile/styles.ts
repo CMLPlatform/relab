@@ -149,15 +149,6 @@ export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
       fontSize: 13,
       fontWeight: '600',
     },
-    newsletterFooter: {
-      alignItems: 'flex-start',
-      paddingHorizontal: 16,
-    },
-    newsletterError: {
-      paddingTop: 6,
-      color: theme.tokens.status.danger,
-      fontSize: 13,
-    },
     danger: {
       color: theme.tokens.status.danger,
     },

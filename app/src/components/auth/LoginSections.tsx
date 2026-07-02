@@ -9,15 +9,13 @@ import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
 
 type LoginLayoutProps = {
-  colorScheme: 'light' | 'dark';
   keyboardShown: boolean;
   children: React.ReactNode;
   onBrowse: () => void;
 };
 
-export function LoginLayout({ colorScheme, keyboardShown, children, onBrowse }: LoginLayoutProps) {
+export function LoginLayout({ keyboardShown, children, onBrowse }: LoginLayoutProps) {
   const theme = useAppTheme();
-  void colorScheme;
   const keyboardHeight = keyboardShown && Keyboard.metrics() ? Keyboard.metrics()?.height : 0;
   return (
     <View style={styles.root}>

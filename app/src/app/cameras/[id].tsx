@@ -5,12 +5,12 @@ import {
   CameraPreviewSection,
 } from '@/components/cameras/detail/ConnectionPreview';
 import { CameraDetailDialogs } from '@/components/cameras/detail/Dialogs';
+import { CameraDetailLayout } from '@/components/cameras/detail/detailRows';
 import {
   CameraDangerZone,
   CameraDetailsCard,
   CameraStreamingSection,
 } from '@/components/cameras/detail/StreamingDetails';
-import { CameraDetailLayout } from '@/components/cameras/detail/shared';
 import { useCameraDetailScreen } from '@/features/cameras/useCameraDetailScreen';
 
 function CameraDetailContent({

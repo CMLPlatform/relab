@@ -1,14 +1,9 @@
 import { render } from '@testing-library/react-native';
-import { useCameraLivePreview } from '@/features/cameras/hooks';
+import { useCameraLivePreview } from '@/features/cameras/rpi/hooks';
 import { LivePreview } from '../LivePreview';
 
-jest.mock('@/features/cameras/hooks');
-jest.mock('@/components/cameras/live-preview/caption', () => ({
-  getLivePreviewCaption: jest.fn((isLocalStream: boolean) =>
-    isLocalStream ? 'Live preview · Direct' : 'Live preview · LL-HLS',
-  ),
-}));
-jest.mock('@/components/cameras/live-preview/shared', () => ({
+jest.mock('@/features/cameras/rpi/hooks');
+jest.mock('@/components/cameras/live-preview/previewOverlays', () => ({
   PreviewShell: ({ caption, children }: { caption: string; children: React.ReactNode }) => {
     const React = jest.requireActual<typeof import('react')>('react');
     const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');

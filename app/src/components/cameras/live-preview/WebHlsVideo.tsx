@@ -1,7 +1,7 @@
 import { createElement, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { useAppTheme } from '@/theme';
-import { PreviewErrorOverlay, PreviewLoadingOverlay } from './shared';
+import { PreviewErrorOverlay, PreviewLoadingOverlay } from './previewOverlays';
 import { createLivePreviewStyles } from './styles';
 import { useWebHlsPlayback } from './useWebHlsPlayback';
 import { setupWebHlsVideo } from './webHlsVideoHelpers';

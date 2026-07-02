@@ -1,8 +1,6 @@
-import {
-  CameraSelectionStep,
-  CameraStreamConfigDialog,
-} from '@/components/cameras/CameraStreamPickerSections';
-import { useCameraStreamPicker } from '@/features/cameras/useCameraStreamPicker';
+import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
+import { GoLiveDialog } from '@/components/cameras/GoLiveDialog';
+import { useCameraStreamPicker } from '@/features/cameras/youtube/useCameraStreamPicker';
 
 interface CameraStreamPickerProps {
   productId: number;
@@ -26,19 +24,25 @@ export function CameraStreamPicker({
 
   return (
     <>
-      <CameraSelectionStep
+      <CameraPickerDialog
         visible={visible && state.isSelectingCamera}
         onDismiss={actions.handleDismiss}
         onSelect={actions.handleCameraSelect}
+        title="Select camera to stream"
       />
-      <CameraStreamConfigDialog
-        config={state.config}
+      <GoLiveDialog
+        visible={state.config !== null}
+        cameraName={state.config?.camera.name ?? ''}
+        title={state.config?.title ?? ''}
+        privacy={state.config?.privacy ?? 'private'}
         loading={state.isStarting}
-        onBack={actions.handleBack}
         onDismiss={actions.handleBack}
         onChangeTitle={actions.setTitle}
         onChangePrivacy={actions.setPrivacy}
         onStart={handleStart}
+        secondaryLabel="Back"
+        onSecondary={actions.handleBack}
+        showSpacer
       />
     </>
   );

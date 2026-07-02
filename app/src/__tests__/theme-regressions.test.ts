@@ -13,7 +13,7 @@ const MODERNIZED_FILES = [
   'components/cameras/CameraCard.tsx',
   'components/cameras/TelemetryBadge.tsx',
   'components/cameras/live-preview/styles.ts',
-  'components/cameras/live-preview/shared.tsx',
+  'components/cameras/live-preview/previewOverlays.tsx',
   'components/cameras/screen/styles.ts',
   'components/cameras/ActiveStreamBanner.tsx',
   'components/cameras/StreamingContent.tsx',

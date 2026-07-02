@@ -51,11 +51,5 @@ export const createCameraScreenStyles = memoizeByTheme((theme: AppTheme) => {
       right: 16,
       bottom: 16,
     },
-    dialogContent: {
-      gap: 12,
-    },
-    dialogLabel: {
-      marginTop: 4,
-    },
   });
 });

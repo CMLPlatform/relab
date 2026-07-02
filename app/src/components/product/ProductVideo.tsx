@@ -1,14 +1,13 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from 'react-native-paper';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { useDialog } from '@/components/base/dialogContext';
 import { TextInput } from '@/components/base/TextInput';
 import { StreamingContent } from '@/components/cameras/StreamingContent';
+import { VideoEmbed } from '@/components/product/ProductVideoEmbed';
 import type { StreamSession } from '@/context/streamSession';
-import { extractYouTubeVideoId } from '@/services/api/validation/productSchema';
-import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { isHttpUrl } from '@/utils/urlSafety';
@@ -32,7 +31,6 @@ interface Props {
   isGoogleLinked: boolean;
   ownedByMe: boolean;
   isNew: boolean;
-  isProductComponent: boolean;
   onGoLivePress: () => void;
   onNavigateToProfile: () => void;
   onNavigateToActiveStream: () => void;
@@ -50,7 +48,6 @@ export default function ProductVideo({
   isGoogleLinked,
   ownedByMe,
   isNew,
-  isProductComponent,
   onGoLivePress,
   onNavigateToProfile,
   onNavigateToActiveStream,
@@ -111,8 +108,7 @@ export default function ProductVideo({
     onGoLivePress();
   };
 
-  const showGoLiveCta =
-    !isNew && ownedByMe && rpiEnabled && !streamingThisProduct && !isProductComponent;
+  const showGoLiveCta = !isNew && ownedByMe && rpiEnabled && !streamingThisProduct;
   const hasVideos = videos.length > 0;
   const showExpandToggle = !editMode && hasVideos;
   const showVideoRows = editMode || streamingThisProduct || expanded;
@@ -341,69 +337,6 @@ function GoLiveCTA({
   );
 }
 
-const embedContainerStyle = {
-  maxWidth: 480,
-  aspectRatio: 16 / 9,
-  width: '100%' as const,
-  alignSelf: 'center' as const,
-  marginHorizontal: 14,
-  marginVertical: 8,
-  borderRadius: 8,
-  overflow: 'hidden' as const,
-};
-
-function VideoEmbed({ url, linkColor }: { url: string; linkColor: string }) {
-  const [loaded, setLoaded] = useState(false);
-  const videoId = extractYouTubeVideoId(url);
-  const handleOpenUrl = async () => openExternalUrl(url);
-  if (!videoId) {
-    return (
-      <TouchableOpacity onPress={handleOpenUrl}>
-        <Text style={[styles.videoLink, { color: linkColor }]}>{url}</Text>
-      </TouchableOpacity>
-    );
-  }
-  const embedUri = `https://www.youtube-nocookie.com/embed/${videoId}`;
-  if (!loaded) {
-    return (
-      <View style={styles.videoActions}>
-        <TouchableOpacity onPress={() => setLoaded(true)}>
-          <Text style={[styles.videoLink, { color: linkColor }]}>Load video</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleOpenUrl}>
-          <Text style={[styles.videoLink, { color: linkColor }]}>Open video</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-  if (Platform.OS === 'web') {
-    return (
-      <View style={embedContainerStyle}>
-        <iframe
-          src={embedUri}
-          title="Embedded product video"
-          style={styles.webEmbed}
-          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
-          referrerPolicy="no-referrer"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </View>
-    );
-  }
-  const { WebView } = require('react-native-webview');
-  return (
-    <WebView
-      originWhitelist={['https://www.youtube-nocookie.com']}
-      source={{ uri: embedUri }}
-      style={embedContainerStyle}
-      allowsInlineMediaPlayback
-      mediaPlaybackRequiresUserAction={false}
-      javaScriptEnabled
-    />
-  );
-}
-
 function EmptyVideoState({ mutedColor }: { mutedColor: string }) {
   return (
     <Text style={[styles.emptyState, { color: mutedColor }]}>
@@ -423,11 +356,6 @@ const styles = StyleSheet.create({
   },
   videoFields: {
     flex: 1,
-  },
-  videoActions: {
-    flexDirection: 'row',
-    gap: 16,
-    marginVertical: 4,
   },
   titleInput: {
     paddingHorizontal: 14,
@@ -453,18 +381,6 @@ const styles = StyleSheet.create({
   goLiveButton: {
     marginHorizontal: 14,
     marginBottom: 8,
-  },
-  videoLink: {
-    paddingHorizontal: 14,
-    fontSize: 16,
-    lineHeight: 26,
-    textDecorationLine: 'underline',
-  },
-  webEmbed: {
-    width: '100%',
-    height: '100%',
-    borderWidth: 0,
-    borderRadius: 8,
   },
   emptyState: {
     opacity: 0.7,

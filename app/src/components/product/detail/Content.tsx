@@ -113,7 +113,6 @@ export function ProductPageContent({
             isGoogleLinked={isGoogleLinked}
             ownedByMe={product.ownedBy === 'me'}
             isNew={isNew}
-            isProductComponent={isProductComponent}
             onGoLivePress={onGoLivePress}
             onNavigateToProfile={onNavigateToProfile}
             streamingOtherProduct={streamingOtherProduct}

@@ -1,14 +1,14 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { Component } from 'react';
 import { View } from 'react-native';
-import { Text } from 'react-native-paper';
-import { getLivePreviewCaption } from '@/components/cameras/live-preview/caption';
 import { PreviewPlayer } from '@/components/cameras/live-preview/PreviewPlayer';
-import { PreviewShell } from '@/components/cameras/live-preview/shared';
+import {
+  PreviewErrorOverlay,
+  PreviewShell,
+} from '@/components/cameras/live-preview/previewOverlays';
 import { createLivePreviewStyles } from '@/components/cameras/live-preview/styles';
-import { useCameraLivePreview } from '@/features/cameras/hooks';
-import type { CameraConnectionInfo } from '@/features/cameras/useLocalConnection';
+import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
+import { useCameraLivePreview } from '@/features/cameras/rpi/hooks';
 import type { CameraRead } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
 
@@ -45,8 +45,10 @@ export function LivePreview({
     return null;
   }
 
+  const caption = isLocalStream ? 'Live preview · Direct · <1s' : 'Live preview · LL-HLS';
+
   return (
-    <PreviewShell caption={getLivePreviewCaption(isLocalStream)}>
+    <PreviewShell caption={caption}>
       <PreviewErrorBoundary>
         <PreviewPlayer src={hlsUrl} isLocalStream={isLocalStream} />
       </PreviewErrorBoundary>
@@ -65,24 +67,23 @@ export class PreviewErrorBoundary extends Component<
     return { hasError: true };
   }
 
+  retry = () => this.setState({ hasError: false });
+
   render() {
     if (this.state.hasError) {
-      return <PreviewErrorState />;
+      return <PreviewErrorState onRetry={this.retry} />;
     }
     return this.props.children;
   }
 }
 
-export function PreviewErrorState() {
+export function PreviewErrorState({ onRetry }: { onRetry: () => void }) {
   const theme = useAppTheme();
   const styles = createLivePreviewStyles(theme);
 
   return (
     <View style={styles.videoFrame}>
-      <View style={styles.overlay}>
-        <MaterialCommunityIcons name="video-off" size={32} color={theme.tokens.text.muted} />
-        <Text style={styles.overlayText}>Live preview unavailable</Text>
-      </View>
+      <PreviewErrorOverlay message="Live preview unavailable" onRetry={onRetry} />
     </View>
   );
 }

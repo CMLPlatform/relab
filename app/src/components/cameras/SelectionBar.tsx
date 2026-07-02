@@ -11,6 +11,7 @@ import { useAppTheme } from '@/theme';
  * selection and return to normal navigation mode.
  */
 export function SelectionBar({
+  visible,
   selectedCount,
   onlineCount,
   onSelectAll,
@@ -18,6 +19,7 @@ export function SelectionBar({
   onCaptureAll,
   isCapturing,
 }: {
+  visible: boolean;
   selectedCount: number;
   onlineCount: number;
   onSelectAll: () => void;
@@ -27,6 +29,7 @@ export function SelectionBar({
 }) {
   const theme = useAppTheme();
   const canCapture = selectedCount > 0 && !isCapturing;
+  if (!visible) return null;
   return (
     <View style={[styles.bar, { backgroundColor: theme.tokens.surface.accent }]}>
       <IconButton icon="close" onPress={onClear} accessibilityLabel="Clear selection" />

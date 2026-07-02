@@ -15,11 +15,7 @@ export default function Login() {
   const handleGithubLogin = async () => actions.loginWithGithub();
 
   return (
-    <LoginLayout
-      colorScheme={ui.colorScheme}
-      keyboardShown={ui.keyboardShown}
-      onBrowse={actions.browseProducts}
-    >
+    <LoginLayout keyboardShown={ui.keyboardShown} onBrowse={actions.browseProducts}>
       <LoginBrandHero colorScheme={ui.colorScheme} />
       <LoginFormSection
         control={form.control}

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import type { CameraConnectionInfo } from '@/features/cameras/useLocalConnection';
+import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import { renderWithProviders } from '@/test-utils/index';
 import CamerasScreen from '../index';
 
@@ -17,7 +17,7 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/features/cameras/hooks', () => ({
+jest.mock('@/features/cameras/rpi/hooks', () => ({
   useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
   useCaptureAllMutation: () => ({
     mutate: mockCaptureMutate,
@@ -25,7 +25,7 @@ jest.mock('@/features/cameras/hooks', () => ({
   }),
 }));
 
-jest.mock('@/features/cameras/useLocalConnection', () => ({
+jest.mock('@/features/cameras/local-connection/useLocalConnection', () => ({
   useLocalConnection: (...args: unknown[]) => mockUseLocalConnection(...args),
 }));
 
@@ -61,7 +61,7 @@ jest.mock('@/components/base/ErrorState', () => {
 
 jest.mock('@/components/cameras/screen/Chrome', () => {
   const React = require('react');
-  const { Pressable, Text, View } = require('react-native');
+  const { Pressable, Text } = require('react-native');
 
   return {
     CamerasFab: ({ visible, onPress }: { visible: boolean; onPress: () => void }) =>
@@ -72,7 +72,23 @@ jest.mock('@/components/cameras/screen/Chrome', () => {
             React.createElement(Text, null, 'Add camera'),
           )
         : null,
-    CamerasSelectionOverlay: ({
+    CamerasSnackbar: ({ message, onDismiss }: { message: string | null; onDismiss: () => void }) =>
+      message
+        ? React.createElement(
+            Pressable,
+            { accessibilityRole: 'button', onPress: onDismiss },
+            React.createElement(Text, null, message),
+          )
+        : null,
+  };
+});
+
+jest.mock('@/components/cameras/SelectionBar', () => {
+  const React = require('react');
+  const { Pressable, Text, View } = require('react-native');
+
+  return {
+    SelectionBar: ({
       visible,
       selectedCount,
       onlineCount,
@@ -113,17 +129,12 @@ jest.mock('@/components/cameras/screen/Chrome', () => {
             ),
           )
         : null,
-    CamerasSnackbar: ({ message, onDismiss }: { message: string | null; onDismiss: () => void }) =>
-      message
-        ? React.createElement(
-            Pressable,
-            { accessibilityRole: 'button', onPress: onDismiss },
-            React.createElement(Text, null, message),
-          )
-        : null,
-    CamerasStreamDialog: () => null,
   };
 });
+
+jest.mock('@/components/cameras/GoLiveDialog', () => ({
+  GoLiveDialog: () => null,
+}));
 
 jest.mock('@/components/cameras/screen/Grid', () => {
   const React = require('react');

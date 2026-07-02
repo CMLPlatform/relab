@@ -38,7 +38,6 @@ const defaultProps: ProductVideoProps = {
   isGoogleLinked: false,
   ownedByMe: false,
   isNew: false,
-  isProductComponent: false,
   onGoLivePress: jest.fn(),
   onNavigateToProfile: jest.fn(),
   onNavigateToActiveStream: jest.fn(),
