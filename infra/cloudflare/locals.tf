@@ -125,6 +125,21 @@ locals {
       }
     },
     {
+      ref         = "relab_stats_skip_bot_fight_mode"
+      description = "Skip Super Bot Fight Mode for public read-only stats endpoints"
+      expression = join(" and ", [
+        local.api_hosts_expression,
+        "http.request.method eq \"GET\"",
+        "starts_with(http.request.uri.path, \"/v1/stats/\")",
+      ])
+      action = "skip"
+      action_parameters = {
+        phases = [
+          "http_request_sbfm",
+        ]
+      }
+    },
+    {
       ref         = "relab_high_risk_country_auth_challenge"
       description = "Managed challenge for authentication calls from high-risk countries"
       expression = join(" and ", [
