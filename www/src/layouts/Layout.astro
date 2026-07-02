@@ -23,10 +23,18 @@ const {
 
 const publicSiteConfig = getPublicSiteConfig();
 const siteOrigin = publicSiteConfig.siteUrl;
-const canonicalUrl = siteOrigin ? new URL(Astro.url.pathname, siteOrigin).toString() : undefined;
-const pageTitle =
-  title === siteMeta.title || title.includes(siteMeta.name) ? title : `${title} | ${siteMeta.name}`;
-const socialImage = siteOrigin ? new URL(image, siteOrigin).toString() : image;
+let canonicalUrl: string | undefined;
+if (siteOrigin) {
+  canonicalUrl = new URL(Astro.url.pathname, siteOrigin).toString();
+}
+let pageTitle = `${title} | ${siteMeta.name}`;
+if (title === siteMeta.title || title.includes(siteMeta.name)) {
+  pageTitle = title;
+}
+let socialImage = image;
+if (siteOrigin) {
+  socialImage = new URL(image, siteOrigin).toString();
+}
 const currentYear = new Date().getFullYear();
 ---
 
@@ -53,6 +61,31 @@ const currentYear = new Date().getFullYear();
     <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link
+      rel="preload"
+      href="/fonts/ibm-plex-sans-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    {/* Resolve theme before first paint to avoid a flash for users whose stored
+        preference differs from their OS scheme. Kept inline (no module import)
+        so it runs render-blocking; mirrors STORAGE_KEY/logic in scripts/theme.ts. */}
+    <script is:inline>
+      (() => {
+        const stored = localStorage.getItem('relab-theme');
+        const pref =
+          stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+        const resolved =
+          pref === 'system'
+            ? matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+            : pref;
+        document.documentElement.dataset.themePreference = pref;
+        document.documentElement.dataset.theme = resolved;
+      })();
+    </script>
     <title>{pageTitle}</title>
   </head>
   <body>
