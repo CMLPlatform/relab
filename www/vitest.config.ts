@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config';
 const vitestConfig = defineConfig({
   test: {
     exclude: ['e2e/**', 'node_modules/**'],
+    setupFiles: ['./vitest.setup.ts'],
     coverage: {
       provider: 'v8',
       include: ['src/config/**', 'src/copy/**', 'src/scripts/**'],
