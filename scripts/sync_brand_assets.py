@@ -11,8 +11,12 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CONVERT = "convert"
 LOGO_SOURCE = ROOT / "assets/logo.svg"
+
+
+def imagemagick_cli() -> str | None:
+    """Resolve the ImageMagick CLI: `magick` (IMv7) with a `convert` (IMv6) fallback."""
+    return shutil.which("magick") or shutil.which("convert")
 
 
 def root_path(path: str) -> Path:
@@ -125,13 +129,14 @@ def copy_asset(source: Path, targets: tuple[Path, ...], *, check: bool) -> list[
 
 def run_convert(source: Path, target: Path, args: tuple[str, ...]) -> None:
     """Generate one asset with ImageMagick."""
-    if shutil.which(CONVERT) is None:
-        msg = "ImageMagick 'convert' is required to generate brand image assets."
+    cli = imagemagick_cli()
+    if cli is None:
+        msg = "ImageMagick ('magick' or 'convert') is required to generate brand image assets."
         raise RuntimeError(msg)
 
     target.parent.mkdir(parents=True, exist_ok=True)
     output = f"PNG32:{target}" if target.suffix == ".png" else str(target)
-    command = (CONVERT, "-background", "none", "-density", "2048", str(source), *args, output)
+    command = (cli, "-background", "none", "-density", "2048", str(source), *args, output)
     try:
         subprocess.run(command, check=True, capture_output=True, text=True)  # noqa: S603
     except subprocess.CalledProcessError as exc:
