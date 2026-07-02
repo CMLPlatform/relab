@@ -1,7 +1,5 @@
 """Centralized OpenAPI examples for the Raspberry Pi Camera plugin."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from app.api.common.openapi_examples import openapi_example, openapi_examples
@@ -45,13 +43,13 @@ CAMERA_UPDATE_EXAMPLES = [
 ]
 
 CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
-    disabled=openapi_example(False, summary="Return camera metadata only"),
-    enabled=openapi_example(True, summary="Include current online status"),
+    disabled=openapi_example(value=False, summary="Return camera metadata only"),
+    enabled=openapi_example(value=True, summary="Include current online status"),
 )
 
 CAMERA_FORCE_REFRESH_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
-    cached=openapi_example(False, summary="Use cached status when available"),
-    refresh=openapi_example(True, summary="Bypass cache and query the camera directly"),
+    cached=openapi_example(value=False, summary="Use cached status when available"),
+    refresh=openapi_example(value=True, summary="Bypass cache and query the camera directly"),
 )
 
 CAMERA_MODE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(

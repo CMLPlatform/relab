@@ -7,10 +7,6 @@ validate the module's own logic — the Redis driver itself is not under test).
 """
 # spell-checker: ignore blpop, rpush
 
-# ruff: noqa: SLF001 — private helpers (_resp_ttl_seconds, _execute_and_respond, …) are the subject under test
-
-from __future__ import annotations
-
 import asyncio
 import base64
 import json

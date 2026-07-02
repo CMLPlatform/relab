@@ -1,8 +1,6 @@
 """Unit tests for WebSocket relay transport helpers."""
 # spell-checker: ignore whep
-# ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
-
-from __future__ import annotations
+# Private member behaviour is tested here, so we want to allow it.
 
 import asyncio
 from unittest.mock import AsyncMock, patch

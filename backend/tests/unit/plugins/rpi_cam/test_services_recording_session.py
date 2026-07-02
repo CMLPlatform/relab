@@ -1,7 +1,4 @@
 """Unit tests for cached YouTube recording-session helpers."""
-# ruff: noqa: ANN401 — shared mock_session fixture is typed as Any by design
-
-from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch

@@ -5,9 +5,6 @@ The happy/unhappy paths of :func:`verify_device_assertion` are covered in
 missing ``jti``, bearer extraction, and the ``_authenticated_camera`` FastAPI
 dependency.
 """
-# ruff: noqa: SLF001 — private members are the subject under test
-
-from __future__ import annotations
 
 import base64
 import secrets

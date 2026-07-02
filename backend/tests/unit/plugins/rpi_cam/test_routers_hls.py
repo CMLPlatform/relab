@@ -1,8 +1,6 @@
 """Unit tests for the RPi Cam LL-HLS proxy router."""
 # spell-checker: ignore ftypmp, EXTM
-# ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
-
-from __future__ import annotations
+# Private member behaviour is tested here, so we want to allow it.
 
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch

@@ -1,7 +1,5 @@
 """Dependency-light runtime state for camera WebSocket relay services."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -20,5 +18,5 @@ def get_connection_manager() -> CameraConnectionManager:
 
 def set_connection_manager(manager: CameraConnectionManager | None) -> None:
     """Set or clear the process-local camera connection manager."""
-    global _manager
+    global _manager  # noqa: PLW0603 # process-local singleton set once at startup
     _manager = manager

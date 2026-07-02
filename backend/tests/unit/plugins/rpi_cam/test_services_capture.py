@@ -1,8 +1,5 @@
 """Unit tests for RPi Cam image capture service helpers."""
 # spell-checker: ignore excinfo
-# ruff: noqa: ANN401 — shared mock_session fixture is typed as Any by design
-
-from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch

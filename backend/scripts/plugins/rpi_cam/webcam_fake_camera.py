@@ -20,8 +20,6 @@ Requirements:
 """
 # spell-checker: ignore imencode, IMWRITE
 
-from __future__ import annotations
-
 import argparse
 import asyncio
 import json
@@ -31,7 +29,7 @@ import threading
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -68,7 +66,7 @@ class _CameraState:
 
     camera: cv2.VideoCapture | None = None
     lock = threading.Lock()
-    ws_captured_images: dict[str, bytes] = {}
+    ws_captured_images: ClassVar[dict[str, bytes]] = {}
 
 
 def _ensure_camera() -> cv2.VideoCapture:
