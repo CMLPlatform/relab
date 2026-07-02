@@ -6,8 +6,8 @@ import {
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform } from 'react-native';
-import { useCamerasQuery } from '@/features/cameras/hooks';
-import { useRpiIntegration } from '@/features/cameras/useRpiIntegration';
+import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
+import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import type { useProductGalleryMedia, useProductGalleryViewer } from './productGalleryViewer';

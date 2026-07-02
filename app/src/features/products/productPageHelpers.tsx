@@ -10,25 +10,6 @@ import type { Product } from '@/types/Product';
 import { truncateHeaderLabel } from './truncateHeaderLabel';
 import type { AncestorCrumb } from './useAncestorTrail';
 
-export function useSlowLoading(isLoading: boolean) {
-  const [slowLoading, setSlowLoading] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading) {
-      return;
-    }
-
-    const resetTimer = setTimeout(() => setSlowLoading(false), 0);
-    const timer = setTimeout(() => setSlowLoading(true), 5000);
-    return () => {
-      clearTimeout(resetTimer);
-      clearTimeout(timer);
-    };
-  }, [isLoading]);
-
-  return isLoading && slowLoading;
-}
-
 export function useSavedIndicator(justSaved: boolean) {
   const [showSavedIcon, setShowSavedIcon] = useState(false);
 

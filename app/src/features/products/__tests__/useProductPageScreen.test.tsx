@@ -63,11 +63,11 @@ jest.mock('@/context/streamSession', () => ({
   }),
 }));
 
-jest.mock('@/features/cameras/useRpiIntegration', () => ({
+jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
   useRpiIntegration: () => ({ enabled: true }),
 }));
 
-jest.mock('@/features/cameras/useYouTubeIntegration', () => ({
+jest.mock('@/features/cameras/youtube/useYouTubeIntegration', () => ({
   useYouTubeIntegration: () => ({ enabled: true }),
 }));
 

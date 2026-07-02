@@ -1,7 +1,7 @@
 import type { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import type { DialogContextType } from '@/components/base/dialogContext';
-import type { ProductFilter, RouterSetParams } from './productsScreen.data';
+import type { ProductFilter, RouterSetParams } from './screenData';
 
 type CurrentUser = { isVerified: boolean };
 

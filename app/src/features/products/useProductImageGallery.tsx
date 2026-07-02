@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useCaptureImageMutation } from '@/features/cameras/hooks';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { useCaptureImageMutation } from '@/features/cameras/rpi/hooks';
 import type { Product } from '@/types/Product';
 import {
   useProductGalleryCaptureActions,

@@ -4,8 +4,8 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
-import { useRpiIntegration } from '@/features/cameras/useRpiIntegration';
-import { useYouTubeIntegration } from '@/features/cameras/useYouTubeIntegration';
+import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
+import { useYouTubeIntegration } from '@/features/cameras/youtube/useYouTubeIntegration';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useAppTheme } from '@/theme';
 import {
@@ -13,9 +13,9 @@ import {
   getProductCapabilities,
   useProductPageHeader,
   useSavedIndicator,
-  useSlowLoading,
   useStreamPrompt,
 } from './productPageHelpers';
+import { useSlowLoading } from './state';
 import { useAncestorTrail } from './useAncestorTrail';
 import { type UseProductFormOptions, useProductForm } from './useProductForm';
 

@@ -3,7 +3,7 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 
 type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
 
-export function useSlowLoadingState(isLoading: boolean) {
+export function useSlowLoading(isLoading: boolean) {
   const [slowLoading, setSlowLoading] = useState(false);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export function useSlowLoadingState(isLoading: boolean) {
     };
   }, [isLoading]);
 
-  return slowLoading;
+  return isLoading && slowLoading;
 }
 
 export function useProductsFilterUiState() {
