@@ -55,6 +55,7 @@ words:
   - HSTS
   - linkinator
   - LogQL
+  - magick
   - mailinator
   - MASVS
   - mpegurl
@@ -113,6 +114,7 @@ overrides:
       - instrumentor
       - instrumentors
       - joinedload
+      - kwarg
       - ondelete
       - otpauth
       - piexif
