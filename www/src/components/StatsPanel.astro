@@ -1,0 +1,57 @@
+---
+// Static shell for the homepage stats. It starts hidden and is populated +
+// revealed by src/scripts/stats.ts, which fetches the public stats API in the
+// browser (allowed via the CADDY_API_ORIGIN entry in the site CSP). If the
+// fetch fails the panel simply stays hidden.
+---
+
+<section
+  id="stats-panel"
+  class="card stats-panel"
+  aria-labelledby="stats-heading"
+  hidden
+>
+  <p class="stats-eyebrow">From the lab</p>
+  <h2 id="stats-heading">Torn down so far</h2>
+
+  <div class="stats-ledger">
+    <div class="stats-breakdown">
+      <div class="stats-figure">
+        <span class="stats-value" data-stat="teardowns">—</span>
+        <span class="stats-label">teardowns</span>
+      </div>
+      <span class="stats-arrow" aria-hidden="true">⟶</span>
+      <div class="stats-figure stats-figure-accent">
+        <span class="stats-value" data-stat="parts">—</span>
+        <span class="stats-label">parts documented</span>
+      </div>
+    </div>
+
+    <div class="stats-figure">
+      <span class="stats-value"
+        ><span data-stat="mass">—</span><span class="stats-unit" data-stat="mass-unit"></span></span
+      >
+      <span class="stats-label">mass logged</span>
+    </div>
+
+    <div class="stats-figure">
+      <span class="stats-value" data-stat="images">—</span>
+      <span class="stats-label">photos</span>
+    </div>
+  </div>
+
+  <div class="stats-categories">
+    <h3 class="stats-subhead">Most-documented categories</h3>
+    <ul class="stats-bars" data-stat="bars"></ul>
+  </div>
+
+  <p class="stats-caption" data-stat="caption"></p>
+</section>
+
+<script>
+  import { renderStats } from '@/scripts/stats.ts';
+
+  renderStats().catch(() => {
+    // Best-effort panel: any render failure (e.g. a malformed date) leaves it hidden.
+  });
+</script>

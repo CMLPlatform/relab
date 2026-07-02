@@ -1,6 +1,7 @@
 ---
 
 import Hero from '@/components/Hero.astro';
+import StatsPanel from '@/components/StatsPanel.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
 import { siteLinks, siteMeta } from '@/copy/site-meta.ts';
 import Layout from '@/layouts/Layout.astro';
@@ -17,4 +18,5 @@ const publicSiteConfig = getPublicSiteConfig();
     docsUrl={publicSiteConfig.docsUrl}
     githubUrl={siteLinks.github}
   />
+  <StatsPanel />
 </Layout>

@@ -24,10 +24,12 @@
 		Cross-Origin-Resource-Policy "same-site"
 		# Inline styles are still needed by Astro output. Scripts stay bundled
 		# and same-origin so the enforced policy can reject inline/eval script.
+		# CADDY_API_ORIGIN (injected per deployment) lets the homepage stats
+		# panel fetch the public stats API, matching the app/docs frontends.
 		-Content-Security-Policy
 		-Content-Security-Policy-Report-Only
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
-		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
 	}
 
 	# Astro content-hashed static assets — immutable, cache forever

@@ -55,9 +55,13 @@ ARG ENVIRONMENT=prod
 ARG PUBLIC_APP_URL
 ARG PUBLIC_DOCS_URL
 ARG PUBLIC_SITE_URL
+# Optional: base URL the homepage stats are fetched from at build time. When
+# unset or unreachable the stats panel is simply omitted.
+ARG PUBLIC_API_URL
 ENV PUBLIC_APP_URL=${PUBLIC_APP_URL} \
     PUBLIC_DOCS_URL=${PUBLIC_DOCS_URL} \
-    PUBLIC_SITE_URL=${PUBLIC_SITE_URL}
+    PUBLIC_SITE_URL=${PUBLIC_SITE_URL} \
+    PUBLIC_API_URL=${PUBLIC_API_URL}
 
 WORKDIR $WORKDIR/www
 

@@ -58,13 +58,14 @@ Use `just` for repo-standard tasks. The build recipe loads the root deploy env s
 
 Public variables are read through `import.meta.env` and used by [src/config/public.ts](src/config/public.ts). Full-stack dev, staging, and production values live in `../deploy/env/*.compose.env`; `just dev` and `just build` map those canonical root values to the Astro `PUBLIC_*` names.
 
-| Name                   | Required | Purpose                            |
-| ---------------------- | -------- | ---------------------------------- |
-| `PUBLIC_APP_URL`       | yes      | Canonical app URL                  |
-| `PUBLIC_SITE_URL`      | yes      | Canonical site URL                 |
-| `PUBLIC_DOCS_URL`      | yes      | Canonical docs URL                 |
-| `PUBLIC_LINKEDIN_URL`  | no       | LinkedIn group link for the footer |
-| `PUBLIC_CONTACT_EMAIL` | no       | Public contact address             |
+| Name                   | Required | Purpose                                                                                                         |
+| ---------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_APP_URL`       | yes      | Canonical app URL                                                                                               |
+| `PUBLIC_SITE_URL`      | yes      | Canonical site URL                                                                                              |
+| `PUBLIC_DOCS_URL`      | yes      | Canonical docs URL                                                                                              |
+| `PUBLIC_API_URL`       | no       | Backend base URL the homepage stats panel fetches from in the browser (panel stays hidden if unset/unreachable) |
+| `PUBLIC_LINKEDIN_URL`  | no       | LinkedIn group link for the footer                                                                              |
+| `PUBLIC_CONTACT_EMAIL` | no       | Public contact address                                                                                          |
 
 Tooling also reads a small runtime config surface from [config/runtime.ts](config/runtime.ts).
 

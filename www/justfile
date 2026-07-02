@@ -37,6 +37,7 @@ dev:
     export PUBLIC_APP_URL="${PUBLIC_APP_URL:-http://127.0.0.1:8011}"
     export PUBLIC_DOCS_URL="${PUBLIC_DOCS_URL:-http://127.0.0.1:8012}"
     export PUBLIC_SITE_URL="${PUBLIC_SITE_URL:-http://127.0.0.1:8013}"
+    export PUBLIC_API_URL="${PUBLIC_API_URL:-http://127.0.0.1:8010}"
     pnpm run dev
 
 # Auto-format code with Biome
@@ -59,6 +60,7 @@ build:
     export PUBLIC_APP_URL="$APP_PUBLIC_URL"
     export PUBLIC_DOCS_URL="$DOCS_PUBLIC_URL"
     export PUBLIC_SITE_URL="$SITE_PUBLIC_URL"
+    export PUBLIC_API_URL="$API_PUBLIC_URL"
     pnpm run build
 
 # Run unit tests
