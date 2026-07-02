@@ -73,6 +73,7 @@ class ProductBase(PhysicalPropertiesFields, ProductCircularityPropertiesInputFie
 
 ### Component read schema ###
 
+
 class ComponentRead(ProductReadBase):
     """Read schema for components (nested inside a base product tree)."""
 
@@ -82,6 +83,7 @@ class ComponentRead(ProductReadBase):
 
 
 ### Material-product link schemas ###
+
 
 class MaterialProductLinkCreateWithinProductAndMaterial(BaseCreateSchema, MaterialProductLinkBase):
     """Schema for creating material-product links with an external material ID."""

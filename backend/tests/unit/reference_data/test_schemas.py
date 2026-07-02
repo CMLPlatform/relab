@@ -20,6 +20,7 @@ def test_taxonomy_name_min_length() -> None:
     errors = exc_info.value.errors()
     assert any(e["loc"][0] == "name" for e in errors)
 
+
 def test_material_negative_density_rejected() -> None:
     """Material density must be greater than zero (business constraint)."""
     with pytest.raises(ValidationError) as exc_info:
@@ -28,11 +29,13 @@ def test_material_negative_density_rejected() -> None:
     errors = exc_info.value.errors()
     assert any(e["loc"][0] == "density_kg_m3" for e in errors)
 
+
 def test_material_source_normalizes_user_text_to_nfc() -> None:
     """Reference data write schemas normalize free-form text."""
     material = MaterialCreateWithCategories(name="Cafe\u0301 alloy", source="Leiden")
 
     assert material.name == "Café alloy"
+
 
 def test_category_create_rejects_hidden_control_characters() -> None:
     """Reference data names should reject hidden control bytes."""

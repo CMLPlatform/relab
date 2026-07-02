@@ -22,6 +22,7 @@ def _assert_sensitive_cache_headers(response: Response) -> None:
     assert response.headers["pragma"] == "no-cache"
     assert response.headers["expires"] == "0"
 
+
 def _create_policy_app(*, enable_hsts: bool = False) -> FastAPI:
     app = FastAPI()
     register_response_policy_middleware(app, enable_hsts=enable_hsts)
@@ -57,6 +58,7 @@ def _create_policy_app(*, enable_hsts: bool = False) -> FastAPI:
     register_exception_handlers(app)
     return app
 
+
 async def test_response_policy_sets_browser_baseline_headers() -> None:
     """Backend responses should include the lean browser hardening baseline."""
     app = _create_policy_app()
@@ -70,6 +72,7 @@ async def test_response_policy_sets_browser_baseline_headers() -> None:
     assert response.headers["content-security-policy"] == CONTENT_SECURITY_POLICY_HEADER_VALUE
     assert response.headers["cross-origin-opener-policy"] == "same-origin"
     assert response.headers["cross-origin-resource-policy"] == "same-site"
+
 
 async def test_response_policy_sets_self_hosted_csp() -> None:
     """API CSP should enforce the ASVS browser baseline without allowing page resources."""
@@ -91,6 +94,7 @@ async def test_response_policy_sets_self_hosted_csp() -> None:
     assert "'unsafe-eval'" not in policy
     assert "javascript:" not in policy
 
+
 async def test_response_policy_sets_hsts_when_enabled() -> None:
     """Enabled HSTS policy should add the deployment header."""
     app = _create_policy_app(enable_hsts=True)
@@ -99,6 +103,7 @@ async def test_response_policy_sets_hsts_when_enabled() -> None:
         response = await client.get("/health")
 
     assert response.headers["strict-transport-security"] == HSTS_HEADER_VALUE
+
 
 async def test_response_policy_wraps_framework_middleware_responses() -> None:
     """HSTS should also apply to responses produced before route handling."""
@@ -112,6 +117,7 @@ async def test_response_policy_wraps_framework_middleware_responses() -> None:
     assert response.status_code == 400
     assert response.headers["strict-transport-security"] == HSTS_HEADER_VALUE
 
+
 async def test_response_policy_skips_hsts_when_disabled() -> None:
     """Disabled HSTS policy should leave local/test responses unchanged."""
     app = _create_policy_app()
@@ -121,6 +127,7 @@ async def test_response_policy_skips_hsts_when_disabled() -> None:
 
     assert "strict-transport-security" not in response.headers
 
+
 async def test_response_policy_keeps_public_reads_cacheable() -> None:
     """Public reads without credentials should not receive no-store by default."""
     app = _create_policy_app()
@@ -129,6 +136,7 @@ async def test_response_policy_keeps_public_reads_cacheable() -> None:
         response = await client.get("/v1/products")
 
     assert "cache-control" not in response.headers
+
 
 async def test_response_policy_sets_no_cache_headers_for_sensitive_paths() -> None:
     """Sensitive auth, admin, and camera-control paths should receive no-cache headers."""
@@ -143,6 +151,7 @@ async def test_response_policy_sets_no_cache_headers_for_sensitive_paths() -> No
     _assert_sensitive_cache_headers(admin_response)
     _assert_sensitive_cache_headers(camera_response)
 
+
 async def test_response_policy_uses_path_boundaries() -> None:
     """A public path with a sensitive-prefix lookalike should stay cacheable."""
     app = _create_policy_app()
@@ -151,6 +160,7 @@ async def test_response_policy_uses_path_boundaries() -> None:
         response = await client.get("/v1/authors")
 
     assert "cache-control" not in response.headers
+
 
 async def test_response_policy_sets_no_cache_headers_for_authenticated_requests() -> None:
     """Requests with Authorization or RELab auth cookies should receive no-cache headers."""
@@ -163,6 +173,7 @@ async def test_response_policy_sets_no_cache_headers_for_authenticated_requests(
 
     _assert_sensitive_cache_headers(bearer_response)
     _assert_sensitive_cache_headers(cookie_response)
+
 
 async def test_response_policy_sets_no_cache_headers_for_problem_details() -> None:
     """Problem Details responses should receive no-cache headers."""

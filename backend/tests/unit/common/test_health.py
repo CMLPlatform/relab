@@ -24,6 +24,7 @@ async def test_database_healthy() -> None:
     assert result["status"] == HEALTHY_STATUS
     assert result["component"] == "database"
 
+
 async def test_database_connection_error() -> None:
     """Test unhealthy result when database verification raises."""
     with patch(
@@ -36,6 +37,7 @@ async def test_database_connection_error() -> None:
     assert result["component"] == "database"
     assert result["error"] == "Database connection failed"
 
+
 async def test_redis_healthy() -> None:
     """Test healthy result when Redis ping succeeds."""
     mock_redis = AsyncMock()
@@ -47,6 +49,7 @@ async def test_redis_healthy() -> None:
 
     assert result["status"] == HEALTHY_STATUS
     assert result["component"] == "redis"
+
 
 async def test_redis_ping_returns_false() -> None:
     """Test unhealthy result when ping returns False."""
@@ -61,6 +64,7 @@ async def test_redis_ping_returns_false() -> None:
     assert result["component"] == "redis"
     assert "False" in result["error"]
 
+
 async def test_redis_not_initialized() -> None:
     """Test unhealthy result when Redis client is not set."""
     request = MagicMock()
@@ -71,6 +75,7 @@ async def test_redis_not_initialized() -> None:
     assert result["status"] == UNHEALTHY_STATUS
     assert result["component"] == "redis"
     assert "not initialized" in result["error"]
+
 
 async def test_redis_connection_error() -> None:
     """Test unhealthy result when Redis raises an exception."""
@@ -84,6 +89,7 @@ async def test_redis_connection_error() -> None:
     assert result["status"] == UNHEALTHY_STATUS
     assert result["component"] == "redis"
     assert result["error"] == "Redis connection failed"
+
 
 async def test_all_healthy() -> None:
     """Test that all checks pass through correctly."""
@@ -99,6 +105,7 @@ async def test_all_healthy() -> None:
     assert result["database"]["status"] == HEALTHY_STATUS
     assert result["redis"]["status"] == HEALTHY_STATUS
 
+
 async def test_one_unhealthy() -> None:
     """Test that an unhealthy check is included in results."""
     request = MagicMock()
@@ -113,4 +120,3 @@ async def test_one_unhealthy() -> None:
 
     assert result["database"]["status"] == HEALTHY_STATUS
     assert result["redis"]["status"] == UNHEALTHY_STATUS
-

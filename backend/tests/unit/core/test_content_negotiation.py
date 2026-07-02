@@ -39,6 +39,7 @@ def _create_test_app() -> FastAPI:
 
     return app
 
+
 async def test_content_negotiation_accepts_supported_request_content_types() -> None:
     """JSON, form, and multipart requests should pass through."""
     app = _create_test_app()
@@ -55,6 +56,7 @@ async def test_content_negotiation_accepts_supported_request_content_types() -> 
     assert form_response.status_code == 200
     assert multipart_response.status_code == 200
 
+
 async def test_content_negotiation_rejects_body_without_content_type() -> None:
     """Request bodies without Content-Type should receive 415."""
     app = _create_test_app()
@@ -64,6 +66,7 @@ async def test_content_negotiation_rejects_body_without_content_type() -> None:
 
     assert response.status_code == 415
     assert response.headers["content-type"].startswith("application/problem+json")
+
 
 async def test_content_negotiation_rejects_unsupported_content_type() -> None:
     """Unsupported request body media types should receive 415."""
@@ -75,6 +78,7 @@ async def test_content_negotiation_rejects_unsupported_content_type() -> None:
     assert response.status_code == 415
     assert response.json()["code"] == "UnsupportedMediaType"
 
+
 async def test_content_negotiation_rejects_unsupported_accept_header() -> None:
     """API requests that cannot accept JSON/problem responses should receive 406."""
     app = _create_test_app()
@@ -85,6 +89,7 @@ async def test_content_negotiation_rejects_unsupported_accept_header() -> None:
     assert response.status_code == 406
     assert response.json()["code"] == "NotAcceptable"
 
+
 async def test_content_negotiation_ignores_zero_quality_accept_candidates() -> None:
     """Accept candidates with q=0 should not be treated as acceptable."""
     app = _create_test_app()
@@ -93,6 +98,7 @@ async def test_content_negotiation_ignores_zero_quality_accept_candidates() -> N
         response = await client.get("/v1/json", headers={"accept": "application/json;q=0.0, application/xml"})
 
     assert response.status_code == 406
+
 
 async def test_content_negotiation_accepts_wildcard_json_and_problem_accept_headers() -> None:
     """Wildcard, JSON, and Problem Details Accept headers should pass."""
@@ -107,6 +113,7 @@ async def test_content_negotiation_accepts_wildcard_json_and_problem_accept_head
     assert json_response.status_code == 200
     assert problem_response.status_code == 200
 
+
 async def test_content_negotiation_skips_upload_paths() -> None:
     """Static upload paths should not be governed by API content negotiation."""
     app = _create_test_app()
@@ -116,6 +123,7 @@ async def test_content_negotiation_skips_upload_paths() -> None:
 
     assert response.status_code == 200
     assert response.json()["content_type"] == "text/plain"
+
 
 async def test_content_negotiation_uses_v1_path_boundary() -> None:
     """Paths like /v10 should not be treated as /v1 API routes."""

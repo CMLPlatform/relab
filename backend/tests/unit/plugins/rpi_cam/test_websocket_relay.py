@@ -38,6 +38,7 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_is_disconnect
     assert exc_info.value.detail == "Camera is not connected via WebSocket."
     assert exc_info.value.headers == {"Retry-After": "2"}
 
+
 async def test_relay_via_websocket_forwards_trace_headers_to_local_manager() -> None:
     """The direct relay path should include the current trace headers."""
     camera_id = uuid4()
@@ -63,6 +64,7 @@ async def test_relay_via_websocket_forwards_trace_headers_to_local_manager() -> 
         headers={"traceparent": "00-abc-def-01", "tracestate": "vendor=value"},
     )
 
+
 async def test_relay_via_websocket_returns_retry_after_when_camera_times_out() -> None:
     """Relay timeouts should also hint that a retry is appropriate."""
     camera_id = uuid4()
@@ -85,6 +87,7 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_times_out() -
     assert exc_info.value.detail == "Camera did not respond in time: /camera"
     assert exc_info.value.headers == {"Retry-After": "2"}
 
+
 async def test_relay_via_websocket_sanitizes_path_and_response_in_warning_log(caplog: pytest.LogCaptureFixture) -> None:
     """Warning logs should neutralize newline characters from relay-controlled values."""
     camera_id = uuid4()
@@ -102,6 +105,7 @@ async def test_relay_via_websocket_sanitizes_path_and_response_in_warning_log(ca
         await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=AsyncMock())
 
     assert any("bad payload value" in record.message and "GET /camera" in record.message for record in caplog.records)
+
 
 async def test_cross_worker_relay_opens_circuit_after_three_failures() -> None:
     """After three failed cross-worker attempts, later requests should fast-fail."""
@@ -131,6 +135,7 @@ async def test_cross_worker_relay_opens_circuit_after_three_failures() -> None:
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera is not connected via WebSocket."
     assert relay_cross_worker.await_count == 3
+
 
 async def test_cross_worker_relay_forwards_trace_headers() -> None:
     """The cross-worker bridge should carry trace headers through Redis."""
@@ -166,6 +171,7 @@ async def test_cross_worker_relay_forwards_trace_headers() -> None:
         {"traceparent": "00-abc-def-01", "baggage": "user_id=42"},
         timeout_s=relay_mod.DEFAULT_COMMAND_TIMEOUT,
     )
+
 
 async def test_cross_worker_relay_success_resets_circuit() -> None:
     """A successful cross-worker call should clear prior failure state."""
@@ -204,6 +210,7 @@ async def test_cross_worker_relay_success_resets_circuit() -> None:
     assert exc_info.value.status_code == 503
     assert relay_cross_worker.await_count == 4
 
+
 async def test_cross_worker_relay_half_opens_after_cooldown() -> None:
     """Once cooldown expires, the next call should probe the camera again."""
     camera_id = uuid4()
@@ -229,6 +236,7 @@ async def test_cross_worker_relay_half_opens_after_cooldown() -> None:
         await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
     assert relay_cross_worker.await_count == 1
 
+
 @pytest.mark.parametrize(
     ("method", "path"),
     [
@@ -246,6 +254,7 @@ async def test_allowed_commands_are_dispatched(method: str, path: str) -> None:
         response = await relay_mod.relay_via_websocket(camera_id, method, path, redis=AsyncMock())
 
     assert response.status_code == 200
+
 
 @pytest.mark.parametrize(
     ("method", "path"),

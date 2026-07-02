@@ -28,9 +28,11 @@ def _dependency_names(route: APIRoute) -> set[str]:
         if dependency.dependency is not None
     }
 
+
 def _request() -> Request:
     """Build a minimal request object for direct endpoint tests."""
     return Request({"type": "http", "method": "POST", "path": "/auth/forgot-password", "headers": []})
+
 
 def test_forgot_password_route_is_rate_limited() -> None:
     """The password-reset e-mail request endpoint should use the limiter dependency."""
@@ -40,6 +42,7 @@ def test_forgot_password_route_is_rate_limited() -> None:
 
     assert "rate_limit" in _dependency_names(route)
 
+
 def test_reset_password_route_is_rate_limited() -> None:
     """The password-reset submission endpoint should use the limiter dependency."""
     route = next(
@@ -48,6 +51,7 @@ def test_reset_password_route_is_rate_limited() -> None:
 
     assert "rate_limit" in _dependency_names(route)
 
+
 def test_forgot_password_account_rate_limit_key_uses_normalized_keyed_bucket() -> None:
     """Forgot-password account buckets should not expose raw submitted addresses."""
     key = _password_reset_identifier_rate_limit_key(" User@Example.COM ")
@@ -55,6 +59,7 @@ def test_forgot_password_account_rate_limit_key_uses_normalized_keyed_bucket() -
     assert key == rate_limit_bucket_key("auth:password-reset:account", "user@example.com")
     assert "User@Example.COM" not in key
     assert "user@example.com" not in key
+
 
 async def test_forgot_password_applies_account_rate_limit_to_all_requests() -> None:
     """The account-bucket limiter should run before account lookup."""
@@ -78,6 +83,7 @@ async def test_forgot_password_applies_account_rate_limit_to_all_requests() -> N
     assert key.startswith("auth:password-reset:account:")
     assert "User@Example.COM" not in key
     assert "user@example.com" not in key
+
 
 @pytest.mark.parametrize(
     ("lookup_side_effect", "forgot_side_effect"),
@@ -111,6 +117,7 @@ async def test_forgot_password_returns_same_response_for_missing_and_inactive_us
 
     assert result is None
 
+
 async def test_forgot_password_existing_user_passes_background_tasks_through_request_state() -> None:
     """Existing-user forgot-password requests should queue reset email work in background tasks."""
     user = MagicMock()
@@ -133,6 +140,7 @@ async def test_forgot_password_existing_user_passes_background_tasks_through_req
     assert user_manager.forgot_password.await_args is not None
     request = user_manager.forgot_password.await_args.args[1]
     assert request.state.background_tasks is background_tasks
+
 
 async def test_reset_password_preserves_fastapi_users_bad_token_error_shape() -> None:
     """The local reset route should keep FastAPI-Users' public bad-token error shape."""

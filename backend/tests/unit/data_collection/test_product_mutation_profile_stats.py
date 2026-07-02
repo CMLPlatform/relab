@@ -46,6 +46,7 @@ async def test_upload_product_image_updates_profile_stats() -> None:
     session.commit.assert_awaited_once()
     refresh_stats.assert_awaited_once_with(session, user.id)
 
+
 async def test_delete_product_image_updates_profile_stats() -> None:
     """Deleting an image should update the owner's profile stats snapshot."""
     session = AsyncMock(spec=AsyncSession)

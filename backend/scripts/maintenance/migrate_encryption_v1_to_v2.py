@@ -245,7 +245,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 logger.info("%s migrated=%s skipped=%s", table, stats.migrated, stats.skipped)
                 total += stats
-    except (MigrationError, OSError, ValueError, psycopg.Error):
+    except MigrationError, OSError, ValueError, psycopg.Error:
         logger.exception("Migration failed")
         return 1
 

@@ -39,6 +39,7 @@ from tests.unit.plugins.rpi_cam.stream_router_test_support import (
 if TYPE_CHECKING:
     from app.api.plugins.rpi_cam.models import Camera
 
+
 def build_oauth_account() -> OAuthAccount:
     """Return a typed OAuth account for recording service tests."""
     return OAuthAccount(
@@ -52,6 +53,7 @@ def build_oauth_account() -> OAuthAccount:
         account_email=FAKE_ACCOUNT_EMAIL,
     )
 
+
 def build_video(*, video_id: int = 42) -> Video:
     """Return a persisted-video-shaped model for recording service tests."""
     return Video(
@@ -63,9 +65,11 @@ def build_video(*, video_id: int = 42) -> Video:
         video_metadata={"camera_properties": {}, "capture_metadata": {}},
     )
 
+
 def build_recording_session(*, video_id: int = 42) -> YouTubeRecordingSession:
     """Return an active recording session."""
     return YouTubeRecordingSession(video_id=video_id, broadcast_key=FAKE_BROADCAST_KEY)
+
 
 @patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")
@@ -132,6 +136,7 @@ async def test_start_youtube_recording_creates_video_and_stores_session_video_id
     cached_session = YouTubeRecordingSession.model_validate_json(payload)
     assert cached_session == build_recording_session(video_id=42)
 
+
 @patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.services.recording_service.YouTubeService")
 @patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_object")
@@ -169,6 +174,7 @@ async def test_start_youtube_recording_rejects_product_not_owned_by_camera_owner
 
     mock_yt_service_class.assert_not_called()
     mock_create_video.assert_not_awaited()
+
 
 @patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")
@@ -218,6 +224,7 @@ async def test_start_youtube_recording_is_idempotent_when_session_already_active
     mock_yt_service_class.assert_not_called()
     mock_create_video.assert_not_awaited()
     redis_mock.set.assert_not_awaited()
+
 
 @patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")
@@ -282,6 +289,7 @@ async def test_start_youtube_recording_rolls_back_created_video_when_session_sto
     mock_delete_video.assert_awaited_once_with(session_mock, 42)
     mock_yt_service.end_livestream.assert_awaited_once_with(FAKE_BROADCAST_KEY)
 
+
 @patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")
 @patch("app.api.plugins.rpi_cam.services.recording_service.YouTubeService")
@@ -330,6 +338,7 @@ async def test_stop_youtube_recording_returns_existing_video_and_tolerates_camer
     mock_require_model.assert_awaited_once_with(session_mock, Video, 42)
     mock_yt_service.end_livestream.assert_awaited_once_with(FAKE_BROADCAST_KEY)
     redis_mock.delete.assert_awaited_once()
+
 
 @patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")

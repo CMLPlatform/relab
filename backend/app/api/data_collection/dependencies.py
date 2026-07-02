@@ -110,5 +110,3 @@ async def get_user_owned_component(
 
 
 UserOwnedComponentDep = Annotated[Product, Depends(get_user_owned_component)]
-
-

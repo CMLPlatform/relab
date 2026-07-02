@@ -20,15 +20,18 @@ if TYPE_CHECKING:
 PW_TOO_SHORT = "Too short"
 PASSWORD_INVALID_MSG = f"Password is invalid: {PW_TOO_SHORT}"
 
+
 @pytest.fixture
 def user_create() -> TrustedUserCreate:
     """Fixture for trusted user creation schema."""
     return TrustedUserCreate(email="test@example.com", password="correct-horse-battery-staple-v42")
 
+
 @pytest.fixture
 def mock_user_manager() -> AsyncMock:
     """Fixture for a mock user manager."""
     return AsyncMock()
+
 
 @pytest.fixture
 def mock_user_manager_context(mock_user_manager: AsyncMock) -> AsyncMock:
@@ -37,6 +40,7 @@ def mock_user_manager_context(mock_user_manager: AsyncMock) -> AsyncMock:
     mock_context.__aenter__.return_value = mock_user_manager
     mock_context.__aexit__.return_value = None
     return mock_context
+
 
 async def test_create_user_success(
     mock_session: AsyncSession,
@@ -56,6 +60,7 @@ async def test_create_user_success(
 
         assert user == expected_user
         mock_user_manager.create.assert_called_once_with(user_create)
+
 
 async def test_create_user_with_email(
     mock_session: AsyncSession,
@@ -80,6 +85,7 @@ async def test_create_user_with_email(
         # Verify request_verify was called with user
         mock_user_manager.request_verify.assert_called_once_with(expected_user)
 
+
 async def test_create_user_can_skip_breach_check(
     mock_session: AsyncSession,
     user_create: TrustedUserCreate,
@@ -100,6 +106,7 @@ async def test_create_user_can_skip_breach_check(
         assert mock_user_manager.skip_breach_check is True
         mock_user_manager.create.assert_called_once_with(user_create)
 
+
 async def test_create_user_already_exists(
     mock_session: AsyncSession,
     user_create: TrustedUserCreate,
@@ -118,6 +125,7 @@ async def test_create_user_already_exists(
 
         assert f"User with email {user_create.email} already exists" in str(exc.value)
 
+
 async def test_create_user_invalid_password(
     mock_session: AsyncSession,
     user_create: TrustedUserCreate,
@@ -135,4 +143,3 @@ async def test_create_user_invalid_password(
             await create_user(mock_session, user_create)
 
         assert PASSWORD_INVALID_MSG in str(exc.value)
-

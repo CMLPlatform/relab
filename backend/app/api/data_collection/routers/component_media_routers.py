@@ -76,7 +76,9 @@ async def upload_component_file(
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
     """Upload a new file for a component."""
-    return await handle_upload_file(session, db_component.id, file=file, description=description, current_user=current_user)
+    return await handle_upload_file(
+        session, db_component.id, file=file, description=description, current_user=current_user
+    )
 
 
 @component_media_router.delete(

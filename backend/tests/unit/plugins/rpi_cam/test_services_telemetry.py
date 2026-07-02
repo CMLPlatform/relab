@@ -20,6 +20,7 @@ from app.api.plugins.rpi_cam.runtime.status import (
 if TYPE_CHECKING:
     import pytest
 
+
 def _snapshot() -> TelemetrySnapshot:
     """Return a sample telemetry snapshot."""
     return TelemetrySnapshot(
@@ -34,11 +35,13 @@ def _snapshot() -> TelemetrySnapshot:
         current_preview_size=None,
     )
 
+
 def test_key_includes_the_camera_id() -> None:
     """Ensure the cache key includes the camera ID."""
     camera_id = uuid4()
     key = get_telemetry_cache_key(camera_id)
     assert key == f"{TELEMETRY_CACHE_PREFIX}:{camera_id}"
+
 
 async def test_store_telemetry_writes_with_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
     """Ensure telemetry is stored with the correct TTL."""
@@ -62,6 +65,7 @@ async def test_store_telemetry_writes_with_ttl(monkeypatch: pytest.MonkeyPatch) 
     assert TelemetrySnapshot.model_validate_json(args[2]) == snapshot
     assert kwargs == {"ex": TELEMETRY_CACHE_TTL_SECONDS}
 
+
 async def test_cache_hit_parses_json(monkeypatch: pytest.MonkeyPatch) -> None:
     """Ensure cache hits are parsed correctly."""
     snapshot = _snapshot()
@@ -73,6 +77,7 @@ async def test_cache_hit_parses_json(monkeypatch: pytest.MonkeyPatch) -> None:
     result = await get_cached_telemetry(AsyncMock(), uuid4())
     assert result == snapshot
 
+
 async def test_cache_miss_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
     """Ensure cache misses are handled gracefully."""
     monkeypatch.setattr(
@@ -82,8 +87,8 @@ async def test_cache_miss_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
     result = await get_cached_telemetry(AsyncMock(), uuid4())
     assert result is None
 
-async def test_malformed_payload_returns_none_and_logs(
 
+async def test_malformed_payload_returns_none_and_logs(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -98,4 +103,3 @@ async def test_malformed_payload_returns_none_and_logs(
 
     assert result is None
     assert "malformed cached telemetry" in caplog.text
-

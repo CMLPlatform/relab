@@ -16,6 +16,7 @@ from app.api.auth.services.oauth.utils import (
 if TYPE_CHECKING:
     import pytest
 
+
 def test_generate_state_token_uses_configured_default_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
     """OAuth state JWTs should default to the configured 10-minute lifetime."""
     captured: dict[str, object] = {}
@@ -43,6 +44,7 @@ def test_generate_state_token_uses_configured_default_ttl(monkeypatch: pytest.Mo
         "aud": "fastapi-users:oauth-state",
     }
 
+
 def test_generate_state_token_does_not_mutate_input(monkeypatch: pytest.MonkeyPatch) -> None:
     """State JWT generation should not mutate caller-owned state data."""
 
@@ -55,6 +57,7 @@ def test_generate_state_token_does_not_mutate_input(monkeypatch: pytest.MonkeyPa
     generate_state_token(state_data, "test-secret")
 
     assert state_data == {"csrftoken": "csrf"}
+
 
 def test_set_csrf_cookie_uses_configured_state_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
     """OAuth CSRF cookies should expire on the same timeline as state JWTs."""

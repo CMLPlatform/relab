@@ -28,6 +28,7 @@ def test_init_with_redis_client() -> None:
 
         mock_setup.assert_called_once_with("redis://cache", secret="cache-signing-secret", digestmod="sha256")
 
+
 def test_init_without_redis_uses_in_memory() -> None:
     """Test cache init falls back to in-memory when redis_client is None."""
     with patch("app.core.cache.settings") as mock_settings, patch.object(_backend, "setup") as mock_setup:
@@ -37,6 +38,7 @@ def test_init_without_redis_uses_in_memory() -> None:
             init_cache(None)
 
         mock_setup.assert_called_once_with("mem://", secret="cache-signing-secret", digestmod="sha256")
+
 
 def test_init_caching_disabled_uses_in_memory() -> None:
     """Test that when caching is disabled, InMemoryBackend is used."""
@@ -49,6 +51,7 @@ def test_init_caching_disabled_uses_in_memory() -> None:
 
         mock_setup.assert_called_once_with("mem://", secret="cache-signing-secret", digestmod="sha256")
 
+
 async def test_cache_get_returns_default_for_tampered_payloads() -> None:
     """Tampered cache data should behave like a miss."""
     default = object()
@@ -56,6 +59,7 @@ async def test_cache_get_returns_default_for_tampered_payloads() -> None:
         decoded = await cache_get("test-cache:key", default=default)
 
     assert decoded is default
+
 
 async def test_clear_cache_namespace() -> None:
     """Test that clear_cache_namespace clears keys under the namespace prefix."""
@@ -68,5 +72,3 @@ async def test_clear_cache_namespace() -> None:
         await clear_cache_namespace("test-namespace")
 
         mock_delete.assert_awaited_once_with("test-cache:test-namespace:*")
-
-

@@ -186,7 +186,9 @@ async def upload_product_file(
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
     """Upload a new file for a base product."""
-    return await handle_upload_file(session, db_product.id, file=file, description=description, current_user=current_user)
+    return await handle_upload_file(
+        session, db_product.id, file=file, description=description, current_user=current_user
+    )
 
 
 @product_mutation_router.delete(

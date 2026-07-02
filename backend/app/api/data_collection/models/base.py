@@ -67,5 +67,3 @@ class ProductFieldsMixin(PhysicalPropertiesMixin, CircularityPropertiesMixin):
     description: Mapped[str | None] = mapped_column(String(500), default=None)
     brand: Mapped[str | None] = mapped_column(String(100), default=None)
     model: Mapped[str | None] = mapped_column(String(100), default=None)
-
-

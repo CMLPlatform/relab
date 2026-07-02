@@ -34,6 +34,7 @@ def sample_image(tmp_path: Path) -> Path:
     img.save(image_path)
     return image_path
 
+
 @pytest.fixture
 def jpeg_image(tmp_path: Path) -> Path:
     """Create a sample JPEG image for testing."""
@@ -41,6 +42,7 @@ def jpeg_image(tmp_path: Path) -> Path:
     img = PILImage.new("RGB", (400, 200), color="blue")
     img.save(image_path, format="JPEG")
     return image_path
+
 
 def _make_jpeg_with_exif(
     path: Path, width: int, height: int, orientation: int | None = None, *, camera_make: bool = False
@@ -55,18 +57,22 @@ def _make_jpeg_with_exif(
     img.save(path, format="JPEG", exif=exif)
     return path
 
+
 def _make_upload_file(content_type: str) -> UploadFile:
     """Create a minimal UploadFile for MIME type validation tests."""
     return UploadFile(file=io.BytesIO(b""), filename="test.bin", headers=Headers({"content-type": content_type}))
+
 
 # ---------------------------------------------------------------------------
 # validate_image_dimensions
 # ---------------------------------------------------------------------------
 
+
 def test_validate_dimensions_accepts_valid_images() -> None:
     """Images within the limit (and exactly at the limit) should not raise."""
     validate_image_dimensions(PILImage.new("RGB", (100, 100)))
     validate_image_dimensions(PILImage.new("RGB", (MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)))
+
 
 def test_validate_dimensions_exceeds_width() -> None:
     """Images exceeding max width should raise ValueError."""
@@ -74,11 +80,13 @@ def test_validate_dimensions_exceeds_width() -> None:
     with pytest.raises(ValueError, match="exceed the maximum"):
         validate_image_dimensions(img)
 
+
 def test_validate_dimensions_exceeds_height() -> None:
     """Images exceeding max height should raise ValueError."""
     img = PILImage.new("RGB", (100, MAX_IMAGE_DIMENSION + 1))
     with pytest.raises(ValueError, match="exceed the maximum"):
         validate_image_dimensions(img)
+
 
 def test_validate_dimensions_custom_limit() -> None:
     """Custom max_dimension parameter should be respected."""
@@ -86,15 +94,18 @@ def test_validate_dimensions_custom_limit() -> None:
     with pytest.raises(ValueError, match="exceed the maximum"):
         validate_image_dimensions(img, max_dimension=400)
 
+
 # ---------------------------------------------------------------------------
 # image upload validation
 # ---------------------------------------------------------------------------
+
 
 def test_validate_image_mime_type_accepts_allowed_types() -> None:
     """Allowed MIME types should pass through unchanged."""
     for mime_type in ALLOWED_IMAGE_MIME_TYPES:
         file = _make_upload_file(mime_type)
         assert validate_image_mime_type(file) == file
+
 
 def test_validate_image_mime_type_rejects_disallowed_type() -> None:
     """Disallowed MIME types should raise ValueError."""
@@ -103,6 +114,7 @@ def test_validate_image_mime_type_rejects_disallowed_type() -> None:
     with pytest.raises(ValueError, match="Invalid file type"):
         validate_image_mime_type(file)
 
+
 def test_validate_image_file_accepts_valid_image() -> None:
     """A real image byte stream should be accepted."""
     buf = io.BytesIO()
@@ -110,14 +122,17 @@ def test_validate_image_file_accepts_valid_image() -> None:
 
     validate_image_file(buf)
 
+
 def test_validate_image_file_rejects_invalid_image() -> None:
     """Non-image bytes should raise ValueError."""
     with pytest.raises(ValueError, match="Invalid image file"):
         validate_image_file(io.BytesIO(b"not an image"))
 
+
 # ---------------------------------------------------------------------------
 # apply_exif_orientation
 # ---------------------------------------------------------------------------
+
 
 def test_apply_exif_orientation_noop_for_un_rotated(tmp_path: Path) -> None:
     """Images with orientation=1 or no orientation tag should not be transformed."""
@@ -132,6 +147,7 @@ def test_apply_exif_orientation_noop_for_un_rotated(tmp_path: Path) -> None:
         assert corrected.width == 400
         assert corrected.height == 200
 
+
 @pytest.mark.parametrize("orientation", [6, 8])
 def test_apply_exif_orientation_90deg_swaps_dimensions(tmp_path: Path, orientation: int) -> None:
     """Orientations 6 (90° CW) and 8 (90° CCW) should both swap width and height."""
@@ -143,6 +159,7 @@ def test_apply_exif_orientation_90deg_swaps_dimensions(tmp_path: Path, orientati
     assert corrected.width == 200
     assert corrected.height == 100
 
+
 def test_apply_exif_orientation_3_preserves_dimensions(tmp_path: Path) -> None:
     """Orientation 3 (180°) should preserve width and height."""
     path = _make_jpeg_with_exif(tmp_path / "orient3.jpg", 400, 200, orientation=3)
@@ -153,9 +170,11 @@ def test_apply_exif_orientation_3_preserves_dimensions(tmp_path: Path) -> None:
     assert corrected.width == 400
     assert corrected.height == 200
 
+
 # ---------------------------------------------------------------------------
 # strip_sensitive_exif
 # ---------------------------------------------------------------------------
+
 
 def test_strip_sensitive_exif_removes_orientation(tmp_path: Path) -> None:
     """Orientation tag should be stripped (callers must apply it first)."""
@@ -166,14 +185,17 @@ def test_strip_sensitive_exif_removes_orientation(tmp_path: Path) -> None:
         strip_sensitive_exif(img)
         assert img.getexif().get(0x0112) is None
 
+
 # ---------------------------------------------------------------------------
 # process_image_for_storage
 # ---------------------------------------------------------------------------
+
 
 def test_process_image_not_found() -> None:
     """Should raise FileNotFoundError for a missing file."""
     with pytest.raises(FileNotFoundError):
         process_image_for_storage(Path("non_existent.jpg"))
+
 
 def test_process_image_accepts_anyio_path(tmp_path: Path) -> None:
     """Process should work with anyio.Path without touching async exists()."""
@@ -186,6 +208,7 @@ def test_process_image_accepts_anyio_path(tmp_path: Path) -> None:
     with PILImage.open(path) as result:
         assert result.size == (100, 100)
 
+
 def test_process_image_dimension_guard(tmp_path: Path) -> None:
     """Images exceeding MAX_IMAGE_DIMENSION should raise ValueError."""
     path = tmp_path / "huge.jpg"
@@ -193,6 +216,7 @@ def test_process_image_dimension_guard(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="exceed the maximum"):
         process_image_for_storage(path)
+
 
 def test_process_image_strips_all_exif(tmp_path: Path) -> None:
     """Stored images should not retain EXIF metadata."""
@@ -203,6 +227,7 @@ def test_process_image_strips_all_exif(tmp_path: Path) -> None:
     with PILImage.open(path) as result:
         assert not result.info.get("exif")
         assert not result.getexif()
+
 
 def test_process_image_applies_orientation_and_strips_tag(tmp_path: Path) -> None:
     """Orientation should be baked into pixels and the orientation tag removed."""
@@ -216,6 +241,7 @@ def test_process_image_applies_orientation_and_strips_tag(tmp_path: Path) -> Non
         assert result.height == 100
         assert result.getexif().get(0x0112) is None
 
+
 def test_process_image_normal_orientation_unchanged(tmp_path: Path) -> None:
     """Images with no orientation issue should preserve their dimensions."""
     path = _make_jpeg_with_exif(tmp_path / "normal.jpg", 400, 200, orientation=1)
@@ -226,9 +252,11 @@ def test_process_image_normal_orientation_unchanged(tmp_path: Path) -> None:
         assert result.width == 400
         assert result.height == 200
 
+
 # ---------------------------------------------------------------------------
 # thumbnail_path_for
 # ---------------------------------------------------------------------------
+
 
 def test_thumbnail_path_for(tmp_path: Path) -> None:
     """Should return the expected derivative path."""
@@ -236,9 +264,11 @@ def test_thumbnail_path_for(tmp_path: Path) -> None:
     result = thumbnail_path_for(image_path, 200)
     assert result == tmp_path / "abc123_photo_thumb_200.webp"
 
+
 # ---------------------------------------------------------------------------
 # generate_thumbnails
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def large_image(tmp_path: Path) -> Path:
@@ -246,6 +276,7 @@ def large_image(tmp_path: Path) -> Path:
     path = tmp_path / "large.jpg"
     PILImage.new("RGB", (2000, 1000), color="blue").save(path, format="JPEG")
     return path
+
 
 def test_generate_thumbnails_creates_standard_sizes(large_image: Path) -> None:
     """Should create WebP thumbnails for all standard widths smaller than the original."""
@@ -263,6 +294,7 @@ def test_generate_thumbnails_creates_standard_sizes(large_image: Path) -> None:
             # Aspect ratio maintained (2:1)
             assert img.height == w // 2
 
+
 def test_generate_thumbnails_skips_larger_than_original(tmp_path: Path) -> None:
     """Should skip thumbnail widths that exceed the original image width."""
     path = tmp_path / "small.jpg"
@@ -274,6 +306,7 @@ def test_generate_thumbnails_skips_larger_than_original(tmp_path: Path) -> None:
     for w in THUMBNAIL_WIDTHS:
         assert not thumbnail_path_for(path, w).exists()
 
+
 def test_generate_thumbnails_custom_widths(large_image: Path) -> None:
     """Should respect custom width tuples."""
     generated = generate_thumbnails(large_image, widths=(300, 600))
@@ -284,14 +317,17 @@ def test_generate_thumbnails_custom_widths(large_image: Path) -> None:
     with PILImage.open(thumbnail_path_for(large_image, 600)) as img:
         assert img.width == 600
 
+
 def test_generate_thumbnails_not_found() -> None:
     """Should raise FileNotFoundError for a missing source image."""
     with pytest.raises(FileNotFoundError):
         generate_thumbnails(Path("nonexistent.jpg"))
 
+
 # ---------------------------------------------------------------------------
 # delete_thumbnails
 # ---------------------------------------------------------------------------
+
 
 def test_delete_thumbnails_removes_generated_files(large_image: Path) -> None:
     """Should remove all generated thumbnail files."""
@@ -306,6 +342,7 @@ def test_delete_thumbnails_removes_generated_files(large_image: Path) -> None:
 
     for w in THUMBNAIL_WIDTHS:
         assert not thumbnail_path_for(large_image, w).exists()
+
 
 def test_delete_thumbnails_noop_when_none_exist(large_image: Path) -> None:
     """Should not raise when no thumbnails exist."""

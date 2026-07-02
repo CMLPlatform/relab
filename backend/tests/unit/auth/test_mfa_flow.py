@@ -22,6 +22,7 @@ def test_get_mfa_token_applies_fingerprint_rate_limit() -> None:
     assert token == "token-value"
     enforce.assert_called_once_with("token-value")
 
+
 async def test_claim_oauth_mfa_handoff_consumes_handoff_token() -> None:
     """OAuth handoff claims should expose only the pending MFA token."""
     with patch(
@@ -35,6 +36,7 @@ async def test_claim_oauth_mfa_handoff_consumes_handoff_token() -> None:
 
     assert result.mfa_token == "mfa-token"
     consume.assert_awaited_once()
+
 
 async def test_complete_mfa_challenge_invalid_code_does_not_consume_login_challenge() -> None:
     """Invalid TOTP codes should keep the login challenge available for retry."""
@@ -65,6 +67,7 @@ async def test_complete_mfa_challenge_invalid_code_does_not_consume_login_challe
 
     consume.assert_not_awaited()
     assert any(call.args[1] == AuditAction.MFA_FAILURE for call in audit_event.call_args_list)
+
 
 async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None:
     """TOTP setup confirmation should consume setup state only after verification succeeds."""

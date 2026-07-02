@@ -30,6 +30,7 @@ def _make_credentials(username: str, password: str = "testpassword") -> OAuth2Pa
     form.password = password
     return form
 
+
 def _make_manager(mock_user: MagicMock | None = None) -> tuple[UserManager, AsyncMock]:
     """Return a UserManager with a mocked user_db.session."""
     mock_scalars = MagicMock()
@@ -50,6 +51,7 @@ def _make_manager(mock_user: MagicMock | None = None) -> tuple[UserManager, Asyn
 
     return manager, mock_session
 
+
 async def test_applies_account_aware_rate_limit_before_lookup() -> None:
     """Login attempts should also be bucketed by a keyed digest of the submitted identifier."""
     manager, mock_session = _make_manager()
@@ -69,6 +71,7 @@ async def test_applies_account_aware_rate_limit_before_lookup() -> None:
     assert "user@example.com" not in key
     mock_session.execute.assert_not_called()
 
+
 async def test_account_rate_limit_exceeded_skips_lookup() -> None:
     """A blocked account bucket should stop work before DB or password checks."""
     manager, mock_session = _make_manager()
@@ -80,6 +83,7 @@ async def test_account_rate_limit_exceeded_skips_lookup() -> None:
             await manager.authenticate(credentials)
 
     mock_session.execute.assert_not_called()
+
 
 async def test_email_input_skips_db_lookup() -> None:
     """When credentials contain '@', no DB query is made and the email is passed through unchanged."""
@@ -93,6 +97,7 @@ async def test_email_input_skips_db_lookup() -> None:
     mock_session.execute.assert_not_called()
     mock_super.assert_called_once_with(credentials)
     assert credentials.username == "user@example.com"
+
 
 async def test_username_found_replaces_with_email() -> None:
     """When a user is found by username, credentials.username is replaced with their email."""
@@ -110,6 +115,7 @@ async def test_username_found_replaces_with_email() -> None:
     assert credentials.username == "resolved@example.com"
     mock_super.assert_called_once_with(credentials)
 
+
 async def test_username_not_found_passes_original() -> None:
     """When no user matches the username, credentials are passed unchanged to the parent."""
     manager, mock_session = _make_manager(mock_user=None)
@@ -123,12 +129,14 @@ async def test_username_not_found_passes_original() -> None:
     assert credentials.username == "nonexistent_user"
     mock_super.assert_called_once_with(credentials)
 
+
 def test_current_password_is_not_in_forwarded_update_dicts() -> None:
     """The reauthentication-only field must not be persisted onto the User model."""
     update = UserUpdate(email="new@example.com", current_password=SecretStr("current-passphrase-42"))
 
     assert "current_password" not in update.create_update_dict()
     assert "current_password" not in update.create_update_dict_superuser()
+
 
 async def test_email_update_revokes_sessions_before_email_side_effects() -> None:
     """Refresh sessions should be revoked even if a later email side effect fails."""
@@ -179,6 +187,7 @@ async def test_email_update_revokes_sessions_before_email_side_effects() -> None
     revoke.assert_awaited_once_with(updated_user.id, request)
     assert calls == ["base_update", "revoke", "request_verify", "email_notification"]
 
+
 async def test_on_after_login_does_not_store_or_log_ip_address(caplog: pytest.LogCaptureFixture) -> None:
     """Successful login should update timestamp without retaining the request IP."""
     manager, mock_session = _make_manager()
@@ -199,11 +208,13 @@ async def test_on_after_login_does_not_store_or_log_ip_address(caplog: pytest.Lo
     mock_session.commit.assert_awaited_once()
     assert "203.0.113.10" not in caplog.text
 
+
 def test_reset_and_verification_token_audiences_are_explicit() -> None:
     """Account lifecycle JWTs should have distinct, named audiences."""
     assert UserManager.reset_password_token_audience == RESET_PASSWORD_TOKEN_AUDIENCE
     assert UserManager.verification_token_audience == VERIFICATION_TOKEN_AUDIENCE
     assert RESET_PASSWORD_TOKEN_AUDIENCE != VERIFICATION_TOKEN_AUDIENCE
+
 
 def test_reset_and_verification_token_audiences_cannot_be_cross_used() -> None:
     """A reset token must not decode in a verification-token context, or vice versa."""
@@ -224,6 +235,7 @@ def test_reset_and_verification_token_audiences_cannot_be_cross_used() -> None:
     with pytest.raises(InvalidAudienceError):
         decode_jwt(verify_token, secret, [RESET_PASSWORD_TOKEN_AUDIENCE])
 
+
 async def test_on_after_forgot_password_uses_background_tasks_from_request_state() -> None:
     """Reset-link email sending should be queued when the route provides background tasks."""
     manager, _ = _make_manager()
@@ -237,6 +249,7 @@ async def test_on_after_forgot_password_uses_background_tasks_from_request_state
         await manager.on_after_forgot_password(user, "reset-token", request)
 
     mock_send.assert_awaited_once_with("user@example.com", "user", "reset-token", request.state.background_tasks)
+
 
 async def test_on_after_reset_password_revokes_refresh_tokens_and_sends_confirmation() -> None:
     """Successful password resets should invalidate active sessions and send a confirmation email."""
@@ -264,6 +277,7 @@ async def test_on_after_reset_password_revokes_refresh_tokens_and_sends_confirma
     mock_revoke.assert_awaited_once_with(redis, "user-id")
     mock_send.assert_awaited_once_with("user@example.com", "user")
 
+
 async def test_on_after_update_logs_deactivation_with_enum_action() -> None:
     """Deactivation audit events should use the typed AuditAction enum."""
     manager, _ = _make_manager()
@@ -284,7 +298,7 @@ async def test_on_after_update_logs_deactivation_with_enum_action() -> None:
 
     log_audit.assert_called_once_with("user-id", AuditAction.DEACTIVATE, User, "user-id")
 
+
 def test_delete_audit_is_not_emitted_from_user_manager_hook() -> None:
     """User deletion audit belongs to the admin route where the actor is known."""
     assert "on_after_delete" not in UserManager.__dict__
-

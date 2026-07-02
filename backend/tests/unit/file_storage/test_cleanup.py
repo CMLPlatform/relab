@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 # get_referenced_files
 # ---------------------------------------------------------------------------
 
+
 async def test_get_referenced_files_empty() -> None:
     """Returns empty set when no files or images exist in DB."""
     session = AsyncMock()
@@ -33,6 +34,7 @@ async def test_get_referenced_files_empty() -> None:
     result = await get_referenced_files(session)
 
     assert result == set()
+
 
 async def test_get_referenced_files_with_paths(tmp_path: Path) -> None:
     """Returns resolved paths for all files and images with a path attribute."""
@@ -58,6 +60,7 @@ async def test_get_referenced_files_with_paths(tmp_path: Path) -> None:
     assert (tmp_path / "upload.txt").resolve() in result
     assert (tmp_path / "image.jpg").resolve() in result
 
+
 async def test_get_referenced_files_skips_none_entries() -> None:
     """None entries (no file attached) are silently skipped."""
     session = AsyncMock()
@@ -71,9 +74,11 @@ async def test_get_referenced_files_skips_none_entries() -> None:
 
     assert result == set()
 
+
 # ---------------------------------------------------------------------------
 # get_files_on_disk
 # ---------------------------------------------------------------------------
+
 
 async def test_get_files_on_disk_returns_old_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Files old enough to exceed the grace period are included."""
@@ -95,6 +100,7 @@ async def test_get_files_on_disk_returns_old_files(tmp_path: Path, monkeypatch: 
 
     assert old_file.resolve() in result
 
+
 async def test_get_files_on_disk_excludes_recent_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Files newer than the grace period are excluded (Time-of-Check to Time-of-Use protection)."""
     file_storage = tmp_path / "files"
@@ -114,6 +120,7 @@ async def test_get_files_on_disk_excludes_recent_files(tmp_path: Path, monkeypat
 
     assert new_file.resolve() not in result
 
+
 async def test_get_files_on_disk_missing_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Non-existent storage directories are silently skipped."""
     monkeypatch.setattr(settings, "file_storage_path", tmp_path / "does_not_exist")
@@ -123,6 +130,7 @@ async def test_get_files_on_disk_missing_dirs(tmp_path: Path, monkeypatch: pytes
 
     assert result == set()
 
+
 # ---------------------------------------------------------------------------
 # get_unreferenced_files / cleanup_unreferenced_files (mocked helpers)
 # ---------------------------------------------------------------------------
@@ -131,6 +139,7 @@ _REF_PATH = Path("/uploads/files/referenced.txt").resolve()
 _UNREF_PATH = Path("/uploads/files/unreferenced.txt").resolve()
 _REF_IMAGE_PATH = Path("/uploads/images/referenced.jpg").resolve()
 _REF_IMAGE_THUMB_PATH = Path("/uploads/images/referenced_thumb_200.webp").resolve()
+
 
 async def test_get_unreferenced_files_returns_delta() -> None:
     """get_unreferenced_files returns disk files that are not referenced in DB."""
@@ -146,6 +155,7 @@ async def test_get_unreferenced_files_returns_delta() -> None:
         result = await get_unreferenced_files(session)
 
     assert result == [_UNREF_PATH]
+
 
 async def test_get_unreferenced_files_preserves_generated_thumbnails() -> None:
     """Derived thumbnails for referenced images are not treated as unreferenced."""
@@ -165,6 +175,7 @@ async def test_get_unreferenced_files_preserves_generated_thumbnails() -> None:
 
     assert result == []
 
+
 async def test_cleanup_dry_run_does_not_delete(tmp_path: Path) -> None:
     """dry_run=True logs but does not delete anything."""
     target = tmp_path / "stale.txt"
@@ -180,6 +191,7 @@ async def test_cleanup_dry_run_does_not_delete(tmp_path: Path) -> None:
     assert deleted == [target]
     assert target.exists(), "dry_run must not delete the file"
 
+
 async def test_cleanup_force_deletes_files(tmp_path: Path) -> None:
     """dry_run=False deletes each unreferenced file."""
     target = tmp_path / "stale.txt"
@@ -194,6 +206,7 @@ async def test_cleanup_force_deletes_files(tmp_path: Path) -> None:
 
     assert deleted == [target]
     assert not target.exists(), "file should have been deleted"
+
 
 async def test_cleanup_continues_after_delete_error(tmp_path: Path) -> None:
     """A failed deletion is logged and does not abort remaining files."""

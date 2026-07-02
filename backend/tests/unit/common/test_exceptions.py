@@ -36,6 +36,7 @@ async def test_api_error_without_details() -> None:
     assert body["code"] == "APIError"
     assert "errors" not in body
 
+
 async def test_api_error_with_details() -> None:
     """Test that APIError with details includes them in response (line 30)."""
     handler = create_exception_handler()
@@ -50,6 +51,7 @@ async def test_api_error_with_details() -> None:
     body = json.loads(bytes(response.body))
     assert body["detail"] == "Bad input"
     assert body["errors"] == "field value is wrong"
+
 
 async def test_server_error_logs_at_error_level() -> None:
     """Test that 5xx errors are logged with exception information."""
@@ -74,6 +76,7 @@ async def test_server_error_logs_at_error_level() -> None:
     assert body["detail"] == "Internal server error"
     assert body["request_id"] == "req-500"
 
+
 async def test_400_error_logs_at_warning_level() -> None:
     """Test that 4xx (non-404) errors are logged at warning level."""
     handler = create_exception_handler(status.HTTP_400_BAD_REQUEST)
@@ -87,6 +90,7 @@ async def test_400_error_logs_at_warning_level() -> None:
 
     assert response.status_code == 400
     mock_logger.warning.assert_called_once()
+
 
 async def test_internal_api_error_uses_safe_message_and_custom_log_message() -> None:
     """Test that APIError subclasses can hide internal details from the client."""
@@ -108,6 +112,7 @@ async def test_internal_api_error_uses_safe_message_and_custom_log_message() -> 
         exc_info=(InternalServerError, exc, exc.__traceback__),
     )
 
+
 async def test_http_exception_404_returns_problem_details_with_detail() -> None:
     """HTTPException 404 returns Problem Details and preserves its public detail."""
     handler = create_exception_handler()
@@ -125,6 +130,7 @@ async def test_http_exception_404_returns_problem_details_with_detail() -> None:
     assert body["code"] == "HTTPException"
     assert body["request_id"] == "req-http-404"
 
+
 async def test_http_exception_500_returns_generic_problem_details() -> None:
     """HTTPException 500 hides its detail from clients."""
     handler = create_exception_handler()
@@ -139,6 +145,7 @@ async def test_http_exception_500_returns_generic_problem_details() -> None:
     body = json.loads(bytes(response.body))
     assert body["detail"] == "Internal server error"
     assert "database path" not in bytes(response.body).decode()
+
 
 async def test_http_exception_403_emits_authorization_denied_event() -> None:
     """Authorization failures should be part of the structured security log."""
@@ -168,6 +175,7 @@ async def test_http_exception_403_emits_authorization_denied_event() -> None:
         ),
     )
 
+
 async def test_http_exception_401_does_not_emit_authorization_denied_event() -> None:
     """Authentication failures are not authorization decisions."""
     handler = create_exception_handler()
@@ -186,6 +194,7 @@ async def test_http_exception_401_does_not_emit_authorization_denied_event() -> 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     log_event.assert_not_called()
 
+
 async def test_api_error_5xx_suppresses_details_in_response() -> None:
     """APIError details on 5xx are kept out of the response body."""
     handler = create_exception_handler()
@@ -202,6 +211,7 @@ async def test_api_error_5xx_suppresses_details_in_response() -> None:
     assert "errors" not in body
     assert "redis://internal-cache" not in bytes(response.body).decode()
 
+
 def test_registers_catch_all_exception_handler() -> None:
     """Plain Exception is registered for centralized generic 500 responses."""
     app = FastAPI()
@@ -209,6 +219,7 @@ def test_registers_catch_all_exception_handler() -> None:
     register_exception_handlers(app)
 
     assert Exception in app.exception_handlers
+
 
 def test_returns_429_with_detail() -> None:
     """Test that handler returns a 429 JSON response."""
@@ -222,6 +233,7 @@ def test_returns_429_with_detail() -> None:
     assert body["detail"] == "Rate limit exceeded"
     assert body["status"] == 429
 
+
 def test_custom_detail_message() -> None:
     """Test that a custom detail message is forwarded."""
     mock_request = MagicMock()
@@ -232,6 +244,7 @@ def test_custom_detail_message() -> None:
     body = json.loads(bytes(response.body))
     assert body["detail"] == "Too many login attempts"
     assert body["code"] == "RateLimitExceeded"
+
 
 def test_rate_limit_response_emits_structured_event() -> None:
     """Rate-limit failures should be recorded as security-control events."""
@@ -252,5 +265,3 @@ def test_rate_limit_response_emits_structured_event() -> None:
         "/v1/auth/bearer/login",
         context=AuditContext(outcome="denied", status_code=429),
     )
-
-

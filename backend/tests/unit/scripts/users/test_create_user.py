@@ -18,13 +18,14 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
+
 async def test_create_user_requires_credentials() -> None:
     """The function should fail fast when credentials are missing."""
     with pytest.raises(ValueError, match="email and password must be provided"):
         await create_user_script.create_normal_user("", None, "pw")
 
-async def test_create_user_forwards_optional_name(
 
+async def test_create_user_forwards_optional_name(
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
 ) -> None:
@@ -47,8 +48,8 @@ async def test_create_user_forwards_optional_name(
 
     assert user_create.username == "alice"
 
-async def test_create_user_creates_expected_user(
 
+async def test_create_user_creates_expected_user(
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
 ) -> None:
@@ -78,8 +79,8 @@ async def test_create_user_creates_expected_user(
     assert user_create.is_superuser is False
     assert user_create.is_verified is True
 
-async def test_create_user_swallows_duplicate_user_errors(
 
+async def test_create_user_swallows_duplicate_user_errors(
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
 ) -> None:
@@ -99,6 +100,7 @@ async def test_create_user_swallows_duplicate_user_errors(
 
     warning_mock.assert_called_once()
 
+
 def test_main_runs_async_entrypoint(mocker: MockerFixture) -> None:
     """The CLI entrypoint should delegate to anyio.run with parsed args."""
     run_mock = mocker.patch.object(create_user_script.anyio, "run")
@@ -109,4 +111,3 @@ def test_main_runs_async_entrypoint(mocker: MockerFixture) -> None:
     create_user_script.main()
 
     run_mock.assert_called_once_with(create_user_script.create_normal_user, "x@y.com", "bob", "pw")
-

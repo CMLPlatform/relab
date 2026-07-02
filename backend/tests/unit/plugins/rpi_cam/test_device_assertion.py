@@ -33,6 +33,7 @@ def _make_keypair() -> tuple[ec.EllipticCurvePrivateKey, dict]:
 
     return private_key, {"kty": "EC", "crv": "P-256", "x": _b64(pub.x), "y": _b64(pub.y)}
 
+
 def _make_camera(key_id: str = "kid-1", *, active: bool = True) -> tuple[MagicMock, ec.EllipticCurvePrivateKey]:
     """Build a camera mock + its signing key. The key is returned separately to avoid poking private attrs."""
     private_key, jwk = _make_keypair()
@@ -42,6 +43,7 @@ def _make_camera(key_id: str = "kid-1", *, active: bool = True) -> tuple[MagicMo
     camera.relay_public_key_jwk = jwk
     camera.credential_is_active = active
     return camera, private_key
+
 
 def _sign(
     camera: MagicMock,
@@ -70,7 +72,9 @@ def _sign(
         headers=headers or {"kid": camera.relay_key_id},
     )
 
+
 # ── verify_device_assertion: missing jti ─────────────────────────────────────
+
 
 async def test_empty_jti_rejected() -> None:
     """An empty jti claim should be rejected before Redis is consulted."""
@@ -80,6 +84,7 @@ async def test_empty_jti_rejected() -> None:
     with pytest.raises(jwt.InvalidTokenError):
         await da.verify_device_assertion(assertion, camera, redis)
     redis.set.assert_not_called()
+
 
 @pytest.mark.parametrize("header_name", ["jwk", "jku", "x5u"])
 async def test_ignores_attacker_supplied_key_headers(header_name: str) -> None:
@@ -94,7 +99,9 @@ async def test_ignores_attacker_supplied_key_headers(header_name: str) -> None:
     with pytest.raises(jwt.InvalidTokenError):
         await da.verify_device_assertion(assertion, camera, redis)
 
+
 # ── TTL helper ───────────────────────────────────────────────────────────────
+
 
 def test_clamps_to_max() -> None:
     """TTLs far in the future are clamped to the configured maximum."""
@@ -102,18 +109,22 @@ def test_clamps_to_max() -> None:
     huge_exp = now + 10 * da.MAX_ASSERTION_TTL_SECONDS
     assert da._assertion_replay_ttl({"exp": huge_exp}) == da.MAX_ASSERTION_TTL_SECONDS
 
+
 def test_floor_of_one() -> None:
     """Already-expired tokens still use a TTL >= 1 so SET NX succeeds."""
     now = int(time.time())
     assert da._assertion_replay_ttl({"exp": now - 100}) == 1
 
+
 # ── _extract_bearer ──────────────────────────────────────────────────────────
+
 
 async def test_extracts_token() -> None:
     """A valid Bearer header yields the raw token."""
     request = MagicMock()
     request.headers = {"Authorization": "Bearer abc.def.ghi"}
     assert await da._extract_bearer(request) == "abc.def.ghi"
+
 
 async def test_missing_header_raises_401() -> None:
     """Requests without an Authorization header get a 401 + WWW-Authenticate challenge."""
@@ -124,6 +135,7 @@ async def test_missing_header_raises_401() -> None:
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
     assert exc_info.value.headers == {"WWW-Authenticate": "Bearer"}
 
+
 async def test_bearer_prefix_only_raises() -> None:
     """A Bearer header with no token body is treated the same as a missing header."""
     request = MagicMock()
@@ -131,12 +143,15 @@ async def test_bearer_prefix_only_raises() -> None:
     with pytest.raises(HTTPException):
         await da._extract_bearer(request)
 
+
 # ── _authenticated_camera dependency ─────────────────────────────────────────
+
 
 def _request_with_auth(assertion: str = "placeholder") -> MagicMock:
     request = MagicMock()
     request.headers = {"Authorization": f"Bearer {assertion}"}
     return request
+
 
 async def test_unknown_camera_returns_401() -> None:
     """If the camera row doesn't exist, the dep returns 401 (don't leak existence)."""
@@ -148,6 +163,7 @@ async def test_unknown_camera_returns_401() -> None:
         await da._authenticated_camera(request, uuid4(), session)
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
+
 async def test_inactive_credential_returns_401() -> None:
     """A camera whose credential has been deactivated must not authenticate."""
     camera, _ = _make_camera(active=False)
@@ -158,6 +174,7 @@ async def test_inactive_credential_returns_401() -> None:
     with pytest.raises(HTTPException) as exc_info:
         await da._authenticated_camera(request, camera.id, session)
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+
 
 async def test_redis_unavailable_returns_503() -> None:
     """Without Redis we cannot enforce replay protection, so we fail closed with 503."""
@@ -178,6 +195,7 @@ async def test_redis_unavailable_returns_503() -> None:
     assert exc_info.value.http_status_code == status.HTTP_503_SERVICE_UNAVAILABLE
     assert exc_info.value.message == "Required service is temporarily unavailable."
 
+
 async def test_invalid_assertion_returns_401() -> None:
     """A malformed JWT in the Authorization header is rejected with 401."""
     camera, _ = _make_camera()
@@ -193,6 +211,7 @@ async def test_invalid_assertion_returns_401() -> None:
         await da._authenticated_camera(request, camera.id, session)
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
+
 async def test_valid_assertion_returns_camera() -> None:
     """A valid, unseen assertion authenticates and returns the camera row."""
     camera, private_key = _make_camera()
@@ -207,6 +226,7 @@ async def test_valid_assertion_returns_camera() -> None:
         result = await da._authenticated_camera(request, camera.id, session)
     assert result is camera
     redis.set.assert_awaited_once()
+
 
 async def test_replayed_assertion_returns_401() -> None:
     """Re-use of a previously-seen jti is rejected as replay and surfaces as 401."""
@@ -224,4 +244,3 @@ async def test_replayed_assertion_returns_401() -> None:
     ):
         await da._authenticated_camera(request, camera.id, session)
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-

@@ -14,14 +14,15 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
+
 @dataclass(frozen=True)
 class _MJMLResult:
     """Typed stand-in for ``mjml.mjml_to_html`` — matches the ``.html`` attribute callers read."""
 
     html: str
 
-def test_compile_mjml_templates_compiles_each_template(
 
+def test_compile_mjml_templates_compiles_each_template(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
@@ -50,8 +51,8 @@ def test_compile_mjml_templates_compiles_each_template(
     assert (build_dir / "welcome.html").read_text() == "<html>welcome</html>"
     assert (build_dir / "goodbye.html").read_text() == "<html>goodbye</html>"
 
-def test_compile_mjml_templates_expands_component_includes(
 
+def test_compile_mjml_templates_expands_component_includes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
@@ -77,8 +78,8 @@ def test_compile_mjml_templates_expands_component_includes(
     compile_mock.assert_called_once_with("<mjml><mj-button>Confirm</mj-button></mjml>")
     assert (build_dir / "welcome.html").read_text() == "<html>welcome</html>"
 
-def test_compile_mjml_templates_expands_brand_tokens(
 
+def test_compile_mjml_templates_expands_brand_tokens(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
@@ -113,8 +114,8 @@ def test_compile_mjml_templates_expands_brand_tokens(
     compile_mock.assert_called_once_with("<mjml><mj-text color=\"#006783\">'IBM Plex Sans'</mj-text></mjml>")
     assert (build_dir / "welcome.html").read_text() == "<html>welcome</html>"
 
-def test_compile_mjml_templates_returns_early_when_source_dir_is_missing(
 
+def test_compile_mjml_templates_returns_early_when_source_dir_is_missing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
@@ -131,8 +132,8 @@ def test_compile_mjml_templates_returns_early_when_source_dir_is_missing(
     error_mock.assert_called_once()
     compile_mock.assert_not_called()
 
-def test_compile_mjml_templates_raises_when_any_template_fails(
 
+def test_compile_mjml_templates_raises_when_any_template_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
@@ -153,6 +154,7 @@ def test_compile_mjml_templates_raises_when_any_template_fails(
     with pytest.raises(RuntimeError, match=r"broken\.mjml"):
         compile_email_templates_script.compile_mjml_templates()
 
+
 def test_main_delegates_to_compile_function(mocker: MockerFixture) -> None:
     """The CLI entrypoint should call the compilation function."""
     compile_mock = mocker.patch.object(compile_email_templates_script, "compile_mjml_templates")
@@ -160,4 +162,3 @@ def test_main_delegates_to_compile_function(mocker: MockerFixture) -> None:
     compile_email_templates_script.main()
 
     compile_mock.assert_called_once_with()
-

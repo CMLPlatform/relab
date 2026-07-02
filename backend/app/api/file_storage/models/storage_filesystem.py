@@ -89,4 +89,3 @@ class FileSystemStorage(BaseStorage):
 
         await upload_file.close()
         return filename
-

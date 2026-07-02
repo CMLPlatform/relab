@@ -23,10 +23,7 @@ def test_api_modules_do_not_inline_large_example_literals() -> None:
             continue
         contents = path.read_text()
         offenders.extend(
-            f"{path.relative_to(backend_root)} -> {snippet}"
-            for snippet in forbidden_snippets
-            if snippet in contents
+            f"{path.relative_to(backend_root)} -> {snippet}" for snippet in forbidden_snippets if snippet in contents
         )
 
     assert offenders == []
-

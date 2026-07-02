@@ -43,6 +43,7 @@ async def test_connect_rejects_browser_origin_before_auth_lookup() -> None:
     websocket.accept.assert_not_awaited()
     authenticate.assert_not_awaited()
 
+
 async def test_session_text_frame_sanitizes_camera_id_in_log() -> None:
     """Invalid JSON logging should neutralize line breaks in camera IDs."""
     camera_id = uuid4()
@@ -55,6 +56,7 @@ async def test_session_text_frame_sanitizes_camera_id_in_log() -> None:
     assert session.pending_binary_response is None
     assert session.last_pong_at == 0.0
     mock_logger.warning.assert_called_once_with("Camera %s sent invalid JSON, ignoring.", str(camera_id))
+
 
 async def test_session_text_frame_ignores_malformed_response_envelope() -> None:
     """Malformed response envelopes should not tear down the receive loop."""
@@ -73,6 +75,7 @@ async def test_session_text_frame_ignores_malformed_response_envelope() -> None:
         str(camera_id),
     )
 
+
 async def test_session_text_frame_ignores_non_object_json() -> None:
     """Valid JSON text frames that are not objects should be ignored."""
     camera_id = uuid4()
@@ -84,6 +87,7 @@ async def test_session_text_frame_ignores_non_object_json() -> None:
     assert session.pending_binary_response is None
     assert session.last_pong_at == 0.0
     manager.resolve_json.assert_not_called()
+
 
 async def test_authenticate_sanitizes_client_ip_when_blocked() -> None:
     """Blocked auth logging should use the safe IP bucket rather than the raw IP."""
@@ -109,6 +113,7 @@ async def test_authenticate_sanitizes_client_ip_when_blocked() -> None:
     )
     assert "203.0.113.10" not in str(mock_logger.warning.call_args)
 
+
 async def test_authenticate_enforces_redis_backed_rate_limit_before_auth_lookup() -> None:
     """WebSocket auth attempts should use the shared limiter so limits work across workers."""
     websocket = MagicMock()
@@ -126,6 +131,7 @@ async def test_authenticate_enforces_redis_backed_rate_limit_before_auth_lookup(
         rate_limit_bucket_key("rpi-cam:ws-auth:ip", "203.0.113.10"),
     )
     mock_limiter.hit_key.assert_any_call("10/minute", f"rpi-cam:ws-auth:camera:{camera_id}")
+
 
 async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:
     """Heartbeat timeout logging should neutralize line breaks in camera IDs."""
@@ -149,6 +155,7 @@ async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:
         91.0,
     )
 
+
 async def test_receive_loop_closes_on_oversized_text_frame(monkeypatch: pytest.MonkeyPatch) -> None:
     """Oversized WebSocket text frames should close before JSON parsing or dispatch."""
     monkeypatch.setattr(
@@ -168,6 +175,7 @@ async def test_receive_loop_closes_on_oversized_text_frame(monkeypatch: pytest.M
 
     websocket.close.assert_awaited_once()
 
+
 async def test_receive_loop_accepts_binary_frames_after_server_level_size_checks() -> None:
     """Binary frame size is enforced by Uvicorn before frames reach the app."""
     websocket = AsyncMock()
@@ -183,6 +191,7 @@ async def test_receive_loop_accepts_binary_frames_after_server_level_size_checks
 
     websocket.close.assert_not_awaited()
 
+
 async def test_session_updates_last_pong_at_from_pong_frame() -> None:
     """The receive session should own heartbeat timestamp updates."""
     manager = MagicMock()
@@ -192,6 +201,7 @@ async def test_session_updates_last_pong_at_from_pong_frame() -> None:
         await session.handle_text_frame('{"type":"pong"}')
 
     assert session.last_pong_at == 123.0
+
 
 async def test_session_pairs_binary_frame_with_pending_response() -> None:
     """The receive session should pair a binary frame with its pending JSON response."""
@@ -215,10 +225,12 @@ async def test_session_pairs_binary_frame_with_pending_response() -> None:
     )
     assert session.pending_binary_response is None
 
+
 # ── Device assertion verification ────────────────────────────────────────────
 
 _ALG = "ES256"
 _AUD = "relab-rpi-cam-relay"
+
 
 def _make_key() -> tuple[ec.EllipticCurvePrivateKey, dict]:
     """Generate an EC P-256 key pair and return (private_key, public_jwk)."""
@@ -231,6 +243,7 @@ def _make_key() -> tuple[ec.EllipticCurvePrivateKey, dict]:
     jwk = {"kty": "EC", "crv": "P-256", "x": _b64(pub.x), "y": _b64(pub.y)}
     return private_key, jwk
 
+
 def _make_camera(key_id: str, public_jwk: dict) -> MagicMock:
     """Build a camera stub with the given credential fields."""
     camera = MagicMock()
@@ -239,6 +252,7 @@ def _make_camera(key_id: str, public_jwk: dict) -> MagicMock:
     camera.relay_public_key_jwk = public_jwk
     camera.credential_is_active = True
     return camera
+
 
 def _make_assertion(
     private_key: ec.EllipticCurvePrivateKey,
@@ -271,6 +285,7 @@ def _make_assertion(
         headers={"kid": key_id},
     )
 
+
 async def test_accepts_valid_assertion() -> None:
     """A well-formed signed assertion should be accepted."""
     key_id = "key-1"
@@ -285,6 +300,7 @@ async def test_accepts_valid_assertion() -> None:
     assert payload["sub"] == f"camera:{camera.id}"
     assert payload["kid"] == key_id
 
+
 async def test_rejects_expired_assertion() -> None:
     """An assertion with exp in the past should be rejected."""
     key_id = "key-1"
@@ -296,6 +312,7 @@ async def test_rejects_expired_assertion() -> None:
     with pytest.raises(jwt.InvalidTokenError):
         await _verify_device_assertion(assertion, camera, redis)
 
+
 async def test_rejects_wrong_audience() -> None:
     """An assertion with the wrong audience should be rejected."""
     key_id = "key-1"
@@ -306,6 +323,7 @@ async def test_rejects_wrong_audience() -> None:
     assertion = _make_assertion(private_key, str(camera.id), key_id, aud="wrong-audience")
     with pytest.raises(jwt.InvalidTokenError):
         await _verify_device_assertion(assertion, camera, redis)
+
 
 async def test_rejects_wrong_subject() -> None:
     """An assertion whose sub doesn't match the camera id should be rejected."""
@@ -321,6 +339,7 @@ async def test_rejects_wrong_subject() -> None:
     with pytest.raises(jwt.InvalidTokenError, match="subject"):
         await _verify_device_assertion(assertion, camera, redis)
 
+
 async def test_rejects_missing_issuer() -> None:
     """An assertion without iss should be rejected."""
     key_id = "key-1"
@@ -332,6 +351,7 @@ async def test_rejects_missing_issuer() -> None:
     assertion = _make_assertion(private_key, str(camera.id), key_id, omit_claims={"iss"})
     with pytest.raises(jwt.InvalidTokenError):
         await _verify_device_assertion(assertion, camera, redis)
+
 
 async def test_rejects_wrong_issuer() -> None:
     """An assertion whose iss doesn't match the camera id should be rejected."""
@@ -345,6 +365,7 @@ async def test_rejects_wrong_issuer() -> None:
     with pytest.raises(jwt.InvalidTokenError, match="issuer"):
         await _verify_device_assertion(assertion, camera, redis)
 
+
 async def test_rejects_wrong_kid() -> None:
     """An assertion whose kid doesn't match the stored key_id should be rejected."""
     key_id = "key-1"
@@ -356,6 +377,7 @@ async def test_rejects_wrong_kid() -> None:
     assertion = _make_assertion(private_key, str(camera.id), "wrong-kid")
     with pytest.raises(jwt.InvalidTokenError, match="key id"):
         await _verify_device_assertion(assertion, camera, redis)
+
 
 async def test_rejects_invalid_signature() -> None:
     """An assertion signed by a different key should be rejected."""
@@ -370,6 +392,7 @@ async def test_rejects_invalid_signature() -> None:
     with pytest.raises(jwt.InvalidTokenError):
         await _verify_device_assertion(assertion, camera, redis)
 
+
 async def test_rejects_replayed_jti() -> None:
     """A replayed jti (Redis already has it) should be rejected."""
     key_id = "key-1"
@@ -381,6 +404,7 @@ async def test_rejects_replayed_jti() -> None:
     assertion = _make_assertion(private_key, str(camera.id), key_id)
     with pytest.raises(jwt.InvalidTokenError, match="replay"):
         await _verify_device_assertion(assertion, camera, redis)
+
 
 async def test_rejects_unsupported_algorithm() -> None:
     """An assertion signed with HS256 instead of ES256 should be rejected."""
@@ -405,4 +429,3 @@ async def test_rejects_unsupported_algorithm() -> None:
     )
     with pytest.raises(jwt.InvalidTokenError, match="algorithm"):
         await _verify_device_assertion(hs256_assertion, camera, redis)
-

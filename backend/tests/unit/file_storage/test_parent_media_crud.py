@@ -20,6 +20,7 @@ TEST_FILE_DESC = "Test file"
 TEST_FILENAME = "test.txt"
 CONTENT_TYPE_PNG = "image/png"
 
+
 async def test_create_rejects_parent_scope_mismatch(mock_session: AsyncMock) -> None:
     """Test that creating an item with a parent ID that doesn't match the expected parent scope raises an error."""
     operations = ParentMediaCrud(
@@ -38,6 +39,7 @@ async def test_create_rejects_parent_scope_mismatch(mock_session: AsyncMock) -> 
 
     with pytest.raises(BadRequestError, match="Parent ID mismatch"):
         await operations.create(mock_session, 1, image_create)
+
 
 async def test_delete_removes_db_record_when_storage_file_is_missing(mock_session: AsyncMock) -> None:
     """Test that deleting an item removes the database record even if the storage file is missing."""
@@ -62,6 +64,7 @@ async def test_delete_removes_db_record_when_storage_file_is_missing(mock_sessio
 
     storage_service.delete.assert_awaited_once_with(mock_session, item_id)
 
+
 async def test_get_by_id_raises_not_found_for_wrong_parent(mock_session: AsyncMock) -> None:
     """Test a not found error is raised if the item exists but is not owned by the specified parent."""
     operations = ParentMediaCrud(
@@ -81,6 +84,7 @@ async def test_get_by_id_raises_not_found_for_wrong_parent(mock_session: AsyncMo
         pytest.raises(ParentStorageOwnershipError, match="not found for"),
     ):
         await operations.get_by_id(mock_session, 1, item_id)
+
 
 async def test_get_by_id_uses_configured_parent_type(mock_session: AsyncMock) -> None:
     """Parent-scoped lookup should use the CRUD object's parent type."""
@@ -110,4 +114,3 @@ async def test_get_by_id_uses_configured_parent_type(mock_session: AsyncMock) ->
         item_id=item_id,
         parent_type=MediaParentType.MATERIAL,
     )
-

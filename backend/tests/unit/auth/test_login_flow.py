@@ -36,6 +36,7 @@ async def test_authenticate_first_factor_audits_bad_credentials() -> None:
         context=AuditContext(outcome="denied", transport="bearer", reason="bad_credentials"),
     )
 
+
 async def test_complete_bearer_login_returns_mfa_pending_when_enabled() -> None:
     """MFA-enabled bearer logins should defer token issuance and return 202."""
     user = MagicMock()
@@ -57,6 +58,7 @@ async def test_complete_bearer_login_returns_mfa_pending_when_enabled() -> None:
 
     assert response.status_code == status.HTTP_202_ACCEPTED
     assert result == pending
+
 
 async def test_complete_session_login_sets_success_audit_after_cookie_issue() -> None:
     """Non-MFA session login should issue cookies and audit the successful login."""
@@ -89,6 +91,7 @@ async def test_complete_session_login_sets_success_audit_after_cookie_issue() ->
         user.id,
         context=AuditContext(transport="session"),
     )
+
 
 async def test_complete_bearer_login_returns_refresh_token_response() -> None:
     """Non-MFA bearer login should return the token response and audit success."""

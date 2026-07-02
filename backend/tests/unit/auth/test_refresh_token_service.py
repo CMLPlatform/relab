@@ -26,9 +26,11 @@ if TYPE_CHECKING:
 
 TOKEN_VAL_INVALID = "invalid"
 
+
 def _json_loads_redis(value: bytes | str) -> dict:
     """Decode a Redis JSON value from either real Redis or fakeredis."""
     return json.loads(value.decode("utf-8") if isinstance(value, bytes) else value)
+
 
 async def test_create_refresh_token(redis_client: Redis) -> None:
     """Created refresh tokens should verify for the owning user."""
@@ -37,6 +39,7 @@ async def test_create_refresh_token(redis_client: Redis) -> None:
 
     assert isinstance(token, str)
     assert await verify_refresh_token(redis_client, token) == user_id
+
 
 async def test_verify_refresh_token_rejects_malformed_token_before_lookup(redis_client: Redis) -> None:
     """Refresh tokens are untrusted input and must match the generated token shape."""
@@ -50,6 +53,7 @@ async def test_verify_refresh_token_rejects_malformed_token_before_lookup(redis_
     redis.exists.assert_not_awaited()
     redis.get.assert_not_awaited()
 
+
 async def test_verify_refresh_token_not_found(redis_client: Redis) -> None:
     """Test verifying a non-existent token raises 401."""
     with pytest.raises(RefreshTokenInvalidError) as exc_info:
@@ -57,6 +61,7 @@ async def test_verify_refresh_token_not_found(redis_client: Redis) -> None:
 
     assert exc_info.value.http_status_code == 401
     assert TOKEN_VAL_INVALID in exc_info.value.message.lower()
+
 
 async def test_blacklist_token_revokes_and_removes_token(redis_client: Redis) -> None:
     """Blacklisting removes the active token and makes verification fail as revoked."""
@@ -70,6 +75,7 @@ async def test_blacklist_token_revokes_and_removes_token(redis_client: Redis) ->
 
     with pytest.raises(RefreshTokenRevokedError):
         await verify_refresh_token(redis_client, token)
+
 
 async def test_rotate_refresh_token(redis_client: Redis) -> None:
     """Test rotating a refresh token (create new, blacklist old)."""
@@ -86,6 +92,7 @@ async def test_rotate_refresh_token(redis_client: Redis) -> None:
     with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
         await verify_refresh_token(redis_client, old_token)
 
+
 async def test_rotate_refresh_token_rejects_blacklisted_token(redis_client: Redis) -> None:
     """Rotation must not accept a token after it appears in the blacklist."""
     user_id = uuid.uuid4()
@@ -94,6 +101,7 @@ async def test_rotate_refresh_token_rejects_blacklisted_token(redis_client: Redi
 
     with pytest.raises(RefreshTokenRevokedError):
         await rotate_refresh_token(redis_client, token)
+
 
 async def test_rotate_refresh_token_reuse_revokes_session_family(redis_client: Redis) -> None:
     """Replaying an already-rotated token revokes every live token for that user."""
@@ -111,6 +119,7 @@ async def test_rotate_refresh_token_reuse_revokes_session_family(redis_client: R
         with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
             await verify_refresh_token(redis_client, revoked)
 
+
 async def test_rotate_refresh_token_preserves_absolute_session_expiry(
     redis_client: Redis, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -127,6 +136,7 @@ async def test_rotate_refresh_token_preserves_absolute_session_expiry(
     with pytest.raises(RefreshTokenInvalidError):
         await verify_refresh_token(redis_client, new_token)
 
+
 async def test_verify_refresh_token_rejects_absolute_expired_session(redis_client: Redis) -> None:
     """A refresh token should fail once its absolute session lifetime is over."""
     user_id = uuid.uuid4()
@@ -141,6 +151,7 @@ async def test_verify_refresh_token_rejects_absolute_expired_session(redis_clien
     with pytest.raises(RefreshTokenInvalidError):
         await verify_refresh_token(redis_client, token)
 
+
 async def test_multiple_tokens_per_user(redis_client: Redis) -> None:
     """Test that a user can have multiple active refresh tokens (multi-device)."""
     user_id = uuid.uuid4()
@@ -150,6 +161,7 @@ async def test_multiple_tokens_per_user(redis_client: Redis) -> None:
     # Both tokens should be valid
     await verify_refresh_token(redis_client, token_1)
     await verify_refresh_token(redis_client, token_2)
+
 
 async def test_revoke_all_user_tokens_revokes_only_that_user(redis_client: Redis) -> None:
     """User-wide revocation should blacklist every active token for one user."""
@@ -163,4 +175,3 @@ async def test_revoke_all_user_tokens_revokes_only_that_user(redis_client: Redis
     with pytest.raises(RefreshTokenRevokedError):
         await verify_refresh_token(redis_client, token)
     assert await verify_refresh_token(redis_client, other_token) == other_user_id
-

@@ -12,6 +12,7 @@ class ExampleReadSchema(IntIdReadSchemaWithTimeStamp):
 
     name: str
 
+
 def test_model_validate_reads_attributes_from_objects() -> None:
     """Read schemas should accept attribute-based ORM-like inputs by default."""
 
@@ -26,6 +27,7 @@ def test_model_validate_reads_attributes_from_objects() -> None:
     assert result.id == 1
     assert result.name == "example"
 
+
 def test_model_dump_serializes_timestamps_with_z_suffix() -> None:
     """Timestamp serializer should emit stable UTC ``Z`` strings."""
     result = ExampleReadSchema(
@@ -39,4 +41,3 @@ def test_model_dump_serializes_timestamps_with_z_suffix() -> None:
 
     assert dumped["created_at"] == "2026-03-30T10:11:12Z"
     assert dumped["updated_at"] == "2026-03-30T10:12:13Z"
-

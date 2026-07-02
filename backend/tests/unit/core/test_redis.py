@@ -19,6 +19,7 @@ async def test_get_redis_value_failure_returns_none() -> None:
 
     assert result is None
 
+
 def test_require_redis_raises_when_missing() -> None:
     """require_redis should raise a safe API error when Redis is unavailable."""
     with pytest.raises(ServiceUnavailableError) as exc_info:
@@ -26,4 +27,3 @@ def test_require_redis_raises_when_missing() -> None:
 
     assert exc_info.value.message == "Required service is temporarily unavailable."
     assert exc_info.value.log_message == "Redis is required for this operation."
-

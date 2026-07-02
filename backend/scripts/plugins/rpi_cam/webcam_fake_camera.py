@@ -163,6 +163,7 @@ def run_http(port: int, host: str = "127.0.0.1") -> None:
 # WebSocket mode — connects outbound to the backend relay
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def run_websocket(backend_url: str, camera_id: str, api_key: str) -> None:
     """Start the WebSocket fake camera client."""
     asyncio.run(_ws_main(backend_url, camera_id, api_key))

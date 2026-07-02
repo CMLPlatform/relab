@@ -30,15 +30,19 @@ def _mock_redis() -> MagicMock:
     redis.blpop = AsyncMock()
     return redis
 
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def test_floor() -> None:
     """Below-floor timeouts use the configured minimum TTL."""
     assert cwr._resp_ttl_seconds(1.0) == cwr._RESP_TTL_MIN_SECONDS
 
+
 def test_above_floor_uses_timeout_plus_margin() -> None:
     """Above the floor, TTL follows the request timeout plus a small margin."""
     assert cwr._resp_ttl_seconds(200) == 210
+
 
 async def test_uses_finite_poll_timeout() -> None:
     """The shared Redis client must never use an indefinite BLPOP wait here."""
@@ -50,7 +54,9 @@ async def test_uses_finite_poll_timeout() -> None:
     assert result == ("key", "payload")
     redis.blpop.assert_awaited_once_with("relay-key", timeout=cwr._BLPOP_POLL_SECONDS)
 
+
 # ── relay_cross_worker ───────────────────────────────────────────────────────
+
 
 async def test_happy_path_roundtrip() -> None:
     """A valid response with binary payload round-trips cleanly back to the caller."""
@@ -80,6 +86,7 @@ async def test_happy_path_roundtrip() -> None:
     redis.ltrim.assert_awaited_once()
     assert redis.blpop.await_args.kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS}
 
+
 async def test_blpop_none_polls_until_response() -> None:
     """Finite BLPOP waits should be retried inside the overall relay timeout."""
     redis = _mock_redis()
@@ -101,6 +108,7 @@ async def test_blpop_none_polls_until_response() -> None:
     assert got_binary is None
     assert redis.blpop.await_count == 2
     assert all(call.kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS} for call in redis.blpop.await_args_list)
+
 
 async def test_command_payload_shape() -> None:
     """The pushed command must carry the fields the listener reads."""
@@ -131,6 +139,7 @@ async def test_command_payload_shape() -> None:
     assert "msg_id" in cmd
     assert "deadline" in cmd
 
+
 async def test_timeout_raises_runtime_error() -> None:
     """If BLPOP never returns within the deadline, the caller sees RuntimeError (→ HTTP 503)."""
     redis = _mock_redis()
@@ -152,6 +161,7 @@ async def test_timeout_raises_runtime_error() -> None:
             timeout_s=0.05,
         )
 
+
 async def test_blpop_none_raises() -> None:
     """Repeated finite BLPOP misses are bounded by the overall relay timeout."""
     redis = _mock_redis()
@@ -172,6 +182,7 @@ async def test_blpop_none_raises() -> None:
             timeout_s=0.01,
         )
 
+
 async def test_malformed_response_raises() -> None:
     """Corrupt response JSON on the wire is reported as a relay failure."""
     redis = _mock_redis()
@@ -188,6 +199,7 @@ async def test_malformed_response_raises() -> None:
             timeout_s=1,
         )
 
+
 async def test_error_field_propagates() -> None:
     """An ``error`` field in the response surfaces as a RuntimeError carrying the remote message."""
     redis = _mock_redis()
@@ -203,6 +215,7 @@ async def test_error_field_propagates() -> None:
             None,
             timeout_s=1,
         )
+
 
 async def test_bad_base64_raises() -> None:
     """Binary payloads with invalid base64 are rejected (don't silently corrupt data)."""
@@ -223,7 +236,9 @@ async def test_bad_base64_raises() -> None:
             timeout_s=1,
         )
 
+
 # ── _execute_and_respond ─────────────────────────────────────────────────────
+
 
 async def test_success_pushes_response_and_expire() -> None:
     """On success the JSON response and any binary payload are pushed to the per-msg response list."""
@@ -245,6 +260,7 @@ async def test_success_pushes_response_and_expire() -> None:
         "binary_b64": base64.b64encode(binary).decode(),
     }
 
+
 async def test_camera_disconnected_writes_error() -> None:
     """RuntimeError from send_command (camera gone) is serialised as an ``error`` payload."""
     redis = _mock_redis()
@@ -256,6 +272,7 @@ async def test_camera_disconnected_writes_error() -> None:
 
     raw = redis.rpush.await_args.args[1]
     assert json.loads(raw) == {"error": "socket closed"}
+
 
 async def test_unexpected_exception_writes_internal_error() -> None:
     """Non-RuntimeError failures are wrapped as ``Internal relay error`` so callers still unblock."""
@@ -269,7 +286,9 @@ async def test_unexpected_exception_writes_internal_error() -> None:
     raw = redis.rpush.await_args.args[1]
     assert json.loads(raw) == {"error": "Internal relay error: boom"}
 
+
 # ── run_relay_listener ───────────────────────────────────────────────────────
+
 
 async def test_skips_expired_command() -> None:
     """Commands whose deadline is in the past must be dropped before dispatch."""
@@ -291,6 +310,7 @@ async def test_skips_expired_command() -> None:
 
     manager.send_command.assert_not_called()
 
+
 async def test_skips_malformed_json() -> None:
     """A malformed JSON command should be caught and skipped, not crash the listener."""
     redis = _mock_redis()
@@ -307,6 +327,7 @@ async def test_skips_malformed_json() -> None:
     await cwr.run_relay_listener(redis, uuid4(), manager)
     manager.send_command.assert_not_called()
 
+
 async def test_skips_missing_msg_id() -> None:
     """Commands without a msg_id cannot be replied to, so they must be skipped."""
     redis = _mock_redis()
@@ -322,6 +343,7 @@ async def test_skips_missing_msg_id() -> None:
     redis.blpop.side_effect = _blpop
     await cwr.run_relay_listener(redis, uuid4(), manager)
     manager.send_command.assert_not_called()
+
 
 async def test_dispatches_valid_command() -> None:
     """A well-formed command with a future deadline should be dispatched to the manager."""
@@ -353,6 +375,7 @@ async def test_dispatches_valid_command() -> None:
     assert redis.blpop.await_args_list[0].kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS}
     assert any(call.args[0] == "rpi_cam:relay_resp:m1" for call in redis.rpush.await_args_list)
 
+
 async def test_empty_blpop_result_keeps_polling() -> None:
     """A finite BLPOP timeout should keep the listener alive until a command arrives."""
     redis = _mock_redis()
@@ -381,4 +404,3 @@ async def test_empty_blpop_result_keeps_polling() -> None:
     manager.send_command.assert_awaited_once()
     assert redis.blpop.await_count == 3
     assert all(call.kwargs == {"timeout": cwr._BLPOP_POLL_SECONDS} for call in redis.blpop.await_args_list)
-

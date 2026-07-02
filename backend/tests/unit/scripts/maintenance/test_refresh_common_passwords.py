@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
+
 def test_normalize_passwords_filters_policy_length_and_deduplicates_in_order() -> None:
     """Normalization should preserve source rank while keeping only policy-sized entries."""
     raw_text = "\n".join(
@@ -32,10 +33,12 @@ def test_normalize_passwords_filters_policy_length_and_deduplicates_in_order() -
 
     assert passwords == ["password12345", "correct horse battery staple"]
 
+
 def test_normalize_passwords_fails_when_source_has_too_few_entries() -> None:
     """A refreshed file below the ASVS target count should fail fast."""
     with pytest.raises(ValueError, match="fewer than"):
         refresh_script._normalize_passwords("only-one-long-password", target_count=2)
+
 
 async def test_refresh_common_passwords_writes_rendered_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
@@ -73,4 +76,3 @@ async def test_refresh_common_passwords_writes_rendered_file(
         "another-long-one\n"
     )
     client_mock.get.assert_awaited_once_with(refresh_script.COMMON_PASSWORDS_SOURCE_URL, timeout=20.0)
-

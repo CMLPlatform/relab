@@ -16,12 +16,14 @@ from app.core.config import CoreSettings, StorageBackend
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
+
 class MockClientError(Exception):
     """Mock ClientError that behaves like botocore.exceptions.ClientError."""
 
     def __init__(self, error_response: dict, _operation_name: str | None = None) -> None:
         self.response = error_response
         super().__init__()
+
 
 @pytest.fixture
 def mock_boto3(mocker: MockerFixture) -> MagicMock:
@@ -41,6 +43,7 @@ def mock_boto3(mocker: MockerFixture) -> MagicMock:
     )
     return mock_boto3_module
 
+
 def _make_client_error(code: str, operation: str = "Operation") -> MockClientError:
     """Create a MockClientError with the given error code.
 
@@ -51,11 +54,13 @@ def _make_client_error(code: str, operation: str = "Operation") -> MockClientErr
         operation,
     )
 
+
 def test_get_path_default_aws_url() -> None:
     """Test default AWS S3 URL format: https://bucket.s3.region.amazonaws.com/prefix/key."""
     storage = S3Storage(bucket="my-bucket", prefix="images", region="eu-west-1")
     path = storage.get_path("photo.jpg")
     assert path == "https://my-bucket.s3.eu-west-1.amazonaws.com/images/photo.jpg"
+
 
 def test_get_path_with_base_url() -> None:
     """Test custom base URL overrides AWS path."""
@@ -67,6 +72,7 @@ def test_get_path_with_base_url() -> None:
     path = storage.get_path("photo.jpg")
     assert path == "https://cdn.example.com/assets/images/photo.jpg"
 
+
 def test_get_path_with_base_url_trailing_slash() -> None:
     """Test base URL with trailing slash is normalized."""
     storage = S3Storage(
@@ -76,6 +82,7 @@ def test_get_path_with_base_url_trailing_slash() -> None:
     )
     path = storage.get_path("photo.jpg")
     assert path == "https://cdn.example.com/assets/images/photo.jpg"
+
 
 def test_get_path_with_custom_endpoint() -> None:
     """Test S3-compatible endpoint (e.g. MinIO) URL format."""
@@ -87,11 +94,13 @@ def test_get_path_with_custom_endpoint() -> None:
     path = storage.get_path("photo.jpg")
     assert path == "http://localhost:9000/my-bucket/images/photo.jpg"
 
+
 def test_get_path_empty_prefix() -> None:
     """Test URL construction with empty prefix."""
     storage = S3Storage(bucket="my-bucket", prefix="")
     path = storage.get_path("photo.jpg")
     assert path == "https://my-bucket.s3.us-east-1.amazonaws.com/photo.jpg"
+
 
 def test_get_name_sanitizes_filename() -> None:
     """Test that get_name normalizes filenames like filesystem backend."""
@@ -100,6 +109,7 @@ def test_get_name_sanitizes_filename() -> None:
     assert storage.get_name("documents/report.pdf") == "report.pdf"
     # Special characters should be removed
     assert storage.get_name("hello world!@#.txt") == "hello_world.txt"
+
 
 def test_write_uploads_to_s3(mock_boto3: MagicMock) -> None:
     """Test write() calls upload_fileobj with correct bucket and key."""
@@ -118,6 +128,7 @@ def test_write_uploads_to_s3(mock_boto3: MagicMock) -> None:
         "Key": "files/document.txt",
     }
 
+
 def test_open_returns_file_contents(mock_boto3: MagicMock) -> None:
     """Test open() returns BytesIO with object contents."""
     mock_body = MagicMock()
@@ -133,6 +144,7 @@ def test_open_returns_file_contents(mock_boto3: MagicMock) -> None:
     assert result.getvalue() == b"file contents"
     mock_client.get_object.assert_called_once_with(Bucket="my-bucket", Key="files/document.txt")
 
+
 def test_open_raises_on_missing_file(mock_boto3: MagicMock) -> None:
     """Test open() raises FastAPIStorageFileNotFoundError for missing objects."""
     mock_client = MagicMock()
@@ -144,6 +156,7 @@ def test_open_raises_on_missing_file(mock_boto3: MagicMock) -> None:
 
     with pytest.raises(FastAPIStorageFileNotFoundError):
         storage.open("missing.txt")
+
 
 def test_boto3_import_error_on_lazy_use(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test helpful error message when boto3 is not installed."""
@@ -163,6 +176,7 @@ def test_boto3_import_error_on_lazy_use(monkeypatch: pytest.MonkeyPatch) -> None
     with pytest.raises(ImportError, match="boto3 is required for S3 storage") as exc_info:
         storage.get_size("file.txt")
     assert "uv sync --group s3" in str(exc_info.value)
+
 
 async def test_write_upload_uploads_to_s3(mock_boto3: MagicMock) -> None:
     """Test write_upload() streams file to S3 in thread pool."""
@@ -192,6 +206,7 @@ async def test_write_upload_uploads_to_s3(mock_boto3: MagicMock) -> None:
     mock_file.seek.assert_called_once_with(0)
     mock_file.close.assert_called_once()
 
+
 def test_s3_backend_requires_bucket() -> None:
     """Test that storage_backend='s3' requires s3_bucket to be set."""
     with pytest.raises(ValueError, match="S3_BUCKET must be set"):
@@ -199,6 +214,7 @@ def test_s3_backend_requires_bucket() -> None:
             storage_backend=StorageBackend.S3,
             s3_bucket="",  # Empty bucket
         )
+
 
 def test_s3_backend_with_bucket_valid() -> None:
     """Test that storage_backend='s3' with bucket configured is valid."""
@@ -209,6 +225,7 @@ def test_s3_backend_with_bucket_valid() -> None:
     assert settings.storage_backend == StorageBackend.S3
     assert settings.s3_bucket == "my-bucket"
 
+
 def test_filesystem_backend_ignores_s3_config() -> None:
     """Test that filesystem backend doesn't require S3 config."""
     settings = CoreSettings(
@@ -216,4 +233,3 @@ def test_filesystem_backend_ignores_s3_config() -> None:
         s3_bucket="",  # Empty S3 config is OK for filesystem
     )
     assert settings.storage_backend == StorageBackend.FILESYSTEM
-

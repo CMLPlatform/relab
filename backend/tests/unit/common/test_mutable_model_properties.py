@@ -19,6 +19,7 @@ def test_physical_properties_volume_tracks_dimension_updates() -> None:
 
     assert product.volume_cm3 == 30
 
+
 def test_product_derived_flags_track_parent_and_component_updates() -> None:
     """Product convenience flags should reflect the current graph state."""
     product = Product(

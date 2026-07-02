@@ -24,11 +24,13 @@ if TYPE_CHECKING:
 
     from app.api.plugins.rpi_cam.models import Camera
 
+
 def _jpeg_upload(filename: str = "preview.jpg") -> UploadFile:
     buffer = BytesIO()
     PILImage.new("RGB", (10, 10), color="blue").save(buffer, format="JPEG")
     buffer.seek(0)
     return UploadFile(file=buffer, filename=filename, headers=Headers({"content-type": "image/jpeg"}))
+
 
 @pytest.mark.parametrize(
     ("capture_metadata", "upload_metadata", "expected_detail"),
@@ -40,7 +42,6 @@ def _jpeg_upload(filename: str = "preview.jpg") -> UploadFile:
     ],
 )
 async def test_rejects_invalid_json_metadata(
-
     mock_camera: Camera,
     capture_metadata: str,
     upload_metadata: str,
@@ -62,8 +63,8 @@ async def test_rejects_invalid_json_metadata(
     assert exc_info.value.status_code == 400
     assert str(exc_info.value.detail).startswith(expected_detail)
 
-async def test_rejects_oversized_metadata(
 
+async def test_rejects_oversized_metadata(
     mock_camera: Camera,
 ) -> None:
     """Device uploads should bound parsed metadata before storage work."""
@@ -81,6 +82,7 @@ async def test_rejects_oversized_metadata(
 
     assert exc_info.value.status_code == 400
     assert str(exc_info.value.detail).startswith("upload_metadata")
+
 
 async def test_rejects_upload_for_product_not_owned_by_camera_owner(mock_camera: Camera) -> None:
     """A paired device may only attach captures to products owned by its owner."""
@@ -114,8 +116,8 @@ async def test_rejects_upload_for_product_not_owned_by_camera_owner(mock_camera:
 
     mock_storage.create.assert_not_awaited()
 
-async def test_persists_deterministic_preview_thumbnail_and_returns_url(
 
+async def test_persists_deterministic_preview_thumbnail_and_returns_url(
     mock_camera: Camera,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -131,8 +133,8 @@ async def test_persists_deterministic_preview_thumbnail_and_returns_url(
     expected_mtime = int(path.stat().st_mtime)
     assert ack.preview_thumbnail_url == f"/uploads/images/rpi-cam-preview/{mock_camera.id}.jpg?v={expected_mtime}"
 
-async def test_rejects_empty_preview_thumbnail_upload(
 
+async def test_rejects_empty_preview_thumbnail_upload(
     mock_camera: Camera,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -147,8 +149,8 @@ async def test_rejects_empty_preview_thumbnail_upload(
     assert exc_info.value.status_code == 400
     assert "empty" in str(exc_info.value.detail).lower()
 
-async def test_rejects_invalid_preview_thumbnail_image(
 
+async def test_rejects_invalid_preview_thumbnail_image(
     mock_camera: Camera,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -166,4 +168,3 @@ async def test_rejects_invalid_preview_thumbnail_image(
 
     assert exc_info.value.status_code == 400
     assert "invalid image" in str(exc_info.value.detail).lower()
-

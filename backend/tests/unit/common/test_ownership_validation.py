@@ -15,6 +15,7 @@ from app.api.common.ownership import get_user_owned_object
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
+
 def _mock_session_returning(value: object) -> AsyncMock:
     """Build an AsyncSession mock whose execute().scalars()... chain yields value."""
     execute_result = MagicMock()
@@ -22,6 +23,7 @@ def _mock_session_returning(value: object) -> AsyncMock:
     db = AsyncMock(spec=AsyncSession)
     db.execute.return_value = execute_result
     return db
+
 
 async def test_success_returns_object_and_filters_by_default_owner_fk(mocker: MockerFixture) -> None:
     """Happy path: returned object matches and the default FK is owner_id."""
@@ -41,6 +43,7 @@ async def test_success_returns_object_and_filters_by_default_owner_fk(mocker: Mo
 
     assert result is expected
     db.execute.assert_awaited_once()
+
 
 async def test_success_respects_custom_owner_fk(mocker: MockerFixture) -> None:
     """Custom owner FK names should be checked and queried consistently."""
@@ -62,6 +65,7 @@ async def test_success_respects_custom_owner_fk(mocker: MockerFixture) -> None:
 
     assert result is expected
 
+
 async def test_missing_object_raises_model_not_found(mocker: MockerFixture) -> None:
     """Missing owned objects should surface as ModelNotFoundError."""
     user_id = uuid4()
@@ -75,4 +79,3 @@ async def test_missing_object_raises_model_not_found(mocker: MockerFixture) -> N
 
     with pytest.raises(ModelNotFoundError):
         await get_user_owned_object(db=db, model=mock_model, model_id=model_id, owner_id=user_id)
-

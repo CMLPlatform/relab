@@ -73,8 +73,7 @@ def load_brand_tokens() -> dict[str, str]:
         msg = f"Could not find :root brand tokens in {BRAND_CSS_PATH}"
         raise RuntimeError(msg)
     return {
-        name: resolve_light_value(value.strip())
-        for name, value in CSS_TOKEN_PATTERN.findall(root_match.group("body"))
+        name: resolve_light_value(value.strip()) for name, value in CSS_TOKEN_PATTERN.findall(root_match.group("body"))
     }
 
 

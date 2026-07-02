@@ -19,6 +19,7 @@ from tests.unit.plugins.rpi_cam.service_test_support import CAPTURE_TIME
 if TYPE_CHECKING:
     from typing import Any
 
+
 async def test_capture_and_store_image_success(mock_session: Any) -> None:
     """Happy path: Pi returns status=uploaded and the stored Image is fetched by id."""
     image_uuid = uuid4()
@@ -52,6 +53,7 @@ async def test_capture_and_store_image_success(mock_session: Any) -> None:
     mock_session.get.assert_awaited_once()
     assert result is expected_image
 
+
 async def test_capture_raises_when_pi_queued_the_image(mock_session: Any) -> None:
     """A queued Pi response should surface as InvalidCameraResponseError."""
     with patch("app.api.plugins.rpi_cam.runtime.capture.get_user_owned_object"):
@@ -74,6 +76,7 @@ async def test_capture_raises_when_pi_queued_the_image(mock_session: Any) -> Non
 
     assert excinfo.value.details is not None
     assert "queued" in excinfo.value.details
+
 
 async def test_capture_raises_when_image_missing_from_db(mock_session: Any) -> None:
     """If the backend DB has no row for the reported id, surface a clean error."""
@@ -100,6 +103,7 @@ async def test_capture_raises_when_image_missing_from_db(mock_session: Any) -> N
 
     assert excinfo.value.details is not None
     assert "not found" in excinfo.value.details
+
 
 async def test_capture_rejects_product_not_owned_by_camera_owner(mock_session: Any) -> None:
     """Capture must not attach a camera-owned image to another user's product."""

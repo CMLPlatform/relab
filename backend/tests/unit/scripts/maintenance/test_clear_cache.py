@@ -12,8 +12,8 @@ from scripts.maintenance import clear_cache as clear_cache_script
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-async def test_clear_cache_returns_error_when_redis_is_unavailable(
 
+async def test_clear_cache_returns_error_when_redis_is_unavailable(
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
 ) -> None:
@@ -28,8 +28,8 @@ async def test_clear_cache_returns_error_when_redis_is_unavailable(
     assert exit_code == 1
     close_redis_mock.assert_not_awaited()
 
-async def test_clear_cache_clears_requested_namespace(
 
+async def test_clear_cache_clears_requested_namespace(
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
 ) -> None:
@@ -50,6 +50,7 @@ async def test_clear_cache_clears_requested_namespace(
     clear_namespace_mock.assert_awaited_once_with(CacheNamespace.REFERENCE_DATA)
     close_redis_mock.assert_awaited_once_with(redis_client)
 
+
 def test_main_exits_for_invalid_namespace(monkeypatch: pytest.MonkeyPatch) -> None:
     """Invalid namespace values should terminate with exit code 1."""
     monkeypatch.setattr(clear_cache_script.sys, "argv", ["clear_cache.py", "invalid"])
@@ -58,6 +59,7 @@ def test_main_exits_for_invalid_namespace(monkeypatch: pytest.MonkeyPatch) -> No
         clear_cache_script.main()
 
     assert exc_info.value.code == 1
+
 
 def test_main_uses_default_namespace(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
     """With no argument, the script should clear the default namespace."""
@@ -71,4 +73,3 @@ def test_main_uses_default_namespace(monkeypatch: pytest.MonkeyPatch, mocker: Mo
 
     assert exc_info.value.code == 0
     clear_cache_mock.assert_awaited_once_with(CacheNamespace.REFERENCE_DATA)
-

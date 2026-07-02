@@ -15,10 +15,12 @@ def test_pairing_claim_normalizes_camera_name_to_nfc() -> None:
 
     assert claim.camera_name == "Café camera"
 
+
 def test_pairing_claim_rejects_invalid_pairing_code() -> None:
     """Pairing claims should use the shared unambiguous code contract."""
     with pytest.raises(ValidationError):
         PairingClaimRequest.model_validate({"code": "ABC230", "camera_name": "Test Camera"})
+
 
 def test_camera_update_rejects_hidden_control_characters() -> None:
     """Camera text fields reject invisible control bytes."""

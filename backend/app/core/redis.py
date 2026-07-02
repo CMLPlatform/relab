@@ -77,11 +77,13 @@ async def init_redis() -> Redis:
             "ssl": redis_cfg.tls,
         }
         if redis_cfg.tls:
-            kwargs.update({
-                "ssl_cert_reqs": ssl.CERT_REQUIRED,
-                "ssl_ca_certs": str(redis_cfg.tls_ca_file) if redis_cfg.tls_ca_file is not None else None,
-                "ssl_check_hostname": True,
-            })
+            kwargs.update(
+                {
+                    "ssl_cert_reqs": ssl.CERT_REQUIRED,
+                    "ssl_ca_certs": str(redis_cfg.tls_ca_file) if redis_cfg.tls_ca_file is not None else None,
+                    "ssl_check_hostname": True,
+                }
+            )
         redis_client = Redis(**kwargs)
 
         # Verify connection on startup

@@ -19,10 +19,12 @@ if TYPE_CHECKING:
 
 HTTP_OK = 200
 
+
 def require_uuid(value: UUID | None) -> UUID:
     """Narrow optional UUID values produced by Pydantic models."""
     assert value is not None
     return value
+
 
 def _make_snapshot(cpu_temp_c: float | None = 55.5, cpu_percent: float = 12.0) -> TelemetrySnapshot:
     return TelemetrySnapshot(
@@ -37,15 +39,16 @@ def _make_snapshot(cpu_temp_c: float | None = 55.5, cpu_percent: float = 12.0) -
         current_preview_size=None,
     )
 
+
 def _snapshot_to_json_payload(snapshot: TelemetrySnapshot) -> dict[str, object]:
     return snapshot.model_dump(mode="json")
+
 
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.store_telemetry")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.get_cached_telemetry")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.build_camera_request")
 async def test_cache_hit_skips_relay(
-
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     mock_get_cached: MagicMock,
@@ -71,12 +74,12 @@ async def test_cache_hit_skips_relay(
     mock_build_camera_request.assert_not_called()
     mock_store.assert_not_called()
 
+
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.store_telemetry")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.get_cached_telemetry")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.build_camera_request")
 async def test_cache_miss_forwards_and_stores(
-
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     mock_get_cached: MagicMock,
@@ -116,12 +119,12 @@ async def test_cache_miss_forwards_and_stores(
     assert stored_args[1] == require_uuid(mock_camera.id)
     assert isinstance(stored_args[2], TelemetrySnapshot)
 
+
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.store_telemetry")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.get_cached_telemetry")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.build_camera_request")
 async def test_force_refresh_bypasses_cache(
-
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     mock_get_cached: MagicMock,

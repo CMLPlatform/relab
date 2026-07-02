@@ -29,6 +29,7 @@ async def test_returns_link_when_found(mock_session: AsyncMock) -> None:
 
     assert result == mock_link
 
+
 async def test_raises_bad_request_error_when_not_found(mock_session: AsyncMock) -> None:
     """Missing association rows should raise a client-safe error."""
     mock_result = MagicMock()
@@ -45,6 +46,7 @@ async def test_raises_bad_request_error_when_not_found(mock_session: AsyncMock) 
             CategoryMaterialLink.category_id,
         )
 
+
 async def test_creates_links_for_all_ids(mock_session: AsyncMock) -> None:
     """Bulk link creation should create one association row per dependent ID."""
     await add_links(
@@ -58,4 +60,3 @@ async def test_creates_links_for_all_ids(mock_session: AsyncMock) -> None:
 
     mock_session.add_all.assert_called_once()
     assert len(mock_session.add_all.call_args[0][0]) == 3
-

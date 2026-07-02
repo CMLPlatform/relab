@@ -32,6 +32,7 @@ fake = Faker("en_US")
 DOUBLE_SLASH = "//"
 PROTO_SEP = "://"
 
+
 @pytest.fixture
 def email_data() -> dict[str, str]:
     """Return common data for email tests."""
@@ -40,6 +41,7 @@ def email_data() -> dict[str, str]:
         "username": fake.user_name(),
         "token": fake.uuid4(),
     }
+
 
 ### Token Link Generation Tests ###
 def test_generate_token_link_default_base_url() -> None:
@@ -57,6 +59,7 @@ def test_generate_token_link_default_base_url() -> None:
     assert parsed.query == ""
     assert fragment_params["token"] == [token]
 
+
 def test_generate_token_link_custom_base_url() -> None:
     """Test token link generation with custom base URL."""
     token = fake.uuid4()
@@ -73,6 +76,7 @@ def test_generate_token_link_custom_base_url() -> None:
     assert parsed.query == ""
     assert fragment_params["token"] == [token]
 
+
 def test_generate_token_link_with_trailing_slash() -> None:
     """Test that token links are generated correctly regardless of trailing slashes."""
     token = fake.uuid4()
@@ -85,6 +89,7 @@ def test_generate_token_link_with_trailing_slash() -> None:
     assert DOUBLE_SLASH not in link.split(PROTO_SEP)[1]
     # Should still have the correct route
     assert urlparse(link).path == route
+
 
 def test_generate_token_link_url_encodes_token_fragment_parameter() -> None:
     """Token links should preserve token content without putting sensitive values in the query."""
@@ -100,6 +105,7 @@ def test_generate_token_link_url_encodes_token_fragment_parameter() -> None:
     assert parsed.query == ""
     assert fragment_params == {"token": [token]}
 
+
 ### Registration Email Tests ###
 async def test_send_registration_email_sets_reply_to(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
     """Test registration emails include the configured reply-to address."""
@@ -114,6 +120,7 @@ async def test_send_registration_email_sets_reply_to(email_data: dict[str, str],
     assert reply_to is not None
     assert message.reply_to[0] == reply_to
 
+
 async def test_send_registration_email_uses_template_contract(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
@@ -126,6 +133,7 @@ async def test_send_registration_email_uses_template_contract(
     assert email_data["username"] in message.html_body
     assert generate_token_link(email_data["token"], "/verify") in message.html_body
 
+
 async def test_send_registration_email_falls_back_to_email_when_username_missing(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
@@ -136,6 +144,7 @@ async def test_send_registration_email_falls_back_to_email_when_username_missing
     assert await_args is not None
     message = await_args.args[0]
     assert email_data["email"] in message.html_body
+
 
 ### Password Reset Email Tests ###
 async def test_send_reset_password_email_uses_template_contract(
@@ -150,6 +159,7 @@ async def test_send_reset_password_email_uses_template_contract(
     assert email_data["username"] in message.html_body
     assert generate_token_link(email_data["token"], "/reset-password") in message.html_body
 
+
 ### Verification Email Tests ###
 async def test_send_verification_email_uses_template_contract(
     email_data: dict[str, str], mock_email_sending: AsyncMock
@@ -163,6 +173,7 @@ async def test_send_verification_email_uses_template_contract(
     assert email_data["username"] in message.html_body
     assert generate_token_link(email_data["token"], "/verify") in message.html_body
 
+
 ### Post-Verification Email Tests ###
 async def test_send_post_verification_email_uses_template_contract(
     email_data: dict[str, str], mock_email_sending: AsyncMock
@@ -175,6 +186,7 @@ async def test_send_post_verification_email_uses_template_contract(
     message = await_args.args[0]
     assert email_data["username"] in message.html_body
 
+
 async def test_send_email_changed_notification_uses_plain_message(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
@@ -186,6 +198,7 @@ async def test_send_email_changed_notification_uses_plain_message(
     message = await_args.args[0]
     assert message.subject == "Your RELab account email changed"
     assert "token=" not in message.html_body
+
 
 async def test_send_password_reset_confirmation_email_uses_plain_safe_message(
     email_data: dict[str, str], mock_email_sending: AsyncMock
@@ -202,6 +215,7 @@ async def test_send_password_reset_confirmation_email_uses_plain_safe_message(
     assert "token=" not in message.html_body
     assert "/reset-password" not in message.html_body
     assert "password123" not in message.html_body
+
 
 ### Parametrized Integration Tests ###
 @pytest.mark.parametrize(
@@ -230,6 +244,7 @@ async def test_all_email_functions_send_emails(
 
     # Verify email was sent
     mock_email_sending.assert_called_once()
+
 
 @pytest.mark.parametrize(
     ("email_func", "needs_token"),

@@ -26,13 +26,9 @@ async def compute_totals(session: AsyncSession) -> tuple[Totals, datetime]:
     product_stmt = select(
         func.count(Product.id).filter(Product.parent_id.is_(None)).label("teardowns"),
         func.count(Product.id).filter(Product.parent_id.isnot(None)).label("parts"),
-        func.coalesce(
-            func.sum(Product.weight_g).filter(Product.parent_id.is_(None)), 0
-        ).label("total_weight_g"),
+        func.coalesce(func.sum(Product.weight_g).filter(Product.parent_id.is_(None)), 0).label("total_weight_g"),
     )
-    image_stmt = select(func.count(Image.id)).where(
-        Image.parent_type == MediaParentType.PRODUCT
-    )
+    image_stmt = select(func.count(Image.id)).where(Image.parent_type == MediaParentType.PRODUCT)
     user_stmt = select(func.count(User.id))
 
     product_row = (await session.execute(product_stmt)).fetchone()
@@ -51,9 +47,7 @@ async def compute_totals(session: AsyncSession) -> tuple[Totals, datetime]:
     )
 
 
-async def compute_categories(
-    session: AsyncSession, limit: int
-) -> tuple[list[CategoryStat], datetime]:
+async def compute_categories(session: AsyncSession, limit: int) -> tuple[list[CategoryStat], datetime]:
     """Return non-zero categories ordered by teardowns DESC, capped at limit."""
     stmt = (
         select(
@@ -72,10 +66,7 @@ async def compute_categories(
     )
 
     rows = (await session.execute(stmt)).all()
-    categories = [
-        CategoryStat(name=row.name, teardowns=int(row.teardowns), parts=int(row.parts))
-        for row in rows
-    ]
+    categories = [CategoryStat(name=row.name, teardowns=int(row.teardowns), parts=int(row.parts)) for row in rows]
     return categories, datetime.now(UTC)
 
 
@@ -96,9 +87,7 @@ async def compute_series(
             trunc(Product.created_at).label("period"),
             func.count(Product.id).filter(Product.parent_id.is_(None)).label("teardowns"),
             func.count(Product.id).filter(Product.parent_id.isnot(None)).label("parts"),
-            func.coalesce(
-                func.sum(Product.weight_g).filter(Product.parent_id.is_(None)), 0
-            ).label("total_weight_g"),
+            func.coalesce(func.sum(Product.weight_g).filter(Product.parent_id.is_(None)), 0).label("total_weight_g"),
         )
         .where(Product.created_at >= start_dt, Product.created_at < end_dt)
         .group_by(trunc(Product.created_at))

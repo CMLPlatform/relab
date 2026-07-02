@@ -35,6 +35,7 @@ async def test_get_user_owned_camera_returns_camera_when_online(mock_camera: Cam
     assert result is camera
     get_status_mock.assert_awaited_once_with(redis, camera.id)
 
+
 async def test_get_user_owned_camera_raises_503_when_offline(mock_camera: Camera) -> None:
     """Should raise HTTP 503 when the camera is offline."""
     camera = mock_camera
@@ -59,6 +60,7 @@ async def test_get_user_owned_camera_raises_503_when_offline(mock_camera: Camera
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera is offline"
     get_status_mock.assert_awaited_once_with(redis, camera.id)
+
 
 async def test_get_user_owned_camera_raises_401_when_unauthorized(mock_camera: Camera) -> None:
     """Should raise HTTP 401 when the camera returns unauthorized status."""

@@ -32,6 +32,7 @@ async def test_inherits_taxonomy_from_supercategory(mock_session: AsyncMock) -> 
     assert result_cat == super_category
     mock_get.assert_called_with(mock_session, Category, 1)
 
+
 async def test_top_level_requires_taxonomy(mock_session: AsyncMock) -> None:
     """Allows top-level categories when a taxonomy is provided."""
     category_create = AsyncMock()
@@ -48,6 +49,7 @@ async def test_top_level_requires_taxonomy(mock_session: AsyncMock) -> None:
     assert result_cat is None
     mock_get.assert_called_with(mock_session, Taxonomy, 10)
 
+
 async def test_top_level_missing_taxonomy_raises(mock_session: AsyncMock) -> None:
     """Rejects category creation without any taxonomy id."""
     category_create = AsyncMock()
@@ -56,6 +58,7 @@ async def test_top_level_missing_taxonomy_raises(mock_session: AsyncMock) -> Non
 
     with pytest.raises(BadRequestError, match="Taxonomy ID is required"):
         await resolve_category_parents(mock_session, category_create, taxonomy_id=None, supercategory_id=None)
+
 
 async def test_validate_domains_success(mock_session: AsyncMock) -> None:
     """Accepts categories whose taxonomies include the expected domain."""
@@ -76,6 +79,7 @@ async def test_validate_domains_success(mock_session: AsyncMock) -> None:
 
     assert result == [cat1, cat2]
 
+
 async def test_validate_domains_missing_category(mock_session: AsyncMock) -> None:
     """Raises when some requested categories are missing."""
     category_ids = {1, 2}
@@ -89,6 +93,7 @@ async def test_validate_domains_missing_category(mock_session: AsyncMock) -> Non
 
     with pytest.raises(BadRequestError, match="not found"):
         await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
+
 
 async def test_validate_domains_invalid_domain(mock_session: AsyncMock) -> None:
     """Raises when category taxonomies do not allow the target domain."""
@@ -104,10 +109,12 @@ async def test_validate_domains_invalid_domain(mock_session: AsyncMock) -> None:
     with pytest.raises(BadRequestError, match="belong to taxonomies outside of domains"):
         await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
 
+
 async def test_raises_when_both_ids_provided(mock_session: AsyncMock) -> None:
     """Rejects requests that mix taxonomy and supercategory filters."""
     with pytest.raises(BadRequestError, match="not both"):
         await get_category_trees(mock_session, supercategory_id=1, taxonomy_id=2)
+
 
 async def test_returns_top_level_categories(mock_session: AsyncMock) -> None:
     """Returns top-level categories when no filters are provided."""
@@ -119,6 +126,7 @@ async def test_returns_top_level_categories(mock_session: AsyncMock) -> None:
     mock_session.execute.return_value = mock_result
     result = await get_category_trees(mock_session)
     assert result == [cat]
+
 
 async def test_filters_by_taxonomy_id(mock_session: AsyncMock) -> None:
     """Filters category trees by taxonomy id."""
@@ -133,6 +141,7 @@ async def test_filters_by_taxonomy_id(mock_session: AsyncMock) -> None:
         result = await get_category_trees(mock_session, taxonomy_id=10)
     assert result == [cat]
 
+
 async def test_filters_by_supercategory_id(mock_session: AsyncMock) -> None:
     """Filters category trees by supercategory id."""
     child_cat = CategoryFactory.build(id=2, supercategory_id=1)
@@ -145,4 +154,3 @@ async def test_filters_by_supercategory_id(mock_session: AsyncMock) -> None:
     with patch("app.api.reference_data.crud.categories.require_model"):
         result = await get_category_trees(mock_session, supercategory_id=1)
     assert result == [child_cat]
-

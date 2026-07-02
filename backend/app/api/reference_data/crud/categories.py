@@ -146,5 +146,3 @@ async def create_category(
         await db.refresh(db_category)
 
     return db_category
-
-

@@ -20,15 +20,16 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.hls import proxy_hls
 if TYPE_CHECKING:
     from uuid import UUID
 
+
 def require_uuid(value: UUID | None) -> UUID:
     """Narrow optional UUID values produced by Pydantic models."""
     assert value is not None
     return value
 
+
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.build_camera_request")
 async def test_playlist_request_forwarded_and_returned_as_hls_text(
-
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     mock_camera: Camera,
@@ -57,10 +58,10 @@ async def test_playlist_request_forwarded_and_returned_as_hls_text(
     assert kwargs["method"] == HttpMethod.GET
     assert kwargs["expect_binary"] is True
 
+
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.build_camera_request")
 async def test_segment_request_returns_video_mp4(
-
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     mock_camera: Camera,
@@ -83,10 +84,10 @@ async def test_segment_request_returns_video_mp4(
     assert result.body == segment
     assert result.media_type == "video/mp4"
 
+
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.build_camera_request")
 async def test_unknown_extension_falls_back_to_octet_stream(
-
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     mock_camera: Camera,
@@ -107,11 +108,11 @@ async def test_unknown_extension_falls_back_to_octet_stream(
 
     assert result.media_type == "application/octet-stream"
 
+
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.asyncio.sleep", new_callable=AsyncMock)
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.build_camera_request")
 async def test_manifest_retries_404_with_exponential_backoff(
-
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     mock_sleep: AsyncMock,
@@ -145,11 +146,11 @@ async def test_manifest_retries_404_with_exponential_backoff(
         ((hls_mod._MANIFEST_RETRY_BACKOFF_S[1],), {}),
     ]
 
+
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.asyncio.sleep", new_callable=AsyncMock)
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.build_camera_request")
 async def test_manifest_raises_last_404_after_retry_budget_exhausted(
-
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     mock_sleep: AsyncMock,
@@ -176,11 +177,11 @@ async def test_manifest_raises_last_404_after_retry_budget_exhausted(
     assert mock_camera_request.await_count == len(hls_mod._MANIFEST_RETRY_BACKOFF_S) + 1
     assert mock_sleep.await_count == len(hls_mod._MANIFEST_RETRY_BACKOFF_S)
 
+
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.asyncio.sleep", new_callable=AsyncMock)
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.build_camera_request")
 async def test_segment_404_is_not_retried(
-
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     mock_sleep: AsyncMock,
@@ -205,6 +206,7 @@ async def test_segment_404_is_not_retried(
     mock_camera_request.assert_awaited_once()
     mock_sleep.assert_not_awaited()
 
+
 @pytest.mark.parametrize(
     "hls_path",
     [
@@ -221,7 +223,6 @@ async def test_segment_404_is_not_retried(
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.build_camera_request")
 async def test_hls_path_guard_rejects_unsafe_paths_before_relay(
-
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     hls_path: str,
@@ -243,4 +244,3 @@ async def test_hls_path_guard_rejects_unsafe_paths_before_relay(
     assert exc_info.value.status_code == 400
     mock_get_cam.assert_not_awaited()
     mock_build_camera_request.assert_not_called()
-

@@ -26,6 +26,7 @@ from app.core.model_registry import load_models
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _run_isolated(import_paths: tuple[str, ...]) -> tuple[bool, str]:
     """Import modules in a subprocess, then call ``configure_mappers()`` once."""
     ctx = mp.get_context("spawn")
@@ -47,6 +48,7 @@ def _run_isolated(import_paths: tuple[str, ...]) -> tuple[bool, str]:
 
     modules = ", ".join(import_paths)
     return False, f"worker exited with code {process.exitcode} while checking: {modules}"
+
 
 def _worker(import_paths: tuple[str, ...], queue: mp.Queue) -> None:
     try:
@@ -70,15 +72,18 @@ def _worker(import_paths: tuple[str, ...], queue: mp.Queue) -> None:
     else:
         queue.put((True, ""))
 
+
 # ---------------------------------------------------------------------------
 # 1. Tests that use the registry (must always pass)
 # ---------------------------------------------------------------------------
 
 # These imports are intentionally inside the test to verify that they work after load_models() has run
 
+
 def test_load_models_imports_without_error() -> None:
     """Test that load_models() can be called without error."""
     load_models()
+
 
 def test_all_expected_table_models_are_registered() -> None:
     """Test that all expected models are registered and have mappers after load_models()."""
@@ -112,9 +117,11 @@ def test_all_expected_table_models_are_registered() -> None:
         mapper = class_mapper(model)
         assert mapper is not None, f"{model.__name__} has no SQLAlchemy mapper"
 
+
 # ---------------------------------------------------------------------------
 # 2. Isolation tests: document per-module self-sufficiency
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.slow
 def test_model_modules_are_self_contained() -> None:
@@ -128,4 +135,3 @@ def test_model_modules_are_self_contained() -> None:
         )
     )
     assert ok, msg
-

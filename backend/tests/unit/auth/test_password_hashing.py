@@ -11,6 +11,7 @@ from app.api.auth.services.password_hashing import (
 
 TEST_PASSWORD = "correct-horse-battery-staple-v42"
 
+
 def test_hashes_new_passwords_with_owasp_argon2id_parameters() -> None:
     """New password hashes should use the explicit OWASP-aligned Argon2id profile."""
     password_helper = build_password_helper()
@@ -19,6 +20,7 @@ def test_hashes_new_passwords_with_owasp_argon2id_parameters() -> None:
 
     assert hashed_password.startswith("$argon2id$")
     assert f"m={PASSWORD_HASH_MEMORY_COST},t={PASSWORD_HASH_TIME_COST},p={PASSWORD_HASH_PARALLELISM}" in hashed_password
+
 
 def test_verifies_matching_password() -> None:
     """The production helper should verify hashes it created."""
@@ -30,6 +32,7 @@ def test_verifies_matching_password() -> None:
     assert is_valid is True
     assert updated_hash is None
 
+
 def test_rejects_wrong_password() -> None:
     """Incorrect passwords should not verify."""
     password_helper = build_password_helper()
@@ -39,6 +42,7 @@ def test_rejects_wrong_password() -> None:
 
     assert is_valid is False
     assert updated_hash is None
+
 
 def test_rejects_bcrypt_hashes() -> None:
     """Bcrypt is legacy-only and should not be accepted by the production helper."""

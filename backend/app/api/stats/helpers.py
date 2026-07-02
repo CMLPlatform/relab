@@ -9,13 +9,13 @@ from datetime import date, datetime, timedelta
 _DEFAULT_DELTAS: dict[str, timedelta] = {
     "day": timedelta(days=90),
     "week": timedelta(weeks=52),
-    "month": timedelta(days=731),   # ~24 months
-    "year": timedelta(days=3653),   # ~10 years
+    "month": timedelta(days=731),  # ~24 months
+    "year": timedelta(days=3653),  # ~10 years
 }
 
 _PERIOD_FORMATS: dict[str, str] = {
     "day": "%Y-%m-%d",
-    "week": "%Y-%m-%d",    # PostgreSQL date_trunc('week') returns the Monday
+    "week": "%Y-%m-%d",  # PostgreSQL date_trunc('week') returns the Monday
     "month": "%Y-%m",
     "year": "%Y",
 }

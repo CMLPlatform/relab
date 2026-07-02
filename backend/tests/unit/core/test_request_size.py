@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     import pytest
     from starlette.types import Message
 
+
 def _create_test_app() -> FastAPI:
     app = FastAPI()
     register_request_size_limit_middleware(app)
@@ -29,6 +30,7 @@ def _create_test_app() -> FastAPI:
 
     return app
 
+
 async def test_request_size_limit_accepts_small_json(monkeypatch: pytest.MonkeyPatch) -> None:
     """JSON requests under the limit should pass through unchanged."""
     monkeypatch.setattr("app.core.middleware.request_size.settings.request_body_limit_bytes", 64)
@@ -39,6 +41,7 @@ async def test_request_size_limit_accepts_small_json(monkeypatch: pytest.MonkeyP
 
     assert response.status_code == 200
     assert response.json() == {"payload": {"ok": "yes"}}
+
 
 async def test_request_size_limit_rejects_large_json(monkeypatch: pytest.MonkeyPatch) -> None:
     """JSON requests over the limit should receive a 413 response."""
@@ -56,6 +59,7 @@ async def test_request_size_limit_rejects_large_json(monkeypatch: pytest.MonkeyP
     assert response.status_code == 413
     assert response.json()["detail"]["message"] == "Request body too large. Maximum size: 32 bytes"
 
+
 async def test_request_size_limit_rejects_malformed_content_length() -> None:
     """Malformed Content-Length should receive a clean client error."""
     app = _create_test_app()
@@ -69,6 +73,7 @@ async def test_request_size_limit_rejects_malformed_content_length() -> None:
 
     assert response.status_code == 400
     assert response.json()["detail"]["message"] == "Malformed Content-Length header."
+
 
 async def test_request_size_limit_rejects_streaming_body_before_buffering_all_chunks(
     monkeypatch: pytest.MonkeyPatch,
@@ -115,6 +120,7 @@ async def test_request_size_limit_rejects_streaming_body_before_buffering_all_ch
     assert received_chunks == 3
     assert any(message["type"] == "http.response.start" and message["status"] == 413 for message in sent_messages)
 
+
 async def test_request_size_limit_accepts_multipart_requests_under_upload_cap(monkeypatch: pytest.MonkeyPatch) -> None:
     """Multipart requests under the derived upload cap should pass through."""
     monkeypatch.setattr("app.core.middleware.request_size.settings.request_body_limit_bytes", 8)
@@ -130,6 +136,7 @@ async def test_request_size_limit_accepts_multipart_requests_under_upload_cap(mo
 
     assert response.status_code == 200
     assert response.json()["content_type"].startswith("multipart/form-data")
+
 
 async def test_request_size_limit_rejects_multipart_requests_over_upload_cap(monkeypatch: pytest.MonkeyPatch) -> None:
     """Multipart requests over the derived upload cap should be rejected before parsing."""

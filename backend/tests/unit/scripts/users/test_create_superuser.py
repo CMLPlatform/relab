@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
+
 async def test_create_superuser_requires_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
     """The script should fail fast when credentials are missing."""
     monkeypatch.setattr(create_superuser_script.settings, "bootstrap_superuser_email", "")
@@ -24,8 +25,8 @@ async def test_create_superuser_requires_credentials(monkeypatch: pytest.MonkeyP
     with pytest.raises(ValueError, match="BOOTSTRAP_SUPERUSER_EMAIL and BOOTSTRAP_SUPERUSER_PASSWORD"):
         await create_superuser_script.create_superuser()
 
-async def test_create_superuser_forwards_optional_name(
 
+async def test_create_superuser_forwards_optional_name(
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
 ) -> None:
@@ -51,8 +52,8 @@ async def test_create_superuser_forwards_optional_name(
 
     assert user_create.username == "admin_user"
 
-async def test_create_superuser_creates_expected_user(
 
+async def test_create_superuser_creates_expected_user(
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
 ) -> None:
@@ -85,8 +86,8 @@ async def test_create_superuser_creates_expected_user(
     assert user_create.is_superuser is True
     assert user_create.is_verified is True
 
-async def test_create_superuser_swallows_duplicate_user_errors(
 
+async def test_create_superuser_swallows_duplicate_user_errors(
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
 ) -> None:
@@ -109,6 +110,7 @@ async def test_create_superuser_swallows_duplicate_user_errors(
 
     warning_mock.assert_called_once()
 
+
 def test_main_runs_async_entrypoint(mocker: MockerFixture) -> None:
     """The CLI entrypoint should delegate to anyio.run."""
     run_mock = mocker.patch.object(create_superuser_script.anyio, "run")
@@ -116,4 +118,3 @@ def test_main_runs_async_entrypoint(mocker: MockerFixture) -> None:
     create_superuser_script.main()
 
     run_mock.assert_called_once_with(create_superuser_script.create_superuser)
-

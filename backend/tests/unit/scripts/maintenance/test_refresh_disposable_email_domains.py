@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
+
 def test_normalize_domains_deduplicates_and_sorts() -> None:
     """Normalization should strip, lowercase, deduplicate, and sort entries."""
     raw_text = "Temp-Mail.org\nmailinator.com\n# comment\nTEMP-mail.org\n\n"
@@ -22,6 +23,7 @@ def test_normalize_domains_deduplicates_and_sorts() -> None:
     domains = refresh_script._normalize_domains(raw_text)
 
     assert domains == ["mailinator.com", "temp-mail.org"]
+
 
 def test_validate_rendered_size_warns_before_hard_limit(mocker: MockerFixture) -> None:
     """Large but allowed files should emit a warning."""
@@ -32,12 +34,14 @@ def test_validate_rendered_size_warns_before_hard_limit(mocker: MockerFixture) -
 
     warning_mock.assert_called_once()
 
+
 def test_validate_rendered_size_raises_above_hard_limit() -> None:
     """Oversized files should fail fast."""
     content = "a" * (refresh_script._MAX_FILE_SIZE_BYTES + 1)
 
     with pytest.raises(ValueError, match="hard limit"):
         refresh_script._validate_rendered_size(content)
+
 
 async def test_refresh_disposable_domains_writes_rendered_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
@@ -73,4 +77,3 @@ async def test_refresh_disposable_domains_writes_rendered_file(
         "temp-mail.org\n"
     )
     client_mock.get.assert_awaited_once_with(refresh_script.DISPOSABLE_DOMAINS_URL, timeout=20.0)
-

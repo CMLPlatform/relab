@@ -27,6 +27,7 @@ async def test_raises_crud_configuration_error_for_model_without_id() -> None:
     with pytest.raises(CRUDConfigurationError, match="does not have an id field"):
         await require_model(session, cast("type[Any]", NoIdModel), 1)
 
+
 async def test_require_locked_model_applies_for_update() -> None:
     """Locked lookup helper should add FOR UPDATE to the generated SELECT."""
     material = Material(id=1, name="Steel")
@@ -42,6 +43,7 @@ async def test_require_locked_model_applies_for_update() -> None:
     statement = session.execute.await_args.args[0]
     assert str(statement.compile()).endswith("FOR UPDATE")
 
+
 def test_does_not_apply_noload_without_read_schema() -> None:
     """Loader profiles should leave statements unchanged without explicit loaders."""
     statement = select(Material)
@@ -49,6 +51,7 @@ def test_does_not_apply_noload_without_read_schema() -> None:
     updated_statement = apply_loader_profile(statement, Material)
 
     assert str(updated_statement) == str(statement)
+
 
 def test_accepts_explicit_base_statement() -> None:
     """Explicit SQLAlchemy statements should remain stable through loader application."""
@@ -58,6 +61,7 @@ def test_accepts_explicit_base_statement() -> None:
 
     assert str(updated_statement) == str(statement)
 
+
 def test_inactive_filter_leaves_statement_unchanged() -> None:
     """Empty fastapi-filters FilterSets should not add joins or where clauses."""
     statement = select(Material)
@@ -65,6 +69,7 @@ def test_inactive_filter_leaves_statement_unchanged() -> None:
     updated_statement = apply_filter(statement, Material, MaterialFilterWithRelationships())
 
     assert str(updated_statement) == str(statement)
+
 
 def test_relationship_filter_uses_explicit_join_metadata() -> None:
     """Relationship-backed fields should join only their allowlisted relationship."""
@@ -77,6 +82,7 @@ def test_relationship_filter_uses_explicit_join_metadata() -> None:
     assert "join category" in sql
     assert "category.name" in sql
 
+
 def test_relationship_sort_uses_explicit_join_metadata() -> None:
     """Relationship-backed sort fields should also join their allowlisted relationship."""
     filters = MaterialFilterWithRelationships().with_sorting([("category_name", "asc", None)])
@@ -88,6 +94,7 @@ def test_relationship_sort_uses_explicit_join_metadata() -> None:
     assert "join category" in sql
     assert "order by category.name asc" in sql
 
+
 def test_relationship_filter_value_is_bound_not_sql_text() -> None:
     """Relationship-backed filter values should remain bind params after allowlisted joins."""
     value = "metal'); DROP TABLE material; --"
@@ -97,4 +104,3 @@ def test_relationship_filter_value_is_bound_not_sql_text() -> None:
 
     assert value not in str(compiled)
     assert value in compiled.params.values()
-

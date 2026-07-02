@@ -9,10 +9,12 @@ from tests.factories.models import MaterialFactory, UserFactory
 if TYPE_CHECKING:
     from unittest.mock import AsyncMock
 
+
 def test_build_skips_material_search_vector() -> None:
     """Generated TSVECTOR columns should be left for Postgres to populate."""
     material = MaterialFactory.build(name="Steel")
     assert material.search_vector is None
+
 
 @pytest.mark.asyncio
 async def test_create_async_skips_refresh_by_default(mock_session: AsyncMock) -> None:
@@ -20,6 +22,7 @@ async def test_create_async_skips_refresh_by_default(mock_session: AsyncMock) ->
     await UserFactory.create_async(session=mock_session, email="factory@example.com")
 
     mock_session.refresh.assert_not_awaited()
+
 
 @pytest.mark.asyncio
 async def test_create_async_supports_opt_in_refresh(mock_session: AsyncMock) -> None:
@@ -31,4 +34,3 @@ async def test_create_async_supports_opt_in_refresh(mock_session: AsyncMock) -> 
     )
 
     mock_session.refresh.assert_awaited_once_with(instance)
-

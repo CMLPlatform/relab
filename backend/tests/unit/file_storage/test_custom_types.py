@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
+
 def test_custom_storage_is_lazy_about_creating_directories(tmp_path: Path) -> None:
     """Test that FileSystemStorage does not create the storage directory until a file is written."""
     storage_dir = tmp_path / "files"
@@ -36,6 +37,7 @@ def test_custom_storage_is_lazy_about_creating_directories(tmp_path: Path) -> No
     assert written_path.exists()
     assert written_path.read_bytes() == data
 
+
 def test_ensure_storage_directories_creates_expected_paths(mocker: MockerFixture) -> None:
     """Test that startup storage directory creation calls mkdir for both paths."""
     mock_mkdir = mocker.patch("pathlib.Path.mkdir")
@@ -47,6 +49,7 @@ def test_ensure_storage_directories_creates_expected_paths(mocker: MockerFixture
     assert mock_mkdir.call_count == 2
     assert mock_named_tempfile.call_count == 2
 
+
 def test_ensure_storage_directories_raises_when_storage_path_is_not_writable(mocker: MockerFixture) -> None:
     """Test that startup fails fast when a storage path exists but is not writable."""
     mocker.patch("pathlib.Path.mkdir")
@@ -55,6 +58,7 @@ def test_ensure_storage_directories_raises_when_storage_path_is_not_writable(moc
 
     with pytest.raises(RuntimeError, match="Storage path is not writable"):
         ensure_storage_directories()
+
 
 async def test_filesystem_write_upload_refuses_to_overwrite_existing_file(tmp_path: Path) -> None:
     """Unexpected stored-name collisions must not replace existing upload bytes."""

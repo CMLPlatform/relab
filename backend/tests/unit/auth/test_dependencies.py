@@ -16,6 +16,7 @@ def test_current_mfa_user_returns_mfa_enabled_user() -> None:
 
     assert current_mfa_user(user) is user
 
+
 def test_current_mfa_user_rejects_user_without_mfa() -> None:
     """MFA dependency should reject active users who have not enabled MFA."""
     user = MagicMock()

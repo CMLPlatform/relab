@@ -35,6 +35,7 @@ async def test_check_pwned_password_uses_hibp_range_prefix_and_matches_suffix() 
         timeout=5.0,
     )
 
+
 async def test_check_pwned_password_returns_zero_when_not_found() -> None:
     """A suffix not present in the range response means not breached."""
     http_client = AsyncMock()
@@ -45,6 +46,7 @@ async def test_check_pwned_password_returns_zero_when_not_found() -> None:
 
     assert await check_pwned_password("password", http_client) == 0
 
+
 async def test_check_pwned_password_fails_open_on_http_error() -> None:
     """If HIBP is unreachable we must not block registrations (fail-open policy)."""
     http_client = AsyncMock()
@@ -52,23 +54,28 @@ async def test_check_pwned_password_fails_open_on_http_error() -> None:
 
     assert await check_pwned_password("password", http_client) == 0
 
+
 # ── validate_password ────────────────────────────────────────────────────────
 
 _STRONG = "correct-horse-battery-staple-v42"  # test fixture, not a real secret
+
 
 async def test_validate_password_accepts_strong() -> None:
     """A long passphrase that meets all criteria should be accepted without exception."""
     await validate_password(_STRONG, email="alice@example.com", skip_breach_check=True)
 
+
 async def test_validate_password_accepts_secretstr() -> None:
     """validate_password should accept SecretStr and unwrap it for validation."""
     await validate_password(SecretStr(_STRONG), email="alice@example.com", skip_breach_check=True)
+
 
 async def test_validate_password_rejects_short() -> None:
     """The password must be at least 12 characters long."""
     with pytest.raises(InvalidPasswordException) as exc:
         await validate_password("elevenchars", email="a@b.c", skip_breach_check=True)
     assert "12 characters" in exc.value.reason
+
 
 async def test_validate_password_rejects_email_in_password() -> None:
     """The password must not contain the e-mail address as a substring."""
@@ -80,6 +87,7 @@ async def test_validate_password_rejects_email_in_password() -> None:
         )
     assert "e-mail" in exc.value.reason
 
+
 async def test_validate_password_rejects_email_local_part_case_insensitively() -> None:
     """The password must not contain the e-mail local-part."""
     with pytest.raises(InvalidPasswordException) as exc:
@@ -89,6 +97,7 @@ async def test_validate_password_rejects_email_local_part_case_insensitively() -
             skip_breach_check=True,
         )
     assert "e-mail" in exc.value.reason
+
 
 async def test_validate_password_rejects_username_in_password() -> None:
     """The password must not contain the username as a substring."""
@@ -101,6 +110,7 @@ async def test_validate_password_rejects_username_in_password() -> None:
         )
     assert "username" in exc.value.reason
 
+
 async def test_validate_password_rejects_username_case_insensitively() -> None:
     """The username comparison should not be bypassed with case differences."""
     with pytest.raises(InvalidPasswordException) as exc:
@@ -112,16 +122,19 @@ async def test_validate_password_rejects_username_case_insensitively() -> None:
         )
     assert "username" in exc.value.reason
 
+
 def test_common_password_resource_has_asvs_sized_policy_matching_set() -> None:
     """ASVS 6.2.4 requires at least 3000 common passwords matching the password policy."""
     blocklist = load_local_common_passwords()
     assert blocklist.entry_count >= 3000
+
 
 async def test_validate_password_rejects_common_password_from_resource() -> None:
     """Common passwords from the larger ASVS list must be rejected."""
     with pytest.raises(InvalidPasswordException) as exc:
         await validate_password("passwordpassword", email="a@b.c", skip_breach_check=True)
     assert "too common" in exc.value.reason
+
 
 async def test_validate_password_normalizes_unicode_before_checks() -> None:
     """NFC-equivalent values should be compared consistently."""
@@ -135,11 +148,13 @@ async def test_validate_password_normalizes_unicode_before_checks() -> None:
         )
     assert "username" in exc.value.reason
 
+
 async def test_validate_password_rejects_weak_password_with_clear_reason() -> None:
     """A well-known weak password must be rejected with a local blocklist reason."""
     with pytest.raises(InvalidPasswordException) as exc:
         await validate_password("password12345", email="a@b.c", skip_breach_check=True)
     assert "too common" in exc.value.reason
+
 
 async def test_validate_password_rejects_breached() -> None:
     """When HIBP reports the password as breached the call must raise."""
@@ -156,6 +171,7 @@ async def test_validate_password_rejects_breached() -> None:
     with pytest.raises(InvalidPasswordException) as exc:
         await validate_password(pwd, email="alice@example.com", http_client=http_client, skip_breach_check=False)
     assert "data breach" in exc.value.reason
+
 
 async def test_validate_password_skips_breach_check_when_disabled() -> None:
     """skip_breach_check=True must not invoke the http client."""

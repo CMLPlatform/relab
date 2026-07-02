@@ -87,7 +87,9 @@ async def setup_product(db_session: AsyncSession, db_superuser: User, db_product
 
 
 @pytest.fixture
-async def setup_product_graph(db_session: AsyncSession, db_superuser: User, db_product_type: ProductType) -> ProductGraph:
+async def setup_product_graph(
+    db_session: AsyncSession, db_superuser: User, db_product_type: ProductType
+) -> ProductGraph:
     """Create a compact product graph with a root product and one child component."""
     product = Product(owner_id=db_superuser.id, name=PRODUCT_BASE_NAME, brand=BRAND_X, product_type=db_product_type)
     component = Product(

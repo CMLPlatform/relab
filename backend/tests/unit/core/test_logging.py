@@ -13,12 +13,15 @@ from app.core.logging import RequestContextFilter, build_json_formatter, log_con
 if TYPE_CHECKING:
     import pytest
 
+
 def _record_value(record: logging.LogRecord, key: str) -> object:
     return getattr(record, key)
+
 
 def test_sanitize_log_value_strips_newlines() -> None:
     """sanitize_log_value should neutralize log-breaking line separators."""
     assert sanitize_log_value("first\nsecond\rthird") == "first second third"
+
 
 def test_request_context_filter_adds_defaults() -> None:
     """Log records should always receive request context attributes."""
@@ -32,6 +35,7 @@ def test_request_context_filter_adds_defaults() -> None:
     assert _record_value(record, "http_status_code") is None
     assert _record_value(record, "http_latency_ms") is None
 
+
 def test_request_context_filter_uses_context_values() -> None:
     """Request context should be copied onto each stdlib log record."""
     record = logging.LogRecord("test", logging.INFO, __file__, 1, "hello", (), None)
@@ -42,6 +46,7 @@ def test_request_context_filter_uses_context_values() -> None:
     assert _record_value(record, "request_id") == "req-123"
     assert _record_value(record, "http_method") == "GET"
     assert _record_value(record, "http_path") == "/ping"
+
 
 def test_json_formatter_includes_request_context() -> None:
     """Production JSON logs should include structured request context."""
@@ -67,6 +72,7 @@ def test_json_formatter_includes_request_context() -> None:
     assert payload["http_path"] == "/items"
     assert payload["http_status_code"] == 201
     assert payload["http_latency_ms"] == 12.5
+
 
 def test_context_is_available_to_stdlib_caplog(caplog: pytest.LogCaptureFixture) -> None:
     """Request context should work with stdlib logging only."""

@@ -22,25 +22,30 @@ def _make_request() -> MagicMock:
     """Return a ``MagicMock`` that passes ``isinstance(…, Request)`` checks."""
     return MagicMock(spec=Request)
 
+
 def test_default_detail() -> None:
     """When no custom message is provided, the detail should be "Rate limit exceeded"."""
     exc = RateLimitExceededError()
     assert exc.detail == "Rate limit exceeded"
     assert str(exc) == "Rate limit exceeded"
 
+
 def test_custom_detail() -> None:
     """You can provide a custom detail message when raising the exception."""
     exc = RateLimitExceededError("custom")
     assert exc.detail == "custom"
 
+
 # ---------------------------------------------------------------------------
 # rate_limit_exceeded_handler
 # ---------------------------------------------------------------------------
+
 
 def test_returns_429() -> None:
     """The handler should return a 429 Too Many Requests status code."""
     resp = rate_limit_exceeded_handler(MagicMock(), RateLimitExceededError())
     assert resp.status_code == 429
+
 
 def test_body_contains_detail() -> None:
     """The response body should include the error detail message."""
@@ -48,9 +53,11 @@ def test_body_contains_detail() -> None:
     body = json.loads(bytes(resp.body))
     assert body["detail"] == "nope"
 
+
 # ---------------------------------------------------------------------------
 # Privacy-preserving keys
 # ---------------------------------------------------------------------------
+
 
 def test_returns_stable_hmac_key_with_readable_prefix() -> None:
     """The generated key should be stable without exposing the raw value."""
@@ -60,12 +67,14 @@ def test_returns_stable_hmac_key_with_readable_prefix() -> None:
     assert key.startswith("auth:login:ip:")
     assert "203.0.113.10" not in key
 
+
 def test_different_values_use_different_buckets() -> None:
     """Different submitted values should not collide into the same bucket."""
     first = rate_limit_bucket_key("auth:login:ip", "203.0.113.10")
     second = rate_limit_bucket_key("auth:login:ip", "203.0.113.11")
 
     assert first != second
+
 
 def test_account_identifier_key_does_not_expose_submitted_identifier() -> None:
     """Submitted account identifiers should be normalized into keyed buckets."""
@@ -75,6 +84,7 @@ def test_account_identifier_key_does_not_expose_submitted_identifier() -> None:
     assert key.startswith("auth:login:account:")
     assert "User@Example.COM" not in key
     assert "user@example.com" not in key
+
 
 def test_request_ip_key_does_not_expose_client_ip() -> None:
     """Request-scoped per-IP limits should use a safe client-IP bucket."""
@@ -87,9 +97,11 @@ def test_request_ip_key_does_not_expose_client_ip() -> None:
     assert key.startswith("client:ip:")
     assert "203.0.113.10" not in key
 
+
 # ---------------------------------------------------------------------------
 # Limiter
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def limiter() -> Limiter:
@@ -101,11 +113,13 @@ def limiter() -> Limiter:
         enabled=True,
     )
 
+
 def test_hit_request_allows_requests_under_limit(limiter: Limiter) -> None:
     """Requests within the defined limit should be allowed to proceed."""
     req = _make_request()
     for _ in range(5):
         limiter.hit_request("5/minute", req)
+
 
 def test_hit_request_raises_when_limit_exceeded(limiter: Limiter) -> None:
     """Requests beyond the defined limit should raise RateLimitExceededError."""
@@ -115,6 +129,7 @@ def test_hit_request_raises_when_limit_exceeded(limiter: Limiter) -> None:
 
     with pytest.raises(RateLimitExceededError):
         limiter.hit_request("2/minute", req)
+
 
 def test_disabled_limiter_skips_check() -> None:
     """When the limiter is not enabled it should not enforce any limits and should allow all requests."""
@@ -127,6 +142,7 @@ def test_disabled_limiter_skips_check() -> None:
 
     for _ in range(10):
         disabled.hit_request("1/minute", req)
+
 
 def test_different_keys_have_separate_limits() -> None:
     """When different keys are used, they should be rate limited separately."""
@@ -144,6 +160,7 @@ def test_different_keys_have_separate_limits() -> None:
     lim.hit_request("1/minute", req_a)
     lim.hit_request("1/minute", req_b)
 
+
 def test_hit_key_limits_explicit_non_request_buckets(limiter: Limiter) -> None:
     """Explicit buckets support small auth-service checks without endpoint introspection."""
     limiter.hit_key("1/minute", "auth:login:account:one")
@@ -152,6 +169,7 @@ def test_hit_key_limits_explicit_non_request_buckets(limiter: Limiter) -> None:
         limiter.hit_key("1/minute", "auth:login:account:one")
 
     limiter.hit_key("1/minute", "auth:login:account:two")
+
 
 def test_limit_exceeded_log_uses_safe_bucket_key(limiter: Limiter, caplog: pytest.LogCaptureFixture) -> None:
     """Rate-limit logs should not include raw identifiers when callers use safe buckets."""
@@ -167,6 +185,7 @@ def test_limit_exceeded_log_uses_safe_bucket_key(limiter: Limiter, caplog: pytes
     assert "auth:login:ip:" in caplog.text
     assert raw_ip not in caplog.text
 
+
 def test_dependency_limits_request_buckets(limiter: Limiter) -> None:
     """FastAPI route dependencies should enforce request-scoped limits without wrapping endpoints."""
     dependency = limiter.dependency("1/minute")
@@ -175,4 +194,3 @@ def test_dependency_limits_request_buckets(limiter: Limiter) -> None:
     dependency.dependency(req)
     with pytest.raises(RateLimitExceededError):
         dependency.dependency(req)
-

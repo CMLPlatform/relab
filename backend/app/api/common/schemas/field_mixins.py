@@ -96,5 +96,3 @@ class MaterialFields(BaseModel):
     )
     density_kg_m3: float | None = Field(default=None, gt=0, description="Volumetric density (kg/m^3)")
     is_crm: bool | None = Field(default=None, description="Is this material a Critical Raw Material (CRM)?")
-
-

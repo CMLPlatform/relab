@@ -22,12 +22,14 @@ if TYPE_CHECKING:
 
     from redis.asyncio import Redis
 
+
 def test_load_local_common_passwords_skips_provenance_and_has_asvs_sized_resource() -> None:
     """The bundled fallback must be a sourced ASVS-sized list, not an ad hoc tiny blocklist."""
     passwords = load_local_common_passwords()
 
     assert passwords.entry_count == COMMON_PASSWORDS_TARGET_COUNT
     assert passwords.matches("password12345")
+
 
 def test_load_local_common_passwords_normalizes_and_compacts_entries(tmp_path: Path) -> None:
     """Header comments should be ignored and matching should support exact and compact forms."""
@@ -41,6 +43,7 @@ def test_load_local_common_passwords_normalizes_and_compacts_entries(tmp_path: P
     assert passwords.matches("password12345")
     assert passwords.matches("pass-word-12345")
 
+
 async def test_common_password_checker_seeds_and_checks_redis(redis_client: Redis) -> None:
     """Redis should be seeded from the deterministic local fallback and used for checks."""
     checker = CommonPasswordChecker(redis_client)
@@ -51,6 +54,7 @@ async def test_common_password_checker_seeds_and_checks_redis(redis_client: Redi
     assert await checker.matches("PASSWORD12345")
     assert await checker.matches("pass-word-12345")
 
+
 async def test_common_password_checker_falls_back_to_memory_when_redis_check_fails(redis_client: Redis) -> None:
     """Redis outages must not bypass the local common-password policy."""
     checker = CommonPasswordChecker(redis_client)
@@ -58,6 +62,7 @@ async def test_common_password_checker_falls_back_to_memory_when_redis_check_fai
     redis_client.sismember = AsyncMock(side_effect=TimeoutError("redis unavailable"))  # type: ignore[method-assign]
 
     assert await checker.matches("password12345")
+
 
 async def test_validate_password_uses_common_password_checker() -> None:
     """Password validation should delegate ASVS common-password checks to the checker when provided."""

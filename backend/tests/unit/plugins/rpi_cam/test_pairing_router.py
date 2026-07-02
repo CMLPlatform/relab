@@ -38,9 +38,11 @@ PUBLIC_JWK = {
 KEY_ID = "key-12345"
 PAIRING_CODE = "ABCD23"
 
+
 def test_build_ws_url_uses_canonical_v1_plugin_route() -> None:
     """Pairing bootstrap should send the Pi to the canonical versioned WebSocket route."""
     assert _build_ws_url().endswith("/v1/plugins/rpi-cam/ws/connect")
+
 
 def build_camera() -> Camera:
     """Build a camera database model stub."""
@@ -51,6 +53,7 @@ def build_camera() -> Camera:
         relay_key_id=KEY_ID,
         owner_id=uuid4(),
     )
+
 
 async def test_register_pairing_code_sanitizes_code_in_log() -> None:
     """Register logging should include only validated pairing codes."""
@@ -75,6 +78,7 @@ async def test_register_pairing_code_sanitizes_code_in_log() -> None:
     payload = json.loads(stored)
     assert payload["public_key_jwk"] == PUBLIC_JWK
     assert payload["key_id"] == KEY_ID
+
 
 async def test_claim_pairing_code_sanitizes_code_in_log() -> None:
     """Claim logging should neutralize line breaks in the pairing code."""
@@ -123,6 +127,7 @@ async def test_claim_pairing_code_sanitizes_code_in_log() -> None:
     assert payload["key_id"] == KEY_ID
     assert "api_key" not in payload
 
+
 async def test_claim_pairing_code_rate_limits_code_before_redis_lookup() -> None:
     """Code-specific throttling should run before revealing whether a code exists."""
     session = AsyncMock()
@@ -152,6 +157,7 @@ async def test_claim_pairing_code_rate_limits_code_before_redis_lookup() -> None
         CLAIM_CODE_RATE_LIMIT,
         rate_limit_bucket_key("rpi-cam:pairing:claim:code", PAIRING_CODE),
     )
+
 
 async def test_poll_pairing_status_sanitizes_code_in_log() -> None:
     """Polling logs should include only validated pairing codes."""
@@ -183,6 +189,7 @@ async def test_poll_pairing_status_sanitizes_code_in_log() -> None:
     assert response.key_id == KEY_ID
     mock_logger.info.assert_called_once_with("Pairing credentials retrieved for code %s.", PAIRING_CODE)
     assert await redis_client.get(f"rpi_cam:pairing:{PAIRING_CODE}") is None
+
 
 async def _make_fake_redis() -> FakeRedis:
     """Build a fake Redis client for unit tests."""

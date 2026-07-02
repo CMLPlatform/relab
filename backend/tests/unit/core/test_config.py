@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 TEST_DATA_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 TEST_CACHE_SIGNING_SECRET = "cache-signing-secret-with-32-bytes"
 
+
 def _database_role_kwargs() -> dict[str, DatabaseSettings]:
     """Return a DatabaseSettings with valid split-role credentials for production-like settings."""
     return {
@@ -34,6 +35,7 @@ def _database_role_kwargs() -> dict[str, DatabaseSettings]:
             backup_password=SecretStr("backup-password"),
         )
     }
+
 
 def _production_core_settings_kwargs(**overrides: object) -> dict[str, Any]:
     """Return valid production-like settings, with optional field overrides."""
@@ -54,6 +56,7 @@ def _production_core_settings_kwargs(**overrides: object) -> dict[str, Any]:
     kwargs.update(overrides)
     return kwargs
 
+
 def test_allowed_origins_include_frontend_origins() -> None:
     """CORS should allow the browser clients that call the backend."""
     settings = CoreSettings(
@@ -69,6 +72,7 @@ def test_allowed_origins_include_frontend_origins() -> None:
         "http://127.0.0.1:9011",
         "http://127.0.0.1:9012",
     ]
+
 
 def test_allowed_origins_staging_are_normalized() -> None:
     """Staging origins should include browser app origins."""
@@ -89,10 +93,12 @@ def test_allowed_origins_staging_are_normalized() -> None:
         "https://docs-test.cml-relab.org",
     ]
 
+
 def test_allowed_hosts_dev_defaults() -> None:
     """DEV environment should trust all hosts (Docker/Testcontainers convenience)."""
     settings = CoreSettings(environment=Environment.DEV)
     assert settings.allowed_hosts == ["*"]
+
 
 def test_allowed_hosts_derive_from_api_public_url() -> None:
     """Trusted hosts should derive from api_public_url in non-DEV environments."""
@@ -112,6 +118,7 @@ def test_allowed_hosts_derive_from_api_public_url() -> None:
         "localhost",
     ]
 
+
 def test_staging_rejects_cors_regex() -> None:
     """Staging/production should reject the permissive dev CORS regex."""
     with pytest.raises(ValidationError, match="CORS_ORIGIN_REGEX must not be set in production/staging"):
@@ -125,15 +132,18 @@ def test_staging_rejects_cors_regex() -> None:
             )
         )
 
+
 def test_production_requires_non_default_secrets() -> None:
     """Production config should fail fast when required secrets are missing."""
     with pytest.raises(ValidationError, match="Production security check failed"):
         CoreSettings(environment=Environment.PROD)
 
+
 def test_cache_signing_secret_rejects_short_values() -> None:
     """Cache payload signing should use dedicated key material with a 32-byte floor."""
     with pytest.raises(ValidationError, match="CACHE_SIGNING_SECRET must be at least 32 bytes"):
         CoreSettings(environment=Environment.DEV, cache_signing_secret=SecretStr("short"))
+
 
 def test_dos_hardening_defaults_are_conservative() -> None:
     """DoS controls should have safe built-in defaults for every environment."""
@@ -151,6 +161,7 @@ def test_dos_hardening_defaults_are_conservative() -> None:
     assert settings.uvicorn_timeout_keep_alive == 5
     assert settings.uvicorn_h11_max_incomplete_event_size == 16_384
     assert settings.trusted_proxy_cidrs == ("127.0.0.0/8", "::1/128")
+
 
 def test_outbound_http_allowlist_defaults_to_known_backend_destinations() -> None:
     """Backend outbound HTTP should default to narrow integration URL prefixes."""
@@ -170,6 +181,7 @@ def test_outbound_http_allowlist_defaults_to_known_backend_destinations() -> Non
         "https://www.googleapis.com/youtube/v3/",
     )
 
+
 def test_outbound_http_allowlist_uses_pydantic_url_normalization() -> None:
     """Outbound allowlist values should be validated and normalized URLs."""
     settings = CoreSettings(
@@ -182,22 +194,26 @@ def test_outbound_http_allowlist_uses_pydantic_url_normalization() -> None:
         "https://graph.microsoft.com/",
     )
 
+
 @pytest.mark.parametrize("url", ["", "api.example.com", "http://api.example.com", "ftp://api.example.com"])
 def test_outbound_http_allowlist_rejects_invalid_urls(url: str) -> None:
     """Outbound allowlist entries should be HTTP(S) URLs parsed by Pydantic."""
     with pytest.raises(ValidationError, match="outbound_http_allowed_urls"):
         CoreSettings(environment=Environment.DEV, outbound_http_allowed_urls=(url,))
 
+
 def test_trusted_proxy_cidrs_reject_invalid_networks() -> None:
     """Proxy trust configuration should fail fast for invalid CIDR values."""
     with pytest.raises(ValidationError, match="trusted_proxy_cidrs contains invalid CIDR"):
         CoreSettings(environment=Environment.DEV, trusted_proxy_cidrs=("not-a-cidr",))
+
 
 def test_otel_is_disabled_by_default() -> None:
     """Telemetry is opt-in: no endpoint configured means OTEL is off."""
     settings = CoreSettings(environment=Environment.DEV)
     assert settings.otel_enabled is False
     assert settings.otel_exporter_otlp_endpoint is None
+
 
 def test_build_database_url_preserves_reserved_password_characters() -> None:
     """Database URL construction should safely encode reserved password characters."""
@@ -221,6 +237,7 @@ def test_build_database_url_preserves_reserved_password_characters() -> None:
     assert parsed.port == 5432
     assert parsed.database == "relab_db"
 
+
 def test_cache_url_preserves_reserved_password_characters() -> None:
     """Redis URL construction should safely encode reserved password characters."""
     settings = CoreSettings(
@@ -238,10 +255,12 @@ def test_cache_url_preserves_reserved_password_characters() -> None:
     RedisDsn(url)
     assert url == "redis://:p%40ss%3Aword%2Fwith%3Fchars@redis.internal:6379/2"
 
+
 def test_endpoint_caching_is_enabled_outside_testing() -> None:
     """Redis-backed endpoint caching should be available in dev and production-like environments."""
     assert CoreSettings(environment=Environment.DEV).enable_caching is True
     assert CoreSettings(environment=Environment.TESTING).enable_caching is False
+
 
 def test_database_urls_use_least_privilege_roles() -> None:
     """Application and migration URLs should use distinct database roles."""
@@ -264,9 +283,8 @@ def test_database_urls_use_least_privilege_roles() -> None:
     assert migration_url.username == "relab_migrator"
     assert migration_url.password == "migration-password"
 
-def test_database_role_passwords_can_load_from_secret_files(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+
+def test_database_role_passwords_can_load_from_secret_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Production credentials should be loadable from Docker-style secret files."""
     (tmp_path / "database_app_password").write_text("app-secret", encoding="utf-8")
     (tmp_path / "database_migration_password").write_text("migration-secret", encoding="utf-8")
@@ -294,9 +312,8 @@ def test_database_role_passwords_can_load_from_secret_files(
     assert settings.database.backup_password.get_secret_value() == "backup-secret"
     assert settings.redis.password.get_secret_value() == "redis-secret"
 
-def test_secret_files_override_backend_dotenv_secret_values(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+
+def test_secret_files_override_backend_dotenv_secret_values(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Root secret files should be the secret source even if old dotenv values exist."""
     env_file = tmp_path / ".env.dev"
     env_file.write_text(
@@ -313,6 +330,7 @@ def test_secret_files_override_backend_dotenv_secret_values(
     assert settings.data_encryption_key.get_secret_value() == TEST_DATA_ENCRYPTION_KEY
     assert settings.cache_signing_secret.get_secret_value() == TEST_CACHE_SIGNING_SECRET
 
+
 def test_secret_files_override_process_environment_secret_values(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -328,6 +346,7 @@ def test_secret_files_override_process_environment_secret_values(
 
     assert settings.data_encryption_key.get_secret_value() == TEST_DATA_ENCRYPTION_KEY
     assert settings.cache_signing_secret.get_secret_value() == TEST_CACHE_SIGNING_SECRET
+
 
 def test_production_can_load_runtime_passwords_from_secret_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -373,9 +392,8 @@ def test_production_can_load_runtime_passwords_from_secret_files(
     assert settings.data_encryption_key.get_secret_value() == TEST_DATA_ENCRYPTION_KEY
     assert settings.cache_signing_secret.get_secret_value() == TEST_CACHE_SIGNING_SECRET
 
-def test_production_rejects_missing_redis_secret_file(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+
+def test_production_rejects_missing_redis_secret_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Production-like settings should fail when Redis has no password source."""
     db = DatabaseSettings(
         _env_file=None,
@@ -395,6 +413,7 @@ def test_production_rejects_missing_redis_secret_file(
     with pytest.raises(ValidationError, match="REDIS_PASSWORD must not be empty"):
         CoreSettings(**{**kwargs, "redis": RedisSettings()})
 
+
 def test_sync_database_url_disables_tls_by_default() -> None:
     """Sync DB URLs should explicitly disable TLS for the internal Postgres service."""
     settings = CoreSettings(
@@ -403,6 +422,7 @@ def test_sync_database_url_disables_tls_by_default() -> None:
     )
     parsed = make_url(settings.database.sync_migration_url)
     assert parsed.query["sslmode"] == "disable"
+
 
 def test_sync_database_url_supports_verify_full_tls(tmp_path: Path) -> None:
     """External Postgres deployments should be able to require full certificate verification."""
@@ -422,33 +442,41 @@ def test_sync_database_url_supports_verify_full_tls(tmp_path: Path) -> None:
     assert parsed.query["sslmode"] == "verify-full"
     assert parsed.query["sslrootcert"] == str(ca_file)
 
+
 def test_database_tls_rejects_non_boolean_values() -> None:
     """Database TLS should stay a simple boolean toggle."""
     with pytest.raises(ValidationError, match="tls"):
         DatabaseSettings(tls="require")
+
 
 def test_async_database_connect_args_disable_tls_by_default() -> None:
     """Async DB connections should not inherit accidental PGSSL* env vars by default."""
     settings = CoreSettings(environment=Environment.DEV)
     assert settings.database.async_connect_args == {"ssl": False}
 
+
 def test_async_database_connect_args_verify_full_uses_ssl_context() -> None:
     """Full DB certificate verification should use a default verifying SSL context."""
-    settings = CoreSettings(**_production_core_settings_kwargs(database=DatabaseSettings(
-        app_user="relab_app",
-        app_password=SecretStr("app-password"),
-        migration_user="relab_migrator",
-        migration_password=SecretStr("migration-password"),
-        backup_user="relab_backup",
-        backup_password=SecretStr("backup-password"),
-        tls=True,
-    )))
+    settings = CoreSettings(
+        **_production_core_settings_kwargs(
+            database=DatabaseSettings(
+                app_user="relab_app",
+                app_password=SecretStr("app-password"),
+                migration_user="relab_migrator",
+                migration_password=SecretStr("migration-password"),
+                backup_user="relab_backup",
+                backup_password=SecretStr("backup-password"),
+                tls=True,
+            )
+        )
+    )
 
     connect_args = settings.database.async_connect_args
 
     assert isinstance(connect_args["ssl"], ssl.SSLContext)
     assert connect_args["ssl"].verify_mode == ssl.CERT_REQUIRED
     assert connect_args["ssl"].check_hostname is True
+
 
 def test_cache_url_uses_rediss_when_redis_tls_is_enabled() -> None:
     """Redis TLS should be reflected in the cache URL scheme."""
@@ -468,6 +496,7 @@ def test_cache_url_uses_rediss_when_redis_tls_is_enabled() -> None:
     RedisDsn(url)
     assert url == "rediss://:p%40ss%3Aword%2Fwith%3Fchars@redis.internal:6379/2"
 
+
 @pytest.mark.parametrize(
     ("field", "url", "message"),
     [
@@ -482,6 +511,7 @@ def test_production_requires_https_origins(field: str, url: str, message: str) -
     with pytest.raises(ValidationError, match=message):
         CoreSettings(**_production_core_settings_kwargs(**{field: HttpUrl(url)}))
 
+
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
@@ -493,14 +523,13 @@ def test_production_requires_https_origins(field: str, url: str, message: str) -
         ("backup_password", SecretStr(""), "DATABASE_BACKUP_PASSWORD must not be empty"),
     ],
 )
-def test_production_rejects_unsafe_database_role_settings(
-    field: str, value: str | SecretStr, message: str
-) -> None:
+def test_production_rejects_unsafe_database_role_settings(field: str, value: str | SecretStr, message: str) -> None:
     """Production should fail fast when role credentials break least privilege."""
     base_db = _database_role_kwargs()["database"]
     overridden = DatabaseSettings(**{**base_db.model_dump(), field: value})
     with pytest.raises(ValidationError, match=message):
         CoreSettings(**_production_core_settings_kwargs(database=overridden))
+
 
 def test_production_rejects_duplicate_database_runtime_roles() -> None:
     """Production database runtime, migration, and backup roles must be distinct."""
@@ -508,6 +537,7 @@ def test_production_rejects_duplicate_database_runtime_roles() -> None:
     dup_db = DatabaseSettings(**{**base_db.model_dump(), "migration_user": "relab_app"})
     with pytest.raises(ValidationError, match="Database app, migration, and backup users must be distinct"):
         CoreSettings(**_production_core_settings_kwargs(database=dup_db))
+
 
 def test_otel_enabled_tracks_endpoint() -> None:
     """Telemetry is enabled iff an exporter endpoint is configured."""
@@ -520,35 +550,42 @@ def test_otel_enabled_tracks_endpoint() -> None:
     )
     assert settings.otel_enabled is True
 
+
 def test_dev_maps_to_development_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """DEV environment should map to .env.dev."""
     monkeypatch.setenv("ENVIRONMENT", "dev")
     assert get_env_file(tmp_path) == tmp_path / ".env.dev"
+
 
 def test_staging_uses_no_dotenv_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """STAGING should use process env and secrets, not backend .env files."""
     monkeypatch.setenv("ENVIRONMENT", "staging")
     assert get_env_file(tmp_path) is None
 
+
 def test_prod_uses_no_dotenv_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """PROD should use process env and secrets, not backend .env files."""
     monkeypatch.setenv("ENVIRONMENT", "prod")
     assert get_env_file(tmp_path) is None
+
 
 def test_testing_maps_to_test_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """TESTING environment should map to .env.test."""
     monkeypatch.setenv("ENVIRONMENT", "testing")
     assert get_env_file(tmp_path) == tmp_path / ".env.test"
 
+
 def test_defaults_to_development_when_unset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """When ENVIRONMENT is unset, it should default to DEV and map to .env.dev."""
     monkeypatch.delenv("ENVIRONMENT", raising=False)
     assert get_env_file(tmp_path) == tmp_path / ".env.dev"
 
+
 def test_unknown_environment_uses_no_dotenv_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Custom environments should use process env and secrets only."""
     monkeypatch.setenv("ENVIRONMENT", "ci")
     assert get_env_file(tmp_path) is None
+
 
 def test_prefers_docker_runtime_secrets(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Docker /run/secrets should win over local root secrets when mounted."""
@@ -560,13 +597,11 @@ def test_prefers_docker_runtime_secrets(monkeypatch: pytest.MonkeyPatch, tmp_pat
 
     assert get_secrets_dir(tmp_path, docker_secrets_dir=docker_secrets) == docker_secrets
 
-def test_uses_root_environment_secret_dir_for_local_dev(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+
+def test_uses_root_environment_secret_dir_for_local_dev(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Local backend processes should read root secrets/<env> when Docker secrets are absent."""
     local_secrets = tmp_path / "secrets" / "dev"
     local_secrets.mkdir(parents=True)
     monkeypatch.setenv("ENVIRONMENT", "dev")
 
     assert get_secrets_dir(tmp_path, docker_secrets_dir=tmp_path / "missing") == local_secrets
-

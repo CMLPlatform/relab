@@ -41,45 +41,56 @@ if TYPE_CHECKING:
 
 STATE_SECRET = "test-state-secret-at-least-32-bytes-long-for-hmac-sha256"
 
+
 def test_accepts_matching_sub() -> None:
     user_id = uuid4()
     _require_state_belongs_to_user({"sub": str(user_id)}, user_id)
+
 
 def test_rejects_mismatching_sub() -> None:
     with pytest.raises(OAuthInvalidStateError):
         _require_state_belongs_to_user({"sub": str(uuid4())}, uuid4())
 
+
 def test_rejects_missing_sub() -> None:
     with pytest.raises(OAuthInvalidStateError):
         _require_state_belongs_to_user({}, uuid4())
 
+
 def test_returns_email_when_present() -> None:
     assert _require_account_email("me@example.com") == "me@example.com"
+
 
 def test_raises_when_none() -> None:
     with pytest.raises(OAuthEmailUnavailableError):
         _require_account_email(None)
 
+
 def test_accepts_none() -> None:
     _require_account_not_linked_elsewhere(None, uuid4())
+
 
 def test_accepts_same_owner() -> None:
     user_id = uuid4()
     _require_account_not_linked_elsewhere(SimpleNamespace(user_id=user_id), user_id)
 
+
 def test_rejects_foreign_owner() -> None:
     with pytest.raises(OAuthAccountAlreadyLinkedError):
         _require_account_not_linked_elsewhere(SimpleNamespace(user_id=uuid4()), uuid4())
+
 
 @dataclass
 class _FakeUserDB:
     session: AsyncMock
     update_oauth_account: AsyncMock = field(default_factory=AsyncMock)
 
+
 @dataclass
 class _FakeUserManager:
     user_db: _FakeUserDB
     oauth_associate_callback: AsyncMock = field(default_factory=AsyncMock)
+
 
 def _fake_user_manager(existing_account: object | None) -> _FakeUserManager:
     scalars = MagicMock()
@@ -89,6 +100,7 @@ def _fake_user_manager(existing_account: object | None) -> _FakeUserManager:
     session = AsyncMock()
     session.execute = AsyncMock(return_value=result)
     return _FakeUserManager(user_db=_FakeUserDB(session=session))
+
 
 def _make_config() -> tuple[OAuthFlowConfig, MagicMock, MagicMock]:
     oauth_client = MagicMock()
@@ -102,8 +114,10 @@ def _make_config() -> tuple[OAuthFlowConfig, MagicMock, MagicMock]:
     )
     return config, oauth_client, user_schema
 
+
 def _user(user_id: UUID | None = None) -> User:
     return UserFactory.build(id=user_id or uuid4())
+
 
 def _access_token_state(
     config: OAuthFlowConfig,
@@ -125,6 +139,7 @@ def _access_token_state(
     request = MagicMock()
     request.cookies = {config.cookie_settings.name: csrf_token}
     return request, (cast("Any", token), state)
+
 
 async def test_same_user_reassociate_updates_token_in_place() -> None:
     config, oauth_client, user_schema = _make_config()
@@ -157,6 +172,7 @@ async def test_same_user_reassociate_updates_token_in_place() -> None:
     um.oauth_associate_callback.assert_not_called()
     assert result == "validated-user"
 
+
 async def test_new_account_invokes_associate_callback() -> None:
     config, oauth_client, user_schema = _make_config()
     user = _user()
@@ -178,6 +194,7 @@ async def test_new_account_invokes_associate_callback() -> None:
     um.oauth_associate_callback.assert_awaited_once()
     um.user_db.update_oauth_account.assert_not_called()
     assert result == "validated-user"
+
 
 async def test_frontend_redirect_returns_fragment_status() -> None:
     config, oauth_client, _ = _make_config()
@@ -206,6 +223,7 @@ async def test_frontend_redirect_returns_fragment_status() -> None:
     assert "relab.example/ok" in result.headers["location"]
     assert parse_qs(parsed.fragment)["status"] == ["success"]
 
+
 async def test_authorize_without_redirect_uri() -> None:
     config, oauth_client, _ = _make_config()
     config = OAuthFlowConfig(
@@ -225,6 +243,7 @@ async def test_authorize_without_redirect_uri() -> None:
     assert result.authorization_url == "https://provider.example/auth?x=1"
     response.set_cookie.assert_called_once()
 
+
 async def test_authorize_rejects_disallowed_redirect_uri() -> None:
     config, oauth_client, _ = _make_config()
     oauth_client.get_authorization_url = AsyncMock()
@@ -235,4 +254,3 @@ async def test_authorize_rejects_disallowed_redirect_uri() -> None:
     with pytest.raises(OAuthInvalidRedirectURIError):
         await build_authorize_response(config, request, response, callback_route_name="unused")
     oauth_client.get_authorization_url.assert_not_called()
-

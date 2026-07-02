@@ -154,4 +154,3 @@ class S3Storage(BaseStorage):
         await to_thread.run_sync(lambda: client.upload_fileobj(file_obj, Bucket=bucket, Key=key))
         await upload_file.close()
         return filename
-

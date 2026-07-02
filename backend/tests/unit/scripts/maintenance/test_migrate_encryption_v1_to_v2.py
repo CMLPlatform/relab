@@ -15,8 +15,10 @@ from scripts.maintenance import migrate_encryption_v1_to_v2 as migration
 if TYPE_CHECKING:
     from pathlib import Path
 
+
 def _aes_key() -> str:
     return base64.urlsafe_b64encode(bytes(range(32))).rstrip(b"=").decode("ascii")
+
 
 def test_encrypt_v2_writes_aesgcm_prefixed_value() -> None:
     """Migrated values should use the same v2 AES-GCM envelope as runtime storage."""
@@ -34,6 +36,7 @@ def test_encrypt_v2_writes_aesgcm_prefixed_value() -> None:
     key_bytes = base64.b64decode((key_raw + "=" * (-len(key_raw) % 4)).encode("ascii"), altchars=b"-_")
     assert AESGCM(key_bytes).decrypt(nonce, ciphertext, None) == b"new-token"
 
+
 def test_migrate_value_encrypts_plaintext_prod_values() -> None:
     """Prod values from the current deployed SHA are plaintext and should be encrypted directly."""
     aesgcm = migration.load_aesgcm(_aes_key())
@@ -43,6 +46,7 @@ def test_migrate_value_encrypts_plaintext_prod_values() -> None:
     assert migrated is not None
     assert migrated.startswith(migration.V2_PREFIX)
 
+
 def test_migrate_value_skips_current_v2_values() -> None:
     """Already migrated values should stay untouched so the script is idempotent."""
     aesgcm = migration.load_aesgcm(_aes_key())
@@ -50,12 +54,14 @@ def test_migrate_value_skips_current_v2_values() -> None:
 
     assert migration.migrate_value(existing, aesgcm) is None
 
+
 def test_load_aesgcm_rejects_wrong_key_length() -> None:
     """AES-GCM migration keys should decode to exactly 32 bytes."""
     short_key = base64.urlsafe_b64encode(b"short").rstrip(b"=").decode("ascii")
 
     with pytest.raises(ValueError, match="DATA_ENCRYPTION_KEY must decode to exactly 32 bytes"):
         migration.load_aesgcm(short_key)
+
 
 def test_get_env_secret_prefers_root_secret_over_explicit_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Root secrets/<env> files should win over explicit *_FILE compatibility."""
@@ -77,6 +83,7 @@ def test_get_env_secret_prefers_root_secret_over_explicit_file(monkeypatch: pyte
         == "from-root"
     )
 
+
 def test_get_env_secret_reads_file_fallback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Docker-style *_FILE env vars should be usable by the migration script."""
     secret_file = tmp_path / "secret"
@@ -85,6 +92,7 @@ def test_get_env_secret_reads_file_fallback(monkeypatch: pytest.MonkeyPatch, tmp
     monkeypatch.setenv("DATABASE_APP_PASSWORD_FILE", str(secret_file))
 
     assert migration.get_env_secret("DATABASE_APP_PASSWORD") == "from-file"
+
 
 def test_get_env_secret_reads_root_environment_secret_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Bare-metal maintenance scripts should read root secrets/<env> files."""
@@ -104,6 +112,7 @@ def test_get_env_secret_reads_root_environment_secret_dir(monkeypatch: pytest.Mo
         == _aes_key()
     )
 
+
 def test_target_select_queries_use_psycopg_identifiers() -> None:
     """Hardcoded migration targets should be composed with quoted identifiers."""
     for table, pk_col, enc_cols in migration.TARGETS:
@@ -115,6 +124,7 @@ def test_target_select_queries_use_psycopg_identifiers() -> None:
         assert f'"{pk_col}"' in rendered
         for col in enc_cols:
             assert f'"{col}"' in rendered
+
 
 def test_update_query_keeps_values_as_placeholders() -> None:
     """Update SQL should quote identifiers but leave encrypted values as bind parameters."""

@@ -19,9 +19,11 @@ from app.api.plugins.rpi_cam.runtime.recording import (
 if TYPE_CHECKING:
     from typing import Any
 
+
 def build_recording_session(*, video_id: int = 42) -> YouTubeRecordingSession:
     """Return a valid active recording session."""
     return YouTubeRecordingSession(video_id=video_id, broadcast_key="broadcast")
+
 
 @patch("app.api.plugins.rpi_cam.runtime.recording.set_redis_value", new_callable=AsyncMock, return_value=False)
 async def test_store_recording_session_raises_internal_error_when_redis_set_fails(
@@ -37,6 +39,7 @@ async def test_store_recording_session_raises_internal_error_when_redis_set_fail
 
     mock_set_redis_value.assert_awaited_once()
     assert mock_session.delete.await_count == 1
+
 
 @patch("app.api.plugins.rpi_cam.runtime.recording.set_redis_value", new_callable=AsyncMock, return_value=True)
 async def test_store_recording_session_uses_48_hour_ttl(mock_set_redis_value: AsyncMock, mock_session: Any) -> None:
@@ -55,6 +58,7 @@ async def test_store_recording_session_uses_48_hour_ttl(mock_set_redis_value: As
     )
     assert mock_session.commit.await_count == 1
 
+
 @patch("app.api.plugins.rpi_cam.runtime.recording.get_redis_value", new_callable=AsyncMock, return_value=None)
 async def test_load_recording_session_raises_conflict_when_missing(
     mock_get_redis_value: AsyncMock, mock_session: Any
@@ -67,6 +71,7 @@ async def test_load_recording_session_raises_conflict_when_missing(
         await load_recording_session(redis_mock, mock_session, uuid4())
 
     mock_get_redis_value.assert_awaited_once()
+
 
 @patch("app.api.plugins.rpi_cam.runtime.recording.get_redis_value", new_callable=AsyncMock)
 async def test_load_recording_session_falls_back_to_db_on_invalid_payload(
@@ -84,6 +89,7 @@ async def test_load_recording_session_falls_back_to_db_on_invalid_payload(
 
     assert loaded.broadcast_key == "broadcast"
     assert loaded.video_id == 42
+
 
 @patch("app.api.plugins.rpi_cam.runtime.recording.get_redis_value", new_callable=AsyncMock, return_value=None)
 @patch("app.api.plugins.rpi_cam.runtime.recording.set_redis_value", new_callable=AsyncMock, return_value=True)

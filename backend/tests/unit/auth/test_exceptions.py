@@ -40,10 +40,12 @@ def test_auth_crud_error_is_not_api_error() -> None:
     """Verify AuthCRUDError stays a marker mixin, while subclasses inherit APIError via concrete families."""
     assert not issubclass(AuthCRUDError, APIError)
 
+
 def test_user_ownership_error_is_api_error_not_auth_crud() -> None:
     """Verify UserOwnershipError inherits from APIError directly, not AuthCRUDError."""
     assert issubclass(UserOwnershipError, APIError)
     assert not issubclass(UserOwnershipError, AuthCRUDError)
+
 
 @pytest.mark.parametrize(
     ("exception_cls", "kwargs", "expected_status", "expected_fragments"),
@@ -96,6 +98,7 @@ def test_api_error_status_and_message(
     for fragment in expected_fragments:
         assert fragment in error.message, f"Expected '{fragment}' in '{error.message}'"
 
+
 def test_user_ownership_error_message() -> None:
     """UserOwnershipError includes model name, user_id, and model_id."""
     mock_model = Mock()
@@ -110,6 +113,7 @@ def test_user_ownership_error_message() -> None:
     assert str(user_id) in error.message
     assert str(model_id) in error.message
     assert "does not own" in error.message.lower()
+
 
 @pytest.mark.parametrize(
     ("error_cls", "kwargs", "expected_status", "expected_detail"),
@@ -141,5 +145,3 @@ def test_http_error_adapter(
         assert expected_detail in error.detail
     else:
         assert error.detail == expected_detail
-
-

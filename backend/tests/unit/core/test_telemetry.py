@@ -16,10 +16,12 @@ from app.core.telemetry import _telemetry_state, init_telemetry, shutdown_teleme
 if TYPE_CHECKING:
     import pytest
 
+
 class _FakeResource:
     @staticmethod
     def create(attributes: dict[str, object]) -> dict[str, object]:
         return attributes
+
 
 class _FakeTracerProvider:
     def __init__(self, *, resource: dict[str, object]) -> None:
@@ -30,6 +32,7 @@ class _FakeTracerProvider:
     def add_span_processor(self, processor: object) -> None:
         self.processors.append(processor)
 
+
 class _FakeLoggerProvider:
     def __init__(self, *, resource: dict[str, object]) -> None:
         self.resource = resource
@@ -38,6 +41,7 @@ class _FakeLoggerProvider:
 
     def add_log_record_processor(self, processor: object) -> None:
         self.processors.append(processor)
+
 
 class _FakeLoggingHandler(logging.Handler):
     def __init__(self, *, level: int, logger_provider: _FakeLoggerProvider) -> None:
@@ -48,6 +52,7 @@ class _FakeLoggingHandler(logging.Handler):
     def handle(self, record: logging.LogRecord) -> bool:
         del record
         return True
+
 
 def _build_fake_otel_modules(
     fastapi_instrumentor: MagicMock,
@@ -93,6 +98,7 @@ def _build_fake_otel_modules(
         ),
     }
 
+
 def test_init_telemetry_returns_false_when_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Disabled telemetry should not import or instrument anything."""
     app = FastAPI()
@@ -102,6 +108,7 @@ def test_init_telemetry_returns_false_when_disabled(monkeypatch: pytest.MonkeyPa
 
     assert init_telemetry(app, async_engine) is False
 
+
 def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Enabled telemetry should set up the tracer provider and instrumentors."""
     app = FastAPI()
@@ -110,9 +117,7 @@ def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyP
     sqlalchemy_instrumentor = MagicMock()
     httpx_instrumentor = MagicMock()
 
-    monkeypatch.setattr(
-        "app.core.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces"
-    )
+    monkeypatch.setattr("app.core.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces")
     monkeypatch.setattr("app.core.telemetry.settings.environment", "testing")
 
     fake_modules = _build_fake_otel_modules(fastapi_instrumentor, sqlalchemy_instrumentor, httpx_instrumentor)
@@ -138,14 +143,13 @@ def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyP
     assert _telemetry_state.log_handler is None
     assert _telemetry_state.log_provider is None
 
+
 def test_init_telemetry_returns_false_when_dependencies_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     """Missing optional telemetry dependencies should fail closed, not crash startup."""
     app = FastAPI()
     async_engine = MagicMock()
 
-    monkeypatch.setattr(
-        "app.core.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces"
-    )
+    monkeypatch.setattr("app.core.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces")
 
     # Setting a module to None in sys.modules causes ImportError on import
     with patch.dict(sys.modules, {"opentelemetry": None}):

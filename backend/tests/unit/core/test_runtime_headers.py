@@ -13,6 +13,7 @@ def test_runtime_uvicorn_disables_server_header() -> None:
 
     assert "--no-server-header" in runtime_cmd
 
+
 def test_runtime_uvicorn_sets_websocket_resource_limits() -> None:
     """The production runtime should bound WebSocket payloads and disable compression."""
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")

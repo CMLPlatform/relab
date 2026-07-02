@@ -88,6 +88,7 @@ class TaxonomyFields(BaseModel):
 
 ### Material base schemas ###
 
+
 class MaterialRead(IntIdReadSchema, MaterialFields):
     """Schema for reading material information."""
 
