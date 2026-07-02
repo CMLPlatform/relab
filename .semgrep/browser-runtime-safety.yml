@@ -40,5 +40,5 @@ rules:
       include:
         - "/app/src/**"
       exclude:
-        - "/app/src/components/product/ProductVideo.tsx"
+        - "/app/src/components/product/ProductVideoEmbed.tsx"
     pattern-regex: '(?:from\s+["'']react-native-webview["'']|require\(\s*["'']react-native-webview["'']\s*\))'
