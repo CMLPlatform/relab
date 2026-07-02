@@ -7,127 +7,35 @@
     ":preserveSemverRanges",
     "schedule:weekly"
   ],
-  "semanticCommits": "enabled",
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
-  "platformAutomerge": true,
   "prConcurrentLimit": 8,
   "configMigration": true,
-  "pep621": {
-    "enabled": true
-  },
-  "pre-commit": {
-    "enabled": true
-  },
-  "lockFileMaintenance": {
-    "enabled": true,
-    "automerge": false
-  },
+  "pre-commit": { "enabled": true },
+  "minimumReleaseAge": "14 days",
+  "labels": ["dependencies"],
   "packageRules": [
     {
-      "groupName": "dependency pins",
-      "matchUpdateTypes": ["pin"]
-    },
-    {
-      "groupName": "runtime-containers",
-      "matchManagers": ["docker-compose", "dockerfile"],
-      "matchUpdateTypes": ["digest", "minor", "patch"],
-      "pinDigests": true,
-      "automerge": false,
-      "labels": ["runtime-risk", "containers"]
-    },
-    {
-      "matchUpdateTypes": ["patch"],
-      "automerge": true,
-      "minimumReleaseAge": "14 days",
-      "labels": ["automerge"],
-      "matchPackageNames": ["*"]
-    },
-    {
-      "groupName": "repo-tooling",
-      "matchFileNames": [
-        ".pre-commit-config.yaml",
-        ".github/**",
-        ".devcontainer/**",
-        ".vscode/**",
-        ".tool-versions",
-        "backend/.python-version",
-        "package.json",
-        "pnpm-lock.yaml",
-        "pnpm-workspace.yaml",
-        "pyproject.toml",
-        "uv.lock"
-      ],
-      "automerge": false,
-      "labels": ["tooling"]
-    },
-    {
-      "groupName": "backend-python-runtime",
-      "matchFileNames": ["backend/pyproject.toml", "backend/uv.lock", "backend/Dockerfile*"],
-      "automerge": false
-    },
-    {
-      "groupName": "docs-runtime-tooling",
-      "matchFileNames": ["docs/package.json", "docs/Dockerfile*"],
-      "automerge": false
-    },
-    {
-      "groupName": "www-runtime-tooling",
-      "matchFileNames": ["www/package.json", "www/Dockerfile*"],
-      "automerge": false
-    },
-    {
-      "groupName": "app-runtime-tooling",
-      "matchFileNames": ["app/package.json", "app/Dockerfile*"],
-      "automerge": false
-    },
-    {
-      "matchFileNames": ["app/package.json", "pnpm-lock.yaml"],
+      "description": "Expo SDK-managed packages — versions pinned by the SDK, don't bump independently",
+      "matchFileNames": ["app/package.json"],
       "matchPackageNames": [
-        "expo",
-        "/^expo($|-)/",
-        "@expo/**",
-        "react",
-        "react-dom",
-        "react-native",
-        "@types/react",
-        "jest-expo",
-        "react-native-gesture-handler",
-        "react-native-reanimated",
-        "react-native-safe-area-context",
-        "react-native-screens",
-        "react-native-svg",
-        "react-native-web"
+        "expo", "/^expo($|-)/", "@expo/**",
+        "react", "react-dom", "react-native", "@types/react", "jest-expo",
+        "react-native-gesture-handler", "react-native-reanimated",
+        "react-native-safe-area-context", "react-native-screens",
+        "react-native-svg", "react-native-web"
       ],
-      "enabled": false,
-      "labels": ["expo-sdk-managed"]
+      "enabled": false
     },
     {
-      "groupName": "python lock file maintenance",
-      "matchUpdateTypes": ["lockFileMaintenance"],
-      "matchFileNames": ["uv.lock", "backend/uv.lock"],
-      "automerge": false
-    },
-    {
-      "groupName": "node lock file maintenance",
-      "matchUpdateTypes": ["lockFileMaintenance"],
-      "matchFileNames": ["pnpm-lock.yaml"],
-      "automerge": false
-    },
-    {
-      "groupName": "containers-compose",
-      "matchFileNames": ["compose*.yaml", "**/compose.*.yaml", "**/compose.yaml"],
-      "pinDigests": true,
-      "automerge": false
-    },
-    {
-      "groupName": "github-actions",
+      "description": "Batch GitHub Actions updates into one PR",
       "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["digest", "minor", "patch"],
-      "pinDigests": true,
-      "automerge": false,
-      "labels": ["github-actions"]
+      "groupName": "github-actions"
+    },
+    {
+      "description": "Batch container image updates into one PR",
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "groupName": "container-images"
     }
-  ],
-  "labels": ["dependencies", "renovate"]
+  ]
 }
