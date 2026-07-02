@@ -28,7 +28,7 @@ INCLUDE_PATTERN = re.compile(r"{{\s*include:([a-zA-Z0-9_-]+)\s*}}")
 BRAND_TOKEN_PATTERN = re.compile(r"{{\s*brand:(--[a-zA-Z0-9_-]+)\s*}}")
 CSS_ROOT_PATTERN = re.compile(r":root\s*\{(?P<body>.*?)\}", re.DOTALL)
 CSS_TOKEN_PATTERN = re.compile(r"^\s*(--[a-zA-Z0-9_-]+):\s*([^;]+);", re.MULTILINE)
-BRAND_CSS_PATH = BACKEND_DIR.parent / "assets" / "brand" / "brand.css"
+BRAND_CSS_PATH = BACKEND_DIR.parent / "assets" / "brand.css"
 
 
 def expand_includes(mjml_content: str) -> str:
@@ -42,6 +42,29 @@ def expand_includes(mjml_content: str) -> str:
     return INCLUDE_PATTERN.sub(replace_include, mjml_content)
 
 
+def resolve_light_value(value: str) -> str:
+    """Collapse a light-dark(light, dark) CSS value down to its light-mode branch.
+
+    Email clients don't support light-dark(), so email tokens keep using the
+    same light-mode value they always resolved to before brand.css adopted it.
+    """
+    if not (value.startswith("light-dark(") and value.endswith(")")):
+        return value
+
+    inner = value[len("light-dark(") : -1]
+    depth = 0
+    for index, char in enumerate(inner):
+        if char in "([":
+            depth += 1
+        elif char in ")]":
+            depth -= 1
+        elif char == "," and depth == 0:
+            return inner[:index].strip()
+
+    msg = f"Could not split light-dark() value: {value}"
+    raise RuntimeError(msg)
+
+
 def load_brand_tokens() -> dict[str, str]:
     """Load email-safe brand tokens from the canonical web brand CSS."""
     brand_css = BRAND_CSS_PATH.read_text()
@@ -49,7 +72,10 @@ def load_brand_tokens() -> dict[str, str]:
     if root_match is None:
         msg = f"Could not find :root brand tokens in {BRAND_CSS_PATH}"
         raise RuntimeError(msg)
-    return {name: value.strip() for name, value in CSS_TOKEN_PATTERN.findall(root_match.group("body"))}
+    return {
+        name: resolve_light_value(value.strip())
+        for name, value in CSS_TOKEN_PATTERN.findall(root_match.group("body"))
+    }
 
 
 def expand_brand_tokens(mjml_content: str, brand_tokens: dict[str, str]) -> str:
