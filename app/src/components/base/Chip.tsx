@@ -11,7 +11,7 @@ interface Props extends PressableProps {
   error?: boolean;
 }
 
-export const Chip: React.FC<Props> = ({ style, children, title, icon, error, ...props }) => {
+export const Chip = ({ style, children, title, icon, error, ...props }: Props) => {
   const theme = useAppTheme();
 
   return (
