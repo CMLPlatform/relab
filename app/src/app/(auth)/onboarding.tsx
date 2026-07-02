@@ -10,10 +10,7 @@ import { useAuth } from '@/context/auth';
 import { updateUser } from '@/services/api/auth/authentication';
 import { type OnboardingFormValues, onboardingSchema } from '@/services/api/validation/userSchema';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
+import { getErrorMessage } from '@/utils/errors';
 
 function getKeyboardHeight() {
   return Platform.OS !== 'web' && Keyboard.metrics() ? Keyboard.metrics()?.height : 0;

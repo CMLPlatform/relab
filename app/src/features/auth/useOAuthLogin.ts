@@ -15,6 +15,7 @@ import {
   parseOAuthCallbackUrl,
 } from '@/services/api/oauthFlow';
 import type { User } from '@/types/User';
+import { getErrorMessage } from '@/utils/errors';
 import type { SafeRedirectTarget } from './useLoginRedirect';
 
 const OAUTH_ACCOUNT_NOT_LINKED_ERROR = 'OAUTH_USER_ALREADY_EXISTS';
@@ -47,10 +48,6 @@ function getOAuthErrorMessage(error?: string, platform: 'ios' | 'android' | 'web
 
 function isAccountNotLinkedError(error: string | undefined): boolean {
   return error === OAUTH_ACCOUNT_NOT_LINKED_ERROR;
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
 }
 
 async function getAuthenticatedUserWithRetry(

@@ -6,12 +6,9 @@ import { getUser, login } from '@/services/api/auth/authentication';
 import type { MfaLoginPending } from '@/services/api/auth/authMfa';
 import { type LoginFormValues, loginSchema } from '@/services/api/validation/userSchema';
 import type { User } from '@/types/User';
+import { getErrorMessage } from '@/utils/errors';
 
 type DialogApi = ReturnType<typeof useDialog>;
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
 
 async function attemptPasswordLogin({
   email,
