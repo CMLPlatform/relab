@@ -39,19 +39,11 @@ COPY_ASSETS = (
     ),
     (
         root_path("assets/images/bg-light.jpg"),
-        (
-            root_path("app/src/assets/images/bg-light.jpg"),
-            root_path("docs/public/images/bg-light.jpg"),
-            root_path("www/public/images/bg-light.jpg"),
-        ),
+        (root_path("app/src/assets/images/bg-light.jpg"),),
     ),
     (
         root_path("assets/images/bg-dark.jpg"),
-        (
-            root_path("app/src/assets/images/bg-dark.jpg"),
-            root_path("docs/public/images/bg-dark.jpg"),
-            root_path("www/public/images/bg-dark.jpg"),
-        ),
+        (root_path("app/src/assets/images/bg-dark.jpg"),),
     ),
     (
         LOGO_SOURCE,
@@ -101,6 +93,54 @@ GENERATED_ASSETS = (
 )
 
 
+def blurred_backdrop_args() -> tuple[str, ...]:
+    """ImageMagick args for a downscaled, pre-blurred JPEG backdrop.
+
+    The www and docs sites render the backdrop heavily blurred and
+    semi-transparent, so a smaller pre-blurred JPEG is visually identical at ~85%
+    fewer bytes than the shared full-resolution source (which app renders sharp
+    and must keep).
+    """
+    return (
+        "-resize",
+        "1280x",
+        "-gaussian-blur",
+        "0x2",
+        "-sampling-factor",
+        "4:2:0",
+        "-strip",
+        "-interlace",
+        "JPEG",
+        "-quality",
+        "50",
+    )
+
+
+# (source, target, ImageMagick args) — derived from a raster source, not the logo.
+PROCESSED_ASSETS = (
+    (
+        root_path("assets/images/bg-light.jpg"),
+        root_path("www/public/images/bg-light.jpg"),
+        blurred_backdrop_args(),
+    ),
+    (
+        root_path("assets/images/bg-dark.jpg"),
+        root_path("www/public/images/bg-dark.jpg"),
+        blurred_backdrop_args(),
+    ),
+    (
+        root_path("assets/images/bg-light.jpg"),
+        root_path("docs/public/images/bg-light.jpg"),
+        blurred_backdrop_args(),
+    ),
+    (
+        root_path("assets/images/bg-dark.jpg"),
+        root_path("docs/public/images/bg-dark.jpg"),
+        blurred_backdrop_args(),
+    ),
+)
+
+
 def relative(path: Path) -> str:
     """Return a repository-relative display path."""
     return path.relative_to(ROOT).as_posix()
@@ -145,15 +185,15 @@ def run_convert(source: Path, target: Path, args: tuple[str, ...]) -> None:
         raise RuntimeError(msg) from exc
 
 
-def generated_asset(target: Path, args: tuple[str, ...], *, check: bool) -> list[str]:
-    """Generate or verify one derived asset."""
+def render_asset(source: Path, target: Path, args: tuple[str, ...], *, check: bool) -> list[str]:
+    """Generate or verify one derived asset rendered from `source`."""
     if not check:
-        run_convert(LOGO_SOURCE, target, args)
+        run_convert(source, target, args)
         return []
 
     with tempfile.TemporaryDirectory() as temp_dir:
         generated = Path(temp_dir) / target.name
-        run_convert(LOGO_SOURCE, generated, args)
+        run_convert(source, generated, args)
         if compare_bytes(generated, target):
             return []
     return [relative(target)]
@@ -175,7 +215,9 @@ def main() -> int:
         for source, targets in COPY_ASSETS:
             out_of_sync.extend(copy_asset(source, targets, check=args.check))
         for target, convert_args in GENERATED_ASSETS:
-            out_of_sync.extend(generated_asset(target, convert_args, check=args.check))
+            out_of_sync.extend(render_asset(LOGO_SOURCE, target, convert_args, check=args.check))
+        for source, target, convert_args in PROCESSED_ASSETS:
+            out_of_sync.extend(render_asset(source, target, convert_args, check=args.check))
     except RuntimeError as exc:
         sys.stderr.write(f"{exc}\n")
         return 1
