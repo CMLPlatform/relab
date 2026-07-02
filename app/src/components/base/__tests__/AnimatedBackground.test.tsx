@@ -6,13 +6,13 @@ import { AnimatedBackground } from '../AnimatedBackground';
 describe('AnimatedBackground', () => {
   afterEach(restorePlatform);
 
-  it('renders the animated image (not the web ImageBackground) on native platforms', () => {
+  it('renders the background image on native platforms', () => {
     mockPlatform('ios');
     render(<AnimatedBackground />);
-    expect(screen.queryByTestId('expo-image-bg')).toBeNull();
+    expect(screen.getByTestId('expo-image-bg')).toBeOnTheScreen();
   });
 
-  it('renders correctly on web platform', () => {
+  it('renders the background image on web platform', () => {
     mockPlatform('web');
     render(<AnimatedBackground />);
     expect(screen.getByTestId('expo-image-bg')).toBeOnTheScreen();
