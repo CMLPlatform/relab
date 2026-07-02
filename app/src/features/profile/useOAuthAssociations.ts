@@ -10,10 +10,7 @@ import {
   openOAuthBrowserSession,
   parseOAuthCallbackUrl,
 } from '@/services/api/oauthFlow';
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
+import { getErrorMessage } from '@/utils/errors';
 
 type Feedback = {
   error: (message: string, title?: string) => void;

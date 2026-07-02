@@ -23,7 +23,7 @@ describe('useOwnProfileStats', () => {
     }));
   });
 
-  it('returns grouped state and actions', async () => {
+  it('returns grouped state', async () => {
     const { result } = renderHook(() => useOwnProfileStats('tester'));
 
     await act(async () => {
@@ -32,18 +32,27 @@ describe('useOwnProfileStats', () => {
 
     expect(result.current.state.stats?.product_count).toBe(3);
     expect(result.current.state.loading).toBe(false);
-    expect(typeof result.current.actions.reload).toBe('function');
   });
 
-  it('reloads stats through the named action', async () => {
-    const { result } = renderHook(() => useOwnProfileStats('tester'));
+  it('refetches stats when the username changes', async () => {
+    const { result, rerender } = renderHook(
+      ({ username }: { username: string }) => useOwnProfileStats(username),
+      { initialProps: { username: 'tester' } },
+    );
 
     await act(async () => {
       await Promise.resolve();
-      await result.current.actions.reload();
+    });
+
+    rerender({ username: 'other' });
+
+    await act(async () => {
+      await Promise.resolve();
     });
 
     expect(mockGetPublicProfile).toHaveBeenCalledWith('tester');
+    expect(mockGetPublicProfile).toHaveBeenCalledWith('other');
     expect(mockGetPublicProfile).toHaveBeenCalledTimes(2);
+    expect(result.current.state.stats?.product_count).toBe(3);
   });
 });

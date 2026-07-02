@@ -1,11 +1,8 @@
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import { unlinkOAuth, updateUser, verify } from '@/services/api/auth/authentication';
+import { getErrorMessage } from '@/utils/errors';
 
 export type ProfileVisibility = 'public' | 'community' | 'private';
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
 
 export async function sendVerificationEmail({
   email,

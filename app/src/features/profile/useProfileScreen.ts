@@ -3,22 +3,18 @@ import { useCallback, useState } from 'react';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
 import { useThemeMode } from '@/context/themeMode';
-import { useStopYouTubeStreamMutation } from '@/features/cameras/hooks';
-import { useRpiIntegration } from '@/features/cameras/useRpiIntegration';
-import { useYouTubeIntegration } from '@/features/cameras/useYouTubeIntegration';
+import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
+import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
+import { useYouTubeIntegration } from '@/features/cameras/youtube/useYouTubeIntegration';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import type { ThemeMode } from '@/types/User';
-import { useProfileActions } from './profileActions';
+import { useProfileActions } from './actions';
 import {
   type ProfileVisibility,
   updateProfileEmailUpdates,
   updateProfileVisibility,
-} from './profileMutations';
-import {
-  useProfileAuthRedirect,
-  useProfileDialogs,
-  useProfileLinkedAccounts,
-} from './profileState';
+} from './mutations';
+import { useProfileAuthRedirect, useProfileDialogs, useProfileLinkedAccounts } from './state';
 import { useOAuthAssociations } from './useOAuthAssociations';
 import { useOwnProfileStats } from './useOwnProfileStats';
 

@@ -2,15 +2,11 @@ import type { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import type { useAuth } from '@/context/auth';
 import type { useStreamSession } from '@/context/streamSession';
-import type { useStopYouTubeStreamMutation } from '@/features/cameras/hooks';
+import type { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import { logout, revokeAllSessions } from '@/services/api/auth/authentication';
-import {
-  confirmOAuthUnlink,
-  sendVerificationEmail,
-  updateProfileUsername,
-} from './profileMutations';
-import type { useProfileDialogs } from './profileState';
+import { confirmOAuthUnlink, sendVerificationEmail, updateProfileUsername } from './mutations';
+import type { useProfileDialogs } from './state';
 
 export function useProfileActions({
   profile,
