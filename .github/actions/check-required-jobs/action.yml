@@ -15,7 +15,7 @@ runs:
       env:
         RESULTS_JSON: ${{ inputs.results }}
       run: |
-        python - <<'PY'
+        python3 - <<'PY'
         import json
         import os
         import sys

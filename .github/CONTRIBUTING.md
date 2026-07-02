@@ -147,7 +147,7 @@ Install:
 - [Git](https://git-scm.com/)
 - [uv](https://docs.astral.sh/uv/getting-started/installation)
 - [just](https://just.systems/man/en/) recommended
-- Node.js LTS for the frontend subrepos
+- Node.js (version from `.tool-versions`) for the frontend subrepos
 
 Then run:
 

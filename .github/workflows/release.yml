@@ -45,6 +45,7 @@ jobs:
       id-token: write
     strategy:
       fail-fast: false
+      # Keep this service list in sync with the container matrix in security.yml.
       matrix:
         include:
           - service: api

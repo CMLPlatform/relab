@@ -66,6 +66,7 @@ jobs:
           shared_trigger=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)
           echo "run-iac=$shared_trigger" >> "$GITHUB_OUTPUT"
 
+          # Keep this service list in sync with the release SBOM matrix in release.yml.
           include_entries=()
           [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
             include_entries+=('{"service":"api","context":"./backend","dockerfile":"./backend/Dockerfile","image_ref":"relab-backend:${{ github.sha }}"}')

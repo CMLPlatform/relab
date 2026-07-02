@@ -13,7 +13,7 @@ outputs:
     description: Shared files touching every subrepo (e.g. .github, compose, justfile).
     value: ${{ steps.filter.outputs.shared }}
   policy:
-    description: Policy/config files (pre-commit, prettier, editorconfig, etc.).
+    description: Policy/config files (pre-commit, editorconfig, semgrep, etc.).
     value: ${{ steps.filter.outputs.policy }}
   backend:
     description: Backend source or compose files.
