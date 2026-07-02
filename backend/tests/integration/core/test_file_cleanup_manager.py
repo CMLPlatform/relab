@@ -23,8 +23,8 @@ if TYPE_CHECKING:
 
     from app.api.auth.models import User
 
-async def test_run_once_preserves_referenced_image_thumbnails(
 
+async def test_run_once_preserves_referenced_image_thumbnails(
     db_session: AsyncSession,
     db_superuser: User,
     tmp_path: Path,
@@ -88,4 +88,3 @@ async def test_run_once_preserves_referenced_image_thumbnails(
     assert referenced_image.exists()
     assert referenced_thumbnail.exists()
     assert not orphan_thumbnail.exists()
-

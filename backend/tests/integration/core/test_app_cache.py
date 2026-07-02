@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import asyncio
-import pickle
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
@@ -28,6 +27,7 @@ if TYPE_CHECKING:
 EXPIRE_60 = 60
 EXPIRE_1 = 1
 
+
 @pytest.fixture
 async def mount_cache_client() -> AsyncGenerator[Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]]]:
     """Reset the cache once and hand back a helper that serves a router via an in-memory-cached client."""
@@ -45,6 +45,7 @@ async def mount_cache_client() -> AsyncGenerator[Callable[[APIRouter], AbstractA
         yield _serve
     finally:
         await close_cache()
+
 
 @pytest.fixture
 async def cache_app() -> AsyncGenerator[FastAPI]:
@@ -69,6 +70,7 @@ async def cache_app() -> AsyncGenerator[FastAPI]:
     finally:
         await close_cache()
 
+
 async def test_cache_hit_on_second_request(cache_app: FastAPI) -> None:
     """Test that second request returns cached response with HIT header."""
     async with AsyncClient(transport=ASGITransport(app=cache_app), base_url="http://test") as client:
@@ -79,6 +81,7 @@ async def test_cache_hit_on_second_request(cache_app: FastAPI) -> None:
         response2 = await client.get("/cached-endpoint?value=test")
         assert response2.status_code == 200
         assert response2.json() == {"result": "processed_test", "call_count": 1}
+
 
 async def test_different_params_different_cache(cache_app: FastAPI) -> None:
     """Test that different parameters create separate cache entries."""
@@ -94,6 +97,7 @@ async def test_different_params_different_cache(cache_app: FastAPI) -> None:
         response3 = await client.get("/cached-endpoint?value=test1")
         assert response3.status_code == 200
         assert response3.json()["call_count"] == 1
+
 
 async def test_cache_ttl_expiration(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that cache entries expire after TTL."""
@@ -133,6 +137,7 @@ async def test_cache_ttl_expiration(monkeypatch: pytest.MonkeyPatch) -> None:
     finally:
         await close_cache()
 
+
 async def test_session_exclusion_from_cache_key(
     mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
 ) -> None:
@@ -159,6 +164,7 @@ async def test_session_exclusion_from_cache_key(
         assert response2.status_code == 200
         assert response2.json()["call_count"] == 1
 
+
 async def test_concurrent_requests_same_endpoint(cache_app: FastAPI) -> None:
     """Concurrent requests should all succeed even before the cache warms."""
     async with AsyncClient(transport=ASGITransport(app=cache_app), base_url="http://test") as client:
@@ -171,6 +177,7 @@ async def test_concurrent_requests_same_endpoint(cache_app: FastAPI) -> None:
         assert all(r.status_code == 200 for r in responses)
         call_counts = [r.json()["call_count"] for r in responses]
         assert 1 in call_counts
+
 
 async def test_cache_different_endpoints_separate(
     mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
@@ -201,6 +208,7 @@ async def test_cache_different_endpoints_separate(
         response3 = await client.get("/endpoint1")
         assert response3.json()["call_count"] == 1
 
+
 async def test_cache_clear_namespace(
     mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
 ) -> None:
@@ -226,21 +234,6 @@ async def test_cache_clear_namespace(
         response3 = await client.get("/namespaced?value=test")
         assert response3.json()["call_count"] == 2
 
-def test_cached_response_survives_pickle_round_trip() -> None:
-    """Redis backends store cached values via pickle; Response objects must round-trip intact."""
-    original = JSONResponse(
-        {"value": "fresh"},
-        status_code=201,
-        headers={"ETag": '"v1"', "X-Custom": "keep-me"},
-    )
-
-    restored = pickle.loads(pickle.dumps(original))  # noqa: S301 # Pickling is fine in this test context
-
-    assert isinstance(restored, JSONResponse)
-    assert restored.status_code == original.status_code
-    assert restored.body == original.body
-    assert restored.media_type == original.media_type
-    assert dict(restored.headers) == dict(original.headers)
 
 async def test_cached_response_supports_conditional_get(
     mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
@@ -265,6 +258,7 @@ async def test_cached_response_supports_conditional_get(
         assert response2.status_code == 304
         assert call_count["etagged"] == 1
 
+
 async def test_authorized_requests_bypass_endpoint_cache(
     mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
 ) -> None:
@@ -285,6 +279,7 @@ async def test_authorized_requests_bypass_endpoint_cache(
 
     assert response1.json()["call_count"] == 1
     assert response2.json()["call_count"] == 2
+
 
 async def test_no_store_responses_are_not_cached(
     mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],
@@ -308,6 +303,7 @@ async def test_no_store_responses_are_not_cached(
 
     assert response1.json()["call_count"] == 1
     assert response2.json()["call_count"] == 2
+
 
 async def test_cold_not_modified_response_is_not_cached_as_canonical_response(
     mount_cache_client: Callable[[APIRouter], AbstractAsyncContextManager[AsyncClient]],

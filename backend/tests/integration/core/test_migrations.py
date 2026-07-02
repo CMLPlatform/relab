@@ -35,6 +35,7 @@ EXPECTED_TABLES = {
     "video",
 }
 
+
 @pytest.mark.migration
 def test_all_expected_tables_exist(migration_helper: MigrationHelper) -> None:
     """Every domain table must be present after upgrade head.
@@ -44,6 +45,7 @@ def test_all_expected_tables_exist(migration_helper: MigrationHelper) -> None:
     """
     for table in EXPECTED_TABLES:
         assert migration_helper.table_exists(table), f"Expected table '{table}' not found in schema"
+
 
 @pytest.mark.migration
 def test_user_table_has_required_columns(migration_helper: MigrationHelper) -> None:
@@ -67,6 +69,7 @@ def test_user_table_has_required_columns(migration_helper: MigrationHelper) -> N
     assert not missing, f"user table is missing columns: {missing}"
     assert "last_login_ip" not in columns
 
+
 @pytest.mark.migration
 def test_user_table_has_upload_quota_constraints(migration_helper: MigrationHelper) -> None:
     """Upload quota ledger counters must not be allowed to go negative."""
@@ -74,6 +77,7 @@ def test_user_table_has_upload_quota_constraints(migration_helper: MigrationHelp
     check_names = {constraint["name"] for constraint in constraints["checks"]}
     assert "ck_user_upload_file_count_non_negative" in check_names
     assert "ck_user_upload_total_bytes_non_negative" in check_names
+
 
 @pytest.mark.migration
 def test_media_tables_have_upload_size_constraints(migration_helper: MigrationHelper) -> None:
@@ -85,12 +89,14 @@ def test_media_tables_have_upload_size_constraints(migration_helper: MigrationHe
     assert "ck_file_upload_size_bytes_non_negative" in file_check_names
     assert "ck_image_upload_size_bytes_non_negative" in image_check_names
 
+
 @pytest.mark.migration
 def test_oauthaccount_foreign_key_to_user(migration_helper: MigrationHelper) -> None:
     """Oauthaccount must have a FK back to the user table."""
     constraints = migration_helper.get_table_constraints("oauthaccount")
     fk_tables = {fk["referred_table"] for fk in constraints["fk"]}
     assert "user" in fk_tables, "oauthaccount is missing its FK to the user table"
+
 
 @pytest.mark.migration
 def test_category_foreign_key_to_taxonomy(migration_helper: MigrationHelper) -> None:
@@ -99,17 +105,27 @@ def test_category_foreign_key_to_taxonomy(migration_helper: MigrationHelper) -> 
     fk_tables = {fk["referred_table"] for fk in constraints["fk"]}
     assert "taxonomy" in fk_tables, "category is missing its FK to the taxonomy table"
 
+
 @pytest.mark.migration
 def test_alembic_version_at_head(migration_helper: MigrationHelper) -> None:
     """alembic_version table must exist and hold a revision (i.e. head was reached)."""
     revision = migration_helper.current_revision()
     assert revision is not None, "No revision recorded; migrations may not have run"
 
+
 @pytest.mark.migration
-def test_migrations_downgrade_upgrade(relab_alembic_config: Config) -> None:
-    """Migration downgrade/upgrade cycle must succeed without error."""
+def test_migrations_downgrade_upgrade(relab_alembic_config: Config, migration_helper: MigrationHelper) -> None:
+    """Migration downgrade/upgrade cycle must succeed and actually change the schema."""
     command.downgrade(relab_alembic_config, "-1")
+    assert not migration_helper.column_exists("recording_session", "video_id"), (
+        "downgrade did not remove the column added by the latest migration"
+    )
+
     command.upgrade(relab_alembic_config, "+1")
+    assert migration_helper.column_exists("recording_session", "video_id"), (
+        "upgrade did not restore the column added by the latest migration"
+    )
+
 
 @pytest.mark.migration
 def test_alembic_autogenerate_is_clean(relab_alembic_config: Config) -> None:
