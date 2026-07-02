@@ -1,7 +1,4 @@
 """OAuth account-association router factory."""
-# spell-checker: ignore annotationlib
-
-from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Any, Protocol, cast
 
@@ -9,7 +6,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import Response as FastAPIResponse
 from fastapi_users import schemas
 from fastapi_users.models import UserOAuthProtocol
-from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token  # Used at runtime for FastAPI validation
+from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token  # noqa: TC002 # Used at runtime for FastAPI validation
 from pydantic import UUID4
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -125,11 +122,12 @@ def build_oauth_associate_router(
             extras_params=extras_params,
         )
 
-    # Python 3.14 (annotationlib) cannot resolve local-scope variables referenced in
-    # annotations of inner functions when Pydantic rebuilds the schema. Setting
-    # __annotations__ explicitly (as a plain dict of already-evaluated types) bypasses
-    # annotationlib's lazy ForwardRef evaluation.
-    async def callback(request, user, access_token_state, user_manager):  # noqa: ANN001, ANN202
+    async def callback(
+        request: Request,
+        user: Annotated[User, Depends(get_current_active_user)],
+        access_token_state: Annotated[tuple[OAuth2Token, str], Depends(oauth2_authorize_callback)],
+        user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
+    ) -> Response | schemas.U:
         return await handle_oauth_associate_callback(
             config,
             request,
@@ -138,14 +136,6 @@ def build_oauth_associate_router(
             user_manager,
             user_schema=user_schema,
         )
-
-    callback.__annotations__ = {
-        "request": Request,
-        "user": Annotated[User, Depends(get_current_active_user)],
-        "access_token_state": Annotated[tuple[OAuth2Token, str], Depends(oauth2_authorize_callback)],
-        "user_manager": Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
-        "return": Response | schemas.U,
-    }
 
     router.add_api_route(
         "/callback",

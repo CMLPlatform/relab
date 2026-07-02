@@ -1,16 +1,13 @@
 """OAuth login router factory."""
-# spell-checker: ignore annotationlib
-
-from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
-from fastapi_users.authentication import Strategy  # Used at runtime in __annotations__ dict
+from fastapi_users.authentication import Strategy  # Used at runtime for FastAPI validation
 from fastapi_users.exceptions import UserAlreadyExists
 from fastapi_users.router.common import ErrorCode
-from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token  # Used at runtime for FastAPI validation
+from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token  # noqa: TC002 # Used at runtime for FastAPI validation
 from pydantic import UUID4
 
 from app.api.auth.exceptions import (
@@ -85,11 +82,12 @@ def build_oauth_login_router(
             callback_route_name=callback_route_name,
         )
 
-    # Python 3.14 (annotationlib) cannot resolve local-scope variables referenced in
-    # annotations of inner functions when Pydantic rebuilds the schema. Setting
-    # __annotations__ explicitly (as a plain dict of already-evaluated types) bypasses
-    # annotationlib's lazy ForwardRef evaluation.
-    async def callback(request, access_token_state, user_manager, strategy):  # noqa: ANN001, ANN202
+    async def callback(
+        request: Request,
+        access_token_state: Annotated[tuple[OAuth2Token, str], Depends(oauth2_authorize_callback)],
+        user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
+        strategy: Annotated[Strategy[User, UUID4], Depends(backend.get_strategy)],
+    ) -> Response:
         return await handle_oauth_login_callback(
             config,
             backend,
@@ -100,14 +98,6 @@ def build_oauth_login_router(
             associate_by_email=associate_by_email,
             is_verified_by_default=is_verified_by_default,
         )
-
-    callback.__annotations__ = {
-        "request": Request,
-        "access_token_state": Annotated[tuple[OAuth2Token, str], Depends(oauth2_authorize_callback)],
-        "user_manager": Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
-        "strategy": Annotated[Strategy[User, UUID4], Depends(backend.get_strategy)],
-        "return": Response,
-    }
 
     router.add_api_route(
         "/callback",

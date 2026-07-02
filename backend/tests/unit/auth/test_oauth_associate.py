@@ -1,7 +1,5 @@
 """Unit tests for the OAuth account-association flow."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
@@ -43,39 +41,47 @@ STATE_SECRET = "test-state-secret-at-least-32-bytes-long-for-hmac-sha256"
 
 
 def test_accepts_matching_sub() -> None:
+    """Accepts matching sub."""
     user_id = uuid4()
     _require_state_belongs_to_user({"sub": str(user_id)}, user_id)
 
 
 def test_rejects_mismatching_sub() -> None:
+    """Rejects mismatching sub."""
     with pytest.raises(OAuthInvalidStateError):
         _require_state_belongs_to_user({"sub": str(uuid4())}, uuid4())
 
 
 def test_rejects_missing_sub() -> None:
+    """Rejects missing sub."""
     with pytest.raises(OAuthInvalidStateError):
         _require_state_belongs_to_user({}, uuid4())
 
 
 def test_returns_email_when_present() -> None:
+    """Returns email when present."""
     assert _require_account_email("me@example.com") == "me@example.com"
 
 
 def test_raises_when_none() -> None:
+    """Raises when none."""
     with pytest.raises(OAuthEmailUnavailableError):
         _require_account_email(None)
 
 
 def test_accepts_none() -> None:
+    """Accepts none."""
     _require_account_not_linked_elsewhere(None, uuid4())
 
 
 def test_accepts_same_owner() -> None:
+    """Accepts same owner."""
     user_id = uuid4()
     _require_account_not_linked_elsewhere(SimpleNamespace(user_id=user_id), user_id)
 
 
 def test_rejects_foreign_owner() -> None:
+    """Rejects foreign owner."""
     with pytest.raises(OAuthAccountAlreadyLinkedError):
         _require_account_not_linked_elsewhere(SimpleNamespace(user_id=uuid4()), uuid4())
 
@@ -142,6 +148,7 @@ def _access_token_state(
 
 
 async def test_same_user_reassociate_updates_token_in_place() -> None:
+    """Same user reassociate updates token in place."""
     config, oauth_client, user_schema = _make_config()
     user = _user()
     oauth_client.get_id_email = AsyncMock(return_value=("account-id", "me@example.com"))
@@ -174,6 +181,7 @@ async def test_same_user_reassociate_updates_token_in_place() -> None:
 
 
 async def test_new_account_invokes_associate_callback() -> None:
+    """New account invokes associate callback."""
     config, oauth_client, user_schema = _make_config()
     user = _user()
     oauth_client.get_id_email = AsyncMock(return_value=("account-id", "me@example.com"))
@@ -197,6 +205,7 @@ async def test_new_account_invokes_associate_callback() -> None:
 
 
 async def test_frontend_redirect_returns_fragment_status() -> None:
+    """Frontend redirect returns fragment status."""
     config, oauth_client, _ = _make_config()
     user = _user()
     oauth_client.get_id_email = AsyncMock(return_value=("account-id", "me@example.com"))
@@ -225,6 +234,7 @@ async def test_frontend_redirect_returns_fragment_status() -> None:
 
 
 async def test_authorize_without_redirect_uri() -> None:
+    """Authorize without redirect uri."""
     config, oauth_client, _ = _make_config()
     config = OAuthFlowConfig(
         oauth_client=config.oauth_client,
@@ -245,6 +255,7 @@ async def test_authorize_without_redirect_uri() -> None:
 
 
 async def test_authorize_rejects_disallowed_redirect_uri() -> None:
+    """Authorize rejects disallowed redirect uri."""
     config, oauth_client, _ = _make_config()
     oauth_client.get_authorization_url = AsyncMock()
     request = MagicMock()
