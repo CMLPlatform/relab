@@ -1,13 +1,13 @@
 import { HeaderBackButton } from '@react-navigation/elements';
+import { useQuery } from '@tanstack/react-query';
 import { Stack, useGlobalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Icon } from 'react-native-paper';
 
 import { Text } from '@/components/base/Text';
 import { useAuth } from '@/context/auth';
-import { getPublicProfile, type PublicProfileView } from '@/services/api/profiles';
-import { alpha, useAppTheme } from '@/theme';
+import { getPublicProfile } from '@/services/api/profiles';
+import { alpha, type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
 export default function UserProfileScreen() {
   const { username } = useGlobalSearchParams();
@@ -15,69 +15,23 @@ export default function UserProfileScreen() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
   const usernameValue = typeof username === 'string' ? username : null;
-  // Auth state drives visibility — a community/private profile must refetch
-  // when the viewer logs in or out so stale "allowed" views don't linger.
   const { user: viewer } = useAuth();
   const viewerId = viewer?.id ?? null;
 
-  const [profileState, setProfileState] = useState<{
-    loadedUsername: string | null;
-    loadedViewerId: string | null;
-    profile: PublicProfileView | null;
-    error: string | null;
-  }>({
-    loadedUsername: null,
-    loadedViewerId: null,
-    profile: null,
-    error: null,
+  // viewerId is part of the query key so the profile refetches when the viewer
+  // logs in or out — visibility rules change with auth state.
+  const {
+    data: profile = null,
+    isPending,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['publicProfile', usernameValue, viewerId],
+    queryFn: () => getPublicProfile(usernameValue as string),
+    enabled: Boolean(usernameValue),
   });
 
-  useEffect(() => {
-    if (!usernameValue) {
-      return;
-    }
-    const nextUsername = usernameValue;
-    const nextViewerId = viewerId;
-
-    let cancelled = false;
-
-    async function loadProfile() {
-      try {
-        const data = await getPublicProfile(nextUsername);
-        if (!cancelled) {
-          setProfileState({
-            loadedUsername: nextUsername,
-            loadedViewerId: nextViewerId,
-            profile: data,
-            error: null,
-          });
-        }
-      } catch (err: unknown) {
-        if (!cancelled) {
-          setProfileState({
-            loadedUsername: nextUsername,
-            loadedViewerId: nextViewerId,
-            profile: null,
-            error: err instanceof Error ? err.message : 'Failed to fetch profile.',
-          });
-        }
-      }
-    }
-    const loadProfileTask = async () => {
-      await loadProfile();
-    };
-    loadProfileTask().catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, [usernameValue, viewerId]);
-
-  const matchesCurrentRequest =
-    profileState.loadedUsername === usernameValue && profileState.loadedViewerId === viewerId;
-  const loading = Boolean(usernameValue) && !matchesCurrentRequest;
-  const profile = matchesCurrentRequest ? profileState.profile : null;
-  const error = matchesCurrentRequest ? profileState.error : null;
+  const loading = Boolean(usernameValue) && isPending;
+  const error = queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null;
 
   return (
     <>
@@ -175,8 +129,8 @@ export default function UserProfileScreen() {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>) {
-  return StyleSheet.create({
+const createStyles = memoizeByTheme((theme: AppTheme) =>
+  StyleSheet.create({
     container: {
       flexGrow: 1,
       padding: 16,
@@ -258,5 +212,5 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       opacity: 0.7,
       textAlign: 'center',
     },
-  });
-}
+  }),
+);

@@ -5,11 +5,11 @@ import { Controller, useForm } from 'react-hook-form';
 import { Keyboard, Platform, StyleSheet, type TextStyle, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 
-import { useDialog } from '@/components/common/dialogContext';
+import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
-import { updateUser } from '@/services/api/authentication';
+import { updateUser } from '@/services/api/auth/authentication';
 import { type OnboardingFormValues, onboardingSchema } from '@/services/api/validation/userSchema';
-import { useAppTheme } from '@/theme';
+import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
@@ -126,8 +126,8 @@ export default function Onboarding() {
   );
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>) {
-  return StyleSheet.create({
+const createStyles = memoizeByTheme((theme: AppTheme) =>
+  StyleSheet.create({
     container: {
       flex: 1,
     },
@@ -166,5 +166,5 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       width: '100%',
       backgroundColor: theme.colors.background,
     },
-  });
-}
+  }),
+);
