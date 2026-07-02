@@ -1,7 +1,5 @@
 """Pydantic models used to validate CRUD operations for the Raspberry Pi Camera plugin."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 from fastapi_filters import FilterField, FilterOperator
@@ -10,7 +8,7 @@ from relab_rpi_cam_models import DevicePublicKeyJWK
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 
 from app.api.auth.models import User
-from app.api.common.crud.filtering import BaseFilterSet, RelationshipFilterJoin
+from app.api.common.crud.filtering import BaseFilterSet, RelationshipFilterJoin, filter_field
 from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
 from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.plugins.rpi_cam.examples import CAMERA_CREATE_EXAMPLES, CAMERA_READ_EXAMPLES, CAMERA_UPDATE_EXAMPLES
@@ -22,6 +20,8 @@ if TYPE_CHECKING:
 
 
 class CameraBase(BaseModel):
+    """Shared base fields common to all camera schemas."""
+
     name: SingleLineUserText
     description: MultilineUserText | None = None
 
@@ -33,8 +33,8 @@ class CameraFilter(BaseFilterSet):
     sortable_fields: ClassVar[tuple[str, ...]] = ("name", "created_at")
     search_columns: ClassVar[tuple[Any, ...]] = (Camera.name, Camera.description)
 
-    name: FilterField[str] = FilterField(operators=[FilterOperator.ilike])
-    description: FilterField[str] = FilterField(operators=[FilterOperator.ilike])
+    name: FilterField[str] = filter_field([FilterOperator.ilike])
+    description: FilterField[str] = filter_field([FilterOperator.ilike])
 
 
 class CameraFilterWithOwner(CameraFilter):
@@ -46,8 +46,8 @@ class CameraFilterWithOwner(CameraFilter):
         RelationshipFilterJoin("owner_username", (Camera.owner,), User.username),
     )
 
-    owner_email: FilterField[str] = FilterField(operators=[FilterOperator.ilike])
-    owner_username: FilterField[str] = FilterField(operators=[FilterOperator.ilike])
+    owner_email: FilterField[str] = filter_field([FilterOperator.ilike])
+    owner_username: FilterField[str] = filter_field([FilterOperator.ilike])
 
 
 class RelayPublicKeyJWK(DevicePublicKeyJWK):

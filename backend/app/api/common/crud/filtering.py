@@ -1,13 +1,11 @@
 """Filtering integration boundary for CRUD queries."""
 # spell-checker: ignore isouter
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar, Self, cast
 
 from fastapi import Depends, Query
-from fastapi_filters import FilterOperator, FilterSet, SortingValues, create_sorting
+from fastapi_filters import FilterField, FilterOperator, FilterSet, SortingValues, create_sorting
 from fastapi_filters.ext.sqlalchemy import apply_filters as apply_fastapi_filters
 from fastapi_filters.ext.sqlalchemy import apply_sorting
 from pydantic import TypeAdapter
@@ -25,6 +23,15 @@ if TYPE_CHECKING:
 SUB_RESOURCE_LIMIT: int = 200
 
 _QUERY_TEXT_ADAPTER = TypeAdapter(BoundedQueryText)
+
+
+def filter_field(operators: list[FilterOperator]) -> FilterField[Any]:
+    """FilterField defaulting its operator to the first listed.
+
+    fastapi-filters requires ``default_op`` to be a member of ``operators``; without this
+    a text field limited to ``ilike`` would fall back to ``eq`` and raise at import time.
+    """
+    return FilterField(operators=operators, default_op=operators[0])
 
 
 @dataclass(frozen=True)

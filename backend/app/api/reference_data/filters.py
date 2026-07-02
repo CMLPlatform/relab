@@ -5,7 +5,7 @@ from typing import Any, ClassVar  # Runtime import required by fastapi-filters g
 from fastapi_filters import FilterField, FilterOperator
 from sqlalchemy import ColumnElement
 
-from app.api.common.crud.filtering import BaseFilterSet, RelationshipFilterJoin
+from app.api.common.crud.filtering import BaseFilterSet, RelationshipFilterJoin, filter_field
 from app.api.common.sa_typing import column_expr
 from app.api.reference_data.models import Category, Material, ProductType, Taxonomy
 
@@ -20,10 +20,10 @@ class TaxonomyFilter(BaseFilterSet):
     sortable_fields: ClassVar[tuple[str, ...]] = ("name", "version", "source")
     search_columns: ClassVar[tuple[Any, ...]] = (Taxonomy.name, Taxonomy.description, Taxonomy.version)
 
-    name: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    version: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    source: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    name: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    version: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    description: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    source: FilterField[str] = filter_field(_TEXT_OPERATORS)
 
 
 class CategoryFilter(BaseFilterSet):
@@ -32,9 +32,9 @@ class CategoryFilter(BaseFilterSet):
     filter_model: ClassVar[type[Category]] = Category
     sortable_fields: ClassVar[tuple[str, ...]] = ("name", "external_id")
 
-    name: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    external_id: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    name: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    description: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    external_id: FilterField[str] = filter_field(_TEXT_OPERATORS)
 
     @classmethod
     def search_vector_column(cls) -> ColumnElement[Any]:
@@ -58,10 +58,10 @@ class CategoryFilterWithRelationships(CategoryFilter):
         RelationshipFilterJoin("taxonomy_source", (Category.taxonomy,), Taxonomy.source),
     )
 
-    taxonomy_name: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    taxonomy_version: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    taxonomy_description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    taxonomy_source: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    taxonomy_name: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    taxonomy_version: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    taxonomy_description: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    taxonomy_source: FilterField[str] = filter_field(_TEXT_OPERATORS)
 
 
 class MaterialFilter(BaseFilterSet):
@@ -70,11 +70,11 @@ class MaterialFilter(BaseFilterSet):
     filter_model: ClassVar[type[Material]] = Material
     sortable_fields: ClassVar[tuple[str, ...]] = ("name", "density_kg_m3", "source")
 
-    name: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    density_kg_m3: FilterField[float] = FilterField(operators=[FilterOperator.ge, FilterOperator.le])
-    is_crm: FilterField[bool] = FilterField(operators=[FilterOperator.eq])
-    source: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    name: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    description: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    density_kg_m3: FilterField[float] = filter_field([FilterOperator.ge, FilterOperator.le])
+    is_crm: FilterField[bool] = filter_field([FilterOperator.eq])
+    source: FilterField[str] = filter_field(_TEXT_OPERATORS)
 
     @classmethod
     def search_vector_column(cls) -> ColumnElement[Any]:
@@ -97,9 +97,9 @@ class MaterialFilterWithRelationships(MaterialFilter):
         RelationshipFilterJoin("category_external_id", (Material.categories,), Category.external_id),
     )
 
-    category_name: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    category_description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    category_external_id: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    category_name: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    category_description: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    category_external_id: FilterField[str] = filter_field(_TEXT_OPERATORS)
 
 
 class ProductTypeFilter(BaseFilterSet):
@@ -108,8 +108,8 @@ class ProductTypeFilter(BaseFilterSet):
     filter_model: ClassVar[type[ProductType]] = ProductType
     sortable_fields: ClassVar[tuple[str, ...]] = ("name",)
 
-    name: FilterField[str] = FilterField(operators=_TEXT_IN_OPERATORS)
-    description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    name: FilterField[str] = filter_field(_TEXT_IN_OPERATORS)
+    description: FilterField[str] = filter_field(_TEXT_OPERATORS)
 
     @classmethod
     def search_vector_column(cls) -> ColumnElement[Any]:
@@ -132,6 +132,6 @@ class ProductTypeFilterWithRelationships(ProductTypeFilter):
         RelationshipFilterJoin("category_external_id", (ProductType.categories,), Category.external_id),
     )
 
-    category_name: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    category_description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    category_external_id: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    category_name: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    category_description: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    category_external_id: FilterField[str] = filter_field(_TEXT_OPERATORS)

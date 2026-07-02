@@ -4,7 +4,7 @@ from typing import ClassVar  # Runtime import required by fastapi-filters get_ty
 
 from fastapi_filters import FilterField, FilterOperator
 
-from app.api.common.crud.filtering import BaseFilterSet
+from app.api.common.crud.filtering import BaseFilterSet, filter_field
 from app.api.file_storage.models import File, Image, MediaParentType, Video
 
 _TEXT_OPERATORS = [FilterOperator.ilike]
@@ -17,9 +17,9 @@ class FileFilter(BaseFilterSet):
     sortable_fields: ClassVar[tuple[str, ...]] = ("filename", "created_at")
     search_columns: ClassVar[tuple[object, ...]] = (File.filename, File.description)
 
-    filename: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    parent_type: FilterField[MediaParentType] = FilterField(operators=[FilterOperator.eq])
+    filename: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    description: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    parent_type: FilterField[MediaParentType] = filter_field([FilterOperator.eq])
 
 
 class ImageFilter(BaseFilterSet):
@@ -29,9 +29,9 @@ class ImageFilter(BaseFilterSet):
     sortable_fields: ClassVar[tuple[str, ...]] = ("filename", "created_at")
     search_columns: ClassVar[tuple[object, ...]] = (Image.filename, Image.description)
 
-    filename: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    parent_type: FilterField[MediaParentType] = FilterField(operators=[FilterOperator.eq])
+    filename: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    description: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    parent_type: FilterField[MediaParentType] = filter_field([FilterOperator.eq])
 
 
 class VideoFilter(BaseFilterSet):
@@ -41,5 +41,5 @@ class VideoFilter(BaseFilterSet):
     sortable_fields: ClassVar[tuple[str, ...]] = ("url", "created_at")
     search_columns: ClassVar[tuple[object, ...]] = (Video.url, Video.description)
 
-    url: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    url: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    description: FilterField[str] = filter_field(_TEXT_OPERATORS)

@@ -1,14 +1,12 @@
 """Filter classes and search helpers for data collection queries."""
 
-from __future__ import annotations
-
 from datetime import datetime  # Runtime import is required for FastAPI filter field definitions
 from typing import Any, ClassVar, Literal  # Runtime import required by fastapi-filters get_type_hints
 
 from fastapi_filters import FilterField, FilterOperator
 from sqlalchemy import ColumnElement, Select, asc, desc, func, select
 
-from app.api.common.crud.filtering import BaseFilterSet, RelationshipFilterJoin
+from app.api.common.crud.filtering import BaseFilterSet, RelationshipFilterJoin, filter_field
 from app.api.common.sa_typing import column_expr
 from app.api.common.search_utils import build_text_search_clause
 from app.api.common.validation import normalize_bounded_query_text
@@ -30,11 +28,11 @@ class MaterialProductLinkFilter(BaseFilterSet):
         RelationshipFilterJoin("material_source", (MaterialProductLink.material,), Material.source),
     )
 
-    quantity: FilterField[float] = FilterField(operators=_RANGE_OPERATORS)
-    unit: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    material_name: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    material_description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    material_source: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    quantity: FilterField[float] = filter_field(_RANGE_OPERATORS)
+    unit: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    material_name: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    material_description: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    material_source: FilterField[str] = filter_field(_TEXT_OPERATORS)
 
 
 # Brand search helpers (kept here as they are product/brand-specific)
@@ -98,12 +96,12 @@ class ProductFilter(BaseFilterSet):
     filter_model: ClassVar[type[Product]] = Product
     sortable_fields: ClassVar[tuple[str, ...]] = ("name", "brand", "model", "created_at", "updated_at")
 
-    name: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    brand: FilterField[str] = FilterField(operators=_TEXT_IN_OPERATORS)
-    model: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
-    created_at: FilterField[datetime] = FilterField(operators=_RANGE_OPERATORS)
-    updated_at: FilterField[datetime] = FilterField(operators=_RANGE_OPERATORS)
+    name: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    description: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    brand: FilterField[str] = filter_field(_TEXT_IN_OPERATORS)
+    model: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    created_at: FilterField[datetime] = filter_field(_RANGE_OPERATORS)
+    updated_at: FilterField[datetime] = filter_field(_RANGE_OPERATORS)
 
     @classmethod
     def search_vector_column(cls) -> ColumnElement[Any]:
@@ -125,12 +123,12 @@ class ProductFilterWithRelationships(ProductFilter):
         RelationshipFilterJoin("product_type_description", (Product.product_type,), ProductType.description),
     )
 
-    weight_g: FilterField[float] = FilterField(operators=_RANGE_OPERATORS)
-    height_cm: FilterField[float] = FilterField(operators=_RANGE_OPERATORS)
-    width_cm: FilterField[float] = FilterField(operators=_RANGE_OPERATORS)
-    depth_cm: FilterField[float] = FilterField(operators=_RANGE_OPERATORS)
-    product_type_name: FilterField[str] = FilterField(operators=_TEXT_IN_OPERATORS)
-    product_type_description: FilterField[str] = FilterField(operators=_TEXT_OPERATORS)
+    weight_g: FilterField[float] = filter_field(_RANGE_OPERATORS)
+    height_cm: FilterField[float] = filter_field(_RANGE_OPERATORS)
+    width_cm: FilterField[float] = filter_field(_RANGE_OPERATORS)
+    depth_cm: FilterField[float] = filter_field(_RANGE_OPERATORS)
+    product_type_name: FilterField[str] = filter_field(_TEXT_IN_OPERATORS)
+    product_type_description: FilterField[str] = filter_field(_TEXT_OPERATORS)
 
 
 __all__ = [
