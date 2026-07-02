@@ -75,7 +75,7 @@
   s3 = ["boto3>=1.38.0"]
 
   # Optional taxonomy-import tooling used by one-off seeding scripts
-  seed-taxonomies = ["openpyxl>=3.1.5", "pandas>=2.3.3", "requests>=2.32.0"]
+  seed-taxonomies = ["openpyxl>=3.1.5", "pandas>=2.3.3"]
 
   # Heavy deps for scripts/plugins/rpi_cam/webcam_fake_camera.py (local dev only)
   fake-camera = ["opencv-python-headless>=4.0", "websockets>=14.0"]
@@ -222,10 +222,18 @@
         "TC003",  # Allow runtime evaluation of base classes
       ]
       "**/tests/**/*.py" = [
-        "PLR2004", # Allow magic values in test files
-        "S101",    # Ignore security issues over use of `assert` in test files
-        "S105",    # Any secrets defined in the test suite are not real secrets
-        "S106",    # Any secrets defined in the test suite are not real secrets
+        "ANN001",   # Test fixtures/helpers are not type-annotated
+        "ANN002",   # Untyped *args in test doubles
+        "ANN202",   # Untyped return on local test helpers
+        "ANN401",   # Any-typed fixture/kwarg values are expected in tests
+        "ASYNC109", # Test helpers mirror timeout-taking APIs
+        "PLR2004",  # Allow magic values in test files
+        "PLW0603",  # Test setup mutates module-level state
+        "S101",     # Ignore security issues over use of `assert` in test files
+        "S105",     # Any secrets defined in the test suite are not real secrets
+        "S106",     # Any secrets defined in the test suite are not real secrets
+        "S107",     # Any secrets defined in the test suite are not real secrets
+        "SLF001",   # Tests legitimately access private members
       ]
 
     [tool.ruff.lint.isort]
@@ -245,3 +253,6 @@
 [tool.uv]
   # Mitigate supply chain issues
   exclude-newer = "3 days"
+
+[tool.uv.sources]
+  relab-rpi-cam-models = { path = "../../relab-rpi-cam-plugin/relab_rpi_cam_models", editable = true }
