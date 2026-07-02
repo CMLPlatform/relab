@@ -1,7 +1,5 @@
 """Integration tests for reference-data HTTP contracts."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import pytest

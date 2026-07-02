@@ -1,7 +1,5 @@
 """Validation helpers for rpi-cam device-supplied metadata."""
 
-from __future__ import annotations
-
 import math
 from typing import TYPE_CHECKING, Annotated, Any, cast
 

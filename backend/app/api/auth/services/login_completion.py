@@ -1,7 +1,5 @@
 """Helpers for completing authentication after MFA."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fastapi import Response, status

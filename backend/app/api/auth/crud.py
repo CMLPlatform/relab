@@ -1,7 +1,5 @@
 """Custom CRUD operations for the User model, on top of the standard FastAPI-Users implementation."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from sqlalchemy import exists, select

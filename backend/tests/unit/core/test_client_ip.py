@@ -1,7 +1,5 @@
 """Tests for trusted proxy client IP extraction."""
 
-from __future__ import annotations
-
 from starlette.datastructures import Headers
 
 from app.core.middleware.client_ip import extract_client_ip

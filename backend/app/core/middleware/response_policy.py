@@ -1,7 +1,5 @@
 """HTTP response policy middleware for cache and browser security headers."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, Response

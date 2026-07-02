@@ -3,8 +3,6 @@
 Covers business-rule constraints. Pydantic roundtrip and optional-field behavior is not tested.
 """
 
-from __future__ import annotations
-
 import pytest
 from pydantic import ValidationError
 

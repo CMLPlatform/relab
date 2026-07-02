@@ -1,7 +1,5 @@
 """Export generated backend OpenAPI schemas for the docs site."""
 
-from __future__ import annotations
-
 import argparse
 import json
 from pathlib import Path

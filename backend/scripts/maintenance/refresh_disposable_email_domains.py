@@ -1,7 +1,5 @@
 """Refresh the committed disposable email fallback list from the upstream source."""
 
-from __future__ import annotations
-
 import asyncio
 import logging
 from typing import TYPE_CHECKING

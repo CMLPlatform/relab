@@ -1,8 +1,6 @@
 """Shared constants for image validation and processing."""
 # spell-checker: ignore LANCZOS
 
-from __future__ import annotations
-
 from PIL import Image as PILImage
 
 __all__ = [

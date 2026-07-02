@@ -1,7 +1,5 @@
 """OAuth redirect validation tests."""
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 

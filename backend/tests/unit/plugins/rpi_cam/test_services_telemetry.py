@@ -1,7 +1,5 @@
 """Unit tests for the backend telemetry cache helpers + schema contract."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock

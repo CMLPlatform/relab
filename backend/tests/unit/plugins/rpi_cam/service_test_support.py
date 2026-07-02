@@ -1,8 +1,6 @@
 """Shared support code for split RPi Cam service tests."""
 # spell-checker: ignore excinfo
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock

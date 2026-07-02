@@ -1,7 +1,5 @@
 """Unit tests for OAuth token and cookie helpers."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fastapi import Response

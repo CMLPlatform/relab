@@ -1,7 +1,5 @@
 """Unit tests for optional OpenTelemetry bootstrap."""
 
-from __future__ import annotations
-
 import logging
 import sys
 from types import SimpleNamespace

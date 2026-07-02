@@ -1,7 +1,5 @@
 """Integration tests for the 3-tier privacy system."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 
 import pytest

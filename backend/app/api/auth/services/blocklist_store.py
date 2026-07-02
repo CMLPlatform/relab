@@ -1,7 +1,5 @@
 """Shared helpers for auth blocklist resources and Redis set caches."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from app.core.redis import redis_bool

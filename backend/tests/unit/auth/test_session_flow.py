@@ -1,7 +1,5 @@
 """Unit tests for auth session and refresh flow orchestration."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi import Response

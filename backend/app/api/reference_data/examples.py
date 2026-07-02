@@ -1,7 +1,5 @@
 """Centralized OpenAPI examples for reference-data schemas and routers."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from app.api.common.openapi_examples import openapi_example, openapi_examples

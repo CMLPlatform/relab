@@ -1,7 +1,5 @@
 """Unit tests for get_user_owned_object ownership enforcement."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4

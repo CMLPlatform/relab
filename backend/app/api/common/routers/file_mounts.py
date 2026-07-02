@@ -1,7 +1,5 @@
 """File mounts and static file routes for the application."""
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import TYPE_CHECKING
 

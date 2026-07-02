@@ -7,8 +7,6 @@ Flow:
 4. RPi polls /poll until claimed, saves the camera id/backend URL, and starts the relay.
 """
 
-from __future__ import annotations
-
 import hmac
 import logging
 from typing import Annotated

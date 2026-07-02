@@ -1,7 +1,5 @@
 """Validation-focused tests for reference data CRUD helpers."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

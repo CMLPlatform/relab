@@ -1,8 +1,6 @@
 """Tests for secure email identity canonicalization."""
 # spell-checker: ignore bücher, bcher
 
-from __future__ import annotations
-
 import pytest
 
 from app.api.auth.services.email_identity import canonicalize_email

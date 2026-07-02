@@ -1,7 +1,5 @@
 """Unit tests for the dummy_data seed script."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from app.api.common.models.enums import Unit

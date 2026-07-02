@@ -1,7 +1,5 @@
 """Refresh-token and session lifecycle orchestration."""
 
-from __future__ import annotations
-
 from fastapi import Response
 from fastapi_users.authentication import Strategy
 

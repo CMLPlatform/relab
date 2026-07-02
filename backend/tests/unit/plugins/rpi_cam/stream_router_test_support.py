@@ -1,7 +1,5 @@
 """Shared support code for split RPi Cam stream-router tests."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 from uuid import uuid4
 

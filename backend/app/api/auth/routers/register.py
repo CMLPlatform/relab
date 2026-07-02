@@ -1,7 +1,5 @@
 """Custom registration router for user creation with proper exception handling."""
 
-from __future__ import annotations
-
 import logging
 
 from fastapi import APIRouter, HTTPException, Request, status

@@ -5,8 +5,6 @@ records during collection. Use these validators from manual curation or audit
 workflows when checking whether a product tree is complete enough for reuse.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

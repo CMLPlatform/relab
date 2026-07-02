@@ -1,8 +1,6 @@
 """EXIF cleaning and orientation helpers."""
 # spell-checker: ignore getexif
 
-from __future__ import annotations
-
 from PIL import Image as PILImage
 from PIL import ImageOps
 

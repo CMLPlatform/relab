@@ -1,7 +1,5 @@
 """Unit tests for shared model base helpers."""
 
-from __future__ import annotations
-
 from app.api.common.models.base import camel_to_capital, get_model_label_plural, pluralize_camel_name
 
 

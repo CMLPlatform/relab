@@ -1,7 +1,5 @@
 """Application lifecycle orchestration for runtime services."""
 
-from __future__ import annotations
-
 import asyncio
 import importlib
 import inspect

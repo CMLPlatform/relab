@@ -13,8 +13,6 @@ Required environment:
 """
 # spell-checker: ignore aesgcm, conninfo
 
-from __future__ import annotations
-
 import argparse
 import base64
 import logging

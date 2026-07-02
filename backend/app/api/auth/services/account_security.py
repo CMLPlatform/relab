@@ -1,7 +1,5 @@
 """Account-security helpers used by user lifecycle hooks."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, status

@@ -6,8 +6,6 @@ resources, and invalid payloads all return the expected status codes and
 response bodies.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import pytest

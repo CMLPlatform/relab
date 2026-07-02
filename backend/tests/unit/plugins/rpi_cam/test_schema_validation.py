@@ -1,7 +1,5 @@
 """Validation tests for Raspberry Pi camera API schemas."""
 
-from __future__ import annotations
-
 import pytest
 from pydantic import ValidationError
 

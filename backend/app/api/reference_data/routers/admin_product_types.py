@@ -1,7 +1,5 @@
 """Admin product-type routers for reference data."""
 
-from __future__ import annotations
-
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Form, Path, Security, UploadFile

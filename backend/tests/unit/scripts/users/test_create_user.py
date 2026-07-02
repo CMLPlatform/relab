@@ -1,7 +1,5 @@
 """Unit tests for the create_user script."""
 
-from __future__ import annotations
-
 from argparse import Namespace
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING

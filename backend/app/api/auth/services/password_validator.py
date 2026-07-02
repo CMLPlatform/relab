@@ -4,8 +4,6 @@ Extracted from UserManager per ADR-012 to keep auth business logic
 in services rather than fastapi-users hooks.
 """
 
-from __future__ import annotations
-
 import hashlib
 import logging
 import unicodedata

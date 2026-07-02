@@ -7,8 +7,6 @@ therefore identical. Keeping it in one place prevents drift between the two
 code paths.
 """
 
-from __future__ import annotations
-
 import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, Any

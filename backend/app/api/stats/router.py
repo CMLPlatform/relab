@@ -1,7 +1,5 @@
 """Public system-wide stats endpoints."""
 
-from __future__ import annotations
-
 from datetime import date
 from typing import Annotated, Literal
 

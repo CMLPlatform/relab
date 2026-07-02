@@ -1,7 +1,5 @@
 """Integration tests for product persistence, hierarchy, and ownership behavior."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import pytest

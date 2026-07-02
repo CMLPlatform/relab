@@ -1,7 +1,5 @@
 """Dummy image seeding."""
 
-from __future__ import annotations
-
 import io
 import logging
 import mimetypes

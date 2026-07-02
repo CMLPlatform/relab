@@ -1,7 +1,5 @@
 """Unit tests for pure Pydantic schema field mixins."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 
 from app.api.common.schemas.base import ProductRead

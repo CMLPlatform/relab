@@ -1,7 +1,5 @@
 """OAuth account persistence helpers."""
 
-from __future__ import annotations
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

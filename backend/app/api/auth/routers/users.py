@@ -1,7 +1,5 @@
 """Public user management routes."""
 
-from __future__ import annotations
-
 from typing import Annotated, cast
 
 from fastapi import HTTPException, Response, Security

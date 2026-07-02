@@ -1,7 +1,5 @@
 """Unit tests for OAuth router wiring."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter

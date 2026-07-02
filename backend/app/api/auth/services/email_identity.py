@@ -1,7 +1,5 @@
 """Email identity canonicalization helpers."""
 
-from __future__ import annotations
-
 import unicodedata
 
 from email_validator import EmailNotValidError, validate_email

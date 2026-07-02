@@ -1,7 +1,5 @@
 """Core storage abstractions shared by concrete backends and SQLAlchemy types."""
 
-from __future__ import annotations
-
 import os
 import re
 from abc import ABC, abstractmethod

@@ -5,8 +5,6 @@ inside the configured trusted proxy CIDRs. Direct clients fall back to the raw
 transport address so they cannot spoof rate-limit identity with headers.
 """
 
-from __future__ import annotations
-
 from functools import lru_cache
 from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
 from typing import TYPE_CHECKING

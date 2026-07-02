@@ -1,7 +1,5 @@
 """Common non-query utility functions for CRUD operations."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, cast
 
 from app.api.common.crud.exceptions import (

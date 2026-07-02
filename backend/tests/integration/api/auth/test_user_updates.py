@@ -1,7 +1,6 @@
 """User update validation and endpoint tests."""
 
 # spell-checker: ignore reauthenticated
-from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock

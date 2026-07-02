@@ -1,7 +1,5 @@
 """Authentication router composition."""
 
-from __future__ import annotations
-
 from fastapi import APIRouter
 
 from app.api.auth.routers import email_validation, login, mfa, password_reset, refresh, register

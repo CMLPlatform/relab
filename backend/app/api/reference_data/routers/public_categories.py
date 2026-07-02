@@ -1,7 +1,5 @@
 """Public category routers for reference data."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Path, Request

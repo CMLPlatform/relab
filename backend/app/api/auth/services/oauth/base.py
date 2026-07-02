@@ -1,7 +1,5 @@
 """Shared OAuth flow helpers."""
 
-from __future__ import annotations
-
 import secrets
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal

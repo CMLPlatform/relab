@@ -1,7 +1,5 @@
 """Behavior-focused tests for parent-scoped media CRUD."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 

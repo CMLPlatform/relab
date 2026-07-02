@@ -4,8 +4,6 @@ Tests verify our wiring (which client has which scopes, which client the router 
 URL construction by httpx_oauth itself is not tested.
 """
 
-from __future__ import annotations
-
 from httpx_oauth.clients.google import BASE_SCOPES as GOOGLE_BASE_SCOPES
 
 from app.api.auth.config import settings

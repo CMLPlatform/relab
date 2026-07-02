@@ -1,8 +1,6 @@
 """Tests for data_collection and shared search filter helper functions."""
 # spell-checker: ignore Makita
 
-from __future__ import annotations
-
 import typing
 from typing import TYPE_CHECKING, Literal, cast, get_args, get_origin
 

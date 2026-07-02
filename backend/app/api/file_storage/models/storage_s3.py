@@ -1,7 +1,5 @@
 """S3-compatible storage backend."""
 
-from __future__ import annotations
-
 import io
 from importlib import import_module
 from pathlib import Path

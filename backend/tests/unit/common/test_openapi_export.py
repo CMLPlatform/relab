@@ -1,7 +1,5 @@
 """Tests for generated OpenAPI schema export tooling."""
 
-from __future__ import annotations
-
 import json
 from typing import TYPE_CHECKING
 

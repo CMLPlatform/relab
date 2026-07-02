@@ -1,7 +1,5 @@
 """Shared HTTP client utilities for outbound network calls."""
 
-from __future__ import annotations
-
 from httpx import AsyncBaseTransport, AsyncClient, Limits, Request, RequestError, Timeout
 
 from app.core.config import settings

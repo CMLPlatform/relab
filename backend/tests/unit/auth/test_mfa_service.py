@@ -1,7 +1,5 @@
 """Unit tests for TOTP MFA helpers."""
 
-from __future__ import annotations
-
 import base64
 import time
 from typing import TYPE_CHECKING

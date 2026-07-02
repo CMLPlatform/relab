@@ -1,8 +1,6 @@
 """HTTP response helpers for standardized payloads and conditional requests."""
 # spell-checker: ignore jsonable
 
-from __future__ import annotations
-
 import hashlib
 import json
 from http import HTTPStatus

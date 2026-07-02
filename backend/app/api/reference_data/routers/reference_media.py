@@ -1,7 +1,5 @@
 """Route helpers for reference-data media."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from app.api.common.form_json import parse_optional_json_object

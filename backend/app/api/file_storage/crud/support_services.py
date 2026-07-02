@@ -1,7 +1,5 @@
 """Service classes and query helpers for file-backed media CRUD."""
 
-from __future__ import annotations
-
 import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING

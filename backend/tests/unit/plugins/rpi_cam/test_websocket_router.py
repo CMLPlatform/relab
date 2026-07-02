@@ -1,7 +1,5 @@
 """Unit tests for the RPi camera WebSocket router."""
 
-from __future__ import annotations
-
 import base64
 import secrets
 import time

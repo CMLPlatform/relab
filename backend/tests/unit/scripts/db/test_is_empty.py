@@ -1,7 +1,5 @@
 """Unit tests for the db_is_empty CLI contract."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from scripts.db import is_empty as db_is_empty

@@ -5,8 +5,6 @@ Pydantic built-in behavior (required fields, optional defaults, roundtrip) is no
 """
 # spell-checker: ignore KALLAX
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 from uuid import uuid4
 

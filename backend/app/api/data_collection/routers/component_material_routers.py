@@ -1,7 +1,5 @@
 """Component-scoped bill-of-materials routes."""
 
-from __future__ import annotations
-
 from typing import Annotated
 
 from fastapi import Body, Path

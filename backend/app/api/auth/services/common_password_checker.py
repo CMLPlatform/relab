@@ -1,8 +1,6 @@
 """Common-password validation service for auth flows."""
 # spell-checker: ignore xato
 
-from __future__ import annotations
-
 import logging
 import unicodedata
 from dataclasses import dataclass

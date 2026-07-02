@@ -5,8 +5,6 @@ media routes live in ``component_media_routers.py`` and share handlers via
 ``media_handlers``.
 """
 
-from __future__ import annotations
-
 from typing import Annotated
 
 from fastapi import Body, Depends, Form, Path, UploadFile

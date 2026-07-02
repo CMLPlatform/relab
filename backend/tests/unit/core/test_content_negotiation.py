@@ -1,7 +1,5 @@
 """Unit tests for REST content negotiation middleware."""
 
-from __future__ import annotations
-
 from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
 

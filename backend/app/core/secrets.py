@@ -1,7 +1,5 @@
 """Shared helpers for validating runtime secrets."""
 
-from __future__ import annotations
-
 from pydantic import SecretStr
 
 MIN_SECRET_BYTES = 32

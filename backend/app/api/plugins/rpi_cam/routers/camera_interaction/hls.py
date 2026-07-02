@@ -17,8 +17,6 @@ the playlist URL.
 """
 # spell-checker: ignore muxer
 
-from __future__ import annotations
-
 import asyncio
 
 from fastapi import HTTPException, Response

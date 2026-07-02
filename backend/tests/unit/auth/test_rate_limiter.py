@@ -1,7 +1,5 @@
 """Unit tests for the custom rate limiter."""
 
-from __future__ import annotations
-
 import json
 import logging
 from unittest.mock import MagicMock

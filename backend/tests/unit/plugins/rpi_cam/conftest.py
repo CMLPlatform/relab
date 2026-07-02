@@ -1,7 +1,5 @@
 """Local fixtures for split RPi Cam unit tests."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4

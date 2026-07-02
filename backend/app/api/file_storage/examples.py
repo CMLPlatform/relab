@@ -1,7 +1,5 @@
 """Centralized OpenAPI examples for file-storage schemas and routers."""
 
-from __future__ import annotations
-
 FILE_READ_WITHIN_PARENT_EXAMPLES = [
     {
         "id": "12345678-cc4e-405c-8553-7806424de2a1",

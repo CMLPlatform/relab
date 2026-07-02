@@ -6,8 +6,6 @@ and do the work so both routers can be thin wrappers that differ only in
 which ownership dep resolves the id.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fastapi import UploadFile

@@ -1,7 +1,5 @@
 """Pagination helpers for SQLAlchemy select statements."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, cast
 
 from fastapi_pagination import create_page

@@ -1,7 +1,5 @@
 """Runtime-service dependencies for auth flows."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from starlette.requests import Request  # noqa: TC002 - FastAPI needs the runtime type for OpenAPI generation.

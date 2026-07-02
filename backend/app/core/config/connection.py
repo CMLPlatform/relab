@@ -1,7 +1,5 @@
 """Database and Redis connection settings."""
 
-from __future__ import annotations
-
 import ssl
 from functools import cached_property
 from pathlib import Path  # noqa: TC003
@@ -107,7 +105,7 @@ class DatabaseSettings(RelabBaseSettings):
     def async_connect_args(self) -> dict[str, bool | ssl.SSLContext]:
         """Async engine connect_args.
 
-        Explicit about SSL so asyncpg does not inherit PGSSL* environment
+        Explicit about SSL so asyncpg does not inherit PostgreSQL* environment
         variables from the container when talking to the internal Docker
         Postgres service.
         """

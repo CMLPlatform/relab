@@ -1,7 +1,5 @@
 """Auth/user fixtures shared across integration test tiers."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import pytest

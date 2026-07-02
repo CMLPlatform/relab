@@ -1,7 +1,5 @@
 """WebSocket endpoint that RPi cameras connect to for the relay tunnel."""
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 import json

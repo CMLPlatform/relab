@@ -1,7 +1,5 @@
 """Centralized OpenAPI examples for auth schemas and routers."""
 
-from __future__ import annotations
-
 from app.api.common.openapi_examples import openapi_example, openapi_examples
 
 USER_CREATE_EXAMPLES = [

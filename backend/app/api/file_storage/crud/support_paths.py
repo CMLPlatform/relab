@@ -1,7 +1,5 @@
 """Path and deletion helpers for stored media."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from anyio import Path as AnyIOPath

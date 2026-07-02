@@ -1,7 +1,5 @@
 """Tests for the typed shared email delivery boundary."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock
 
 import pytest

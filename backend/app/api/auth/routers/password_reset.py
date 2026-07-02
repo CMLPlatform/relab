@@ -1,7 +1,5 @@
 """Password reset routes with OWASP-aligned throttling and response behavior."""
 
-from __future__ import annotations
-
 import asyncio
 import time
 from contextlib import suppress

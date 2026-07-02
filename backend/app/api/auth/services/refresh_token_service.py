@@ -4,8 +4,6 @@ Redis is required for refresh-token storage so auth fails closed when token
 state is unavailable.
 """
 
-from __future__ import annotations
-
 import re
 import time
 from dataclasses import dataclass

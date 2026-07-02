@@ -1,8 +1,6 @@
 """Tests for application-level cryptographic storage helpers."""
 # spell-checker: ignore decryptable
 
-from __future__ import annotations
-
 import base64
 
 import pytest

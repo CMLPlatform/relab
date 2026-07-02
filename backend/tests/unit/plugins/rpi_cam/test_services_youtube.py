@@ -1,8 +1,6 @@
 """Unit tests for YouTube-facing RPi Cam service helpers."""
 # spell-checker: ignore excinfo
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 

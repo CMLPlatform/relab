@@ -1,7 +1,5 @@
 """Integration tests for auth model persistence and constraints."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import pytest

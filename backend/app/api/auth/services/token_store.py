@@ -1,7 +1,5 @@
 """Redis-backed helpers for short-lived auth token state."""
 
-from __future__ import annotations
-
 import hashlib
 import json
 import secrets

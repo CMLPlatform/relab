@@ -1,7 +1,5 @@
 """Typed user-preferences models and helpers."""
 
-from __future__ import annotations
-
 from enum import StrEnum
 from typing import TYPE_CHECKING
 

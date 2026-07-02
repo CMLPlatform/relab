@@ -1,7 +1,5 @@
 """Tests for shared text input validation helpers."""
 
-from __future__ import annotations
-
 import pytest
 
 from app.api.common.validation import normalize_user_text

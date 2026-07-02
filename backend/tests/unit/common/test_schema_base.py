@@ -1,7 +1,5 @@
 """Unit tests for shared schema base helpers."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 
 from app.api.common.schemas.base import IntIdReadSchemaWithTimeStamp

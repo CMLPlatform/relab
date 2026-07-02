@@ -1,7 +1,5 @@
 """Unit tests for mutable computed/model properties."""
 
-from __future__ import annotations
-
 import uuid
 
 from app.api.common.models.enums import Unit

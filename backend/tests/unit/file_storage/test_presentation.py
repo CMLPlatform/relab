@@ -1,7 +1,5 @@
 """Unit tests for file storage read-model and path helpers."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from uuid import uuid4

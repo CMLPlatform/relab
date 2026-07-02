@@ -1,7 +1,5 @@
 """Helpers for JSON-encoded multipart form fields."""
 
-from __future__ import annotations
-
 import json
 from typing import TYPE_CHECKING
 

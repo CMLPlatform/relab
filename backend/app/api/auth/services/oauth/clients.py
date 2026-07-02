@@ -1,7 +1,5 @@
 """OAuth client instances and scope definitions."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, cast
 
 from httpx_oauth.clients.github import EMAILS_ENDPOINT as GITHUB_EMAILS_ENDPOINT

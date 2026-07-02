@@ -1,8 +1,6 @@
 """Authenticated encryption helpers for reversible sensitive values."""
 # spell-checker: ignore AESGCM
 
-from __future__ import annotations
-
 import base64
 import binascii
 import secrets

@@ -2,8 +2,6 @@
 
 # Private member behaviour is tested here, so we want to allow it.
 
-from __future__ import annotations
-
 import json
 import uuid
 from typing import TYPE_CHECKING

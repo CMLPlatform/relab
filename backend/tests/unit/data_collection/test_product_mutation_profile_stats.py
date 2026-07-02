@@ -1,7 +1,5 @@
 """Tests for profile-stats updates in product media mutation routes."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4

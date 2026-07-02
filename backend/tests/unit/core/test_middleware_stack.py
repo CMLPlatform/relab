@@ -1,7 +1,5 @@
 """Tests for the composed backend middleware stack."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request

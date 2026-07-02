@@ -1,7 +1,5 @@
 """Upload validation and filename helpers for stored media."""
 
-from __future__ import annotations
-
 import re
 import unicodedata
 import uuid

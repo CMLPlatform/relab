@@ -4,8 +4,6 @@ These mixins deliberately avoid ORM field configuration so read and
 request schemas can evolve independently from persistence models.
 """
 
-from __future__ import annotations
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api.common.validation import MultilineUserText

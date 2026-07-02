@@ -1,7 +1,5 @@
 """CRUD helpers for categorized reference-data resources with media."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 

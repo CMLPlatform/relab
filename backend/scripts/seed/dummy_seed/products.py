@@ -1,7 +1,5 @@
 """Dummy product seeding."""
 
-from __future__ import annotations
-
 import logging
 from itertools import cycle
 from typing import TYPE_CHECKING

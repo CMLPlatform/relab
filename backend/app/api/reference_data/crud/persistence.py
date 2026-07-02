@@ -1,7 +1,5 @@
 """Shared helpers for reference-data CRUD operations."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, cast  # lgtm[py/unused-import]
 
 from app.api.common.crud.persistence import SupportsModelDump, delete_and_commit, update_and_commit

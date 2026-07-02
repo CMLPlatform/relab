@@ -1,7 +1,5 @@
 """Routers for product-related resources like videos and materials."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Body, Depends, Path

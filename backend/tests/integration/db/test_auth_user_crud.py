@@ -4,8 +4,6 @@ Tests validate_user_create and get_user_by_username directly against a real
 database session so we exercise the actual SQL queries, not mocked DB calls.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 

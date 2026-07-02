@@ -1,7 +1,5 @@
 """Pydantic models for the RPi camera pairing flow."""
 
-from __future__ import annotations
-
 from pydantic import BaseModel, Field
 from relab_rpi_cam_models import PairingCode
 

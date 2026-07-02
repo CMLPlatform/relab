@@ -1,7 +1,5 @@
 """Shared helpers for OAuth router tests."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, cast
 from unittest.mock import AsyncMock, MagicMock
 

@@ -1,7 +1,5 @@
 """Composed HTTP middleware stack for the backend app."""
 
-from __future__ import annotations
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware

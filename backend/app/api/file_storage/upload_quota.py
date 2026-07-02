@@ -1,7 +1,5 @@
 """Postgres-backed upload quota ledger helpers."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from sqlalchemy import and_, func, select, union_all, update

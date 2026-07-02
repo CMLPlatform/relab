@@ -1,7 +1,5 @@
 """Login flow orchestration for password-based auth routes."""
 
-from __future__ import annotations
-
 from fastapi import HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users.authentication import Strategy

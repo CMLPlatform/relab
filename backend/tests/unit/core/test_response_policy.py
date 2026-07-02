@@ -1,7 +1,5 @@
 """Unit tests for backend response policy middleware."""
 
-from __future__ import annotations
-
 from fastapi import FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware

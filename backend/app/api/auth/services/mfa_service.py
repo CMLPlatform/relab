@@ -1,7 +1,5 @@
 """TOTP MFA helpers and short-lived MFA token storage."""
 
-from __future__ import annotations
-
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime

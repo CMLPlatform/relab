@@ -1,7 +1,5 @@
 """Tests for Pi-initiated upload routes."""
 
-from __future__ import annotations
-
 from io import BytesIO
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch

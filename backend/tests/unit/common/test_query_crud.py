@@ -1,7 +1,5 @@
 """Unit tests for common query/loading/scoped CRUD helpers."""
 
-from __future__ import annotations
-
 from typing import Any, cast  # lgtm[py/unused-import]
 from unittest.mock import AsyncMock, MagicMock
 

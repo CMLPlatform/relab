@@ -1,7 +1,5 @@
 """Privacy and redaction policy for public profile and ownership surfaces."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from app.api.auth.preferences import ProfileVisibility, load_user_preferences

@@ -1,7 +1,5 @@
 """Component-scoped file and image routes."""
 
-from __future__ import annotations
-
 from typing import Annotated
 
 from fastapi import Depends, Form, Path, UploadFile

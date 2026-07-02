@@ -1,7 +1,5 @@
 """MFA route orchestration."""
 
-from __future__ import annotations
-
 from fastapi import Response, status
 from fastapi_users.authentication import Strategy
 from pydantic import SecretStr

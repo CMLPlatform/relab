@@ -1,7 +1,5 @@
 """Global HTTP method policy middleware."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Response

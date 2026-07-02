@@ -1,7 +1,5 @@
 """Parent-scoped CRUD operations for stored media."""
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING
 

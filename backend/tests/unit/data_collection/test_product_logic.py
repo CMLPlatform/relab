@@ -1,7 +1,5 @@
 """Unit tests for product model logic."""
 
-from __future__ import annotations
-
 from uuid import uuid4
 
 import pytest

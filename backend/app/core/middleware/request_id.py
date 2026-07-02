@@ -1,7 +1,5 @@
 """Request ID middleware and request-scoped logging helpers."""
 
-from __future__ import annotations
-
 import logging
 from time import perf_counter
 from typing import TYPE_CHECKING

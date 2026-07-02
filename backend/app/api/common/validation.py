@@ -1,7 +1,5 @@
 """Shared input-validation helpers for API boundary schemas."""
 
-from __future__ import annotations
-
 import unicodedata
 from typing import Annotated
 

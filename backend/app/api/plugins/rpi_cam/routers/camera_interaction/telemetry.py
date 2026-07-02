@@ -6,8 +6,6 @@ cache) forwards to the Pi's ``GET /system/telemetry`` endpoint, caches the snaps
 for 120s, and returns it. Subsequent polls within 120s hit the cache.
 """
 
-from __future__ import annotations
-
 import logging
 
 from pydantic import UUID4, ValidationError

@@ -1,7 +1,5 @@
 """Tests for programmatic email sending functionality."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse

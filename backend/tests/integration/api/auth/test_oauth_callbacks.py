@@ -1,7 +1,5 @@
 """OAuth callback and association flow tests."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import AsyncMock, MagicMock
 from urllib.parse import parse_qs, urlparse

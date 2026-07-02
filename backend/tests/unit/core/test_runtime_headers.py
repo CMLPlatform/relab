@@ -1,7 +1,5 @@
 """Tests for backend runtime HTTP header hardening."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 

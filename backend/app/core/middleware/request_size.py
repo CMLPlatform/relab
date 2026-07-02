@@ -1,7 +1,5 @@
 """Middleware for enforcing a global request body size limit."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI

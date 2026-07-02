@@ -1,7 +1,5 @@
 """CRUD-operation tests for categorized reference data."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.api.reference_data.crud.categorized_resources import (

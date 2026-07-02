@@ -1,8 +1,6 @@
 """Database models for the Raspberry Pi Camera plugin."""
 # spell-checker: ignore ondelete
 
-from __future__ import annotations
-
 import uuid
 from datetime import datetime
 from enum import StrEnum

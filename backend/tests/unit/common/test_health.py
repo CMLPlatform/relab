@@ -1,7 +1,5 @@
 """Unit tests for health check endpoints."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from sqlalchemy.exc import SQLAlchemyError

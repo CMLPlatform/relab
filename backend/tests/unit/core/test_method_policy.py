@@ -1,7 +1,5 @@
 """Tests for global HTTP method policy."""
 
-from __future__ import annotations
-
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 

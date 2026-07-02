@@ -1,8 +1,6 @@
 """Refresh the committed common-password fallback list from the pinned upstream source."""
 # spell-checker: ignore SecLists
 
-from __future__ import annotations
-
 import asyncio
 import logging
 from typing import TYPE_CHECKING

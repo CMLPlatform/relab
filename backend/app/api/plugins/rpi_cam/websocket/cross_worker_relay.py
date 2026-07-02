@@ -23,8 +23,6 @@ the JSON response so a single ``decode_responses=True`` Redis client suffices.
 """
 # spell-checker: ignore RPUSH, BLPOP
 
-from __future__ import annotations
-
 import asyncio
 import base64
 import contextlib

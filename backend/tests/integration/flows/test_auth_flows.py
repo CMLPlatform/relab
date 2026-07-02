@@ -4,8 +4,6 @@ These tests cover complete user journeys from registration through login,
 session management, refresh tokens, and logout.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 

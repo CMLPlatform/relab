@@ -1,7 +1,5 @@
 """Unit tests for programmatic auth user-manager context wiring."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

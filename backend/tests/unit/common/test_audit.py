@@ -1,7 +1,5 @@
 """Unit tests for structured audit logging."""
 
-from __future__ import annotations
-
 import logging
 from inspect import Parameter, signature
 from typing import TYPE_CHECKING

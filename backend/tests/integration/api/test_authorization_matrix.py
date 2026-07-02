@@ -3,8 +3,6 @@
 Inspired by the OWASP ASVS Authorization Testing Automation guidelines.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import pytest

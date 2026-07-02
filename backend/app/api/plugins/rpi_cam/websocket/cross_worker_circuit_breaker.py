@@ -1,7 +1,5 @@
 """Circuit breaker for cross-worker WebSocket relay attempts."""
 
-from __future__ import annotations
-
 import contextlib
 import logging
 import time

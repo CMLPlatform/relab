@@ -5,8 +5,6 @@ that covers exactly the features this project uses: FastAPI route dependencies,
 explicit service-level buckets, Redis-backed storage, and a fixed-window strategy.
 """
 
-from __future__ import annotations
-
 import hashlib
 import hmac
 import logging

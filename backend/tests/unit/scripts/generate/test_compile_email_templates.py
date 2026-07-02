@@ -1,7 +1,5 @@
 """Unit tests for the compile_email_templates script."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 

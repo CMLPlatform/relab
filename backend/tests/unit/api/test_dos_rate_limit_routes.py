@@ -1,7 +1,5 @@
 """Route composition tests for targeted DoS rate limits."""
 
-from __future__ import annotations
-
 from inspect import signature
 
 import pytest

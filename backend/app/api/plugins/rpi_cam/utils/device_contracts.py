@@ -1,7 +1,5 @@
 """Helpers for the private backend<->plugin device seam."""
 
-from __future__ import annotations
-
 from pydantic import TypeAdapter
 from relab_rpi_cam_models import (
     DevicePublicKeyJWK,

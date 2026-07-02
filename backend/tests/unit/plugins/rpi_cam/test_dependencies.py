@@ -1,7 +1,5 @@
 """Unit tests for RPi Cam router dependencies and schemas."""
 
-from __future__ import annotations
-
 import uuid
 
 import pytest

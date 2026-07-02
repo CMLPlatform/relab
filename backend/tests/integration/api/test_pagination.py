@@ -7,8 +7,6 @@ representative paginated list. Smoke tests for each newly-paginated
 router are included at the end.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import pytest

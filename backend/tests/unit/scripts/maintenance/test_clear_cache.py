@@ -1,7 +1,5 @@
 """Unit tests for the clear_cache script."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import pytest

@@ -1,7 +1,5 @@
 """Unit tests for YouTube recording orchestration service behavior."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4

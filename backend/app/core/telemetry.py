@@ -1,7 +1,5 @@
 """OpenTelemetry bootstrap helpers."""
 
-from __future__ import annotations
-
 import logging
 from dataclasses import dataclass, field
 from importlib import import_module

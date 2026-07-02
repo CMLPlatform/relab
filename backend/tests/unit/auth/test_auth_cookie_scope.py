@@ -1,7 +1,5 @@
 """Unit tests for browser auth cookie scoping."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from starlette.responses import Response

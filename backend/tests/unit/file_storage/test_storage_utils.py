@@ -2,8 +2,6 @@
 # spell-checker: ignore geocube HYPERSPECTRAL hyperspectral nitf officedocument ooxml
 # spell-checker: ignore pptx presentationml spreadsheetml wordprocessingml
 
-from __future__ import annotations
-
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch

@@ -1,8 +1,6 @@
 """Configuration settings for the FastAPI app."""
 # spell-checker: ignore pwnedpasswords
 
-from __future__ import annotations
-
 import re
 from functools import cached_property
 from ipaddress import ip_network

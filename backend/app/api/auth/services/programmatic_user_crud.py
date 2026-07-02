@@ -1,7 +1,5 @@
 """Programmatic user-creation helpers built on top of FastAPI Users."""
 
-from __future__ import annotations
-
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 

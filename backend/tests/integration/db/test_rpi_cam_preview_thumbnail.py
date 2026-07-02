@@ -1,7 +1,5 @@
 """Tests for preview-thumbnail URL helpers."""
 
-from __future__ import annotations
-
 import uuid
 from typing import TYPE_CHECKING
 

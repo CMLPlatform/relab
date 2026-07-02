@@ -1,7 +1,5 @@
 """Unit tests for RPi Cam plugin models."""
 
-from __future__ import annotations
-
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraCredentialStatus
 
 HTTP_OK = 200

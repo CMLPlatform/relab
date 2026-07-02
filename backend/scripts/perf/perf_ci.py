@@ -1,7 +1,5 @@
 """Perf CI helpers: write baseline reports and refresh k6 p95 thresholds."""
 
-from __future__ import annotations
-
 import argparse
 import json
 import math

@@ -1,7 +1,5 @@
 """Route audience metadata used for OpenAPI schema filtering."""
 
-from __future__ import annotations
-
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 

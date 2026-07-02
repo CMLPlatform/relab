@@ -1,7 +1,5 @@
 """Storage backend resolution helpers."""
 
-from __future__ import annotations
-
 from functools import cache
 
 from app.api.file_storage.models.storage_core import BaseStorage

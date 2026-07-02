@@ -1,7 +1,5 @@
 """Camera access helpers shared across the relay service layer and router handlers."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException

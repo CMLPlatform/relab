@@ -1,7 +1,5 @@
 """Unit tests for profile and owner-identity privacy policy."""
 
-from __future__ import annotations
-
 import pytest
 from pydantic import ValidationError
 

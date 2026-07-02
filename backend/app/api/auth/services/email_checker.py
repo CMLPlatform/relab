@@ -1,7 +1,5 @@
 """Disposable-email validation service for auth flows."""
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING
 

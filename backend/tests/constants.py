@@ -1,7 +1,5 @@
 """Shared test constants."""
 
-from __future__ import annotations
-
 PRODUCT_BASE_NAME = "Test Product Base"
 BRAND_X = "Brand X"
 COMPONENT_NAME = "Test Component"
