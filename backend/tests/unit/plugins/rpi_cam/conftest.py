@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.api.plugins.rpi_cam.models import Camera
+from app.api.plugins.rpi_cam.models import Camera, CameraCredentialStatus
 from app.api.plugins.rpi_cam.schemas import RelayPublicKeyJWK
 from app.api.plugins.rpi_cam.services.youtube import YouTubeService
 from tests.factories.models import UserFactory
@@ -100,5 +100,6 @@ def mock_camera(mock_user: User) -> Camera:
             kid="test-key-id",
         ).model_dump(),
         relay_key_id="test-key-id",
+        relay_credential_status=CameraCredentialStatus.ACTIVE,
         owner_id=mock_user.id,
     )

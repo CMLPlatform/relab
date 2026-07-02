@@ -8,24 +8,13 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraCredentialStatus, CameraStatus
+from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraStatus
 from app.api.plugins.rpi_cam.runtime.relay import get_user_owned_camera
 
 
-def build_camera() -> Camera:
-    """Build a minimal WebSocket-relayed camera for testing."""
-    return Camera(
-        id=uuid4(),
-        name="Test Camera",
-        relay_public_key_jwk={"kty": "EC", "crv": "P-256", "x": "x", "y": "y"},
-        relay_key_id="test-key-id",
-        relay_credential_status=CameraCredentialStatus.ACTIVE,
-        owner_id=uuid4(),
-    )
-
-async def test_get_user_owned_camera_returns_camera_when_online() -> None:
+async def test_get_user_owned_camera_returns_camera_when_online(mock_camera: Camera) -> None:
     """Should return the camera when it is online."""
-    camera = build_camera()
+    camera = mock_camera
     session = AsyncMock()
     user_id = uuid4()
     redis = AsyncMock()
@@ -46,9 +35,9 @@ async def test_get_user_owned_camera_returns_camera_when_online() -> None:
     assert result is camera
     get_status_mock.assert_awaited_once_with(redis, camera.id)
 
-async def test_get_user_owned_camera_raises_503_when_offline() -> None:
+async def test_get_user_owned_camera_raises_503_when_offline(mock_camera: Camera) -> None:
     """Should raise HTTP 503 when the camera is offline."""
-    camera = build_camera()
+    camera = mock_camera
     session = AsyncMock()
     user_id = uuid4()
     redis = AsyncMock()
@@ -71,9 +60,9 @@ async def test_get_user_owned_camera_raises_503_when_offline() -> None:
     assert exc_info.value.detail == "Camera is offline"
     get_status_mock.assert_awaited_once_with(redis, camera.id)
 
-async def test_get_user_owned_camera_raises_401_when_unauthorized() -> None:
+async def test_get_user_owned_camera_raises_401_when_unauthorized(mock_camera: Camera) -> None:
     """Should raise HTTP 401 when the camera returns unauthorized status."""
-    camera = build_camera()
+    camera = mock_camera
     session = AsyncMock()
     user_id = uuid4()
     redis = AsyncMock()

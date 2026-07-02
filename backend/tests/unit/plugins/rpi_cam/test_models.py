@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
-
-import pytest
-
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraCredentialStatus
 
 HTTP_OK = 200
@@ -13,29 +9,6 @@ HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
 HTTP_INTERNAL_ERROR = 500
 HTTP_SERVICE_UNAVAILABLE = 503
-
-TEST_CAMERA_NAME = "Test Camera"
-FETCHED_VAL = "fetched"
-CACHED_VAL = "cached"
-PUBLIC_JWK = {
-    "kty": "EC",
-    "crv": "P-256",
-    "x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "y": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
-    "kid": "key-12345",
-}
-
-def build_camera() -> Camera:
-    """Build a camera for model tests."""
-    return Camera(
-        id=uuid4(),
-        name=TEST_CAMERA_NAME,
-        description="A test camera",
-        relay_public_key_jwk=PUBLIC_JWK,
-        relay_key_id="key-12345",
-        relay_credential_status=CameraCredentialStatus.ACTIVE,
-        owner_id=uuid4(),
-    )
 
 def test_to_http_error() -> None:
     """Test conversion of connection status to HTTP error tuples."""
@@ -48,18 +21,12 @@ def test_to_http_error() -> None:
     assert CameraConnectionStatus.FORBIDDEN.to_http_error() == (HTTP_FORBIDDEN, "Forbidden access to camera")
     assert CameraConnectionStatus.ERROR.to_http_error() == (HTTP_INTERNAL_ERROR, "Camera access error")
 
-@pytest.fixture
-def camera() -> Camera:
-    """Return a camera instance for testing."""
-    return build_camera()
-
-def test_str(camera: Camera) -> None:
+def test_str(mock_camera: Camera) -> None:
     """Test string representation of the camera model."""
-    assert str(camera) == f"{TEST_CAMERA_NAME} (id: {camera.id})"
+    assert str(mock_camera) == f"{mock_camera.name} (id: {mock_camera.id})"
 
-def test_credential_is_active(camera: Camera) -> None:
+def test_credential_is_active(mock_camera: Camera) -> None:
     """Test credential status helper."""
-    assert camera.credential_is_active is True
-    camera.relay_credential_status = CameraCredentialStatus.REVOKED
-    assert camera.credential_is_active is False
-
+    assert mock_camera.credential_is_active is True
+    mock_camera.relay_credential_status = CameraCredentialStatus.REVOKED
+    assert mock_camera.credential_is_active is False

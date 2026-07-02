@@ -5,9 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import uuid4
 
-import pytest
 from httpx import Response
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot, ThermalState
 
@@ -15,15 +13,10 @@ from app.api.auth.models import User
 from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.camera_interaction.telemetry import get_camera_telemetry
-from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from uuid import UUID
 
-TEST_EMAIL = "test@example.com"
-TEST_HASHED_PASSWORD = "hashed_password"
-TEST_CAMERA_NAME = "Test Camera"
-TEST_CAMERA_DESC = "A test camera"
 HTTP_OK = 200
 
 def require_uuid(value: UUID | None) -> UUID:
@@ -46,32 +39,6 @@ def _make_snapshot(cpu_temp_c: float | None = 55.5, cpu_percent: float = 12.0) -
 
 def _snapshot_to_json_payload(snapshot: TelemetrySnapshot) -> dict[str, object]:
     return snapshot.model_dump(mode="json")
-
-@pytest.fixture
-def mock_user() -> User:
-    """Return a mock user for testing."""
-    user = UserFactory.build(
-        id=uuid4(),
-        email=TEST_EMAIL,
-        is_active=True,
-        is_verified=True,
-        hashed_password=TEST_HASHED_PASSWORD,
-    )
-    assert user.id is not None
-    return user
-
-@pytest.fixture
-def mock_camera(mock_user: User) -> Camera:
-    """Return a mock camera for testing."""
-    owner_id = require_uuid(mock_user.id)
-    return Camera(
-        id=uuid4(),
-        name=TEST_CAMERA_NAME,
-        description=TEST_CAMERA_DESC,
-        relay_public_key_jwk={"kty": "EC", "crv": "P-256", "x": "x", "y": "y"},
-        relay_key_id="test-key-id",
-        owner_id=owner_id,
-    )
 
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.store_telemetry")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.telemetry.get_cached_telemetry")
@@ -179,4 +146,3 @@ async def test_force_refresh_bypasses_cache(
     mock_get_cached.assert_not_called()
     mock_camera_request.assert_awaited_once()
     mock_store.assert_not_called()
-

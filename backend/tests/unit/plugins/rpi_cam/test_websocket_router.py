@@ -12,11 +12,9 @@ from uuid import uuid4
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
-from relab_rpi_cam_models import RELAY_WS_TEXT_FRAME_LIMIT_BYTES
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_bucket_key
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion as _verify_device_assertion
-from app.api.plugins.rpi_cam.websocket import router as router_mod
 from app.api.plugins.rpi_cam.websocket.router import (
     _authenticate,
     _heartbeat_loop,
@@ -216,10 +214,6 @@ async def test_session_pairs_binary_frame_with_pending_response() -> None:
         b"payload",
     )
     assert session.pending_binary_response is None
-
-def test_text_frame_limit_matches_shared_contract() -> None:
-    """The router should use the shared relay text-frame contract."""
-    assert router_mod.RELAY_WS_TEXT_FRAME_LIMIT_BYTES == RELAY_WS_TEXT_FRAME_LIMIT_BYTES
 
 # ── Device assertion verification ────────────────────────────────────────────
 

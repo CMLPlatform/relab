@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
@@ -17,46 +16,14 @@ from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.relay_response import RelayResponse
 from app.api.plugins.rpi_cam.routers.camera_interaction import hls as hls_mod
 from app.api.plugins.rpi_cam.routers.camera_interaction.hls import proxy_hls
-from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from uuid import UUID
-
-TEST_EMAIL = "test@example.com"
-TEST_HASHED_PASSWORD = "hashed_password"
-TEST_CAMERA_NAME = "Test Camera"
-TEST_CAMERA_DESC = "A test camera"
 
 def require_uuid(value: UUID | None) -> UUID:
     """Narrow optional UUID values produced by Pydantic models."""
     assert value is not None
     return value
-
-@pytest.fixture
-def mock_user() -> User:
-    """Return a mock user for testing."""
-    user = UserFactory.build(
-        id=uuid4(),
-        email=TEST_EMAIL,
-        is_active=True,
-        is_verified=True,
-        hashed_password=TEST_HASHED_PASSWORD,
-    )
-    assert user.id is not None
-    return user
-
-@pytest.fixture
-def mock_camera(mock_user: User) -> Camera:
-    """Return a mock camera for testing."""
-    owner_id = require_uuid(mock_user.id)
-    return Camera(
-        id=uuid4(),
-        name=TEST_CAMERA_NAME,
-        description=TEST_CAMERA_DESC,
-        relay_public_key_jwk={"kty": "EC", "crv": "P-256", "x": "x", "y": "y"},
-        relay_key_id="test-key-id",
-        owner_id=owner_id,
-    )
 
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.build_camera_request")

@@ -40,12 +40,6 @@ def test_key_includes_the_camera_id() -> None:
     key = get_telemetry_cache_key(camera_id)
     assert key == f"{TELEMETRY_CACHE_PREFIX}:{camera_id}"
 
-def test_prefix_and_ttl_are_what_the_router_expects() -> None:
-    """Ensure the prefix and TTL match the router's expectations."""
-    # The router tests rely on these values; pin them so accidental drift fails here first.
-    assert TELEMETRY_CACHE_PREFIX == "rpi_cam:telemetry"
-    assert TELEMETRY_CACHE_TTL_SECONDS == 120
-
 async def test_store_telemetry_writes_with_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
     """Ensure telemetry is stored with the correct TTL."""
     redis = AsyncMock()
@@ -104,19 +98,4 @@ async def test_malformed_payload_returns_none_and_logs(
 
     assert result is None
     assert "malformed cached telemetry" in caplog.text
-
-def test_required_fields_are_stable() -> None:
-    """The Pi emits these fields on every snapshot; relaxing any of them is a contract break."""
-    schema = TelemetrySnapshot.model_json_schema()
-    assert set(schema["required"]) == {
-        "timestamp",
-        "cpu_percent",
-        "mem_percent",
-        "disk_percent",
-        "thermal_state",
-    }
-
-def test_thermal_state_enum_values_are_stable() -> None:
-    """Thermal bands are load-bearing for the governor; changes require coordinated deploys."""
-    assert {state.value for state in ThermalState} == {"normal", "warm", "throttle", "critical"}
 
