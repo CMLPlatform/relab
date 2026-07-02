@@ -6,19 +6,7 @@ PROD_COMPOSE_ENV="${PROD_COMPOSE_ENV:-deploy/env/prod.compose.env}"
 STAGING_COMPOSE_ENV="${STAGING_COMPOSE_ENV:-deploy/env/staging.compose.env}"
 
 write_validation_env_file() {
-    local path="$1"
-    cat >"$path" <<'EOF'
-CLOUDFLARE_TUNNEL_TOKEN=placeholder
-LOKI_PUSH_URL=http://placeholder/loki/api/v1/push
-GOOGLE_OAUTH_CLIENT_ID=placeholder-google-client-id
-GITHUB_OAUTH_CLIENT_ID=placeholder-github-client-id
-EMAIL_PROVIDER=smtp
-SMTP_HOST=smtp.example.test
-SMTP_USERNAME=relab@example.test
-EMAIL_FROM=Reverse Engineering Lab <relab@example.test>
-EMAIL_REPLY_TO=relab@example.test
-BOOTSTRAP_SUPERUSER_EMAIL=admin@example.test
-EOF
+    uv run python scripts/env_policy.py validation-env "$1"
 }
 
 loki_overlay_args() {

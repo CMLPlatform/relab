@@ -22,6 +22,21 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SECRET_INVENTORY_FILE = ROOT / "deploy" / "env" / "variables.toml"
 
+# Placeholder operator inputs for rendering deploy Compose during validation. Single
+# source of truth: deploy_ops.sh calls `validation-env` to materialize this same set.
+VALIDATION_ENV_VALUES = {
+    "CLOUDFLARE_TUNNEL_TOKEN": "placeholder",
+    "LOKI_PUSH_URL": "http://placeholder/loki/api/v1/push",
+    "GOOGLE_OAUTH_CLIENT_ID": "placeholder-google-client-id",
+    "GITHUB_OAUTH_CLIENT_ID": "placeholder-github-client-id",
+    "EMAIL_PROVIDER": "smtp",
+    "SMTP_HOST": "smtp.example.test",
+    "SMTP_USERNAME": "relab@example.test",
+    "EMAIL_FROM": "Reverse Engineering Lab <relab@example.test>",
+    "EMAIL_REPLY_TO": "relab@example.test",
+    "BOOTSTRAP_SUPERUSER_EMAIL": "admin@example.test",
+}
+
 DEPLOY_ENV_FILES = (
     ROOT / "deploy" / "env" / "staging.compose.env",
     ROOT / "deploy" / "env" / "prod.compose.env",
@@ -145,6 +160,11 @@ def load_secret_inventory(path: Path = SECRET_INVENTORY_FILE) -> dict[str, Any]:
         "runtime_secret_files": _as_string_set(policy.get("runtime_secret_files"), "runtime_secret_files"),
         "infisical_path_template": str(policy.get("infisical_path_template", "/relab/{env}/{name}")),
     }
+
+
+def write_validation_env_file(path: Path) -> None:
+    """Write placeholder operator inputs used to render deploy Compose during validation."""
+    path.write_text("".join(f"{name}={value}\n" for name, value in VALIDATION_ENV_VALUES.items()), encoding="utf-8")
 
 
 def secret_env_name(secret_file_name: str) -> str:
@@ -302,17 +322,7 @@ def assert_telemetry_examples_use_department_contract() -> None:
 
 def docker_compose_config_missing(required_name: str) -> subprocess.CompletedProcess[str]:
     """Render deploy Compose with one required variable omitted."""
-    values = {
-        "EMAIL_FROM": "Reverse Engineering Lab <relab@example.test>",
-        "SMTP_HOST": "smtp.example.test",
-        "EMAIL_PROVIDER": "smtp",
-        "EMAIL_REPLY_TO": "relab@example.test",
-        "SMTP_USERNAME": "relab@example.test",
-        "GITHUB_OAUTH_CLIENT_ID": "placeholder-github-client-id",
-        "GOOGLE_OAUTH_CLIENT_ID": "placeholder-google-client-id",
-        "BOOTSTRAP_SUPERUSER_EMAIL": "admin@example.test",
-        "CLOUDFLARE_TUNNEL_TOKEN": "placeholder-tunnel-token",
-    }
+    values = dict(VALIDATION_ENV_VALUES)
     values.pop(required_name)
     docker = shutil.which("docker")
     if docker is None:
@@ -405,6 +415,11 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("check", help="validate root environment variable policy")
     subparsers.add_parser("inventory", help="print the runtime secret inventory")
 
+    validation_env_parser = subparsers.add_parser(
+        "validation-env", help="write placeholder operator inputs for Compose validation"
+    )
+    validation_env_parser.add_argument("path", type=Path, help="destination env file path")
+
     secrets_list_parser = subparsers.add_parser("secrets-list", help="list rendered Compose secret names")
     secrets_list_parser.add_argument("config", type=Path, help="Compose config JSON file")
 
@@ -419,6 +434,8 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.write("✅ Environment variable policy checks passed\n")
         elif args.command == "inventory":
             sys.stdout.write(format_inventory(load_secret_inventory()))
+        elif args.command == "validation-env":
+            write_validation_env_file(args.path)
         elif args.command == "secrets-list":
             for name in compose_secret_names(load_json(args.config)):
                 sys.stdout.write(f"{name}\n")
