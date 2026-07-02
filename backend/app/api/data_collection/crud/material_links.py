@@ -77,11 +77,12 @@ async def add_materials_to_product(
         MaterialProductLink(**material_link.model_dump(), product_id=product_id) for material_link in material_links
     ]
     db.add_all(db_material_product_links)
+    await db.flush()
+    link_ids = [link.id for link in db_material_product_links]
     await db.commit()
-    for link in db_material_product_links:
-        await db.refresh(link)
 
-    return db_material_product_links
+    result = await db.execute(select(MaterialProductLink).where(MaterialProductLink.id.in_(link_ids)))
+    return list(result.scalars().all())
 
 
 async def add_material_to_product(
