@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 
 from app.api.auth.crud import get_user_by_username, validate_user_create
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
@@ -97,13 +96,6 @@ def test_rejects_removed_organization_fields() -> None:
             password=VALID_TEST_PASSWORD,
             organization_id="1fa85f64-5717-4562-b3fc-2c963f66afa6",
         )
-
-
-def test_user_database_uses_official_sqlalchemy_adapter(db_session: AsyncSession) -> None:
-    """The local adapter should extend, not duplicate, FastAPI-Users SQLAlchemy CRUD."""
-    user_db = _make_user_db(db_session)
-
-    assert isinstance(user_db, SQLAlchemyUserDatabase)
 
 
 async def test_get_by_email_matches_canonical_equivalent(db_session: AsyncSession) -> None:

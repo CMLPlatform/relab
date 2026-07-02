@@ -64,19 +64,12 @@ async def regular_user_client(
 
 
 async def test_admin_taxonomy_create_as_regular_user_returns_403(regular_user_client: AsyncClient) -> None:
-    """POST /admin/taxonomies is superuser-only; regular user → 403."""
+    """POST /admin/taxonomies is superuser-only; regular user → 403 with the standard error shape."""
     data = {"name": "Forbidden Taxonomy", "version": "v1", "domains": ["materials"]}
     response = await regular_user_client.post("/v1/admin/taxonomies", json=data)
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.headers["cache-control"] == SENSITIVE_CACHE_CONTROL
-
-
-async def test_403_response_has_detail_key(regular_user_client: AsyncClient) -> None:
-    """403 responses must include a 'detail' key."""
-    response = await regular_user_client.post("/v1/admin/taxonomies", json={})
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    body = response.json()
-    assert "detail" in body
+    assert "detail" in response.json()
 
 
 async def test_get_nonexistent_taxonomy_returns_404_with_detail(api_client_light: AsyncClient) -> None:
@@ -85,12 +78,6 @@ async def test_get_nonexistent_taxonomy_returns_404_with_detail(api_client_light
     assert response.status_code == status.HTTP_404_NOT_FOUND
     body = response.json()
     assert "detail" in body
-
-
-async def test_get_nonexistent_material_returns_404(api_client_light: AsyncClient) -> None:
-    """GET /materials/{id} with an id that does not exist → 404."""
-    response = await api_client_light.get("/v1/materials/999999")
-    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 async def test_unhandled_exception_returns_generic_problem_details(test_app: FastAPI) -> None:

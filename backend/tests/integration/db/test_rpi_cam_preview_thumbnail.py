@@ -5,15 +5,13 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-import pytest
-
 from app.api.plugins.rpi_cam.runtime.preview import get_preview_thumbnail_urls_per_camera
 from app.core.config import settings
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-pytestmark = pytest.mark.db
+    import pytest
 
 
 async def test_preview_thumbnail_helper_returns_public_url_when_file_exists(

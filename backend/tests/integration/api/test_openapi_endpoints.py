@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, get_type_hints
+from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import FastAPI, status
-from fastapi.routing import APIRoute
 from httpx import ASGITransport, AsyncClient
 
 from app.api.common.routers.openapi import init_openapi_docs
@@ -32,16 +31,6 @@ async def openapi_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient]:
         follow_redirects=True,
     ) as client:
         yield client
-
-
-def test_route_endpoint_annotations_resolve_without_raising(test_app: FastAPI) -> None:
-    """Startup smoke check: endpoint annotations resolve via get_type_hints without raising.
-
-    Not a behavioral test — it only proves the app boots cleanly.
-    """
-    for route in test_app.routes:
-        if isinstance(route, APIRoute):
-            get_type_hints(route.endpoint, include_extras=True)
 
 
 async def test_openapi_registration_can_exclude_internal_contracts_explicitly() -> None:

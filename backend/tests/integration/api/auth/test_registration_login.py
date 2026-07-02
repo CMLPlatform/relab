@@ -544,21 +544,6 @@ async def test_enabled_totp_user_cannot_start_new_setup(
     assert setup_response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-async def test_login_with_email_alias(api_client: AsyncClient) -> None:
-    """Test logging in through the canonical v1 login route."""
-    user_data = {"email": "alias@example.com", "password": TEST_PASSWORD, "username": "alias_user"}
-
-    await api_client.post("/v1/auth/register", json=user_data)
-
-    response = await api_client.post(
-        "/v1/auth/bearer/login",
-        data={"username": user_data["email"], "password": user_data["password"]},
-    )
-
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json()["access_token"]
-
-
 async def test_login_with_canonical_email_equivalent(api_client: AsyncClient) -> None:
     """Login should compare emails through the shared canonical policy."""
     user_data = {"email": "Login.Case@Example.com", "password": TEST_PASSWORD, "username": "login_case"}
@@ -661,13 +646,8 @@ async def test_revoke_all_sessions_emits_structured_event(
     assert any(call.args[1] == AuditAction.SESSIONS_REVOKED for call in log_event.call_args_list)
 
 
-async def test_logout_unauthenticated(api_client: AsyncClient) -> None:
-    """Test logging out without credentials."""
-    response = await api_client.post("/v1/auth/bearer/logout")
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-
-async def test_session_logout(api_client: AsyncClient) -> None:
-    """Test logging out of session auth."""
-    response = await api_client.post("/v1/auth/session/logout")
+@pytest.mark.parametrize("logout_route", ["/v1/auth/bearer/logout", "/v1/auth/session/logout"])
+async def test_logout_unauthenticated(api_client: AsyncClient, logout_route: str) -> None:
+    """Logging out without credentials is rejected on both bearer and session routes."""
+    response = await api_client.post(logout_route)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

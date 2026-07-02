@@ -235,22 +235,17 @@ async def test_shutdown_tolerates_redis_close_error(runtime_app: FastAPI) -> Non
             pass
 
 
-async def test_shutdown_tolerates_file_cleanup_manager_cancellation(runtime_app: FastAPI) -> None:
-    """A cancelled cleanup manager close should not prevent HTTP client cleanup."""
-    config = RuntimePatchConfig(cleanup_manager_close_side_effect=asyncio.CancelledError())
+@pytest.mark.parametrize(
+    "config",
+    [
+        RuntimePatchConfig(cleanup_manager_close_side_effect=asyncio.CancelledError()),
+        RuntimePatchConfig(http_client_close_side_effect=CloseError("client gone")),
+    ],
+    ids=["cleanup-manager-cancellation", "http-client-close-error"],
+)
+async def test_shutdown_tolerates_teardown_errors(runtime_app: FastAPI, config: RuntimePatchConfig) -> None:
+    """Teardown errors from the cleanup manager or HTTP client should not prevent full shutdown."""
     with patched_runtime_services(config) as runtime:
-        async with lifecycle.runtime_lifespan(runtime_app):
-            pass
-
-    runtime.file_cleanup_manager.close.assert_awaited_once()
-    runtime.http_client.aclose.assert_awaited_once()
-
-
-async def test_shutdown_tolerates_http_client_close_error(runtime_app: FastAPI) -> None:
-    """A CloseError from the shared HTTP client should not prevent shutdown."""
-    with patched_runtime_services(
-        RuntimePatchConfig(http_client_close_side_effect=CloseError("client gone"))
-    ) as runtime:
         async with lifecycle.runtime_lifespan(runtime_app):
             pass
 
