@@ -44,15 +44,14 @@ export function isPrivateLocalHost(hostname: string): boolean {
 }
 
 export function buildLocalProbeCandidates(candidateUrls: string[]): string[] {
-  return [...candidateUrls, USB_GADGET_DEFAULT]
-    .filter((url) => {
-      try {
-        return isPrivateLocalHost(new URL(url).hostname);
-      } catch {
-        return false;
-      }
-    })
-    .filter((url, index, all) => all.indexOf(url) === index);
+  const localUrls = [...candidateUrls, USB_GADGET_DEFAULT].filter((url) => {
+    try {
+      return isPrivateLocalHost(new URL(url).hostname);
+    } catch {
+      return false;
+    }
+  });
+  return [...new Set(localUrls)];
 }
 
 export async function probeLocalUrl(baseUrl: string, apiKey: string | null): Promise<boolean> {
