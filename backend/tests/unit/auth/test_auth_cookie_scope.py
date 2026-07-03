@@ -4,13 +4,14 @@ from typing import TYPE_CHECKING
 
 from starlette.responses import Response
 
+from app.api.auth.config import settings as auth_settings
 from app.api.auth.services.auth_backends import (
     AUTH_COOKIE_NAME,
     REFRESH_COOKIE_NAME,
     clear_auth_cookies,
     cookie_transport,
+    set_browser_auth_cookie,
 )
-from app.api.auth.services.login_hooks import set_refresh_token_cookie
 from app.core.config import Environment
 from app.core.config import settings as core_settings
 
@@ -29,7 +30,12 @@ def test_refresh_cookie_is_host_only() -> None:
     assert REFRESH_COOKIE_NAME == "__Host-relab-refresh"
     response = Response()
 
-    set_refresh_token_cookie(response, "refresh-token")
+    set_browser_auth_cookie(
+        response,
+        key=REFRESH_COOKIE_NAME,
+        value="refresh-token",
+        max_age=auth_settings.refresh_token_ttl_seconds,
+    )
 
     set_cookie_headers = response.headers.getlist("set-cookie")
     assert len(set_cookie_headers) == 1
@@ -46,7 +52,12 @@ def test_refresh_cookie_is_always_secure(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(core_settings, "environment", Environment.DEV)
     response = Response()
 
-    set_refresh_token_cookie(response, "refresh-token")
+    set_browser_auth_cookie(
+        response,
+        key=REFRESH_COOKIE_NAME,
+        value="refresh-token",
+        max_age=auth_settings.refresh_token_ttl_seconds,
+    )
 
     set_cookie_headers = response.headers.getlist("set-cookie")
     assert len(set_cookie_headers) == 1

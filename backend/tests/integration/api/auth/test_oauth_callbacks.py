@@ -34,10 +34,11 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.api
 
 
-async def test_callback_passes_associate_by_email_false() -> None:
-    """Disables implicit email-based account linking."""
+async def test_callback_passes_associate_by_email_false(redis_client: Redis) -> None:
+    """Disables implicit email-based account linking and issues session cookies."""
     config, backend = make_auth_flow()
     request, access_token_state = make_request_with_valid_state()
+    request.app.state.services = AppServices(redis=redis_client)
 
     user = MagicMock()
     user.id = uuid4()
@@ -49,6 +50,7 @@ async def test_callback_passes_associate_by_email_false() -> None:
     user_manager.on_after_login = AsyncMock()
 
     strategy = MagicMock()
+    strategy.write_token = AsyncMock(return_value="access-token")
 
     response = await handle_oauth_login_callback(
         config,
@@ -60,7 +62,10 @@ async def test_callback_passes_associate_by_email_false() -> None:
         associate_by_email=False,
         is_verified_by_default=True,
     )
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    set_cookie_headers = response.headers.getlist("set-cookie")
+    assert any(header.startswith("__Host-relab-auth=") for header in set_cookie_headers)
+    assert any(header.startswith("__Host-relab-refresh=") for header in set_cookie_headers)
     assert user_manager.oauth_callback.await_args is not None
     assert user_manager.oauth_callback.await_args.kwargs["associate_by_email"] is False
     user_manager.on_after_login.assert_awaited_once()

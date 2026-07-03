@@ -30,11 +30,7 @@ from app.api.auth.services.email import (
     send_reset_password_email,
     send_verification_email,
 )
-from app.api.auth.services.login_hooks import (
-    log_successful_login,
-    maybe_set_refresh_token_cookie,
-    update_last_login_metadata,
-)
+from app.api.auth.services.login_hooks import log_successful_login, update_last_login_metadata
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter, rate_limit_bucket_key
@@ -203,11 +199,13 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
             audit_event(user.id, AuditAction.DEACTIVATE, User, user.id)
 
     async def on_after_login(
-        self, user: User, request: Request | None = None, response: Response | None = None
+        self,
+        user: User,
+        request: Request | None = None,
+        response: Response | None = None,  # noqa: ARG002 # Response argument is expected in the method signature
     ) -> None:
-        """Update last login timestamp, create refresh token and session after successful authentication."""
+        """Update last login timestamp after successful authentication."""
         await update_last_login_metadata(user, request, self.user_db.session)
-        await maybe_set_refresh_token_cookie(user, request, response)
         log_successful_login(user)
 
 

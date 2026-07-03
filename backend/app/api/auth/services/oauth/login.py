@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 
     from fastapi_users.authentication import AuthenticationBackend
     from fastapi_users.jwt import SecretType
+    from redis.asyncio import Redis
 
 
 def build_oauth_login_router(
@@ -109,7 +110,7 @@ def build_oauth_login_router(
     return router
 
 
-async def handle_oauth_login_callback(  # noqa: PLR0911 - OAuth callback branches map distinct protocol outcomes.
+async def handle_oauth_login_callback(
     config: OAuthFlowConfig,
     backend: AuthenticationBackend[User, UUID4],
     request: Request,
@@ -171,14 +172,48 @@ async def handle_oauth_login_callback(  # noqa: PLR0911 - OAuth callback branche
         raise OAuthInactiveUserHTTPError
 
     if not user.mfa_enabled:
-        response = await backend.login(strategy, user)
-        await user_manager.on_after_login(user, request, response)
+        response = await _complete_oauth_login(backend, request, user, user_manager, strategy)
         if frontend_redirect:
             return create_oauth_result_redirect(frontend_redirect, status="success", response=response)
         return response
 
     redis = require_connection_redis(request)
     transport = "session" if backend.name == COOKIE_BACKEND_NAME else "bearer"
+    return await _respond_with_mfa_challenge(redis, user, transport, frontend_redirect)
+
+
+async def _complete_oauth_login(
+    backend: AuthenticationBackend[User, UUID4],
+    request: Request,
+    user: User,
+    user_manager: UserManager,
+    strategy: Strategy[User, UUID4],
+) -> Response:
+    """Issue the login response for an OAuth user with all factors satisfied."""
+    if backend.name == COOKIE_BACKEND_NAME:
+        # Session logins share the cookie issuance path used by password login.
+        response = Response(status_code=status.HTTP_204_NO_CONTENT)
+        await login_completion.issue_session_login_response(
+            response=response,
+            user=user,
+            user_manager=user_manager,
+            redis=require_connection_redis(request),
+            cookie_strategy=strategy,
+        )
+        return response
+
+    response = await backend.login(strategy, user)
+    await user_manager.on_after_login(user, request, response)
+    return response
+
+
+async def _respond_with_mfa_challenge(
+    redis: Redis,
+    user: User,
+    transport: str,
+    frontend_redirect: str | None,
+) -> Response:
+    """Return the pending-MFA response for an OAuth login."""
     mfa_response = await login_completion.create_mfa_pending_response(redis, user, transport=transport)
     if frontend_redirect:
         handoff = await login_completion.create_oauth_mfa_handoff(redis, mfa_response)
