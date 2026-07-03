@@ -5,7 +5,7 @@ Standalone Astro Starlight documentation app for the RELab platform.
 ## Quick Start
 
 ```bash
-fnm use 24 || nvm use 24
+fnm use 26 || nvm use 26
 just install
 just dev
 ```

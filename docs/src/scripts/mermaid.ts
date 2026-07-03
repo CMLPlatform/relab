@@ -92,7 +92,7 @@ const ensureMermaidContainers = () => {
       codeBlock instanceof HTMLElement && codeBlock.matches('pre[data-language="mermaid"]')
         ? codeBlock
         : codeBlock.parentElement;
-    if (!sourceElement || sourceElement.dataset.mermaidSourceReady === 'true') {
+    if (!sourceElement) {
       continue;
     }
 
@@ -107,13 +107,14 @@ const ensureMermaidContainers = () => {
     container.dataset.mermaidSource = normalizeMermaidSource(readMermaidSource(sourceElement));
     container.textContent = container.dataset.mermaidSource;
     currentContainer.replaceWith(container);
-    sourceElement.dataset.mermaidSourceReady = 'true';
   }
 };
 
-const renderMermaid = async (force = false) => {
+const renderMermaid = async (force = false): Promise<void> => {
   if (mermaidRenderPromise) {
-    return mermaidRenderPromise;
+    // A render is already running. A forced re-render (theme change) must not be
+    // dropped, so queue it to run once the in-flight pass settles.
+    return force ? mermaidRenderPromise.then(() => renderMermaid(true)) : mermaidRenderPromise;
   }
 
   mermaidRenderPromise = (async () => {

@@ -77,6 +77,9 @@ const pluginReferences = [{ href: '/api/rpi-cam/', label: 'RPi camera API' }];
 </html>
 
 <style>
+  /* NOTE: this standalone (non-Starlight) page can't share the hashed
+     brand.css bundle, so the few brand tokens it uses are inlined here. Keep
+     these values in sync with src/styles/brand.css (the source of truth). */
   @font-face {
     font-family: "IBM Plex Sans";
     font-style: normal;
@@ -86,25 +89,14 @@ const pluginReferences = [{ href: '/api/rpi-cam/', label: 'RPi camera API' }];
   }
 
   :root {
-    --relab-brand-primary: #006783;
-    --relab-brand-primary-strong: #004f65;
-    --relab-brand-primary-soft: rgba(0, 103, 131, 0.08);
-    --relab-brand-text: #13263a;
-    --relab-nav-border: rgba(15, 23, 42, 0.12);
-    --relab-nav-bg: rgba(255, 255, 255, 0.94);
-    --relab-nav-hover: rgba(0, 103, 131, 0.08);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --relab-brand-primary: #63d3ff;
-      --relab-brand-primary-strong: #a7e9ff;
-      --relab-brand-primary-soft: rgba(99, 211, 255, 0.14);
-      --relab-brand-text: #f2f8ff;
-      --relab-nav-border: rgba(226, 232, 240, 0.16);
-      --relab-nav-bg: rgba(9, 19, 27, 0.94);
-      --relab-nav-hover: rgba(99, 211, 255, 0.12);
-    }
+    color-scheme: light dark;
+    --relab-brand-primary: light-dark(#006783, #63d3ff);
+    --relab-brand-primary-strong: light-dark(#004f65, #a7e9ff);
+    --relab-brand-primary-soft: light-dark(rgba(0, 103, 131, 0.08), rgba(99, 211, 255, 0.14));
+    --relab-brand-text: light-dark(#13263a, #f2f8ff);
+    --relab-nav-border: light-dark(rgba(15, 23, 42, 0.12), rgba(226, 232, 240, 0.16));
+    --relab-nav-bg: light-dark(rgba(255, 255, 255, 0.94), rgba(9, 19, 27, 0.94));
+    --relab-nav-hover: light-dark(rgba(0, 103, 131, 0.08), rgba(99, 211, 255, 0.12));
   }
 
   html,

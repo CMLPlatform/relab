@@ -72,4 +72,4 @@ audit:
 
 # Clean caches and generated site output
 clean:
-    rm -rf .astro dist node_modules playwright-report test-results site
+    rm -rf .astro dist node_modules playwright-report test-results
