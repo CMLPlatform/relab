@@ -5,6 +5,7 @@ This module keeps the app-facing cache API small and stable while using
 """
 # spell-checker: ignore digestmod
 
+import asyncio
 import hashlib
 import logging
 from functools import wraps
@@ -235,8 +236,19 @@ async def close_cache() -> None:
     if not _cache_state["initialized"]:
         return
 
-    await _backend.close()
-    _cache_state["initialized"] = False
+    try:
+        await _backend.close()
+    except asyncio.CancelledError:
+        # cashews' in-memory backend awaits its background expiry task on close.
+        # Under load that task can surface a spurious CancelledError which is
+        # benign during shutdown and must not abort the rest of teardown.
+        # Re-raise only when *this* coroutine is the real cancellation target.
+        task = asyncio.current_task()
+        if task is not None and task.cancelling() > 0:
+            raise
+        logger.debug("Cache expiry task cancelled during close")
+    finally:
+        _cache_state["initialized"] = False
 
 
 async def clear_cache_namespace(namespace: str) -> None:
