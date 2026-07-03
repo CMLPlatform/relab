@@ -281,6 +281,10 @@ services:
         PUBLIC_APP_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
         PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
         PUBLIC_SITE_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
+        PUBLIC_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+    environment:
+      # Needed by Caddyfile to allow the homepage stats fetch in the CSP.
+      CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
     tmpfs:
       - /config:uid=1001,gid=1001
       - /data:uid=1001,gid=1001
