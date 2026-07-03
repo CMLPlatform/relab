@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react-native';
+import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
 import type { CameraTelemetry } from '@/services/api/rpiCamera';
 import { renderWithProviders } from '@/test-utils/index';
-import { TelemetryBadge } from '../TelemetryBadge';
 
 const TEMPERATURE_PATTERN = /°C/;
 const LIVE_PATTERN = /live/;

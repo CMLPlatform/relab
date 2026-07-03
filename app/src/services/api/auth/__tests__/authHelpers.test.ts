@@ -5,7 +5,7 @@ import {
   getAuthRefreshPath,
   mapApiUserToUser,
   shouldSkipUserFetch,
-} from '../authHelpers';
+} from '@/services/api/auth/authHelpers';
 
 describe('authHelpers', () => {
   it('returns the correct login path for web and native', () => {

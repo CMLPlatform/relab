@@ -8,8 +8,7 @@ High-level map of `app`.
 - **Routing:** [Expo Router](https://docs.expo.dev/router/introduction/) (file-based, typed routes).
 - **Data fetching:** [TanStack Query](https://tanstack.com/query) against a
   FastAPI backend. Types are generated from the backend's OpenAPI schema.
-- **Client state:** [Zustand](https://zustand-demo.pmnd.rs/) stores, scoped per
-  feature.
+- **Client state:** React context + feature-local hooks/reducers.
 - **Forms:** React Hook Form + Zod resolvers.
 - **UI kit:** React Native Paper (Material 3 theming).
 - **Compiler:** React Compiler enabled via `babel-plugin-react-compiler`.
@@ -52,9 +51,9 @@ products, profile, users live directly under `src/app/`.
 1. MSW handlers in `src/test-utils/` mock the same surface in unit/integration
    tests so component code is identical in prod and test.
 
-Client-only state (wizard progress, transient UI) lives in Zustand stores
-co-located with the feature when needed. Server state stays in TanStack Query —
-don't mirror it into Zustand.
+Client-only state (wizard progress, transient UI) lives in feature-local
+hooks/reducers or React context. Server state stays in TanStack Query — don't
+mirror it into client state stores.
 
 ## Testing layers
 

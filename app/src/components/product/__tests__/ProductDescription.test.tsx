@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import ProductDescription from '@/components/product/ProductDescription';
 import { baseProduct as _base } from '@/test-utils/fixtures';
 import type { Product } from '@/types/Product';
-import ProductDescription from '../ProductDescription';
 
 const baseProduct: Product = { ..._base, description: 'Initial description' };
 

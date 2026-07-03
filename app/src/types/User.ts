@@ -1,4 +1,4 @@
-import type { ApiUserRead } from '@/types/api';
+import type { ApiUserRead } from './api';
 
 /**
  * Frontend user model (camelCase).

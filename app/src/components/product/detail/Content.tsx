@@ -1,17 +1,17 @@
 import type { ComponentProps } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import DetailCard from '@/components/base/DetailCard';
-import ProductCircularityProperties from '@/components/product/detail/ProductCircularityProperties';
-import ProductComponents from '@/components/product/detail/ProductComponents';
-import ProductMetaData from '@/components/product/detail/ProductMetaData';
-import ProductPhysicalProperties from '@/components/product/detail/ProductPhysicalProperties';
-import ProductTags from '@/components/product/detail/ProductTags';
-import ProductType from '@/components/product/detail/ProductType';
 import ProductDelete from '@/components/product/ProductDelete';
 import ProductDescription from '@/components/product/ProductDescription';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
 import ProductVideo from '@/components/product/ProductVideo';
 import type { Product } from '@/types/Product';
+import ProductCircularityProperties from './ProductCircularityProperties';
+import ProductComponents from './ProductComponents';
+import ProductMetaData from './ProductMetaData';
+import ProductPhysicalProperties from './ProductPhysicalProperties';
+import ProductTags from './ProductTags';
+import ProductType from './ProductType';
 
 type ProductPageContentProps = {
   product: Product;

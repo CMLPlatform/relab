@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
-import { Text } from '@/components/base/Text';
 import { getStatusTone } from '@/theme';
+import { Text } from './Text';
 
 type StatusBadgeProps = {
   label: string;

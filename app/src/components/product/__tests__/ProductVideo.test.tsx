@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
+import ProductVideo from '@/components/product/ProductVideo';
 import type { useProductVideo } from '@/features/products/useProductVideo';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
-import ProductVideo from '../ProductVideo';
 
 type UseProductVideoResult = ReturnType<typeof useProductVideo>;
 

@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { ProductPageContent } from '@/components/product/detail/Content';
-import { ProductFabControls } from '@/components/product/detail/FabControls';
-import { ProductPageErrorState, ProductPageLoadingState } from '@/components/product/detail/States';
 import type { UseProductFormOptions } from '@/features/products/useProductForm';
 import { useProductPageScreen } from '@/features/products/useProductPageScreen';
 import { isProductNotFoundError } from '@/services/api/products';
+import { ProductPageContent } from './Content';
+import { ProductFabControls } from './FabControls';
+import { ProductPageErrorState, ProductPageLoadingState } from './States';
 
 function useFabPressHandler({
   saveAndExit,

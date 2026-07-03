@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
+import ProductTags from '@/components/product/detail/ProductTags';
 import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
-import ProductTags from '../ProductTags';
 
 const BRAND_PATTERN = /CircularTech/;
 const MODEL_PATTERN = /X100/;

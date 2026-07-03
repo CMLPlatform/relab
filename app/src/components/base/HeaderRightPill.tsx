@@ -2,11 +2,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable } from 'react-native';
-import { Text } from '@/components/base/Text';
 import { useAuth } from '@/context/auth';
 import { useAppTheme } from '@/theme';
 import { needsUsernameOnboarding } from '@/utils/router/onboarding';
 import { createHeaderRightPillStyles } from '@/utils/router/styles';
+import { Text } from './Text';
 
 function truncateUsername(username: string) {
   return username.length > 16 ? `${username.slice(0, 14)}…` : username;

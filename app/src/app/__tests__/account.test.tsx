@@ -434,7 +434,7 @@ const defaultUser = {
 
 /** Render the profile tab and wait for all initial async effects to settle. */
 async function renderProfile() {
-  const ProfileTab = require('../account.tsx').default;
+  const ProfileTab = require('@/app/account.tsx').default;
   const result = render(<ProfileTab />, {
     wrapper: ({ children }) => (
       <PaperProvider>
@@ -520,7 +520,7 @@ describe('ProfileTab', () => {
       // Stall getPublicProfile so the loading state stays visible
       (getPublicProfile as jest.Mock).mockReturnValue(new Promise(() => {}));
 
-      const ProfileTab = require('../account.tsx').default;
+      const ProfileTab = require('@/app/account.tsx').default;
       const { getAllByText } = render(<ProfileTab />, {
         wrapper: ({ children }) => (
           <PaperProvider>

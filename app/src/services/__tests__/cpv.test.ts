@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { loadCPV } from '../cpv';
+import { loadCPV } from '@/services/cpv';
 
 describe('CPV service', () => {
   it('loads CPV data successfully', async () => {

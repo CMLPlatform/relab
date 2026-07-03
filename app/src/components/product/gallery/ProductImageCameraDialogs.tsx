@@ -1,9 +1,9 @@
 import { Button, Dialog, Portal } from 'react-native-paper';
 import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
 import { LivePreview } from '@/components/cameras/LivePreview';
-import { createGalleryStyles } from '@/components/product/gallery/styles';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
+import { createGalleryStyles } from './styles';
 
 type Props = {
   cameraPickerVisible: boolean;

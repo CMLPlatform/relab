@@ -2,9 +2,9 @@ import { useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { Icon, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
-import { createProfileSectionStyles } from '@/components/profile/styles';
 import { useAppTheme } from '@/theme';
 import type { ThemeMode, User } from '@/types/User';
+import { createProfileSectionStyles } from './styles';
 
 type ProfileSectionStyles = ReturnType<typeof createProfileSectionStyles>;
 type VisibilityId = 'public' | 'community' | 'private';

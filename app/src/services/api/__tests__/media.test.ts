@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { resolveApiMediaUrl } from '../media';
+import { resolveApiMediaUrl } from '@/services/api/media';
 
 const ORIGINAL_ENV = process.env.EXPO_PUBLIC_API_URL;
 

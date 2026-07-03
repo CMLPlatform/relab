@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
 import { addProductVideo } from '@/services/api/products';
 import { startYouTubeStream } from '@/services/api/rpiCamera';
 import { fireEvent, renderWithProviders, screen, waitFor } from '@/test-utils/index';
-import { CameraStreamPicker } from '../CameraStreamPicker';
 
 const mockSetActiveStream = jest.fn();
 const mockAlert = jest.fn();
@@ -48,7 +48,7 @@ jest.mock('@/services/api/rpiCamera', () => ({
   startYouTubeStream: jest.fn(),
 }));
 
-jest.mock('../CameraPickerDialog', () => ({
+jest.mock('@/components/cameras/CameraPickerDialog', () => ({
   CameraPickerDialog: ({
     visible,
     onSelect,

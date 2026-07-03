@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { normalizeOptionalHttpUrl, normalizeRequiredHttpUrl } from '../config';
+import { normalizeOptionalHttpUrl, normalizeRequiredHttpUrl } from '@/config';
 
 describe('URL config helpers', () => {
   it('normalizes required http URLs and rejects executable schemes', () => {

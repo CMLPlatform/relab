@@ -2,9 +2,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { API_URL } from '@/config';
 import { useAuth } from '@/context/auth';
-import { useSensitiveAuthToken } from '@/features/auth/useSensitiveAuthToken';
 import { apiFetch } from '@/services/api/client';
 import { logError } from '@/utils/logging';
+import { useSensitiveAuthToken } from './useSensitiveAuthToken';
 
 const GENERIC_ERROR = 'An error occurred during verification. Please try again later.';
 

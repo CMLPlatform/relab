@@ -1,8 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, View } from 'react-native';
 import { ActivityIndicator, Card, Text } from 'react-native-paper';
-import { createLivePreviewStyles } from '@/components/cameras/live-preview/styles';
 import { useAppTheme } from '@/theme';
+import { createLivePreviewStyles } from './styles';
 
 export function PreviewShell({
   children,

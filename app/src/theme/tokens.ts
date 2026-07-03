@@ -1,6 +1,6 @@
 import type { MD3Theme } from 'react-native-paper';
-import { alpha } from '@/theme/color';
-import type { AppScheme, AppTokens } from '@/theme/types';
+import { alpha } from './color';
+import type { AppScheme, AppTokens } from './types';
 
 export const SEMANTIC_COLORS = {
   live: '#e53935',

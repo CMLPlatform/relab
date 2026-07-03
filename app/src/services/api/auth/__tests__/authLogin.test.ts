@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { login, logout, revokeAllSessions } from '../authLogin';
-import { authRuntime } from '../authRuntime';
+import { login, logout, revokeAllSessions } from '@/services/api/auth/authLogin';
+import { authRuntime } from '@/services/api/auth/authRuntime';
 
-jest.mock('../authSession', () => ({
+jest.mock('@/services/api/auth/authSession', () => ({
   isWeb: jest.fn(() => false),
   loadStoredAccessToken: jest.fn(),
   loadStoredRefreshToken: jest.fn(),
   setWebSessionFlag: jest.fn(),
 }));
 
-jest.mock('../../request', () => ({
+jest.mock('@/services/api/request', () => ({
   fetchWithTimeout: jest.fn(),
 }));
 
@@ -23,7 +23,7 @@ describe('authLogin', () => {
     authRuntime.authGeneration = 0;
     jest.clearAllMocks();
     const { isWeb, loadStoredAccessToken, loadStoredRefreshToken } = jest.requireMock(
-      '../authSession',
+      '@/services/api/auth/authSession',
     ) as {
       isWeb: jest.Mock;
       loadStoredAccessToken: jest.MockedFunction<() => Promise<string | undefined>>;
@@ -35,7 +35,7 @@ describe('authLogin', () => {
   });
 
   it('returns and persists native bearer token on success', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../../request') as {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
 
@@ -64,10 +64,10 @@ describe('authLogin', () => {
   });
 
   it('on web 204 login refreshes first and then hydrates the user cache', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../../request') as {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
-    const { isWeb, setWebSessionFlag } = jest.requireMock('../authSession') as {
+    const { isWeb, setWebSessionFlag } = jest.requireMock('@/services/api/auth/authSession') as {
       isWeb: jest.Mock;
       setWebSessionFlag: jest.Mock;
     };
@@ -96,10 +96,10 @@ describe('authLogin', () => {
 
   it('on web 204 login falls back to delayed hydration when refresh fails', async () => {
     jest.useFakeTimers();
-    const { fetchWithTimeout } = jest.requireMock('../../request') as {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
-    const { isWeb } = jest.requireMock('../authSession') as {
+    const { isWeb } = jest.requireMock('@/services/api/auth/authSession') as {
       isWeb: jest.Mock;
     };
 
@@ -127,7 +127,7 @@ describe('authLogin', () => {
   });
 
   it('returns a discriminated MFA pending result from 202 responses', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../../request') as {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
 
@@ -154,7 +154,7 @@ describe('authLogin', () => {
   });
 
   it('preserves API error details for non-credential login failures', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../../request') as {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
 
@@ -175,7 +175,7 @@ describe('authLogin', () => {
   });
 
   it('clears cached auth state before calling logout endpoint', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../../request') as {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
     const clearCachedAuthState = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
@@ -191,11 +191,11 @@ describe('authLogin', () => {
   });
 
   it('uses stored native access and refresh tokens on logout after runtime cache is empty', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../../request') as {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
     const { loadStoredAccessToken, loadStoredRefreshToken } = jest.requireMock(
-      '../authSession',
+      '@/services/api/auth/authSession',
     ) as {
       loadStoredAccessToken: jest.MockedFunction<() => Promise<string | undefined>>;
       loadStoredRefreshToken: jest.MockedFunction<() => Promise<string | undefined>>;
@@ -217,10 +217,10 @@ describe('authLogin', () => {
   });
 
   it('revokes all sessions through the shared endpoint and clears cached state first', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../../request') as {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
-    const { loadStoredAccessToken } = jest.requireMock('../authSession') as {
+    const { loadStoredAccessToken } = jest.requireMock('@/services/api/auth/authSession') as {
       loadStoredAccessToken: jest.MockedFunction<() => Promise<string | undefined>>;
     };
     loadStoredAccessToken.mockResolvedValueOnce('stored-access-token');

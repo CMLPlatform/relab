@@ -1,10 +1,10 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
+import CPVCard from '@/components/product/CPVCard';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
 import { getAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
-import CPVCard from '../CPVCard';
 
 jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: jest.fn(() => 'light'),

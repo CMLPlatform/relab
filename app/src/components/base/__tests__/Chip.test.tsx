@@ -1,11 +1,11 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
 import { View } from 'react-native';
+import { Chip } from '@/components/base/Chip';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { setupUser } from '@/test-utils/index';
 import { renderWithProviders } from '@/test-utils/render';
 import { getAppTheme } from '@/theme';
-import { Chip } from '../Chip';
 
 jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: jest.fn(() => 'light'),

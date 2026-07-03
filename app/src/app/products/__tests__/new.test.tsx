@@ -27,7 +27,7 @@ jest.mock('@/components/product/detail/ProductDetailScreen', () => {
   };
 });
 
-import ProductNewPage from '../new';
+import ProductNewPage from '@/app/products/new';
 
 describe('ProductNewPage route', () => {
   it('renders ProductDetailScreen in new+edit mode', () => {

@@ -1,12 +1,8 @@
 import { type ReactNode, useCallback, useMemo } from 'react';
-import { useAuth } from '@/context/auth';
-import {
-  ThemeModeContext,
-  type ThemeModeContextValue,
-  useSystemColorScheme,
-} from '@/context/themeMode';
 import { updateUser } from '@/services/api/auth/authentication';
 import type { ThemeMode } from '@/types/User';
+import { useAuth } from './auth';
+import { ThemeModeContext, type ThemeModeContextValue, useSystemColorScheme } from './themeMode';
 
 export function ThemeModeProvider({ children }: { children: ReactNode }) {
   const systemScheme = useSystemColorScheme();

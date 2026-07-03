@@ -12,8 +12,8 @@
 
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, screen } from '@testing-library/react-native';
+import { LivePreview, PreviewErrorBoundary } from '@/components/cameras/LivePreview';
 import { mockPlatform, renderWithProviders } from '@/test-utils/index';
-import { LivePreview, PreviewErrorBoundary } from '../LivePreview';
 
 // ─── useCameraLivePreview mock ─────────────────────────────────────────────────
 

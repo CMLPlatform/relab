@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
+import { CameraCard } from '@/components/cameras/CameraCard';
 import { resolveEffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { renderWithProviders } from '@/test-utils/index';
-import { CameraCard } from '../CameraCard';
 
 const LAST_SEEN_PATTERN = /Last seen/;
 

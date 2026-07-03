@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
+import { Text } from '@/components/base/Text';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { renderWithProviders } from '@/test-utils/index';
 import { getAppTheme } from '@/theme';
-import { Text } from '../Text';
 
 jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: jest.fn(() => 'light'),

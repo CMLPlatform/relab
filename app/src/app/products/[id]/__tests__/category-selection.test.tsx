@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import CategorySelection from '@/app/products/[id]/category-selection';
 import { loadCPV } from '@/services/cpv';
 import { renderWithProviders } from '@/test-utils/index';
 import type { User } from '@/types/User';
-import CategorySelection from '../category-selection';
 
 const mockUseAuth = jest.fn();
 const mockedLoadCPV = jest.mocked(loadCPV);

@@ -1,4 +1,4 @@
-import type { AppTheme } from '@/theme/types';
+import type { AppTheme } from './types';
 
 const RGBA_ALPHA_PATTERN = /rgba\((.+),\s*[^,]+\)$/;
 

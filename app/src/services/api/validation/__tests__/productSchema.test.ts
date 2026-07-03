@@ -4,7 +4,7 @@ import {
   PRODUCT_NAME_MAX_LENGTH,
   PRODUCT_NAME_MIN_LENGTH,
   productSchema,
-} from '../productSchema';
+} from '@/services/api/validation/productSchema';
 
 const validBase = {
   id: 1 as number | 'new',

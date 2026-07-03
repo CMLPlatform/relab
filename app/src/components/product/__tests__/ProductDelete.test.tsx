@@ -1,9 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
+import ProductDelete from '@/components/product/ProductDelete';
 import { baseProduct as _base, renderWithProviders, setupUser } from '@/test-utils/index';
-
 import type { Product } from '@/types/Product';
-import ProductDelete from '../ProductDelete';
 
 const existingProduct: Product = { ..._base, id: 42 };
 const DELETE_CONFIRMATION_PATTERN = /Are you sure/;

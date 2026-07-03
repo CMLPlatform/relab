@@ -1,11 +1,11 @@
 import { Platform, Pressable, View } from 'react-native';
 import { Chip } from '@/components/base/Chip';
 import { Text } from '@/components/base/Text';
-import { createProfileSectionStyles } from '@/components/profile/styles';
 import type { PublicProfileView } from '@/services/api/profiles';
 import { useAppTheme } from '@/theme';
 import type { User } from '@/types/User';
 import { ProfileSectionHeader } from './shared';
+import { createProfileSectionStyles } from './styles';
 
 type ProfileHeroProps = {
   profile: User;

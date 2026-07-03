@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { renderHook } from '@testing-library/react-native';
 import { Platform } from 'react-native';
-import { useSensitiveAuthToken } from '../useSensitiveAuthToken';
+import { useSensitiveAuthToken } from '@/features/auth/useSensitiveAuthToken';
 
 describe('useSensitiveAuthToken', () => {
   it('keeps native route tokens live across rerenders', () => {

@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { memo, useCallback, useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { ActivityIndicator, Icon } from 'react-native-paper';
+import { useAppTheme } from '@/theme';
 import {
   GalleryFlatList,
   IMAGE_HEIGHT,
@@ -9,9 +10,8 @@ import {
   makeHorizontalItemLayout,
   type ScrollableListHandle,
   type ScrollEvent,
-} from '@/components/product/gallery/shared';
-import { createGalleryStyles } from '@/components/product/gallery/styles';
-import { useAppTheme } from '@/theme';
+} from './shared';
+import { createGalleryStyles } from './styles';
 
 type Props = {
   width: number;

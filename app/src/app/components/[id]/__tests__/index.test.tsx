@@ -12,7 +12,7 @@ jest.mock('@/components/product/detail/ProductDetailScreen', () => {
   };
 });
 
-import ComponentPage from '../index';
+import ComponentPage from '@/app/components/[id]/index';
 
 describe('ComponentPage route', () => {
   it('renders the shared product detail screen', () => {

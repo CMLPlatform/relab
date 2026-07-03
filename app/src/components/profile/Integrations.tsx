@@ -2,11 +2,11 @@ import { useCallback } from 'react';
 import { View } from 'react-native';
 import { Icon, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
-import { createProfileSectionStyles } from '@/components/profile/styles';
 import { DOCS_URL } from '@/config';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
 import { ProfileAction, ProfileSectionHeader } from './shared';
+import { createProfileSectionStyles } from './styles';
 
 type ProfileIntegrationsSectionProps = {
   rpiEnabled: boolean;

@@ -1,9 +1,9 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
+import { TextInput } from '@/components/base/TextInput';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { renderWithProviders } from '@/test-utils/index';
 import { getAppTheme } from '@/theme';
-import { TextInput } from '../TextInput';
 
 jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: jest.fn(() => 'light'),

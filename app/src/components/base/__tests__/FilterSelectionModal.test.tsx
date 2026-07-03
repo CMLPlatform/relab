@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
+import FilterSelectionModal from '@/components/base/FilterSelectionModal';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
-import FilterSelectionModal from '../FilterSelectionModal';
 
 describe('FilterSelectionModal', () => {
   const user = setupUser();

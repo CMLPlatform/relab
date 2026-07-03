@@ -6,9 +6,9 @@ import {
   type PressableStateCallbackType,
   StyleSheet,
 } from 'react-native';
-import { Text } from '@/components/base/Text';
 import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
+import { Text } from './Text';
 
 interface Props extends PressableProps {
   children?: string;

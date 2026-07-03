@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
-import { createProfileSectionStyles } from '@/components/profile/styles';
 import { useAppTheme } from '@/theme';
 import { type OAuthAccount, ProfileAction, ProfileSectionHeader } from './shared';
+import { createProfileSectionStyles } from './styles';
 
 type ProfileAccountSectionProps = {
   isVerified: boolean;

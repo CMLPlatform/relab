@@ -22,6 +22,7 @@ import {
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon } from 'react-native-paper';
 import ZoomableImage from '@/components/base/ZoomableImage';
+import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import {
   GalleryFlatList,
   getTouchPointX,
@@ -29,8 +30,7 @@ import {
   makeHorizontalItemLayout,
   type ScrollableListHandle,
   type ScrollEvent,
-} from '@/components/product/gallery/shared';
-import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+} from './shared';
 
 type Props = {
   visible: boolean;

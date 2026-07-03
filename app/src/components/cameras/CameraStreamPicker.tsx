@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
-import { GoLiveDialog } from '@/components/cameras/GoLiveDialog';
 import { useCameraStreamPicker } from '@/features/cameras/youtube/useCameraStreamPicker';
+import { CameraPickerDialog } from './CameraPickerDialog';
+import { GoLiveDialog } from './GoLiveDialog';
 
 interface CameraStreamPickerProps {
   productId: number;

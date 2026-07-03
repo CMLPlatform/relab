@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import CamerasScreen from '@/app/cameras/index';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import { renderWithProviders } from '@/test-utils/index';
-import CamerasScreen from '../index';
 
 const SELECTED_PATTERN = /selected/;
 

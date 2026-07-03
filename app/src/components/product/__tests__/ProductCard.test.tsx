@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { useRouter } from 'expo-router';
+import ProductCard from '@/components/product/ProductCard';
 import { baseProduct, fireEvent, renderWithProviders, screen, setupUser } from '@/test-utils/index';
-import ProductCard from '../ProductCard';
 
 const TWO_MONTHS_AGO = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
 const MONTHS_AGO_PATTERN = /months? ago/i;

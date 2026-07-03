@@ -33,7 +33,7 @@ jest.mock('@/components/product/detail/ProductDetailScreen', () => {
   };
 });
 
-import ComponentNewPage from '../new';
+import ComponentNewPage from '@/app/products/[id]/components/new';
 
 describe('ComponentNewPage route', () => {
   it('renders ProductDetailScreen in new+edit mode and seeds parent id from the URL', () => {

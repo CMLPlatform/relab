@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import ProductType from '@/components/product/detail/ProductType';
 import { loadCPV } from '@/services/cpv';
 import { baseProduct as _base, renderWithProviders, setupUser } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
-import ProductType from '../ProductType';
 
 jest.mock('@/services/cpv');
 

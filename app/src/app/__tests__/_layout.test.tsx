@@ -2,9 +2,9 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { screen, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { Text, View } from 'react-native';
+import { HeaderRight, Providers } from '@/app/_layout';
 import { useAuth } from '@/context/auth';
 import { renderWithProviders } from '@/test-utils/index';
-import { HeaderRight, Providers } from '../_layout';
 
 jest.mock('expo-router', () => {
   const { DefaultTheme, DarkTheme, ThemeProvider } = require('@react-navigation/native');

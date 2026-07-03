@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
-import { Text } from '@/components/base/Text';
 import { useAppTheme } from '@/theme';
+import { Text } from './Text';
 
 type MutedTextProps = ComponentProps<typeof Text>;
 

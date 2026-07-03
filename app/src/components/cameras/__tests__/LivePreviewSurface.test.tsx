@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react-native';
+import { LivePreview } from '@/components/cameras/LivePreview';
 import { useCameraLivePreview } from '@/features/cameras/rpi/hooks';
-import { LivePreview } from '../LivePreview';
 
 jest.mock('@/features/cameras/rpi/hooks');
 jest.mock('@/components/cameras/live-preview/previewOverlays', () => ({

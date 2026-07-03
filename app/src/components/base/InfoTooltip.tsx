@@ -2,9 +2,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text, Tooltip } from 'react-native-paper';
-import { OverlaySurface } from '@/components/base/OverlaySurface';
 import { radius, spacing } from '@/constants';
 import { alpha, useAppTheme } from '@/theme';
+import { OverlaySurface } from './OverlaySurface';
 
 const MOBILE_USER_AGENT_PATTERN = /iPhone|iPad|iPod|Android/i;
 

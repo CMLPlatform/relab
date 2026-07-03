@@ -32,6 +32,13 @@
               {
                 "group": ["http://**", "https://**", "//**"],
                 "message": "Do not import browser runtime JavaScript from remote or CDN URLs; install and bundle dependencies locally."
+              },
+              {
+                // Import convention: './' only for same-directory siblings,
+                // '@/' alias for everything cross-directory. Parent-relative
+                // paths break when files move and hide module boundaries.
+                "group": ["..", "../**"],
+                "message": "Use the '@/' alias for cross-directory imports instead of parent-relative paths ('../')."
               }
             ]
           }

@@ -12,8 +12,8 @@ import {
   MD3LightTheme,
   useTheme as usePaperTheme,
 } from 'react-native-paper';
-import { createTokens } from '@/theme/tokens';
-import type { AppScheme, AppTheme } from '@/theme/types';
+import { createTokens } from './tokens';
+import type { AppScheme, AppTheme } from './types';
 
 export function useAppTheme() {
   return usePaperTheme<AppTheme>();

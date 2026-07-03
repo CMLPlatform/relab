@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
+import ProductPhysicalProperties from '@/components/product/detail/ProductPhysicalProperties';
 import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
-import ProductPhysicalProperties from '../ProductPhysicalProperties';
 
 // Mock SVGCube to avoid react-native-svg in tests
 jest.mock('@/components/base/SVGCube', () => 'SVGCube');

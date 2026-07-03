@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import type { Text as RNText } from 'react-native';
+import ProductComponents from '@/components/product/detail/ProductComponents';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
-import ProductComponents from '../ProductComponents';
 
 const COMPONENTS_EMPTY_PATTERN = /Components \(0\)/;
 

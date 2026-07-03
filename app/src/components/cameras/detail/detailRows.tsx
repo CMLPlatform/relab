@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Button, IconButton, Text } from 'react-native-paper';
-import { cameraDetailStyles } from '@/components/cameras/detail/styles';
 import { useAppTheme } from '@/theme';
+import { cameraDetailStyles } from './styles';
 
 type CameraDetailLayoutProps = {
   children: ReactNode;

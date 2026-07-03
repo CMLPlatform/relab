@@ -1,10 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
-import { AuthContext } from '@/context/auth';
 import { getToken, getUser, hasWebSessionFlag } from '@/services/api/auth/authentication';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
+import { AuthContext } from './auth';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | undefined>(undefined);

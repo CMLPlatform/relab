@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, screen, waitFor } from '@testing-library/react-native';
+import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { mockPlatform, renderWithProviders, restorePlatform, setupUser } from '@/test-utils/index';
-import { InfoTooltip } from '../InfoTooltip';
 
 // Mock MaterialCommunityIcons
 jest.mock('@expo/vector-icons', () => ({

@@ -8,7 +8,7 @@ import {
   USERNAME_MAX_LENGTH,
   USERNAME_MIN_LENGTH,
   usernameSchema,
-} from '../userSchema';
+} from '@/services/api/validation/userSchema';
 
 // Helper to extract all error messages from a Zod result
 function getErrorMessages(result: unknown): string[] {

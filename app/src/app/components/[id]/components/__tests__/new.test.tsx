@@ -33,7 +33,7 @@ jest.mock('@/components/product/detail/ProductDetailScreen', () => {
   };
 });
 
-import NestedComponentNewPage from '../new';
+import NestedComponentNewPage from '@/app/components/[id]/components/new';
 
 describe('NestedComponentNewPage route', () => {
   it('renders ProductDetailScreen in new+edit mode and seeds component parent context', () => {

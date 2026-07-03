@@ -2,8 +2,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button } from 'react-native-paper';
-import { Text } from '@/components/base/Text';
 import { useAppTheme } from '@/theme';
+import { Text } from './Text';
 
 type Props = {
   message: string;

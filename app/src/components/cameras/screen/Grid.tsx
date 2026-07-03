@@ -10,13 +10,13 @@ import {
 import { Text } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
 import { CameraCard } from '@/components/cameras/CameraCard';
-import { createCameraScreenStyles } from '@/components/cameras/screen/styles';
 import {
   type EffectiveCameraConnection,
   useEffectiveCameraConnection,
 } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
+import { createCameraScreenStyles } from './styles';
 
 type EffectiveConnectionSnapshot = Pick<EffectiveCameraConnection, 'isReachable' | 'transport'>;
 

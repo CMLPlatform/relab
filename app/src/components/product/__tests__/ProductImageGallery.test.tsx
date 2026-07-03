@@ -9,10 +9,10 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
+import ProductImageGallery from '@/components/product/ProductImageGallery';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { baseProduct, mockPlatform, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
-import ProductImageGallery from '../ProductImageGallery';
 
 const RPI_CAMERA_BUTTON_PATTERN = /RPi camera|Set up RPi camera/i;
 

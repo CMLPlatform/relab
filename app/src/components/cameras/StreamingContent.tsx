@@ -3,8 +3,6 @@ import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Chip, Text } from 'react-native-paper';
-import { LivePreview } from '@/components/cameras/LivePreview';
-import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
 import type { StreamSession } from '@/context/streamSession';
 import { useStreamSession } from '@/context/streamSession';
 import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
@@ -13,6 +11,8 @@ import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
+import { LivePreview } from './LivePreview';
+import { showStreamStopFailed } from './streamingFeedback';
 
 interface StreamingContentProps {
   session: StreamSession;

@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { mockPlatform, restorePlatform } from '@/test-utils/index';
 import {
   claimOAuthMfaHandoff,
   clearPendingMfaLogin,
   getPendingMfaLogin,
   setPendingMfaLogin,
-} from '../authMfa';
+} from '@/services/api/auth/authMfa';
+import { mockPlatform, restorePlatform } from '@/test-utils/index';
 
-jest.mock('../../request', () => ({
+jest.mock('@/services/api/request', () => ({
   fetchWithTimeout: jest.fn(),
 }));
 
@@ -79,7 +79,7 @@ describe('authMfa pending login storage', () => {
   });
 
   it('claims OAuth MFA handoff without exposing MFA tokens in callback URLs', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../../request') as {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
     fetchWithTimeout.mockResolvedValueOnce({

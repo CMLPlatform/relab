@@ -5,10 +5,10 @@ import { StyleSheet, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { StatusBadge } from '@/components/base/StatusBadge';
 import { STATUS_LABEL } from '@/components/cameras/detail/styles';
-import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { getStatusColor, useAppTheme } from '@/theme';
+import { TelemetryBadge } from './TelemetryBadge';
 
 /**
  * Format an ISO-8601 timestamp as a compact relative string for the offline

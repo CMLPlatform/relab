@@ -1,13 +1,13 @@
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { type GestureResponderEvent, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Button, Snackbar, Text, TextInput } from 'react-native-paper';
+import { useAppTheme } from '@/theme';
 import {
   type DialogButton,
   DialogContext,
   type DialogContextType,
   type DialogOptions,
-} from '@/components/base/dialogContext';
-import { useAppTheme } from '@/theme';
+} from './dialogContext';
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const theme = useAppTheme();

@@ -8,11 +8,11 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type React from 'react';
 import { StyleSheet, View, type ViewProps } from 'react-native';
+import ProductImages from '@/components/product/ProductImageGallery';
 import { processImage } from '@/services/imageProcessing';
 import { baseProduct, mockPlatform, renderWithProviders } from '@/test-utils/index';
 import { lightTheme } from '@/theme';
 import type { Product } from '@/types/Product';
-import ProductImages from '../ProductImageGallery';
 
 type FlatListCallProps = {
   disableIntervalMomentum?: boolean;

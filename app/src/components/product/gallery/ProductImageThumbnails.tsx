@@ -1,13 +1,9 @@
 import { Image } from 'expo-image';
 import { memo, useCallback } from 'react';
 import { Pressable, View } from 'react-native';
-import {
-  GalleryFlatList,
-  indexKeyExtractor,
-  type ScrollableListHandle,
-} from '@/components/product/gallery/shared';
-import { createGalleryStyles } from '@/components/product/gallery/styles';
 import { useAppTheme } from '@/theme';
+import { GalleryFlatList, indexKeyExtractor, type ScrollableListHandle } from './shared';
+import { createGalleryStyles } from './styles';
 
 type GalleryStyles = ReturnType<typeof createGalleryStyles>;
 

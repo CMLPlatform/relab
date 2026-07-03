@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { ActivityIndicator, Icon } from 'react-native-paper';
-import { createGalleryStyles } from '@/components/product/gallery/styles';
 import { useAppTheme } from '@/theme';
+import { createGalleryStyles } from './styles';
 
 type Props = {
   showCameraOption: boolean;

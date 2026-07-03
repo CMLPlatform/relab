@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { Pressable, Text } from 'react-native';
+import { useDialog } from '@/components/base/dialogContext';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
-import { useDialog } from '../dialogContext';
 
 function renderAlertTrigger(onPress: () => void) {
   return (

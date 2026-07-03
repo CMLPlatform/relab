@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
-import { NativeHlsVideo } from '@/components/cameras/live-preview/NativeHlsVideo';
-import { WebHlsVideo } from '@/components/cameras/live-preview/WebHlsVideo';
+import { NativeHlsVideo } from './NativeHlsVideo';
+import { WebHlsVideo } from './WebHlsVideo';
 
 export function PreviewPlayer({ src, isLocalStream }: { src: string; isLocalStream: boolean }) {
   if (Platform.OS === 'web') {

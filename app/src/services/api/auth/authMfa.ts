@@ -1,5 +1,5 @@
 import { API_URL } from '@/config';
-import { fetchWithTimeout } from '../request';
+import { fetchWithTimeout } from '@/services/api/request';
 import { extractApiErrorDetail } from './authHelpers';
 import { persistAccessToken, persistRefreshToken } from './authRefresh';
 import { authRuntime } from './authRuntime';

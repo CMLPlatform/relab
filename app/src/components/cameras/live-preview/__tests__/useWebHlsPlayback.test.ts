@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
-import { useWebHlsPlayback } from '../useWebHlsPlayback';
+import { useWebHlsPlayback } from '@/components/cameras/live-preview/useWebHlsPlayback';
 
 describe('useWebHlsPlayback', () => {
   beforeEach(() => {

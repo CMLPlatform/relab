@@ -4,7 +4,8 @@ import { setWebSessionFlag } from '@/services/api/auth/authSession';
 import { mockPlatform, mockResponse, restorePlatform, setupFetchMock } from '@/test-utils/index';
 
 const SecureStore = require('expo-secure-store') as typeof import('expo-secure-store');
-const auth = require('../authentication') as typeof import('../authentication');
+const auth =
+  require('@/services/api/auth/authentication') as typeof import('@/services/api/auth/authentication');
 
 setupFetchMock();
 const secureStoreMock = SecureStore as jest.Mocked<typeof SecureStore>;

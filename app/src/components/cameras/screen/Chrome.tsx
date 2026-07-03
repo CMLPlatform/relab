@@ -1,6 +1,6 @@
 import { AnimatedFAB, Snackbar } from 'react-native-paper';
-import { createCameraScreenStyles } from '@/components/cameras/screen/styles';
 import { useAppTheme } from '@/theme';
+import { createCameraScreenStyles } from './styles';
 
 type CamerasFabProps = {
   visible: boolean;

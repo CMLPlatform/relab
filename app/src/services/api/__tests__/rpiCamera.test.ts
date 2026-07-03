@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fetchWithAuth } from '../auth/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authentication';
 import {
   buildLocalHlsUrl,
   captureImageFromCamera,
@@ -11,7 +11,7 @@ import {
   fetchCameraTelemetry,
   fetchLocalAccessInfo,
   updateCamera,
-} from '../rpiCamera';
+} from '@/services/api/rpiCamera';
 
 jest.mock('@/services/api/auth/authentication', () => ({
   fetchWithAuth: jest.fn(),

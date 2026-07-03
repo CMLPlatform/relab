@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { YouTubeStreamCard } from '@/components/cameras/YouTubeStreamCard';
 import { fireEvent, renderWithProviders, screen, waitFor } from '@/test-utils/index';
-import { YouTubeStreamCard } from '../YouTubeStreamCard';
 
 const mockSetActiveStream = jest.fn();
 const mockAlert = jest.fn();

@@ -1,8 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
+import ProductMetaData from '@/components/product/detail/ProductMetaData';
 import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
-import ProductMetaData from '../ProductMetaData';
 
 const baseProduct: Product = { ..._base, id: 42 };
 const PRODUCT_ID_PATTERN = /Product ID: 42/;

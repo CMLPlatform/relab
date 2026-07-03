@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteItemAsync, getItemAsync, setItemAsync } from 'expo-secure-store';
-import { mockPlatform, restorePlatform } from '@/test-utils/index';
 import {
   getLocalItem,
   getSecureItem,
@@ -12,7 +11,8 @@ import {
   setLocalItem,
   setSecureItem,
   setSessionItem,
-} from '../storage';
+} from '@/services/storage';
+import { mockPlatform, restorePlatform } from '@/test-utils/index';
 
 const SECURE_STORAGE_UNAVAILABLE = /Secure storage is unavailable/;
 const SENSITIVE_LOCAL_STORAGE_FORBIDDEN = /must not be stored in local storage/;

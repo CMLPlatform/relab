@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
+import LogoutConfirm from '@/components/auth/LogoutConfirm';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
-import LogoutConfirm from '../LogoutConfirm';
 
 describe('LogoutConfirm', () => {
   const user = setupUser();

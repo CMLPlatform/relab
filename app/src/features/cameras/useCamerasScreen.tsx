@@ -1,24 +1,24 @@
 import { useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/auth';
-import { setCamerasHeaderOptions, useCameraScreenData } from '@/features/cameras/helpers';
-import { useCameraRouteModes } from '@/features/cameras/routeModes';
 import {
   useCameraCaptureActions,
   useCameraConnectionSnapshots,
 } from '@/features/cameras/rpi/captureActions';
 import { useCamerasQuery, useCaptureAllMutation } from '@/features/cameras/rpi/hooks';
-import {
-  useCameraSelectionActions,
-  useCameraSelectionController,
-  useCameraStreamingController,
-} from '@/features/cameras/state';
-import { resolveEffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import { useCameraStreamActions } from '@/features/cameras/youtube/streamActions';
 import { useBaseProductQuery } from '@/features/products/queries';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { setCamerasHeaderOptions, useCameraScreenData } from './helpers';
+import { useCameraRouteModes } from './routeModes';
+import {
+  useCameraSelectionActions,
+  useCameraSelectionController,
+  useCameraStreamingController,
+} from './state';
+import { resolveEffectiveCameraConnection } from './useEffectiveCameraConnection';
 
 function useCamerasAuthRedirect(
   user: ReturnType<typeof useAuth>['user'],

@@ -6,11 +6,11 @@ import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { useDialog } from '@/components/base/dialogContext';
 import { TextInput } from '@/components/base/TextInput';
 import { StreamingContent } from '@/components/cameras/StreamingContent';
-import { VideoEmbed } from '@/components/product/ProductVideoEmbed';
 import { useProductVideo } from '@/features/products/useProductVideo';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { isHttpUrl } from '@/utils/urlSafety';
+import { VideoEmbed } from './ProductVideoEmbed';
 
 interface Video {
   id?: number;

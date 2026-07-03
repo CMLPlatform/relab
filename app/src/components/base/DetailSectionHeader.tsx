@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { type StyleProp, StyleSheet, type TextStyle, View } from 'react-native';
 
-import { InfoTooltip } from '@/components/base/InfoTooltip';
-import { Text } from '@/components/base/Text';
+import { InfoTooltip } from './InfoTooltip';
+import { Text } from './Text';
 
 interface Props {
   title: string;

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { ScrollView, View } from 'react-native';
 import { ActivityIndicator, Button, Chip, Dialog, Portal, Searchbar } from 'react-native-paper';
-import { Text } from '@/components/base/Text';
+import { Text } from './Text';
 
 function SelectableChip({
   item,

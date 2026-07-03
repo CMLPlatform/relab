@@ -3,9 +3,9 @@ import { Pressable, View } from 'react-native';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { Text } from '@/components/base/Text';
 import { TextInput } from '@/components/base/TextInput';
-import { styles } from '@/components/product/detail/styles';
 import { type AppColors, useAppTheme } from '@/theme';
 import type { CircularityProperties, Product } from '@/types/Product';
+import { styles } from './styles';
 
 type CircularityNoteKey = keyof CircularityProperties;
 

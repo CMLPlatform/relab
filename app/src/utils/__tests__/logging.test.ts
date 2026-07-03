@@ -1,4 +1,4 @@
-import { logError } from '../logging';
+import { logError } from '@/utils/logging';
 
 describe('logError', () => {
   it('does not call console.error in test environment', () => {

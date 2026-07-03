@@ -5,7 +5,7 @@ import {
   fetchWithTimeout,
   isTimeoutError,
   TimeoutError,
-} from '../request';
+} from '@/services/api/request';
 
 const NO_CRYPTO_REQUEST_ID_PATTERN = /^req-[a-z0-9]+-[a-z0-9]+$/;
 

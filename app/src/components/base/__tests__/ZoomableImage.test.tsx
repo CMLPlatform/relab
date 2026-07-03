@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react-native';
 import { Gesture } from 'react-native-gesture-handler';
-import ZoomableImage from '../ZoomableImage';
+import ZoomableImage from '@/components/base/ZoomableImage';
 
 describe('ZoomableImage', () => {
   const testUri = 'https://example.com/image.jpg';

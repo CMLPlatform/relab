@@ -1,4 +1,4 @@
-import type { AppTheme } from '@/theme/types';
+import type { AppTheme } from './types';
 
 /**
  * Wrap a StyleSheet factory so the sheet is built once per theme object rather
