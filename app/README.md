@@ -20,14 +20,12 @@ RPi camera integration. The private backend\<->plugin seam lives in the
 published `relab-rpi-cam-models` Python package and should not be imported or
 re-declared directly in frontend code.
 
-To regenerate locally (backend must be running and `EXPO_PUBLIC_API_URL` set):
+Codegen reads the committed `src/types/openapi.json` (exported by the backend
+via `just backend/openapi`), so no running backend is required:
 
 ```bash
-# simple regeneration
-pnpm run codegen:api
-
-# regenerate and automatically redact any embedded JWT examples
-pnpm run codegen:api:redact
+# regenerate types from the committed schema, redact JWT examples, and format
+just codegen
 ```
 
 The Expo dev server runs on <http://127.0.0.1:8011>.
