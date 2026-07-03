@@ -77,9 +77,9 @@ test-api *ARGS:
 test-flows *ARGS:
     {{ pytest }} tests/integration/flows {{ ARGS }}
 
-# Run all integration tests
+# Run all integration tests (parallel — worth it only for the full suite; use `just test <file>` for one file)
 test-integration *ARGS:
-    {{ pytest }} tests/integration {{ ARGS }}
+    {{ pytest }} tests/integration -n auto --dist=loadgroup {{ ARGS }}
 
 # Run the backend CI test suite
 test-ci:

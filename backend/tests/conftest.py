@@ -16,7 +16,7 @@ Architecture:
 - This keeps pure unit test runs from paying the Docker startup cost
 """
 
-# spell-checker: ignore datname, collectonly
+# spell-checker: ignore datname, collectonly, workerinput
 import asyncio
 import logging
 import os
@@ -62,6 +62,29 @@ _SAFE_DB_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 _postgres_container: PostgresContainer | None = None
+# Set on xdist workers: coordinates for the single container the controller owns,
+# so a worker never spins up (nor tears down) its own Postgres.
+_external_container = False
+
+
+def _is_xdist_worker(config: pytest.Config) -> bool:
+    return hasattr(config, "workerinput")
+
+
+def _xdist_active(config: pytest.Config) -> bool:
+    return bool(getattr(config.option, "numprocesses", None))
+
+
+def _absorb_shared_container_coords(config: pytest.Config) -> None:
+    """Reuse the controller's shared Postgres container on an xdist worker."""
+    global _external_container
+    workerinput = config.workerinput  # type: ignore[attr-defined]  # present on xdist workers
+    os.environ["DATABASE_HOST"] = workerinput["relab_db_host"]
+    os.environ["DATABASE_PORT"] = workerinput["relab_db_port"]
+    os.environ["POSTGRES_USER"] = "postgres"
+    os.environ["POSTGRES_PASSWORD"] = "postgres"  # Test-password only
+    os.environ["POSTGRES_DB"] = "postgres"
+    _external_container = True
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -72,11 +95,27 @@ def pytest_configure(config: pytest.Config) -> None:
     # Initialize logging for the test session
     setup_logging()
 
+    if _is_xdist_worker(config):
+        # Worker: reuse the single container the controller already started.
+        _absorb_shared_container_coords(config)
+    elif _xdist_active(config):
+        # Controller under xdist: start one shared container eagerly so its
+        # coordinates can be handed to every worker via pytest_configure_node.
+        # (Non-xdist runs stay lazy — see _ensure_testcontainers_postgres — so
+        # unit-only runs never pay the Docker startup cost.)
+        _ensure_testcontainers_postgres()
+
+
+def pytest_configure_node(node: object) -> None:
+    """Hand the shared container's coordinates to each xdist worker (controller-side hook)."""
+    node.workerinput["relab_db_host"] = os.environ["DATABASE_HOST"]  # type: ignore[attr-defined]
+    node.workerinput["relab_db_port"] = os.environ["DATABASE_PORT"]  # type: ignore[attr-defined]
+
 
 def _ensure_testcontainers_postgres() -> None:
     """Start Testcontainers Postgres once and publish its coordinates."""
     global _postgres_container
-    if _postgres_container is not None:
+    if _postgres_container is not None or _external_container:
         return
 
     logger.info("Starting Testcontainers Postgres...")
