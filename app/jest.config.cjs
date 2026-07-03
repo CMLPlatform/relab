@@ -37,7 +37,7 @@ module.exports = {
   watchman: false,
   coverageProvider: 'v8',
   coverageDirectory: 'coverage',
-  coverageReporters: ['json', 'lcov', 'text', 'clover', 'cobertura'],
+  coverageReporters: ['lcov', 'text'],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/__tests__/**',
