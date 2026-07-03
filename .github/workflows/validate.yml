@@ -190,6 +190,8 @@ jobs:
           files: ./backend/reports/coverage/coverage.xml
           flags: backend
           name: validate-backend-coverage
+          disable-search: "true"
+          network-prefix: backend/app/
 
       - name: Archive backend reports
         if: always()
