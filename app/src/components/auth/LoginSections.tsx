@@ -2,11 +2,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { type RefObject, useCallback } from 'react';
 import type { Control, ControllerRenderProps } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
-import type { TextStyle } from 'react-native';
-import { Keyboard, Platform, StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
+import { textGlow } from '@/utils/platformLayout';
 
 type LoginLayoutProps = {
   keyboardShown: boolean;
@@ -44,12 +44,7 @@ export function LoginLayout({ keyboardShown, children, onBrowse }: LoginLayoutPr
 export function LoginBrandHero({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
   const theme = useAppTheme();
   const shadowColor = colorScheme === 'light' ? theme.colors.background : theme.colors.scrim;
-  const shadowStyle = (
-    Platform.OS === 'web'
-      ? { textShadow: `0px 0px 10px ${shadowColor}` }
-      : { textShadowColor: shadowColor }
-  ) as TextStyle;
-  return <Text style={[styles.brandHero, shadowStyle]}>RELab</Text>;
+  return <Text style={[styles.brandHero, textGlow(shadowColor)]}>RELab</Text>;
 }
 
 type LoginFormSectionProps = {
@@ -196,12 +191,6 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: 'bold',
     textAlign: 'left',
-    ...(Platform.OS === 'web'
-      ? {}
-      : {
-          textShadowOffset: { width: 0, height: 0 },
-          textShadowRadius: 10,
-        }),
   },
   dividerRow: {
     flexDirection: 'row',

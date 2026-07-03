@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '@/services/api/request';
 import {
   getLocalItem,
   getSecureItem,
@@ -52,6 +53,10 @@ export function buildLocalProbeCandidates(candidateUrls: string[]): string[] {
   return [...new Set(localUrls)];
 }
 
+// Multiple cards can probe the same host concurrently (e.g. the USB gadget
+// default for every unconfigured camera); share the in-flight request.
+const inFlightProbes = new Map<string, Promise<boolean>>();
+
 export async function probeLocalUrl(baseUrl: string, apiKey: string | null): Promise<boolean> {
   let probeBaseUrl: string;
   try {
@@ -60,18 +65,27 @@ export async function probeLocalUrl(baseUrl: string, apiKey: string | null): Pro
     return false;
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-  try {
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    if (apiKey) headers['X-API-Key'] = apiKey;
-    const response = await fetch(`${probeBaseUrl}/camera`, { headers, signal: controller.signal });
-    return response.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-  }
+  const probeKey = `${probeBaseUrl}|${apiKey ?? ''}`;
+  const existing = inFlightProbes.get(probeKey);
+  if (existing) return existing;
+
+  const probe = (async () => {
+    try {
+      const headers: Record<string, string> = { Accept: 'application/json' };
+      if (apiKey) headers['X-API-Key'] = apiKey;
+      const response = await fetchWithTimeout(`${probeBaseUrl}/camera`, {
+        headers,
+        timeoutMs: PROBE_TIMEOUT_MS,
+      });
+      return response.ok;
+    } catch {
+      return false;
+    } finally {
+      inFlightProbes.delete(probeKey);
+    }
+  })();
+  inFlightProbes.set(probeKey, probe);
+  return probe;
 }
 
 export async function probeAll(

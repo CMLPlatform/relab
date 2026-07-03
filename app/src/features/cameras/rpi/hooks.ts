@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import { invalidateProductQuery } from '@/features/products/queries';
+import { useScreenFocused } from '@/hooks/useScreenFocused';
 import type {
   CameraUpdate,
   PairingClaimRequest,
@@ -64,7 +65,13 @@ export function useCamerasQuery(
     includeTelemetry = false,
   }: { enabled?: boolean; includeTelemetry?: boolean } = {},
 ) {
-  return useQuery({ ...camerasQueryOptions(includeStatus, { includeTelemetry }), enabled });
+  // Stop polling (and live updates) while the screen is stacked behind another.
+  const subscribed = useScreenFocused();
+  return useQuery({
+    ...camerasQueryOptions(includeStatus, { includeTelemetry }),
+    enabled,
+    subscribed,
+  });
 }
 
 export function useCameraQuery(
@@ -72,14 +79,19 @@ export function useCameraQuery(
   includeStatus = false,
   { includeTelemetry = false }: { includeTelemetry?: boolean } = {},
 ) {
-  return useQuery(cameraQueryOptions(id, includeStatus, { includeTelemetry }));
+  const subscribed = useScreenFocused();
+  return useQuery({ ...cameraQueryOptions(id, includeStatus, { includeTelemetry }), subscribed });
 }
 
 export function useCameraTelemetryQuery(
   cameraId: string | null,
   { enabled = true, refetchInterval = 5_000 }: { enabled?: boolean; refetchInterval?: number } = {},
 ) {
-  return useQuery(cameraTelemetryQueryOptions(cameraId, { enabled, refetchInterval }));
+  const subscribed = useScreenFocused();
+  return useQuery({
+    ...cameraTelemetryQueryOptions(cameraId, { enabled, refetchInterval }),
+    subscribed,
+  });
 }
 
 export function useUpdateCameraMutation(id: string) {
@@ -122,7 +134,8 @@ export function useStreamStatusQuery(
   cameraId: string | null,
   { enabled = true }: { enabled?: boolean } = {},
 ) {
-  return useQuery(streamStatusQueryOptions(cameraId, { enabled }));
+  const subscribed = useScreenFocused();
+  return useQuery({ ...streamStatusQueryOptions(cameraId, { enabled }), subscribed });
 }
 
 export function useStartYouTubeStreamMutation(cameraId: string) {

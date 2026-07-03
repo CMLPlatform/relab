@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback } from 'react';
+import { type ComponentProps, type ReactNode, useCallback } from 'react';
 import type { Control, ControllerRenderProps, FieldErrors } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import {
@@ -126,229 +126,199 @@ export function PrivacyPolicy() {
   );
 }
 
-export function NewAccountUsernameStep({
+type StepFieldName = 'username' | 'email' | 'password';
+
+function NewAccountStep({
   control,
   errors,
   headlineColor,
-  onAdvance,
-}: SharedStepProps & { onAdvance: () => void }) {
-  const renderUsername = useCallback(
-    ({
-      field: { onChange, value },
-    }: {
-      field: ControllerRenderProps<NewAccountFormValues, 'username'>;
-    }) => (
+  mutedColor,
+  field,
+  lines,
+  inputProps,
+  next,
+  submit,
+  back,
+}: SharedStepProps & {
+  field: StepFieldName;
+  lines: [string, string, string];
+  inputProps: ComponentProps<typeof TextInput>;
+  next?: { testID: string; accessibilityLabel: string; onPress: () => void };
+  submit?: { isSubmitting: boolean; onPress: () => void };
+  back?: { label: string; accessibilityLabel: string; onPress: () => void };
+}) {
+  const error = errors[field];
+  const renderInput = useCallback(
+    ({ field: { onChange, value } }: { field: ControllerRenderProps<NewAccountFormValues> }) => (
       <TextInput
         style={styles.textInput}
         mode="outlined"
         value={value}
         onChangeText={onChange}
         autoCapitalize="none"
-        autoCorrect={false}
-        autoComplete="username-new"
-        textContentType="username"
-        placeholder="Username"
-        returnKeyType="next"
-        onSubmitEditing={onAdvance}
-        error={Boolean(errors.username)}
+        error={Boolean(error)}
+        {...inputProps}
       />
     ),
-    [onAdvance, errors.username],
+    [error, inputProps],
   );
   const arrowStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
       styles.arrowButton,
-      errors.username ? styles.arrowButtonDisabled : null,
-      pressed && !errors.username ? { opacity: 0.7 } : null,
+      error ? styles.arrowButtonDisabled : null,
+      pressed && !error ? { opacity: 0.7 } : null,
     ],
-    [errors.username],
+    [error],
   );
 
   return (
     <View>
-      <Text style={[styles.welcomeText, { color: headlineColor }]}>Welcome to</Text>
-      <Text style={[styles.brandText, { color: headlineColor }]}>RELab</Text>
-      <Text style={[styles.questionText, { color: headlineColor }]}>Who are you?</Text>
+      <Text style={[styles.welcomeText, { color: headlineColor }]}>{lines[0]}</Text>
+      <Text style={[styles.brandText, { color: headlineColor }]}>{lines[1]}</Text>
+      <Text style={[styles.questionText, { color: headlineColor }]}>{lines[2]}</Text>
       <View style={styles.inputContainer}>
         <View style={styles.inputRow}>
-          <Controller control={control} name="username" render={renderUsername} />
-          <Pressable
-            testID="username-next"
-            accessibilityRole="button"
-            accessibilityLabel="Continue to email"
-            disabled={Boolean(errors.username)}
-            onPress={onAdvance}
-            style={arrowStyle}
-          >
-            <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
-          </Pressable>
+          <Controller control={control} name={field} render={renderInput} />
+          {next ? (
+            <Pressable
+              testID={next.testID}
+              accessibilityRole="button"
+              accessibilityLabel={next.accessibilityLabel}
+              disabled={Boolean(error)}
+              onPress={next.onPress}
+              style={arrowStyle}
+            >
+              <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
+            </Pressable>
+          ) : null}
+          {submit ? (
+            <Button
+              mode="contained"
+              onPress={submit.onPress}
+              loading={submit.isSubmitting}
+              style={styles.registerButton}
+            >
+              Create Account
+            </Button>
+          ) : null}
         </View>
-        {errors.username ? (
+        {error ? (
           <HelperText type="error" visible style={styles.helperText}>
-            {errors.username.message}
+            {error.message}
           </HelperText>
         ) : null}
       </View>
+      {back ? (
+        <Pressable
+          style={styles.backButton}
+          onPress={back.onPress}
+          accessibilityRole="button"
+          accessibilityLabel={back.accessibilityLabel}
+        >
+          <Text style={[styles.backButtonArrow, { color: mutedColor }]}>‹</Text>
+          <Text style={[styles.backButtonText, { color: mutedColor }]}>{back.label}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
 
+export function NewAccountUsernameStep({
+  onAdvance,
+  ...shared
+}: SharedStepProps & { onAdvance: () => void }) {
+  return (
+    <NewAccountStep
+      {...shared}
+      field="username"
+      lines={['Welcome to', 'RELab', 'Who are you?']}
+      inputProps={{
+        autoCorrect: false,
+        autoComplete: 'username-new',
+        textContentType: 'username',
+        placeholder: 'Username',
+        returnKeyType: 'next',
+        onSubmitEditing: onAdvance,
+      }}
+      next={{
+        testID: 'username-next',
+        accessibilityLabel: 'Continue to email',
+        onPress: onAdvance,
+      }}
+    />
+  );
+}
+
 export function NewAccountEmailStep({
-  control,
-  errors,
-  headlineColor,
-  mutedColor,
   username,
   onAdvance,
   onBack,
+  ...shared
 }: SharedStepProps & {
   username: string;
   onAdvance: () => void;
   onBack: () => void;
 }) {
-  const renderEmail = useCallback(
-    ({
-      field: { onChange, value },
-    }: {
-      field: ControllerRenderProps<NewAccountFormValues, 'email'>;
-    }) => (
-      <TextInput
-        style={styles.textInput}
-        mode="outlined"
-        value={value}
-        onChangeText={onChange}
-        autoCapitalize="none"
-        autoCorrect={false}
-        autoComplete="email"
-        textContentType="emailAddress"
-        keyboardType="email-address"
-        placeholder="Email address"
-        returnKeyType="next"
-        onSubmitEditing={onAdvance}
-        error={Boolean(errors.email)}
-      />
-    ),
-    [onAdvance, errors.email],
-  );
-  const arrowStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.arrowButton,
-      errors.email ? styles.arrowButtonDisabled : null,
-      pressed && !errors.email ? { opacity: 0.7 } : null,
-    ],
-    [errors.email],
-  );
-
   return (
-    <View>
-      <Text style={[styles.welcomeText, { color: headlineColor }]}>Hi</Text>
-      <Text style={[styles.brandText, { color: headlineColor }]}>{username}</Text>
-      <Text style={[styles.questionText, { color: headlineColor }]}>How do we reach you?</Text>
-      <View style={styles.inputContainer}>
-        <View style={styles.inputRow}>
-          <Controller control={control} name="email" render={renderEmail} />
-          <Pressable
-            testID="email-next"
-            accessibilityRole="button"
-            accessibilityLabel="Continue to password"
-            disabled={Boolean(errors.email)}
-            onPress={onAdvance}
-            style={arrowStyle}
-          >
-            <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
-          </Pressable>
-        </View>
-        {errors.email ? (
-          <HelperText type="error" visible style={styles.helperText}>
-            {errors.email.message}
-          </HelperText>
-        ) : null}
-      </View>
-      <Pressable
-        style={styles.backButton}
-        onPress={onBack}
-        accessibilityRole="button"
-        accessibilityLabel="Go back to edit username"
-      >
-        <Text style={[styles.backButtonArrow, { color: mutedColor }]}>‹</Text>
-        <Text style={[styles.backButtonText, { color: mutedColor }]}>Edit username</Text>
-      </Pressable>
-    </View>
+    <NewAccountStep
+      {...shared}
+      field="email"
+      lines={['Hi', username, 'How do we reach you?']}
+      inputProps={{
+        autoCorrect: false,
+        autoComplete: 'email',
+        textContentType: 'emailAddress',
+        keyboardType: 'email-address',
+        placeholder: 'Email address',
+        returnKeyType: 'next',
+        onSubmitEditing: onAdvance,
+      }}
+      next={{
+        testID: 'email-next',
+        accessibilityLabel: 'Continue to password',
+        onPress: onAdvance,
+      }}
+      back={{
+        label: 'Edit username',
+        accessibilityLabel: 'Go back to edit username',
+        onPress: onBack,
+      }}
+    />
   );
 }
 
 export function NewAccountPasswordStep({
-  control,
-  errors,
-  headlineColor,
-  mutedColor,
   username,
   isSubmitting,
   onSubmit,
   onBack,
+  ...shared
 }: SharedStepProps & {
   username: string;
   isSubmitting: boolean;
   onSubmit: () => void;
   onBack: () => void;
 }) {
-  const renderPassword = useCallback(
-    ({
-      field: { onChange, value },
-    }: {
-      field: ControllerRenderProps<NewAccountFormValues, 'password'>;
-    }) => (
-      <TextInput
-        style={styles.textInput}
-        mode="outlined"
-        value={value}
-        onChangeText={onChange}
-        autoCapitalize="none"
-        autoComplete="password-new"
-        textContentType="newPassword"
-        secureTextEntry
-        placeholder="Password"
-        returnKeyType="done"
-        onSubmitEditing={onSubmit}
-        error={Boolean(errors.password)}
-      />
-    ),
-    [onSubmit, errors.password],
-  );
-
   return (
-    <View>
-      <Text style={[styles.welcomeText, { color: headlineColor }]}>Finally,</Text>
-      <Text style={[styles.brandText, { color: headlineColor }]}>{username}</Text>
-      <Text style={[styles.questionText, { color: headlineColor }]}>How will you log in?</Text>
-      <View style={styles.inputContainer}>
-        <View style={styles.inputRow}>
-          <Controller control={control} name="password" render={renderPassword} />
-          <Button
-            mode="contained"
-            onPress={onSubmit}
-            loading={isSubmitting}
-            style={styles.registerButton}
-          >
-            Create Account
-          </Button>
-        </View>
-        {errors.password ? (
-          <HelperText type="error" visible style={styles.helperText}>
-            {errors.password.message}
-          </HelperText>
-        ) : null}
-      </View>
-      <Pressable
-        style={styles.backButton}
-        onPress={onBack}
-        accessibilityRole="button"
-        accessibilityLabel="Go back to edit email address"
-      >
-        <Text style={[styles.backButtonArrow, { color: mutedColor }]}>‹</Text>
-        <Text style={[styles.backButtonText, { color: mutedColor }]}>Edit email address</Text>
-      </Pressable>
-    </View>
+    <NewAccountStep
+      {...shared}
+      field="password"
+      lines={['Finally,', username, 'How will you log in?']}
+      inputProps={{
+        autoComplete: 'password-new',
+        textContentType: 'newPassword',
+        secureTextEntry: true,
+        placeholder: 'Password',
+        returnKeyType: 'done',
+        onSubmitEditing: onSubmit,
+      }}
+      submit={{ isSubmitting, onPress: onSubmit }}
+      back={{
+        label: 'Edit email address',
+        accessibilityLabel: 'Go back to edit email address',
+        onPress: onBack,
+      }}
+    />
   );
 }
 

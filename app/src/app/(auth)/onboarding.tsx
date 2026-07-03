@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Keyboard, Platform, StyleSheet, type TextStyle, View } from 'react-native';
+import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 
 import { useDialog } from '@/components/base/dialogContext';
@@ -12,19 +12,10 @@ import { updateUser } from '@/services/api/auth/authentication';
 import { type OnboardingFormValues, onboardingSchema } from '@/services/api/validation/userSchema';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import { getErrorMessage } from '@/utils/errors';
+import { textGlow } from '@/utils/platformLayout';
 
 function getKeyboardHeight() {
   return Platform.OS !== 'web' && Keyboard.metrics() ? Keyboard.metrics()?.height : 0;
-}
-
-function getOnboardingTextShadow(color: string): TextStyle {
-  return Platform.OS === 'web'
-    ? ({ textShadow: `0px 0px 10px ${color}` } as TextStyle)
-    : {
-        textShadowColor: color,
-        textShadowOffset: { width: 0, height: 0 } as const,
-        textShadowRadius: 10,
-      };
 }
 
 function OnboardingBody({
@@ -39,7 +30,7 @@ function OnboardingBody({
   isValid: boolean;
 }) {
   const theme = useAppTheme();
-  const textShadowStyle = getOnboardingTextShadow(theme.colors.background);
+  const textShadowStyle = textGlow(theme.colors.background);
   const styles = createStyles(theme);
   const renderUsername = useCallback(
     ({

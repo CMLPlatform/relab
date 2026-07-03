@@ -6,7 +6,6 @@ const TRAILING_SLASHES_PATTERN = /\/+$/;
 export interface LocalConnectionState {
   mode: LocalConnectionMode;
   localBaseUrl: string | null;
-  localMediaUrl: string | null;
   localApiKey: string | null;
   isInitializing: boolean;
 }
@@ -41,7 +40,6 @@ export function createInitialLocalConnectionState(): LocalConnectionState {
   return {
     mode: 'probing',
     localBaseUrl: null,
-    localMediaUrl: null,
     localApiKey: null,
     isInitializing: true,
   };
@@ -89,7 +87,6 @@ export function localConnectionReducer(
       return {
         ...state,
         localBaseUrl,
-        localMediaUrl: deriveLocalMediaUrl(localBaseUrl),
         localApiKey,
       };
     }
@@ -104,7 +101,6 @@ export function localConnectionReducer(
         ...state,
         mode: 'local',
         localBaseUrl,
-        localMediaUrl: deriveLocalMediaUrl(localBaseUrl),
         localApiKey: action.payload.localApiKey,
       };
     }
@@ -113,7 +109,6 @@ export function localConnectionReducer(
         ...state,
         mode: 'relay',
         localBaseUrl: null,
-        localMediaUrl: null,
         localApiKey: null,
       };
     case 'finishInitialization':
