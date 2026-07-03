@@ -1,4 +1,3 @@
-# spell-checker: ignore sbfm
 locals {
   cloudflare_zone = var.cloudflare_zone_name
 

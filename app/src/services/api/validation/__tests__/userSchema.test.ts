@@ -10,8 +10,6 @@ import {
   usernameSchema,
 } from '../userSchema';
 
-// spell-checker: ignore blocklisted
-
 // Helper to extract all error messages from a Zod result
 function getErrorMessages(result: unknown): string[] {
   if (

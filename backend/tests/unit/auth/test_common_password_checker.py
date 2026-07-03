@@ -1,5 +1,4 @@
 """Unit tests for common-password blocklist loading and Redis caching."""
-# spell-checker: ignore passw
 
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock

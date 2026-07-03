@@ -1,5 +1,4 @@
 """Database models for data collection on products."""
-# spell-checker: ignore trgm
 
 from pydantic import UUID4
 from sqlalchemy import CheckConstraint, Computed, ForeignKey, Index, and_, asc, select, text

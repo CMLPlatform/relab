@@ -1,5 +1,4 @@
 """Shared support code for split RPi Cam service tests."""
-# spell-checker: ignore excinfo
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING

@@ -3,7 +3,6 @@
 This module keeps the app-facing cache API small and stable while using
 ``cashews`` underneath for storage and TTL handling.
 """
-# spell-checker: ignore digestmod
 
 import asyncio
 import hashlib

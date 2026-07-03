@@ -1,7 +1,6 @@
-import { z } from 'zod';
-// spell-checker: ignore blocklisted, changeme, letmein, reverseengineeringlab
-
 // Canonical validation constraints used by the auth schemas and helper text.
+
+import { z } from 'zod';
 export const USERNAME_MIN_LENGTH = 2;
 export const USERNAME_MAX_LENGTH = 50;
 export const USERNAME_PATTERN = /^\w+$/; // Only letters, numbers, and underscores

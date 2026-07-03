@@ -21,7 +21,6 @@ command to the worker that owns the connection:
 Binary payloads (HLS segments, captured images) are base-64 encoded inside
 the JSON response so a single ``decode_responses=True`` Redis client suffices.
 """
-# spell-checker: ignore RPUSH, BLPOP
 
 import asyncio
 import base64

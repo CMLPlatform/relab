@@ -3,7 +3,6 @@
 Provides the base user/OAuth models and async database interface that
 FastAPI Users requires.
 """
-# spell-checker: ignore UOAP
 
 import uuid
 from typing import TYPE_CHECKING, Annotated, Any, cast

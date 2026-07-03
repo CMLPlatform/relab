@@ -1,5 +1,4 @@
 """Shared fixtures for unit tests (no database required)."""
-# spell-checker: ignore fixturenames
 
 from pathlib import Path
 from typing import TYPE_CHECKING

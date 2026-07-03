@@ -1,7 +1,5 @@
 """Unit tests for refresh token service."""
 
-# Private member behaviour is tested here, so we want to allow it.
-
 import json
 import uuid
 from typing import TYPE_CHECKING

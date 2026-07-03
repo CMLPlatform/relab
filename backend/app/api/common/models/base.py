@@ -1,5 +1,4 @@
 """Base model helpers and generic mixins for ORM models."""
-# spell-checker: ignore aeiou
 
 import re
 from datetime import datetime  # noqa: TC003 # Used in runtime for ORM mapping, not just for type annotations
@@ -91,7 +90,7 @@ class TimeStampMixinBare:
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
-        default=None,  # spell-checker: ignore onupdate
+        default=None,
     )
 
 

@@ -1,5 +1,4 @@
 """Common-password validation service for auth flows."""
-# spell-checker: ignore xato
 
 import logging
 import unicodedata

@@ -3,7 +3,6 @@ import { isHttpUrl, isSafeImageUrl } from '@/utils/urlSafety';
 
 export const PRODUCT_NAME_MIN_LENGTH = 2;
 export const PRODUCT_NAME_MAX_LENGTH = 100;
-// spell-checker: ignore youtu.be
 
 const isYouTubeHostname = (hostname: string) => {
   const normalizedHostname = hostname.toLowerCase();

@@ -1,5 +1,4 @@
 """Tests for video DTO validation."""
-# spell-checker: ignore renderable
 
 import pytest
 from pydantic import ValidationError

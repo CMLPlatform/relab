@@ -4,7 +4,6 @@ Revision ID: a3fbac86fbbb
 Revises: 7a6d4e8f9b10
 Create Date: 2026-05-13 00:00:00.000000
 """
-# spell-checker: ignore autovacuum
 
 from collections.abc import Sequence
 

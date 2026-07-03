@@ -1,5 +1,4 @@
 """Tests for data_collection and shared search filter helper functions."""
-# spell-checker: ignore Makita
 
 import typing
 from typing import TYPE_CHECKING, Literal, cast, get_args, get_origin

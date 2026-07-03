@@ -1,5 +1,4 @@
 """Relay camera HTTP-style commands through an active WebSocket connection."""
-# spell-checker: ignore BLPOP
 
 import asyncio
 import logging

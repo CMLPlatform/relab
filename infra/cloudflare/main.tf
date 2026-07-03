@@ -1,5 +1,3 @@
-# spell-checker: ignore cfargotunnel
-
 resource "cloudflare_zero_trust_tunnel_cloudflared" "relab" {
   account_id = var.cloudflare_account_id
   name       = local.tunnel_name

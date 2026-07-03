@@ -1,5 +1,4 @@
 """Central upload allowlists and validation helpers."""
-# spell-checker: ignore HYPERSPECTRAL nitf ooxml
 
 import json
 from pathlib import Path

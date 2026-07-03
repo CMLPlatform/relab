@@ -1,7 +1,4 @@
 """Unit tests for disposable-email blocklist loading and Redis caching."""
-# spell-checker: ignore nmailinator
-
-# Private member behaviour is tested here to avoid background task timing.
 
 from typing import TYPE_CHECKING, Self
 from unittest.mock import AsyncMock

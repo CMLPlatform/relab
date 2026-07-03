@@ -1,5 +1,4 @@
 # Trivy allowlist for image vulnerability and IaC/config scans.
-# spell-checker: ignore Dockerfiles kenv SCEP untgz
 #
 # Trivy's YAML ignore format is still experimental, so workflows pass this file
 # explicitly. Every entry must include an expiry and a clear statement.

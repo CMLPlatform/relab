@@ -1,5 +1,3 @@
-// spell-checker: ignore Zoomable
-
 import { act, render, screen } from '@testing-library/react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import ZoomableImage from '../ZoomableImage';

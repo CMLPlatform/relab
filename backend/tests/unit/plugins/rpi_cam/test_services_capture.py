@@ -1,5 +1,4 @@
 """Unit tests for RPi Cam image capture service helpers."""
-# spell-checker: ignore excinfo
 
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch

@@ -102,14 +102,14 @@ services:
       <<: *healthcheck-defaults
       test: [ "CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a $${REDIS_PASSWORD}} ping | grep -q PONG" ]
       start_period: 5s
-    command: [ "sh", "-c", "redis-server --appendonly yes --save 60 1 $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}" ] # spell-checker: ignore requirepass
+    command: [ "sh", "-c", "redis-server --appendonly yes --save 60 1 $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}" ]
     networks:
       - data
 
   postgres:
     image: postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4
     restart: unless-stopped
-    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "pg_stat_statements.track=all"]
+    command: [ "postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "pg_stat_statements.track=all" ]
     volumes:
       - database_data:/var/lib/postgresql
       # Postgres runs initdb files in sorted order on fresh volumes.

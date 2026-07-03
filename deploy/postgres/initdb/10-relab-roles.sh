@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# spell-checker: ignore NOREPLICATION
-
 set -euo pipefail
 
 read_secret() {

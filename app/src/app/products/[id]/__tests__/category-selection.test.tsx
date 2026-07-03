@@ -116,7 +116,7 @@ describe('CategorySelection', () => {
     renderWithProviders(<CategorySelection />);
     // Agricultural products has 1 subcategory; shows "1 subcategories" link
     await waitFor(() => {
-      expect(screen.getByText(SUBCATEGORY_COUNT_PATTERN)).toBeOnTheScreen(); // spell-checker: ignore subcategor
+      expect(screen.getByText(SUBCATEGORY_COUNT_PATTERN)).toBeOnTheScreen();
     });
     fireEvent.press(screen.getByText('1 subcategories'));
     await waitFor(() => {

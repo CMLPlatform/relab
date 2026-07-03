@@ -1,5 +1,4 @@
 """Unit tests for data collection CRUD operations."""
-# spell-checker: ignore Bosch, Combi, Makita
 
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch

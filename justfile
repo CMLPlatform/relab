@@ -1,6 +1,5 @@
 # RELab Monorepo Task Runner
 # Run `just --list` to see all available commands
-# spell-checker: ignore esac shellfmt shfmt
 
 # Show available recipes
 default:
@@ -72,11 +71,6 @@ pre-commit:
     uv run pre-commit run --all-files
     @echo "✅ Repository policy checks passed"
 
-# Run cached full-repo spell checking
-spellcheck:
-    pnpm run spellcheck
-    @echo "✅ Full-repo spell check passed"
-
 # Lint all tracked shell scripts with the pre-commit-managed ShellCheck hook
 shellcheck:
     uv run pre-commit run shellcheck --files $(git ls-files '*.sh')
@@ -97,7 +91,7 @@ lint:
     echo "✅ Root and subrepo lint passed"
 
 # Run root and subrepo quality checks (lint + typecheck + format verification).
-# Policy checks (spellcheck, shellcheck, file-format) live in `just pre-commit`, not here.
+# Policy checks (shellcheck, file-format) live in `just pre-commit`, not here.
 check:
     #!/usr/bin/env bash
     set -euo pipefail

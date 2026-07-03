@@ -1,5 +1,4 @@
 """Refresh the committed common-password fallback list from the pinned upstream source."""
-# spell-checker: ignore SecLists
 
 import asyncio
 import logging

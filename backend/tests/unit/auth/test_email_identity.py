@@ -1,5 +1,4 @@
 """Tests for secure email identity canonicalization."""
-# spell-checker: ignore bücher, bcher
 
 import pytest
 

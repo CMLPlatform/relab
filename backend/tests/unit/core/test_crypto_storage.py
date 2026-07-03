@@ -1,5 +1,4 @@
 """Tests for application-level cryptographic storage helpers."""
-# spell-checker: ignore decryptable
 
 import base64
 

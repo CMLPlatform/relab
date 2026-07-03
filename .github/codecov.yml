@@ -1,6 +1,5 @@
 # Codecov configuration
 # https://docs.codecov.com/docs/codecovyml-reference
-# spell-checker: ignore carryforward
 
 coverage:
   # Overall project status check, requires all flags to report before posting

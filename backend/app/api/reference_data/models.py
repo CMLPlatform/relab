@@ -1,7 +1,5 @@
 """Database models for reference data."""
 
-# spell-checker: ignore trgm
-
 from enum import StrEnum
 
 from sqlalchemy import Computed, ForeignKey, Index, String, and_

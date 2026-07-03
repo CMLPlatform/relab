@@ -2,7 +2,6 @@
 
 Tests CORS settings, host allowlists, transport settings, and environment file resolution.
 """
-# spell-checker: ignore PGSSL
 
 import ssl
 from typing import TYPE_CHECKING

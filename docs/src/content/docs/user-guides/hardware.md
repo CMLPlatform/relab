@@ -3,8 +3,6 @@ title: Hardware
 description: Choose a simple or advanced capture setup for RELab documentation work.
 ---
 
-<!-- spell-checker: ignore raspberrypi -->
-
 Good lighting and a clean workspace matter more than fancy equipment. Start simple; add complexity only if your workflow actually needs it.
 
 ## Tier 1: simple setup

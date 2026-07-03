@@ -1,5 +1,4 @@
 """Unit tests for reference_data filter helper functions (SQL-clause level, no DB required)."""
-# Private member behaviour is tested here, so we want to allow it.
 
 from typing import TYPE_CHECKING, cast
 

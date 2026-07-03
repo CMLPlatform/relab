@@ -196,7 +196,7 @@ Run the relevant subrepo checks before opening a pull request:
 - backend: unit or integration tests, Ruff, and `ty`
 - app: Jest, TypeScript, and lint checks
 - www: Vitest, Astro checks, and Playwright where browser behavior changes
-- docs: formatting, spelling, and build smoke check
+- docs: formatting and build smoke check
 
 For cross-repo or policy changes, also run `just ci` from the root. GitHub Actions covers dependency review, container scanning, repository hygiene, and release artifact checks on every push.
 

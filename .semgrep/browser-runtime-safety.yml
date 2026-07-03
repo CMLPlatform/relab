@@ -1,5 +1,3 @@
-# spell-checker: ignore webview
-
 rules:
   - id: relab.browser-runtime-safety.astro-set-html
     message: Do not render unsanitized HTML with Astro set:html; use structured components instead.

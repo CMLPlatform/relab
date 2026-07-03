@@ -66,7 +66,7 @@ def load_hs_rows_from_csv(csv_path: Path) -> list[dict[str, Any]]:
 
             rows.append(
                 {
-                    "external_id": row["hscode"].strip(),  # spell-checker: ignore hscode
+                    "external_id": row["hscode"].strip(),
                     "name": row["description"].strip()[:250],  # Truncate to 250 chars to fit DB
                     "parent_id": row["parent"].strip(),
                 }

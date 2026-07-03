@@ -16,7 +16,6 @@ Architecture:
 - This keeps pure unit test runs from paying the Docker startup cost
 """
 
-# spell-checker: ignore datname, collectonly, workerinput
 import asyncio
 import logging
 import os

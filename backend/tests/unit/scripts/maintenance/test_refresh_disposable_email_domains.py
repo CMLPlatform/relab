@@ -1,6 +1,4 @@
 """Unit tests for the disposable-email fallback refresh script."""
-# spell-checker: ignore nmailinator
-# Private member behaviour is tested here, so we want to allow it.
 
 from typing import TYPE_CHECKING
 

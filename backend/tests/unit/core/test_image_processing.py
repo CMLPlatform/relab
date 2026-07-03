@@ -1,5 +1,4 @@
 """Unit tests for image processing utilities."""
-# spell-checker: ignore getexif, GPSIFD
 
 import io
 from pathlib import Path

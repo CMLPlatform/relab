@@ -1,5 +1,3 @@
-// spell-checker: ignore Zoomable
-
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import { ProductImageCameraDialogs } from '@/components/product/gallery/ProductImageCameraDialogs';

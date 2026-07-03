@@ -1,5 +1,4 @@
 """Tests for authentication request and response schemas."""
-# spell-checker: ignore álîcé
 
 import pytest
 from pydantic import ValidationError

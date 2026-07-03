@@ -1,6 +1,4 @@
 """Unit tests for the RPi Cam LL-HLS proxy router."""
-# spell-checker: ignore ftypmp, EXTM
-# Private member behaviour is tested here, so we want to allow it.
 
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch

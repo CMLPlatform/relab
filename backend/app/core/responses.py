@@ -1,5 +1,4 @@
 """HTTP response helpers for standardized payloads and conditional requests."""
-# spell-checker: ignore jsonable
 
 import hashlib
 import json

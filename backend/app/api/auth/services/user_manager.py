@@ -66,7 +66,7 @@ def _login_identifier_rate_limit_key(identifier: str) -> str:
     return rate_limit_bucket_key("auth:login:account", identifier)
 
 
-class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: ignore UUIDID
+class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
     """User manager class for FastAPI-Users."""
 
     # We will initialize the user manager with a UserDatabaseAsync instance in the dependency function below

@@ -1,5 +1,4 @@
 """Modern test factories using polyfactory for backend test models."""
-# spell-checker: ignore bothify, numerify
 
 from typing import Any, TypeVar
 

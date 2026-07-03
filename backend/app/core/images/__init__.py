@@ -1,5 +1,4 @@
 """Image processing utilities using Pillow."""
-# spell-checker: ignore getexif, LANCZOS
 
 from .constants import ALLOWED_IMAGE_MIME_TYPES, FORMAT_JPEG, FORMAT_WEBP, MAX_IMAGE_DIMENSION, THUMBNAIL_WIDTHS
 from .exif import apply_exif_orientation, strip_sensitive_exif

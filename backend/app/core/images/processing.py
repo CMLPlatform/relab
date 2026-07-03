@@ -1,5 +1,4 @@
 """Image processing helpers for originals and ad-hoc resized bytes."""
-# spell-checker: ignore getexif
 
 import contextlib
 from typing import TYPE_CHECKING

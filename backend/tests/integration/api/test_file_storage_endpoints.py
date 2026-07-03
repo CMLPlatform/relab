@@ -1,5 +1,4 @@
 """Integration tests for file storage endpoints."""
-# spell-checker: ignore ENVI geocube hyperspectral NITF
 
 import json
 from io import BytesIO

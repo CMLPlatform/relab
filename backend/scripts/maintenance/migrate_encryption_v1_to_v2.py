@@ -11,7 +11,6 @@ Required environment:
 - database connection values, including ``DATABASE_APP_PASSWORD`` from the same
   secret-file lookup model.
 """
-# spell-checker: ignore aesgcm, conninfo
 
 import argparse
 import base64

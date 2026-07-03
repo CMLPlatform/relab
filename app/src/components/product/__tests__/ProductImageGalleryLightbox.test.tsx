@@ -1,5 +1,3 @@
-// spell-checker: ignore Zoomable
-
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import {

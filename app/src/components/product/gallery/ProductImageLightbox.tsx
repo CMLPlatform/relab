@@ -32,8 +32,6 @@ import {
 } from '@/components/product/gallery/shared';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
-// spell-checker: ignore Zoomable
-
 type Props = {
   visible: boolean;
   images: string[];

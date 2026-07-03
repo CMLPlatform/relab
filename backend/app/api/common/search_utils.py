@@ -18,8 +18,6 @@ Example:
             return [cast("SearchableColumn", MyModel.name)]
 """
 
-# spell-checker: ignore trgm
-
 from typing import Any
 
 from sqlalchemy import ColumnElement, Select, func, or_

@@ -1,5 +1,4 @@
 """Tests for static and upload-backed file serving."""
-# spell-checker: ignore évil
 
 from typing import TYPE_CHECKING
 from urllib.parse import quote

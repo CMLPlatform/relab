@@ -2,8 +2,6 @@
 # Run `just --list` to see all available commands
 # Run from root: `just backend/<recipe>` or from backend/: `just <recipe>`
 
-# spell-checker: ignore esac, htmlcov
-
 # Show available recipes
 default:
     @just --list

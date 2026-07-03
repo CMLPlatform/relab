@@ -1,5 +1,4 @@
 """Authenticated encryption helpers for reversible sensitive values."""
-# spell-checker: ignore AESGCM
 
 import base64
 import binascii

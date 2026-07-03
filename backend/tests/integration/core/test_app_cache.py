@@ -1,5 +1,4 @@
 """Integration tests for endpoint caching with the shared cache wrapper."""
-# spell-checker: ignore etagged
 
 import asyncio
 from contextlib import asynccontextmanager

@@ -1,5 +1,4 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-action.json
-# spell-checker: ignore esac
 name: Docker Smoke
 description: |
   Run an allowlisted just-defined docker smoke recipe on a fresh checkout with Buildx.

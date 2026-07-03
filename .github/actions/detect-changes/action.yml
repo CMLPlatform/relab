@@ -1,5 +1,4 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-action.json
-# spell-checker: ignore dorny
 name: Detect Changes
 description: |
   Run dorny/paths-filter once and expose the raw per-area flags plus event metadata.

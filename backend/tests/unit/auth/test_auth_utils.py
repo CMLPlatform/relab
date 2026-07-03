@@ -1,5 +1,4 @@
 """Unit tests for authentication utilities."""
-# Private member behaviour is tested here, so we want to allow it.
 
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch

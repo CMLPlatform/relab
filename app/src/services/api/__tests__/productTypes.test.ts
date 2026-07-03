@@ -4,8 +4,6 @@ import { API_URL } from '@/config';
 import { server } from '@/test-utils/server';
 import { allProductTypes, searchProductTypes } from '../productTypes';
 
-// spell-checker: ignore electr, furnitur
-
 describe('productTypes API service', () => {
   describe('searchProductTypes', () => {
     it('returns product types from a successful response', async () => {

@@ -1,5 +1,4 @@
 """Database models for the Raspberry Pi Camera plugin."""
-# spell-checker: ignore ondelete
 
 import uuid
 from datetime import datetime

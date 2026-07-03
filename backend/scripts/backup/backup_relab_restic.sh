@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 # Create encrypted restic backups for the PostgreSQL database and user uploads.
 
-# spell-checker: ignore chunker
-
 set -euo pipefail
 
 log() {

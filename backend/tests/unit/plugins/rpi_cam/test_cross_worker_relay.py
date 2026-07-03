@@ -5,7 +5,6 @@ These tests exercise the serialization, deadline, timeout, and binary-payload
 contract without standing up a real Redis (a mock Redis is sufficient to
 validate the module's own logic — the Redis driver itself is not under test).
 """
-# spell-checker: ignore blpop, rpush
 
 import asyncio
 import base64

@@ -9,8 +9,6 @@
 #   docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
-# spell-checker: ignore clamd, clamdscan, REDISCLI, requirepass, tmpfs
-
 # --- Reusable fragments ------------------------------------------------------
 # Shipping container logs to a central Loki instance is opt-in: include
 # compose.logging.loki.yaml alongside this file (the justfile does this

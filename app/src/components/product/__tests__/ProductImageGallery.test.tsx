@@ -5,8 +5,6 @@
  * existing ProductImageGalleryLightbox-test.tsx which covers that surface.
  */
 
-// spell-checker: ignore Zoomable
-
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';

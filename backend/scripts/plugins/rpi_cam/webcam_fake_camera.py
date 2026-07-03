@@ -18,7 +18,6 @@ Supports both connection modes:
 Requirements:
     uv sync --group fake-camera
 """
-# spell-checker: ignore imencode, IMWRITE
 
 import argparse
 import asyncio

@@ -14,7 +14,6 @@ interface Props {
   onSwipe?: (direction: -1 | 1) => void;
 }
 
-// spell-checker: ignore Zoomable
 export default function ZoomableImage({ uri, onScaleChange, setIsZoomed, onSwipe }: Props) {
   const [isZoomedInternal, setIsZoomedInternal] = useState(false);
 

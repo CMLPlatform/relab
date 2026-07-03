@@ -1,5 +1,3 @@
-# spell-checker: ignore googletagmanager, hotjar
-
 rules:
   - id: relab.third-party-browser-js.remote-script-src
     message: Do not load browser runtime scripts from third-party origins; bundle first-party code instead.

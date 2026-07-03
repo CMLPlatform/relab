@@ -54,7 +54,6 @@ COPY --link --from=build --chown=$APP_UID:$APP_UID $WORKDIR/data/seed $WORKDIR/d
 COPY --link --from=build --chown=$APP_UID:$APP_UID $WORKDIR/pyproject.toml $WORKDIR/pyproject.toml
 COPY --link --from=build --chown=$APP_UID:$APP_UID $WORKDIR/scripts $WORKDIR/scripts
 
-# spell-checker: ignore PYTHONUNBUFFERED
 ENV PYTHONPATH=$WORKDIR \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

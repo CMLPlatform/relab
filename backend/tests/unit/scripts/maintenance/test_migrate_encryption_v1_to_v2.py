@@ -1,5 +1,4 @@
 """Tests for the one-time encryption migration script."""
-# spell-checker: ignore aesgcm
 
 import base64
 from typing import TYPE_CHECKING

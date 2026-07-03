@@ -1,5 +1,4 @@
 """Shared constants for image validation and processing."""
-# spell-checker: ignore LANCZOS
 
 from PIL import Image as PILImage
 
@@ -13,6 +12,7 @@ __all__ = [
     "_EXIF_ORIENTATION_TAG",
     "_SENSITIVE_EXIF_TAGS",
 ]
+
 
 FORMAT_JPEG = "JPEG"
 FORMAT_WEBP = "WEBP"

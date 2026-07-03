@@ -4,7 +4,6 @@
 #   - `dev`     → Metro dev server (use with `docker compose watch`)
 #   - `runtime` → caddy-served expo web export (default)
 
-# spell-checker: ignore USEPOLLING
 ARG WORKDIR=/opt/relab
 
 # --- Shared deps stage ---

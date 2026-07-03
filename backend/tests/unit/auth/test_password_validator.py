@@ -1,5 +1,4 @@
 """Unit tests for password validation helpers."""
-# spell-checker: ignore alicewonder, blocklisted, elevenchars, hibp
 
 import hashlib
 from unittest.mock import AsyncMock, Mock

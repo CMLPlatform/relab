@@ -1,5 +1,4 @@
 """EXIF cleaning and orientation helpers."""
-# spell-checker: ignore getexif
 
 from PIL import Image as PILImage
 from PIL import ImageOps

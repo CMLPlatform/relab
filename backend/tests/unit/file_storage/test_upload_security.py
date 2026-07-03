@@ -1,5 +1,4 @@
 """Tests for ASVS V5 malware scanning controls."""
-# spell-checker: ignore clamav, clamd, EICAR
 
 from io import BytesIO
 

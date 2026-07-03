@@ -1,5 +1,4 @@
 """Unit tests for cache utilities."""
-# spell-checker: ignore digestmod
 
 from unittest.mock import AsyncMock, MagicMock, patch
 

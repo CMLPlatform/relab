@@ -1,5 +1,4 @@
 # compose.dev.yaml (DEVELOPMENT - explicit dev overlay)
-# spell-checker: ignore REDISCLI requirepass
 # Run with: COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml up
 
 x-backend-runtime-secrets: &backend-runtime-secrets

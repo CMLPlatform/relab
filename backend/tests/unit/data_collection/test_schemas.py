@@ -3,7 +3,6 @@
 Covers custom validators, computed properties, and business-rule constraints.
 Pydantic built-in behavior (required fields, optional defaults, roundtrip) is not tested.
 """
-# spell-checker: ignore KALLAX
 
 from datetime import UTC, datetime
 from uuid import uuid4

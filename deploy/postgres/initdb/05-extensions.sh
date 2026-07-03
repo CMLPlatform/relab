@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# spell-checker: ignore EOSQL
 
 set -euo pipefail
 

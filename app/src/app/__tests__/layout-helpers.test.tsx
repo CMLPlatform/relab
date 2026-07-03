@@ -10,8 +10,6 @@ import { loadAnimatedBackground } from '@/utils/router/backgroundLoader';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
 
-// spell-checker: ignore averyverylongu
-
 const mockPush = jest.fn();
 const mockUseAuth = jest.fn();
 const mockUsePathname = jest.fn(() => '/products');

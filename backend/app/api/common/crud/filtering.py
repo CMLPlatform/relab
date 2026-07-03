@@ -1,5 +1,4 @@
 """Filtering integration boundary for CRUD queries."""
-# spell-checker: ignore isouter
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar, Self, cast

@@ -1,5 +1,4 @@
 """Redis connection management."""
-# spell-checker: ignore BLPOP, BRPOP, coro
 
 import logging
 import ssl
