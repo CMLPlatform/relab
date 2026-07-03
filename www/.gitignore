@@ -24,6 +24,7 @@ test-results/
 ### Manual additions
 # Test coverage
 coverage/
+junit.xml
 
 # Env files (frontend env files are all public)
 !.env.dev

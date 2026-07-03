@@ -84,7 +84,7 @@ test-integration *ARGS:
 # Run the backend CI test suite
 test-ci:
     mkdir -p reports/coverage
-    {{ pytest }} tests/unit tests/integration -n auto --dist=loadgroup --durations=20 --cov --cov-report=xml --cov-report=term
+    {{ pytest }} tests/unit tests/integration -n auto --dist=loadgroup --durations=20 --junitxml=reports/junit.xml --cov --cov-report=xml --cov-report=term
 
 # Run the full backend CI pipeline locally
 ci: check test-ci

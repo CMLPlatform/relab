@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Upload Test Results
+description: Upload JUnit test results to Codecov Test Analytics with shared defaults.
+
+inputs:
+  files:
+    description: JUnit XML file path(s) to upload.
+    required: true
+  flags:
+    description: Codecov flags.
+    required: true
+  token:
+    description: Codecov token.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Upload test results to Codecov
+      uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3
+      with:
+        files: ${{ inputs.files }}
+        flags: ${{ inputs.flags }}
+        token: ${{ inputs.token }}
+        fail_ci_if_error: false
+        disable_search: "true"
+        slug: CMLPlatform/relab

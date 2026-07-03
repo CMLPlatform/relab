@@ -35,6 +35,10 @@ module.exports = {
   rootDir: __dirname,
   testTimeout: 15_000,
   watchman: false,
+  // In CI also emit JUnit XML for Codecov Test Analytics (flaky/slow-test tracking).
+  reporters: process.env.CI
+    ? ['default', ['jest-junit', { outputDirectory: '<rootDir>', outputName: 'junit.xml' }]]
+    : ['default'],
   coverageProvider: 'v8',
   coverageDirectory: 'coverage',
   coverageReporters: ['lcov', 'text'],
