@@ -43,8 +43,8 @@ class CameraConnectionManager:
     def __init__(self) -> None:
         # camera_id → active WebSocket
         self._connections: dict[UUID4, WebSocket] = {}
-        # msg_id → Future[tuple[dict, bytes | None]]
-        self._pending: dict[str, asyncio.Future[tuple[dict, bytes | None]]] = {}
+        # msg_id → (owning camera_id, Future[tuple[dict, bytes | None]])
+        self._pending: dict[str, tuple[UUID4, asyncio.Future[tuple[dict, bytes | None]]]] = {}
 
     # ── Connection lifecycle ──────────────────────────────────────────────────
 
@@ -64,8 +64,11 @@ class CameraConnectionManager:
         logger.info("Camera %s connected via WebSocket", camera_id)
 
     def unregister(self, camera_id: UUID4) -> None:
-        """Remove a camera's connection and cancel any pending futures."""
+        """Remove a camera's connection and fail its pending futures so callers 503 fast."""
         self._connections.pop(camera_id, None)
+        for owner, future in self._pending.values():
+            if owner == camera_id and not future.done():
+                future.set_exception(RuntimeError(f"Camera {camera_id} disconnected during command."))
         logger.info("Camera %s disconnected from WebSocket", camera_id)
 
     def is_connected(self, camera_id: UUID4) -> bool:
@@ -100,7 +103,7 @@ class CameraConnectionManager:
         msg_id = _new_msg_id()
         loop = asyncio.get_running_loop()
         future: asyncio.Future[tuple[dict, bytes | None]] = loop.create_future()
-        self._pending[msg_id] = future
+        self._pending[msg_id] = (camera_id, future)
 
         try:
             payload = (
@@ -117,9 +120,9 @@ class CameraConnectionManager:
 
     def resolve_json(self, msg_id: str, data: dict, binary: bytes | None) -> None:
         """Resolve a pending future with the response from the camera."""
-        future = self._pending.get(msg_id)
-        if future and not future.done():
-            future.set_result((data, binary))
+        entry = self._pending.get(msg_id)
+        if entry and not entry[1].done():
+            entry[1].set_result((data, binary))
 
     async def handle_ping(self, camera_id: UUID4) -> None:
         """Respond to a ping from the camera."""
