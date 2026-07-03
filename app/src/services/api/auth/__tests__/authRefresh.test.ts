@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fetchWithAuth, refreshAuthToken } from '../authRefresh';
-import { authRuntime } from '../authRuntime';
+import { fetchWithAuth, refreshAuthToken } from '@/services/api/auth/authRefresh';
+import { authRuntime } from '@/services/api/auth/authRuntime';
 
-jest.mock('../authSession', () => ({
+jest.mock('@/services/api/auth/authSession', () => ({
   isWeb: () => false,
   hasWebSessionFlag: () => true,
   setWebSessionFlag: jest.fn(),
@@ -14,7 +14,7 @@ jest.mock('../authSession', () => ({
   clearStoredRefreshToken: jest.fn(),
 }));
 
-jest.mock('../../request', () => ({
+jest.mock('@/services/api/request', () => ({
   createRequestId: () => 'req-123',
   fetchWithTimeout: jest.fn(),
 }));
@@ -31,11 +31,11 @@ describe('authRefresh', () => {
   });
 
   it('stores refreshed token on native refresh success', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../../request') as {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
     const { loadStoredRefreshToken, persistStoredAccessToken, persistStoredRefreshToken } =
-      jest.requireMock('../authSession') as {
+      jest.requireMock('@/services/api/auth/authSession') as {
         loadStoredRefreshToken: jest.MockedFunction<() => Promise<string | undefined>>;
         persistStoredAccessToken: jest.Mock;
         persistStoredRefreshToken: jest.Mock;
@@ -62,10 +62,10 @@ describe('authRefresh', () => {
   });
 
   it('retries an authenticated request after a 401 and refresh', async () => {
-    const { fetchWithTimeout } = jest.requireMock('../../request') as {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
-    const { loadStoredRefreshToken } = jest.requireMock('../authSession') as {
+    const { loadStoredRefreshToken } = jest.requireMock('@/services/api/auth/authSession') as {
       loadStoredRefreshToken: jest.MockedFunction<() => Promise<string | undefined>>;
     };
     loadStoredRefreshToken.mockResolvedValueOnce('retry-refresh-token');
@@ -87,5 +87,76 @@ describe('authRefresh', () => {
 
     expect(response.ok).toBe(true);
     expect(fetchWithTimeout).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps stored tokens when the refresh endpoint fails transiently (5xx)', async () => {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
+      fetchWithTimeout: jest.Mock;
+    };
+    const { loadStoredRefreshToken, clearStoredRefreshToken } = jest.requireMock(
+      '@/services/api/auth/authSession',
+    ) as {
+      loadStoredRefreshToken: jest.MockedFunction<() => Promise<string | undefined>>;
+      clearStoredRefreshToken: jest.Mock;
+    };
+    loadStoredRefreshToken.mockResolvedValueOnce('valid-refresh-token');
+    authRuntime.token = 'expired-token';
+
+    fetchWithTimeout
+      .mockResolvedValueOnce({ status: 401, ok: false } as never) // original request
+      .mockResolvedValueOnce({ status: 503, ok: false } as never); // refresh during deploy
+
+    const response = await fetchWithAuth('http://127.0.0.1:18010', 'http://example.test');
+
+    expect(response.status).toBe(401);
+    expect(authRuntime.explicitlyLoggedOut).toBe(false);
+    expect(clearStoredRefreshToken).not.toHaveBeenCalled();
+  });
+
+  it('keeps stored tokens when the refresh request throws (network error/timeout)', async () => {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
+      fetchWithTimeout: jest.Mock;
+    };
+    const { loadStoredRefreshToken, clearStoredRefreshToken } = jest.requireMock(
+      '@/services/api/auth/authSession',
+    ) as {
+      loadStoredRefreshToken: jest.MockedFunction<() => Promise<string | undefined>>;
+      clearStoredRefreshToken: jest.Mock;
+    };
+    loadStoredRefreshToken.mockResolvedValueOnce('valid-refresh-token');
+    authRuntime.token = 'expired-token';
+
+    fetchWithTimeout
+      .mockResolvedValueOnce({ status: 401, ok: false } as never) // original request
+      .mockRejectedValueOnce(new Error('network down') as never); // refresh times out
+
+    const response = await fetchWithAuth('http://127.0.0.1:18010', 'http://example.test');
+
+    expect(response.status).toBe(401);
+    expect(authRuntime.explicitlyLoggedOut).toBe(false);
+    expect(clearStoredRefreshToken).not.toHaveBeenCalled();
+  });
+
+  it('clears stored tokens when the refresh is explicitly rejected (401)', async () => {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
+      fetchWithTimeout: jest.Mock;
+    };
+    const { loadStoredRefreshToken, clearStoredRefreshToken } = jest.requireMock(
+      '@/services/api/auth/authSession',
+    ) as {
+      loadStoredRefreshToken: jest.MockedFunction<() => Promise<string | undefined>>;
+      clearStoredRefreshToken: jest.Mock;
+    };
+    loadStoredRefreshToken.mockResolvedValueOnce('revoked-refresh-token');
+    authRuntime.token = 'expired-token';
+
+    fetchWithTimeout
+      .mockResolvedValueOnce({ status: 401, ok: false } as never) // original request
+      .mockResolvedValueOnce({ status: 401, ok: false } as never); // refresh rejected
+
+    await fetchWithAuth('http://127.0.0.1:18010', 'http://example.test');
+
+    expect(authRuntime.explicitlyLoggedOut).toBe(true);
+    expect(clearStoredRefreshToken).toHaveBeenCalled();
   });
 });

@@ -1,5 +1,5 @@
+import { createRequestId, fetchWithTimeout, type TimedRequestInit } from '@/services/api/request';
 import { logError } from '@/utils/logging';
-import { createRequestId, fetchWithTimeout } from '../request';
 import { getAuthRefreshPath } from './authHelpers';
 import { authRuntime } from './authRuntime';
 import {
@@ -64,7 +64,11 @@ export async function refreshAuthToken(apiUrl: string): Promise<boolean> {
     const capturedGeneration = authRuntime.authGeneration;
     try {
       const refreshToken = web ? undefined : await loadStoredRefreshToken();
-      if (!web && !refreshToken) return false;
+      if (!web && !refreshToken) {
+        // No stored refresh token means there is no session to preserve.
+        authRuntime.explicitlyLoggedOut = true;
+        return false;
+      }
 
       const response = await fetchWithTimeout(url, {
         method: 'POST',
@@ -76,8 +80,12 @@ export async function refreshAuthToken(apiUrl: string): Promise<boolean> {
       });
 
       if (!response.ok) {
-        setWebSessionFlag(false);
-        authRuntime.explicitlyLoggedOut = true;
+        // Only an explicit rejection ends the session; a transient failure
+        // (5xx during a deploy, proxy hiccup) must not destroy valid tokens.
+        if (response.status === 401 || response.status === 403) {
+          setWebSessionFlag(false);
+          authRuntime.explicitlyLoggedOut = true;
+        }
         return false;
       }
 
@@ -115,7 +123,7 @@ export async function refreshAuthToken(apiUrl: string): Promise<boolean> {
 export async function fetchWithAuth(
   apiUrl: string,
   url: URL | string,
-  options: RequestInit = {},
+  options: TimedRequestInit = {},
 ): Promise<Response> {
   const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
   headers['X-Request-ID'] ||= createRequestId();
@@ -138,7 +146,10 @@ export async function fetchWithAuth(
       const newToken = await getToken();
       if (newToken) headers.Authorization = `Bearer ${newToken}`;
       response = await makeRequest();
-    } else {
+      // biome-ignore lint/suspicious/noUnnecessaryConditions: refreshAuthToken mutates this flag as a side effect.
+    } else if (authRuntime.explicitlyLoggedOut) {
+      // Refresh was rejected (or there was no session) — drop stored state.
+      // A transient refresh failure leaves tokens intact for the next attempt.
       await clearCachedAuthState();
     }
   }

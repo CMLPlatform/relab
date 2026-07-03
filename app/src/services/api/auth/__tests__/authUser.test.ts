@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { authRuntime } from '../authRuntime';
-import { getUser } from '../authUser';
+import { authRuntime } from '@/services/api/auth/authRuntime';
+import { getUser } from '@/services/api/auth/authUser';
 
-jest.mock('../authSession', () => ({
+jest.mock('@/services/api/auth/authSession', () => ({
   isWeb: () => false,
   hasWebSessionFlag: () => true,
   setWebSessionFlag: jest.fn(),
@@ -74,5 +74,39 @@ describe('authUser', () => {
     await secondCall;
 
     expect(fetchWithAuth).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the web session flag on a transient 5xx from /users/me', async () => {
+    const { setWebSessionFlag } = jest.requireMock('@/services/api/auth/authSession') as {
+      setWebSessionFlag: jest.Mock;
+    };
+    const fetchWithAuth = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 502,
+    } as never) as jest.MockedFunction<
+      (apiUrl: string, url: string | URL, options?: RequestInit) => Promise<Response>
+    >;
+
+    const user = await getUser('http://127.0.0.1:18010', fetchWithAuth, true);
+
+    expect(user).toBeUndefined();
+    expect(setWebSessionFlag).not.toHaveBeenCalled();
+  });
+
+  it('clears the web session flag when /users/me rejects with 401', async () => {
+    const { setWebSessionFlag } = jest.requireMock('@/services/api/auth/authSession') as {
+      setWebSessionFlag: jest.Mock;
+    };
+    const fetchWithAuth = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+    } as never) as jest.MockedFunction<
+      (apiUrl: string, url: string | URL, options?: RequestInit) => Promise<Response>
+    >;
+
+    const user = await getUser('http://127.0.0.1:18010', fetchWithAuth, true);
+
+    expect(user).toBeUndefined();
+    expect(setWebSessionFlag).toHaveBeenCalledWith(false);
   });
 });

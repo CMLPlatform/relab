@@ -38,10 +38,14 @@ export async function getUser(
         });
 
         if (!response.ok) {
-          if (response.status !== 401) {
+          if (response.status === 401 || response.status === 403) {
+            // Definitive rejection — the session is gone.
+            setWebSessionFlag(false);
+          } else {
+            // Transient server error; keep the session flag so later
+            // fetches retry instead of treating the user as signed out.
             logError('[GetUser] HTTP', response.status);
           }
-          setWebSessionFlag(false);
           return;
         }
 
