@@ -1,7 +1,7 @@
 import { API_URL } from '@/config';
+import { fetchWithTimeout, type TimedRequestInit } from '@/services/api/request';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
-import { fetchWithTimeout } from '../request';
 import { extractApiErrorDetail } from './authHelpers';
 import {
   type LoginResult,
@@ -47,7 +47,7 @@ export async function refreshAuthToken(): Promise<boolean> {
 
 export async function fetchWithAuth(
   url: URL | string,
-  options: RequestInit = {},
+  options: TimedRequestInit = {},
 ): Promise<Response> {
   return fetchWithAuthFlow(apiURL, url, options);
 }

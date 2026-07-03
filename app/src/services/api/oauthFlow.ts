@@ -1,5 +1,6 @@
 import { openAuthSessionAsync } from 'expo-web-browser';
-import { apiFetch } from '@/services/api/client';
+import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { extractApiErrorDetail } from '@/services/api/auth/authHelpers';
 
 const OAUTH_BROWSER_TIMEOUT_MS = 5 * 60 * 1000;
 const ALLOWED_OAUTH_HOSTNAMES = new Set(['accounts.google.com', 'github.com']);
@@ -15,18 +16,6 @@ export type OAuthCallbackResult = {
 
 export function buildOAuthAuthorizeUrl(pathname: string, redirectUri: string) {
   return `${pathname}?redirect_uri=${encodeURIComponent(redirectUri)}`;
-}
-
-export function extractOAuthErrorDetail(payload: unknown): string | undefined {
-  if (!payload || typeof payload !== 'object') return;
-  const candidate = (payload as { detail?: unknown }).detail;
-  if (typeof candidate === 'string') return candidate;
-  if (candidate && typeof candidate === 'object') {
-    const nested = candidate as { reason?: unknown; message?: unknown };
-    if (typeof nested.reason === 'string') return nested.reason;
-    if (typeof nested.message === 'string') return nested.message;
-  }
-  return;
 }
 
 export function isAllowedOAuthRedirectUrl(url: string): boolean {
@@ -64,17 +53,16 @@ export function parseOAuthCallbackUrl(url: string): OAuthCallbackResult {
   };
 }
 
-export async function fetchOAuthAuthorizationUrl(
-  authorizeUrl: string,
-  headers?: Record<string, string>,
-) {
-  const response = await apiFetch(authorizeUrl, headers ? { headers } : undefined);
+export async function fetchOAuthAuthorizationUrl(authorizeUrl: string) {
+  // fetchWithAuth attaches the bearer token when a session exists (association
+  // flows) and is a plain fetch when none does (login flows).
+  const response = await fetchWithAuth(authorizeUrl, {});
   const payload = await response.json().catch(() => null);
 
   return {
     ok: response.ok,
     status: response.status,
-    detail: extractOAuthErrorDetail(payload),
+    detail: extractApiErrorDetail(payload),
     authorizationUrl:
       payload && typeof payload === 'object' && 'authorization_url' in payload
         ? String((payload as { authorization_url: unknown }).authorization_url)

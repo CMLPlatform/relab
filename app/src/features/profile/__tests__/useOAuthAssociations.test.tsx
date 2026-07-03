@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
 import { createURL } from 'expo-linking';
 import { useOAuthAssociations } from '@/features/profile/useOAuthAssociations';
-import { getToken } from '@/services/api/auth/authentication';
 import {
   buildOAuthAuthorizeUrl,
   fetchOAuthAuthorizationUrl,
@@ -20,11 +19,6 @@ const mockSetYoutubeEnabled = jest.fn<(enabled: boolean) => Promise<void>>();
 jest.mock('expo-linking', () => ({
   __esModule: true,
   createURL: jest.fn(() => 'relab-app://account'),
-}));
-
-jest.mock('@/services/api/auth/authentication', () => ({
-  __esModule: true,
-  getToken: jest.fn(async () => 'token-123'),
 }));
 
 jest.mock('@/services/api/oauthFlow', () => ({
@@ -51,7 +45,6 @@ describe('useOAuthAssociations', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.mocked(createURL).mockReturnValue('relab-app://account');
-    jest.mocked(getToken).mockImplementation(async () => 'token-123');
     jest.mocked(buildOAuthAuthorizeUrl).mockImplementation((path) => path);
     jest.mocked(fetchOAuthAuthorizationUrl).mockImplementation(async () => ({
       ok: true,
@@ -160,7 +153,6 @@ describe('useOAuthAssociations', () => {
 
     expect(fetchOAuthAuthorizationUrl).toHaveBeenCalledWith(
       expect.stringContaining('/oauth/google/associate/authorize'),
-      { Authorization: 'Bearer token-123' },
     );
     expect(mockRefetch).toHaveBeenCalled();
   });

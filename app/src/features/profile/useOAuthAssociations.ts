@@ -1,7 +1,6 @@
 import { createURL } from 'expo-linking';
 import { useState } from 'react';
 import { API_URL } from '@/config';
-import { getToken } from '@/services/api/auth/authentication';
 import {
   buildOAuthAuthorizeUrl,
   fetchOAuthAuthorizationUrl,
@@ -32,20 +31,10 @@ export function useOAuthAssociations({
 }: UseOAuthAssociationsParams) {
   const [youtubeAuthPending, setYoutubeAuthPending] = useState(false);
 
-  const createAuthorizedHeaders = async () => {
-    const token = await getToken();
-    const headers: Record<string, string> = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
-    return headers;
-  };
-
   const startAssociationFlow = async (path: string): Promise<OAuthAssociationResult> => {
     const redirectUri = createURL('/account');
     const associateUrl = buildOAuthAuthorizeUrl(`${API_URL}${path}`, redirectUri);
-    const authorization = await fetchOAuthAuthorizationUrl(
-      associateUrl,
-      await createAuthorizedHeaders(),
-    );
+    const authorization = await fetchOAuthAuthorizationUrl(associateUrl);
 
     if (!(authorization.ok && authorization.authorizationUrl)) {
       throw new Error(authorization.detail || 'Failed to reach association endpoint.');

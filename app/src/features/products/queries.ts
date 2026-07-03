@@ -207,6 +207,18 @@ export function useDeleteProductMutation() {
         queryClient.removeQueries({ queryKey: componentQueryOptions(product.id).queryKey });
       }
       queryClient.invalidateQueries({ queryKey: ['products'] });
+
+      // Mirror the save mutation: refresh the parent so its components list
+      // drops the deleted child immediately. Parent's role is unknown here,
+      // so invalidate both cache entries.
+      if (product.role === 'component' && typeof product.parentID === 'number') {
+        queryClient.invalidateQueries({
+          queryKey: baseProductQueryOptions(product.parentID).queryKey,
+        });
+        queryClient.invalidateQueries({
+          queryKey: componentQueryOptions(product.parentID).queryKey,
+        });
+      }
     },
   });
 }

@@ -48,27 +48,6 @@ export interface StartYouTubeStreamParams {
 export const CAMERA_BASE = `${API_URL}/plugins/rpi-cam/cameras`;
 export const PAIRING_BASE = `${API_URL}/plugins/rpi-cam/pairing`;
 
-export class ApiError extends Error {
-  status: number;
-  code?: string;
-
-  constructor(message: string, status: number, code?: string) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.code = code;
-  }
-}
-
-export async function throwFromResponse(resp: Response, fallback: string): Promise<never> {
-  const body = typeof resp.json === 'function' ? await resp.json().catch(() => null) : null;
-  const detail = body?.detail;
-  const message =
-    (typeof detail === 'string' ? detail : detail?.message) ?? `${fallback} (${resp.status})`;
-  const code = typeof body?.code === 'string' ? body.code : undefined;
-  throw new ApiError(message, resp.status, code);
-}
-
 export function normalizeCameraReadWithStatus<T extends { preview_thumbnail_url?: string | null }>(
   camera: T,
 ): T {

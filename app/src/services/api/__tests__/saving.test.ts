@@ -1,23 +1,18 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { getBaseProduct } from '@/services/api/products';
+import { deleteProduct, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
-import { getToken } from '../auth/authentication';
-import { apiFetch } from '../client';
-import { getBaseProduct } from '../products';
-import { deleteProduct, saveProduct } from '../saving';
 
 // Mock dependencies
 jest.mock('@/services/api/auth/authentication', () => ({
-  getToken: jest.fn(),
-}));
-jest.mock('@/services/api/client', () => ({
-  apiFetch: jest.fn(),
+  fetchWithAuth: jest.fn(),
 }));
 jest.mock('@/services/api/products', () => ({
   getBaseProduct: jest.fn(),
 }));
 
-const mockGetToken = jest.mocked(getToken);
-const mockApiFetch = jest.mocked(apiFetch);
+const mockFetchWithAuth = jest.mocked(fetchWithAuth);
 const mockGetProduct = jest.mocked(getBaseProduct);
 const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
@@ -42,16 +37,16 @@ const baseProduct: Product = {
   ownedBy: 'me',
 };
 
-// Helper: mock apiFetch with a simple ok response
-function mockApiFetchOk(body: unknown = {}) {
-  mockApiFetch.mockResolvedValueOnce({
+// Helper: mock fetchWithAuth with a simple ok response
+function mockFetchOk(body: unknown = {}) {
+  mockFetchWithAuth.mockResolvedValueOnce({
     ok: true,
     status: 200,
     json: async () => body,
   } as Response);
 }
-function mockApiFetchError(status = 400, body: unknown = { detail: 'Error' }) {
-  mockApiFetch.mockResolvedValueOnce({
+function mockFetchError(status = 400, body: unknown = { detail: 'Error' }) {
+  mockFetchWithAuth.mockResolvedValueOnce({
     ok: false,
     status,
     statusText: 'Bad Request',
@@ -62,7 +57,6 @@ function mockApiFetchError(status = 400, body: unknown = { detail: 'Error' }) {
 describe('Saving API Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetToken.mockResolvedValue('test-token');
     // Default: getBaseProduct returns a product with no images or videos
     mockGetProduct.mockResolvedValue({
       ...baseProduct,
@@ -76,14 +70,14 @@ describe('Saving API Service', () => {
 
   describe('saveProduct (new product)', () => {
     it('POSTs to /products and returns the new id', async () => {
-      mockApiFetchOk({ id: 99 }); // POST /products
+      mockFetchOk({ id: 99 }); // POST /products
       // updateProductImages: getBaseProduct → no images to manage
       // updateProductVideos: getBaseProduct → no videos to manage
 
       const id = await saveProduct({ ...baseProduct });
 
       expect(id).toBe(99);
-      expect(mockApiFetch).toHaveBeenCalledWith(
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
         expect.objectContaining({ href: expect.stringContaining('/products') }),
         expect.objectContaining({ method: 'POST' }),
       );
@@ -97,11 +91,11 @@ describe('Saving API Service', () => {
         parentRole: 'product' as const,
         amountInParent: 2,
       };
-      mockApiFetchOk({ id: 100 });
+      mockFetchOk({ id: 100 });
 
       await saveProduct(componentProduct);
 
-      const calledUrl = (mockApiFetch.mock.calls[0]?.[0] as URL).href;
+      const calledUrl = (mockFetchWithAuth.mock.calls[0]?.[0] as URL).href;
       expect(calledUrl).toContain('/products/5/components');
     });
 
@@ -113,11 +107,11 @@ describe('Saving API Service', () => {
         parentRole: 'component' as const,
         amountInParent: 2,
       };
-      mockApiFetchOk({ id: 100 });
+      mockFetchOk({ id: 100 });
 
       await saveProduct(componentProduct);
 
-      const calledUrl = (mockApiFetch.mock.calls[0]?.[0] as URL).href;
+      const calledUrl = (mockFetchWithAuth.mock.calls[0]?.[0] as URL).href;
       expect(calledUrl).toContain('/components/7/components');
     });
 
@@ -131,7 +125,7 @@ describe('Saving API Service', () => {
       await expect(saveProduct(componentProduct)).rejects.toThrow(
         'Cannot create a component without a parent.',
       );
-      expect(mockApiFetch).not.toHaveBeenCalled();
+      expect(mockFetchWithAuth).not.toHaveBeenCalled();
     });
 
     it('includes amount_in_parent in body when product is a component', async () => {
@@ -141,27 +135,55 @@ describe('Saving API Service', () => {
         parentID: 5,
         amountInParent: 3,
       };
-      mockApiFetchOk({ id: 101 });
+      mockFetchOk({ id: 101 });
 
       await saveProduct(componentProduct);
 
-      const body = JSON.parse(mockApiFetch.mock.calls[0]?.[1]?.body as string);
+      const body = JSON.parse(mockFetchWithAuth.mock.calls[0]?.[1]?.body as string);
       expect(body.amount_in_parent).toBe(3);
     });
 
     it('does not include amount_in_parent for root products', async () => {
-      mockApiFetchOk({ id: 102 });
+      mockFetchOk({ id: 102 });
 
       await saveProduct({ ...baseProduct });
 
-      const body = JSON.parse(mockApiFetch.mock.calls[0]?.[1]?.body as string);
+      const body = JSON.parse(mockFetchWithAuth.mock.calls[0]?.[1]?.body as string);
       expect(body.amount_in_parent).toBeUndefined();
     });
 
     it('throws on non-ok POST response', async () => {
-      mockApiFetchError(400, { detail: [{ msg: 'Name too short' }] });
+      mockFetchError(400, { detail: [{ msg: 'Name too short' }] });
 
       await expect(saveProduct({ ...baseProduct })).rejects.toThrow('Name too short');
+    });
+
+    it('throws on 404 instead of treating it as success', async () => {
+      mockFetchError(404, { detail: 'Parent not found' });
+
+      await expect(
+        saveProduct({
+          ...baseProduct,
+          role: 'component' as const,
+          parentID: 999,
+          parentRole: 'product' as const,
+        }),
+      ).rejects.toThrow('Parent not found');
+    });
+
+    it('creates each new video exactly once (via the videos endpoint, not the create body)', async () => {
+      const newVideo = { url: 'https://youtube.com/watch?v=1', description: '', title: 'New' };
+      mockFetchOk({ id: 99 }); // POST /products
+      mockFetchOk({}); // POST /products/99/videos
+
+      await saveProduct({ ...baseProduct, videos: [newVideo] });
+
+      const createBody = JSON.parse(mockFetchWithAuth.mock.calls[0]?.[1]?.body as string);
+      expect(createBody.videos).toBeUndefined();
+      const videoPosts = mockFetchWithAuth.mock.calls.filter(
+        (c) => (c[0] as URL).href.includes('/videos') && c[1]?.method === 'POST',
+      );
+      expect(videoPosts).toHaveLength(1);
     });
   });
 
@@ -171,11 +193,11 @@ describe('Saving API Service', () => {
     const existingProduct = { ...baseProduct, id: 42 };
 
     it('PATCHes product with properties in a single request', async () => {
-      mockApiFetchOk({ id: 42 }); // PATCH /products/42
+      mockFetchOk({ id: 42 }); // PATCH /products/42
 
       await saveProduct(existingProduct);
 
-      const calls = mockApiFetch.mock.calls;
+      const calls = mockFetchWithAuth.mock.calls;
       const patchCall = calls.find(
         (c) => (c[0] as URL).href.includes('/products/42') && c[1]?.method === 'PATCH',
       );
@@ -191,7 +213,7 @@ describe('Saving API Service', () => {
     });
 
     it('sends null circularity_properties when notes are empty', async () => {
-      mockApiFetchOk({ id: 42 });
+      mockFetchOk({ id: 42 });
 
       await saveProduct({
         ...existingProduct,
@@ -202,7 +224,7 @@ describe('Saving API Service', () => {
         },
       });
 
-      const patchCall = mockApiFetch.mock.calls.find(
+      const patchCall = mockFetchWithAuth.mock.calls.find(
         (c) => (c[0] as URL).href.includes('/products/42') && c[1]?.method === 'PATCH',
       );
       const body = JSON.parse(patchCall?.[1]?.body as string);
@@ -210,7 +232,7 @@ describe('Saving API Service', () => {
     });
 
     it('throws when product PATCH fails', async () => {
-      mockApiFetchError(400, { detail: 'Validation failed' });
+      mockFetchError(400, { detail: 'Validation failed' });
 
       await expect(saveProduct(existingProduct)).rejects.toThrow('Validation failed');
     });
@@ -226,12 +248,12 @@ describe('Saving API Service', () => {
         id: 42,
         images: [], // no images in new version
       };
-      mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetchOk({}); // DELETE image/10
+      mockFetchOk({ id: 42 }); // PATCH product
+      mockFetchOk({}); // DELETE image/10
 
       await saveProduct(productWithExistingImage, originalImages);
 
-      const deleteCalls = mockApiFetch.mock.calls.filter(
+      const deleteCalls = mockFetchWithAuth.mock.calls.filter(
         (c) => (c[0] as URL).href.includes('/images/') && c[1]?.method === 'DELETE',
       );
       expect(deleteCalls).toHaveLength(1);
@@ -255,12 +277,12 @@ describe('Saving API Service', () => {
         images: [],
         videos: [],
       });
-      mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetchOk({}); // POST image
+      mockFetchOk({ id: 42 }); // PATCH product
+      mockFetchOk({}); // POST image
 
       await saveProduct(productWithNewImage);
 
-      const addCalls = mockApiFetch.mock.calls.filter(
+      const addCalls = mockFetchWithAuth.mock.calls.filter(
         (c) => (c[0] as URL).href.includes('/images') && c[1]?.method === 'POST',
       );
       expect(addCalls).toHaveLength(1);
@@ -288,12 +310,12 @@ describe('Saving API Service', () => {
         videos: [],
       });
 
-      mockApiFetchOk({ id: 42 }); // product PATCH
-      mockApiFetchOk({}); // POST video
+      mockFetchOk({ id: 42 }); // product PATCH
+      mockFetchOk({}); // POST video
 
       await saveProduct(product);
 
-      const videoCalls = mockApiFetch.mock.calls.filter(
+      const videoCalls = mockFetchWithAuth.mock.calls.filter(
         (c) => (c[0] as URL).href.includes('/videos') && c[1]?.method === 'POST',
       );
       expect(videoCalls).toHaveLength(1);
@@ -303,12 +325,12 @@ describe('Saving API Service', () => {
       const originalVideos = [{ id: 5, url: 'https://old.com', description: '', title: 'Old' }];
       const product = { ...baseProduct, id: 42, videos: [] };
 
-      mockApiFetchOk({ id: 42 }); // product PATCH
-      mockApiFetchOk({}); // DELETE video
+      mockFetchOk({ id: 42 }); // product PATCH
+      mockFetchOk({}); // DELETE video
 
       await saveProduct(product, [], originalVideos);
 
-      const delCalls = mockApiFetch.mock.calls.filter(
+      const delCalls = mockFetchWithAuth.mock.calls.filter(
         (c) => (c[0] as URL).href.includes('/videos/5') && c[1]?.method === 'DELETE',
       );
       expect(delCalls).toHaveLength(1);
@@ -330,12 +352,12 @@ describe('Saving API Service', () => {
         videos: [updated],
       };
 
-      mockApiFetchOk({ id: 42 }); // product PATCH
-      mockApiFetchOk({}); // PATCH video
+      mockFetchOk({ id: 42 }); // product PATCH
+      mockFetchOk({}); // PATCH video
 
       await saveProduct(product, [], originalVideos);
 
-      const updateCalls = mockApiFetch.mock.calls.filter(
+      const updateCalls = mockFetchWithAuth.mock.calls.filter(
         (c) => (c[0] as URL).href.includes('/videos/5') && c[1]?.method === 'PATCH',
       );
       expect(updateCalls).toHaveLength(1);
@@ -356,15 +378,15 @@ describe('Saving API Service', () => {
         id: 42,
         images: [{ url: 'https://example.com/new.jpg', description: 'test' }],
       };
-      mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetch.mockResolvedValueOnce({
+      mockFetchOk({ id: 42 }); // PATCH product
+      mockFetchWithAuth.mockResolvedValueOnce({
         ok: false,
         status: 422,
         statusText: 'Unprocessable Entity',
         json: async () => ({ detail: 'File too large' }),
       } as Response);
 
-      await expect(saveProduct(product, [], [])).rejects.toThrow('Image upload failed');
+      await expect(saveProduct(product, [], [])).rejects.toThrow('File too large');
     });
 
     it('mutates image with server-assigned id and url after successful upload', async () => {
@@ -382,8 +404,8 @@ describe('Saving API Service', () => {
         id: 42,
         images: [image],
       };
-      mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetchOk({ id: 'abc-123', image_url: 'http://cdn.example.com/stored.jpg' }); // POST image
+      mockFetchOk({ id: 42 }); // PATCH product
+      mockFetchOk({ id: 'abc-123', image_url: 'http://cdn.example.com/stored.jpg' }); // POST image
 
       await saveProduct(product, [], []);
 
@@ -401,12 +423,12 @@ describe('Saving API Service', () => {
         id: 42,
         images: [{ url: dataUri, description: 'tiny png' }],
       };
-      mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetchOk({ id: 77 }); // POST image
+      mockFetchOk({ id: 42 }); // PATCH product
+      mockFetchOk({ id: 77 }); // POST image
 
       await saveProduct(product, [], []);
 
-      const uploadCall = mockApiFetch.mock.calls.find(
+      const uploadCall = mockFetchWithAuth.mock.calls.find(
         (c) => (c[0] as URL).href.includes('/images') && c[1]?.method === 'POST',
       );
       expect(uploadCall).toBeDefined();
@@ -417,23 +439,29 @@ describe('Saving API Service', () => {
   // ─── deleteProduct ───────────────────────────────────────
 
   describe('deleteProduct', () => {
-    it('returns immediately for a new product without calling apiFetch', async () => {
+    it('returns immediately for a new product without calling the API', async () => {
       await deleteProduct({ ...baseProduct, id: undefined });
 
-      expect(mockApiFetch).not.toHaveBeenCalled();
+      expect(mockFetchWithAuth).not.toHaveBeenCalled();
     });
 
     it('calls DELETE /products/:id for an existing product', async () => {
-      mockApiFetchOk({});
+      mockFetchOk({});
 
       await deleteProduct({ ...baseProduct, id: 42 });
 
-      expect(mockApiFetch).toHaveBeenCalledWith(
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
         expect.objectContaining({
           href: expect.stringContaining('/products/42'),
         }),
         expect.objectContaining({ method: 'DELETE' }),
       );
+    });
+
+    it('throws when the DELETE fails instead of reporting success', async () => {
+      mockFetchError(403, { detail: 'Not your product' });
+
+      await expect(deleteProduct({ ...baseProduct, id: 42 })).rejects.toThrow('Not your product');
     });
   });
 });

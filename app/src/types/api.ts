@@ -27,6 +27,7 @@ export type ApiVideoRead = components['schemas']['VideoReadWithinProduct'];
 // ─── Users ───────────────────────────────────────────────────────────────────
 export type ApiUserRead = components['schemas']['UserRead'];
 export type ApiOAuthAccountRead = components['schemas']['OAuthAccountRead'];
+export type ApiPublicProfileView = components['schemas']['PublicProfileView'];
 
 // ─── Product Types ───────────────────────────────────────────────────────────
 export type ApiProductTypeRead = components['schemas']['ProductTypeRead'];

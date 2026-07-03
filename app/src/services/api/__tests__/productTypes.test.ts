@@ -1,8 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
 import { HttpResponse, http } from 'msw';
 import { API_URL } from '@/config';
+import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
 import { server } from '@/test-utils/server';
-import { allProductTypes, searchProductTypes } from '../productTypes';
 
 describe('productTypes API service', () => {
   describe('searchProductTypes', () => {
@@ -85,7 +85,7 @@ describe('productTypes API service', () => {
         http.get(`${API_URL}/product-types`, () => HttpResponse.json({}, { status: 500 })),
       );
 
-      await expect(searchProductTypes()).rejects.toThrow('HTTP error');
+      await expect(searchProductTypes()).rejects.toThrow('Failed to fetch');
     });
   });
 

@@ -37,7 +37,10 @@ export const handlers = [
     });
   }),
   http.post(`${API_URL}/auth/register`, () => HttpResponse.json({}, { status: 201 })),
-  http.get(`${API_URL}/products`, () => HttpResponse.json([])),
+  // Real endpoint returns a fastapi-pagination Page, never a bare array.
+  http.get(`${API_URL}/products`, () =>
+    HttpResponse.json({ items: [], total: 0, page: 1, size: 50, pages: 0 }),
+  ),
   http.get(`${API_URL}/profiles/:username`, () => {
     return HttpResponse.json({
       username: 'testuser',
@@ -117,6 +120,10 @@ export const handlers = [
  * Individual tests may override handlers with:
  *
  *   import { server } from '@/test-utils';
- *   server.use(http.get(`${API_URL}/products`, () => HttpResponse.json([...])));
+ *   server.use(
+ *     http.get(`${API_URL}/products`, () =>
+ *       HttpResponse.json({ items: [...], total: 1, page: 1, size: 50, pages: 1 }),
+ *     ),
+ *   );
  */
 export const server = setupServer(...handlers);

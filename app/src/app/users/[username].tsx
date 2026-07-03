@@ -7,6 +7,7 @@ import { Card, Icon } from 'react-native-paper';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { Text } from '@/components/base/Text';
 import { useAuth } from '@/context/auth';
+import { ApiError } from '@/services/api/errors';
 import { getPublicProfile } from '@/services/api/profiles';
 import { type AppTheme, alpha, memoizeByTheme, useAppTheme } from '@/theme';
 
@@ -35,7 +36,9 @@ export default function UserProfileScreen() {
   const error =
     queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null;
   const errorMessage =
-    error === 'Profile not found' ? 'This profile is private or does not exist.' : error;
+    queryError instanceof ApiError && queryError.status === 404
+      ? 'This profile is private or does not exist.'
+      : error;
   const goToProducts = useCallback(() => router.replace('/products'), [router]);
 
   return (
@@ -78,14 +81,16 @@ export default function UserProfileScreen() {
                 </Text>
               </View>
               <Text style={styles.usernameText}>{profile.username}</Text>
-              <Text style={styles.joinedText}>
-                Joined{' '}
-                {new Date(profile.created_at).toLocaleDateString(undefined, {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </Text>
+              {profile.created_at ? (
+                <Text style={styles.joinedText}>
+                  Joined{' '}
+                  {new Date(profile.created_at).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </Text>
+              ) : null}
             </View>
 
             <View style={styles.statsSection}>

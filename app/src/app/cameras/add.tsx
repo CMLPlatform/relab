@@ -7,7 +7,7 @@ import { MutedText } from '@/components/base/MutedText';
 import { useAuth } from '@/context/auth';
 import { useClaimPairingMutation } from '@/features/cameras/rpi/hooks';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { ApiError } from '@/services/api/rpiCamera/shared';
+import { ApiError } from '@/services/api/errors';
 import { useAppTheme } from '@/theme';
 
 const PAIRING_CODE_PATTERN = /^[A-Z0-9]{6}$/;

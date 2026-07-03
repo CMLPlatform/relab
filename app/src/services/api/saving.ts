@@ -1,7 +1,7 @@
 import { API_URL } from '@/config';
-import { getToken } from '@/services/api/auth/authentication';
-import { apiFetch } from '@/services/api/client';
+import { fetchWithAuth } from '@/services/api/auth/authentication';
 import type { Product } from '@/types/Product';
+import { throwFromResponse } from './errors';
 
 const baseUrl = API_URL;
 
@@ -55,10 +55,6 @@ type ProductPayload = {
   circularity_properties: Product['circularityProperties'] | null;
 };
 
-type NewProductPayload = ProductPayload & {
-  videos?: Product['videos'];
-};
-
 // ─── Serialization helpers ────────────────────────────────────────────────────
 
 function toNullableNumber(value: number | undefined): number | null {
@@ -97,30 +93,12 @@ function toProductPayload(product: Product): ProductPayload {
   };
 }
 
-function toNewProductPayload(product: Product): NewProductPayload {
-  return {
-    ...toProductPayload(product),
-    ...(isComponent(product) ? {} : { videos: product.videos }),
-  };
-}
-
-function acceptAuthHeaders(token: string | undefined): Record<string, string> {
-  return {
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
-function authHeaders(token: string | undefined): Record<string, string> {
-  return { 'Content-Type': 'application/json', ...acceptAuthHeaders(token) };
-}
+const JSON_HEADERS = { 'Content-Type': 'application/json', Accept: 'application/json' };
+const ACCEPT_HEADERS = { Accept: 'application/json' };
 
 async function throwOnError(response: Response, label: string): Promise<void> {
-  if (response.ok || response.status === 404) return;
-  const errData = await response.json().catch(() => null);
-  throw new Error(
-    `Failed to ${label}: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`,
-  );
+  if (response.ok) return;
+  await throwFromResponse(response, `Failed to ${label}`);
 }
 
 /**
@@ -132,24 +110,21 @@ export async function saveProduct(
   originalImages: Product['images'] = [],
   originalVideos: Product['videos'] = [],
 ): Promise<number> {
-  const token = await getToken();
-
   if (typeof product.id !== 'number') {
-    return await saveNewProduct(product, token);
+    return await saveNewProduct(product);
   }
-  return await updateProduct(product, originalImages, originalVideos, token);
+  return await updateProduct(product, originalImages, originalVideos);
 }
 
-async function saveNewProduct(product: Product, token: string | undefined): Promise<number> {
+async function saveNewProduct(product: Product): Promise<number> {
   // Creation scope: components are created under their parent (can be base or component);
   // base products are created flat under /products.
   const url = isComponent(product) ? componentCreateUrl(product) : new URL(`${baseUrl}/products`);
 
-  const headers = authHeaders(token);
-  const response = await apiFetch(url, {
+  const response = await fetchWithAuth(url, {
     method: 'POST',
-    headers,
-    body: JSON.stringify(toNewProductPayload(product)),
+    headers: JSON_HEADERS,
+    body: JSON.stringify(toProductPayload(product)),
   });
   await throwOnError(response, 'save product');
 
@@ -157,10 +132,7 @@ async function saveNewProduct(product: Product, token: string | undefined): Prom
   product.id = data.id;
 
   // New product has no existing media on the server yet — uploads can run in parallel
-  await Promise.all([
-    updateProductImages(product, [], token),
-    updateProductVideos(product, [], token),
-  ]);
+  await Promise.all([updateProductImages(product, []), updateProductVideos(product, [])]);
 
   return data.id;
 }
@@ -169,14 +141,11 @@ async function updateProduct(
   product: Product,
   originalImages: Product['images'],
   originalVideos: Product['videos'],
-  token: string | undefined,
 ): Promise<number> {
-  const headers = authHeaders(token);
-
   // Single PATCH request — targets /products/{id} for base products, /components/{id} for components.
-  const productRes = await apiFetch(productRootUrl(product), {
+  const productRes = await fetchWithAuth(productRootUrl(product), {
     method: 'PATCH',
-    headers,
+    headers: JSON_HEADERS,
     body: JSON.stringify(toProductPayload(product)),
   });
 
@@ -184,19 +153,15 @@ async function updateProduct(
 
   // Image and video updates can run in parallel
   await Promise.all([
-    updateProductImages(product, originalImages, token),
-    updateProductVideos(product, originalVideos, token),
+    updateProductImages(product, originalImages),
+    updateProductVideos(product, originalVideos),
   ]);
 
   const data = await productRes.json();
   return data.id;
 }
 
-async function updateProductImages(
-  product: Product,
-  originalImages: Product['images'],
-  token: string | undefined,
-) {
+async function updateProductImages(product: Product, originalImages: Product['images']) {
   const currentImages = originalImages ?? [];
   const productImages = product.images ?? [];
   const imagesToDelete = currentImages.filter((img) => !productImages.some((i) => i.id === img.id));
@@ -206,36 +171,31 @@ async function updateProductImages(
   await Promise.all(
     imagesToDelete
       .filter((img) => img.id !== undefined)
-      .map((img) => deleteImage(product, img as { id: string }, token)),
+      .map((img) => deleteImage(product, img as { id: string })),
   );
 
   // Uploads run sequentially to avoid overwhelming the server with large payloads
-  await runSequentially(imagesToAdd, (img) => addImage(product, img, token));
+  for (const img of imagesToAdd) {
+    // biome-ignore lint/performance/noAwaitInLoops: sequential on purpose — parallel large uploads overwhelm the server.
+    await addImage(product, img);
+  }
 }
 
-async function deleteImage(product: Product, image: { id: string }, token: string | undefined) {
-  return await apiFetch(productImageUrl(product, image.id), {
+async function deleteImage(product: Product, image: { id: string }) {
+  const response = await fetchWithAuth(productImageUrl(product, image.id), {
     method: 'DELETE',
-    headers: acceptAuthHeaders(token),
+    headers: ACCEPT_HEADERS,
   });
+  await throwOnError(response, 'delete image');
 }
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
-async function runSequentially<T>(items: T[], runItem: (item: T) => Promise<void>): Promise<void> {
-  await items.reduce<Promise<void>>(async (previous, item) => {
-    await previous;
-    await runItem(item);
-  }, Promise.resolve());
-}
-
 async function addImage(
   product: Product,
   image: { url: string; description: string; id?: string },
-  token: string | undefined,
 ) {
   const url = productImagesUrl(product);
-  const headers = acceptAuthHeaders(token);
   const body = new FormData();
 
   if (image.url.startsWith('data:')) {
@@ -261,32 +221,23 @@ async function addImage(
     body.append('file', blob, 'image.png');
   }
 
-  const response = await apiFetch(url, {
+  const response = await fetchWithAuth(url, {
     method: 'POST',
-    headers: headers,
+    headers: ACCEPT_HEADERS,
     body: body,
     timeoutMs: 30_000,
   });
-  if (!response.ok) {
-    const errData = await response.json().catch(() => null);
-    throw new Error(`Image upload failed: ${errData?.detail || response.statusText}`);
-  }
+  await throwOnError(response, 'upload image');
 
   // If the server returned the stored media object, update the local image
   // entry so the UI uses the persisted HTTP URL instead of a blob: URI.
   const data = await response.json().catch(() => null);
-  if (data) {
-    try {
-      if (data.id) {
-        // mutate the object in-place so callers see the updated id/url
-        image.id = data.id;
-      }
-      if (data.image_url) {
-        image.url = data.image_url;
-      }
-    } catch {
-      // ignore mutation errors
-    }
+  if (data?.id) {
+    // mutate the object in-place so callers see the updated id/url
+    image.id = data.id;
+  }
+  if (data?.image_url) {
+    image.url = data.image_url;
   }
 }
 
@@ -308,11 +259,7 @@ function dataURItoBlob(dataURI: string) {
   return new Blob([ab], { type: mimeString });
 }
 
-async function updateProductVideos(
-  product: Product,
-  originalVideos: Product['videos'],
-  token: string | undefined,
-) {
+async function updateProductVideos(product: Product, originalVideos: Product['videos']) {
   // Videos live only on base products (disassembly captures whole products).
   if (isComponent(product)) return;
 
@@ -328,44 +275,49 @@ async function updateProductVideos(
     );
   });
 
-  const headers = authHeaders(token);
+  const videoUrl = (vid: { id?: number }) =>
+    new URL(`${baseUrl}/products/${product.id}/videos/${vid.id}`);
 
   // Deletes and updates can run in parallel
   await Promise.all([
     ...videosToDelete
       .filter((vid) => vid.id)
-      .map((vid) =>
-        apiFetch(new URL(`${baseUrl}/products/${product.id}/videos/${vid.id}`), {
+      .map(async (vid) => {
+        const response = await fetchWithAuth(videoUrl(vid), {
           method: 'DELETE',
-          headers: acceptAuthHeaders(token),
-        }),
-      ),
+          headers: ACCEPT_HEADERS,
+        });
+        await throwOnError(response, 'delete video');
+      }),
     ...videosToUpdate
       .filter((vid) => vid.id)
-      .map((vid) =>
-        apiFetch(new URL(`${baseUrl}/products/${product.id}/videos/${vid.id}`), {
+      .map(async (vid) => {
+        const response = await fetchWithAuth(videoUrl(vid), {
           method: 'PATCH',
-          headers,
+          headers: JSON_HEADERS,
           body: JSON.stringify({ url: vid.url, description: vid.description, title: vid.title }),
-        }),
-      ),
+        });
+        await throwOnError(response, 'update video');
+      }),
   ]);
 
   // Adds run sequentially
-  await runSequentially(videosToAdd, async (vid) => {
-    await apiFetch(new URL(`${baseUrl}/products/${product.id}/videos`), {
+  for (const vid of videosToAdd) {
+    // biome-ignore lint/performance/noAwaitInLoops: sequential on purpose — mirrors image uploads.
+    const response = await fetchWithAuth(new URL(`${baseUrl}/products/${product.id}/videos`), {
       method: 'POST',
-      headers,
+      headers: JSON_HEADERS,
       body: JSON.stringify({ url: vid.url, description: vid.description, title: vid.title }),
     });
-  });
+    await throwOnError(response, 'add video');
+  }
 }
 
 export async function deleteProduct(product: Product): Promise<void> {
   if (typeof product.id !== 'number') return; // Unsaved drafts: nothing to delete.
-  const token = await getToken();
-  await apiFetch(productRootUrl(product), {
+  const response = await fetchWithAuth(productRootUrl(product), {
     method: 'DELETE',
-    headers: acceptAuthHeaders(token),
+    headers: ACCEPT_HEADERS,
   });
+  await throwOnError(response, 'delete product');
 }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useCaptureImageMutation } from '@/features/cameras/rpi/hooks';
 import type { Product } from '@/types/Product';
 import {
@@ -37,13 +37,20 @@ function useProductGalleryActions({
     viewerState,
     onImagesChange,
   });
+  // The capture round-trip can take seconds; merge against the images as they
+  // are when it resolves, not a stale snapshot from when it was started —
+  // otherwise deletes/picks made while capturing are clobbered.
+  const latestImagesRef = useRef(media.images);
+  useEffect(() => {
+    latestImagesRef.current = media.images;
+  }, [media.images]);
   const runCameraCapture = useCallback(
     (cameraId: string, nextProductId: number) => {
       captureMutation.mutate(
         { cameraId, productId: nextProductId },
         {
           onSuccess: (captured) => {
-            onImagesChange?.(appendCapturedImage(media.images, captured));
+            onImagesChange?.(appendCapturedImage(latestImagesRef.current, captured));
           },
           onError: (error) =>
             captureState.feedback.alert({
@@ -55,7 +62,7 @@ function useProductGalleryActions({
         },
       );
     },
-    [captureActions, captureMutation, captureState.feedback, media.images, onImagesChange],
+    [captureActions, captureMutation, captureState.feedback, onImagesChange],
   );
   const viewerActions = useProductGalleryViewerActions({
     media,

@@ -1,20 +1,16 @@
-import { getToken } from '../auth/authentication';
-import { apiFetch } from '../client';
-import { getPublicProfile } from '../profiles';
+import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { getPublicProfile } from '@/services/api/profiles';
 
-jest.mock('../auth/authentication');
-jest.mock('../client');
+jest.mock('@/services/api/auth/authentication');
 
-const mockedGetToken = jest.mocked(getToken);
-const mockedApiFetch = jest.mocked(apiFetch);
+const mockedFetchWithAuth = jest.mocked(fetchWithAuth);
 
 describe('getPublicProfile', () => {
   beforeEach(() => {
     jest.resetAllMocks();
   });
 
-  it('returns profile when api returns ok and includes auth header when token present', async () => {
-    mockedGetToken.mockResolvedValue('token123');
+  it('returns profile when api returns ok', async () => {
     const profile = {
       username: 'alice',
       created_at: '2026-01-01T00:00:00Z',
@@ -24,51 +20,51 @@ describe('getPublicProfile', () => {
       top_category: 'cat',
     };
 
-    mockedApiFetch.mockResolvedValue({
+    mockedFetchWithAuth.mockResolvedValue({
       ok: true,
       json: async () => profile,
     } as unknown as Response);
 
     const result = await getPublicProfile('alice');
     expect(result).toEqual(profile);
-    expect(mockedApiFetch).toHaveBeenCalledWith(
+    expect(mockedFetchWithAuth).toHaveBeenCalledWith(
       expect.stringContaining('/profiles/alice'),
-      expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'Bearer token123' }),
-      }),
-    );
-  });
-
-  it('throws when response not ok', async () => {
-    mockedGetToken.mockResolvedValue(undefined);
-    mockedApiFetch.mockResolvedValue({ ok: false } as unknown as Response);
-
-    await expect(getPublicProfile('bob')).rejects.toThrow('Profile not found');
-    expect(mockedApiFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/profiles/bob'),
       expect.any(Object),
     );
   });
 
+  it('throws an ApiError carrying the status when response not ok', async () => {
+    mockedFetchWithAuth.mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ detail: 'Profile not found' }),
+    } as unknown as Response);
+
+    await expect(getPublicProfile('bob')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 404,
+      message: 'Profile not found',
+    });
+  });
+
   it('encodes username in URL', async () => {
-    mockedGetToken.mockResolvedValue(undefined);
     const profile = {
       username: 'a b',
-      created_at: '',
+      created_at: null,
       product_count: 0,
       total_weight_kg: 0,
       image_count: 0,
       top_category: '',
     };
 
-    mockedApiFetch.mockResolvedValue({
+    mockedFetchWithAuth.mockResolvedValue({
       ok: true,
       json: async () => profile,
     } as unknown as Response);
 
     const result = await getPublicProfile('a b');
     expect(result).toEqual(profile);
-    expect(mockedApiFetch).toHaveBeenCalledWith(
+    expect(mockedFetchWithAuth).toHaveBeenCalledWith(
       expect.stringContaining(`/profiles/${encodeURIComponent('a b')}`),
       expect.any(Object),
     );

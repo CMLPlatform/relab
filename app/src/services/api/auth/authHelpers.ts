@@ -39,7 +39,9 @@ export function mapApiUserToUser(data: ApiUserRead): User {
   };
 }
 
-export function extractApiErrorDetail(payload: unknown, fallback: string): string {
+export function extractApiErrorDetail(payload: unknown): string | undefined;
+export function extractApiErrorDetail(payload: unknown, fallback: string): string;
+export function extractApiErrorDetail(payload: unknown, fallback?: string): string | undefined {
   if (!payload || typeof payload !== 'object') return fallback;
 
   const detail = (payload as { detail?: unknown }).detail;

@@ -1,6 +1,7 @@
 import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { throwFromResponse } from '@/services/api/errors';
 import type { CameraRead, PairingClaimRequest } from './shared';
-import { PAIRING_BASE, throwFromResponse } from './shared';
+import { PAIRING_BASE } from './shared';
 
 export async function claimPairingCode(data: PairingClaimRequest): Promise<CameraRead> {
   const resp = await fetchWithAuth(`${PAIRING_BASE}/claim`, {

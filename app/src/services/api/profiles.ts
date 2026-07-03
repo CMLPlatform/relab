@@ -1,27 +1,17 @@
 import { API_URL } from '@/config';
-import { getToken } from './auth/authentication';
-import { apiFetch } from './client';
+import { fetchWithAuth } from '@/services/api/auth/authentication';
+import type { ApiPublicProfileView } from '@/types/api';
+import { throwFromResponse } from './errors';
 
-export type PublicProfileView = {
-  username: string;
-  created_at: string;
-  product_count: number;
-  total_weight_kg: number;
-  image_count: number;
-  top_category: string;
-};
+export type PublicProfileView = ApiPublicProfileView;
 
 export async function getPublicProfile(username: string): Promise<PublicProfileView> {
-  const token = await getToken();
-  const headers: Record<string, string> = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  const response = await apiFetch(`${API_URL}/profiles/${encodeURIComponent(username)}`, {
-    headers,
+  const response = await fetchWithAuth(`${API_URL}/profiles/${encodeURIComponent(username)}`, {
+    headers: { Accept: 'application/json' },
   });
 
   if (!response?.ok) {
-    throw new Error('Profile not found');
+    await throwFromResponse(response, 'Failed to load profile');
   }
 
   return response.json();

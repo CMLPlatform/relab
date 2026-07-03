@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { HttpResponse, http } from 'msw';
 import { API_URL } from '@/config';
-import { getToken, getUser } from '@/services/api/auth/authentication';
+import { fetchWithAuth, getUser } from '@/services/api/auth/authentication';
 import { allProductBrands, searchProductBrands } from '@/services/api/productSuggestions';
 import {
   getBaseProduct,
@@ -20,7 +20,7 @@ jest.mock('@/services/api/auth/authentication', () => {
   );
   return {
     ...actual,
-    getToken: jest.fn(),
+    fetchWithAuth: jest.fn(),
     getUser: jest.fn(),
   };
 });
@@ -74,6 +74,11 @@ describe('Fetching API Service logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.mocked(getUser).mockResolvedValue(mockUser({ id: 'me-user-id', username: 'me' }));
+    // Route authenticated requests through MSW like plain fetch; the 401→refresh
+    // retry behavior of the real fetchWithAuth is covered by its own unit tests.
+    jest
+      .mocked(fetchWithAuth)
+      .mockImplementation((url, options) => fetch(url, options as RequestInit));
   });
 
   afterEach(() => {
@@ -153,7 +158,7 @@ describe('Fetching API Service logic', () => {
         ),
       );
 
-      await expect(allProductBrands()).rejects.toThrow('HTTP error');
+      await expect(allProductBrands()).rejects.toThrow('Failed to fetch');
     });
 
     it('sends search param when searching brands', async () => {
@@ -234,7 +239,7 @@ describe('Fetching API Service logic', () => {
     it('throws a generic HTTP error for non-404 failures', async () => {
       server.use(http.get(`${API_URL}/products/99`, () => HttpResponse.json({}, { status: 500 })));
 
-      await expect(getBaseProduct(99)).rejects.toThrow('HTTP error! Status: 500');
+      await expect(getBaseProduct(99)).rejects.toThrow('Failed to fetch product (500)');
     });
   });
 
@@ -364,29 +369,14 @@ describe('Fetching API Service logic', () => {
     it('throws on HTTP error', async () => {
       server.use(http.get(`${API_URL}/products`, () => HttpResponse.json({}, { status: 500 })));
 
-      await expect(products()).rejects.toThrow('HTTP error');
+      await expect(products()).rejects.toThrow('Failed to fetch products');
     });
   });
 
   // ─── products (owner: 'me') ─────────────────────────────
 
   describe("products (owner: 'me')", () => {
-    it('returns an empty paginated response when no token is available', async () => {
-      jest.mocked(getToken).mockResolvedValueOnce(undefined);
-
-      const result = await products({ owner: 'me' });
-
-      expect(result).toEqual({
-        items: [],
-        total: 0,
-        page: 1,
-        size: 50,
-        pages: 0,
-      });
-    });
-
     it('returns an empty paginated response on 401 response', async () => {
-      jest.mocked(getToken).mockResolvedValueOnce('test-token');
       server.use(
         http.get(`${API_URL}/products`, () =>
           HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 }),
@@ -405,7 +395,6 @@ describe('Fetching API Service logic', () => {
     });
 
     it('fetches and returns mapped products in a paginated response', async () => {
-      jest.mocked(getToken).mockResolvedValueOnce('test-token');
       server.use(
         http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([rawProductData]))),
       );
@@ -421,7 +410,6 @@ describe('Fetching API Service logic', () => {
     });
 
     it('sends multiple brands as a single comma-separated brand[in] param', async () => {
-      jest.mocked(getToken).mockResolvedValueOnce('test-token');
       let capturedUrl: URL | undefined;
       server.use(
         http.get(`${API_URL}/products`, ({ request }) => {
@@ -438,10 +426,9 @@ describe('Fetching API Service logic', () => {
     });
 
     it('throws on non-401 HTTP error', async () => {
-      jest.mocked(getToken).mockResolvedValueOnce('test-token');
       server.use(http.get(`${API_URL}/products`, () => HttpResponse.json({}, { status: 500 })));
 
-      await expect(products({ owner: 'me' })).rejects.toThrow('HTTP error');
+      await expect(products({ owner: 'me' })).rejects.toThrow('Failed to fetch products');
     });
   });
 

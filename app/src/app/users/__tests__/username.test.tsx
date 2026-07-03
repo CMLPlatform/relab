@@ -1,10 +1,11 @@
 import { screen, waitFor } from '@testing-library/react-native';
 import { useGlobalSearchParams } from 'expo-router';
 import type { ReactNode } from 'react';
+import UserProfileScreen from '@/app/users/[username]';
+import { ApiError } from '@/services/api/errors';
 import type { PublicProfileView } from '@/services/api/profiles';
 import { getPublicProfile } from '@/services/api/profiles';
 import { renderWithProviders } from '@/test-utils/index';
-import UserProfileScreen from '../[username]';
 
 jest.mock('@/services/api/profiles');
 jest.mock('expo-router', () => {
@@ -74,8 +75,8 @@ describe('UserProfileScreen', () => {
     expect(screen.queryByTestId('activity-indicator')).toBeNull();
   });
 
-  it('shows friendly privacy message for "Profile not found" error', async () => {
-    mockGetPublicProfile.mockRejectedValue(new Error('Profile not found'));
+  it('shows friendly privacy message for a 404 error', async () => {
+    mockGetPublicProfile.mockRejectedValue(new ApiError('Profile not found', 404));
     renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
     await waitFor(() =>

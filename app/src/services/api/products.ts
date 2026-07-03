@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { API_URL } from '@/config';
-import { getCachedUser, getToken, getUser } from '@/services/api/auth/authentication';
+import { fetchWithAuth, getCachedUser, getUser } from '@/services/api/auth/authentication';
 import type {
   ApiBaseProductDetail,
   ApiBaseProductPageItem,
@@ -11,6 +11,7 @@ import type {
 } from '@/types/api';
 import type { Product } from '@/types/Product';
 import { apiFetch } from './client';
+import { throwFromResponse } from './errors';
 import { resolveApiMediaUrl } from './media';
 
 const baseUrl = API_URL;
@@ -119,7 +120,7 @@ function toComponent(data: ApiComponentChildItem | ApiComponentDetail): Product 
 async function fetchOne<T extends ProductMapperPayload>(url: URL): Promise<T | null> {
   const response = await apiFetch(url, { method: 'GET' });
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+  if (!response.ok) await throwFromResponse(response, 'Failed to fetch product');
   return (await response.json()) as T;
 }
 
@@ -229,18 +230,19 @@ export async function products(query: ProductsQuery = {}): Promise<PaginatedResp
     size: 50,
     pages: 0,
   };
-  const headers: Record<string, string> = { Accept: 'application/json' };
 
-  if (authenticated && Platform.OS !== 'web') {
-    const authToken = await getToken();
-    if (!authToken) return emptyPage;
-    headers.Authorization = `Bearer ${authToken}`;
-  }
+  // fetchWithAuth attaches the bearer token (native) / session cookie (web)
+  // and transparently refreshes once on 401 before we see the response.
+  const fetchProducts = authenticated ? fetchWithAuth : apiFetch;
+  const response = await fetchProducts(buildProductsUrl(query), {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
 
-  const response = await apiFetch(buildProductsUrl(query), { method: 'GET', headers });
-
+  // A 401 that survived the refresh retry means there is no session: the
+  // signed-out view of "my products" is an empty page, not an error.
   if (authenticated && response.status === 401) return emptyPage;
-  if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+  if (!response.ok) await throwFromResponse(response, 'Failed to fetch products');
 
   return parseProductsResponse(await response.json());
 }
@@ -249,9 +251,10 @@ export async function addProductVideo(
   productId: number,
   video: { url: string; title: string; description: string },
 ): Promise<void> {
-  const resp = await apiFetch(new URL(`${baseUrl}/products/${productId}/videos`), {
+  const resp = await fetchWithAuth(new URL(`${baseUrl}/products/${productId}/videos`), {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(video),
   });
-  if (!resp.ok) throw new Error(`Failed to add video (${resp.status})`);
+  if (!resp.ok) await throwFromResponse(resp, 'Failed to add video');
 }
