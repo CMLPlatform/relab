@@ -29,7 +29,7 @@
     "ci": "pnpm run check && pnpm run test:ci",
     "codegen:api": "openapi-typescript ${EXPO_PUBLIC_API_URL:-http://127.0.0.1:8010}/openapi.json -o src/types/api.generated.ts",
     "codegen:api:redact": "pnpm run codegen:api && node scripts/redact_api.mjs",
-    "codegen": "pnpm run codegen:api:redact"
+    "codegen": "pnpm run codegen:api:redact && biome check --write src/types/api.generated.ts"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.2",
