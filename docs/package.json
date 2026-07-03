@@ -18,9 +18,9 @@
     "fix": "biome check --write . && markdownlint-cli2 --fix",
     "lint": "biome check . && markdownlint-cli2",
     "typecheck": "astro check",
-    "test": "echo 'docs has no unit tests — see test:e2e for Playwright suites'",
+    "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:ci": "pnpm run build && pnpm run test:e2e && pnpm run test:links",
+    "test:ci": "pnpm run test && pnpm run build && pnpm run test:e2e && pnpm run test:links",
     "test:links": "linkinator ./dist --silent --skip 'mailto:*'",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run build:test",
     "ci": "pnpm run check && pnpm run test:ci",
@@ -43,6 +43,7 @@
     "linkinator": "^7.6.1",
     "markdownlint-cli2": "^0.22.1",
     "playwright": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^4.1.9"
   }
 }

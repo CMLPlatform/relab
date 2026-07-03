@@ -50,7 +50,7 @@ format:
 fix:
     pnpm run fix
 
-# Docs has no unit tests; see `test-e2e` for Playwright suites
+# Run Vitest unit tests (src/lib logic; pages/components are covered by `test-e2e`)
 test:
     pnpm run test
 
