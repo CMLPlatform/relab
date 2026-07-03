@@ -71,8 +71,13 @@ test:
 test-ci:
     pnpm run test:ci
 
-# Run browser end-to-end tests (always builds before preview)
+# Run browser end-to-end tests (always builds before preview).
+# CI runs chromium only; locally all configured browsers run. Mirrors app/justfile.
 test-e2e:
+    pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
+
+# Run the full cross-browser E2E matrix (chromium + firefox + webkit)
+test-e2e-cross-browser:
     pnpm run test:e2e
 
 # Run the full www CI pipeline locally

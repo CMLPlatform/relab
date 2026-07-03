@@ -264,6 +264,7 @@ jobs:
         with:
           setup-node: "true"
           cache-dependency-path: pnpm-lock.yaml
+          setup-playwright: "true"
 
       - name: Install dependencies
         run: just www/install
@@ -272,11 +273,11 @@ jobs:
         run: just www/build
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium firefox webkit
+        run: pnpm exec playwright install --with-deps ${{ github.event_name == 'workflow_dispatch' && 'chromium firefox webkit' || 'chromium' }}
         working-directory: www
 
       - name: Run browser E2E tests
-        run: just www/test-e2e
+        run: just www/${{ github.event_name == 'workflow_dispatch' && 'test-e2e-cross-browser' || 'test-e2e' }}
 
       - name: Archive Playwright report
         if: failure()
@@ -349,6 +350,7 @@ jobs:
         with:
           setup-node: "true"
           cache-dependency-path: pnpm-lock.yaml
+          setup-playwright: "true"
 
       - name: Install dependencies
         run: just docs/install
@@ -385,6 +387,7 @@ jobs:
         with:
           setup-node: "true"
           cache-dependency-path: pnpm-lock.yaml
+          setup-playwright: "true"
 
       - name: Install app dependencies
         run: just app/install
