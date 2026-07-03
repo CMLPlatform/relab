@@ -54,7 +54,7 @@
     "opentelemetry-instrumentation-sqlalchemy>=0.62b0",
     "opentelemetry-instrumentation-httpx>=0.62b0",
     "fastapi-filters[sqlalchemy]>=0.3.3",
-]
+  ]
   requires-python = ">=3.14"
   version = "0.2.0"
 
@@ -115,16 +115,16 @@
   script_location  = "alembic"
 
   [[tool.alembic.post_write_hooks]]
-    name       = "ruff"
-    module     = "ruff"
-    options    = "check --fix REVISION_SCRIPT_FILENAME"
-    type       = "module"
+    module  = "ruff"
+    name    = "ruff"
+    options = "check --fix REVISION_SCRIPT_FILENAME"
+    type    = "module"
 
   [[tool.alembic.post_write_hooks]]
-    name       = "ruff_format"
-    module     = "ruff"
-    options    = "format REVISION_SCRIPT_FILENAME"
-    type       = "module"
+    module  = "ruff"
+    name    = "ruff_format"
+    options = "format REVISION_SCRIPT_FILENAME"
+    type    = "module"
 
 [tool.pytest.ini_options]
   addopts = "-ra --strict-markers --strict-config"
@@ -211,7 +211,11 @@
         "typing.Annotated",
         "relab_rpi_cam_models",
       ]
-      runtime-evaluated-base-classes = ["fastapi_filters.FilterSet", "app.api.common.crud.filtering.BaseFilterSet", "pydantic.BaseModel"]
+      runtime-evaluated-base-classes = [
+        "fastapi_filters.FilterSet",
+        "app.api.common.crud.filtering.BaseFilterSet",
+        "pydantic.BaseModel",
+      ]
 
     [tool.ruff.lint.per-file-ignores]
       "**/alembic/**/*.py" = [

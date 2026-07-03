@@ -250,12 +250,12 @@ Keep examples centralized and predictable:
 
 The backend suite is organized by execution cost:
 
-| Tier | Path | When to use |
-| ---- | ---- | ----------- |
-| unit | `backend/tests/unit/` | pure logic with mocks/stubs only, no database or app lifespan |
-| integration/db | `backend/tests/integration/db/` | behavior that depends on SQLAlchemy queries, migrations, or constraints |
-| integration/api | `backend/tests/integration/api/` | HTTP behavior tested against the ASGI app; one behavior per test |
-| flows | `backend/tests/integration/flows/` | full multi-step cross-boundary scenarios |
+| Tier            | Path                               | When to use                                                             |
+| --------------- | ---------------------------------- | ----------------------------------------------------------------------- |
+| unit            | `backend/tests/unit/`              | pure logic with mocks/stubs only, no database or app lifespan           |
+| integration/db  | `backend/tests/integration/db/`    | behavior that depends on SQLAlchemy queries, migrations, or constraints |
+| integration/api | `backend/tests/integration/api/`   | HTTP behavior tested against the ASGI app; one behavior per test        |
+| flows           | `backend/tests/integration/flows/` | full multi-step cross-boundary scenarios                                |
 
 ```bash
 cd backend

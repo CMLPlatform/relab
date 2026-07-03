@@ -19,11 +19,20 @@
       "description": "Expo SDK-managed packages — versions pinned by the SDK, don't bump independently",
       "matchFileNames": ["app/package.json"],
       "matchPackageNames": [
-        "expo", "/^expo($|-)/", "@expo/**",
-        "react", "react-dom", "react-native", "@types/react", "jest-expo",
-        "react-native-gesture-handler", "react-native-reanimated",
-        "react-native-safe-area-context", "react-native-screens",
-        "react-native-svg", "react-native-web"
+        "expo",
+        "/^expo($|-)/",
+        "@expo/**",
+        "react",
+        "react-dom",
+        "react-native",
+        "@types/react",
+        "jest-expo",
+        "react-native-gesture-handler",
+        "react-native-reanimated",
+        "react-native-safe-area-context",
+        "react-native-screens",
+        "react-native-svg",
+        "react-native-web"
       ],
       "enabled": false
     },

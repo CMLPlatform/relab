@@ -1,4 +1,4 @@
-// ponytail: happy-dom v20's localStorage getter reads `this[Symbol]`, but Vitest 4
+// NOTE: happy-dom v20's localStorage getter reads `this[Symbol]`, but Vitest 4
 // copies the getter onto globalThis where `this` no longer points at the Window,
 // so window.localStorage reads back undefined. Install a plain in-memory Storage.
 // Drop this once vitest/happy-dom fix the global binding.

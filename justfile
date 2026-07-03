@@ -171,7 +171,7 @@ test-e2e:
     @echo "✅ All E2E tests passed"
 
 # Canonical CI pipeline: policy, IaC, quality checks, CI tests, compose validation
-ci: pre-commit cloudflare-check check test-ci env-policy-check compose-config deploy-secrets-check
+ci: pre-commit check test-ci cloudflare-check env-policy-check compose-config deploy-secrets-check
     @echo "✅ CI pipeline passed"
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
