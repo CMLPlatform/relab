@@ -27,4 +27,4 @@
       - /url: https://www.linkedin.com/groups/15671021
     - link "YouTube":
       - /url: https://www.youtube.com/@open_product_data
-  - 'button "Theme: system. Switch theme"': Cycle theme
+  - 'button "Theme: system. Switch theme"'

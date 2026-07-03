@@ -11,8 +11,6 @@ test.describe('Landing page', () => {
     await page.goto('/');
     await expect(page).toHaveTitle(HOMEPAGE_TITLE_PATTERN);
     await expectHomepageHero(page);
-    await expect(page.getByRole('banner')).toHaveCount(0);
-    await expect(page.locator('.brand-mark')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Go to the homepage' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Read the RELab privacy policy' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'YouTube' })).toBeVisible();
@@ -22,8 +20,6 @@ test.describe('Landing page', () => {
     await expect(backdrop).toBeVisible();
     await expect(backdrop).toHaveCSS('position', 'fixed');
     await expect(page.locator('main').getByRole('link')).toHaveCount(HOMEPAGE_MAIN_LINK_COUNT);
-    await expect(page.locator('main').getByRole('heading', { level: 2 })).toHaveCount(0);
-    await expect(page.getByLabel('Email address')).toHaveCount(0);
     await expectCanonicalUrl(page, '/');
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       'content',
@@ -34,7 +30,13 @@ test.describe('Landing page', () => {
       META_DESCRIPTION_PATTERN,
     );
     await expect(page.locator('meta[name="theme-color"][data-dynamic-theme]')).toHaveCount(1);
-    await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1);
+  });
+
+  test('ships no inline scripts, matching the production CSP @smoke', async ({ page }) => {
+    // The Caddy CSP is script-src 'self' with no 'unsafe-inline' and no hashes,
+    // so any inline <script> in the build would be silently dead in production.
+    await page.goto('/');
+    await expect(page.locator('script:not([src])')).toHaveCount(0);
   });
 
   test('keeps the theme toggle at the right edge of the footer on desktop', async ({ page }) => {

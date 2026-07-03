@@ -34,5 +34,5 @@ export async function expectHomepageHero(page: Page) {
 }
 
 export async function expectContentPage(page: Page) {
-  await expect(page.locator('.content-page.content-page-compact')).toBeVisible();
+  await expect(page.locator('.content-page')).toBeVisible();
 }

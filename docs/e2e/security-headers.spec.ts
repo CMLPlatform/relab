@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { expect, test } from '@playwright/test';
 
-// Guards the deploy posture of the www Caddyfile only. The docs subrepo
-// carries the same checks for its own Caddyfile in docs/e2e/security-headers.spec.ts.
+// Guards the deploy posture of the docs Caddyfile. Runs node-side (no browser
+// page) inside the existing Playwright suite since docs has no unit-test lane.
+// The www subrepo carries the same checks for its own Caddyfile in
+// www/config/security-headers.test.ts.
 
 const ENFORCED_CSP_PATTERN = /^\s*Content-Security-Policy\s+"([^"]+)"/m;
 const REPORT_ONLY_CSP_PATTERN = /^\s*Content-Security-Policy-Report-Only\s+"([^"]+)"/m;
@@ -38,8 +40,12 @@ function cspDirective(policy: string, directive: string) {
   );
 }
 
-describe('Caddy baseline security headers', () => {
-  it('blocks dangerous unsupported HTTP methods', () => {
+const enforced = () => matchOrThrow(ENFORCED_CSP_PATTERN, 'enforced Content-Security-Policy');
+const reportOnly = () =>
+  matchOrThrow(REPORT_ONLY_CSP_PATTERN, 'report-only Content-Security-Policy');
+
+test.describe('Caddy baseline security headers', () => {
+  test('blocks dangerous unsupported HTTP methods', () => {
     const match = caddyfile.match(DANGEROUS_METHODS_PATTERN);
     if (!match?.groups?.block) {
       throw new Error('Missing dangerous method policy block');
@@ -50,11 +56,11 @@ describe('Caddy baseline security headers', () => {
     expect(match.groups.block).toMatch(METHOD_405_RESPONSE_PATTERN);
   });
 
-  it('sets the deployed OWASP HSTS policy', () => {
+  test('sets the deployed OWASP HSTS policy', () => {
     expect(matchOrThrow(HSTS_PATTERN, 'Strict-Transport-Security header')).toBe(HSTS_POLICY);
   });
 
-  it('sets the browser baseline headers recommended by OWASP', () => {
+  test('sets the browser baseline headers recommended by OWASP', () => {
     expect(matchOrThrow(CONTENT_TYPE_OPTIONS_PATTERN, 'X-Content-Type-Options header')).toBe(
       'nosniff',
     );
@@ -63,17 +69,13 @@ describe('Caddy baseline security headers', () => {
     expect(caddyfile).toContain('Cross-Origin-Resource-Policy "same-site"');
   });
 
-  it('omits Permissions-Policy when no browser capabilities are used', () => {
+  test('omits Permissions-Policy when no browser capabilities are used', () => {
     expect(caddyfile).not.toMatch(PERMISSIONS_POLICY_HEADER_PATTERN);
   });
 });
 
-describe('Caddy CSP security headers', () => {
-  const enforced = () => matchOrThrow(ENFORCED_CSP_PATTERN, 'enforced Content-Security-Policy');
-  const reportOnly = () =>
-    matchOrThrow(REPORT_ONLY_CSP_PATTERN, 'report-only Content-Security-Policy');
-
-  it('enforces the OWASP baseline CSP directives', () => {
+test.describe('Caddy CSP security headers', () => {
+  test('enforces the OWASP baseline CSP directives', () => {
     const policy = enforced();
 
     expect(policy).toContain("default-src 'self'");
@@ -84,18 +86,21 @@ describe('Caddy CSP security headers', () => {
     expect(policy).not.toContain('report-uri');
   });
 
-  it('rejects inline and eval script in the enforced policy', () => {
+  test('allows inline script (Starlight) but never eval in the enforced policy', () => {
     const scriptPolicy = cspDirective(enforced(), 'script-src');
+
+    expect(scriptPolicy).toContain("'unsafe-inline'");
+    expect(scriptPolicy).not.toContain("'unsafe-eval'");
+  });
+
+  test('tracks the stricter script policy in report-only mode', () => {
+    const scriptPolicy = cspDirective(reportOnly(), 'script-src');
 
     expect(scriptPolicy).not.toContain("'unsafe-inline'");
     expect(scriptPolicy).not.toContain("'unsafe-eval'");
   });
 
-  it('tracks the stricter style policy in report-only mode', () => {
-    expect(cspDirective(reportOnly(), 'style-src')).not.toContain("'unsafe-inline'");
-  });
-
-  it('does not allow wildcard scripts or javascript URLs', () => {
+  test('does not allow wildcard scripts or javascript URLs', () => {
     for (const policy of [enforced(), reportOnly()]) {
       expect(policy).not.toContain('script-src *');
       expect(policy).not.toContain('javascript:');
