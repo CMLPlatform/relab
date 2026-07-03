@@ -254,5 +254,5 @@
   # Mitigate supply chain issues
   exclude-newer = "3 days"
 
-[tool.uv.sources]
-  relab-rpi-cam-models = { path = "../../relab-rpi-cam-plugin/relab_rpi_cam_models", editable = true }
+  [tool.uv.exclude-newer-package]
+    relab-rpi-cam-models = "3000-01-01T00:00:00Z" # self-managed package, exempt from the supply-chain delay
