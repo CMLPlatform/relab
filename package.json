@@ -10,14 +10,12 @@
   "scripts": {
     "biome": "biome",
     "check": "pnpm run lint",
-    "spellcheck": "cspell .",
     "lint": "biome check",
     "format": "biome format --write",
     "fix": "biome check --write"
   },
   "devDependencies": {
     "@babel/runtime": "^7.29.7",
-    "@biomejs/biome": "catalog:",
-    "cspell": "^10.0.1"
+    "@biomejs/biome": "catalog:"
   }
 }

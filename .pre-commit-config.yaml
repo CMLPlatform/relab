@@ -1,8 +1,6 @@
 # Repository-wide pre-commit policy hooks.
 # Project-specific linting and test commands live in the subrepo `justfile`s.
 
-# spell-checker: ignore rhysd shfmt
-
 repos:
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.0
@@ -117,13 +115,6 @@ repos:
         language: system
         files: ^scripts/.*\.py$
         pass_filenames: false
-      - id: cspell
-        name: cspell
-        entry: pnpm exec cspell
-        language: system
-        types: [ text ]
-        # Disable cspell caching as pre-commit and CI doesn't play well with it.
-        args: [ "--no-cache", "--no-must-find-files" ]
       - id: brand-assets-check
         name: brand-assets-check
         entry: just assets-check
