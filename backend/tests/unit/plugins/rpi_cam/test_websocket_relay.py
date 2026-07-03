@@ -14,13 +14,32 @@ from app.api.plugins.rpi_cam.websocket import cross_worker_circuit_breaker as ci
 from app.api.plugins.rpi_cam.websocket import message_relay as relay_mod
 
 
+class _FakeCbRedis:
+    """Dict-backed stand-in for the Redis calls the circuit breaker makes."""
+
+    def __init__(self) -> None:
+        self.store: dict[str, int] = {}
+
+    async def get(self, key: str) -> int | None:
+        return self.store.get(key)
+
+    async def incr(self, key: str) -> int:
+        self.store[key] = self.store.get(key, 0) + 1
+        return self.store[key]
+
+    async def expire(self, _key: str, _ttl: int) -> bool:
+        return True
+
+    async def delete(self, key: str) -> int:
+        return 1 if self.store.pop(key, None) is not None else 0
+
+
 async def test_relay_via_websocket_returns_retry_after_when_camera_is_disconnected() -> None:
     """Relay disconnects should surface as temporary failures with Retry-After."""
     camera_id = uuid4()
     manager = AsyncMock()
     manager.send_command.side_effect = RuntimeError("camera disconnected")
-    redis = AsyncMock()
-    redis.exists = AsyncMock(return_value=0)
+    redis = _FakeCbRedis()
 
     with (
         patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
@@ -110,10 +129,7 @@ async def test_cross_worker_relay_opens_circuit_after_three_failures() -> None:
     camera_id = uuid4()
     manager = AsyncMock()
     manager.send_command.side_effect = RuntimeError("camera disconnected")
-    redis = AsyncMock()
-    redis.exists = AsyncMock(return_value=0)
-
-    circuit_breaker.reset_for_tests()
+    redis = _FakeCbRedis()
 
     with (
         patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
@@ -140,10 +156,7 @@ async def test_cross_worker_relay_forwards_trace_headers() -> None:
     camera_id = uuid4()
     manager = AsyncMock()
     manager.send_command.side_effect = RuntimeError("camera disconnected")
-    redis = AsyncMock()
-    redis.exists = AsyncMock(return_value=0)
-
-    circuit_breaker.reset_for_tests()
+    redis = _FakeCbRedis()
 
     with (
         patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
@@ -176,10 +189,7 @@ async def test_cross_worker_relay_success_resets_circuit() -> None:
     camera_id = uuid4()
     manager = AsyncMock()
     manager.send_command.side_effect = RuntimeError("camera disconnected")
-    redis = AsyncMock()
-    redis.exists = AsyncMock(return_value=0)
-
-    circuit_breaker.reset_for_tests()
+    redis = _FakeCbRedis()
 
     with (
         patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
@@ -214,14 +224,13 @@ async def test_cross_worker_relay_half_opens_after_cooldown() -> None:
     camera_id = uuid4()
     manager = AsyncMock()
     manager.send_command.side_effect = RuntimeError("camera disconnected")
-    redis = AsyncMock()
-    redis.exists = AsyncMock(return_value=0)
+    redis = _FakeCbRedis()
 
-    circuit_breaker.reset_for_tests()
-    circuit_breaker._cross_worker_cb_state[camera_id] = (
-        circuit_breaker.FAILURE_THRESHOLD,
-        0.0,
-    )
+    # Open the circuit, then simulate the cooldown TTL expiring in Redis.
+    for _ in range(circuit_breaker.FAILURE_THRESHOLD):
+        await circuit_breaker.record_failure(camera_id, redis)  # type: ignore[arg-type]
+    assert await circuit_breaker.is_open(camera_id, redis)  # type: ignore[arg-type]
+    redis.store.clear()
 
     with (
         patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
