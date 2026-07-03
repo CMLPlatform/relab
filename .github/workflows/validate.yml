@@ -193,6 +193,15 @@ jobs:
           disable-search: "true"
           network-prefix: backend/app/
 
+      - name: Upload test results
+        # Runs even when tests fail so Codecov can track flaky/failing tests.
+        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: ./.github/actions/upload-test-results
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./backend/reports/junit.xml
+          flags: backend
+
       - name: Archive backend reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -240,6 +249,14 @@ jobs:
           name: validate-www-coverage
           disable-search: "true"
           network-prefix: www/
+
+      - name: Upload test results
+        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: ./.github/actions/upload-test-results
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./www/junit.xml
+          flags: www
 
       - name: Archive www coverage
         if: always()
@@ -326,6 +343,14 @@ jobs:
           name: validate-app-coverage
           disable-search: "true"
           network-prefix: app/
+
+      - name: Upload test results
+        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: ./.github/actions/upload-test-results
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./app/junit.xml
+          flags: app
 
       - name: Archive app coverage
         if: always()
