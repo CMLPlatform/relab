@@ -48,6 +48,22 @@ def set_browser_auth_cookie(response: Response, *, key: str, value: str, max_age
     )
 
 
+def set_session_auth_cookies(response: Response, *, access_token: str, refresh_token: str) -> None:
+    """Attach the access + refresh cookie pair for a browser session."""
+    set_browser_auth_cookie(
+        response,
+        key=AUTH_COOKIE_NAME,
+        value=access_token,
+        max_age=ACCESS_TOKEN_TTL,
+    )
+    set_browser_auth_cookie(
+        response,
+        key=REFRESH_COOKIE_NAME,
+        value=refresh_token,
+        max_age=auth_settings.refresh_token_ttl_seconds,
+    )
+
+
 def _delete_cookie(response: Response, name: str, domain: str | None) -> None:
     response.delete_cookie(
         name,

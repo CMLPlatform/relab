@@ -8,12 +8,7 @@ from app.api.auth.exceptions import RefreshTokenUserInactiveError
 from app.api.auth.models import User
 from app.api.auth.schemas import RefreshTokenResponse
 from app.api.auth.services import refresh_token_service
-from app.api.auth.services.auth_backends import (
-    AUTH_COOKIE_NAME,
-    REFRESH_COOKIE_NAME,
-    clear_auth_cookies,
-    set_browser_auth_cookie,
-)
+from app.api.auth.services.auth_backends import clear_auth_cookies, set_session_auth_cookies
 from app.api.auth.services.user_manager import UserManager
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.redis import Redis
@@ -75,18 +70,7 @@ async def refresh_session_cookies(
         redis,
         refresh_token,
     )
-    set_browser_auth_cookie(
-        response,
-        key=AUTH_COOKIE_NAME,
-        value=access_token,
-        max_age=auth_settings.access_token_ttl_seconds,
-    )
-    set_browser_auth_cookie(
-        response,
-        key=REFRESH_COOKIE_NAME,
-        value=new_refresh_token,
-        max_age=auth_settings.refresh_token_expire_days * 86_400,
-    )
+    set_session_auth_cookies(response, access_token=access_token, refresh_token=new_refresh_token)
 
 
 async def logout_bearer(

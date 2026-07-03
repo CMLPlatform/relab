@@ -9,7 +9,7 @@ from app.api.auth.config import settings as auth_settings
 from app.api.auth.models import User
 from app.api.auth.schemas import MfaPendingResponse, RefreshTokenResponse
 from app.api.auth.services import mfa_service, refresh_token_service
-from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME, set_browser_auth_cookie
+from app.api.auth.services.auth_backends import set_session_auth_cookies
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -46,18 +46,7 @@ async def issue_session_login_response(
     """Issue session cookies after all authentication factors succeed."""
     access_token = await cookie_strategy.write_token(user)
     refresh_token = await refresh_token_service.create_refresh_token(redis, user.id)
-    set_browser_auth_cookie(
-        response,
-        key=AUTH_COOKIE_NAME,
-        value=access_token,
-        max_age=auth_settings.access_token_ttl_seconds,
-    )
-    set_browser_auth_cookie(
-        response,
-        key=REFRESH_COOKIE_NAME,
-        value=refresh_token,
-        max_age=auth_settings.refresh_token_expire_days * 86_400,
-    )
+    set_session_auth_cookies(response, access_token=access_token, refresh_token=refresh_token)
     response.status_code = status.HTTP_204_NO_CONTENT
     await user_manager.on_after_login(user, None, response)
 

@@ -56,10 +56,6 @@ def _user_tokens_key(user_id: UUID | UUID4 | str) -> str:
     return f"{_USER_TOKENS_KEY_PREFIX}{user_id}"
 
 
-def _refresh_token_ttl_seconds() -> int:
-    return settings.refresh_token_expire_days * 86_400
-
-
 def _absolute_session_ttl_seconds() -> int:
     return settings.refresh_session_absolute_expire_days * 86_400
 
@@ -105,7 +101,7 @@ class RefreshTokenMetadata:
     def ttl_seconds(self) -> int:
         """Return the Redis TTL constrained by sliding and absolute expiry."""
         remaining_absolute_ttl = self.absolute_expires_at - int(time.time())
-        return min(_refresh_token_ttl_seconds(), remaining_absolute_ttl)
+        return min(settings.refresh_token_ttl_seconds, remaining_absolute_ttl)
 
 
 async def _load_active_token_metadata(redis: Redis, token: str) -> RefreshTokenMetadata:

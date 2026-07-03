@@ -133,6 +133,11 @@ class AuthSettings(RelabBaseSettings):
     refresh_token_expire_days: int = 30  # 30 days for long-lived refresh tokens
     refresh_session_absolute_expire_days: int = 30  # 30 days maximum session lifetime
 
+    @property
+    def refresh_token_ttl_seconds(self) -> int:
+        """Sliding refresh-token lifetime in seconds."""
+        return self.refresh_token_expire_days * DAY
+
     # Auth settings - Rate limiting
     rate_limit_login_attempts_per_minute: int = 3
     rate_limit_register_attempts_per_hour: int = 5
