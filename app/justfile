@@ -28,7 +28,7 @@ typecheck:
     pnpm run typecheck
 
 # Run the app quality gate
-check: lint typecheck
+check: lint typecheck codegen-check
     @echo "✅ Frontend-app checks passed"
 
 # Auto-format code
@@ -104,14 +104,13 @@ test-e2e-cross-browser:
 clean:
     rm -rf .expo .expo-shared coverage dist web-build playwright-report test-results
 
-# Generate TypeScript API types from backend OpenAPI and redact sensitive examples
-codegen PORT="8010":
-    @printf '%s\n' {{ quote("Generating TypeScript API types and redacting JWT examples (backend at http://localhost:" + PORT + ")...") }}
-    EXPO_PUBLIC_API_URL={{ quote("http://localhost:" + PORT) }} pnpm run codegen
+# Regenerate TypeScript API types from the committed OpenAPI schema (offline).
+# The schema itself is produced by `just backend/openapi` (src/types/openapi.json).
+codegen:
+    pnpm run codegen
     @echo "✅ Generated src/types/api.generated.ts (redacted)"
 
-# Fail if committed API types are stale vs the backend schema (used by `test-e2e-full-stack`)
+# Fail if committed API types are stale vs the committed OpenAPI schema (runs in `check`)
 codegen-check:
-    @printf '%s\n' {{ quote("Checking committed API types against backend at " + e2e_api_url) }}
-    EXPO_PUBLIC_API_URL={{ quote(e2e_api_url) }} pnpm run codegen
+    pnpm run codegen
     git diff --exit-code src/types/api.generated.ts

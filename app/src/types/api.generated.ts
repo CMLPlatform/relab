@@ -84,7 +84,7 @@ export interface paths {
      * Create a new taxonomy
      * @description Create a new taxonomy, optionally with categories.
      */
-    post: operations['create_taxonomy_v1_admin_taxonomies_post'];
+    post: operations['create_taxonomy_endpoint_v1_admin_taxonomies_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -811,66 +811,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/products/suggestions/brands': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get product brand suggestions
-     * @description Get a paginated, searchable list of unique product brands derived from product data.
-     */
-    get: operations['get_brand_suggestions_v1_products_suggestions_brands_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/products/suggestions/models': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get product model suggestions
-     * @description Get a paginated, searchable list of unique product model names derived from product data.
-     */
-    get: operations['get_model_suggestions_v1_products_suggestions_models_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/products/facets': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get derived product facets
-     * @description Return derived filter values and counts for product browsing.
-     */
-    get: operations['get_product_facets_v1_products_facets_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/v1/users/{user_id}/products': {
     parameters: {
       query?: never;
@@ -909,6 +849,26 @@ export interface paths {
      * @description Create a new product.
      */
     post: operations['create_product_v1_products_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/products/facets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get derived product facets
+     * @description Return derived filter values and counts for product browsing.
+     */
+    get: operations['get_product_facets_v1_products_facets_get'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -981,6 +941,46 @@ export interface paths {
      * @description Create a new component under the given base product.
      */
     post: operations['add_component_to_product_v1_products__product_id__components_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/products/suggestions/brands': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get product brand suggestions
+     * @description Get a paginated, searchable list of unique product brands derived from product data.
+     */
+    get: operations['get_brand_suggestions_v1_products_suggestions_brands_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/products/suggestions/models': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get product model suggestions
+     * @description Get a paginated, searchable list of unique product model names derived from product data.
+     */
+    get: operations['get_model_suggestions_v1_products_suggestions_models_get'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2274,17 +2274,12 @@ export interface paths {
     put?: never;
     /**
      * Start recording to YouTube
-     * @description Start a YouTube recording stream and cache the backend-owned session in Redis.
+     * @description Start a YouTube recording stream.
      */
     post: operations['start_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_post'];
     /**
      * Stop recording to YouTube
-     * @description Stop the active YouTube recording, end the livestream, and create the video record.
-     *
-     *     Cleanup order is: YouTube first, then the Pi. If the Pi is offline the YouTube broadcast
-     *     must still be torn down to avoid leaving orphan broadcasts on the user's channel. A Pi
-     *     cleanup failure degrades to a warning — the recording state on YouTube is what the user
-     *     cares about, and a running MediaMTX stream will eventually be noticed and stopped anyway.
+     * @description Stop the active YouTube recording and return its video record.
      */
     delete: operations['stop_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_delete'];
     options?: never;
@@ -2528,6 +2523,66 @@ export interface paths {
      * @description Get Raspberry Pi camera online status.
      */
     get: operations['get_camera_status_v1_admin_plugins_rpi_cam_cameras__camera_id__status_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/stats/totals': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Stats Totals
+     * @description System-wide all-time aggregate statistics.
+     */
+    get: operations['get_stats_totals_v1_stats_totals_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/stats/categories': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Stats Categories
+     * @description Non-zero product categories ordered by teardown count, capped at limit (max 100).
+     */
+    get: operations['get_stats_categories_v1_stats_categories_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/stats/series': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Stats Series
+     * @description Time-bucketed activity series. Granularity: day | week | month | year.
+     */
+    get: operations['get_stats_series_v1_stats_series_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2963,7 +3018,7 @@ export interface components {
      * CaptureMetadata
      * @description Dynamic capture metadata from libcamera.
      *
-     *     For more info, see  https://libcamera.org/api-html/namespacelibcamera_1_1controls.html.
+     *     For more info, see https://libcamera.org/api-html/namespacelibcamera_1_1controls.html.
      */
     CaptureMetadata: {
       /**
@@ -2995,6 +3050,21 @@ export interface components {
        * @description Sensor temperature in °C
        */
       sensor_temperature?: number | null;
+    };
+    /**
+     * CategoriesResponse
+     * @description Response payload for the top-categories endpoint.
+     */
+    CategoriesResponse: {
+      /**
+       * Generated At
+       * Format: date-time
+       */
+      generated_at: string;
+      /** Limit */
+      limit: number;
+      /** Categories */
+      categories: components['schemas']['CategoryStat'][];
     };
     /**
      * CategoryCreate
@@ -3229,6 +3299,18 @@ export interface components {
       subcategories?: components['schemas']['CategoryReadAsSubCategory'][];
     };
     /**
+     * CategoryStat
+     * @description Teardown and part counts for a single category.
+     */
+    CategoryStat: {
+      /** Name */
+      name: string;
+      /** Teardowns */
+      teardowns: number;
+      /** Parts */
+      parts: number;
+    };
+    /**
      * CategoryUpdate
      * @description Schema for the partial update of a category.
      *
@@ -3324,11 +3406,6 @@ export interface components {
     /**
      * ComponentRead
      * @description Read schema for components (nested inside a base product tree).
-     *
-     *     Components denormalize their root base product's ``owner_id``, but we
-     *     don't expose it to API clients (the role distinction belongs in the
-     *     response shape, not the payload). ``parent_id`` and ``amount_in_parent``
-     *     are required by the database's role invariant.
      */
     ComponentRead: {
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
@@ -3770,7 +3847,7 @@ export interface components {
     };
     /**
      * MaterialProductLinkCreateWithinProductAndMaterial
-     * @description Schema for creating material-product links from the product side, with an external material ID.
+     * @description Schema for creating material-product links with an external material ID.
      */
     MaterialProductLinkCreateWithinProductAndMaterial: {
       /**
@@ -4334,9 +4411,6 @@ export interface components {
     /**
      * ProductRead
      * @description Read schema for base products (top of a product tree).
-     *
-     *     Base products carry an ``owner_id`` and never have a ``parent_id`` or
-     *     ``amount_in_parent``. Components are represented by :class:`ComponentRead`.
      */
     ProductRead: {
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
@@ -4418,11 +4492,6 @@ export interface components {
        */
       images?: components['schemas']['ImageRead'][];
       /**
-       * Videos
-       * @description Disassembly videos
-       */
-      videos?: components['schemas']['VideoReadWithinProduct'][];
-      /**
        * Files
        * @description Product files
        */
@@ -4432,6 +4501,11 @@ export interface components {
        * @description Bill of materials with quantities and units
        */
       bill_of_materials?: components['schemas']['MaterialProductLinkReadWithinProduct'][];
+      /**
+       * Videos
+       * @description Disassembly videos
+       */
+      videos?: components['schemas']['VideoReadWithinProduct'][];
       /**
        * Components
        * @description List of component products
@@ -4645,6 +4719,51 @@ export interface components {
       kid?: string | null;
     };
     /**
+     * SeriesPoint
+     * @description Aggregated metrics for one period of a time series.
+     */
+    SeriesPoint: {
+      /** Period */
+      period: string;
+      /** Teardowns */
+      teardowns: number;
+      /** Parts */
+      parts: number;
+      /** Mass Kg */
+      mass_kg: number;
+      /** Images */
+      images: number;
+      /** Users New */
+      users_new: number;
+      /** Users Active */
+      users_active: number;
+    };
+    /**
+     * SeriesResponse
+     * @description Response payload for the time-series endpoint.
+     */
+    SeriesResponse: {
+      /** Granularity */
+      granularity: string;
+      /**
+       * Start
+       * Format: date
+       */
+      start: string;
+      /**
+       * End
+       * Format: date
+       */
+      end: string;
+      /**
+       * Generated At
+       * Format: date-time
+       */
+      generated_at: string;
+      /** Series */
+      series: components['schemas']['SeriesPoint'][];
+    };
+    /**
      * StreamMetadata
      * @description Metadata specific to video streams.
      */
@@ -4685,25 +4804,6 @@ export interface components {
        */
       started_at: string;
       metadata: components['schemas']['StreamMetadata'];
-    };
-    /**
-     * TaxonomyCreate
-     * @description Schema for creating a new taxonomy without categories.
-     */
-    TaxonomyCreate: {
-      /** Name */
-      name: string;
-      /** Version */
-      version?: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Domains
-       * @default []
-       */
-      domains: components['schemas']['TaxonomyDomain'][];
-      /** Source */
-      source?: string | null;
     };
     /**
      * TaxonomyCreateWithCategories
@@ -4856,6 +4956,34 @@ export interface components {
      */
     ThermalState: 'normal' | 'warm' | 'throttle' | 'critical';
     /**
+     * Totals
+     * @description System-wide cumulative counts across all data.
+     */
+    Totals: {
+      /** Teardowns */
+      teardowns: number;
+      /** Parts */
+      parts: number;
+      /** Mass Kg */
+      mass_kg: number;
+      /** Images */
+      images: number;
+      /** Users */
+      users: number;
+    };
+    /**
+     * TotalsResponse
+     * @description Response payload for the totals endpoint.
+     */
+    TotalsResponse: {
+      /**
+       * Generated At
+       * Format: date-time
+       */
+      generated_at: string;
+      totals: components['schemas']['Totals'];
+    };
+    /**
      * Unit
      * @description Allowed units in the data collection.
      * @enum {string}
@@ -4962,17 +5090,14 @@ export interface components {
       preferences?: components['schemas']['UserPreferences'];
     };
     /**
-     * UserReadPublic
-     * @description Public read schema for users.
+     * UserReadProfile
+     * @description Basic public profile info.
      */
-    UserReadPublic: {
+    UserReadProfile: {
       /** Username */
       username?: string | null;
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
+      /** Created At */
+      created_at: string | null;
     };
     /**
      * UserRegister
@@ -5308,7 +5433,7 @@ export interface operations {
       };
     };
   };
-  create_taxonomy_v1_admin_taxonomies_post: {
+  create_taxonomy_endpoint_v1_admin_taxonomies_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -5317,9 +5442,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json':
-          | components['schemas']['TaxonomyCreate']
-          | components['schemas']['TaxonomyCreateWithCategories'];
+        'application/json': components['schemas']['TaxonomyCreateWithCategories'];
       };
     };
     responses: {
@@ -6020,6 +6143,10 @@ export interface operations {
   get_categories_v1_categories_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -6039,14 +6166,13 @@ export interface operations {
           | '+name'
           | '+external_id'
           | '+taxonomy_name'
+          | 'name'
+          | 'external_id'
+          | 'taxonomy_name'
           | '-name'
           | '-external_id'
           | '-taxonomy_name'
         )[];
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
       };
       header?: never;
       path?: never;
@@ -6098,6 +6224,9 @@ export interface operations {
           | '+name'
           | '+external_id'
           | '+taxonomy_name'
+          | 'name'
+          | 'external_id'
+          | 'taxonomy_name'
           | '-name'
           | '-external_id'
           | '-taxonomy_name'
@@ -6163,6 +6292,10 @@ export interface operations {
   get_subcategories_v1_categories__category_id__subcategories_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -6170,11 +6303,7 @@ export interface operations {
         'description[ilike]'?: string | null;
         external_id?: string | null;
         'external_id[ilike]'?: string | null;
-        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
+        order_by?: ('+name' | '+external_id' | 'name' | 'external_id' | '-name' | '-external_id')[];
       };
       header?: never;
       path: {
@@ -6217,7 +6346,7 @@ export interface operations {
         'description[ilike]'?: string | null;
         external_id?: string | null;
         'external_id[ilike]'?: string | null;
-        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
+        order_by?: ('+name' | '+external_id' | 'name' | 'external_id' | '-name' | '-external_id')[];
       };
       header?: never;
       path: {
@@ -6250,6 +6379,10 @@ export interface operations {
   get_taxonomies_v1_taxonomies_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -6259,11 +6392,17 @@ export interface operations {
         'description[ilike]'?: string | null;
         source?: string | null;
         'source[ilike]'?: string | null;
-        order_by?: ('+name' | '+version' | '+source' | '-name' | '-version' | '-source')[];
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
+        order_by?: (
+          | '+name'
+          | '+version'
+          | '+source'
+          | 'name'
+          | 'version'
+          | 'source'
+          | '-name'
+          | '-version'
+          | '-source'
+        )[];
       };
       header?: never;
       path?: never;
@@ -6327,6 +6466,8 @@ export interface operations {
       query?: {
         /** @description Maximum recursion depth */
         recursion_depth?: number;
+        page?: number;
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -6334,11 +6475,7 @@ export interface operations {
         'description[ilike]'?: string | null;
         external_id?: string | null;
         'external_id[ilike]'?: string | null;
-        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
+        order_by?: ('+name' | '+external_id' | 'name' | 'external_id' | '-name' | '-external_id')[];
       };
       header?: never;
       path: {
@@ -6371,6 +6508,10 @@ export interface operations {
   get_taxonomy_categories_v1_taxonomies__taxonomy_id__categories_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -6378,11 +6519,7 @@ export interface operations {
         'description[ilike]'?: string | null;
         external_id?: string | null;
         'external_id[ilike]'?: string | null;
-        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
+        order_by?: ('+name' | '+external_id' | 'name' | 'external_id' | '-name' | '-external_id')[];
       };
       header?: never;
       path: {
@@ -6415,6 +6552,10 @@ export interface operations {
   get_materials_v1_materials_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -6438,15 +6579,15 @@ export interface operations {
           | '+density_kg_m3'
           | '+source'
           | '+category_name'
+          | 'name'
+          | 'density_kg_m3'
+          | 'source'
+          | 'category_name'
           | '-name'
           | '-density_kg_m3'
           | '-source'
           | '-category_name'
         )[];
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
       };
       header?: never;
       path?: never;
@@ -6515,7 +6656,7 @@ export interface operations {
         'description[ilike]'?: string | null;
         external_id?: string | null;
         'external_id[ilike]'?: string | null;
-        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
+        order_by?: ('+name' | '+external_id' | 'name' | 'external_id' | '-name' | '-external_id')[];
       };
       header?: never;
       path: {
@@ -6555,7 +6696,14 @@ export interface operations {
         'description[ilike]'?: string | null;
         parent_type?: components['schemas']['MediaParentType'];
         'parent_type[eq]'?: components['schemas']['MediaParentType'];
-        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
+        order_by?: (
+          | '+filename'
+          | '+created_at'
+          | 'filename'
+          | 'created_at'
+          | '-filename'
+          | '-created_at'
+        )[];
       };
       header?: never;
       path: {
@@ -6596,7 +6744,14 @@ export interface operations {
         'description[ilike]'?: string | null;
         parent_type?: components['schemas']['MediaParentType'];
         'parent_type[eq]'?: components['schemas']['MediaParentType'];
-        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
+        order_by?: (
+          | '+filename'
+          | '+created_at'
+          | 'filename'
+          | 'created_at'
+          | '-filename'
+          | '-created_at'
+        )[];
       };
       header?: never;
       path: {
@@ -6630,6 +6785,10 @@ export interface operations {
   get_product_types_v1_product_types_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -6642,11 +6801,14 @@ export interface operations {
         'category_description[ilike]'?: string | null;
         category_external_id?: string | null;
         'category_external_id[ilike]'?: string | null;
-        order_by?: ('+name' | '+category_name' | '-name' | '-category_name')[];
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
+        order_by?: (
+          | '+name'
+          | '+category_name'
+          | 'name'
+          | 'category_name'
+          | '-name'
+          | '-category_name'
+        )[];
       };
       header?: never;
       path?: never;
@@ -6715,7 +6877,7 @@ export interface operations {
         'description[ilike]'?: string | null;
         external_id?: string | null;
         'external_id[ilike]'?: string | null;
-        order_by?: ('+name' | '+external_id' | '-name' | '-external_id')[];
+        order_by?: ('+name' | '+external_id' | 'name' | 'external_id' | '-name' | '-external_id')[];
       };
       header?: never;
       path: {
@@ -6755,7 +6917,14 @@ export interface operations {
         'description[ilike]'?: string | null;
         parent_type?: components['schemas']['MediaParentType'];
         'parent_type[eq]'?: components['schemas']['MediaParentType'];
-        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
+        order_by?: (
+          | '+filename'
+          | '+created_at'
+          | 'filename'
+          | 'created_at'
+          | '-filename'
+          | '-created_at'
+        )[];
       };
       header?: never;
       path: {
@@ -6796,7 +6965,14 @@ export interface operations {
         'description[ilike]'?: string | null;
         parent_type?: components['schemas']['MediaParentType'];
         'parent_type[eq]'?: components['schemas']['MediaParentType'];
-        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
+        order_by?: (
+          | '+filename'
+          | '+created_at'
+          | 'filename'
+          | 'created_at'
+          | '-filename'
+          | '-created_at'
+        )[];
       };
       header?: never;
       path: {
@@ -6847,119 +7023,13 @@ export interface operations {
       };
     };
   };
-  get_brand_suggestions_v1_products_suggestions_brands_get: {
-    parameters: {
-      query?: {
-        /** @description Search brand (case-insensitive) */
-        search?: string | null;
-        /** @description Sort order: 'asc' or 'desc' */
-        order?: 'asc' | 'desc';
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_TypeVar_Customized_str_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_model_suggestions_v1_products_suggestions_models_get: {
-    parameters: {
-      query?: {
-        /** @description Search model name (case-insensitive) */
-        search?: string | null;
-        /** @description Sort order: 'asc' or 'desc' */
-        order?: 'asc' | 'desc';
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_TypeVar_Customized_str_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_facets_v1_products_facets_get: {
-    parameters: {
-      query?: {
-        /** @description Product fields to facet. Repeat the parameter for multiple fields. */
-        fields?: ('brand' | 'model')[] | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            [key: string]: components['schemas']['ProductFacetValue'][];
-          };
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
   get_user_products_v1_users__user_id__products_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -7000,6 +7070,12 @@ export interface operations {
           | '+created_at'
           | '+updated_at'
           | '+product_type_name'
+          | 'name'
+          | 'brand'
+          | 'model'
+          | 'created_at'
+          | 'updated_at'
+          | 'product_type_name'
           | '-name'
           | '-brand'
           | '-model'
@@ -7007,10 +7083,6 @@ export interface operations {
           | '-updated_at'
           | '-product_type_name'
         )[];
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
       };
       header?: never;
       path: {
@@ -7045,6 +7117,10 @@ export interface operations {
       query?: {
         /** @description Use 'me' to list the current user's products */
         owner?: 'me' | null;
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -7085,6 +7161,12 @@ export interface operations {
           | '+created_at'
           | '+updated_at'
           | '+product_type_name'
+          | 'name'
+          | 'brand'
+          | 'model'
+          | 'created_at'
+          | 'updated_at'
+          | 'product_type_name'
           | '-name'
           | '-brand'
           | '-model'
@@ -7092,10 +7174,6 @@ export interface operations {
           | '-updated_at'
           | '-product_type_name'
         )[];
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
       };
       header?: never;
       path?: never;
@@ -7143,6 +7221,40 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ProductRead'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_product_facets_v1_products_facets_get: {
+    parameters: {
+      query?: {
+        /** @description Product fields to facet. Repeat the parameter for multiple fields. */
+        fields?: ('brand' | 'model')[] | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: components['schemas']['ProductFacetValue'][];
+          };
         };
       };
       /** @description Validation Error */
@@ -7296,6 +7408,12 @@ export interface operations {
           | '+created_at'
           | '+updated_at'
           | '+product_type_name'
+          | 'name'
+          | 'brand'
+          | 'model'
+          | 'created_at'
+          | 'updated_at'
+          | 'product_type_name'
           | '-name'
           | '-brand'
           | '-model'
@@ -7375,6 +7493,12 @@ export interface operations {
           | '+created_at'
           | '+updated_at'
           | '+product_type_name'
+          | 'name'
+          | 'brand'
+          | 'model'
+          | 'created_at'
+          | 'updated_at'
+          | 'product_type_name'
           | '-name'
           | '-brand'
           | '-model'
@@ -7446,6 +7570,82 @@ export interface operations {
       };
     };
   };
+  get_brand_suggestions_v1_products_suggestions_brands_get: {
+    parameters: {
+      query?: {
+        /** @description Search brand (case-insensitive) */
+        search?: string | null;
+        /** @description Sort order: 'asc' or 'desc' */
+        order?: 'asc' | 'desc';
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Page_TypeVar_Customized_str_'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_model_suggestions_v1_products_suggestions_models_get: {
+    parameters: {
+      query?: {
+        /** @description Search model name (case-insensitive) */
+        search?: string | null;
+        /** @description Sort order: 'asc' or 'desc' */
+        order?: 'asc' | 'desc';
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Page_TypeVar_Customized_str_'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   get_product_files_v1_products__product_id__files_get: {
     parameters: {
       query?: {
@@ -7456,7 +7656,14 @@ export interface operations {
         'description[ilike]'?: string | null;
         parent_type?: components['schemas']['MediaParentType'];
         'parent_type[eq]'?: components['schemas']['MediaParentType'];
-        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
+        order_by?: (
+          | '+filename'
+          | '+created_at'
+          | 'filename'
+          | 'created_at'
+          | '-filename'
+          | '-created_at'
+        )[];
       };
       header?: never;
       path: {
@@ -7595,7 +7802,14 @@ export interface operations {
         'description[ilike]'?: string | null;
         parent_type?: components['schemas']['MediaParentType'];
         'parent_type[eq]'?: components['schemas']['MediaParentType'];
-        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
+        order_by?: (
+          | '+filename'
+          | '+created_at'
+          | 'filename'
+          | 'created_at'
+          | '-filename'
+          | '-created_at'
+        )[];
       };
       header?: never;
       path: {
@@ -7864,7 +8078,14 @@ export interface operations {
         'description[ilike]'?: string | null;
         parent_type?: components['schemas']['MediaParentType'];
         'parent_type[eq]'?: components['schemas']['MediaParentType'];
-        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
+        order_by?: (
+          | '+filename'
+          | '+created_at'
+          | 'filename'
+          | 'created_at'
+          | '-filename'
+          | '-created_at'
+        )[];
       };
       header?: never;
       path: {
@@ -8003,7 +8224,14 @@ export interface operations {
         'description[ilike]'?: string | null;
         parent_type?: components['schemas']['MediaParentType'];
         'parent_type[eq]'?: components['schemas']['MediaParentType'];
-        order_by?: ('+filename' | '+created_at' | '-filename' | '-created_at')[];
+        order_by?: (
+          | '+filename'
+          | '+created_at'
+          | 'filename'
+          | 'created_at'
+          | '-filename'
+          | '-created_at'
+        )[];
       };
       header?: never;
       path: {
@@ -8388,7 +8616,7 @@ export interface operations {
         'url[ilike]'?: string | null;
         description?: string | null;
         'description[ilike]'?: string | null;
-        order_by?: ('+url' | '+created_at' | '-url' | '-created_at')[];
+        order_by?: ('+url' | '+created_at' | 'url' | 'created_at' | '-url' | '-created_at')[];
       };
       header?: never;
       path: {
@@ -8904,7 +9132,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['UserReadPublic'];
+          'application/json': components['schemas']['UserReadProfile'];
         };
       };
       /** @description Validation Error */
@@ -9344,7 +9572,7 @@ export interface operations {
         };
         content: {
           'application/json': {
-            [key: string]: unknown;
+            [key: string]: boolean | string | null;
           };
         };
       };
@@ -10043,6 +10271,10 @@ export interface operations {
   get_users_v1_admin_users_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         email?: string | null;
         'email[ilike]'?: string | null;
@@ -10054,11 +10286,7 @@ export interface operations {
         'is_superuser[eq]'?: boolean;
         is_verified?: boolean;
         'is_verified[eq]'?: boolean;
-        order_by?: ('+email' | '+username' | '-email' | '-username')[];
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
+        order_by?: ('+email' | '+username' | 'email' | 'username' | '-email' | '-username')[];
       };
       header?: never;
       path?: never;
@@ -10190,7 +10418,7 @@ export interface operations {
         'name[ilike]'?: string | null;
         description?: string | null;
         'description[ilike]'?: string | null;
-        order_by?: ('+name' | '+created_at' | '-name' | '-created_at')[];
+        order_by?: ('+name' | '+created_at' | 'name' | 'created_at' | '-name' | '-created_at')[];
       };
       header?: never;
       path?: never;
@@ -10845,6 +11073,10 @@ export interface operations {
   get_all_cameras_v1_admin_plugins_rpi_cam_cameras_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -10859,15 +11091,15 @@ export interface operations {
           | '+created_at'
           | '+owner_email'
           | '+owner_username'
+          | 'name'
+          | 'created_at'
+          | 'owner_email'
+          | 'owner_username'
           | '-name'
           | '-created_at'
           | '-owner_email'
           | '-owner_username'
         )[];
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
       };
       header?: never;
       path?: never;
@@ -10973,6 +11205,90 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['CameraStatus'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_stats_totals_v1_stats_totals_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TotalsResponse'];
+        };
+      };
+    };
+  };
+  get_stats_categories_v1_stats_categories_get: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CategoriesResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_stats_series_v1_stats_series_get: {
+    parameters: {
+      query?: {
+        granularity?: 'day' | 'week' | 'month' | 'year';
+        start?: string | null;
+        end?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SeriesResponse'];
         };
       };
       /** @description Validation Error */

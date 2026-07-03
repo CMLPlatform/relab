@@ -10,7 +10,11 @@
       "!node_modules",
 
       // Generated fixtures are intentionally machine-managed.
-      "!src/assets/data/*.json"
+      "!src/assets/data/*.json",
+
+      // Canonical OpenAPI schema is emitted by the backend exporter (Python
+      // json.dumps); keep biome from reformatting it so `openapi-check` stays green.
+      "!src/types/openapi.json"
     ]
   },
   "linter": {

@@ -1,4 +1,4 @@
-"""Export generated backend OpenAPI schemas for the docs site."""
+"""Export generated backend OpenAPI schemas for the docs site and app codegen."""
 
 import argparse
 import json
@@ -7,53 +7,56 @@ from pathlib import Path
 from app.api.common.routers.openapi import build_device_openapi, build_public_openapi
 from app.main import app
 
-DEFAULT_OUTPUT_DIR = Path("../docs/public/api/schemas")
-SCHEMA_BUILDERS = {
-    "openapi.public.json": build_public_openapi,
-    "openapi.device.json": build_device_openapi,
-}
+DOCS_SCHEMA_DIR = Path("../docs/public/api/schemas")
+APP_SCHEMA_PATH = Path("../app/src/types/openapi.json")
 
 
-def _schema_text(schema: dict[str, object]) -> str:
+def _pretty(schema: dict[str, object]) -> str:
     return f"{json.dumps(schema, indent=2, sort_keys=True)}\n"
 
 
-def _expected_schemas() -> dict[str, str]:
-    return {filename: _schema_text(builder(app)) for filename, builder in SCHEMA_BUILDERS.items()}
+def _compact(schema: dict[str, object]) -> str:
+    return f"{json.dumps(schema, separators=(',', ':'))}\n"
 
 
-def export_openapi_schemas(output_dir: Path = DEFAULT_OUTPUT_DIR) -> None:
-    """Write the current backend OpenAPI schemas to ``output_dir``."""
-    output_dir.mkdir(parents=True, exist_ok=True)
-    for filename, content in _expected_schemas().items():
-        (output_dir / filename).write_text(content, encoding="utf-8")
+def _expected_schemas() -> dict[Path, str]:
+    """Map each output path to its expected serialized schema."""
+    return {
+        # Audience-filtered schemas published by the docs site (sorted for stable diffs).
+        DOCS_SCHEMA_DIR / "openapi.public.json": _pretty(build_public_openapi(app)),
+        DOCS_SCHEMA_DIR / "openapi.device.json": _pretty(build_device_openapi(app)),
+        # Canonical schema the app's TypeScript codegen consumes. Machine-managed,
+        # so it's stored compact (kept under the large-file limit) in route order
+        # (matching the live /openapi.json) so api.generated.ts stays stable.
+        APP_SCHEMA_PATH: _compact(app.openapi()),
+    }
 
 
-def schemas_are_current(output_dir: Path = DEFAULT_OUTPUT_DIR) -> bool:
-    """Return whether generated schema files in ``output_dir`` are current."""
-    for filename, expected_content in _expected_schemas().items():
-        path = output_dir / filename
-        if not path.exists() or path.read_text(encoding="utf-8") != expected_content:
-            return False
-    return True
+def export_openapi_schemas() -> None:
+    """Write the current backend OpenAPI schemas to their output paths."""
+    for path, content in _expected_schemas().items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+
+def schemas_are_current() -> bool:
+    """Return whether all generated schema files are current."""
+    return all(
+        path.exists() and path.read_text(encoding="utf-8") == expected_content
+        for path, expected_content in _expected_schemas().items()
+    )
 
 
 def main() -> int:
     """Command-line entry point for export and drift checks."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=DEFAULT_OUTPUT_DIR,
-        help=f"Directory for generated schemas. Defaults to {DEFAULT_OUTPUT_DIR}.",
-    )
     parser.add_argument("--check", action="store_true", help="Fail if generated schemas are stale.")
     args = parser.parse_args()
 
     if args.check:
-        return 0 if schemas_are_current(args.output_dir) else 1
+        return 0 if schemas_are_current() else 1
 
-    export_openapi_schemas(args.output_dir)
+    export_openapi_schemas()
     return 0
 
 

@@ -4,8 +4,9 @@ useDefault = true
 [[allowlists]]
 description = "Global allowlist for known false positives"
 paths = [
-  # Auto-generated OpenAPI types contain example JWTs from fastapi-users docs
+  # Auto-generated OpenAPI schema + types contain example JWTs from fastapi-users docs
   '''app/src/types/api\.generated\.ts''',
+  '''app/src/types/openapi\.json''',
 ]
 regexTarget = "line"
 regexes = [

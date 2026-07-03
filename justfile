@@ -190,8 +190,6 @@ test-e2e-full-stack MODE="default":
     trap 'just _e2e-backend-down || true' EXIT
     echo "→ Starting backend infrastructure..."
     just _e2e-backend-up
-    echo "→ Verifying committed API types match the backend schema..."
-    just app/codegen-check
     echo "→ Building Expo web app..."
     just app/build-web
     echo "→ Running Playwright E2E tests ($mode)..."
