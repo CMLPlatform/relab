@@ -59,17 +59,17 @@ async def _attempt_cross_worker_relay(
 
     logger.debug("Camera %s not in local manager; attempting cross-worker relay.", camera_id)
     try:
-        async with asyncio.timeout(timeout_s):
-            result = await relay_cross_worker(
-                redis,
-                camera_id,
-                method,
-                path,
-                params,
-                body,
-                headers,
-                timeout_s=timeout_s,
-            )
+        # relay_cross_worker enforces timeout_s internally via its deadline.
+        result = await relay_cross_worker(
+            redis,
+            camera_id,
+            method,
+            path,
+            params,
+            body,
+            headers,
+            timeout_s=timeout_s,
+        )
     except (RuntimeError, TimeoutError) as cross_exc:
         logger.warning("Cross-worker relay failed for camera %s: %s", camera_id, cross_exc)
         await circuit_breaker.record_failure(camera_id, redis)
