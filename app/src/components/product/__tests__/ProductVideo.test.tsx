@@ -1,9 +1,36 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
+import type { useProductVideo } from '@/features/products/useProductVideo';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 import ProductVideo from '../ProductVideo';
+
+type UseProductVideoResult = ReturnType<typeof useProductVideo>;
+
+const mockUseProductVideo = jest.fn<() => UseProductVideoResult>();
+jest.mock('@/features/products/useProductVideo', () => ({
+  useProductVideo: () => mockUseProductVideo(),
+}));
+
+function makeHookResult(overrides: Partial<UseProductVideoResult> = {}): UseProductVideoResult {
+  return {
+    rpiEnabled: false,
+    youtubeEnabled: false,
+    isGoogleLinked: false,
+    activeStream: null,
+    streamingThisProduct: false,
+    streamingOtherProduct: false,
+    ownedByMe: false,
+    goToProfile: jest.fn(),
+    goToActiveStreamProduct: jest.fn(),
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  mockUseProductVideo.mockReturnValue(makeHookResult());
+});
 
 jest.mock('react-native-webview', () => {
   const React = require('react');
@@ -30,17 +57,8 @@ type ProductVideoProps = ComponentProps<typeof ProductVideo>;
 const defaultProps: ProductVideoProps = {
   product: baseProduct,
   editMode: false,
-  streamingThisProduct: false,
-  streamingOtherProduct: false,
-  activeStream: null,
-  rpiEnabled: false,
-  youtubeEnabled: false,
-  isGoogleLinked: false,
-  ownedByMe: false,
   isNew: false,
   onGoLivePress: jest.fn(),
-  onNavigateToProfile: jest.fn(),
-  onNavigateToActiveStream: jest.fn(),
 };
 const VIDEO_HEADING_PATTERN = /Video/;
 
@@ -219,14 +237,16 @@ describe('ProductVideo', () => {
 
   it('shows the go live CTA when the product is eligible to stream', () => {
     const onGoLivePress = jest.fn();
+    mockUseProductVideo.mockReturnValue(
+      makeHookResult({
+        rpiEnabled: true,
+        ownedByMe: true,
+        isGoogleLinked: true,
+        youtubeEnabled: true,
+      }),
+    );
 
-    renderProductVideo({
-      rpiEnabled: true,
-      ownedByMe: true,
-      isGoogleLinked: true,
-      youtubeEnabled: true,
-      onGoLivePress,
-    });
+    renderProductVideo({ onGoLivePress });
 
     fireEvent.press(screen.getByText('Go Live'));
     expect(onGoLivePress).toHaveBeenCalled();
@@ -234,14 +254,16 @@ describe('ProductVideo', () => {
 
   it('shows Go Live button even when YouTube is not set up, with setup prompt on press', async () => {
     const onGoLivePress = jest.fn();
+    mockUseProductVideo.mockReturnValue(
+      makeHookResult({
+        rpiEnabled: true,
+        ownedByMe: true,
+        isGoogleLinked: false,
+        youtubeEnabled: false,
+      }),
+    );
 
-    renderProductVideo({
-      rpiEnabled: true,
-      ownedByMe: true,
-      isGoogleLinked: false,
-      youtubeEnabled: false,
-      onGoLivePress,
-    });
+    renderProductVideo({ onGoLivePress });
 
     expect(screen.getByText('Go Live')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Go Live'));

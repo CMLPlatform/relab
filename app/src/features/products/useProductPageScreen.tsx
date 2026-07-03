@@ -237,14 +237,6 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
       onProductDelete,
       saveAndExit,
       goBackWithGuards,
-      goToActiveStreamProduct: () => {
-        if (!activeStream) return;
-        router.push({
-          pathname: '/products/[id]',
-          params: { id: String(activeStream.productId) },
-        });
-      },
-      goToProfileForYouTubeSetup: () => router.push('/account'),
     },
   };
 }

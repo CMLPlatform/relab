@@ -86,8 +86,6 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
         isNew={capabilities.isNew}
         isProductComponent={capabilities.isProductComponent}
         onScroll={editing.onScroll}
-        onNavigateToProfile={actions.goToProfileForYouTubeSetup}
-        onNavigateToActiveStream={actions.goToActiveStreamProduct}
         onImagesChange={actions.onImagesChange}
         onChangeDescription={actions.onChangeDescription}
         onBrandChange={actions.onBrandChange}
@@ -98,12 +96,6 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
         onChangeCircularityProperties={actions.onChangeCircularityProperties}
         onVideoChange={actions.onVideoChange}
         onProductDelete={actions.onProductDelete}
-        rpiEnabled={capabilities.rpiEnabled}
-        youtubeEnabled={capabilities.youtubeEnabled}
-        isGoogleLinked={capabilities.isGoogleLinked}
-        streamingThisProduct={streaming.streamingThisProduct}
-        streamingOtherProduct={streaming.streamingOtherProduct}
-        activeStream={streaming.activeStream}
         onGoLivePress={streaming.openStreamPicker}
       />
       <ProductFabControls

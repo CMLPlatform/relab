@@ -302,21 +302,6 @@ describe('useProductPageScreen', () => {
     expect(mockAlert).toHaveBeenCalledTimes(1);
   });
 
-  it('navigates to the active stream product and profile setup routes', () => {
-    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
-
-    act(() => {
-      result.current.actions.goToActiveStreamProduct();
-      result.current.actions.goToProfileForYouTubeSetup();
-    });
-
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/products/[id]',
-      params: { id: '99' },
-    });
-    expect(mockPush).toHaveBeenCalledWith('/account');
-  });
-
   it('collapses the FAB when the hook receives a downward scroll event', () => {
     const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
 

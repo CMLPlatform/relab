@@ -7,7 +7,7 @@ import { useDialog } from '@/components/base/dialogContext';
 import { TextInput } from '@/components/base/TextInput';
 import { StreamingContent } from '@/components/cameras/StreamingContent';
 import { VideoEmbed } from '@/components/product/ProductVideoEmbed';
-import type { StreamSession } from '@/context/streamSession';
+import { useProductVideo } from '@/features/products/useProductVideo';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { isHttpUrl } from '@/utils/urlSafety';
@@ -22,37 +22,31 @@ interface Video {
 interface Props {
   product: Product;
   editMode: boolean;
-  onVideoChange?: (videos: Video[]) => void;
-  streamingThisProduct: boolean;
-  streamingOtherProduct: boolean;
-  activeStream: StreamSession | null;
-  rpiEnabled: boolean;
-  youtubeEnabled: boolean;
-  isGoogleLinked: boolean;
-  ownedByMe: boolean;
   isNew: boolean;
+  onVideoChange?: (videos: Video[]) => void;
   onGoLivePress: () => void;
-  onNavigateToProfile: () => void;
-  onNavigateToActiveStream: () => void;
 }
 
 export default function ProductVideo({
   product,
   editMode,
-  onVideoChange,
-  streamingThisProduct,
-  streamingOtherProduct,
-  activeStream,
-  rpiEnabled,
-  youtubeEnabled,
-  isGoogleLinked,
-  ownedByMe,
   isNew,
+  onVideoChange,
   onGoLivePress,
-  onNavigateToProfile,
-  onNavigateToActiveStream,
 }: Props) {
-  const [videos, setVideos] = useState<Video[]>(product.videos ?? []);
+  const {
+    rpiEnabled,
+    youtubeEnabled,
+    isGoogleLinked,
+    activeStream,
+    streamingThisProduct,
+    streamingOtherProduct,
+    ownedByMe,
+    goToProfile,
+    goToActiveStreamProduct,
+  } = useProductVideo(product);
+  // product comes from a live form watch, so edits round-trip through onVideoChange.
+  const videos = product.videos ?? [];
   const [expanded, setExpanded] = useState(false);
   const toggleExpanded = useCallback(() => setExpanded((value) => !value), []);
   const dialog = useDialog();
@@ -65,15 +59,11 @@ export default function ProductVideo({
     field: 'url' | 'title' | 'description',
     value: string,
   ) => {
-    const updated = videos.map((v, i) => (i === idx ? { ...v, [field]: value } : v));
-    setVideos(updated);
-    onVideoChange?.(updated);
+    onVideoChange?.(videos.map((v, i) => (i === idx ? { ...v, [field]: value } : v)));
   };
 
   const handleRemove = (idx: number) => {
-    const updated = videos.filter((_, i) => i !== idx);
-    setVideos(updated);
-    onVideoChange?.(updated);
+    onVideoChange?.(videos.filter((_, i) => i !== idx));
   };
 
   const handleAdd = () => {
@@ -88,9 +78,7 @@ export default function ProductVideo({
           disabled: (value) => !(value?.trim() && isHttpUrl(value)),
           onPress: (url) => {
             if (!(url && isHttpUrl(url))) return;
-            const updated = [...videos, { url: url.trim(), title: '', description: '' }];
-            setVideos(updated);
-            onVideoChange?.(updated);
+            onVideoChange?.([...videos, { url: url.trim(), title: '', description: '' }]);
           },
         },
       ],
@@ -102,7 +90,7 @@ export default function ProductVideo({
       dialog.alert({
         title: 'Already streaming',
         message: `You're currently live on "${activeStream.productName}". Stop that stream before starting a new one.`,
-        buttons: [{ text: 'OK' }, { text: 'Go to stream', onPress: onNavigateToActiveStream }],
+        buttons: [{ text: 'OK' }, { text: 'Go to stream', onPress: goToActiveStreamProduct }],
       });
       return;
     }
@@ -148,7 +136,7 @@ export default function ProductVideo({
           youtubeEnabled={youtubeEnabled}
           isGoogleLinked={isGoogleLinked}
           onGoLivePress={handleGoLivePress}
-          onNavigateToProfile={onNavigateToProfile}
+          onNavigateToProfile={goToProfile}
         />
       ) : null}
 
