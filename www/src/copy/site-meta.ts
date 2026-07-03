@@ -8,6 +8,7 @@ const siteMeta = {
 
 export const siteLinks = {
   github: 'https://github.com/CMLPlatform/relab',
+  linkedin: 'https://www.linkedin.com/groups/15671021',
   youtube: 'https://www.youtube.com/@open_product_data',
 };
 

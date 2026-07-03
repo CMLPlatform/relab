@@ -6,7 +6,6 @@ const VALID_PUBLIC_ENV: [string, string][] = [
   ['PUBLIC_APP_URL', 'https://app.example.com'],
   ['PUBLIC_CONTACT_EMAIL', 'team@example.com'],
   ['PUBLIC_DOCS_URL', 'https://docs.example.com'],
-  ['PUBLIC_LINKEDIN_URL', 'https://linkedin.example.com/group'],
   ['PUBLIC_SITE_URL', 'https://example.com'],
 ];
 
@@ -47,24 +46,15 @@ describe('readPublicSiteConfig', () => {
       appUrl: 'https://app.example.com',
       contactEmail: 'team@example.com',
       docsUrl: 'https://docs.example.com',
-      linkedInUrl: 'https://linkedin.example.com/group',
       siteUrl: 'https://example.com',
     });
   });
 
-  it('falls back to the default contact email and strips empty optional values', () => {
-    expect(
-      readPublicSiteConfig(
-        publicEnv([
-          ['PUBLIC_CONTACT_EMAIL', '   '],
-          ['PUBLIC_LINKEDIN_URL', ' '],
-        ]),
-      ),
-    ).toEqual({
+  it('falls back to the default contact email when blank', () => {
+    expect(readPublicSiteConfig(publicEnv([['PUBLIC_CONTACT_EMAIL', '   ']]))).toEqual({
       appUrl: 'https://app.example.com',
       contactEmail: 'relab@cml.leidenuniv.nl',
       docsUrl: 'https://docs.example.com',
-      linkedInUrl: undefined,
       siteUrl: 'https://example.com',
     });
   });
@@ -93,10 +83,5 @@ describe('readPublicSiteConfig', () => {
     expect(() =>
       readPublicSiteConfig(publicEnv([['PUBLIC_DOCS_URL', 'mailto:team@example.com']])),
     ).toThrow('PUBLIC_DOCS_URL must be an http(s) URL');
-    expect(() =>
-      readPublicSiteConfig(
-        publicEnv([['PUBLIC_LINKEDIN_URL', 'data:text/html,<script>alert(1)</script>']]),
-      ),
-    ).toThrow('PUBLIC_LINKEDIN_URL must be an http(s) URL');
   });
 });

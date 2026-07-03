@@ -22,18 +22,12 @@ const {
 } = Astro.props;
 
 const publicSiteConfig = getPublicSiteConfig();
-const siteOrigin = publicSiteConfig.siteUrl;
-let canonicalUrl: string | undefined;
-if (siteOrigin) {
-  canonicalUrl = new URL(Astro.url.pathname, siteOrigin).toString();
-}
+// siteUrl is a required, validated env var, so these URLs always resolve.
+const canonicalUrl = new URL(Astro.url.pathname, publicSiteConfig.siteUrl).toString();
+const socialImage = new URL(image, publicSiteConfig.siteUrl).toString();
 let pageTitle = `${title} | ${siteMeta.name}`;
 if (title === siteMeta.title || title.includes(siteMeta.name)) {
   pageTitle = title;
-}
-let socialImage = image;
-if (siteOrigin) {
-  socialImage = new URL(image, siteOrigin).toString();
 }
 const currentYear = new Date().getFullYear();
 ---
@@ -46,12 +40,12 @@ const currentYear = new Date().getFullYear();
     <meta name="color-scheme" content="light dark" />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#eef4f7" data-dynamic-theme />
-    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    <link rel="canonical" href={canonicalUrl} />
     {noIndex && <meta name="robots" content="noindex, nofollow" />}
     <meta property="og:type" content="website" />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
-    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+    <meta property="og:url" content={canonicalUrl} />
     <meta property="og:site_name" content={siteMeta.title} />
     <meta property="og:image" content={socialImage} />
     <meta name="twitter:card" content="summary_large_image" />
@@ -69,23 +63,10 @@ const currentYear = new Date().getFullYear();
       crossorigin
     />
     {/* Resolve theme before first paint to avoid a flash for users whose stored
-        preference differs from their OS scheme. Kept inline (no module import)
-        so it runs render-blocking; mirrors STORAGE_KEY/logic in scripts/theme.ts. */}
-    <script is:inline>
-      (() => {
-        const stored = localStorage.getItem('relab-theme');
-        const pref =
-          stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
-        const resolved =
-          pref === 'system'
-            ? matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light'
-            : pref;
-        document.documentElement.dataset.themePreference = pref;
-        document.documentElement.dataset.theme = resolved;
-      })();
-    </script>
+        preference differs from their OS scheme. A classic external script in
+        <head> is render-blocking (same no-flash guarantee as inline) and
+        satisfies the CSP script-src 'self' policy, which forbids inline script. */}
+    <script is:inline src="/theme-init.js"></script>
     <title>{pageTitle}</title>
   </head>
   <body>
@@ -100,7 +81,7 @@ const currentYear = new Date().getFullYear();
       contactEmail={publicSiteConfig.contactEmail}
       currentYear={currentYear}
       githubUrl={siteLinks.github}
-      linkedInUrl={publicSiteConfig.linkedInUrl}
+      linkedInUrl={siteLinks.linkedin}
       youtubeUrl={siteLinks.youtube}
     />
 

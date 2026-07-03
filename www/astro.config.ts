@@ -12,4 +12,11 @@ export default defineConfig({
   },
   site: readSiteUrl(processEnv, defaultSiteUrl),
   integrations: [sitemap()],
+  vite: {
+    build: {
+      // Never inline scripts: the Caddy CSP is script-src 'self' (no
+      // 'unsafe-inline'), so inlined scripts would be blocked in production.
+      assetsInlineLimit: 0,
+    },
+  },
 });
