@@ -6,7 +6,6 @@ URL construction by httpx_oauth itself is not tested.
 
 from httpx_oauth.clients.google import BASE_SCOPES as GOOGLE_BASE_SCOPES
 
-from app.api.auth.config import settings
 from app.api.auth.services.oauth import (
     GOOGLE_YOUTUBE_SCOPES,
     github_oauth_client,
@@ -14,11 +13,12 @@ from app.api.auth.services.oauth import (
     google_youtube_oauth_client,
 )
 from app.api.auth.services.oauth import routes as oauth_routes
+from app.api.auth.services.oauth.clients import YOUTUBE_API_SCOPES
 
 
 def test_google_login_client_uses_base_scopes_only() -> None:
     """Ensure the standard Google login client stays on the minimal login scope set."""
-    youtube_scopes = set(settings.youtube_api_scopes or [])
+    youtube_scopes = set(YOUTUBE_API_SCOPES)
     base_scopes = google_oauth_client.base_scopes or []
     assert google_oauth_client.base_scopes == GOOGLE_BASE_SCOPES
     assert youtube_scopes.isdisjoint(base_scopes)
@@ -26,7 +26,7 @@ def test_google_login_client_uses_base_scopes_only() -> None:
 
 def test_google_youtube_client_extends_login_scopes() -> None:
     """Ensure the plugin-only YouTube client keeps the elevated scope set separate."""
-    youtube_scopes = set(settings.youtube_api_scopes or [])
+    youtube_scopes = set(YOUTUBE_API_SCOPES)
     base_scopes = google_youtube_oauth_client.base_scopes or []
     assert google_youtube_oauth_client.base_scopes == GOOGLE_YOUTUBE_SCOPES
     assert set(GOOGLE_BASE_SCOPES).issubset(base_scopes)

@@ -87,12 +87,6 @@ def test_rate_limit_defaults() -> None:
     assert settings.rate_limit_password_reset_attempts_per_hour == 3
 
 
-def test_youtube_api_scopes_default() -> None:
-    """YouTube API scopes default to the narrow live-streaming scope."""
-    settings = AuthSettings()
-    assert settings.youtube_api_scopes == ["https://www.googleapis.com/auth/youtube.force-ssl"]
-
-
 def test_secrets_can_be_set_via_constructor() -> None:
     """Secrets supplied in __init__ are stored and retrievable."""
     secret = VALID_SECRET

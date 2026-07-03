@@ -144,13 +144,6 @@ class AuthSettings(RelabBaseSettings):
     rate_limit_verify_attempts_per_hour: int = 3
     rate_limit_password_reset_attempts_per_hour: int = 3
 
-    # Youtube API settings
-    youtube_api_scopes: list[str] = Field(
-        default_factory=lambda: [
-            "https://www.googleapis.com/auth/youtube.force-ssl",
-        ]
-    )
-
     @field_validator("auth_token_secret")
     @classmethod
     def validate_auth_token_secret(cls, value: SecretStr, info: ValidationInfo) -> SecretStr:

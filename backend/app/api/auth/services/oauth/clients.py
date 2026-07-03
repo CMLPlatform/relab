@@ -61,7 +61,8 @@ google_oauth_client = _RelabGoogleOAuth2(
 )
 
 # YouTube (only used for RPi-cam plugin)
-GOOGLE_YOUTUBE_SCOPES = GOOGLE_BASE_SCOPES + settings.youtube_api_scopes
+YOUTUBE_API_SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
+GOOGLE_YOUTUBE_SCOPES = GOOGLE_BASE_SCOPES + YOUTUBE_API_SCOPES
 google_youtube_oauth_client = _RelabGoogleOAuth2(
     settings.google_oauth_client_id.get_secret_value(),
     settings.google_oauth_client_secret.get_secret_value(),
