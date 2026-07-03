@@ -30,7 +30,10 @@ export interface HomeStats {
 }
 
 function apiBaseUrl(): string {
-  return import.meta.env.PUBLIC_API_URL?.trim() || DEV_API_URL;
+  // Only dev builds fall back to the local backend; a prod build without
+  // PUBLIC_API_URL should skip the fetch instead of hitting the visitor's
+  // own localhost.
+  return import.meta.env.PUBLIC_API_URL?.trim() || (import.meta.env.DEV ? DEV_API_URL : '');
 }
 
 async function getJson<T>(url: string): Promise<T> {
@@ -44,6 +47,9 @@ async function getJson<T>(url: string): Promise<T> {
 /** Fetch homepage stats. Returns null on any failure. */
 export async function fetchHomeStats(): Promise<HomeStats | null> {
   const raw = apiBaseUrl();
+  if (!raw) {
+    return null;
+  }
   const base = raw.endsWith('/') ? raw.slice(0, -1) : raw;
   try {
     const [totals, categories] = await Promise.all([
@@ -52,9 +58,15 @@ export async function fetchHomeStats(): Promise<HomeStats | null> {
         `${base}/v1/stats/categories?limit=${CATEGORY_LIMIT}`,
       ),
     ]);
+    // Guard against shape drift in the API: a missing field would otherwise
+    // render as the literal string "NaN" in the revealed panel.
+    const t = totals.totals;
+    if (![t?.teardowns, t?.parts, t?.mass_kg, t?.images, t?.users].every(Number.isFinite)) {
+      throw new Error('unexpected totals shape');
+    }
     return {
-      totals: totals.totals,
-      categories: categories.categories,
+      totals: t,
+      categories: categories.categories.filter((c) => Number.isFinite(c?.teardowns)),
       generatedAt: totals.generated_at,
     };
   } catch (error) {

@@ -55,8 +55,9 @@ ARG ENVIRONMENT=prod
 ARG PUBLIC_APP_URL
 ARG PUBLIC_DOCS_URL
 ARG PUBLIC_SITE_URL
-# Optional: base URL the homepage stats are fetched from at build time. When
-# unset or unreachable the stats panel is simply omitted.
+# Optional: base URL of the public stats API, baked into the client bundle and
+# fetched from the visitor's browser at runtime. When unset or unreachable the
+# stats panel simply stays hidden.
 ARG PUBLIC_API_URL
 ENV PUBLIC_APP_URL=${PUBLIC_APP_URL} \
     PUBLIC_DOCS_URL=${PUBLIC_DOCS_URL} \

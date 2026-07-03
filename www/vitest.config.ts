@@ -7,6 +7,9 @@ export default getViteConfig({
   test: {
     exclude: ['e2e/**', 'node_modules/**'],
     setupFiles: ['./vitest.setup.ts'],
+    // In CI also emit JUnit XML for Codecov Test Analytics (flaky/slow-test tracking).
+    reporters: process.env.CI ? ['default', 'junit'] : ['default'],
+    outputFile: { junit: './junit.xml' },
     coverage: {
       provider: 'v8',
       include: [
