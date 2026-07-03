@@ -52,6 +52,7 @@ words:
   - Bitwarden
   - Caddyfiles
   - clamav
+  - GHSA
   - HSTS
   - linkinator
   - LogQL

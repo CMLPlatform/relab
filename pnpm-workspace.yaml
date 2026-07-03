@@ -22,6 +22,11 @@ allowBuilds:
 overrides:
   # Keep Monaco's DOMPurify transitive dependency on a patched release.
   monaco-editor@0.55.1>dompurify: 3.4.2
+  # Patch transitive vulnerabilities in expo/metro dev tooling (GHSA advisories).
+  # Scoped to the vulnerable ranges so unrelated consumers keep their major.
+  "shell-quote@<1.8.4": ">=1.8.4"       # GHSA-w7jw-789q-3m8p
+  "ws@>=7.0.0 <7.5.11": ">=7.5.11 <8"   # GHSA-96hv-2xvq-fx4p
+  "uuid@<11.1.1": ">=11.1.1"            # GHSA-w5hq-g745-h8pq
 
 catalog:
   "@astrojs/check": ^0.9.9
