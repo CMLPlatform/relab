@@ -64,10 +64,9 @@ Public variables are read through `import.meta.env` and used by [src/config/publ
 | `PUBLIC_SITE_URL`      | yes      | Canonical site URL                                                                                              |
 | `PUBLIC_DOCS_URL`      | yes      | Canonical docs URL                                                                                              |
 | `PUBLIC_API_URL`       | no       | Backend base URL the homepage stats panel fetches from in the browser (panel stays hidden if unset/unreachable) |
-| `PUBLIC_LINKEDIN_URL`  | no       | LinkedIn group link for the footer                                                                              |
 | `PUBLIC_CONTACT_EMAIL` | no       | Public contact address                                                                                          |
 
-Tooling also reads a small runtime config surface from [config/runtime.ts](config/runtime.ts).
+Tooling also reads two environment variables in [playwright.config.ts](playwright.config.ts).
 
 | Name       | Purpose                                                                        |
 | ---------- | ------------------------------------------------------------------------------ |

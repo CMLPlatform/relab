@@ -9,11 +9,6 @@ interface Props {
 }
 
 const { appUrl, docsUrl, githubUrl } = Astro.props;
-const primaryCtas = {
-  app: 'Open the app',
-  docs: 'Read the docs',
-  github: 'Browse source',
-};
 ---
 
 <section class="hero-panel card content-reveal">
@@ -29,7 +24,7 @@ const primaryCtas = {
         rel="noopener noreferrer"
         aria-label="Open the RELab app"
       >
-        {primaryCtas.app}
+        Open the app
       </a>
       <a
         href={docsUrl}
@@ -38,7 +33,7 @@ const primaryCtas = {
         rel="noopener noreferrer"
         aria-label="Read the RELab documentation"
       >
-        {primaryCtas.docs}
+        Read the docs
       </a>
       <a
         href={githubUrl}
@@ -47,7 +42,7 @@ const primaryCtas = {
         rel="noopener noreferrer"
         aria-label="Browse the RELab source code on GitHub"
       >
-        {primaryCtas.github}
+        Browse source
       </a>
     </div>
   </div>

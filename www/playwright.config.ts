@@ -1,8 +1,11 @@
+import { env } from 'node:process';
+
 import { defineConfig, devices, type PlaywrightTestConfig } from '@playwright/test';
 
-import { getNodeRuntimeConfig } from './config/runtime.ts';
-
-const runtimeConfig = getNodeRuntimeConfig();
+const runtimeConfig = {
+  baseUrl: env.BASE_URL?.trim() || undefined,
+  isCi: Boolean(env.CI?.trim()),
+};
 const localBaseUrl = 'http://127.0.0.1:18013';
 
 // Structural (ARIA) snapshots only run on desktop Chromium — one baseline

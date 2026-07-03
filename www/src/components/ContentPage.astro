@@ -4,17 +4,12 @@ interface Props {
   title: string;
   intro?: string;
   meta?: string;
-  compact?: boolean;
 }
 
-const { title, intro, meta, compact = true } = Astro.props;
-let contentPageClass = 'content-page stack-md';
-if (compact) {
-  contentPageClass = 'content-page content-page-compact stack-md';
-}
+const { title, intro, meta } = Astro.props;
 ---
 
-<div class={contentPageClass}>
+<div class="content-page stack-md">
   <section class="page-intro content-reveal">
     <h1>{title}</h1>
     {meta && <p class="page-meta">{meta}</p>}

@@ -1,9 +1,6 @@
-// Shared env-variable helpers.
-//
-// Two call sites currently use these:
-//   - src/config/public.ts — reads `import.meta.env` (Vite/Astro `PUBLIC_*`) at build time.
-//   - config/runtime.ts    — reads Node `process.env` at tooling runtime (Playwright, scripts).
-// Keep this module dependency-free so both Node and Astro bundles can import it.
+// Env-variable helpers for src/config/public.ts, which reads `import.meta.env`
+// (Vite/Astro `PUBLIC_*`) at build time. astro.config.ts also routes Node
+// `process.env` through here, so keep this module dependency-free.
 
 export type EnvSource = Record<string, string | undefined>;
 
