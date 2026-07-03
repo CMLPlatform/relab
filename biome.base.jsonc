@@ -15,7 +15,7 @@
       "types": "all"
     },
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "a11y": "on",
       "correctness": {
         // Biome's unresolved-import scanner false-positives on Astro, package
