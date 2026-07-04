@@ -1,6 +1,6 @@
 """Pydantic models used to validate CRUD operations for reference data."""
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt, field_validator
 
 from app.api.common.schemas.base import (
     AssociationModelReadSchemaWithTimeStamp,
@@ -242,6 +242,15 @@ class TaxonomyUpdate(BaseUpdateSchema):
     )
 
     source: SingleLineUserText | None = Field(default=None, max_length=50, description="Source of the taxonomy data")
+
+    @field_validator("name", "domains")
+    @classmethod
+    def _forbid_explicit_null(cls, value: object) -> object:
+        """These columns are NOT NULL: the field may be omitted, but not set to null."""
+        if value is None:
+            msg = "Field may be omitted but not null."
+            raise ValueError(msg)
+        return value
 
 
 ### Material Schemas ###
