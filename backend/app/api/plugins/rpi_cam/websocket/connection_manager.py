@@ -63,13 +63,22 @@ class CameraConnectionManager:
         self._connections[camera_id] = ws
         logger.info("Camera %s connected via WebSocket", camera_id)
 
-    def unregister(self, camera_id: UUID4) -> None:
-        """Remove a camera's connection and fail its pending futures so callers 503 fast."""
-        self._connections.pop(camera_id, None)
+    def unregister(self, camera_id: UUID4, ws: WebSocket) -> bool:
+        """Remove a camera's connection and fail its pending futures so callers 503 fast.
+
+        Only acts if ``ws`` is still the registered connection — a stale connection's
+        cleanup must not evict a freshly reconnected camera. Returns True if the
+        camera was actually unregistered.
+        """
+        if self._connections.get(camera_id) is not ws:
+            logger.info("Camera %s stale connection closed; newer connection kept.", camera_id)
+            return False
+        del self._connections[camera_id]
         for owner, future in self._pending.values():
             if owner == camera_id and not future.done():
                 future.set_exception(RuntimeError(f"Camera {camera_id} disconnected during command."))
         logger.info("Camera %s disconnected from WebSocket", camera_id)
+        return True
 
     def is_connected(self, camera_id: UUID4) -> bool:
         """Return True if the camera has an active WebSocket connection."""

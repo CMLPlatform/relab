@@ -63,3 +63,19 @@ async def test_send_command_uses_model_package_command_builder_and_resolves_resp
         if not command_task.done():
             command_task.cancel()
             await asyncio.gather(command_task, return_exceptions=True)
+
+
+async def test_stale_unregister_does_not_evict_reconnected_camera() -> None:
+    """A stale connection's cleanup must not remove a freshly registered socket."""
+    manager = CameraConnectionManager()
+    camera_id = uuid4()
+    old_ws = AsyncMock()
+    new_ws = AsyncMock()
+    await manager.register(camera_id, old_ws)
+    await manager.register(camera_id, new_ws)  # reconnect closes old_ws
+
+    assert manager.unregister(camera_id, old_ws) is False
+    assert manager.is_connected(camera_id)
+
+    assert manager.unregister(camera_id, new_ws) is True
+    assert not manager.is_connected(camera_id)

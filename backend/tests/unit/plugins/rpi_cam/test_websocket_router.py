@@ -51,7 +51,7 @@ async def test_session_text_frame_sanitizes_camera_id_in_log() -> None:
     with patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger:
         await session.handle_text_frame("{not-json")
 
-    assert session.pending_binary_response is None
+    assert not session.pending_binary_responses
     assert session.last_pong_at == 0.0
     mock_logger.warning.assert_called_once_with("Camera %s sent invalid JSON, ignoring.", str(camera_id))
 
@@ -65,7 +65,7 @@ async def test_session_text_frame_ignores_malformed_response_envelope() -> None:
     with patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger:
         await session.handle_text_frame('{"type":"response","id":"msg-1","status":"not-an-int"}')
 
-    assert session.pending_binary_response is None
+    assert not session.pending_binary_responses
     assert session.last_pong_at == 0.0
     manager.resolve_json.assert_not_called()
     mock_logger.warning.assert_called_once_with(
@@ -82,7 +82,7 @@ async def test_session_text_frame_ignores_non_object_json() -> None:
 
     await session.handle_text_frame('["response"]')
 
-    assert session.pending_binary_response is None
+    assert not session.pending_binary_responses
     assert session.last_pong_at == 0.0
     manager.resolve_json.assert_not_called()
 
@@ -221,7 +221,24 @@ async def test_session_pairs_binary_frame_with_pending_response() -> None:
         },
         b"payload",
     )
-    assert session.pending_binary_response is None
+    assert not session.pending_binary_responses
+
+
+async def test_session_pairs_pipelined_binary_responses_in_order() -> None:
+    """Two pipelined binary responses should pair with their headers FIFO."""
+    manager = MagicMock()
+    session = _RelayWebSocketSession(camera_id=uuid4(), manager=manager, redis=AsyncMock())
+    await session.handle_text_frame('{"type":"response","id":"msg-1","status":200,"has_binary":true}')
+    await session.handle_text_frame('{"type":"response","id":"msg-2","status":200,"has_binary":true}')
+    # A non-binary response in between must not drop the pending binary headers.
+    await session.handle_text_frame('{"type":"response","id":"msg-3","status":200}')
+
+    session.handle_binary_frame(b"first")
+    session.handle_binary_frame(b"second")
+
+    resolved = [(call.args[0], call.args[2]) for call in manager.resolve_json.call_args_list]
+    assert resolved == [("msg-3", None), ("msg-1", b"first"), ("msg-2", b"second")]
+    assert not session.pending_binary_responses
 
 
 # ── Device assertion verification ────────────────────────────────────────────

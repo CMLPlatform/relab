@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import json
 import logging
+from collections import deque
 from dataclasses import dataclass, field
 from time import monotonic
 from typing import TYPE_CHECKING
@@ -21,11 +22,12 @@ from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.runtime.status import mark_camera_offline, mark_camera_online
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import run_relay_listener
+from app.api.plugins.rpi_cam.websocket.runtime_state import require_connection_camera_manager
 from app.core.config import settings
 from app.core.database import get_async_session
 from app.core.logging import sanitize_log_value
 from app.core.middleware.client_ip import extract_client_ip
-from app.core.runtime import require_connection_camera_manager, require_connection_redis
+from app.core.runtime import require_connection_redis
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -58,7 +60,9 @@ class _RelayWebSocketSession:
     manager: CameraConnectionManager
     redis: Redis
     last_pong_at: float = field(default_factory=monotonic)
-    pending_binary_response: _PendingBinaryResponse | None = None
+    # FIFO of headers awaiting their binary frame: WebSocket frames arrive in
+    # order, so pipelined binary responses pair with headers first-in first-out.
+    pending_binary_responses: deque[_PendingBinaryResponse] = field(default_factory=deque)
 
     async def handle_text_frame(self, text: str) -> None:
         """Process a text frame and update any pending binary response state."""
@@ -84,10 +88,9 @@ class _RelayWebSocketSession:
 
     def handle_binary_frame(self, binary_data: bytes) -> None:
         """Process a binary frame and update any pending binary response state."""
-        if self.pending_binary_response is not None:
-            pending = self.pending_binary_response
+        if self.pending_binary_responses:
+            pending = self.pending_binary_responses.popleft()
             self.manager.resolve_json(pending.id, pending.header, binary_data)
-            self.pending_binary_response = None
             return
 
         logger.warning("Camera %s sent unexpected binary frame, ignoring.", sanitize_log_value(self.camera_id))
@@ -103,11 +106,10 @@ class _RelayWebSocketSession:
         msg_id = envelope.id
         response = envelope.model_dump(mode="json")
         if envelope.has_binary:
-            self.pending_binary_response = _PendingBinaryResponse(id=msg_id, header=response)
+            self.pending_binary_responses.append(_PendingBinaryResponse(id=msg_id, header=response))
             return
 
         self.manager.resolve_json(msg_id, response, None)
-        self.pending_binary_response = None
 
 
 @router.websocket("/plugins/rpi-cam/ws/connect")
@@ -153,8 +155,10 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
         for task in tasks_to_cancel:
             task.cancel()
         await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
-        manager.unregister(camera_id)
-        await mark_camera_offline(redis, camera_id)
+        # Only mark offline if this socket was still the registered one; a stale
+        # connection's cleanup must not flap a freshly reconnected camera offline.
+        if manager.unregister(camera_id, websocket):
+            await mark_camera_offline(redis, camera_id)
 
 
 async def _enforce_ws_auth_rate_limit(websocket: WebSocket, client_ip_bucket: str, camera_key: str) -> bool:
