@@ -1,10 +1,12 @@
 """Bill-of-materials CRUD operations."""
 
+from collections import Counter
 from typing import TYPE_CHECKING
 
 from sqlalchemy import delete, select
 
 from app.api.common.crud.associations import require_link
+from app.api.common.crud.exceptions import LinkedItemsAlreadyAssignedError
 from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, apply_filter
 from app.api.common.crud.persistence import update_and_commit
 from app.api.common.crud.query import require_model, require_models
@@ -64,6 +66,10 @@ async def add_materials_to_product(
 ) -> list[MaterialProductLink]:
     """Add materials to a product."""
     material_ids: set[int] = {material_link.material_id for material_link in material_links}
+    if len(material_ids) != len(material_links):
+        counts = Counter(material_link.material_id for material_link in material_links)
+        model_name = "Materials"
+        raise LinkedItemsAlreadyAssignedError(model_name, {mid for mid, n in counts.items() if n > 1})
     db_product, normalized_material_ids = await _validate_product_material_links(db, product_id, material_ids)
 
     if db_product.bill_of_materials:
