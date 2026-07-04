@@ -254,7 +254,7 @@ async def _resolve_existing_recording(
             error_msg="Failed to verify existing recording stream",
         )
         stream_view = _validate_stream_view(response.json())
-    except APIError as exc:
+    except (HTTPException, APIError) as exc:
         logger.warning(
             "Cached recording session for camera %s could not be verified (%s); clearing",
             sanitize_log_value(camera_id),
