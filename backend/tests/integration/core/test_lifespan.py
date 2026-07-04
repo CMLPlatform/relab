@@ -11,10 +11,12 @@ import pytest
 from fastapi import FastAPI
 from httpx import CloseError
 
+from app.api.plugins.rpi_cam.websocket import runtime_state
 from app.core import lifecycle
 from app.core.config import Environment, settings
 from app.core.database import async_engine
 from app.core.runtime import AppServices
+from app.main import DOMAIN_LIFECYCLES
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -122,12 +124,12 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
             side_effect=init_redis_side_effect,
         ) as init_redis,
         patch(
-            "app.core.lifecycle.init_email_checker",
+            "app.api.auth.lifecycle.init_email_checker",
             return_value=mock_email_checker,
             side_effect=config.init_email_checker_side_effect,
         ) as init_email_checker,
         patch(
-            "app.core.lifecycle.init_common_password_checker",
+            "app.api.auth.lifecycle.init_common_password_checker",
             return_value=mock_common_password_checker,
         ) as init_common,
         patch("app.core.lifecycle.init_cache") as init_cache,
@@ -137,17 +139,21 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
         patch("app.core.lifecycle.shutdown_telemetry") as shutdown_telemetry,
         patch("app.core.lifecycle.cleanup_logging") as cleanup_logging,
         patch(
-            "app.core.lifecycle.validate_malware_scanner_configuration",
+            "app.api.file_storage.lifecycle.validate_malware_scanner_configuration",
             side_effect=config.validate_scanner_side_effect,
         ) as validate_scanner,
         patch("app.core.lifecycle.ensure_storage_directories") as ensure_storage,
         patch("app.core.lifecycle.mount_static_directories") as mount_static,
         patch("app.core.lifecycle.register_favicon_route") as register_favicon,
-        patch("app.core.lifecycle.create_camera_connection_manager", return_value=mock_camera_manager) as create_camera,
-        patch("app.core.lifecycle.FileCleanupManager", return_value=mock_file_cleanup_manager) as file_cleanup_cls,
+        patch(
+            "app.api.plugins.rpi_cam.lifecycle.CameraConnectionManager", return_value=mock_camera_manager
+        ) as create_camera,
+        patch(
+            "app.api.file_storage.lifecycle.FileCleanupManager", return_value=mock_file_cleanup_manager
+        ) as file_cleanup_cls,
         patch("app.core.lifecycle.create_http_client", return_value=mock_http_client) as create_http_client,
         patch("app.core.lifecycle.close_async_engine") as close_async_engine,
-        patch("app.core.lifecycle.set_connection_manager") as set_connection_manager,
+        patch("app.api.plugins.rpi_cam.lifecycle.set_connection_manager") as set_connection_manager,
     ):
         yield RuntimeMocks(
             redis=mock_redis,
@@ -181,7 +187,7 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
 async def test_startup_sets_runtime_services_on_app_state(runtime_app: FastAPI) -> None:
     """Startup should populate the typed runtime container."""
     with patched_runtime_services() as runtime:
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             services = runtime_app.state.services
             assert isinstance(services, AppServices)
             assert services.redis is runtime.redis
@@ -196,7 +202,7 @@ async def test_startup_sets_runtime_services_on_app_state(runtime_app: FastAPI) 
 async def test_startup_initializes_storage_on_app_state(runtime_app: FastAPI) -> None:
     """Startup should ensure storage, mount static files, and mark storage ready."""
     with patched_runtime_services() as runtime:
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             assert runtime_app.state.services.storage_ready is True
 
     runtime.ensure_storage.assert_called_once()
@@ -207,7 +213,7 @@ async def test_startup_initializes_storage_on_app_state(runtime_app: FastAPI) ->
 async def test_shutdown_closes_email_checker_and_redis(runtime_app: FastAPI) -> None:
     """Shutdown should close Redis-backed services."""
     with patched_runtime_services() as runtime:
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     runtime.email_checker.close.assert_awaited_once()
@@ -220,7 +226,7 @@ async def test_shutdown_tolerates_email_checker_close_error(runtime_app: FastAPI
     email_checker.close.side_effect = RuntimeError("checker gone")
 
     with patched_runtime_services(RuntimePatchConfig(email_checker=email_checker)) as runtime:
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     runtime.close_redis.assert_any_await(runtime.redis)
@@ -229,7 +235,7 @@ async def test_shutdown_tolerates_email_checker_close_error(runtime_app: FastAPI
 async def test_shutdown_tolerates_redis_close_error(runtime_app: FastAPI) -> None:
     """An expected Redis close error should not propagate out of the lifespan."""
     with patched_runtime_services(RuntimePatchConfig(close_redis_side_effect=ConnectionError("redis gone"))):
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
 
@@ -244,7 +250,7 @@ async def test_shutdown_tolerates_redis_close_error(runtime_app: FastAPI) -> Non
 async def test_shutdown_tolerates_teardown_errors(runtime_app: FastAPI, config: RuntimePatchConfig) -> None:
     """Teardown errors from the cleanup manager or HTTP client should not prevent full shutdown."""
     with patched_runtime_services(config) as runtime:
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     runtime.file_cleanup_manager.close.assert_awaited_once()
@@ -254,7 +260,7 @@ async def test_shutdown_tolerates_teardown_errors(runtime_app: FastAPI, config: 
 async def test_startup_initializes_telemetry(runtime_app: FastAPI) -> None:
     """Startup should invoke telemetry initialization with the shared async engine."""
     with patched_runtime_services() as runtime:
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     runtime.init_telemetry.assert_called_once_with(runtime_app, async_engine)
@@ -263,7 +269,7 @@ async def test_startup_initializes_telemetry(runtime_app: FastAPI) -> None:
 async def test_shutdown_shuts_down_telemetry(runtime_app: FastAPI) -> None:
     """Shutdown should uninstrument telemetry even when no exporter is enabled."""
     with patched_runtime_services() as runtime:
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     runtime.close_cache.assert_awaited_once()
@@ -273,7 +279,7 @@ async def test_shutdown_shuts_down_telemetry(runtime_app: FastAPI) -> None:
 
 async def test_shutdown_closes_cache_before_redis(runtime_app: FastAPI) -> None:
     """Endpoint cache should release Redis-backed resources before Redis closes."""
-    labels = [step.label for step in lifecycle._shutdown_steps(runtime_app, AppServices(redis=MagicMock()))]
+    labels = [step.label for step in lifecycle._core_shutdown_steps(runtime_app, AppServices(redis=MagicMock()))]
 
     assert labels.index("endpoint cache") < labels.index("primary Redis client")
 
@@ -285,7 +291,7 @@ async def test_startup_failure_cleans_up_initialized_services(runtime_app: FastA
         patched_runtime_services(config) as runtime,
         pytest.raises(RuntimeError, match="bad scan config"),
     ):
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     runtime.email_checker.close.assert_awaited_once()
@@ -302,7 +308,7 @@ async def test_startup_fails_when_primary_redis_is_unavailable(runtime_app: Fast
         patched_runtime_services(config) as runtime,
         pytest.raises(RuntimeError, match="Redis is required"),
     ):
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     runtime.init_email_checker.assert_not_awaited()
@@ -319,7 +325,7 @@ async def test_startup_fails_when_database_is_unavailable(runtime_app: FastAPI) 
         patched_runtime_services(config) as runtime,
         pytest.raises(ConnectionError, match="database unavailable"),
     ):
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     runtime.init_redis.assert_not_awaited()
@@ -340,7 +346,7 @@ async def test_startup_failure_preserves_original_error_when_cleanup_fails(runti
         patched_runtime_services(config) as runtime,
         pytest.raises(RuntimeError, match="bad scan config"),
     ):
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     runtime.close_cache.assert_awaited_once()
@@ -354,7 +360,7 @@ async def test_unexpected_shutdown_error_still_runs_later_cleanup(runtime_app: F
         patched_runtime_services(config) as runtime,
         pytest.raises(ValueError, match="cache exploded"),
     ):
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     runtime.file_cleanup_manager.close.assert_awaited_once()
@@ -377,7 +383,7 @@ async def test_startup_failure_cleans_up_logging_when_configured(
         ) as runtime,
         pytest.raises(RuntimeError, match="redis unavailable"),
     ):
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     setup_logging.assert_called_once()
@@ -391,7 +397,7 @@ async def test_startup_cancellation_cleans_up_initialized_services(runtime_app: 
         patched_runtime_services(config) as runtime,
         pytest.raises(asyncio.CancelledError),
     ):
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     runtime.close_cache.assert_awaited_once()
@@ -403,7 +409,7 @@ async def test_startup_cancellation_cleans_up_initialized_services(runtime_app: 
 async def test_shutdown_clears_global_runtime_hooks(runtime_app: FastAPI) -> None:
     """Shutdown should clear module-level globals that point at runtime resources."""
     with patched_runtime_services() as runtime:
-        async with lifecycle.runtime_lifespan(runtime_app):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
             pass
 
     assert runtime.set_connection_manager.call_args_list[-1].args == (None,)
@@ -413,6 +419,6 @@ async def test_clearing_runtime_hooks_does_not_import_connection_manager() -> No
     """Clearing globals should stay dependency-light for failed startup cleanup."""
     sys.modules.pop("app.api.plugins.rpi_cam.websocket.connection_manager", None)
 
-    lifecycle.set_connection_manager(None)
+    runtime_state.set_connection_manager(None)
 
     assert "app.api.plugins.rpi_cam.websocket.connection_manager" not in sys.modules

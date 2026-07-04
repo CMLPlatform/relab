@@ -55,25 +55,6 @@ def get_request_services(request: Request) -> AppServices:
     return get_connection_services(request)
 
 
-def get_connection_redis(connection: HTTPConnection) -> Redis | None:
-    """Return the shared Redis client for a request or websocket."""
-    return get_connection_services(connection).redis
-
-
-def get_connection_camera_manager(connection: HTTPConnection) -> CameraConnectionManager | None:
-    """Return the shared camera connection manager for a request or websocket."""
-    return get_connection_services(connection).camera_connection_manager
-
-
-def require_connection_camera_manager(connection: HTTPConnection) -> CameraConnectionManager:
-    """Return the shared camera manager, raising when runtime init is incomplete."""
-    manager = get_connection_camera_manager(connection)
-    if manager is None:
-        msg = "Camera connection manager is not initialized"
-        raise RuntimeError(msg)
-    return manager
-
-
 def require_redis(redis_client: Redis | None) -> Redis:
     """Raise an HTTP-style error if Redis is unavailable."""
     if redis_client is None:
@@ -86,7 +67,7 @@ def require_redis(redis_client: Redis | None) -> Redis:
 
 def require_connection_redis(connection: HTTPConnection) -> Redis:
     """Return the shared Redis client, raising when runtime init is incomplete."""
-    return require_redis(get_connection_redis(connection))
+    return require_redis(get_connection_services(connection).redis)
 
 
 def reset_app_services(app: FastAPI) -> AppServices:

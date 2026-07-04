@@ -1,7 +1,11 @@
-"""Application lifecycle orchestration for runtime services."""
+"""Application lifecycle orchestration for runtime services.
 
-import asyncio
-import importlib
+Core owns generic infrastructure (logging, database, Redis, cache, HTTP client,
+telemetry). Domain modules contribute their own startup/shutdown via
+``DomainLifecycle`` hooks, wired together in the composition root (main.py) —
+core never imports domain code.
+"""
+
 import inspect
 import logging
 import tempfile
@@ -13,27 +17,20 @@ import anyio
 from fastapi import FastAPI
 from httpx import CloseError
 
-from app.api.auth.services.common_password_checker import init_common_password_checker
-from app.api.auth.services.email_checker import init_email_checker
 from app.api.common.routers.file_mounts import mount_static_directories, register_favicon_route
-from app.api.file_storage.services.manager import FileCleanupManager
-from app.api.file_storage.upload_security import validate_malware_scanner_configuration
-from app.api.plugins.rpi_cam.websocket.runtime_state import set_connection_manager
 from app.core.cache import close_cache, init_cache
 from app.core.clients import create_http_client
 from app.core.config import Environment, settings
-from app.core.database import async_engine, async_sessionmaker_factory, check_database_connection, close_async_engine
+from app.core.database import async_engine, check_database_connection, close_async_engine
 from app.core.logging import cleanup_logging, setup_logging
 from app.core.redis import close_redis, init_redis
 from app.core.runtime import AppServices, get_app_services, reset_app_services
 from app.core.telemetry import init_telemetry, shutdown_telemetry
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Awaitable, Callable
+    from collections.abc import AsyncGenerator, Awaitable, Callable, Sequence
 
     from redis.asyncio import Redis
-
-    from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +45,20 @@ class ShutdownStep:
     label: str
     close: ShutdownClose | None
     expected_errors: tuple[type[BaseException], ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class DomainLifecycle:
+    """Startup/shutdown contributed by one domain module.
+
+    ``startup`` runs after core services (database, Redis, cache) are ready.
+    ``shutdown_steps`` returns the domain's cleanup actions; they run before
+    core services shut down, in reverse registration order.
+    """
+
+    name: str
+    startup: Callable[[FastAPI, AppServices], Awaitable[None]]
+    shutdown_steps: Callable[[FastAPI, AppServices], tuple[ShutdownStep, ...]]
 
 
 def log_startup_configuration() -> None:
@@ -73,33 +84,14 @@ def ensure_storage_directories() -> None:
             raise RuntimeError(msg) from e
 
 
-def create_camera_connection_manager() -> CameraConnectionManager:
-    """Create the camera connection manager when runtime services start."""
-    module = importlib.import_module("app.api.plugins.rpi_cam.websocket.connection_manager")
-
-    return module.CameraConnectionManager()
-
-
 async def _initialize_cache_services(services: AppServices) -> None:
-    """Initialize Redis-backed services."""
+    """Initialize Redis and the endpoint cache."""
     services.redis = await init_redis()
-    services.email_checker = await init_email_checker(services.redis)
-    services.common_password_checker = await init_common_password_checker(services.redis)
     init_cache(services.redis)
 
 
-async def _initialize_camera_services(services: AppServices) -> None:
-    """Initialize in-process camera connection services."""
-    services.camera_connection_manager = create_camera_connection_manager()
-    set_connection_manager(services.camera_connection_manager)
-
-
-async def _initialize_storage_services(app: FastAPI, services: AppServices) -> None:
-    """Initialize file storage and cleanup services."""
-    validate_malware_scanner_configuration()
-    services.file_cleanup_manager = FileCleanupManager(async_sessionmaker_factory)
-    await services.file_cleanup_manager.initialize()
-
+def _initialize_storage_mounts(app: FastAPI, services: AppServices) -> None:
+    """Prepare storage directories and static file mounts."""
     ensure_storage_directories()
     services.storage_ready = True
     mount_static_directories(app)
@@ -113,17 +105,18 @@ def _initialize_http_and_observability(app: FastAPI, services: AppServices) -> N
     services.telemetry_enabled = init_telemetry(app, async_engine)
 
 
-async def initialize_runtime_services(app: FastAPI) -> AppServices:
+async def initialize_runtime_services(app: FastAPI, domains: Sequence[DomainLifecycle]) -> AppServices:
     """Create and initialize all long-lived runtime services."""
     services = reset_app_services(app)
     try:
         await check_database_connection()
         await _initialize_cache_services(services)
-        await _initialize_camera_services(services)
-        await _initialize_storage_services(app, services)
+        for domain in domains:
+            await domain.startup(app, services)
+        _initialize_storage_mounts(app, services)
         _initialize_http_and_observability(app, services)
     except BaseException:
-        await shutdown_runtime_services(app, raise_unexpected=False)
+        await shutdown_runtime_services(app, domains, raise_unexpected=False)
         raise
     else:
         logger.info("Application services initialized")
@@ -154,14 +147,9 @@ async def _run_shutdown_step(
     return None
 
 
-def _shutdown_steps(app: FastAPI, services: AppServices) -> tuple[ShutdownStep, ...]:
-    """Return runtime cleanup steps in shutdown order."""
+def _core_shutdown_steps(app: FastAPI, services: AppServices) -> tuple[ShutdownStep, ...]:
+    """Return core runtime cleanup steps in shutdown order."""
     return (
-        ShutdownStep(
-            label="email checker",
-            close=services.email_checker.close if services.email_checker is not None else None,
-            expected_errors=(RuntimeError, OSError),
-        ),
         ShutdownStep(
             label="endpoint cache",
             close=close_cache,
@@ -171,11 +159,6 @@ def _shutdown_steps(app: FastAPI, services: AppServices) -> tuple[ShutdownStep, 
             label="primary Redis client",
             close=lambda: _close_redis_client(services.redis),
             expected_errors=(ConnectionError, OSError),
-        ),
-        ShutdownStep(
-            label="file cleanup manager",
-            close=services.file_cleanup_manager.close if services.file_cleanup_manager is not None else None,
-            expected_errors=(asyncio.CancelledError,),
         ),
         ShutdownStep(
             label="outbound HTTP client",
@@ -191,24 +174,32 @@ def _shutdown_steps(app: FastAPI, services: AppServices) -> tuple[ShutdownStep, 
     )
 
 
-async def shutdown_runtime_services(app: FastAPI, *, raise_unexpected: bool = True) -> None:
-    """Shutdown and clear all runtime services."""
+async def shutdown_runtime_services(
+    app: FastAPI,
+    domains: Sequence[DomainLifecycle],
+    *,
+    raise_unexpected: bool = True,
+) -> None:
+    """Shutdown and clear all runtime services (domain steps first, then core)."""
     services = get_app_services(app)
     unexpected_errors: list[BaseException] = []
     try:
-        for step in _shutdown_steps(app, services):
+        steps: list[ShutdownStep] = []
+        for domain in reversed(domains):
+            steps.extend(domain.shutdown_steps(app, services))
+        steps.extend(_core_shutdown_steps(app, services))
+        for step in steps:
             if error := await _run_shutdown_step(step):
                 unexpected_errors.extend([error])
         services.telemetry_enabled = False
     finally:
-        set_connection_manager(None)
         reset_app_services(app)
     if unexpected_errors and raise_unexpected:
         raise unexpected_errors[0]
 
 
 @asynccontextmanager
-async def runtime_lifespan(app: FastAPI) -> AsyncGenerator[None]:
+async def runtime_lifespan(app: FastAPI, domains: Sequence[DomainLifecycle]) -> AsyncGenerator[None]:
     """Manage application startup and shutdown for the FastAPI lifespan."""
     logging_configured = False
     startup_complete = False
@@ -219,7 +210,7 @@ async def runtime_lifespan(app: FastAPI) -> AsyncGenerator[None]:
             logging_configured = True
 
         log_startup_configuration()
-        await initialize_runtime_services(app)
+        await initialize_runtime_services(app, domains)
         startup_complete = True
         logger.info("Application startup complete")
         yield
@@ -227,7 +218,7 @@ async def runtime_lifespan(app: FastAPI) -> AsyncGenerator[None]:
         try:
             if startup_complete:
                 logger.info("Shutting down application...")
-                await shutdown_runtime_services(app)
+                await shutdown_runtime_services(app, domains)
                 logger.info("Application shutdown complete")
         finally:
             if logging_configured:
