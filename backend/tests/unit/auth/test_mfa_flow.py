@@ -1,6 +1,6 @@
 """Unit tests for MFA flow orchestration."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import Response
@@ -80,12 +80,13 @@ async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.get_totp_setup", new=AsyncMock(return_value=setup)),
-        patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=True)),
+        patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code", new=AsyncMock(return_value=42)),
         patch(
             "app.api.auth.services.mfa_flow.mfa_service.consume_totp_setup",
             new=AsyncMock(return_value=setup),
         ) as consume,
-        patch("app.api.auth.services.mfa_flow.mfa_service.enable_totp", new=AsyncMock()),
+        patch("app.api.auth.services.mfa_flow.mfa_service.enable_totp", new=AsyncMock()) as enable,
+        patch("app.api.auth.services.mfa_flow.mfa_service.burn_totp_counter", new=AsyncMock()) as burn,
     ):
         await mfa_flow.confirm_totp_setup(
             MfaTotpConfirmRequest(setup_token=SecretStr("setup-token"), code="123456"),
@@ -95,3 +96,7 @@ async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None
         )
 
     consume.assert_awaited_once()
+    enable.assert_awaited_once()
+    # The time-step burns only after enrollment succeeds, so a failed commit
+    # doesn't lock the still-valid code out of a retry.
+    burn.assert_awaited_once_with(ANY, user_id=user.id, counter=42)

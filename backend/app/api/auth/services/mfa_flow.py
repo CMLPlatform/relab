@@ -57,12 +57,13 @@ async def confirm_totp_setup(
     user = await user_manager.get(current_user.id)
     if user.mfa_enabled or user.mfa_totp_secret:
         raise MfaChallengeInvalidError
-    if not await mfa_service.verify_totp_code_once(
+    counter = await mfa_service.verify_totp_code(
         redis,
         user_id=current_user.id,
         secret=setup.secret,
         code=payload.code,
-    ):
+    )
+    if counter is None:
         audit_event(
             current_user.id,
             AuditAction.MFA_FAILURE,
@@ -74,6 +75,10 @@ async def confirm_totp_setup(
 
     setup = await mfa_service.consume_totp_setup(redis, setup_token, user_id=current_user.id)
     await mfa_service.enable_totp(user_manager, user, setup.secret)
+    # Burn only after enrollment is committed: a failed commit must not lock the
+    # still-valid code out of an immediate retry. Replay of the whole flow is
+    # already blocked by the one-time setup token consumed above.
+    await mfa_service.burn_totp_counter(redis, user_id=current_user.id, counter=counter)
     audit_event(
         current_user.id, AuditAction.MFA_SUCCESS, "mfa", current_user.id, context=AuditContext(flow="totp_setup")
     )

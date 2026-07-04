@@ -133,6 +133,10 @@ def _matching_totp_counter(secret: str, code: str, *, for_time: int | None = Non
     return None
 
 
+def _totp_used_key(user_id: UUID4, counter: int) -> str:
+    return f"auth:mfa:totp-used:{user_id}:{counter}"
+
+
 async def verify_totp_code_once(
     redis: Redis,
     *,
@@ -145,10 +149,34 @@ async def verify_totp_code_once(
     counter = _matching_totp_counter(secret, code, for_time=for_time)
     if counter is None:
         return False
+    return await burn_totp_counter(redis, user_id=user_id, counter=counter)
 
-    key = f"auth:mfa:totp-used:{user_id}:{counter}"
+
+async def verify_totp_code(
+    redis: Redis,
+    *,
+    user_id: UUID4,
+    secret: str,
+    code: str,
+    for_time: int | None = None,
+) -> int | None:
+    """Verify a TOTP code without burning its time-step; return the matching counter.
+
+    Callers must ``burn_totp_counter`` after their own side effects succeed, so a
+    failed side effect doesn't lock the still-valid code out of an immediate retry.
+    """
+    counter = _matching_totp_counter(secret, code, for_time=for_time)
+    if counter is None:
+        return None
+    if await redis.exists(_totp_used_key(user_id, counter)):
+        return None
+    return counter
+
+
+async def burn_totp_counter(redis: Redis, *, user_id: UUID4, counter: int) -> bool:
+    """Mark a TOTP time-step as used; return False when it was already burned."""
     ttl = (TOTP_VALID_WINDOW + 2) * TOTP_PERIOD_SECONDS
-    return bool(await redis.set(key, "1", ex=ttl, nx=True))
+    return bool(await redis.set(_totp_used_key(user_id, counter), "1", ex=ttl, nx=True))
 
 
 def build_totp_uri(*, secret: str, email: str, username: str | None = None) -> str:
