@@ -1,6 +1,7 @@
 """Unit tests for WebSocket relay transport helpers."""
 
 import asyncio
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
@@ -10,6 +11,9 @@ from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL
 
 from app.api.plugins.rpi_cam.websocket import cross_worker_circuit_breaker as circuit_breaker
 from app.api.plugins.rpi_cam.websocket import message_relay as relay_mod
+
+if TYPE_CHECKING:
+    from typing import Self
 
 
 class _FakeCbRedis:
@@ -30,6 +34,36 @@ class _FakeCbRedis:
 
     async def delete(self, key: str) -> int:
         return 1 if self.store.pop(key, None) is not None else 0
+
+    def pipeline(self, *, transaction: bool = True) -> _FakeCbPipeline:  # noqa: ARG002
+        return _FakeCbPipeline(self)
+
+
+class _FakeCbPipeline:
+    """Queue incr/expire calls and apply them on execute, like a Redis pipeline."""
+
+    def __init__(self, redis: _FakeCbRedis) -> None:
+        self._redis = redis
+        self._ops: list[tuple[str, str, int]] = []
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, *_exc: object) -> None:
+        return None
+
+    def incr(self, key: str) -> None:
+        self._ops.append(("incr", key, 0))
+
+    def expire(self, key: str, ttl: int) -> None:
+        self._ops.append(("expire", key, ttl))
+
+    async def execute(self) -> list[object]:
+        results: list[object] = []
+        for op, key, ttl in self._ops:
+            results.append(await self._redis.incr(key) if op == "incr" else await self._redis.expire(key, ttl))
+        self._ops = []
+        return results
 
 
 async def test_relay_via_websocket_returns_retry_after_when_camera_is_disconnected() -> None:

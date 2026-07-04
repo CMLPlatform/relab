@@ -45,8 +45,13 @@ async def record_failure(camera_id: UUID4, redis: Redis) -> None:
     """Record a failed cross-worker call; the circuit opens at the threshold."""
     key = _redis_key(camera_id)
     with contextlib.suppress(Exception):
-        failures = int(await redis.incr(key))
-        await redis.expire(key, int(COOL_DOWN_S))
+        # INCR and EXPIRE must be atomic: a counter left without a TTL after a
+        # partial failure would hold the circuit open forever.
+        async with redis.pipeline(transaction=True) as pipe:
+            pipe.incr(key)
+            pipe.expire(key, int(COOL_DOWN_S))
+            incr_result, _ = await pipe.execute()
+        failures = int(incr_result)
         if failures == FAILURE_THRESHOLD:
             logger.warning(
                 "Cross-worker relay circuit opened for camera %s after %d failures; "
