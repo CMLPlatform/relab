@@ -93,9 +93,11 @@ async def get_taxonomy_category_tree(
         category_filter=category_filter,
     )
     tree_items = convert_categories_to_tree(list(categories), recursion_depth=recursion_depth)
+    # create_page does not slice; apply the page window ourselves.
+    start = (params.page - 1) * params.size
     return cast(
         "Page[CategoryReadWithRecursiveSubCategories]",
-        create_page(tree_items, total=len(tree_items), params=params),
+        create_page(tree_items[start : start + params.size], total=len(tree_items), params=params),
     )
 
 
