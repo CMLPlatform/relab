@@ -1,11 +1,11 @@
 import { describe, expect, it } from '@jest/globals';
 import {
-  extractApiErrorDetail,
   getAuthLoginPath,
   getAuthRefreshPath,
   mapApiUserToUser,
   shouldSkipUserFetch,
 } from '@/services/api/auth/authHelpers';
+import { parseApiErrorDetail } from '@/services/api/errors';
 
 describe('authHelpers', () => {
   it('returns the correct login path for web and native', () => {
@@ -89,13 +89,12 @@ describe('authHelpers', () => {
   });
 
   it('extracts nested and flat API error details', () => {
-    expect(extractApiErrorDetail({ detail: 'Flat error' }, 'fallback')).toBe('Flat error');
-    expect(extractApiErrorDetail({ detail: { message: 'Nested message' } }, 'fallback')).toBe(
-      'Nested message',
+    expect(parseApiErrorDetail({ detail: 'Flat error' })).toBe('Flat error');
+    expect(parseApiErrorDetail({ detail: { message: 'Nested message' } })).toBe('Nested message');
+    expect(parseApiErrorDetail({ detail: { reason: 'Nested reason' } })).toBe('Nested reason');
+    expect(parseApiErrorDetail({ detail: [{ msg: 'Validation failed' }] })).toBe(
+      'Validation failed',
     );
-    expect(extractApiErrorDetail({ detail: { reason: 'Nested reason' } }, 'fallback')).toBe(
-      'Nested reason',
-    );
-    expect(extractApiErrorDetail(null, 'fallback')).toBe('fallback');
+    expect(parseApiErrorDetail(null)).toBeUndefined();
   });
 });

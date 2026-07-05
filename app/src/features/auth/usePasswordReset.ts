@@ -2,8 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { API_URL } from '@/config';
-import { apiFetch } from '@/services/api/client';
+import { requestPasswordReset, resetPassword } from '@/services/api/auth/accountRecovery';
+import { ApiError } from '@/services/api/errors';
 import {
   type ForgotPasswordFormValues,
   forgotPasswordSchema,
@@ -20,17 +20,6 @@ function useDelayedLoginRedirect(active: boolean, ms: number) {
     const timer = setTimeout(() => router.replace('/login'), ms);
     return () => clearTimeout(timer);
   }, [active, ms, router]);
-}
-
-async function postAuth(path: string, body: unknown, fallbackError: string) {
-  const response = await apiFetch(`${API_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (response.ok) return null;
-  const data = await response.json().catch(() => null);
-  return (data?.detail as string) || fallbackError;
 }
 
 export function useForgotPassword() {
@@ -50,15 +39,13 @@ export function useForgotPassword() {
   const submit = handleSubmit(async ({ email }) => {
     setError(null);
     try {
-      const message = await postAuth(
-        '/auth/forgot-password',
-        { email },
-        'Failed to send reset email',
-      );
-      message ? setError(message) : setSuccess(true);
+      await requestPasswordReset(email);
+      setSuccess(true);
     } catch (err) {
       logError('Forgot password error:', err);
-      setError('An error occurred. Please try again later.');
+      setError(
+        err instanceof ApiError ? err.message : 'An error occurred. Please try again later.',
+      );
     }
   });
 
@@ -94,15 +81,11 @@ export function useResetPassword(token: string | undefined) {
     }
     setError(null);
     try {
-      const message = await postAuth(
-        '/auth/reset-password',
-        { token, password },
-        'Password reset failed',
-      );
-      message ? setError(message) : setSuccess(true);
+      await resetPassword(token, password);
+      setSuccess(true);
     } catch (err) {
       logError('Password reset error:', err);
-      setError('An error occurred during password reset');
+      setError(err instanceof ApiError ? err.message : 'An error occurred during password reset');
     }
   });
 

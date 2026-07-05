@@ -1,6 +1,6 @@
 import { API_URL } from '@/config';
+import { throwFromResponse } from '@/services/api/errors';
 import { fetchWithTimeout } from '@/services/api/request';
-import { extractApiErrorDetail } from './authHelpers';
 import { persistAccessToken, persistRefreshToken } from './authRefresh';
 import { authRuntime } from './authRuntime';
 import { isWeb, setWebSessionFlag } from './authSession';
@@ -119,8 +119,7 @@ async function postMfaJson(
     credentials: 'include',
   });
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(extractApiErrorDetail(errorData, fallbackError));
+    await throwFromResponse(response, fallbackError);
   }
   return response;
 }

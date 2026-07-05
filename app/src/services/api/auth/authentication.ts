@@ -1,8 +1,8 @@
 import { API_URL } from '@/config';
+import { ApiError, throwFromResponse } from '@/services/api/errors';
 import { fetchWithTimeout, type TimedRequestInit } from '@/services/api/request';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
-import { extractApiErrorDetail } from './authHelpers';
 import {
   type LoginResult,
   login as loginFlow,
@@ -94,14 +94,13 @@ export async function register(
       body: JSON.stringify(body),
     });
 
-    if (response.ok) return { success: true };
-
-    const errorData = await response.json().catch(() => null);
-    const errorMessage = extractApiErrorDetail(errorData, 'Registration failed. Please try again.');
-
-    return { success: false, error: errorMessage };
+    if (!response.ok) {
+      await throwFromResponse(response, 'Registration failed. Please try again.');
+    }
+    return { success: true };
   } catch (error) {
     logError('[Register Error]:', error);
+    if (error instanceof ApiError) return { success: false, error: error.message };
     return { success: false, error: 'Network error. Please check your connection and try again.' };
   }
 }
@@ -128,8 +127,7 @@ export async function updateUser(updates: Partial<User>): Promise<User | undefin
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(extractApiErrorDetail(errorData, 'Failed to update user profile'));
+      await throwFromResponse(response, 'Failed to update user profile');
     }
 
     return await getUser(true);
@@ -149,8 +147,7 @@ export async function unlinkOAuth(provider: string): Promise<boolean> {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(extractApiErrorDetail(errorData, `Failed to unlink ${provider} account`));
+      await throwFromResponse(response, `Failed to unlink ${provider} account`);
     }
 
     authRuntime.user = undefined;

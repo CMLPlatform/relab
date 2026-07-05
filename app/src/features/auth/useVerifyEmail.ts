@@ -1,16 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { API_URL } from '@/config';
 import { useAuth } from '@/context/auth';
-import { apiFetch } from '@/services/api/client';
+import { verifyEmail } from '@/services/api/auth/accountRecovery';
+import { ApiError } from '@/services/api/errors';
 import { logError } from '@/utils/logging';
 import { useSensitiveAuthToken } from './useSensitiveAuthToken';
 
 const GENERIC_ERROR = 'An error occurred during verification. Please try again later.';
-
-function errorDetail(detail: unknown) {
-  return typeof detail === 'string' ? detail : 'Verification failed. Please try registering again.';
-}
 
 export function useVerifyEmail() {
   const router = useRouter();
@@ -32,22 +28,14 @@ export function useVerifyEmail() {
         return;
       }
       try {
-        const response = await apiFetch(`${API_URL}/auth/verify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        });
-        if (cancelled) return;
-        if (response.ok) {
+        await verifyEmail(token);
+        if (!cancelled) {
           setSuccess(true);
           setError(null);
-        } else {
-          const data = await response.json();
-          if (!cancelled) setError(errorDetail(data.detail));
         }
       } catch (err) {
         logError('Verification error:', err);
-        if (!cancelled) setError(GENERIC_ERROR);
+        if (!cancelled) setError(err instanceof ApiError ? err.message : GENERIC_ERROR);
       } finally {
         if (!cancelled) setIsLoading(false);
       }

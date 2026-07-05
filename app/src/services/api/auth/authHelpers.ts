@@ -38,20 +38,3 @@ export function mapApiUserToUser(data: ApiUserRead): User {
     preferences: data.preferences ?? {},
   };
 }
-
-export function extractApiErrorDetail(payload: unknown): string | undefined;
-export function extractApiErrorDetail(payload: unknown, fallback: string): string;
-export function extractApiErrorDetail(payload: unknown, fallback?: string): string | undefined {
-  if (!payload || typeof payload !== 'object') return fallback;
-
-  const detail = (payload as { detail?: unknown }).detail;
-  if (typeof detail === 'string' && detail) return detail;
-
-  if (detail && typeof detail === 'object') {
-    const nested = detail as { message?: unknown; reason?: unknown };
-    if (typeof nested.message === 'string' && nested.message) return nested.message;
-    if (typeof nested.reason === 'string' && nested.reason) return nested.reason;
-  }
-
-  return fallback;
-}

@@ -1,7 +1,8 @@
+import { throwFromResponse } from '@/services/api/errors';
 import { fetchWithTimeout } from '@/services/api/request';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
-import { extractApiErrorDetail, getAuthLoginPath } from './authHelpers';
+import { getAuthLoginPath } from './authHelpers';
 import { type MfaLoginPending, parseMfaPendingPayload } from './authMfa';
 import { authRuntime } from './authRuntime';
 import {
@@ -74,8 +75,7 @@ export async function login(
     }
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(extractApiErrorDetail(errorData, 'Login failed.'));
+      await throwFromResponse(response, 'Login failed.');
     }
 
     const data = await response.json().catch(() => null);

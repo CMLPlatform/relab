@@ -438,7 +438,7 @@ describe('Authentication API Service', () => {
       fetchMock().mockResolvedValueOnce(mockResponse(400, 'Bad Request', false) as Response);
       const result = await auth.register('user', 'user@example.com', 'pass');
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Registration failed. Please try again.');
+      expect(result.error).toBe('Registration failed. Please try again. (400)');
     });
 
     it('returns success:false with detail string on failure', async () => {
