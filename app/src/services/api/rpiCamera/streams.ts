@@ -1,4 +1,5 @@
 import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { ApiError } from '@/services/api/errors';
 import type { StartYouTubeStreamParams, StreamView } from './shared';
 import { CAMERA_BASE } from './shared';
 
@@ -28,8 +29,16 @@ export async function startYouTubeStream(
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(params),
   });
-  if (resp.status === 403) throw new Error('GOOGLE_OAUTH_REQUIRED');
-  if (resp.status === 409) throw new Error('STREAM_ALREADY_ACTIVE');
+  if (resp.status === 403) {
+    throw new ApiError(
+      'Google account not linked for YouTube streaming.',
+      403,
+      'GOOGLE_OAUTH_REQUIRED',
+    );
+  }
+  if (resp.status === 409) {
+    throw new ApiError('A stream is already active for this camera.', 409, 'STREAM_ALREADY_ACTIVE');
+  }
   if (!resp.ok) throwStreamRequestError('start', resp.status);
   return resp.json() as Promise<StreamView>;
 }

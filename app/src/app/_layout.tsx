@@ -1,8 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
 import { type ReactNode, useCallback, useEffect } from 'react';
-import { Platform, View } from 'react-native';
+import { AppState, type AppStateStatus, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { PaperProvider } from 'react-native-paper';
@@ -128,6 +128,18 @@ function AppShell() {
   const { user, isLoading: authLoading } = useAuth();
   const { activeStream } = useStreamSession();
   const { BackgroundComponent, overlayColor, showOverlay } = useAnimatedBackground(isDark);
+
+  // On native there's no document/visibilitychange, so TanStack's focus
+  // manager reports always-focused and refetch intervals (camera telemetry,
+  // stream status) keep firing while the app is backgrounded. Drive focus from
+  // AppState so polling pauses in the background and resumes on return.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const sub = AppState.addEventListener('change', (status: AppStateStatus) => {
+      focusManager.setFocused(status === 'active');
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !activeStream) return;

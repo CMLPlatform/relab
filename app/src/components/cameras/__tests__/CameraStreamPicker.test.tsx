@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
+import { ApiError } from '@/services/api/errors';
 import { addProductVideo } from '@/services/api/products';
 import { startYouTubeStream } from '@/services/api/rpiCamera';
 import { fireEvent, renderWithProviders, screen, waitFor } from '@/test-utils/index';
@@ -124,7 +125,9 @@ describe('CameraStreamPicker', () => {
   });
 
   it('shows the Google account required message when YouTube OAuth is missing', async () => {
-    startYouTubeStreamMock.mockRejectedValue(new Error('GOOGLE_OAUTH_REQUIRED'));
+    startYouTubeStreamMock.mockRejectedValue(
+      new ApiError('Google account not linked', 403, 'GOOGLE_OAUTH_REQUIRED'),
+    );
 
     renderWithProviders(
       <CameraStreamPicker productId={9} productName="Desk Radio" visible onDismiss={jest.fn()} />,

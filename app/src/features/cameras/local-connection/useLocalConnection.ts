@@ -98,8 +98,10 @@ export function useLocalConnection(
   const { mode, localBaseUrl, localApiKey, isInitializing } = state;
 
   const consecutiveFailuresRef = useRef(0);
-  // Bumped when cameraId changes (or on unmount) so async work started for a
-  // previous camera can never dispatch into the current camera's state.
+  // Bumped on unmount so async work from a previous mount can never dispatch
+  // into the next one. Every call site keys this hook by camera id, so a
+  // cameraId change always remounts the instance rather than mutating it in
+  // place — there is no in-place cameraId transition to guard against.
   const generationRef = useRef(0);
   useEffect(() => {
     return () => {
@@ -125,6 +127,9 @@ export function useLocalConnection(
 
   // ── Initialization: restore stored connection, else try the USB gadget ──
   useEffect(() => {
+    // No camera (e.g. a null preview target) — stay in the relay/default state
+    // rather than probing the USB gadget address for a nonexistent device.
+    if (!cameraId) return;
     let cancelled = false;
 
     async function initializeFromStorage() {

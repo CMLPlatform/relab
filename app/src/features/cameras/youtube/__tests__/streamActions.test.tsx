@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
 import { useCameraStreamActions } from '@/features/cameras/youtube/streamActions';
+import { ApiError } from '@/services/api/errors';
 
 const mockPush = jest.fn();
 const mockBack = jest.fn();
@@ -159,7 +160,7 @@ describe('camera stream action hooks', () => {
     expect(setIsStartingStream).toHaveBeenLastCalledWith(false);
 
     mockStartYouTubeStream.mockImplementationOnce(async () => {
-      throw new Error('GOOGLE_OAUTH_REQUIRED');
+      throw new ApiError('Google account not linked', 403, 'GOOGLE_OAUTH_REQUIRED');
     });
     await act(async () => {
       await result.current.handleStartStream();

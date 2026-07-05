@@ -10,6 +10,7 @@ import { useCameraStreamActions } from '@/features/cameras/youtube/streamActions
 import { useBaseProductQuery } from '@/features/products/queries';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { setCamerasHeaderOptions, useCameraScreenData } from './helpers';
 import { useCameraRouteModes } from './routeModes';
@@ -19,17 +20,6 @@ import {
   useCameraStreamingController,
 } from './state';
 import { resolveEffectiveCameraConnection } from './useEffectiveCameraConnection';
-
-function useCamerasAuthRedirect(
-  user: ReturnType<typeof useAuth>['user'],
-  router: ReturnType<typeof useRouter>,
-) {
-  useEffect(() => {
-    if (!user) {
-      router.replace({ pathname: '/login', params: { redirectTo: '/cameras' } });
-    }
-  }, [user, router]);
-}
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: cameras-screen orchestration is intentionally exposed through one screen hook.
 export function useCamerasScreen() {
@@ -41,8 +31,11 @@ export function useCamerasScreen() {
   const { captureAllProductId, captureModeEnabled, streamProductId, streamModeEnabled } =
     useCameraRouteModes();
   const streaming = useCameraStreamingController();
-  const { effectiveConnectionByCameraId, handleEffectiveConnectionChange } =
-    useCameraConnectionSnapshots();
+  const {
+    effectiveConnectionByCameraId,
+    connectionInfoByCameraId,
+    handleEffectiveConnectionChange,
+  } = useCameraConnectionSnapshots();
   const selection = useCameraSelectionController();
   const { data: streamProduct } = useBaseProductQuery(streamProductId ?? undefined);
   const {
@@ -55,9 +48,9 @@ export function useCamerasScreen() {
   } = useCamerasQuery(true, {
     includeTelemetry: true,
   });
-  const captureAll = useCaptureAllMutation();
+  const captureAll = useCaptureAllMutation(connectionInfoByCameraId);
 
-  useCamerasAuthRedirect(user, router);
+  useRequireAuth('/cameras');
   useEffect(() => {
     setCamerasHeaderOptions({
       navigation,

@@ -6,6 +6,7 @@ import {
 } from '@/components/cameras/streamingFeedback';
 import type { useStreamSession } from '@/context/streamSession';
 import { invalidateProductQuery } from '@/features/products/queries';
+import { ApiError } from '@/services/api/errors';
 import { addProductVideo } from '@/services/api/products';
 import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera';
 import { startYouTubeStream } from '@/services/api/rpiCamera';
@@ -63,8 +64,7 @@ export async function startYouTubeStreamFlow({
     invalidateProductQuery(queryClient, productId);
     return true;
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'GOOGLE_OAUTH_REQUIRED') {
+    if (err instanceof ApiError && err.code === 'GOOGLE_OAUTH_REQUIRED') {
       showGoogleAccountRequired(feedback);
     } else {
       showStreamStartFailed(feedback, err);

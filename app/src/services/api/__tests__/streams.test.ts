@@ -70,14 +70,16 @@ describe('rpiCamera streams service', () => {
 
   it('maps stream-start auth and conflict errors to app-level errors', async () => {
     mockResponse({ ok: false, status: 403 });
-    await expect(startYouTubeStream('cam-1', { product_id: 1 })).rejects.toThrow(
-      'GOOGLE_OAUTH_REQUIRED',
-    );
+    await expect(startYouTubeStream('cam-1', { product_id: 1 })).rejects.toMatchObject({
+      status: 403,
+      code: 'GOOGLE_OAUTH_REQUIRED',
+    });
 
     mockResponse({ ok: false, status: 409 });
-    await expect(startYouTubeStream('cam-1', { product_id: 1 })).rejects.toThrow(
-      'STREAM_ALREADY_ACTIVE',
-    );
+    await expect(startYouTubeStream('cam-1', { product_id: 1 })).rejects.toMatchObject({
+      status: 409,
+      code: 'STREAM_ALREADY_ACTIVE',
+    });
 
     mockResponse({ ok: false, status: 500 });
     await expect(startYouTubeStream('cam-1', { product_id: 1 })).rejects.toThrow(

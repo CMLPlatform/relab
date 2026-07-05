@@ -1,12 +1,12 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { useAuth } from '@/context/auth';
 import {
   useCameraQuery,
   useDeleteCameraMutation,
   useUpdateCameraMutation,
 } from '@/features/cameras/rpi/hooks';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { createCameraDetailActions } from './detailActions';
 import { useCameraDetailDialogs } from './detailState';
 import { useEffectiveCameraConnection } from './useEffectiveCameraConnection';
@@ -15,7 +15,7 @@ export function useCameraDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user } = useRequireAuth('/cameras');
   const feedback = useAppFeedback();
   const {
     data: camera,
@@ -33,12 +33,6 @@ export function useCameraDetailScreen() {
   const isOnline = effectiveConnection.relayStatus === 'online';
   const canPreview = effectiveConnection.isReachable;
   const { preview, dialogs, actions: dialogActions } = useCameraDetailDialogs(localConnection);
-
-  useEffect(() => {
-    if (!user) {
-      router.replace({ pathname: '/login', params: { redirectTo: '/cameras' } });
-    }
-  }, [router, user]);
 
   useEffect(() => {
     navigation.setOptions({ title: camera?.name ?? 'Camera' });

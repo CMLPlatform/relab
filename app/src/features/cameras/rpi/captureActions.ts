@@ -1,7 +1,12 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 
-type EffectiveConnectionSnapshot = { isReachable: boolean; transport: string };
+type EffectiveConnectionSnapshot = {
+  isReachable: boolean;
+  transport: string;
+  localConnection: CameraConnectionInfo;
+};
 
 export function useCameraConnectionSnapshots() {
   const [effectiveConnectionByCameraId, setEffectiveConnectionByCameraId] = useState<
@@ -14,7 +19,8 @@ export function useCameraConnectionSnapshots() {
         const current = prev[cameraId];
         if (
           current?.isReachable === connection.isReachable &&
-          current.transport === connection.transport
+          current.transport === connection.transport &&
+          current.localConnection === connection.localConnection
         ) {
           return prev;
         }
@@ -24,7 +30,21 @@ export function useCameraConnectionSnapshots() {
     [],
   );
 
-  return { effectiveConnectionByCameraId, handleEffectiveConnectionChange };
+  // Map of cameraId → direct-connection info, for routing capture to the local
+  // endpoint when a camera is only reachable directly (relay offline).
+  const connectionInfoByCameraId = useMemo(() => {
+    const map: Record<string, CameraConnectionInfo> = {};
+    for (const [cameraId, snapshot] of Object.entries(effectiveConnectionByCameraId)) {
+      map[cameraId] = snapshot.localConnection;
+    }
+    return map;
+  }, [effectiveConnectionByCameraId]);
+
+  return {
+    effectiveConnectionByCameraId,
+    connectionInfoByCameraId,
+    handleEffectiveConnectionChange,
+  };
 }
 
 export function useCameraCaptureActions({

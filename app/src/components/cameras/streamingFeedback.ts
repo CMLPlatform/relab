@@ -1,3 +1,5 @@
+import { getErrorMessage } from '@/utils/errors';
+
 export type FeedbackApi = {
   alert: (options: {
     title?: string;
@@ -6,10 +8,6 @@ export type FeedbackApi = {
   }) => void;
   error: (message: string, title?: string) => void;
 };
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
-}
 
 export function showGoogleAccountRequired(feedback: FeedbackApi) {
   feedback.alert({
@@ -20,9 +18,12 @@ export function showGoogleAccountRequired(feedback: FeedbackApi) {
 }
 
 export function showStreamStartFailed(feedback: FeedbackApi, error: unknown) {
-  feedback.error(`Failed to start stream: ${getErrorMessage(error)}`, 'Stream start failed');
+  feedback.error(
+    `Failed to start stream: ${getErrorMessage(error, String(error))}`,
+    'Stream start failed',
+  );
 }
 
 export function showStreamStopFailed(feedback: FeedbackApi, error: unknown) {
-  feedback.error(`Failed to stop stream: ${getErrorMessage(error)}`, 'Stop failed');
+  feedback.error(`Failed to stop stream: ${getErrorMessage(error, String(error))}`, 'Stop failed');
 }

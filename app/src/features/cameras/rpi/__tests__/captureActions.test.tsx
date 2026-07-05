@@ -8,21 +8,30 @@ import {
 describe('camera capture action hooks', () => {
   it('stores effective connection snapshots without rewriting identical values', () => {
     const { result } = renderHook(() => useCameraConnectionSnapshots());
+    const localConnection = {
+      mode: 'local' as const,
+      localBaseUrl: 'http://cam.local',
+      localMediaUrl: 'http://cam.local/media',
+      localApiKey: 'key',
+    };
 
     act(() => {
       result.current.handleEffectiveConnectionChange('cam-1', {
         isReachable: true,
         transport: 'direct',
+        localConnection,
       });
       result.current.handleEffectiveConnectionChange('cam-1', {
         isReachable: true,
         transport: 'direct',
+        localConnection,
       });
     });
 
     expect(result.current.effectiveConnectionByCameraId).toEqual({
-      'cam-1': { isReachable: true, transport: 'direct' },
+      'cam-1': { isReachable: true, transport: 'direct', localConnection },
     });
+    expect(result.current.connectionInfoByCameraId).toEqual({ 'cam-1': localConnection });
   });
 
   it('handles capture selection, offline warnings, and success messaging', () => {

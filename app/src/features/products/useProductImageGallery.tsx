@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useCaptureImageMutation } from '@/features/cameras/rpi/hooks';
+import { useEffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { Product } from '@/types/Product';
 import {
   useProductGalleryCaptureActions,
@@ -27,11 +28,15 @@ function useProductGalleryActions({
   productId: number | null;
   onImagesChange?: (images: { url: string; description: string; id?: string }[]) => void;
 }) {
-  const captureMutation = useCaptureImageMutation();
   const captureActions = useProductGalleryCaptureActions({
     productId,
     captureState,
   });
+  // Route capture to the previewed camera's direct endpoint when it's only
+  // reachable locally (relay offline); otherwise the request falls back to the
+  // relay path, which can't reach a direct-only camera.
+  const previewConnection = useEffectiveCameraConnection(captureActions.previewCamera);
+  const captureMutation = useCaptureImageMutation(previewConnection.localConnection);
   const imageActions = useProductGalleryImageActions({
     media,
     viewerState,

@@ -2,15 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import { invalidateProductQuery } from '@/features/products/queries';
 import { useScreenFocused } from '@/hooks/useScreenFocused';
-import type {
-  CameraUpdate,
-  PairingClaimRequest,
-  StartYouTubeStreamParams,
-} from '@/services/api/rpiCamera';
+import type { CameraUpdate, PairingClaimRequest } from '@/services/api/rpiCamera';
 import {
   claimPairingCode,
   deleteCamera,
-  startYouTubeStream,
   stopYouTubeStream,
   updateCamera,
 } from '@/services/api/rpiCamera';
@@ -136,14 +131,6 @@ export function useStreamStatusQuery(
 ) {
   const subscribed = useScreenFocused();
   return useQuery({ ...streamStatusQueryOptions(cameraId, { enabled }), subscribed });
-}
-
-export function useStartYouTubeStreamMutation(cameraId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (params: StartYouTubeStreamParams) => startYouTubeStream(cameraId, params),
-    onSuccess: () => invalidateCameraStreamStatusQuery(queryClient, cameraId),
-  });
 }
 
 export function useStopYouTubeStreamMutation(cameraId: string) {

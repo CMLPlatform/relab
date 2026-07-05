@@ -18,7 +18,10 @@ import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
 import { createCameraScreenStyles } from './styles';
 
-type EffectiveConnectionSnapshot = Pick<EffectiveCameraConnection, 'isReachable' | 'transport'>;
+type EffectiveConnectionSnapshot = Pick<
+  EffectiveCameraConnection,
+  'isReachable' | 'transport' | 'localConnection'
+>;
 
 type CamerasGridProps = {
   rows: CameraReadWithStatus[];
@@ -120,11 +123,13 @@ const CameraGridCell = memo(function CameraGridCell({
     onEffectiveConnectionChange(camera.id, {
       isReachable: effectiveConnection.isReachable,
       transport: effectiveConnection.transport,
+      localConnection: effectiveConnection.localConnection,
     });
   }, [
     camera.id,
     effectiveConnection.isReachable,
     effectiveConnection.transport,
+    effectiveConnection.localConnection,
     onEffectiveConnectionChange,
   ]);
 
