@@ -144,7 +144,7 @@ describe('useProductForm', () => {
     mockedUseAuth.mockReturnValue({
       user: undefined,
       isLoading: false,
-      refetch: jest.fn(async () => {}),
+      refetch: jest.fn(async () => undefined),
     });
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });

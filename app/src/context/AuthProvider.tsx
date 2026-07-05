@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { Platform } from 'react-native';
+import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { getToken, getUser, hasWebSessionFlag } from '@/services/api/auth/authentication';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
@@ -66,16 +67,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refetch = useCallback(async (forceRefresh = true) => {
     const userData = await getUser(forceRefresh);
     setUser(userData);
+    return userData;
   }, []);
 
   const contextValue = useMemo(() => ({ user, isLoading, refetch }), [user, isLoading, refetch]);
 
   if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <CenteredSpinner />;
   }
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

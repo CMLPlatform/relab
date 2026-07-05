@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import MfaScreen from '@/app/(auth)/mfa';
-import { getUser } from '@/services/api/auth/authentication';
+import { useAuth } from '@/context/auth';
 import { completeMfaChallenge, setPendingMfaLogin } from '@/services/api/auth/authMfa';
 import { mockUser, renderWithProviders } from '@/test-utils/index';
+import type { User } from '@/types/User';
 
 let mockPendingMfaLogin:
   | { status: 'mfa_required'; mfaToken: string; redirectTo?: string }
@@ -26,17 +27,18 @@ jest.mock('@/services/api/auth/authMfa', () => ({
   }),
 }));
 
-jest.mock('@/services/api/auth/authentication', () => ({
-  getUser: jest.fn(),
+jest.mock('@/context/auth', () => ({
+  useAuth: jest.fn(),
 }));
 
 const mockReplace = jest.fn();
+const mockRefetch = jest.fn<(forceRefresh?: boolean) => Promise<User | undefined>>();
 const mockedUseLocalSearchParams = useLocalSearchParams as jest.Mock;
 const mockedUseRouter = useRouter as jest.Mock;
+const mockedUseAuth = useAuth as jest.Mock;
 const mockedCompleteMfaChallenge = completeMfaChallenge as jest.MockedFunction<
   typeof completeMfaChallenge
 >;
-const mockedGetUser = getUser as jest.MockedFunction<typeof getUser>;
 
 function renderMfaScreen() {
   renderWithProviders(<MfaScreen />);
@@ -47,7 +49,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockedUseRouter.mockReturnValue({ replace: mockReplace });
   mockedUseLocalSearchParams.mockReturnValue({});
-  mockedGetUser.mockResolvedValue(mockUser());
+  mockRefetch.mockResolvedValue(mockUser());
+  mockedUseAuth.mockReturnValue({ user: undefined, isLoading: false, refetch: mockRefetch });
   setPendingMfaLogin({ status: 'mfa_required', mfaToken: 'mfa-token' });
 });
 
@@ -98,7 +101,7 @@ describe('MfaScreen challenge flow', () => {
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/account');
     });
-    expect(mockedGetUser).toHaveBeenCalledWith(true);
+    expect(mockRefetch).toHaveBeenCalled();
   });
 
   it('does not read MFA tokens from route params', () => {

@@ -30,7 +30,7 @@ describe('useRpiIntegration', () => {
         username: 'tester',
         preferences: { rpi_camera_enabled: true },
       } as unknown as User,
-      refetch: refetch as (forceRefresh?: boolean) => Promise<void>,
+      refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
       isLoading: false,
     });
 
@@ -47,7 +47,7 @@ describe('useRpiIntegration', () => {
         username: 'tester',
         preferences: { rpi_camera_enabled: false },
       } as unknown as User,
-      refetch: refetch as (forceRefresh?: boolean) => Promise<void>,
+      refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
       isLoading: false,
     });
     mockedUpdateUser.mockResolvedValue(undefined);
@@ -67,7 +67,7 @@ describe('useRpiIntegration', () => {
   it('reports loading when auth has not produced a user yet', () => {
     mockedUseAuth.mockReturnValue({
       user: undefined,
-      refetch: refetch as (forceRefresh?: boolean) => Promise<void>,
+      refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
       isLoading: true,
     });
 

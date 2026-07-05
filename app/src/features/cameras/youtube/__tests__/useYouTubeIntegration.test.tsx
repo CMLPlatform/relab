@@ -30,7 +30,7 @@ describe('useYouTubeIntegration', () => {
         username: 'tester',
         preferences: { youtube_streaming_enabled: true },
       } as unknown as User,
-      refetch: refetch as (forceRefresh?: boolean) => Promise<void>,
+      refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
       isLoading: false,
     });
 
@@ -43,7 +43,7 @@ describe('useYouTubeIntegration', () => {
   it('reports loading when auth has not produced a user yet', () => {
     mockedUseAuth.mockReturnValue({
       user: undefined,
-      refetch: refetch as (forceRefresh?: boolean) => Promise<void>,
+      refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
       isLoading: true,
     });
 
@@ -60,7 +60,7 @@ describe('useYouTubeIntegration', () => {
         username: 'tester',
         preferences: { youtube_streaming_enabled: false },
       } as unknown as User,
-      refetch: refetch as (forceRefresh?: boolean) => Promise<void>,
+      refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
       isLoading: false,
     });
     mockedUpdateUser.mockResolvedValue(undefined);

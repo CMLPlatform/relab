@@ -1,56 +1,10 @@
-import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { Button, HelperText, Text, TextInput } from 'react-native-paper';
-import { getSafeRedirectTarget, routeAuthenticatedUser } from '@/features/auth/useLoginRedirect';
-import { getUser } from '@/services/api/auth/authentication';
-import {
-  clearPendingMfaLogin,
-  completeMfaChallenge,
-  getPendingMfaLogin,
-} from '@/services/api/auth/authMfa';
-
-function normalizeTotpCode(value: string): string {
-  return value.replace(/\D/g, '').slice(0, 6);
-}
+import { useMfaScreen } from '@/features/auth/useMfaScreen';
 
 export default function MfaScreen() {
-  const router = useRouter();
-  const pending = getPendingMfaLogin();
-  const token = pending?.mfaToken;
-  const [code, setCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setSubmitting] = useState(false);
-  const canSubmit = Boolean(token) && code.length === 6;
-  const visibleError = error ?? (pending ? null : 'MFA session expired. Please log in again.');
-  const handleCodeChange = useCallback((value: string) => setCode(normalizeTotpCode(value)), []);
-
-  const submit = async () => {
-    if (!token) {
-      setError('MFA session expired. Please log in again.');
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
-      await completeMfaChallenge(token, code);
-      clearPendingMfaLogin();
-      const authenticatedUser = await getUser(true);
-      if (authenticatedUser) {
-        routeAuthenticatedUser({
-          authenticatedUser,
-          router,
-          postLoginRedirect: getSafeRedirectTarget(pending?.redirectTo),
-        });
-        return;
-      }
-      router.replace('/products');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid MFA code.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const { code, isSubmitting, canSubmit, tokenPresent, visibleError, handleCodeChange, submit } =
+    useMfaScreen();
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 20, gap: 16 }}>
@@ -64,7 +18,7 @@ export default function MfaScreen() {
         textContentType="oneTimeCode"
         placeholder="6-digit code"
         maxLength={6}
-        disabled={isSubmitting || !token}
+        disabled={isSubmitting || !tokenPresent}
       />
       {visibleError ? (
         <HelperText type="error" visible>

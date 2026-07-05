@@ -28,44 +28,51 @@ export async function getUser(
       return await authRuntime.getUserPromise;
     }
 
-    authRuntime.getUserPromise = (async (): Promise<User | undefined> => {
+    const sequence = ++authRuntime.getUserSequence;
+    const promise = (async (): Promise<User | undefined> => {
       const capturedGeneration = authRuntime.authGeneration;
-      try {
-        const url = new URL(`${apiUrl}/users/me`);
-        const response = await fetchWithAuth(apiUrl, url, {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-        });
+      const url = new URL(`${apiUrl}/users/me`);
+      const response = await fetchWithAuth(apiUrl, url, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
 
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            // Definitive rejection — the session is gone.
-            setWebSessionFlag(false);
-          } else {
-            // Transient server error; keep the session flag so later
-            // fetches retry instead of treating the user as signed out.
-            logError('[GetUser] HTTP', response.status);
-          }
-          return;
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          // Definitive rejection — the session is gone.
+          setWebSessionFlag(false);
+        } else {
+          // Transient server error; keep the session flag so later
+          // fetches retry instead of treating the user as signed out.
+          logError('[GetUser] HTTP', response.status);
         }
-
-        if (authRuntime.authGeneration !== capturedGeneration) return;
-
-        const data = (await response.json().catch((err: unknown) => {
-          logError('[GetUser] Failed to parse response:', err);
-          return;
-        })) as ApiUserRead | undefined;
-        if (!data) return;
-
-        authRuntime.user = mapApiUserToUser(data);
-        setWebSessionFlag(true);
-        return authRuntime.user;
-      } finally {
-        authRuntime.getUserPromise = null;
+        return;
       }
+
+      if (authRuntime.authGeneration !== capturedGeneration) return;
+
+      const data = (await response.json().catch((err: unknown) => {
+        logError('[GetUser] Failed to parse response:', err);
+        return;
+      })) as ApiUserRead | undefined;
+      if (!data) return;
+
+      // A newer getUser started while this one was in flight — don't let a
+      // stale response overwrite fresher data (e.g. a post-update refetch).
+      if (authRuntime.getUserSequence !== sequence) return authRuntime.user;
+
+      authRuntime.user = mapApiUserToUser(data);
+      setWebSessionFlag(true);
+      return authRuntime.user;
     })();
 
-    return await authRuntime.getUserPromise;
+    authRuntime.getUserPromise = promise;
+    try {
+      return await promise;
+    } finally {
+      // Only clear the slot if a newer request hasn't already replaced it.
+      if (authRuntime.getUserPromise === promise) authRuntime.getUserPromise = null;
+    }
   } catch (error) {
     logError('[GetUser Fetch Error]:', error);
     return;

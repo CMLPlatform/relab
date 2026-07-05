@@ -4,7 +4,7 @@ import type { User } from '@/types/User';
 export interface AuthContextType {
   user: User | undefined;
   isLoading: boolean;
-  refetch: (forceRefresh?: boolean) => Promise<void>;
+  refetch: (forceRefresh?: boolean) => Promise<User | undefined>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
