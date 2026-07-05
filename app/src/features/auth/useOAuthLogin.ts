@@ -180,7 +180,8 @@ async function startOAuthLogin({
       throw new Error('Unexpected OAuth callback URL received. Please try again.');
     }
 
-    await finalizeOAuthLogin(parseOAuthCallbackUrl(result.url));
+    const callback = parseOAuthCallbackUrl(result.url);
+    if (callback) await finalizeOAuthLogin(callback);
   } catch (error: unknown) {
     dialog.alert({
       title: 'Login Failed',

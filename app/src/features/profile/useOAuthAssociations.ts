@@ -63,19 +63,16 @@ export function useOAuthAssociations({
     setYoutubeAuthPending(true);
     try {
       const result = await startAssociationFlow('/oauth/google-youtube/associate/authorize');
-      if (
-        result.type === 'success' &&
-        result.url &&
-        parseOAuthCallbackUrl(result.url).status === 'success'
-      ) {
+      const callback =
+        result.type === 'success' && result.url ? parseOAuthCallbackUrl(result.url) : undefined;
+      if (callback?.status === 'success') {
         await setYoutubeEnabled(true);
         await refetch(false);
         return;
       }
 
       if (result.type === 'success') {
-        const error = result.url ? parseOAuthCallbackUrl(result.url).error : undefined;
-        feedback.error(error ?? 'Access was denied.', 'YouTube authorization failed');
+        feedback.error(callback?.error ?? 'Access was denied.', 'YouTube authorization failed');
       }
     } catch (error: unknown) {
       feedback.error(

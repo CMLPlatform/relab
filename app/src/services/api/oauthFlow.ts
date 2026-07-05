@@ -1,6 +1,6 @@
 import { openAuthSessionAsync } from 'expo-web-browser';
 import { fetchWithAuth } from '@/services/api/auth/authentication';
-import { extractApiErrorDetail } from '@/services/api/auth/authHelpers';
+import { parseApiErrorDetail } from '@/services/api/errors';
 
 const OAUTH_BROWSER_TIMEOUT_MS = 5 * 60 * 1000;
 const ALLOWED_OAUTH_HOSTNAMES = new Set(['accounts.google.com', 'github.com']);
@@ -41,15 +41,21 @@ export function isExpectedOAuthCallbackUrl(url: string, redirectUri: string): bo
   }
 }
 
-export function parseOAuthCallbackUrl(url: string): OAuthCallbackResult {
+export function parseOAuthCallbackUrl(url: string): OAuthCallbackResult | undefined {
   const callbackUrl = new URL(url);
   const params = new URLSearchParams(callbackUrl.hash.replace(LEADING_HASH_PATTERN, ''));
   const status = params.get('status');
+  const error = params.get('error');
+  const mfaHandoff = params.get('mfa_handoff');
+
+  // Not an OAuth callback fragment (e.g. an anchor link or tracking hash on
+  // /login) — return undefined so callers don't surface a spurious failure.
+  if (status === null && error === null && mfaHandoff === null) return undefined;
 
   return {
     status: status === 'success' || status === 'mfa_required' ? status : 'error',
-    error: params.get('error') ?? undefined,
-    mfaHandoff: params.get('mfa_handoff') ?? undefined,
+    error: error ?? undefined,
+    mfaHandoff: mfaHandoff ?? undefined,
   };
 }
 
@@ -62,7 +68,7 @@ export async function fetchOAuthAuthorizationUrl(authorizeUrl: string) {
   return {
     ok: response.ok,
     status: response.status,
-    detail: extractApiErrorDetail(payload),
+    detail: parseApiErrorDetail(payload),
     authorizationUrl:
       payload && typeof payload === 'object' && 'authorization_url' in payload
         ? String((payload as { authorization_url: unknown }).authorization_url)
