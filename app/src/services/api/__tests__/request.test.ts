@@ -3,7 +3,6 @@ import {
   createRequestId,
   DEFAULT_API_TIMEOUT_MS,
   fetchWithTimeout,
-  isTimeoutError,
   TimeoutError,
 } from '@/services/api/request';
 
@@ -83,7 +82,6 @@ describe('fetchWithTimeout', () => {
 
     const pendingRequest = fetchWithTimeout('http://127.0.0.1:18010/products');
     const assertion = pendingRequest.catch((error) => {
-      expect(isTimeoutError(error)).toBe(true);
       expect(error).toBeInstanceOf(TimeoutError);
       expect((error as TimeoutError).timeoutMs).toBe(DEFAULT_API_TIMEOUT_MS);
       expect((error as TimeoutError).message).toBe(
@@ -131,7 +129,6 @@ describe('fetchWithTimeout', () => {
       timeoutMs: 250,
     });
     const assertion = pendingRequest.catch((error) => {
-      expect(isTimeoutError(error)).toBe(true);
       expect(error).toBeInstanceOf(TimeoutError);
       expect((error as TimeoutError).timeoutMs).toBe(250);
       expect((error as TimeoutError).message).toBe('Request timed out after 250ms');
@@ -139,9 +136,4 @@ describe('fetchWithTimeout', () => {
     await jest.advanceTimersByTimeAsync(250);
     await assertion;
   });
-});
-
-it('isTimeoutError returns false for non-TimeoutError values', () => {
-  expect(isTimeoutError(new Error('network failure'))).toBe(false);
-  expect(isTimeoutError(null)).toBe(false);
 });

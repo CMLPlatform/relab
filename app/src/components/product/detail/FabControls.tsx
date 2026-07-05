@@ -1,7 +1,8 @@
 import type { ComponentProps } from 'react';
-import { Platform, type ViewStyle } from 'react-native';
+import type { ViewStyle } from 'react-native';
 import { AnimatedFAB, Tooltip } from 'react-native-paper';
 import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
+import { getFloatingPosition } from '@/utils/platformLayout';
 
 type ProductFabControlsProps = {
   entityRole: 'product' | 'component';
@@ -122,7 +123,7 @@ function PrimaryProductFab({
 }
 
 const baseFabStyle: ViewStyle = {
-  position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+  position: getFloatingPosition(),
   bottom: 0,
   margin: 19,
 };

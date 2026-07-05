@@ -176,10 +176,8 @@ jest.mock('@/features/products/queries', () => ({
   productsQueryOptions: (...args: unknown[]) => ({
     __mockResult: mockUseProductsQuery(...args),
   }),
-  useProductsQuery: (...args: unknown[]) => mockUseProductsQuery(...args),
   useSearchBrandsQuery: (...args: unknown[]) => mockUseBrandsQuery(...args),
   useSearchProductTypesQuery: (...args: unknown[]) => mockUseProductTypesQuery(...args),
-  useProductTypesQuery: jest.fn().mockReturnValue({ data: [], isLoading: false }),
   PRODUCT_SORT_OPTIONS: [
     { label: 'Relevance', value: [] },
     { label: 'Newest first', value: ['-created_at'] },

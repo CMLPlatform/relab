@@ -3,7 +3,7 @@
 import { z } from 'zod';
 export const USERNAME_MIN_LENGTH = 2;
 export const USERNAME_MAX_LENGTH = 50;
-export const USERNAME_PATTERN = /^\w+$/; // Only letters, numbers, and underscores
+const USERNAME_PATTERN = /^\w+$/; // Only letters, numbers, and underscores
 
 export const PASSWORD_MIN_LENGTH = 12;
 export const PASSWORD_MAX_LENGTH = 128;
@@ -140,17 +140,3 @@ export const newAccountSchema = z
   });
 
 export type NewAccountFormValues = z.infer<typeof newAccountSchema>;
-
-// ─── Helper text functions ─────────────────────────────────────────────────
-
-export function getUsernameHelperText(): string {
-  return `Username must be ${USERNAME_MIN_LENGTH}-${USERNAME_MAX_LENGTH} characters and contain only letters, numbers, and underscores`;
-}
-
-export function getEmailHelperText(): string {
-  return 'Enter a valid email address';
-}
-
-export function getPasswordHelperText(): string {
-  return `Password must be ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters and cannot contain your username or email`;
-}

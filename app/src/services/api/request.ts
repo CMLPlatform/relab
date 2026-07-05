@@ -1,17 +1,3 @@
-/**
- * Type guard for TimeoutError
- */
-export function isTimeoutError(error: unknown): error is TimeoutError {
-  return (
-    error instanceof TimeoutError ||
-    (typeof error === 'object' &&
-      error !== null &&
-      'name' in error &&
-      error.name === 'TimeoutError' &&
-      'timeoutMs' in error &&
-      typeof error.timeoutMs === 'number')
-  );
-}
 export const DEFAULT_API_TIMEOUT_MS = 15_000;
 
 export class TimeoutError extends Error {
@@ -49,10 +35,16 @@ export async function fetchWithTimeout(
   url: string | URL,
   options: TimedRequestInit = {},
 ): Promise<Response> {
-  const { timeoutMs = DEFAULT_API_TIMEOUT_MS, signal, ...requestOptions } = options;
+  const { timeoutMs = DEFAULT_API_TIMEOUT_MS, signal, headers, ...requestOptions } = options;
+
+  // Stamp a correlation id on every request (not just authenticated ones) so
+  // backend logs can be traced for public endpoints, login, and password reset
+  // too. `||=` leaves any caller-supplied id (e.g. from fetchWithAuth) intact.
+  const requestHeaders: Record<string, string> = { ...(headers as Record<string, string>) };
+  requestHeaders['X-Request-ID'] ||= createRequestId();
 
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-    return fetch(url, { ...requestOptions, signal });
+    return fetch(url, { ...requestOptions, headers: requestHeaders, signal });
   }
 
   // setTimeout (not AbortSignal.timeout) so Jest's fake timers can drive it;
@@ -71,7 +63,7 @@ export async function fetchWithTimeout(
     : timeoutController.signal;
 
   try {
-    return await fetch(url, { ...requestOptions, signal: combinedSignal });
+    return await fetch(url, { ...requestOptions, headers: requestHeaders, signal: combinedSignal });
   } catch (error) {
     if (timeoutController.signal.aborted && !signal?.aborted) {
       throw new TimeoutError(timeoutMs);

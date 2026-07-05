@@ -1,4 +1,5 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { getFloatingPosition } from '@/utils/platformLayout';
 
 export const PAGE_SIZE = 24;
 
@@ -179,7 +180,7 @@ export const productsScreenStyles = StyleSheet.create({
     pointerEvents: 'none',
   },
   fab: {
-    position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+    position: getFloatingPosition(),
     right: 16,
     bottom: 16,
     zIndex: 31,

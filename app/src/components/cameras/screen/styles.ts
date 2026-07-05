@@ -1,6 +1,7 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import type { AppTheme } from '@/theme';
 import { memoizeByTheme } from '@/theme';
+import { getFloatingPosition } from '@/utils/platformLayout';
 
 export const createCameraScreenStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
@@ -47,7 +48,7 @@ export const createCameraScreenStyles = memoizeByTheme((theme: AppTheme) => {
       textAlign: 'center',
     },
     fab: {
-      position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+      position: getFloatingPosition(),
       right: 16,
       bottom: 16,
     },

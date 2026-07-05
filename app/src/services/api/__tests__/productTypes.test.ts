@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { HttpResponse, http } from 'msw';
 import { API_URL } from '@/config';
-import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
+import { searchProductTypes } from '@/services/api/productTypes';
 import { server } from '@/test-utils/server';
 
 describe('productTypes API service', () => {
@@ -86,35 +86,6 @@ describe('productTypes API service', () => {
       );
 
       await expect(searchProductTypes()).rejects.toThrow('Failed to fetch');
-    });
-  });
-
-  describe('allProductTypes', () => {
-    it('requests page=1 and size=100', async () => {
-      let capturedUrl: URL | undefined;
-      server.use(
-        http.get(`${API_URL}/product-types`, ({ request }) => {
-          capturedUrl = new URL(request.url);
-          return HttpResponse.json({ items: [] });
-        }),
-      );
-
-      await allProductTypes();
-
-      expect(capturedUrl?.searchParams.get('page')).toBe('1');
-      expect(capturedUrl?.searchParams.get('size')).toBe('100');
-    });
-
-    it('returns all product types in one page', async () => {
-      const items = Array.from({ length: 5 }, (_, i) => ({ id: i + 1, name: `Type ${i + 1}` }));
-      server.use(
-        http.get(`${API_URL}/product-types`, () => HttpResponse.json({ items, total: 5 })),
-      );
-
-      const result = await allProductTypes();
-
-      expect(result).toHaveLength(5);
-      expect(result[4].name).toBe('Type 5');
     });
   });
 });

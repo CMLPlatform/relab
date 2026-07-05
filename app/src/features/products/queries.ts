@@ -12,7 +12,7 @@ import {
   isProductNotFoundError,
   products,
 } from '@/services/api/products';
-import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
+import { searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
 
@@ -100,13 +100,6 @@ export const brandsSearchQueryOptions = (search: string) =>
     staleTime: 2 * 60_000,
   });
 
-export const productTypesQueryOptions = () =>
-  queryOptions({
-    queryKey: ['productTypes'] as const,
-    queryFn: allProductTypes,
-    staleTime: 10 * 60_000,
-  });
-
 export const productTypesSearchQueryOptions = (search: string) =>
   queryOptions({
     queryKey: ['productTypes', 'search', search] as const,
@@ -116,16 +109,6 @@ export const productTypesSearchQueryOptions = (search: string) =>
   });
 
 // ─── Hooks ─────────────────────────────────────────────────────────────────────
-
-export function useProductsQuery(
-  filter: 'all' | 'mine',
-  page: number,
-  search: string,
-  sortBy: string[] = ['-created_at'],
-  extra: ProductExtraFilters = {},
-) {
-  return useQuery(productsQueryOptions(filter, page, search, sortBy, extra));
-}
 
 export function useBaseProductQuery(id: number | undefined) {
   return useQuery(baseProductQueryOptions(id));
@@ -137,10 +120,6 @@ export function useComponentQuery(id: number | undefined) {
 
 export function useSearchBrandsQuery(search: string) {
   return useQuery(brandsSearchQueryOptions(search));
-}
-
-export function useProductTypesQuery() {
-  return useQuery(productTypesQueryOptions());
 }
 
 export function useSearchProductTypesQuery(search: string) {

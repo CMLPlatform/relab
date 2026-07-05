@@ -43,14 +43,6 @@ export function extractYouTubeVideoId(url: string): string | null {
   return null;
 }
 
-/**
- * Helper text describing the allowed name length for product names.
- * Used in form validation feedback.
- */
-export function getProductNameHelperText(): string {
-  return `Enter a descriptive name between ${PRODUCT_NAME_MIN_LENGTH} and ${PRODUCT_NAME_MAX_LENGTH} characters`;
-}
-
 const physicalPropertiesSchema = z.object({
   weight: z.number({ message: 'Weight is required' }).positive('Weight must be a positive number'),
   width: z.number().positive('Width must be a positive number').or(z.nan()).optional(),

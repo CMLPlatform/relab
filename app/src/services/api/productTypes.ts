@@ -13,7 +13,3 @@ export async function searchProductTypes(
     size,
   );
 }
-
-export async function allProductTypes(): Promise<{ id: number; name: string }[]> {
-  return searchProductTypes(undefined, 1, 100);
-}
