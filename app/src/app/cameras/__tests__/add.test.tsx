@@ -60,16 +60,18 @@ describe('AddCameraScreen', () => {
 
     fireEvent.press(screen.getByText('Pair camera'));
 
-    expect(claimMutate).toHaveBeenCalledWith(
-      {
-        code: 'AB12CD',
-        camera_name: 'Workbench Camera',
-        description: 'Bench setup',
-      },
-      expect.objectContaining({
-        onSuccess: expect.any(Function),
-        onError: expect.any(Function),
-      }),
+    await waitFor(() =>
+      expect(claimMutate).toHaveBeenCalledWith(
+        {
+          code: 'AB12CD',
+          camera_name: 'Workbench Camera',
+          description: 'Bench setup',
+        },
+        expect.objectContaining({
+          onSuccess: expect.any(Function),
+          onError: expect.any(Function),
+        }),
+      ),
     );
   });
 
@@ -81,6 +83,7 @@ describe('AddCameraScreen', () => {
     fireEvent.changeText(cameraNameInput, 'Test Camera');
     fireEvent.press(screen.getByText('Pair camera'));
 
+    await waitFor(() => expect(claimMutate).toHaveBeenCalled());
     const pairOnError = (
       claimMutate.mock.calls[0]?.[1] as { onError?: (err: unknown) => void } | undefined
     )?.onError;
@@ -96,6 +99,7 @@ describe('AddCameraScreen', () => {
     fireEvent.changeText(cameraNameInput, 'Test Camera');
     fireEvent.press(screen.getByText('Pair camera'));
 
+    await waitFor(() => expect(claimMutate).toHaveBeenCalled());
     const onSuccess = (claimMutate.mock.calls[0]?.[1] as { onSuccess?: () => void } | undefined)
       ?.onSuccess;
     await act(async () => {

@@ -1,45 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { Controller } from 'react-hook-form';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Dialog, Divider, Portal, Text, TextInput } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
-import { useAuth } from '@/context/auth';
-import { useClaimPairingMutation } from '@/features/cameras/rpi/hooks';
-import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { ApiError } from '@/services/api/errors';
+import { useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useAppTheme } from '@/theme';
-
-const PAIRING_CODE_PATTERN = /^[A-Z0-9]{6}$/;
-const NON_ALPHANUMERIC_PAIRING_CODE_PATTERN = /[^A-Z0-9]/g;
-
-function PairingCodeInput({
-  pairingCode,
-  setPairingCode,
-}: {
-  pairingCode: string;
-  setPairingCode: (value: string) => void;
-}) {
-  const handleChange = useCallback(
-    (v: string) =>
-      setPairingCode(
-        v.toUpperCase().replace(NON_ALPHANUMERIC_PAIRING_CODE_PATTERN, '').slice(0, 6),
-      ),
-    [setPairingCode],
-  );
-  return (
-    <TextInput
-      mode="outlined"
-      label="Pairing code"
-      value={pairingCode}
-      onChangeText={handleChange}
-      maxLength={6}
-      autoCapitalize="characters"
-      style={[styles.input, { fontFamily: 'monospace', fontSize: 20 }]}
-      contentStyle={{ textAlign: 'center' }}
-    />
-  );
-}
 
 function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
   const theme = useAppTheme();
@@ -66,60 +31,11 @@ function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDism
 }
 
 export default function AddCameraScreen() {
-  const router = useRouter();
   const theme = useAppTheme();
-  const { user } = useAuth();
-  const feedback = useAppFeedback();
-  const claimMutation = useClaimPairingMutation();
+  const { user, control, submit, sanitizePairingCode, isPending, pairingSuccess, dismissSuccess } =
+    useAddCameraForm();
 
-  useEffect(() => {
-    if (!user) {
-      router.replace({ pathname: '/login', params: { redirectTo: '/cameras' } });
-    }
-  }, [user, router]);
-
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [pairingCode, setPairingCode] = useState('');
-  const [pairingSuccess, setPairingSuccess] = useState(false);
-
-  const canSubmitPairing =
-    pairingCode.length === 6 && PAIRING_CODE_PATTERN.test(pairingCode) && name.trim().length >= 2;
-
-  const handlePair = () => {
-    claimMutation.mutate(
-      {
-        code: pairingCode,
-        camera_name: name.trim(),
-        description: description.trim() || null,
-      },
-      {
-        onSuccess: () => {
-          setPairingCode('');
-          setPairingSuccess(true);
-        },
-        onError: (err) => {
-          const isCodeMissing = err instanceof ApiError && err.status === 404;
-          feedback.alert({
-            title: 'Pairing failed',
-            message: isCodeMissing
-              ? 'The pairing code was not found. Make sure the Raspberry Pi is powered on and showing a code, then try again in a few seconds.'
-              : err instanceof Error
-                ? err.message
-                : String(err),
-            buttons: [{ text: 'OK' }],
-          });
-        },
-      },
-    );
-  };
-
-  useEffect(() => () => setPairingCode(''), []);
-
-  const handlePairingSuccessDismiss = () => {
-    setPairingSuccess(false);
-    router.replace('/cameras');
-  };
+  if (!user) return null;
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -130,30 +46,57 @@ export default function AddCameraScreen() {
         Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed `PAIRING
         READY` banner over SSH if the device is headless.
       </MutedText>
-      <PairingCodeInput pairingCode={pairingCode} setPairingCode={setPairingCode} />
+      <Controller
+        control={control}
+        name="pairingCode"
+        render={({ field: { value, onChange } }) => (
+          <TextInput
+            mode="outlined"
+            label="Pairing code"
+            value={value}
+            onChangeText={(v) => onChange(sanitizePairingCode(v))}
+            maxLength={6}
+            autoCapitalize="characters"
+            style={[styles.input, { fontFamily: 'monospace', fontSize: 20 }]}
+            contentStyle={{ textAlign: 'center' }}
+          />
+        )}
+      />
 
       <Divider style={styles.divider} />
 
-      <TextInput
-        label="Camera name *"
-        mode="outlined"
-        value={name}
-        onChangeText={setName}
-        maxLength={100}
-        autoCapitalize="words"
-        style={styles.input}
-        error={name.trim().length > 0 && name.trim().length < 2}
+      <Controller
+        control={control}
+        name="name"
+        render={({ field: { value, onChange }, fieldState: { error } }) => (
+          <TextInput
+            label="Camera name *"
+            mode="outlined"
+            value={value}
+            onChangeText={onChange}
+            maxLength={100}
+            autoCapitalize="words"
+            style={styles.input}
+            error={Boolean(error) && value.trim().length > 0}
+          />
+        )}
       />
 
-      <TextInput
-        label="Description (optional)"
-        mode="outlined"
-        value={description}
-        onChangeText={setDescription}
-        maxLength={500}
-        multiline
-        numberOfLines={2}
-        style={styles.input}
+      <Controller
+        control={control}
+        name="description"
+        render={({ field: { value, onChange } }) => (
+          <TextInput
+            label="Description (optional)"
+            mode="outlined"
+            value={value ?? ''}
+            onChangeText={onChange}
+            maxLength={500}
+            multiline
+            numberOfLines={2}
+            style={styles.input}
+          />
+        )}
       />
 
       <View style={[styles.infoBox, { backgroundColor: theme.tokens.surface.accent }]}>
@@ -168,16 +111,16 @@ export default function AddCameraScreen() {
       <Button
         mode="contained"
         icon="link-variant"
-        onPress={handlePair}
-        loading={claimMutation.isPending}
-        disabled={!canSubmitPairing || claimMutation.isPending}
+        onPress={submit}
+        loading={isPending}
+        disabled={isPending}
         style={styles.submitButton}
         contentStyle={{ paddingVertical: 6 }}
       >
         Pair camera
       </Button>
 
-      <PairingSuccessDialog visible={pairingSuccess} onDismiss={handlePairingSuccessDismiss} />
+      <PairingSuccessDialog visible={pairingSuccess} onDismiss={dismissSuccess} />
     </ScrollView>
   );
 }
