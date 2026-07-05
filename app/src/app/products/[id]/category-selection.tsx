@@ -7,8 +7,9 @@ import {
   Text,
   View,
 } from 'react-native';
-import { ActivityIndicator, HelperText, Icon, Searchbar } from 'react-native-paper';
+import { HelperText, Icon, Searchbar } from 'react-native-paper';
 
+import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import CPVCard from '@/components/product/CPVCard';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
 import { useAppTheme } from '@/theme';
@@ -36,11 +37,7 @@ export default function CategorySelection() {
 
   if (!user) return null;
   if (!cpvClass) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <CenteredSpinner />;
   }
 
   return (

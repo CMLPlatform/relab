@@ -11,7 +11,7 @@ import {
   ProductNotFoundError,
   products,
 } from '@/services/api/products';
-import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
+import { searchProductTypes } from '@/services/api/productTypes';
 import { mockUser, server } from '@/test-utils/index';
 
 jest.mock('@/services/api/auth/authentication', () => {
@@ -316,7 +316,7 @@ describe('Fetching API Service logic', () => {
 
       await products({ brands: ['Dell', 'Apple'] });
 
-      expect(capturedUrl?.searchParams.get('brand[in]')).toBe('Dell,Apple');
+      expect(capturedUrl?.searchParams.get('brand[in]')).toBe('Dell\x1fApple');
       expect(capturedUrl?.searchParams.getAll('brand[in]')).toHaveLength(1);
     });
 
@@ -331,7 +331,7 @@ describe('Fetching API Service logic', () => {
 
       await products({ orderBy: ['-created_at', '+name'] });
 
-      expect(capturedUrl?.searchParams.get('order_by')).toBe('-created_at,+name');
+      expect(capturedUrl?.searchParams.get('order_by')).toBe('-created_at\x1f+name');
       expect(capturedUrl?.searchParams.getAll('order_by')).toHaveLength(1);
     });
 
@@ -346,7 +346,9 @@ describe('Fetching API Service logic', () => {
 
       await products({ productTypeNames: ['Electronics', 'Furniture'] });
 
-      expect(capturedUrl?.searchParams.get('product_type_name[in]')).toBe('Electronics,Furniture');
+      expect(capturedUrl?.searchParams.get('product_type_name[in]')).toBe(
+        'Electronics\x1fFurniture',
+      );
       expect(capturedUrl?.searchParams.getAll('product_type_name[in]')).toHaveLength(1);
     });
 
@@ -421,7 +423,7 @@ describe('Fetching API Service logic', () => {
       await products({ owner: 'me', brands: ['Dell', 'Apple'] });
 
       expect(capturedUrl?.searchParams.get('owner')).toBe('me');
-      expect(capturedUrl?.searchParams.get('brand[in]')).toBe('Dell,Apple');
+      expect(capturedUrl?.searchParams.get('brand[in]')).toBe('Dell\x1fApple');
       expect(capturedUrl?.searchParams.getAll('brand[in]')).toHaveLength(1);
     });
 
@@ -432,9 +434,9 @@ describe('Fetching API Service logic', () => {
     });
   });
 
-  // ─── searchProductTypes / allProductTypes ───────────────
+  // ─── searchProductTypes ───────────────
 
-  describe('searchProductTypes / allProductTypes', () => {
+  describe('searchProductTypes', () => {
     it('returns product types from the API', async () => {
       server.use(
         http.get(`${API_URL}/product-types`, () =>
@@ -446,20 +448,6 @@ describe('Fetching API Service logic', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('Electronics');
-    });
-
-    it('allProductTypes requests size=100', async () => {
-      let capturedUrl: URL | undefined;
-      server.use(
-        http.get(`${API_URL}/product-types`, ({ request }) => {
-          capturedUrl = new URL(request.url);
-          return HttpResponse.json({ items: [] });
-        }),
-      );
-
-      await allProductTypes();
-
-      expect(capturedUrl?.searchParams.get('size')).toBe('100');
     });
   });
 

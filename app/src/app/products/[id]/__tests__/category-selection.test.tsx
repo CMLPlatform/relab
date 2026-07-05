@@ -98,7 +98,7 @@ describe('CategorySelection', () => {
     });
   });
 
-  it('calls dismissTo when a leaf category is pressed', async () => {
+  it('calls dismissTo when a leaf category is pressed, preserving edit mode', async () => {
     renderWithProviders(<CategorySelection />);
     await screen.findByText('Petroleum products');
     fireEvent.press(screen.getByText('Petroleum products'));
@@ -106,7 +106,22 @@ describe('CategorySelection', () => {
       expect(mockDismissTo).toHaveBeenCalledWith(
         expect.objectContaining({
           pathname: '/products/[id]',
-          params: expect.objectContaining({ typeSelection: 2 }),
+          params: expect.objectContaining({ typeSelection: 2, edit: '1' }),
+        }),
+      );
+    });
+  });
+
+  it('returns to the component route when selecting a type for a component', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ id: '1', role: 'component' });
+    renderWithProviders(<CategorySelection />);
+    await screen.findByText('Petroleum products');
+    fireEvent.press(screen.getByText('Petroleum products'));
+    await waitFor(() => {
+      expect(mockDismissTo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/components/[id]',
+          params: expect.objectContaining({ id: '1', typeSelection: 2, edit: '1' }),
         }),
       );
     });

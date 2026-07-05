@@ -1,45 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
-import { Stack, useGlobalSearchParams, useRouter } from 'expo-router';
-import { useCallback } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Card, Icon } from 'react-native-paper';
+import { Stack } from 'expo-router';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Card, Icon } from 'react-native-paper';
 
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { Text } from '@/components/base/Text';
-import { useAuth } from '@/context/auth';
-import { ApiError } from '@/services/api/errors';
-import { getPublicProfile } from '@/services/api/profiles';
+import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { type AppTheme, alpha, memoizeByTheme, useAppTheme } from '@/theme';
 
 export default function UserProfileScreen() {
-  const { username } = useGlobalSearchParams();
-  const router = useRouter();
   const theme = useAppTheme();
   const styles = createStyles(theme);
-  const usernameValue = typeof username === 'string' ? username : null;
-  const { user: viewer } = useAuth();
-  const viewerId = viewer?.id ?? null;
-
-  // viewerId is part of the query key so the profile refetches when the viewer
-  // logs in or out — visibility rules change with auth state.
-  const {
-    data: profile = null,
-    isPending,
-    error: queryError,
-  } = useQuery({
-    queryKey: ['publicProfile', usernameValue, viewerId],
-    queryFn: () => getPublicProfile(usernameValue as string),
-    enabled: Boolean(usernameValue),
-  });
-
-  const loading = Boolean(usernameValue) && isPending;
-  const error =
-    queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null;
-  const errorMessage =
-    queryError instanceof ApiError && queryError.status === 404
-      ? 'This profile is private or does not exist.'
-      : error;
-  const goToProducts = useCallback(() => router.replace('/products'), [router]);
+  const { profile, loading, hasError, errorMessage, goToProducts } = usePublicProfileScreen();
 
   return (
     <>
@@ -60,14 +31,14 @@ export default function UserProfileScreen() {
           </View>
         ) : null}
 
-        {error ? (
+        {hasError ? (
           <View style={styles.centerContainer}>
             <Icon source="account-cancel-outline" size={48} color={theme.colors.error} />
             <Text style={{ ...styles.errorText, color: theme.colors.error }}>{errorMessage}</Text>
           </View>
         ) : null}
 
-        {!(loading || error) && profile ? (
+        {!(loading || hasError) && profile ? (
           <View style={styles.profileContainer}>
             <View style={styles.heroSection}>
               <View

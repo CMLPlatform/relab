@@ -194,17 +194,28 @@ export type ProductsQuery = {
   owner?: 'me';
 };
 
+// Separator for multi-valued CSV query params, matching the backend's
+// FILTER_CSV_SEPARATOR. A comma collides with user text (brand/type names may
+// contain commas), so use the ASCII Unit Separator, which is rejected in stored
+// text and never appears in sort identifiers.
+const FILTER_CSV_SEPARATOR = '\x1f';
+
 function buildProductsUrl(query: ProductsQuery): URL {
   const url = new URL(`${baseUrl}/products`);
   url.searchParams.append('page', String(query.page ?? 1));
   url.searchParams.append('size', String(query.size ?? 50));
   if (query.search) url.searchParams.append('search', query.search);
-  if (query.brands?.length) url.searchParams.append('brand[in]', query.brands.join(','));
+  if (query.brands?.length)
+    url.searchParams.append('brand[in]', query.brands.join(FILTER_CSV_SEPARATOR));
   if (query.createdAfter)
     url.searchParams.append('created_at[ge]', query.createdAfter.toISOString());
   if (query.productTypeNames?.length)
-    url.searchParams.append('product_type_name[in]', query.productTypeNames.join(','));
-  if (query.orderBy?.length) url.searchParams.append('order_by', query.orderBy.join(','));
+    url.searchParams.append(
+      'product_type_name[in]',
+      query.productTypeNames.join(FILTER_CSV_SEPARATOR),
+    );
+  if (query.orderBy?.length)
+    url.searchParams.append('order_by', query.orderBy.join(FILTER_CSV_SEPARATOR));
   if (query.owner) url.searchParams.append('owner', query.owner);
   return url;
 }

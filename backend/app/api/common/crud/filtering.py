@@ -7,6 +7,7 @@ from fastapi import Depends, Query
 from fastapi_filters import FilterField, FilterOperator, FilterSet, SortingValues, create_sorting
 from fastapi_filters.ext.sqlalchemy import apply_filters as apply_fastapi_filters
 from fastapi_filters.ext.sqlalchemy import apply_sorting
+from fastapi_filters.schemas import csv_separator_config
 from pydantic import TypeAdapter
 from sqlalchemy import ColumnElement, Select, or_
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -20,6 +21,15 @@ if TYPE_CHECKING:
     from app.api.common.models.base import Base
 
 SUB_RESOURCE_LIMIT: int = 200
+
+# Separator for multi-valued CSV query params (``field[in]``, ``order_by``).
+# A literal comma collides with user text — brand/type names may contain commas
+# ("Johnson, Inc") — so use the ASCII Unit Separator (U+001F), which
+# normalize_user_text rejects in stored text and never appears in sort
+# identifiers. The frontend joins these params with the same character. Set at
+# import so every request context inherits it before any query param is parsed.
+FILTER_CSV_SEPARATOR = "\x1f"
+csv_separator_config.set(FILTER_CSV_SEPARATOR)
 
 _QUERY_TEXT_ADAPTER = TypeAdapter(BoundedQueryText)
 

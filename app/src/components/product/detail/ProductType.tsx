@@ -51,7 +51,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     if (typeof product.id !== 'number') return;
     router.push({
       pathname: '/products/[id]/category-selection',
-      params: { id: product.id.toString() },
+      params: { id: product.id.toString(), role: product.role },
     });
   };
 

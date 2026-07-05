@@ -52,6 +52,27 @@ async def test_get_products(
     assert data["items"][0]["name"] == PRODUCT_BASE_NAME
 
 
+async def test_brand_in_filter_matches_value_containing_comma(
+    api_client: AsyncClient, db_session: AsyncSession, db_superuser: User, db_product_type: ProductType
+) -> None:
+    """brand[in] treats a comma inside a brand as a literal, not a value separator."""
+    db_session.add_all(
+        [
+            Product(
+                owner_id=db_superuser.id, name="Comma Brand", brand="johnson, inc", product_type=db_product_type
+            ),
+            Product(owner_id=db_superuser.id, name="Other Brand", brand="acme", product_type=db_product_type),
+        ]
+    )
+    await db_session.flush()
+
+    response = await api_client.get("/v1/products", params={"brand[in]": "johnson, inc"})
+
+    assert response.status_code == status.HTTP_200_OK
+    names = {item["name"] for item in response.json()["items"]}
+    assert names == {"Comma Brand"}
+
+
 async def test_get_product_components_tree_includes_nested_components(
     api_client: AsyncClient,
     setup_product_graph: ProductGraph,
