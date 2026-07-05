@@ -30,7 +30,14 @@ export function isHttpUrl(value: string | undefined): boolean {
 
 export function isSafeImageUrl(value: string | undefined): boolean {
   const trimmedValue = `${value ?? ''}`.trim();
-  if (!trimmedValue || trimmedValue.startsWith('//')) {
+  if (!trimmedValue) {
+    return false;
+  }
+  // Reject anything starting with two slash-like chars — '//host',
+  // '/\host', '\\host'. Browsers normalise backslashes to forward slashes in
+  // http(s) URLs, so these resolve protocol-relative to an external origin and
+  // would escape the same-origin intent of a leading-'/' relative path.
+  if (/^[/\\][/\\]/.test(trimmedValue)) {
     return false;
   }
   if (trimmedValue.startsWith('/')) {
