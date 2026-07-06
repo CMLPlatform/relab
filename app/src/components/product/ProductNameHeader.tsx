@@ -18,13 +18,13 @@ export function ProductNameHeader({
   theme,
   onProductNameChange,
 }: {
-  name: string;
+  name: string | undefined;
   editMode: boolean;
   theme: MD3Theme;
   onProductNameChange?: (newName: string) => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
-  const value = draft ?? name;
+  const value = draft ?? name ?? '';
 
   const handleBlur = useCallback(() => {
     const trimmedValue = value.trim();
