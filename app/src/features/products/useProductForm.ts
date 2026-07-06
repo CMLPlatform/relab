@@ -230,7 +230,11 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: isNew ? newProduct() : ({} as Product),
+    // A valid empty product as the placeholder for both flows. For an existing
+    // product this is the loading sentinel until the query resolves and the
+    // hydration effect resets to server data; without it `product` would be a
+    // malformed `{}` and consumers (name, role, media) would read undefined.
+    defaultValues: newProduct(),
     mode: 'onChange',
   });
   const { reset, setValue, formState, trigger } = form;

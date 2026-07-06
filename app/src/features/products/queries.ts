@@ -1,20 +1,20 @@
 import {
+  getBaseProduct,
+  getComponent,
+  isProductNotFoundError,
+  products,
+} from '@/services/api/products';
+import { searchProductBrands } from '@/services/api/productSuggestions';
+import { searchProductTypes } from '@/services/api/productTypes';
+import { deleteProduct, saveProduct } from '@/services/api/saving';
+import type { Product } from '@/types/Product';
+import {
   type QueryClient,
   queryOptions,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { searchProductBrands } from '@/services/api/productSuggestions';
-import {
-  getBaseProduct,
-  getComponent,
-  isProductNotFoundError,
-  products,
-} from '@/services/api/products';
-import { searchProductTypes } from '@/services/api/productTypes';
-import { deleteProduct, saveProduct } from '@/services/api/saving';
-import type { Product } from '@/types/Product';
 
 export type ProductRole = 'product' | 'component';
 

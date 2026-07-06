@@ -266,6 +266,46 @@ describe('Fetching API Service logic', () => {
       expect(product.videos).toEqual([]);
     });
 
+    it('marks a component owned by the current user as "me"', async () => {
+      server.use(
+        http.get(`${API_URL}/components/77`, () =>
+          HttpResponse.json({
+            id: 77,
+            name: 'Mine',
+            parent_id: 10,
+            amount_in_parent: 1,
+            owner_username: 'me',
+            components: [],
+            images: [],
+            circularity_properties: null,
+          }),
+        ),
+      );
+
+      const product = await getComponent(77);
+      expect(product.ownedBy).toBe('me');
+    });
+
+    it('does not mark a component owned by someone else as "me"', async () => {
+      server.use(
+        http.get(`${API_URL}/components/77`, () =>
+          HttpResponse.json({
+            id: 77,
+            name: 'Theirs',
+            parent_id: 10,
+            amount_in_parent: 1,
+            owner_username: 'someone-else',
+            components: [],
+            images: [],
+            circularity_properties: null,
+          }),
+        ),
+      );
+
+      const product = await getComponent(77);
+      expect(product.ownedBy).not.toBe('me');
+    });
+
     it('throws ProductNotFoundError when the component is missing', async () => {
       server.use(
         http.get(`${API_URL}/components/99`, () => HttpResponse.json({}, { status: 404 })),
