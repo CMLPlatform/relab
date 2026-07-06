@@ -5,7 +5,7 @@ import { useAppTheme } from '@/theme';
 
 export default function VerifyEmailScreen() {
   const theme = useAppTheme();
-  const { isLoading, error, success, goHome } = useVerifyEmail();
+  const { isLoading, error, success, isLoggedIn, goToLogin, goHome } = useVerifyEmail();
 
   return (
     <View style={styles.screen}>
@@ -37,9 +37,20 @@ export default function VerifyEmailScreen() {
                 variant="bodyLarge"
                 style={{ color: theme.colors.primary, textAlign: 'center' }}
               >
-                Email verified successfully! You can now login.
+                Email verified successfully!
               </Text>
-              <Text variant="bodyMedium">Redirecting to home...</Text>
+              {isLoggedIn ? (
+                <Text variant="bodyMedium">Taking you to your products...</Text>
+              ) : (
+                <>
+                  <Text variant="bodyMedium" style={{ textAlign: 'center' }}>
+                    If you signed up in the app, you're still logged in there — just head back.
+                  </Text>
+                  <Button mode="contained" onPress={goToLogin}>
+                    Log in here
+                  </Button>
+                </>
+              )}
             </View>
           )}
         </Card.Content>

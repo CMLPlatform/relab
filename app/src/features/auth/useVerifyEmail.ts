@@ -46,18 +46,25 @@ export function useVerifyEmail() {
     };
   }, [token]);
 
-  // Redirect once verified: refetch the (now-verified) user if logged in, else go log in.
+  // The token in the link authorizes verification on its own — no session needed.
+  // If this client already has a session, refetch so it reflects the verified
+  // status and continue into the app. If it doesn't (e.g. the link opened in a
+  // browser separate from the app you signed up in), leave the success screen up
+  // rather than forcing a login — you're still signed in where you registered.
   useEffect(() => {
-    if (!success) return;
+    if (!success || !user) return;
     const timer = setTimeout(() => {
-      if (user) {
-        refetch(true).then(() => router.replace('/products'));
-      } else {
-        router.replace('/login?redirectTo=/products');
-      }
+      refetch(true).then(() => router.replace('/products'));
     }, 3000);
     return () => clearTimeout(timer);
   }, [success, user, refetch, router]);
 
-  return { isLoading, error, success, goHome: () => router.replace('/') };
+  return {
+    isLoading,
+    error,
+    success,
+    isLoggedIn: Boolean(user),
+    goToLogin: () => router.replace('/login?redirectTo=/products'),
+    goHome: () => router.replace('/'),
+  };
 }
