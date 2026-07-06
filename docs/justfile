@@ -2,6 +2,10 @@
 # Run `just --list` to see all available commands
 # Run from root: `just docs/<recipe>` or from docs/: `just <recipe>`
 
+# Source of truth for the RPi camera plugin's OpenAPI schema (sister repo).
+rpi_cam_schema_url := "https://raw.githubusercontent.com/CMLPlatform/relab-rpi-cam-plugin/main/openapi.rpi-cam.json"
+rpi_cam_schema_path := "public/api/schemas/openapi.rpi-cam.json"
+
 # Show available recipes
 default:
     @just --list
@@ -58,8 +62,19 @@ test:
 test-e2e:
     pnpm run test:e2e
 
+# Refresh the committed RPi camera plugin OpenAPI schema from its source repo
+rpi-cam-schema:
+    curl -fsSL {{ rpi_cam_schema_url }} -o {{ rpi_cam_schema_path }}
+    @echo "✅ Refreshed {{ rpi_cam_schema_path }}"
+
+# Fail if the committed RPi camera plugin schema has drifted from its source repo
+rpi-cam-schema-check:
+    @curl -fsSL {{ rpi_cam_schema_url }} | diff -u {{ rpi_cam_schema_path }} - \
+        || { echo "❌ {{ rpi_cam_schema_path }} is stale — run 'just docs/rpi-cam-schema'"; exit 1; }
+    @echo "✅ RPi camera schema is current"
+
 # Run the docs CI test suite (build + e2e + link check)
-test-ci:
+test-ci: rpi-cam-schema-check
     pnpm run test:ci
 
 # Run the full docs CI pipeline locally
