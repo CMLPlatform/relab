@@ -92,6 +92,11 @@ services:
       - database_backup_password
 
   migrator:
+    # Migrator imports the full app (which eagerly builds the email provider),
+    # so it needs the same dev env as api — e.g. EMAIL_FROM for SMTP config.
+    env_file:
+      - path: ./backend/.env.dev
+        required: false
     secrets: *backend-runtime-secrets
 
   docs:
