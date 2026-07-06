@@ -135,6 +135,12 @@ deploy_secret_template_value() {
         data_encryption_key)
             python3 -c 'import base64, secrets; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip("="))'
             ;;
+        *_oauth_client_secret | microsoft_graph_client_secret)
+            # External identity credentials can't be auto-generated: a random
+            # token just yields a silent 401 at runtime. Seed a recognizable
+            # placeholder so the app warns loudly at startup until it's filled.
+            printf 'replace-me-%s-%s\n' "$env" "$name"
+            ;;
         *)
             python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
             ;;

@@ -25,6 +25,7 @@ from app.core.database import async_engine, check_database_connection, close_asy
 from app.core.logging import cleanup_logging, setup_logging
 from app.core.redis import close_redis, init_redis
 from app.core.runtime import AppServices, get_app_services, reset_app_services
+from app.core.secrets import warn_on_placeholder_secrets
 from app.core.telemetry import init_telemetry, shutdown_telemetry
 
 if TYPE_CHECKING:
@@ -70,6 +71,7 @@ def log_startup_configuration() -> None:
         settings.allowed_origins,
         settings.cors_origin_regex,
     )
+    warn_on_placeholder_secrets(logger, settings)
 
 
 def ensure_storage_directories() -> None:
