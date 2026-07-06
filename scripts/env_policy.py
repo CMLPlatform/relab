@@ -320,6 +320,24 @@ def assert_telemetry_examples_use_department_contract() -> None:
     )
 
 
+def assert_e2e_postgres_runs_initdb_scripts(config: dict[str, Any]) -> None:
+    """Ensure E2E Postgres creates the least-privilege application roles."""
+    postgres_service = (config.get("services") or {}).get("postgres") or {}
+    volumes = postgres_service.get("volumes") or []
+    expected_source = str((ROOT / "deploy" / "postgres" / "initdb").resolve())
+
+    for volume in volumes:
+        if not isinstance(volume, dict):
+            continue
+        if volume.get("target") == "/docker-entrypoint-initdb.d" and Path(
+            str(volume.get("source", ""))
+        ).resolve() == Path(expected_source):
+            return
+
+    msg = "compose.e2e.yaml: postgres must mount deploy/postgres/initdb at /docker-entrypoint-initdb.d"
+    raise AssertionError(msg)
+
+
 def docker_compose_config_missing(required_name: str) -> subprocess.CompletedProcess[str]:
     """Render deploy Compose with one required variable omitted."""
     values = dict(VALIDATION_ENV_VALUES)
@@ -393,6 +411,11 @@ def run_secrets_check(configs: list[str]) -> None:
         assert_secret_files(label, config)
 
 
+def run_e2e_compose_check(config_path: Path) -> None:
+    """Validate rendered E2E Compose invariants."""
+    assert_e2e_postgres_runs_initdb_scripts(load_json(config_path))
+
+
 def format_inventory(secret_inventory: dict[str, Any]) -> str:
     """Render the runtime secret inventory for operators."""
     lines = [
@@ -426,6 +449,9 @@ def main(argv: list[str] | None = None) -> int:
     secrets_check_parser = subparsers.add_parser("secrets-check", help="validate rendered Compose secret file paths")
     secrets_check_parser.add_argument("configs", nargs="+", help="Compose config JSON files as LABEL=PATH")
 
+    e2e_compose_check_parser = subparsers.add_parser("e2e-compose-check", help="validate rendered E2E Compose")
+    e2e_compose_check_parser.add_argument("config", type=Path, help="rendered E2E Compose config JSON")
+
     args = parser.parse_args(argv)
 
     try:
@@ -441,6 +467,8 @@ def main(argv: list[str] | None = None) -> int:
                 sys.stdout.write(f"{name}\n")
         elif args.command == "secrets-check":
             run_secrets_check(args.configs)
+        elif args.command == "e2e-compose-check":
+            run_e2e_compose_check(args.config)
     except (AssertionError, FileNotFoundError, TypeError) as exc:
         sys.stderr.write(f"env policy check failed: {exc}\n")
         return 1

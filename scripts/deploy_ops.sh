@@ -96,7 +96,9 @@ compose_config() {
         docker compose -p "relab_$env" --env-file "$validation_env" --env-file "$(compose_env_file "$env")" \
             -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml "${host_args[@]}" config >/dev/null
     done
-    docker compose -p relab_e2e -f compose.e2e.yaml config >/dev/null
+    local e2e_config="$tmp_root/e2e.json"
+    docker compose -p relab_e2e -f compose.e2e.yaml config --format json >"$e2e_config"
+    uv run python scripts/env_policy.py e2e-compose-check "$e2e_config"
 
     echo "✅ Compose configurations validated"
 }
