@@ -4,7 +4,7 @@ const EMAIL = 'e2e-admin@example.com';
 const PASSWORD = 'E2eTestPass123!';
 const PRODUCTS_URL_PATTERN = /products/;
 const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
-const PROFILE_URL_PATTERN = /profile/;
+const PROFILE_URL_PATTERN = /account/;
 const NEW_PRODUCT_URL_PATTERN = /\/products\/new$/;
 const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
@@ -86,7 +86,7 @@ export async function loginAndReachProducts(page: Page) {
 
 export async function loginAndGoToProfile(page: Page) {
   await loginAndReachProducts(page);
-  await page.goto('/profile');
+  await page.goto('/account');
   await expect(page).toHaveURL(PROFILE_URL_PATTERN, { timeout: 10_000 });
 }
 

@@ -13,7 +13,8 @@ import { EMAIL, finishOnboardingIfVisible, loginAndGoToProfile, PASSWORD } from 
 
 const LOGIN_URL_PATTERN = /login/;
 const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
-const PROFILE_URL_PATTERN = /profile/;
+// The profile page is served at the /account route.
+const PROFILE_URL_PATTERN = /account/;
 const EMAIL_UPDATES_STATUS_PATTERN = /Currently (enabled|disabled)\./;
 const GOOGLE_LINK_PATTERN = /^(Link Google Account|Unlink Google)$/;
 const GITHUB_LINK_PATTERN = /^(Link GitHub Account|Unlink GitHub)$/;
@@ -21,7 +22,7 @@ const PRODUCTS_URL_PATTERN = /products/;
 
 test.describe('Profile: access', () => {
   test('unauthenticated visit redirects to login', async ({ page }) => {
-    await page.goto('/profile');
+    await page.goto('/account');
     await expect(page).toHaveURL(LOGIN_URL_PATTERN, { timeout: 5_000 });
   });
 
@@ -37,8 +38,8 @@ test.describe('Profile: access', () => {
       timeout: 5_000,
     });
     // The header also shows the email address as part of the identity in the profile page,
-    // verifying the auth state is reflected. Navigate to /profile to confirm it loads.
-    await page.goto('/profile');
+    // verifying the auth state is reflected. Navigate to /account to confirm it loads.
+    await page.goto('/account');
     await expect(page).toHaveURL(PROFILE_URL_PATTERN, { timeout: 5_000 });
     await expect(page.getByText('Hi,')).toBeVisible();
   });
@@ -50,7 +51,8 @@ test.describe('Profile: content', () => {
   }) => {
     await loginAndGoToProfile(page);
     await expect(page.getByText(EMAIL)).toBeVisible();
-    await expect(page.getByText('Active')).toBeVisible();
+    // exact: true — "Active" as a substring also matches "End all active sessions…".
+    await expect(page.getByText('Active', { exact: true })).toBeVisible();
     // The e2e superuser is created with is_verified=True
     await expect(page.getByText('Verified')).toBeVisible();
     // The e2e superuser is a superuser
@@ -59,9 +61,10 @@ test.describe('Profile: content', () => {
 
   test('shows all expected profile sections', async ({ page }) => {
     await loginAndGoToProfile(page);
-    // Section headers rendered by SectionHeader component
-    // Use exact: true for 'Account' since substring "Account" also appears in "Linked Accounts"
-    await expect(page.getByText('Account', { exact: true })).toBeVisible();
+    // Section headers rendered by SectionHeader component. Use exact: true so
+    // "Account" doesn't match "Linked Accounts"; use .last() to target the
+    // section header rather than the /account route's nav header (both say "Account").
+    await expect(page.getByText('Account', { exact: true }).last()).toBeVisible();
     await expect(page.getByText('Email updates')).toBeVisible();
     await expect(page.getByText('Linked Accounts')).toBeVisible();
     await expect(page.getByText('Danger Zone')).toBeVisible();

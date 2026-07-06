@@ -22,7 +22,12 @@ const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
 const NEW_OR_PRODUCT_DETAIL_URL_PATTERN = /products\/(new|\d+)/;
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const PRODUCTS_LIST_URL_PATTERN = /\/products$|\/products\?/;
-const BACK_LINK_NAME_PATTERN = /back/i;
+// The header back affordance is a Pressable (accessibilityRole="button", label "Go back"),
+// not a link — see HeaderBackButton.
+const BACK_CONTROL_NAME_PATTERN = /back/i;
+// Matches the section header only; a plain substring also matches the
+// "No associated circularity properties." empty-state summary.
+const CIRCULARITY_HEADER_PATTERN = /^Circularity Properties/;
 
 async function fillProductName(page: import('@playwright/test').Page, name: string): Promise<void> {
   const nameInput = page.getByRole('textbox', { name: 'Product name' });
@@ -119,7 +124,7 @@ test.describe('Product creation', () => {
   test('discarding the new draft returns to the products page', async ({ page }) => {
     await loginAndReachProducts(page);
     await openNewProductPage(page);
-    await page.getByRole('link', { name: BACK_LINK_NAME_PATTERN }).click();
+    await page.getByRole('button', { name: BACK_CONTROL_NAME_PATTERN }).click();
     await expect(page.getByText('Discard changes?')).toBeVisible({
       timeout: 10_000,
     });
@@ -145,7 +150,7 @@ test.describe('Product detail: edit mode', () => {
     await expect(page.getByText('Physical Properties')).toBeVisible({
       timeout: 5_000,
     });
-    await expect(page.getByText('Circularity Properties')).toBeVisible({
+    await expect(page.getByText(CIRCULARITY_HEADER_PATTERN)).toBeVisible({
       timeout: 5_000,
     });
     await expect(page.getByText('Metadata')).toBeVisible({ timeout: 5_000 });
@@ -162,7 +167,7 @@ test.describe('Product detail: edit mode', () => {
     await page.getByPlaceholder('Add a product description').fill('test description');
 
     // Attempt to leave via the in-app header back control; the unsaved-changes guard should intercept.
-    await page.getByRole('link', { name: BACK_LINK_NAME_PATTERN }).click();
+    await page.getByRole('button', { name: BACK_CONTROL_NAME_PATTERN }).click();
     await expect(page.getByText('Discard changes?')).toBeVisible({
       timeout: 10_000,
     });

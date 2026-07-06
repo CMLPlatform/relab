@@ -11,8 +11,10 @@
 import { expect, test } from '@playwright/test';
 import { loginAndReachProducts, openMenu, reachProductsPage, selectMenuItem } from './helpers';
 
-const SORT_CREATED_AT_URL_PATTERN = /sort=created_at/;
-const SORT_NAME_URL_PATTERN = /sort=name/;
+// Sort values carry a direction prefix ("+" ascending / "-" descending),
+// URL-encoded as %2B. "Oldest first" and "Name A→Z" are ascending.
+const SORT_CREATED_AT_URL_PATTERN = /sort=(?:%2B|\+)created_at/;
+const SORT_NAME_URL_PATTERN = /sort=(?:%2B|\+)name/;
 const DAYS_7_URL_PATTERN = /days=7/;
 const DAYS_30_URL_PATTERN = /days=30/;
 const DAYS_90_URL_PATTERN = /days=90/;
