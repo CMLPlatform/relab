@@ -211,7 +211,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
 
 async def get_user_manager(
     user_db: UserDatabaseAsync[User, UUID4] = Depends(get_user_db),
-    http_client: AsyncClient = Depends(get_external_http_client),
+    http_client: AsyncClient | None = Depends(get_external_http_client),
     common_password_checker: CommonPasswordChecker | None = Depends(get_common_password_checker),
 ) -> AsyncGenerator[UserManager]:
     """Async generator for the user manager."""
