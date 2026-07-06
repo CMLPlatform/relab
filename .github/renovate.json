@@ -16,7 +16,7 @@
   "labels": ["dependencies"],
   "packageRules": [
     {
-      "description": "Expo SDK-managed packages — versions pinned by the SDK, don't bump independently",
+      "description": "Expo SDK-managed packages, versions pinned by the SDK, don't bump independently",
       "matchFileNames": ["app/package.json"],
       "matchPackageNames": [
         "expo",

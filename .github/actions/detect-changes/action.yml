@@ -2,7 +2,7 @@
 name: Detect Changes
 description: |
   Run dorny/paths-filter once and expose the raw per-area flags plus event metadata.
-  Each calling workflow builds its own job-level decision from these outputs — the
+  Each calling workflow builds its own job-level decision from these outputs; the
   schedule/dispatch/renovate logic differs per workflow (CI vs security), so it lives
   in the workflow, not here.
 

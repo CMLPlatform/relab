@@ -79,7 +79,7 @@ just deploy-secrets-template dev  # create local backend secret files
 
 ## Accessibility
 
-Accessibility is checked in CI — axe scans plus per-PR a11y lint across `www/`,
+Accessibility is checked in CI: axe scans plus per-PR a11y lint across `www/`,
 `docs/`, and `app/`. See [Quality Controls](.github/CONTRIBUTING.md#quality-controls)
 for what runs where.
 

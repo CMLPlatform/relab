@@ -205,11 +205,11 @@ For cross-repo or policy changes, also run `just ci` from the root. GitHub Actio
 Accessibility is checked automatically. Every axe scan uses the same WCAG 2.0 + 2.1
 A/AA rule tags and strips animations for deterministic runs.
 
-| Surface | Runtime axe scan                                                                                     | Static lint (every PR)                           |
-| ------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `www/`  | landing + privacy, contrast checked; ARIA landmark snapshots — `just www/test-e2e`                   | Biome `a11y`                                     |
-| `docs/` | homepage + getting-started `<main>`, contrast checked; snapshots — `just docs/test-e2e`              | Biome `a11y`                                     |
-| `app/`  | products list + detail on the Expo web build (`color-contrast` off) — `just app/test-e2e-full-stack` | Biome `a11y` + `eslint-plugin-react-native-a11y` |
+| Surface | Runtime axe scan                                                                                    | Static lint (every PR)                           |
+| ------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `www/`  | landing + privacy, contrast checked; ARIA landmark snapshots: `just www/test-e2e`                   | Biome `a11y`                                     |
+| `docs/` | homepage + getting-started `<main>`, contrast checked; snapshots: `just docs/test-e2e`              | Biome `a11y`                                     |
+| `app/`  | products list + detail on the Expo web build (`color-contrast` off): `just app/test-e2e-full-stack` | Biome `a11y` + `eslint-plugin-react-native-a11y` |
 
 The `www/` and `docs/` axe scans gate every PR. The `app/` scan needs the full
 Docker backend, so it runs post-merge or on demand; the per-PR net for the app
@@ -220,7 +220,7 @@ These are automated checks, so a passing run is a floor, not proof of WCAG
 conformance. The `app/` scan runs against the react-native-web build, so it does
 not exercise native VoiceOver/TalkBack. Two `app/` lint rules are deferred
 pending a labelling pass (`has-valid-accessibility-descriptors`,
-`has-valid-accessibility-ignores-invert-colors` — see `../app/eslint.config.mjs`).
+`has-valid-accessibility-ignores-invert-colors`, see `../app/eslint.config.mjs`).
 
 ## Security
 
