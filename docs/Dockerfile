@@ -37,7 +37,11 @@ WORKDIR $WORKDIR/docs
 
 EXPOSE 8000
 
-CMD ["pnpm", "exec", "astro", "dev", "--port", "8000", "--host", "0.0.0.0", "--strictPort", "--mode", "dev"]
+# Drop any stale dev-server lock left in the container's writable layer when
+# `docker compose up` reuses/restarts a container: astro refuses to start if
+# .astro/dev.json names a PID that looks alive, and a recycled PID often does.
+# (astro's --force clears the content cache, it does NOT replace the lock.)
+CMD ["sh", "-c", "rm -f .astro/dev.json; exec pnpm exec astro dev --port 8000 --host 0.0.0.0 --strictPort --mode dev"]
 
 # --- Build stage (prod static build) ---
 FROM deps AS build
