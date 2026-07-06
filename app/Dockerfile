@@ -17,7 +17,7 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH
 
-RUN corepack enable
+RUN npm install -g pnpm@11.1.1
 
 COPY package.json pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
