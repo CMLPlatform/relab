@@ -82,10 +82,33 @@
       - strong: Docs site
       - text: ": Astro Starlight"
   - paragraph: These choices keep the stack small enough to understand and operate without dedicated infrastructure work.
+  - heading "Security architecture inventory" [level=2]
+  - link "Section titled “Security architecture inventory”":
+    - /url: "#security-architecture-inventory"
+  - paragraph: RELab is a single backend application with supporting infrastructure, not a large microservice fleet. Authorization stays in FastAPI route dependencies, ownership checks, and admin-only dependencies. Dedicated policy engines, service meshes, mTLS between containers, and internal identity-propagation tokens are out of scope for a single backend application.
+  - paragraph:
+    - text: Application services are
+    - code: api
+    - text: ","
+    - code: app
+    - text: ","
+    - code: www
+    - text: ","
+    - code: docs
+    - text: ","
+    - code: migrator
+    - text: ", and optional"
+    - code: backup
+    - text: . Supporting systems are PostgreSQL, Redis, file or S3-compatible storage, Cloudflare Tunnel, optional Loki/OTLP telemetry, and external OAuth, email, Have I Been Pwned, and YouTube providers.
+  - paragraph: Sensitive data assets include accounts, profile/privacy settings, research records, uploaded media, OAuth and YouTube tokens, refresh-token state, RPi camera credentials, database dumps, backups, runtime secrets, and encryption keys. Public research records, request IDs, cache keys, and public camera key material are not application-encrypted secrets.
+  - paragraph:
+    - text: "Trust boundaries are intentionally narrow: clients and devices enter through the API; Cloudflare fronts public ingress; PostgreSQL and Redis stay on the internal"
+    - code: data
+    - text: network; runtime secrets stay in Docker secret files; and telemetry leaves the stack only when explicitly enabled. Main data flows are client-to-API requests, device assertions/uploads, backend reads and writes to Postgres/Redis/storage, OAuth/email/YouTube calls, backup reads from Postgres/uploads, and optional log/trace export.
   - heading "Backend domain structure" [level=2]
   - link "Section titled “Backend domain structure”":
     - /url: "#backend-domain-structure"
-  - paragraph: "The backend is organised mainly by domain rather than by HTTP verb alone:"
+  - paragraph: "The backend is organised mainly by domain:"
   - figure "Terminal window":
     - text: ""
     - region:
@@ -112,11 +135,12 @@
     - listitem: preserve a path toward dataset publication and external reuse
     - listitem: keep identifiers and exports stable enough to link with other datasets
     - listitem: avoid infrastructure complexity that isn’t justified by the project scale
+  - paragraph: "Architecture modernization should keep RELab as a modular monolith until a real deployment or runtime boundary justifies a split. The backend should continue to evolve around explicit bounded contexts: identity and access, data collection, reference data, media and storage, publication and export, and device integration."
   - link "Edit page":
     - /url: https://github.com/CMLPlatform/relab/edit/main/docs/src/content/docs/architecture/system-design.mdx
   - paragraph:
     - text: "Last updated:"
-    - time: /Apr \d+, \d+/
+    - time: /Jun \d+, \d+/
   - link "Previous API":
     - /url: /user-guides/api/
   - link "Next Data model":

@@ -33,13 +33,35 @@ const mermaidThemeVariables = {
   },
 } as const;
 
+// The brand CSS vars use the CSS `light-dark()` function, which Mermaid's color
+// parser (khroma) can't parse and would throw on. Resolve it to the concrete
+// color for the theme the script already tracks. Splits on the top-level comma
+// so nested rgba(...) values survive.
+const resolveLightDark = (value: string, theme: keyof typeof mermaidThemeVariables) => {
+  const match = /^light-dark\((.*)\)$/is.exec(value.trim());
+  if (!match) return value;
+  const inner = match[1];
+  let depth = 0;
+  for (let i = 0; i < inner.length; i++) {
+    const char = inner[i];
+    if (char === '(') depth += 1;
+    else if (char === ')') depth -= 1;
+    else if (char === ',' && depth === 0) {
+      const light = inner.slice(0, i).trim();
+      const dark = inner.slice(i + 1).trim();
+      return theme === 'dark' ? dark : light;
+    }
+  }
+  return value;
+};
+
 const resolveThemeVariables = (theme: keyof typeof mermaidThemeVariables) => {
   const styles = getComputedStyle(document.documentElement);
   return Object.fromEntries(
     Object.entries(mermaidThemeVariables[theme]).map(([key, value]) => [
       key,
       value.startsWith('var(')
-        ? styles.getPropertyValue(value.slice(4, -1)).trim() || value
+        ? resolveLightDark(styles.getPropertyValue(value.slice(4, -1)).trim(), theme) || value
         : value,
     ]),
   );
