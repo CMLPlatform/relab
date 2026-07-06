@@ -99,7 +99,7 @@ This page is about running the stack. For tooling policy and contributor workflo
 
 ## Production and staging deployment
 
-Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging are selected by committed non-secret Compose env files under `deploy/env/`, while each host keeps host-local interpolation values in the gitignored root `.env`. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
+Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging are selected by committed non-secret Compose env files under `deploy/env/`, while each host keeps host-local interpolation values in the gitignored root `.env`. Cloudflare Tunnel remains the supported ingress path. The operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
 
 1. Configure a Cloudflare tunnel.
 
