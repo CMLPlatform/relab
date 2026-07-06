@@ -79,30 +79,9 @@ just deploy-secrets-template dev  # create local backend secret files
 
 ## Accessibility
 
-Accessibility is checked automatically. All axe scans use the same WCAG 2.0 + 2.1
-A/AA rule tags and strip animations for deterministic runs.
-
-| Surface | Runtime (axe on the built page)                                                                                        | Static lint (every PR)                                                    |
-| ------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `www/`  | landing + privacy pages, **contrast checked**; plus ARIA landmark snapshots — `just www/test-e2e`                      | Biome `a11y`                                                              |
-| `docs/` | `<main>` on homepage + getting-started, **contrast checked**; plus ARIA landmark snapshots — `just docs/test-e2e`      | Biome `a11y`                                                              |
-| `app/`  | products list + detail on the Expo web build (serious/critical; `color-contrast` off) — `just app/test-e2e-full-stack` | Biome `a11y` + `eslint-plugin-react-native-a11y` (RN accessibility props) |
-
-**What runs where.** The `www/` and `docs/` axe scans **gate every PR** (www E2E,
-Docs jobs). The `app/` axe scan is heavier — it needs the full Docker backend —
-so it runs **post-merge / on demand** (App Full-Stack E2E job), not on PRs. The
-per-PR safety net for the app is `eslint-plugin-react-native-a11y`, which
-statically validates RN accessibility props (`accessibilityRole`, state, value,
-actions, nested touchables) on every PR via the lint job. See
-[`.github/workflows/validate.yml`](.github/workflows/validate.yml).
-
-**Known limitations.** These are automated checks: axe only catches
-machine-detectable issues, so a passing run is a floor, not a certificate of
-WCAG conformance. The `app/` axe scan runs against the **web** build
-(react-native-web) — it does not exercise native iOS/Android screen-reader
-behavior (VoiceOver/TalkBack). Two `app/` lint rules are deferred pending a
-labelling pass (`has-valid-accessibility-descriptors`,
-`has-valid-accessibility-ignores-invert-colors` — see `app/eslint.config.mjs`).
+Accessibility is checked in CI — axe scans plus per-PR a11y lint across `www/`,
+`docs/`, and `app/`. See [Quality Controls](.github/CONTRIBUTING.md#quality-controls)
+for what runs where.
 
 ## Project Links
 

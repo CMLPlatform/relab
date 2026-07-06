@@ -200,6 +200,28 @@ Run the relevant subrepo checks before opening a pull request:
 
 For cross-repo or policy changes, also run `just ci` from the root. GitHub Actions covers dependency review, container scanning, repository hygiene, and release artifact checks on every push.
 
+### Accessibility
+
+Accessibility is checked automatically. Every axe scan uses the same WCAG 2.0 + 2.1
+A/AA rule tags and strips animations for deterministic runs.
+
+| Surface | Runtime axe scan                                                                                     | Static lint (every PR)                           |
+| ------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `www/`  | landing + privacy, contrast checked; ARIA landmark snapshots — `just www/test-e2e`                   | Biome `a11y`                                     |
+| `docs/` | homepage + getting-started `<main>`, contrast checked; snapshots — `just docs/test-e2e`              | Biome `a11y`                                     |
+| `app/`  | products list + detail on the Expo web build (`color-contrast` off) — `just app/test-e2e-full-stack` | Biome `a11y` + `eslint-plugin-react-native-a11y` |
+
+The `www/` and `docs/` axe scans gate every PR. The `app/` scan needs the full
+Docker backend, so it runs post-merge or on demand; the per-PR net for the app
+is `eslint-plugin-react-native-a11y`, which validates RN accessibility props on
+each lint run. See [validate.yml](workflows/validate.yml).
+
+These are automated checks, so a passing run is a floor, not proof of WCAG
+conformance. The `app/` scan runs against the react-native-web build, so it does
+not exercise native VoiceOver/TalkBack. Two `app/` lint rules are deferred
+pending a labelling pass (`has-valid-accessibility-descriptors`,
+`has-valid-accessibility-ignores-invert-colors` — see `../app/eslint.config.mjs`).
+
 ## Security
 
 For changes that touch authentication, authorization, uploads, device flows, admin APIs, secrets, or personal data, include security context in the pull request and update the relevant docs if behavior changes. See [SECURITY.md](SECURITY.md) for the reviewer checklist.
