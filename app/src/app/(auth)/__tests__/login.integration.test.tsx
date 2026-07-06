@@ -51,6 +51,8 @@ jest.mock('@/components/auth/LoginSections', () => {
         children,
       ),
     LoginBrandHero: () => React.createElement(Text, null, 'Login'),
+    LoginCard: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(View, null, children),
     LoginDivider: () => React.createElement(View, { testID: 'login-divider' }),
     LoginFormSection: ({
       control,

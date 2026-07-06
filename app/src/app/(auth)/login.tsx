@@ -1,5 +1,6 @@
 import {
   LoginBrandHero,
+  LoginCard,
   LoginDivider,
   LoginFormSection,
   LoginLayout,
@@ -17,15 +18,17 @@ export default function Login() {
   return (
     <LoginLayout keyboardShown={ui.keyboardShown} onBrowse={actions.browseProducts}>
       <LoginBrandHero colorScheme={ui.colorScheme} />
-      <LoginFormSection
-        control={form.control}
-        emailRef={form.emailRef}
-        onSubmit={handleSubmit}
-        onForgotPassword={actions.goToForgotPassword}
-      />
-      <LoginDivider />
-      <LoginOAuthSection onGoogle={handleGoogleLogin} onGithub={handleGithubLogin} />
-      <LoginSecondaryAction onCreateAccount={actions.goToCreateAccount} />
+      <LoginCard>
+        <LoginFormSection
+          control={form.control}
+          emailRef={form.emailRef}
+          onSubmit={handleSubmit}
+          onForgotPassword={actions.goToForgotPassword}
+        />
+        <LoginDivider />
+        <LoginOAuthSection onGoogle={handleGoogleLogin} onGithub={handleGithubLogin} />
+        <LoginSecondaryAction onCreateAccount={actions.goToCreateAccount} />
+      </LoginCard>
     </LoginLayout>
   );
 }

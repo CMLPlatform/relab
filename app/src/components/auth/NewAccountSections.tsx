@@ -14,6 +14,7 @@ import { WEBSITE_URL } from '@/config';
 import type { NewAccountFormValues } from '@/services/api/validation/userSchema';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
+import { textGlow } from '@/utils/platformLayout';
 
 const styles = StyleSheet.create({
   welcomeText: {
@@ -30,6 +31,11 @@ const styles = StyleSheet.create({
     marginTop: 80,
     marginLeft: 5,
     marginBottom: 40,
+  },
+  card: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
   },
   inputContainer: {
     flexDirection: 'column',
@@ -147,6 +153,8 @@ function NewAccountStep({
   submit?: { isSubmitting: boolean; onPress: () => void };
   back?: { label: string; accessibilityLabel: string; onPress: () => void };
 }) {
+  const theme = useAppTheme();
+  const glow = textGlow(theme.dark ? theme.colors.scrim : theme.colors.background);
   const error = errors[field];
   const renderInput = useCallback(
     ({ field: { onChange, value } }: { field: ControllerRenderProps<NewAccountFormValues> }) => (
@@ -173,52 +181,62 @@ function NewAccountStep({
 
   return (
     <View>
-      <Text style={[styles.welcomeText, { color: headlineColor }]}>{lines[0]}</Text>
-      <Text style={[styles.brandText, { color: headlineColor }]}>{lines[1]}</Text>
-      <Text style={[styles.questionText, { color: headlineColor }]}>{lines[2]}</Text>
-      <View style={styles.inputContainer}>
-        <View style={styles.inputRow}>
-          <Controller control={control} name={field} render={renderInput} />
-          {next ? (
-            <Pressable
-              testID={next.testID}
-              accessibilityRole="button"
-              accessibilityLabel={next.accessibilityLabel}
-              disabled={Boolean(error)}
-              onPress={next.onPress}
-              style={arrowStyle}
-            >
-              <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
-            </Pressable>
-          ) : null}
-          {submit ? (
-            <Button
-              mode="contained"
-              onPress={submit.onPress}
-              loading={submit.isSubmitting}
-              style={styles.registerButton}
-            >
-              Create Account
-            </Button>
+      <Text style={[styles.welcomeText, { color: headlineColor }, glow]}>{lines[0]}</Text>
+      <Text style={[styles.brandText, { color: headlineColor }, glow]}>{lines[1]}</Text>
+      <Text style={[styles.questionText, { color: headlineColor }, glow]}>{lines[2]}</Text>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.tokens.surface.card,
+            borderColor: theme.tokens.border.subtle,
+          },
+        ]}
+      >
+        <View style={styles.inputContainer}>
+          <View style={styles.inputRow}>
+            <Controller control={control} name={field} render={renderInput} />
+            {next ? (
+              <Pressable
+                testID={next.testID}
+                accessibilityRole="button"
+                accessibilityLabel={next.accessibilityLabel}
+                disabled={Boolean(error)}
+                onPress={next.onPress}
+                style={arrowStyle}
+              >
+                <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
+              </Pressable>
+            ) : null}
+            {submit ? (
+              <Button
+                mode="contained"
+                onPress={submit.onPress}
+                loading={submit.isSubmitting}
+                style={styles.registerButton}
+              >
+                Create Account
+              </Button>
+            ) : null}
+          </View>
+          {error ? (
+            <HelperText type="error" visible style={styles.helperText}>
+              {error.message}
+            </HelperText>
           ) : null}
         </View>
-        {error ? (
-          <HelperText type="error" visible style={styles.helperText}>
-            {error.message}
-          </HelperText>
+        {back ? (
+          <Pressable
+            style={styles.backButton}
+            onPress={back.onPress}
+            accessibilityRole="button"
+            accessibilityLabel={back.accessibilityLabel}
+          >
+            <Text style={[styles.backButtonArrow, { color: mutedColor }]}>‹</Text>
+            <Text style={[styles.backButtonText, { color: mutedColor }]}>{back.label}</Text>
+          </Pressable>
         ) : null}
       </View>
-      {back ? (
-        <Pressable
-          style={styles.backButton}
-          onPress={back.onPress}
-          accessibilityRole="button"
-          accessibilityLabel={back.accessibilityLabel}
-        >
-          <Text style={[styles.backButtonArrow, { color: mutedColor }]}>‹</Text>
-          <Text style={[styles.backButtonText, { color: mutedColor }]}>{back.label}</Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }
@@ -323,29 +341,13 @@ export function NewAccountPasswordStep({
 }
 
 type NewAccountLayoutProps = {
-  overlayColor: string;
   children: ReactNode;
   onNavigateToLogin: () => void;
 };
 
-export function NewAccountLayout({
-  overlayColor,
-  children,
-  onNavigateToLogin,
-}: NewAccountLayoutProps) {
+export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayoutProps) {
   return (
     <View style={{ flex: 1 }}>
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: overlayColor,
-        }}
-      />
-
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 120 }}
         keyboardShouldPersistTaps="handled"

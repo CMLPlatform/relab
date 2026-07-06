@@ -4,10 +4,12 @@ import { getAppTheme } from '@/theme';
 import { ensureWebAnimatedPatch as ensureWebAnimatedPatchInternal } from './animatedPatch';
 import { loadAnimatedBackground } from './backgroundLoader';
 
-const NO_OVERLAY_PATHS = ['/login', '/new-account', '/onboarding'];
+// Hero screens keep the background photo visible, so they get a light scrim
+// instead of the near-opaque page overlay other screens use.
+const HERO_OVERLAY_PATHS = ['/login', '/new-account', '/onboarding'];
 
-function shouldShowOverlay(pathname: string) {
-  return !NO_OVERLAY_PATHS.some((path) => pathname.includes(path));
+function isHeroPath(pathname: string) {
+  return HERO_OVERLAY_PATHS.some((path) => pathname.includes(path));
 }
 
 function useLazyAnimatedBackground() {
@@ -38,13 +40,13 @@ export function ensureWebAnimatedPatch() {
 
 export function useAnimatedBackground(isDark: boolean) {
   const pathname = usePathname();
-  const showOverlay = shouldShowOverlay(pathname);
-  const overlayColor = getAppTheme(isDark ? 'dark' : 'light').tokens.overlay.page;
+  const { overlay } = getAppTheme(isDark ? 'dark' : 'light').tokens;
+  const overlayColor = isHeroPath(pathname) ? overlay.hero : overlay.page;
   const BackgroundComponent = useLazyAnimatedBackground();
 
   return {
     BackgroundComponent,
     overlayColor,
-    showOverlay,
+    showOverlay: true,
   };
 }

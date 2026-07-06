@@ -13,6 +13,7 @@ export type AppTokens = {
   };
   overlay: {
     page: string;
+    hero: string;
     scrim: string;
     media: string;
     glass: string;
@@ -32,6 +33,7 @@ export type AppTokens = {
     raised: string;
     sunken: string;
     accent: string;
+    card: string;
   };
 };
 

@@ -152,7 +152,7 @@ describe('layout helpers rendering', () => {
     mockUsePathname.mockReturnValue('/login');
     rerender({ isDark: true });
 
-    expect(result.current.showOverlay).toBe(false);
-    expect(result.current.overlayColor).toBe('rgba(10,10,10,0.90)');
+    expect(result.current.showOverlay).toBe(true);
+    expect(result.current.overlayColor).toBe('rgba(25,28,30,0.2)');
   });
 });

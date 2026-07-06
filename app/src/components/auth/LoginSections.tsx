@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { type RefObject, useCallback } from 'react';
 import type { Control, ControllerRenderProps } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
@@ -23,13 +22,7 @@ export function LoginLayout({ keyboardShown, children, onBrowse }: LoginLayoutPr
         Browse
       </Button>
 
-      <View style={[styles.overlayContent, { bottom: keyboardHeight }]}>
-        <LinearGradient
-          colors={['transparent', theme.colors.background]}
-          style={StyleSheet.absoluteFill}
-        />
-        {children}
-      </View>
+      <View style={[styles.overlayContent, { bottom: keyboardHeight }]}>{children}</View>
 
       <View
         style={[
@@ -37,6 +30,20 @@ export function LoginLayout({ keyboardShown, children, onBrowse }: LoginLayoutPr
           { height: keyboardHeight, backgroundColor: theme.colors.background },
         ]}
       />
+    </View>
+  );
+}
+
+export function LoginCard({ children }: { children: React.ReactNode }) {
+  const theme = useAppTheme();
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.tokens.surface.card, borderColor: theme.tokens.border.subtle },
+      ]}
+    >
+      {children}
     </View>
   );
 }
@@ -181,6 +188,12 @@ const styles = StyleSheet.create({
     gap: 10,
     position: 'absolute',
     width: '100%',
+  },
+  card: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
+    gap: 10,
   },
   keyboardFill: {
     position: 'absolute',

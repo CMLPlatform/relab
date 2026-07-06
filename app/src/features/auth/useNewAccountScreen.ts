@@ -78,7 +78,6 @@ export function useNewAccountScreen() {
   return {
     ui: {
       colorScheme: theme.scheme,
-      overlayColor: theme.tokens.overlay.glass,
       headlineColor: theme.colors.onBackground,
       mutedColor: theme.tokens.text.muted,
     },
