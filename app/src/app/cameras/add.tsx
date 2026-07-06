@@ -1,9 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useCallback } from 'react';
 import { Controller } from 'react-hook-form';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Dialog, Divider, Portal, Text, TextInput } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
-import { useAddCameraForm } from '@/features/cameras/useAddCameraForm';
+import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useAppTheme } from '@/theme';
 
 function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
@@ -32,8 +33,70 @@ function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDism
 
 export default function AddCameraScreen() {
   const theme = useAppTheme();
-  const { user, control, submit, sanitizePairingCode, isPending, pairingSuccess, dismissSuccess } =
-    useAddCameraForm();
+  const { user, control, submit, isPending, pairingSuccess, dismissSuccess } = useAddCameraForm();
+
+  const renderPairingCode = useCallback(
+    ({
+      field: { value, onChange },
+    }: {
+      field: { value: string; onChange: (text: string) => void };
+    }) => (
+      <TextInput
+        mode="outlined"
+        label="Pairing code"
+        value={value}
+        // biome-ignore lint/performance/noJsxPropsBind: transform-on-change needs the per-field onChange; the row only rerenders when its own value changes.
+        onChangeText={(v) => onChange(sanitizePairingCode(v))}
+        maxLength={6}
+        autoCapitalize="characters"
+        style={[styles.input, { fontFamily: 'monospace', fontSize: 20 }]}
+        contentStyle={{ textAlign: 'center' }}
+      />
+    ),
+    [],
+  );
+
+  const renderName = useCallback(
+    ({
+      field: { value, onChange },
+      fieldState: { error },
+    }: {
+      field: { value: string; onChange: (text: string) => void };
+      fieldState: { error?: unknown };
+    }) => (
+      <TextInput
+        label="Camera name *"
+        mode="outlined"
+        value={value}
+        onChangeText={onChange}
+        maxLength={100}
+        autoCapitalize="words"
+        style={styles.input}
+        error={Boolean(error) && value.trim().length > 0}
+      />
+    ),
+    [],
+  );
+
+  const renderDescription = useCallback(
+    ({
+      field: { value, onChange },
+    }: {
+      field: { value: string | undefined; onChange: (text: string) => void };
+    }) => (
+      <TextInput
+        label="Description (optional)"
+        mode="outlined"
+        value={value ?? ''}
+        onChangeText={onChange}
+        maxLength={500}
+        multiline
+        numberOfLines={2}
+        style={styles.input}
+      />
+    ),
+    [],
+  );
 
   if (!user) return null;
 
@@ -46,58 +109,13 @@ export default function AddCameraScreen() {
         Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed `PAIRING
         READY` banner over SSH if the device is headless.
       </MutedText>
-      <Controller
-        control={control}
-        name="pairingCode"
-        render={({ field: { value, onChange } }) => (
-          <TextInput
-            mode="outlined"
-            label="Pairing code"
-            value={value}
-            onChangeText={(v) => onChange(sanitizePairingCode(v))}
-            maxLength={6}
-            autoCapitalize="characters"
-            style={[styles.input, { fontFamily: 'monospace', fontSize: 20 }]}
-            contentStyle={{ textAlign: 'center' }}
-          />
-        )}
-      />
+      <Controller control={control} name="pairingCode" render={renderPairingCode} />
 
       <Divider style={styles.divider} />
 
-      <Controller
-        control={control}
-        name="name"
-        render={({ field: { value, onChange }, fieldState: { error } }) => (
-          <TextInput
-            label="Camera name *"
-            mode="outlined"
-            value={value}
-            onChangeText={onChange}
-            maxLength={100}
-            autoCapitalize="words"
-            style={styles.input}
-            error={Boolean(error) && value.trim().length > 0}
-          />
-        )}
-      />
+      <Controller control={control} name="name" render={renderName} />
 
-      <Controller
-        control={control}
-        name="description"
-        render={({ field: { value, onChange } }) => (
-          <TextInput
-            label="Description (optional)"
-            mode="outlined"
-            value={value ?? ''}
-            onChangeText={onChange}
-            maxLength={500}
-            multiline
-            numberOfLines={2}
-            style={styles.input}
-          />
-        )}
-      />
+      <Controller control={control} name="description" render={renderDescription} />
 
       <View style={[styles.infoBox, { backgroundColor: theme.tokens.surface.accent }]}>
         <MaterialCommunityIcons name="information-outline" size={18} color={theme.colors.primary} />
