@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import { useMemo } from 'react';
 import { ProductDetailScreen } from '@/components/product/detail/ProductDetailScreen';
 
@@ -22,5 +23,12 @@ export default function ProductPage() {
     [isEditing, router],
   );
 
-  return <ProductDetailScreen formOptions={formOptions} />;
+  return (
+    <>
+      <Head>
+        <title>Product · RELab</title>
+      </Head>
+      <ProductDetailScreen formOptions={formOptions} />
+    </>
+  );
 }

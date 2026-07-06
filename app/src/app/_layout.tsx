@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
@@ -192,6 +193,37 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Paper renders string-named icons as unlabeled role="img" on web, which trips
+ * axe's role-img-alt on every decorative icon. Paper icons live inside labeled
+ * controls (buttons, chips, list items) or beside text, so they're decorative —
+ * mark them aria-hidden. Same Material Design Icons font the app already uses.
+ */
+const PAPER_SETTINGS = {
+  icon: ({
+    name,
+    color,
+    size,
+    allowFontScaling,
+  }: {
+    name: string;
+    color?: string;
+    size: number;
+    direction?: 'rtl' | 'ltr';
+    testID?: string;
+    allowFontScaling?: boolean;
+  }) => (
+    <MaterialCommunityIcons
+      // biome-ignore lint/suspicious/noExplicitAny: @expo/vector-icons omits aria-* from its prop types but forwards them to the DOM on web.
+      {...({ 'aria-hidden': true } as any)}
+      name={name as keyof typeof MaterialCommunityIcons.glyphMap}
+      color={color}
+      size={size}
+      allowFontScaling={allowFontScaling}
+    />
+  ),
+};
+
 /** Inner providers that depend on the resolved theme mode. */
 function ThemedProviders({ children }: { children: ReactNode }) {
   const colorScheme = useEffectiveColorScheme();
@@ -199,7 +231,7 @@ function ThemedProviders({ children }: { children: ReactNode }) {
   const { LightTheme, DarkTheme } = createNavigationThemes();
 
   return (
-    <PaperProvider theme={theme}>
+    <PaperProvider theme={theme} settings={PAPER_SETTINGS}>
       <ThemeProvider value={colorScheme === 'light' ? LightTheme : DarkTheme}>
         <KeyboardProvider>
           <GestureHandlerRootView style={{ flex: 1 }}>

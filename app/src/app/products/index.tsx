@@ -1,3 +1,4 @@
+import Head from 'expo-router/head';
 import { useCallback } from 'react';
 import { type LayoutChangeEvent, useWindowDimensions, View } from 'react-native';
 import {
@@ -42,6 +43,9 @@ export default function Products() {
 
   return (
     <>
+      <Head>
+        <title>Products · RELab</title>
+      </Head>
       <View style={{ padding: 10, gap: 10 }} onLayout={handleLayout}>
         <ProductsWelcomeCard
           visible={screen.showWelcomeCard}
