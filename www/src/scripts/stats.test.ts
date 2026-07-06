@@ -68,6 +68,14 @@ describe('renderStats', () => {
     expect(statText(panel, 'images')).toBe('90');
     expect(statText(panel, 'caption')).toContain('7 contributors');
     expect(panel.querySelectorAll('.stats-bar-row')).toHaveLength(2);
+
+    // Each category bar surfaces both the teardown and the part count.
+    const firstRow = panel.querySelector('.stats-bar-row');
+    expect(firstRow?.querySelector('.stats-bar-count-teardowns')?.textContent).toContain('8');
+    expect(firstRow?.querySelector('.stats-bar-count-parts')?.textContent).toContain('200');
+    expect(firstRow?.querySelector('.stats-bar-count-parts')?.textContent).toContain(
+      'parts documented',
+    );
     expect(panel.hidden).toBe(false);
     expect(panel.classList.contains('content-reveal')).toBe(true);
   });

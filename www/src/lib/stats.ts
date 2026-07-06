@@ -66,7 +66,9 @@ export async function fetchHomeStats(): Promise<HomeStats | null> {
     }
     return {
       totals: t,
-      categories: categories.categories.filter((c) => Number.isFinite(c?.teardowns)),
+      categories: categories.categories.filter(
+        (c) => Number.isFinite(c?.teardowns) && Number.isFinite(c?.parts),
+      ),
       generatedAt: totals.generated_at,
     };
   } catch (error) {
