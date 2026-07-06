@@ -11,7 +11,7 @@ from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.sa_typing import orm_attr
 from app.api.data_collection.filters import ProductFilterWithRelationships
-from app.api.data_collection.models.product import Product
+from app.api.data_collection.models.product import MaterialProductLink, Product
 
 PRODUCT_READ_SUMMARY_RELATIONSHIPS: frozenset[str] = frozenset({"owner"})
 PRODUCT_READ_DETAIL_RELATIONSHIPS: frozenset[str] = frozenset(
@@ -34,7 +34,10 @@ class ProductTreeData:
 def apply_product_detail_loaders(statement: Select[tuple[Product]]) -> Select[tuple[Product]]:
     """Apply relationship loaders required by product detail responses."""
     statement = apply_loader_profile(statement, Product, PRODUCT_READ_DETAIL_RELATIONSHIPS)
-    return statement.options(selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.owner)))
+    return statement.options(
+        selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.owner)),
+        selectinload(orm_attr(Product.bill_of_materials)).selectinload(orm_attr(MaterialProductLink.material)),
+    )
 
 
 async def load_component_subtree(
