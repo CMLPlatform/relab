@@ -1,7 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
-const WCAG_TAGS = ['wcag2a', 'wcag2aa'];
+// Aligned across www/docs/app: WCAG 2.0 + 2.1, level A + AA — the real-world
+// baseline. (WCAG 2.2-only criteria are omitted; axe-core's rule coverage for
+// them is too sparse to gate on.)
+const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 async function analyzePage(page: Page) {
   await page.addStyleTag({
