@@ -63,9 +63,9 @@ async def test_authorize_accepts_exact_allowlisted_redirect_uri(
 @pytest.mark.parametrize(
     "redirect_uri",
     [
-        "https://app.example.com/profile",
+        "https://app.example.com/account",
         "http://app.example.com/auth/callback",
-        "https://app.example.com/auth/callback?next=/profile",
+        "https://app.example.com/auth/callback?next=/account",
         "https://app.example.com/auth/callback#token",
         "https://user:pass@app.example.com/auth/callback",
     ],

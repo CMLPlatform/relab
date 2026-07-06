@@ -1,4 +1,3 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import {
   claimOAuthMfaHandoff,
   clearPendingMfaLogin,
@@ -6,6 +5,7 @@ import {
   setPendingMfaLogin,
 } from '@/services/api/auth/authMfa';
 import { mockPlatform, restorePlatform } from '@/test-utils/index';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('@/services/api/request', () => ({
   fetchWithTimeout: jest.fn(),
@@ -49,7 +49,7 @@ describe('authMfa pending login storage', () => {
     setPendingMfaLogin({
       status: 'mfa_required',
       mfaToken: 'mfa-token',
-      redirectTo: '/profile',
+      redirectTo: '/account',
     });
 
     clearPendingMfaLogin();
@@ -59,14 +59,14 @@ describe('authMfa pending login storage', () => {
       JSON.stringify({
         status: 'mfa_required',
         mfaToken: 'stored-token',
-        redirectTo: '/profile',
+        redirectTo: '/account',
       }),
     );
 
     expect(getPendingMfaLogin()).toEqual({
       status: 'mfa_required',
       mfaToken: 'stored-token',
-      redirectTo: '/profile',
+      redirectTo: '/account',
     });
   });
 

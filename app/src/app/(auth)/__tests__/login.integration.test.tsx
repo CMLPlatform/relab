@@ -546,7 +546,7 @@ describe('Login screen', () => {
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: {
-        href: 'https://app.example.test/login?redirectTo=%2Fprofile#status=success',
+        href: 'https://app.example.test/login?redirectTo=%2Faccount#status=success',
         hash: '#status=success',
         pathname: '/login',
       },

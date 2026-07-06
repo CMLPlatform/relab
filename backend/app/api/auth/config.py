@@ -24,8 +24,8 @@ from app.core.env import RelabBaseSettings, is_production_like_environment
 from app.core.secrets import validate_min_secret_bytes
 
 NAME_EMAIL_ADAPTER = TypeAdapter(NameEmail)
-FRONTEND_OAUTH_REDIRECT_PATHS = ("/login", "/profile")
-NATIVE_OAUTH_REDIRECT_URIS = ("relab-app://login", "relab-app://profile")
+FRONTEND_OAUTH_REDIRECT_PATHS = ("/login", "/account")
+NATIVE_OAUTH_REDIRECT_URIS = ("relab-app://login", "relab-app://account")
 OAUTH_ALLOWED_REDIRECT_URIS_FIELD = "oauth_allowed_redirect_uris"
 
 

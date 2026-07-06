@@ -1,9 +1,9 @@
-import { describe, expect, it } from '@jest/globals';
 import {
   isAllowedOAuthRedirectUrl,
   isExpectedOAuthCallbackUrl,
   parseOAuthCallbackUrl,
 } from '@/services/api/oauthFlow';
+import { describe, expect, it } from '@jest/globals';
 
 describe('OAuth URL validation', () => {
   it('accepts the configured HTTPS provider authorization hosts', () => {
@@ -19,7 +19,7 @@ describe('OAuth URL validation', () => {
 
   it('accepts callbacks whose scheme host and path match the generated redirect URI', () => {
     expect(
-      isExpectedOAuthCallbackUrl('relab-app://profile#status=success', 'relab-app://profile'),
+      isExpectedOAuthCallbackUrl('relab-app://account#status=success', 'relab-app://account'),
     ).toBe(true);
   });
 
@@ -42,13 +42,13 @@ describe('OAuth URL validation', () => {
   it('rejects callbacks for a different scheme host or path', () => {
     expect(
       isExpectedOAuthCallbackUrl(
-        'https://example.com/profile#status=success',
-        'relab-app://profile',
+        'https://example.com/account#status=success',
+        'relab-app://account',
       ),
     ).toBe(false);
     expect(
-      isExpectedOAuthCallbackUrl('relab-app://login#status=success', 'relab-app://profile'),
+      isExpectedOAuthCallbackUrl('relab-app://login#status=success', 'relab-app://account'),
     ).toBe(false);
-    expect(isExpectedOAuthCallbackUrl('not a url', 'relab-app://profile')).toBe(false);
+    expect(isExpectedOAuthCallbackUrl('not a url', 'relab-app://account')).toBe(false);
   });
 });

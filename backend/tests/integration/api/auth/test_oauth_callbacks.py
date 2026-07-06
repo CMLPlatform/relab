@@ -110,7 +110,7 @@ async def test_callback_redirect_places_mfa_handoff_not_token_in_url_fragment(re
     query = parse_qs(parsed.query)
     fragment = parse_qs(parsed.fragment)
     assert "mfa_token" not in query
-    assert query["redirectTo"] == ["/profile"]
+    assert query["redirectTo"] == ["/account"]
     assert "mfa_token" not in fragment
     assert fragment["status"] == ["mfa_required"]
     assert fragment["mfa_handoff"][0]

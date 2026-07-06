@@ -21,9 +21,9 @@ def test_oauth_redirect_allowlist_defaults_from_app_public_url() -> None:
     settings = AuthSettings(app_public_url="https://app.example.com")
     assert settings.oauth_allowed_redirect_uris == [
         "https://app.example.com/login",
-        "https://app.example.com/profile",
+        "https://app.example.com/account",
         "relab-app://login",
-        "relab-app://profile",
+        "relab-app://account",
     ]
 
 
@@ -158,7 +158,7 @@ def test_oauth_state_secret_rejects_short_values_in_production_like_environments
 
 def test_oauth_redirect_uris_can_be_set() -> None:
     """OAuth allowed redirect URIs can be configured via constructor."""
-    redirect_uris = ["https://app.example.com/login", "relab-app://profile"]
+    redirect_uris = ["https://app.example.com/login", "relab-app://account"]
     settings = AuthSettings(oauth_allowed_redirect_uris=redirect_uris)
     assert settings.oauth_allowed_redirect_uris == redirect_uris
 
@@ -172,7 +172,7 @@ def test_oauth_redirect_uris_are_normalized() -> None:
 def test_oauth_redirect_uris_reject_query_strings() -> None:
     """OAuth allowed redirect URIs should not include attacker-controlled query slots."""
     with pytest.raises(ValidationError, match="without credentials, query, or fragment"):
-        AuthSettings(oauth_allowed_redirect_uris=["https://app.example.com/login?next=/profile"])
+        AuthSettings(oauth_allowed_redirect_uris=["https://app.example.com/login?next=/account"])
 
 
 def test_rate_limit_can_be_overridden() -> None:
