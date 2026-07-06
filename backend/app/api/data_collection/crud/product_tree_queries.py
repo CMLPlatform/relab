@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
+from app.api.common.crud.utils import ensure_model_exists
 from app.api.common.sa_typing import orm_attr
 from app.api.data_collection.filters import ProductFilterWithRelationships
 from app.api.data_collection.models.product import MaterialProductLink, Product
@@ -38,6 +39,17 @@ def apply_product_detail_loaders(statement: Select[tuple[Product]]) -> Select[tu
         selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.owner)),
         selectinload(orm_attr(Product.bill_of_materials)).selectinload(orm_attr(MaterialProductLink.material)),
     )
+
+
+async def require_product_detail(db: AsyncSession, product_id: int) -> Product:
+    """Load one product or component with the relationships needed for a detail read.
+
+    The single entry point for detail reads so base-product and component routes
+    load the same nested relationships (e.g. each flat component's ``owner``).
+    """
+    statement = apply_product_detail_loaders(select(Product).where(Product.id == product_id))
+    product = (await db.execute(statement)).scalars().unique().one_or_none()
+    return ensure_model_exists(product, Product, product_id)
 
 
 async def load_component_subtree(

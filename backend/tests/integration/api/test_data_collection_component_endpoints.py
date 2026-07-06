@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
+    from app.api.auth.models import User
     from tests.fixtures.data import ProductGraph
 
 pytestmark = pytest.mark.api
@@ -42,6 +43,32 @@ async def test_get_component_by_id(api_client: AsyncClient, setup_product_graph:
     data = response.json()
     assert data["id"] == setup_product_graph.component.id
     assert "videos" not in data
+
+
+async def test_get_component_serializes_nested_component_owner(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+    db_superuser: User,
+    setup_product_graph: ProductGraph,
+) -> None:
+    """A component's flat sub-components must have their owner eager-loaded.
+
+    Regression: owner_username on nested components triggered a lazy='raise'
+    error, 500ing GET /components/{id} for any component that had children.
+    """
+    child = Product(
+        owner_id=db_superuser.id,
+        name=NEW_COMPONENT_NAME,
+        parent=setup_product_graph.component,
+        amount_in_parent=1,
+    )
+    db_session.add(child)
+    await db_session.flush()
+
+    response = await api_client.get(f"/v1/components/{setup_product_graph.component.id}")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["components"][0]["owner_username"] == db_superuser.username
 
 
 async def test_get_component_rejects_base_product_id(

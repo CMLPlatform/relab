@@ -15,14 +15,13 @@ from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
-from app.api.common.crud.utils import ensure_model_exists
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.schemas.base import ProductRead
 from app.api.common.validation import MAX_QUERY_TEXT_LENGTH
 from app.api.data_collection.crud.product_tree_queries import (
     PRODUCT_READ_SUMMARY_RELATIONSHIPS,
-    apply_product_detail_loaders,
     load_component_subtree,
+    require_product_detail,
 )
 from app.api.data_collection.dependencies import ProductFilterWithRelationshipsDep
 from app.api.data_collection.filters import (
@@ -61,14 +60,6 @@ PRODUCT_FACET_BRAND: ProductFacetField = "brand"
 async def _require_product_summary(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
     """Load one product with the summary relationships used on collection reads."""
     return await require_model(session, Product, product_id, loaders=PRODUCT_READ_SUMMARY_RELATIONSHIPS)
-
-
-async def _require_product_detail(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
-    """Load one product with the detail relationships used on detail reads."""
-    statement = select(Product).where(Product.id == product_id)
-    statement = apply_product_detail_loaders(statement)
-    product = (await session.execute(statement)).scalars().unique().one_or_none()
-    return ensure_model_exists(product, Product, product_id)
 
 
 async def _list_direct_components(
@@ -195,7 +186,7 @@ async def get_product(
     product_id: PositiveInt,
 ) -> ProductReadWithRelationshipsAndFlatComponents | Response:
     """Get a base product by ID. For components, use ``/products/{parent_id}/components/{component_id}``."""
-    product = await _require_product_detail(session, product_id)
+    product = await require_product_detail(session, product_id)
     if not product.is_base_product:
         raise HTTPException(
             status_code=404,

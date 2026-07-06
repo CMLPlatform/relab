@@ -8,15 +8,13 @@ from pydantic import PositiveInt
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, OptionalCurrentActiveUserDep
 from app.api.auth.services.rate_limiter import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
-from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.data_collection.crud.product_commands import create_component
 from app.api.data_collection.crud.product_commands import delete_product as delete_product_record
 from app.api.data_collection.crud.product_commands import update_product as update_product_record
-from app.api.data_collection.crud.product_tree_queries import PRODUCT_READ_DETAIL_RELATIONSHIPS
+from app.api.data_collection.crud.product_tree_queries import require_product_detail
 from app.api.data_collection.dependencies import UserOwnedComponentDep
 from app.api.data_collection.examples import COMPONENT_CREATE_OPENAPI_EXAMPLES
-from app.api.data_collection.models.product import Product
 from app.api.data_collection.presentation.product_reads import to_read_model
 from app.api.data_collection.schemas import (
     ComponentCreateWithComponents,
@@ -40,7 +38,7 @@ async def get_component(
     current_user: OptionalCurrentActiveUserDep,
 ) -> ComponentReadWithRelationshipsAndFlatComponents:
     """Fetch a component by its stable id."""
-    product = await require_model(session, Product, component_id, loaders=PRODUCT_READ_DETAIL_RELATIONSHIPS)
+    product = await require_product_detail(session, component_id)
     if product.is_base_product:
         raise HTTPException(
             status_code=404,
