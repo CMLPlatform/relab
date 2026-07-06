@@ -9,3 +9,4 @@
 **/test-results/**
 **/pnpm-lock.yaml
 app/src/types/api.generated.ts
+.semgrep/**
