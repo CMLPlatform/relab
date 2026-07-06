@@ -176,7 +176,14 @@ deploy_secrets_template() {
         else
             echo "kept $path"
         fi
-        chmod 600 "$path"
+        # Dev secrets are bind-mounted into containers that run as non-owner
+        # uids (root without CAP_DAC_OVERRIDE for api, appuser for migrator), so
+        # they must be world-readable. Prod/staging keep owner-only 0600.
+        if [[ "$env" == "dev" ]]; then
+            chmod 644 "$path"
+        else
+            chmod 600 "$path"
+        fi
     done < <(uv run python scripts/env_policy.py secrets-list "$tmp_root/$env.json")
     echo "✅ Secret files are present under secrets/$env"
 }
