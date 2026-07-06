@@ -58,9 +58,7 @@ async def test_brand_in_filter_matches_value_containing_comma(
     """brand[in] treats a comma inside a brand as a literal, not a value separator."""
     db_session.add_all(
         [
-            Product(
-                owner_id=db_superuser.id, name="Comma Brand", brand="johnson, inc", product_type=db_product_type
-            ),
+            Product(owner_id=db_superuser.id, name="Comma Brand", brand="johnson, inc", product_type=db_product_type),
             Product(owner_id=db_superuser.id, name="Other Brand", brand="acme", product_type=db_product_type),
         ]
     )
