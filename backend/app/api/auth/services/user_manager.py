@@ -3,7 +3,7 @@
 import logging
 from typing import TYPE_CHECKING, cast
 
-from fastapi import Depends
+from fastapi import Depends, params
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users import FastAPIUsers, UUIDIDMixin, schemas
 from fastapi_users.manager import BaseUserManager
@@ -75,7 +75,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
     def __init__(
         self,
         user_db: UserDatabaseAsync,
-        http_client: AsyncClient,
+        http_client: AsyncClient | None,
         common_password_checker: CommonPasswordChecker | None = None,
     ) -> None:
         super().__init__(user_db, password_helper=build_password_helper())
@@ -215,6 +215,14 @@ async def get_user_manager(
     common_password_checker: CommonPasswordChecker | None = Depends(get_common_password_checker),
 ) -> AsyncGenerator[UserManager]:
     """Async generator for the user manager."""
+    # Programmatic callers (seeding/CLI) drive this generator without FastAPI,
+    # so the Depends defaults arrive unresolved. Coerce those sentinels to None:
+    # validate_password falls back to the local common-password list, and the
+    # breach check is skipped when there is no http_client.
+    if isinstance(http_client, params.Depends):
+        http_client = None
+    if isinstance(common_password_checker, params.Depends):
+        common_password_checker = None
     yield UserManager(user_db, http_client, common_password_checker)
 
 
