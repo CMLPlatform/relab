@@ -3444,6 +3444,8 @@ export interface components {
        * @description Quantity within parent product
        */
       amount_in_parent: number;
+      /** Owner Id */
+      owner_id?: string | null;
       /** Owner Username */
       owner_username?: string | null;
     };
@@ -3488,6 +3490,8 @@ export interface components {
        * @description Quantity within parent product
        */
       amount_in_parent: number;
+      /** Owner Id */
+      owner_id?: string | null;
       /** Owner Username */
       owner_username?: string | null;
       /**
@@ -3537,6 +3541,8 @@ export interface components {
        * @description Quantity within parent product
        */
       amount_in_parent: number;
+      /** Owner Id */
+      owner_id?: string | null;
       /** Owner Username */
       owner_username?: string | null;
       product_type?: components['schemas']['ProductTypeRead'] | null;

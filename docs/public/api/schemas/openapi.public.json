@@ -1646,6 +1646,18 @@
             "title": "Name",
             "type": "string"
           },
+          "owner_id": {
+            "anyOf": [
+              {
+                "format": "uuid4",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
+          },
           "owner_username": {
             "anyOf": [
               {
@@ -1830,6 +1842,18 @@
             "minLength": 2,
             "title": "Name",
             "type": "string"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "format": "uuid4",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
           },
           "owner_username": {
             "anyOf": [
@@ -2039,6 +2063,18 @@
             "minLength": 2,
             "title": "Name",
             "type": "string"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "format": "uuid4",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
           },
           "owner_username": {
             "anyOf": [

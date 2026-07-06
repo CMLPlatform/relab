@@ -106,18 +106,13 @@ function toBaseProduct(
   };
 }
 
-function toComponent(
-  data: ApiComponentChildItem | ApiComponentDetail,
-  meUsername?: string,
-): Product {
+function toComponent(data: ApiComponentChildItem | ApiComponentDetail, meId?: string): Product {
+  const ownerId = data.owner_id;
   return {
     ...commonProductFields(data),
     role: 'component',
     parentID: data.parent_id,
-    // Components deliberately don't expose owner_id (unlike base products), so
-    // ownership is keyed on owner_username, which the backend never redacts for
-    // the owner viewing their own content.
-    ownedBy: meUsername && data.owner_username === meUsername ? 'me' : '',
+    ownedBy: ownerId && ownerId === meId ? 'me' : (ownerId ?? ''),
     amountInParent: data.amount_in_parent,
     videos: [],
   };
@@ -138,11 +133,6 @@ async function resolveMeId(): Promise<string | undefined> {
   return (await getUser())?.id;
 }
 
-async function resolveMeUsername(): Promise<string | undefined> {
-  if (Platform.OS === 'web') return getCachedUser()?.username ?? undefined;
-  return (await getUser())?.username ?? undefined;
-}
-
 /** Fetch a base product by id. 404s on component ids. */
 export async function getBaseProduct(id: number) {
   const data = await fetchOne<ApiBaseProductDetail>(new URL(`${baseUrl}/products/${id}`));
@@ -154,7 +144,7 @@ export async function getBaseProduct(id: number) {
 export async function getComponent(id: number) {
   const data = await fetchOne<ApiComponentDetail>(new URL(`${baseUrl}/components/${id}`));
   if (!data) throw new ProductNotFoundError(id);
-  return toComponent(data, await resolveMeUsername());
+  return toComponent(data, await resolveMeId());
 }
 
 export function newProduct(

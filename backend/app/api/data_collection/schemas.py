@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING, Self
 
 from pydantic import (
+    UUID4,
     BaseModel,
     ConfigDict,
     Field,
@@ -79,6 +80,7 @@ class ComponentRead(ProductReadBase):
 
     parent_id: PositiveInt
     amount_in_parent: int = Field(description="Quantity within parent product")
+    owner_id: UUID4 | None = None
     owner_username: str | None = None
 
 

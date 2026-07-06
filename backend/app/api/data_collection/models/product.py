@@ -106,9 +106,8 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
 
     # Many-to-one: owner. NOT NULL on every row — components denormalize their
     # root base product's owner so ownership and per-owner queries stay O(1).
-    # The Pydantic ComponentRead schema hides owner_id from clients to keep
-    # the "components are nested under a base product" abstraction clean;
-    # BaseProductRead exposes it.
+    # Both ProductRead and ComponentRead expose owner_id so clients can key
+    # ownership on the stable user id rather than a mutable username.
     # Python type allows None so privacy redaction can clear it in memory.
     owner_id: Mapped[UUID4 | None] = mapped_column(ForeignKey("user.id"), nullable=False)
     owner: Mapped[User | None] = relationship(
