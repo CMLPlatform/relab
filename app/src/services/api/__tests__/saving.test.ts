@@ -434,6 +434,30 @@ describe('Saving API Service', () => {
       expect(uploadCall).toBeDefined();
       expect(uploadCall?.[1]?.body).toBeInstanceOf(FormData);
     });
+
+    it('names the uploaded file to match the image MIME type', async () => {
+      // A JPEG data URI — filename must be .jpg, not .png, or the backend
+      // rejects the MIME/extension mismatch. Byte content is irrelevant here;
+      // only the declared MIME type drives the filename.
+      const dataUri = 'data:image/jpeg;base64,AAAA';
+
+      const product = {
+        ...baseProduct,
+        id: 42,
+        images: [{ url: dataUri, description: 'tiny jpeg' }],
+      };
+      mockFetchOk({ id: 42 }); // PATCH product
+      mockFetchOk({ id: 77 }); // POST image
+
+      await saveProduct(product, [], []);
+
+      const uploadCall = mockFetchWithAuth.mock.calls.find(
+        (c) => (c[0] as URL).href.includes('/images') && c[1]?.method === 'POST',
+      );
+      const file = (uploadCall?.[1]?.body as FormData).get('file') as File;
+      expect(file.name).toBe('image.jpg');
+      expect(file.type).toBe('image/jpeg');
+    });
   });
 
   // ─── deleteProduct ───────────────────────────────────────

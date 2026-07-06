@@ -191,6 +191,28 @@ async function deleteImage(product: Product, image: { id: string }) {
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
+// The backend rejects an upload unless filename extension, declared MIME type,
+// and sniffed content all agree, so the filename must reflect the real type.
+const IMAGE_EXTENSION_BY_MIME: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'image/bmp': 'bmp',
+};
+const IMAGE_MIME_BY_EXTENSION: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  bmp: 'image/bmp',
+};
+
+function imageFilename(mimeType: string): string {
+  return `image.${IMAGE_EXTENSION_BY_MIME[mimeType] ?? 'jpg'}`;
+}
+
 async function addImage(
   product: Product,
   image: { url: string; description: string; id?: string },
@@ -203,13 +225,16 @@ async function addImage(
     if (fileBlob.size > MAX_IMAGE_SIZE_BYTES) {
       throw new Error('Image is too large. Please use an image smaller than 10 MB.');
     }
-    body.append('file', fileBlob, 'image.png');
+    body.append('file', fileBlob, imageFilename(fileBlob.type));
   } else if (image.url.startsWith('file:')) {
-    // React Native extends FormData to accept { uri, name, type } for native file uploads
+    // React Native extends FormData to accept { uri, name, type } for native file uploads.
+    // Derive the MIME type from the picked file's extension so name and type agree.
+    const extension = image.url.split('?')[0].split('.').pop()?.toLowerCase() ?? '';
+    const mimeType = IMAGE_MIME_BY_EXTENSION[extension] ?? 'image/jpeg';
     body.append('file', {
       uri: image.url,
-      name: 'image.png',
-      type: 'image/png',
+      name: imageFilename(mimeType),
+      type: mimeType,
     } as unknown as Blob);
   } else if (image.url.startsWith('blob:') || image.url.startsWith('http')) {
     // Web blob or URL - fetch and convert to blob
@@ -218,7 +243,7 @@ async function addImage(
     if (blob.size > MAX_IMAGE_SIZE_BYTES) {
       throw new Error('Image is too large. Please use an image smaller than 10 MB.');
     }
-    body.append('file', blob, 'image.png');
+    body.append('file', blob, imageFilename(blob.type));
   }
 
   const response = await fetchWithAuth(url, {
