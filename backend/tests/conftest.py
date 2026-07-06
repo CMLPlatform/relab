@@ -298,7 +298,11 @@ async def db_session(_setup_test_database: None, async_engine: AsyncEngine) -> A
 @pytest.fixture(autouse=True)
 def mock_email_sending(mocker: MockerFixture) -> AsyncMock:
     """Automatically mock email sending for all tests."""
-    return mocker.patch(
-        "app.api.auth.services.email.service.default_email_provider.send",
-        new_callable=AsyncMock,
+    send = AsyncMock()
+    provider = mocker.Mock()
+    provider.send = send
+    mocker.patch(
+        "app.api.auth.services.email.service.get_default_email_provider",
+        return_value=provider,
     )
+    return send

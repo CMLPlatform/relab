@@ -10,8 +10,8 @@ from .providers import (
     build_smtp_config,
 )
 from .service import (
-    default_email_provider,
     generate_token_link,
+    get_default_email_provider,
     mask_email_for_log,
     send_email_changed_notification,
     send_password_changed_notification,
@@ -49,8 +49,8 @@ __all__ = [
     "SmtpEmailProvider",
     "build_email_provider",
     "build_smtp_config",
-    "default_email_provider",
     "generate_token_link",
+    "get_default_email_provider",
     "mask_email_for_log",
     "render_email_template",
     "send_email_changed_notification",

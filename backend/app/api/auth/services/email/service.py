@@ -1,6 +1,7 @@
 """Transactional email service helpers."""
 
 import logging
+from functools import lru_cache
 from html import escape
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode, urljoin
@@ -25,7 +26,17 @@ if TYPE_CHECKING:
 
 logger: logging.Logger = logging.getLogger(__name__)
 email_settings = auth_settings.email
-default_email_provider = build_email_provider(settings=auth_settings)
+
+
+@lru_cache(maxsize=1)
+def get_default_email_provider() -> EmailProvider:
+    """Build the configured email provider on first use.
+
+    Deferred so that importing the app in non-serving contexts (migrations,
+    seeding, CLIs) does not require valid email config it never uses — building
+    the provider validates the sender address.
+    """
+    return build_email_provider(settings=auth_settings)
 
 
 def generate_token_link(token: str, route: str, base_url: str | AnyUrl | None = None) -> str:
@@ -84,7 +95,7 @@ async def send_templated_email(
     provider: EmailProvider | None = None,
 ) -> None:
     """Send one validated templated email through the configured provider."""
-    selected_provider = provider or default_email_provider
+    selected_provider = provider or get_default_email_provider()
     message = _build_message(to_email, subject, render_email_template(template_name, template_body))
     log_label = f"Email (template={template_name}, provider={selected_provider.__class__.__name__})"
     await _dispatch(message, to_email, log_label, background_tasks, selected_provider)
@@ -146,7 +157,7 @@ async def send_password_reset_confirmation_email(
         to_email,
         "Password-reset confirmation",
         background_tasks,
-        provider or default_email_provider,
+        provider or get_default_email_provider(),
     )
 
 
@@ -172,7 +183,7 @@ async def send_password_changed_notification(
         to_email,
         "Password-change notification",
         background_tasks,
-        provider or default_email_provider,
+        provider or get_default_email_provider(),
     )
 
 
@@ -227,5 +238,5 @@ async def send_email_changed_notification(
         to_email,
         "Email-change notification",
         background_tasks,
-        provider or default_email_provider,
+        provider or get_default_email_provider(),
     )
