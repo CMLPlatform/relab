@@ -19,7 +19,10 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 4,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://127.0.0.1:18011',
+    // Must share a host with the baked EXPO_PUBLIC_API_URL (localhost) so the
+    // SameSite=Lax session cookies are treated as first-party; 127.0.0.1 vs
+    // localhost is cross-site and the browser drops the auth cookie.
+    baseURL: process.env.BASE_URL ?? 'http://localhost:18011',
     trace: 'on-first-retry',
   },
   projects: [
@@ -53,7 +56,7 @@ export default defineConfig({
     ? undefined
     : {
         command: 'pnpm exec serve dist -l 18011 --no-clipboard',
-        url: 'http://127.0.0.1:18011',
+        url: 'http://localhost:18011',
         reuseExistingServer: !process.env.CI,
       },
 });
