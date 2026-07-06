@@ -31,6 +31,13 @@ Public reference data (taxonomies, materials, product types), product records, a
 1. Inspect response models carefully, especially around linked entities and media.
 1. Only automate writes once you understand how the product hierarchy is represented.
 
+## Interactive tooling and admin tasks
+
+Point a client at the API and authenticate with a bearer token from `POST /v1/auth/bearer/login` — the same path covers superuser tasks like `POST /v1/admin/cache/clear/{namespace}`.
+
+- **Postman, Bruno, Insomnia**: import the OpenAPI schema (`app/src/types/openapi.json`) for the full endpoint collection, then set auth to *Bearer*.
+- **VS Code REST Client / JetBrains HTTP Client**: use `scripts/admin.http` from a repo checkout — send `login` once and the token flows into the calls below it.
+
 ## Integration advice
 
 - Build against the generated OpenAPI schema rather than copying examples from old documentation.

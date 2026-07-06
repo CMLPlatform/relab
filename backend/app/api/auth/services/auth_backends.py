@@ -81,7 +81,7 @@ def clear_auth_cookies(response: Response) -> None:
         _delete_cookie(response, name, COOKIE_DOMAIN)
 
 
-bearer_transport = BearerTransport(tokenUrl="auth/bearer/login")
+bearer_transport = BearerTransport(tokenUrl="/v1/auth/bearer/login")
 
 
 def get_token_strategy(redis: RedisDep) -> Strategy[User, UUID4]:

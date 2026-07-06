@@ -5559,7 +5559,7 @@
         "flows": {
           "password": {
             "scopes": {},
-            "tokenUrl": "auth/bearer/login"
+            "tokenUrl": "/v1/auth/bearer/login"
           }
         },
         "type": "oauth2"

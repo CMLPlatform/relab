@@ -15,6 +15,7 @@ class CacheNamespace(StrEnum):
 
     REFERENCE_DATA = "reference-data"
     DOCS = "docs"
+    STATS = "stats"
 
 
 class CacheSettings(BaseModel):
