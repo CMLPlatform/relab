@@ -14,13 +14,16 @@ import {
   ProfileEmailUpdatesSection,
   ProfileVisibilitySection,
 } from '@/components/profile/Preferences';
+import { ProfileSecuritySection } from '@/components/profile/SecuritySection';
 import { ProfileLayout } from '@/components/profile/shared';
+import { useAuth } from '@/context/auth';
 import { useProfileScreen } from '@/features/profile/useProfileScreen';
 
 maybeCompleteAuthSession({ skipRedirectCheck: true });
 
 export default function ProfileTab() {
   const router = useRouter();
+  const { refetch } = useAuth();
   const { profile, integrations, dialogs, actions } = useProfileScreen();
   const goToCameras = useCallback(() => router.push('/cameras'), [router]);
 
@@ -66,6 +69,8 @@ export default function ProfileTab() {
         onRevokeAllSessions={actions.onRevokeAllSessions}
         onVerifyAccount={actions.onVerifyAccount}
       />
+
+      <ProfileSecuritySection mfaEnabled={profile.profile.mfaEnabled} onEnrolled={refetch} />
 
       <ProfileLinkedAccountsSection
         isGoogleLinked={integrations.isGoogleLinked}

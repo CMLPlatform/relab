@@ -158,11 +158,44 @@ export async function claimOAuthMfaHandoff(mfaHandoff: string): Promise<MfaLogin
   return pending;
 }
 
-export async function confirmTotpSetup(setupToken: string, code: string): Promise<void> {
-  await postMfaJson(
+function mapRecoveryCodes(data: unknown): string[] {
+  const payload = data as { recovery_codes?: unknown };
+  if (
+    !Array.isArray(payload?.recovery_codes) ||
+    payload.recovery_codes.some((code) => typeof code !== 'string')
+  ) {
+    throw new Error('Invalid recovery codes response.');
+  }
+  return payload.recovery_codes as string[];
+}
+
+export async function confirmTotpSetup(
+  setupToken: string,
+  code: string,
+  password: string,
+): Promise<string[]> {
+  const response = await postMfaJson(
     '/auth/mfa/totp/confirm',
-    { setup_token: setupToken, code },
+    { setup_token: setupToken, code, password },
     'Unable to confirm MFA setup.',
+  );
+  return mapRecoveryCodes(await response.json());
+}
+
+export async function regenerateRecoveryCodes(code: string): Promise<string[]> {
+  const response = await postMfaJson(
+    '/auth/mfa/recovery-codes/regenerate',
+    { code },
+    'Unable to generate new recovery codes.',
+  );
+  return mapRecoveryCodes(await response.json());
+}
+
+export async function disableTotp(code: string): Promise<void> {
+  await postMfaJson(
+    '/auth/mfa/totp/disable',
+    { code },
+    'Unable to turn off two-step verification.',
   );
 }
 

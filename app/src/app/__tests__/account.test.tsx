@@ -412,6 +412,10 @@ jest.mock('@/components/profile/Integrations', () => ({
   ProfileIntegrationsSection: () => null,
 }));
 
+jest.mock('@/components/profile/SecuritySection', () => ({
+  ProfileSecuritySection: () => null,
+}));
+
 jest.mock('@/services/api/client', () => ({
   apiFetch: jest.fn().mockResolvedValue({
     ok: true,

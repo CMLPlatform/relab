@@ -55,14 +55,26 @@ beforeEach(() => {
 });
 
 describe('MfaScreen challenge flow', () => {
-  it('keeps submit disabled until a six digit code is present', () => {
+  it('does not submit until a six digit code is entered', () => {
     renderMfaScreen();
 
     expect(screen.getByText('Continue')).toBeDisabled();
-    fireEvent.changeText(screen.getByPlaceholderText('6-digit code'), '12345');
+    fireEvent.changeText(screen.getByLabelText('6-digit code'), '12345');
     expect(screen.getByText('Continue')).toBeDisabled();
-    fireEvent.changeText(screen.getByPlaceholderText('6-digit code'), '123456');
-    expect(screen.getByText('Continue')).not.toBeDisabled();
+    expect(mockedCompleteMfaChallenge).not.toHaveBeenCalled();
+  });
+
+  it('auto-submits once six digits are entered', async () => {
+    mockedCompleteMfaChallenge.mockResolvedValueOnce();
+
+    renderMfaScreen();
+
+    fireEvent.changeText(screen.getByLabelText('6-digit code'), '123456');
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
+    });
+    expect(mockedCompleteMfaChallenge).toHaveBeenCalledWith('mfa-token', '123456');
   });
 
   it('allows retrying an MFA challenge after an invalid code', async () => {
@@ -72,15 +84,13 @@ describe('MfaScreen challenge flow', () => {
 
     renderMfaScreen();
 
-    fireEvent.changeText(screen.getByPlaceholderText('6-digit code'), '000000');
-    fireEvent.press(screen.getByText('Continue'));
+    fireEvent.changeText(screen.getByLabelText('6-digit code'), '000000');
 
     await waitFor(() => {
       expect(screen.getByText('Invalid MFA code.')).toBeOnTheScreen();
     });
 
-    fireEvent.changeText(screen.getByPlaceholderText('6-digit code'), '123456');
-    fireEvent.press(screen.getByText('Continue'));
+    fireEvent.changeText(screen.getByLabelText('6-digit code'), '123456');
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
@@ -95,8 +105,7 @@ describe('MfaScreen challenge flow', () => {
 
     renderMfaScreen();
 
-    fireEvent.changeText(screen.getByPlaceholderText('6-digit code'), '123456');
-    fireEvent.press(screen.getByText('Continue'));
+    fireEvent.changeText(screen.getByLabelText('6-digit code'), '123456');
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/account');
@@ -111,7 +120,22 @@ describe('MfaScreen challenge flow', () => {
     renderMfaScreen();
 
     expect(screen.getByText('MFA session expired. Please log in again.')).toBeOnTheScreen();
-    fireEvent.changeText(screen.getByPlaceholderText('6-digit code'), '123456');
     expect(screen.getByText('Continue')).toBeDisabled();
+    expect(mockedCompleteMfaChallenge).not.toHaveBeenCalled();
+  });
+
+  it('signs in with a recovery code', async () => {
+    mockedCompleteMfaChallenge.mockResolvedValueOnce();
+
+    renderMfaScreen();
+
+    fireEvent.press(screen.getByText('Use a recovery code'));
+    fireEvent.changeText(screen.getByLabelText('Recovery code'), 'ABCDE-FGHIJ');
+    fireEvent.press(screen.getByText('Sign in'));
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
+    });
+    expect(mockedCompleteMfaChallenge).toHaveBeenCalledWith('mfa-token', 'ABCDE-FGHIJ');
   });
 });

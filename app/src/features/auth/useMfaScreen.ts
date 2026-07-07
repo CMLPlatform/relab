@@ -19,50 +19,67 @@ export function useMfaScreen() {
   const pending = getPendingMfaLogin();
   const token = pending?.mfaToken;
   const [code, setCode] = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
 
-  const canSubmit = Boolean(token) && code.length === 6;
+  const activeCode = useRecoveryCode ? recoveryCode.trim() : code;
+  const canSubmit =
+    Boolean(token) && (useRecoveryCode ? activeCode.length >= 6 : code.length === 6);
   const visibleError = error ?? (pending ? null : 'MFA session expired. Please log in again.');
   const handleCodeChange = useCallback((value: string) => setCode(normalizeTotpCode(value)), []);
-
-  const submit = useCallback(async () => {
-    if (!token) {
-      setError('MFA session expired. Please log in again.');
-      return;
-    }
-    setSubmitting(true);
+  const handleRecoveryCodeChange = useCallback((value: string) => setRecoveryCode(value), []);
+  const toggleRecoveryMode = useCallback(() => {
+    setUseRecoveryCode((prev) => !prev);
     setError(null);
-    try {
-      await completeMfaChallenge(token, code);
-      clearPendingMfaLogin();
-      // Update the auth context (not just the API cache) so useAuth() consumers
-      // see the signed-in user; otherwise the post-login route's auth guard
-      // bounces straight back to /login.
-      const authenticatedUser = await refetch();
-      if (authenticatedUser) {
-        routeAuthenticatedUser({
-          authenticatedUser,
-          router,
-          postLoginRedirect: getSafeRedirectTarget(pending?.redirectTo),
-        });
+  }, []);
+
+  const submit = useCallback(
+    async (submitCode: string = activeCode) => {
+      if (!token) {
+        setError('MFA session expired. Please log in again.');
         return;
       }
-      router.replace('/products');
-    } catch (err) {
-      setError(getErrorMessage(err, 'Invalid MFA code.'));
-    } finally {
-      setSubmitting(false);
-    }
-  }, [code, pending?.redirectTo, refetch, router, token]);
+      if (submitCode.length < 6 || isSubmitting) return;
+      setSubmitting(true);
+      setError(null);
+      try {
+        await completeMfaChallenge(token, submitCode);
+        clearPendingMfaLogin();
+        // Update the auth context (not just the API cache) so useAuth() consumers
+        // see the signed-in user; otherwise the post-login route's auth guard
+        // bounces straight back to /login.
+        const authenticatedUser = await refetch();
+        if (authenticatedUser) {
+          routeAuthenticatedUser({
+            authenticatedUser,
+            router,
+            postLoginRedirect: getSafeRedirectTarget(pending?.redirectTo),
+          });
+          return;
+        }
+        router.replace('/products');
+      } catch (err) {
+        setError(getErrorMessage(err, 'Invalid MFA code.'));
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [activeCode, isSubmitting, pending?.redirectTo, refetch, router, token],
+  );
 
   return {
     code,
+    recoveryCode,
+    useRecoveryCode,
     isSubmitting,
     canSubmit,
     tokenPresent: Boolean(token),
     visibleError,
     handleCodeChange,
+    handleRecoveryCodeChange,
+    toggleRecoveryMode,
     submit,
   };
 }
