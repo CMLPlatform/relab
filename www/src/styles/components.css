@@ -209,7 +209,7 @@
 }
 
 .stats-categories {
-  /* ponytail: fixed count columns keep the legend header and the JS-built rows
+  /* NOTE: fixed count columns keep the legend header and the JS-built rows
      aligned across their two independent grids; widen if counts exceed 6 digits. */
   --stats-bar-columns: minmax(5.5rem, 9rem) 1fr 3.4rem 3.4rem;
   display: grid;
