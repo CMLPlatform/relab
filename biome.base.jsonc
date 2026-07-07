@@ -11,8 +11,7 @@
       "playwright": "all",
       "project": "all",
       "react": "all",
-      "test": "all",
-      "types": "all"
+      "test": "all"
     },
     "rules": {
       "preset": "recommended",
