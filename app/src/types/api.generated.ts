@@ -4157,7 +4157,7 @@ export interface components {
     };
     /**
      * MfaTotpDisableRequest
-     * @description Request to turn off TOTP MFA, confirmed with a current code.
+     * @description Request to turn off TOTP MFA, confirmed with a current code or a recovery code.
      */
     MfaTotpDisableRequest: {
       /** Code */

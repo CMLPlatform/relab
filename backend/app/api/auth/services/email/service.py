@@ -149,21 +149,44 @@ async def send_mfa_changed_notification(
     if enabled:
         followup = "If you did not turn this on, reset your password and contact RELab support."
     else:
-        followup = (
-            "If you did not turn this off, reset your password and contact RELab support immediately."
-        )
+        followup = "If you did not turn this off, reset your password and contact RELab support immediately."
     message = _build_message(
         to_email,
         f"Two-step verification was {change}",
-        (
-            f"<p>Hello {display_name},</p>"
-            f"<p>Two-step verification was {change} on your RELab account. {followup}</p>"
-        ),
+        (f"<p>Hello {display_name},</p><p>Two-step verification was {change} on your RELab account. {followup}</p>"),
     )
     await _dispatch(
         message,
         to_email,
         "MFA-change notification",
+        background_tasks,
+        provider or get_default_email_provider(),
+    )
+
+
+async def send_recovery_codes_regenerated_notification(
+    to_email: EmailStr,
+    username: str | None,
+    *,
+    background_tasks: BackgroundTasks | None = None,
+    provider: EmailProvider | None = None,
+) -> None:
+    """Notify a user out-of-band when their two-step recovery codes are regenerated."""
+    display_name = escape(_display_name(username, to_email))
+    message = _build_message(
+        to_email,
+        "Your two-step recovery codes changed",
+        (
+            f"<p>Hello {display_name},</p>"
+            "<p>New two-step recovery codes were generated for your RELab account, and any "
+            "previous codes no longer work. If you did not do this, reset your password and "
+            "contact RELab support immediately.</p>"
+        ),
+    )
+    await _dispatch(
+        message,
+        to_email,
+        "MFA recovery-codes notification",
         background_tasks,
         provider or get_default_email_provider(),
     )

@@ -286,13 +286,78 @@ async def test_regenerate_recovery_codes_reissues_after_valid_code() -> None:
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=True)),
         patch("app.api.auth.services.mfa_flow.mfa_service.set_recovery_codes", new=AsyncMock()) as set_codes,
+        patch("app.api.auth.services.mfa_flow.send_recovery_codes_regenerated_notification", new=AsyncMock()) as notify,
     ):
         result = await mfa_flow.regenerate_recovery_codes(
             MfaRecoveryCodesRegenerateRequest(code="123456"),
             current_user=user,
             user_manager=user_manager,
             redis=MagicMock(),
+            background_tasks=MagicMock(),
         )
 
     set_codes.assert_awaited_once()
+    notify.assert_awaited_once()
     assert len(result.recovery_codes) == 10
+
+
+async def test_disable_totp_accepts_recovery_code() -> None:
+    """A user who lost their authenticator can disable MFA with a recovery code."""
+    user = MagicMock()
+    user.id = "user-id"
+    user.mfa_enabled = True
+    user.mfa_totp_secret = "totp-secret"
+    user.mfa_recovery_codes = ["hash-a", "hash-b"]
+    user_manager = MagicMock()
+    user_manager.get = AsyncMock(return_value=user)
+
+    with (
+        patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock()) as verify_totp,
+        patch("app.api.auth.services.mfa_flow.mfa_service.consume_recovery_code", return_value=["hash-b"]),
+        patch("app.api.auth.services.mfa_flow.mfa_service.clear_totp", new=AsyncMock()) as clear,
+        patch("app.api.auth.services.mfa_flow.send_mfa_changed_notification", new=AsyncMock()),
+    ):
+        await mfa_flow.disable_totp(
+            MfaTotpDisableRequest(code="ABCDE-FGHIJ"),
+            current_user=user,
+            user_manager=user_manager,
+            redis=MagicMock(),
+            background_tasks=MagicMock(),
+        )
+
+    clear.assert_awaited_once_with(user_manager, user)
+    verify_totp.assert_not_awaited()  # a non-6-digit code never touches the TOTP path
+
+
+async def test_complete_mfa_challenge_keeps_recovery_code_when_challenge_consume_fails() -> None:
+    """A failed challenge-consume must not burn the one-time recovery code."""
+    challenge = MagicMock()
+    challenge.user_id = "user-id"
+    user = MagicMock()
+    user.id = "user-id"
+    user.mfa_enabled = True
+    user.mfa_totp_secret = "totp-secret"
+    user.mfa_recovery_codes = ["hash-a", "hash-b"]
+    user_manager = MagicMock()
+    user_manager.get = AsyncMock(return_value=user)
+
+    with (
+        patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),
+        patch("app.api.auth.services.mfa_flow.mfa_service.consume_recovery_code", return_value=["hash-b"]),
+        patch(
+            "app.api.auth.services.mfa_flow.mfa_service.consume_login_challenge",
+            new=AsyncMock(side_effect=RuntimeError("boom")),
+        ),
+        patch("app.api.auth.services.mfa_flow.mfa_service.set_recovery_codes", new=AsyncMock()) as set_codes,
+        pytest.raises(RuntimeError),
+    ):
+        await mfa_flow.complete_mfa_challenge(
+            MfaChallengeRequest(mfa_token=SecretStr("mfa-token"), code="ABCDE-FGHIJ"),
+            response=Response(),
+            user_manager=user_manager,
+            redis=MagicMock(),
+            bearer_strategy=MagicMock(),
+            cookie_strategy=MagicMock(),
+        )
+
+    set_codes.assert_not_awaited()  # code stays valid because login never completed

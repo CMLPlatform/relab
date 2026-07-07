@@ -86,13 +86,18 @@ async def disable_totp(
 )
 async def regenerate_recovery_codes(
     payload: MfaRecoveryCodesRegenerateRequest,
+    background_tasks: BackgroundTasks,
     current_user: CurrentActiveUserDep,
     user_manager: UserManagerDep,
     redis: RedisDep,
 ) -> MfaRecoveryCodesResponse:
     """Reissue recovery codes after confirming a current TOTP code."""
     return await mfa_flow.regenerate_recovery_codes(
-        payload, current_user=current_user, user_manager=user_manager, redis=redis
+        payload,
+        current_user=current_user,
+        user_manager=user_manager,
+        redis=redis,
+        background_tasks=background_tasks,
     )
 
 

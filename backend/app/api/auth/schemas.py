@@ -293,11 +293,13 @@ class MfaChallengeRequest(BaseModel):
 
 
 class MfaTotpDisableRequest(BaseModel):
-    """Request to turn off TOTP MFA, confirmed with a current code."""
+    """Request to turn off TOTP MFA, confirmed with a current code or a recovery code."""
 
     model_config = ConfigDict(extra="forbid")
 
-    code: str = Field(min_length=6, max_length=6)
+    # 6 digits for TOTP, or a longer recovery code (grouped, e.g. "ABCDE-FGHIJ"),
+    # so a user who lost their authenticator can still turn MFA off.
+    code: str = Field(min_length=6, max_length=20)
 
 
 class MfaRecoveryCodesRegenerateRequest(BaseModel):

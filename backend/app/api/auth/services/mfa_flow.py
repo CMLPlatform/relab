@@ -18,7 +18,10 @@ from app.api.auth.schemas import (
     RefreshTokenResponse,
 )
 from app.api.auth.services import login_completion, mfa_service
-from app.api.auth.services.email.service import send_mfa_changed_notification
+from app.api.auth.services.email.service import (
+    send_mfa_changed_notification,
+    send_recovery_codes_regenerated_notification,
+)
 from app.api.auth.services.user_manager import UserManager
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.redis import Redis
@@ -102,6 +105,14 @@ async def confirm_totp_setup(
     return MfaRecoveryCodesResponse(recovery_codes=codes)
 
 
+async def _load_enrolled_mfa_user(user_manager: UserManager, current_user: User) -> User:
+    """Load the user and assert TOTP MFA is currently enabled, or reject the change."""
+    user = await user_manager.get(current_user.id)
+    if not user.mfa_enabled or not user.mfa_totp_secret:
+        raise MfaChallengeInvalidError
+    return user
+
+
 async def disable_totp(
     payload: MfaTotpDisableRequest,
     *,
@@ -110,16 +121,12 @@ async def disable_totp(
     redis: Redis,
     background_tasks: BackgroundTasks,
 ) -> None:
-    """Turn off TOTP MFA after confirming ownership with a current code."""
-    user = await user_manager.get(current_user.id)
-    if not user.mfa_enabled or not user.mfa_totp_secret:
-        raise MfaChallengeInvalidError
-    if not await mfa_service.verify_totp_code_once(
-        redis,
-        user_id=user.id,
-        secret=user.mfa_totp_secret,
-        code=payload.code,
-    ):
+    """Turn off TOTP MFA after confirming ownership with a current code or a recovery code."""
+    user = await _load_enrolled_mfa_user(user_manager, current_user)
+    # Accept a recovery code too: someone who lost their authenticator must still be
+    # able to turn MFA off (then re-enroll) — that is exactly what recovery codes are for.
+    # clear_totp wipes the codes anyway, so the matched code needn't be persisted here.
+    if await _verify_challenge_code(payload.code, user=user, redis=redis) is None:
         audit_mfa_failure(user, reason="invalid_totp_disable_code")
         raise MfaCodeInvalidError
     await mfa_service.clear_totp(user_manager, user)
@@ -133,11 +140,10 @@ async def regenerate_recovery_codes(
     current_user: User,
     user_manager: UserManager,
     redis: Redis,
+    background_tasks: BackgroundTasks,
 ) -> MfaRecoveryCodesResponse:
     """Reissue recovery codes after confirming a current TOTP code."""
-    user = await user_manager.get(current_user.id)
-    if not user.mfa_enabled or not user.mfa_totp_secret:
-        raise MfaChallengeInvalidError
+    user = await _load_enrolled_mfa_user(user_manager, current_user)
     if not await mfa_service.verify_totp_code_once(
         redis,
         user_id=user.id,
@@ -151,6 +157,9 @@ async def regenerate_recovery_codes(
     audit_event(
         user.id, AuditAction.MFA_SUCCESS, "mfa", user.id, context=AuditContext(flow="recovery_codes_regenerate")
     )
+    # Rotating codes invalidates every previously issued one — notify out-of-band, as
+    # enable/disable already do, so a silent rotation can't hide from the account owner.
+    await send_recovery_codes_regenerated_notification(user.email, user.username, background_tasks=background_tasks)
     return MfaRecoveryCodesResponse(recovery_codes=codes)
 
 
@@ -177,12 +186,17 @@ async def complete_mfa_challenge(
     if not user.mfa_enabled or not user.mfa_totp_secret:
         audit_mfa_failure(user, reason="mfa_not_enabled")
         raise MfaCodeInvalidError
-    factor = await _verify_challenge_code(payload.code, user=user, user_manager=user_manager, redis=redis)
-    if factor is None:
+    verified = await _verify_challenge_code(payload.code, user=user, redis=redis)
+    if verified is None:
         audit_mfa_failure(user, reason="invalid_mfa_code")
         raise MfaCodeInvalidError
+    factor, remaining_recovery = verified
 
     challenge = await mfa_service.consume_login_challenge(redis, mfa_token)
+    if remaining_recovery is not None:
+        # Burn the one-time recovery code only after the login challenge is consumed,
+        # so an already-consumed/expired challenge can't spend a code without a login.
+        await mfa_service.set_recovery_codes(user_manager, user, remaining_recovery)
     audit_event(
         user.id,
         AuditAction.MFA_SUCCESS,
@@ -213,24 +227,26 @@ async def _verify_challenge_code(
     code: str,
     *,
     user: User,
-    user_manager: UserManager,
     redis: Redis,
-) -> str | None:
+) -> tuple[str, list[str] | None] | None:
     """Validate a challenge code as TOTP (6 digits) or a single-use recovery code.
 
-    Returns the factor used ("totp" | "recovery"), or None if neither matched.
+    Returns ``(factor, remaining_recovery_hashes)`` — the factor used
+    ("totp" | "recovery") and, for a matched recovery code, the reduced hash list
+    the caller must persist *after* the login challenge is consumed (None for TOTP).
+    Returns None if neither matched. This function performs no writes so a failure
+    later in the flow can't burn a recovery code with nothing to show for it.
     """
     if len(code) == 6 and code.isdecimal():
         if user.mfa_totp_secret and await mfa_service.verify_totp_code_once(
             redis, user_id=user.id, secret=user.mfa_totp_secret, code=code
         ):
-            return "totp"
+            return "totp", None
         return None
     remaining = mfa_service.consume_recovery_code(user.mfa_recovery_codes, code)
     if remaining is None:
         return None
-    await mfa_service.set_recovery_codes(user_manager, user, remaining)
-    return "recovery"
+    return "recovery", remaining
 
 
 def audit_mfa_failure(user: User, *, reason: str) -> None:
