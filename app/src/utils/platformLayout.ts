@@ -1,7 +1,7 @@
 import { Platform, type TextStyle } from 'react-native';
 
 /** Cross-platform text glow: web wants the CSS shorthand, native the RN props. */
-export function textGlow(color: string, radius = 10): TextStyle {
+export function textGlow(color: string, radius = 5): TextStyle {
   return Platform.OS === 'web'
     ? ({ textShadow: `0px 0px ${radius}px ${color}` } as TextStyle)
     : {
