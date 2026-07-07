@@ -75,7 +75,7 @@ async def test_callback_redirect_places_mfa_handoff_not_token_in_url_fragment(re
     """OAuth MFA redirects should keep the MFA token out of URLs."""
     config, backend = make_auth_flow()
     csrf_token = generate_csrf_token()
-    frontend_redirect = "relab-app://login?redirectTo=%2Fprofile"
+    frontend_redirect = "relab-app://login?redirectTo=%2Faccount"
     state = make_oauth_state(
         csrf_token,
         provider_name="github",

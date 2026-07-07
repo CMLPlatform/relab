@@ -249,10 +249,11 @@ async def test_authenticated_totp_setup_enables_mfa(
 
     confirm_response = await api_client.post(
         "/v1/auth/mfa/totp/confirm",
-        json={"setup_token": setup_data["setup_token"], "code": code},
+        json={"setup_token": setup_data["setup_token"], "code": code, "password": TEST_PASSWORD},
     )
 
-    assert confirm_response.status_code == status.HTTP_204_NO_CONTENT
+    assert confirm_response.status_code == status.HTTP_200_OK
+    assert len(confirm_response.json()["recovery_codes"]) == 10
 
 
 async def test_totp_setup_confirm_requires_authentication(
@@ -313,6 +314,7 @@ async def test_totp_setup_confirm_rejects_another_users_setup_token(
         json={
             "setup_token": first_setup["setup_token"],
             "code": mfa_service.generate_totp_code(first_setup["secret"]),
+            "password": TEST_PASSWORD,
         },
     )
 
@@ -337,18 +339,19 @@ async def test_totp_setup_retry_allows_valid_code_after_invalid_code(
 
     invalid_response = await api_client.post(
         "/v1/auth/mfa/totp/confirm",
-        json={"setup_token": setup_data["setup_token"], "code": invalid_code},
+        json={"setup_token": setup_data["setup_token"], "code": invalid_code, "password": TEST_PASSWORD},
     )
     valid_response = await api_client.post(
         "/v1/auth/mfa/totp/confirm",
         json={
             "setup_token": setup_data["setup_token"],
             "code": valid_code,
+            "password": TEST_PASSWORD,
         },
     )
 
     assert invalid_response.status_code == status.HTTP_401_UNAUTHORIZED
-    assert valid_response.status_code == status.HTTP_204_NO_CONTENT
+    assert valid_response.status_code == status.HTTP_200_OK
 
 
 async def test_totp_setup_start_can_be_retried_before_confirmation(
@@ -392,6 +395,7 @@ async def test_stale_setup_token_cannot_overwrite_confirmed_totp(
         json={
             "setup_token": second_setup["setup_token"],
             "code": mfa_service.generate_totp_code(second_setup["secret"]),
+            "password": TEST_PASSWORD,
         },
     )
 
@@ -400,10 +404,11 @@ async def test_stale_setup_token_cannot_overwrite_confirmed_totp(
         json={
             "setup_token": first_setup["setup_token"],
             "code": mfa_service.generate_totp_code(first_setup["secret"]),
+            "password": TEST_PASSWORD,
         },
     )
 
-    assert second_confirm.status_code == status.HTTP_204_NO_CONTENT
+    assert second_confirm.status_code == status.HTTP_200_OK
     assert stale_confirm.status_code == status.HTTP_401_UNAUTHORIZED
 
 
