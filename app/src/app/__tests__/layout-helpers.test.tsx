@@ -153,6 +153,6 @@ describe('layout helpers rendering', () => {
     rerender({ isDark: true });
 
     expect(result.current.showOverlay).toBe(true);
-    expect(result.current.overlayColor).toBe('rgba(25,28,30,0.2)');
+    expect(result.current.overlayColor).toBe('rgba(203, 211, 216, 0.5)');
   });
 });

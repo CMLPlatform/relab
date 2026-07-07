@@ -50,8 +50,8 @@ export function createTokens(scheme: AppScheme, colors: MD3Theme['colors']): App
       raised: colors.elevation.level2,
       sunken: isDark ? '#1a1a1a' : colors.surfaceVariant,
       accent: alpha(colors.primary, 0.12),
-      // Translucent panel behind auth controls; 0.92 keeps labels at WCAG AA
-      // even over a worst-case photo patch while a hint of image shows through.
+      // Translucent panel behind auth controls: opaque enough to keep labels
+      // legible over a photo while a hint of the image still shows through.
       card: alpha(colors.surface, 0.8),
     },
   };
