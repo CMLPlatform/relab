@@ -139,3 +139,34 @@ async def test_corrupt_stored_mfa_token_metadata_is_rejected(redis_client: Redis
 
     with pytest.raises(MfaChallengeInvalidError):
         await mfa_service.consume_login_challenge(redis_client, token)
+
+
+def test_generate_recovery_codes_are_unique_and_hashed() -> None:
+    """Generation returns N formatted codes plus their matching hashes."""
+    codes, hashes = mfa_service.generate_recovery_codes()
+
+    assert len(codes) == mfa_service.RECOVERY_CODE_COUNT
+    assert len(set(codes)) == len(codes)
+    assert hashes == [mfa_service.hash_recovery_code(code) for code in codes]
+    assert all("-" in code for code in codes)
+
+
+def test_consume_recovery_code_matches_case_and_formatting_insensitively() -> None:
+    """A stored code matches regardless of case/dashes and is removed once used."""
+    codes, hashes = mfa_service.generate_recovery_codes()
+    target = codes[0]
+
+    scruffy = f"  {target.lower().replace('-', '')}  "
+    remaining = mfa_service.consume_recovery_code(hashes, scruffy)
+
+    assert remaining is not None
+    assert len(remaining) == len(hashes) - 1
+    assert mfa_service.hash_recovery_code(target) not in remaining
+    # A second use of the same code no longer matches.
+    assert mfa_service.consume_recovery_code(remaining, target) is None
+
+
+def test_consume_recovery_code_rejects_unknown_code() -> None:
+    """An unknown code returns None and leaves the set untouched."""
+    _codes, hashes = mfa_service.generate_recovery_codes()
+    assert mfa_service.consume_recovery_code(hashes, "ZZZZZ-ZZZZZ") is None

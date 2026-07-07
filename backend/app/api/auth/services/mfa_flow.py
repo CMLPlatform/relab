@@ -1,6 +1,6 @@
 """MFA route orchestration."""
 
-from fastapi import Response, status
+from fastapi import BackgroundTasks, HTTPException, Response, status
 from fastapi_users.authentication import Strategy
 from pydantic import SecretStr
 
@@ -10,11 +10,15 @@ from app.api.auth.schemas import (
     MfaChallengeRequest,
     MfaOAuthClaimRequest,
     MfaPendingResponse,
+    MfaRecoveryCodesRegenerateRequest,
+    MfaRecoveryCodesResponse,
     MfaTotpConfirmRequest,
+    MfaTotpDisableRequest,
     MfaTotpSetupResponse,
     RefreshTokenResponse,
 )
 from app.api.auth.services import login_completion, mfa_service
+from app.api.auth.services.email.service import send_mfa_changed_notification
 from app.api.auth.services.user_manager import UserManager
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.redis import Redis
@@ -44,19 +48,29 @@ async def start_totp_setup(*, current_user: User, redis: Redis) -> MfaTotpSetupR
     )
 
 
+def _verify_current_password(user_manager: UserManager, user: User, password: SecretStr) -> None:
+    """Reauthenticate with the account password before a sensitive MFA change."""
+    is_valid, _ = user_manager.password_helper.verify_and_update(password.get_secret_value(), user.hashed_password)
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Current password is invalid.")
+
+
 async def confirm_totp_setup(
     payload: MfaTotpConfirmRequest,
     *,
     current_user: User,
     user_manager: UserManager,
     redis: Redis,
-) -> None:
-    """Confirm authenticated TOTP enrollment."""
+    background_tasks: BackgroundTasks,
+) -> MfaRecoveryCodesResponse:
+    """Confirm authenticated TOTP enrollment and issue one-time recovery codes."""
     setup_token = get_mfa_token(payload.setup_token)
     setup = await mfa_service.get_totp_setup(redis, setup_token, user_id=current_user.id)
     user = await user_manager.get(current_user.id)
     if user.mfa_enabled or user.mfa_totp_secret:
         raise MfaChallengeInvalidError
+    # Reauthenticate before enabling: an active session alone isn't enough (OWASP).
+    _verify_current_password(user_manager, user, payload.password)
     counter = await mfa_service.verify_totp_code(
         redis,
         user_id=current_user.id,
@@ -79,9 +93,65 @@ async def confirm_totp_setup(
     # still-valid code out of an immediate retry. Replay of the whole flow is
     # already blocked by the one-time setup token consumed above.
     await mfa_service.burn_totp_counter(redis, user_id=current_user.id, counter=counter)
+    codes, hashes = mfa_service.generate_recovery_codes()
+    await mfa_service.set_recovery_codes(user_manager, user, hashes)
     audit_event(
         current_user.id, AuditAction.MFA_SUCCESS, "mfa", current_user.id, context=AuditContext(flow="totp_setup")
     )
+    await send_mfa_changed_notification(user.email, user.username, enabled=True, background_tasks=background_tasks)
+    return MfaRecoveryCodesResponse(recovery_codes=codes)
+
+
+async def disable_totp(
+    payload: MfaTotpDisableRequest,
+    *,
+    current_user: User,
+    user_manager: UserManager,
+    redis: Redis,
+    background_tasks: BackgroundTasks,
+) -> None:
+    """Turn off TOTP MFA after confirming ownership with a current code."""
+    user = await user_manager.get(current_user.id)
+    if not user.mfa_enabled or not user.mfa_totp_secret:
+        raise MfaChallengeInvalidError
+    if not await mfa_service.verify_totp_code_once(
+        redis,
+        user_id=user.id,
+        secret=user.mfa_totp_secret,
+        code=payload.code,
+    ):
+        audit_mfa_failure(user, reason="invalid_totp_disable_code")
+        raise MfaCodeInvalidError
+    await mfa_service.clear_totp(user_manager, user)
+    audit_event(user.id, AuditAction.MFA_SUCCESS, "mfa", user.id, context=AuditContext(flow="totp_disable"))
+    await send_mfa_changed_notification(user.email, user.username, enabled=False, background_tasks=background_tasks)
+
+
+async def regenerate_recovery_codes(
+    payload: MfaRecoveryCodesRegenerateRequest,
+    *,
+    current_user: User,
+    user_manager: UserManager,
+    redis: Redis,
+) -> MfaRecoveryCodesResponse:
+    """Reissue recovery codes after confirming a current TOTP code."""
+    user = await user_manager.get(current_user.id)
+    if not user.mfa_enabled or not user.mfa_totp_secret:
+        raise MfaChallengeInvalidError
+    if not await mfa_service.verify_totp_code_once(
+        redis,
+        user_id=user.id,
+        secret=user.mfa_totp_secret,
+        code=payload.code,
+    ):
+        audit_mfa_failure(user, reason="invalid_totp_regenerate_code")
+        raise MfaCodeInvalidError
+    codes, hashes = mfa_service.generate_recovery_codes()
+    await mfa_service.set_recovery_codes(user_manager, user, hashes)
+    audit_event(
+        user.id, AuditAction.MFA_SUCCESS, "mfa", user.id, context=AuditContext(flow="recovery_codes_regenerate")
+    )
+    return MfaRecoveryCodesResponse(recovery_codes=codes)
 
 
 async def claim_oauth_mfa_handoff(payload: MfaOAuthClaimRequest, *, redis: Redis) -> MfaPendingResponse:
@@ -100,20 +170,16 @@ async def complete_mfa_challenge(
     bearer_strategy: Strategy,
     cookie_strategy: Strategy,
 ) -> RefreshTokenResponse | None:
-    """Complete login for a user with TOTP already enabled."""
+    """Complete login with either a TOTP code or a single-use recovery code."""
     mfa_token = get_mfa_token(payload.mfa_token)
     challenge = await mfa_service.get_login_challenge(redis, mfa_token)
     user = await user_manager.get(challenge.user_id)
     if not user.mfa_enabled or not user.mfa_totp_secret:
         audit_mfa_failure(user, reason="mfa_not_enabled")
         raise MfaCodeInvalidError
-    if not await mfa_service.verify_totp_code_once(
-        redis,
-        user_id=user.id,
-        secret=user.mfa_totp_secret,
-        code=payload.code,
-    ):
-        audit_mfa_failure(user, reason="invalid_totp_code")
+    factor = await _verify_challenge_code(payload.code, user=user, user_manager=user_manager, redis=redis)
+    if factor is None:
+        audit_mfa_failure(user, reason="invalid_mfa_code")
         raise MfaCodeInvalidError
 
     challenge = await mfa_service.consume_login_challenge(redis, mfa_token)
@@ -122,7 +188,7 @@ async def complete_mfa_challenge(
         AuditAction.MFA_SUCCESS,
         "mfa",
         user.id,
-        context=AuditContext(transport=challenge.transport, flow="login_challenge"),
+        context=AuditContext(transport=challenge.transport, flow="login_challenge", operation=factor),
     )
     if challenge.transport == mfa_service.SESSION_TRANSPORT:
         await login_completion.issue_session_login_response(
@@ -141,6 +207,30 @@ async def complete_mfa_challenge(
         redis=redis,
         bearer_strategy=bearer_strategy,
     )
+
+
+async def _verify_challenge_code(
+    code: str,
+    *,
+    user: User,
+    user_manager: UserManager,
+    redis: Redis,
+) -> str | None:
+    """Validate a challenge code as TOTP (6 digits) or a single-use recovery code.
+
+    Returns the factor used ("totp" | "recovery"), or None if neither matched.
+    """
+    if len(code) == 6 and code.isdecimal():
+        if user.mfa_totp_secret and await mfa_service.verify_totp_code_once(
+            redis, user_id=user.id, secret=user.mfa_totp_secret, code=code
+        ):
+            return "totp"
+        return None
+    remaining = mfa_service.consume_recovery_code(user.mfa_recovery_codes, code)
+    if remaining is None:
+        return None
+    await mfa_service.set_recovery_codes(user_manager, user, remaining)
+    return "recovery"
 
 
 def audit_mfa_failure(user: User, *, reason: str) -> None:

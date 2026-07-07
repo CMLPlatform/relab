@@ -31,6 +31,8 @@ class User(BaseUserDB, TimeStampMixinBare):
     mfa_totp_secret: Mapped[str | None] = mapped_column(EncryptedString(), default=None)
     mfa_enabled: Mapped[bool] = mapped_column(default=False, nullable=False)
     mfa_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    # SHA-256 hashes of single-use recovery codes (high-entropy, so a fast hash is fine).
+    mfa_recovery_codes: Mapped[list[str]] = mapped_column(JSONB, nullable=False, server_default="[]", default=list)
 
     # Flexible user preferences (UI settings, feature toggles, etc.)
     preferences: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)

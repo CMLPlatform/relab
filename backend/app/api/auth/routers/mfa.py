@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
 from fastapi_users.authentication import Strategy
 
 from app.api.auth.dependencies import CurrentActiveUserDep, UserManagerDep
@@ -10,7 +10,10 @@ from app.api.auth.schemas import (
     MfaChallengeRequest,
     MfaOAuthClaimRequest,
     MfaPendingResponse,
+    MfaRecoveryCodesRegenerateRequest,
+    MfaRecoveryCodesResponse,
     MfaTotpConfirmRequest,
+    MfaTotpDisableRequest,
     MfaTotpSetupResponse,
     RefreshTokenResponse,
 )
@@ -36,17 +39,61 @@ async def start_totp_setup(
 
 @router.post(
     "/totp/confirm",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_model=None,
+    response_model=MfaRecoveryCodesResponse,
 )
 async def confirm_totp_setup(
     payload: MfaTotpConfirmRequest,
+    background_tasks: BackgroundTasks,
+    current_user: CurrentActiveUserDep,
+    user_manager: UserManagerDep,
+    redis: RedisDep,
+) -> MfaRecoveryCodesResponse:
+    """Confirm authenticated TOTP enrollment and return one-time recovery codes."""
+    return await mfa_flow.confirm_totp_setup(
+        payload,
+        current_user=current_user,
+        user_manager=user_manager,
+        redis=redis,
+        background_tasks=background_tasks,
+    )
+
+
+@router.post(
+    "/totp/disable",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def disable_totp(
+    payload: MfaTotpDisableRequest,
+    background_tasks: BackgroundTasks,
     current_user: CurrentActiveUserDep,
     user_manager: UserManagerDep,
     redis: RedisDep,
 ) -> None:
-    """Confirm authenticated TOTP enrollment."""
-    await mfa_flow.confirm_totp_setup(payload, current_user=current_user, user_manager=user_manager, redis=redis)
+    """Turn off TOTP MFA after confirming a current code."""
+    await mfa_flow.disable_totp(
+        payload,
+        current_user=current_user,
+        user_manager=user_manager,
+        redis=redis,
+        background_tasks=background_tasks,
+    )
+
+
+@router.post(
+    "/recovery-codes/regenerate",
+    response_model=MfaRecoveryCodesResponse,
+)
+async def regenerate_recovery_codes(
+    payload: MfaRecoveryCodesRegenerateRequest,
+    current_user: CurrentActiveUserDep,
+    user_manager: UserManagerDep,
+    redis: RedisDep,
+) -> MfaRecoveryCodesResponse:
+    """Reissue recovery codes after confirming a current TOTP code."""
+    return await mfa_flow.regenerate_recovery_codes(
+        payload, current_user=current_user, user_manager=user_manager, redis=redis
+    )
 
 
 @router.post(

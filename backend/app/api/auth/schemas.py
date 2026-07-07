@@ -279,12 +279,36 @@ class MfaTotpConfirmRequest(BaseModel):
 
     setup_token: SecretStr
     code: str = Field(min_length=6, max_length=6)
+    password: SecretStr = Field(description="Current account password, to reauthenticate the change.")
 
 
 class MfaChallengeRequest(BaseModel):
-    """Request to complete MFA for an account with TOTP already enabled."""
+    """Request to complete MFA with either a TOTP code or a recovery code."""
 
     model_config = ConfigDict(extra="forbid")
 
     mfa_token: SecretStr
+    # 6 digits for TOTP, or a longer recovery code (grouped, e.g. "ABCDE-FGHIJ").
+    code: str = Field(min_length=6, max_length=20)
+
+
+class MfaTotpDisableRequest(BaseModel):
+    """Request to turn off TOTP MFA, confirmed with a current code."""
+
+    model_config = ConfigDict(extra="forbid")
+
     code: str = Field(min_length=6, max_length=6)
+
+
+class MfaRecoveryCodesRegenerateRequest(BaseModel):
+    """Request to reissue recovery codes, confirmed with a current TOTP code."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    code: str = Field(min_length=6, max_length=6)
+
+
+class MfaRecoveryCodesResponse(BaseModel):
+    """One-time delivery of freshly generated recovery codes."""
+
+    recovery_codes: list[str]

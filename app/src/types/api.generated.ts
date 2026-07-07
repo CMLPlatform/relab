@@ -1597,9 +1597,49 @@ export interface paths {
     put?: never;
     /**
      * Confirm Totp Setup
-     * @description Confirm authenticated TOTP enrollment.
+     * @description Confirm authenticated TOTP enrollment and return one-time recovery codes.
      */
     post: operations['confirm_totp_setup_v1_auth_mfa_totp_confirm_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/auth/mfa/totp/disable': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Disable Totp
+     * @description Turn off TOTP MFA after confirming a current code.
+     */
+    post: operations['disable_totp_v1_auth_mfa_totp_disable_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/auth/mfa/recovery-codes/regenerate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Regenerate Recovery Codes
+     * @description Reissue recovery codes after confirming a current TOTP code.
+     */
+    post: operations['regenerate_recovery_codes_v1_auth_mfa_recovery_codes_regenerate_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -4042,7 +4082,7 @@ export interface components {
     MediaParentType: 'product' | 'product_type' | 'material';
     /**
      * MfaChallengeRequest
-     * @description Request to complete MFA for an account with TOTP already enabled.
+     * @description Request to complete MFA with either a TOTP code or a recovery code.
      */
     MfaChallengeRequest: {
       /**
@@ -4081,6 +4121,22 @@ export interface components {
       mfa_token: string;
     };
     /**
+     * MfaRecoveryCodesRegenerateRequest
+     * @description Request to reissue recovery codes, confirmed with a current TOTP code.
+     */
+    MfaRecoveryCodesRegenerateRequest: {
+      /** Code */
+      code: string;
+    };
+    /**
+     * MfaRecoveryCodesResponse
+     * @description One-time delivery of freshly generated recovery codes.
+     */
+    MfaRecoveryCodesResponse: {
+      /** Recovery Codes */
+      recovery_codes: string[];
+    };
+    /**
      * MfaTotpConfirmRequest
      * @description Request to confirm authenticated TOTP setup.
      */
@@ -4090,6 +4146,20 @@ export interface components {
        * Format: password
        */
       setup_token: string;
+      /** Code */
+      code: string;
+      /**
+       * Password
+       * Format: password
+       * @description Current account password, to reauthenticate the change.
+       */
+      password: string;
+    };
+    /**
+     * MfaTotpDisableRequest
+     * @description Request to turn off TOTP MFA, confirmed with a current code.
+     */
+    MfaTotpDisableRequest: {
       /** Code */
       code: string;
     };
@@ -9327,11 +9397,77 @@ export interface operations {
     };
     responses: {
       /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MfaRecoveryCodesResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  disable_totp_v1_auth_mfa_totp_disable_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MfaTotpDisableRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
       204: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  regenerate_recovery_codes_v1_auth_mfa_recovery_codes_regenerate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MfaRecoveryCodesRegenerateRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MfaRecoveryCodesResponse'];
+        };
       };
       /** @description Validation Error */
       422: {

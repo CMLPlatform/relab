@@ -1,5 +1,7 @@
 """TOTP MFA helpers and short-lived MFA token storage."""
 
+import hmac
+import secrets
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -27,6 +29,10 @@ TOTP_VALID_WINDOW = 1
 MFA_TOKEN_TTL_SECONDS = 10 * 60
 MFA_ISSUER = "RELab"
 MFA_TOKEN_ATTEMPT_RATE_LIMIT = LOGIN_RATE_LIMIT
+RECOVERY_CODE_COUNT = 10
+RECOVERY_CODE_CHARS = 10
+# RFC 4648 base32 alphabet minus padding: no 0/1/8/9 to avoid O/I/B/g confusion.
+_RECOVERY_CODE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 
 MfaTransport = Literal["bearer", "session"]
 _PendingTokenKind = Literal["login-challenge", "totp-setup", "oauth-handoff"]
@@ -270,9 +276,52 @@ async def enable_totp(user_manager: UserManager, user: User, secret: str) -> Use
 
 
 async def clear_totp(user_manager: UserManager, user: User) -> None:
-    """Clear a user's TOTP enrollment."""
+    """Clear a user's TOTP enrollment and its now-useless recovery codes."""
     user.mfa_totp_secret = None
     user.mfa_enabled = False
     user.mfa_confirmed_at = None
+    user.mfa_recovery_codes = []
+    user_manager.user_db.session.add(user)
+    await user_manager.user_db.session.commit()
+
+
+def _new_recovery_code() -> str:
+    """Return one high-entropy recovery code, grouped for readability."""
+    raw = "".join(secrets.choice(_RECOVERY_CODE_ALPHABET) for _ in range(RECOVERY_CODE_CHARS))
+    return f"{raw[:5]}-{raw[5:]}"
+
+
+def normalize_recovery_code(code: str) -> str:
+    """Drop case and formatting so grouping/separators don't affect matching."""
+    return "".join(char for char in code.upper() if char.isalnum())
+
+
+def hash_recovery_code(code: str) -> str:
+    """Hash a recovery code for storage (fast hash is fine: codes are high-entropy)."""
+    return token_fingerprint(normalize_recovery_code(code))
+
+
+def generate_recovery_codes() -> tuple[list[str], list[str]]:
+    """Return (plaintext codes shown once, hashes to persist)."""
+    codes = [_new_recovery_code() for _ in range(RECOVERY_CODE_COUNT)]
+    return codes, [hash_recovery_code(code) for code in codes]
+
+
+def consume_recovery_code(stored_hashes: list[str], code: str) -> list[str] | None:
+    """Return the remaining hashes if ``code`` matched one (dropping it), else None."""
+    target = hash_recovery_code(code)
+    matched = False
+    remaining: list[str] = []
+    for stored in stored_hashes:
+        if not matched and hmac.compare_digest(stored, target):
+            matched = True
+            continue
+        remaining.append(stored)
+    return remaining if matched else None
+
+
+async def set_recovery_codes(user_manager: UserManager, user: User, hashes: list[str]) -> None:
+    """Persist the current set of recovery-code hashes for a user."""
+    user.mfa_recovery_codes = hashes
     user_manager.user_db.session.add(user)
     await user_manager.user_db.session.commit()

@@ -135,6 +135,40 @@ async def send_reset_password_email(
     )
 
 
+async def send_mfa_changed_notification(
+    to_email: EmailStr,
+    username: str | None,
+    *,
+    enabled: bool,
+    background_tasks: BackgroundTasks | None = None,
+    provider: EmailProvider | None = None,
+) -> None:
+    """Notify a user out-of-band whenever their two-step verification changes."""
+    display_name = escape(_display_name(username, to_email))
+    change = "turned on" if enabled else "turned off"
+    if enabled:
+        followup = "If you did not turn this on, reset your password and contact RELab support."
+    else:
+        followup = (
+            "If you did not turn this off, reset your password and contact RELab support immediately."
+        )
+    message = _build_message(
+        to_email,
+        f"Two-step verification was {change}",
+        (
+            f"<p>Hello {display_name},</p>"
+            f"<p>Two-step verification was {change} on your RELab account. {followup}</p>"
+        ),
+    )
+    await _dispatch(
+        message,
+        to_email,
+        "MFA-change notification",
+        background_tasks,
+        provider or get_default_email_provider(),
+    )
+
+
 async def send_password_reset_confirmation_email(
     to_email: EmailStr,
     username: str | None,

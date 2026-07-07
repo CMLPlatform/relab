@@ -3056,10 +3056,10 @@
       },
       "MfaChallengeRequest": {
         "additionalProperties": false,
-        "description": "Request to complete MFA for an account with TOTP already enabled.",
+        "description": "Request to complete MFA with either a TOTP code or a recovery code.",
         "properties": {
           "code": {
-            "maxLength": 6,
+            "maxLength": 20,
             "minLength": 6,
             "title": "Code",
             "type": "string"
@@ -3115,6 +3115,40 @@
         "title": "MfaPendingResponse",
         "type": "object"
       },
+      "MfaRecoveryCodesRegenerateRequest": {
+        "additionalProperties": false,
+        "description": "Request to reissue recovery codes, confirmed with a current TOTP code.",
+        "properties": {
+          "code": {
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "MfaRecoveryCodesRegenerateRequest",
+        "type": "object"
+      },
+      "MfaRecoveryCodesResponse": {
+        "description": "One-time delivery of freshly generated recovery codes.",
+        "properties": {
+          "recovery_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recovery Codes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "recovery_codes"
+        ],
+        "title": "MfaRecoveryCodesResponse",
+        "type": "object"
+      },
       "MfaTotpConfirmRequest": {
         "additionalProperties": false,
         "description": "Request to confirm authenticated TOTP setup.",
@@ -3125,6 +3159,13 @@
             "title": "Code",
             "type": "string"
           },
+          "password": {
+            "description": "Current account password, to reauthenticate the change.",
+            "format": "password",
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          },
           "setup_token": {
             "format": "password",
             "title": "Setup Token",
@@ -3134,9 +3175,27 @@
         },
         "required": [
           "setup_token",
-          "code"
+          "code",
+          "password"
         ],
         "title": "MfaTotpConfirmRequest",
+        "type": "object"
+      },
+      "MfaTotpDisableRequest": {
+        "additionalProperties": false,
+        "description": "Request to turn off TOTP MFA, confirmed with a current code.",
+        "properties": {
+          "code": {
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "MfaTotpDisableRequest",
         "type": "object"
       },
       "MfaTotpSetupResponse": {
@@ -5864,15 +5923,129 @@
         "x-public": true
       }
     },
+    "/v1/auth/mfa/recovery-codes/regenerate": {
+      "post": {
+        "description": "Reissue recovery codes after confirming a current TOTP code.",
+        "operationId": "regenerate_recovery_codes_v1_auth_mfa_recovery_codes_regenerate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaRecoveryCodesRegenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaRecoveryCodesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Regenerate Recovery Codes",
+        "tags": [
+          "auth",
+          "auth",
+          "auth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ],
+        "x-public": true
+      }
+    },
     "/v1/auth/mfa/totp/confirm": {
       "post": {
-        "description": "Confirm authenticated TOTP enrollment.",
+        "description": "Confirm authenticated TOTP enrollment and return one-time recovery codes.",
         "operationId": "confirm_totp_setup_v1_auth_mfa_totp_confirm_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/MfaTotpConfirmRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaRecoveryCodesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Confirm Totp Setup",
+        "tags": [
+          "auth",
+          "auth",
+          "auth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ],
+        "x-public": true
+      }
+    },
+    "/v1/auth/mfa/totp/disable": {
+      "post": {
+        "description": "Turn off TOTP MFA after confirming a current code.",
+        "operationId": "disable_totp_v1_auth_mfa_totp_disable_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaTotpDisableRequest"
               }
             }
           },
@@ -5901,7 +6074,7 @@
             "APIKeyCookie": []
           }
         ],
-        "summary": "Confirm Totp Setup",
+        "summary": "Disable Totp",
         "tags": [
           "auth",
           "auth",
