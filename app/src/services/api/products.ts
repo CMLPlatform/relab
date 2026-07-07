@@ -45,10 +45,13 @@ type ProductMapperPayload =
   | ApiComponentChildItem
   | ApiComponentDetail;
 
-// Fields mapped identically for base products and components.
-function commonProductFields(data: ProductMapperPayload) {
+// Fields mapped identically for base products and components. meId is threaded down
+// so nested children resolve ownedBy to 'me' the same way top-level fetches do.
+function commonProductFields(data: ProductMapperPayload, meId?: string) {
   const components =
-    'components' in data ? (data.components?.map((component) => toComponent(component)) ?? []) : [];
+    'components' in data
+      ? (data.components?.map((component) => toComponent(component, meId)) ?? [])
+      : [];
   return {
     id: Number(data.id),
     name: data.name,
@@ -92,7 +95,7 @@ function toBaseProduct(
 ): Product {
   const ownerId = data.owner_id;
   return {
-    ...commonProductFields(data),
+    ...commonProductFields(data, meId),
     role: 'product',
     ownedBy: ownerId && ownerId === meId ? 'me' : (ownerId ?? ''),
     amountInParent: undefined,
@@ -109,7 +112,7 @@ function toBaseProduct(
 function toComponent(data: ApiComponentChildItem | ApiComponentDetail, meId?: string): Product {
   const ownerId = data.owner_id;
   return {
-    ...commonProductFields(data),
+    ...commonProductFields(data, meId),
     role: 'component',
     parentID: data.parent_id,
     ownedBy: ownerId && ownerId === meId ? 'me' : (ownerId ?? ''),
