@@ -130,6 +130,10 @@ export function ProfileSecuritySection({ mfaEnabled, onEnrolled }: ProfileSecuri
               textContentType="password"
               style={local.passwordField}
             />
+            <Text style={local.hint}>
+              Signed up with Google or GitHub? Use your RELab account password — if you never set
+              one, create it with “Forgot password” on the login screen first.
+            </Text>
 
             <View style={local.codeField}>
               <OtpInput
@@ -156,22 +160,45 @@ export function ProfileSecuritySection({ mfaEnabled, onEnrolled }: ProfileSecuri
           <Dialog.Title>Enter a current code</Dialog.Title>
           <Dialog.Content>
             <Text style={local.step}>
-              Type a code from your authenticator app to confirm it&apos;s you.
+              {mfa.useRecoveryCode
+                ? 'Enter one of your saved recovery codes to confirm it’s you.'
+                : 'Type a code from your authenticator app to confirm it’s you.'}
             </Text>
 
-            <View style={local.codeField}>
-              <OtpInput
-                value={mfa.code}
-                onChangeText={mfa.setCode}
-                onComplete={disable}
+            {mfa.useRecoveryCode ? (
+              <TextInput
+                mode="outlined"
+                label="Recovery code"
+                accessibilityLabel="Recovery code"
+                value={mfa.recoveryInput}
+                onChangeText={mfa.setRecoveryInput}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                autoComplete="off"
                 disabled={mfa.busy}
-                hasError={Boolean(mfa.error)}
-                autoFocus
-                accessibilityLabel="Current code"
+                style={local.codeField}
               />
-            </View>
+            ) : (
+              <View style={local.codeField}>
+                <OtpInput
+                  value={mfa.code}
+                  onChangeText={mfa.setCode}
+                  onComplete={disable}
+                  disabled={mfa.busy}
+                  hasError={Boolean(mfa.error)}
+                  autoFocus
+                  accessibilityLabel="Current code"
+                />
+              </View>
+            )}
 
             {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
+
+            <Button compact onPress={mfa.toggleRecoveryInput} style={local.toggle}>
+              {mfa.useRecoveryCode
+                ? 'Use your authenticator app'
+                : 'Lost your authenticator? Use a recovery code'}
+            </Button>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={cancel}>Cancel</Button>
@@ -279,8 +306,17 @@ function createLocalStyles(theme: AppTheme) {
     passwordField: {
       marginTop: 16,
     },
+    hint: {
+      marginTop: 8,
+      fontSize: 12,
+      opacity: 0.6,
+    },
     codeField: {
       marginTop: 16,
+    },
+    toggle: {
+      marginTop: 12,
+      alignSelf: 'flex-start',
     },
     codesBox: {
       backgroundColor: theme.tokens.surface.sunken,

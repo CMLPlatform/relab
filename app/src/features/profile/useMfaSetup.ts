@@ -15,6 +15,8 @@ type MfaSetupController = {
   setup: TotpSetup | null;
   code: string;
   password: string;
+  recoveryInput: string;
+  useRecoveryCode: boolean;
   recoveryCodes: string[] | null;
   error: string | null;
   busy: boolean;
@@ -22,6 +24,8 @@ type MfaSetupController = {
   canSubmit: boolean;
   setCode: (value: string) => void;
   setPassword: (value: string) => void;
+  setRecoveryInput: (value: string) => void;
+  toggleRecoveryInput: () => void;
   start: () => Promise<void>;
   confirm: (submitCode?: string) => Promise<void>;
   beginDisable: (reenrollAfter: boolean) => void;
@@ -39,12 +43,16 @@ type MfaSetupController = {
  * reflects the new state. `submitCode` lets auto-submit pass the fresh value
  * without waiting for a state round-trip.
  */
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one controller owns all account-side TOTP flows (enroll/disable/regenerate); the useCallback wiring reads clearer here than split across hooks that would only pass the same shared state around.
 export function useMfaSetup(onChange: () => unknown): MfaSetupController {
   const [mode, setMode] = useState<Mode>('idle');
   const [setup, setSetup] = useState<TotpSetup | null>(null);
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+  // A recovery code the user types to turn MFA off when they've lost their authenticator.
+  const [recoveryInput, setRecoveryInput] = useState('');
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const reenrollAfter = useRef(false);
@@ -54,6 +62,8 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
     setSetup(null);
     setCode('');
     setPassword('');
+    setRecoveryInput('');
+    setUseRecoveryCode(false);
     setRecoveryCodes(null);
     setError(null);
     setBusy(false);
@@ -87,7 +97,8 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
       setError(null);
       try {
         const codes = await confirmTotpSetup(setup.setupToken, submitCode, password);
-        await onChange();
+        // MFA is now enabled server-side and these codes are shown only once — surface
+        // them before refetching so a failed refetch can't discard the sole copy.
         setRecoveryCodes(codes);
         setCode('');
         setPassword('');
@@ -96,6 +107,13 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
       } catch (err) {
         setError(getErrorMessage(err, "That code didn't match. Try the current one."));
         setBusy(false);
+        return;
+      }
+      // Best-effort refresh; the codes are already shown, so its failure is non-fatal.
+      try {
+        await onChange();
+      } catch {
+        // The account screen will catch up on its next natural refetch.
       }
     },
     [busy, code, onChange, password, setup],
@@ -106,7 +124,7 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
   // owns the shared error + unbusy path.
   const withCurrentCode = useCallback(
     async (submitCode: string, action: (currentCode: string) => Promise<void>) => {
-      if (submitCode.length !== 6 || busy) return;
+      if (submitCode.length < 6 || busy) return;
       setBusy(true);
       setError(null);
       try {
@@ -122,12 +140,19 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
   const beginDisable = useCallback((reenroll: boolean) => {
     reenrollAfter.current = reenroll;
     setCode('');
+    setRecoveryInput('');
+    setUseRecoveryCode(false);
     setError(null);
     setMode('disable');
   }, []);
 
+  const toggleRecoveryInput = useCallback(() => {
+    setUseRecoveryCode((prev) => !prev);
+    setError(null);
+  }, []);
+
   const disable = useCallback(
-    (submitCode: string = code) =>
+    (submitCode: string = useRecoveryCode ? recoveryInput.trim() : code) =>
       withCurrentCode(submitCode, async (currentCode) => {
         await disableTotp(currentCode);
         await onChange();
@@ -138,7 +163,7 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
           reset();
         }
       }),
-    [beginEnroll, code, onChange, reset, withCurrentCode],
+    [beginEnroll, code, onChange, recoveryInput, reset, useRecoveryCode, withCurrentCode],
   );
 
   const beginRegenerate = useCallback(() => {
@@ -159,14 +184,19 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
     [code, withCurrentCode],
   );
 
-  // Enroll needs a password (reauth); the code flows need only the 6-digit code.
-  const canSubmit = code.length === 6 && !busy && (mode === 'enroll' ? password.length > 0 : true);
+  // Enroll needs a password (reauth); disable may use a recovery code instead of the
+  // 6-digit code; the other code flows need only the 6-digit code.
+  const submitReady =
+    mode === 'disable' && useRecoveryCode ? recoveryInput.trim().length >= 6 : code.length === 6;
+  const canSubmit = submitReady && !busy && (mode === 'enroll' ? password.length > 0 : true);
 
   return {
     mode,
     setup,
     code,
     password,
+    recoveryInput,
+    useRecoveryCode,
     recoveryCodes,
     error,
     busy,
@@ -174,6 +204,8 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
     canSubmit,
     setCode: useCallback((value: string) => setCode(value.replace(/\D/g, '').slice(0, 6)), []),
     setPassword,
+    setRecoveryInput,
+    toggleRecoveryInput,
     start,
     confirm,
     beginDisable,
