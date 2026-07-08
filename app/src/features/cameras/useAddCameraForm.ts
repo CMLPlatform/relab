@@ -74,7 +74,6 @@ export function useAddCameraForm() {
     user,
     control,
     submit,
-    sanitizePairingCode,
     isPending: claimMutation.isPending,
     pairingSuccess,
     dismissSuccess,

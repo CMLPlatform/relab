@@ -146,4 +146,19 @@ describe('useLocalConnection', () => {
 
     unmount();
   });
+
+  it('returns a stable object reference across renders while values are unchanged', async () => {
+    // Regression: an unstable reference here drove an infinite render loop on the
+    // cameras grid (effective-connection memo + cell effect + snapshot dedup all
+    // use this object as an identity).
+    const { result, rerender, unmount } = renderHook(() => useLocalConnection('cam-1'));
+
+    await settleConnectionHook();
+    const first = result.current;
+    rerender({});
+
+    expect(result.current).toBe(first);
+
+    unmount();
+  });
 });

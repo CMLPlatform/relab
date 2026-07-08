@@ -23,6 +23,9 @@ describe('camera detail controllers', () => {
   it('toggles preview state and manages dialog visibility', () => {
     const { result } = renderHook(() => useCameraDetailDialogs(localConnection));
 
+    // Preview is opt-in: off until the user taps "Load Preview".
+    expect(result.current.preview.enabled).toBe(false);
+
     act(() => {
       result.current.actions.openEditName();
       result.current.actions.openEditDescription();
@@ -33,7 +36,7 @@ describe('camera detail controllers', () => {
     expect(result.current.dialogs.editNameVisible).toBe(true);
     expect(result.current.dialogs.editDescriptionVisible).toBe(true);
     expect(result.current.dialogs.deleteVisible).toBe(true);
-    expect(result.current.preview.enabled).toBe(false);
+    expect(result.current.preview.enabled).toBe(true);
 
     act(() => {
       result.current.actions.closeEditName();
@@ -45,7 +48,7 @@ describe('camera detail controllers', () => {
     expect(result.current.dialogs.editNameVisible).toBe(false);
     expect(result.current.dialogs.editDescriptionVisible).toBe(false);
     expect(result.current.dialogs.deleteVisible).toBe(false);
-    expect(result.current.preview.enabled).toBe(true);
+    expect(result.current.preview.enabled).toBe(false);
   });
 
   it('tracks local setup field edits and saving state', () => {

@@ -1,19 +1,6 @@
 import { StyleSheet } from 'react-native';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import type { CameraConnectionStatus } from '@/services/api/rpiCamera';
-import type { AppTheme } from '@/theme';
-
-export function createCameraDetailStatusColors(
-  theme: AppTheme,
-): Record<CameraConnectionStatus, string> {
-  return {
-    online: theme.tokens.status.success,
-    offline: theme.tokens.status.offline,
-    unauthorized: theme.tokens.status.warning,
-    forbidden: theme.tokens.status.warning,
-    error: theme.tokens.status.danger,
-  };
-}
 
 export const STATUS_LABEL: Record<CameraConnectionStatus, string> = {
   online: 'Online',

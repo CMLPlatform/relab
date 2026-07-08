@@ -89,4 +89,28 @@ describe('camera controllers', () => {
 
     expect(selectAll).toHaveBeenCalledWith(['camera-1', 'camera-2']);
   });
+
+  it('prunes selected ids for cameras that leave the list', () => {
+    const { result } = renderHook(() => useCameraSelectionController());
+
+    act(() => {
+      result.current.enterSelectionMode('camera-1');
+      result.current.toggleSelected('camera-2');
+    });
+    expect(result.current.selectedCount).toBe(2);
+
+    // camera-2 disappears from the live list (e.g. unpaired on refetch).
+    act(() => {
+      result.current.retainSelected(new Set(['camera-1']));
+    });
+    expect(result.current.selectedCount).toBe(1);
+    expect(result.current.selectedIds.has('camera-2')).toBe(false);
+
+    // No-op when every selected id is still present (keeps the same Set reference).
+    const before = result.current.selectedIds;
+    act(() => {
+      result.current.retainSelected(new Set(['camera-1', 'camera-9']));
+    });
+    expect(result.current.selectedIds).toBe(before);
+  });
 });

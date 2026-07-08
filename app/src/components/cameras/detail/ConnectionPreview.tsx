@@ -4,13 +4,8 @@ import { ActivityIndicator, Button, Card, IconButton, Text } from 'react-native-
 import { LivePreview } from '@/components/cameras/LivePreview';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
-import { useAppTheme } from '@/theme';
-import {
-  createCameraDetailStatusColors,
-  type EffectiveConnection,
-  STATUS_LABEL,
-  cameraDetailStyles as styles,
-} from './styles';
+import { getStatusColor, useAppTheme } from '@/theme';
+import { type EffectiveConnection, STATUS_LABEL, cameraDetailStyles as styles } from './styles';
 
 type CameraConnectionCardProps = {
   camera: CameraReadWithStatus;
@@ -30,10 +25,9 @@ export function CameraConnectionCard({
   onDisconnectLocal,
 }: CameraConnectionCardProps) {
   const theme = useAppTheme();
-  const statusColors = createCameraDetailStatusColors(theme);
   const { localConnection, relayStatus } = effectiveConnection;
   const isOnline = relayStatus === 'online';
-  const statusColor = camera.status ? statusColors[camera.status.connection] : statusColors.offline;
+  const statusColor = getStatusColor(theme, camera.status?.connection ?? 'offline');
   const statusLabel = camera.status ? STATUS_LABEL[camera.status.connection] : STATUS_LABEL.offline;
 
   return (

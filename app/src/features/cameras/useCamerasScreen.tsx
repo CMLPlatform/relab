@@ -78,6 +78,10 @@ export function useCamerasScreen() {
     onlineCameraIds: screenData.onlineCameras.map((camera) => camera.id),
     selectAll: selection.selectAll,
   });
+  const { retainSelected } = selection;
+  useEffect(() => {
+    retainSelected(new Set(screenData.rows.map((camera) => camera.id)));
+  }, [screenData.rows, retainSelected]);
   const { handleCaptureSelected, handleCardLongPress } = useCameraCaptureActions({
     captureAll,
     captureAllProductId,

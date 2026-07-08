@@ -114,15 +114,21 @@ describe('Camera detail screen', () => {
     mockUseEffectiveCameraConnection.mockReturnValue(makeEffectiveConnection());
   });
 
-  it('renders the live preview component for an online camera and sets the screen title', async () => {
+  it('does not auto-load the live preview for an online camera and sets the screen title', async () => {
     renderWithProviders(<CameraDetailScreen />);
 
-    expect(screen.getByText('live-preview-stub')).toBeOnTheScreen();
+    // Preview is opt-in: nothing streams until the user taps "Load Preview".
+    expect(screen.queryByText('live-preview-stub')).toBeNull();
+    expect(screen.getByText('Load Preview')).toBeOnTheScreen();
     expect(mockNavigationSetOptions).toHaveBeenCalledWith({ title: 'Workbench Camera' });
   });
 
-  it('can stop and restart the live preview without leaving the detail screen', async () => {
+  it('can load and stop the live preview without leaving the detail screen', async () => {
     renderWithProviders(<CameraDetailScreen />);
+
+    expect(screen.queryByText('live-preview-stub')).toBeNull();
+
+    fireEvent.press(screen.getByText('Load Preview'));
 
     expect(screen.getByText('live-preview-stub')).toBeOnTheScreen();
 
@@ -130,10 +136,6 @@ describe('Camera detail screen', () => {
 
     expect(screen.queryByText('live-preview-stub')).toBeNull();
     expect(screen.getByText('Load Preview')).toBeOnTheScreen();
-
-    fireEvent.press(screen.getByText('Load Preview'));
-
-    expect(screen.getByText('live-preview-stub')).toBeOnTheScreen();
   });
 
   it('shows websocket offline helper copy and supports retrying camera status', async () => {

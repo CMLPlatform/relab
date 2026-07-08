@@ -9,7 +9,7 @@ export function useCameraDetailDialogs(localConnection: CameraConnectionInfo) {
   const [localUrlInput, setLocalUrlInput] = useState('');
   const [localKeyInput, setLocalKeyInput] = useState('');
   const [localSetupSaving, setLocalSetupSaving] = useState(false);
-  const [previewEnabled, setPreviewEnabled] = useState(true);
+  const [previewEnabled, setPreviewEnabled] = useState(false);
 
   return {
     preview: {

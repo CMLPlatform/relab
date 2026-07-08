@@ -124,6 +124,20 @@ export function useCameraSelectionController() {
     });
   }, []);
 
+  // Drop ids for cameras that have left the list (e.g. unpaired/removed on refetch)
+  // so "Capture N" and the selection count never count ghosts.
+  const retainSelected = useCallback((validIds: Set<string>) => {
+    setSelectedIds((prev) => {
+      let changed = false;
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (validIds.has(id)) next.add(id);
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, []);
+
   return {
     selectionMode,
     selectedIds,
@@ -131,6 +145,7 @@ export function useCameraSelectionController() {
     clearSelection,
     enterSelectionMode,
     toggleSelected,
+    retainSelected,
     selectAll: (ids: string[]) => setSelectedIds(new Set(ids)),
   };
 }

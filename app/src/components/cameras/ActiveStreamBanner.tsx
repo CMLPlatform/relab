@@ -15,6 +15,14 @@ export function ActiveStreamBanner() {
   const openSheet = useCallback(() => setSheetVisible(true), []);
   const closeSheet = useCallback(() => setSheetVisible(false), []);
 
+  // Reset the sheet whenever the active stream changes (ends elsewhere, or a new
+  // one starts) so it never auto-reopens for a stream the user didn't tap into.
+  const [trackedStream, setTrackedStream] = useState(activeStream);
+  if (activeStream !== trackedStream) {
+    setTrackedStream(activeStream);
+    setSheetVisible(false);
+  }
+
   if (!activeStream) return null;
 
   return (

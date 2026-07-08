@@ -31,7 +31,7 @@
  *   // conn.localBaseUrl, conn.localApiKey populated when mode === 'local'
  */
 
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
 import type { LocalAccessInfo } from '@/services/api/rpiCamera/shared';
 import {
@@ -244,13 +244,20 @@ export function useLocalConnection(
     }
   }, [cameraId]);
 
-  return {
-    mode,
-    localBaseUrl,
-    localMediaUrl: deriveLocalMediaUrl(localBaseUrl),
-    localApiKey,
-    configure,
-    clearLocalConnection,
-    isInitializing,
-  };
+  // Stable identity while the underlying values are unchanged: consumers use this
+  // object as a memo/effect dependency and in reference-equality guards (grid cell
+  // effect, effective-connection memo, snapshot dedup), so a fresh literal each
+  // render drives an infinite render loop on the cameras screen.
+  return useMemo(
+    () => ({
+      mode,
+      localBaseUrl,
+      localMediaUrl: deriveLocalMediaUrl(localBaseUrl),
+      localApiKey,
+      configure,
+      clearLocalConnection,
+      isInitializing,
+    }),
+    [mode, localBaseUrl, localApiKey, isInitializing, configure, clearLocalConnection],
+  );
 }
