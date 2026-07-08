@@ -1,7 +1,5 @@
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
-import { type GestureResponderEvent, Modal, Pressable, StyleSheet, View } from 'react-native';
-import { Button, Snackbar, Text, TextInput } from 'react-native-paper';
-import { useAppTheme } from '@/theme';
+import { Button, Dialog, HelperText, Portal, Snackbar, Text, TextInput } from 'react-native-paper';
 import {
   type DialogButton,
   DialogContext,
@@ -10,7 +8,6 @@ import {
 } from './dialogContext';
 
 export function DialogProvider({ children }: { children: ReactNode }) {
-  const theme = useAppTheme();
   const [options, setOptions] = useState<DialogOptions | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [dialogVersion, setDialogVersion] = useState(0);
@@ -43,14 +40,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     <DialogContext.Provider value={contextValue}>
       {children}
 
-      <Modal visible={Boolean(options)} transparent onRequestClose={clear}>
-        <Pressable
-          style={[styles.backdrop, { backgroundColor: theme.tokens.overlay.scrim }]}
-          onPress={clear}
-        >
-          <Dialog key={dialogVersion} options={options} onDismiss={clear} />
-        </Pressable>
-      </Modal>
+      <Portal>
+        {/* key remounts the body per dialog so the input resets to its defaultValue. */}
+        <DialogBody key={dialogVersion} options={options} onDismiss={clear} />
+      </Portal>
       <Snackbar visible={Boolean(toastMessage)} onDismiss={dismissToast} duration={3000}>
         {toastMessage ?? ''}
       </Snackbar>
@@ -58,8 +51,13 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismiss?: () => void }) {
-  const theme = useAppTheme();
+function DialogBody({
+  options,
+  onDismiss,
+}: {
+  options: DialogOptions | null;
+  onDismiss: () => void;
+}) {
   const [inputValue, setInputValue] = useState(options?.defaultValue || '');
 
   const handleClose = useCallback(
@@ -68,7 +66,7 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
         btn.onPress(options?.input ? inputValue : undefined);
       }
       setInputValue('');
-      onDismiss?.();
+      onDismiss();
     },
     [inputValue, onDismiss, options?.input],
   );
@@ -85,7 +83,6 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
 
   const buttons = useMemo(() => options?.buttons ?? [{ text: 'OK' }], [options?.buttons]);
 
-  const stopPropagation = useCallback((e: GestureResponderEvent) => e.stopPropagation(), []);
   const handleSubmitEditing = useCallback(() => {
     // Enter submits the primary (last) action, but must honour its disabled gate —
     // otherwise a keyboard return bypasses input validation the on-screen button enforces.
@@ -96,31 +93,29 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
   }, [handleClose, buttons, isButtonDisabled]);
 
   return (
-    <Pressable
-      style={{ backgroundColor: theme.colors.surface, ...styles.container }}
-      onPress={stopPropagation}
-    >
-      {options?.title ? <Text style={styles.title}>{options.title}</Text> : null}
-      {options?.message ? <Text style={styles.message}>{options.message}</Text> : null}
+    <Dialog visible={Boolean(options)} onDismiss={onDismiss}>
+      {options?.title ? <Dialog.Title>{options.title}</Dialog.Title> : null}
+      <Dialog.Content>
+        {options?.message ? <Text variant="bodyMedium">{options.message}</Text> : null}
 
-      {options?.input ? (
-        <TextInput
-          value={inputValue}
-          onChangeText={setInputValue}
-          onSubmitEditing={handleSubmitEditing}
-          placeholder={options.placeholder}
-          error={options.error}
-          autoFocus
-        />
-      ) : null}
+        {options?.input ? (
+          <TextInput
+            value={inputValue}
+            onChangeText={setInputValue}
+            onSubmitEditing={handleSubmitEditing}
+            placeholder={options.placeholder}
+            error={options.error}
+            autoFocus
+          />
+        ) : null}
 
-      {options?.input && options?.helperText ? (
-        <Text style={[styles.helperText, options.error && { color: theme.colors.error }]}>
-          {options.helperText}
-        </Text>
-      ) : null}
-
-      <View style={styles.buttonRow}>
+        {options?.input && options?.helperText ? (
+          <HelperText type={options.error ? 'error' : 'info'} visible>
+            {options.helperText}
+          </HelperText>
+        ) : null}
+      </Dialog.Content>
+      <Dialog.Actions>
         {buttons.map((btn) => (
           <DialogActionButton
             key={btn.text}
@@ -129,8 +124,8 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
             disabled={isButtonDisabled(btn)}
           />
         ))}
-      </View>
-    </Pressable>
+      </Dialog.Actions>
+    </Dialog>
   );
 }
 
@@ -148,47 +143,8 @@ function DialogActionButton({
   }, [onSelect, button]);
 
   return (
-    <Button onPress={handlePress} disabled={disabled} style={styles.button}>
+    <Button onPress={handlePress} disabled={disabled}>
       {button.text}
     </Button>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    borderRadius: 12,
-    padding: 20,
-    paddingBottom: 0,
-    width: '90%',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 18,
-  },
-  message: {
-    fontSize: 15,
-    opacity: 0.7,
-    marginBottom: 12,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  button: {
-    paddingHorizontal: 12,
-    paddingVertical: 15,
-    marginLeft: 8,
-  },
-  helperText: {
-    fontSize: 12,
-    opacity: 0.7,
-    marginTop: 4,
-    marginBottom: 8,
-  },
-});
