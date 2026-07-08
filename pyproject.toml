@@ -33,9 +33,9 @@
   version_scheme     = "semver2"
 
 [tool.ruff]
-  extend-exclude = ["app", "backend", "docs", "www", "assets/logo-src"]
+  extend-exclude = ["app", "backend", "docs", "www"]
   force-exclude  = true
-  include        = ["scripts/*.py"]
+  include        = ["scripts/*.py", "assets/logo-src/*.py"]
   line-length    = 120
 
   [tool.ruff.lint]
@@ -52,6 +52,11 @@
       "Q",      # flake8-quotes
       "W191",   # tab-indentation
     ]
+
+    [tool.ruff.lint.per-file-ignores]
+      # Standalone CLI generators, not an importable package (the dir name isn't a
+      # valid module), so INP001 has no in-code fix.
+      "assets/logo-src/*" = ["INP001"]
 
     [tool.ruff.lint.pydocstyle]
       convention = "google"
