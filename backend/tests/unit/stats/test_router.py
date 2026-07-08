@@ -71,16 +71,18 @@ def test_limit_param_forwarded(client: TestClient) -> None:
     assert mock.call_args[0][1] == 10  # second positional arg is limit
 
 
-def test_limit_above_100_rejected(client: TestClient) -> None:
-    """Limit above 100 rejected."""
-    resp = client.get("/v1/stats/categories?limit=101")
-    assert resp.status_code == 422
-
-
-def test_limit_below_1_rejected(client: TestClient) -> None:
-    """Limit below 1 rejected."""
-    resp = client.get("/v1/stats/categories?limit=0")
-    assert resp.status_code == 422
+@pytest.mark.parametrize(
+    "query",
+    [
+        "/v1/stats/categories?limit=101",  # limit above max
+        "/v1/stats/categories?limit=0",  # limit below min
+        "/v1/stats/series?granularity=quarter",  # invalid granularity
+        "/v1/stats/series?start=01/01/2025",  # invalid date format
+    ],
+)
+def test_invalid_query_params_rejected(client: TestClient, query: str) -> None:
+    """Out-of-range and malformed query params return 422."""
+    assert client.get(query).status_code == 422
 
 
 def test_returns_200_with_series(client: TestClient) -> None:
@@ -94,23 +96,11 @@ def test_returns_200_with_series(client: TestClient) -> None:
     assert body["series"][0]["period"] == "2026-06"
 
 
-def test_invalid_granularity_rejected(client: TestClient) -> None:
-    """Invalid granularity rejected."""
-    resp = client.get("/v1/stats/series?granularity=quarter")
-    assert resp.status_code == 422
-
-
 def test_explicit_dates_accepted(client: TestClient) -> None:
     """Explicit dates accepted."""
     with patch("app.api.stats.router.compute_series", AsyncMock(return_value=(_FAKE_SERIES, _NOW))):
         resp = client.get("/v1/stats/series?granularity=day&start=2025-01-01&end=2025-12-31")
     assert resp.status_code == 200
-
-
-def test_invalid_date_format_rejected(client: TestClient) -> None:
-    """Invalid date format rejected."""
-    resp = client.get("/v1/stats/series?start=01/01/2025")
-    assert resp.status_code == 422
 
 
 def test_response_echoes_granularity(client: TestClient) -> None:

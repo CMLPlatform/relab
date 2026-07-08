@@ -2,6 +2,8 @@
 
 from datetime import UTC, date, datetime, timedelta
 
+import pytest
+
 from app.api.stats.helpers import format_period, resolve_date_range
 
 
@@ -18,33 +20,21 @@ def test_default_end_is_today() -> None:
     assert end == datetime.now(UTC).date()
 
 
-def test_day_granularity_defaults_to_90_days() -> None:
-    """Day granularity defaults to 90 days."""
+@pytest.mark.parametrize(
+    ("granularity", "delta"),
+    [
+        ("day", timedelta(days=90)),
+        ("week", timedelta(weeks=52)),
+        ("month", timedelta(days=731)),
+        ("year", timedelta(days=3653)),
+    ],
+)
+def test_default_start_offset_by_granularity(granularity: str, delta: timedelta) -> None:
+    """Default start is today minus the granularity-specific window."""
     today = datetime.now(UTC).date()
-    start, end = resolve_date_range("day", None, None)
+    start, end = resolve_date_range(granularity, None, None)
     assert end == today
-    assert start == today - timedelta(days=90)
-
-
-def test_week_granularity_defaults_to_52_weeks() -> None:
-    """Week granularity defaults to 52 weeks."""
-    today = datetime.now(UTC).date()
-    start, _ = resolve_date_range("week", None, None)
-    assert start == today - timedelta(weeks=52)
-
-
-def test_month_granularity_defaults_to_731_days() -> None:
-    """Month granularity defaults to 731 days."""
-    today = datetime.now(UTC).date()
-    start, _ = resolve_date_range("month", None, None)
-    assert start == today - timedelta(days=731)
-
-
-def test_year_granularity_defaults_to_3653_days() -> None:
-    """Year granularity defaults to 3653 days."""
-    today = datetime.now(UTC).date()
-    start, _ = resolve_date_range("year", None, None)
-    assert start == today - timedelta(days=3653)
+    assert start == today - delta
 
 
 def test_explicit_end_used_when_start_omitted() -> None:
@@ -58,21 +48,15 @@ def test_explicit_end_used_when_start_omitted() -> None:
 _DT = datetime(2025, 7, 14, 10, 30, 0, tzinfo=UTC)
 
 
-def test_day_format() -> None:
-    """Day format."""
-    assert format_period(_DT, "day") == "2025-07-14"
-
-
-def test_week_format_is_monday_date() -> None:
-    """Week format is monday date."""
-    assert format_period(_DT, "week") == "2025-07-14"
-
-
-def test_month_format() -> None:
-    """Month format."""
-    assert format_period(_DT, "month") == "2025-07"
-
-
-def test_year_format() -> None:
-    """Year format."""
-    assert format_period(_DT, "year") == "2025"
+@pytest.mark.parametrize(
+    ("granularity", "expected"),
+    [
+        ("day", "2025-07-14"),
+        ("week", "2025-07-14"),  # Monday of the week
+        ("month", "2025-07"),
+        ("year", "2025"),
+    ],
+)
+def test_format_period_by_granularity(granularity: str, expected: str) -> None:
+    """format_period renders each granularity to its expected label."""
+    assert format_period(_DT, granularity) == expected
