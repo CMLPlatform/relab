@@ -1,12 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { act, renderHook, screen } from '@testing-library/react-native';
-import type { ComponentType } from 'react';
+import { renderHook, screen } from '@testing-library/react-native';
 import { Animated, Platform } from 'react-native';
 import { HeaderRightPill } from '@/components/base/HeaderRightPill';
 import { renderWithProviders } from '@/test-utils/index';
 import { getAppTheme } from '@/theme';
-import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/utils/router/background';
-import { loadAnimatedBackground } from '@/utils/router/backgroundLoader';
+import { ensureWebAnimatedPatch } from '@/utils/router/animatedPatch';
+import { useBackgroundOverlayColor } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
 
@@ -23,15 +22,6 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/components/base/AnimatedBackground', () => ({
-  AnimatedBackground: () => null,
-}));
-
-jest.mock('@/utils/router/backgroundLoader', () => ({
-  loadAnimatedBackground: jest.fn(),
-}));
-
-const mockLoadAnimatedBackground = jest.mocked(loadAnimatedBackground);
 const originalTiming = Animated.timing;
 const originalSpring = Animated.spring;
 const originalDecay = Animated.decay;
@@ -47,7 +37,6 @@ beforeEach(() => {
   Object.defineProperty(Animated, 'event', { value: originalEvent, configurable: true });
   mockUseAuth.mockReturnValue({ user: null });
   mockUsePathname.mockReturnValue('/products');
-  mockLoadAnimatedBackground.mockResolvedValue(() => null);
 });
 
 describe('layout helpers animated behavior', () => {
@@ -129,30 +118,17 @@ describe('layout helpers rendering', () => {
     ).toBeNull();
   });
 
-  it('returns overlay state for normal and auth routes', async () => {
-    const { result, rerender } = renderHook<
-      {
-        BackgroundComponent: ComponentType | null;
-        overlayColor: string;
-        showOverlay: boolean;
-      },
-      { isDark: boolean }
-    >(({ isDark }) => useAnimatedBackground(isDark), {
-      initialProps: { isDark: false },
-    });
+  it('returns the overlay colour for normal and auth routes', () => {
+    const { result, rerender } = renderHook<string, { isDark: boolean }>(
+      ({ isDark }) => useBackgroundOverlayColor(isDark),
+      { initialProps: { isDark: false } },
+    );
 
-    expect(result.current.showOverlay).toBe(true);
-    expect(result.current.overlayColor).toBe('rgba(242,242,242,0.95)');
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(result.current.BackgroundComponent).not.toBeNull();
+    expect(result.current).toBe('rgba(242,242,242,0.95)');
 
     mockUsePathname.mockReturnValue('/login');
     rerender({ isDark: true });
 
-    expect(result.current.showOverlay).toBe(true);
-    expect(result.current.overlayColor).toBe('rgba(203, 211, 216, 0.5)');
+    expect(result.current).toBe('rgba(203, 211, 216, 0.5)');
   });
 });

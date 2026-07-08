@@ -11,6 +11,7 @@ import { BrandHeaderTitle } from '@/components/base/BrandHeaderTitle';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { HeaderRightPill } from '@/components/base/HeaderRightPill';
+import { StaticBackground } from '@/components/base/StaticBackground';
 import { ActiveStreamBanner } from '@/components/cameras/ActiveStreamBanner';
 import { AuthProvider } from '@/context/AuthProvider';
 import { useAuth } from '@/context/auth';
@@ -19,7 +20,8 @@ import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { createNavigationThemes, getAppTheme } from '@/theme';
-import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/utils/router/background';
+import { ensureWebAnimatedPatch } from '@/utils/router/animatedPatch';
+import { useBackgroundOverlayColor } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
 
@@ -45,27 +47,21 @@ export function HeaderRight() {
   return <HeaderRightPill />;
 }
 
-function AppBackground({
-  BackgroundComponent,
-  overlayColor,
-  showOverlay,
-}: ReturnType<typeof useAnimatedBackground>) {
+function AppBackground({ overlayColor }: { overlayColor: string }) {
   return (
     <>
-      {BackgroundComponent ? <BackgroundComponent /> : null}
-      {showOverlay ? (
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: overlayColor,
-            pointerEvents: 'none',
-          }}
-        />
-      ) : null}
+      <StaticBackground />
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: overlayColor,
+          pointerEvents: 'none',
+        }}
+      />
     </>
   );
 }
@@ -131,7 +127,7 @@ function AppShell() {
   const theme = getAppTheme(colorScheme);
   const { user, isLoading: authLoading } = useAuth();
   const { activeStream } = useStreamSession();
-  const { BackgroundComponent, overlayColor, showOverlay } = useAnimatedBackground(isDark);
+  const overlayColor = useBackgroundOverlayColor(isDark);
 
   // On native there's no document/visibilitychange, so TanStack's focus
   // manager reports always-focused and refetch intervals (camera telemetry,
@@ -171,11 +167,7 @@ function AppShell() {
 
   return (
     <View style={{ flex: 1 }}>
-      <AppBackground
-        BackgroundComponent={BackgroundComponent}
-        overlayColor={overlayColor}
-        showOverlay={showOverlay}
-      />
+      <AppBackground overlayColor={overlayColor} />
       <AppStack isDark={isDark} router={router} />
       <ActiveStreamBanner />
     </View>
