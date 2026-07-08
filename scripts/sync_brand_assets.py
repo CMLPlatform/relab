@@ -146,6 +146,7 @@ GENERATED_ASSETS = (
     (WORDMARK_SOURCE, root_path("app/src/assets/images/wordmark.png"), png_wide(240)),
     (WORDMARK_DARK_SOURCE, root_path("app/src/assets/images/wordmark-dark.png"), png_wide(240)),
     (LOGO_SOURCE, root_path("www/public/images/logo.png"), png_args(512)),
+    (WORDMARK_SOURCE, root_path("www/public/images/wordmark.png"), png_wide(240)),
     (MARK_SOURCE, root_path("docs/public/images/apple-touch-icon.png"), png_args(180)),
     (MARK_SOURCE, root_path("www/public/images/apple-touch-icon.png"), png_args(180)),
     (MARK_SOURCE, root_path("backend/app/static/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),

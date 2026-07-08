@@ -1,6 +1,6 @@
 <mjml>
   <mj-head>
-    <mj-title>Welcome to Reverse Engineering Lab - Verify Your Email</mj-title>
+    <mj-title>Welcome to Relab — Verify Your Email</mj-title>
     {{include:styles}}
   </mj-head>
   <mj-body background-color="{{brand:--relab-brand-theme-color}}">

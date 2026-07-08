@@ -1,6 +1,24 @@
-<mj-section background-color="#fbfcfe" padding="28px 40px 20px">
+<mj-section background-color="#fbfcfe" padding="28px 40px 16px">
   <mj-column>
-    <mj-text css-class="header-title" align="left"> Reverse Engineering Lab </mj-text>
+    <mj-image
+      src="https://cml-relab.org/images/wordmark.png"
+      alt="Relab"
+      css-class="wordmark-fallback"
+      width="150px"
+      align="left"
+      padding="0"
+      font-size="27px"
+      font-weight="600"
+    />
+    <mj-text
+      align="left"
+      padding-top="10px"
+      font-size="11px"
+      letter-spacing="2px"
+      color="{{brand:--relab-brand-accent}}"
+    >
+      CIRCULAR-ECONOMY RESEARCH LAB
+    </mj-text>
   </mj-column>
 </mj-section>
 <mj-section background-color="#fbfcfe" padding="0 40px">

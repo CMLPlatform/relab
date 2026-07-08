@@ -3,8 +3,8 @@
     <mj-divider border-color="#dce4e9" border-width="1px" padding="0 0 20px" />
     <mj-text css-class="footer-text" align="left">
       Best regards,<br />
-      The Reverse Engineering Lab Team
+      The Relab team
     </mj-text>
-    <mj-text css-class="footer-text" align="center" padding-top="12px"> Reverse Engineering Lab </mj-text>
+    <mj-text css-class="footer-text" align="center" padding-top="12px"> Relab · Circular-economy research lab </mj-text>
   </mj-column>
 </mj-section>

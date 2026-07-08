@@ -13,10 +13,13 @@
   />
 </mj-attributes>
 <mj-style>
-  .header-title {
-    font-size: 22px;
-    font-weight: 600;
-    color: {{brand:--relab-brand-primary}};
+  /* Styled alt text so a blocked/missing wordmark image degrades to a neat
+     serif "R9lab" instead of a broken-image icon. */
+  .wordmark-fallback img {
+    font-family: Georgia, "Times New Roman", serif !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.5px !important;
+    color: {{brand:--relab-brand-primary}} !important;
   }
   .footer-text {
     font-size: 12px;
