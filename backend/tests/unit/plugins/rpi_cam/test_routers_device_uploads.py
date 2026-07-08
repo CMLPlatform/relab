@@ -166,3 +166,25 @@ async def test_rejects_invalid_preview_thumbnail_image(
 
     assert exc_info.value.status_code == 400
     assert "invalid image" in str(exc_info.value.detail).lower()
+
+
+async def test_preview_thumbnail_upload_fails_closed_when_scanner_unavailable(
+    mock_camera: Camera,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Device thumbnails must be malware-scanned like every other upload path.
+
+    With scanning enabled but no scanner reachable, the upload must be rejected
+    (503) rather than silently stored — guarding the scan bypass this route had.
+    """
+    monkeypatch.setattr(settings, "image_storage_path", tmp_path)
+    monkeypatch.setattr("app.api.file_storage.upload_security.settings.malware_scan_enabled", True)
+    monkeypatch.setattr("app.api.file_storage.upload_security.settings.clamav_host", "")
+    upload = _jpeg_upload()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await receive_preview_thumbnail_upload(camera_id=mock_camera.id, camera=mock_camera, file=upload)
+
+    assert exc_info.value.status_code == 503
+    assert not (tmp_path / "rpi-cam-preview" / f"{mock_camera.id}.jpg").exists()

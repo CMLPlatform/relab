@@ -144,8 +144,10 @@ def _reject_content_mismatch(extension: str, exc: Exception | None = None) -> No
 def _validate_json_content(upload_file: UploadFile, extension: str) -> None:
     try:
         upload_file.file.seek(0)
+        # RecursionError: deeply-nested JSON exceeds the parser's recursion limit;
+        # treat it as invalid content rather than letting it surface as a 500.
         json.loads(upload_file.file.read())
-    except (AttributeError, json.JSONDecodeError, OSError, TypeError, UnicodeDecodeError) as exc:
+    except (AttributeError, json.JSONDecodeError, OSError, RecursionError, TypeError, UnicodeDecodeError) as exc:
         _reject_content_mismatch(extension, exc)
     finally:
         upload_file.file.seek(0)

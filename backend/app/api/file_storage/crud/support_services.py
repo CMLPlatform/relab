@@ -187,7 +187,9 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
         await ensure_parent_exists(db, payload.parent_type, payload.parent_id)
         if quota_user_id is not None:
-            await reserve_product_upload_quota(db, user_id=quota_user_id, upload_size_bytes=upload_size_bytes)
+            # quota_user_id gates whether this upload counts against quota (product
+            # media only); the charge itself always targets the parent's owner.
+            await reserve_product_upload_quota(db, parent_id=payload.parent_id, upload_size_bytes=upload_size_bytes)
 
         stored_name = await self.write_upload(payload.file, stored_filename)
         db_item = build_storage_instance(

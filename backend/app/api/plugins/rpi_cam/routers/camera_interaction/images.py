@@ -23,6 +23,7 @@ from app.api.file_storage.crud.support_uploads import validate_upload_size
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal, ImageRead
 from app.api.file_storage.upload_policy import validate_image_upload_content
+from app.api.file_storage.upload_security import scan_upload_or_raise
 from app.api.plugins.rpi_cam.device_assertion import AuthenticatedCameraDep
 from app.api.plugins.rpi_cam.examples import (
     CAMERA_CAPTURE_IMAGE_DESCRIPTION_OPENAPI_EXAMPLES,
@@ -207,6 +208,9 @@ async def receive_preview_thumbnail_upload(
     try:
         await validate_upload_size(file, settings.max_image_upload_size_mb)
         await to_thread.run_sync(validate_image_upload_content, file)
+        # Device-pushed bytes are untrusted; scan them like every other upload path
+        # (fails closed when malware scanning is enabled but the scanner is down).
+        await scan_upload_or_raise(file)
     except APIError as exc:
         if exc.message == ZERO_SIZE_UPLOAD_MESSAGE:
             raise HTTPException(status_code=400, detail=EMPTY_PREVIEW_UPLOAD_MESSAGE) from exc

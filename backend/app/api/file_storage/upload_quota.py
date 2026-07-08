@@ -29,16 +29,22 @@ def _max_upload_bytes() -> int:
 async def reserve_product_upload_quota(
     session: AsyncSession,
     *,
-    user_id: UUID,
+    parent_id: int,
     upload_size_bytes: int,
 ) -> None:
-    """Atomically reserve one product-owned upload against a user's quota ledger."""
+    """Atomically reserve one product-owned upload against the owner's quota ledger.
+
+    Charges the product's ``owner_id`` (not the requesting user), so it stays
+    consistent with release/recompute — a superuser uploading to another user's
+    product charges that product's owner, not themselves.
+    """
     file_limit = settings.max_upload_files_per_user
     byte_limit = _max_upload_bytes()
+    owner_id = select(Product.owner_id).where(Product.id == parent_id).scalar_subquery()
     stmt = (
         update(User)
         .where(
-            User.id == user_id,
+            User.id == owner_id,
             User.upload_file_count < file_limit,
             User.upload_total_bytes + upload_size_bytes <= byte_limit,
         )

@@ -21,7 +21,7 @@ async def test_reserve_product_upload_quota_uses_single_conditional_update(mock_
     result.scalar_one_or_none.return_value = user_id
     mock_session.execute.return_value = result
 
-    await reserve_product_upload_quota(mock_session, user_id=user_id, upload_size_bytes=128)
+    await reserve_product_upload_quota(mock_session, parent_id=1, upload_size_bytes=128)
 
     mock_session.execute.assert_awaited_once()
     mock_session.get.assert_not_awaited()
@@ -30,19 +30,21 @@ async def test_reserve_product_upload_quota_uses_single_conditional_update(mock_
     assert "upload_file_count" in rendered_statement
     assert "upload_total_bytes" in rendered_statement
     assert "RETURNING" in rendered_statement
+    # Charge targets the parent product's owner, not the requesting user.
+    assert "owner_id" in rendered_statement.lower()
+    assert "product" in rendered_statement.lower()
 
 
 async def test_reserve_product_upload_quota_raises_generic_quota_error_on_rejection(
     mock_session: AsyncMock,
 ) -> None:
     """A rejected conditional update should surface a generic quota error."""
-    user_id = uuid4()
     result = MagicMock()
     result.scalar_one_or_none.return_value = None
     mock_session.execute.return_value = result
 
     with pytest.raises(PayloadTooLargeError, match="Upload quota exceeded"):
-        await reserve_product_upload_quota(mock_session, user_id=user_id, upload_size_bytes=1)
+        await reserve_product_upload_quota(mock_session, parent_id=1, upload_size_bytes=1)
 
     mock_session.execute.assert_awaited_once()
     mock_session.get.assert_not_awaited()
