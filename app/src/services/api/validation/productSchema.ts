@@ -4,15 +4,6 @@ import { isHttpUrl, isSafeImageUrl } from '@/utils/urlSafety';
 export const PRODUCT_NAME_MIN_LENGTH = 2;
 export const PRODUCT_NAME_MAX_LENGTH = 100;
 
-const isYouTubeHostname = (hostname: string) => {
-  const normalizedHostname = hostname.toLowerCase();
-  return (
-    normalizedHostname === 'youtu.be' ||
-    normalizedHostname === 'youtube.com' ||
-    normalizedHostname.endsWith('.youtube.com')
-  );
-};
-
 const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
 
 /**
@@ -30,10 +21,7 @@ export function extractYouTubeVideoId(url: string): string | null {
     if (u.hostname === 'youtu.be') {
       videoId = u.pathname.slice(1) || null;
     }
-    if (
-      isYouTubeHostname(u.hostname) &&
-      (u.hostname === 'youtube.com' || u.hostname.endsWith('.youtube.com'))
-    ) {
+    if (u.hostname === 'youtube.com' || u.hostname.endsWith('.youtube.com')) {
       videoId = u.searchParams.get('v') ?? u.pathname.split('/').pop() ?? null;
     }
     return videoId && YOUTUBE_VIDEO_ID_PATTERN.test(videoId) ? videoId : null;
@@ -44,7 +32,7 @@ export function extractYouTubeVideoId(url: string): string | null {
 }
 
 const physicalPropertiesSchema = z.object({
-  weight: z.number({ message: 'Weight is required' }).positive('Weight must be a positive number'),
+  weight: z.number().positive('Weight must be a positive number').or(z.nan()).optional(),
   width: z.number().positive('Width must be a positive number').or(z.nan()).optional(),
   height: z.number().positive('Height must be a positive number').or(z.nan()).optional(),
   depth: z.number().positive('Depth must be a positive number').or(z.nan()).optional(),
@@ -63,7 +51,9 @@ const videoSchema = z.object({
     .url('Invalid video URL')
     .refine(isHttpUrl, { message: 'Video URL must use http or https' }),
   description: z.string(),
-  title: z.string().min(1, 'Video title cannot be empty'),
+  // Backend allows a null/empty video title; the mapper coerces it to ''. Requiring
+  // a non-empty title here would block editing any product that has such a video.
+  title: z.string(),
 });
 
 const imageSchema = z.object({

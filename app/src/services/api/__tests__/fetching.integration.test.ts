@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import { HttpResponse, http } from 'msw';
 import { API_URL } from '@/config';
 import { fetchWithAuth, getUser } from '@/services/api/auth/authentication';
-import { allProductBrands, searchProductBrands } from '@/services/api/productSuggestions';
+import { searchProductBrands } from '@/services/api/productSuggestions';
 import {
   getBaseProduct,
   getComponent,
@@ -121,9 +121,9 @@ describe('Fetching API Service logic', () => {
     });
   });
 
-  // ─── allProductBrands / searchProductBrands ───────────────────────────
+  // ─── searchProductBrands ───────────────────────────
 
-  describe('allProductBrands', () => {
+  describe('searchProductBrands', () => {
     it('performs fetch and returns array of strings', async () => {
       server.use(
         http.get(`${API_URL}/products/suggestions/brands`, () =>
@@ -137,7 +137,7 @@ describe('Fetching API Service logic', () => {
         ),
       );
 
-      const brands = await allProductBrands();
+      const brands = await searchProductBrands();
 
       expect(brands).toContain('Apple');
       expect(brands.length).toBe(3);
@@ -146,7 +146,7 @@ describe('Fetching API Service logic', () => {
     it('returns empty array when items is absent', async () => {
       server.use(http.get(`${API_URL}/products/suggestions/brands`, () => HttpResponse.json({})));
 
-      const brands = await allProductBrands();
+      const brands = await searchProductBrands();
 
       expect(brands).toEqual([]);
     });
@@ -158,7 +158,7 @@ describe('Fetching API Service logic', () => {
         ),
       );
 
-      await expect(allProductBrands()).rejects.toThrow('Failed to fetch');
+      await expect(searchProductBrands()).rejects.toThrow('Failed to fetch');
     });
 
     it('sends search param when searching brands', async () => {

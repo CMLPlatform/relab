@@ -1,19 +1,10 @@
 import { fetchWithAuth } from '@/services/api/auth/authentication';
-import { ApiError } from '@/services/api/errors';
+import { ApiError, throwFromResponse } from '@/services/api/errors';
 import type { StartYouTubeStreamParams, StreamView } from './shared';
 import { CAMERA_BASE } from './shared';
 
 function recordingStreamUrl(cameraId: string) {
   return `${CAMERA_BASE}/${cameraId}/recording-stream`;
-}
-
-function throwStreamRequestError(action: 'start' | 'stop' | 'fetch', status: number): never {
-  const messageByAction = {
-    start: `Failed to start stream (${status})`,
-    stop: `Failed to stop stream (${status})`,
-    fetch: `Failed to fetch stream status (${status})`,
-  } as const;
-  throw new Error(messageByAction[action]);
 }
 
 export function buildCameraHlsUrl(cameraId: string): string {
@@ -39,7 +30,7 @@ export async function startYouTubeStream(
   if (resp.status === 409) {
     throw new ApiError('A stream is already active for this camera.', 409, 'STREAM_ALREADY_ACTIVE');
   }
-  if (!resp.ok) throwStreamRequestError('start', resp.status);
+  if (!resp.ok) await throwFromResponse(resp, 'Failed to start stream');
   return resp.json() as Promise<StreamView>;
 }
 
@@ -48,7 +39,7 @@ export async function stopYouTubeStream(cameraId: string): Promise<void> {
     method: 'DELETE',
     headers: { Accept: 'application/json' },
   });
-  if (!resp.ok && resp.status !== 204) throwStreamRequestError('stop', resp.status);
+  if (!resp.ok && resp.status !== 204) await throwFromResponse(resp, 'Failed to stop stream');
 }
 
 export async function getStreamStatus(cameraId: string): Promise<StreamView | null> {
@@ -57,6 +48,6 @@ export async function getStreamStatus(cameraId: string): Promise<StreamView | nu
     headers: { Accept: 'application/json' },
   });
   if (resp.status === 404) return null;
-  if (!resp.ok) throwStreamRequestError('fetch', resp.status);
+  if (!resp.ok) await throwFromResponse(resp, 'Failed to fetch stream status');
   return resp.json() as Promise<StreamView>;
 }

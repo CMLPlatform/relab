@@ -7,6 +7,7 @@ import type {
   ApiComponentChildItem,
   ApiComponentDetail,
   ApiImageRead,
+  ApiPaginatedProducts,
   ApiVideoRead,
 } from '@/types/api';
 import type { Product } from '@/types/Product';
@@ -131,23 +132,35 @@ async function fetchOne<T extends ProductMapperPayload>(url: URL): Promise<T | n
 async function resolveMeId(): Promise<string | undefined> {
   // Prefer the in-memory cached user on web to avoid triggering cookie-based
   // auth requests for unauthenticated visitors. If no cached user exists and
-  // we're on native, fall back to a network fetch.
+  // we're on native, fall back to a network fetch. Best-effort: a failed lookup
+  // degrades to "not the owner" rather than failing the whole request, which
+  // also lets callers run this concurrently without an orphaned rejection.
   if (Platform.OS === 'web') return getCachedUser()?.id;
-  return (await getUser())?.id;
+  try {
+    return (await getUser())?.id;
+  } catch {
+    return undefined;
+  }
 }
 
 /** Fetch a base product by id. 404s on component ids. */
 export async function getBaseProduct(id: number) {
-  const data = await fetchOne<ApiBaseProductDetail>(new URL(`${baseUrl}/products/${id}`));
+  const [data, meId] = await Promise.all([
+    fetchOne<ApiBaseProductDetail>(new URL(`${baseUrl}/products/${id}`)),
+    resolveMeId(),
+  ]);
   if (!data) throw new ProductNotFoundError(id);
-  return toBaseProduct(data, await resolveMeId());
+  return toBaseProduct(data, meId);
 }
 
 /** Fetch a component by id. 404s on base-product ids. */
 export async function getComponent(id: number) {
-  const data = await fetchOne<ApiComponentDetail>(new URL(`${baseUrl}/components/${id}`));
+  const [data, meId] = await Promise.all([
+    fetchOne<ApiComponentDetail>(new URL(`${baseUrl}/components/${id}`)),
+    resolveMeId(),
+  ]);
   if (!data) throw new ProductNotFoundError(id);
-  return toComponent(data, await resolveMeId());
+  return toComponent(data, meId);
 }
 
 export function newProduct(
@@ -224,14 +237,10 @@ function buildProductsUrl(query: ProductsQuery): URL {
   return url;
 }
 
-async function parseProductsResponse(data: {
-  items: ApiBaseProductPageItem[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-}): Promise<PaginatedResponse<Product>> {
-  const meId = await resolveMeId();
+function parseProductsResponse(
+  data: ApiPaginatedProducts,
+  meId: string | undefined,
+): PaginatedResponse<Product> {
   const items = data.items.map((item) => toBaseProduct(item, meId));
   return { items, total: data.total, page: data.page, size: data.size, pages: data.pages };
 }
@@ -249,6 +258,9 @@ export async function products(query: ProductsQuery = {}): Promise<PaginatedResp
   // fetchWithAuth attaches the bearer token (native) / session cookie (web)
   // and transparently refreshes once on 401 before we see the response.
   const fetchProducts = authenticated ? fetchWithAuth : apiFetch;
+  // Resolve the current user's id concurrently with the list fetch (resolveMeId
+  // never rejects, so abandoning it on the early-return paths is safe).
+  const meIdPromise = resolveMeId();
   const response = await fetchProducts(buildProductsUrl(query), {
     method: 'GET',
     headers: { Accept: 'application/json' },
@@ -259,7 +271,7 @@ export async function products(query: ProductsQuery = {}): Promise<PaginatedResp
   if (authenticated && response.status === 401) return emptyPage;
   if (!response.ok) await throwFromResponse(response, 'Failed to fetch products');
 
-  return parseProductsResponse(await response.json());
+  return parseProductsResponse(await response.json(), await meIdPromise);
 }
 
 export async function addProductVideo(

@@ -23,7 +23,6 @@ import { deleteProduct, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
 
 jest.mock('@/services/api/productSuggestions', () => ({
-  allProductBrands: jest.fn(),
   searchProductBrands: jest.fn(),
 }));
 

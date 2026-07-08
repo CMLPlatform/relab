@@ -1,7 +1,7 @@
 import { API_ORIGIN_URL } from '@/config';
-import { hasUrlScheme, isHttpUrl } from '@/utils/urlSafety';
+import { hasUrlScheme, isHttpUrl, stripTrailingSlash } from '@/utils/urlSafety';
 
-const apiBaseUrl = API_ORIGIN_URL.replace(/\/+$/, '');
+const apiBaseUrl = stripTrailingSlash(API_ORIGIN_URL);
 
 export function resolveApiMediaUrl(path?: string | null): string | undefined {
   const trimmedPath = path?.trim();
@@ -18,10 +18,6 @@ export function resolveApiMediaUrl(path?: string | null): string | undefined {
     return;
   }
 
-  if (!apiBaseUrl) {
-    return trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
-  }
-
   const normalizedPath = trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
-  return `${apiBaseUrl}${normalizedPath}`;
+  return apiBaseUrl ? `${apiBaseUrl}${normalizedPath}` : normalizedPath;
 }

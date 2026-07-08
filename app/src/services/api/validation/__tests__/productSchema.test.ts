@@ -58,6 +58,14 @@ describe('productSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('accepts an unknown weight (NaN) so weightless products/components can be saved', () => {
+    const result = productSchema.safeParse({
+      ...validBase,
+      physicalProperties: { ...validBase.physicalProperties, weight: Number.NaN },
+    });
+    expect(result.success).toBe(true);
+  });
+
   it('accepts optional fields as undefined', () => {
     const minimal = {
       ...validBase,
@@ -100,12 +108,12 @@ describe('productSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('rejects a video with empty title', () => {
+  it('accepts a video with an empty title (backend allows null/empty titles)', () => {
     const result = productSchema.safeParse({
       ...validBase,
       videos: [{ url: 'https://example.com/video', title: '', description: '' }],
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it('rejects a video with a non-URL string', () => {

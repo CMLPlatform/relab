@@ -1,10 +1,9 @@
 import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { throwFromResponse } from '@/services/api/errors';
 import { createRequestId } from '@/services/api/request';
-import { isSafeImageUrl } from '@/utils/urlSafety';
+import { isSafeImageUrl, stripTrailingSlash } from '@/utils/urlSafety';
 import type { CapturedImage } from './shared';
 import { CAMERA_BASE } from './shared';
-
-const TRAILING_SLASH_PATTERN = /\/$/;
 
 // The local device is untrusted; drop any url whose scheme isn't a safe image scheme.
 const safeImageUrl = (value: unknown): string =>
@@ -19,7 +18,7 @@ export async function captureImageFromCamera(
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ product_id: productId }),
   });
-  if (!resp.ok) throw new Error(`Failed to capture image (${resp.status})`);
+  if (!resp.ok) await throwFromResponse(resp, 'Failed to capture image');
   const data = await resp.json();
   return {
     id: String(data.id),
@@ -34,7 +33,7 @@ export async function captureImageLocally(
   localApiKey: string,
   productId: number,
 ): Promise<CapturedImage> {
-  const resp = await fetch(`${localBaseUrl.replace(TRAILING_SLASH_PATTERN, '')}/captures`, {
+  const resp = await fetch(`${stripTrailingSlash(localBaseUrl)}/captures`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -44,7 +43,7 @@ export async function captureImageLocally(
     },
     body: JSON.stringify({ product_id: productId }),
   });
-  if (!resp.ok) throw new Error(`Local capture failed (${resp.status})`);
+  if (!resp.ok) await throwFromResponse(resp, 'Local capture failed');
   const data = await resp.json();
   return {
     id: String(data.image_id ?? data.id ?? ''),

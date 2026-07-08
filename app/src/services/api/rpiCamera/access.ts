@@ -1,11 +1,10 @@
 import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { stripTrailingSlash } from '@/utils/urlSafety';
 import type { LocalAccessInfo } from './shared';
 import { CAMERA_BASE, isLocalAccessInfo } from './shared';
 
-const TRAILING_SLASH_PATTERN = /\/$/;
-
 export function buildLocalHlsUrl(localBaseUrl: string): string {
-  return `${localBaseUrl.replace(TRAILING_SLASH_PATTERN, '')}/preview/hls/cam-preview/index.m3u8`;
+  return `${stripTrailingSlash(localBaseUrl)}/preview/hls/cam-preview/index.m3u8`;
 }
 
 export async function fetchLocalAccessInfo(cameraId: string): Promise<LocalAccessInfo | null> {

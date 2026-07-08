@@ -7,10 +7,12 @@ import type {
   ApiCameraReadWithStatus,
   ApiCameraStatus,
   ApiCameraTelemetry,
+  ApiCameraUpdate,
   ApiLocalAccessInfo,
   ApiPairingClaimRequest,
   ApiStreamView,
   ApiThermalState,
+  ApiYouTubePrivacyStatus,
 } from '@/types/api';
 
 export type CameraConnectionStatus = ApiCameraConnectionStatus;
@@ -24,10 +26,7 @@ export type LocalAccessInfo = ApiLocalAccessInfo;
 export type PairingClaimRequest = ApiPairingClaimRequest;
 export type StreamView = ApiStreamView;
 
-export interface CameraUpdate {
-  name?: string | null;
-  description?: string | null;
-}
+export type CameraUpdate = ApiCameraUpdate;
 
 export interface CapturedImage {
   id: string;
@@ -36,7 +35,7 @@ export interface CapturedImage {
   description: string;
 }
 
-export type YouTubePrivacyStatus = 'public' | 'private' | 'unlisted';
+export type YouTubePrivacyStatus = ApiYouTubePrivacyStatus;
 
 export interface StartYouTubeStreamParams {
   product_id: number;

@@ -2,6 +2,7 @@ import { API_URL } from '@/config';
 import { fetchWithAuth } from '@/services/api/auth/authentication';
 import type { Product } from '@/types/Product';
 import { throwFromResponse } from './errors';
+import { resolveApiMediaUrl } from './media';
 
 const baseUrl = API_URL;
 
@@ -262,7 +263,9 @@ async function addImage(
     image.id = data.id;
   }
   if (data?.image_url) {
-    image.url = data.image_url;
+    // Resolve the server's (relative) media path to an absolute origin URL, the
+    // same way the product mappers do — a bare path renders blank on native.
+    image.url = resolveApiMediaUrl(data.image_url) ?? data.image_url;
   }
 }
 

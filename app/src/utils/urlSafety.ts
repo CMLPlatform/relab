@@ -4,9 +4,15 @@ const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
 // Two slash-like chars ('//host', '/\host', '\\host') resolve protocol-relative
 // to an external origin, so they can't be treated as same-origin relative paths.
 const PROTOCOL_RELATIVE_PATTERN = /^[/\\][/\\]/;
+const TRAILING_SLASH_PATTERN = /\/+$/;
 
 export function hasUrlScheme(value: string): boolean {
   return URL_SCHEME_PATTERN.test(value.trim());
+}
+
+/** Strip all trailing slashes so a base URL joins cleanly with a path segment. */
+export function stripTrailingSlash(value: string): string {
+  return value.replace(TRAILING_SLASH_PATTERN, '');
 }
 
 export function parseAbsoluteUrl(value: string | undefined): URL | null {
