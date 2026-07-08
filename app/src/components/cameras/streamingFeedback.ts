@@ -1,13 +1,8 @@
+import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import { getErrorMessage } from '@/utils/errors';
 
-export type FeedbackApi = {
-  alert: (options: {
-    title?: string;
-    message?: string;
-    buttons?: { text: string; onPress?: () => void }[];
-  }) => void;
-  error: (message: string, title?: string) => void;
-};
+/** The subset of the app feedback API these YouTube stream helpers use. */
+export type FeedbackApi = Pick<ReturnType<typeof useAppFeedback>, 'alert' | 'error'>;
 
 export function showGoogleAccountRequired(feedback: FeedbackApi) {
   feedback.alert({

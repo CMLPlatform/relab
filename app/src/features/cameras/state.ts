@@ -42,12 +42,13 @@ function streamDialogReducer(
   }
 }
 
-function useStreamDialogController() {
+export function useCameraStreamingController() {
   const [streamDialog, dispatchStreamDialog] = useReducer(
     streamDialogReducer,
     STREAM_DIALOG_INITIAL,
   );
   const [isStartingStream, setIsStartingStream] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
 
   return {
     streamDialog,
@@ -59,42 +60,9 @@ function useStreamDialogController() {
     setStreamTitle: (value: string) => dispatchStreamDialog({ type: 'set_title', value }),
     setStreamPrivacy: (value: YouTubePrivacyStatus) =>
       dispatchStreamDialog({ type: 'set_privacy', value }),
-  };
-}
-
-function useCameraSnackbar() {
-  const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
-
-  return {
     snackbarMessage,
     setSnackbarMessage,
     dismissSnackbar: useCallback(() => setSnackbarMessage(null), []),
-  };
-}
-
-export function useCameraStreamingController() {
-  const {
-    streamDialog,
-    isStartingStream,
-    setIsStartingStream,
-    openStreamDialog,
-    closeStreamDialog,
-    setStreamTitle,
-    setStreamPrivacy,
-  } = useStreamDialogController();
-  const { snackbarMessage, setSnackbarMessage, dismissSnackbar } = useCameraSnackbar();
-
-  return {
-    streamDialog,
-    isStartingStream,
-    setIsStartingStream,
-    openStreamDialog,
-    closeStreamDialog,
-    setStreamTitle,
-    setStreamPrivacy,
-    snackbarMessage,
-    setSnackbarMessage,
-    dismissSnackbar,
   };
 }
 
@@ -138,6 +106,8 @@ export function useCameraSelectionController() {
     });
   }, []);
 
+  const selectAll = useCallback((ids: string[]) => setSelectedIds(new Set(ids)), []);
+
   return {
     selectionMode,
     selectedIds,
@@ -146,20 +116,6 @@ export function useCameraSelectionController() {
     enterSelectionMode,
     toggleSelected,
     retainSelected,
-    selectAll: (ids: string[]) => setSelectedIds(new Set(ids)),
+    selectAll,
   };
-}
-
-export function useCameraSelectionActions({
-  onlineCameraIds,
-  selectAll,
-}: {
-  onlineCameraIds: string[];
-  selectAll: (ids: string[]) => void;
-}) {
-  const handleSelectAll = useCallback(() => {
-    selectAll(onlineCameraIds);
-  }, [onlineCameraIds, selectAll]);
-
-  return { handleSelectAll };
 }

@@ -1,5 +1,5 @@
 import { useNavigation, useRouter } from 'expo-router';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/auth';
 import {
   useCameraCaptureActions,
@@ -14,11 +14,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { setCamerasHeaderOptions, useCameraScreenData } from './helpers';
 import { useCameraRouteModes } from './routeModes';
-import {
-  useCameraSelectionActions,
-  useCameraSelectionController,
-  useCameraStreamingController,
-} from './state';
+import { useCameraSelectionController, useCameraStreamingController } from './state';
 import { resolveEffectiveCameraConnection } from './useEffectiveCameraConnection';
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: cameras-screen orchestration is intentionally exposed through one screen hook.
@@ -71,14 +67,16 @@ export function useCamerasScreen() {
     cameras,
     isDesktop,
     isCameraReachable,
-    captureModeEnabled,
-    streamModeEnabled,
   });
-  const { handleSelectAll } = useCameraSelectionActions({
-    onlineCameraIds: screenData.onlineCameras.map((camera) => camera.id),
-    selectAll: selection.selectAll,
-  });
-  const { retainSelected } = selection;
+  const { selectAll, retainSelected } = selection;
+  const onlineCameraIds = useMemo(
+    () => screenData.onlineCameras.map((camera) => camera.id),
+    [screenData.onlineCameras],
+  );
+  const handleSelectAll = useCallback(
+    () => selectAll(onlineCameraIds),
+    [selectAll, onlineCameraIds],
+  );
   useEffect(() => {
     retainSelected(new Set(screenData.rows.map((camera) => camera.id)));
   }, [screenData.rows, retainSelected]);
@@ -124,8 +122,8 @@ export function useCamerasScreen() {
       refetch,
       numColumns: screenData.numColumns,
       onlineCount: screenData.onlineCount,
-      captureModeEnabled: screenData.captureModeEnabled,
-      streamModeEnabled: screenData.streamModeEnabled,
+      captureModeEnabled,
+      streamModeEnabled,
     },
     selection: {
       selectionMode: selection.selectionMode,

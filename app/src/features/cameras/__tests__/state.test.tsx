@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
 import { useCameraRouteModes } from '@/features/cameras/routeModes';
 import {
-  useCameraSelectionActions,
   useCameraSelectionController,
   useCameraStreamingController,
 } from '@/features/cameras/state';
@@ -75,19 +74,11 @@ describe('camera controllers', () => {
     expect(result.current.selectionMode).toBe(false);
     expect(result.current.selectedCount).toBe(0);
 
-    const selectAll = jest.fn();
-    const { result: actionResult } = renderHook(() =>
-      useCameraSelectionActions({
-        onlineCameraIds: ['camera-1', 'camera-2'],
-        selectAll,
-      }),
-    );
-
     act(() => {
-      actionResult.current.handleSelectAll();
+      result.current.selectAll(['camera-1', 'camera-2']);
     });
 
-    expect(selectAll).toHaveBeenCalledWith(['camera-1', 'camera-2']);
+    expect(result.current.selectedCount).toBe(2);
   });
 
   it('prunes selected ids for cameras that leave the list', () => {

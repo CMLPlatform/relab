@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
+import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraConnectionStatus } from '@/services/api/rpiCamera';
 
 export const STATUS_LABEL: Record<CameraConnectionStatus, string> = {
@@ -10,11 +10,10 @@ export const STATUS_LABEL: Record<CameraConnectionStatus, string> = {
   error: 'Error',
 };
 
-export type EffectiveConnection = {
-  localConnection: CameraConnectionInfo;
-  relayStatus: CameraConnectionStatus;
-  isReachable: boolean;
-};
+export type EffectiveConnection = Pick<
+  EffectiveCameraConnection,
+  'localConnection' | 'relayStatus' | 'isReachable'
+>;
 
 export const cameraDetailStyles = StyleSheet.create({
   container: {

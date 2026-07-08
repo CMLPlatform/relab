@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Dialog, Icon, Portal, Text } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
@@ -39,11 +39,15 @@ export function CameraPickerDialog({
     router.push('/cameras');
   }, [onDismiss, router]);
 
-  const sorted = [...(cameras ?? [])].sort((a, b) => {
-    const aReachable = resolveEffectiveCameraConnection(a).isReachable ? 0 : 1;
-    const bReachable = resolveEffectiveCameraConnection(b).isReachable ? 0 : 1;
-    return aReachable - bReachable;
-  });
+  const sorted = useMemo(
+    () =>
+      [...(cameras ?? [])].sort((a, b) => {
+        const aReachable = resolveEffectiveCameraConnection(a).isReachable ? 0 : 1;
+        const bReachable = resolveEffectiveCameraConnection(b).isReachable ? 0 : 1;
+        return aReachable - bReachable;
+      }),
+    [cameras],
+  );
 
   return (
     <Portal>

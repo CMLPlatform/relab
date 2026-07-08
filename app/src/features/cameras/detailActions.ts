@@ -1,8 +1,7 @@
 import type { ImperativeRouter } from 'expo-router';
+import type { useAppFeedback } from '@/hooks/useAppFeedback';
 
-type CameraDetailFeedback = {
-  alert: (options: { title: string; message: string; buttons: { text: string }[] }) => void;
-};
+type CameraDetailFeedback = Pick<ReturnType<typeof useAppFeedback>, 'alert'>;
 
 type UpdateMutation = {
   isPending: boolean;
