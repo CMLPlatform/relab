@@ -115,16 +115,18 @@ def test_alembic_version_at_head(migration_helper: MigrationHelper) -> None:
 
 @pytest.mark.migration
 def test_migrations_downgrade_upgrade(relab_alembic_config: Config, migration_helper: MigrationHelper) -> None:
-    """Migration downgrade/upgrade cycle must succeed and actually change the schema."""
+    """Downgrading one step then upgrading must round-trip back to head.
+
+    Asserts by revision rather than a specific column so it stays valid as new
+    migrations are added on top of the previous head.
+    """
+    head = migration_helper.current_revision()
+
     command.downgrade(relab_alembic_config, "-1")
-    assert not migration_helper.column_exists("recording_session", "video_id"), (
-        "downgrade did not remove the column added by the latest migration"
-    )
+    assert migration_helper.current_revision() != head, "downgrade did not move off head"
 
     command.upgrade(relab_alembic_config, "+1")
-    assert migration_helper.column_exists("recording_session", "video_id"), (
-        "upgrade did not restore the column added by the latest migration"
-    )
+    assert migration_helper.current_revision() == head, "upgrade did not restore head"
 
 
 @pytest.mark.migration
