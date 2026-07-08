@@ -22,8 +22,8 @@ x-backend-public-origins: &backend-public-origins
   DOCS_PUBLIC_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
 
 x-backend-host-overrides: &backend-host-overrides
-  GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID must be set in root .env}
-  GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:?GITHUB_OAUTH_CLIENT_ID must be set in root .env}
+  GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+  GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
   EMAIL_PROVIDER: ${EMAIL_PROVIDER:?EMAIL_PROVIDER must be set in root .env}
   SMTP_HOST: ${SMTP_HOST:-}
   SMTP_USERNAME: ${SMTP_USERNAME:-}

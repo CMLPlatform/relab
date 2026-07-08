@@ -12,21 +12,23 @@ required_secret_files = [
   "database_migration_password",
   "database_backup_password",
   "redis_password",
-  "restic_password",
   "auth_token_secret",
   "oauth_state_secret",
   "cache_signing_secret",
   "data_encryption_key",
-  "google_oauth_client_secret",
-  "github_oauth_client_secret",
   "bootstrap_superuser_password",
 ]
 
-# Secrets that may legitimately be absent or empty. EMAIL_PROVIDER selects exactly
-# one of smtp / microsoft-graph, so the unused provider's secret is never filled.
+# Secrets that may legitimately be absent or empty because their feature is opt-in:
+#   - smtp/microsoft-graph: EMAIL_PROVIDER selects exactly one; the other stays unfilled.
+#   - restic_password: only used by the profile-gated `backups` service (off by default).
+#   - google/github oauth: social login is opt-in; unset the client IDs to disable it.
 optional_secret_files = [
   "smtp_password",
   "microsoft_graph_client_secret",
+  "restic_password",
+  "google_oauth_client_secret",
+  "github_oauth_client_secret",
 ]
 
 infisical_path_template = "/relab/{env}/{name}"
