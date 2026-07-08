@@ -3,8 +3,10 @@
 # This provider-neutral contract leaves a clean path for a later external
 # manager such as Infisical to sync runtime secrets into host files.
 
+# The full runtime secret inventory is required ∪ optional; every secret belongs to
+# exactly one list. Required secrets must be non-empty in prod/staging.
 [env_policy]
-runtime_secret_files = [
+required_secret_files = [
   "postgres_password",
   "database_app_password",
   "database_migration_password",
@@ -17,9 +19,14 @@ runtime_secret_files = [
   "data_encryption_key",
   "google_oauth_client_secret",
   "github_oauth_client_secret",
+  "bootstrap_superuser_password",
+]
+
+# Secrets that may legitimately be absent or empty. EMAIL_PROVIDER selects exactly
+# one of smtp / microsoft-graph, so the unused provider's secret is never filled.
+optional_secret_files = [
   "smtp_password",
   "microsoft_graph_client_secret",
-  "bootstrap_superuser_password",
 ]
 
 infisical_path_template = "/relab/{env}/{name}"

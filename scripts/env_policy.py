@@ -160,8 +160,16 @@ def load_secret_inventory(path: Path = SECRET_INVENTORY_FILE) -> dict[str, Any]:
         msg = f"{path}: missing [env_policy] table"
         raise TypeError(msg)
 
+    required = _as_string_set(policy.get("required_secret_files"), "required_secret_files")
+    optional = _as_string_set(policy.get("optional_secret_files", []), "optional_secret_files")
+    both = required & optional
+    if both:
+        msg = f"{path}: secrets in both required and optional: {', '.join(sorted(both))}"
+        raise TypeError(msg)
+
     return {
-        "runtime_secret_files": _as_string_set(policy.get("runtime_secret_files"), "runtime_secret_files"),
+        "runtime_secret_files": required | optional,
+        "optional_secret_files": optional,
         "infisical_path_template": str(policy.get("infisical_path_template", "/relab/{env}/{name}")),
     }
 
@@ -229,12 +237,24 @@ def assert_secret_value_is_usable(label: str, name: str, value: str) -> None:
 
 
 def assert_existing_secret_files_do_not_use_placeholders(secret_inventory: dict[str, Any]) -> None:
-    """Check existing production-like secret files for unfilled generated placeholders."""
+    """Check existing production-like secret files for unfilled or empty required secrets.
+
+    Runs against the deploy host's populated ``secrets/<env>/`` tree (in CI these files
+    do not exist, so every check is skipped). A required secret that exists but is empty
+    would mount as a blank file and fail the app confusingly at runtime; catch it here.
+    Optional secrets (the unused email provider) may be empty by design.
+    """
+    optional = secret_inventory["optional_secret_files"]
     for label in ("staging", "prod"):
         for name in sorted(secret_inventory["runtime_secret_files"]):
             path = ROOT / "secrets" / label / name
-            if path.exists():
-                assert_secret_value_is_usable(label, name, path.read_text(encoding="utf-8"))
+            if not path.exists():
+                continue
+            value = path.read_text(encoding="utf-8")
+            assert_secret_value_is_usable(label, name, value)
+            if name not in optional and not value.strip():
+                msg = f"{label}: required secret secrets/{label}/{name} is empty"
+                raise AssertionError(msg)
 
 
 def parse_labeled_paths(values: list[str]) -> dict[str, Path]:
