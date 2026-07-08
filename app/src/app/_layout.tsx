@@ -7,6 +7,7 @@ import { AppState, type AppStateStatus, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { PaperProvider } from 'react-native-paper';
+import { BrandHeaderTitle } from '@/components/base/BrandHeaderTitle';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { HeaderRightPill } from '@/components/base/HeaderRightPill';
@@ -80,6 +81,7 @@ function AppStack({ isDark, router }: { isDark: boolean; router: ReturnType<type
         name="products/index"
         options={{
           title: 'RELab',
+          headerTitle: () => <BrandHeaderTitle isDark={isDark} />,
           ...getProductsHeaderStyle(theme),
           headerRight: () => <HeaderRightPill />,
           headerLeft: () => null,

@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { View } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
 import { useAppTheme } from '@/theme';
@@ -38,10 +38,15 @@ export function ProductsWelcomeCard({
       <Card.Content style={styles.welcomeCardContent}>
         <View style={styles.welcomeHeaderRow}>
           <View style={[styles.welcomeIcon, { backgroundColor: theme.colors.primaryContainer }]}>
-            <MaterialCommunityIcons
-              name="rocket-launch-outline"
-              size={22}
-              color={theme.colors.onPrimaryContainer}
+            <Image
+              source={
+                theme.dark
+                  ? require('@/assets/images/mark-dark.png')
+                  : require('@/assets/images/mark.png')
+              }
+              style={styles.welcomeBrandMark}
+              contentFit="contain"
+              accessibilityLabel=""
             />
           </View>
           <View style={styles.welcomeTextBlock}>

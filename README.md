@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/r9lab-wordmark.png" alt="R9lab" width="340">
+</p>
+
 # RELab: Reverse Engineering Lab
 
 [![Version](https://img.shields.io/github/v/release/CMLPlatform/relab?include_prereleases&filter=v*)](CHANGELOG.md)

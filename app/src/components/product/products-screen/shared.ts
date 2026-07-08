@@ -100,6 +100,10 @@ export const productsScreenStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  welcomeBrandMark: {
+    width: 30,
+    height: 30,
+  },
   welcomeTextBlock: {
     flex: 1,
   },
@@ -159,6 +163,12 @@ export const productsScreenStyles = StyleSheet.create({
   emptyStateContainer: {
     padding: 20,
     alignItems: 'center',
+  },
+  emptyStateMark: {
+    width: 60,
+    height: 60,
+    opacity: 0.9,
+    marginBottom: 12,
   },
   emptyStateBody: {
     flexDirection: 'row',

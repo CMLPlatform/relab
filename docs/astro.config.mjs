@@ -87,8 +87,9 @@ const STARLIGHT_OPTIONS = {
   title: 'RELab docs',
   description: 'Technical documentation for the Reverse Engineering Lab research platform.',
   logo: {
-    src: './public/images/logo.svg',
-    alt: 'Reverse Engineering Lab logo',
+    src: './public/images/wordmark.svg',
+    alt: 'RELab',
+    replacesTitle: true,
   },
   favicon: '/images/favicon.svg',
   titleDelimiter: '·',
@@ -106,6 +107,8 @@ const STARLIGHT_OPTIONS = {
   sidebar: SIDEBAR,
   components: {
     Head: './src/components/Head.astro',
+    SiteTitle: './src/components/SiteTitle.astro',
+    SocialIcons: './src/components/SocialIcons.astro',
   },
 };
 const modeFlagIndex = process.argv.indexOf(MODE_FLAG);

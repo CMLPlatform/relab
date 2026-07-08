@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
@@ -54,6 +55,16 @@ function OnboardingBody({
   return (
     <View style={[styles.body, { bottom: getKeyboardHeight() }]}>
       <LinearGradient colors={['transparent', theme.colors.background]} style={styles.gradient} />
+      <Image
+        source={
+          theme.dark
+            ? require('@/assets/images/logo-dark.png')
+            : require('@/assets/images/logo.png')
+        }
+        style={styles.brandLogo}
+        contentFit="contain"
+        accessibilityLabel="RELab"
+      />
       <Text style={[styles.title, textShadowStyle]}>Welcome!</Text>
       <Text style={[styles.subtitle, textShadowStyle]}>Choose a username to continue.</Text>
       <Controller control={control} name="username" render={renderUsername} />
@@ -136,6 +147,11 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       left: 0,
       right: 0,
       bottom: 0,
+    },
+    brandLogo: {
+      width: 92,
+      height: 92,
+      alignSelf: 'center',
     },
     title: {
       fontSize: 32,

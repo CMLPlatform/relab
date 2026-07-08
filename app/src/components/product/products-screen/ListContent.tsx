@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useMemo } from 'react';
 import {
@@ -309,6 +310,16 @@ export function ProductsListContent({
       ListFooterComponent={listFooter}
       ListEmptyComponent={
         <View style={styles.emptyStateContainer}>
+          <Image
+            source={
+              theme.dark
+                ? require('@/assets/images/mark-dark.png')
+                : require('@/assets/images/mark.png')
+            }
+            style={styles.emptyStateMark}
+            contentFit="contain"
+            accessibilityLabel=""
+          />
           {searchQuery ? (
             <Text>No products found matching your search.</Text>
           ) : !isAuthenticated ? (

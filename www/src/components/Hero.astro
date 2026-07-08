@@ -13,6 +13,8 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
 
 <section class="hero-panel card content-reveal">
   <div class="hero-copy">
+    <img class="hero-logo brand-light" src="/images/logo.svg" alt="" aria-hidden="true" width="132" height="132" />
+    <img class="hero-logo brand-dark" src="/images/logo-dark.svg" alt="" aria-hidden="true" width="132" height="132" />
     <h1>{siteMeta.title}</h1>
     <p class="hero-lead">{siteMeta.defaultDescription}</p>
 
@@ -47,3 +49,32 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
     </div>
   </div>
 </section>
+
+<style>
+  .hero-logo {
+    width: clamp(88px, 16vw, 132px);
+    height: auto;
+    margin-bottom: 0.75rem;
+  }
+  /* theme-swapped mark: teal on light, cyan on dark (system + manual toggle) */
+  .brand-light {
+    display: block;
+  }
+  .brand-dark {
+    display: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .brand-light {
+      display: none;
+    }
+    :global(:root:not([data-theme='light'])) .brand-dark {
+      display: block;
+    }
+  }
+  :global(:root[data-theme='dark']) .brand-light {
+    display: none;
+  }
+  :global(:root[data-theme='dark']) .brand-dark {
+    display: block;
+  }
+</style>

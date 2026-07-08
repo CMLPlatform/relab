@@ -16,7 +16,10 @@ const { contactEmail, currentYear, githubUrl, linkedInUrl, youtubeUrl } = Astro.
 <footer class="site-footer">
   <div class="frame site-footer-inner">
     <div class="footer-meta">
-      <a href="/" aria-label="Go to the homepage">Home</a>
+      <a href="/" class="footer-brand" aria-label="RELab home">
+        <img class="brand-light" src="/images/wordmark.svg" alt="RELab" height="26" />
+        <img class="brand-dark" src="/images/wordmark-dark.svg" alt="" aria-hidden="true" height="26" />
+      </a>
       <a href="/privacy" aria-label="Read the RELab privacy policy">Privacy policy</a>
       <p class="footer-copy">© {currentYear} CML, Leiden University</p>
     </div>
@@ -70,3 +73,35 @@ const { contactEmail, currentYear, githubUrl, linkedInUrl, youtubeUrl } = Astro.
     </div>
   </div>
 </footer>
+
+<style>
+  .footer-brand {
+    display: inline-flex;
+    align-items: center;
+  }
+  .footer-brand img {
+    height: 26px;
+    width: auto;
+  }
+  /* theme-swapped wordmark: teal on light, cyan on dark (system + manual toggle) */
+  .footer-brand .brand-light {
+    display: block;
+  }
+  .footer-brand .brand-dark {
+    display: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .footer-brand .brand-light {
+      display: none;
+    }
+    :global(:root:not([data-theme='light'])) .footer-brand .brand-dark {
+      display: block;
+    }
+  }
+  :global(:root[data-theme='dark']) .footer-brand .brand-light {
+    display: none;
+  }
+  :global(:root[data-theme='dark']) .footer-brand .brand-dark {
+    display: block;
+  }
+</style>

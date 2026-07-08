@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { type RefObject, useCallback } from 'react';
 import type { Control, ControllerRenderProps } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
@@ -5,7 +6,6 @@ import { Keyboard, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
-import { textGlow } from '@/utils/platformLayout';
 
 type LoginLayoutProps = {
   keyboardShown: boolean;
@@ -49,9 +49,18 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
 }
 
 export function LoginBrandHero({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
-  const theme = useAppTheme();
-  const shadowColor = colorScheme === 'light' ? theme.colors.background : theme.colors.scrim;
-  return <Text style={[styles.brandHero, textGlow(shadowColor)]}>RELab</Text>;
+  const source =
+    colorScheme === 'dark'
+      ? require('@/assets/images/logo-dark.png')
+      : require('@/assets/images/logo.png');
+  return (
+    <Image
+      source={source}
+      style={styles.brandLogo}
+      contentFit="contain"
+      accessibilityLabel="RELab"
+    />
+  );
 }
 
 type LoginFormSectionProps = {
@@ -200,10 +209,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '100%',
   },
-  brandHero: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    textAlign: 'left',
+  brandLogo: {
+    width: 128,
+    height: 128,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
   },
   dividerRow: {
     flexDirection: 'row',
