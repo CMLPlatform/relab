@@ -6,10 +6,12 @@ and do the work so both routers can be thin wrappers that differ only in
 which ownership dep resolves the id.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from fastapi import UploadFile
+from fastapi_pagination.links import Page
 
+from app.api.common.crud.pagination import paginate_select
 from app.api.common.form_json import parse_optional_json_object
 from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
 from app.api.data_collection.models.product import Product
@@ -17,9 +19,13 @@ from app.api.file_storage.crud.parent_media import (
     create_parent_media,
     delete_parent_media,
     get_parent_media,
-    list_parent_media,
 )
-from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
+from app.api.file_storage.crud.support_paths import storage_item_exists
+from app.api.file_storage.crud.support_services import (
+    file_storage_service,
+    image_storage_service,
+    parent_media_select,
+)
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import (
     FileCreate,
@@ -66,17 +72,20 @@ def _product_image_create(
 ### File handlers ###
 async def handle_list_files(
     session: AsyncSession, parent_id: int, item_filter: FileFilter
-) -> list[FileReadWithinParent]:
+) -> Page[FileReadWithinParent]:
     """List files attached to the given parent (product or component)."""
-    items = await list_parent_media(
-        session,
-        parent_model=Product,
-        parent_type=MediaParentType.PRODUCT,
-        storage_model=File,
-        parent_id=parent_id,
-        filter_params=item_filter,
+    statement = parent_media_select(
+        File, parent_type=MediaParentType.PRODUCT, parent_id=parent_id, filter_params=item_filter
     )
-    return [FileReadWithinParent.model_validate(item) for item in items]
+    page = await paginate_select(
+        session,
+        statement,
+        model=File,
+        transform=lambda rows: [
+            FileReadWithinParent.model_validate(item) for item in rows if storage_item_exists(item)
+        ],
+    )
+    return cast("Page[FileReadWithinParent]", page)
 
 
 async def handle_get_file(session: AsyncSession, parent_id: int, file_id: UUID4) -> FileReadWithinParent:
@@ -125,17 +134,20 @@ async def handle_delete_file(session: AsyncSession, parent_id: int, file_id: UUI
 
 async def handle_list_images(
     session: AsyncSession, parent_id: int, item_filter: ImageFilter
-) -> list[ImageReadWithinParent]:
+) -> Page[ImageReadWithinParent]:
     """List images attached to the given parent (product or component)."""
-    items = await list_parent_media(
-        session,
-        parent_model=Product,
-        parent_type=MediaParentType.PRODUCT,
-        storage_model=Image,
-        parent_id=parent_id,
-        filter_params=item_filter,
+    statement = parent_media_select(
+        Image, parent_type=MediaParentType.PRODUCT, parent_id=parent_id, filter_params=item_filter
     )
-    return [ImageReadWithinParent.model_validate(item) for item in items]
+    page = await paginate_select(
+        session,
+        statement,
+        model=Image,
+        transform=lambda rows: [
+            ImageReadWithinParent.model_validate(item) for item in rows if storage_item_exists(item)
+        ],
+    )
+    return cast("Page[ImageReadWithinParent]", page)
 
 
 async def handle_get_image(session: AsyncSession, parent_id: int, image_id: UUID4) -> ImageReadWithinParent:

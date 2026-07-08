@@ -9,6 +9,7 @@ from typing import Annotated
 
 from fastapi import Body, Depends, Form, Path, UploadFile
 from fastapi import File as FastAPIFile
+from fastapi_pagination.links import Page
 from pydantic import UUID4, BeforeValidator
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
@@ -143,14 +144,14 @@ async def add_component_to_product(
 
 @product_mutation_router.get(
     "/{product_id}/files",
-    response_model=list[FileReadWithinParent],
+    response_model=Page[FileReadWithinParent],
     summary="List files attached to a base product",
 )
 async def get_product_files(
     db_product: BaseProductDep,
     session: AsyncSessionDep,
     item_filter: FileFilter = Depends(_FILE_FILTER_DEPENDENCY),
-) -> list[FileReadWithinParent]:
+) -> Page[FileReadWithinParent]:
     """List all files attached to a base product."""
     return await handle_list_files(session, db_product.id, item_filter)
 
@@ -208,14 +209,14 @@ async def delete_product_file(
 
 @product_mutation_router.get(
     "/{product_id}/images",
-    response_model=list[ImageReadWithinParent],
+    response_model=Page[ImageReadWithinParent],
     summary="List images attached to a base product",
 )
 async def get_product_images(
     db_product: BaseProductDep,
     session: AsyncSessionDep,
     item_filter: ImageFilter = Depends(_IMAGE_FILTER_DEPENDENCY),
-) -> list[ImageReadWithinParent]:
+) -> Page[ImageReadWithinParent]:
     """List all images attached to a base product."""
     return await handle_list_images(session, db_product.id, item_filter)
 

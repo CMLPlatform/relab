@@ -3462,6 +3462,96 @@
         "title": "Page[TaxonomyRead]",
         "type": "object"
       },
+      "Page_TypeVar_Customized_FileReadWithinParent_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FileReadWithinParent"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "links": {
+            "$ref": "#/components/schemas/Links",
+            "readOnly": true
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "pages": {
+            "minimum": 0.0,
+            "title": "Pages",
+            "type": "integer"
+          },
+          "size": {
+            "minimum": 1.0,
+            "title": "Size",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "pages",
+          "links"
+        ],
+        "title": "Page[TypeVar]Customized[FileReadWithinParent]",
+        "type": "object"
+      },
+      "Page_TypeVar_Customized_ImageReadWithinParent_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ImageReadWithinParent"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "links": {
+            "$ref": "#/components/schemas/Links",
+            "readOnly": true
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "pages": {
+            "minimum": 0.0,
+            "title": "Pages",
+            "type": "integer"
+          },
+          "size": {
+            "minimum": 1.0,
+            "title": "Size",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "pages",
+          "links"
+        ],
+        "title": "Page[TypeVar]Customized[ImageReadWithinParent]",
+        "type": "object"
+      },
       "Page_TypeVar_Customized_ProductRead_": {
         "properties": {
           "items": {
@@ -7785,6 +7875,33 @@
             }
           },
           {
+            "description": "Page number",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Page number",
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Page size",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Size",
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "search",
             "required": false,
@@ -7907,11 +8024,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/FileReadWithinParent"
-                  },
-                  "title": "Response Get Component Files V1 Components  Component Id  Files Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/Page_TypeVar_Customized_FileReadWithinParent_"
                 }
               }
             },
@@ -8137,6 +8250,33 @@
             }
           },
           {
+            "description": "Page number",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Page number",
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Page size",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Size",
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "search",
             "required": false,
@@ -8259,11 +8399,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ImageReadWithinParent"
-                  },
-                  "title": "Response Get Component Images V1 Components  Component Id  Images Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/Page_TypeVar_Customized_ImageReadWithinParent_"
                 }
               }
             },
@@ -14362,6 +14498,33 @@
             }
           },
           {
+            "description": "Page number",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Page number",
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Page size",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Size",
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "search",
             "required": false,
@@ -14484,11 +14647,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/FileReadWithinParent"
-                  },
-                  "title": "Response Get Product Files V1 Products  Product Id  Files Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/Page_TypeVar_Customized_FileReadWithinParent_"
                 }
               }
             },
@@ -14714,6 +14873,33 @@
             }
           },
           {
+            "description": "Page number",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Page number",
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Page size",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Size",
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "search",
             "required": false,
@@ -14836,11 +15022,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ImageReadWithinParent"
-                  },
-                  "title": "Response Get Product Images V1 Products  Product Id  Images Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/Page_TypeVar_Customized_ImageReadWithinParent_"
                 }
               }
             },

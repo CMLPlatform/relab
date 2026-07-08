@@ -184,6 +184,27 @@ async def test_upload_file_accepts_hyperspectral_research_formats(
     assert filename not in body["file_url"]
 
 
+async def test_list_product_files_returns_paginated_page(
+    api_client_superuser: AsyncClient,
+    api_client: AsyncClient,
+    setup_product_for_files: Product,
+) -> None:
+    """The file list endpoint returns a fastapi-pagination Page envelope."""
+    upload = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/files",
+        files={"file": ("notes.txt", b"hello", "text/plain")},
+        data={"description": FILE_DESC},
+    )
+    assert upload.status_code == status.HTTP_201_CREATED, upload.text
+
+    response = await api_client.get(f"/v1/products/{setup_product_for_files.id}/files")
+
+    assert response.status_code == status.HTTP_200_OK
+    body = response.json()
+    assert body["total"] == 1
+    assert [item["filename"] for item in body["items"]] == ["notes.txt"]
+
+
 async def test_upload_file_rejects_unsupported_extension(
     api_client_superuser: AsyncClient,
     setup_product_for_files: Product,

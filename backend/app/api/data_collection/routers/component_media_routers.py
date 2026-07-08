@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, Form, Path, UploadFile
 from fastapi import File as FastAPIFile
+from fastapi_pagination.links import Page
 from pydantic import UUID4, BeforeValidator
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
@@ -33,14 +34,14 @@ _IMAGE_FILTER_DEPENDENCY = create_filter_dependency(ImageFilter)
 
 @component_media_router.get(
     "/{component_id}/files",
-    response_model=list[FileReadWithinParent],
+    response_model=Page[FileReadWithinParent],
     summary="List files attached to a component",
 )
 async def get_component_files(
     db_component: ComponentDep,
     session: AsyncSessionDep,
     item_filter: FileFilter = Depends(_FILE_FILTER_DEPENDENCY),
-) -> list[FileReadWithinParent]:
+) -> Page[FileReadWithinParent]:
     """List all files attached to a component."""
     return await handle_list_files(session, db_component.id, item_filter)
 
@@ -95,14 +96,14 @@ async def delete_component_file(
 
 @component_media_router.get(
     "/{component_id}/images",
-    response_model=list[ImageReadWithinParent],
+    response_model=Page[ImageReadWithinParent],
     summary="List images attached to a component",
 )
 async def get_component_images(
     db_component: ComponentDep,
     session: AsyncSessionDep,
     item_filter: ImageFilter = Depends(_IMAGE_FILTER_DEPENDENCY),
-) -> list[ImageReadWithinParent]:
+) -> Page[ImageReadWithinParent]:
     """List all images attached to a component."""
     return await handle_list_images(session, db_component.id, item_filter)
 

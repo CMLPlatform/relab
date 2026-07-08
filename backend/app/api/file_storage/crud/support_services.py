@@ -94,6 +94,21 @@ async def get_parent_owned_storage_item[StorageModelT: StorageModel](
     return ensure_storage_item_found(model, item_id, db_item)
 
 
+def parent_media_select[StorageModelT: StorageModel](
+    model: type[StorageModelT],
+    *,
+    parent_type: MediaParentType,
+    parent_id: int,
+    filter_params: BaseFilterSet | None = None,
+) -> Select[tuple[StorageModelT]]:
+    """Build the filtered (unpaginated) select for one parent/type scope."""
+    statement: Select[tuple[StorageModelT]] = select(model).where(
+        model.parent_type == parent_type,
+        model.parent_id == parent_id,
+    )
+    return apply_filter(statement, model, filter_params)
+
+
 async def list_parent_storage_items[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
@@ -104,11 +119,7 @@ async def list_parent_storage_items[StorageModelT: StorageModel](
     limit: int | None = None,
 ) -> list[StorageModelT]:
     """List storage items owned by one parent/type scope."""
-    statement: Select[tuple[StorageModelT]] = select(model).where(
-        model.parent_type == parent_type,
-        model.parent_id == parent_id,
-    )
-    statement = apply_filter(statement, model, filter_params)
+    statement = parent_media_select(model, parent_type=parent_type, parent_id=parent_id, filter_params=filter_params)
     if limit is not None:
         statement = statement.limit(limit)
     return list((await db.execute(statement)).scalars().all())

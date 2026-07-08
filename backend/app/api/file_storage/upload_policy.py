@@ -1,6 +1,7 @@
 """Central upload allowlists and validation helpers."""
 
 import json
+import zlib
 from pathlib import Path
 from typing import TYPE_CHECKING
 from zipfile import BadZipFile, ZipFile, ZipInfo
@@ -21,6 +22,7 @@ PARENT_DIRECTORY_PART = ".."
 WINDOWS_PATH_SEPARATOR = "\\"
 MAX_COMPRESSED_FILE_COUNT = 500
 ZIP_SYMLINK_FILE_TYPE = 0o120000
+ZIP_MEMBER_READ_CHUNK = 64 * 1024
 
 RESEARCH_FILE_EXTENSIONS: frozenset[str] = frozenset(
     {
@@ -106,23 +108,24 @@ def _safe_upload_name(upload_file: UploadFile) -> str:
     return filename
 
 
-def _single_normalized_extension(name: str) -> str:
-    """Return the single normalized extension, rejecting bypass-prone names."""
-    path = Path(name)
-    suffixes = path.suffixes
-    if not suffixes:
+def _final_extension(name: str) -> str:
+    """Return the normalized final extension.
+
+    Uses the last suffix only, so legitimate dotted research filenames
+    (``sample.v2.csv``, ``2024-01-15.dat``) are accepted. Stored files are
+    renamed to ``{uuid}{ext}``, so a double extension can't be a storage bypass.
+    """
+    suffix = Path(name).suffix
+    if not suffix:
         msg = "File extension is required."
         raise BadRequestError(msg)
-    if len(suffixes) > 1:
-        msg = "File names with multiple extensions are not supported."
-        raise BadRequestError(msg)
-    return suffixes[0].lower()
+    return suffix.lower()
 
 
 def _validated_generic_file_extension(upload_file: UploadFile) -> str:
     """Return the normalized extension after generic file policy checks."""
     name = _safe_upload_name(upload_file)
-    extension = _single_normalized_extension(name)
+    extension = _final_extension(name)
     if extension not in GENERIC_FILE_EXTENSIONS:
         allowed = ", ".join(sorted(GENERIC_FILE_EXTENSIONS))
         msg = f"File extension {extension} is not supported. Allowed extensions: {allowed}"
@@ -172,9 +175,9 @@ def _validate_ooxml_content(upload_file: UploadFile, extension: str) -> None:
         upload_file.file.seek(0)
         with ZipFile(upload_file.file) as archive:
             infos = archive.infolist()
-            _validate_compressed_members(infos, max_unpacked_size_bytes=_max_compressed_unpacked_size_bytes())
+            _validate_compressed_members(archive, infos, max_unpacked_size_bytes=_max_compressed_unpacked_size_bytes())
             names = frozenset(info.filename for info in infos)
-    except (AttributeError, BadZipFile, OSError) as exc:
+    except (AttributeError, BadZipFile, OSError, zlib.error) as exc:
         _reject_content_mismatch(extension, exc)
     finally:
         upload_file.file.seek(0)
@@ -198,7 +201,25 @@ def _validate_compressed_member_path(name: str) -> None:
         raise BadRequestError(msg)
 
 
-def _validate_compressed_members(infos: list[ZipInfo], *, max_unpacked_size_bytes: int) -> None:
+def _decompressed_size_capped(member: object, limit: int) -> int:
+    """Return the member's decompressed size, reading at most ``limit`` bytes.
+
+    Stops as soon as the running total passes ``limit`` so a bomb never fully
+    inflates; memory stays bounded to one chunk.
+    """
+    total = 0
+    read = member.read  # type: ignore[attr-defined]
+    while True:
+        chunk = read(ZIP_MEMBER_READ_CHUNK)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > limit:
+            break
+    return total
+
+
+def _validate_compressed_members(archive: ZipFile, infos: list[ZipInfo], *, max_unpacked_size_bytes: int) -> None:
     if len(infos) > MAX_COMPRESSED_FILE_COUNT:
         msg = f"Compressed file contains too many files. Maximum: {MAX_COMPRESSED_FILE_COUNT}"
         raise BadRequestError(msg)
@@ -209,7 +230,11 @@ def _validate_compressed_members(infos: list[ZipInfo], *, max_unpacked_size_byte
         if _is_zip_symlink(info):
             msg = "Compressed files containing symlinks are not supported."
             raise BadRequestError(msg)
-        total_unpacked_size += info.file_size
+        # info.file_size (central-directory metadata) is attacker-forgeable, so measure
+        # the real inflated size with a bounded read instead of trusting the header.
+        remaining = max_unpacked_size_bytes - total_unpacked_size
+        with archive.open(info) as member:
+            total_unpacked_size += _decompressed_size_capped(member, remaining)
         if total_unpacked_size > max_unpacked_size_bytes:
             msg = f"Compressed file uncompressed size exceeds the maximum allowed {max_unpacked_size_bytes} bytes."
             raise BadRequestError(msg)
@@ -231,7 +256,7 @@ def validate_generic_file_upload_content(upload_file: UploadFile) -> UploadFile:
 def validate_image_upload_metadata(upload_file: UploadFile) -> UploadFile:
     """Validate image upload metadata before content inspection."""
     name = _safe_upload_name(upload_file)
-    extension = _single_normalized_extension(name)
+    extension = _final_extension(name)
     if extension in HYPERSPECTRAL_FILE_EXTENSIONS:
         msg = f"File extension {extension} is not supported for image uploads. Use file uploads instead."
         raise BadRequestError(msg)
@@ -257,7 +282,7 @@ def validate_image_upload_content(upload_file: UploadFile) -> UploadFile:
     """Validate that image content matches its declared upload metadata."""
     validate_image_upload_metadata(upload_file)
     name = _safe_upload_name(upload_file)
-    expected_format = IMAGE_EXTENSION_TO_FORMAT[_single_normalized_extension(name)]
+    expected_format = IMAGE_EXTENSION_TO_FORMAT[_final_extension(name)]
 
     upload_file.file.seek(0)
     try:

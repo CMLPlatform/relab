@@ -4286,6 +4286,34 @@ export interface components {
       /** Pages */
       pages: number;
     };
+    /** Page[TypeVar]Customized[FileReadWithinParent] */
+    Page_TypeVar_Customized_FileReadWithinParent_: {
+      /** Items */
+      items: components['schemas']['FileReadWithinParent'][];
+      /** Total */
+      total: number;
+      /** Page */
+      page: number;
+      /** Size */
+      size: number;
+      /** Pages */
+      pages: number;
+      readonly links: components['schemas']['Links'];
+    };
+    /** Page[TypeVar]Customized[ImageReadWithinParent] */
+    Page_TypeVar_Customized_ImageReadWithinParent_: {
+      /** Items */
+      items: components['schemas']['ImageReadWithinParent'][];
+      /** Total */
+      total: number;
+      /** Page */
+      page: number;
+      /** Size */
+      size: number;
+      /** Pages */
+      pages: number;
+      readonly links: components['schemas']['Links'];
+    };
     /** Page[TypeVar]Customized[ProductRead] */
     Page_TypeVar_Customized_ProductRead_: {
       /** Items */
@@ -7725,6 +7753,10 @@ export interface operations {
   get_product_files_v1_products__product_id__files_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         filename?: string | null;
         'filename[ilike]'?: string | null;
@@ -7755,7 +7787,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['FileReadWithinParent'][];
+          'application/json': components['schemas']['Page_TypeVar_Customized_FileReadWithinParent_'];
         };
       };
       /** @description Validation Error */
@@ -7871,6 +7903,10 @@ export interface operations {
   get_product_images_v1_products__product_id__images_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         filename?: string | null;
         'filename[ilike]'?: string | null;
@@ -7901,7 +7937,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ImageReadWithinParent'][];
+          'application/json': components['schemas']['Page_TypeVar_Customized_ImageReadWithinParent_'];
         };
       };
       /** @description Validation Error */
@@ -8147,6 +8183,10 @@ export interface operations {
   get_component_files_v1_components__component_id__files_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         filename?: string | null;
         'filename[ilike]'?: string | null;
@@ -8177,7 +8217,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['FileReadWithinParent'][];
+          'application/json': components['schemas']['Page_TypeVar_Customized_FileReadWithinParent_'];
         };
       };
       /** @description Validation Error */
@@ -8293,6 +8333,10 @@ export interface operations {
   get_component_images_v1_components__component_id__images_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         filename?: string | null;
         'filename[ilike]'?: string | null;
@@ -8323,7 +8367,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ImageReadWithinParent'][];
+          'application/json': components['schemas']['Page_TypeVar_Customized_ImageReadWithinParent_'];
         };
       };
       /** @description Validation Error */

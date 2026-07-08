@@ -151,6 +151,15 @@ def test_generic_file_upload_policy_accepts_research_and_hyperspectral_extension
     assert validate_generic_file_upload_metadata(_upload(filename, content_type)).filename == filename
 
 
+@pytest.mark.parametrize(
+    "filename",
+    ["sample.v2.csv", "2024-01-15.dat", "spectrum.400-700nm.tsv", "run.2.h5"],
+)
+def test_generic_file_upload_policy_accepts_dotted_names_with_allowed_final_extension(filename: str) -> None:
+    """Dotted research filenames are accepted when the final extension is on the allowlist."""
+    assert validate_generic_file_upload_metadata(_upload(filename, "application/octet-stream")).filename == filename
+
+
 @pytest.mark.parametrize("extension", sorted(HYPERSPECTRAL_FILE_EXTENSIONS))
 def test_image_upload_policy_rejects_hyperspectral_extensions(extension: str) -> None:
     """Hyperspectral data belongs in file uploads, not image processing routes."""
