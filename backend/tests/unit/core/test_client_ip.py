@@ -19,11 +19,12 @@ def test_extract_client_ip_ignores_spoofed_proxy_header_from_untrusted_peer() ->
     assert extract_client_ip(headers, "198.51.100.20", trusted_proxy_cidrs=("172.16.0.0/12",)) == "198.51.100.20"
 
 
-def test_extract_client_ip_uses_first_forwarded_for_from_trusted_peer() -> None:
-    """X-Forwarded-For should use the original client entry when the peer is trusted."""
+def test_extract_client_ip_uses_last_forwarded_for_from_trusted_peer() -> None:
+    """X-Forwarded-For uses the rightmost (proxy-attached) entry; leftmost entries are client-spoofable."""
+    # A client can forge the leftmost 203.0.113.10; the trusted proxy appends the real 172.18.0.5.
     headers = Headers({"X-Forwarded-For": "203.0.113.10, 172.18.0.5"})
 
-    assert extract_client_ip(headers, "127.0.0.1", trusted_proxy_cidrs=("127.0.0.0/8",)) == "203.0.113.10"
+    assert extract_client_ip(headers, "127.0.0.1", trusted_proxy_cidrs=("127.0.0.0/8",)) == "172.18.0.5"
 
 
 def test_extract_client_ip_ignores_malformed_proxy_header_from_trusted_peer() -> None:

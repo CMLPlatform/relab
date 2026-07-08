@@ -54,7 +54,7 @@ def extract_client_ip(
     Checks headers in priority order:
     1. ``CF-Connecting-IP`` — set by Cloudflare (most reliable behind cloudflared)
     2. ``X-Real-IP`` — set by nginx and other reverse proxies
-    3. First entry of ``X-Forwarded-For``
+    3. Last (proxy-attached) entry of ``X-Forwarded-For``
     4. ``fallback`` — the raw transport address
     """
     trusted_cidrs = settings.trusted_proxy_cidrs if trusted_proxy_cidrs is None else trusted_proxy_cidrs
@@ -65,9 +65,12 @@ def extract_client_ip(
         if ip := _valid_ip(headers.get(header, "")):
             return ip
 
+    # Read X-Forwarded-For right-to-left: the rightmost entry is the address the trusted
+    # proxy observed, while leftmost entries are client-supplied and spoofable — taking
+    # the first would let a caller forge rate-limit / audit identity.
     forwarded_for = headers.get("X-Forwarded-For", "").strip()
     if forwarded_for:
-        for candidate in forwarded_for.split(","):
+        for candidate in reversed(forwarded_for.split(",")):
             if ip := _valid_ip(candidate):
                 return ip
 
