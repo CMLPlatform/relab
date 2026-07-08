@@ -7,13 +7,15 @@ import type { AppTheme } from './types';
  * light/dark toggle (old entries are GC'd via WeakMap).
  */
 export function memoizeByTheme<T>(build: (theme: AppTheme) => T): (theme: AppTheme) => T {
-  const cache = new WeakMap<AppTheme, T>();
+  // Wrap the value so a falsy build() result (0, '', null) still counts as cached;
+  // the wrapper object is always truthy, so `!entry` only fires when genuinely absent.
+  const cache = new WeakMap<AppTheme, { value: T }>();
   return (theme) => {
-    let styles = cache.get(theme);
-    if (!styles) {
-      styles = build(theme);
-      cache.set(theme, styles);
+    let entry = cache.get(theme);
+    if (!entry) {
+      entry = { value: build(theme) };
+      cache.set(theme, entry);
     }
-    return styles;
+    return entry.value;
   };
 }

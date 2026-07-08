@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type RN from 'react-native';
 import { Platform, Pressable } from 'react-native';
 import { Text } from './Text';
@@ -54,6 +54,13 @@ export default function LocalizedFloatInput({
   const decimalSeparator = getDecimalSeparator();
   const normalizedValue = value == null || Number.isNaN(value) ? undefined : value;
   const [text, setText] = useState(toLocalizedString(normalizedValue, decimalSeparator));
+
+  // Resync the field when the `value` prop changes externally (async load, refetch,
+  // parent reset). This can't clobber typing: the parent only gets updates on blur,
+  // so `normalizedValue` is stable while the user types and the effect stays idle.
+  useEffect(() => {
+    setText(toLocalizedString(normalizedValue, decimalSeparator));
+  }, [normalizedValue, decimalSeparator]);
   const inputStyle = {
     textAlign: Platform.OS === 'web' ? 'right' : undefined,
     height: 38,
