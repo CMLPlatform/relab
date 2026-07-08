@@ -2,7 +2,7 @@ import { ImageBackground } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 
-export function AnimatedBackground() {
+export function StaticBackground() {
   const colorScheme = useEffectiveColorScheme();
 
   const image =
