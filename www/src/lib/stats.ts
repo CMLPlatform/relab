@@ -64,6 +64,9 @@ export async function fetchHomeStats(): Promise<HomeStats | null> {
     if (![t?.teardowns, t?.parts, t?.mass_kg, t?.images, t?.users].every(Number.isFinite)) {
       throw new Error('unexpected totals shape');
     }
+    if (Number.isNaN(new Date(totals.generated_at).getTime())) {
+      throw new Error('unexpected totals shape');
+    }
     return {
       totals: t,
       categories: categories.categories.filter(
