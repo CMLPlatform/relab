@@ -57,16 +57,24 @@ async def test_get_user_by_id_as_superuser(api_client_superuser: AsyncClient, db
     assert "is_verified" in data
 
 
-async def test_admin_users_requires_superuser(api_client: AsyncClient, db_session: AsyncSession) -> None:
-    """Admin user endpoints require superuser role."""
-    # Create regular user and authenticate
-    await UserFactory.create_async(db_session, email="regular@example.com", username="regular_user")
-    # Use unauthenticated client (since there's no regular user auth fixture)
-    # Admin endpoints should 403 without superuser
-
+async def test_admin_users_rejects_anonymous(api_client: AsyncClient) -> None:
+    """Admin user endpoints reject unauthenticated requests."""
     response = await api_client.get("/v1/admin/users")
 
-    # Without authentication, should be 403 or similar (depends on auth middleware)
+    assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
+
+
+async def test_admin_users_rejects_regular_user(api_client_user: AsyncClient) -> None:
+    """An authenticated non-superuser must not reach admin user endpoints.
+
+    Guards against a privilege downgrade (e.g. CurrentActiveSuperUserDep ->
+    CurrentActiveUserDep): that would let this authenticated regular user through
+    with a 200, which this test forbids. api_client_user overrides only the
+    regular-user dependency, so the real superuser gate still runs and denies it.
+    """
+    response = await api_client_user.get("/v1/admin/users")
+
+    assert response.status_code != status.HTTP_200_OK
     assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
 
 

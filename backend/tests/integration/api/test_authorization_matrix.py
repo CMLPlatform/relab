@@ -121,6 +121,11 @@ async def test_authorization_matrix_for_representative_route_classes(
             "regular user foreign scoped product list",
         )
 
+        # NOTE: the 403 here is injected, not end-to-end. This harness fakes auth by
+        # overriding current_active_user only, so the real superuser gate can't see the
+        # fake user; we force its denial to assert the route *declares* the guard. A true
+        # non-superuser-denied-by-real-dependency assertion lives in test_admin_routers.py
+        # (test_admin_users_rejects_regular_user).
         test_app.dependency_overrides[current_active_superuser] = raise_forbidden
         try:
             regular_admin = await api_client.post("/v1/admin/taxonomies", json=taxonomy_payload)
