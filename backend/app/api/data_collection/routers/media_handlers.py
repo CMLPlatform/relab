@@ -9,7 +9,6 @@ which ownership dep resolves the id.
 from typing import TYPE_CHECKING, cast
 
 from fastapi import UploadFile
-from fastapi_pagination.links import Page
 
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.form_json import parse_optional_json_object
@@ -35,6 +34,7 @@ from app.api.file_storage.schemas import (
 )
 
 if TYPE_CHECKING:
+    from fastapi_pagination.links import Page
     from pydantic import UUID4
     from sqlalchemy.ext.asyncio import AsyncSession
 
