@@ -54,11 +54,39 @@ async def test_send_command_uses_model_package_command_builder_and_resolves_resp
         await asyncio.wait_for(command_sent.wait(), timeout=1)
         assert websocket.send_text.await_args is not None
         payload = json.loads(websocket.send_text.await_args.args[0])
-        manager.resolve_json(payload["id"], {"status": 200, "data": {"ok": True}}, None)
+        manager.resolve_json(camera_id, payload["id"], {"status": 200, "data": {"ok": True}}, None)
 
         assert await command_task == ({"status": 200, "data": {"ok": True}}, None)
         assert payload["method"] == "GET"
         assert payload["path"] == "/camera"
+    finally:
+        if not command_task.done():
+            command_task.cancel()
+            await asyncio.gather(command_task, return_exceptions=True)
+
+
+async def test_resolve_json_ignores_response_from_other_camera() -> None:
+    """A response carrying another camera's msg_id must not resolve the pending command."""
+    manager = CameraConnectionManager()
+    camera_id = uuid4()
+    other_camera_id = uuid4()
+    websocket = AsyncMock()
+    command_sent = asyncio.Event()
+    websocket.send_text = AsyncMock(side_effect=lambda *_args, **_kwargs: command_sent.set())
+    await manager.register(camera_id, websocket)
+
+    command_task = asyncio.create_task(manager.send_command(camera_id, "GET", "/camera"))
+    try:
+        await asyncio.wait_for(command_sent.wait(), timeout=1)
+        payload = json.loads(websocket.send_text.await_args.args[0])
+
+        # Wrong owner: ignored, command stays pending.
+        manager.resolve_json(other_camera_id, payload["id"], {"status": 500, "data": {}}, None)
+        assert not command_task.done()
+
+        # Correct owner: resolves.
+        manager.resolve_json(camera_id, payload["id"], {"status": 200, "data": {"ok": True}}, None)
+        assert await command_task == ({"status": 200, "data": {"ok": True}}, None)
     finally:
         if not command_task.done():
             command_task.cancel()

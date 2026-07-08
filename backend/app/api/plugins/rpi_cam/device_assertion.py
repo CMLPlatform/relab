@@ -64,6 +64,12 @@ async def verify_device_assertion(assertion: str, camera: Camera, redis: Redis) 
     if payload.get("sub") != expected_camera_claim:
         msg = "Assertion subject does not match camera"
         raise InvalidTokenError(msg)
+    # Bound the token lifetime so replay protection (a jti key that lives at most
+    # MAX_ASSERTION_TTL_SECONDS) always covers the token's full validity window.
+    # Don't trust the Pi to keep its mint TTL under the cap.
+    if int(payload["exp"]) - int(payload["iat"]) > MAX_ASSERTION_TTL_SECONDS:
+        msg = "Assertion lifetime exceeds allowed maximum"
+        raise InvalidTokenError(msg)
 
     jti = str(payload.get("jti") or "")
     if not jti:

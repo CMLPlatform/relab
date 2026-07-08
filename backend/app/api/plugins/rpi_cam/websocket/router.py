@@ -90,7 +90,7 @@ class _RelayWebSocketSession:
         """Process a binary frame and update any pending binary response state."""
         if self.pending_binary_responses:
             pending = self.pending_binary_responses.popleft()
-            self.manager.resolve_json(pending.id, pending.header, binary_data)
+            self.manager.resolve_json(self.camera_id, pending.id, pending.header, binary_data)
             return
 
         logger.warning("Camera %s sent unexpected binary frame, ignoring.", sanitize_log_value(self.camera_id))
@@ -109,7 +109,7 @@ class _RelayWebSocketSession:
             self.pending_binary_responses.append(_PendingBinaryResponse(id=msg_id, header=response))
             return
 
-        self.manager.resolve_json(msg_id, response, None)
+        self.manager.resolve_json(self.camera_id, msg_id, response, None)
 
 
 @router.websocket("/plugins/rpi-cam/ws/connect")

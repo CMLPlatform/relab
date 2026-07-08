@@ -12,7 +12,12 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_bucket_key
-from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion as _verify_device_assertion
+from app.api.plugins.rpi_cam.device_assertion import (
+    MAX_ASSERTION_TTL_SECONDS,
+)
+from app.api.plugins.rpi_cam.device_assertion import (
+    verify_device_assertion as _verify_device_assertion,
+)
 from app.api.plugins.rpi_cam.websocket.router import (
     _authenticate,
     _heartbeat_loop,
@@ -210,6 +215,7 @@ async def test_session_pairs_binary_frame_with_pending_response() -> None:
     session.handle_binary_frame(b"payload")
 
     manager.resolve_json.assert_called_once_with(
+        session.camera_id,
         "msg-1",
         {
             "id": "msg-1",
@@ -236,7 +242,7 @@ async def test_session_pairs_pipelined_binary_responses_in_order() -> None:
     session.handle_binary_frame(b"first")
     session.handle_binary_frame(b"second")
 
-    resolved = [(call.args[0], call.args[2]) for call in manager.resolve_json.call_args_list]
+    resolved = [(call.args[1], call.args[3]) for call in manager.resolve_json.call_args_list]
     assert resolved == [("msg-3", None), ("msg-1", b"first"), ("msg-2", b"second")]
     assert not session.pending_binary_responses
 
@@ -314,6 +320,21 @@ async def test_accepts_valid_assertion() -> None:
 
     assert payload["sub"] == f"camera:{camera.id}"
     assert payload["kid"] == key_id
+
+
+async def test_rejects_assertion_lifetime_over_cap() -> None:
+    """An assertion whose lifetime exceeds the replay-tracking cap is rejected."""
+    key_id = "key-1"
+    private_key, jwk = _make_key()
+    camera = _make_camera(key_id, jwk)
+    redis = AsyncMock()
+    redis.set = AsyncMock(return_value=True)
+
+    assertion = _make_assertion(
+        private_key, str(camera.id), key_id, exp_offset=MAX_ASSERTION_TTL_SECONDS + 60
+    )
+    with pytest.raises(jwt.InvalidTokenError, match="lifetime"):
+        await _verify_device_assertion(assertion, camera, redis)
 
 
 async def test_rejects_expired_assertion() -> None:

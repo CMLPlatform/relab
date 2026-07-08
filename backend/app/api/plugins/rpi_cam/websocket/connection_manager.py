@@ -127,10 +127,15 @@ class CameraConnectionManager:
 
     # ── Called by the receive loop in router.py ───────────────────────────────
 
-    def resolve_json(self, msg_id: str, data: dict, binary: bytes | None) -> None:
-        """Resolve a pending future with the response from the camera."""
+    def resolve_json(self, camera_id: UUID4, msg_id: str, data: dict, binary: bytes | None) -> None:
+        """Resolve a pending future with the response from the camera.
+
+        The response must come from the camera that owns the pending command:
+        ``msg_id`` alone is trusted input from the socket, so a frame from a
+        different camera carrying another's msg_id must not resolve it.
+        """
         entry = self._pending.get(msg_id)
-        if entry and not entry[1].done():
+        if entry and entry[0] == camera_id and not entry[1].done():
             entry[1].set_result((data, binary))
 
     async def handle_ping(self, camera_id: UUID4) -> None:
