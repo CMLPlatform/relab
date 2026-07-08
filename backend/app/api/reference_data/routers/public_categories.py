@@ -53,7 +53,7 @@ async def _page_categories_with_relationships(
 ) -> Page[Category]:
     """Page categories using an explicit public read query."""
     statement: Select[tuple[Category]] = select(Category)
-    statement = apply_filter(statement, Category, category_filter)
+    statement = apply_filter(statement, category_filter)
     statement = apply_loader_profile(
         statement,
         Category,
@@ -71,7 +71,7 @@ async def _page_subcategories(
 ) -> Page[Category]:
     """Page direct subcategories for one parent category."""
     statement: Select[tuple[Category]] = select(Category).where(Category.supercategory_id == category_id)
-    statement = apply_filter(statement, Category, category_filter)
+    statement = apply_filter(statement, category_filter)
     statement = apply_loader_profile(
         statement,
         Category,

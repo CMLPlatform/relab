@@ -33,7 +33,7 @@ async def page_models(
 ) -> Page[Any]:
     """Return a page of models matching a query."""
     statement = statement if statement is not None else select(model)
-    statement = apply_filter(statement, model, filters)
+    statement = apply_filter(statement, filters)
     statement = apply_loader_profile(statement, model, loaders, read_schema=read_schema)
     return await paginate_select(db, statement, model=model)
 

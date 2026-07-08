@@ -84,7 +84,6 @@ def test_search_is_handled_by_relab_adapter(filter_cls: type, table_name: str) -
     """Search should remain PostgreSQL tsvector/trigram logic owned by RELab."""
     statement = apply_filter(
         select(filter_cls.filter_model),
-        filter_cls.filter_model,
         filter_cls().with_search("steel"),
     )
 
@@ -154,7 +153,7 @@ def test_search_column_value_is_bound_not_sql_text() -> None:
     """Taxonomy free-text search should bind values even without tsvector search."""
     search = "taxonomy'); DROP TABLE taxonomy; --"
 
-    compiled = apply_filter(select(Taxonomy), Taxonomy, TaxonomyFilter().with_search(search)).compile(
+    compiled = apply_filter(select(Taxonomy), TaxonomyFilter().with_search(search)).compile(
         dialect=postgresql.dialect()
     )
 

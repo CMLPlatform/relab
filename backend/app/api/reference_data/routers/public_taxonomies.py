@@ -43,7 +43,7 @@ async def _page_taxonomy_categories(
 ) -> Page[Category]:
     """Page categories scoped to one taxonomy (serialized via ``CategoryRead`` by FastAPI)."""
     statement: Select[tuple[Category]] = select(Category).where(Category.taxonomy_id == taxonomy_id)
-    statement = apply_filter(statement, Category, category_filter)
+    statement = apply_filter(statement, category_filter)
     statement = apply_loader_profile(statement, Category, read_schema=CategoryRead)
     return await paginate_select(session, statement, model=Category)
 
@@ -55,7 +55,7 @@ async def _page_taxonomies(
 ) -> Page[Taxonomy]:
     """Page public taxonomies from an explicit taxonomy query (serialized via ``TaxonomyRead``)."""
     statement: Select[tuple[Taxonomy]] = select(Taxonomy)
-    statement = apply_filter(statement, Taxonomy, taxonomy_filter)
+    statement = apply_filter(statement, taxonomy_filter)
     statement = apply_loader_profile(statement, Taxonomy, read_schema=TaxonomyRead)
     return await paginate_select(session, statement, model=Taxonomy)
 

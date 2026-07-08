@@ -70,7 +70,7 @@ async def _list_product_videos(
 ) -> list[Video]:
     """List videos scoped to one product."""
     statement: Select[tuple[Video]] = select(Video).where(Video.product_id == product_id)
-    statement = apply_filter(statement, Video, video_filter)
+    statement = apply_filter(statement, video_filter)
     statement = statement.limit(SUB_RESOURCE_LIMIT)
     return list((await session.execute(statement)).scalars().unique().all())
 

@@ -167,7 +167,7 @@ def test_facet_statement_rejects_non_allowlisted_field() -> None:
 
 def _filter_sql(search: str | None, order_by: list[tuple[str, str, None]] | None) -> str:
     product_filter = ProductFilter().with_search(search)
-    stmt = apply_filter(select(Product), Product, product_filter.with_sorting(order_by or []))
+    stmt = apply_filter(select(Product), product_filter.with_sorting(order_by or []))
     return _sql(stmt)
 
 
@@ -226,7 +226,7 @@ def test_ilike_filter_value_is_bound_not_sql_text() -> None:
     value = "brand'); DROP TABLE product; --"
     product_filter = _from_ilike(ProductFilter, "brand", value)
 
-    compiled = _compiled(apply_filter(select(Product), Product, product_filter))
+    compiled = _compiled(apply_filter(select(Product), product_filter))
 
     assert value not in str(compiled)
     assert value in compiled.params.values()
@@ -237,7 +237,7 @@ def test_in_filter_values_are_bound_not_sql_text() -> None:
     values = ["Bosch", "Makita'); DROP TABLE product; --"]
     product_filter = _from_in(ProductFilter, "brand", values)
 
-    compiled = _compiled(apply_filter(select(Product), Product, product_filter))
+    compiled = _compiled(apply_filter(select(Product), product_filter))
 
     assert all(value not in str(compiled) for value in values)
     assert values in compiled.params.values()

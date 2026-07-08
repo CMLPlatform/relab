@@ -64,7 +64,7 @@ async def get_user_cameras(
 ) -> list[Camera | CameraReadWithStatus]:
     """Get all Raspberry Pi cameras of the current user."""
     statement = select(Camera).where(Camera.owner_id == current_user.id)
-    statement = apply_filter(statement, Camera, camera_filter)
+    statement = apply_filter(statement, camera_filter)
     db_cameras = list((await session.execute(statement)).scalars().unique().all())
 
     if not (include_status or include_telemetry):

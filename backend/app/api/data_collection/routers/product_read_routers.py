@@ -71,7 +71,7 @@ async def _list_direct_components(
     """List direct child components for a product."""
     statement = select(Product).where(Product.parent_id == product_id)
     statement = apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS)
-    statement = apply_filter(statement, Product, product_filter)
+    statement = apply_filter(statement, product_filter)
     return list((await session.execute(statement)).scalars().unique().all())
 
 
@@ -83,7 +83,7 @@ async def _page_base_products(
     viewer: OptionalCurrentActiveUserDep,
 ) -> Page[ProductRead]:
     """Page base products through ProductRead, applying per-owner privacy redaction."""
-    statement = apply_filter(statement, Product, product_filter)
+    statement = apply_filter(statement, product_filter)
     statement = apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS)
     page = await paginate_select(
         session,

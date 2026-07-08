@@ -64,7 +64,7 @@ def test_inactive_filter_leaves_statement_unchanged() -> None:
     """Empty fastapi-filters FilterSets should not add joins or where clauses."""
     statement = select(Material)
 
-    updated_statement = apply_filter(statement, Material, MaterialFilterWithRelationships())
+    updated_statement = apply_filter(statement, MaterialFilterWithRelationships())
 
     assert str(updated_statement) == str(statement)
 
@@ -73,7 +73,7 @@ def test_relationship_filter_uses_explicit_join_metadata() -> None:
     """Relationship-backed fields should join only their allowlisted relationship."""
     filters = MaterialFilterWithRelationships.from_ops(MaterialFilterWithRelationships.category_name.ilike("metal"))
 
-    updated_statement = apply_filter(select(Material), Material, filters)
+    updated_statement = apply_filter(select(Material), filters)
     sql = str(updated_statement).lower()
 
     assert "join categorymateriallink" in sql
@@ -85,7 +85,7 @@ def test_relationship_sort_uses_explicit_join_metadata() -> None:
     """Relationship-backed sort fields should also join their allowlisted relationship."""
     filters = MaterialFilterWithRelationships().with_sorting([("category_name", "asc", None)])
 
-    updated_statement = apply_filter(select(Material), Material, filters)
+    updated_statement = apply_filter(select(Material), filters)
     sql = str(updated_statement).lower()
 
     assert "join categorymateriallink" in sql
@@ -98,7 +98,7 @@ def test_relationship_filter_value_is_bound_not_sql_text() -> None:
     value = "metal'); DROP TABLE material; --"
     filters = MaterialFilterWithRelationships.from_ops(MaterialFilterWithRelationships.category_name.ilike(value))
 
-    compiled = apply_filter(select(Material), Material, filters).compile(dialect=postgresql.dialect())
+    compiled = apply_filter(select(Material), filters).compile(dialect=postgresql.dialect())
 
     assert value not in str(compiled)
     assert value in compiled.params.values()

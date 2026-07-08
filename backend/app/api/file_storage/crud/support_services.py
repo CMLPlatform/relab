@@ -106,7 +106,7 @@ def parent_media_select[StorageModelT: StorageModel](
         model.parent_type == parent_type,
         model.parent_id == parent_id,
     )
-    return apply_filter(statement, model, filter_params)
+    return apply_filter(statement, filter_params)
 
 
 async def list_parent_storage_items[StorageModelT: StorageModel](

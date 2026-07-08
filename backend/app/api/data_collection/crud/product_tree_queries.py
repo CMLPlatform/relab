@@ -76,7 +76,7 @@ async def load_component_subtree(
             selectinload(orm_attr(Product.bill_of_materials)),
         )
     )
-    root_statement = apply_filter(root_statement, Product, product_filter)
+    root_statement = apply_filter(root_statement, product_filter)
 
     roots = list((await db.execute(root_statement)).scalars().unique().all())
     children_by_parent_id: dict[int, list[Product]] = {}

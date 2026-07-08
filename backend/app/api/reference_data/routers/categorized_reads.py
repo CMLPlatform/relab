@@ -49,7 +49,7 @@ async def page_categorized_references[ResourceT: Material | ProductType](
 ) -> Page[ResourceT]:
     """Page categorized reference resources with standard public relationships."""
     statement = select(parent_model)
-    statement = apply_filter(statement, parent_model, parent_filter)
+    statement = apply_filter(statement, parent_filter)
     statement = apply_loader_profile(
         statement,
         parent_model,
@@ -73,7 +73,7 @@ async def list_categorized_reference_categories(
     statement = (
         select(Category).join(link_model, Category.id == link_model.category_id).where(link_parent_id_attr == parent_id)
     )
-    statement = apply_filter(statement, Category, category_filter)
+    statement = apply_filter(statement, category_filter)
     statement = apply_loader_profile(statement, Category, read_schema=CategoryRead)
     statement = statement.limit(SUB_RESOURCE_LIMIT)
     return list((await session.execute(statement)).scalars().unique().all())

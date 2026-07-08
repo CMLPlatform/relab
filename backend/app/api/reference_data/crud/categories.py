@@ -102,7 +102,7 @@ async def get_category_trees(
     if taxonomy_id:
         statement = statement.where(Category.taxonomy_id == taxonomy_id)
 
-    statement = apply_filter(statement, Category, category_filter)
+    statement = apply_filter(statement, category_filter)
 
     statement = statement.options(selectinload(orm_attr(Category.subcategories), recursion_depth=recursion_depth))
 

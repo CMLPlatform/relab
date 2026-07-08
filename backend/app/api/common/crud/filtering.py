@@ -148,7 +148,6 @@ def _apply_relationship_joins[MT: Base](statement: Select[tuple[MT]], model_filt
 
 def apply_filter[MT: Base](
     statement: Select[tuple[MT]],
-    _model: type[MT],
     model_filter: BaseFilterSet | None,
 ) -> Select[tuple[MT]]:
     """Apply RELab FilterSet filtering, explicit relationship joins, search, and sorting."""

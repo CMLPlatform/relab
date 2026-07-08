@@ -56,7 +56,7 @@ async def list_material_links_for_product(
     statement: Select[tuple[MaterialProductLink]] = (
         select(MaterialProductLink).join(Material).where(MaterialProductLink.product_id == product_id)
     )
-    statement = apply_filter(statement, MaterialProductLink, material_filter)
+    statement = apply_filter(statement, material_filter)
     statement = statement.limit(SUB_RESOURCE_LIMIT)
     return list((await db.execute(statement)).scalars().unique().all())
 
