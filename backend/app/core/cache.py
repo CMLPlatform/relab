@@ -17,6 +17,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.core.config import settings
+from app.core.http_headers import request_has_auth_material
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
@@ -31,7 +32,6 @@ _ETAG_WILDCARD = "*"
 _SUCCESS_STATUS_MAX = 299
 _CACHE_SIGNING_DIGEST = "sha256"
 _NO_STORE_DIRECTIVE = "no-store"
-_AUTH_COOKIE_NAMES = frozenset({"__Host-relab-auth", "__Host-relab-refresh"})
 _MISSING = object()
 _backend = Cache()
 _cache_state = {"initialized": False}
@@ -119,7 +119,7 @@ def _cache_key_excluding_dependencies(
     kwargs: dict[str, Any] | None = None,
 ) -> str:
     """Build cache key excluding dependency injection objects."""
-    del request, response
+    del response
     if kwargs is None:
         kwargs = {}
 
@@ -127,7 +127,12 @@ def _cache_key_excluding_dependencies(
     filtered_args = tuple(arg for arg in args if not isinstance(arg, _EXCLUDED_TYPES))
     module_name = getattr(func, "__module__", "")
     function_name = getattr(func, "__name__", func.__class__.__name__)
-    cache_key_source = f"{module_name}:{function_name}:{filtered_args}:{filtered_kwargs}"
+    # Include the raw query string so request-varying inputs that arrive outside the
+    # endpoint's kwargs — notably fastapi-pagination's page/size (read from a ContextVar,
+    # not a parameter) — vary the key. Without this, every page of a paginated @cache
+    # endpoint collides onto one entry and serves page 1 for all pages.
+    query = request.url.query if request is not None else ""
+    cache_key_source = f"{module_name}:{function_name}:{filtered_args}:{filtered_kwargs}:{query}"
     cache_key = hashlib.sha1(cache_key_source.encode(), usedforsecurity=False).hexdigest()
     return f"{namespace}:{cache_key}"
 
@@ -152,15 +157,6 @@ def _cached_not_modified_response(request: Request | None, cached_value: object)
     return Response(status_code=304, headers=dict(cached_value.headers))
 
 
-def _request_has_auth_material(request: Request | None) -> bool:
-    """Return whether the request carries user credentials."""
-    if request is None:
-        return False
-    if request.headers.get("authorization"):
-        return True
-    return any(cookie_name in request.cookies for cookie_name in _AUTH_COOKIE_NAMES)
-
-
 def _response_disables_storage(result: object) -> bool:
     """Return whether a response explicitly opts out of cache storage."""
     if not isinstance(result, Response):
@@ -169,9 +165,9 @@ def _response_disables_storage(result: object) -> bool:
     return _NO_STORE_DIRECTIVE in directives
 
 
-def _cacheable_result(result: object, *, request_has_auth_material: bool = False) -> bool:
+def _cacheable_result(result: object, *, has_auth_material: bool = False) -> bool:
     """Return whether a function result should be stored as the canonical cached value."""
-    if request_has_auth_material or _response_disables_storage(result):
+    if has_auth_material or _response_disables_storage(result):
         return False
     return not isinstance(result, Response) or result.status_code <= _SUCCESS_STATUS_MAX
 
@@ -189,15 +185,16 @@ def cache[**P, T](
             request = kwargs.get("request")
             if not isinstance(request, Request):
                 request = next((arg for arg in args if isinstance(arg, Request)), None)
-            request_has_auth_material = _request_has_auth_material(request)
+            has_auth_material = request_has_auth_material(request)
 
             key = _cache_key_excluding_dependencies(
                 func,
                 namespace=cache_namespace(namespace),
+                request=request,
                 args=args,
                 kwargs=dict(kwargs),
             )
-            if not request_has_auth_material:
+            if not has_auth_material:
                 cached_value = await _backend_get(key, default=_MISSING)
                 if cached_value is not _MISSING:
                     if response := _cached_not_modified_response(request, cast("T", cached_value)):
@@ -205,7 +202,7 @@ def cache[**P, T](
                     return cast("T", cached_value)
 
             result = await func(*args, **kwargs)
-            if _cacheable_result(result, request_has_auth_material=request_has_auth_material):
+            if _cacheable_result(result, has_auth_material=has_auth_material):
                 await cache_set(key, result, expire=expire)
             return result
 

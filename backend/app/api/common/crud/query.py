@@ -7,13 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.exceptions import CRUDConfigurationError, ModelsNotFoundError
 from app.api.common.crud.filtering import apply_filter
-from app.api.common.crud.loading import LoaderProfile, apply_loader_profile
+from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.utils import ensure_model_exists
 from app.api.common.sa_typing import column_expr
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from uuid import UUID
 
     from fastapi_pagination import Page
@@ -27,17 +26,16 @@ async def page_models(
     db: AsyncSession,
     model: type[Base],
     *,
-    loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
+    loaders: frozenset[str] | set[str] | None = None,
     filters: BaseFilterSet | None = None,
     statement: Select[tuple[Any]] | None = None,
     read_schema: type[BaseModel] | None = None,
-    mutate_items: Callable[[list[Any]], None] | None = None,
 ) -> Page[Any]:
     """Return a page of models matching a query."""
     statement = statement if statement is not None else select(model)
     statement = apply_filter(statement, model, filters)
     statement = apply_loader_profile(statement, model, loaders, read_schema=read_schema)
-    return await paginate_select(db, statement, model=model, mutate_items=mutate_items)
+    return await paginate_select(db, statement, model=model)
 
 
 async def get_model[MT: Base](
@@ -45,7 +43,7 @@ async def get_model[MT: Base](
     model: type[MT],
     model_id: int | UUID,
     *,
-    loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
+    loaders: frozenset[str] | set[str] | None = None,
     read_schema: type[BaseModel] | None = None,
 ) -> MT | None:
     """Return a model by primary key, or None when missing."""
@@ -57,7 +55,7 @@ async def _get_model[MT: Base](
     model: type[MT],
     model_id: int | UUID,
     *,
-    loaders: LoaderProfile | frozenset[str] | set[str] | None,
+    loaders: frozenset[str] | set[str] | None,
     read_schema: type[BaseModel] | None,
     for_update: bool,
 ) -> MT | None:
@@ -78,7 +76,7 @@ async def require_model[MT: Base](
     model: type[MT],
     model_id: int | UUID,
     *,
-    loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
+    loaders: frozenset[str] | set[str] | None = None,
     read_schema: type[BaseModel] | None = None,
 ) -> MT:
     """Return a model by primary key or raise ModelNotFoundError."""
@@ -94,7 +92,7 @@ async def require_locked_model[MT: Base](
     model: type[MT],
     model_id: int | UUID,
     *,
-    loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
+    loaders: frozenset[str] | set[str] | None = None,
     read_schema: type[BaseModel] | None = None,
 ) -> MT:
     """Return a model by primary key with a row-level write lock."""

@@ -4,14 +4,18 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, Response
 
-from app.core.http_headers import NO_STORE, SENSITIVE_CACHE_CONTROL, SENSITIVE_CACHE_HEADERS
+from app.core.http_headers import (
+    NO_STORE,
+    SENSITIVE_CACHE_CONTROL,
+    SENSITIVE_CACHE_HEADERS,
+    request_has_auth_material,
+)
 
 if TYPE_CHECKING:
     from starlette.middleware.base import RequestResponseEndpoint
 
 CACHE_CONTROL_HEADER = "cache-control"
 PROBLEM_CONTENT_TYPE = "application/problem+json"
-AUTH_COOKIE_NAMES = frozenset({"__Host-relab-auth", "__Host-relab-refresh"})
 SENSITIVE_PATH_PREFIXES = (
     "/v1/auth",
     "/v1/oauth",
@@ -43,13 +47,6 @@ def _path_matches_prefix(path: str, prefix: str) -> bool:
     return path == prefix or path.startswith(f"{prefix}/")
 
 
-def _has_auth_material(request: Request) -> bool:
-    """Return whether a request carries RELab credentials."""
-    if request.headers.get("authorization"):
-        return True
-    return any(cookie_name in request.cookies for cookie_name in AUTH_COOKIE_NAMES)
-
-
 def _is_sensitive_path(path: str) -> bool:
     """Return whether the path commonly carries sensitive API data."""
     return any(_path_matches_prefix(path, prefix) for prefix in SENSITIVE_PATH_PREFIXES)
@@ -62,7 +59,7 @@ def _is_problem_details(response: Response) -> bool:
 
 def _should_apply_sensitive_cache_policy(request: Request, response: Response) -> bool:
     """Return whether the response should opt out of cache storage."""
-    return _has_auth_material(request) or _is_sensitive_path(request.url.path) or _is_problem_details(response)
+    return request_has_auth_material(request) or _is_sensitive_path(request.url.path) or _is_problem_details(response)
 
 
 def _set_sensitive_cache_headers(response: Response) -> None:

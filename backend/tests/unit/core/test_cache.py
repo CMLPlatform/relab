@@ -7,11 +7,34 @@ from pydantic import SecretStr
 
 from app.core.cache import (
     _backend,
+    _cache_key_excluding_dependencies,
     _cache_state,
     cache_get,
     clear_cache_namespace,
     init_cache,
 )
+
+
+def _request_with_query(query: str) -> MagicMock:
+    request = MagicMock()
+    request.url.query = query
+    return request
+
+
+def _example_endpoint() -> None:
+    """Stand-in target for cache-key derivation."""
+
+
+def test_cache_key_varies_with_query_string() -> None:
+    """Query params (e.g. pagination) live outside endpoint kwargs, so the key folds in the raw query string."""
+    key_page_1 = _cache_key_excluding_dependencies(_example_endpoint, request=_request_with_query("search=a&page=1"))
+    key_page_2 = _cache_key_excluding_dependencies(_example_endpoint, request=_request_with_query("search=a&page=2"))
+    key_page_1_again = _cache_key_excluding_dependencies(
+        _example_endpoint, request=_request_with_query("search=a&page=1")
+    )
+
+    assert key_page_1 != key_page_2
+    assert key_page_1 == key_page_1_again
 
 
 def test_init_with_redis_client() -> None:

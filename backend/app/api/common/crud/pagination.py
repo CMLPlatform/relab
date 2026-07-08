@@ -29,7 +29,6 @@ async def paginate_select[T, U, ModelT: Base](
     *,
     model: type[ModelT] | None = None,
     params: AbstractParams | None = None,
-    mutate_items: Callable[[list[T]], None] | None = None,
     transform: Callable[[list[T]], list[U]] | None = None,
 ) -> Page[T] | Page[U]:
     """Paginate a select with distinct-safe counts for ORM entity queries.
@@ -60,8 +59,6 @@ async def paginate_select[T, U, ModelT: Base](
         paginated_statement = paginated_statement.offset(offset)
 
     items: list[T] = list((await db.execute(paginated_statement)).scalars().unique().all())
-    if mutate_items is not None:
-        mutate_items(items)
 
     if transform is not None:
         transformed = transform(items)
