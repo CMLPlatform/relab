@@ -33,6 +33,14 @@ PRODUCT_BASE_OWNER_IDX = "ix_product_base_owner_id"
 
 
 def upgrade() -> None:
+    # Normalize any pre-existing rows that violate the role invariant (it was only
+    # enforced in application code before), otherwise the CHECK below aborts the upgrade.
+    # Base products must have no amount; a stray value is meaningless without a parent.
+    op.execute("UPDATE product SET amount_in_parent = NULL WHERE parent_id IS NULL AND amount_in_parent IS NOT NULL")
+    # Components must have an amount; default a missing one to 1, matching the app's
+    # `amount_in_parent or 1` fallback (data_collection/models/product.py).
+    op.execute("UPDATE product SET amount_in_parent = 1 WHERE parent_id IS NOT NULL AND amount_in_parent IS NULL")
+
     op.create_check_constraint(
         PRODUCT_ROLE_CHECK,
         "product",
