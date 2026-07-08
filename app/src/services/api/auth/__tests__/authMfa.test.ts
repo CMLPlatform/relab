@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import {
   claimOAuthMfaHandoff,
   clearPendingMfaLogin,
@@ -5,7 +6,6 @@ import {
   setPendingMfaLogin,
 } from '@/services/api/auth/authMfa';
 import { mockPlatform, restorePlatform } from '@/test-utils/index';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('@/services/api/request', () => ({
   fetchWithTimeout: jest.fn(),

@@ -1,9 +1,9 @@
+import { describe, expect, it } from '@jest/globals';
 import {
   isAllowedOAuthRedirectUrl,
   isExpectedOAuthCallbackUrl,
   parseOAuthCallbackUrl,
 } from '@/services/api/oauthFlow';
-import { describe, expect, it } from '@jest/globals';
 
 describe('OAuth URL validation', () => {
   it('accepts the configured HTTPS provider authorization hosts', () => {

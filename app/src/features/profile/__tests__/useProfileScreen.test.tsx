@@ -1,8 +1,8 @@
-import { useProfileScreen } from '@/features/profile/useProfileScreen';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react-native';
 import type React from 'react';
+import { useProfileScreen } from '@/features/profile/useProfileScreen';
 
 const mockReplace: jest.Mock = jest.fn();
 const mockRefetch: jest.Mock = jest.fn();
