@@ -158,6 +158,33 @@ describe('DialogProvider', () => {
     expect(onSubmit).toHaveBeenCalledWith('hello');
   });
 
+  it('submitEditing does not fire the primary action while it is disabled', async () => {
+    const onSubmit = jest.fn();
+
+    function DisabledSubmitTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() =>
+        dialog.input({
+          title: 'Enter Name',
+          placeholder: 'Your name',
+          buttons: [
+            { text: 'Cancel' },
+            { text: 'OK', onPress: onSubmit, disabled: (v) => !v.trim() },
+          ],
+        }),
+      );
+    }
+
+    renderWithProviders(<DisabledSubmitTest />, { withDialog: true });
+
+    await user.press(screen.getByTestId('trigger'));
+
+    // Field is empty → OK's disabled gate is active; pressing Enter must not bypass it.
+    fireEvent(screen.getByPlaceholderText('Your name'), 'submitEditing');
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('default OK button renders when no buttons provided', async () => {
     function DefaultTest() {
       const dialog = useDialog();

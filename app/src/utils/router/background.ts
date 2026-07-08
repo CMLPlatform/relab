@@ -34,6 +34,8 @@ function useLazyAnimatedBackground() {
   return BackgroundComponent;
 }
 
+// Re-exposed from the router-background facade so _layout imports both from one module;
+// a barrel `export ... from` would trip biome's noBarrelFile rule, hence the thin wrapper.
 export function ensureWebAnimatedPatch() {
   return ensureWebAnimatedPatchInternal();
 }

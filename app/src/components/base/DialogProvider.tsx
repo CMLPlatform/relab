@@ -87,8 +87,13 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
 
   const stopPropagation = useCallback((e: GestureResponderEvent) => e.stopPropagation(), []);
   const handleSubmitEditing = useCallback(() => {
-    handleClose(buttons[buttons.length - 1]);
-  }, [handleClose, buttons]);
+    // Enter submits the primary (last) action, but must honour its disabled gate —
+    // otherwise a keyboard return bypasses input validation the on-screen button enforces.
+    const submitButton = buttons[buttons.length - 1];
+    if (submitButton && !isButtonDisabled(submitButton)) {
+      handleClose(submitButton);
+    }
+  }, [handleClose, buttons, isButtonDisabled]);
 
   return (
     <Pressable
