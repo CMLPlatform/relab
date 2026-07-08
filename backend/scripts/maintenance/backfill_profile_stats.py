@@ -6,12 +6,11 @@ Run with: python -m scripts.maintenance.backfill_profile_stats
 import asyncio
 import logging
 
-from sqlalchemy import select
-
 from app.api.auth.models import User
 from app.api.auth.services.stats import recompute_user_profile_stats
 from app.core.database import async_session_context, close_async_engine
 from app.core.logging import setup_logging
+from sqlalchemy import select
 
 # Configure logging
 setup_logging()
@@ -22,29 +21,32 @@ async def backfill_profile_stats() -> int:
     """Iterate through all users and recompute their profile_stats snapshot."""
     logger.info("Starting backfill of user statistics...")
 
-    async with async_session_context() as session:
-        # Get all user IDs
-        stmt = select(User.id)
-        result = await session.execute(stmt)
-        user_ids = [row[0] for row in result.all()]
+    processed = 0
+    try:
+        async with async_session_context() as session:
+            # Get all user IDs
+            stmt = select(User.id)
+            result = await session.execute(stmt)
+            user_ids = [row[0] for row in result.all()]
 
-        logger.info("Found %d users to process.", len(user_ids))
+            logger.info("Found %d users to process.", len(user_ids))
 
-        processed = 0
-        for user_id in user_ids:
-            try:
-                await recompute_user_profile_stats(session, user_id)
-                # Commit after each user to ensure progress is saved
-                await session.commit()
-                processed += 1
-                if processed % 10 == 0:
-                    logger.info("Processed %d/%d users...", processed, len(user_ids))
-            except Exception:
-                logger.exception("Failed to recompute stats for user %s", user_id)
-                await session.rollback()
+            for user_id in user_ids:
+                try:
+                    await recompute_user_profile_stats(session, user_id)
+                    # Commit after each user to ensure progress is saved
+                    await session.commit()
+                    processed += 1
+                    if processed % 10 == 0:
+                        logger.info("Processed %d/%d users...", processed, len(user_ids))
+                except Exception:
+                    logger.exception("Failed to recompute stats for user %s", user_id)
+                    await session.rollback()
+    finally:
+        # Dispose the pooled connections even if the initial query/setup raises.
+        await close_async_engine()
 
     logger.info("Backfill complete. Processed %d users.", processed)
-    await close_async_engine()
     return 0
 
 

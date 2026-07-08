@@ -131,7 +131,11 @@ backup_offsite_copy() {
     local rclone_config="secrets/$env/rclone.conf"
     local tmp_root
     tmp_root="$(mktemp -d)"
-    trap 'rm -rf "$tmp_root"' EXIT
+    # Expand tmp_root into the trap now (double quotes): a single-quoted trap would
+    # defer expansion to EXIT, when this `local` is out of scope — under `set -u`
+    # cleanup would then fail and leave the copied restic password in /tmp.
+    # shellcheck disable=SC2064  # eager expansion is intentional here (see above)
+    trap "rm -rf '$tmp_root'" EXIT
     install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
     if [[ -z "${RESTIC_OFFSITE_REPOSITORY:-}" ]]; then
         echo "RESTIC_OFFSITE_REPOSITORY must be set, for example: rclone:<remote>:relab/$env/restic"

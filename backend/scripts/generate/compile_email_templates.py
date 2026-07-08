@@ -11,9 +11,8 @@ import logging
 import re
 from pathlib import Path
 
-from mjml.mjml2html import mjml_to_html
-
 from app.core.logging import setup_logging
+from mjml.mjml2html import mjml_to_html
 
 # Set up logging
 setup_logging()
@@ -32,14 +31,22 @@ BRAND_CSS_PATH = BACKEND_DIR.parent / "assets" / "brand.css"
 
 
 def expand_includes(mjml_content: str) -> str:
-    """Expand component include directives in MJML content."""
+    """Expand component include directives, including ones nested in components."""
 
     def replace_include(match: re.Match[str]) -> str:
         component_name = match.group(1)
         component_path = SRC_DIR / "components" / f"{component_name}.mjml"
         return component_path.read_text()
 
-    return INCLUDE_PATTERN.sub(replace_include, mjml_content)
+    # Re-scan until stable so an {{include}} inside an included component is also
+    # expanded; bounded to fail loudly on a circular include instead of looping.
+    for _ in range(10):
+        expanded = INCLUDE_PATTERN.sub(replace_include, mjml_content)
+        if expanded == mjml_content:
+            return expanded
+        mjml_content = expanded
+    msg = "MJML include expansion did not stabilize (circular include?)"
+    raise RuntimeError(msg)
 
 
 def resolve_light_value(value: str) -> str:
@@ -54,11 +61,11 @@ def resolve_light_value(value: str) -> str:
     inner = value[len("light-dark(") : -1]
     depth = 0
     for index, char in enumerate(inner):
-        if char in "([":  # noqa: PLR2004 # bracket tokens read clearer inline
+        if char in "([":  # bracket tokens read clearer inline
             depth += 1
-        elif char in ")]":  # noqa: PLR2004
+        elif char in ")]":
             depth -= 1
-        elif char == "," and depth == 0:  # noqa: PLR2004
+        elif char == "," and depth == 0:
             return inner[:index].strip()
 
     msg = f"Could not split light-dark() value: {value}"

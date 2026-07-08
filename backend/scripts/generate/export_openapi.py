@@ -7,8 +7,11 @@ from pathlib import Path
 from app.api.common.routers.openapi import build_device_openapi, build_public_openapi
 from app.main import app
 
-DOCS_SCHEMA_DIR = Path("../docs/public/api/schemas")
-APP_SCHEMA_PATH = Path("../app/src/types/openapi.json")
+# Anchor outputs to the repo root (…/backend/scripts/generate/export_openapi.py),
+# not the CWD, so --check doesn't false-drift when run from outside backend/.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+DOCS_SCHEMA_DIR = _REPO_ROOT / "docs" / "public" / "api" / "schemas"
+APP_SCHEMA_PATH = _REPO_ROOT / "app" / "src" / "types" / "openapi.json"
 
 
 def _pretty(schema: dict[str, object]) -> str:

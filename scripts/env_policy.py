@@ -22,6 +22,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SECRET_INVENTORY_FILE = ROOT / "deploy" / "env" / "variables.toml"
 
+# Canonical unfilled-secret marker. Must match backend/app/core/secrets.py
+# SECRET_PLACEHOLDER_PREFIX and the value deploy_ops.sh writes (replace-me-<env>-<name>).
+SECRET_PLACEHOLDER_PREFIX = "replace-me-"  # noqa: S105  # placeholder marker, not a credential
+
 # Placeholder operator inputs for rendering deploy Compose during validation. Single
 # source of truth: deploy_ops.sh calls `validation-env` to materialize this same set.
 VALIDATION_ENV_VALUES = {
@@ -212,8 +216,14 @@ def assert_rendered_secrets_are_in_inventory(config: dict[str, Any], secret_inve
 
 
 def assert_secret_value_is_usable(label: str, name: str, value: str) -> None:
-    """Reject generated placeholder secrets in production-like environments."""
-    if label in {"prod", "staging"} and value.strip().startswith(f"replace-me-{label}-"):
+    """Reject generated placeholder secrets in production-like environments.
+
+    Matches the runtime placeholder marker (``backend/app/core/secrets.py``
+    ``SECRET_PLACEHOLDER_PREFIX``), not the per-env ``replace-me-{label}-`` form,
+    so a placeholder carried over from another env (e.g. ``secrets/staging/*``
+    copied into ``secrets/prod/``) is still caught here rather than only at runtime.
+    """
+    if label in {"prod", "staging"} and value.strip().startswith(SECRET_PLACEHOLDER_PREFIX):
         msg = f"{label}: placeholder secret remains in secrets/{label}/{name}"
         raise AssertionError(msg)
 
