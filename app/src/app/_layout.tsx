@@ -20,12 +20,10 @@ import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { createNavigationThemes, getAppTheme } from '@/theme';
-import { ensureWebAnimatedPatch } from '@/utils/router/animatedPatch';
 import { useBackgroundOverlayColor } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
 
-ensureWebAnimatedPatch();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
