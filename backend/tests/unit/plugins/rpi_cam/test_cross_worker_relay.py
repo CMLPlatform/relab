@@ -282,6 +282,24 @@ async def test_unexpected_exception_writes_internal_error() -> None:
     assert json.loads(raw) == {"error": "Internal relay error: boom"}
 
 
+async def test_unresponsive_camera_times_out_and_writes_error() -> None:
+    """A connected-but-silent camera must not hang the listener; send_command is bounded by timeout_s."""
+    redis = _mock_redis()
+    manager = MagicMock()
+
+    async def _never_responds(*_args: object, **_kwargs: object) -> tuple[dict, bytes | None]:
+        await asyncio.Event().wait()  # hangs until cancelled by the timeout
+        return {}, None  # unreachable
+
+    manager.send_command = AsyncMock(side_effect=_never_responds)
+    cmd = {"msg_id": "m4", "method": "GET", "path": "/p", "timeout_s": 0.01}
+
+    await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m4")
+
+    raw = redis.rpush.await_args.args[1]
+    assert json.loads(raw) == {"error": "Camera did not respond in time."}
+
+
 # ── run_relay_listener ───────────────────────────────────────────────────────
 
 

@@ -43,6 +43,10 @@ _WS_BYTES = "bytes"
 _HEARTBEAT_INTERVAL = 30.0
 _HEARTBEAT_TIMEOUT = 90.0
 
+# Cap on binary-response headers awaiting their binary frame. Far above any real pipelined
+# depth; bounds memory if a device flags responses has_binary but never sends the frame.
+_MAX_PENDING_BINARY_RESPONSES = 64
+
 
 @dataclass(slots=True)
 class _PendingBinaryResponse:
@@ -62,7 +66,12 @@ class _RelayWebSocketSession:
     last_pong_at: float = field(default_factory=monotonic)
     # FIFO of headers awaiting their binary frame: WebSocket frames arrive in
     # order, so pipelined binary responses pair with headers first-in first-out.
-    pending_binary_responses: deque[_PendingBinaryResponse] = field(default_factory=deque)
+    # Bounded so a device can't grow it without limit by flagging responses has_binary and
+    # never sending the binary frame. The cap is far above any real in-flight depth (binary
+    # responses are pipelined FIFO), so it only trips on a misbehaving/flooding device.
+    pending_binary_responses: deque[_PendingBinaryResponse] = field(
+        default_factory=lambda: deque(maxlen=_MAX_PENDING_BINARY_RESPONSES)
+    )
 
     async def handle_text_frame(self, text: str) -> None:
         """Process a text frame and update any pending binary response state."""
@@ -272,4 +281,11 @@ async def _receive_loop(websocket: WebSocket, session: _RelayWebSocketSession) -
                 return
             await session.handle_text_frame(text_data)
         elif _WS_BYTES in raw:
-            session.handle_binary_frame(raw[_WS_BYTES])
+            binary_data: bytes = raw[_WS_BYTES]
+            if len(binary_data) > settings.rpi_cam_ws_binary_frame_limit_bytes:
+                logger.warning(
+                    "Camera %s sent oversized binary frame; closing.", sanitize_log_value(session.camera_id)
+                )
+                await websocket.close(code=status.WS_1009_MESSAGE_TOO_BIG, reason="WebSocket frame too large.")
+                return
+            session.handle_binary_frame(binary_data)

@@ -179,8 +179,8 @@ async def test_receive_loop_closes_on_oversized_text_frame(monkeypatch: pytest.M
     websocket.close.assert_awaited_once()
 
 
-async def test_receive_loop_accepts_binary_frames_after_server_level_size_checks() -> None:
-    """Binary frame size is enforced by Uvicorn before frames reach the app."""
+async def test_receive_loop_accepts_binary_frames_within_the_limit() -> None:
+    """A binary frame under the app-level cap is passed through, not closed."""
     websocket = AsyncMock()
     websocket.receive = AsyncMock(
         side_effect=[
@@ -193,6 +193,26 @@ async def test_receive_loop_accepts_binary_frames_after_server_level_size_checks
     await _receive_loop(websocket, _RelayWebSocketSession(camera_id=uuid4(), manager=MagicMock(), redis=AsyncMock()))
 
     websocket.close.assert_not_awaited()
+
+
+async def test_receive_loop_closes_on_oversized_binary_frame(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Oversized binary frames are capped at the app level, mirroring the text-frame limit."""
+    monkeypatch.setattr(
+        "app.api.plugins.rpi_cam.websocket.router.settings.rpi_cam_ws_binary_frame_limit_bytes",
+        8,
+    )
+    websocket = AsyncMock()
+    websocket.receive = AsyncMock(
+        side_effect=[
+            {"type": "websocket.receive", "bytes": b"x" * 9},
+            {"type": "websocket.disconnect"},
+        ]
+    )
+    websocket.close = AsyncMock()
+
+    await _receive_loop(websocket, _RelayWebSocketSession(camera_id=uuid4(), manager=MagicMock(), redis=AsyncMock()))
+
+    websocket.close.assert_awaited_once()
 
 
 async def test_session_updates_last_pong_at_from_pong_frame() -> None:
@@ -245,6 +265,14 @@ async def test_session_pairs_pipelined_binary_responses_in_order() -> None:
     resolved = [(call.args[1], call.args[3]) for call in manager.resolve_json.call_args_list]
     assert resolved == [("msg-3", None), ("msg-1", b"first"), ("msg-2", b"second")]
     assert not session.pending_binary_responses
+
+
+async def test_pending_binary_responses_are_bounded() -> None:
+    """A device flagging has_binary without sending the frame cannot grow memory unbounded."""
+    session = _RelayWebSocketSession(camera_id=uuid4(), manager=MagicMock(), redis=AsyncMock())
+    for i in range(500):
+        await session.handle_text_frame(f'{{"type":"response","id":"msg-{i}","status":200,"has_binary":true}}')
+    assert len(session.pending_binary_responses) == 64
 
 
 # ── Device assertion verification ────────────────────────────────────────────

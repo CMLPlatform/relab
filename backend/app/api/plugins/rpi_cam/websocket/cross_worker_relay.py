@@ -272,15 +272,32 @@ async def _execute_and_respond(
     body: dict | None = cmd.get("body")
     headers: dict[str, str] | None = cmd.get("headers")
 
+    timeout_s = float(cmd.get("timeout_s", 30.0))
     try:
-        json_resp, binary = await manager.send_command(
-            camera_id,
-            method,
-            path,
-            params=params,
-            body=body,
-            headers=headers,
+        # send_command awaits the device's response with no internal deadline; without this
+        # timeout an unresponsive-but-connected camera would hang the single listener loop and
+        # head-of-line-block every other queued command for this camera.
+        async with asyncio.timeout(timeout_s):
+            json_resp, binary = await manager.send_command(
+                camera_id,
+                method,
+                path,
+                params=params,
+                body=body,
+                headers=headers,
+            )
+    except TimeoutError:
+        logger.warning(
+            "Relay listener: camera %s did not respond to cross-worker command %s within %ss.",
+            camera_log_id,
+            msg_log_id,
+            timeout_s,
         )
+        error_payload = json.dumps({"error": "Camera did not respond in time."})
+        with contextlib.suppress(Exception):
+            await redis.rpush(resp_key, error_payload)
+            await redis.expire(resp_key, _resp_ttl_seconds(timeout_s))
+        return
     except RuntimeError as exc:
         # Camera disconnected mid-flight — report error and stop listening.
         logger.warning(
