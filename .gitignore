@@ -100,11 +100,5 @@ terraform.tfvars.json
 .terraformrc
 terraform.rc
 
-# Local architecture diagrams
-LOCAL_DIAGRAMS.md
-
-# LLM config
-.claude
-
 # pnpm store
 .pnpm-store
