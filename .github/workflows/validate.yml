@@ -145,7 +145,6 @@ jobs:
             echo "### Validation automation"
             echo
             echo "- repository policy checks passed"
-            echo "- shared dep versions aligned across subrepos"
             echo "- Cloudflare edge IaC validated"
             echo "- environment variable policy validated"
             echo "- Compose configs rendered successfully"

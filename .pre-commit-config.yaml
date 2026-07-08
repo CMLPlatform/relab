@@ -3,7 +3,7 @@
 
 repos:
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.0
+    rev: v8.30.1
     hooks:
       - id: gitleaks
         args: [ "--config", ".github/gitleaks.toml" ]
@@ -82,6 +82,18 @@ repos:
         args: [ "--config", ".semgrep", "--error", "app", "www", "docs" ]
         pass_filenames: false
         files: ^(?:app|www|docs|\.semgrep/|\.semgrepignore$)
+
+  - repo: local
+    hooks:
+      # Runs the .semgrep/*.{tsx,astro,html,js} fixtures against the rules so a broken
+      # rule regex is caught. Must run from inside .semgrep/ — semgrep skips hidden
+      # dot-dirs, so `--test .semgrep` from the repo root finds no tests.
+      - id: semgrep-rule-tests
+        name: semgrep-rule-tests
+        language: system
+        entry: bash -c 'cd .semgrep && exec uvx --quiet semgrep --test .'
+        pass_filenames: false
+        files: ^\.semgrep/
 
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.11.26

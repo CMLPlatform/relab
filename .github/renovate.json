@@ -14,6 +14,7 @@
   "pre-commit": { "enabled": true },
   "minimumReleaseAge": "14 days",
   "labels": ["dependencies"],
+  "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
       "description": "Expo SDK-managed packages, versions pinned by the SDK, don't bump independently",
@@ -37,14 +38,16 @@
       "enabled": false
     },
     {
-      "description": "Batch GitHub Actions updates into one PR",
+      "description": "Batch GitHub Actions updates into one PR, pinned to immutable SHA digests",
       "matchManagers": ["github-actions"],
-      "groupName": "github-actions"
+      "groupName": "github-actions",
+      "pinDigests": true
     },
     {
-      "description": "Batch container image updates into one PR",
+      "description": "Batch container image updates into one PR, pinned to immutable SHA digests",
       "matchManagers": ["dockerfile", "docker-compose"],
-      "groupName": "container-images"
+      "groupName": "container-images",
+      "pinDigests": true
     }
   ]
 }

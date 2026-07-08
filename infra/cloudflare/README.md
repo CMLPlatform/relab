@@ -16,6 +16,41 @@ databases, backups, or telemetry.
 `prod` and `staging` use separate OpenTofu workspaces and separate tunnels. Both
 environments share the same route map in `locals.tf`.
 
+### Shared zone rulesets (important)
+
+prod and staging share **one** Cloudflare zone (`cml-relab.org`). Cloudflare allows
+exactly **one entrypoint ruleset per (zone, phase)**, so the three zone-global rulesets
+(`http_ratelimit`, `http_request_cache_settings`, `http_request_firewall_custom`) can be
+owned by only one workspace — otherwise `apply`-ing one environment overwrites the
+other's rules (e.g. staging wiping prod's auth rate limits). The `prod` workspace owns
+them (`manage_shared_zone_rulesets = true`, the default) and their rules already match
+**both** environments' api hosts; the `staging` workspace must set
+`manage_shared_zone_rulesets = false`:
+
+```bash
+# in the staging workspace, once:
+export TF_VAR_manage_shared_zone_rulesets=false
+```
+
+Per-environment resources (tunnel, DNS records, tunnel ingress) stay per-workspace. The
+idempotent TLS zone settings are written identically by both and are left ungated.
+
+**One-time migration** (staging currently owns copies of these rulesets — dropping them
+naively would delete the live zone entrypoint prod now manages). In the **staging**
+workspace, detach without destroying, then let prod take ownership:
+
+```bash
+# staging workspace: forget the shared rulesets WITHOUT deleting them from Cloudflare
+tofu state rm cloudflare_ruleset.rate_limiting cloudflare_ruleset.cache_settings cloudflare_ruleset.custom_firewall
+# then apply prod (recreates them under prod ownership, covering both envs):
+just cloudflare-apply prod YES
+# finally apply staging with the flag off (no-op for the shared rulesets now):
+TF_VAR_manage_shared_zone_rulesets=false just cloudflare-apply staging YES
+```
+
+Rule `ref` values changed from `relab_<env>_<name>` to `relab_<name>` (they are shared
+now), so Cloudflare recreates the rate-limit rules once on the first prod apply.
+
 Current hostnames:
 
 - Production: `cml-relab.org`, `app.cml-relab.org`, `api.cml-relab.org`,

@@ -23,3 +23,16 @@ variable "cloudflare_zone_name" {
   type        = string
   default     = "cml-relab.org"
 }
+
+variable "manage_shared_zone_rulesets" {
+  description = <<-EOT
+    Whether this workspace owns the zone-global rulesets (http_ratelimit,
+    http_request_cache_settings, http_request_firewall_custom). Cloudflare allows
+    exactly one entrypoint ruleset per (zone, phase), and prod + staging share the
+    cml-relab.org zone, so exactly ONE workspace must manage them or applies clobber
+    each other. These rulesets already carry rules for BOTH environments' hosts, so
+    the owning workspace protects both. Enable in prod (default); disable in staging.
+  EOT
+  type        = bool
+  default     = true
+}

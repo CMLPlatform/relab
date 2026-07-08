@@ -34,14 +34,18 @@ DATABASE_APP_PASSWORD="$(read_secret DATABASE_APP_PASSWORD)"
 DATABASE_MIGRATION_PASSWORD="$(read_secret DATABASE_MIGRATION_PASSWORD)"
 DATABASE_BACKUP_PASSWORD="$(read_secret DATABASE_BACKUP_PASSWORD)"
 
+# Passwords are pulled into psql via \getenv (below) rather than --set so they
+# never appear in the process argv / `ps` output during container init. Only the
+# non-secret role names are passed on the command line.
+export DATABASE_APP_PASSWORD DATABASE_MIGRATION_PASSWORD DATABASE_BACKUP_PASSWORD
 psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
     --set=ON_ERROR_STOP=1 \
     --set=app_user="$DATABASE_APP_USER" \
-    --set=app_password="$DATABASE_APP_PASSWORD" \
     --set=migration_user="$DATABASE_MIGRATION_USER" \
-    --set=migration_password="$DATABASE_MIGRATION_PASSWORD" \
-    --set=backup_user="$DATABASE_BACKUP_USER" \
-    --set=backup_password="$DATABASE_BACKUP_PASSWORD" <<'SQL'
+    --set=backup_user="$DATABASE_BACKUP_USER" <<'SQL'
+\getenv app_password DATABASE_APP_PASSWORD
+\getenv migration_password DATABASE_MIGRATION_PASSWORD
+\getenv backup_password DATABASE_BACKUP_PASSWORD
 SELECT format(
     'CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
     :'migration_user',

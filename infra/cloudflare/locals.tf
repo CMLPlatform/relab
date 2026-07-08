@@ -47,10 +47,10 @@ locals {
 
   high_risk_country_set = "{${join(" ", formatlist("\"%s\"", ["RU", "CN", "BR"]))}}"
 
-  api_hostname = local.edge_routes.api.hostname
-
-  api_request_expression = "http.host eq \"${local.api_hostname}\""
-
+  # The zone-global rulesets are owned by a single workspace (see
+  # manage_shared_zone_rulesets), so their rules match BOTH environments' api hosts
+  # rather than only the current workspace's host — otherwise applying one env would
+  # leave the other env's api with no rate limits / firewall rules.
   api_hosts_expression = "http.host in {${join(" ", formatlist("\"%s\"", [
     local.edge_routes_by_environment.prod.api.hostname,
     local.edge_routes_by_environment.staging.api.hostname,
@@ -63,7 +63,7 @@ locals {
   rate_limit_rules = {
     auth = {
       description         = "Rate limit authentication endpoints"
-      expression          = "${local.api_request_expression} and starts_with(http.request.uri.path, \"/v1/auth/\")"
+      expression          = "${local.api_hosts_expression} and starts_with(http.request.uri.path, \"/v1/auth/\")"
       period              = 60
       requests_per_period = 30
       mitigation_timeout  = 300
@@ -72,7 +72,7 @@ locals {
     media_uploads = {
       description = "Rate limit product and component media upload endpoints"
       expression = join(" and ", [
-        local.api_request_expression,
+        local.api_hosts_expression,
         "http.request.method in {\"POST\" \"PUT\" \"PATCH\"}",
         "(http.request.uri.path matches \"^/v1/products/[^/]+/(files|images)$\" or http.request.uri.path matches \"^/v1/components/[^/]+/(files|images)$\")",
       ])
@@ -84,7 +84,7 @@ locals {
     rpi_cam_uploads = {
       description = "Rate limit Raspberry Pi camera upload endpoints"
       expression = join(" and ", [
-        local.api_request_expression,
+        local.api_hosts_expression,
         "http.request.method in {\"POST\" \"PUT\" \"PATCH\"}",
         "(http.request.uri.path matches \"^/v1/plugins/rpi-cam/device/cameras/[^/]+/(image-upload|preview-thumbnail-upload)$\")",
       ])
@@ -95,7 +95,7 @@ locals {
 
     rpi_cam_websocket = {
       description         = "Rate limit Raspberry Pi camera WebSocket connection endpoint"
-      expression          = "${local.api_request_expression} and http.request.uri.path eq \"/v1/plugins/rpi-cam/ws/connect\""
+      expression          = "${local.api_hosts_expression} and http.request.uri.path eq \"/v1/plugins/rpi-cam/ws/connect\""
       period              = 60
       requests_per_period = 30
       mitigation_timeout  = 300
@@ -104,8 +104,13 @@ locals {
 
   custom_firewall_rules = [
     {
+      # RPi camera devices are non-browser IoT clients that Super Bot Fight Mode and
+      # some managed WAF rules would challenge/block (they can't solve a JS/CAPTCHA
+      # challenge). These endpoints are authenticated at the app layer by ES256 device
+      # assertions (Redis replay protection) and covered by the rpi_cam_* rate limits
+      # above, so the managed-security skip is intentional and scoped to just them.
       ref         = "relab_rpi_cam_device_skip_managed_security"
-      description = "Skip managed WAF and Super Bot Fight Mode for current RPi camera device traffic"
+      description = "Skip managed WAF and Super Bot Fight Mode for RPi camera device traffic (both environments)"
       expression = join(" and ", [
         local.api_hosts_expression,
         "(${join(" or ", [
@@ -142,7 +147,7 @@ locals {
       ref         = "relab_high_risk_country_auth_challenge"
       description = "Managed challenge for authentication calls from high-risk countries"
       expression = join(" and ", [
-        "http.host eq \"${local.edge_routes_by_environment.prod.api.hostname}\"",
+        local.api_hosts_expression,
         "starts_with(http.request.uri.path, \"/v1/auth/\")",
         "ip.src.country in ${local.high_risk_country_set}",
       ])
@@ -152,7 +157,7 @@ locals {
       ref         = "relab_high_risk_country_admin_block"
       description = "Block admin calls from high-risk countries"
       expression = join(" and ", [
-        "http.host eq \"${local.edge_routes_by_environment.prod.api.hostname}\"",
+        local.api_hosts_expression,
         "starts_with(http.request.uri.path, \"/v1/admin/\")",
         "ip.src.country in ${local.high_risk_country_set}",
       ])
