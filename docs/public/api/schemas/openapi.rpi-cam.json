@@ -554,6 +554,23 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HealthStatus": {
+        "description": "Liveness payload returned to unauthenticated local-network probes.",
+        "properties": {
+          "service": {
+            "default": "relab-rpi-cam",
+            "title": "Service",
+            "type": "string"
+          },
+          "status": {
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "HealthStatus",
+        "type": "object"
+      },
       "ImageCaptureResponse": {
         "description": "Response model for image capture.",
         "properties": {
@@ -963,7 +980,7 @@
   "info": {
     "description": "This API allows you to remotely capture images and stream video from a Raspberry Pi camera. It is used as a plugin for the RELab platform.<br>For more info, visit the <a href=\"https://github.com/CMLplatform/relab\" target=\"_blank\">RELab GitHub</a>.",
     "title": "Raspberry Pi Camera API",
-    "version": "0.4.0"
+    "version": "0.5.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -1165,6 +1182,31 @@
         "summary": "Capture image",
         "tags": [
           "captures"
+        ]
+      }
+    },
+    "/healthz": {
+      "get": {
+        "description": "Report liveness without requiring the device API key.\n\nDeliberately unauthenticated: the app probes candidate LAN addresses to find a\ndirect link *before* it holds the device key, so an authenticated probe can\nnever succeed on a first connection. Restricted to local clients and returns\nno device data \u2014 only enough for a prober to tell this is an RPi cam.",
+        "operationId": "get_health_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "Caller is not on the local network."
+          }
+        },
+        "summary": "Liveness probe for local-network clients",
+        "tags": [
+          "system"
         ]
       }
     },
