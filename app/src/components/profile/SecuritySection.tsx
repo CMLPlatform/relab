@@ -1,13 +1,13 @@
-import { OtpInput } from '@/components/base/OtpInput';
-import { Text } from '@/components/base/Text';
-import { useMfaSetup } from '@/features/profile/useMfaSetup';
-import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { type AppTheme, useAppTheme } from '@/theme';
 import { setStringAsync } from 'expo-clipboard';
 import { useCallback } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
 import { Button, Dialog, Icon, Portal, TextInput } from 'react-native-paper';
 import QRCode from 'react-native-qrcode-svg';
+import { OtpInput } from '@/components/base/OtpInput';
+import { Text } from '@/components/base/Text';
+import { useMfaSetup } from '@/features/profile/useMfaSetup';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
+import { type AppTheme, useAppTheme } from '@/theme';
 import { ProfileAction, ProfileSectionHeader } from './shared';
 import { createProfileSectionStyles } from './styles';
 

@@ -6,11 +6,12 @@ Run with: python -m scripts.maintenance.backfill_profile_stats
 import asyncio
 import logging
 
+from sqlalchemy import select
+
 from app.api.auth.models import User
 from app.api.auth.services.stats import recompute_user_profile_stats
 from app.core.database import async_session_context, close_async_engine
 from app.core.logging import setup_logging
-from sqlalchemy import select
 
 # Configure logging
 setup_logging()
