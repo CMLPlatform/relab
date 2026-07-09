@@ -11,7 +11,6 @@ describe('camera capture action hooks', () => {
     const localConnection = {
       mode: 'local' as const,
       localBaseUrl: 'http://cam.local',
-      localMediaUrl: 'http://cam.local/media',
       localApiKey: 'key',
     };
 

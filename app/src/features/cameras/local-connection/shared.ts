@@ -8,6 +8,7 @@ import {
   setLocalItem,
   setSecureItem,
 } from '@/services/storage';
+import { isPrivateLocalHost } from '@/utils/urlSafety';
 import { normalizeLocalConnectionUrl } from './reducer';
 
 // Web has no platform-secure storage; keep the API key in memory so XSS can't
@@ -22,25 +23,11 @@ export const MAX_FAILURES_BEFORE_RELAY = 2;
 export const urlKey = (cameraId: string) => `localConnection:${cameraId}:url`;
 export const apiKeySecureKey = (cameraId: string) => `localConnection_${cameraId}_apiKey`;
 
-// candidate_urls is server-controlled; only probe (and attach the device API key to)
-// hosts on the local network so a hostile backend can't turn us into an SSRF/port
-// scanner or leak the key to an arbitrary public host.
-export function isPrivateLocalHost(hostname: string): boolean {
-  const host = hostname.toLowerCase();
-  if (host === 'localhost' || host.endsWith('.local')) return true;
-  const octets = host.split('.').map(Number);
-  if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
-    return false;
-  }
-  const [a, b] = octets;
-  return (
-    a === 10 ||
-    a === 127 ||
-    (a === 192 && b === 168) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 169 && b === 254)
-  );
-}
+// The Pi's unauthenticated liveness endpoint. Discovery has to work before we
+// hold the device key, so probing must never carry a credential — that also
+// keeps the key from being sprayed at every server-supplied candidate URL.
+const LIVENESS_PATH = '/healthz';
+const RPI_CAM_SERVICE = 'relab-rpi-cam';
 
 export function buildLocalProbeCandidates(candidateUrls: string[]): string[] {
   const localUrls = [...candidateUrls, USB_GADGET_DEFAULT].filter((url) => {
@@ -57,7 +44,14 @@ export function buildLocalProbeCandidates(candidateUrls: string[]): string[] {
 // default for every unconfigured camera); share the in-flight request.
 const inFlightProbes = new Map<string, Promise<boolean>>();
 
-export async function probeLocalUrl(baseUrl: string, apiKey: string | null): Promise<boolean> {
+/**
+ * Whether an RPi camera is reachable directly at `baseUrl`.
+ *
+ * Unauthenticated by design: the app has no device key until it has discovered a
+ * camera. The response is checked for the service marker so an unrelated LAN host
+ * that happens to answer 200 can't win the probe.
+ */
+export async function probeLocalUrl(baseUrl: string): Promise<boolean> {
   let probeBaseUrl: string;
   try {
     probeBaseUrl = normalizeLocalConnectionUrl(baseUrl);
@@ -65,39 +59,36 @@ export async function probeLocalUrl(baseUrl: string, apiKey: string | null): Pro
     return false;
   }
 
-  const probeKey = `${probeBaseUrl}|${apiKey ?? ''}`;
-  const existing = inFlightProbes.get(probeKey);
+  const existing = inFlightProbes.get(probeBaseUrl);
   if (existing) return existing;
 
   const probe = (async () => {
     try {
-      const headers: Record<string, string> = { Accept: 'application/json' };
-      if (apiKey) headers['X-API-Key'] = apiKey;
-      const response = await fetchWithTimeout(`${probeBaseUrl}/camera`, {
-        headers,
+      const response = await fetchWithTimeout(`${probeBaseUrl}${LIVENESS_PATH}`, {
+        headers: { Accept: 'application/json' },
         timeoutMs: PROBE_TIMEOUT_MS,
+        redirect: 'error',
       });
-      return response.ok;
+      if (!response.ok) return false;
+      const body = (await response.json().catch(() => null)) as { service?: unknown } | null;
+      return body?.service === RPI_CAM_SERVICE;
     } catch {
       return false;
     } finally {
-      inFlightProbes.delete(probeKey);
+      inFlightProbes.delete(probeBaseUrl);
     }
   })();
-  inFlightProbes.set(probeKey, probe);
+  inFlightProbes.set(probeBaseUrl, probe);
   return probe;
 }
 
-export async function probeAll(
-  candidates: string[],
-  apiKey: string | null,
-): Promise<string | null> {
+export async function probeAll(candidates: string[]): Promise<string | null> {
   if (candidates.length === 0) return null;
   return new Promise((resolve) => {
     let resolved = false;
     let pending = candidates.length;
     for (const url of candidates) {
-      void probeLocalUrl(url, apiKey).then((ok) => {
+      void probeLocalUrl(url).then((ok) => {
         pending -= 1;
         if (ok && !resolved) {
           resolved = true;
@@ -108,6 +99,28 @@ export async function probeAll(
       });
     }
   });
+}
+
+/**
+ * Whether `apiKey` is accepted by the camera at `baseUrl`.
+ *
+ * Used by manual setup, where the user supplies both and a wrong key must not be
+ * reported as a working direct connection. `redirect: 'error'` keeps the key from
+ * following a redirect off the validated LAN host (honoured on web; native fetch
+ * ignores it, where the private-host gate above is the protection that holds).
+ */
+export async function verifyLocalCredentials(baseUrl: string, apiKey: string): Promise<boolean> {
+  try {
+    const verifyBaseUrl = normalizeLocalConnectionUrl(baseUrl);
+    const response = await fetchWithTimeout(`${verifyBaseUrl}/camera`, {
+      headers: { Accept: 'application/json', 'X-API-Key': apiKey },
+      timeoutMs: PROBE_TIMEOUT_MS,
+      redirect: 'error',
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function storeLocalConnection(cameraId: string, baseUrl: string, apiKey: string) {

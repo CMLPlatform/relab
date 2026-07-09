@@ -7,6 +7,7 @@ import {
   probeLocalUrl,
   storeLocalConnection,
   USB_GADGET_DEFAULT,
+  verifyLocalCredentials,
 } from '@/features/cameras/local-connection/shared';
 import { useLocalConnection } from '@/features/cameras/local-connection/useLocalConnection';
 import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
@@ -26,6 +27,7 @@ jest.mock('@/features/cameras/local-connection/shared', () => ({
   probeAll: jest.fn(async () => null),
   probeLocalUrl: jest.fn(async () => false),
   storeLocalConnection: jest.fn(async () => undefined),
+  verifyLocalCredentials: jest.fn(async () => true),
 }));
 
 jest.mock('@/services/api/rpiCamera', () => ({
@@ -50,6 +52,7 @@ describe('useLocalConnection', () => {
     jest.mocked(fetchLocalAccessInfo).mockImplementation(async () => null);
     jest.mocked(storeLocalConnection).mockImplementation(async () => undefined);
     jest.mocked(clearStoredLocalConnection).mockImplementation(async () => undefined);
+    jest.mocked(verifyLocalCredentials).mockImplementation(async () => true);
   });
 
   it('restores a stored connection and switches to local mode when probing succeeds', async () => {
@@ -65,7 +68,6 @@ describe('useLocalConnection', () => {
 
     expect(result.current.mode).toBe('local');
     expect(result.current.localBaseUrl).toBe('http://10.0.0.5:8018');
-    expect(result.current.localMediaUrl).toBe('http://10.0.0.5:8888');
     expect(result.current.localApiKey).toBe('local-key');
 
     unmount();
@@ -76,9 +78,25 @@ describe('useLocalConnection', () => {
 
     await settleConnectionHook();
 
-    expect(probeLocalUrl).toHaveBeenCalledWith(USB_GADGET_DEFAULT, null);
+    // Probing is keyless: the app has no device key before it has found a camera.
+    expect(probeLocalUrl).toHaveBeenCalledWith(USB_GADGET_DEFAULT);
     expect(result.current.mode).toBe('relay');
     expect(result.current.localBaseUrl).toBeNull();
+
+    unmount();
+  });
+
+  it('engages local mode as soon as the USB gadget probe succeeds', async () => {
+    jest.mocked(probeLocalUrl).mockImplementation(async () => true);
+
+    const { result, unmount } = renderHook(() => useLocalConnection('cam-usb'));
+
+    await settleConnectionHook();
+
+    // Not 'probing' — a successful probe means the direct link is usable now,
+    // rather than 30s later when the re-probe interval next fires.
+    expect(result.current.mode).toBe('local');
+    expect(result.current.localBaseUrl).toBe(USB_GADGET_DEFAULT);
 
     unmount();
   });
@@ -124,6 +142,8 @@ describe('useLocalConnection', () => {
     unmount();
   });
 
+  // An explicit disconnect is latched per camera id for the session, so these two
+  // tests use ids of their own to stay independent of one another.
   it('clears the stored local connection and returns to relay mode', async () => {
     jest.mocked(loadLocalConnection).mockImplementation(async () => ({
       url: 'http://10.0.0.5:8018',
@@ -131,7 +151,7 @@ describe('useLocalConnection', () => {
     }));
     jest.mocked(probeLocalUrl).mockImplementation(async () => true);
 
-    const { result, unmount } = renderHook(() => useLocalConnection('cam-1'));
+    const { result, unmount } = renderHook(() => useLocalConnection('cam-clear'));
 
     await settleConnectionHook();
 
@@ -139,10 +159,41 @@ describe('useLocalConnection', () => {
       await result.current.clearLocalConnection();
     });
 
-    expect(clearStoredLocalConnection).toHaveBeenCalledWith('cam-1');
+    expect(clearStoredLocalConnection).toHaveBeenCalledWith('cam-clear');
     expect(result.current.mode).toBe('relay');
     expect(result.current.localBaseUrl).toBeNull();
     expect(result.current.localApiKey).toBeNull();
+
+    unmount();
+  });
+
+  it('does not let the relay bootstrap undo an explicit disconnect', async () => {
+    // Regression: `clear` sets mode to 'relay', which is a dep of the bootstrap
+    // effect — it used to immediately rediscover and re-persist the connection.
+    jest.mocked(fetchLocalAccessInfo).mockImplementation(async () => ({
+      local_api_key: 'relay-key',
+      candidate_urls: ['http://10.0.0.8:8018'],
+      mdns_name: null,
+    }));
+    jest.mocked(probeAll).mockImplementation(async () => 'http://10.0.0.8:8018');
+
+    const { result, unmount } = renderHook(() =>
+      useLocalConnection('cam-disconnect', { isOnline: true }),
+    );
+
+    await settleConnectionHook();
+    expect(result.current.localBaseUrl).toBe('http://10.0.0.8:8018');
+    const storesBeforeClear = jest.mocked(storeLocalConnection).mock.calls.length;
+
+    await act(async () => {
+      await result.current.clearLocalConnection();
+    });
+    await settleConnectionHook();
+
+    expect(result.current.mode).toBe('relay');
+    expect(result.current.localBaseUrl).toBeNull();
+    // The disconnect must not be re-persisted by a rerun of the bootstrap.
+    expect(jest.mocked(storeLocalConnection).mock.calls).toHaveLength(storesBeforeClear);
 
     unmount();
   });

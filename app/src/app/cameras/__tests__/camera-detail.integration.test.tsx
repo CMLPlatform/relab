@@ -68,7 +68,6 @@ describe('Camera detail screen', () => {
     localConnection: {
       mode: 'relay',
       localBaseUrl: null,
-      localMediaUrl: null,
       localApiKey: null,
       configure: jest.fn(),
       clearLocalConnection: jest.fn(),

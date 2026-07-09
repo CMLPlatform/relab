@@ -25,9 +25,48 @@ describe('local connection storage security', () => {
     );
   });
 
+  it('rejects camera base URLs outside the local network', () => {
+    // The chokepoint every probe/persist/restore path routes through: a public
+    // host must never become a local connection the device key is attached to.
+    expect(() => normalizeLocalConnectionUrl('http://evil.example.com')).toThrow(
+      HTTP_URL_ERROR_PATTERN,
+    );
+    expect(() => normalizeLocalConnectionUrl('http://8.8.8.8:8018')).toThrow(
+      HTTP_URL_ERROR_PATTERN,
+    );
+  });
+
   it('does not probe non-http camera URLs', async () => {
-    await expect(probeLocalUrl('file:///tmp/camera', 'secret-key')).resolves.toBe(false);
+    await expect(probeLocalUrl('file:///tmp/camera')).resolves.toBe(false);
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('does not probe a host outside the local network', async () => {
+    await expect(probeLocalUrl('http://evil.example.com:8018')).resolves.toBe(false);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('probes the unauthenticated liveness endpoint and sends no credential', async () => {
+    const fetchMock = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({ status: 'ok', service: 'relab-rpi-cam' }),
+    }));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(probeLocalUrl('http://192.168.7.1:8018')).resolves.toBe(true);
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('http://192.168.7.1:8018/healthz');
+    expect(JSON.stringify(init.headers)).not.toContain('X-API-Key');
+  });
+
+  it('rejects a local host that answers 200 but is not an RPi camera', async () => {
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({ service: 'some-other-device' }),
+    })) as unknown as typeof fetch;
+
+    await expect(probeLocalUrl('http://192.168.1.50:8018')).resolves.toBe(false);
   });
 
   it('drops server-supplied candidates outside private/link-local ranges', () => {

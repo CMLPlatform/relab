@@ -93,7 +93,6 @@ describe('CameraCard', () => {
         effectiveConnection={resolveEffectiveCameraConnection(camera, {
           mode: 'local',
           localBaseUrl: 'http://192.168.7.1:8018',
-          localMediaUrl: 'http://192.168.7.1:8888',
           localApiKey: null,
         })}
       />,

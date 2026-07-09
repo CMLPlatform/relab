@@ -15,6 +15,30 @@ export function stripTrailingSlash(value: string): string {
   return value.replace(TRAILING_SLASH_PATTERN, '');
 }
 
+/**
+ * Whether a hostname names a device on the local network.
+ *
+ * Gate for anything that sends a device credential to a host we did not choose
+ * ourselves (server-supplied candidate URLs, user-typed addresses, values read
+ * back from storage), so a secret can never leave the LAN.
+ */
+export function isPrivateLocalHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host === 'localhost' || host.endsWith('.local')) return true;
+  const octets = host.split('.').map(Number);
+  if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
+    return false;
+  }
+  const [a, b] = octets;
+  return (
+    a === 10 ||
+    a === 127 ||
+    (a === 192 && b === 168) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 169 && b === 254)
+  );
+}
+
 export function parseAbsoluteUrl(value: string | undefined): URL | null {
   const trimmedValue = `${value ?? ''}`.trim();
   if (!trimmedValue) {

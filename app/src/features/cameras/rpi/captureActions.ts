@@ -1,12 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
+import type { EffectiveConnectionSnapshot } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
-
-type EffectiveConnectionSnapshot = {
-  isReachable: boolean;
-  transport: string;
-  localConnection: CameraConnectionInfo;
-};
 
 export function useCameraConnectionSnapshots() {
   const [effectiveConnectionByCameraId, setEffectiveConnectionByCameraId] = useState<

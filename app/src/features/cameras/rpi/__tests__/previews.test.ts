@@ -30,7 +30,6 @@ describe('rpi camera preview helpers', () => {
         connectionInfo: {
           mode: 'local',
           localBaseUrl: 'http://192.168.7.1:8018',
-          localMediaUrl: 'http://192.168.7.1:8888',
           localApiKey: 'local-key',
         },
       }),

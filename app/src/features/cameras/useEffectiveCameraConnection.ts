@@ -30,9 +30,14 @@ export interface EffectiveCameraConnection {
 const EMPTY_LOCAL_CONNECTION: CameraConnectionInfo = {
   mode: 'relay',
   localBaseUrl: null,
-  localMediaUrl: null,
   localApiKey: null,
 };
+
+/** The slice of the effective connection that the cameras grid reports upward. */
+export type EffectiveConnectionSnapshot = Pick<
+  EffectiveCameraConnection,
+  'isReachable' | 'transport' | 'localConnection'
+>;
 
 export function resolveEffectiveCameraConnection(
   camera: Pick<CameraReadWithStatus, 'status'> | null | undefined,

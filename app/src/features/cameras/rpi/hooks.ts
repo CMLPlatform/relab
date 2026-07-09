@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import { invalidateProductQuery } from '@/features/products/queries';
 import { useScreenFocused } from '@/hooks/useScreenFocused';
@@ -115,8 +116,13 @@ export function useCameraLivePreview(
     connectionInfo,
   }: { enabled?: boolean; connectionInfo?: CameraConnectionInfo } = {},
 ): CameraLivePreviewResult {
-  // biome-ignore lint/suspicious/noUnnecessaryConditions: false positive — camera?.id is string | undefined and the callee requires string | null.
-  return resolveCameraLivePreview(camera?.id ?? null, { enabled, connectionInfo });
+  const cameraId = camera?.id ?? null;
+  // Stable identity: consumers pass this straight into the video player's source
+  // and effect deps, so a fresh object each render restarts the live stream.
+  return useMemo(
+    () => resolveCameraLivePreview(cameraId, { enabled, connectionInfo }),
+    [cameraId, enabled, connectionInfo],
+  );
 }
 
 export function useCaptureImageMutation(connectionInfo?: CameraConnectionInfo) {

@@ -1,9 +1,12 @@
 import { fetchWithAuth } from '@/services/api/auth/authentication';
 import { throwFromResponse } from '@/services/api/errors';
-import { createRequestId } from '@/services/api/request';
+import { createRequestId, fetchWithTimeout } from '@/services/api/request';
 import { isSafeImageUrl, stripTrailingSlash } from '@/utils/urlSafety';
 import type { CapturedImage } from './shared';
 import { CAMERA_BASE } from './shared';
+
+// A capture writes to the sensor and uploads; allow more than a liveness probe.
+const LOCAL_CAPTURE_TIMEOUT_MS = 20_000;
 
 // The local device is untrusted; drop any url whose scheme isn't a safe image scheme.
 const safeImageUrl = (value: unknown): string =>
@@ -33,7 +36,10 @@ export async function captureImageLocally(
   localApiKey: string,
   productId: number,
 ): Promise<CapturedImage> {
-  const resp = await fetch(`${stripTrailingSlash(localBaseUrl)}/captures`, {
+  // Bounded: capture-all awaits every camera, so a half-open LAN socket here
+  // would stall the whole mutation. `redirect: 'error'` keeps the device key from
+  // following a redirect off the validated LAN host.
+  const resp = await fetchWithTimeout(`${stripTrailingSlash(localBaseUrl)}/captures`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -42,6 +48,8 @@ export async function captureImageLocally(
       'X-Request-ID': createRequestId(),
     },
     body: JSON.stringify({ product_id: productId }),
+    timeoutMs: LOCAL_CAPTURE_TIMEOUT_MS,
+    redirect: 'error',
   });
   if (!resp.ok) await throwFromResponse(resp, 'Local capture failed');
   const data = await resp.json();

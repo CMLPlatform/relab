@@ -3,7 +3,8 @@
  *
  * When a camera is physically connected to the same machine via Ethernet or a
  * USB-C to Ethernet adapter, the frontend can bypass the backend WebSocket relay
- * and talk directly to the Pi's FastAPI (:8018) and MediaMTX (:8888) endpoints.
+ * and talk directly to the Pi's FastAPI (:8018). Preview media is served from
+ * that same port (the Pi proxies MediaMTX, which binds to loopback only).
  *
  * Benefits:
  *  - LL-HLS preview latency drops from ~1.5–3 s to ~0.4–0.8 s
@@ -18,8 +19,9 @@
  * When the camera is online, the hook fetches local access info through the
  * relay (GET /cameras/{id}/local-access → Pi's /system/local-access). The Pi
  * returns its API key and all its LAN IP addresses. The hook probes each
- * candidate URL in parallel; the first that responds activates local mode
- * automatically — no manual key copying required.
+ * candidate URL in parallel against the Pi's unauthenticated `/healthz`; the
+ * first that identifies itself as an RPi cam activates local mode automatically
+ * — no manual key copying required, and the key is never sent to a candidate.
  *
  * If the camera is offline or the relay call fails, the hook falls back to
  * any previously-stored URL/key or the USB gadget default address. Users can
@@ -36,7 +38,7 @@ import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
 import type { LocalAccessInfo } from '@/services/api/rpiCamera/shared';
 import {
   createInitialLocalConnectionState,
-  deriveLocalMediaUrl,
+  type LocalConnectionMode,
   localConnectionReducer,
   normalizeLocalConnectionUrl,
 } from './reducer';
@@ -50,14 +52,12 @@ import {
   probeLocalUrl,
   storeLocalConnection,
   USB_GADGET_DEFAULT,
+  verifyLocalCredentials,
 } from './shared';
 
-export type ConnectionMode = 'probing' | 'local' | 'relay';
-
 export interface CameraConnectionInfo {
-  mode: ConnectionMode;
+  mode: LocalConnectionMode;
   localBaseUrl: string | null;
-  localMediaUrl: string | null;
   localApiKey: string | null;
 }
 
@@ -74,6 +74,12 @@ interface UseLocalConnectionOptions {
 // The card grid and the detail screen can request the same camera's access
 // info concurrently; share the in-flight relay round-trip between them.
 const inFlightAccessInfo = new Map<string, Promise<LocalAccessInfo | null>>();
+
+// An explicit disconnect has to outlive this hook instance: the grid cell and the
+// detail screen both run it for the same camera, so a per-instance flag would let
+// one instance's bootstrap re-activate and re-persist what the other just cleared.
+// Reset by `configure` (the user opting back in) and by a reload.
+const disconnectedCameras = new Set<string>();
 
 function fetchLocalAccessInfoShared(cameraId: string): Promise<LocalAccessInfo | null> {
   const existing = inFlightAccessInfo.get(cameraId);
@@ -98,20 +104,22 @@ export function useLocalConnection(
   const { mode, localBaseUrl, localApiKey, isInitializing } = state;
 
   const consecutiveFailuresRef = useRef(0);
-  // Bumped on unmount so async work from a previous mount can never dispatch
-  // into the next one. Every call site keys this hook by camera id, so a
-  // cameraId change always remounts the instance rather than mutating it in
-  // place — there is no in-place cameraId transition to guard against.
+  // Bumped whenever the identity of what we're probing changes — on unmount, and
+  // on an in-place cameraId change (the preview target and the detail screen both
+  // swap cameraId without remounting). Async probes started for the previous
+  // camera compare against it and bail instead of dispatching into the new one.
   const generationRef = useRef(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cameraId is the trigger, not a read — the cleanup has to run when the camera being probed changes, not only on unmount.
   useEffect(() => {
     return () => {
       generationRef.current += 1;
+      consecutiveFailuresRef.current = 0;
     };
-  }, []);
+  }, [cameraId]);
 
-  const runProbe = useCallback(async (url: string, apiKey: string | null) => {
+  const runProbe = useCallback(async (url: string) => {
     const generation = generationRef.current;
-    const ok = await probeLocalUrl(url, apiKey);
+    const ok = await probeLocalUrl(url);
     if (generation !== generationRef.current) return;
 
     if (ok) {
@@ -144,16 +152,16 @@ export function useLocalConnection(
       });
 
       if (restoredUrl) {
-        await runProbe(restoredUrl, restoredApiKey);
+        await runProbe(restoredUrl);
       } else {
-        const ok = await probeLocalUrl(USB_GADGET_DEFAULT, restoredApiKey);
+        const ok = await probeLocalUrl(USB_GADGET_DEFAULT);
         if (!cancelled) {
           if (ok) {
             dispatch({
               type: 'restore',
               payload: { localBaseUrl: USB_GADGET_DEFAULT, localApiKey: restoredApiKey },
             });
-            dispatch({ type: 'setMode', payload: 'probing' });
+            dispatch({ type: 'setMode', payload: 'local' });
           } else {
             dispatch({ type: 'setMode', payload: 'relay' });
           }
@@ -172,8 +180,17 @@ export function useLocalConnection(
   }, [cameraId, runProbe]);
 
   // ── Bootstrap: fetch access info via the relay and probe candidates ──
+  // Deliberately keyed on (camera, online) only. `mode` is read through a ref so
+  // a mode change can neither cancel an in-flight discovery nor start a second
+  // one — in particular the 'relay' that `clear` dispatches, which used to
+  // rediscover and re-persist the connection the user had just disconnected.
+  const modeRef = useRef(mode);
   useEffect(() => {
-    if (!isOnline || mode === 'local') return;
+    modeRef.current = mode;
+  }, [mode]);
+
+  useEffect(() => {
+    if (!isOnline || modeRef.current === 'local' || disconnectedCameras.has(cameraId)) return;
     let cancelled = false;
 
     async function bootstrapFromRelay() {
@@ -181,12 +198,18 @@ export function useLocalConnection(
       if (cancelled || !info?.local_api_key) return;
 
       const candidates = buildLocalProbeCandidates(info.candidate_urls);
-      const reachableUrl = await probeAll(candidates, info.local_api_key);
-      if (cancelled || !reachableUrl) return;
+      const reachableUrl = await probeAll(candidates);
+      if (cancelled || !reachableUrl || disconnectedCameras.has(cameraId)) return;
 
       const generation = generationRef.current;
       const normalised = normalizeLocalConnectionUrl(reachableUrl);
       await storeLocalConnection(cameraId, normalised, info.local_api_key);
+      // The other mounted instance of this camera may have disconnected while we
+      // were writing; undo rather than resurrect what it cleared.
+      if (disconnectedCameras.has(cameraId)) {
+        await clearStoredLocalConnection(cameraId);
+        return;
+      }
       if (cancelled || generation !== generationRef.current) return;
       consecutiveFailuresRef.current = 0;
       dispatch({
@@ -195,53 +218,51 @@ export function useLocalConnection(
       });
     }
 
-    void bootstrapFromRelay();
+    bootstrapFromRelay().catch(() => {
+      // Discovery is best-effort — a storage or probe failure must not surface as
+      // an unhandled rejection. The relay transport stays available either way.
+    });
     return () => {
       cancelled = true;
     };
-  }, [cameraId, isOnline, mode]);
+  }, [cameraId, isOnline]);
 
   // ── Periodic re-probe while a local URL is configured ──
-  const probeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const probeTargetRef = useRef({ localBaseUrl, localApiKey });
+  // Keeps running after a relay fallback on purpose: a later successful probe is
+  // what promotes the camera back to direct mode when the LAN link returns.
   useEffect(() => {
-    probeTargetRef.current = { localBaseUrl, localApiKey };
-  }, [localApiKey, localBaseUrl]);
-
-  useEffect(() => {
-    if (probeIntervalRef.current) clearInterval(probeIntervalRef.current);
     if (!localBaseUrl) return;
 
-    probeIntervalRef.current = setInterval(() => {
-      const { localBaseUrl: url, localApiKey: key } = probeTargetRef.current;
-      if (url) void runProbe(url, key);
+    const interval = setInterval(() => {
+      void runProbe(localBaseUrl);
     }, PROBE_INTERVAL_ACTIVE_MS);
 
-    return () => {
-      if (probeIntervalRef.current) clearInterval(probeIntervalRef.current);
-    };
+    return () => clearInterval(interval);
   }, [localBaseUrl, runProbe]);
 
   // ── Manual configuration ──
   const configure = useCallback(
     async (baseUrl: string, apiKey: string) => {
+      // Throws for a non-LAN address; verify the key before persisting it so a
+      // typo can't be reported as a working direct connection.
       const normalised = normalizeLocalConnectionUrl(baseUrl);
+      if (!(await verifyLocalCredentials(normalised, apiKey))) {
+        throw new Error('Could not reach the camera at that address with that key.');
+      }
+      disconnectedCameras.delete(cameraId);
       await storeLocalConnection(cameraId, normalised, apiKey);
-      dispatch({ type: 'restore', payload: { localBaseUrl: normalised, localApiKey: apiKey } });
       consecutiveFailuresRef.current = 0;
-      await runProbe(normalised, apiKey);
+      dispatch({ type: 'activate', payload: { localBaseUrl: normalised, localApiKey: apiKey } });
     },
-    [cameraId, runProbe],
+    [cameraId],
   );
 
   const clearLocalConnection = useCallback(async () => {
+    disconnectedCameras.add(cameraId);
     await clearStoredLocalConnection(cameraId);
-    dispatch({ type: 'clear' });
     consecutiveFailuresRef.current = 0;
-    if (probeIntervalRef.current) {
-      clearInterval(probeIntervalRef.current);
-      probeIntervalRef.current = null;
-    }
+    // Clearing localBaseUrl stops the re-probe interval via its own cleanup.
+    dispatch({ type: 'clear' });
   }, [cameraId]);
 
   // Stable identity while the underlying values are unchanged: consumers use this
@@ -252,7 +273,6 @@ export function useLocalConnection(
     () => ({
       mode,
       localBaseUrl,
-      localMediaUrl: deriveLocalMediaUrl(localBaseUrl),
       localApiKey,
       configure,
       clearLocalConnection,

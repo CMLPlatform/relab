@@ -1,7 +1,11 @@
-import { normalizeHttpUrl } from '@/utils/urlSafety';
+import {
+  isPrivateLocalHost,
+  normalizeHttpUrl,
+  parseAbsoluteUrl,
+  stripTrailingSlash,
+} from '@/utils/urlSafety';
 
 export type LocalConnectionMode = 'probing' | 'local' | 'relay';
-const TRAILING_SLASHES_PATTERN = /\/+$/;
 
 export interface LocalConnectionState {
   mode: LocalConnectionMode;
@@ -45,26 +49,20 @@ export function createInitialLocalConnectionState(): LocalConnectionState {
   };
 }
 
+/**
+ * Normalize and validate a local camera base URL.
+ *
+ * The single chokepoint for every path that probes, persists, or restores a
+ * local URL, so the device API key can never be attached to a host off the LAN
+ * — whether that host came from the backend, from the user, or from storage.
+ */
 export function normalizeLocalConnectionUrl(baseUrl: string): string {
-  const normalized = normalizeHttpUrl(baseUrl)?.replace(TRAILING_SLASHES_PATTERN, '');
-  if (!normalized) {
-    throw new Error('Local camera connection URL must be an http(s) URL.');
+  const normalized = normalizeHttpUrl(baseUrl);
+  const url = normalized ? parseAbsoluteUrl(normalized) : null;
+  if (!normalized || !url || !isPrivateLocalHost(url.hostname)) {
+    throw new Error('Local camera connection URL must be an http(s) URL on the local network.');
   }
-  return normalized;
-}
-
-export function deriveLocalMediaUrl(baseUrl: string | null): string | null {
-  if (!baseUrl) {
-    return null;
-  }
-
-  try {
-    const url = new URL(baseUrl);
-    url.port = '8888';
-    return url.origin;
-  } catch {
-    return baseUrl.replace(':8018', ':8888');
-  }
+  return stripTrailingSlash(normalized);
 }
 
 export function localConnectionReducer(
