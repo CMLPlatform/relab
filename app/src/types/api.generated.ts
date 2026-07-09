@@ -884,7 +884,7 @@ export interface paths {
     };
     /**
      * Get base product by ID
-     * @description Get a base product by ID. For components, use ``/products/{parent_id}/components/{component_id}``.
+     * @description Get a base product by ID. For components, use ``/components/{component_id}``.
      */
     get: operations['get_product_v1_products__product_id__get'];
     put?: never;
