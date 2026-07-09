@@ -74,8 +74,8 @@ describe('useOAuthAssociations', () => {
     expect(result.current.youtube.authPending).toBe(false);
     expect(typeof result.current.youtube.toggle).toBe('function');
     expect(typeof result.current.actions.linkOAuth).toBe('function');
-    expect(typeof result.current.actions.linkGoogle).toBe('function');
-    expect(typeof result.current.actions.linkGithub).toBe('function');
+    expect(typeof result.current.actions.linkOAuth).toBe('function');
+    expect(typeof result.current.actions.linkOAuth).toBe('function');
   });
 
   it('enables YouTube and refetches on successful YouTube authorization', async () => {
@@ -148,7 +148,7 @@ describe('useOAuthAssociations', () => {
     );
 
     await act(async () => {
-      await result.current.actions.linkGoogle();
+      await result.current.actions.linkOAuth('google');
     });
 
     expect(fetchOAuthAuthorizationUrl).toHaveBeenCalledWith(
@@ -174,7 +174,7 @@ describe('useOAuthAssociations', () => {
     );
 
     await act(async () => {
-      await result.current.actions.linkGithub();
+      await result.current.actions.linkOAuth('github');
     });
 
     expect(mockFeedback.error).toHaveBeenCalledWith(
@@ -195,7 +195,7 @@ describe('useOAuthAssociations', () => {
     );
 
     await act(async () => {
-      await result.current.actions.linkGithub();
+      await result.current.actions.linkOAuth('github');
     });
 
     expect(openOAuthBrowserSession).not.toHaveBeenCalled();
@@ -218,7 +218,7 @@ describe('useOAuthAssociations', () => {
     );
 
     await act(async () => {
-      await result.current.actions.linkGoogle();
+      await result.current.actions.linkOAuth('google');
     });
 
     expect(mockRefetch).not.toHaveBeenCalled();
@@ -226,5 +226,70 @@ describe('useOAuthAssociations', () => {
       'Failed to start link flow: Unexpected OAuth callback URL received. Please try again.',
       'Link failed',
     );
+  });
+});
+
+describe('linkOAuth callback status', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.mocked(createURL).mockReturnValue('relab-app://account');
+    jest.mocked(buildOAuthAuthorizeUrl).mockImplementation((path) => path);
+    jest.mocked(fetchOAuthAuthorizationUrl).mockImplementation(async () => ({
+      ok: true,
+      status: 200,
+      detail: undefined,
+      authorizationUrl: 'https://oauth.example.com/start',
+    }));
+    jest.mocked(isAllowedOAuthRedirectUrl).mockReturnValue(true);
+    jest.mocked(isExpectedOAuthCallbackUrl).mockReturnValue(true);
+    mockRefetch.mockImplementation(async () => undefined);
+    mockSetYoutubeEnabled.mockImplementation(async () => undefined);
+  });
+
+  // Regression: a denied consent screen completes the browser session, so
+  // linkOAuth refetched and told the user nothing. The outcome lives in the
+  // callback fragment, not in the session result.
+  it('surfaces the callback error when the user denies consent', async () => {
+    jest.mocked(openOAuthBrowserSession).mockImplementation(async () => ({
+      type: 'success',
+      url: 'relab-app://account#status=error&error=access_denied',
+    }));
+
+    const { result } = renderHook(() =>
+      useOAuthAssociations({
+        feedback: mockFeedback,
+        refetch: mockRefetch,
+        setYoutubeEnabled: mockSetYoutubeEnabled,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.actions.linkOAuth('github');
+    });
+
+    expect(mockFeedback.error).toHaveBeenCalledWith('access_denied', 'Link failed');
+    expect(mockRefetch).not.toHaveBeenCalled();
+  });
+
+  it('refetches when the callback reports success', async () => {
+    jest.mocked(openOAuthBrowserSession).mockImplementation(async () => ({
+      type: 'success',
+      url: 'relab-app://account#status=success',
+    }));
+
+    const { result } = renderHook(() =>
+      useOAuthAssociations({
+        feedback: mockFeedback,
+        refetch: mockRefetch,
+        setYoutubeEnabled: mockSetYoutubeEnabled,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.actions.linkOAuth('google');
+    });
+
+    expect(mockFeedback.error).not.toHaveBeenCalled();
+    expect(mockRefetch).toHaveBeenCalled();
   });
 });

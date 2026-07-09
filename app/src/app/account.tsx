@@ -93,6 +93,7 @@ export default function ProfileTab() {
         onDismissUnlink={dialogs.unlinkDialog.close}
         providerToUnlink={dialogs.unlinkDialog.provider}
         onConfirmUnlink={integrations.handleUnlinkOAuthConfirm}
+        isLastLinkedProvider={integrations.isLastLinkedProvider}
         logoutDialogVisible={dialogs.logoutDialog.visible}
         onDismissLogout={dialogs.logoutDialog.close}
         onConfirmLogout={actions.confirmLogout}

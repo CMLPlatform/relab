@@ -10,7 +10,7 @@ import { getErrorMessage } from '@/utils/errors';
 
 type Mode = 'idle' | 'enroll' | 'disable' | 'regenerate' | 'codes';
 
-type MfaSetupController = {
+export type MfaSetupController = {
   mode: Mode;
   setup: TotpSetup | null;
   code: string;
@@ -56,8 +56,26 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const reenrollAfter = useRef(false);
+  // `busy` is state, so two submits in the same tick both read the stale `false`
+  // from their closure. A ref is the only guard that actually single-flights a
+  // double tap — and a TOTP code is single-use, so a second submit burns it.
+  const inFlight = useRef(false);
+
+  const beginRequest = useCallback(() => {
+    if (inFlight.current) return false;
+    inFlight.current = true;
+    setBusy(true);
+    setError(null);
+    return true;
+  }, []);
+
+  const endRequest = useCallback(() => {
+    inFlight.current = false;
+    setBusy(false);
+  }, []);
 
   const reset = useCallback(() => {
+    inFlight.current = false;
     setMode('idle');
     setSetup(null);
     setCode('');
@@ -78,23 +96,20 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
   }, []);
 
   const start = useCallback(async () => {
-    if (busy) return;
-    setBusy(true);
-    setError(null);
+    if (!beginRequest()) return;
     try {
       await beginEnroll();
     } catch (err) {
       setError(getErrorMessage(err, 'Unable to start setup. Please try again.'));
     } finally {
-      setBusy(false);
+      endRequest();
     }
-  }, [beginEnroll, busy]);
+  }, [beginEnroll, beginRequest, endRequest]);
 
   const confirm = useCallback(
     async (submitCode: string = code) => {
-      if (!setup || submitCode.length !== 6 || !password || busy) return;
-      setBusy(true);
-      setError(null);
+      if (!setup || submitCode.length !== 6 || !password) return;
+      if (!beginRequest()) return;
       try {
         const codes = await confirmTotpSetup(setup.setupToken, submitCode, password);
         // MFA is now enabled server-side and these codes are shown only once — surface
@@ -102,11 +117,14 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
         setRecoveryCodes(codes);
         setCode('');
         setPassword('');
+        // The shared secret and setup token are spent; don't hold them through the
+        // recovery-codes screen.
+        setSetup(null);
         setMode('codes');
-        setBusy(false);
+        endRequest();
       } catch (err) {
         setError(getErrorMessage(err, "That code didn't match. Try the current one."));
-        setBusy(false);
+        endRequest();
         return;
       }
       // Best-effort refresh; the codes are already shown, so its failure is non-fatal.
@@ -116,7 +134,7 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
         // The account screen will catch up on its next natural refetch.
       }
     },
-    [busy, code, onChange, password, setup],
+    [beginRequest, code, endRequest, onChange, password, setup],
   );
 
   // Disable and regenerate share one shape: confirm a current 6-digit code, then
@@ -124,17 +142,16 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
   // owns the shared error + unbusy path.
   const withCurrentCode = useCallback(
     async (submitCode: string, action: (currentCode: string) => Promise<void>) => {
-      if (submitCode.length < 6 || busy) return;
-      setBusy(true);
-      setError(null);
+      if (submitCode.length < 6) return;
+      if (!beginRequest()) return;
       try {
         await action(submitCode);
       } catch (err) {
         setError(getErrorMessage(err, "That code didn't match. Try the current one."));
-        setBusy(false);
+        endRequest();
       }
     },
-    [busy],
+    [beginRequest, endRequest],
   );
 
   const beginDisable = useCallback((reenroll: boolean) => {
@@ -154,16 +171,33 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
   const disable = useCallback(
     (submitCode: string = useRecoveryCode ? recoveryInput.trim() : code) =>
       withCurrentCode(submitCode, async (currentCode) => {
+        // Only disableTotp can fail because of a bad code. Once it succeeds MFA is
+        // off server-side, so a later failure must not be reported as "wrong code"
+        // — that would strand the dialog contradicting the server.
         await disableTotp(currentCode);
-        await onChange();
-        if (reenrollAfter.current) {
-          await beginEnroll();
-          setBusy(false);
-        } else {
-          reset();
+        try {
+          await onChange();
+          if (reenrollAfter.current) {
+            await beginEnroll();
+            endRequest();
+            return;
+          }
+        } catch {
+          // The account screen catches up on its next natural refetch; a failed
+          // re-enroll simply drops the user back to the idle state.
         }
+        reset();
       }),
-    [beginEnroll, code, onChange, recoveryInput, reset, useRecoveryCode, withCurrentCode],
+    [
+      beginEnroll,
+      code,
+      endRequest,
+      onChange,
+      recoveryInput,
+      reset,
+      useRecoveryCode,
+      withCurrentCode,
+    ],
   );
 
   const beginRegenerate = useCallback(() => {
@@ -179,9 +213,9 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
         setRecoveryCodes(codes);
         setCode('');
         setMode('codes');
-        setBusy(false);
+        endRequest();
       }),
-    [code, withCurrentCode],
+    [code, endRequest, withCurrentCode],
   );
 
   // Enroll needs a password (reauth); disable may use a recovery code instead of the

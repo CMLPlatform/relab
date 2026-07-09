@@ -109,6 +109,17 @@ jest.mock('@/services/api/profiles', () => ({
   })),
 }));
 
+type AlertButton = { text: string; onPress?: () => void };
+
+/** Presses the destructive button of the most recent feedback.alert(). */
+function pressAlertButton(text: string) {
+  const calls = mockFeedback.alert.mock.calls as unknown as [{ buttons?: AlertButton[] }][];
+  const options = calls.at(-1)?.[0];
+  const button = options?.buttons?.find((candidate) => candidate.text === text);
+  if (!button?.onPress) throw new Error(`No "${text}" button on the last alert`);
+  button.onPress();
+}
+
 describe('useProfileScreen', () => {
   function Wrapper({ children }: { children: React.ReactNode }) {
     const queryClient = new QueryClient({
@@ -215,11 +226,29 @@ describe('useProfileScreen', () => {
     );
   });
 
+  // Regression: "Sign out everywhere" used to fire on a single tap, with no
+  // confirmation, while the milder logout and unlink both asked first.
+  it('does not sign out everywhere until the confirmation is accepted', async () => {
+    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+
+    await act(async () => {
+      result.current.actions.onRevokeAllSessions();
+      await Promise.resolve();
+    });
+
+    expect(mockFeedback.alert).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Sign out everywhere?' }),
+    );
+    expect(mockRevokeAllSessions).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
   it('stops an active stream before signing out everywhere', async () => {
     const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       result.current.actions.onRevokeAllSessions();
+      pressAlertButton('Sign out everywhere');
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -241,6 +270,7 @@ describe('useProfileScreen', () => {
 
     await act(async () => {
       result.current.actions.onRevokeAllSessions();
+      pressAlertButton('Sign out everywhere');
       await Promise.resolve();
     });
 

@@ -15,6 +15,7 @@ type ProfileDialogsProps = {
   onDismissUnlink: () => void;
   providerToUnlink: string;
   onConfirmUnlink: () => void;
+  isLastLinkedProvider: boolean;
   logoutDialogVisible: boolean;
   onDismissLogout: () => void;
   onConfirmLogout: () => void;
@@ -32,6 +33,7 @@ export function ProfileDialogs({
   onDismissUnlink,
   providerToUnlink,
   onConfirmUnlink,
+  isLastLinkedProvider,
   logoutDialogVisible,
   onDismissLogout,
   onConfirmLogout,
@@ -64,6 +66,12 @@ export function ProfileDialogs({
         <Dialog.Title>Unlink Account</Dialog.Title>
         <Dialog.Content>
           <Text>Are you sure you want to disconnect this {providerToUnlink} account?</Text>
+          {isLastLinkedProvider ? (
+            <Text style={styles.unlinkWarning}>
+              This is your only linked account. If you never set a password, you will have to reset
+              it by email to sign in again.
+            </Text>
+          ) : null}
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={onDismissUnlink}>Cancel</Button>

@@ -185,5 +185,9 @@ export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
     deleteMessage: {
       marginTop: 10,
     },
+    unlinkWarning: {
+      marginTop: 10,
+      color: theme.tokens.status.warning,
+    },
   });
 });

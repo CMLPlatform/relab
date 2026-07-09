@@ -34,20 +34,15 @@ export default function UserProfileScreen() {
         {hasError ? (
           <View style={styles.centerContainer}>
             <Icon source="account-cancel-outline" size={48} color={theme.colors.error} />
-            <Text style={{ ...styles.errorText, color: theme.colors.error }}>{errorMessage}</Text>
+            <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
         ) : null}
 
         {!(loading || hasError) && profile ? (
           <View style={styles.profileContainer}>
             <View style={styles.heroSection}>
-              <View
-                style={[
-                  styles.avatarPlaceholder,
-                  { backgroundColor: theme.colors.primaryContainer },
-                ]}
-              >
-                <Text style={[styles.avatarText, { color: theme.colors.onPrimaryContainer }]}>
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>
                   {profile.username.substring(0, 2).toUpperCase()}
                 </Text>
               </View>
@@ -135,6 +130,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       width: 120,
       height: 120,
       borderRadius: 60,
+      backgroundColor: theme.colors.primaryContainer,
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: 24,
@@ -151,6 +147,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
     avatarText: {
       fontSize: 48,
       fontWeight: 'bold',
+      color: theme.colors.onPrimaryContainer,
     },
     usernameText: {
       fontSize: 32,

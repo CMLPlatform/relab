@@ -152,3 +152,117 @@ describe('useMfaSetup regenerate', () => {
     expect(result.current.recoveryCodes).toEqual(CODES);
   });
 });
+
+describe('useMfaSetup guards', () => {
+  // Regression: the `busy` single-flight guard had zero coverage. A double tap
+  // must not submit the same single-use TOTP code twice.
+  it('ignores a second confirm while the first is in flight', async () => {
+    mockStart.mockResolvedValue(SETUP);
+    let release: (value: string[]) => void = () => {};
+    mockConfirm.mockImplementation(
+      () =>
+        new Promise<string[]>((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    await act(async () => await result.current.start());
+    act(() => result.current.setPassword('pw'));
+    act(() => result.current.setCode('123456'));
+
+    await act(async () => {
+      void result.current.confirm();
+      void result.current.confirm();
+      await Promise.resolve();
+    });
+
+    expect(mockConfirm).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      release(CODES);
+      await Promise.resolve();
+    });
+  });
+
+  it('ignores a second disable while the first is in flight', async () => {
+    let release: () => void = () => {};
+    mockDisable.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    act(() => result.current.beginDisable(false));
+    act(() => result.current.setCode('123456'));
+
+    await act(async () => {
+      void result.current.disable();
+      void result.current.disable();
+      await Promise.resolve();
+    });
+
+    expect(mockDisable).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      release();
+      await Promise.resolve();
+    });
+  });
+
+  // Regression: the shared secret was held through the recovery-codes screen.
+  it('drops the TOTP secret as soon as enrollment is confirmed', async () => {
+    mockStart.mockResolvedValue(SETUP);
+    mockConfirm.mockResolvedValue(CODES);
+
+    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    await act(async () => await result.current.start());
+    expect(result.current.setup).not.toBeNull();
+
+    act(() => result.current.setPassword('pw'));
+    await act(async () => await result.current.confirm('123456'));
+
+    expect(result.current.mode).toBe('codes');
+    expect(result.current.setup).toBeNull();
+    expect(result.current.recoveryCodes).toEqual(CODES);
+  });
+
+  // Regression: reset() clearing the one-time recovery codes was never driven.
+  it('clears the recovery codes when the dialog is closed', async () => {
+    mockStart.mockResolvedValue(SETUP);
+    mockConfirm.mockResolvedValue(CODES);
+
+    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    await act(async () => await result.current.start());
+    act(() => result.current.setPassword('pw'));
+    await act(async () => await result.current.confirm('123456'));
+    expect(result.current.recoveryCodes).toEqual(CODES);
+
+    act(() => result.current.cancel());
+
+    expect(result.current.recoveryCodes).toBeNull();
+    expect(result.current.setup).toBeNull();
+    expect(result.current.mode).toBe('idle');
+  });
+
+  // Regression: a refetch failure after disableTotp already succeeded was
+  // reported as "That code didn't match", stranding the dialog against a server
+  // that had already turned MFA off.
+  it('does not blame the code when the post-disable refetch fails', async () => {
+    mockDisable.mockResolvedValue(undefined);
+    const onChange = jest.fn(() => {
+      throw new Error('network down');
+    });
+
+    const { result } = renderHook(() => useMfaSetup(onChange));
+    act(() => result.current.beginDisable(false));
+
+    await act(async () => await result.current.disable('123456'));
+
+    expect(mockDisable).toHaveBeenCalledWith('123456');
+    expect(result.current.error).toBeNull();
+    expect(result.current.mode).toBe('idle');
+  });
+});

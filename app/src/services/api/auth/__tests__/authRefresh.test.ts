@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { waitFor } from '@testing-library/react-native';
 import { fetchWithAuth, refreshAuthToken } from '@/services/api/auth/authRefresh';
 import { authRuntime } from '@/services/api/auth/authRuntime';
 
@@ -62,7 +63,7 @@ describe('authRefresh', () => {
     const second = refreshAuthToken('http://127.0.0.1:18010');
 
     // Both calls suspend on loadStoredRefreshToken before reaching fetch.
-    while (fetchWithTimeout.mock.calls.length === 0) await Promise.resolve();
+    await waitFor(() => expect(fetchWithTimeout).toHaveBeenCalled());
     release({ ok: true, status: 200, json: async () => ({ access_token: 'fresh' }) });
 
     await expect(Promise.all([first, second])).resolves.toEqual([true, true]);

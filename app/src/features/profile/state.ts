@@ -70,17 +70,17 @@ export function useProfileAuthRedirect({
 }
 
 export function useProfileLinkedAccounts(profile: ReturnType<typeof useAuth>['user']) {
-  const isGoogleLinked =
-    profile?.oauth_accounts?.some((account) => account.oauth_name === 'google') ?? false;
-  const isGithubLinked =
-    profile?.oauth_accounts?.some((account) => account.oauth_name === 'github') ?? false;
-  const googleAccount = profile?.oauth_accounts?.find((account) => account.oauth_name === 'google');
-  const githubAccount = profile?.oauth_accounts?.find((account) => account.oauth_name === 'github');
+  const accounts = profile?.oauth_accounts ?? [];
+  const googleAccount = accounts.find((account) => account.oauth_name === 'google');
+  const githubAccount = accounts.find((account) => account.oauth_name === 'github');
 
   return {
-    isGoogleLinked,
-    isGithubLinked,
+    isGoogleLinked: Boolean(googleAccount),
+    isGithubLinked: Boolean(githubAccount),
     googleAccount,
     githubAccount,
+    // Unlinking the only linked provider leaves an OAuth-only account reachable
+    // solely through an email password reset — warn before it happens.
+    isLastLinkedProvider: accounts.length === 1,
   };
 }

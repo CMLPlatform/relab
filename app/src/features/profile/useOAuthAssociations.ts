@@ -22,7 +22,7 @@ type UseOAuthAssociationsParams = {
 };
 
 type OAuthProvider = 'google' | 'github';
-type OAuthAssociationResult = { type: 'success'; url?: string } | { type: string; url?: string };
+type OAuthAssociationResult = { type: string; url?: string };
 
 export function useOAuthAssociations({
   feedback,
@@ -87,9 +87,18 @@ export function useOAuthAssociations({
   const linkOAuth = async (provider: OAuthProvider) => {
     try {
       const result = await startAssociationFlow(`/oauth/${provider}/associate/authorize`);
-      if (result.type === 'success') {
-        await refetch();
+      if (result.type !== 'success') return;
+
+      // The browser session completing says nothing about the outcome — the status
+      // lives in the callback fragment. Without this, a denied consent screen
+      // silently refetches and tells the user nothing.
+      const callback = result.url ? parseOAuthCallbackUrl(result.url) : undefined;
+      if (callback && callback.status !== 'success') {
+        feedback.error(callback.error ?? 'Access was denied.', 'Link failed');
+        return;
       }
+
+      await refetch();
     } catch (error: unknown) {
       feedback.error(
         `Failed to start link flow: ${getErrorMessage(error, 'Unknown error')}`,
@@ -105,8 +114,6 @@ export function useOAuthAssociations({
     },
     actions: {
       linkOAuth,
-      linkGoogle: () => linkOAuth('google'),
-      linkGithub: () => linkOAuth('github'),
     },
   };
 }

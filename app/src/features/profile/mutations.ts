@@ -129,16 +129,28 @@ export async function confirmOAuthUnlink({
 }) {
   try {
     await unlinkOAuth(provider);
-    if (provider === 'google' && youtubeEnabled) {
-      await setYoutubeEnabled(false);
-    }
-    closeUnlinkDialog();
-    void refetch();
   } catch (error: unknown) {
     closeUnlinkDialog();
     feedback.error(
       `Failed to disconnect: ${getErrorMessage(error, 'Unknown error')}`,
       'Disconnect failed',
     );
+    return;
   }
+
+  // The account is unlinked from here on. A failure below must not be reported as
+  // a failed disconnect — that would contradict the server.
+  if (provider === 'google' && youtubeEnabled) {
+    try {
+      await setYoutubeEnabled(false);
+    } catch (error: unknown) {
+      feedback.error(
+        `Google was disconnected, but YouTube streaming could not be turned off: ${getErrorMessage(error, 'Unknown error')}`,
+        'YouTube still enabled',
+      );
+    }
+  }
+
+  closeUnlinkDialog();
+  void refetch();
 }

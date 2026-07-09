@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
 import { StreamSessionProvider } from '@/context/StreamSessionProvider';
@@ -441,9 +442,13 @@ async function renderProfile() {
   const ProfileTab = require('@/app/account.tsx').default;
   const result = render(<ProfileTab />, {
     wrapper: ({ children }) => (
-      <PaperProvider>
-        <StreamSessionProvider>{children}</StreamSessionProvider>
-      </PaperProvider>
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <PaperProvider>
+          <StreamSessionProvider>{children}</StreamSessionProvider>
+        </PaperProvider>
+      </QueryClientProvider>
     ),
   });
   // Flush pending microtasks so profile stats loading effects settle
@@ -527,9 +532,13 @@ describe('ProfileTab', () => {
       const ProfileTab = require('@/app/account.tsx').default;
       const { getAllByText } = render(<ProfileTab />, {
         wrapper: ({ children }) => (
-          <PaperProvider>
-            <StreamSessionProvider>{children}</StreamSessionProvider>
-          </PaperProvider>
+          <QueryClientProvider
+            client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+          >
+            <PaperProvider>
+              <StreamSessionProvider>{children}</StreamSessionProvider>
+            </PaperProvider>
+          </QueryClientProvider>
         ),
       });
       // statsLoading=true renders '...' for each of the four stat values

@@ -103,12 +103,22 @@ export function useProfileActions({
     void sendVerificationEmail({ email: profile.email, feedback });
   }, [feedback, profile]);
 
+  // Confirm first: this is the most destructive action on the screen, and every
+  // milder sibling (logout, unlink) already asks.
   const onRevokeAllSessions = useCallback(() => {
-    exitSession({
-      endSession: revokeAllSessions,
-      redirectTo: '/login',
+    feedback.alert({
+      title: 'Sign out everywhere?',
+      message:
+        'This ends your session on every device, including this one. You’ll need to sign in again.',
+      buttons: [
+        { text: 'Cancel' },
+        {
+          text: 'Sign out everywhere',
+          onPress: () => exitSession({ endSession: revokeAllSessions, redirectTo: '/login' }),
+        },
+      ],
     });
-  }, [exitSession]);
+  }, [exitSession, feedback]);
 
   const handleUpdateUsername = useCallback(async () => {
     await updateProfileUsername({

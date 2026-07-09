@@ -1,46 +1,33 @@
-import { useEffect, useState } from 'react';
-import { getPublicProfile, type PublicProfileView } from '@/services/api/profiles';
-import { logError } from '@/utils/logging';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/context/auth';
+import { getPublicProfile } from '@/services/api/profiles';
 
+/**
+ * The signed-in user's own public-profile stats.
+ *
+ * Shares react-query's cache with `usePublicProfileScreen`, which fetches the same
+ * endpoint — viewing your own public profile no longer refetches it. The key
+ * carries the viewer id because visibility rules depend on who is asking.
+ */
 export function useOwnProfileStats(username?: string) {
-  const [ownStats, setOwnStats] = useState<PublicProfileView | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
+  const { user: viewer } = useAuth();
+  const viewerId = viewer?.id ?? null;
 
-  useEffect(() => {
-    if (!username) {
-      return;
-    }
-
-    let cancelled = false;
-    const currentUsername = username;
-
-    async function loadStats() {
-      setStatsLoading(true);
-      try {
-        const stats = await getPublicProfile(currentUsername);
-        if (!cancelled) {
-          setOwnStats(stats);
-        }
-      } catch (error) {
-        logError('Failed to load own stats:', error);
-      } finally {
-        if (!cancelled) {
-          setStatsLoading(false);
-        }
-      }
-    }
-
-    void loadStats();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [username]);
+  const {
+    data: stats = null,
+    isPending,
+    error,
+  } = useQuery({
+    queryKey: ['publicProfile', username ?? null, viewerId],
+    queryFn: () => getPublicProfile(username as string),
+    enabled: Boolean(username),
+  });
 
   return {
     state: {
-      stats: username ? ownStats : null,
-      loading: username ? statsLoading : false,
+      stats: username ? stats : null,
+      loading: Boolean(username) && isPending,
+      error: error ?? null,
     },
   };
 }
