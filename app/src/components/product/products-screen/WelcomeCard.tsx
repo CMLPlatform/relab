@@ -52,7 +52,7 @@ export function ProductsWelcomeCard({
           <View style={styles.welcomeTextBlock}>
             <Text style={styles.welcomeTitle}>
               {!isAuthenticated
-                ? 'Welcome to RELab'
+                ? 'Welcome to ReLab'
                 : currentUser?.isVerified
                   ? 'Ready to add products'
                   : 'Verify your email to start creating'}

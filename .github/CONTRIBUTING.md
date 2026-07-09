@@ -1,6 +1,6 @@
-# Contributing to RELab
+# Contributing to ReLab
 
-Thanks for contributing. RELab is a research platform developed at CML, Leiden University. The goal of this document is simple: get you productive without making you dig through the repo first.
+Thanks for contributing. ReLab is a research platform developed at CML, Leiden University. The goal of this document is simple: get you productive without making you dig through the repo first.
 
 This page is for code and documentation changes. If you mainly want to run or deploy the stack, see [Install and self-host](https://docs.cml-relab.org/operations/install/).
 

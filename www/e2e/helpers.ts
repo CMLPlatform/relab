@@ -3,9 +3,9 @@ import { expect, type Page } from '@playwright/test';
 const CANONICAL_URL_PATTERN =
   /^https?:\/\/((127\.0\.0\.1|localhost):(8013|18013)|cml-relab\.org)(\/.*)?$/;
 const HOMEPAGE_DESCRIPTION_PATTERN = /open-source research platform/i;
-const OPEN_APP_ARIA_NAME = 'Open the RELab app';
-const READ_DOCS_ARIA_NAME = 'Read the RELab documentation';
-const BROWSE_SOURCE_ARIA_NAME = 'Browse the RELab source code on GitHub';
+const OPEN_APP_ARIA_NAME = 'Open the ReLab app';
+const READ_DOCS_ARIA_NAME = 'Read the ReLab documentation';
+const BROWSE_SOURCE_ARIA_NAME = 'Browse the ReLab source code on GitHub';
 
 export async function expectCanonicalUrl(page: Page, expectedPath: string) {
   const canonical = page.locator('link[rel="canonical"]');

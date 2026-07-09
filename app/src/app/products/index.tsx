@@ -44,7 +44,7 @@ export default function Products() {
   return (
     <>
       <Head>
-        <title>Products · RELab</title>
+        <title>Products · ReLab</title>
       </Head>
       <View style={{ padding: 10, gap: 10 }} onLayout={handleLayout}>
         <ProductsWelcomeCard

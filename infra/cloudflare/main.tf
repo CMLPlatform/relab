@@ -13,7 +13,7 @@ resource "cloudflare_dns_record" "edge" {
   type    = "CNAME"
   ttl     = 1
   proxied = true
-  comment = "RELab ${var.environment} ${each.key} edge route managed by OpenTofu."
+  comment = "ReLab ${var.environment} ${each.key} edge route managed by OpenTofu."
 }
 
 resource "cloudflare_zone_setting" "minimum_tls_version" {
@@ -63,8 +63,8 @@ resource "cloudflare_ruleset" "rate_limiting" {
   count = var.manage_shared_zone_rulesets ? 1 : 0
 
   zone_id     = var.cloudflare_zone_id
-  name        = "RELab API rate limits"
-  description = "Zone-level rate limiting for RELab auth, media upload, and RPi camera endpoints (all environments)."
+  name        = "ReLab API rate limits"
+  description = "Zone-level rate limiting for ReLab auth, media upload, and RPi camera endpoints (all environments)."
   kind        = "zone"
   phase       = "http_ratelimit"
 
@@ -95,8 +95,8 @@ resource "cloudflare_ruleset" "cache_settings" {
   count = var.manage_shared_zone_rulesets ? 1 : 0
 
   zone_id     = var.cloudflare_zone_id
-  name        = "RELab cache rules"
-  description = "Zone-level cache rules for RELab."
+  name        = "ReLab cache rules"
+  description = "Zone-level cache rules for ReLab."
   kind        = "zone"
   phase       = "http_request_cache_settings"
 
@@ -117,8 +117,8 @@ resource "cloudflare_ruleset" "custom_firewall" {
   count = var.manage_shared_zone_rulesets ? 1 : 0
 
   zone_id     = var.cloudflare_zone_id
-  name        = "RELab custom firewall rules"
-  description = "Zone-level custom firewall rules for RELab."
+  name        = "ReLab custom firewall rules"
+  description = "Zone-level custom firewall rules for ReLab."
   kind        = "zone"
   phase       = "http_request_firewall_custom"
 

@@ -1,7 +1,7 @@
 const siteMeta = {
   defaultDescription:
-    'RELab is an open-source research platform for documenting the disassembly of durable goods and organising the resulting product data.',
-  name: 'RELab',
+    'ReLab is an open-source research platform for documenting the disassembly of durable goods and organising the resulting product data.',
+  name: 'ReLab',
   organization: 'CML, Leiden University',
   title: 'Reverse Engineering Lab',
 };

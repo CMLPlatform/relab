@@ -978,7 +978,7 @@
     }
   },
   "info": {
-    "description": "This API allows you to remotely capture images and stream video from a Raspberry Pi camera. It is used as a plugin for the RELab platform.<br>For more info, visit the <a href=\"https://github.com/CMLplatform/relab\" target=\"_blank\">RELab GitHub</a>.",
+    "description": "This API allows you to remotely capture images and stream video from a Raspberry Pi camera. It is used as a plugin for the ReLab platform.<br>For more info, visit the <a href=\"https://github.com/CMLplatform/relab\" target=\"_blank\">ReLab GitHub</a>.",
     "title": "Raspberry Pi Camera API",
     "version": "0.5.0"
   },

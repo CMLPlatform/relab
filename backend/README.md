@@ -1,4 +1,4 @@
-# RELab Backend
+# ReLab Backend
 
 The backend provides the API, authentication flows, product and component data model, media handling, shared email infrastructure, and plugin integrations. It is built with [FastAPI](https://fastapi.tiangolo.com/), PostgreSQL, Redis, and `uv`.
 

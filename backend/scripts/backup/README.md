@@ -1,6 +1,6 @@
-# RELab Backups
+# ReLab Backups
 
-RELab uses one restic-based backup workflow for production and staging.
+ReLab uses one restic-based backup workflow for production and staging.
 
 The backup container creates:
 

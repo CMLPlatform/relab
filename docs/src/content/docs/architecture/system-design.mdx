@@ -1,9 +1,9 @@
 ---
 title: System design
-description: Why RELab is split into separate frontends, backend services, and docs surfaces.
+description: Why ReLab is split into separate frontends, backend services, and docs surfaces.
 ---
 
-RELab is split into a research app, a public website, and backend services so each part can evolve without forcing every workflow into one interface.
+ReLab is split into a research app, a public website, and backend services so each part can evolve without forcing every workflow into one interface.
 
 ## High-level architecture
 
@@ -95,7 +95,7 @@ These choices keep the stack small enough to understand and operate without dedi
 
 ## Security architecture inventory
 
-RELab is a single backend application with supporting infrastructure, not a large microservice fleet. Authorization stays in FastAPI route dependencies, ownership checks, and admin-only dependencies. Dedicated policy engines, service meshes, mTLS between containers, and internal identity-propagation tokens are out of scope for a single backend application.
+ReLab is a single backend application with supporting infrastructure, not a large microservice fleet. Authorization stays in FastAPI route dependencies, ownership checks, and admin-only dependencies. Dedicated policy engines, service meshes, mTLS between containers, and internal identity-propagation tokens are out of scope for a single backend application.
 
 Application services are `api`, `app`, `www`, `docs`, `migrator`, and optional `backup`. Supporting systems are PostgreSQL, Redis, file or S3-compatible storage, Cloudflare Tunnel, optional Loki/OTLP telemetry, and external OAuth, email, Have I Been Pwned, and YouTube providers.
 
@@ -141,7 +141,7 @@ At startup the backend:
 - keep identifiers and exports stable enough to link with other datasets
 - avoid infrastructure complexity that isn't justified by the project scale
 
-Architecture modernization should keep RELab as a modular monolith until a real
+Architecture modernization should keep ReLab as a modular monolith until a real
 deployment or runtime boundary justifies a split. The backend should continue to
 evolve around explicit bounded contexts: identity and access, data collection,
 reference data, media and storage, publication and export, and device

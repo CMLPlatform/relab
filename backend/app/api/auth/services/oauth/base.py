@@ -85,7 +85,7 @@ async def build_authorize_response(
     state_claims: dict[str, str] | None = None,
     extras_params: dict[str, Any] | None = None,
 ) -> OAuth2AuthorizeResponse:
-    """Build an OAuth authorization response with RELab state binding."""
+    """Build an OAuth authorization response with ReLab state binding."""
     authorize_redirect_url = config.redirect_url or str(request.url_for(callback_route_name))
 
     csrf_token = generate_csrf_token()

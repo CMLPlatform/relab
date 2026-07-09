@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync shared brand assets into RELab subrepos."""
+"""Sync shared brand assets into ReLab subrepos."""
 
 from __future__ import annotations
 

@@ -140,9 +140,10 @@ def compile_mjml_templates() -> None:
             html_dotmap = mjml_to_html(mjml_content)
             html_content = html_dotmap.html
 
-            # Write HTML to build directory
+            # Write HTML to build directory. mjml emits no trailing newline, which the
+            # end-of-file-fixer hook then adds — leaving every fresh compile dirty.
             html_file = BUILD_DIR / mjml_file.with_suffix(".html").name
-            html_file.write_text(html_content)
+            html_file.write_text(html_content.rstrip("\n") + "\n")
 
             logger.info("  ✅ Compiled to %s", html_file.name)
 

@@ -2,7 +2,7 @@
   <mj-column>
     <mj-image
       src="https://cml-relab.org/images/wordmark.png"
-      alt="Relab"
+      alt="ReLab"
       css-class="wordmark-fallback"
       width="150px"
       align="left"

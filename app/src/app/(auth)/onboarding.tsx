@@ -63,7 +63,7 @@ function OnboardingBody({
         }
         style={styles.brandLogo}
         contentFit="contain"
-        accessibilityLabel="RELab"
+        accessibilityLabel="ReLab"
       />
       <Text style={[styles.title, textShadowStyle]}>Welcome!</Text>
       <Text style={[styles.subtitle, textShadowStyle]}>Choose a username to continue.</Text>

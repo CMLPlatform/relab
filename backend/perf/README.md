@@ -1,6 +1,6 @@
 # Backend Performance Baseline
 
-This directory contains a small `k6` baseline suite for the RELab backend.
+This directory contains a small `k6` baseline suite for the ReLab backend.
 
 ## Goals
 

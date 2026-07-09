@@ -210,7 +210,7 @@ def test_auth_settings_load_runtime_secrets_from_secret_files(tmp_path: Path, mo
         github_oauth_client_id=SecretStr("github-client-id"),
         smtp_host="smtp.example.com",
         smtp_username="sender@example.com",
-        email_from="RELab <sender@example.com>",
+        email_from="ReLab <sender@example.com>",
         email_reply_to="relab@example.com",
     )
 

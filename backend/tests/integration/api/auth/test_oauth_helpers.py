@@ -157,7 +157,7 @@ def test_verify_state_succeeds_with_matching_csrf() -> None:
 def test_verify_state_rejects_wrong_transaction_binding(
     state_data: dict[str, str],
 ) -> None:
-    """State must be bound to the expected provider and RELab OAuth flow."""
+    """State must be bound to the expected provider and ReLab OAuth flow."""
     config = make_base_config()
     state = generate_state_token(state_data, TEST_STATE_JWT_SECRET)
     mock_request = MagicMock()

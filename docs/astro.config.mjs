@@ -84,11 +84,11 @@ const SIDEBAR = [
   },
 ];
 const STARLIGHT_OPTIONS = {
-  title: 'RELab docs',
+  title: 'ReLab docs',
   description: 'Technical documentation for the Reverse Engineering Lab research platform.',
   logo: {
     src: './public/images/wordmark.svg',
-    alt: 'RELab',
+    alt: 'ReLab',
     replacesTitle: true,
   },
   favicon: '/images/favicon.svg',
@@ -96,7 +96,7 @@ const STARLIGHT_OPTIONS = {
   lastUpdated: true,
   pagefind: true,
   social: [
-    { icon: 'external', label: 'Open RELab app', href: 'https://app.cml-relab.org' },
+    { icon: 'external', label: 'Open ReLab app', href: 'https://app.cml-relab.org' },
     { icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' },
   ],
   editLink: {

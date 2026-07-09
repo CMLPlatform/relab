@@ -1,9 +1,9 @@
-import { useCallback } from 'react';
-import { Pressable, View } from 'react-native';
-import { Icon, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import { useAppTheme } from '@/theme';
 import type { ThemeMode, User } from '@/types/User';
+import { useCallback } from 'react';
+import { Pressable, View } from 'react-native';
+import { Icon, Switch } from 'react-native-paper';
 import { createProfileSectionStyles } from './styles';
 
 type ProfileSectionStyles = ReturnType<typeof createProfileSectionStyles>;
@@ -125,7 +125,7 @@ export function ProfileEmailUpdatesSection({
       <View style={styles.section}>
         <View style={styles.newsletterRow}>
           <View style={styles.newsletterCopy}>
-            <Text style={styles.actionTitle}>Receive RELab account updates</Text>
+            <Text style={styles.actionTitle}>Receive ReLab account updates</Text>
             <Text style={styles.actionSubtitle}>
               Opt in to occasional product and project updates tied to your account.
             </Text>

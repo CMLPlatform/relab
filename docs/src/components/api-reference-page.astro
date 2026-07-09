@@ -11,7 +11,7 @@ const { schemaUrl, serverUrl, title } = Astro.props;
 const backendApiUrl = backendApiUrlForMode(import.meta.env.MODE);
 const apiServerUrl = serverUrl ?? backendApiUrl;
 const currentPath = Astro.url.pathname;
-const pageTitle = `${title} · RELab docs`;
+const pageTitle = `${title} · ReLab docs`;
 const backendReferences = [
   { href: '/api/public/', label: 'Public API' },
   { href: '/api/device/', label: 'Device API' },
@@ -26,7 +26,7 @@ const pluginReferences = [{ href: '/api/rpi-cam/', label: 'RPi camera API' }];
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Interactive RELab API reference generated from the committed OpenAPI schema."
+      content="Interactive ReLab API reference generated from the committed OpenAPI schema."
     />
     <meta name="theme-color" content="#eef4f7" />
     <link rel="icon" href="/images/favicon.svg" type="image/svg+xml" />

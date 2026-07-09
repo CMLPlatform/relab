@@ -249,7 +249,7 @@ export function NewAccountUsernameStep({
     <NewAccountStep
       {...shared}
       field="username"
-      lines={['Welcome to', 'RELab', 'Who are you?']}
+      lines={['Welcome to', 'ReLab', 'Who are you?']}
       inputProps={{
         autoCorrect: false,
         autoComplete: 'username-new',

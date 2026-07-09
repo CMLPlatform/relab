@@ -1,6 +1,6 @@
 # Shared Brand Assets
 
-This directory is the canonical source of truth for shared RELab brand identity
+This directory is the canonical source of truth for shared ReLab brand identity
 primitives used across the monorepo.
 
 Edit the files here, then run:

@@ -20,7 +20,7 @@ from pydantic import (
 
 from app.core.config.models import Environment
 from app.core.constants import DAY, HOUR, MINUTE
-from app.core.env import RelabBaseSettings, is_production_like_environment
+from app.core.env import ReLabBaseSettings, is_production_like_environment
 from app.core.secrets import validate_min_secret_bytes
 
 NAME_EMAIL_ADAPTER = TypeAdapter(NameEmail)
@@ -88,7 +88,7 @@ class GraphEmailSettings(BaseModel):
         return value
 
 
-class AuthSettings(RelabBaseSettings):
+class AuthSettings(ReLabBaseSettings):
     """Settings class to store settings related to auth components."""
 
     environment: Environment = Environment.DEV

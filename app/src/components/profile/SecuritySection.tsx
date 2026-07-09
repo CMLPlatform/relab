@@ -1,13 +1,13 @@
-import { setStringAsync } from 'expo-clipboard';
-import { useCallback } from 'react';
-import { Linking, Platform, StyleSheet, View } from 'react-native';
-import { Button, Dialog, Icon, Portal, TextInput } from 'react-native-paper';
-import QRCode from 'react-native-qrcode-svg';
 import { OtpInput } from '@/components/base/OtpInput';
 import { Text } from '@/components/base/Text';
 import { useMfaSetup } from '@/features/profile/useMfaSetup';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { type AppTheme, useAppTheme } from '@/theme';
+import { setStringAsync } from 'expo-clipboard';
+import { useCallback } from 'react';
+import { Linking, Platform, StyleSheet, View } from 'react-native';
+import { Button, Dialog, Icon, Portal, TextInput } from 'react-native-paper';
+import QRCode from 'react-native-qrcode-svg';
 import { ProfileAction, ProfileSectionHeader } from './shared';
 import { createProfileSectionStyles } from './styles';
 
@@ -131,7 +131,7 @@ export function ProfileSecuritySection({ mfaEnabled, onEnrolled }: ProfileSecuri
               style={local.passwordField}
             />
             <Text style={local.hint}>
-              Signed up with Google or GitHub? Use your RELab account password — if you never set
+              Signed up with Google or GitHub? Use your ReLab account password — if you never set
               one, create it with “Forgot password” on the login screen first.
             </Text>
 

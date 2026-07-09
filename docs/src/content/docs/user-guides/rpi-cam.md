@@ -1,6 +1,6 @@
 ---
 title: RPI camera integration
-description: Set up and use the RELab Raspberry Pi camera workflow from the platform side.
+description: Set up and use the ReLab Raspberry Pi camera workflow from the platform side.
 ---
 
 This page covers the platform side: pairing a camera, checking that it is online, and using it during documentation. For device installation and plugin deployment, use the [RPI camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
@@ -53,9 +53,9 @@ Use this when automatic pairing is unavailable.
 1. Start from a known product or component record.
 1. Trigger image capture or preview through the platform.
 1. The backend relays the request to the device via the WebSocket tunnel.
-1. Captured images are uploaded back to RELab and linked to the record automatically.
+1. Captured images are uploaded back to ReLab and linked to the record automatically.
 
-When the camera is already paired and the client is on the same LAN, the RELab
+When the camera is already paired and the client is on the same LAN, the ReLab
 app can also switch into local direct mode for lower-latency preview and
 capture. Relay remains the default path and the control-plane source of truth;
 local mode is an optimization, not a separate registration flow.

@@ -1,5 +1,5 @@
 variable "environment" {
-  description = "RELab environment managed by this state."
+  description = "ReLab environment managed by this state."
   type        = string
 
   validation {
@@ -9,7 +9,7 @@ variable "environment" {
 }
 
 variable "cloudflare_account_id" {
-  description = "Cloudflare account ID that owns the RELab tunnels."
+  description = "Cloudflare account ID that owns the ReLab tunnels."
   type        = string
 }
 
@@ -19,7 +19,7 @@ variable "cloudflare_zone_id" {
 }
 
 variable "cloudflare_zone_name" {
-  description = "Public DNS zone name for RELab edge hostnames."
+  description = "Public DNS zone name for ReLab edge hostnames."
   type        = string
   default     = "cml-relab.org"
 }

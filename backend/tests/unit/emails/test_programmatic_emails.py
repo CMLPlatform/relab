@@ -194,7 +194,7 @@ async def test_send_email_changed_notification_uses_plain_message(
     await_args = mock_email_sending.await_args
     assert await_args is not None
     message = await_args.args[0]
-    assert message.subject == "Your RELab account email changed"
+    assert message.subject == "Your ReLab account email changed"
     assert "token=" not in message.html_body
 
 
@@ -207,7 +207,7 @@ async def test_send_password_reset_confirmation_email_uses_plain_safe_message(
     await_args = mock_email_sending.await_args
     assert await_args is not None
     message = await_args.args[0]
-    assert message.subject == "Your RELab password was reset"
+    assert message.subject == "Your ReLab password was reset"
     assert email_data["username"] in message.html_body
     assert email_data["token"] not in message.html_body
     assert "token=" not in message.html_body

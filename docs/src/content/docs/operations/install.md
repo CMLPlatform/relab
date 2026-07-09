@@ -1,11 +1,11 @@
 ---
 title: Installation and self-hosting
-description: Run RELab locally or self-host the stack in production or staging.
+description: Run ReLab locally or self-host the stack in production or staging.
 ---
 
 ## Hosted use
 
-If you just want to use RELab, start here: [app.cml-relab.org](https://app.cml-relab.org).
+If you just want to use ReLab, start here: [app.cml-relab.org](https://app.cml-relab.org).
 
 No local setup is required.
 

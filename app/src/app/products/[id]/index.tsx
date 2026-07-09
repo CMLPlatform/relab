@@ -26,7 +26,7 @@ export default function ProductPage() {
   return (
     <>
       <Head>
-        <title>Product · RELab</title>
+        <title>Product · ReLab</title>
       </Head>
       <ProductDetailScreen formOptions={formOptions} />
     </>

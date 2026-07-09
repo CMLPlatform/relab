@@ -58,7 +58,7 @@ export function LoginBrandHero({ colorScheme }: { colorScheme: 'light' | 'dark' 
       source={source}
       style={styles.brandLogo}
       contentFit="contain"
-      accessibilityLabel="RELab"
+      accessibilityLabel="ReLab"
     />
   );
 }

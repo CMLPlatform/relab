@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { expectCanonicalUrl, expectHomepageHero, expectThemeToggle } from './helpers.ts';
 
-const HOMEPAGE_TITLE_PATTERN = /RELab/i;
-const META_TITLE_PATTERN = /RELab/i;
+const HOMEPAGE_TITLE_PATTERN = /ReLab/i;
+const META_TITLE_PATTERN = /ReLab/i;
 const META_DESCRIPTION_PATTERN = /open-source research platform/i;
 const HOMEPAGE_MAIN_LINK_COUNT = 3;
 
@@ -12,7 +12,7 @@ test.describe('Landing page', () => {
     await expect(page).toHaveTitle(HOMEPAGE_TITLE_PATTERN);
     await expectHomepageHero(page);
     await expect(page.getByRole('link', { name: 'Go to the homepage' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Read the RELab privacy policy' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Read the ReLab privacy policy' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'YouTube' })).toBeVisible();
     await expectThemeToggle(page);
 

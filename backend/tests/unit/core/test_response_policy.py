@@ -161,7 +161,7 @@ async def test_response_policy_uses_path_boundaries() -> None:
 
 
 async def test_response_policy_sets_no_cache_headers_for_authenticated_requests() -> None:
-    """Requests with Authorization or RELab auth cookies should receive no-cache headers."""
+    """Requests with Authorization or ReLab auth cookies should receive no-cache headers."""
     app = _create_policy_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

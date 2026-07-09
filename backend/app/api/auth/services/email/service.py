@@ -111,7 +111,7 @@ async def send_registration_email(
     verification_link = generate_token_link(token, "/verify")
     await send_templated_email(
         to_email=to_email,
-        subject="Welcome to Relab — Verify Your Email",
+        subject="Welcome to ReLab — Verify Your Email",
         template_name=REGISTRATION_TEMPLATE,
         template_body={"username": _display_name(username, to_email), "verification_link": verification_link},
         background_tasks=background_tasks,
@@ -147,13 +147,13 @@ async def send_mfa_changed_notification(
     display_name = escape(_display_name(username, to_email))
     change = "turned on" if enabled else "turned off"
     if enabled:
-        followup = "If you did not turn this on, reset your password and contact Relab support."
+        followup = "If you did not turn this on, reset your password and contact ReLab support."
     else:
-        followup = "If you did not turn this off, reset your password and contact Relab support immediately."
+        followup = "If you did not turn this off, reset your password and contact ReLab support immediately."
     message = _build_message(
         to_email,
         f"Two-step verification was {change}",
-        (f"<p>Hello {display_name},</p><p>Two-step verification was {change} on your Relab account. {followup}</p>"),
+        (f"<p>Hello {display_name},</p><p>Two-step verification was {change} on your ReLab account. {followup}</p>"),
     )
     await _dispatch(
         message,
@@ -178,9 +178,9 @@ async def send_recovery_codes_regenerated_notification(
         "Your two-step recovery codes changed",
         (
             f"<p>Hello {display_name},</p>"
-            "<p>New two-step recovery codes were generated for your Relab account, and any "
+            "<p>New two-step recovery codes were generated for your ReLab account, and any "
             "previous codes no longer work. If you did not do this, reset your password and "
-            "contact Relab support immediately.</p>"
+            "contact ReLab support immediately.</p>"
         ),
     )
     await _dispatch(
@@ -202,11 +202,11 @@ async def send_password_reset_confirmation_email(
     display_name = escape(_display_name(username, to_email))
     message = _build_message(
         to_email,
-        "Your Relab password was reset",
+        "Your ReLab password was reset",
         (
             f"<p>Hello {display_name},</p>"
-            "<p>Your Relab account password was reset. "
-            "If you did not make this change, contact Relab support immediately.</p>"
+            "<p>Your ReLab account password was reset. "
+            "If you did not make this change, contact ReLab support immediately.</p>"
         ),
     )
     await _dispatch(
@@ -228,11 +228,11 @@ async def send_password_changed_notification(
     display_name = escape(_display_name(username, to_email))
     message = _build_message(
         to_email,
-        "Your Relab password was changed",
+        "Your ReLab password was changed",
         (
             f"<p>Hello {display_name},</p>"
-            "<p>Your Relab account password was changed. "
-            "If you did not make this change, reset your password and contact Relab support.</p>"
+            "<p>Your ReLab account password was changed. "
+            "If you did not make this change, reset your password and contact ReLab support.</p>"
         ),
     )
     await _dispatch(
@@ -284,10 +284,10 @@ async def send_email_changed_notification(
     """Notify the previous address after an account email change."""
     message = _build_message(
         to_email,
-        "Your Relab account email changed",
+        "Your ReLab account email changed",
         (
-            "<p>Your Relab account email address was changed. "
-            "If you did not make this change, contact Relab support.</p>"
+            "<p>Your ReLab account email address was changed. "
+            "If you did not make this change, contact ReLab support.</p>"
         ),
     )
     await _dispatch(

@@ -1,4 +1,4 @@
-# RELab App
+# ReLab App
 
 The `app` subrepo contains the Expo / React Native app used for authenticated data collection.
 

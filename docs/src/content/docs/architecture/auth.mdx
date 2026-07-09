@@ -1,11 +1,11 @@
 ---
 title: Authentication
-description: RELab authentication flows, token handling, and browser session behavior.
+description: ReLab authentication flows, token handling, and browser session behavior.
 ---
 
-RELab supports bearer tokens for API clients and httpOnly cookies for browser sessions. Redis backs auth token storage, MFA challenge state, and rate limiting.
+ReLab supports bearer tokens for API clients and httpOnly cookies for browser sessions. Redis backs auth token storage, MFA challenge state, and rate limiting.
 
-Authentication is built on [FastAPI-Users](https://fastapi-users.github.io/fastapi-users/latest/) with RELab-specific refresh-token, session-cookie, OAuth, and validation logic.
+Authentication is built on [FastAPI-Users](https://fastapi-users.github.io/fastapi-users/latest/) with ReLab-specific refresh-token, session-cookie, OAuth, and validation logic.
 
 The API exposes two login transports:
 
@@ -23,7 +23,7 @@ The API exposes two login transports:
 
 ## Security controls
 
-Password validation follows the project baseline from the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters, must not contain the username or email address, and are checked against a committed ASVS-sized common-password fallback that is seeded into Redis when available. New and reset passwords are also checked with Have I Been Pwned using the k-anonymity range API. Stored passwords use the backend-owned Argon2id profile; RELab does not store reversible passwords.
+Password validation follows the project baseline from the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters, must not contain the username or email address, and are checked against a committed ASVS-sized common-password fallback that is seeded into Redis when available. New and reset passwords are also checked with Have I Been Pwned using the k-anonymity range API. Stored passwords use the backend-owned Argon2id profile; ReLab does not store reversible passwords.
 
 The breach check fails open if Have I Been Pwned is unavailable. The frontend keeps standard password inputs and does not block paste, so password managers work normally.
 
@@ -75,7 +75,7 @@ Refresh-token rotation uses dedicated endpoints:
 - `POST /v1/auth/bearer/refresh` for bearer clients
 - `POST /v1/auth/session/refresh` for browser sessions
 
-Refresh tokens have a 30-day inactivity lifetime and a 30-day absolute session lifetime. Each successful refresh rotates the refresh token, but rotation preserves the original absolute expiry, so activity cannot extend a session beyond 30 days. RELab allows multiple concurrent sessions per account within that lifetime. Users can end all of them from the profile screen with "Sign out everywhere"; a per-device session inventory is not provided.
+Refresh tokens have a 30-day inactivity lifetime and a 30-day absolute session lifetime. Each successful refresh rotates the refresh token, but rotation preserves the original absolute expiry, so activity cannot extend a session beyond 30 days. ReLab allows multiple concurrent sessions per account within that lifetime. Users can end all of them from the profile screen with "Sign out everywhere"; a per-device session inventory is not provided.
 
 Token revocation events:
 
@@ -94,7 +94,7 @@ Authorization is enforced in the backend route layer, not by client-side UI stat
 
 ## OAuth
 
-OAuth login is available for Google and GitHub. Both providers support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email. GitHub linking requires explicit association. OAuth login creates RELab-owned access and refresh sessions; RELab does not claim IdP-wide logout or coordinated provider session termination.
+OAuth login is available for Google and GitHub. Both providers support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email. GitHub linking requires explicit association. OAuth login creates ReLab-owned access and refresh sessions; ReLab does not claim IdP-wide logout or coordinated provider session termination.
 
 ### Backend-mediated flow
 
@@ -110,7 +110,7 @@ Callbacks use a CSRF cookie and signed state token. Frontend redirect targets mu
 
 The public backend origin comes from `API_PUBLIC_URL`; production uses `https://api.cml-relab.org`. Bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when enabled for a client.
 
-Frontend OAuth callback results are carried only in the URL fragment: `#status=success`, `#status=error&error=<code>`, or `#status=mfa_required&mfa_handoff=<one-time-handoff>`. The app handles the fragment, clears it from browser history, and never receives RELab access tokens through callback URLs. When OAuth login needs MFA, the app claims the one-time handoff through the API, stores the returned pending MFA challenge in app runtime/session storage, and routes immediately to the MFA screen. The MFA challenge token itself is never placed in query strings or URL fragments.
+Frontend OAuth callback results are carried only in the URL fragment: `#status=success`, `#status=error&error=<code>`, or `#status=mfa_required&mfa_handoff=<one-time-handoff>`. The app handles the fragment, clears it from browser history, and never receives ReLab access tokens through callback URLs. When OAuth login needs MFA, the app claims the one-time handoff through the API, stores the returned pending MFA challenge in app runtime/session storage, and routes immediately to the MFA screen. The MFA challenge token itself is never placed in query strings or URL fragments.
 
 ```mermaid
 sequenceDiagram

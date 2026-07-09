@@ -20,7 +20,7 @@ test.describe('API reference pages', () => {
   test('public API reference renders from the committed docs schema', async ({ page }) => {
     await page.goto('/api/public/');
 
-    await expect(page).toHaveTitle('RELab public API · RELab docs');
+    await expect(page).toHaveTitle('ReLab public API · ReLab docs');
     const apiNav = page.getByRole('navigation', { name: 'API references' });
     await expect(apiNav.getByRole('link', { name: 'API reference overview' })).toHaveAttribute(
       'href',
@@ -58,7 +58,7 @@ test.describe('API reference pages', () => {
   test('device API reference renders from the committed docs schema', async ({ page }) => {
     await page.goto('/api/device/');
 
-    await expect(page).toHaveTitle('RELab device API · RELab docs');
+    await expect(page).toHaveTitle('ReLab device API · ReLab docs');
     await expect(page.getByRole('link', { name: 'Download OpenAPI Document' })).toHaveAttribute(
       'href',
       '/api/schemas/openapi.device.json',
@@ -74,7 +74,7 @@ test.describe('API reference pages', () => {
   test('RPi camera API reference renders from the committed docs schema', async ({ page }) => {
     await page.goto('/api/rpi-cam/');
 
-    await expect(page).toHaveTitle('RELab RPi camera API · RELab docs');
+    await expect(page).toHaveTitle('ReLab RPi camera API · ReLab docs');
     await expect(page.getByRole('heading', { name: 'Get camera status' })).toBeVisible();
     await expect(page.getByText('/camera').first()).toBeVisible();
     await expect(page.getByText(/Add API/i)).toHaveCount(0);

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Operator and smoke-test helpers for RELab restic backups.
+# Operator and smoke-test helpers for ReLab restic backups.
 set -euo pipefail
 
 DEPLOY_BACKUP_IMAGE="${DEPLOY_BACKUP_IMAGE:-relab-backups-smoke}"

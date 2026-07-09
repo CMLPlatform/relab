@@ -200,10 +200,10 @@ jest.mock('@/components/profile/Preferences', () => {
           Pressable,
           {
             accessibilityRole: 'switch',
-            accessibilityLabel: 'Receive RELab account updates',
+            accessibilityLabel: 'Receive ReLab account updates',
             onPress: () => onSetEnabled(true),
           },
-          React.createElement(Text, null, 'Receive RELab account updates'),
+          React.createElement(Text, null, 'Receive ReLab account updates'),
         ),
       ),
   };
@@ -591,7 +591,7 @@ describe('ProfileTab', () => {
   describe('email updates', () => {
     it('calls updateUser when the email updates switch is toggled', async () => {
       const { findByRole } = await renderProfile();
-      fireEvent.press(await findByRole('switch', { name: 'Receive RELab account updates' }));
+      fireEvent.press(await findByRole('switch', { name: 'Receive ReLab account updates' }));
       await waitFor(() => {
         expect(mockUpdateUser).toHaveBeenCalledWith(
           expect.objectContaining({

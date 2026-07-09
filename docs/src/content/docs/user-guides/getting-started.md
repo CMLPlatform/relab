@@ -1,9 +1,9 @@
 ---
 title: Getting started
-description: Create an account and capture a first RELab product record.
+description: Create an account and capture a first ReLab product record.
 ---
 
-RELab helps you document a product while you take it apart. A useful first record does not need to be perfect; it needs a clear product identity, a few good photos, and honest notes about what you saw.
+ReLab helps you document a product while you take it apart. A useful first record does not need to be perfect; it needs a clear product identity, a few good photos, and honest notes about what you saw.
 
 ## Create an account
 

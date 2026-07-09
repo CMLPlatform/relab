@@ -6,7 +6,7 @@ from email_validator import EmailNotValidError, validate_email
 
 
 def canonicalize_email(email: str) -> str:
-    """Return RELab's conservative email comparison key."""
+    """Return ReLab's conservative email comparison key."""
     try:
         validated = validate_email(str(email), check_deliverability=False)
     except EmailNotValidError as exc:

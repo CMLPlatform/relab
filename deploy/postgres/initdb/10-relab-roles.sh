@@ -20,7 +20,7 @@ read_secret() {
         value="$(<"$file_value")"
     fi
     if [[ -z "$value" ]]; then
-        echo "$name must be set for RELab Postgres role initialization." >&2
+        echo "$name must be set for ReLab Postgres role initialization." >&2
         exit 1
     fi
     printf '%s' "$value"

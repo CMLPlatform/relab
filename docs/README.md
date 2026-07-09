@@ -1,6 +1,6 @@
-# RELab Docs
+# ReLab Docs
 
-Standalone Astro Starlight documentation app for the RELab platform.
+Standalone Astro Starlight documentation app for the ReLab platform.
 
 ## Quick Start
 

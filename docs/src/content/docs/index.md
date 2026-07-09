@@ -1,9 +1,9 @@
 ---
 title: Reverse Engineering Lab
-description: Start here for RELab guides, architecture reference, and project context.
+description: Start here for ReLab guides, architecture reference, and project context.
 ---
 
-RELab is a research platform for collecting and publicly viewing data on the disassembly of durable goods, developed by the [Institute of Environmental Sciences (CML)](https://www.universiteitleiden.nl/en/science/environmental-sciences) at Leiden University. It supports structured data collection, media capture, and later analysis of product composition, materials, and circularity.
+ReLab is a research platform for collecting and publicly viewing data on the disassembly of durable goods, developed by the [Institute of Environmental Sciences (CML)](https://www.universiteitleiden.nl/en/science/environmental-sciences) at Leiden University. It supports structured data collection, media capture, and later analysis of product composition, materials, and circularity.
 
 <div class="relab-badge-row" markdown>
 
@@ -31,7 +31,7 @@ RELab is a research platform for collecting and publicly viewing data on the dis
   How the platform is built, how it runs, and where the main boundaries are.
 
 - **[Project context](project/)**
-  Why RELab exists, who it is for, and where the dataset work is heading.
+  Why ReLab exists, who it is for, and where the dataset work is heading.
 
 </div>
 
@@ -43,7 +43,7 @@ RELab is a research platform for collecting and publicly viewing data on the dis
   Endpoints and schemas for platform data, accounts, authentication, media, and public records.
 
 - **[Device API reference](/api/device/)**
-  Pairing and integration endpoints used by RELab devices and plugins.
+  Pairing and integration endpoints used by ReLab devices and plugins.
 
 - **[RPi camera API reference](/api/rpi-cam/)**
   Local camera-service endpoints for capture workflows and device status.
@@ -58,6 +58,6 @@ RELab is a research platform for collecting and publicly viewing data on the dis
 
 ## Research motivation
 
-Good product data is still surprisingly hard to get: what something is made of, how it comes apart, which parts matter, and what evidence supports those claims. RELab takes a bottom-up approach. It helps people who handle real products document what they see, with enough structure that the records can later be compared, reused, and linked to other industrial-ecology data.
+Good product data is still surprisingly hard to get: what something is made of, how it comes apart, which parts matter, and what evidence supports those claims. ReLab takes a bottom-up approach. It helps people who handle real products document what they see, with enough structure that the records can later be compared, reused, and linked to other industrial-ecology data.
 
 For repository entry points and self-hosting, see [README.md](https://github.com/CMLPlatform/relab/blob/main/README.md), [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md), or [Install and self-host](/operations/install/).
