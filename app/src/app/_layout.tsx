@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
-import { type ReactNode, useCallback, useEffect } from 'react';
+import { memo, type ReactNode, useCallback, useEffect } from 'react';
 import { AppState, type AppStateStatus, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -64,7 +64,10 @@ function AppBackground({ overlayColor }: { overlayColor: string }) {
   );
 }
 
-function AppStack({ isDark, router }: { isDark: boolean; router: ReturnType<typeof useRouter> }) {
+// memo: AppShell re-renders on every route change and stream-telemetry tick, and
+// this rebuilds every screen's options object and header renderer. Only isDark matters.
+const AppStack = memo(function AppStack({ isDark }: { isDark: boolean }) {
+  const router = useRouter();
   const theme = getAppTheme(isDark ? 'dark' : 'light');
   const goToProducts = useCallback(() => router.replace('/products'), [router]);
   const goToCameras = useCallback(() => router.replace('/cameras'), [router]);
@@ -74,7 +77,7 @@ function AppStack({ isDark, router }: { isDark: boolean; router: ReturnType<type
       <Stack.Screen
         name="products/index"
         options={{
-          title: 'RELab',
+          title: 'ReLab',
           headerTitle: () => <BrandHeaderTitle isDark={isDark} />,
           ...getProductsHeaderStyle(theme),
           headerRight: () => <HeaderRightPill />,
@@ -115,7 +118,7 @@ function AppStack({ isDark, router }: { isDark: boolean; router: ReturnType<type
       />
     </Stack>
   );
-}
+});
 
 function AppShell() {
   const colorScheme = useEffectiveColorScheme();
@@ -166,7 +169,7 @@ function AppShell() {
   return (
     <View style={{ flex: 1 }}>
       <AppBackground overlayColor={overlayColor} />
-      <AppStack isDark={isDark} router={router} />
+      <AppStack isDark={isDark} />
       <ActiveStreamBanner />
     </View>
   );
@@ -217,11 +220,13 @@ const PAPER_SETTINGS = {
   ),
 };
 
+// Derived from module constants only, so build the pair once rather than per render.
+const { LightTheme, DarkTheme } = createNavigationThemes();
+
 /** Inner providers that depend on the resolved theme mode. */
 function ThemedProviders({ children }: { children: ReactNode }) {
   const colorScheme = useEffectiveColorScheme();
   const theme = getAppTheme(colorScheme);
-  const { LightTheme, DarkTheme } = createNavigationThemes();
 
   return (
     <PaperProvider theme={theme} settings={PAPER_SETTINGS}>

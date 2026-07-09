@@ -1,11 +1,17 @@
-import { Text as NativeText, type TextProps } from 'react-native';
-import { useAppTheme } from '@/theme';
+import { Text as NativeText, StyleSheet, type TextProps } from 'react-native';
+import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+
+const getStyles = memoizeByTheme((theme: AppTheme) =>
+  StyleSheet.create({
+    text: { color: theme.colors.onSurface },
+  }),
+);
 
 export const Text = ({ style, children, ...props }: TextProps) => {
-  const theme = useAppTheme();
+  const styles = getStyles(useAppTheme());
 
   return (
-    <NativeText style={[{ color: theme.colors.onSurface }, style]} {...props}>
+    <NativeText style={[styles.text, style]} {...props}>
       {children}
     </NativeText>
   );

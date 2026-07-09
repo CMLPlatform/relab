@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type RN from 'react-native';
 import { Platform, Pressable } from 'react-native';
 import { Text } from './Text';
@@ -23,6 +23,11 @@ function getDecimalSeparator(): string {
   const formatted = localeToUse ? (1.1).toLocaleString(localeToUse) : (1.1).toLocaleString();
   return formatted.charAt(1); // The character between 1 and 1
 }
+
+// The locale is fixed for the session, so resolve the separator and its validation
+// pattern once at module load rather than on every keystroke.
+const DECIMAL_SEPARATOR = getDecimalSeparator();
+const DECIMAL_PATTERN = new RegExp(`^\\d*[${DECIMAL_SEPARATOR.replace('.', '\\.')}]?\\d*$`);
 
 /**
  * Converts a localized number string to standard dot-decimal format
@@ -51,16 +56,19 @@ export default function LocalizedFloatInput({
   style,
 }: LocalizedFloatInputProps) {
   const textInput = useRef<RN.TextInput>(null);
-  const decimalSeparator = getDecimalSeparator();
   const normalizedValue = value == null || Number.isNaN(value) ? undefined : value;
-  const [text, setText] = useState(toLocalizedString(normalizedValue, decimalSeparator));
+  const [text, setText] = useState(() => toLocalizedString(normalizedValue, DECIMAL_SEPARATOR));
 
   // Resync the field when the `value` prop changes externally (async load, refetch,
   // parent reset). This can't clobber typing: the parent only gets updates on blur,
-  // so `normalizedValue` is stable while the user types and the effect stays idle.
-  useEffect(() => {
-    setText(toLocalizedString(normalizedValue, decimalSeparator));
-  }, [normalizedValue, decimalSeparator]);
+  // so `normalizedValue` is stable while the user types and this stays idle.
+  // Render-phase reset rather than an effect — no cascading render, no stale frame.
+  const [syncedValue, setSyncedValue] = useState(normalizedValue);
+  if (normalizedValue !== syncedValue) {
+    setSyncedValue(normalizedValue);
+    setText(toLocalizedString(normalizedValue, DECIMAL_SEPARATOR));
+  }
+
   const inputStyle = {
     textAlign: Platform.OS === 'web' ? 'right' : undefined,
     height: 38,
@@ -74,8 +82,6 @@ export default function LocalizedFloatInput({
       ? ({ outline: 'none', fieldSizing: 'content' } as unknown as RN.TextStyle)
       : undefined;
 
-  const decimalRegex = new RegExp(`^\\d*[${decimalSeparator.replace('.', '\\.')}]?\\d*$`);
-
   const onPress = () => {
     if (editable) {
       textInput.current?.focus();
@@ -88,18 +94,18 @@ export default function LocalizedFloatInput({
       return;
     }
 
-    const normalizedText = normalizeDecimalString(text, decimalSeparator);
+    const normalizedText = normalizeDecimalString(text, DECIMAL_SEPARATOR);
     const numValue = parseFloat(normalizedText);
 
     if (!Number.isNaN(numValue) && numValue >= min) {
       onChange?.(numValue);
     } else {
-      setText(toLocalizedString(normalizedValue, decimalSeparator));
+      setText(toLocalizedString(normalizedValue, DECIMAL_SEPARATOR));
     }
   };
 
   const handleChangeText = (s: string) => {
-    if (decimalRegex.test(s) || s === '') {
+    if (DECIMAL_PATTERN.test(s) || s === '') {
       setText(s);
     }
   };
