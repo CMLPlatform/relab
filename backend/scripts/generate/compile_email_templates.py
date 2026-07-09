@@ -11,8 +11,9 @@ import logging
 import re
 from pathlib import Path
 
-from app.core.logging import setup_logging
 from mjml.mjml2html import mjml_to_html
+
+from app.core.logging import setup_logging
 
 # Set up logging
 setup_logging()
@@ -28,6 +29,11 @@ BRAND_TOKEN_PATTERN = re.compile(r"{{\s*brand:(--[a-zA-Z0-9_-]+)\s*}}")
 CSS_ROOT_PATTERN = re.compile(r":root\s*\{(?P<body>.*?)\}", re.DOTALL)
 CSS_TOKEN_PATTERN = re.compile(r"^\s*(--[a-zA-Z0-9_-]+):\s*([^;]+);", re.MULTILINE)
 BRAND_CSS_PATH = BACKEND_DIR.parent / "assets" / "brand.css"
+
+# Bracket tokens for scanning a CSS function's top-level argument separator.
+OPENING_BRACKETS = "(["
+CLOSING_BRACKETS = ")]"
+ARGUMENT_SEPARATOR = ","
 
 
 def expand_includes(mjml_content: str) -> str:
@@ -61,11 +67,11 @@ def resolve_light_value(value: str) -> str:
     inner = value[len("light-dark(") : -1]
     depth = 0
     for index, char in enumerate(inner):
-        if char in "([":  # bracket tokens read clearer inline
+        if char in OPENING_BRACKETS:
             depth += 1
-        elif char in ")]":
+        elif char in CLOSING_BRACKETS:
             depth -= 1
-        elif char == "," and depth == 0:
+        elif char == ARGUMENT_SEPARATOR and depth == 0:
             return inner[:index].strip()
 
     msg = f"Could not split light-dark() value: {value}"
