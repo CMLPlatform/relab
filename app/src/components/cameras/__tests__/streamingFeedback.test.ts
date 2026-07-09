@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import {
   showGoogleAccountRequired,
+  showStreamAlreadyLive,
   showStreamStartFailed,
   showStreamStopFailed,
   showStreamVideoSaveFailed,
@@ -19,6 +20,16 @@ describe('streamingFeedback', () => {
     expect(feedback.alert).toHaveBeenCalledWith({
       title: 'Google account required',
       message: 'Connect your Google account in Profile > Linked Accounts to stream to YouTube.',
+      buttons: [{ text: 'OK' }],
+    });
+  });
+
+  it('shows the already-live dialog naming the camera', () => {
+    showStreamAlreadyLive(feedback, 'Camera 1');
+
+    expect(feedback.alert).toHaveBeenCalledWith({
+      title: 'Already live',
+      message: 'Camera 1 is already streaming. Stop the current stream before starting a new one.',
       buttons: [{ text: 'OK' }],
     });
   });

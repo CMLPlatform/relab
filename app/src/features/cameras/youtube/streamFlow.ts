@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import {
   type FeedbackApi,
   showGoogleAccountRequired,
+  showStreamAlreadyLive,
   showStreamStartFailed,
   showStreamVideoSaveFailed,
 } from '@/components/cameras/streamingFeedback';
@@ -73,6 +74,8 @@ export async function startYouTubeStreamFlow({
   } catch (err) {
     if (err instanceof ApiError && err.code === 'GOOGLE_OAUTH_REQUIRED') {
       showGoogleAccountRequired(feedback);
+    } else if (err instanceof ApiError && err.code === 'STREAM_ALREADY_ACTIVE') {
+      showStreamAlreadyLive(feedback, cameraName);
     } else {
       showStreamStartFailed(feedback, err);
     }

@@ -12,6 +12,14 @@ export function showGoogleAccountRequired(feedback: FeedbackApi) {
   });
 }
 
+export function showStreamAlreadyLive(feedback: FeedbackApi, cameraName: string) {
+  feedback.alert({
+    title: 'Already live',
+    message: `${cameraName} is already streaming. Stop the current stream before starting a new one.`,
+    buttons: [{ text: 'OK' }],
+  });
+}
+
 export function showStreamStartFailed(feedback: FeedbackApi, error: unknown) {
   feedback.error(
     `Failed to start stream: ${getErrorMessage(error, String(error))}`,

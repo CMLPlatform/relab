@@ -183,6 +183,26 @@ describe('camera stream action hooks', () => {
     );
   });
 
+  it('shows a distinct already-live dialog on a 409 rather than a generic failure', async () => {
+    mockStartYouTubeStream.mockImplementationOnce(async () => {
+      throw new ApiError(
+        'A stream is already active for this camera.',
+        409,
+        'STREAM_ALREADY_ACTIVE',
+      );
+    });
+    const { result, closeStreamDialog, feedback } = renderStartStream();
+
+    await act(async () => {
+      await result.current.handleStartStream();
+    });
+
+    expect(feedback.alert).toHaveBeenCalledWith(expect.objectContaining({ title: 'Already live' }));
+    expect(feedback.error).not.toHaveBeenCalled();
+    expect(closeStreamDialog).not.toHaveBeenCalled();
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
   // Regression: addProductVideo used to be fire-and-forget with an empty catch,
   // so a failed video save was invisible to the user.
   it('surfaces a failure to save the stream video without failing the start', async () => {
