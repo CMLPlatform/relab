@@ -41,6 +41,10 @@ export function getStatusColor(
       return theme.tokens.status.warning;
     case 'error':
       return theme.tokens.status.danger;
+    // Unreachable for typed input, but a status the backend adds before the
+    // client's types catch up would otherwise return undefined and crash alpha().
+    default:
+      return theme.tokens.status.offline;
   }
 }
 

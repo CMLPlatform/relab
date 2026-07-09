@@ -60,17 +60,6 @@ function DialogBody({
 }) {
   const [inputValue, setInputValue] = useState(options?.defaultValue || '');
 
-  const handleClose = useCallback(
-    (btn?: DialogButton) => {
-      if (btn?.onPress) {
-        btn.onPress(options?.input ? inputValue : undefined);
-      }
-      setInputValue('');
-      onDismiss();
-    },
-    [inputValue, onDismiss, options?.input],
-  );
-
   const isButtonDisabled = useCallback(
     (button: DialogButton) => {
       if (typeof button.disabled === 'function') {
@@ -81,16 +70,29 @@ function DialogBody({
     [inputValue],
   );
 
+  // Every action — on-screen press, keyboard return — routes through here, so the
+  // disabled gate lives here rather than at each entry point. Paper's `disabled`
+  // prop still greys the button out; this is what stops it firing.
+  const handleClose = useCallback(
+    (btn?: DialogButton) => {
+      if (btn && isButtonDisabled(btn)) {
+        return;
+      }
+      if (btn?.onPress) {
+        btn.onPress(options?.input ? inputValue : undefined);
+      }
+      setInputValue('');
+      onDismiss();
+    },
+    [inputValue, isButtonDisabled, onDismiss, options?.input],
+  );
+
   const buttons = useMemo(() => options?.buttons ?? [{ text: 'OK' }], [options?.buttons]);
 
+  // Enter submits the primary (last) action.
   const handleSubmitEditing = useCallback(() => {
-    // Enter submits the primary (last) action, but must honour its disabled gate —
-    // otherwise a keyboard return bypasses input validation the on-screen button enforces.
-    const submitButton = buttons[buttons.length - 1];
-    if (submitButton && !isButtonDisabled(submitButton)) {
-      handleClose(submitButton);
-    }
-  }, [handleClose, buttons, isButtonDisabled]);
+    handleClose(buttons[buttons.length - 1]);
+  }, [handleClose, buttons]);
 
   return (
     <Dialog visible={Boolean(options)} onDismiss={onDismiss}>

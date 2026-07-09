@@ -74,9 +74,11 @@ export default function ZoomableImage({ uri, onScaleChange, setIsZoomed, onSwipe
       translateX.set(savedTranslateX.get() + e.translationX);
       translateY.set(savedTranslateY.get() + e.translationY);
     })
-    .onEnd(() => {
-      const horizontal = translateX.get();
-      const vertical = translateY.get();
+    .onEnd((e) => {
+      // This gesture's own movement, not the accumulated offset — otherwise panning a
+      // zoomed image far enough to see its edges reads as a navigation swipe.
+      const horizontal = e.translationX;
+      const vertical = e.translationY;
       const swipeThreshold = SCREEN_WIDTH * 0.15;
       if (
         Math.abs(horizontal) > Math.abs(vertical) &&

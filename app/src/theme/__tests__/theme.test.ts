@@ -22,4 +22,12 @@ describe('theme', () => {
     expect(getStatusColor(lightTheme, 'unauthorized')).toBe(lightTheme.tokens.status.warning);
     expect(getStatusColor(lightTheme, 'error')).toBe(lightTheme.tokens.status.danger);
   });
+
+  it('degrades to a neutral colour for a status the client does not know yet', () => {
+    // A backend adding a status before the client's types catch up must not return
+    // undefined — getStatusTone/alpha would then throw on `undefined.startsWith`.
+    const unknown = 'connecting' as Parameters<typeof getStatusColor>[1];
+
+    expect(getStatusColor(lightTheme, unknown)).toBe(lightTheme.tokens.status.offline);
+  });
 });

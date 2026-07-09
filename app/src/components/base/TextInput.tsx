@@ -32,7 +32,7 @@ export function TextInput({
         },
         style,
       ]}
-      placeholderTextColor={theme.colors.onSurface}
+      placeholderTextColor={theme.colors.onSurfaceVariant}
       {...props}
     >
       {children}

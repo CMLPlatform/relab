@@ -15,10 +15,9 @@ export default function DetailSectionHeader({ title, tooltipTitle, rightElement,
   return (
     <View style={styles.container}>
       <View style={styles.left}>
-        <Text style={[styles.title, style]}>
-          {title}
-          {tooltipTitle ? <InfoTooltip title={tooltipTitle} /> : null}
-        </Text>
+        {/* The tooltip renders a View, so it sits beside the Text, not inside it. */}
+        <Text style={[styles.title, style]}>{title}</Text>
+        {tooltipTitle ? <InfoTooltip title={tooltipTitle} /> : null}
       </View>
       {rightElement ? <View style={styles.right}>{rightElement}</View> : null}
     </View>

@@ -80,7 +80,7 @@ describe('ZoomableImage', () => {
     const onEnd = mockPan.onEnd.mock.calls[0][0];
     act(() => {
       onUpdate({ translationX: 10, translationY: 20 });
-      onEnd();
+      onEnd({ translationX: 10, translationY: 20 });
     });
   });
 
@@ -113,11 +113,49 @@ describe('ZoomableImage', () => {
       pinchUpdate({ scale: 2 });
       pinchEnd();
       panUpdate({ translationX: 120, translationY: 10 });
-      panEnd();
+      panEnd({ translationX: 120, translationY: 10 });
     });
 
     expect(onSwipe).toHaveBeenLastCalledWith(-1);
     expect(setIsZoomed).toHaveBeenLastCalledWith(false);
+  });
+
+  it('does not swipe when a zoomed image is panned across several small drags', () => {
+    const mockPinch = {
+      onUpdate: jest.fn().mockReturnThis(),
+      onEnd: jest.fn().mockReturnThis(),
+      onStart: jest.fn().mockReturnThis(),
+    };
+    const mockPan = {
+      enabled: jest.fn().mockReturnThis(),
+      onUpdate: jest.fn().mockReturnThis(),
+      onEnd: jest.fn().mockReturnThis(),
+      onStart: jest.fn().mockReturnThis(),
+    };
+    const onSwipe = jest.fn();
+
+    jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
+    jest.spyOn(Gesture, 'Pan').mockReturnValue(mockPan as unknown as PanGestureType);
+
+    render(<ZoomableImage uri={testUri} onSwipe={onSwipe} />);
+
+    const pinchUpdate = mockPinch.onUpdate.mock.calls[0][0];
+    const pinchEnd = mockPinch.onEnd.mock.calls[0][0];
+    const panUpdate = mockPan.onUpdate.mock.calls[0][0];
+    const panEnd = mockPan.onEnd.mock.calls[0][0];
+
+    // Each drag stays under the swipe threshold but they accumulate far past it.
+    // Comparing the accumulated offset rather than the per-gesture delta fires onSwipe here.
+    act(() => {
+      pinchUpdate({ scale: 2 });
+      pinchEnd();
+      for (let i = 0; i < 4; i++) {
+        panUpdate({ translationX: 40, translationY: 0 });
+        panEnd({ translationX: 40, translationY: 0 });
+      }
+    });
+
+    expect(onSwipe).not.toHaveBeenCalled();
   });
 
   it('executes double tap end callback', () => {
