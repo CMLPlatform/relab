@@ -128,7 +128,8 @@ jest.mock('react-native/Libraries/Lists/FlatList', () => {
 
 jest.mock('expo-image', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-  return { ImageBackground: View };
+  // WelcomeCard renders the brand mark via <Image>; both exports must be stubbed.
+  return { Image: View, ImageBackground: View };
 });
 
 jest.mock('expo-linear-gradient', () => {
