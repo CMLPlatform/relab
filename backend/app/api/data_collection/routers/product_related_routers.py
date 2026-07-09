@@ -7,7 +7,6 @@ from pydantic import PositiveInt
 from sqlalchemy import select
 
 from app.api.common.audiences import PublicAPIRouter
-from app.api.common.crud.associations import require_link
 from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, apply_filter, create_filter_dependency
 from app.api.common.crud.query import require_model
@@ -20,6 +19,7 @@ from app.api.data_collection.crud.material_links import (
 )
 from app.api.data_collection.crud.material_links import (
     list_material_links_for_product,
+    require_material_link,
     update_material_within_product,
 )
 from app.api.data_collection.crud.material_links import (
@@ -178,14 +178,7 @@ async def get_material_in_product_bill_of_materials(
     session: AsyncSessionDep,
 ) -> MaterialProductLink:
     """Get a material in a base product's bill of materials."""
-    return await require_link(
-        session,
-        MaterialProductLink,
-        product.id,
-        material_id,
-        MaterialProductLink.product_id,
-        MaterialProductLink.material_id,
-    )
+    return await require_material_link(session, product.id, material_id)
 
 
 @product_related_router.post(

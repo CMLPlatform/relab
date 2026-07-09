@@ -1,8 +1,6 @@
 """Pydantic models used to validate file storage CRUD operations."""
 
-from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Self
-from urllib.parse import quote
+from typing import Annotated, Any, Self
 
 from fastapi import UploadFile
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, PositiveInt, model_validator
@@ -24,10 +22,7 @@ from app.api.file_storage.examples import (
 )
 from app.api.file_storage.models import MediaParentType
 from app.core.config import settings
-from app.core.images import thumbnail_path_for
-
-if TYPE_CHECKING:
-    from os import PathLike
+from app.core.images.urls import build_image_urls, build_storage_url
 
 PARENT_TYPE_DESCRIPTION = f"Type of the parent object, e.g. {', '.join(parent.value for parent in MediaParentType)}"
 
@@ -71,59 +66,6 @@ def empty_str_to_none(value: object) -> object | None:
     return value
 
 
-def _relative_to_storage_root(file_path: Path, storage_root: Path) -> Path | None:
-    """Return a stored path relative to its configured root, or None if outside it."""
-    try:
-        return file_path.resolve().relative_to(storage_root.resolve())
-    except OSError, ValueError:
-        return None
-
-
-def _build_storage_url(path: str | PathLike[str] | None, storage_root: Path, url_prefix: str) -> str | None:
-    """Build a public URL for a stored file-backed object from its filesystem path."""
-    if path is None:
-        return None
-    if str(path).startswith(("http://", "https://")):  # S3 backend: get_path() already returns a public URL
-        return str(path)
-
-    file_path = Path(path)
-    if not file_path.exists():
-        return None
-
-    relative_path = _relative_to_storage_root(file_path, storage_root)
-    if relative_path is None:
-        return None
-    return f"{url_prefix}/{quote(str(relative_path))}"
-
-
-def _build_image_urls(
-    file_path: str | None,
-    storage_root: Path,
-) -> tuple[str | None, str | None]:
-    """Build generated image and thumbnail URLs with filesystem existence checks.
-
-    Returns (image_url, thumbnail_url) — both None if the original file does not exist.
-    """
-    if file_path is None:
-        return None, None
-    if file_path.startswith(("http://", "https://")):  # S3 backend: path is already a public URL, no local thumbnail
-        return file_path, file_path
-    path = Path(file_path)
-    if not path.exists():
-        return None, None
-    relative_path = _relative_to_storage_root(path, storage_root)
-    if relative_path is None:
-        return None, None
-    image_url = f"/uploads/images/{quote(str(relative_path))}"
-    thumbnail_url = image_url  # fall back to the full image when no thumbnail is available
-    thumbnail_path = thumbnail_path_for(path, 200)
-    if thumbnail_path.exists():
-        thumbnail_relative_path = _relative_to_storage_root(thumbnail_path, storage_root)
-        if thumbnail_relative_path is not None:
-            thumbnail_url = f"/uploads/images/{quote(str(thumbnail_relative_path))}"
-    return image_url, thumbnail_url
-
-
 FileUpload = Annotated[
     UploadFile,
     AfterValidator(validate_filename),
@@ -157,7 +99,7 @@ class FileReadWithinParent(UUIDIdReadSchemaWithTimeStamp, FileBase):
         """Derive file_url from the underlying storage path when the caller didn't supply one."""
         if self.file_url is None:
             file_path = getattr(self.file, "path", None)
-            self.file_url = _build_storage_url(file_path, settings.file_storage_path, "/uploads/files")
+            self.file_url = build_storage_url(file_path, settings.file_storage_path, "/uploads/files")
         return self
 
 
@@ -204,7 +146,7 @@ class ImageReadWithinParent(UUIDIdReadSchemaWithTimeStamp, ImageBase):
         """Derive image and thumbnail URLs when the caller didn't supply them."""
         if self.image_url is None:
             file_path = getattr(self.file, "path", None)
-            self.image_url, self.thumbnail_url = _build_image_urls(file_path, settings.image_storage_path)
+            self.image_url, self.thumbnail_url = build_image_urls(file_path, settings.image_storage_path)
         return self
 
 

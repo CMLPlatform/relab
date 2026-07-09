@@ -185,12 +185,12 @@ async def get_product(
     current_user: OptionalCurrentActiveUserDep,
     product_id: PositiveInt,
 ) -> ProductReadWithRelationshipsAndFlatComponents | Response:
-    """Get a base product by ID. For components, use ``/products/{parent_id}/components/{component_id}``."""
+    """Get a base product by ID. For components, use ``/components/{component_id}``."""
     product = await require_product_detail(session, product_id)
     if not product.is_base_product:
         raise HTTPException(
             status_code=404,
-            detail="Product is a component; fetch it via /products/{parent_id}/components/{component_id}.",
+            detail="Product is a component; fetch it via /components/{component_id}.",
         )
     payload = to_read_model(product, ProductReadWithRelationshipsAndFlatComponents, current_user)
     return conditional_json_response(request, payload)

@@ -6,7 +6,6 @@ from fastapi import Body, Path
 from pydantic import PositiveInt
 
 from app.api.common.audiences import PublicAPIRouter
-from app.api.common.crud.associations import require_link
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.data_collection.crud.material_links import (
     add_material_to_product as add_material_to_product_link,
@@ -16,6 +15,7 @@ from app.api.data_collection.crud.material_links import (
 )
 from app.api.data_collection.crud.material_links import (
     list_material_links_for_product,
+    require_material_link,
     update_material_within_product,
 )
 from app.api.data_collection.crud.material_links import (
@@ -64,14 +64,7 @@ async def get_material_in_component_bill_of_materials(
     session: AsyncSessionDep,
 ) -> MaterialProductLink:
     """Get a material in a component's bill of materials."""
-    return await require_link(
-        session,
-        MaterialProductLink,
-        component.id,
-        material_id,
-        MaterialProductLink.product_id,
-        MaterialProductLink.material_id,
-    )
+    return await require_material_link(session, component.id, material_id)
 
 
 @component_material_router.post(

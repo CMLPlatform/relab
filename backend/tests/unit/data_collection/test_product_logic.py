@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.api.common.schemas.base import ProductRead
 from app.api.data_collection.validators import validate_product
 from tests.factories.models import MaterialProductLinkFactory, ProductFactory
 
@@ -14,12 +15,12 @@ ERR_MIN_CONTENT = "must have at least one material or one component"
 _VALIDATE_PRODUCT = validate_product
 
 
-def test_thumbnail_url_is_none_without_preloaded_image_payload() -> None:
-    """Test that list-safe thumbnail URLs are supplied by read models, not resize aliases."""
+def test_product_read_thumbnail_url_is_none_without_an_image() -> None:
+    """A product with no images serializes a null thumbnail rather than raising."""
     product = ProductFactory.build(id=1, owner_id=uuid4(), bill_of_materials=[MaterialProductLinkFactory.build()])
-    object.__setattr__(product, "first_image_id", None)
+    object.__setattr__(product, "first_image_file", None)
 
-    assert product.thumbnail_url is None
+    assert ProductRead.model_validate(product).thumbnail_url is None
 
 
 def test_has_cycles_no_cycle() -> None:

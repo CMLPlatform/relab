@@ -1,6 +1,7 @@
 """Base schemas for the application."""
 
 from datetime import UTC, datetime
+from typing import Any, Self
 
 from pydantic import (
     UUID4,
@@ -10,6 +11,7 @@ from pydantic import (
     FieldSerializationInfo,
     PositiveInt,
     field_serializer,
+    model_validator,
 )
 
 from app.api.common.models.associations import MAX_MATERIAL_QUANTITY
@@ -19,6 +21,8 @@ from app.api.common.schemas.field_mixins import (
     ProductCircularityPropertiesFields,
     ProductFields,
 )
+from app.core.config import settings
+from app.core.images.urls import build_thumbnail_url
 
 
 ### Common Validation ###
@@ -117,6 +121,16 @@ class ProductReadBase(
 
     product_type_id: PositiveInt | None = None
     thumbnail_url: str | None = None
+    # Sourced from the Product.first_image_file column property so summary reads
+    # carry a thumbnail without loading the images relationship.
+    first_image_file: Any = Field(default=None, exclude=True)
+
+    @model_validator(mode="after")
+    def _derive_thumbnail_url(self) -> Self:
+        """Derive the thumbnail URL from the earliest image when not supplied."""
+        if self.thumbnail_url is None:
+            self.thumbnail_url = build_thumbnail_url(self.first_image_file, settings.image_storage_path)
+        return self
 
 
 # This schema stays in common (not data_collection) — reference_data needs ProductRead for

@@ -18,12 +18,19 @@ def _should_redact_owner(row: Product, viewer: User | None) -> bool:
     return bool(owner and should_redact_owner_identity(owner, viewer))
 
 
+OWNER_FIELD_PREFIX = "owner"
+
+
 def _redact_owner_fields(read_model: BaseModel) -> None:
-    """Clear owner fields on a read DTO and any nested component DTOs."""
-    if hasattr(read_model, "owner_id"):
-        object.__setattr__(read_model, "owner_id", None)
-    if hasattr(read_model, "owner_username"):
-        object.__setattr__(read_model, "owner_username", None)
+    """Clear every owner-attribution field on a read DTO and its nested components.
+
+    Fields are discovered from the schema rather than named here, so a new
+    ``owner_*`` field is redacted by default instead of leaking until someone
+    remembers to update this function.
+    """
+    for field_name in type(read_model).model_fields:
+        if field_name == OWNER_FIELD_PREFIX or field_name.startswith(f"{OWNER_FIELD_PREFIX}_"):
+            object.__setattr__(read_model, field_name, None)
 
     components = getattr(read_model, "components", None)
     if isinstance(components, list):

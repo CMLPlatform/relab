@@ -1,9 +1,10 @@
 """Database models for data collection on products."""
 
+from typing import TYPE_CHECKING
+
 from pydantic import UUID4
 from sqlalchemy import CheckConstraint, Computed, ForeignKey, Index, and_, asc, select, text
 from sqlalchemy.dialects.postgresql import TSVECTOR
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import (
     Mapped,
     MappedSQLExpression,
@@ -20,6 +21,9 @@ from app.api.common.models.base import Base, TimeStampMixinBare
 from app.api.data_collection.models.base import ProductFieldsMixin
 from app.api.file_storage.models import File, Image, MediaParentType, Video
 from app.api.reference_data.models import Material, ProductType
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
@@ -55,10 +59,15 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
     )
 
     @declared_attr
-    def first_image_id(self) -> MappedSQLExpression[UUID4 | None]:
-        """Column property that exposes the first image ID for thumbnails."""
+    def first_image_file(self) -> MappedSQLExpression[Any | None]:
+        """Column property exposing the earliest image's stored file, for thumbnails.
+
+        Lets summary reads (product lists, component lists) carry a thumbnail
+        without loading the ``images`` relationship — one correlated subquery
+        per row instead of an extra round-trip per page.
+        """
         return column_property(
-            select(Image.id)
+            select(Image.file)
             .where(Image.parent_type == MediaParentType.PRODUCT)
             .where(Image.parent_id == self.id)
             .correlate_except(Image)
@@ -125,10 +134,6 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         back_populates="product", lazy="selectin", cascade="all, delete-orphan"
     )
 
-    @property
-    def thumbnail_url(self) -> str | None:
-        """Return a list-safe thumbnail URL when one is preloaded by presentation code."""
-        return None
 
     @property
     def is_leaf_node(self) -> bool:
@@ -171,35 +176,6 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
             return True
 
         return check(self)
-
-    async def get_total_bill_of_materials(self, session: AsyncSession) -> dict[int, float]:
-        """Traverse all components and calculate the total bill of materials."""
-        total_materials: dict[int, float] = {}
-        visited_products: set[int | None] = set()
-
-        async def traverse(product: Product, quantity_multiplier: float) -> None:
-            if product.id in visited_products:
-                return
-            visited_products.add(product.id)
-
-            await session.refresh(product)
-
-            if product.bill_of_materials:
-                for link in product.bill_of_materials:
-                    material_id = link.material_id
-                    quantity = link.quantity * quantity_multiplier
-                    if material_id in total_materials:
-                        total_materials[material_id] += quantity
-                    else:
-                        total_materials[material_id] = quantity
-
-            if product.components:
-                for component in product.components:
-                    component_quantity = component.amount_in_parent or 1.0
-                    await traverse(component, quantity_multiplier * component_quantity)
-
-        await traverse(self, 1.0)
-        return total_materials
 
     @property
     def owner_username(self) -> str | None:

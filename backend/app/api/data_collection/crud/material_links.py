@@ -148,3 +148,15 @@ async def remove_materials_from_product(db: AsyncSession, product_id: int, mater
         .where(MaterialProductLink.material_id.in_(normalized_material_ids))
     )
     await db.commit()
+
+
+async def require_material_link(db: AsyncSession, product_id: int, material_id: int) -> MaterialProductLink:
+    """Load one bill-of-materials link or raise 404. Shared by product and component routes."""
+    return await require_link(
+        db,
+        MaterialProductLink,
+        product_id,
+        material_id,
+        MaterialProductLink.product_id,
+        MaterialProductLink.material_id,
+    )

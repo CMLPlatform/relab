@@ -205,9 +205,12 @@ class ProductCreateWithComponents(ProductCreateBaseProduct):
 
 
 class _MediaRelationships(BaseModel):
-    """Shared relationship fields and thumbnail validator for product/component detail reads."""
+    """Shared relationship fields for product/component detail reads.
 
-    thumbnail_url: str | None = None
+    ``thumbnail_url`` is derived on ProductReadBase from the ``first_image_file``
+    column property, so detail and summary reads agree without loading images.
+    """
+
     product_type: ProductTypeRead | None = None
     images: list[ImageRead] = Field(default_factory=list, description="Product images")
     files: list[FileRead] = Field(default_factory=list, description="Product files")
@@ -216,9 +219,15 @@ class _MediaRelationships(BaseModel):
     )
 
     @model_validator(mode="after")
-    def populate_thumbnail_url_from_images(self) -> Self:
+    def _fallback_thumbnail_from_images(self) -> Self:
+        """Derive the thumbnail from the loaded images when no stored file was selected.
+
+        ProductReadBase already derives it from ``first_image_file`` for ORM rows;
+        this covers models validated from a plain dict (no column property).
+        """
         if self.thumbnail_url is None and self.images:
-            self.thumbnail_url = self.images[0].image_url
+            first_image = self.images[0]
+            self.thumbnail_url = first_image.thumbnail_url or first_image.image_url
         return self
 
 
