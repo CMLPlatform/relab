@@ -149,7 +149,7 @@ export async function fetchWithAuth(
       const newToken = await getToken();
       if (newToken) headers.Authorization = `Bearer ${newToken}`;
       response = await makeRequest();
-      // biome-ignore lint/suspicious/noUnnecessaryConditions: refreshAuthToken mutates this flag as a side effect.
+      // refreshAuthToken mutates explicitlyLoggedOut as a side effect.
     } else if (authRuntime.explicitlyLoggedOut) {
       // Refresh was rejected (or there was no session) — drop stored state.
       // A transient refresh failure leaves tokens intact for the next attempt.

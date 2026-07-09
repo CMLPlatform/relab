@@ -80,6 +80,17 @@ describe('services/storage', () => {
       'auth-state',
       'session-id',
       'password',
+      // Regression: the guard used an `i` flag, whose `[^a-z0-9]` boundary also
+      // excluded A-Z, so every camelCase name below slipped through.
+      'authToken',
+      'bearerToken',
+      'sessionId',
+      'idToken',
+      'userSecret',
+      'secretKey',
+      'credentials',
+      'authorization',
+      'cookieJar',
     ])('local: rejects sensitive key %s', async (key) => {
       const storage = stubWebStorage('localStorage');
 
@@ -93,6 +104,10 @@ describe('services/storage', () => {
       'products_info_card_dismissed_guest',
       'localConnection:camera-1:url',
       'author-preferences',
+      // Sensitive words that are only substrings of an innocuous name.
+      'tokenizer_config',
+      'seasoning',
+      'keyboard',
     ])('local: allows benign key %s', async (key) => {
       const storage = stubWebStorage('localStorage');
 
