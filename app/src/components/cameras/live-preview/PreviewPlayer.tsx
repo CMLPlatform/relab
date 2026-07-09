@@ -1,9 +1,9 @@
-import { Platform } from 'react-native';
+import { isWeb } from '@/services/storage';
 import { NativeHlsVideo } from './NativeHlsVideo';
 import { WebHlsVideo } from './WebHlsVideo';
 
 export function PreviewPlayer({ src, isLocalStream }: { src: string; isLocalStream: boolean }) {
-  if (Platform.OS === 'web') {
+  if (isWeb()) {
     return <WebHlsVideo src={src} withCredentials={!isLocalStream} />;
   }
 

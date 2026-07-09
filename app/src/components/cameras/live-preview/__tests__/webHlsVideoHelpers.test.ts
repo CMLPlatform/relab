@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { setupWebHlsVideo } from '@/components/cameras/live-preview/webHlsVideoHelpers';
 
+type HlsErrorHandler = (
+  _event: unknown,
+  data: { fatal: boolean; type?: string; details?: string },
+) => void;
+
+const ERROR_TYPES = { NETWORK_ERROR: 'networkError', MEDIA_ERROR: 'mediaError' };
+
 function createVideoMock(canPlayType = '') {
   const handlers = new Map<string, () => void>();
 
@@ -21,10 +28,33 @@ function createVideoMock(canPlayType = '') {
   };
 }
 
+function createHlsMock() {
+  const hlsInstance = {
+    loadSource: jest.fn(),
+    attachMedia: jest.fn(),
+    on: jest.fn(),
+    startLoad: jest.fn(),
+    recoverMediaError: jest.fn(),
+    destroy: jest.fn(),
+  };
+  const Hls = Object.assign(
+    jest.fn(() => hlsInstance),
+    {
+      isSupported: jest.fn(() => true),
+      Events: { ERROR: 'hlsError' },
+      ErrorTypes: ERROR_TYPES,
+    },
+  );
+  return { Hls, hlsInstance };
+}
+
+function errorHandlerOf(hlsInstance: ReturnType<typeof createHlsMock>['hlsInstance']) {
+  return hlsInstance.on.mock.calls[0]?.[1] as HlsErrorHandler;
+}
+
 describe('setupWebHlsVideo', () => {
   const markLive = jest.fn();
   const markError = jest.fn();
-  const handleFatalError = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -39,7 +69,6 @@ describe('setupWebHlsVideo', () => {
       withCredentials: true,
       markLive,
       markError,
-      handleFatalError,
       isCancelled: () => false,
     });
 
@@ -51,7 +80,7 @@ describe('setupWebHlsVideo', () => {
     expect(markLive).toHaveBeenCalled();
 
     video.handlers.get('error')?.();
-    expect(handleFatalError).toHaveBeenCalledWith('HLS playback failed');
+    expect(markError).toHaveBeenCalledWith('HLS playback failed');
 
     cleanup();
     expect(video.removeAttribute).toHaveBeenCalledWith('src');
@@ -67,28 +96,15 @@ describe('setupWebHlsVideo', () => {
       withCredentials: false,
       markLive,
       markError,
-      handleFatalError,
       isCancelled: () => false,
     });
 
     expect(video.crossOrigin).toBe('anonymous');
   });
 
-  it('initializes hls.js playback and forwards fatal errors', async () => {
+  it('initializes hls.js playback with the low-latency buffer config', async () => {
     const video = createVideoMock('');
-    const hlsInstance = {
-      loadSource: jest.fn(),
-      attachMedia: jest.fn(),
-      on: jest.fn(),
-      destroy: jest.fn(),
-    };
-    const Hls = Object.assign(
-      jest.fn(() => hlsInstance),
-      {
-        isSupported: jest.fn(() => true),
-        Events: { ERROR: 'hlsError' },
-      },
-    );
+    const { Hls, hlsInstance } = createHlsMock();
 
     const cleanup = await setupWebHlsVideo({
       video,
@@ -96,7 +112,6 @@ describe('setupWebHlsVideo', () => {
       withCredentials: true,
       markLive,
       markError,
-      handleFatalError,
       isCancelled: () => false,
       importHls: async () => ({ default: Hls }) as never,
     });
@@ -112,14 +127,120 @@ describe('setupWebHlsVideo', () => {
     expect(hlsInstance.loadSource).toHaveBeenCalledWith('https://cam.test/live.m3u8');
     expect(hlsInstance.attachMedia).toHaveBeenCalledWith(video);
 
-    const onError = hlsInstance.on.mock.calls[0]?.[1] as
-      | ((_event: unknown, data: { fatal: boolean; details?: string }) => void)
-      | undefined;
-    onError?.(null, { fatal: true, details: 'fatal boom' });
-    expect(handleFatalError).toHaveBeenCalledWith('fatal boom');
-
     cleanup();
     expect(hlsInstance.destroy).toHaveBeenCalled();
+  });
+
+  it('ignores non-fatal errors, which hls.js retries internally', async () => {
+    const video = createVideoMock('');
+    const { Hls, hlsInstance } = createHlsMock();
+
+    await setupWebHlsVideo({
+      video,
+      src: 'https://cam.test/live.m3u8',
+      withCredentials: true,
+      markLive,
+      markError,
+      isCancelled: () => false,
+      importHls: async () => ({ default: Hls }) as never,
+    });
+
+    errorHandlerOf(hlsInstance)(null, { fatal: false, type: ERROR_TYPES.NETWORK_ERROR });
+
+    expect(hlsInstance.startLoad).not.toHaveBeenCalled();
+    expect(markError).not.toHaveBeenCalled();
+  });
+
+  it('recovers once from a fatal network error, then surfaces the second', async () => {
+    const video = createVideoMock('');
+    const { Hls, hlsInstance } = createHlsMock();
+
+    await setupWebHlsVideo({
+      video,
+      src: 'https://cam.test/live.m3u8',
+      withCredentials: true,
+      markLive,
+      markError,
+      isCancelled: () => false,
+      importHls: async () => ({ default: Hls }) as never,
+    });
+    const onError = errorHandlerOf(hlsInstance);
+
+    onError(null, { fatal: true, type: ERROR_TYPES.NETWORK_ERROR, details: 'manifestLoadError' });
+    expect(hlsInstance.startLoad).toHaveBeenCalledTimes(1);
+    expect(markError).not.toHaveBeenCalled();
+
+    onError(null, { fatal: true, type: ERROR_TYPES.NETWORK_ERROR, details: 'manifestLoadError' });
+    expect(hlsInstance.startLoad).toHaveBeenCalledTimes(1);
+    expect(markError).toHaveBeenCalledWith('manifestLoadError');
+  });
+
+  it('recovers once from a fatal media error, then surfaces the second', async () => {
+    const video = createVideoMock('');
+    const { Hls, hlsInstance } = createHlsMock();
+
+    await setupWebHlsVideo({
+      video,
+      src: 'https://cam.test/live.m3u8',
+      withCredentials: true,
+      markLive,
+      markError,
+      isCancelled: () => false,
+      importHls: async () => ({ default: Hls }) as never,
+    });
+    const onError = errorHandlerOf(hlsInstance);
+
+    onError(null, { fatal: true, type: ERROR_TYPES.MEDIA_ERROR, details: 'bufferStalledError' });
+    expect(hlsInstance.recoverMediaError).toHaveBeenCalledTimes(1);
+    expect(markError).not.toHaveBeenCalled();
+
+    onError(null, { fatal: true, type: ERROR_TYPES.MEDIA_ERROR, details: 'bufferStalledError' });
+    expect(hlsInstance.recoverMediaError).toHaveBeenCalledTimes(1);
+    expect(markError).toHaveBeenCalledWith('bufferStalledError');
+  });
+
+  it('allows a fresh recovery attempt once playback resumes', async () => {
+    const video = createVideoMock('');
+    const { Hls, hlsInstance } = createHlsMock();
+
+    await setupWebHlsVideo({
+      video,
+      src: 'https://cam.test/live.m3u8',
+      withCredentials: true,
+      markLive,
+      markError,
+      isCancelled: () => false,
+      importHls: async () => ({ default: Hls }) as never,
+    });
+    const onError = errorHandlerOf(hlsInstance);
+
+    onError(null, { fatal: true, type: ERROR_TYPES.NETWORK_ERROR });
+    video.handlers.get('playing')?.();
+    onError(null, { fatal: true, type: ERROR_TYPES.NETWORK_ERROR });
+
+    expect(hlsInstance.startLoad).toHaveBeenCalledTimes(2);
+    expect(markError).not.toHaveBeenCalled();
+  });
+
+  it('surfaces fatal errors it cannot recover from', async () => {
+    const video = createVideoMock('');
+    const { Hls, hlsInstance } = createHlsMock();
+
+    await setupWebHlsVideo({
+      video,
+      src: 'https://cam.test/live.m3u8',
+      withCredentials: true,
+      markLive,
+      markError,
+      isCancelled: () => false,
+      importHls: async () => ({ default: Hls }) as never,
+    });
+
+    errorHandlerOf(hlsInstance)(null, { fatal: true, type: 'muxError', details: 'fatal boom' });
+
+    expect(markError).toHaveBeenCalledWith('fatal boom');
+    expect(hlsInstance.startLoad).not.toHaveBeenCalled();
+    expect(hlsInstance.recoverMediaError).not.toHaveBeenCalled();
   });
 
   it('marks unsupported browsers and import failures as errors', async () => {
@@ -127,6 +248,7 @@ describe('setupWebHlsVideo', () => {
     const UnsupportedHls = Object.assign(jest.fn(), {
       isSupported: jest.fn(() => false),
       Events: { ERROR: 'hlsError' },
+      ErrorTypes: ERROR_TYPES,
     });
 
     await setupWebHlsVideo({
@@ -135,7 +257,6 @@ describe('setupWebHlsVideo', () => {
       withCredentials: true,
       markLive,
       markError,
-      handleFatalError,
       isCancelled: () => false,
       importHls: async () => ({ default: UnsupportedHls }) as never,
     });
@@ -149,7 +270,6 @@ describe('setupWebHlsVideo', () => {
       withCredentials: true,
       markLive,
       markError,
-      handleFatalError,
       isCancelled: () => false,
       importHls: async () => {
         throw new Error('no hls');
@@ -161,10 +281,7 @@ describe('setupWebHlsVideo', () => {
 
   it('avoids side effects after cancellation', async () => {
     const video = createVideoMock('');
-    const Hls = Object.assign(jest.fn(), {
-      isSupported: jest.fn(() => true),
-      Events: { ERROR: 'hlsError' },
-    });
+    const { Hls } = createHlsMock();
 
     const cleanup = await setupWebHlsVideo({
       video,
@@ -172,7 +289,6 @@ describe('setupWebHlsVideo', () => {
       withCredentials: true,
       markLive,
       markError,
-      handleFatalError,
       isCancelled: () => true,
       importHls: async () => ({ default: Hls }) as never,
     });

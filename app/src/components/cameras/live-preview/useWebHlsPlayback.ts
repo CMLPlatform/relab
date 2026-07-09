@@ -1,34 +1,24 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 
-const MAX_RETRIES = 5;
-
+/**
+ * Playback state for the web HLS player. Transient failures are recovered by
+ * hls.js itself (see `setupWebHlsVideo`); this hook only tracks what the user
+ * sees and, via `retryKey`, lets them force a full re-attach after a failure
+ * hls.js could not recover from.
+ */
 export function useWebHlsPlayback(src: string) {
   const [state, setState] = useState<'loading' | 'live' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
-  const retryCount = useRef(0);
-  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const previousSrc = useRef(src);
+  const [loadedSrc, setLoadedSrc] = useState(src);
 
-  const clearRetryTimer = useCallback(() => {
-    if (retryTimer.current) {
-      clearTimeout(retryTimer.current);
-      retryTimer.current = null;
-    }
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      clearRetryTimer();
-    };
-  }, [clearRetryTimer]);
-
-  const resetForSourceChange = useCallback(() => {
-    if (previousSrc.current !== src) {
-      previousSrc.current = src;
-      retryCount.current = 0;
-    }
-  }, [src]);
+  // Render-phase reset: a new source starts a fresh load, so drop any error
+  // left over from the previous one rather than flashing it over the new stream.
+  if (loadedSrc !== src) {
+    setLoadedSrc(src);
+    setState('loading');
+    setErrorMessage(null);
+  }
 
   const markLive = useCallback(() => {
     setState('live');
@@ -40,40 +30,11 @@ export function useWebHlsPlayback(src: string) {
     setErrorMessage(message);
   }, []);
 
-  const scheduleRetry = useCallback(() => {
-    const delay = Math.min(3000 * 2 ** retryCount.current, 30_000);
-    retryCount.current += 1;
-    setState('loading');
-    retryTimer.current = setTimeout(() => setRetryKey((key) => key + 1), delay);
-  }, []);
-
-  const handleFatalError = useCallback(
-    (message: string) => {
-      if (retryCount.current < MAX_RETRIES) {
-        scheduleRetry();
-        return;
-      }
-      markError(message);
-    },
-    [markError, scheduleRetry],
-  );
-
   const retryNow = useCallback(() => {
-    retryCount.current = 0;
     setErrorMessage(null);
     setState('loading');
     setRetryKey((key) => key + 1);
   }, []);
 
-  return {
-    state,
-    errorMessage,
-    retryKey,
-    retryNow,
-    markLive,
-    markError,
-    handleFatalError,
-    resetForSourceChange,
-    clearRetryTimer,
-  };
+  return { state, errorMessage, retryKey, retryNow, markLive, markError };
 }

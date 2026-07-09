@@ -2,7 +2,7 @@ import { createElement, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { useAppTheme } from '@/theme';
 import { PreviewErrorOverlay, PreviewLoadingOverlay } from './previewOverlays';
-import { createLivePreviewStyles } from './styles';
+import { createLivePreviewStyles, createWebVideoStyle } from './styles';
 import { useWebHlsPlayback } from './useWebHlsPlayback';
 import { setupWebHlsVideo } from './webHlsVideoHelpers';
 
@@ -15,22 +15,12 @@ export function WebHlsVideo({
 }) {
   const theme = useAppTheme();
   const styles = createLivePreviewStyles(theme);
+  const videoStyle = createWebVideoStyle(theme);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const {
-    state,
-    errorMessage,
-    retryNow,
-    markLive,
-    markError,
-    handleFatalError,
-    resetForSourceChange,
-    clearRetryTimer,
-  } = useWebHlsPlayback(src);
+  const { state, errorMessage, retryKey, retryNow, markLive, markError } = useWebHlsPlayback(src);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retryKey is a re-run trigger, not a value read here — bumping it tears down the player and re-attaches it.
   useEffect(() => {
-    clearRetryTimer();
-    resetForSourceChange();
-
     const video = videoRef.current;
     if (!video) return;
 
@@ -42,7 +32,6 @@ export function WebHlsVideo({
       withCredentials,
       markLive,
       markError,
-      handleFatalError,
       isCancelled: () => cancelled,
     })
       .then((nextCleanup) => {
@@ -56,18 +45,9 @@ export function WebHlsVideo({
 
     return () => {
       cancelled = true;
-      clearRetryTimer();
       if (cleanup) cleanup();
     };
-  }, [
-    clearRetryTimer,
-    handleFatalError,
-    markError,
-    markLive,
-    resetForSourceChange,
-    src,
-    withCredentials,
-  ]);
+  }, [markError, markLive, retryKey, src, withCredentials]);
 
   return (
     <View style={styles.videoFrame}>
@@ -76,13 +56,7 @@ export function WebHlsVideo({
         autoPlay: true,
         muted: true,
         playsInline: true,
-        style: {
-          width: '100%',
-          height: '100%',
-          borderRadius: 8,
-          objectFit: 'contain',
-          backgroundColor: theme.colors.scrim,
-        },
+        style: videoStyle,
       })}
       {state === 'loading' ? <PreviewLoadingOverlay /> : null}
       {state === 'error' ? (

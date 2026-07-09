@@ -17,6 +17,7 @@ export function PreviewShell({
     <Card style={styles.card}>
       <Card.Content style={styles.content}>
         {children}
+        {/* Paper's Text, not MutedText: the latter wraps RN Text and has no `variant`. */}
         <Text variant="bodySmall" style={styles.caption}>
           {caption}
         </Text>

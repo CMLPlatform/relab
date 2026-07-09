@@ -53,6 +53,21 @@ describe('useYouTubeIntegration', () => {
     expect(result.current.loading).toBe(true);
   });
 
+  // Regression: `loading` must track auth's isLoading, not `!user` — a settled
+  // guest has no user and must not be reported as still loading.
+  it('is not loading once auth settles without a user', () => {
+    mockedUseAuth.mockReturnValue({
+      user: undefined,
+      refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
+      isLoading: false,
+    });
+
+    const { result } = renderHook(() => useYouTubeIntegration());
+
+    expect(result.current.enabled).toBe(false);
+    expect(result.current.loading).toBe(false);
+  });
+
   it('updates the server preference and refreshes auth state', async () => {
     mockedUseAuth.mockReturnValue({
       user: {

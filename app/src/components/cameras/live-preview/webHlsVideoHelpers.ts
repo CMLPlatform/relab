@@ -9,13 +9,14 @@ type VideoLike = {
   crossOrigin?: string | null;
 };
 
+type HlsErrorData = { fatal: boolean; type?: string; details?: string };
+
 type HlsLike = {
   loadSource: (src: string) => void;
   attachMedia: (video: unknown) => void;
-  on: (
-    event: string,
-    handler: (_event: unknown, data: { fatal: boolean; details?: string }) => void,
-  ) => void;
+  on: (event: string, handler: (_event: unknown, data: HlsErrorData) => void) => void;
+  startLoad: () => void;
+  recoverMediaError: () => void;
   destroy: () => void;
 };
 
@@ -28,6 +29,7 @@ type HlsConstructor = {
   }): HlsLike;
   isSupported: () => boolean;
   Events: { ERROR: string };
+  ErrorTypes: { NETWORK_ERROR: string; MEDIA_ERROR: string };
 };
 
 function safePlay(video: VideoLike) {
@@ -40,7 +42,6 @@ export async function setupWebHlsVideo({
   withCredentials,
   markLive,
   markError,
-  handleFatalError,
   isCancelled,
   importHls = () =>
     import('hls.js') as Promise<{
@@ -52,14 +53,19 @@ export async function setupWebHlsVideo({
   withCredentials: boolean;
   markLive: () => void;
   markError: (message: string) => void;
-  handleFatalError: (message: string) => void;
   isCancelled: () => boolean;
   importHls?: () => Promise<{ default: HlsConstructor }>;
 }): Promise<() => void> {
+  // hls.js exhausts its own load retries before emitting a fatal error, so we
+  // give each fatal kind exactly one documented recovery attempt. Playback
+  // resuming clears the flags, so a later independent failure can recover too.
+  const recovered = { network: false, media: false };
+
   const onPlaying = () => {
-    if (!isCancelled()) {
-      markLive();
-    }
+    if (isCancelled()) return;
+    recovered.network = false;
+    recovered.media = false;
+    markLive();
   };
   video.addEventListener('playing', onPlaying);
 
@@ -72,9 +78,11 @@ export async function setupWebHlsVideo({
     video.src = src;
     safePlay(video);
 
+    // NOTE: Safari's native HLS gives us no recovery hook, so any error goes
+    // straight to the retry overlay.
     const onError = () => {
       if (!isCancelled()) {
-        handleFatalError('HLS playback failed');
+        markError('HLS playback failed');
       }
     };
     video.addEventListener('error', onError);
@@ -116,9 +124,21 @@ export async function setupWebHlsVideo({
     hls.loadSource(src);
     hls.attachMedia(video);
     hls.on(Hls.Events.ERROR, (_event, data) => {
-      if (data.fatal && !isCancelled()) {
-        handleFatalError(data.details ?? 'HLS playback failed');
+      if (!data.fatal || isCancelled()) return;
+
+      if (data.type === Hls.ErrorTypes.NETWORK_ERROR && !recovered.network) {
+        recovered.network = true;
+        hls.startLoad();
+        return;
       }
+
+      if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !recovered.media) {
+        recovered.media = true;
+        hls.recoverMediaError();
+        return;
+      }
+
+      markError(data.details ?? 'HLS playback failed');
     });
 
     return () => {

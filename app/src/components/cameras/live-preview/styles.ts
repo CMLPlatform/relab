@@ -17,12 +17,14 @@ export const createLivePreviewStyles = memoizeByTheme((theme: AppTheme) => {
       aspectRatio: 4 / 3,
       position: 'relative',
     },
+    nativeVideo: {
+      width: '100%',
+      height: '100%',
+      borderRadius: 8,
+      backgroundColor: theme.colors.scrim,
+    },
     overlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      ...StyleSheet.absoluteFill,
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
@@ -42,3 +44,15 @@ export const createLivePreviewStyles = memoizeByTheme((theme: AppTheme) => {
     },
   });
 });
+
+/**
+ * Plain CSS for the DOM `<video>` element — not a React Native style, since
+ * `objectFit` is web-only and the element is created with `createElement`.
+ */
+export const createWebVideoStyle = memoizeByTheme((theme: AppTheme) => ({
+  width: '100%',
+  height: '100%',
+  borderRadius: 8,
+  objectFit: 'contain' as const,
+  backgroundColor: theme.colors.scrim,
+}));

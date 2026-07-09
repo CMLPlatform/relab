@@ -12,10 +12,10 @@ import { updateUser } from '@/services/api/auth/authentication';
  * oauth_accounts list alone.
  */
 export function useYouTubeIntegration() {
-  const { user, refetch } = useAuth();
+  const { user, isLoading, refetch } = useAuth();
 
   const enabled = user?.preferences?.youtube_streaming_enabled === true;
-  const loading = !user;
+  const loading = isLoading;
 
   const setEnabled = useCallback(
     async (next: boolean) => {

@@ -75,7 +75,7 @@ export function useCameraStreamActions({
   );
 
   const handleStartStream = useCallback(async () => {
-    if (!(streamDialog.cameraId && streamProductId)) return;
+    if (!streamDialog.cameraId || streamProductId === null) return;
     setIsStartingStream(true);
     try {
       const started = await startYouTubeStreamFlow({
@@ -92,8 +92,9 @@ export function useCameraStreamActions({
       });
       if (started) {
         closeStreamDialog();
-        setSnackbar(`Now live: ${streamDialog.cameraName}`);
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        // The toast is rendered above the navigator, so it outlives this
+        // screen's pop — no delay needed before navigating back.
+        feedback.toast(`Now live: ${streamDialog.cameraName}`);
         router.back();
       }
     } finally {
@@ -106,7 +107,6 @@ export function useCameraStreamActions({
     router,
     setActiveStream,
     setIsStartingStream,
-    setSnackbar,
     streamDialog,
     streamProductId,
     streamProductNameForSession,

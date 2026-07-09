@@ -145,12 +145,14 @@ describe('LivePreview', () => {
     expect(videoView.props.accessibilityHint).toBe('contain');
   });
 
-  it('releases the native player on unmount', () => {
+  // Regression: expo-video's useVideoPlayer releases the player itself on
+  // unmount. Releasing it again here would double-release the native object.
+  it('leaves the player release to useVideoPlayer on unmount', () => {
     const { unmount } = renderWithProviders(<LivePreview camera={CAMERA} />);
 
     unmount();
 
-    expect(mockVideoPlayerInstance.release).toHaveBeenCalledTimes(1);
+    expect(mockVideoPlayerInstance.release).not.toHaveBeenCalled();
   });
 
   it('shows a fallback when the preview player throws during render', () => {

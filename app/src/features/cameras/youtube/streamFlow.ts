@@ -3,6 +3,7 @@ import {
   type FeedbackApi,
   showGoogleAccountRequired,
   showStreamStartFailed,
+  showStreamVideoSaveFailed,
 } from '@/components/cameras/streamingFeedback';
 import type { useStreamSession } from '@/context/streamSession';
 import { invalidateProductQuery } from '@/features/products/queries';
@@ -56,11 +57,17 @@ export async function startYouTubeStreamFlow({
       startedAt: result.started_at,
       youtubeUrl: result.url,
     });
-    addProductVideo(productId, {
-      url: result.url,
-      title: trimmedTitle || 'Live stream',
-      description: '',
-    }).catch(() => {});
+    // The broadcast is already live at this point, so a failure to persist the
+    // video is surfaced but does not fail the flow.
+    try {
+      await addProductVideo(productId, {
+        url: result.url,
+        title: trimmedTitle || 'Live stream',
+        description: '',
+      });
+    } catch (err) {
+      showStreamVideoSaveFailed(feedback, err);
+    }
     invalidateProductQuery(queryClient, productId);
     return true;
   } catch (err) {

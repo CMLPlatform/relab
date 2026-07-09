@@ -3,12 +3,14 @@ import {
   showGoogleAccountRequired,
   showStreamStartFailed,
   showStreamStopFailed,
+  showStreamVideoSaveFailed,
 } from '@/components/cameras/streamingFeedback';
 
 describe('streamingFeedback', () => {
   const feedback = {
     alert: jest.fn(),
     error: jest.fn(),
+    toast: jest.fn(),
   };
 
   it('shows the Google account required dialog', () => {
@@ -31,5 +33,14 @@ describe('streamingFeedback', () => {
       'Stream start failed',
     );
     expect(feedback.error).toHaveBeenNthCalledWith(2, 'Failed to stop stream: nope', 'Stop failed');
+  });
+
+  it('formats a failure to save the stream video', () => {
+    showStreamVideoSaveFailed(feedback, new Error('disk full'));
+
+    expect(feedback.error).toHaveBeenCalledWith(
+      'The stream is live, but saving it to the product failed: disk full',
+      'Video not saved',
+    );
   });
 });

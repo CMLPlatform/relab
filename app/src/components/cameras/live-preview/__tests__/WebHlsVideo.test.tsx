@@ -1,57 +1,86 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { WebHlsVideo } from '@/components/cameras/live-preview/WebHlsVideo';
 import { renderWithProviders } from '@/test-utils/index';
 
-const mockPlaybackState = {
-  state: 'loading' as 'loading' | 'live' | 'error',
-  errorMessage: null as string | null,
-  retryKey: 0,
-  retryNow: jest.fn(),
-  markLive: jest.fn(),
-  markError: jest.fn(),
-  handleFatalError: jest.fn(),
-  resetForSourceChange: jest.fn(),
-  clearRetryTimer: jest.fn(),
+type SetupArgs = {
+  markLive: () => void;
+  markError: (message: string) => void;
 };
 
-jest.mock('@/components/cameras/live-preview/useWebHlsPlayback', () => ({
-  useWebHlsPlayback: () => mockPlaybackState,
+const mockCleanup = jest.fn();
+const mockSetup = jest.fn<(args: SetupArgs) => Promise<() => void>>();
+
+jest.mock('@/components/cameras/live-preview/webHlsVideoHelpers', () => ({
+  setupWebHlsVideo: (args: SetupArgs) => mockSetup(args),
 }));
+
+/** The <video> host element needs a non-null ref for the setup effect to run. */
+function renderPlayer(src = 'https://cam.test/live.m3u8') {
+  return renderWithProviders(<WebHlsVideo src={src} />, {
+    createNodeMock: () => ({}),
+  });
+}
+
+function lastSetupArgs(): SetupArgs {
+  const call = mockSetup.mock.calls.at(-1);
+  if (!call) throw new Error('setupWebHlsVideo was never called');
+  return call[0];
+}
 
 describe('WebHlsVideo', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPlaybackState.state = 'loading';
-    mockPlaybackState.errorMessage = null;
+    mockSetup.mockImplementation(async () => mockCleanup);
   });
 
-  it('shows the loading overlay while playback is starting', () => {
-    renderWithProviders(<WebHlsVideo src="https://cam.test/live.m3u8" />);
+  it('shows the loading overlay while playback is starting', async () => {
+    renderPlayer();
 
     expect(screen.getByText('Loading preview…')).toBeOnTheScreen();
-    expect(mockPlaybackState.clearRetryTimer).toHaveBeenCalled();
-    expect(mockPlaybackState.resetForSourceChange).toHaveBeenCalled();
+    await waitFor(() => expect(mockSetup).toHaveBeenCalledTimes(1));
   });
 
-  it('shows the retry overlay when playback is in an error state', () => {
-    mockPlaybackState.state = 'error';
-    mockPlaybackState.errorMessage = 'Live preview unavailable';
+  it('renders without overlays once playback is live', async () => {
+    renderPlayer();
+    await waitFor(() => expect(mockSetup).toHaveBeenCalledTimes(1));
 
-    renderWithProviders(<WebHlsVideo src="https://cam.test/live.m3u8" />);
-
-    expect(screen.getByText('Live preview unavailable')).toBeOnTheScreen();
-
-    fireEvent.press(screen.getByText('Tap to retry'));
-    expect(mockPlaybackState.retryNow).toHaveBeenCalled();
-  });
-
-  it('renders without overlays once playback is live', () => {
-    mockPlaybackState.state = 'live';
-
-    renderWithProviders(<WebHlsVideo src="https://cam.test/live.m3u8" />);
+    await act(async () => lastSetupArgs().markLive());
 
     expect(screen.queryByText('Loading preview…')).toBeNull();
     expect(screen.queryByText('Tap to retry')).toBeNull();
+  });
+
+  it('shows the retry overlay when setup reports an unrecoverable error', async () => {
+    renderPlayer();
+    await waitFor(() => expect(mockSetup).toHaveBeenCalledTimes(1));
+
+    await act(async () => lastSetupArgs().markError('Live preview unavailable'));
+
+    expect(screen.getByText('Live preview unavailable')).toBeOnTheScreen();
+  });
+
+  // Regression: retryKey must be wired into the setup effect's deps, otherwise
+  // the retry button clears the overlay but never re-attaches the player.
+  it('re-runs setup when the user taps retry', async () => {
+    renderPlayer();
+    await waitFor(() => expect(mockSetup).toHaveBeenCalledTimes(1));
+    await act(async () => lastSetupArgs().markError('fatal'));
+
+    fireEvent.press(screen.getByText('Tap to retry'));
+
+    await waitFor(() => expect(mockSetup).toHaveBeenCalledTimes(2));
+    expect(mockCleanup).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Loading preview…')).toBeOnTheScreen();
+  });
+
+  it('tears down and re-attaches the player when the source changes', async () => {
+    const { rerender } = renderPlayer('https://cam.test/a.m3u8');
+    await waitFor(() => expect(mockSetup).toHaveBeenCalledTimes(1));
+
+    rerender(<WebHlsVideo src="https://cam.test/b.m3u8" />);
+
+    await waitFor(() => expect(mockSetup).toHaveBeenCalledTimes(2));
+    expect(mockCleanup).toHaveBeenCalledTimes(1);
   });
 });
