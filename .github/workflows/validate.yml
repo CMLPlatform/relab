@@ -179,35 +179,18 @@ jobs:
       - name: Run CI test suite
         run: just backend/test-ci
 
-      - name: Upload coverage
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: ./.github/actions/upload-codecov
+      - name: Publish reports
+        uses: ./.github/actions/publish-reports
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./backend/reports/coverage/coverage.xml
           flags: backend
-          name: validate-backend-coverage
-          disable-search: "true"
+          coverage-file: ./backend/reports/coverage/coverage.xml
+          junit-file: ./backend/reports/junit.xml
           network-prefix: backend/app/
-
-      - name: Upload test results
-        # Runs even when tests fail so Codecov can track flaky/failing tests.
-        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: ./.github/actions/upload-test-results
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./backend/reports/junit.xml
-          flags: backend
-
-      - name: Archive backend reports
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: validate-backend-reports
-          path: |
+          artifact-name: validate-backend-reports
+          artifact-path: |
             backend/reports/coverage/html/
             backend/reports/coverage/coverage.xml
-          retention-days: 7
 
   www:
     name: www
@@ -236,32 +219,16 @@ jobs:
       - name: Run CI test suite
         run: just www/test-ci
 
-      - name: Upload coverage
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: ./.github/actions/upload-codecov
+      - name: Publish reports
+        uses: ./.github/actions/publish-reports
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./www/coverage/lcov.info
           flags: www
-          name: validate-www-coverage
-          disable-search: "true"
+          coverage-file: ./www/coverage/lcov.info
+          junit-file: ./www/junit.xml
           network-prefix: www/
-
-      - name: Upload test results
-        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: ./.github/actions/upload-test-results
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./www/junit.xml
-          flags: www
-
-      - name: Archive www coverage
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: validate-www-coverage
-          path: www/coverage/
-          retention-days: 7
+          artifact-name: validate-www-coverage
+          artifact-path: www/coverage/
 
   e2e-www:
     name: www E2E
@@ -330,32 +297,16 @@ jobs:
       - name: Run CI test suite
         run: just app/test-ci
 
-      - name: Upload coverage
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: ./.github/actions/upload-codecov
+      - name: Publish reports
+        uses: ./.github/actions/publish-reports
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./app/coverage/lcov.info
           flags: app
-          name: validate-app-coverage
-          disable-search: "true"
+          coverage-file: ./app/coverage/lcov.info
+          junit-file: ./app/junit.xml
           network-prefix: app/
-
-      - name: Upload test results
-        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: ./.github/actions/upload-test-results
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./app/junit.xml
-          flags: app
-
-      - name: Archive app coverage
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: validate-app-coverage
-          path: app/coverage/
-          retention-days: 7
+          artifact-name: validate-app-coverage
+          artifact-path: app/coverage/
 
   docs:
     name: Docs

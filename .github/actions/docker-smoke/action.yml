@@ -28,12 +28,11 @@ runs:
       env:
         RECIPE: ${{ inputs.recipe }}
       run: |
-        case "$RECIPE" in
-          docker-smoke-backend|docker-orchestration-smoke|docker-smoke-www|docker-smoke-app|docker-smoke-docs|docker-smoke-backups)
-            just "$RECIPE"
-            ;;
-          *)
-            echo "Unsupported docker smoke recipe: $RECIPE" >&2
-            exit 1
-            ;;
-        esac
+        # Name-shaped allowlist rather than an enumerated one, so adding a smoke
+        # recipe needs no edit here. Anchored, and the character class refuses
+        # anything but a bare recipe name, so no other just recipe can be reached.
+        if [[ ! "$RECIPE" =~ ^(docker-smoke-[a-z]+|docker-orchestration-smoke)$ ]]; then
+          echo "Unsupported docker smoke recipe: $RECIPE" >&2
+          exit 1
+        fi
+        just "$RECIPE"

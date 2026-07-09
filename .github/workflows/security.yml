@@ -65,28 +65,24 @@ jobs:
           shared_trigger=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)
           echo "run-iac=$shared_trigger" >> "$GITHUB_OUTPUT"
 
-          # Keep this service list in sync with the release SBOM matrix in release.yml.
-          include_entries=()
-          [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
-            include_entries+=('{"service":"api","context":"./backend","dockerfile":"./backend/Dockerfile","image_ref":"relab-backend:${{ github.sha }}"}')
-          [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
-            include_entries+=('{"service":"migrator","context":"./backend","dockerfile":"./backend/Dockerfile.migrations","image_ref":"relab-backend-migrations:${{ github.sha }}"}')
-          [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
-            include_entries+=('{"service":"relab-backup","context":"./backend","dockerfile":"./backend/Dockerfile.backups","image_ref":"relab-backup:${{ github.sha }}"}')
-          [[ "$shared_trigger" == "true" || "$DOCS" == "true" ]] && \
-            include_entries+=('{"service":"docs","context":".","dockerfile":"./docs/Dockerfile","image_ref":"relab-docs:${{ github.sha }}"}')
-          [[ "$shared_trigger" == "true" || "$APP" == "true" ]] && \
-            include_entries+=('{"service":"app","context":".","dockerfile":"./app/Dockerfile","image_ref":"relab-app:${{ github.sha }}"}')
-          [[ "$shared_trigger" == "true" || "$WWW" == "true" ]] && \
-            include_entries+=('{"service":"www","context":".","dockerfile":"./www/Dockerfile","image_ref":"relab-www:${{ github.sha }}"}')
+          # Which subrepos' images to scan. The image definitions themselves live in
+          # .github/container-images.json, shared with the release SBOM matrix.
+          scopes=()
+          if [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]]; then scopes+=(backend); fi
+          if [[ "$shared_trigger" == "true" || "$DOCS" == "true" ]]; then scopes+=(docs); fi
+          if [[ "$shared_trigger" == "true" || "$APP" == "true" ]]; then scopes+=(app); fi
+          if [[ "$shared_trigger" == "true" || "$WWW" == "true" ]]; then scopes+=(www); fi
 
-          if ((${#include_entries[@]} == 0)); then
+          if ((${#scopes[@]} == 0)); then
             echo "run-container-images=false" >> "$GITHUB_OUTPUT"
             echo 'container-security-matrix={"include":[]}' >> "$GITHUB_OUTPUT"
           else
-            matrix_json=$(printf '%s\n' "${include_entries[@]}" | paste -sd, -)
+            scopes_json=$(printf '%s\n' "${scopes[@]}" | jq -Rsc 'split("\n") | map(select(length > 0))')
+            include=$(jq -c --arg sha "$GITHUB_SHA" --argjson scopes "$scopes_json" \
+              '[ .[] | select(.scope | IN($scopes[])) | {service, context, dockerfile, image_ref: (.image + ":" + $sha)} ]' \
+              .github/container-images.json)
             echo "run-container-images=true" >> "$GITHUB_OUTPUT"
-            echo "container-security-matrix={\"include\":[${matrix_json}]}" >> "$GITHUB_OUTPUT"
+            echo "container-security-matrix={\"include\":${include}}" >> "$GITHUB_OUTPUT"
           fi
 
   secret-scan:

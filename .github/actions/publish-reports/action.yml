@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Publish Reports
+description: |
+  Upload a subrepo's coverage and JUnit results to Codecov and archive the
+  coverage report. Skips the Codecov uploads on pull requests from forks, where
+  the token is not available.
+
+inputs:
+  token:
+    description: Codecov token.
+    required: true
+  flags:
+    description: Codecov flags, and the subrepo name used for upload/artifact names.
+    required: true
+  coverage-file:
+    description: Coverage file path to upload.
+    required: true
+  junit-file:
+    description: JUnit XML file path to upload.
+    required: true
+  network-prefix:
+    description: Prefix prepended to uploaded report paths before Codecov matches files.
+    required: true
+  artifact-name:
+    description: Name of the archived workflow artifact.
+    required: true
+  artifact-path:
+    description: Path(s) to archive as a workflow artifact.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Upload coverage
+      if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+      uses: ./.github/actions/upload-codecov
+      with:
+        token: ${{ inputs.token }}
+        files: ${{ inputs.coverage-file }}
+        flags: ${{ inputs.flags }}
+        name: validate-${{ inputs.flags }}-coverage
+        disable-search: "true"
+        network-prefix: ${{ inputs.network-prefix }}
+
+    - name: Upload test results
+      # Runs even when tests fail so Codecov can track flaky/failing tests.
+      if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+      uses: ./.github/actions/upload-test-results
+      with:
+        token: ${{ inputs.token }}
+        files: ${{ inputs.junit-file }}
+        flags: ${{ inputs.flags }}
+
+    - name: Archive coverage report
+      if: always()
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.artifact-path }}
+        retention-days: 7

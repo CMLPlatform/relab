@@ -2,20 +2,22 @@
 # Provides credentials via .env.test so services can start without real secrets.
 name: relab_test
 
+x-test-env-file: &test-env-file ./backend/.env.test
+
 services:
   api:
     environment:
       ENVIRONMENT: testing
-    env_file: ./backend/.env.test
+    env_file: *test-env-file
 
   migrator:
-    env_file: ./backend/.env.test
+    env_file: *test-env-file
 
   postgres:
-    env_file: ./backend/.env.test
+    env_file: *test-env-file
 
   redis:
-    env_file: ./backend/.env.test
+    env_file: *test-env-file
 
   app:
     build:

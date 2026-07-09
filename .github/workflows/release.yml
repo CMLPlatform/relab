@@ -23,7 +23,13 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      container_matrix: ${{ steps.container-matrix.outputs.matrix }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
       - name: Run release-please
         id: release
         uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071
@@ -31,6 +37,20 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: .github/release-please-config.json
           manifest-file: .github/.release-please-manifest.json
+
+      # Runs unconditionally: release-sboms is gated on release_created, but its
+      # matrix expression is still parsed, so the output must always be valid JSON.
+      - name: Build the container matrix
+        id: container-matrix
+        shell: bash
+        run: |
+          # Every runtime image gets an SBOM on release. The image definitions are
+          # shared with the container security matrix in security.yml, which filters
+          # the same file by scope.
+          include=$(jq -c --arg sha "$GITHUB_SHA" \
+            '[ .[] | {service, context, dockerfile, image_ref: (.image + ":" + $sha)} ]' \
+            .github/container-images.json)
+          echo "matrix={\"include\":${include}}" >> "$GITHUB_OUTPUT"
 
   release-sboms:
     name: Release SBOM (${{ matrix.service }})
@@ -44,33 +64,7 @@ jobs:
       id-token: write
     strategy:
       fail-fast: false
-      # Keep this service list in sync with the container matrix in security.yml.
-      matrix:
-        include:
-          - service: api
-            context: ./backend
-            dockerfile: ./backend/Dockerfile
-            image_ref: relab-backend:${{ github.sha }}
-          - service: migrator
-            context: ./backend
-            dockerfile: ./backend/Dockerfile.migrations
-            image_ref: relab-backend-migrations:${{ github.sha }}
-          - service: relab-backup
-            context: ./backend
-            dockerfile: ./backend/Dockerfile.backups
-            image_ref: relab-backup:${{ github.sha }}
-          - service: docs
-            context: .
-            dockerfile: ./docs/Dockerfile
-            image_ref: relab-docs:${{ github.sha }}
-          - service: app
-            context: .
-            dockerfile: ./app/Dockerfile
-            image_ref: relab-app:${{ github.sha }}
-          - service: www
-            context: .
-            dockerfile: ./www/Dockerfile
-            image_ref: relab-www:${{ github.sha }}
+      matrix: ${{ fromJSON(needs.release-please.outputs.container_matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
