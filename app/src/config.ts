@@ -17,9 +17,8 @@ export function normalizeOptionalHttpUrl(value: string | undefined, key: string)
   return trimmedValue ? normalizeRequiredHttpUrl(trimmedValue, key) : '';
 }
 
-function appendApiVersion(baseUrl: string | undefined): string {
-  const normalizedBase = `${baseUrl ?? ''}`.replace(TRAILING_SLASHES_PATTERN, '');
-  if (!normalizedBase) return API_VERSION_PATH;
+function appendApiVersion(baseUrl: string): string {
+  const normalizedBase = baseUrl.replace(TRAILING_SLASHES_PATTERN, '');
   return normalizedBase.endsWith(API_VERSION_PATH)
     ? normalizedBase
     : `${normalizedBase}${API_VERSION_PATH}`;

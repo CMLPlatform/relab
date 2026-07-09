@@ -10,10 +10,7 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
 
   const themeMode: ThemeMode = user?.preferences?.theme_mode ?? 'auto';
 
-  const effectiveColorScheme = useMemo<'light' | 'dark'>(() => {
-    if (themeMode === 'auto') return systemScheme;
-    return themeMode;
-  }, [themeMode, systemScheme]);
+  const effectiveColorScheme: 'light' | 'dark' = themeMode === 'auto' ? systemScheme : themeMode;
 
   const setThemeMode = useCallback(
     async (mode: ThemeMode) => {

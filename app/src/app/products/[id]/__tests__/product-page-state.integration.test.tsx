@@ -27,6 +27,8 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(),
   useNavigation: jest.fn(),
   useRouter: jest.fn(),
+  // Never invokes its callback, so useScreenFocused keeps its initial `true`.
+  useFocusEffect: jest.fn(),
 }));
 
 const baseFormReturn = {

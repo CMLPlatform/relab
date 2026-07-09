@@ -55,7 +55,7 @@ describe('useAppFeedback', () => {
     expect(alertSpy).not.toHaveBeenCalled();
   });
 
-  it('falls back to global alert and invokes the first non-cancel action', () => {
+  it('falls back to global alert and invokes the primary (last) action', () => {
     const primaryAction = jest.fn();
     mockUseOptionalDialog.mockReturnValue(undefined);
 

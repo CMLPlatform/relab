@@ -4,8 +4,11 @@ import { Text } from '@/components/base/Text';
 import { useStreamSession } from '@/context/streamSession';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useAppTheme } from '@/theme';
-import { getActiveStreamBannerBottomInset, getFloatingPosition } from '@/utils/platformLayout';
+import { getFloatingPosition } from '@/utils/platformLayout';
 import { StreamingSheet } from './StreamingSheet';
+
+// Clears the native tab bar; on web the banner floats just above the viewport edge.
+const BOTTOM_INSET = Platform.OS === 'web' ? 16 : 88;
 
 export function ActiveStreamBanner() {
   const theme = useAppTheme();
@@ -27,10 +30,7 @@ export function ActiveStreamBanner() {
 
   return (
     <>
-      <View
-        style={[styles.container, { bottom: getActiveStreamBannerBottomInset() }]}
-        pointerEvents="box-none"
-      >
+      <View style={[styles.container, { bottom: BOTTOM_INSET }]} pointerEvents="box-none">
         <Pressable
           style={[
             styles.banner,

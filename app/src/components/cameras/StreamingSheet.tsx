@@ -1,9 +1,9 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { IconButton, Portal, Surface, Text } from 'react-native-paper';
 import { OverlaySurface } from '@/components/base/OverlaySurface';
 import type { StreamSession } from '@/context/streamSession';
 import { useAppTheme } from '@/theme';
-import { getFloatingPosition, getStreamingSheetBottomPadding } from '@/utils/platformLayout';
+import { getFloatingPosition } from '@/utils/platformLayout';
 import { StreamingContent } from './StreamingContent';
 
 interface StreamingSheetProps {
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 8,
-    paddingBottom: getStreamingSheetBottomPadding(),
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16, // clears the iOS home indicator
     overflow: 'hidden',
   },
   headerRow: {

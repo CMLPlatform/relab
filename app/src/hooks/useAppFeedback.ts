@@ -20,8 +20,9 @@ export function useAppFeedback() {
         return;
       }
       fallbackAlert(options.message ?? options.title ?? '');
-      const primary =
-        options.buttons?.find((button) => button.text !== 'Cancel') ?? options.buttons?.[0];
+      // Last button is the primary action, same convention DialogProvider's Enter key uses.
+      // Matching on the label 'Cancel' instead would auto-fire a dismiss spelled 'No'.
+      const primary = options.buttons?.at(-1);
       primary?.onPress?.();
     },
     input: dialog?.input ?? (() => {}),

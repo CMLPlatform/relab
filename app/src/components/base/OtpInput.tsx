@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { Text } from '@/components/base/Text';
-import { type AppTheme, useAppTheme } from '@/theme';
+import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+import { Text } from './Text';
 
 type OtpInputProps = {
   value: string;
@@ -30,9 +30,7 @@ export function OtpInput({
   hasError = false,
   accessibilityLabel = 'One-time code',
 }: OtpInputProps) {
-  const theme = useAppTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
-  const cells = useMemo(() => Array.from({ length }, (_, index) => index), [length]);
+  const styles = createStyles(useAppTheme());
   const inputRef = useRef<TextInput>(null);
 
   // autoFocus alone is unreliable inside a Portal/Dialog and on web, so focus
@@ -55,7 +53,7 @@ export function OtpInput({
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
-        {cells.map((index) => {
+        {Array.from({ length }, (_, index) => index).map((index) => {
           const filled = index < value.length;
           const focused = index === value.length && !disabled;
           return (
@@ -93,8 +91,8 @@ export function OtpInput({
   );
 }
 
-function createStyles(theme: AppTheme) {
-  return StyleSheet.create({
+const createStyles = memoizeByTheme((theme: AppTheme) =>
+  StyleSheet.create({
     wrap: {
       position: 'relative',
       alignSelf: 'center',
@@ -138,5 +136,5 @@ function createStyles(theme: AppTheme) {
       opacity: 0,
       color: 'transparent',
     },
-  });
-}
+  }),
+);
