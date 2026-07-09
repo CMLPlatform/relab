@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import {
   claimOAuthMfaHandoff,
   clearPendingMfaLogin,
+  completeMfaChallenge,
   getPendingMfaLogin,
   setPendingMfaLogin,
 } from '@/services/api/auth/authMfa';
@@ -102,5 +103,40 @@ describe('authMfa pending login storage', () => {
         method: 'POST',
       }),
     );
+  });
+});
+
+describe('completeMfaChallenge', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    restorePlatform();
+  });
+
+  // Regression: a bodyless 204 was treated as a web session on every platform,
+  // so native completed the challenge holding no bearer token.
+  it('rejects a 204 on native, where no bearer token was issued', async () => {
+    mockPlatform('ios');
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
+      fetchWithTimeout: jest.Mock;
+    };
+    fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
+
+    await expect(completeMfaChallenge('mfa-token', '123456')).rejects.toThrow(
+      'Invalid MFA login response.',
+    );
+  });
+
+  it('accepts a 204 on web, where the session lives in cookies', async () => {
+    mockPlatform('web');
+    stubSessionStorage();
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
+      fetchWithTimeout: jest.Mock;
+    };
+    fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
+
+    await expect(completeMfaChallenge('mfa-token', '123456')).resolves.toBeUndefined();
   });
 });

@@ -324,16 +324,13 @@ describe('rpiCamera API service', () => {
     });
     expect(fetchSpy).toHaveBeenCalledWith(
       'http://192.168.7.1:8018/captures',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'X-API-Key': 'local-key',
-          'X-Request-ID': expect.any(String),
-        }),
-      }),
+      expect.objectContaining({ method: 'POST' }),
     );
+    const headers = new Headers(fetchSpy.mock.calls[0]?.[1]?.headers);
+    expect(headers.get('Content-Type')).toBe('application/json');
+    expect(headers.get('Accept')).toBe('application/json');
+    expect(headers.get('X-API-Key')).toBe('local-key');
+    expect(headers.get('X-Request-ID')).toEqual(expect.any(String));
 
     fetchSpy.mockRestore();
   });

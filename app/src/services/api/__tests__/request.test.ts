@@ -137,3 +137,68 @@ describe('fetchWithTimeout', () => {
     await assertion;
   });
 });
+
+describe('fetchWithTimeout header normalization', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  function captureHeaders() {
+    const fetchSpy = jest.fn(
+      async (_url: string | URL, _init?: RequestInit) => ({ ok: true, status: 200 }) as Response,
+    );
+    global.fetch = fetchSpy as unknown as typeof fetch;
+    return () => new Headers(fetchSpy.mock.calls[0]?.[1]?.headers);
+  }
+
+  // Regression: headers were built with an object spread, which yields {} for a
+  // Headers instance and {0:[...]} for a tuple array — silently dropping
+  // Authorization and Content-Type, both legal RequestInit values.
+  it('preserves a Headers instance', async () => {
+    const read = captureHeaders();
+
+    await fetchWithTimeout('http://api.test/x', {
+      timeoutMs: 0,
+      headers: new Headers({ Authorization: 'Bearer t', 'Content-Type': 'application/json' }),
+    });
+
+    expect(read().get('Authorization')).toBe('Bearer t');
+    expect(read().get('Content-Type')).toBe('application/json');
+  });
+
+  it('preserves an array of header tuples', async () => {
+    const read = captureHeaders();
+
+    await fetchWithTimeout('http://api.test/x', {
+      timeoutMs: 0,
+      headers: [['Authorization', 'Bearer t']],
+    });
+
+    expect(read().get('Authorization')).toBe('Bearer t');
+  });
+
+  it('preserves a plain object and stamps a correlation id', async () => {
+    const read = captureHeaders();
+
+    await fetchWithTimeout('http://api.test/x', {
+      timeoutMs: 0,
+      headers: { Accept: 'application/json' },
+    });
+
+    expect(read().get('Accept')).toBe('application/json');
+    expect(read().get('X-Request-ID')).toEqual(expect.any(String));
+  });
+
+  it('leaves a caller-supplied correlation id intact, case-insensitively', async () => {
+    const read = captureHeaders();
+
+    await fetchWithTimeout('http://api.test/x', {
+      timeoutMs: 0,
+      headers: { 'x-request-id': 'caller-owned' },
+    });
+
+    expect(read().get('X-Request-ID')).toBe('caller-owned');
+  });
+});

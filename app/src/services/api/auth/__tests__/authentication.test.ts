@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { resetAuthRuntimeForTests } from '@/services/api/auth/authRuntime';
+import { authRuntime, resetAuthRuntimeForTests } from '@/services/api/auth/authRuntime';
 import { setWebSessionFlag } from '@/services/api/auth/authSession';
 import { mockPlatform, mockResponse, restorePlatform, setupFetchMock } from '@/test-utils/index';
 
@@ -230,16 +230,12 @@ describe('Authentication API Service', () => {
 
       expect(fetchMock()).toHaveBeenCalledWith(
         'http://127.0.0.1:18010/test',
-        expect.objectContaining({
-          method: 'GET',
-          credentials: 'include',
-          headers: expect.objectContaining({
-            Accept: 'application/json',
-            Authorization: 'Bearer test-token',
-            'X-Request-ID': expect.any(String),
-          }),
-        }),
+        expect.objectContaining({ method: 'GET', credentials: 'include' }),
       );
+      const headers = new Headers(fetchMock().mock.calls[0]?.[1]?.headers);
+      expect(headers.get('Accept')).toBe('application/json');
+      expect(headers.get('Authorization')).toBe('Bearer test-token');
+      expect(headers.get('X-Request-ID')).toEqual(expect.any(String));
     });
 
     it('does not attempt token refresh after explicit logout when a 401 is received', async () => {
@@ -629,32 +625,41 @@ describe('Authentication API Service', () => {
       });
 
       it('204 login: triggers refresh then getUser and returns "success"', async () => {
-        // Set flag so refreshAuthToken doesn't short-circuit on the flag check
-        mockSessionStorage.setItem('web_has_session', '1');
         fetchMock()
           .mockResolvedValueOnce(mockResponse(204, null) as Response) // POST login
-          .mockResolvedValueOnce(mockResponse(200, {}) as Response) // POST cookie/refresh
           .mockResolvedValueOnce(mockResponse(200, rawUser) as Response); // GET /users/me
 
-        const loginPromise = auth.login('u@e.com', 'pass');
-        await jest.runAllTimersAsync();
-        const result = await loginPromise;
+        const result = await auth.login('u@e.com', 'pass');
 
         expect(result).toEqual({ status: 'authenticated' });
-        expect(fetchMock()).toHaveBeenCalledTimes(3);
+        // The 204 already carries both cookies — login must not also refresh.
+        expect(fetchMock()).toHaveBeenCalledTimes(2);
       });
 
-      it('204 login with failed refresh: falls back to 150ms delay + getUser', async () => {
-        // sessionStorage empty → refresh fails immediately (no flag)
+      // Regression: login used to fire a redundant refresh whose expected 401
+      // latched explicitlyLoggedOut=true, permanently disabling the transparent
+      // 401 refresh for the rest of the session.
+      it('204 login leaves transparent refresh armed for a later 401', async () => {
         fetchMock()
           .mockResolvedValueOnce(mockResponse(204, null) as Response) // POST login
-          .mockResolvedValueOnce(mockResponse(200, rawUser) as Response); // GET /users/me after delay
+          .mockResolvedValueOnce(mockResponse(200, rawUser) as Response); // GET /users/me
 
-        const loginPromise = auth.login('u@e.com', 'pass');
-        await jest.advanceTimersByTimeAsync(200);
-        const result = await loginPromise;
+        await auth.login('u@e.com', 'pass');
+        expect(authRuntime.explicitlyLoggedOut).toBe(false);
 
-        expect(result).toEqual({ status: 'authenticated' });
+        // A later request 401s; the client must transparently refresh and retry.
+        fetchMock()
+          .mockResolvedValueOnce(mockResponse(401, null) as Response) // GET /thing
+          .mockResolvedValueOnce(mockResponse(200, {}) as Response) // POST session/refresh
+          .mockResolvedValueOnce(mockResponse(200, { ok: true }) as Response); // GET /thing retry
+
+        const response = await auth.fetchWithAuth('http://127.0.0.1:18010/thing');
+
+        expect(response.status).toBe(200);
+        expect(fetchMock()).toHaveBeenCalledWith(
+          expect.objectContaining({ href: expect.stringContaining('/auth/session/refresh') }),
+          expect.anything(),
+        );
       });
     });
 

@@ -1,18 +1,19 @@
-import { Platform } from 'react-native';
 import {
   getSecureItem,
   getSessionItem,
+  isWeb,
   removeSecureItem,
   removeSessionItem,
   setSecureItem,
   setSessionItem,
 } from '@/services/storage';
+import { authRuntime } from './authRuntime';
 
 export const ACCESS_TOKEN_KEY = 'access_token';
 export const REFRESH_TOKEN_KEY = 'refresh_token';
 export const WEB_SESSION_FLAG = 'web_has_session';
 
-export const isWeb = () => Platform.OS === 'web';
+export { isWeb };
 
 export async function loadStoredAccessToken() {
   if (isWeb()) return;
@@ -56,4 +57,14 @@ export function setWebSessionFlag(value: boolean) {
 export function hasWebSessionFlag() {
   if (!isWeb()) return false;
   return Boolean(getSessionItem(WEB_SESSION_FLAG));
+}
+
+/**
+ * Record that a live browser session exists. Owned here so every flow that
+ * establishes one (password login, MFA challenge, OAuth) marks it the same way.
+ */
+export function markWebSessionActive(): void {
+  if (!isWeb()) return;
+  authRuntime.explicitlyLoggedOut = false;
+  setWebSessionFlag(true);
 }

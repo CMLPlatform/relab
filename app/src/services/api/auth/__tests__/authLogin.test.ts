@@ -1,15 +1,18 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { login, logout, revokeAllSessions } from '@/services/api/auth/authLogin';
 import { authRuntime } from '@/services/api/auth/authRuntime';
+import { TimeoutError } from '@/services/api/request';
 
 jest.mock('@/services/api/auth/authSession', () => ({
   isWeb: jest.fn(() => false),
   loadStoredAccessToken: jest.fn(),
   loadStoredRefreshToken: jest.fn(),
-  setWebSessionFlag: jest.fn(),
+  markWebSessionActive: jest.fn(),
 }));
 
 jest.mock('@/services/api/request', () => ({
+  // Keep the real TimeoutError class so `instanceof` still discriminates.
+  ...jest.requireActual<typeof import('@/services/api/request')>('@/services/api/request'),
   fetchWithTimeout: jest.fn(),
 }));
 
@@ -48,14 +51,12 @@ describe('authLogin', () => {
     const persistAccessToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const persistRefreshToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const getUser = jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined);
-    const refreshAuthToken = jest.fn<() => Promise<boolean>>().mockResolvedValue(false);
 
     await expect(
       login('http://127.0.0.1:18010', 'user', 'pass', {
         persistAccessToken,
         persistRefreshToken,
         getUser,
-        refreshAuthToken,
       }),
     ).resolves.toEqual({ status: 'authenticated' });
 
@@ -63,13 +64,13 @@ describe('authLogin', () => {
     expect(persistRefreshToken).toHaveBeenCalledWith('native-refresh-token');
   });
 
-  it('on web 204 login refreshes first and then hydrates the user cache', async () => {
+  it('on web 204 login marks the session live and hydrates the user cache', async () => {
     const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
-    const { isWeb, setWebSessionFlag } = jest.requireMock('@/services/api/auth/authSession') as {
+    const { isWeb, markWebSessionActive } = jest.requireMock('@/services/api/auth/authSession') as {
       isWeb: jest.Mock;
-      setWebSessionFlag: jest.Mock;
+      markWebSessionActive: jest.Mock;
     };
 
     isWeb.mockReturnValue(true);
@@ -78,52 +79,88 @@ describe('authLogin', () => {
     const persistAccessToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const persistRefreshToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const getUser = jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined);
-    const refreshAuthToken = jest.fn<() => Promise<boolean>>().mockResolvedValue(true);
 
     await expect(
       login('http://127.0.0.1:18010', 'user', 'pass', {
         persistAccessToken,
         persistRefreshToken,
         getUser,
-        refreshAuthToken,
       }),
     ).resolves.toEqual({ status: 'authenticated' });
 
-    expect(setWebSessionFlag).toHaveBeenCalledWith(true);
-    expect(refreshAuthToken).toHaveBeenCalled();
+    expect(markWebSessionActive).toHaveBeenCalled();
     expect(getUser).toHaveBeenCalledWith(true);
+    // The 204 already carries both cookies: exactly one request, no refresh.
+    expect(fetchWithTimeout).toHaveBeenCalledTimes(1);
   });
 
-  it('on web 204 login falls back to delayed hydration when refresh fails', async () => {
-    jest.useFakeTimers();
+  // Regression: a web 204 used to fire a redundant refresh whose expected 401
+  // latched explicitlyLoggedOut=true, silently disabling refresh for the session.
+  it('on web 204 login never leaves the session marked as logged out', async () => {
     const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
-    const { isWeb } = jest.requireMock('@/services/api/auth/authSession') as {
-      isWeb: jest.Mock;
-    };
+    const { isWeb } = jest.requireMock('@/services/api/auth/authSession') as { isWeb: jest.Mock };
 
     isWeb.mockReturnValue(true);
+    authRuntime.explicitlyLoggedOut = true;
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
 
-    const persistAccessToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    const persistRefreshToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    const getUser = jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined);
-    const refreshAuthToken = jest.fn<() => Promise<boolean>>().mockResolvedValue(false);
-
-    const promise = login('http://127.0.0.1:18010', 'user', 'pass', {
-      persistAccessToken,
-      persistRefreshToken,
-      getUser,
-      refreshAuthToken,
+    await login('http://127.0.0.1:18010', 'user', 'pass', {
+      persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
     });
 
-    await jest.advanceTimersByTimeAsync(150);
+    // markWebSessionActive is mocked here, so assert on the one thing login owns:
+    // it must not perform a second (refresh) round-trip that can latch the flag.
+    expect(fetchWithTimeout).toHaveBeenCalledTimes(1);
+  });
 
-    await expect(promise).resolves.toEqual({ status: 'authenticated' });
-    expect(getUser).toHaveBeenCalledWith(true);
+  // Regression: a native 2xx without an access_token used to report success,
+  // routing into a signed-in UI whose every request 401s.
+  it('rejects a native login response that carries no access token', async () => {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
+      fetchWithTimeout: jest.Mock;
+    };
 
-    jest.useRealTimers();
+    fetchWithTimeout.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ token_type: 'bearer' }),
+    } as never);
+
+    const persistAccessToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+
+    await expect(
+      login('http://127.0.0.1:18010', 'user', 'pass', {
+        persistAccessToken,
+        persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+        getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
+      }),
+    ).rejects.toThrow('Invalid login response.');
+
+    expect(persistAccessToken).not.toHaveBeenCalled();
+  });
+
+  // Regression: raw transport errors leaked to the login form.
+  it.each([
+    ['timeout', new TimeoutError(15_000)],
+    ['network failure', new TypeError('Network request failed')],
+  ])('replaces a raw %s with friendly copy', async (_label, thrown) => {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
+      fetchWithTimeout: jest.Mock;
+    };
+
+    fetchWithTimeout.mockRejectedValueOnce(thrown as never);
+
+    await expect(
+      login('http://127.0.0.1:18010', 'user', 'pass', {
+        persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+        persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+        getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
+      }),
+    ).rejects.toThrow('Unable to reach server. Please try again later.');
   });
 
   it('returns a discriminated MFA pending result from 202 responses', async () => {
@@ -144,7 +181,6 @@ describe('authLogin', () => {
       persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
       persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
       getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
-      refreshAuthToken: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
     });
 
     expect(result).toEqual({
@@ -169,7 +205,6 @@ describe('authLogin', () => {
         persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
         persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
         getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
-        refreshAuthToken: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
       }),
     ).rejects.toThrow('Too many login attempts.');
   });

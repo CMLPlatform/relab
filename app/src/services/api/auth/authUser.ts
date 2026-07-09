@@ -57,11 +57,20 @@ export async function getUser(
       })) as ApiUserRead | undefined;
       if (!data) return;
 
+      // Re-check after the parse await: a logout that landed while the body was
+      // streaming bumps the generation, and writing the user here would
+      // resurrect the session the user just ended.
+      if (authRuntime.authGeneration !== capturedGeneration) return;
+
       // A newer getUser started while this one was in flight — don't let a
       // stale response overwrite fresher data (e.g. a post-update refetch).
       if (authRuntime.getUserSequence !== sequence) return authRuntime.user;
 
       authRuntime.user = mapApiUserToUser(data);
+      // An authenticated fetch just succeeded, so a session demonstrably
+      // exists: re-enable the transparent 401 refresh that an earlier failed
+      // refresh may have disabled.
+      authRuntime.explicitlyLoggedOut = false;
       setWebSessionFlag(true);
       return authRuntime.user;
     })();

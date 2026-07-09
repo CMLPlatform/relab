@@ -27,7 +27,11 @@ export function parseApiErrorDetail(body: unknown): string | undefined {
   const detail = (body as { detail?: unknown }).detail;
   if (typeof detail === 'string' && detail) return detail;
   if (Array.isArray(detail)) {
-    const msg = detail[0]?.msg;
+    // FastAPI validation errors are `[{ msg }]`, but custom handlers may return
+    // a plain string array.
+    const first: unknown = detail[0];
+    if (typeof first === 'string' && first) return first;
+    const msg = (first as { msg?: unknown } | undefined)?.msg;
     return typeof msg === 'string' && msg ? msg : undefined;
   }
   if (detail && typeof detail === 'object') {

@@ -18,7 +18,7 @@ import {
   refreshAuthToken as refreshAuthTokenFlow,
 } from './authRefresh';
 import { authRuntime } from './authRuntime';
-import { isWeb, hasWebSessionFlag as readWebSessionFlag, setWebSessionFlag } from './authSession';
+import { markWebSessionActive, hasWebSessionFlag as readWebSessionFlag } from './authSession';
 import { getUser as getUserFlow } from './authUser';
 
 const apiURL = API_URL;
@@ -27,11 +27,7 @@ const apiURL = API_URL;
 // Core auth helpers
 // ─────────────────────────────────────────────
 
-export function markWebSessionActive(): void {
-  if (!isWeb()) return;
-  authRuntime.explicitlyLoggedOut = false;
-  setWebSessionFlag(true);
-}
+export { markWebSessionActive };
 
 export function hasWebSessionFlag() {
   return readWebSessionFlag();
@@ -57,7 +53,6 @@ export async function login(username: string, password: string): Promise<LoginRe
     persistAccessToken,
     persistRefreshToken,
     getUser: (forceRefresh = false) => getUser(forceRefresh),
-    refreshAuthToken: () => refreshAuthToken(),
   });
 }
 

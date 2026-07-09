@@ -1,5 +1,5 @@
-import { throwFromResponse } from '@/services/api/errors';
-import { fetchWithTimeout } from '@/services/api/request';
+import { ApiError, throwFromResponse } from '@/services/api/errors';
+import { fetchWithTimeout, TimeoutError } from '@/services/api/request';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
 import { getAuthLoginPath } from './authHelpers';
@@ -9,8 +9,10 @@ import {
   isWeb,
   loadStoredAccessToken,
   loadStoredRefreshToken,
-  setWebSessionFlag,
+  markWebSessionActive,
 } from './authSession';
+
+const UNREACHABLE_SERVER_MESSAGE = 'Unable to reach server. Please try again later.';
 
 export type LoginResult =
   | { status: 'authenticated' }
@@ -25,7 +27,6 @@ export async function login(
     persistAccessToken: (token: string) => Promise<void>;
     persistRefreshToken: (token: string) => Promise<void>;
     getUser: (forceRefresh?: boolean) => Promise<User | undefined>;
-    refreshAuthToken: () => Promise<boolean>;
   },
 ): Promise<LoginResult> {
   const web = isWeb();
@@ -47,24 +48,14 @@ export async function login(
 
     if (response.status === 204) {
       if (web) {
-        setWebSessionFlag(true);
-        authRuntime.explicitlyLoggedOut = false;
-        try {
-          const refreshed = await deps.refreshAuthToken();
-          if (refreshed) {
-            await deps.getUser(true);
-          } else {
-            // The browser may not have processed the session cookie from the login
-            // response by the time the next request fires. A short delay lets the
-            // cookie become available so getUser() can authenticate successfully.
-            await new Promise<void>((resolve) => setTimeout(resolve, 150));
-            await deps.getUser(true).catch(() => {
-              /* ignore */
-            });
-          }
-        } catch {
-          /* ignore */
-        }
+        // The 204 already carries both the access and refresh cookies (backend
+        // `issue_session_login_response`), and they are committed by the time
+        // this response resolves — so there is nothing to refresh and nothing
+        // to wait for. Prewarm the user cache; AuthProvider re-fetches anyway.
+        markWebSessionActive();
+        await deps.getUser(true).catch(() => {
+          /* the session is valid; AuthProvider will fetch the user again */
+        });
       }
       return { status: 'authenticated' };
     }
@@ -83,23 +74,32 @@ export async function login(
     if (response.status === 202 && mfaPending) return mfaPending;
 
     if (web) {
-      setWebSessionFlag(true);
+      markWebSessionActive();
       return { status: 'authenticated' };
     }
 
-    if (typeof data?.access_token === 'string') {
-      await deps.persistAccessToken(data.access_token);
-      if (typeof data.refresh_token === 'string') {
-        await deps.persistRefreshToken(data.refresh_token);
-      }
-      return { status: 'authenticated' };
+    // Native logs in with bearer tokens: no access token means no session, so
+    // never report success — the app would route into a signed-in UI whose
+    // every request 401s.
+    if (typeof data?.access_token !== 'string') {
+      throw new Error('Invalid login response.');
     }
 
+    await deps.persistAccessToken(data.access_token);
+    if (typeof data.refresh_token === 'string') {
+      await deps.persistRefreshToken(data.refresh_token);
+    }
     return { status: 'authenticated' };
   } catch (err) {
     logError('[Login Fetch Error]:', err);
+    // Surface the backend's detail, but never a raw transport error string
+    // ("Network request failed", "Request timed out after 15000ms").
+    if (err instanceof ApiError) throw err;
+    if (err instanceof TimeoutError || err instanceof TypeError) {
+      throw new Error(UNREACHABLE_SERVER_MESSAGE);
+    }
     if (err instanceof Error) throw err;
-    throw new Error('Unable to reach server. Please try again later.');
+    throw new Error(UNREACHABLE_SERVER_MESSAGE);
   }
 }
 

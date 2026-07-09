@@ -19,6 +19,54 @@ describe('authUser', () => {
     jest.clearAllMocks();
   });
 
+  const RAW_USER = {
+    id: 1,
+    email: 'dev@example.com',
+    is_active: true,
+    is_superuser: false,
+    is_verified: true,
+    username: 'dev',
+    oauth_accounts: [],
+  };
+
+  // Regression: getUser re-checked authGeneration before the parse but not
+  // after, so a logout landing mid-body resurrected the signed-out user.
+  it('does not resurrect the user when a logout lands while the body is parsing', async () => {
+    const fetchWithAuth = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => {
+        // clearCachedAuthState() bumps the generation and drops the user.
+        authRuntime.authGeneration++;
+        authRuntime.user = undefined;
+        return RAW_USER;
+      },
+    } as never);
+
+    await expect(getUser('http://api.test', fetchWithAuth as never, true)).resolves.toBeUndefined();
+    expect(authRuntime.user).toBeUndefined();
+    const { setWebSessionFlag } = jest.requireMock('@/services/api/auth/authSession') as {
+      setWebSessionFlag: jest.Mock;
+    };
+    expect(setWebSessionFlag).not.toHaveBeenCalledWith(true);
+  });
+
+  // Regression: a successful authenticated fetch proves a live session, so it
+  // must re-arm the transparent 401 refresh that a failed refresh disabled.
+  it('clears explicitlyLoggedOut when an authenticated fetch succeeds', async () => {
+    authRuntime.explicitlyLoggedOut = true;
+    const fetchWithAuth = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => RAW_USER,
+    } as never);
+
+    await expect(getUser('http://api.test', fetchWithAuth as never, true)).resolves.toMatchObject({
+      email: 'dev@example.com',
+    });
+    expect(authRuntime.explicitlyLoggedOut).toBe(false);
+  });
+
   it('hydrates and caches a mapped user', async () => {
     const fetchWithAuth = jest.fn().mockResolvedValue({
       ok: true,

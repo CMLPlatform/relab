@@ -1,9 +1,9 @@
 import { API_URL } from '@/config';
 import { throwFromResponse } from '@/services/api/errors';
 import { fetchWithTimeout } from '@/services/api/request';
+import { getSessionItem, removeSessionItem, setSessionItem } from '@/services/storage';
 import { persistAccessToken, persistRefreshToken } from './authRefresh';
-import { authRuntime } from './authRuntime';
-import { isWeb, setWebSessionFlag } from './authSession';
+import { isWeb, markWebSessionActive } from './authSession';
 
 export type TotpSetup = {
   setupToken: string;
@@ -21,19 +21,14 @@ const MFA_PENDING_STORAGE_KEY = 'relab.pendingMfaLogin';
 
 let pendingMfaLogin: MfaLoginPending | undefined;
 
-function getSessionStorage(): Storage | undefined {
-  if (!isWeb() || typeof globalThis.sessionStorage === 'undefined') return;
-  return globalThis.sessionStorage;
-}
-
 export function setPendingMfaLogin(pending: MfaLoginPending): void {
   pendingMfaLogin = pending;
-  getSessionStorage()?.setItem(MFA_PENDING_STORAGE_KEY, JSON.stringify(pending));
+  setSessionItem(MFA_PENDING_STORAGE_KEY, JSON.stringify(pending));
 }
 
 export function getPendingMfaLogin(): MfaLoginPending | undefined {
   if (pendingMfaLogin) return pendingMfaLogin;
-  const raw = getSessionStorage()?.getItem(MFA_PENDING_STORAGE_KEY);
+  const raw = getSessionItem(MFA_PENDING_STORAGE_KEY);
   if (!raw) return;
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -49,7 +44,7 @@ export function getPendingMfaLogin(): MfaLoginPending | undefined {
 
 export function clearPendingMfaLogin(): void {
   pendingMfaLogin = undefined;
-  getSessionStorage()?.removeItem(MFA_PENDING_STORAGE_KEY);
+  removeSessionItem(MFA_PENDING_STORAGE_KEY);
 }
 
 function parseSafeRedirect(value: unknown): string | undefined {
@@ -82,12 +77,6 @@ export function parseMfaPendingPayload(data: unknown): MfaLoginPending | undefin
     status: 'mfa_required',
     mfaToken: payload.mfa_token,
   };
-}
-
-function markMfaWebSessionActive(): void {
-  if (!isWeb()) return;
-  authRuntime.explicitlyLoggedOut = false;
-  setWebSessionFlag(true);
 }
 
 function mapTotpSetup(data: unknown): TotpSetup {
@@ -125,8 +114,11 @@ async function postMfaJson(
 }
 
 async function persistMfaLoginResponse(response: Response): Promise<void> {
+  // Only the browser transport authenticates with cookies, so a bodyless 204 is
+  // a valid session there. On native it means no bearer token was issued.
   if (response.status === 204) {
-    markMfaWebSessionActive();
+    if (!isWeb()) throw new Error('Invalid MFA login response.');
+    markWebSessionActive();
     return;
   }
   const data = await response.json().catch(() => null);
