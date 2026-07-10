@@ -14,6 +14,7 @@ from app.api.plugins.rpi_cam.websocket import cross_worker_circuit_breaker as ci
 from app.api.plugins.rpi_cam.websocket.connection_manager import (
     BINARY_COMMAND_TIMEOUT,
     DEFAULT_COMMAND_TIMEOUT,
+    CameraDisconnectedDuringCommandError,
 )
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import relay_cross_worker
 from app.api.plugins.rpi_cam.websocket.runtime_state import get_connection_manager
@@ -128,6 +129,12 @@ async def relay_via_websocket(
                 body=body,
                 headers=relay_headers or None,
             )
+    except CameraDisconnectedDuringCommandError as exc:
+        # This worker owned the socket and it disconnected mid-command — the camera is
+        # gone, not just "not registered here". Don't fall through to the cross-worker
+        # bridge (no other worker can reach it either) and don't record a circuit-breaker
+        # failure for a call that never actually attempted the cross-worker path.
+        raise _camera_not_connected() from exc
     except RuntimeError:
         # Camera not connected in this worker — try the cross-worker bridge.
         try:

@@ -37,6 +37,16 @@ DEFAULT_COMMAND_TIMEOUT = 30.0
 BINARY_COMMAND_TIMEOUT = 60.0
 
 
+class CameraDisconnectedDuringCommandError(RuntimeError):
+    """A pending command's future was failed because its camera disconnected.
+
+    Distinct from the plain ``RuntimeError`` ``send_command`` raises for "not
+    connected in this worker" — that case should fall through to the
+    cross-worker relay, this one should not (the socket that owned the
+    command died, so there is nothing another worker can bridge to).
+    """
+
+
 class CameraConnectionManager:
     """Tracks WebSocket connections initiated by RPi cameras and routes commands to them."""
 
@@ -76,7 +86,9 @@ class CameraConnectionManager:
         del self._connections[camera_id]
         for owner, future in self._pending.values():
             if owner == camera_id and not future.done():
-                future.set_exception(RuntimeError(f"Camera {camera_id} disconnected during command."))
+                future.set_exception(
+                    CameraDisconnectedDuringCommandError(f"Camera {camera_id} disconnected during command.")
+                )
         logger.info("Camera %s disconnected from WebSocket", camera_id)
         return True
 

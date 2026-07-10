@@ -11,6 +11,7 @@ from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL
 
 from app.api.plugins.rpi_cam.websocket import cross_worker_circuit_breaker as circuit_breaker
 from app.api.plugins.rpi_cam.websocket import message_relay as relay_mod
+from app.api.plugins.rpi_cam.websocket.connection_manager import CameraDisconnectedDuringCommandError
 
 if TYPE_CHECKING:
     from typing import Self
@@ -154,6 +155,29 @@ async def test_relay_via_websocket_sanitizes_path_and_response_in_warning_log(ca
         await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=AsyncMock())
 
     assert any("bad payload value" in record.message and "GET /camera" in record.message for record in caplog.records)
+
+
+async def test_mid_command_disconnect_skips_cross_worker_bridge_and_circuit_breaker() -> None:
+    """A disconnect mid-command must not fall through to the cross-worker bridge or poison the breaker."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.side_effect = CameraDisconnectedDuringCommandError("camera disconnected during command")
+    redis = _FakeCbRedis()
+
+    with (
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
+        patch(
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
+            AsyncMock(),
+        ) as relay_cross_worker,
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Camera is not connected via WebSocket."
+    relay_cross_worker.assert_not_awaited()
+    assert redis.store == {}  # circuit breaker must not have recorded a failure
 
 
 async def test_cross_worker_relay_opens_circuit_after_three_failures() -> None:
