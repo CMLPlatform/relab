@@ -87,6 +87,24 @@ async def _dispatch(
         logger.info("%s sent to %s", log_label, mask_email_for_log(to_email))
 
 
+async def _notify(
+    to_email: EmailStr,
+    subject: str,
+    html_body: str,
+    log_label: str,
+    background_tasks: BackgroundTasks | None = None,
+    provider: EmailProvider | None = None,
+) -> None:
+    """Build and dispatch a plain (non-templated) security-notification email."""
+    await _dispatch(
+        _build_message(to_email, subject, html_body),
+        to_email,
+        log_label,
+        background_tasks,
+        provider or get_default_email_provider(),
+    )
+
+
 async def send_templated_email(
     to_email: EmailStr,
     subject: str,
@@ -151,17 +169,13 @@ async def send_mfa_changed_notification(
         followup = "If you did not turn this on, reset your password and contact ReLab support."
     else:
         followup = "If you did not turn this off, reset your password and contact ReLab support immediately."
-    message = _build_message(
+    await _notify(
         to_email,
         f"Two-step verification was {change}",
-        (f"<p>Hello {display_name},</p><p>Two-step verification was {change} on your ReLab account. {followup}</p>"),
-    )
-    await _dispatch(
-        message,
-        to_email,
+        f"<p>Hello {display_name},</p><p>Two-step verification was {change} on your ReLab account. {followup}</p>",
         "MFA-change notification",
         background_tasks,
-        provider or get_default_email_provider(),
+        provider,
     )
 
 
@@ -174,7 +188,7 @@ async def send_recovery_codes_regenerated_notification(
 ) -> None:
     """Notify a user out-of-band when their two-step recovery codes are regenerated."""
     display_name = escape(_display_name(username, to_email))
-    message = _build_message(
+    await _notify(
         to_email,
         "Your two-step recovery codes changed",
         (
@@ -183,13 +197,9 @@ async def send_recovery_codes_regenerated_notification(
             "previous codes no longer work. If you did not do this, reset your password and "
             "contact ReLab support immediately.</p>"
         ),
-    )
-    await _dispatch(
-        message,
-        to_email,
         "MFA recovery-codes notification",
         background_tasks,
-        provider or get_default_email_provider(),
+        provider,
     )
 
 
@@ -206,7 +216,7 @@ async def send_oauth_link_changed_notification(
     display_name = escape(_display_name(username, to_email))
     provider_label = escape(oauth_provider.capitalize())
     change = "linked to" if linked else "unlinked from"
-    message = _build_message(
+    await _notify(
         to_email,
         f"A social login was {'linked' if linked else 'unlinked'}",
         (
@@ -214,13 +224,9 @@ async def send_oauth_link_changed_notification(
             f"<p>{provider_label} was {change} your ReLab account. "
             "If you did not make this change, reset your password and contact ReLab support immediately.</p>"
         ),
-    )
-    await _dispatch(
-        message,
-        to_email,
         "OAuth link-change notification",
         background_tasks,
-        provider or get_default_email_provider(),
+        provider,
     )
 
 
@@ -234,7 +240,7 @@ async def send_existing_account_notification(
     Lets registration return the same response whether or not the email is taken
     (no account enumeration) while still telling the real owner what happened.
     """
-    message = _build_message(
+    await _notify(
         to_email,
         "You already have a ReLab account",
         (
@@ -242,13 +248,9 @@ async def send_existing_account_notification(
             "have one. If this was you, just log in — or reset your password if you have forgotten it. "
             "If it was not you, you can safely ignore this email.</p>"
         ),
-    )
-    await _dispatch(
-        message,
-        to_email,
         "Existing-account notification",
         background_tasks,
-        provider or get_default_email_provider(),
+        provider,
     )
 
 
@@ -282,7 +284,7 @@ async def send_password_reset_confirmation_email(
 ) -> None:
     """Notify a user after their account password has been reset."""
     display_name = escape(_display_name(username, to_email))
-    message = _build_message(
+    await _notify(
         to_email,
         "Your ReLab password was reset",
         (
@@ -290,13 +292,9 @@ async def send_password_reset_confirmation_email(
             "<p>Your ReLab account password was reset. "
             "If you did not make this change, contact ReLab support immediately.</p>"
         ),
-    )
-    await _dispatch(
-        message,
-        to_email,
         "Password-reset confirmation",
         background_tasks,
-        provider or get_default_email_provider(),
+        provider,
     )
 
 
@@ -308,7 +306,7 @@ async def send_password_changed_notification(
 ) -> None:
     """Notify a user after their account password has been changed while signed in."""
     display_name = escape(_display_name(username, to_email))
-    message = _build_message(
+    await _notify(
         to_email,
         "Your ReLab password was changed",
         (
@@ -316,13 +314,9 @@ async def send_password_changed_notification(
             "<p>Your ReLab account password was changed. "
             "If you did not make this change, reset your password and contact ReLab support.</p>"
         ),
-    )
-    await _dispatch(
-        message,
-        to_email,
         "Password-change notification",
         background_tasks,
-        provider or get_default_email_provider(),
+        provider,
     )
 
 
@@ -364,18 +358,14 @@ async def send_email_changed_notification(
     provider: EmailProvider | None = None,
 ) -> None:
     """Notify the previous address after an account email change."""
-    message = _build_message(
+    await _notify(
         to_email,
         "Your ReLab account email changed",
         (
             "<p>Your ReLab account email address was changed. "
             "If you did not make this change, contact ReLab support.</p>"
         ),
-    )
-    await _dispatch(
-        message,
-        to_email,
         "Email-change notification",
         background_tasks,
-        provider or get_default_email_provider(),
+        provider,
     )

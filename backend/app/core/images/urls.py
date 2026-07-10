@@ -49,21 +49,14 @@ def build_image_urls(file_path: str | None, storage_root: Path) -> tuple[str | N
     """
     if file_path is None:
         return None, None
+    image_url = build_storage_url(file_path, storage_root, IMAGE_URL_PREFIX)
+    if image_url is None:
+        return None, None
     if file_path.startswith(("http://", "https://")):  # S3 backend: path is already a public URL, no local thumbnail
-        return file_path, file_path
-    path = Path(file_path)
-    if not path.exists():
-        return None, None
-    relative_path = relative_to_storage_root(path, storage_root)
-    if relative_path is None:
-        return None, None
-    image_url = f"{IMAGE_URL_PREFIX}/{quote(str(relative_path))}"
-    thumbnail_url = image_url  # fall back to the full image when no thumbnail is available
-    thumbnail_path = thumbnail_path_for(path, THUMBNAIL_WIDTH_PX)
-    if thumbnail_path.exists():
-        thumbnail_relative_path = relative_to_storage_root(thumbnail_path, storage_root)
-        if thumbnail_relative_path is not None:
-            thumbnail_url = f"{IMAGE_URL_PREFIX}/{quote(str(thumbnail_relative_path))}"
+        return image_url, image_url
+    # Fall back to the full image when the thumbnail is missing or outside the storage root.
+    thumbnail_path = thumbnail_path_for(Path(file_path), THUMBNAIL_WIDTH_PX)
+    thumbnail_url = build_storage_url(thumbnail_path, storage_root, IMAGE_URL_PREFIX) or image_url
     return image_url, thumbnail_url
 
 
