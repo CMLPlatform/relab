@@ -114,6 +114,7 @@ export async function updateProfileEmailUpdates({
 
 export async function confirmOAuthUnlink({
   provider,
+  currentPassword,
   youtubeEnabled,
   setYoutubeEnabled,
   closeUnlinkDialog,
@@ -121,6 +122,7 @@ export async function confirmOAuthUnlink({
   feedback,
 }: {
   provider: string;
+  currentPassword?: string;
   youtubeEnabled: boolean;
   setYoutubeEnabled: (enabled: boolean) => Promise<void>;
   closeUnlinkDialog: () => void;
@@ -128,7 +130,7 @@ export async function confirmOAuthUnlink({
   feedback: ReturnType<typeof useAppFeedback>;
 }) {
   try {
-    await unlinkOAuth(provider);
+    await unlinkOAuth(provider, currentPassword);
   } catch (error: unknown) {
     closeUnlinkDialog();
     feedback.error(

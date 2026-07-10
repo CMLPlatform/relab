@@ -24,6 +24,8 @@ export type User = {
   isSuperuser: boolean;
   isVerified: boolean;
   mfaEnabled: boolean;
+  /** False for OAuth-only accounts; gates whether unlinking a social login needs a password. */
+  hasUsablePassword: boolean;
   username: string | null;
   oauth_accounts: NonNullable<ApiUserRead['oauth_accounts']>;
   preferences: UserPreferences;

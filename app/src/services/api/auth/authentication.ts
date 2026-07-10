@@ -132,13 +132,19 @@ export async function updateUser(updates: Partial<User>): Promise<User | undefin
   }
 }
 
-export async function unlinkOAuth(provider: string): Promise<boolean> {
+export async function unlinkOAuth(provider: string, currentPassword?: string): Promise<boolean> {
   const url = new URL(`${apiURL}/oauth/${provider}/associate`);
 
   try {
+    // Accounts with a usable password must re-authenticate (step-up); OAuth-only
+    // accounts have none and send no body.
     const response = await fetchWithAuth(url, {
       method: 'DELETE',
-      headers: { Accept: 'application/json' },
+      headers: {
+        Accept: 'application/json',
+        ...(currentPassword ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: currentPassword ? JSON.stringify({ current_password: currentPassword }) : undefined,
     });
 
     if (!response.ok) {

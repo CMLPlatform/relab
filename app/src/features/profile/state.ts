@@ -9,15 +9,20 @@ export function useProfileDialogs(profile: { username: string | null } | null | 
   const [newUsername, setNewUsername] = useState('');
   const [unlinkDialogVisible, setUnlinkDialogVisible] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState('');
+  const [unlinkPassword, setUnlinkPassword] = useState('');
 
   const openDeleteDialog = useCallback(() => setDeleteDialogVisible(true), []);
   const closeDeleteDialog = useCallback(() => setDeleteDialogVisible(false), []);
   const openLogoutDialog = useCallback(() => setLogoutDialogVisible(true), []);
   const closeLogoutDialog = useCallback(() => setLogoutDialogVisible(false), []);
   const closeEditUsername = useCallback(() => setEditUsernameVisible(false), []);
-  const closeUnlinkDialog = useCallback(() => setUnlinkDialogVisible(false), []);
+  const closeUnlinkDialog = useCallback(() => {
+    setUnlinkDialogVisible(false);
+    setUnlinkPassword('');
+  }, []);
   const requestUnlink = useCallback((provider: string) => {
     setProviderToUnlink(provider);
+    setUnlinkPassword('');
     setUnlinkDialogVisible(true);
   }, []);
   const openEditUsername = useCallback(() => {
@@ -49,6 +54,8 @@ export function useProfileDialogs(profile: { username: string | null } | null | 
       provider: providerToUnlink,
       request: requestUnlink,
       close: closeUnlinkDialog,
+      password: unlinkPassword,
+      setPassword: setUnlinkPassword,
     },
   };
 }

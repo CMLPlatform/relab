@@ -16,6 +16,9 @@ type ProfileDialogsProps = {
   providerToUnlink: string;
   onConfirmUnlink: () => void;
   isLastLinkedProvider: boolean;
+  unlinkRequiresPassword: boolean;
+  unlinkPassword: string;
+  onChangeUnlinkPassword: (value: string) => void;
   logoutDialogVisible: boolean;
   onDismissLogout: () => void;
   onConfirmLogout: () => void;
@@ -34,6 +37,9 @@ export function ProfileDialogs({
   providerToUnlink,
   onConfirmUnlink,
   isLastLinkedProvider,
+  unlinkRequiresPassword,
+  unlinkPassword,
+  onChangeUnlinkPassword,
   logoutDialogVisible,
   onDismissLogout,
   onConfirmLogout,
@@ -72,10 +78,25 @@ export function ProfileDialogs({
               it by email to sign in again.
             </Text>
           ) : null}
+          {unlinkRequiresPassword ? (
+            <TextInput
+              mode="outlined"
+              label="Current password"
+              value={unlinkPassword}
+              onChangeText={onChangeUnlinkPassword}
+              secureTextEntry
+              autoComplete="current-password"
+              textContentType="password"
+            />
+          ) : null}
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={onDismissUnlink}>Cancel</Button>
-          <Button onPress={onConfirmUnlink} textColor={theme.tokens.status.danger}>
+          <Button
+            onPress={onConfirmUnlink}
+            disabled={unlinkRequiresPassword && unlinkPassword.length === 0}
+            textColor={theme.tokens.status.danger}
+          >
             Unlink
           </Button>
         </Dialog.Actions>

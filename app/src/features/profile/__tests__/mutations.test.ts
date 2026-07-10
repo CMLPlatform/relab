@@ -39,10 +39,18 @@ describe('confirmOAuthUnlink', () => {
 
     await confirmOAuthUnlink(args);
 
-    expect(mockUnlink).toHaveBeenCalledWith('google');
+    expect(mockUnlink).toHaveBeenCalledWith('google', undefined);
     expect(args.closeUnlinkDialog).toHaveBeenCalled();
     expect(args.refetch).toHaveBeenCalled();
     expect(args.feedback.error).not.toHaveBeenCalled();
+  });
+
+  it('forwards the current password for step-up re-auth', async () => {
+    const args = makeArgs({ currentPassword: 'my-password' });
+
+    await confirmOAuthUnlink(args);
+
+    expect(mockUnlink).toHaveBeenCalledWith('google', 'my-password');
   });
 
   // Regression: unlinking Google while YouTube streaming was on left YouTube

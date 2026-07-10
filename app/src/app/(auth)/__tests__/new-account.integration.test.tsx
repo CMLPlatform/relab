@@ -300,6 +300,7 @@ describe('NewAccount – authenticated redirect', () => {
         isVerified: true,
         isSuperuser: false,
         mfaEnabled: false,
+        hasUsablePassword: true,
         oauth_accounts: [],
         preferences: {},
       },

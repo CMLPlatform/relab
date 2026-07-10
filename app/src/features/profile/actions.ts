@@ -132,6 +132,7 @@ export function useProfileActions({
   const handleUnlinkOAuthConfirm = useCallback(async () => {
     await confirmOAuthUnlink({
       provider: dialogs.unlinkDialog.provider,
+      currentPassword: dialogs.unlinkDialog.password || undefined,
       youtubeEnabled,
       setYoutubeEnabled,
       closeUnlinkDialog: dialogs.unlinkDialog.close,
@@ -140,6 +141,7 @@ export function useProfileActions({
     });
   }, [
     dialogs.unlinkDialog.close,
+    dialogs.unlinkDialog.password,
     dialogs.unlinkDialog.provider,
     feedback,
     refetch,

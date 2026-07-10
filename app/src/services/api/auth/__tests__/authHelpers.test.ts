@@ -63,6 +63,7 @@ describe('authHelpers', () => {
       isActive: true,
       isSuperuser: false,
       isVerified: true,
+      hasUsablePassword: true,
       username: 'dev_user',
       oauth_accounts: [],
       preferences: {},

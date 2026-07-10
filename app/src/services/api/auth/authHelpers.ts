@@ -33,6 +33,7 @@ export function mapApiUserToUser(data: ApiUserRead): User {
     isSuperuser: data.is_superuser,
     isVerified: data.is_verified,
     mfaEnabled: data.mfa_enabled,
+    hasUsablePassword: data.has_usable_password ?? true,
     username: data.username ?? null,
     oauth_accounts: data.oauth_accounts ?? [],
     preferences: data.preferences ?? {},
