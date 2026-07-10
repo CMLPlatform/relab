@@ -408,8 +408,8 @@ jobs:
 
   validate-result:
     name: Validate Result
-    # Keep blocking jobs in sync between `needs` and the JSON passed to
-    # check-required-jobs; skipped jobs are accepted, failed/cancelled jobs fail.
+    # The `needs:` block below is the single source of blocking jobs — it is passed
+    # wholesale to check-required-jobs. Skipped jobs are accepted, failed/cancelled fail.
     if: always()
     needs:
       - changes
@@ -432,15 +432,4 @@ jobs:
       - name: Check validate jobs
         uses: ./.github/actions/check-required-jobs
         with:
-          results: >-
-            {
-              "changes": "${{ needs.changes.result }}",
-              "automation": "${{ needs.automation.result }}",
-              "backend": "${{ needs.backend.result }}",
-              "www": "${{ needs.www.result }}",
-              "e2e-www": "${{ needs.e2e-www.result }}",
-              "app": "${{ needs.app.result }}",
-              "docs": "${{ needs.docs.result }}",
-              "e2e-full-stack": "${{ needs.e2e-full-stack.result }}",
-              "docker-smoke": "${{ needs.docker-smoke.result }}"
-            }
+          results: ${{ toJSON(needs) }}

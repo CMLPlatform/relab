@@ -280,8 +280,8 @@ jobs:
 
   security-result:
     name: Security Result
-    # Keep blocking jobs in sync between `needs` and the JSON passed to
-    # check-required-jobs; skipped jobs are accepted, failed/cancelled jobs fail.
+    # The `needs:` block below is the single source of blocking jobs — it is passed
+    # wholesale to check-required-jobs. Skipped jobs are accepted, failed/cancelled fail.
     if: always()
     needs:
       - changes
@@ -302,13 +302,4 @@ jobs:
       - name: Check security jobs
         uses: ./.github/actions/check-required-jobs
         with:
-          results: >-
-            {
-              "changes": "${{ needs.changes.result }}",
-              "secret-scan": "${{ needs.secret-scan.result }}",
-              "dependency-review": "${{ needs.dependency-review.result }}",
-              "container-security": "${{ needs.container-security.result }}",
-              "trivy-iac": "${{ needs.trivy-iac.result }}",
-              "codeql": "${{ needs.codeql.result }}",
-              "scorecard": "${{ needs.scorecard.result }}"
-            }
+          results: ${{ toJSON(needs) }}

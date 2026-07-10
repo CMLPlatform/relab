@@ -4,7 +4,7 @@ description: Fail when any required upstream job failed, was cancelled, or retur
 
 inputs:
   results:
-    description: JSON object mapping job names to needs.<job>.result values.
+    description: The `needs` context serialized as JSON, i.e. `${{ toJSON(needs) }}`.
     required: true
 
 runs:
@@ -22,9 +22,16 @@ runs:
 
         accepted = {"success", "skipped"}
         failed = False
-        results = json.loads(os.environ["RESULTS_JSON"])
+        # Callers hand over the whole `needs` context, so the job list has exactly one
+        # home: the `needs:` block. Each value is {"result": ..., "outputs": {...}}.
+        needs = json.loads(os.environ["RESULTS_JSON"])
 
-        for job, result in sorted(results.items()):
+        if not needs:
+            print("No upstream jobs to check — `needs` was empty.", file=sys.stderr)
+            sys.exit(1)
+
+        for job, data in sorted(needs.items()):
+            result = data["result"]
             print(f"{job}: {result}")
             if result not in accepted:
                 failed = True
