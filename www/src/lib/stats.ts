@@ -7,7 +7,9 @@
 
 const DEV_API_URL = 'http://127.0.0.1:8010';
 const FETCH_TIMEOUT_MS = 4000;
-const CATEGORY_LIMIT = 6;
+
+/** Months of history shown in the activity chart. */
+export const SERIES_MONTHS = 12;
 
 interface Totals {
   teardowns: number;
@@ -17,15 +19,18 @@ interface Totals {
   users: number;
 }
 
-interface CategoryStat {
-  name: string;
+/** One month of activity. Mirrors the `/v1/stats/series` SeriesPoint schema. */
+export interface SeriesPoint {
+  period: string;
   teardowns: number;
   parts: number;
+  mass_kg: number;
+  images: number;
 }
 
 export interface HomeStats {
   totals: Totals;
-  categories: CategoryStat[];
+  series: SeriesPoint[];
   generatedAt: string;
 }
 
@@ -44,6 +49,30 @@ async function getJson<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+/** The last `count` month keys ending with the current month, as `YYYY-MM`. */
+export function monthKeys(count: number, now: Date = new Date()): string[] {
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(Date.UTC(year, month - (count - 1 - i), 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  });
+}
+
+/**
+ * Expand an API series onto every month in `keys`.
+ *
+ * The API omits periods with no activity entirely, so a quiet month is absent
+ * rather than zero. Plotting the raw response would compress the x-axis and
+ * misstate when the activity happened.
+ */
+export function zeroFillSeries(series: SeriesPoint[], keys: string[]): SeriesPoint[] {
+  const byPeriod = new Map(series.map((point) => [point.period, point]));
+  return keys.map(
+    (period) => byPeriod.get(period) ?? { period, teardowns: 0, parts: 0, mass_kg: 0, images: 0 },
+  );
+}
+
 /** Fetch homepage stats. Returns null on any failure. */
 export async function fetchHomeStats(): Promise<HomeStats | null> {
   const raw = apiBaseUrl();
@@ -51,11 +80,14 @@ export async function fetchHomeStats(): Promise<HomeStats | null> {
     return null;
   }
   const base = raw.endsWith('/') ? raw.slice(0, -1) : raw;
+  const keys = monthKeys(SERIES_MONTHS);
+  const start = `${keys[0]}-01`;
+  const end = new Date().toISOString().slice(0, 10);
   try {
-    const [totals, categories] = await Promise.all([
+    const [totals, series] = await Promise.all([
       getJson<{ totals: Totals; generated_at: string }>(`${base}/v1/stats/totals`),
-      getJson<{ categories: CategoryStat[] }>(
-        `${base}/v1/stats/categories?limit=${CATEGORY_LIMIT}`,
+      getJson<{ series: SeriesPoint[] }>(
+        `${base}/v1/stats/series?granularity=month&start=${start}&end=${end}`,
       ),
     ]);
     // Guard against shape drift in the API: a missing field would otherwise
@@ -67,11 +99,12 @@ export async function fetchHomeStats(): Promise<HomeStats | null> {
     if (Number.isNaN(new Date(totals.generated_at).getTime())) {
       throw new Error('unexpected totals shape');
     }
+    const points = (series.series ?? []).filter((p) =>
+      [p?.teardowns, p?.parts, p?.mass_kg, p?.images].every(Number.isFinite),
+    );
     return {
       totals: t,
-      categories: categories.categories.filter(
-        (c) => Number.isFinite(c?.teardowns) && Number.isFinite(c?.parts),
-      ),
+      series: zeroFillSeries(points, keys),
       generatedAt: totals.generated_at,
     };
   } catch (error) {
@@ -98,10 +131,21 @@ export function formatMass(massKg: number): { value: string; unit: string } {
   return { value: formatCount(massKg), unit: 'kg' };
 }
 
-/** Bar width as a percentage, floored so the smallest category stays visible. */
-export function barPercent(value: number, max: number): number {
-  if (max <= 0) {
-    return 0;
+/**
+ * Build a y-axis with a round step (1/2/5 x 10^n) so ticks never collide once
+ * formatted. `integer` forces a whole-number step, so a max of 2 yields 0,1,2
+ * rather than 0,0.5,1,1.5,2 — which would round to a duplicated "0,1,1,2,2".
+ */
+export function buildScale(max: number, integer: boolean): { yMax: number; ticks: number[] } {
+  const rawStep = max / 4 || 1;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const normalized = rawStep / magnitude;
+  const multiple = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  const step = integer ? Math.max(1, Math.round(multiple * magnitude)) : multiple * magnitude;
+  const yMax = Math.ceil(max / step) * step;
+  const ticks: number[] = [];
+  for (let tick = 0; tick <= yMax + step / 1000; tick += step) {
+    ticks.push(tick);
   }
-  return Math.round((value / max) * 88) + 12;
+  return { yMax, ticks };
 }

@@ -15,40 +15,20 @@
   <h2 id="stats-heading">Torn down so far</h2>
 
   <div class="stats-ledger">
-    <div class="stats-breakdown">
-      <div class="stats-figure">
-        <span class="stats-value" data-stat="teardowns">—</span>
-        <span class="stats-label">teardowns</span>
-      </div>
-      <span class="stats-arrow" aria-hidden="true">⟶</span>
-      <div class="stats-figure stats-figure-accent">
-        <span class="stats-value" data-stat="parts">—</span>
-        <span class="stats-label">parts documented</span>
-      </div>
+    <div class="stats-hero">
+      <span class="stats-hero-value" data-stat="hero">—</span>
+      <span class="stats-label">parts documented</span>
     </div>
-
-    <div class="stats-figure">
-      <span class="stats-value"
-        ><span data-stat="mass">—</span><span class="stats-unit" data-stat="mass-unit"></span></span
-      >
-      <span class="stats-label">mass logged</span>
-    </div>
-
-    <div class="stats-figure">
-      <span class="stats-value" data-stat="images">—</span>
-      <span class="stats-label">photos</span>
-    </div>
+    <div class="stats-tiles" data-stat="tiles"></div>
   </div>
 
-  <div class="stats-categories">
-    <h3 class="stats-subhead">Most-documented categories</h3>
-    <div class="stats-bars-head" aria-hidden="true">
-      <span></span>
-      <span></span>
-      <span class="stats-bars-head-label">Torn down</span>
-      <span class="stats-bars-head-label">Parts</span>
+  <div class="stats-activity">
+    <div class="stats-activity-head">
+      <h3 class="stats-subhead" data-stat="chart-heading"></h3>
+      <div class="stats-controls" role="group" aria-label="Measure" data-stat="controls"></div>
     </div>
-    <ul class="stats-bars" data-stat="bars"></ul>
+    <div class="stats-chart" data-stat="chart"></div>
+    <div data-stat="table"></div>
   </div>
 
   <p class="stats-caption" data-stat="caption"></p>

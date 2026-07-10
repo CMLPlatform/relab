@@ -10,7 +10,16 @@ describe('StatsPanel', () => {
 
     expect(html).toContain('id="stats-panel"');
     expect(html).toContain('hidden');
-    expect(html).toContain('data-stat="teardowns"');
-    expect(html).toContain('data-stat="bars"');
+    for (const hook of [
+      'hero',
+      'tiles',
+      'chart-heading',
+      'controls',
+      'chart',
+      'table',
+      'caption',
+    ]) {
+      expect(html).toContain(`data-stat="${hook}"`);
+    }
   });
 });

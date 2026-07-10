@@ -133,7 +133,6 @@
 .stats-panel {
   display: grid;
   gap: 1.4rem;
-  font-variant-numeric: tabular-nums;
 }
 
 /* `display: grid` above would otherwise beat the UA `[hidden]` rule, leaving
@@ -164,34 +163,46 @@
   gap: 1.4rem 2rem;
 }
 
-.stats-breakdown {
-  display: flex;
-  align-items: flex-end;
-  gap: 1rem;
+.stats-hero {
+  display: grid;
+  gap: 0.3rem;
   padding-right: 2rem;
   border-right: 1px solid var(--color-border);
 }
 
-.stats-figure {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.stats-value {
-  font-size: clamp(2.2rem, 4.6vw, 3.4rem);
+/* The one hero figure on the page. Proportional digits: `tabular-nums` gives
+   every digit the width of a `0`, which reads loose at display sizes. */
+.stats-hero-value {
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
   font-weight: 600;
   line-height: 0.95;
   letter-spacing: -0.02em;
   color: var(--color-on-surface);
 }
 
-.stats-figure-accent .stats-value {
-  color: var(--color-accent);
+.stats-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1.4rem 2rem;
+}
+
+.stats-tile {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.stats-tile-value {
+  font-size: 1.55rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--color-on-surface);
 }
 
 .stats-unit {
   margin-left: 0.15em;
-  font-size: 0.42em;
+  font-size: 0.5em;
   font-weight: 600;
   letter-spacing: 0;
   color: var(--color-muted);
@@ -202,87 +213,165 @@
   color: var(--color-muted);
 }
 
-.stats-arrow {
-  padding-bottom: 0.55rem;
-  font-size: clamp(1.4rem, 3vw, 2rem);
-  color: var(--color-primary);
-}
-
-.stats-categories {
-  /* NOTE: fixed count columns keep the legend header and the JS-built rows
-     aligned across their two independent grids; widen if counts exceed 6 digits. */
-  --stats-bar-columns: minmax(5.5rem, 9rem) 1fr 3.4rem 3.4rem;
+.stats-activity {
   display: grid;
-  gap: 0.85rem;
-}
-
-.stats-bars {
-  display: grid;
-  gap: 0.55rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.stats-bars-head {
-  display: grid;
-  grid-template-columns: var(--stats-bar-columns);
   gap: 0.9rem;
-  margin-bottom: -0.2rem;
 }
 
-.stats-bars-head-label {
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  text-align: right;
-  color: var(--color-muted);
-}
-
-.stats-bar-row {
-  display: grid;
-  grid-template-columns: var(--stats-bar-columns);
+.stats-activity-head {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.9rem;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
 }
 
-.stats-bar-name {
-  font-size: 0.92rem;
+/* One control row, above everything it scopes. */
+.stats-controls {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.stats-toggle {
+  appearance: none;
+  border: 0;
+  padding: 0.34em 0.9em;
+  font: inherit;
+  font-size: 0.78rem;
   font-weight: 500;
-  color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
 }
 
-.stats-bar-track {
-  height: 0.55rem;
-  border-radius: 999px;
+.stats-toggle:hover {
+  color: var(--color-on-surface);
+}
+
+.stats-toggle[aria-pressed="true"] {
   background: var(--color-primary-soft);
-  overflow: hidden;
-}
-
-.stats-bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
-}
-
-.stats-bar-count {
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-align: right;
-}
-
-.stats-bar-count-teardowns {
   color: var(--color-primary-strong);
 }
 
-.stats-bar-count-parts {
-  font-weight: 500;
-  color: var(--color-muted);
+.stats-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+/* Below the min-width the chart scrolls in its own container rather than
+   scaling its labels down to illegibility. The page never scrolls sideways. */
+.stats-chart {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.stats-chart svg {
+  display: block;
+  width: 100%;
+  min-width: 40rem;
+  height: auto;
+  overflow: visible;
+}
+
+.stats-chart svg:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: var(--radius-lg);
+}
+
+/* Recessive chrome: solid hairlines, one shade off the surface. */
+.stats-chart-grid line {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.stats-chart-grid text,
+.stats-chart-xlabel {
+  fill: var(--color-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-chart-bar {
+  fill: var(--color-chart-mark);
+}
+
+/* Text never wears the data color; the bar beside it carries identity. */
+.stats-chart-peak {
+  fill: var(--color-on-surface);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-chart-hits rect {
+  fill: transparent;
+}
+
+/* The hover layer is inert until a column is active. `hidden` does nothing on
+   SVG elements, so visibility is driven by a class both layers share. */
+.stats-chart-crosshair,
+.stats-chart-tip {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.stats-chart-crosshair.is-visible,
+.stats-chart-tip.is-visible {
+  visibility: visible;
+}
+
+.stats-chart-crosshair line {
+  stroke: var(--color-muted);
+  stroke-width: 1;
+}
+
+/* 2px surface ring keeps the dot legible where it meets the bar. */
+.stats-chart-tip circle {
+  fill: var(--color-chart-mark);
+  stroke: var(--color-surface-strong);
+  stroke-width: 2;
+}
+
+.stats-chart-tip rect {
+  fill: var(--color-on-surface);
+}
+
+.stats-chart-tip-label,
+.stats-chart-tip-value {
+  fill: var(--color-surface-strong);
+  font-size: 11px;
+}
+
+.stats-chart-tip-label {
+  font-weight: 600;
+}
+
+.stats-chart-tip-value {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Load reveal: bars grow from the baseline, staggered left to right. Needs
+     fill-box so scaleY pivots on each bar's own baseline rather than the SVG
+     viewport; where unsupported the bars simply appear, which is fine. */
+  @supports (transform-box: fill-box) {
+    .stats-chart-bar {
+      transform-box: fill-box;
+      transform-origin: bottom;
+      animation: stats-bar-grow 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      animation-delay: calc(var(--bar-i, 0) * 40ms);
+    }
+
+    @keyframes stats-bar-grow {
+      from {
+        transform: scaleY(0);
+      }
+    }
+  }
 }
 
 .stats-caption {
@@ -293,18 +382,13 @@
 }
 
 @media (max-width: 620px) {
-  .stats-breakdown {
+  .stats-hero {
     padding-right: 0;
     border-right: 0;
   }
 
-  .stats-categories {
-    --stats-bar-columns: minmax(4.5rem, 7rem) 1fr 3rem 3rem;
-  }
-
-  .stats-bars-head,
-  .stats-bar-row {
-    gap: 0.7rem;
+  .stats-activity-head {
+    justify-content: flex-start;
   }
 }
 
