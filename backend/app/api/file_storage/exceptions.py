@@ -30,19 +30,6 @@ class ModelFileNotFoundError(NotFoundError):
         )
 
 
-class ParentStorageOwnershipError(NotFoundError):
-    """Raised when a stored item does not belong to the requested parent resource."""
-
-    def __init__(
-        self, storage_model: type[Base], storage_id: int | UUID, parent_model: type[Base], parent_id: int | UUID
-    ) -> None:
-        storage_model_name = get_model_label(storage_model)
-        parent_model_name = get_model_label(parent_model)
-        super().__init__(
-            message=f"{storage_model_name} with id {storage_id} not found for {parent_model_name} {parent_id}"
-        )
-
-
 class UploadTooLargeError(PayloadTooLargeError):
     """Raised when an uploaded file exceeds the configured size limit."""
 

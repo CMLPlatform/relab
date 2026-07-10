@@ -6,10 +6,10 @@ from uuid import uuid4
 import pytest
 from fastapi import UploadFile
 
+from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.exceptions import BadRequestError
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.parent_media import ParentMediaCrud
-from app.api.file_storage.exceptions import ParentStorageOwnershipError
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal
 from app.api.reference_data.models import Material
@@ -74,12 +74,17 @@ async def test_get_by_id_raises_not_found_for_wrong_parent(mock_session: AsyncMo
 
     item_id = uuid4()
 
+    # An item owned by a different parent simply does not match the scoped query, so
+    # the real lookup sees no row. Drive that through the actual code rather than
+    # injecting an exception, which would only assert that mocks re-raise.
+    # Result is a sync MagicMock: only `execute` itself is awaited.
+    result = MagicMock()
+    result.scalars.return_value.unique.return_value.one_or_none.return_value = None
+    mock_session.execute = AsyncMock(return_value=result)
+
     with (
-        patch(
-            "app.api.file_storage.crud.parent_media.get_parent_owned_storage_item",
-            new=AsyncMock(side_effect=ParentStorageOwnershipError(Image, item_id, Product, 1)),
-        ),
-        pytest.raises(ParentStorageOwnershipError, match="not found for"),
+        patch("app.api.file_storage.crud.support_services.require_model", new=AsyncMock()),
+        pytest.raises(ModelNotFoundError, match="not found"),
     ):
         await operations.get_by_id(mock_session, 1, item_id)
 
