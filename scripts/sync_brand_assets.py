@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -276,10 +278,15 @@ def main() -> int:
     try:
         for source, targets in COPY_ASSETS:
             out_of_sync.extend(copy_asset(source, targets, check=args.check))
-        for source, target, convert_args in GENERATED_ASSETS:
-            out_of_sync.extend(render_asset(source, target, convert_args, check=args.check))
-        for source, target, convert_args in PROCESSED_ASSETS:
-            out_of_sync.extend(render_asset(source, target, convert_args, check=args.check))
+        # Each render spawns a serial ImageMagick process (~0.6s); fan them out
+        # across cores since they're subprocess-bound and independent.
+        with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
+            futures = [
+                pool.submit(render_asset, source, target, convert_args, check=args.check)
+                for source, target, convert_args in (*GENERATED_ASSETS, *PROCESSED_ASSETS)
+            ]
+            for future in futures:
+                out_of_sync.extend(future.result())
     except RuntimeError as exc:
         sys.stderr.write(f"{exc}\n")
         return 1

@@ -1,5 +1,9 @@
 # Repository-wide pre-commit policy hooks.
 # Project-specific linting and test commands live in the subrepo `justfile`s.
+#
+# Fast fixers/guards run on every commit; slow verification-only checks are
+# tagged `stages: [ pre-push ]` so they run once per push, not per commit.
+default_install_hook_types: [ commit-msg, pre-commit, pre-push ]
 
 repos:
   - repo: https://github.com/gitleaks/gitleaks
@@ -79,9 +83,12 @@ repos:
     hooks:
       - id: semgrep
         name: semgrep-browser-js-policy
+        # Dir scan (not pass_filenames) so .semgrepignore is honored — explicit
+        # file targets bypass it and would flag ignored test/generated files.
         args: [ "--config", ".semgrep", "--error", "app", "www", "docs" ]
         pass_filenames: false
         files: ^(?:app|www|docs|\.semgrep/|\.semgrepignore$)
+        stages: [ pre-push ]
 
   - repo: local
     hooks:
@@ -94,6 +101,7 @@ repos:
         entry: bash -c 'cd .semgrep && exec uvx --quiet semgrep --test .'
         pass_filenames: false
         files: ^\.semgrep/
+        stages: [ pre-push ]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.11.28
@@ -129,12 +137,14 @@ repos:
         language: system
         files: ^(?:assets/.*|scripts/sync_brand_assets\.py|justfile|docs/src/styles/brand\.css|www/src/styles/brand\.css|app/src/assets/images/(?:bg-(?:light|dark)\.jpg|favicon\.png)|docs/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|bg-(?:light|dark)\.jpg|favicon\.(?:ico|svg)|logo\.svg))|www/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|bg-(?:light|dark)\.jpg|favicon\.(?:ico|svg)|logo\.(?:png|svg)))|backend/app/static/favicon\.ico)$
         pass_filenames: false
+        stages: [ pre-push ]
       - id: backend-openapi-check
         name: backend-openapi-check
         entry: just backend/openapi-check
         language: system
         files: ^(?:backend/app/.*|backend/scripts/generate/export_openapi\.py|backend/justfile|backend/pyproject\.toml|backend/uv\.lock|docs/public/api/schemas/openapi\.(?:public|device)\.json|app/src/types/openapi\.json)$
         pass_filenames: false
+        stages: [ pre-push ]
       - id: pnpm-lock
         name: pnpm-lock
         entry: pnpm install --lockfile-only --ignore-scripts
