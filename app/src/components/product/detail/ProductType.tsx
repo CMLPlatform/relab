@@ -1,15 +1,12 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import CPVCard from '@/components/product/CPVCard';
+import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
 import { entityLabel, type Product } from '@/types/Product';
-
-type searchParams = {
-  typeSelection?: string;
-};
 
 interface Props {
   product: Product;
@@ -20,15 +17,17 @@ interface Props {
 export default function ProductType({ product, editMode, onTypeChange }: Props) {
   // Hooks
   const router = useRouter();
-  const { typeSelection } = useLocalSearchParams<searchParams>();
   const [selectedType, setSelectedType] = useState<CPVCategory | null>(null);
 
-  // Effects
-  useEffect(() => {
-    if (!typeSelection) return;
-    router.setParams({ typeSelection: undefined });
-    onTypeChange?.(parseInt(typeSelection, 10));
-  }, [onTypeChange, router, typeSelection]);
+  // When the category-selection screen pops back, apply the picked type. A
+  // module slot (not a URL param) so this also works for an unsaved draft, which
+  // has no [id] route to round-trip a param through.
+  useFocusEffect(
+    useCallback(() => {
+      const typeId = takePendingTypeSelection();
+      if (typeId !== null) onTypeChange?.(typeId);
+    }, [onTypeChange]),
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -48,11 +47,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   // Callback
   const onTypeSelectionStart = () => {
     if (!editMode) return;
-    if (typeof product.id !== 'number') return;
-    router.push({
-      pathname: '/products/[id]/category-selection',
-      params: { id: product.id.toString(), role: product.role },
-    });
+    router.push('/category-selection');
   };
 
   // Render

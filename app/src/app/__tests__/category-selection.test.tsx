@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import CategorySelection from '@/app/products/[id]/category-selection';
+import { useRouter } from 'expo-router';
+import CategorySelection from '@/app/category-selection';
+import { setPendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { loadCPV } from '@/services/cpv';
 import { renderWithProviders } from '@/test-utils/index';
 import type { User } from '@/types/User';
 
 const mockUseAuth = jest.fn();
 const mockedLoadCPV = jest.mocked(loadCPV);
+const mockedSetPending = jest.mocked(setPendingTypeSelection);
 const SUBCATEGORY_COUNT_PATTERN = /1 subcategor/;
 
 jest.mock('@/context/auth', () => ({
@@ -18,7 +20,12 @@ jest.mock('@/services/cpv', () => ({
   loadCPV: jest.fn(),
 }));
 
-const mockDismissTo = jest.fn();
+jest.mock('@/features/products/pendingTypeSelection', () => ({
+  setPendingTypeSelection: jest.fn(),
+  takePendingTypeSelection: jest.fn(),
+}));
+
+const mockBack = jest.fn();
 const mockReplace = jest.fn();
 
 describe('CategorySelection', () => {
@@ -62,25 +69,24 @@ describe('CategorySelection', () => {
         createdAt: '',
       },
     });
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ id: '1' });
     (useRouter as jest.Mock).mockReturnValue({
       push: jest.fn(),
       replace: mockReplace,
-      back: jest.fn(),
+      back: mockBack,
       setParams: jest.fn(),
-      dismissTo: mockDismissTo,
+      dismissTo: jest.fn(),
     });
     mockUseAuth.mockReturnValue({ user: { id: '1', username: 'testuser' } as Partial<User> });
   });
 
-  it('redirects guests to login when directly opening category selection', async () => {
+  it('redirects guests to login', async () => {
     mockUseAuth.mockReturnValue({ user: null });
     renderWithProviders(<CategorySelection />);
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
         pathname: '/login',
-        params: { redirectTo: '/products/1' },
+        params: { redirectTo: '/products' },
       });
     });
 
@@ -98,32 +104,13 @@ describe('CategorySelection', () => {
     });
   });
 
-  it('calls dismissTo when a leaf category is pressed, preserving edit mode', async () => {
+  it('hands the picked type to the pending slot and pops back when a leaf is pressed', async () => {
     renderWithProviders(<CategorySelection />);
     await screen.findByText('Petroleum products');
     fireEvent.press(screen.getByText('Petroleum products'));
     await waitFor(() => {
-      expect(mockDismissTo).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/products/[id]',
-          params: expect.objectContaining({ typeSelection: 2, edit: '1' }),
-        }),
-      );
-    });
-  });
-
-  it('returns to the component route when selecting a type for a component', async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ id: '1', role: 'component' });
-    renderWithProviders(<CategorySelection />);
-    await screen.findByText('Petroleum products');
-    fireEvent.press(screen.getByText('Petroleum products'));
-    await waitFor(() => {
-      expect(mockDismissTo).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/components/[id]',
-          params: expect.objectContaining({ id: '1', typeSelection: 2, edit: '1' }),
-        }),
-      );
+      expect(mockedSetPending).toHaveBeenCalledWith(2);
+      expect(mockBack).toHaveBeenCalled();
     });
   });
 

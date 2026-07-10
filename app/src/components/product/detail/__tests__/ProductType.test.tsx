@@ -1,16 +1,22 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen, waitFor } from '@testing-library/react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import ProductType from '@/components/product/detail/ProductType';
+import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { loadCPV } from '@/services/cpv';
 import { baseProduct as _base, renderWithProviders, setupUser } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 jest.mock('@/services/cpv');
+jest.mock('@/features/products/pendingTypeSelection', () => ({
+  takePendingTypeSelection: jest.fn(),
+  setPendingTypeSelection: jest.fn(),
+}));
 
 const mockPush = jest.fn();
 const mockSetParams = jest.fn();
 const mockedLoadCPV = jest.mocked(loadCPV);
+const mockedTakePending = jest.mocked(takePendingTypeSelection);
 const TYPE_OR_MATERIAL_PATTERN = /Type or Material/;
 
 const baseProduct: Product = { ..._base, productTypeID: undefined };
@@ -41,7 +47,8 @@ describe('ProductType', () => {
         createdAt: '',
       },
     });
-    (useLocalSearchParams as jest.Mock).mockReturnValue({});
+    mockedTakePending.mockReturnValue(null);
+    (useFocusEffect as jest.Mock).mockReset();
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
       replace: jest.fn(),
@@ -79,16 +86,18 @@ describe('ProductType', () => {
     expect(await screen.findByText('All categories')).toBeOnTheScreen();
   });
 
-  it('applies a type selection from route params and clears the param', async () => {
+  it('applies a pending type selection when the screen regains focus', async () => {
     const onTypeChange = jest.fn();
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ typeSelection: '123' });
+    // The unit-lane mock is a no-op; make useFocusEffect run its callback so the
+    // pending-slot consume path is exercised.
+    (useFocusEffect as jest.Mock).mockImplementation((cb: unknown) => (cb as () => void)());
+    mockedTakePending.mockReturnValue(123);
 
     renderWithProviders(
       <ProductType product={baseProduct} editMode={false} onTypeChange={onTypeChange} />,
     );
 
     await waitFor(() => {
-      expect(mockSetParams).toHaveBeenCalledWith({ typeSelection: undefined });
       expect(onTypeChange).toHaveBeenCalledWith(123);
     });
   });
@@ -96,11 +105,16 @@ describe('ProductType', () => {
   it('navigates to category selection on press in editMode', async () => {
     renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
     await user.press(await screen.findByText('All categories'));
-    expect(mockPush).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/products/[id]/category-selection',
-      }),
-    );
+    expect(mockPush).toHaveBeenCalledWith('/category-selection');
+  });
+
+  // Regression: a guard used to block the picker for unsaved drafts (no numeric
+  // id), so a new product could never set its type before the first save.
+  it('opens the picker for an unsaved draft (no id) in editMode', async () => {
+    const draft = { ...baseProduct, id: undefined } as unknown as Product;
+    renderWithProviders(<ProductType product={draft} editMode={true} />);
+    await user.press(await screen.findByText('All categories'));
+    expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
 
   it('does not navigate when not in editMode', async () => {
