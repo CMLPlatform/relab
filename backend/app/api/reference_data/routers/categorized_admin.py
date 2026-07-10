@@ -3,7 +3,9 @@
 Materials and product types share the exact same admin surface (CRUD, category
 links, file/image media); this factory builds it once per resource spec. Path
 parameter names, function names, summaries, and docstrings are parameterized so
-the exported OpenAPI schema is identical to the previously hand-written routers.
+the two resources export parallel, consistently named OpenAPI operations. Category
+links are managed through the plural body-based ``categories`` add/remove routes;
+the older per-link ``/{id}/categories/{category_id}`` paths are intentionally gone.
 """
 
 from typing import Annotated

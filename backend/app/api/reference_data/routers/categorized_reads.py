@@ -37,6 +37,9 @@ async def require_categorized_reference[ResourceT: Material | ProductType](
         model_id=parent_id,
         loaders=CATEGORIZED_REFERENCE_LOADERS,
         read_schema=read_schema,
+        # Categories serialize as CategoryRead (no sub/supercategory fields), so don't fire
+        # Category's default selectin loaders for a subtree the response discards.
+        raiseload_nested=True,
     )
 
 
@@ -55,6 +58,9 @@ async def page_categorized_references[ResourceT: Material | ProductType](
         parent_model,
         CATEGORIZED_REFERENCE_LOADERS,
         read_schema=read_schema,
+        # Categories serialize as CategoryRead (no sub/supercategory fields), so don't fire
+        # Category's default selectin loaders for a subtree the response discards.
+        raiseload_nested=True,
     )
     return await paginate_select(session, statement, model=parent_model)
 

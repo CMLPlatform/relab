@@ -19,7 +19,7 @@ from app.api.reference_data.routers.categorized_reads import (
     require_categorized_reference,
 )
 from app.api.reference_data.routers.public_support import ReferenceDataAPIRouter
-from app.api.reference_data.routers.reference_media import list_reference_file_reads, list_reference_image_reads
+from app.api.reference_data.routers.reference_media import list_reference_media_reads
 from app.api.reference_data.schemas import CategoryRead, ProductTypeReadWithRelationships
 
 router = ReferenceDataAPIRouter(prefix="/product-types", tags=["product-types"])
@@ -95,7 +95,9 @@ async def get_product_type_files(
     item_filter: FileFilter = Depends(_FILE_FILTER_DEPENDENCY),
 ) -> list[FileReadWithinParent]:
     """Get all files associated with a product type."""
-    return await list_reference_file_reads(session, PRODUCT_TYPE_RESOURCE.files, product_type_id, item_filter)
+    return await list_reference_media_reads(
+        session, PRODUCT_TYPE_RESOURCE.files, product_type_id, item_filter, read_schema=FileReadWithinParent
+    )
 
 
 @router.get(
@@ -109,4 +111,6 @@ async def get_product_type_images(
     item_filter: ImageFilter = Depends(_IMAGE_FILTER_DEPENDENCY),
 ) -> list[ImageReadWithinParent]:
     """Get all images associated with a product type."""
-    return await list_reference_image_reads(session, PRODUCT_TYPE_RESOURCE.images, product_type_id, item_filter)
+    return await list_reference_media_reads(
+        session, PRODUCT_TYPE_RESOURCE.images, product_type_id, item_filter, read_schema=ImageReadWithinParent
+    )

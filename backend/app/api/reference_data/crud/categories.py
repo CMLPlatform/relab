@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from app.api.common.crud.filtering import apply_filter
@@ -76,6 +76,29 @@ async def validate_category_taxonomy_domains(
     return categories
 
 
+def _top_level_categories_statement(
+    *,
+    supercategory_id: int | None,
+    taxonomy_id: int | None,
+    category_filter: CategoryFilter | CategoryFilterWithRelationships | None,
+) -> Select[tuple[Category]]:
+    """Build the filtered top-level (root or direct-child) category query for a tree."""
+    statement: Select[tuple[Category]] = select(Category).where(Category.supercategory_id == supercategory_id)
+    if taxonomy_id:
+        statement = statement.where(Category.taxonomy_id == taxonomy_id)
+    return apply_filter(statement, category_filter)
+
+
+async def _validate_tree_scope(db: AsyncSession, *, supercategory_id: int | None, taxonomy_id: int | None) -> None:
+    if supercategory_id and taxonomy_id:
+        err_msg = "Provide either supercategory_id or taxonomy_id, not both"
+        raise BadRequestError(err_msg)
+    if supercategory_id:
+        await require_model(db, Category, supercategory_id)
+    if taxonomy_id:
+        await require_model(db, Taxonomy, taxonomy_id)
+
+
 async def get_category_trees(
     db: AsyncSession,
     recursion_depth: int = 1,
@@ -83,30 +106,43 @@ async def get_category_trees(
     supercategory_id: int | None = None,
     taxonomy_id: int | None = None,
     category_filter: CategoryFilter | CategoryFilterWithRelationships | None = None,
+    offset: int | None = None,
+    limit: int | None = None,
 ) -> list[Category]:
-    """Get categories with their subcategories up to specified depth."""
-    if supercategory_id and taxonomy_id:
-        err_msg = "Provide either supercategory_id or taxonomy_id, not both"
-        raise BadRequestError(err_msg)
+    """Get categories with their subcategories up to specified depth.
 
-    if supercategory_id:
-        await require_model(db, Category, supercategory_id)
+    Pass ``offset``/``limit`` to expand only a window of top-level categories: a paged
+    caller then builds subtrees for that page alone instead of the whole taxonomy. The
+    window is ordered by id so paging is stable; pair it with ``count_category_trees`` for
+    the page total.
+    """
+    await _validate_tree_scope(db, supercategory_id=supercategory_id, taxonomy_id=taxonomy_id)
 
-    if taxonomy_id:
-        await require_model(db, Taxonomy, taxonomy_id)
-
-    statement: Select[tuple[Category]] = (
-        select(Category).where(Category.supercategory_id == supercategory_id).execution_options(populate_existing=True)
-    )
-
-    if taxonomy_id:
-        statement = statement.where(Category.taxonomy_id == taxonomy_id)
-
-    statement = apply_filter(statement, category_filter)
-
+    statement = _top_level_categories_statement(
+        supercategory_id=supercategory_id, taxonomy_id=taxonomy_id, category_filter=category_filter
+    ).execution_options(populate_existing=True)
+    statement = statement.order_by(Category.id)
+    if offset is not None:
+        statement = statement.offset(offset)
+    if limit is not None:
+        statement = statement.limit(limit)
     statement = statement.options(selectinload(orm_attr(Category.subcategories), recursion_depth=recursion_depth))
 
     return list((await db.execute(statement)).scalars().all())
+
+
+async def count_category_trees(
+    db: AsyncSession,
+    *,
+    supercategory_id: int | None = None,
+    taxonomy_id: int | None = None,
+    category_filter: CategoryFilter | CategoryFilterWithRelationships | None = None,
+) -> int:
+    """Count the top-level categories ``get_category_trees`` would return, ignoring paging."""
+    statement = _top_level_categories_statement(
+        supercategory_id=supercategory_id, taxonomy_id=taxonomy_id, category_filter=category_filter
+    )
+    return await db.scalar(select(func.count()).select_from(statement.subquery())) or 0
 
 
 async def create_category(

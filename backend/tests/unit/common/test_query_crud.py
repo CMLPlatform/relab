@@ -13,6 +13,7 @@ from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.query import require_locked_model, require_model
 from app.api.reference_data.filters import MaterialFilterWithRelationships
 from app.api.reference_data.models import Material
+from app.api.reference_data.schemas import MaterialReadWithRelationships
 
 
 async def test_raises_crud_configuration_error_for_model_without_id() -> None:
@@ -49,6 +50,23 @@ def test_does_not_apply_noload_without_read_schema() -> None:
     updated_statement = apply_loader_profile(statement, Material)
 
     assert str(updated_statement) == str(statement)
+
+
+def test_raiseload_nested_blocks_children_of_selected_relationships() -> None:
+    """`raiseload_nested` chains raiseload("*") under each eagerly loaded relationship."""
+
+    def categories_paths(statement: Any) -> list[str]:
+        return [str(opt.path) for opt in statement._with_options if "Material.categories" in str(opt.path)]
+
+    plain = apply_loader_profile(select(Material), Material, {"categories"}, read_schema=MaterialReadWithRelationships)
+    nested = apply_loader_profile(
+        select(Material), Material, {"categories"}, read_schema=MaterialReadWithRelationships, raiseload_nested=True
+    )
+
+    # Without the flag the load stops at Category; with it, the path extends to a wildcard
+    # raiseload so Category's own relationships are not loaded and discarded.
+    assert not any("relationship:*" in path for path in categories_paths(plain))
+    assert any("relationship:*" in path for path in categories_paths(nested))
 
 
 def test_accepts_explicit_base_statement() -> None:

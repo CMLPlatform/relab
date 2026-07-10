@@ -26,8 +26,16 @@ def apply_loader_profile[T, ModelT: Base](
     loaders: frozenset[str] | set[str] | None = None,
     *,
     read_schema: type[BaseModel] | None = None,
+    raiseload_nested: bool = False,
 ) -> Select[tuple[T]]:
-    """Apply eager/noload options for relationships selected by a loader profile."""
+    """Apply eager/noload options for relationships selected by a loader profile.
+
+    ``raiseload_nested`` chains ``raiseload("*")`` under each eagerly loaded relationship,
+    so a selected relationship's own children are not loaded. Use it when the nested read
+    schema declares no relationships of its own (e.g. categorized-reference categories load
+    as ``CategoryRead``, which has neither ``subcategories`` nor ``supercategory``) to avoid
+    firing the target model's default eager loaders and discarding the result.
+    """
     relationships = _get_model_relationships(model)
     if not relationships:
         return statement
@@ -47,7 +55,8 @@ def apply_loader_profile[T, ModelT: Base](
         raise CRUDConfigurationError(err_msg)
 
     for rel_name in selected:
-        statement = statement.options(selectinload(relationships[rel_name]))
+        loader = selectinload(relationships[rel_name])
+        statement = statement.options(loader.raiseload("*") if raiseload_nested else loader)
 
     if read_schema is not None:
         for rel_name in schema_relationships - selected:

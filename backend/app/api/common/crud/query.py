@@ -45,9 +45,18 @@ async def get_model[MT: Base](
     *,
     loaders: frozenset[str] | set[str] | None = None,
     read_schema: type[BaseModel] | None = None,
+    raiseload_nested: bool = False,
 ) -> MT | None:
     """Return a model by primary key, or None when missing."""
-    return await _get_model(db, model, model_id, loaders=loaders, read_schema=read_schema, for_update=False)
+    return await _get_model(
+        db,
+        model,
+        model_id,
+        loaders=loaders,
+        read_schema=read_schema,
+        raiseload_nested=raiseload_nested,
+        for_update=False,
+    )
 
 
 async def _get_model[MT: Base](
@@ -58,6 +67,7 @@ async def _get_model[MT: Base](
     loaders: frozenset[str] | set[str] | None,
     read_schema: type[BaseModel] | None,
     for_update: bool,
+    raiseload_nested: bool = False,
 ) -> MT | None:
     """Return a model by primary key, optionally with a row-level write lock."""
     if not hasattr(model, "id"):
@@ -65,7 +75,9 @@ async def _get_model[MT: Base](
         raise CRUDConfigurationError(err_msg)
 
     statement: Select[tuple[MT]] = select(model).filter_by(id=model_id)
-    statement = apply_loader_profile(statement, model, loaders, read_schema=read_schema)
+    statement = apply_loader_profile(
+        statement, model, loaders, read_schema=read_schema, raiseload_nested=raiseload_nested
+    )
     if for_update:
         statement = statement.with_for_update()
     return (await db.execute(statement)).scalars().unique().one_or_none()
@@ -78,10 +90,13 @@ async def require_model[MT: Base](
     *,
     loaders: frozenset[str] | set[str] | None = None,
     read_schema: type[BaseModel] | None = None,
+    raiseload_nested: bool = False,
 ) -> MT:
     """Return a model by primary key or raise ModelNotFoundError."""
     return ensure_model_exists(
-        await get_model(db, model, model_id, loaders=loaders, read_schema=read_schema),
+        await get_model(
+            db, model, model_id, loaders=loaders, read_schema=read_schema, raiseload_nested=raiseload_nested
+        ),
         model,
         model_id,
     )

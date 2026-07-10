@@ -9,7 +9,7 @@ from app.api.common.crud.associations import add_links
 from app.api.common.crud.persistence import SupportsModelDump, commit_and_refresh
 from app.api.common.crud.query import require_locked_model, require_model
 from app.api.common.crud.utils import validate_linked_items_exist, validate_no_duplicate_linked_items
-from app.api.file_storage.crud.parent_media import ParentMediaCrud
+from app.api.file_storage.crud.parent_media import ParentMediaCrud, unlink_stored_media
 from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.reference_data.crud.categories import validate_category_taxonomy_domains
@@ -116,25 +116,21 @@ async def delete_categorized_reference[ResourceT: CategorizedReference, LinkT: C
     spec: CategorizedReferenceSpec[ResourceT, LinkT],
     parent_id: int,
 ) -> None:
-    """Delete a categorized reference-data resource after attached media.
+    """Delete a categorized reference-data resource and its attached media atomically.
 
-    Media rows go first: dropping the parent first would orphan them and the bytes they
-    point at, since media reference their parent generically with no FK cascade.
+    Media rows and the parent row drop in a single transaction under the row lock, so a
+    concurrent delete is serialized and a mid-delete failure can't leave the parent behind
+    with its media already gone (media reference their parent generically, with no FK
+    cascade). The stored bytes are unlinked only after that commit is durable — a commit
+    that fails leaves the files intact rather than orphaning live rows that point at them.
     """
-    # NOTE: the row lock only serializes entry to this function. `delete_all` commits
-    # internally (it has to: the stored bytes are unlinked only after the rows are durably
-    # gone), and that commit ends the transaction the lock lives in. So a concurrent delete
-    # blocks until the media phase commits, then proceeds against a parent whose media are
-    # already gone. That is safe -- the media phase is idempotent and the parent delete is
-    # a no-op second time -- but the whole operation is NOT atomic: if the parent delete
-    # below fails, the media rows and their bytes are already gone for good.
-    # Upgrade path: have `delete_all` take a `commit=False` variant so the media rows and
-    # the parent row drop in one transaction, and unlink the bytes after that single commit.
     db_parent = await require_locked_model(db, spec.model, parent_id)
-    await spec.files.delete_all(db, parent_id)
-    await spec.images.delete_all(db, parent_id)
+    pending_files = await spec.files.delete_all(db, parent_id)
+    pending_images = await spec.images.delete_all(db, parent_id)
     await db.delete(db_parent)
     await db.commit()
+    await unlink_stored_media(pending_files)
+    await unlink_stored_media(pending_images)
 
 
 async def add_categorized_reference_categories[ResourceT: CategorizedReference, LinkT: CategoryLink](

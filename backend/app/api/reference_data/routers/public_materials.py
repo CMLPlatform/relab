@@ -20,7 +20,7 @@ from app.api.reference_data.routers.categorized_reads import (
     require_categorized_reference,
 )
 from app.api.reference_data.routers.public_support import ReferenceDataAPIRouter
-from app.api.reference_data.routers.reference_media import list_reference_file_reads, list_reference_image_reads
+from app.api.reference_data.routers.reference_media import list_reference_media_reads
 from app.api.reference_data.schemas import CategoryRead, MaterialReadWithRelationships
 from app.core.responses import conditional_json_response
 
@@ -100,7 +100,9 @@ async def get_material_files(
     item_filter: FileFilter = Depends(_FILE_FILTER_DEPENDENCY),
 ) -> list[FileReadWithinParent]:
     """Get all files associated with a material."""
-    return await list_reference_file_reads(session, MATERIAL_RESOURCE.files, material_id, item_filter)
+    return await list_reference_media_reads(
+        session, MATERIAL_RESOURCE.files, material_id, item_filter, read_schema=FileReadWithinParent
+    )
 
 
 @router.get(
@@ -114,4 +116,6 @@ async def get_material_images(
     item_filter: ImageFilter = Depends(_IMAGE_FILTER_DEPENDENCY),
 ) -> list[ImageReadWithinParent]:
     """Get all images associated with a material."""
-    return await list_reference_image_reads(session, MATERIAL_RESOURCE.images, material_id, item_filter)
+    return await list_reference_media_reads(
+        session, MATERIAL_RESOURCE.images, material_id, item_filter, read_schema=ImageReadWithinParent
+    )

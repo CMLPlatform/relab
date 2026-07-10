@@ -21,6 +21,7 @@ from .support_services import get_parent_owned_storage_item, list_parent_storage
 from .support_types import StorageCreateSchema, StorageModel
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from uuid import UUID
 
     from .support_services import StoredMediaService
@@ -142,25 +143,33 @@ async def delete_all_parent_media[StorageModelT: StorageModel](
     parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
-) -> None:
-    """Delete all storage items associated with a parent in one bulk DB round-trip."""
+) -> list[tuple[StorageModelT, Path]]:
+    """Delete all of a parent's storage rows in one round-trip, WITHOUT committing.
+
+    Returns the ``(item, path)`` pairs whose bytes still need unlinking; pass them to
+    ``unlink_stored_media`` after the caller commits. The caller owns the commit so these
+    row deletes can share one transaction with sibling deletes (e.g. the parent row),
+    keeping the whole delete atomic. Bytes are unlinked only after that commit is durable —
+    a commit that later fails then leaves the files intact rather than stranding a live row
+    that points at deleted bytes.
+    """
     items = await list_parent_storage_items(
         db,
         model=storage_model,
         parent_type=parent_type,
         parent_id=parent_id,
     )
-    if not items:
-        return
+    persisted = [item for item in items if item.id is not None]
+    if not persisted:
+        return []
 
-    paths = [(item, stored_file_path(item)) for item in items if item.id is not None]
-    ids = [item.id for item, _ in paths]
-    await db.execute(delete(storage_model).where(storage_model.id.in_(ids)))
-    await db.commit()
+    await db.execute(delete(storage_model).where(storage_model.id.in_([item.id for item in persisted])))
+    return [(item, path) for item in persisted if (path := stored_file_path(item)) is not None]
 
-    for item, path in paths:
-        if path is None:
-            continue
+
+async def unlink_stored_media[StorageModelT: StorageModel](pending: list[tuple[StorageModelT, Path]]) -> None:
+    """Unlink the physical bytes of already-deleted storage rows. Call only after commit."""
+    for item, path in pending:
         if isinstance(item, Image):
             await delete_image_from_storage(path)
         else:
@@ -241,9 +250,9 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
             storage_service=self.storage_service,
         )
 
-    async def delete_all(self, db: AsyncSession, parent_id: int) -> None:
-        """Delete all storage items associated with a parent."""
-        await delete_all_parent_media(
+    async def delete_all(self, db: AsyncSession, parent_id: int) -> list[tuple[StorageModelT, Path]]:
+        """Delete all of a parent's storage rows without committing; return bytes to unlink."""
+        return await delete_all_parent_media(
             db,
             parent_type=self.parent_type,
             storage_model=self.storage_model,

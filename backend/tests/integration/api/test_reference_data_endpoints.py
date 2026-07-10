@@ -107,6 +107,27 @@ async def test_taxonomy_category_endpoints_return_flat_and_tree_views(
     assert tree_response.json()["items"][0]["subcategories"][0]["name"] == CHILD_CATEGORY
 
 
+async def test_taxonomy_category_tree_pages_top_level_categories(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+    db_taxonomy: Taxonomy,
+) -> None:
+    """The taxonomy tree pages over top-level categories with a correct total."""
+    for index in range(3):
+        await CategoryFactory.create_async(db_session, taxonomy_id=db_taxonomy.id, name=f"{PARENT_CATEGORY} {index}")
+
+    first = await api_client.get(f"/v1/taxonomies/{db_taxonomy.id}/categories/tree?page=1&size=2")
+    second = await api_client.get(f"/v1/taxonomies/{db_taxonomy.id}/categories/tree?page=2&size=2")
+
+    assert first.status_code == status.HTTP_200_OK
+    assert first.json()["total"] == 3
+    assert len(first.json()["items"]) == 2
+    # The second page holds the remaining top-level category, with no overlap.
+    assert len(second.json()["items"]) == 1
+    first_ids = {item["id"] for item in first.json()["items"]}
+    assert first_ids.isdisjoint({item["id"] for item in second.json()["items"]})
+
+
 async def test_category_tree_endpoints_return_bounded_recursive_children(
     api_client: AsyncClient,
     db_session: AsyncSession,

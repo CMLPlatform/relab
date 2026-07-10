@@ -111,37 +111,63 @@ async def test_remove_categorized_product_type_categories_deletes_existing_links
     session.commit.assert_called_once()
 
 
-async def test_delete_categorized_reference_deletes_media_before_resource(
+async def test_delete_categorized_reference_is_atomic_and_unlinks_bytes_after_commit(
     mock_session: AsyncMock,
 ) -> None:
-    """Deletes attached files/images before deleting the reference-data resource."""
+    """Media rows and parent row drop in one transaction; bytes are unlinked only after commit.
+
+    Two invariants, both safety-critical: (1) all row deletes happen before the single
+    commit, so a mid-delete failure can't leave the parent behind with its media gone; and
+    (2) the physical bytes are unlinked only after that commit, so a failed commit leaves
+    the files intact rather than orphaning live rows that point at deleted bytes.
+    """
     session = mock_session
     db_material = MaterialFactory.build(id=1)
-    # Ordering is the invariant this test is named for: dropping the parent row first would
-    # orphan its media rows and the bytes they point at. Assert it, don't just count calls.
-    calls: list[str] = []
+    pending_files = [(object(), "file-path")]
+    pending_images = [(object(), "image-path")]
+    calls: list[object] = []
+
+    async def _delete_files(*_a: object) -> list[object]:
+        calls.append("files-rows")
+        return pending_files
+
+    async def _delete_images(*_a: object) -> list[object]:
+        calls.append("images-rows")
+        return pending_images
+
+    async def _unlink(pending: list[object]) -> None:
+        calls.append(("unlink", pending))
 
     with (
         patch(
             "app.api.reference_data.crud.categorized_resources.require_locked_model",
             return_value=db_material,
         ) as require_resource,
+        patch.object(MATERIAL_RESOURCE.files, "delete_all", new=AsyncMock(side_effect=_delete_files)) as delete_files,
         patch.object(
-            MATERIAL_RESOURCE.files, "delete_all", new=AsyncMock(side_effect=lambda *_a: calls.append("files"))
-        ) as delete_files,
-        patch.object(
-            MATERIAL_RESOURCE.images, "delete_all", new=AsyncMock(side_effect=lambda *_a: calls.append("images"))
+            MATERIAL_RESOURCE.images, "delete_all", new=AsyncMock(side_effect=_delete_images)
         ) as delete_images,
+        patch(
+            "app.api.reference_data.crud.categorized_resources.unlink_stored_media",
+            new=AsyncMock(side_effect=_unlink),
+        ),
     ):
-        session.delete = AsyncMock(side_effect=lambda *_a: calls.append("parent"))
+        session.delete = AsyncMock(side_effect=lambda *_a: calls.append("parent-row"))
+        session.commit = AsyncMock(side_effect=lambda: calls.append("commit"))
         await delete_categorized_reference(session, MATERIAL_RESOURCE, 1)
 
     require_resource.assert_awaited_once_with(session, Material, 1)
     delete_files.assert_awaited_once_with(session, 1)
     delete_images.assert_awaited_once_with(session, 1)
     session.delete.assert_called_once_with(db_material)
-    session.commit.assert_called_once()
-    assert calls == ["files", "images", "parent"]
+    assert calls == [
+        "files-rows",
+        "images-rows",
+        "parent-row",
+        "commit",
+        ("unlink", pending_files),
+        ("unlink", pending_images),
+    ]
 
 
 def _scalar_result(items: list[object]) -> MagicMock:
