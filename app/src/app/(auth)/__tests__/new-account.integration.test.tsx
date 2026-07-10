@@ -149,7 +149,7 @@ describe('NewAccount screen', () => {
     });
   });
 
-  it('navigates to products on successful registration and login', async () => {
+  it('returns to login with a verify prompt after registration, without logging in', async () => {
     mockedRegister.mockResolvedValue({ success: true });
     mockedLogin.mockResolvedValue({ status: 'authenticated' });
 
@@ -181,7 +181,8 @@ describe('NewAccount screen', () => {
       fireEvent.press(screen.getByText('Create Account'));
     });
 
-    expect(mockReplace).toHaveBeenCalledWith('/products');
+    expect(mockedLogin).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith('/login');
   });
 
   it('shows error when registration fails', async () => {

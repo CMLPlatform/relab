@@ -4,16 +4,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
-import { login, register } from '@/services/api/auth/authentication';
+import { register } from '@/services/api/auth/authentication';
 import { type NewAccountFormValues, newAccountSchema } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
-import { logError } from '@/utils/logging';
 
 export type NewAccountSection = 'username' | 'email' | 'password';
 
 export function useNewAccountScreen() {
   const router = useRouter();
-  const { refetch, user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const dialog = useDialog();
   const theme = useAppTheme();
   const [section, setSection] = useState<NewAccountSection>('username');
@@ -58,30 +57,21 @@ export function useNewAccountScreen() {
       return;
     }
 
-    const loginSuccess = await login(data.email, data.password);
-
-    if (loginSuccess.status === 'invalid_credentials') {
-      dialog.alert({
-        title: 'Account Created',
-        message: 'Your account was created! Please log in.',
-      });
-      router.replace('/login');
-      return;
-    }
-    try {
-      await refetch(true);
-    } catch (error) {
-      logError('[NewAccount] Failed to refetch user after signup:', error);
-    }
-
-    router.replace('/products');
+    // Do not auto-login. The account still needs email verification, and a login
+    // attempt here would reveal — via success vs failure — whether the email was
+    // already registered, defeating the server's non-enumerable registration.
+    dialog.alert({
+      title: 'Check your email',
+      message:
+        'If the email address is available, we sent a verification link. Verify your email, then log in.',
+    });
+    router.replace('/login');
   });
 
   // The "Create Account" button only shows a spinner while submitting — it stays
-  // pressable — so a double-tap fired register twice: the second returned "email
-  // already exists" and popped a spurious "Registration Failed" dialog over the
-  // successful signup. Single-flight at this boundary (not inside the validated
-  // handler, which the compiler's ref rule forbids).
+  // pressable — so a double-tap would fire register twice and stack two dialogs.
+  // Single-flight at this boundary (not inside the validated handler, which the
+  // compiler's ref rule forbids).
   const createAccount = useCallback(async () => {
     if (inFlight.current) return;
     inFlight.current = true;

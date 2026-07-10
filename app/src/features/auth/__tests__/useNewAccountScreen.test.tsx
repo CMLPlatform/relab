@@ -138,7 +138,10 @@ describe('useNewAccountScreen', () => {
     expect(mockDismissTo).toHaveBeenCalledWith('/login');
   });
 
-  it('creates an account and redirects to products on successful login', async () => {
+  // Privacy: signup must not auto-login. A login attempt after register would
+  // reveal (success vs failure) whether the email already had an account, which
+  // is exactly what the non-enumerable server registration avoids.
+  it('creates an account, prompts to verify email, and returns to login without logging in', async () => {
     const { result } = renderHook(() => useNewAccountScreen());
 
     await act(async () => {
@@ -150,14 +153,13 @@ describe('useNewAccountScreen', () => {
       'user@example.com',
       'correct-horse-battery-staple-v42',
     );
-    expect(mockLogin).toHaveBeenCalledWith('user@example.com', 'correct-horse-battery-staple-v42');
-    expect(mockReplace).toHaveBeenCalledWith('/products');
+    expect(mockLogin).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith('/login');
   });
 
   // Regression: the button only shows a spinner while submitting (it stays
-  // pressable), so a double-tap fired register twice — the second returned
-  // "email exists" and popped a spurious "Registration Failed" dialog over the
-  // successful signup. The ref guard must single-flight it.
+  // pressable), so a double-tap would fire register twice and stack two dialogs.
+  // The ref guard must single-flight it.
   it('ignores a second createAccount while the first is in flight', async () => {
     let release: () => void = () => {};
     mockRegister.mockImplementation(
