@@ -16,7 +16,6 @@ const BLOCKLISTED_PASSWORD_TOKENS = new Set([
   'welcome',
   'changeme',
   'relab',
-  'reverseengineeringlab',
 ]);
 
 function normalizeForPasswordValidation(value: string): string {

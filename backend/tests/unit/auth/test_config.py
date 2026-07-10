@@ -44,12 +44,12 @@ def test_email_parsing_reuses_sender_when_reply_to_is_omitted() -> None:
     """Parsed sender/reply-to values should share the same fallback logic."""
     settings = AuthSettings(
         smtp_username="smtp@example.com",
-        email_from="Reverse Engineering Lab <noreply@example.com>",
+        email_from="ReLab <noreply@example.com>",
         email_reply_to="",
     )
     assert settings.email.sender is not None
     assert settings.email.reply_to is not None
-    assert settings.email.sender.name == "Reverse Engineering Lab"
+    assert settings.email.sender.name == "ReLab"
     assert settings.email.sender.email == "noreply@example.com"
     assert settings.email.reply_to == settings.email.sender
 
