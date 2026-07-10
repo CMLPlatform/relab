@@ -21,7 +21,7 @@ from app.api.auth.services.privacy import can_view_profile
 from app.api.auth.services.user_manager import fastapi_user_manager
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
+from app.api.data_collection.crud.profile_stats import compute_profile_stats
 
 ### User self-management routes ###
 
@@ -70,10 +70,12 @@ async def get_public_profile(
     if not can_view_profile(user, current_user):
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    # 3. Lazy initialization of stats if no full snapshot exists yet
+    # 3. Compute stats when no snapshot exists yet. Read-only on purpose: a GET must
+    #    not write on its session (a committing read breaks read-replica routing).
+    #    The snapshot is persisted by the product create/delete write path instead,
+    #    so a viewed-before-any-write profile just recomputes until then.
     if user.profile_stats_computed_at is None or not user.profile_stats:
-        stats = await recompute_user_profile_stats(session, user.id)
-        await session.commit()
+        stats = await compute_profile_stats(session, user.id)
     else:
         stats = load_profile_stats(user.profile_stats)
 

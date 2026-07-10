@@ -6,7 +6,10 @@ from typing import TYPE_CHECKING
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import User
-from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
+from app.api.data_collection.crud.profile_stats import (
+    compute_profile_stats,
+    recompute_user_profile_stats,
+)
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import ProductType
 
@@ -46,6 +49,44 @@ async def test_recompute_user_profile_stats_counts_base_product_weight_only(
 
     assert stats.product_count == 1
     assert stats.total_weight_g == 35_000
+
+
+async def test_compute_profile_stats_is_read_only(
+    db_session: AsyncSession,
+    db_superuser: User,
+) -> None:
+    """compute_profile_stats returns the numbers without staging a snapshot write.
+
+    The public-profile GET relies on this to stay write-free (a committing read
+    breaks read-replica routing); recompute_* is the write path.
+    """
+    await create_root_with_component(db_session, db_superuser)
+    db_superuser.profile_stats = {}
+    db_superuser.profile_stats_computed_at = None
+    await db_session.flush()
+
+    stats = await compute_profile_stats(db_session, db_superuser.id)
+
+    assert stats.product_count == 1
+    assert db_superuser.profile_stats == {}
+    assert db_superuser.profile_stats_computed_at is None
+
+
+async def test_public_profile_computes_missing_snapshot_on_read(
+    db_session: AsyncSession,
+    api_client: AsyncClient,
+    db_superuser: User,
+) -> None:
+    """A profile with no snapshot yet still returns freshly computed stats."""
+    await create_root_with_component(db_session, db_superuser)
+    db_superuser.profile_stats = {}
+    db_superuser.profile_stats_computed_at = None
+    await db_session.flush()
+
+    response = await api_client.get(f"/v1/profiles/{db_superuser.username}")
+
+    assert response.status_code == 200
+    assert response.json()["total_weight_kg"] == 35.0
 
 
 async def test_public_profile_returns_latest_snapshot_without_external_cache(

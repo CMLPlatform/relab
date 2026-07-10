@@ -16,8 +16,12 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def recompute_user_profile_stats(session: AsyncSession, user_id: UUID4) -> ProfileStatsData:
-    """Recompute one user's persisted profile-stat snapshot from source tables."""
+async def compute_profile_stats(session: AsyncSession, user_id: UUID4) -> ProfileStatsData:
+    """Compute a user's profile stats from source tables. Read-only: writes nothing.
+
+    Safe to call on a read path (or a read replica) — the caller decides whether to
+    persist the result.
+    """
     stmt = select(
         func.count(Product.id).label("product_count"),
         func.sum(Product.weight_g).label("total_weight_g"),
@@ -44,12 +48,17 @@ async def recompute_user_profile_stats(session: AsyncSession, user_id: UUID4) ->
     )
     top_category = (await session.execute(top_cat_stmt)).scalar_one_or_none()
 
-    stats = ProfileStatsData(
+    return ProfileStatsData(
         product_count=product_count,
         total_weight_g=total_weight_g,
         image_count=image_count,
         top_category=top_category,
     )
+
+
+async def recompute_user_profile_stats(session: AsyncSession, user_id: UUID4) -> ProfileStatsData:
+    """Recompute one user's profile stats and stage the snapshot on the session."""
+    stats = await compute_profile_stats(session, user_id)
 
     user = await session.get(User, user_id)
     if user is not None:
