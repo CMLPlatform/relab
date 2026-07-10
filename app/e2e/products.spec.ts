@@ -10,9 +10,15 @@
  */
 
 import { expect, test } from '@playwright/test';
-import { dismissProductsInfoCard, loginAndReachProducts, openNewProductPage } from './helpers';
+import {
+  dismissProductsInfoCard,
+  finishOnboardingIfVisible,
+  loginAndReachProducts,
+  openNewProductPage,
+} from './helpers';
 
-const PRODUCTS_URL_PATTERN = /products/;
+const LOGIN_URL_PATTERN = /login/;
+const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
 
 async function registerNewUserAndReachProducts(page: import('@playwright/test').Page) {
   const unique = Date.now();
@@ -27,7 +33,20 @@ async function registerNewUserAndReachProducts(page: import('@playwright/test').
   await page.getByTestId('email-next').click();
   await page.getByPlaceholder('Password').fill(password);
   await page.getByRole('button', { name: 'Create Account' }).click();
-  await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 30_000 });
+
+  // Registration no longer auto-logs-in (non-enumerable signup): dismiss the
+  // verify-email prompt, then log in with the new credentials to reach products.
+  await expect(page.getByText('Check your email')).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'OK' }).click();
+  await expect(page).toHaveURL(LOGIN_URL_PATTERN, { timeout: 5_000 });
+
+  await page.getByPlaceholder('Email or username').fill(email);
+  await page.getByPlaceholder('Password').fill(password);
+  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
+  await finishOnboardingIfVisible(page);
+  await dismissProductsInfoCard(page);
+  await expect(page.getByPlaceholder('Search products')).toBeVisible({ timeout: 10_000 });
 }
 
 test.describe('Guest access', () => {
@@ -46,7 +65,7 @@ test.describe('Guest access', () => {
 
 test.describe('Products page', () => {
   test('products page loads with correct filter tabs and search bar', {
-    tag: '@cross-browser',
+    tag: ['@cross-browser', '@auth'],
   }, async ({ page }) => {
     await loginAndReachProducts(page);
     await expect(page.getByText('Mine', { exact: true })).toBeVisible();

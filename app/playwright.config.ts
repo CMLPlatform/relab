@@ -35,10 +35,15 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
       grep: /@cross-browser/,
     },
+    // WebKit refuses __Host-/Secure cookies over http://localhost (Chromium and
+    // Firefox treat localhost as a secure context; Safari does not), so the
+    // session never persists and auth-gated flows can't run. Exclude @auth tests
+    // on the two WebKit-backed projects. CI runs this suite on chromium only.
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
       grep: /@cross-browser/,
+      grepInvert: /@auth/,
     },
     {
       name: 'mobile-chrome',
@@ -49,6 +54,7 @@ export default defineConfig({
       name: 'mobile-safari',
       use: { ...devices['iPhone 13'] },
       grep: /@cross-browser/,
+      grepInvert: /@auth/,
     },
   ],
   // Serves the pre-built Expo web dist/ unless BASE_URL is already set

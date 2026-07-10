@@ -46,9 +46,9 @@ test.describe('Profile: access', () => {
 });
 
 test.describe('Profile: content', () => {
-  test('displays user email and account status chips', { tag: '@cross-browser' }, async ({
-    page,
-  }) => {
+  test('displays user email and account status chips', {
+    tag: ['@cross-browser', '@auth'],
+  }, async ({ page }) => {
     await loginAndGoToProfile(page);
     await expect(page.getByText(EMAIL)).toBeVisible();
     // exact: true — "Active" as a substring also matches "End all active sessions…".
@@ -128,7 +128,7 @@ test.describe('Profile: logout dialog', () => {
   });
 
   test('confirming logout navigates to products and shows Sign In header', {
-    tag: '@cross-browser',
+    tag: ['@cross-browser', '@auth'],
   }, async ({ page }) => {
     await loginAndGoToProfile(page);
     await page.getByRole('button', { name: 'Logout' }).first().click();

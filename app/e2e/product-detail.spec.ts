@@ -76,7 +76,7 @@ test.describe('Product detail: navigation', () => {
 // ─── Product creation flow ─────────────────────────────────────────────────────
 
 test.describe('Product creation', () => {
-  test('FAB opens the new product page in edit mode', { tag: '@cross-browser' }, async ({
+  test('FAB opens the new product page in edit mode', { tag: ['@cross-browser', '@auth'] }, async ({
     page,
   }) => {
     await loginAndReachProducts(page);

@@ -15,6 +15,7 @@ import { EMAIL, finishOnboardingIfVisible, PASSWORD } from './helpers';
 
 const PRODUCTS_URL_PATTERN = /products/;
 const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
+const LOGIN_URL_PATTERN = /login/;
 const NEW_ACCOUNT_URL_PATTERN = /new-account/;
 const FORGOT_PASSWORD_URL_PATTERN = /forgot-password/;
 const FORGOT_PASSWORD_SUCCESS_PATTERN = /If an account exists with this email/;
@@ -48,7 +49,7 @@ test.describe('Authentication flow', () => {
   });
 
   test('login with correct credentials succeeds and leaves the login screen', {
-    tag: '@cross-browser',
+    tag: ['@cross-browser', '@auth'],
   }, async ({ page }) => {
     await page.goto('/login');
     await page.getByPlaceholder('Email or username').fill(EMAIL);
@@ -57,9 +58,9 @@ test.describe('Authentication flow', () => {
     await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
   });
 
-  test('full new-user flow: login → onboarding → products', { tag: '@cross-browser' }, async ({
-    page,
-  }) => {
+  test('full new-user flow: login → onboarding → products', {
+    tag: ['@cross-browser', '@auth'],
+  }, async ({ page }) => {
     await page.goto('/login');
 
     // ── Login ───────────────────────────────────────────────────────────────
@@ -85,7 +86,7 @@ test.describe('Account registration', () => {
     await expect(page.getByPlaceholder('Username', { exact: true })).toBeVisible();
   });
 
-  test('full registration flow: username → email → password → products', {
+  test('full registration flow: username → email → password → verify prompt', {
     tag: '@cross-browser',
   }, async ({ page }) => {
     // Use a timestamp-based unique identity to avoid collisions across runs
@@ -114,8 +115,11 @@ test.describe('Account registration', () => {
     await page.getByPlaceholder('Password').fill(password);
     await page.getByRole('button', { name: 'Create Account' }).click();
 
-    // After registration + auto-login the app navigates to /products.
-    await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 30_000 });
+    // Registration is non-enumerable: no auto-login. The app shows a verify-email
+    // prompt and returns to /login (see useNewAccountScreen).
+    await expect(page.getByText('Check your email')).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'OK' }).click();
+    await expect(page).toHaveURL(LOGIN_URL_PATTERN, { timeout: 5_000 });
   });
 });
 
