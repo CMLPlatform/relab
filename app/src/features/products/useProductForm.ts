@@ -13,6 +13,7 @@ import { useAuth } from '@/context/auth';
 import { newProduct } from '@/services/api/products';
 import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';
+import { getErrorMessage } from '@/utils/errors';
 import {
   type ProductRole,
   useBaseProductQuery,
@@ -173,7 +174,11 @@ function useProductFormActions({
           onSaveSuccess?.(savedId);
         },
         onError: (err) => {
-          dialog.alert({ title: 'Save failed', message: String(err), buttons: [{ text: 'OK' }] });
+          dialog.alert({
+            title: 'Save failed',
+            message: getErrorMessage(err, 'Could not save. Please try again.'),
+            buttons: [{ text: 'OK' }],
+          });
         },
       },
     );
@@ -186,6 +191,15 @@ function useProductFormActions({
         // on /products/[id] doesn't fire during the redirect.
         reset(product);
         replace('/products');
+      },
+      onError: (err) => {
+        // Without this a failed delete is swallowed by react-query — the entity
+        // stays on screen with no feedback, so the tap looks like it did nothing.
+        dialog.alert({
+          title: 'Delete failed',
+          message: getErrorMessage(err, 'Could not delete. Please try again.'),
+          buttons: [{ text: 'OK' }],
+        });
       },
     });
   };

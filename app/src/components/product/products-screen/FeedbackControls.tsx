@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Platform, View } from 'react-native';
 import { AnimatedFAB, Button, Text } from 'react-native-paper';
 import { useAppTheme } from '@/theme';
+import { getErrorMessage } from '@/utils/errors';
 import { productsScreenStyles as styles } from './shared';
 
 type ProductsErrorBannerProps = {
@@ -36,7 +37,7 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
           Load Failed
         </Text>
         <Text style={[styles.errorMessage, { color: theme.colors.onErrorContainer }]}>
-          {String(error)}
+          {getErrorMessage(error, 'Something went wrong loading products.')}
         </Text>
       </View>
       <Button

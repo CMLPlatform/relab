@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
+import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
 import {
   useBaseProductQuery,
@@ -335,5 +336,35 @@ describe('useProductForm', () => {
 
     expect(mockMutate).toHaveBeenCalled();
     expect(onSaveSuccess).toHaveBeenCalledWith(987);
+  });
+
+  // Regression: delete had no onError handler, so a failed delete was swallowed
+  // by react-query — the entity stayed on screen with no feedback.
+  it('surfaces a dialog when the delete mutation fails', async () => {
+    const mockAlert = jest.fn();
+    jest
+      .mocked(useDialog)
+      .mockReturnValue({ alert: mockAlert, input: jest.fn(), toast: jest.fn() });
+    const deleteMutate = jest.fn((_product, opts: { onError?: (err: unknown) => void }) =>
+      opts.onError?.(new Error('server exploded')),
+    );
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: deleteMutate });
+
+    const { result } = renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onProductDelete();
+    });
+
+    expect(mockAlert).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Delete failed', message: 'server exploded' }),
+    );
   });
 });

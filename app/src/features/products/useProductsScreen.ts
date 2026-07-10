@@ -62,7 +62,24 @@ export function useProductsScreen(numColumns: number) {
     updateParams,
   });
 
-  const { effectivePage, setPage } = useProductsPaging({ numColumns, page, updateParams });
+  const pagingResetKey = useMemo(
+    () =>
+      JSON.stringify([
+        searchQueryURL,
+        filterMode,
+        sortBy,
+        activeBrands,
+        activeProductTypes,
+        activeDatePreset,
+      ]),
+    [searchQueryURL, filterMode, sortBy, activeBrands, activeProductTypes, activeDatePreset],
+  );
+  const { effectivePage, setPage } = useProductsPaging({
+    numColumns,
+    page,
+    updateParams,
+    resetKey: pagingResetKey,
+  });
   const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(
     filterUi.brandSearch,
   );
