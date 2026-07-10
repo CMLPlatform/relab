@@ -145,12 +145,17 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         # Will raise exceptions like UserNameAlreadyExistsError if validation fails
         real_user_update = cast("UserUpdate", user_update)
         sensitive_fields = sensitive_update_fields(real_user_update)
-        require_current_password_for_sensitive_update(
-            password_helper=self.password_helper,
-            user_update=real_user_update,
-            user=user,
-            sensitive_fields=sensitive_fields,
-        )
+        # Reauthentication only makes sense on the self-service path (``safe=True``), where
+        # the caller *is* the account being changed. On the superuser path the acting admin
+        # does not know the target's password, so demanding it would reject every
+        # admin-initiated email or password change.
+        if safe:
+            require_current_password_for_sensitive_update(
+                password_helper=self.password_helper,
+                user_update=real_user_update,
+                user=user,
+                sensitive_fields=sensitive_fields,
+            )
         real_user_update = await update_user_override(self.user_db, user, real_user_update)
         user_update = cast("schemas.UU", real_user_update)
 

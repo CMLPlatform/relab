@@ -1,5 +1,6 @@
 """OAuth callback and association flow tests."""
 
+import json
 from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import AsyncMock, MagicMock
 from urllib.parse import parse_qs, urlparse
@@ -12,6 +13,7 @@ from fastapi_users.router.common import ErrorCode
 
 from app.api.auth.services.oauth.associate import handle_oauth_associate_callback
 from app.api.auth.services.oauth.login import handle_oauth_login_callback
+from app.api.auth.services.refresh_token_service import verify_refresh_token
 from app.core.runtime import AppServices
 
 from ._oauth_support import (
@@ -69,6 +71,46 @@ async def test_callback_passes_associate_by_email_false(redis_client: Redis) -> 
     assert user_manager.oauth_callback.await_args is not None
     assert user_manager.oauth_callback.await_args.kwargs["associate_by_email"] is False
     user_manager.on_after_login.assert_awaited_once()
+
+
+async def test_bearer_callback_issues_a_refresh_token(redis_client: Redis) -> None:
+    """OAuth bearer login must issue a refresh token, like every other bearer login.
+
+    Regression: the bearer branch called ``backend.login`` directly, which mints only an
+    access token, so an OAuth bearer client had no way to refresh once it expired.
+    """
+    config, backend = make_auth_flow(backend_name="bearer", oauth_flow="github:bearer")
+    request, access_token_state = make_request_with_valid_state(oauth_flow="github:bearer")
+    request.app.state.services = AppServices(redis=redis_client)
+
+    user = MagicMock()
+    user.id = uuid4()
+    user.is_active = True
+    user.mfa_enabled = False
+
+    user_manager = MagicMock()
+    user_manager.oauth_callback = AsyncMock(return_value=user)
+    user_manager.on_after_login = AsyncMock()
+
+    strategy = MagicMock()
+    strategy.write_token = AsyncMock(return_value="access-token")
+
+    response = await handle_oauth_login_callback(
+        config,
+        backend,
+        request,
+        access_token_state,
+        user_manager,
+        strategy,
+        associate_by_email=False,
+        is_verified_by_default=True,
+    )
+
+    payload = json.loads(response.body)
+    assert payload["access_token"] == "access-token"
+    assert payload["token_type"] == "bearer"
+    # The refresh token has to be real: it must verify back to the same user.
+    assert await verify_refresh_token(redis_client, payload["refresh_token"]) == user.id
 
 
 async def test_callback_redirect_places_mfa_handoff_not_token_in_url_fragment(redis_client: Redis) -> None:

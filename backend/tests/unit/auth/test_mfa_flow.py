@@ -15,7 +15,7 @@ from app.api.auth.schemas import (
     MfaTotpConfirmRequest,
     MfaTotpDisableRequest,
 )
-from app.api.auth.services import mfa_flow
+from app.api.auth.services import mfa_flow, mfa_service
 from app.api.common.audit import AuditAction
 
 
@@ -111,11 +111,14 @@ async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None
     # The time-step burns only after enrollment succeeds, so a failed commit
     # doesn't lock the still-valid code out of a retry.
     burn.assert_awaited_once_with(ANY, user_id=user.id, counter=42)
-    set_codes.assert_awaited_once()
     notify.assert_awaited_once()
     assert notify.call_args.kwargs["enabled"] is True
     # Recovery codes are handed back exactly once, at enrollment.
     assert len(result.recovery_codes) == 10
+    # Only the hashes are persisted — a DB compromise must not yield usable codes.
+    set_codes.assert_awaited_once_with(
+        user_manager, user, [mfa_service.hash_recovery_code(code) for code in result.recovery_codes]
+    )
 
 
 async def test_confirm_totp_setup_rejects_wrong_password() -> None:
@@ -297,9 +300,12 @@ async def test_regenerate_recovery_codes_reissues_after_valid_code() -> None:
             background_tasks=MagicMock(),
         )
 
-    set_codes.assert_awaited_once()
     notify.assert_awaited_once()
     assert len(result.recovery_codes) == 10
+    # Only the hashes are persisted — a DB compromise must not yield usable codes.
+    set_codes.assert_awaited_once_with(
+        user_manager, user, [mfa_service.hash_recovery_code(code) for code in result.recovery_codes]
+    )
 
 
 async def test_disable_totp_accepts_recovery_code() -> None:

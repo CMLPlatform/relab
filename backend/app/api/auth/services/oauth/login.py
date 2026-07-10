@@ -190,6 +190,7 @@ async def _complete_oauth_login(
     strategy: Strategy[User, UUID4],
 ) -> Response:
     """Issue the login response for an OAuth user with all factors satisfied."""
+    redis = require_connection_redis(request)
     if backend.name == COOKIE_BACKEND_NAME:
         # Session logins share the cookie issuance path used by password login.
         response = Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -197,14 +198,21 @@ async def _complete_oauth_login(
             response=response,
             user=user,
             user_manager=user_manager,
-            redis=require_connection_redis(request),
+            redis=redis,
             cookie_strategy=strategy,
         )
         return response
 
-    response = await backend.login(strategy, user)
-    await user_manager.on_after_login(user, request, response)
-    return response
+    # Bearer logins share the token issuance path used by password and MFA bearer login.
+    # `backend.login` alone mints only an access token, which would leave an OAuth bearer
+    # client with no way to refresh once it expires.
+    tokens = await login_completion.issue_bearer_login_response(
+        user=user,
+        user_manager=user_manager,
+        redis=redis,
+        bearer_strategy=strategy,
+    )
+    return JSONResponse(tokens.model_dump())
 
 
 async def _respond_with_mfa_challenge(

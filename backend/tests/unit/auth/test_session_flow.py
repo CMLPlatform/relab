@@ -48,6 +48,7 @@ async def test_refresh_tokens_for_active_user_rejects_deleted_user_and_revokes_t
     user_manager = MagicMock()
     user_manager.get = AsyncMock(side_effect=UserNotExists)
     strategy = MagicMock()
+    redis = MagicMock()
 
     with (
         patch(
@@ -63,11 +64,12 @@ async def test_refresh_tokens_for_active_user_rejects_deleted_user_and_revokes_t
         await session_flow.refresh_tokens_for_active_user(
             user_manager,
             strategy,
-            MagicMock(),
+            redis,
             "old-refresh",
         )
 
-    blacklist.assert_awaited_once()
+    # The presented token itself must be the one revoked, not some other value.
+    blacklist.assert_awaited_once_with(redis, "old-refresh")
 
 
 async def test_refresh_bearer_tokens_returns_public_token_response() -> None:
@@ -96,6 +98,7 @@ async def test_logout_session_clears_cookies_storage_and_audits() -> None:
     strategy = MagicMock()
     strategy.destroy_token = AsyncMock()
     response = Response()
+    redis = MagicMock()
 
     with (
         patch("app.api.auth.services.session_flow.refresh_token_service.blacklist_token", new=AsyncMock()) as blacklist,
@@ -105,13 +108,14 @@ async def test_logout_session_clears_cookies_storage_and_audits() -> None:
             response=response,
             current_user=user,
             strategy=strategy,
-            redis=MagicMock(),
+            redis=redis,
             cookie_refresh_token="refresh-token",
             cookie_auth_token="auth-token",
         )
 
     strategy.destroy_token.assert_awaited_once_with("auth-token", user)
-    blacklist.assert_awaited_once()
+    # The refresh token — not the access token — is what must be blacklisted on logout.
+    blacklist.assert_awaited_once_with(redis, "refresh-token")
     assert response.headers["Clear-Site-Data"] == session_flow.SESSION_LOGOUT_CLEAR_SITE_DATA
     assert any(header.startswith(f"{AUTH_COOKIE_NAME}=") for header in response.headers.getlist("set-cookie"))
     assert any(header.startswith(f"{REFRESH_COOKIE_NAME}=") for header in response.headers.getlist("set-cookie"))

@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users.jwt import decode_jwt, generate_jwt
 from fastapi_users.manager import BaseUserManager
@@ -210,6 +211,56 @@ async def test_email_update_revokes_sessions_before_email_side_effects() -> None
     assert calls == ["base_update", "revoke", "request_verify", "email_notification"]
 
 
+async def test_self_service_update_requires_the_current_password() -> None:
+    """`PATCH /users/me` (safe=True) must reauthenticate before a sensitive change."""
+    manager, _ = _make_manager()
+    user = MagicMock()
+    user.email = "old@example.com"
+    update = UserUpdate(email="new@example.com")  # the user supplied no current_password
+
+    with pytest.raises(HTTPException) as exc_info:
+        await manager.update(update, user, safe=True, request=MagicMock())
+
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+
+
+async def test_superuser_update_does_not_require_the_target_password() -> None:
+    """`PATCH /users/{id}` (safe=False) must not demand a password the admin cannot know.
+
+    Regression: the reauth gate ran on both paths, so every admin-initiated email or
+    password change 400'd with "Current password is required for this account update."
+    """
+    manager, _ = _make_manager()
+    request = MagicMock()
+    user = MagicMock()
+    user.email = "old@example.com"
+    updated_user = MagicMock()
+    updated_user.id = "user-id"
+    updated_user.email = "new@example.com"
+    update = UserUpdate(email="new@example.com")  # an admin has no current_password to send
+
+    manager.request_verify = AsyncMock()
+
+    async def update_override_side_effect(*_args: object) -> UserUpdate:
+        return update
+
+    async def base_update_side_effect(*_args: object, **_kwargs: object) -> MagicMock:
+        return updated_user
+
+    with (
+        patch(
+            "app.api.auth.services.user_manager.update_user_override",
+            side_effect=update_override_side_effect,
+        ),
+        patch.object(BaseUserManager, "update", side_effect=base_update_side_effect),
+        patch("app.api.auth.services.user_manager.revoke_user_refresh_tokens", new_callable=AsyncMock),
+        patch("app.api.auth.services.user_manager.send_email_changed_notification", new_callable=AsyncMock),
+    ):
+        result = await manager.update(update, user, safe=False, request=request)
+
+    assert result is updated_user
+
+
 async def test_on_after_login_does_not_store_or_log_ip_address(caplog: pytest.LogCaptureFixture) -> None:
     """Successful login should update timestamp without retaining the request IP."""
     manager, mock_session = _make_manager()
@@ -301,7 +352,7 @@ async def test_on_after_reset_password_revokes_refresh_tokens_and_sends_confirma
 
 
 async def test_on_after_update_logs_deactivation_with_enum_action() -> None:
-    """Deactivation audit events should use the typed AuditAction enum."""
+    """Deactivation must revoke every live session and audit with the typed AuditAction enum."""
     manager, _ = _make_manager()
     user = MagicMock()
     user.id = "user-id"
@@ -313,12 +364,35 @@ async def test_on_after_update_logs_deactivation_with_enum_action() -> None:
         patch(
             "app.api.auth.services.account_security.refresh_token_service.revoke_all_user_tokens",
             new_callable=AsyncMock,
-        ),
+        ) as revoke,
         patch("app.api.auth.services.user_manager.audit_event") as log_audit,
     ):
         await manager.on_after_update(user, {"is_active": False}, request)
 
+    # A deactivated user must not keep usable refresh sessions.
+    revoke.assert_awaited_once_with(redis, "user-id")
     log_audit.assert_called_once_with("user-id", AuditAction.DEACTIVATE, User, "user-id")
+
+
+async def test_on_after_update_keeps_sessions_when_not_deactivating() -> None:
+    """A non-deactivating update must not revoke sessions or emit a deactivation audit."""
+    manager, _ = _make_manager()
+    user = MagicMock()
+    user.id = "user-id"
+    request = MagicMock()
+    request.app.state.services = AppServices(redis=object())
+
+    with (
+        patch(
+            "app.api.auth.services.account_security.refresh_token_service.revoke_all_user_tokens",
+            new_callable=AsyncMock,
+        ) as revoke,
+        patch("app.api.auth.services.user_manager.audit_event") as log_audit,
+    ):
+        await manager.on_after_update(user, {"is_active": True}, request)
+
+    revoke.assert_not_awaited()
+    log_audit.assert_not_called()
 
 
 async def test_delete_revokes_refresh_tokens_before_removing_the_row() -> None:

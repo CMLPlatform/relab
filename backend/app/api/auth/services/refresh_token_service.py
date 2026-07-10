@@ -7,7 +7,7 @@ state is unavailable.
 import re
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NoReturn
 from uuid import UUID
 
 from pydantic import UUID4
@@ -122,8 +122,9 @@ class RefreshTokenMetadata:
 async def _load_active_token_metadata(redis: Redis, token: str) -> RefreshTokenMetadata:
     _validate_refresh_token_shape(token)
 
-    if await redis.exists(_blacklist_key(token)):
-        raise RefreshTokenRevokedError
+    blacklisted = await redis.get(_blacklist_key(token))
+    if blacklisted is not None:
+        await _reject_replayed_token(redis, blacklisted)
     metadata = RefreshTokenMetadata.from_payload(
         await read_token_metadata(
             redis,
@@ -163,6 +164,43 @@ def _decode_blacklist_value(raw: bytes | str) -> tuple[UUID | None, int | None]:
     except ValueError:
         rotated_at = None
     return user_id, rotated_at
+
+
+async def _reject_replayed_token(redis: Redis, blacklisted: bytes | str) -> NoReturn:
+    """Handle a replay of an already-blacklisted refresh token, then reject it.
+
+    A blacklisted token presented again is being replayed (it was rotated or revoked
+    before). This is usually a stolen-token signal, but it is also what a benign client
+    retry looks like (e.g. the rotation response was dropped and the client resubmits the
+    same now-superseded token). A replay seen within ``_REUSE_GRACE_SECONDS`` of the
+    token's own rotation is treated as that benign retry: reject without revoking the
+    family. A replay seen later is genuine reuse and revokes every live token for the user.
+
+    Called from every path that reads the blacklist, so reuse detection cannot be skipped
+    by whichever check happens to run first.
+    """
+    user_id, rotated_at = _decode_blacklist_value(blacklisted)
+    just_rotated = rotated_at is not None and int(time.time()) - rotated_at <= _REUSE_GRACE_SECONDS
+    if just_rotated:
+        # Tolerated, not ignored: a thief replaying inside the window looks exactly
+        # like a benign retry, so record it rather than letting it pass silently.
+        audit_event(
+            user_id,
+            AuditAction.AUTHORIZATION_DENIED,
+            "refresh_token",
+            user_id,
+            context=AuditContext(outcome="denied", reason="refresh_token_replay_within_grace"),
+        )
+    elif user_id is not None:
+        await revoke_all_user_tokens(redis, user_id)
+        audit_event(
+            user_id,
+            AuditAction.SESSIONS_REVOKED,
+            "refresh_token",
+            user_id,
+            context=AuditContext(outcome="denied", reason="refresh_token_reuse_detected"),
+        )
+    raise RefreshTokenRevokedError
 
 
 async def create_refresh_token(
@@ -315,37 +353,13 @@ async def rotate_refresh_token(
     """
     _validate_refresh_token_shape(old_token)
 
-    # Reuse detection: an old token that is already blacklisted is being replayed
-    # (it was rotated or revoked before). This is usually a stolen-token signal, but
-    # it is also what a benign client retry looks like (e.g. the rotation response
-    # was dropped and the client resubmits the same now-superseded token). A replay
-    # seen within _REUSE_GRACE_SECONDS of the token's own rotation is treated as that
-    # benign retry: reject without revoking the family. A replay seen later is
-    # treated as genuine reuse and revokes every live token for the user.
+    # Callers reach here through verify_refresh_token, which already rejects a blacklisted
+    # token. This re-check closes the window between the two: a concurrent logout or
+    # revoke-all landing in between must still trip reuse detection rather than surface as
+    # an opaque invalid-token error.
     blacklisted = await redis.get(_blacklist_key(old_token))
     if blacklisted is not None:
-        user_id, rotated_at = _decode_blacklist_value(blacklisted)
-        just_rotated = rotated_at is not None and int(time.time()) - rotated_at <= _REUSE_GRACE_SECONDS
-        if just_rotated:
-            # Tolerated, not ignored: a thief replaying inside the window looks exactly
-            # like a benign retry, so record it rather than letting it pass silently.
-            audit_event(
-                user_id,
-                AuditAction.AUTHORIZATION_DENIED,
-                "refresh_token",
-                user_id,
-                context=AuditContext(outcome="denied", reason="refresh_token_replay_within_grace"),
-            )
-        elif user_id is not None:
-            await revoke_all_user_tokens(redis, user_id)
-            audit_event(
-                user_id,
-                AuditAction.SESSIONS_REVOKED,
-                "refresh_token",
-                user_id,
-                context=AuditContext(outcome="denied", reason="refresh_token_reuse_detected"),
-            )
-        raise RefreshTokenRevokedError
+        await _reject_replayed_token(redis, blacklisted)
 
     # Atomically consume the old token's metadata so two concurrent rotations of
     # the same token cannot both succeed: only the GETDEL winner gets the payload.

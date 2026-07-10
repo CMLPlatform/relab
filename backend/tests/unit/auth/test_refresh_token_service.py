@@ -132,6 +132,61 @@ async def test_rotate_refresh_token_reuse_revokes_session_family(
             await verify_refresh_token(redis_client, revoked)
 
 
+async def test_verify_refresh_token_reuse_revokes_session_family(
+    redis_client: Redis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Reuse detection must fire on the real refresh path, which verifies before rotating.
+
+    Regression: ``session_flow.refresh_tokens_for_active_user`` calls ``verify_refresh_token``
+    first, and verify rejected a blacklisted token outright — so the stolen-token family
+    revocation in ``rotate_refresh_token`` was unreachable in production.
+    """
+    now = 1_700_000_000
+    monkeypatch.setattr("app.api.auth.services.refresh_token_service.time.time", lambda: now)
+
+    user_id = uuid.uuid4()
+    old_token = await create_refresh_token(redis_client, user_id)
+    sibling_token = await create_refresh_token(redis_client, user_id)
+    new_token = await rotate_refresh_token(redis_client, old_token)
+
+    # Well past the benign-retry grace window: this is genuine stale-token reuse.
+    now += _REUSE_GRACE_SECONDS + 60
+
+    with (
+        patch("app.api.auth.services.refresh_token_service.audit_event") as audit,
+        pytest.raises(RefreshTokenRevokedError),
+    ):
+        await verify_refresh_token(redis_client, old_token)
+
+    assert audit.call_args.args[1] is AuditAction.SESSIONS_REVOKED
+    assert audit.call_args.kwargs["context"].reason == "refresh_token_reuse_detected"
+
+    for revoked in (new_token, sibling_token):
+        with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
+            await verify_refresh_token(redis_client, revoked)
+
+
+async def test_verify_refresh_token_benign_retry_does_not_revoke_family(redis_client: Redis) -> None:
+    """A replay inside the grace window must not revoke siblings when verify sees it first."""
+    user_id = uuid.uuid4()
+    old_token = await create_refresh_token(redis_client, user_id)
+    sibling_token = await create_refresh_token(redis_client, user_id)
+    new_token = await rotate_refresh_token(redis_client, old_token)
+
+    with (
+        patch("app.api.auth.services.refresh_token_service.audit_event") as audit,
+        pytest.raises(RefreshTokenRevokedError),
+    ):
+        await verify_refresh_token(redis_client, old_token)
+
+    assert audit.call_args.args[1] is AuditAction.AUTHORIZATION_DENIED
+    assert audit.call_args.kwargs["context"].reason == "refresh_token_replay_within_grace"
+
+    # The winning rotation's new token and the unrelated sibling must both survive.
+    assert await verify_refresh_token(redis_client, new_token) == user_id
+    assert await verify_refresh_token(redis_client, sibling_token) == user_id
+
+
 async def test_rotate_refresh_token_benign_retry_does_not_revoke_family(redis_client: Redis) -> None:
     """A near-immediate replay of a just-rotated token must not nuke sibling sessions."""
     user_id = uuid.uuid4()
