@@ -31,7 +31,14 @@ def get_camera_last_seen_cache_key(camera_id: UUID4) -> str:
     return f"rpi_cam:last_seen:{camera_id}"
 
 
-async def mark_camera_online(redis_client: Redis, camera_id: UUID4, ttl: int = 30) -> None:
+# The WebSocket heartbeat pings every 30s (see `_HEARTBEAT_INTERVAL` in
+# websocket/router.py); the online key's TTL must comfortably outlive that
+# interval or a healthy camera reads OFFLINE for the gap between expiry and
+# the next pong. At least 2x the heartbeat interval, plus slack.
+ONLINE_STATUS_TTL_SECONDS = 75
+
+
+async def mark_camera_online(redis_client: Redis, camera_id: UUID4, ttl: int = ONLINE_STATUS_TTL_SECONDS) -> None:
     """Mark a camera as online in Redis, updating its last seen timestamp."""
     now = serialize_datetime_with_z(datetime.now(UTC))
     await set_redis_value(redis_client, get_camera_online_cache_key(camera_id), "1", ex=ttl)
