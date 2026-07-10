@@ -11,7 +11,8 @@ from sqlalchemy import select
 
 from app.api.auth.models import OAuthAccount
 from app.api.auth.services.oauth import google_youtube_oauth_client
-from app.api.common.crud.query import require_model
+from app.api.common.crud.query import get_model
+from app.api.common.crud.utils import ensure_model_exists
 from app.api.common.exceptions import APIError
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.schemas.base import serialize_datetime_with_z
@@ -147,6 +148,12 @@ async def stop_youtube_recording(
     youtube_service = await _build_youtube_service(session, http_client, current_user)
     camera_request = build_camera_request(camera, redis)
 
+    # Look the Video row up without raising: stopping the public broadcast must not be
+    # skipped just because its bookkeeping row was deleted mid-recording (Product.videos
+    # cascades, and there is a user-facing video DELETE). Ending the livestream and the
+    # Pi stream are the irreversible, privacy-critical steps, so they run unconditionally.
+    video = await get_model(session, Video, recording_session.video_id)
+
     await youtube_service.end_livestream(recording_session.broadcast_key)
 
     try:
@@ -162,9 +169,10 @@ async def stop_youtube_recording(
             sanitize_log_value(camera_cleanup_error),
         )
 
-    video = await require_model(session, Video, recording_session.video_id)
+    # Clear before raising on a missing row: YouTube rejects ending an already-completed
+    # broadcast, so leaving the session cached would make every retry fail forever.
     await clear_recording_session(redis, session, camera_id)
-    return VideoRead.model_validate(video)
+    return VideoRead.model_validate(ensure_model_exists(video, Video, recording_session.video_id))
 
 
 async def get_youtube_recording_monitor_stream(
@@ -254,7 +262,10 @@ async def _resolve_existing_recording(
             error_msg="Failed to verify existing recording stream",
         )
         stream_view = _validate_stream_view(response.json())
-    except (HTTPException, APIError) as exc:
+    except APIError as exc:
+        # Only a YouTube-side APIError means the cached session is genuinely dead. An
+        # HTTPException here is a transient relay failure (e.g. camera briefly offline);
+        # clearing on that would orphan a still-live broadcast and lose its Video link.
         logger.warning(
             "Cached recording session for camera %s could not be verified (%s); clearing",
             sanitize_log_value(camera_id),

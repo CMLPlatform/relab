@@ -9,6 +9,7 @@ from httpx import Response
 
 from app.api.auth.exceptions import UserOwnershipError
 from app.api.auth.models import OAuthAccount
+from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.exceptions import ServiceUnavailableError
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Video
@@ -291,7 +292,7 @@ async def test_start_youtube_recording_rolls_back_created_video_when_session_sto
 @patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")
 @patch("app.api.plugins.rpi_cam.services.recording_service.YouTubeService")
-@patch("app.api.plugins.rpi_cam.services.recording_service.require_model", new_callable=AsyncMock)
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_model", new_callable=AsyncMock)
 async def test_stop_youtube_recording_returns_existing_video_and_tolerates_camera_cleanup_failure(
     mock_require_model: AsyncMock,
     mock_yt_service_class: MagicMock,
@@ -336,6 +337,48 @@ async def test_stop_youtube_recording_returns_existing_video_and_tolerates_camer
     mock_require_model.assert_awaited_once_with(session_mock, Video, 42)
     mock_yt_service.end_livestream.assert_awaited_once_with(FAKE_BROADCAST_KEY)
     redis_mock.delete.assert_awaited_once()
+
+
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
+@patch("app.api.plugins.rpi_cam.services.recording_service.build_camera_request")
+@patch("app.api.plugins.rpi_cam.services.recording_service.YouTubeService")
+@patch("app.api.plugins.rpi_cam.services.recording_service.get_model", new_callable=AsyncMock)
+async def test_stop_youtube_recording_still_ends_livestream_when_video_missing(
+    mock_get_model: AsyncMock,
+    mock_yt_service_class: MagicMock,
+    mock_build_camera_request: MagicMock,
+    mock_get_cam: MagicMock,
+    mock_camera: Camera,
+) -> None:
+    """A deleted Video row must not strand a live public broadcast.
+
+    Ending the livestream is irreversible and privacy-critical, so it runs even when the
+    bookkeeping row is gone. The session is cleared before raising, because YouTube rejects
+    ending an already-completed broadcast and a cached session would make retries fail forever.
+    """
+    mock_get_cam.return_value = mock_camera
+    mock_get_model.return_value = None
+    mock_build_camera_request.return_value = AsyncMock()
+    redis_mock = AsyncMock()
+    redis_mock.get.return_value = build_recording_session(video_id=42).model_dump_json()
+
+    mock_yt_service = AsyncMock()
+    mock_yt_service_class.return_value = mock_yt_service
+
+    session_mock = AsyncMock()
+    session_mock.scalar.return_value = build_oauth_account()
+
+    with pytest.raises(ModelNotFoundError):
+        await stop_youtube_recording(
+            camera_id=require_uuid(mock_camera.id),
+            session=session_mock,
+            http_client=AsyncMock(),
+            redis=redis_mock,
+            current_user=build_user(),
+        )
+
+    mock_yt_service.end_livestream.assert_awaited_once()
+    redis_mock.delete.assert_awaited()
 
 
 @patch("app.api.plugins.rpi_cam.services.recording_service.get_user_owned_camera")
