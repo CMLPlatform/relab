@@ -22,7 +22,10 @@ async function flushLoad() {
 function render({
   productId = 42 as number | null,
   imageCount = 3,
-}: { productId?: number | null; imageCount?: number } = {}) {
+}: {
+  productId?: number | null;
+  imageCount?: number;
+} = {}) {
   const onRestore = jest.fn();
   const hook = renderHook(() => useGalleryIndexPersistence({ productId, imageCount, onRestore }));
   return { ...hook, onRestore };
