@@ -161,30 +161,17 @@ function buildTable(
   return table;
 }
 
-function buildChart(series: SeriesPoint[], measure: Measure): SVGSVGElement {
-  const values = series.map((point) => point[measure.key]);
-  const { yMax, ticks } = buildScale(Math.max(1, ...values), !measure.fractional);
-  const { unit, format, formatValue } = axisScale(measure, yMax);
+/** Chart geometry shared by the layer builders below. */
+interface Geom {
+  x: (i: number) => number;
+  y: (v: number) => number;
+  colW: number;
+  unit: string;
+  formatValue: (v: number) => string;
+}
 
-  const colW = INNER_W / series.length;
-  const barW = Math.min(MAX_BAR_W, colW * 0.6);
-  const x = (i: number) => PAD.left + (i + 0.5) * colW;
-  const y = (v: number) => PAD.top + INNER_H - (v / yMax) * INNER_H;
-
-  const total = values.reduce((sum, v) => sum + v, 0);
-  const root = svg('svg', {
-    viewBox: `0 0 ${W} ${H}`,
-    width: '100%',
-    role: 'img',
-    tabindex: '0',
-    preserveAspectRatio: 'xMidYMid meet',
-    'aria-label':
-      `${measure.label} per month (${measure.noun}): ${formatValue(total)}${unit} across the last ` +
-      `${series.length} months, ${monthLabel(series[0].period)} to ` +
-      `${monthLabel(series[series.length - 1].period)}. Full figures are in the table below.`,
-  });
-
-  // Gridlines + y-axis ticks: solid hairlines, one shade off the surface.
+/** Gridlines + y-axis ticks: solid hairlines, one shade off the surface. */
+function buildGrid(ticks: number[], y: Geom['y'], format: (v: number) => string): SVGGElement {
   const grid = svg('g', { class: 'stats-chart-grid' });
   for (const tick of ticks) {
     grid.appendChild(svg('line', { x1: PAD.left, x2: W - PAD.right, y1: y(tick), y2: y(tick) }));
@@ -196,16 +183,16 @@ function buildChart(series: SeriesPoint[], measure: Measure): SVGSVGElement {
       ),
     );
   }
-  root.appendChild(grid);
+  return grid;
+}
 
-  // Behind the bars, so the rule never cuts across the mark it is pointing at.
-  const crosshairLayer = svg('g', { class: 'stats-chart-crosshair' });
-  const crosshair = svg('line', { y1: PAD.top, y2: PAD.top + INNER_H });
-  crosshairLayer.appendChild(crosshair);
-  root.appendChild(crosshairLayer);
+function buildBars(series: SeriesPoint[], measure: Measure, geom: Geom): SVGGElement {
+  const { x, y, colW, unit, formatValue } = geom;
+  const barW = Math.min(MAX_BAR_W, colW * 0.6);
+  const values = series.map((point) => point[measure.key]);
+  const peak = values.indexOf(Math.max(...values));
 
   const bars = svg('g', { class: 'stats-chart-bars' });
-  const peak = values.indexOf(Math.max(...values));
   series.forEach((point, i) => {
     const value = point[measure.key];
     const height = PAD.top + INNER_H - y(value);
@@ -238,7 +225,14 @@ function buildChart(series: SeriesPoint[], measure: Measure): SVGSVGElement {
       );
     }
   });
-  root.appendChild(bars);
+  return bars;
+}
+
+/** Static crosshair and tooltip nodes; `show` positions them per column. */
+function buildTipNodes() {
+  const crosshairLayer = svg('g', { class: 'stats-chart-crosshair' });
+  const crosshair = svg('line', { y1: PAD.top, y2: PAD.top + INNER_H });
+  crosshairLayer.appendChild(crosshair);
 
   // `hidden` is an HTML attribute and does nothing on SVG elements, so
   // visibility is driven by a class both layers share.
@@ -260,7 +254,23 @@ function buildChart(series: SeriesPoint[], measure: Measure): SVGSVGElement {
   const tipGroup = svg('g');
   tipGroup.append(box, tipLabel, tipValue);
   tip.append(dot, tipGroup);
-  root.appendChild(tip);
+
+  return { crosshairLayer, crosshair, tip, tipGroup, dot, tipLabel, tipValue };
+}
+
+/**
+ * Crosshair + tooltip + hit targets, wired to pointer and keyboard. Root
+ * listeners live here too; the caller only decides z-order via the returned
+ * groups (crosshair behind the bars, tip and hits in front).
+ */
+function buildTooltip(
+  root: SVGSVGElement,
+  series: SeriesPoint[],
+  measure: Measure,
+  geom: Geom,
+): { crosshairLayer: SVGGElement; tip: SVGGElement; hits: SVGGElement } {
+  const { x, y, colW, unit, formatValue } = geom;
+  const { crosshairLayer, crosshair, tip, tipGroup, dot, tipLabel, tipValue } = buildTipNodes();
 
   let active: number | null = null;
   const show = (i: number | null): void => {
@@ -293,7 +303,6 @@ function buildChart(series: SeriesPoint[], measure: Measure): SVGSVGElement {
     hit.addEventListener('mouseenter', () => show(i));
     hits.appendChild(hit);
   });
-  root.appendChild(hits);
 
   root.addEventListener('mouseleave', () => show(null));
   root.addEventListener('blur', () => show(null));
@@ -310,6 +319,44 @@ function buildChart(series: SeriesPoint[], measure: Measure): SVGSVGElement {
     show(Math.min(Math.max(next, 0), series.length - 1));
   });
 
+  return { crosshairLayer, tip, hits };
+}
+
+function buildChart(series: SeriesPoint[], measure: Measure): SVGSVGElement {
+  const values = series.map((point) => point[measure.key]);
+  const { yMax, ticks } = buildScale(Math.max(1, ...values), !measure.fractional);
+  const { unit, format, formatValue } = axisScale(measure, yMax);
+
+  const colW = INNER_W / series.length;
+  const geom: Geom = {
+    x: (i) => PAD.left + (i + 0.5) * colW,
+    y: (v) => PAD.top + INNER_H - (v / yMax) * INNER_H,
+    colW,
+    unit,
+    formatValue,
+  };
+
+  const total = values.reduce((sum, v) => sum + v, 0);
+  const root = svg('svg', {
+    viewBox: `0 0 ${W} ${H}`,
+    width: '100%',
+    role: 'img',
+    tabindex: '0',
+    preserveAspectRatio: 'xMidYMid meet',
+    'aria-label':
+      `${measure.label} per month (${measure.noun}): ${formatValue(total)}${unit} across the last ` +
+      `${series.length} months, ${monthLabel(series[0].period)} to ` +
+      `${monthLabel(series[series.length - 1].period)}. Full figures are in the table below.`,
+  });
+
+  const { crosshairLayer, tip, hits } = buildTooltip(root, series, measure, geom);
+  root.append(
+    buildGrid(ticks, geom.y, format),
+    crosshairLayer,
+    buildBars(series, measure, geom),
+    tip,
+    hits,
+  );
   return root;
 }
 

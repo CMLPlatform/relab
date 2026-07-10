@@ -55,10 +55,14 @@
       }
     },
     {
-      // Test fixtures can include placeholders that look like secrets.
+      // Test fixtures can include placeholders that look like secrets, and
+      // describe/it blocks are naturally long without being real functions.
       "includes": ["e2e/**/*.ts", "src/**/*.test.ts"],
       "linter": {
         "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          },
           "security": {
             "noSecrets": "off"
           }
