@@ -10,6 +10,11 @@ const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const VIEW_IMAGE_LABEL_PATTERN = /^View image \d+$/;
 const DISMISS_BUTTON_NAMES = ['Got it', 'Maybe later', 'Continue'] as const;
+// RN Paper's web Menu Portal collapses its layout measurement under CPU load,
+// tearing items down before we can catch them. Each open attempt is an
+// independent chance to hit a stable measurement, so a generous budget keeps
+// first-pass reliability high without leaning on full-test retries.
+const MENU_OPEN_ATTEMPTS = 8;
 
 function makeOnboardingUsername() {
   return `e2e_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
@@ -109,7 +114,7 @@ export async function openMenu(page: Page, anchor: Locator) {
   // Ensure the anchor is attached and actionable before we start dispatching clicks.
   await anchor.waitFor({ state: 'visible', timeout: 10_000 });
 
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < MENU_OPEN_ATTEMPTS; attempt++) {
     // Alternate click strategies: Playwright's trusted click first, then a
     // synthetic DOM click via element.click(). RN Paper's IconButton in
     // contained-tonal mode occasionally drops the first pointer event under
@@ -136,7 +141,7 @@ export async function openMenu(page: Page, anchor: Locator) {
       await page.keyboard.press('Escape').catch(() => {});
     }
   }
-  throw new Error('Menu anchor did not open a menu after 4 attempts');
+  throw new Error(`Menu anchor did not open a menu after ${MENU_OPEN_ATTEMPTS} attempts`);
 }
 
 /**
@@ -149,7 +154,7 @@ export async function openMenu(page: Page, anchor: Locator) {
 export async function selectMenuItem(page: Page, anchor: Locator, label: string) {
   await anchor.waitFor({ state: 'visible', timeout: 10_000 });
 
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < MENU_OPEN_ATTEMPTS; attempt++) {
     // biome-ignore lint/performance/noAwaitInLoops: sequential retry.
     await (attempt % 2 === 0
       ? anchor.click({ force: true })
@@ -175,7 +180,9 @@ export async function selectMenuItem(page: Page, anchor: Locator, label: string)
       await page.keyboard.press('Escape').catch(() => {});
     }
   }
-  throw new Error(`Could not open menu and click item "${label}" after 4 attempts`);
+  throw new Error(
+    `Could not open menu and click item "${label}" after ${MENU_OPEN_ATTEMPTS} attempts`,
+  );
 }
 
 export async function openSeededProductFromProductsPage(page: Page) {
