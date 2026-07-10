@@ -227,12 +227,25 @@ require_confirmation() {
     local example="$2"
     local force_example="$3"
 
-    if [[ "$DEPLOY_CONFIRMED" == "true" || "${FORCE:-}" == "1" || "${FORCE:-}" == "true" || "${FORCE:-}" == "YES" ]]; then
+    if [[ "${DEPLOY_CONFIRMED:-false}" == "true" || "${FORCE:-}" == "1" || "${FORCE:-}" == "true" || "${FORCE:-}" == "YES" ]]; then
         return 0
     fi
     echo "Refusing to $action without explicit confirmation."
     echo "Use '$example' or '$force_example'."
     exit 1
+}
+
+# Entry point for the justfile's `_require-confirm`, so the YES/FORCE rule above is
+# the only copy in the repo.
+require_confirmation_command() {
+    local confirm="${4:-}"
+
+    DEPLOY_CONFIRMED=false
+    if [[ "$confirm" == "YES" ]]; then
+        DEPLOY_CONFIRMED=true
+    fi
+
+    require_confirmation "$1" "$2" "$3"
 }
 
 stack_command() {
@@ -294,8 +307,11 @@ main() {
         stack)
             stack_command "${2:-}" "${3:-}" "${@:4}"
             ;;
+        require-confirm)
+            require_confirmation_command "${2:-}" "${3:-}" "${4:-}" "${5:-}"
+            ;;
         *)
-            echo "Usage: $0 {compose-config|deploy-secrets-check|deploy-secrets-template ENV|stack ENV ACTION [ARGS...]}" >&2
+            echo "Usage: $0 {compose-config|deploy-secrets-check|deploy-secrets-template ENV|stack ENV ACTION [ARGS...]|require-confirm ACTION EXAMPLE FORCE_EXAMPLE [YES]}" >&2
             echo "ENV for deploy-secrets-template must be dev, prod, or staging" >&2
             exit 2
             ;;

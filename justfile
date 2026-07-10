@@ -403,19 +403,9 @@ staging-migrate confirm='':
 ### Smoke tests for test Docker images and orchestration ---
 
 # Internal helper: require explicit confirmation for state-changing commands.
+# Delegates to deploy_ops.sh, which owns the one copy of the YES/FORCE rule.
 _require-confirm action example force_example confirm='':
-    #!/usr/bin/env bash
-    set -euo pipefail
-    action={{ quote(action) }}
-    example={{ quote(example) }}
-    force_example={{ quote(force_example) }}
-    confirm={{ quote(confirm) }}
-    if [ "$confirm" = "YES" ] || [ "${FORCE:-}" = "1" ] || [ "${FORCE:-}" = "true" ] || [ "${FORCE:-}" = "YES" ]; then
-        exit 0
-    fi
-    echo "Refusing to $action without explicit confirmation."
-    echo "Use '$example' or '$force_example'."
-    exit 1
+    @bash scripts/deploy_ops.sh require-confirm {{ quote(action) }} {{ quote(example) }} {{ quote(force_example) }} {{ quote(confirm) }}
 
 # Internal helper: bring up a CI compose subset and wait for readiness.
 _docker-smoke-up services timeout:
