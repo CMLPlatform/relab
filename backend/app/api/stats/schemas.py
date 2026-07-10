@@ -1,6 +1,7 @@
 """Response schemas for the public system-wide stats endpoints."""
 
 from datetime import date, datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
@@ -26,14 +27,34 @@ class TotalsResponse(BaseModel):
     totals: Totals
 
 
+class CategoryScope(StrEnum):
+    """Which population a category breakdown counts.
+
+    A product's category is its own ``product_type``, and every product carries
+    one -- including components. A laptop torn down into a PCB and a screw
+    contributes one product to "Laptop" and one component each to "PCB" and
+    "Screw"; it contributes nothing to "Laptop" from its components. So the
+    population being categorised has to be chosen explicitly:
+
+    - ``PRODUCTS``: top-level products only (``parent_id IS NULL``) -- the
+      things that were torn down.
+    - ``COMPONENTS``: components only (``parent_id IS NOT NULL``) -- the parts
+      extracted from them, categorised by the part's own type.
+    - ``ALL``: both, categorised the same way.
+    """
+
+    PRODUCTS = "products"
+    COMPONENTS = "components"
+    ALL = "all"
+
+
 class CategoryStat(BaseModel):
-    """Teardown and part counts for a single category."""
+    """Count of products in a single category, within the requested scope."""
 
     model_config = ConfigDict(frozen=True)
 
     name: str
-    teardowns: int
-    parts: int
+    count: int
 
 
 class CategoriesResponse(BaseModel):
@@ -43,6 +64,7 @@ class CategoriesResponse(BaseModel):
 
     generated_at: datetime
     limit: int
+    scope: CategoryScope
     categories: list[CategoryStat]
 
 

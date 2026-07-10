@@ -12,14 +12,14 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.stats.router import router
-from app.api.stats.schemas import CategoryStat, SeriesPoint, Totals
+from app.api.stats.schemas import CategoryScope, CategoryStat, SeriesPoint, Totals
 from app.core.cache import _cache_state, init_cache
 from app.core.database import get_async_session
 
 _NOW = datetime(2026, 6, 30, 6, 0, 0, tzinfo=UTC)
 
 _FAKE_TOTALS = Totals(teardowns=10, parts=50, mass_kg=5.5, images=200, users=8)
-_FAKE_CATEGORIES = [CategoryStat(name="Electronics", teardowns=6, parts=30)]
+_FAKE_CATEGORIES = [CategoryStat(name="Electronics", count=6)]
 _FAKE_SERIES = [
     SeriesPoint(period="2026-06", teardowns=2, parts=10, mass_kg=1.1, images=40, users_new=1, users_active=1)
 ]
@@ -58,7 +58,8 @@ def test_returns_200_with_categories(client: TestClient) -> None:
     assert resp.status_code == 200
     body = resp.json()
     assert body["limit"] == 25
-    assert body["categories"][0]["name"] == "Electronics"
+    assert body["scope"] == "products"  # top-level products unless asked otherwise
+    assert body["categories"][0] == {"name": "Electronics", "count": 6}
 
 
 def test_limit_param_forwarded(client: TestClient) -> None:
@@ -71,11 +72,23 @@ def test_limit_param_forwarded(client: TestClient) -> None:
     assert mock.call_args[0][1] == 10  # second positional arg is limit
 
 
+@pytest.mark.parametrize("scope", ["products", "components", "all"])
+def test_scope_param_forwarded_and_echoed(client: TestClient, scope: str) -> None:
+    """Scope reaches the query and is echoed back, so the client knows what it got."""
+    mock = AsyncMock(return_value=(_FAKE_CATEGORIES, _NOW))
+    with patch("app.api.stats.router.compute_categories", mock):
+        resp = client.get(f"/v1/stats/categories?scope={scope}")
+    assert resp.status_code == 200
+    assert resp.json()["scope"] == scope
+    assert mock.call_args[0][2] == CategoryScope(scope)  # third positional arg is scope
+
+
 @pytest.mark.parametrize(
     "query",
     [
         "/v1/stats/categories?limit=101",  # limit above max
         "/v1/stats/categories?limit=0",  # limit below min
+        "/v1/stats/categories?scope=widgets",  # unknown scope
         "/v1/stats/series?granularity=quarter",  # invalid granularity
         "/v1/stats/series?start=01/01/2025",  # invalid date format
     ],

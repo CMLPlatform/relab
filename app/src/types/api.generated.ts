@@ -2600,7 +2600,10 @@ export interface paths {
     };
     /**
      * Get Stats Categories
-     * @description Non-zero product categories ordered by teardown count, capped at limit (max 100).
+     * @description Product categories ordered by count, capped at limit (max 100).
+     *
+     *     `scope` selects what is counted: `products` (top-level products only, the
+     *     default), `components` (categorised by the component's own type), or `all`.
      */
     get: operations['get_stats_categories_v1_stats_categories_get'];
     put?: never;
@@ -3103,6 +3106,7 @@ export interface components {
       generated_at: string;
       /** Limit */
       limit: number;
+      scope: components['schemas']['CategoryScope'];
       /** Categories */
       categories: components['schemas']['CategoryStat'][];
     };
@@ -3339,16 +3343,32 @@ export interface components {
       subcategories?: components['schemas']['CategoryReadAsSubCategory'][];
     };
     /**
+     * CategoryScope
+     * @description Which population a category breakdown counts.
+     *
+     *     A product's category is its own ``product_type``, and every product carries
+     *     one -- including components. A laptop torn down into a PCB and a screw
+     *     contributes one product to "Laptop" and one component each to "PCB" and
+     *     "Screw"; it contributes nothing to "Laptop" from its components. So the
+     *     population being categorised has to be chosen explicitly:
+     *
+     *     - ``PRODUCTS``: top-level products only (``parent_id IS NULL``) -- the
+     *       things that were torn down.
+     *     - ``COMPONENTS``: components only (``parent_id IS NOT NULL``) -- the parts
+     *       extracted from them, categorised by the part's own type.
+     *     - ``ALL``: both, categorised the same way.
+     * @enum {string}
+     */
+    CategoryScope: 'products' | 'components' | 'all';
+    /**
      * CategoryStat
-     * @description Teardown and part counts for a single category.
+     * @description Count of products in a single category, within the requested scope.
      */
     CategoryStat: {
       /** Name */
       name: string;
-      /** Teardowns */
-      teardowns: number;
-      /** Parts */
-      parts: number;
+      /** Count */
+      count: number;
     };
     /**
      * CategoryUpdate
@@ -11428,6 +11448,7 @@ export interface operations {
     parameters: {
       query?: {
         limit?: number;
+        scope?: components['schemas']['CategoryScope'];
       };
       header?: never;
       path?: never;

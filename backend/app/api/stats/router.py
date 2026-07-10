@@ -9,7 +9,7 @@ from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.stats.helpers import resolve_date_range
 from app.api.stats.queries import compute_categories, compute_series, compute_totals
-from app.api.stats.schemas import CategoriesResponse, SeriesResponse, TotalsResponse
+from app.api.stats.schemas import CategoriesResponse, CategoryScope, SeriesResponse, TotalsResponse
 from app.core.cache import cache
 
 router = PublicAPIRouter(prefix="/stats", tags=["stats"])
@@ -34,10 +34,15 @@ async def get_stats_totals(session: AsyncSessionDep) -> TotalsResponse:
 async def get_stats_categories(
     session: AsyncSessionDep,
     limit: Annotated[int, _LIMIT_QUERY] = 25,
+    scope: CategoryScope = Query(default=CategoryScope.PRODUCTS),
 ) -> CategoriesResponse:
-    """Non-zero product categories ordered by teardown count, capped at limit (max 100)."""
-    categories, generated_at = await compute_categories(session, limit)
-    return CategoriesResponse(generated_at=generated_at, limit=limit, categories=categories)
+    """Product categories ordered by count, capped at limit (max 100).
+
+    `scope` selects what is counted: `products` (top-level products only, the
+    default), `components` (categorised by the component's own type), or `all`.
+    """
+    categories, generated_at = await compute_categories(session, limit, scope)
+    return CategoriesResponse(generated_at=generated_at, limit=limit, scope=scope, categories=categories)
 
 
 @router.get("/series", response_model=SeriesResponse)

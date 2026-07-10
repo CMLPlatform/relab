@@ -881,11 +881,15 @@
           "limit": {
             "title": "Limit",
             "type": "integer"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/CategoryScope"
           }
         },
         "required": [
           "generated_at",
           "limit",
+          "scope",
           "categories"
         ],
         "title": "CategoriesResponse",
@@ -1283,26 +1287,31 @@
         "title": "CategoryReadWithRelationshipsAndFlatSubCategories",
         "type": "object"
       },
+      "CategoryScope": {
+        "description": "Which population a category breakdown counts.\n\nA product's category is its own ``product_type``, and every product carries\none -- including components. A laptop torn down into a PCB and a screw\ncontributes one product to \"Laptop\" and one component each to \"PCB\" and\n\"Screw\"; it contributes nothing to \"Laptop\" from its components. So the\npopulation being categorised has to be chosen explicitly:\n\n- ``PRODUCTS``: top-level products only (``parent_id IS NULL``) -- the\n  things that were torn down.\n- ``COMPONENTS``: components only (``parent_id IS NOT NULL``) -- the parts\n  extracted from them, categorised by the part's own type.\n- ``ALL``: both, categorised the same way.",
+        "enum": [
+          "products",
+          "components",
+          "all"
+        ],
+        "title": "CategoryScope",
+        "type": "string"
+      },
       "CategoryStat": {
-        "description": "Teardown and part counts for a single category.",
+        "description": "Count of products in a single category, within the requested scope.",
         "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
           "name": {
             "title": "Name",
             "type": "string"
-          },
-          "parts": {
-            "title": "Parts",
-            "type": "integer"
-          },
-          "teardowns": {
-            "title": "Teardowns",
-            "type": "integer"
           }
         },
         "required": [
           "name",
-          "teardowns",
-          "parts"
+          "count"
         ],
         "title": "CategoryStat",
         "type": "object"
@@ -16364,7 +16373,7 @@
     },
     "/v1/stats/categories": {
       "get": {
-        "description": "Non-zero product categories ordered by teardown count, capped at limit (max 100).",
+        "description": "Product categories ordered by count, capped at limit (max 100).\n\n`scope` selects what is counted: `products` (top-level products only, the\ndefault), `components` (categorised by the component's own type), or `all`.",
         "operationId": "get_stats_categories_v1_stats_categories_get",
         "parameters": [
           {
@@ -16377,6 +16386,15 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/CategoryScope",
+              "default": "products"
             }
           }
         ],

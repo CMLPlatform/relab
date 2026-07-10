@@ -13,7 +13,7 @@ from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.reference_data.models import ProductType
 from app.api.stats.helpers import format_period
-from app.api.stats.schemas import CategoryStat, SeriesPoint, Totals
+from app.api.stats.schemas import CategoryScope, CategoryStat, SeriesPoint, Totals
 
 if TYPE_CHECKING:
     from datetime import date
@@ -48,26 +48,37 @@ async def compute_totals(session: AsyncSession) -> tuple[Totals, datetime]:
     )
 
 
-async def compute_categories(session: AsyncSession, limit: int) -> tuple[list[CategoryStat], datetime]:
-    """Return non-zero categories ordered by teardowns DESC, capped at limit."""
-    stmt = (
-        select(
-            ProductType.name,
-            func.count(Product.id).filter(Product.parent_id.is_(None)).label("teardowns"),
-            func.count(Product.id).filter(Product.parent_id.isnot(None)).label("parts"),
-        )
-        .join(Product, Product.product_type_id == ProductType.id)
-        .group_by(ProductType.name)
-        .having(func.count(Product.id) > 0)
-        .order_by(
-            func.count(Product.id).filter(Product.parent_id.is_(None)).desc(),
-            ProductType.name.asc(),
-        )
-        .limit(limit)
-    )
+# Each scope restricts the population before grouping. A product's category is
+# its own product_type -- a component is categorised as the component it is, not
+# as the product it came out of -- so the two populations never share a row.
+_SCOPE_FILTERS: dict[CategoryScope, ColumnElement[bool] | None] = {
+    CategoryScope.PRODUCTS: Product.parent_id.is_(None),
+    CategoryScope.COMPONENTS: Product.parent_id.isnot(None),
+    CategoryScope.ALL: None,
+}
+
+
+async def compute_categories(
+    session: AsyncSession,
+    limit: int,
+    scope: CategoryScope,
+) -> tuple[list[CategoryStat], datetime]:
+    """Return categories within `scope` ordered by count DESC, capped at limit.
+
+    The inner join means a category only appears once it has at least one
+    product in the requested scope, so zero-count rows never reach the client.
+    """
+    count_col = func.count(Product.id).label("count")
+    stmt = select(ProductType.name, count_col).join(Product, Product.product_type_id == ProductType.id)
+
+    scope_filter = _SCOPE_FILTERS[scope]
+    if scope_filter is not None:
+        stmt = stmt.where(scope_filter)
+
+    stmt = stmt.group_by(ProductType.name).order_by(count_col.desc(), ProductType.name.asc()).limit(limit)
 
     rows = (await session.execute(stmt)).all()
-    categories = [CategoryStat(name=row.name, teardowns=int(row.teardowns), parts=int(row.parts)) for row in rows]
+    categories = [CategoryStat(name=row.name, count=int(row.count)) for row in rows]
     return categories, datetime.now(UTC)
 
 
@@ -81,23 +92,32 @@ async def compute_series(
     start_dt = datetime(start.year, start.month, start.day, tzinfo=UTC)
     end_dt = datetime(end.year, end.month, end.day, tzinfo=UTC) + timedelta(days=1)
 
+    # One expression object per statement, reused by both SELECT and GROUP BY.
+    # Building it twice yields two separate bind parameters, which Postgres then
+    # reads as two different expressions -- it rejects the GROUP BY and demands
+    # the raw created_at column instead.
     def trunc(col: ColumnElement) -> ColumnElement:
         return func.date_trunc(granularity, col)
 
+    product_period = trunc(Product.created_at)
+    image_period = trunc(Image.created_at)
+    user_period = trunc(User.created_at)
+    active_user_period = trunc(Product.created_at)
+
     product_stmt = (
         select(
-            trunc(Product.created_at).label("period"),
+            product_period.label("period"),
             func.count(Product.id).filter(Product.parent_id.is_(None)).label("teardowns"),
             func.count(Product.id).filter(Product.parent_id.isnot(None)).label("parts"),
             func.coalesce(func.sum(Product.weight_g).filter(Product.parent_id.is_(None)), 0).label("total_weight_g"),
         )
         .where(Product.created_at >= start_dt, Product.created_at < end_dt)
-        .group_by(trunc(Product.created_at))
+        .group_by(product_period)
     )
 
     image_stmt = (
         select(
-            trunc(Image.created_at).label("period"),
+            image_period.label("period"),
             func.count(Image.id).label("images"),
         )
         .where(
@@ -105,25 +125,25 @@ async def compute_series(
             Image.created_at >= start_dt,
             Image.created_at < end_dt,
         )
-        .group_by(trunc(Image.created_at))
+        .group_by(image_period)
     )
 
     new_user_stmt = (
         select(
-            trunc(User.created_at).label("period"),
+            user_period.label("period"),
             func.count(User.id).label("users_new"),
         )
         .where(User.created_at >= start_dt, User.created_at < end_dt)
-        .group_by(trunc(User.created_at))
+        .group_by(user_period)
     )
 
     active_user_stmt = (
         select(
-            trunc(Product.created_at).label("period"),
+            active_user_period.label("period"),
             func.count(Product.owner_id.distinct()).label("users_active"),
         )
         .where(Product.created_at >= start_dt, Product.created_at < end_dt)
-        .group_by(trunc(Product.created_at))
+        .group_by(active_user_period)
     )
 
     products_result = await session.execute(product_stmt)
