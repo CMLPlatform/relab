@@ -39,6 +39,12 @@ describe('OAuth URL validation', () => {
     });
   });
 
+  // The association flows pass the browser session's URL straight in, unvalidated.
+  it('returns undefined for a malformed callback URL instead of throwing', () => {
+    expect(parseOAuthCallbackUrl('not a url')).toBeUndefined();
+    expect(parseOAuthCallbackUrl('')).toBeUndefined();
+  });
+
   it('rejects callbacks for a different scheme host or path', () => {
     expect(
       isExpectedOAuthCallbackUrl(

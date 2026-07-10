@@ -42,7 +42,16 @@ export function isExpectedOAuthCallbackUrl(url: string, redirectUri: string): bo
 }
 
 export function parseOAuthCallbackUrl(url: string): OAuthCallbackResult | undefined {
-  const callbackUrl = new URL(url);
+  // The association flows hand us the browser session's URL unvalidated, so a
+  // malformed one must read as "no callback here" rather than throw — same shape
+  // as the two guards above.
+  let callbackUrl: URL;
+  try {
+    callbackUrl = new URL(url);
+  } catch {
+    return undefined;
+  }
+
   const params = new URLSearchParams(callbackUrl.hash.replace(LEADING_HASH_PATTERN, ''));
   const status = params.get('status');
   const error = params.get('error');
