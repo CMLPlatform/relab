@@ -12,6 +12,7 @@ from app.api.auth.config import settings as auth_settings
 from app.api.auth.services.email.providers import EmailMessage, EmailProvider, build_email_provider
 from app.api.auth.services.email.templates import (
     ACCOUNT_RECOVERY_TEMPLATE,
+    OAUTH_WELCOME_TEMPLATE,
     POST_VERIFICATION_TEMPLATE,
     REGISTRATION_TEMPLATE,
     VERIFICATION_TEMPLATE,
@@ -189,6 +190,59 @@ async def send_recovery_codes_regenerated_notification(
         "MFA recovery-codes notification",
         background_tasks,
         provider or get_default_email_provider(),
+    )
+
+
+async def send_oauth_link_changed_notification(
+    to_email: EmailStr,
+    username: str | None,
+    *,
+    oauth_provider: str,
+    linked: bool,
+    background_tasks: BackgroundTasks | None = None,
+    provider: EmailProvider | None = None,
+) -> None:
+    """Notify a user out-of-band whenever a social login is linked or unlinked."""
+    display_name = escape(_display_name(username, to_email))
+    provider_label = escape(oauth_provider.capitalize())
+    change = "linked to" if linked else "unlinked from"
+    message = _build_message(
+        to_email,
+        f"A social login was {'linked' if linked else 'unlinked'}",
+        (
+            f"<p>Hello {display_name},</p>"
+            f"<p>{provider_label} was {change} your ReLab account. "
+            "If you did not make this change, reset your password and contact ReLab support immediately.</p>"
+        ),
+    )
+    await _dispatch(
+        message,
+        to_email,
+        "OAuth link-change notification",
+        background_tasks,
+        provider or get_default_email_provider(),
+    )
+
+
+async def send_oauth_welcome_notification(
+    to_email: EmailStr,
+    username: str | None,
+    *,
+    oauth_provider: str,
+    background_tasks: BackgroundTasks | None = None,
+    provider: EmailProvider | None = None,
+) -> None:
+    """Welcome a user who just created their account through a social login."""
+    await send_templated_email(
+        to_email=to_email,
+        subject="Welcome to ReLab",
+        template_name=OAUTH_WELCOME_TEMPLATE,
+        template_body={
+            "username": _display_name(username, to_email),
+            "provider_label": oauth_provider.capitalize(),
+        },
+        background_tasks=background_tasks,
+        provider=provider,
     )
 
 

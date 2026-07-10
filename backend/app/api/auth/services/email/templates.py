@@ -10,12 +10,14 @@ REGISTRATION_TEMPLATE = "registration.html"
 ACCOUNT_RECOVERY_TEMPLATE = "password_reset.html"
 VERIFICATION_TEMPLATE = "verification.html"
 POST_VERIFICATION_TEMPLATE = "post_verification.html"
+OAUTH_WELCOME_TEMPLATE = "oauth_welcome.html"
 
 type EmailTemplateName = Literal[
     "registration.html",
     "password_reset.html",
     "verification.html",
     "post_verification.html",
+    "oauth_welcome.html",
 ]
 
 
@@ -46,8 +48,19 @@ class PostVerificationTemplateBody(TypedDict):
     username: str
 
 
+class OAuthWelcomeTemplateBody(TypedDict):
+    """Template context for social-login welcome emails."""
+
+    username: str
+    provider_label: str
+
+
 type EmailTemplateBody = (
-    RegistrationTemplateBody | PasswordResetTemplateBody | VerificationTemplateBody | PostVerificationTemplateBody
+    RegistrationTemplateBody
+    | PasswordResetTemplateBody
+    | VerificationTemplateBody
+    | PostVerificationTemplateBody
+    | OAuthWelcomeTemplateBody
 )
 
 TEMPLATE_REQUIRED_FIELDS: dict[EmailTemplateName, frozenset[str]] = {
@@ -55,6 +68,7 @@ TEMPLATE_REQUIRED_FIELDS: dict[EmailTemplateName, frozenset[str]] = {
     ACCOUNT_RECOVERY_TEMPLATE: frozenset({"username", "reset_link"}),
     VERIFICATION_TEMPLATE: frozenset({"username", "verification_link"}),
     POST_VERIFICATION_TEMPLATE: frozenset({"username"}),
+    OAUTH_WELCOME_TEMPLATE: frozenset({"username", "provider_label"}),
 }
 
 template_environment = Environment(

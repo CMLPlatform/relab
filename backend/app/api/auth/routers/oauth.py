@@ -1,6 +1,6 @@
 """OAuth-related routes."""
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, BackgroundTasks, status
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.services.oauth import accounts as oauth_accounts
@@ -21,6 +21,12 @@ async def remove_oauth_association(
     provider: str,
     current_user: CurrentActiveUserDep,
     session: AsyncSessionDep,
+    background_tasks: BackgroundTasks,
 ) -> None:
     """Remove a linked OAuth account."""
-    await oauth_accounts.remove_oauth_association(provider=provider, current_user=current_user, session=session)
+    await oauth_accounts.remove_oauth_association(
+        provider=provider,
+        current_user=current_user,
+        session=session,
+        background_tasks=background_tasks,
+    )

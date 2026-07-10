@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Annotated, Any, Protocol, cast
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
 from fastapi.responses import Response as FastAPIResponse
 from fastapi_users import schemas
 from fastapi_users.models import UserOAuthProtocol
@@ -17,6 +17,7 @@ from app.api.auth.exceptions import (
     OAuthInvalidStateError,
 )
 from app.api.auth.models import OAuthAccount, User
+from app.api.auth.services.email.service import send_oauth_link_changed_notification
 from app.api.auth.services.oauth.base import (
     OAuthFlowConfig,
     authorize_callback_dependency,
@@ -127,6 +128,7 @@ def build_oauth_associate_router(
         user: Annotated[User, Depends(get_current_active_user)],
         access_token_state: Annotated[tuple[OAuth2Token, str], Depends(oauth2_authorize_callback)],
         user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
+        background_tasks: BackgroundTasks,
     ) -> Response | schemas.U:
         return await handle_oauth_associate_callback(
             config,
@@ -135,6 +137,7 @@ def build_oauth_associate_router(
             access_token_state,
             user_manager,
             user_schema=user_schema,
+            background_tasks=background_tasks,
         )
 
     router.add_api_route(
@@ -156,6 +159,7 @@ async def handle_oauth_associate_callback(
     user_manager: UserManager,
     *,
     user_schema: type[schemas.U],
+    background_tasks: BackgroundTasks | None = None,
 ) -> Response | schemas.U:
     """Handle one OAuth account-association callback after provider token exchange."""
     token, state = access_token_state
@@ -194,6 +198,13 @@ async def handle_oauth_associate_callback(
             token.get("expires_at"),
             token.get("refresh_token"),
             request,
+        )
+        await send_oauth_link_changed_notification(
+            user.email,
+            user.username,
+            oauth_provider=config.oauth_client.name,
+            linked=True,
+            background_tasks=background_tasks,
         )
 
     frontend_redirect = state_data.get(FRONTEND_REDIRECT_URI_KEY)

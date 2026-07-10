@@ -18,6 +18,10 @@ from app.api.auth.services.email import (
     send_reset_password_email,
     send_verification_email,
 )
+from app.api.auth.services.email.service import (
+    send_oauth_link_changed_notification,
+    send_oauth_welcome_notification,
+)
 from app.core.config import settings as core_settings
 
 if TYPE_CHECKING:
@@ -213,6 +217,46 @@ async def test_send_password_reset_confirmation_email_uses_plain_safe_message(
     assert "token=" not in message.html_body
     assert "/reset-password" not in message.html_body
     assert "password123" not in message.html_body
+
+
+async def test_send_oauth_welcome_notification_uses_template_contract(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """OAuth welcome emails render the username and provider label, without tokens."""
+    await send_oauth_welcome_notification(email_data["email"], email_data["username"], oauth_provider="google")
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert message.subject == "Welcome to ReLab"
+    assert email_data["username"] in message.html_body
+    assert "Google" in message.html_body
+    assert "token=" not in message.html_body
+
+
+@pytest.mark.parametrize(
+    ("linked", "expected_verb"),
+    [(True, "linked to"), (False, "unlinked from")],
+)
+async def test_send_oauth_link_changed_notification_reflects_action(
+    email_data: dict[str, str],
+    mock_email_sending: AsyncMock,
+    *,
+    linked: bool,
+    expected_verb: str,
+) -> None:
+    """OAuth link-change notifications name the provider and the direction of the change."""
+    await send_oauth_link_changed_notification(
+        email_data["email"], email_data["username"], oauth_provider="github", linked=linked
+    )
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert message.subject == ("A social login was linked" if linked else "A social login was unlinked")
+    assert f"Github was {expected_verb} your ReLab account" in message.html_body
+    assert email_data["username"] in message.html_body
+    assert "token=" not in message.html_body
 
 
 ### Parametrized Integration Tests ###

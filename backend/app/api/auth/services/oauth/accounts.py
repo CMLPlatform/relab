@@ -1,15 +1,23 @@
 """OAuth account persistence helpers."""
 
+from fastapi import BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.exceptions import InvalidOAuthProviderError, OAuthAccountNotLinkedError
 from app.api.auth.models import OAuthAccount, User
+from app.api.auth.services.email.service import send_oauth_link_changed_notification
 
 SUPPORTED_UNLINK_PROVIDERS = frozenset({"google", "github"})
 
 
-async def remove_oauth_association(*, provider: str, current_user: User, session: AsyncSession) -> None:
+async def remove_oauth_association(
+    *,
+    provider: str,
+    current_user: User,
+    session: AsyncSession,
+    background_tasks: BackgroundTasks | None = None,
+) -> None:
     """Remove a linked OAuth account for the current user."""
     if provider not in SUPPORTED_UNLINK_PROVIDERS:
         raise InvalidOAuthProviderError(provider)
@@ -26,3 +34,11 @@ async def remove_oauth_association(*, provider: str, current_user: User, session
 
     await session.delete(oauth_account)
     await session.commit()
+
+    await send_oauth_link_changed_notification(
+        current_user.email,
+        current_user.username,
+        oauth_provider=provider,
+        linked=False,
+        background_tasks=background_tasks,
+    )

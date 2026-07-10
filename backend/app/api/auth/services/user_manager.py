@@ -31,6 +31,7 @@ from app.api.auth.services.email import (
     send_reset_password_email,
     send_verification_email,
 )
+from app.api.auth.services.email.service import send_oauth_welcome_notification
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter, rate_limit_bucket_key
@@ -174,6 +175,25 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             await send_password_changed_notification(updated_user.email, updated_user.username)
 
         return updated_user
+
+    async def on_after_register(self, user: User, request: Request | None = None) -> None:
+        """Welcome social-login signups.
+
+        Password signups are emailed through the verification flow (``request_verify`` in the
+        register route), so only OAuth-created accounts — which are verified by the provider and
+        never request verification — need a welcome here. The linked OAuth account distinguishes
+        them: password signups have none at this point.
+        """
+        if not user.oauth_accounts:
+            return
+        background_tasks = getattr(getattr(request, "state", None), "background_tasks", None)
+        await send_oauth_welcome_notification(
+            user.email,
+            user.username,
+            oauth_provider=user.oauth_accounts[0].oauth_name,
+            background_tasks=background_tasks,
+        )
+        logger.info("OAuth welcome email sent to user %s", mask_email_for_log(user.email))
 
     async def on_after_request_verify(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
         """Send verification email after verification is requested."""

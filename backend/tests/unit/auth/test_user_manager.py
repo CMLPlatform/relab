@@ -449,3 +449,32 @@ async def test_delete_aborts_without_removing_the_row_when_revocation_fails() ->
         await manager.delete(user, request=request)
 
     manager.user_db.delete.assert_not_awaited()
+
+
+async def test_on_after_register_welcomes_oauth_signup() -> None:
+    """A user created via OAuth (with a linked account) receives a welcome email naming the provider."""
+    manager, _ = _make_manager()
+    oauth_account = MagicMock()
+    oauth_account.oauth_name = "google"
+    user = MagicMock()
+    user.email = "new@example.com"
+    user.username = "newuser"
+    user.oauth_accounts = [oauth_account]
+
+    with patch("app.api.auth.services.user_manager.send_oauth_welcome_notification", new_callable=AsyncMock) as welcome:
+        await manager.on_after_register(user, request=None)
+
+    welcome.assert_awaited_once()
+    assert welcome.await_args.kwargs["oauth_provider"] == "google"
+
+
+async def test_on_after_register_skips_password_signup() -> None:
+    """A password signup (no linked OAuth account) is not welcomed here; the verify flow emails it."""
+    manager, _ = _make_manager()
+    user = MagicMock()
+    user.oauth_accounts = []
+
+    with patch("app.api.auth.services.user_manager.send_oauth_welcome_notification", new_callable=AsyncMock) as welcome:
+        await manager.on_after_register(user, request=None)
+
+    welcome.assert_not_called()
