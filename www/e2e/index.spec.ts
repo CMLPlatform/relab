@@ -11,7 +11,7 @@ test.describe('Landing page', () => {
     await page.goto('/');
     await expect(page).toHaveTitle(HOMEPAGE_TITLE_PATTERN);
     await expectHomepageHero(page);
-    await expect(page.getByRole('link', { name: 'Go to the homepage' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'ReLab home' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Read the ReLab privacy policy' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'YouTube' })).toBeVisible();
     await expectThemeToggle(page);
