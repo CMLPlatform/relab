@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useAuth } from '@/context/auth';
 import {
   clearPendingMfaLogin,
@@ -23,6 +23,11 @@ export function useMfaScreen() {
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
+  // `isSubmitting` is state, so two submits in the same tick both read the stale
+  // `false` from their closure — and OtpInput auto-submits on its sixth digit while
+  // the button stays pressable. A ref is the only guard that single-flights this.
+  // A TOTP code and a recovery code are both single-use: a second submit burns it.
+  const inFlight = useRef(false);
 
   const activeCode = useRecoveryCode ? recoveryCode.trim() : code;
   const canSubmit =
@@ -41,7 +46,8 @@ export function useMfaScreen() {
         setError('MFA session expired. Please log in again.');
         return;
       }
-      if (submitCode.length < 6 || isSubmitting) return;
+      if (submitCode.length < 6 || inFlight.current) return;
+      inFlight.current = true;
       setSubmitting(true);
       setError(null);
       try {
@@ -63,10 +69,11 @@ export function useMfaScreen() {
       } catch (err) {
         setError(getErrorMessage(err, 'Invalid MFA code.'));
       } finally {
+        inFlight.current = false;
         setSubmitting(false);
       }
     },
-    [activeCode, isSubmitting, pending?.redirectTo, refetch, router, token],
+    [activeCode, pending?.redirectTo, refetch, router, token],
   );
 
   return {
