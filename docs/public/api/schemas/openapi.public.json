@@ -4793,6 +4793,18 @@
         "title": "RefreshTokenResponse",
         "type": "object"
       },
+      "RegistrationResponse": {
+        "description": "Uniform registration acknowledgement.\n\nDeliberately reveals nothing about whether the email already exists \u2014 the same\nbody is returned whether a new account was created or the address was already\ntaken \u2014 so registration cannot be used to enumerate accounts.",
+        "properties": {
+          "detail": {
+            "default": "If the email address is available, a verification link has been sent. Please check your inbox.",
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "title": "RegistrationResponse",
+        "type": "object"
+      },
       "RelayAuthScheme": {
         "description": "Authentication schemes understood by the device seam.",
         "enum": [
@@ -5281,39 +5293,6 @@
         ],
         "title": "Unit",
         "type": "string"
-      },
-      "UserReadProfile": {
-        "description": "Basic public profile info.",
-        "properties": {
-          "created_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created At"
-          },
-          "username": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Username"
-          }
-        },
-        "required": [
-          "created_at"
-        ],
-        "title": "UserReadProfile",
-        "type": "object"
       },
       "UserRegister": {
         "additionalProperties": false,
@@ -6225,7 +6204,7 @@
     },
     "/v1/auth/register": {
       "post": {
-        "description": "Register a new user.",
+        "description": "Register a new user, returning the same response whether or not the email is taken.",
         "operationId": "register_v1_auth_register_post",
         "requestBody": {
           "content": {
@@ -6238,11 +6217,11 @@
           "required": true
         },
         "responses": {
-          "201": {
+          "202": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserReadProfile"
+                  "$ref": "#/components/schemas/RegistrationResponse"
                 }
               }
             },

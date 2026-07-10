@@ -1453,7 +1453,7 @@ export interface paths {
     put?: never;
     /**
      * Register a new user
-     * @description Register a new user.
+     * @description Register a new user, returning the same response whether or not the email is taken.
      */
     post: operations['register_v1_auth_register_post'];
     delete?: never;
@@ -4827,6 +4827,21 @@ export interface components {
       expires_in: number;
     };
     /**
+     * RegistrationResponse
+     * @description Uniform registration acknowledgement.
+     *
+     *     Deliberately reveals nothing about whether the email already exists — the same
+     *     body is returned whether a new account was created or the address was already
+     *     taken — so registration cannot be used to enumerate accounts.
+     */
+    RegistrationResponse: {
+      /**
+       * Detail
+       * @default If the email address is available, a verification link has been sent. Please check your inbox.
+       */
+      detail: string;
+    };
+    /**
      * RelayAuthScheme
      * @description Authentication schemes understood by the device seam.
      * @enum {string}
@@ -5226,16 +5241,6 @@ export interface components {
       has_usable_password: boolean;
       /** @description User preferences. */
       preferences?: components['schemas']['UserPreferences'];
-    };
-    /**
-     * UserReadProfile
-     * @description Basic public profile info.
-     */
-    UserReadProfile: {
-      /** Username */
-      username?: string | null;
-      /** Created At */
-      created_at: string | null;
     };
     /**
      * UserRegister
@@ -9281,12 +9286,12 @@ export interface operations {
     };
     responses: {
       /** @description Successful Response */
-      201: {
+      202: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['UserReadProfile'];
+          'application/json': components['schemas']['RegistrationResponse'];
         };
       };
       /** @description Validation Error */

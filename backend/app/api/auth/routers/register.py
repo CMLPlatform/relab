@@ -4,18 +4,17 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
+from pydantic import BaseModel, Field
 
 from app.api.auth.crud import validate_user_create
 from app.api.auth.dependencies import UserManagerDep
 from app.api.auth.exceptions import (
     RegistrationInvalidPasswordHTTPError,
     RegistrationUnexpectedHTTPError,
-    RegistrationUserAlreadyExistsHTTPError,
 )
-from app.api.auth.models import User
 from app.api.auth.runtime_dependencies import get_email_checker
-from app.api.auth.schemas import UserReadProfile, UserRegister
-from app.api.auth.services.email import mask_email_for_log
+from app.api.auth.schemas import UserRegister
+from app.api.auth.services.email import mask_email_for_log, send_existing_account_notification
 from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT, limiter
 from app.api.common.exceptions import APIError
 
@@ -23,11 +22,26 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+_REGISTRATION_ACCEPTED_DETAIL = (
+    "If the email address is available, a verification link has been sent. Please check your inbox."
+)
+
+
+class RegistrationResponse(BaseModel):
+    """Uniform registration acknowledgement.
+
+    Deliberately reveals nothing about whether the email already exists — the same
+    body is returned whether a new account was created or the address was already
+    taken — so registration cannot be used to enumerate accounts.
+    """
+
+    detail: str = Field(default=_REGISTRATION_ACCEPTED_DETAIL)
+
 
 @router.post(
     "/register",
-    response_model=UserReadProfile,
-    status_code=status.HTTP_201_CREATED,
+    response_model=RegistrationResponse,
+    status_code=status.HTTP_202_ACCEPTED,
     summary="Register a new user",
     dependencies=[limiter.dependency(REGISTER_RATE_LIMIT)],
 )
@@ -35,12 +49,14 @@ async def register(
     request: Request,
     user_create: UserRegister,
     user_manager: UserManagerDep,
-) -> User:
-    """Register a new user."""
+) -> RegistrationResponse:
+    """Register a new user, returning the same response whether or not the email is taken."""
     try:
         email_checker = get_email_checker(request)
 
-        # Validate user creation data (username uniqueness and disposable email policy)
+        # Validate user creation data (username uniqueness and disposable email policy).
+        # Username collisions still 409 here — usernames are public, so there is nothing
+        # to hide, and the user needs to pick another.
         user_create = await validate_user_create(user_manager.user_db, user_create, email_checker)
 
         # Create the user through UserManager (handles password hashing, validation)
@@ -51,8 +67,11 @@ async def register(
 
         logger.info("User %s registered successfully", mask_email_for_log(user.email))
 
-    except UserAlreadyExists as e:
-        raise RegistrationUserAlreadyExistsHTTPError from e
+    except UserAlreadyExists:
+        # Privacy: never reveal that an email is already registered. Notify the existing
+        # address and fall through to the same accepted response as a fresh signup.
+        await send_existing_account_notification(user_create.email)
+        logger.info("Registration attempted for existing email %s", mask_email_for_log(user_create.email))
 
     except InvalidPasswordException as e:
         raise RegistrationInvalidPasswordHTTPError(e.reason) from e
@@ -63,5 +82,5 @@ async def register(
     except Exception as e:
         logger.exception("Unexpected error during user registration")
         raise RegistrationUnexpectedHTTPError from e
-    else:
-        return user
+
+    return RegistrationResponse()

@@ -68,17 +68,18 @@ async def start_totp_setup(api_client: AsyncClient) -> dict[str, str]:
 
 
 async def test_register_success(api_client: AsyncClient) -> None:
-    """Test successful user registration."""
+    """Test successful user registration returns the uniform accepted response."""
     user_data = {"email": TEST_EMAIL, "password": TEST_PASSWORD, "username": TEST_USERNAME}
 
     response = await api_client.post("/v1/auth/register", json=user_data)
 
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_202_ACCEPTED
     data = response.json()
-    assert data["username"] == user_data["username"]
-    assert "password" not in data
-    assert "hashed_password" not in data
+    # The response never echoes account data — it is identical whether or not the email existed.
+    assert "detail" in data
+    assert "username" not in data
     assert "email" not in data
+    assert "hashed_password" not in data
 
 
 async def test_register_requires_username(api_client: AsyncClient) -> None:
@@ -91,11 +92,11 @@ async def test_register_requires_username(api_client: AsyncClient) -> None:
     assert "username" in response.text
 
 
-async def test_register_duplicate_email(api_client: AsyncClient) -> None:
-    """Test registering with a duplicate email."""
+async def test_register_duplicate_email_is_not_enumerable(api_client: AsyncClient) -> None:
+    """A taken email returns the same accepted response as a fresh signup, and notifies the owner."""
     user_data = {"email": DUPLICATE_EMAIL, "password": TEST_PASSWORD, "username": UNIQUE_USERNAME}
 
-    await api_client.post("/v1/auth/register", json=user_data)
+    fresh = await api_client.post("/v1/auth/register", json=user_data)
 
     with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
         mock_create_override.return_value = UserCreate(
@@ -104,7 +105,13 @@ async def test_register_duplicate_email(api_client: AsyncClient) -> None:
             username=user_data["username"],
         )
 
-        with patch("app.api.auth.dependencies.get_user_manager") as mock_get_manager:
+        with (
+            patch("app.api.auth.dependencies.get_user_manager") as mock_get_manager,
+            patch(
+                "app.api.auth.routers.register.send_existing_account_notification",
+                new_callable=AsyncMock,
+            ) as mock_notify,
+        ):
             mock_manager = AsyncMock()
             mock_manager.create.side_effect = UserAlreadyExists()
 
@@ -112,22 +119,26 @@ async def test_register_duplicate_email(api_client: AsyncClient) -> None:
                 yield mock_manager
 
             mock_get_manager.return_value = get_manager()
-            response = await api_client.post("/v1/auth/register", json=user_data)
+            duplicate = await api_client.post("/v1/auth/register", json=user_data)
 
-    assert response.status_code == status.HTTP_409_CONFLICT
-    assert "already exists" in response.json()["detail"].lower()
+    # Identical status and body to the fresh registration — no way to tell the email was taken.
+    assert duplicate.status_code == fresh.status_code == status.HTTP_202_ACCEPTED
+    assert duplicate.json() == fresh.json()
+    # The real owner is still told a signup was attempted.
+    mock_notify.assert_awaited_once()
+    assert mock_notify.await_args.args[0] == user_data["email"]
 
 
-async def test_register_duplicate_canonical_email(api_client: AsyncClient) -> None:
-    """Canonical-equivalent email registrations should collide."""
+async def test_register_duplicate_canonical_email_stays_uniform(api_client: AsyncClient) -> None:
+    """Canonical-equivalent email registrations both return the accepted response."""
     first_user = {"email": "CaseSensitive@Example.com", "password": TEST_PASSWORD, "username": "case_first"}
     second_user = {"email": "casesensitive@example.com", "password": TEST_PASSWORD, "username": "case_second"}
 
     first_response = await api_client.post("/v1/auth/register", json=first_user)
     second_response = await api_client.post("/v1/auth/register", json=second_user)
 
-    assert first_response.status_code == status.HTTP_201_CREATED
-    assert second_response.status_code == status.HTTP_409_CONFLICT
+    assert first_response.status_code == status.HTTP_202_ACCEPTED
+    assert second_response.status_code == status.HTTP_202_ACCEPTED
 
 
 async def test_register_duplicate_username(api_client: AsyncClient) -> None:
@@ -552,7 +563,7 @@ async def test_login_with_canonical_email_equivalent(api_client: AsyncClient) ->
     user_data = {"email": "Login.Case@Example.com", "password": TEST_PASSWORD, "username": "login_case"}
 
     response = await api_client.post("/v1/auth/register", json=user_data)
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_202_ACCEPTED
 
     login_response = await api_client.post(
         "/v1/auth/bearer/login",

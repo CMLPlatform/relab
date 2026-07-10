@@ -29,7 +29,6 @@ from app.api.auth.exceptions import (
     RefreshTokenUserInactiveError,
     RegistrationInvalidPasswordHTTPError,
     RegistrationUnexpectedHTTPError,
-    RegistrationUserAlreadyExistsHTTPError,
     UserNameAlreadyExistsError,
     UserOwnershipError,
 )
@@ -126,7 +125,6 @@ def test_user_ownership_error_message() -> None:
         (OAuthUserAlreadyExistsHTTPError, {}, 400, ErrorCode.OAUTH_USER_ALREADY_EXISTS),
         (OAuthInactiveUserHTTPError, {}, 400, ErrorCode.LOGIN_BAD_CREDENTIALS),
         (OAuthAccountAlreadyLinkedError, {}, 400, "This account is already linked to another user."),
-        (RegistrationUserAlreadyExistsHTTPError, {}, 409, "already exists"),
         (RegistrationInvalidPasswordHTTPError, {"reason": "score below threshold"}, 400, "Password validation failed"),
         (RegistrationUnexpectedHTTPError, {}, 500, "An unexpected error occurred during registration"),
     ],

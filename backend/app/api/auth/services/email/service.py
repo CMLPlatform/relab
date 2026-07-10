@@ -224,6 +224,34 @@ async def send_oauth_link_changed_notification(
     )
 
 
+async def send_existing_account_notification(
+    to_email: EmailStr,
+    background_tasks: BackgroundTasks | None = None,
+    provider: EmailProvider | None = None,
+) -> None:
+    """Tell an address a signup was attempted for an account that already exists.
+
+    Lets registration return the same response whether or not the email is taken
+    (no account enumeration) while still telling the real owner what happened.
+    """
+    message = _build_message(
+        to_email,
+        "You already have a ReLab account",
+        (
+            "<p>Someone tried to create a ReLab account with this email address, but you already "
+            "have one. If this was you, just log in — or reset your password if you have forgotten it. "
+            "If it was not you, you can safely ignore this email.</p>"
+        ),
+    )
+    await _dispatch(
+        message,
+        to_email,
+        "Existing-account notification",
+        background_tasks,
+        provider or get_default_email_provider(),
+    )
+
+
 async def send_oauth_welcome_notification(
     to_email: EmailStr,
     username: str | None,

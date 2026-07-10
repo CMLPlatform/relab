@@ -44,7 +44,7 @@ async def register_user(api_client: AsyncClient, *, email: str, password: str, u
         mock_override.return_value = UserCreate(email=email, password=password, username=username)
         register_response = await api_client.post("/v1/auth/register", json=register_data)
 
-    assert register_response.status_code == status.HTTP_201_CREATED, "Registration failed"
+    assert register_response.status_code == status.HTTP_202_ACCEPTED, "Registration failed"
 
 
 async def test_full_bearer_auth_flow(

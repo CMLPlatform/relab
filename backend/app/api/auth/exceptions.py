@@ -191,13 +191,6 @@ class RegistrationHTTPError(HTTPException):
         super().__init__(status_code=status_code, detail=detail)
 
 
-class RegistrationUserAlreadyExistsHTTPError(RegistrationHTTPError):
-    """Raised when a registration email is already in use."""
-
-    def __init__(self) -> None:
-        super().__init__(detail="A user with this email already exists", status_code=status.HTTP_409_CONFLICT)
-
-
 class RegistrationInvalidPasswordHTTPError(RegistrationHTTPError):
     """Raised when password validation fails during registration."""
 
