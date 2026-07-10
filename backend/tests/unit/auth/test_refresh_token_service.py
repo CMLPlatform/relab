@@ -3,12 +3,14 @@
 import json
 import uuid
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from app.api.auth.exceptions import RefreshTokenInvalidError, RefreshTokenRevokedError
 from app.api.auth.services.refresh_token_service import (
+    _REUSE_GRACE_SECONDS,
+    _user_tokens_key,
     blacklist_token,
     create_refresh_token,
     revoke_all_user_tokens,
@@ -16,6 +18,7 @@ from app.api.auth.services.refresh_token_service import (
     verify_refresh_token,
 )
 from app.api.auth.services.token_store import token_key
+from app.api.common.audit import AuditAction
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -99,21 +102,59 @@ async def test_rotate_refresh_token_rejects_blacklisted_token(redis_client: Redi
         await rotate_refresh_token(redis_client, token)
 
 
-async def test_rotate_refresh_token_reuse_revokes_session_family(redis_client: Redis) -> None:
-    """Replaying an already-rotated token revokes every live token for that user."""
+async def test_rotate_refresh_token_reuse_revokes_session_family(
+    redis_client: Redis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Replaying an already-rotated token well after rotation revokes every live token."""
+    now = 1_700_000_000
+    monkeypatch.setattr("app.api.auth.services.refresh_token_service.time.time", lambda: now)
+
     user_id = uuid.uuid4()
     old_token = await create_refresh_token(redis_client, user_id)
     sibling_token = await create_refresh_token(redis_client, user_id)
 
     new_token = await rotate_refresh_token(redis_client, old_token)
 
-    # Replaying the consumed old token is a theft signal -> kill the family.
-    with pytest.raises(RefreshTokenRevokedError):
+    # Well past the benign-retry grace window: this is genuine stale-token reuse.
+    now += _REUSE_GRACE_SECONDS + 60
+
+    with (
+        patch("app.api.auth.services.refresh_token_service.audit_event") as audit,
+        pytest.raises(RefreshTokenRevokedError),
+    ):
         await rotate_refresh_token(redis_client, old_token)
+
+    assert audit.call_args.args[1] is AuditAction.SESSIONS_REVOKED
+    assert audit.call_args.kwargs["context"].reason == "refresh_token_reuse_detected"
 
     for revoked in (new_token, sibling_token):
         with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
             await verify_refresh_token(redis_client, revoked)
+
+
+async def test_rotate_refresh_token_benign_retry_does_not_revoke_family(redis_client: Redis) -> None:
+    """A near-immediate replay of a just-rotated token must not nuke sibling sessions."""
+    user_id = uuid.uuid4()
+    old_token = await create_refresh_token(redis_client, user_id)
+    sibling_token = await create_refresh_token(redis_client, user_id)
+
+    new_token = await rotate_refresh_token(redis_client, old_token)
+
+    # Client retry of the very same request, arriving immediately after rotation.
+    with (
+        patch("app.api.auth.services.refresh_token_service.audit_event") as audit,
+        pytest.raises(RefreshTokenRevokedError),
+    ):
+        await rotate_refresh_token(redis_client, old_token)
+
+    # Tolerated, but never silent: a thief replaying inside the window looks identical to
+    # this retry, so the event has to be observable even though the family survives.
+    assert audit.call_args.args[1] is AuditAction.AUTHORIZATION_DENIED
+    assert audit.call_args.kwargs["context"].reason == "refresh_token_replay_within_grace"
+
+    # The winning rotation's new token and the unrelated sibling must both survive.
+    assert await verify_refresh_token(redis_client, new_token) == user_id
+    assert await verify_refresh_token(redis_client, sibling_token) == user_id
 
 
 async def test_rotate_refresh_token_preserves_absolute_session_expiry(
@@ -157,6 +198,28 @@ async def test_multiple_tokens_per_user(redis_client: Redis) -> None:
     # Both tokens should be valid
     await verify_refresh_token(redis_client, token_1)
     await verify_refresh_token(redis_client, token_2)
+
+
+async def test_create_refresh_token_does_not_shrink_shared_set_ttl(
+    redis_client: Redis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A later, shorter-lived token must not cut short the shared set's TTL below siblings'."""
+    now = 1_700_000_000
+    monkeypatch.setattr("app.api.auth.services.refresh_token_service.time.time", lambda: now)
+
+    user_id = uuid.uuid4()
+    await create_refresh_token(redis_client, user_id, absolute_expires_at=now + 10_000)
+    long_ttl = await redis_client.ttl(_user_tokens_key(user_id))
+    assert long_ttl > 9_000
+
+    # Simulates a rotation close to the absolute session expiry, producing a much
+    # shorter-lived token for the same shared set.
+    await create_refresh_token(redis_client, user_id, absolute_expires_at=now + 5)
+    shrunk_ttl = await redis_client.ttl(_user_tokens_key(user_id))
+
+    # Without gt=True this would collapse to ~5s and the set could expire while the
+    # long-lived sibling token is still live, breaking revoke_all_user_tokens for it.
+    assert shrunk_ttl >= long_ttl - 2
 
 
 async def test_revoke_all_user_tokens_revokes_only_that_user(redis_client: Redis) -> None:

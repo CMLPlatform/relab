@@ -71,10 +71,10 @@ async def delete_user(
     actor: CurrentActiveSuperUserDep,
     request: Request,
 ) -> None:
-    """Delete a user by ID.
-
-    ``UserManager.on_after_delete`` revokes the user's refresh tokens as part of deletion.
-    """
+    """Delete a user by ID."""
+    # `request` reaches UserManager.on_before_delete, which revokes the user's refresh
+    # tokens before the row is removed. The built-in fastapi-users delete route relies
+    # on the same hook, so revocation is not duplicated here.
     await user_manager.delete(user, request=request)
     audit_event(actor.id, AuditAction.DELETE, User, user.id)
 

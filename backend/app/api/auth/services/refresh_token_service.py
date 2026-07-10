@@ -21,6 +21,7 @@ from app.api.auth.services.token_store import (
     token_fingerprint,
     token_key,
 )
+from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.constants import HOUR
 from app.core.redis import redis_int, redis_str_set
 
@@ -34,6 +35,20 @@ _REFRESH_TOKEN_BLACKLIST_KEY_PREFIX = "auth:rt_blacklist"  # noqa: S105 - Redis 
 _REFRESH_TOKEN_BYTES = 48
 _REFRESH_TOKEN_MIN_LENGTH = 32
 _REFRESH_TOKEN_PATTERN = re.compile(rf"^[A-Za-z0-9_-]{{{_REFRESH_TOKEN_MIN_LENGTH},}}$")
+
+# A blacklisted token seen again within this window of its own rotation is treated as a
+# benign client retry (e.g. a dropped response replayed by the client) rather than theft:
+# it gets a plain invalid-token error without nuking the whole session family. A replay
+# seen after this window is treated as genuine stolen-token reuse.
+#
+# Every second here is a second in which a stolen token can be replayed without tripping
+# reuse detection (RFC 9700 s4.14.2), so the window is kept near the floor rather than at
+# a round "generous" value. Both branches emit an audit event, so a replay that lands
+# inside the window is still observable even though it is not acted on.
+#
+# NOTE: the real fix is sender-constrained refresh tokens (DPoP, RFC 9449), which makes a
+# stolen bearer token useless and lets this window drop to zero.
+_REUSE_GRACE_SECONDS = 5
 
 
 def _refresh_token_key_from_fingerprint(fingerprint: str) -> str:
@@ -130,13 +145,24 @@ async def _blacklist_fingerprint(redis: Redis, fingerprint: str, ttl_seconds: in
     await redis.setex(_blacklist_key_from_fingerprint(fingerprint), ttl_seconds, value)
 
 
-def _blacklist_user_id(raw: bytes | str) -> UUID | None:
-    """Recover the user_id stored in a blacklist entry, if any."""
+def _encode_blacklist_value(user_id: UUID) -> str:
+    """Encode a blacklist entry: owning user_id plus the rotation timestamp."""
+    return f"{user_id}:{int(time.time())}"
+
+
+def _decode_blacklist_value(raw: bytes | str) -> tuple[UUID | None, int | None]:
+    """Recover the user_id and rotation timestamp stored in a blacklist entry, if any."""
     value = raw.decode("utf-8") if isinstance(raw, bytes) else str(raw)
+    user_part, _, ts_part = value.partition(":")
     try:
-        return UUID(value)
+        user_id = UUID(user_part)
     except ValueError:
-        return None
+        return None, None
+    try:
+        rotated_at = int(ts_part)
+    except ValueError:
+        rotated_at = None
+    return user_id, rotated_at
 
 
 async def create_refresh_token(
@@ -174,7 +200,14 @@ async def create_refresh_token(
         ttl_seconds=ttl,
     )
     await redis_int(redis.sadd(user_tokens_key, fingerprint))
-    await redis.expire(user_tokens_key, ttl)
+    # gt=True: only ever extend the shared set's TTL, never shrink it. A later token
+    # with a smaller TTL (e.g. close to absolute session expiry) must not cut short
+    # sibling tokens that are still live in the set. GT never applies to a key with
+    # no TTL yet (a persistent key counts as "infinite"), so the first token for a
+    # user falls back to nx=True to establish the initial TTL. NX no-ops when a TTL
+    # already exists, so the fallback can never shrink a sibling's lifetime either.
+    if not await redis_int(redis.expire(user_tokens_key, ttl, gt=True)):
+        await redis.expire(user_tokens_key, ttl, nx=True)
     return token
 
 
@@ -234,7 +267,7 @@ async def blacklist_token(
         redis,
         fingerprint,
         ttl_seconds,
-        value=str(metadata.user_id) if metadata else "1",
+        value=_encode_blacklist_value(metadata.user_id) if metadata else "1",
     )
 
     if metadata:
@@ -259,7 +292,7 @@ async def revoke_all_user_tokens(
         ttl_seconds = await redis.ttl(stored_token_key)
         if ttl_seconds <= 0:
             ttl_seconds = HOUR
-        await _blacklist_fingerprint(redis, stored_token_id, ttl_seconds, value=str(user_id))
+        await _blacklist_fingerprint(redis, stored_token_id, ttl_seconds, value=_encode_blacklist_value(user_id))
         await redis.delete(stored_token_key)
     await redis.delete(user_tokens_key)
 
@@ -283,13 +316,35 @@ async def rotate_refresh_token(
     _validate_refresh_token_shape(old_token)
 
     # Reuse detection: an old token that is already blacklisted is being replayed
-    # (it was rotated or revoked before). Treat it as a stolen-token signal and
-    # revoke the whole session family, then reject.
+    # (it was rotated or revoked before). This is usually a stolen-token signal, but
+    # it is also what a benign client retry looks like (e.g. the rotation response
+    # was dropped and the client resubmits the same now-superseded token). A replay
+    # seen within _REUSE_GRACE_SECONDS of the token's own rotation is treated as that
+    # benign retry: reject without revoking the family. A replay seen later is
+    # treated as genuine reuse and revokes every live token for the user.
     blacklisted = await redis.get(_blacklist_key(old_token))
     if blacklisted is not None:
-        user_id = _blacklist_user_id(blacklisted)
-        if user_id is not None:
+        user_id, rotated_at = _decode_blacklist_value(blacklisted)
+        just_rotated = rotated_at is not None and int(time.time()) - rotated_at <= _REUSE_GRACE_SECONDS
+        if just_rotated:
+            # Tolerated, not ignored: a thief replaying inside the window looks exactly
+            # like a benign retry, so record it rather than letting it pass silently.
+            audit_event(
+                user_id,
+                AuditAction.AUTHORIZATION_DENIED,
+                "refresh_token",
+                user_id,
+                context=AuditContext(outcome="denied", reason="refresh_token_replay_within_grace"),
+            )
+        elif user_id is not None:
             await revoke_all_user_tokens(redis, user_id)
+            audit_event(
+                user_id,
+                AuditAction.SESSIONS_REVOKED,
+                "refresh_token",
+                user_id,
+                context=AuditContext(outcome="denied", reason="refresh_token_reuse_detected"),
+            )
         raise RefreshTokenRevokedError
 
     # Atomically consume the old token's metadata so two concurrent rotations of
@@ -306,7 +361,7 @@ async def rotate_refresh_token(
 
     fingerprint = token_fingerprint(old_token)
     blacklist_ttl = max(metadata.absolute_expires_at - int(time.time()), HOUR)
-    await _blacklist_fingerprint(redis, fingerprint, blacklist_ttl, value=str(metadata.user_id))
+    await _blacklist_fingerprint(redis, fingerprint, blacklist_ttl, value=_encode_blacklist_value(metadata.user_id))
     await redis_int(redis.srem(_user_tokens_key(metadata.user_id), fingerprint))
 
     if metadata.absolute_expires_at <= int(time.time()):

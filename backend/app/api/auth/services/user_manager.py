@@ -95,8 +95,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
 
     async def authenticate(self, credentials: OAuth2PasswordRequestForm) -> User | None:
         """Support login with either email or username."""
-        limiter.hit_key(LOGIN_RATE_LIMIT, _login_identifier_rate_limit_key(credentials.username))
-
         is_email = False
         try:
             TypeAdapter(EmailStr).validate_python(credentials.username)
@@ -111,6 +109,12 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             db_user = result.scalars().unique().one_or_none()
             if db_user:
                 credentials.username = db_user.email
+
+        # Rate-limit on the resolved canonical identifier (email) so a username and its
+        # email share one bucket instead of doubling the allowed brute-force attempts.
+        # Unknown identifiers have no canonical form to resolve to, so credentials.username
+        # is still the normalized raw input in that case.
+        limiter.hit_key(LOGIN_RATE_LIMIT, _login_identifier_rate_limit_key(credentials.username))
         return await super().authenticate(credentials)
 
     async def validate_password(
@@ -197,6 +201,17 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         if update_dict.get("is_active") is False:
             await revoke_user_refresh_tokens(user.id, request)
             audit_event(user.id, AuditAction.DEACTIVATE, User, user.id)
+
+    async def on_before_delete(self, user: User, request: Request | None = None) -> None:
+        """Revoke all refresh tokens before a user is hard-deleted.
+
+        Before, not after: ``delete()`` commits the row removal and only then runs the
+        after-hook, so a Redis outage there would leave a deleted user whose sessions are
+        still live. Raising here aborts the delete instead, keeping the two consistent.
+
+        Deletion audit is emitted at the admin route where the acting superuser is known.
+        """
+        await revoke_user_refresh_tokens(user.id, request)
 
     async def on_after_login(
         self,

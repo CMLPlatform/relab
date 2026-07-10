@@ -128,6 +128,30 @@ async def test_username_not_found_passes_original() -> None:
     mock_super.assert_called_once_with(credentials)
 
 
+async def test_username_and_email_login_share_rate_limit_bucket() -> None:
+    """A username and its resolved email must land in the same rate-limit bucket."""
+    mock_user = MagicMock()
+    mock_user.email = "shared@example.com"
+
+    username_manager, _ = _make_manager(mock_user=mock_user)
+    with (
+        patch("app.api.auth.services.user_manager.limiter", create=True) as username_limiter,
+        patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock),
+    ):
+        await username_manager.authenticate(_make_credentials("myusername"))
+    username_key = username_limiter.hit_key.call_args.args[1]
+
+    email_manager, _ = _make_manager()
+    with (
+        patch("app.api.auth.services.user_manager.limiter", create=True) as email_limiter,
+        patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock),
+    ):
+        await email_manager.authenticate(_make_credentials("shared@example.com"))
+    email_key = email_limiter.hit_key.call_args.args[1]
+
+    assert username_key == email_key
+
+
 def test_current_password_is_not_in_forwarded_update_dicts() -> None:
     """The reauthentication-only field must not be persisted onto the User model."""
     update = UserUpdate(email="new@example.com", current_password=SecretStr("current-passphrase-42"))
@@ -297,6 +321,57 @@ async def test_on_after_update_logs_deactivation_with_enum_action() -> None:
     log_audit.assert_called_once_with("user-id", AuditAction.DEACTIVATE, User, "user-id")
 
 
-def test_delete_audit_is_not_emitted_from_user_manager_hook() -> None:
-    """User deletion audit belongs to the admin route where the actor is known."""
-    assert "on_after_delete" not in UserManager.__dict__
+async def test_delete_revokes_refresh_tokens_before_removing_the_row() -> None:
+    """Sessions must be revoked before the row is deleted, so a Redis outage aborts cleanly."""
+    manager, _ = _make_manager()
+    user = MagicMock()
+    user.id = "user-id"
+    request = MagicMock()
+    redis = object()
+    request.app.state.services = AppServices(redis=redis)
+
+    call_order: list[str] = []
+
+    async def _revoke(*_args: object) -> None:
+        call_order.append("revoke")
+
+    async def _delete_row(*_args: object) -> None:
+        call_order.append("delete_row")
+
+    manager.user_db.delete = AsyncMock(side_effect=_delete_row)
+
+    with (
+        patch(
+            "app.api.auth.services.account_security.refresh_token_service.revoke_all_user_tokens",
+            new_callable=AsyncMock,
+            side_effect=_revoke,
+        ) as mock_revoke,
+        patch("app.api.auth.services.user_manager.audit_event") as log_audit,
+    ):
+        await manager.delete(user, request=request)
+
+    assert call_order == ["revoke", "delete_row"]
+    mock_revoke.assert_awaited_once_with(redis, "user-id")
+    log_audit.assert_not_called()
+
+
+async def test_delete_aborts_without_removing_the_row_when_revocation_fails() -> None:
+    """A Redis failure must leave the user intact rather than deleting it with live sessions."""
+    manager, _ = _make_manager()
+    user = MagicMock()
+    user.id = "user-id"
+    request = MagicMock()
+    request.app.state.services = AppServices(redis=object())
+    manager.user_db.delete = AsyncMock()
+
+    with (
+        patch(
+            "app.api.auth.services.account_security.refresh_token_service.revoke_all_user_tokens",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("redis down"),
+        ),
+        pytest.raises(ConnectionError),
+    ):
+        await manager.delete(user, request=request)
+
+    manager.user_db.delete.assert_not_awaited()

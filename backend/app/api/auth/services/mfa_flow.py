@@ -2,6 +2,8 @@
 
 from fastapi import BackgroundTasks, HTTPException, Response, status
 from fastapi_users.authentication import Strategy
+from fastapi_users.exceptions import UserNotExists
+from fastapi_users.router.common import ErrorCode
 from pydantic import SecretStr
 
 from app.api.auth.exceptions import MfaChallengeInvalidError, MfaCodeInvalidError
@@ -182,7 +184,14 @@ async def complete_mfa_challenge(
     """Complete login with either a TOTP code or a single-use recovery code."""
     mfa_token = get_mfa_token(payload.mfa_token)
     challenge = await mfa_service.get_login_challenge(redis, mfa_token)
-    user = await user_manager.get(challenge.user_id)
+    try:
+        user = await user_manager.get(challenge.user_id)
+    except UserNotExists:
+        # The challenge is valid but its owner is gone (e.g. hard-deleted).
+        raise MfaChallengeInvalidError from None
+    if not user.is_active:
+        audit_mfa_failure(user, reason="user_inactive")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ErrorCode.LOGIN_BAD_CREDENTIALS)
     if not user.mfa_enabled or not user.mfa_totp_secret:
         audit_mfa_failure(user, reason="mfa_not_enabled")
         raise MfaCodeInvalidError

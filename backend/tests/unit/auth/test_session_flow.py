@@ -2,8 +2,11 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi import Response
+from fastapi_users.exceptions import UserNotExists
 
+from app.api.auth.exceptions import RefreshTokenUserInactiveError
 from app.api.auth.schemas import RefreshTokenResponse
 from app.api.auth.services import session_flow
 from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
@@ -38,6 +41,33 @@ async def test_refresh_tokens_for_active_user_rotates_and_writes_access_token() 
 
     assert access_token == "access-token"
     assert refresh_token == "new-refresh"
+
+
+async def test_refresh_tokens_for_active_user_rejects_deleted_user_and_revokes_token() -> None:
+    """A refresh token for a hard-deleted user should be rejected (401) and revoked, not crash."""
+    user_manager = MagicMock()
+    user_manager.get = AsyncMock(side_effect=UserNotExists)
+    strategy = MagicMock()
+
+    with (
+        patch(
+            "app.api.auth.services.session_flow.refresh_token_service.verify_refresh_token",
+            new=AsyncMock(return_value="user-id"),
+        ),
+        patch(
+            "app.api.auth.services.session_flow.refresh_token_service.blacklist_token",
+            new=AsyncMock(),
+        ) as blacklist,
+        pytest.raises(RefreshTokenUserInactiveError),
+    ):
+        await session_flow.refresh_tokens_for_active_user(
+            user_manager,
+            strategy,
+            MagicMock(),
+            "old-refresh",
+        )
+
+    blacklist.assert_awaited_once()
 
 
 async def test_refresh_bearer_tokens_returns_public_token_response() -> None:

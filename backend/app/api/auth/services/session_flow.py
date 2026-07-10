@@ -2,6 +2,7 @@
 
 from fastapi import Response
 from fastapi_users.authentication import Strategy
+from fastapi_users.exceptions import UserNotExists
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.exceptions import RefreshTokenUserInactiveError
@@ -24,8 +25,14 @@ async def refresh_tokens_for_active_user(
 ) -> tuple[str, str]:
     """Rotate an active user's refresh token and issue a new access token."""
     user_id = await refresh_token_service.verify_refresh_token(redis, refresh_token)
-    user = await user_manager.get(user_id)
-    if not user or not user.is_active:
+    try:
+        user = await user_manager.get(user_id)
+    except UserNotExists:
+        # The token is valid but its owner is gone (e.g. hard-deleted). The token is
+        # otherwise still live, so revoke it explicitly rather than leaving it usable.
+        await refresh_token_service.blacklist_token(redis, refresh_token)
+        raise RefreshTokenUserInactiveError from None
+    if not user.is_active:
         raise RefreshTokenUserInactiveError
 
     new_refresh_token = await refresh_token_service.rotate_refresh_token(redis, refresh_token)

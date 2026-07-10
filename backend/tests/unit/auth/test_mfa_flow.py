@@ -4,9 +4,10 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException, Response, status
+from fastapi_users.exceptions import UserNotExists
 from pydantic import SecretStr
 
-from app.api.auth.exceptions import MfaCodeInvalidError
+from app.api.auth.exceptions import MfaChallengeInvalidError, MfaCodeInvalidError
 from app.api.auth.schemas import (
     MfaChallengeRequest,
     MfaOAuthClaimRequest,
@@ -361,3 +362,55 @@ async def test_complete_mfa_challenge_keeps_recovery_code_when_challenge_consume
         )
 
     set_codes.assert_not_awaited()  # code stays valid because login never completed
+
+
+async def test_complete_mfa_challenge_rejects_deleted_user() -> None:
+    """A login challenge for a hard-deleted user should be rejected, not crash with a 500."""
+    challenge = MagicMock()
+    challenge.user_id = "user-id"
+    user_manager = MagicMock()
+    user_manager.get = AsyncMock(side_effect=UserNotExists)
+
+    with (
+        patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),
+        pytest.raises(MfaChallengeInvalidError),
+    ):
+        await mfa_flow.complete_mfa_challenge(
+            MfaChallengeRequest(mfa_token=SecretStr("mfa-token"), code="000000"),
+            response=Response(),
+            user_manager=user_manager,
+            redis=MagicMock(),
+            bearer_strategy=MagicMock(),
+            cookie_strategy=MagicMock(),
+        )
+
+
+async def test_complete_mfa_challenge_rejects_deactivated_user() -> None:
+    """A deactivated user must not be able to complete a pending MFA challenge."""
+    challenge = MagicMock()
+    challenge.user_id = "user-id"
+    user = MagicMock()
+    user.id = "user-id"
+    user.is_active = False
+    user.mfa_enabled = True
+    user.mfa_totp_secret = "totp-secret"
+    user_manager = MagicMock()
+    user_manager.get = AsyncMock(return_value=user)
+
+    with (
+        patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),
+        patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock()) as verify_code,
+        patch("app.api.auth.services.mfa_flow.audit_event"),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await mfa_flow.complete_mfa_challenge(
+            MfaChallengeRequest(mfa_token=SecretStr("mfa-token"), code="000000"),
+            response=Response(),
+            user_manager=user_manager,
+            redis=MagicMock(),
+            bearer_strategy=MagicMock(),
+            cookie_strategy=MagicMock(),
+        )
+
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    verify_code.assert_not_awaited()
