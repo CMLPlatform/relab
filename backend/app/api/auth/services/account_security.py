@@ -9,7 +9,7 @@ from app.api.auth.services import refresh_token_service
 from app.core.runtime import require_connection_redis
 
 if TYPE_CHECKING:
-    from fastapi_users.password import PasswordHelper
+    from fastapi_users.password import PasswordHelper, PasswordHelperProtocol
     from pydantic import UUID4
     from starlette.requests import Request
 
@@ -21,6 +21,16 @@ SENSITIVE_UPDATE_FIELDS = frozenset({"email", "password"})
 def sensitive_update_fields(user_update: UserUpdate) -> set[str]:
     """Return sensitive account fields included in a user update."""
     return set(user_update.model_dump(exclude_unset=True)) & SENSITIVE_UPDATE_FIELDS
+
+
+def verify_current_password(*, password_helper: PasswordHelperProtocol, password: str, user: User) -> None:
+    """Reauthenticate with the account password, raising 401 on mismatch."""
+    is_valid, _ = password_helper.verify_and_update(password, user.hashed_password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is invalid.",
+        )
 
 
 def require_current_password_for_sensitive_update(
@@ -40,15 +50,11 @@ def require_current_password_for_sensitive_update(
             detail="Current password is required for this account update.",
         )
 
-    is_valid, _ = password_helper.verify_and_update(
-        user_update.current_password.get_secret_value(),
-        user.hashed_password,
+    verify_current_password(
+        password_helper=password_helper,
+        password=user_update.current_password.get_secret_value(),
+        user=user,
     )
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Current password is invalid.",
-        )
 
 
 async def revoke_user_refresh_tokens(user_id: UUID4, request: Request | None) -> None:

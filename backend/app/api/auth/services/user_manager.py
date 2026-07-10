@@ -1,6 +1,7 @@
 """User management service."""
 
 import logging
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, cast
 
 from fastapi import Depends, params
@@ -30,7 +31,6 @@ from app.api.auth.services.email import (
     send_reset_password_email,
     send_verification_email,
 )
-from app.api.auth.services.login_hooks import log_successful_login, update_last_login_metadata
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter, rate_limit_bucket_key
@@ -221,12 +221,13 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
     async def on_after_login(
         self,
         user: User,
-        request: Request | None = None,
+        request: Request | None = None,  # noqa: ARG002 # part of the fastapi-users on_after_login signature
         response: Response | None = None,  # noqa: ARG002 # Response argument is expected in the method signature
     ) -> None:
-        """Update last login timestamp after successful authentication."""
-        await update_last_login_metadata(user, request, self.user_db.session)
-        log_successful_login(user)
+        """Persist the login timestamp and log the event after successful authentication."""
+        user.last_login_at = datetime.now(UTC).replace(tzinfo=None)
+        await self.user_db.session.commit()
+        logger.info("User %s logged in", mask_email_for_log(user.email))
 
 
 async def get_user_manager(

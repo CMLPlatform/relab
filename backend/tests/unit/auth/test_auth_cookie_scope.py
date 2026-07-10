@@ -1,7 +1,5 @@
 """Unit tests for browser auth cookie scoping."""
 
-from typing import TYPE_CHECKING
-
 from starlette.responses import Response
 
 from app.api.auth.config import settings as auth_settings
@@ -12,11 +10,6 @@ from app.api.auth.services.auth_backends import (
     cookie_transport,
     set_browser_auth_cookie,
 )
-from app.core.config import Environment
-from app.core.config import settings as core_settings
-
-if TYPE_CHECKING:
-    import pytest
 
 
 def test_cookie_transport_uses_host_only_auth_cookie() -> None:
@@ -47,9 +40,8 @@ def test_refresh_cookie_is_host_only() -> None:
     assert "Domain=" not in header
 
 
-def test_refresh_cookie_is_always_secure(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Host-prefixed browser auth cookies should always require HTTPS."""
-    monkeypatch.setattr(core_settings, "environment", Environment.DEV)
+def test_refresh_cookie_is_always_secure() -> None:
+    """Host-prefixed browser auth cookies always require HTTPS, regardless of environment."""
     response = Response()
 
     set_browser_auth_cookie(

@@ -7,7 +7,7 @@ from httpx_oauth.clients.github import PROFILE_ENDPOINT as GITHUB_PROFILE_ENDPOI
 from httpx_oauth.clients.github import GitHubOAuth2
 from httpx_oauth.clients.google import BASE_SCOPES as GOOGLE_BASE_SCOPES
 from httpx_oauth.clients.google import GoogleOAuth2
-from httpx_oauth.exceptions import GetProfileError
+from httpx_oauth.exceptions import GetIdEmailError, GetProfileError
 
 from app.api.auth.config import settings
 from app.core.clients import create_http_client
@@ -22,6 +22,28 @@ class _ReLabGoogleOAuth2(GoogleOAuth2):
     def get_httpx_client(self) -> AsyncClient:
         """Return the shared SSRF-hardened HTTP client."""
         return create_http_client()
+
+    async def get_id_email(self, token: str) -> tuple[str, str | None]:
+        """Return (id, primary email) only when Google marks that email verified.
+
+        Defense-in-depth: ``associate_by_email=True`` trusts this address to link
+        existing accounts, so refuse an unverified primary rather than trust the
+        provider blindly. Google only exposes owned addresses as primary today, so
+        this never rejects a real login — it just removes the standing assumption.
+        """
+        try:
+            profile = await self.get_profile(token)
+        except GetProfileError as exc:
+            raise GetIdEmailError(response=exc.response) from exc
+        email = next(
+            (
+                entry["value"]
+                for entry in profile.get("emailAddresses", [])
+                if entry["metadata"].get("primary") and entry["metadata"].get("verified")
+            ),
+            None,
+        )
+        return profile["resourceName"], email
 
 
 class _ReLabGitHubOAuth2(GitHubOAuth2):

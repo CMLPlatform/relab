@@ -19,7 +19,7 @@ from app.api.auth.schemas import (
     MfaTotpSetupResponse,
     RefreshTokenResponse,
 )
-from app.api.auth.services import login_completion, mfa_service
+from app.api.auth.services import account_security, login_completion, mfa_service
 from app.api.auth.services.email.service import (
     send_mfa_changed_notification,
     send_recovery_codes_regenerated_notification,
@@ -53,13 +53,6 @@ async def start_totp_setup(*, current_user: User, redis: Redis) -> MfaTotpSetupR
     )
 
 
-def _verify_current_password(user_manager: UserManager, user: User, password: SecretStr) -> None:
-    """Reauthenticate with the account password before a sensitive MFA change."""
-    is_valid, _ = user_manager.password_helper.verify_and_update(password.get_secret_value(), user.hashed_password)
-    if not is_valid:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Current password is invalid.")
-
-
 async def confirm_totp_setup(
     payload: MfaTotpConfirmRequest,
     *,
@@ -75,7 +68,11 @@ async def confirm_totp_setup(
     if user.mfa_enabled or user.mfa_totp_secret:
         raise MfaChallengeInvalidError
     # Reauthenticate before enabling: an active session alone isn't enough (OWASP).
-    _verify_current_password(user_manager, user, payload.password)
+    account_security.verify_current_password(
+        password_helper=user_manager.password_helper,
+        password=payload.password.get_secret_value(),
+        user=user,
+    )
     counter = await mfa_service.verify_totp_code(
         redis,
         user_id=current_user.id,
@@ -83,13 +80,7 @@ async def confirm_totp_setup(
         code=payload.code,
     )
     if counter is None:
-        audit_event(
-            current_user.id,
-            AuditAction.MFA_FAILURE,
-            "mfa",
-            current_user.id,
-            context=AuditContext(outcome="denied", reason="invalid_totp_setup_code"),
-        )
+        audit_mfa_failure(user, reason="invalid_totp_setup_code")
         raise MfaCodeInvalidError
 
     setup = await mfa_service.consume_totp_setup(redis, setup_token, user_id=current_user.id)
@@ -243,8 +234,12 @@ async def _verify_challenge_code(
     Returns ``(factor, remaining_recovery_hashes)`` — the factor used
     ("totp" | "recovery") and, for a matched recovery code, the reduced hash list
     the caller must persist *after* the login challenge is consumed (None for TOTP).
-    Returns None if neither matched. This function performs no writes so a failure
-    later in the flow can't burn a recovery code with nothing to show for it.
+    Returns None if neither matched.
+
+    A matched TOTP code *is* burned here (``verify_totp_code_once``): a login code
+    is single-use, so replay must fail even if a later step does. Recovery codes are
+    the opposite — not consumed here, only handed back for the caller to persist once
+    the login challenge is spent, so a later failure can't waste a code.
     """
     if len(code) == 6 and code.isdecimal():
         if user.mfa_totp_secret and await mfa_service.verify_totp_code_once(

@@ -10,6 +10,8 @@ import pytest
 from app.api.auth.exceptions import RefreshTokenInvalidError, RefreshTokenRevokedError
 from app.api.auth.services.refresh_token_service import (
     _REUSE_GRACE_SECONDS,
+    _blacklist_key,
+    _refresh_token_key,
     _user_tokens_key,
     blacklist_token,
     create_refresh_token,
@@ -19,6 +21,7 @@ from app.api.auth.services.refresh_token_service import (
 )
 from app.api.auth.services.token_store import token_key
 from app.api.common.audit import AuditAction
+from app.core.constants import HOUR
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -74,6 +77,19 @@ async def test_blacklist_token_revokes_and_removes_token(redis_client: Redis) ->
 
     with pytest.raises(RefreshTokenRevokedError):
         await verify_refresh_token(redis_client, token)
+
+
+async def test_blacklist_token_expired_ttl_defaults_to_hour(redis_client: Redis) -> None:
+    """A token with no positive remaining TTL gets a bounded HOUR blacklist entry, not one that evaporates instantly."""
+    user_id = uuid.uuid4()
+    token = await create_refresh_token(redis_client, user_id)
+    # Drop the metadata so its remaining TTL reads as expired (-2), exercising the ttl <= 0 fallback.
+    await redis_client.delete(_refresh_token_key(token))
+
+    await blacklist_token(redis_client, token)
+
+    blacklist_ttl = await redis_client.ttl(_blacklist_key(token))
+    assert HOUR - 5 <= blacklist_ttl <= HOUR
 
 
 async def test_rotate_refresh_token(redis_client: Redis) -> None:

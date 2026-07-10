@@ -324,15 +324,25 @@ async def revoke_all_user_tokens(
         user_id: User's UUID
     """
     user_tokens_key = _user_tokens_key(user_id)
-    tokens = await redis_str_set(redis.smembers(user_tokens_key))
-    for stored_token_id in tokens:
-        stored_token_key = _refresh_token_key_from_fingerprint(stored_token_id)
-        ttl_seconds = await redis.ttl(stored_token_key)
-        if ttl_seconds <= 0:
-            ttl_seconds = HOUR
-        await _blacklist_fingerprint(redis, stored_token_id, ttl_seconds, value=_encode_blacklist_value(user_id))
-        await redis.delete(stored_token_key)
-    await redis.delete(user_tokens_key)
+    fingerprints = sorted(await redis_str_set(redis.smembers(user_tokens_key)))
+    if not fingerprints:
+        await redis.delete(user_tokens_key)
+        return
+
+    # Two round-trips instead of 3N: read every token's remaining TTL in one pipeline,
+    # then blacklist + delete them (and the set) in a second.
+    ttl_pipe = redis.pipeline()
+    for fingerprint in fingerprints:
+        ttl_pipe.ttl(_refresh_token_key_from_fingerprint(fingerprint))
+    ttls = await ttl_pipe.execute()
+
+    value = _encode_blacklist_value(user_id)
+    write_pipe = redis.pipeline()
+    for fingerprint, ttl_seconds in zip(fingerprints, ttls, strict=True):
+        write_pipe.setex(_blacklist_key_from_fingerprint(fingerprint), ttl_seconds if ttl_seconds > 0 else HOUR, value)
+        write_pipe.delete(_refresh_token_key_from_fingerprint(fingerprint))
+    write_pipe.delete(user_tokens_key)
+    await write_pipe.execute()
 
 
 async def rotate_refresh_token(
