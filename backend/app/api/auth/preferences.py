@@ -9,6 +9,9 @@ if TYPE_CHECKING:
     from typing import Any
 
 
+PROFILE_VISIBILITY_FIELD = "profile_visibility"
+
+
 class ProfileVisibility(StrEnum):
     """Discrete values stored on ``User.preferences["profile_visibility"]``."""
 
@@ -52,20 +55,29 @@ class UserPreferencesUpdate(BaseModel):
 
 
 def load_user_preferences(payload: object | None) -> UserPreferences:
-    """Return typed preferences from a stored JSON payload."""
+    """Return typed preferences from a stored JSON payload.
+
+    Reading a user's own stored preferences must never fail the request: a value
+    that no longer validates (a removed enum member, a legacy key from before
+    ``extra="forbid"``) is dropped in favour of that field's default, and an
+    invalid ``profile_visibility`` fails *closed* to private rather than public.
+    """
     if not isinstance(payload, dict):
         return UserPreferences()
     try:
         return UserPreferences.model_validate(payload)
     except ValidationError as exc:
-        if any(error["loc"] == ("profile_visibility",) for error in exc.errors()):
-            return UserPreferences.model_validate(
-                {
-                    **payload,
-                    "profile_visibility": ProfileVisibility.PRIVATE,
-                }
-            )
-        raise
+        invalid_fields = {error["loc"][0] for error in exc.errors() if error["loc"]}
+        # Keep only keys that are both known and not the ones that failed, so each
+        # bad value reverts to its default. profile_visibility instead fails closed.
+        cleaned = {
+            key: value
+            for key, value in payload.items()
+            if key in UserPreferences.model_fields and key not in invalid_fields
+        }
+        if PROFILE_VISIBILITY_FIELD in invalid_fields:
+            cleaned[PROFILE_VISIBILITY_FIELD] = ProfileVisibility.PRIVATE
+        return UserPreferences.model_validate(cleaned)
 
 
 def merge_user_preferences(
