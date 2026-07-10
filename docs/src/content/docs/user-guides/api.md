@@ -40,7 +40,7 @@ Point a client at the API and authenticate with a bearer token from `POST /v1/au
 
 ## Integration advice
 
-- Build against the generated OpenAPI schema rather than copying examples from old documentation.
+- Build against the generated OpenAPI schema rather than copied examples, which can drift out of date.
 - For product circularity notes, use `circularity_properties` as either `null` or an object with optional `recyclability`, `disassemblability`, and `remanufacturability` strings. Empty objects and empty note strings are normalized to `null`.
 - Treat uploads and image handling as first-class API operations, not afterthoughts.
 - If you need a stable exported dataset rather than live application access, check the [dataset page](../../project/dataset/) first.
