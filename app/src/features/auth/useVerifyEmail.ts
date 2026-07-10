@@ -53,8 +53,16 @@ export function useVerifyEmail() {
   // rather than forcing a login — you're still signed in where you registered.
   useEffect(() => {
     if (!success || !user) return;
-    const timer = setTimeout(() => {
-      refetch(true).then(() => router.replace('/products'));
+    const timer = setTimeout(async () => {
+      // Navigate regardless of the refetch outcome — a transient refetch failure
+      // must not strand the user on the success screen. The app refetches on the
+      // next screen anyway.
+      try {
+        await refetch(true);
+      } catch (err) {
+        logError('Post-verify refetch failed:', err);
+      }
+      router.replace('/products');
     }, 3000);
     return () => clearTimeout(timer);
   }, [success, user, refetch, router]);

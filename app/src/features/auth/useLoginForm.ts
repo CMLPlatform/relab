@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import type { useDialog } from '@/components/base/dialogContext';
 import { getUser, login } from '@/services/api/auth/authentication';
@@ -78,8 +78,9 @@ export function useLoginForm({
     defaultValues: { email: '', password: '' },
   });
   const emailRef = useRef<{ focus(): void } | null>(null);
+  const inFlight = useRef(false);
 
-  const submit = handleSubmit(async (data: LoginFormValues) => {
+  const validatedSubmit = handleSubmit(async (data: LoginFormValues) => {
     await attemptPasswordLogin({
       email: data.email,
       password: data.password,
@@ -88,6 +89,21 @@ export function useLoginForm({
       handleMfaPending,
     });
   });
+
+  // The button stays pressable and the password field's onSubmitEditing fires the
+  // same handler, so two submits can race before any re-render. Single-flight at
+  // this boundary (not inside the validated handler, which the compiler's ref rule
+  // forbids) so an mfa_required response doesn't stack two /mfa screens and a
+  // success doesn't navigate twice.
+  const submit = useCallback(async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    try {
+      await validatedSubmit();
+    } finally {
+      inFlight.current = false;
+    }
+  }, [validatedSubmit]);
 
   return { control, emailRef, submit };
 }

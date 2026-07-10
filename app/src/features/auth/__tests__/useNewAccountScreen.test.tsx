@@ -153,4 +153,32 @@ describe('useNewAccountScreen', () => {
     expect(mockLogin).toHaveBeenCalledWith('user@example.com', 'correct-horse-battery-staple-v42');
     expect(mockReplace).toHaveBeenCalledWith('/products');
   });
+
+  // Regression: the button only shows a spinner while submitting (it stays
+  // pressable), so a double-tap fired register twice — the second returned
+  // "email exists" and popped a spurious "Registration Failed" dialog over the
+  // successful signup. The ref guard must single-flight it.
+  it('ignores a second createAccount while the first is in flight', async () => {
+    let release: () => void = () => {};
+    mockRegister.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ success: true });
+        }),
+    );
+
+    const { result } = renderHook(() => useNewAccountScreen());
+
+    await act(async () => {
+      void result.current.actions.createAccount();
+      void result.current.actions.createAccount();
+      await Promise.resolve();
+    });
+
+    expect(mockRegister).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      release();
+    });
+  });
 });

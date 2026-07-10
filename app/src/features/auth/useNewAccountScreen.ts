@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
@@ -45,7 +45,9 @@ export function useNewAccountScreen() {
     if (isValid) setSection('password');
   };
 
-  const createAccount = form.handleSubmit(async (data: NewAccountFormValues) => {
+  const inFlight = useRef(false);
+
+  const validatedCreateAccount = form.handleSubmit(async (data: NewAccountFormValues) => {
     const result = await register(data.username, data.email, data.password);
 
     if (!result.success) {
@@ -74,6 +76,21 @@ export function useNewAccountScreen() {
 
     router.replace('/products');
   });
+
+  // The "Create Account" button only shows a spinner while submitting — it stays
+  // pressable — so a double-tap fired register twice: the second returned "email
+  // already exists" and popped a spurious "Registration Failed" dialog over the
+  // successful signup. Single-flight at this boundary (not inside the validated
+  // handler, which the compiler's ref rule forbids).
+  const createAccount = useCallback(async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    try {
+      await validatedCreateAccount();
+    } finally {
+      inFlight.current = false;
+    }
+  }, [validatedCreateAccount]);
 
   return {
     ui: {
