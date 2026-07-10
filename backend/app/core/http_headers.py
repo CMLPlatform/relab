@@ -16,8 +16,12 @@ SENSITIVE_CACHE_HEADERS = {
 }
 REQUEST_ID_HEADER = "X-Request-ID"
 
-# Session cookies set by the auth backend (see api/auth/services/auth_backends.py).
-AUTH_COOKIE_NAMES = frozenset({"__Host-relab-auth", "__Host-relab-refresh"})
+# Session cookie names — single source of truth, consumed by the auth backend
+# (api/auth/services/auth_backends.py). Host-only (`__Host-` prefix) so credentials
+# never leak to sibling subdomains.
+AUTH_COOKIE_NAME = "__Host-relab-auth"
+REFRESH_COOKIE_NAME = "__Host-relab-refresh"
+AUTH_COOKIE_NAMES = frozenset({AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME})
 
 
 def request_has_auth_material(request: Request | None) -> bool:

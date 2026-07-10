@@ -14,16 +14,16 @@ from pydantic import UUID4
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.models import User
+from app.core.http_headers import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.core.redis import RedisDep
 
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
 
 
 # Session cookies are host-only to avoid exposing credentials to sibling subdomains.
+# Names live in core/http_headers (single source); re-exported here for the auth API.
 COOKIE_DOMAIN: str | None = None
 COOKIE_PATH: str = "/"
-AUTH_COOKIE_NAME = "__Host-relab-auth"
-REFRESH_COOKIE_NAME = "__Host-relab-refresh"
 AUTH_COOKIE_NAMES = (AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME)
 
 cookie_transport = CookieTransport(
