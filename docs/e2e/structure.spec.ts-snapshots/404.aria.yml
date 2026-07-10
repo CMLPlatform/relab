@@ -1,3 +1,0 @@
-- main:
-  - heading /\d+/ [level=1]
-  - text: Page not found. Check the URL or try using the search bar.

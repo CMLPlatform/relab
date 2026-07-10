@@ -8,9 +8,6 @@ const runtimeConfig = {
 };
 const localBaseUrl = 'http://127.0.0.1:18013';
 
-// Structural (ARIA) snapshots only run on desktop Chromium — one baseline
-// is enough to catch landmark/heading regressions. Other projects ignore it.
-const structureSpec = /structure\.spec\.ts/;
 const smokeTag = /@smoke/;
 
 let retries = 0;
@@ -52,13 +49,11 @@ export default defineConfig({
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-      testIgnore: structureSpec,
       grep: smokeTag,
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      testIgnore: structureSpec,
       grep: smokeTag,
     },
   ],
