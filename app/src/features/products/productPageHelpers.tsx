@@ -135,6 +135,20 @@ export function useProductPageHeader({
   ]);
 }
 
+/**
+ * The one place the "is this product the one streaming?" rule lives. The page
+ * header/FAB and the video section both need it; keeping it here stops them
+ * silently diverging if the match rule ever changes (e.g. to a session id).
+ */
+export function getStreamingState(product: Product, activeStream: { productId: number } | null) {
+  const streamingThisProduct =
+    typeof product.id === 'number' && activeStream?.productId === product.id;
+  return {
+    streamingThisProduct,
+    streamingOtherProduct: !!activeStream && !streamingThisProduct,
+  };
+}
+
 export function getProductCapabilities({
   product,
   activeStream,
@@ -152,9 +166,6 @@ export function getProductCapabilities({
   isNew: boolean;
   isProductComponent: boolean;
 }) {
-  const streamingThisProduct =
-    typeof product.id === 'number' && activeStream?.productId === product.id;
-
   return {
     isNew,
     isProductComponent,
@@ -162,8 +173,7 @@ export function getProductCapabilities({
     youtubeEnabled,
     isGoogleLinked,
     ownedByMe: product.ownedBy === 'me',
-    streamingThisProduct,
-    streamingOtherProduct: !!activeStream && !streamingThisProduct,
+    ...getStreamingState(product, activeStream),
   };
 }
 

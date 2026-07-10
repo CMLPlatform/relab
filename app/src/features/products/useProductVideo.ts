@@ -4,6 +4,7 @@ import { useStreamSession } from '@/context/streamSession';
 import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
 import { useYouTubeIntegration } from '@/features/cameras/youtube/useYouTubeIntegration';
 import type { Product } from '@/types/Product';
+import { getStreamingState } from './productPageHelpers';
 
 /**
  * Streaming capabilities and navigation for the product video section.
@@ -18,17 +19,13 @@ export function useProductVideo(product: Product) {
   const { enabled: youtubeEnabled } = useYouTubeIntegration();
   const { activeStream } = useStreamSession();
 
-  const streamingThisProduct =
-    typeof product.id === 'number' && activeStream?.productId === product.id;
-
   return {
     rpiEnabled,
     youtubeEnabled,
     isGoogleLinked:
       user?.oauth_accounts?.some((account) => account.oauth_name === 'google') ?? false,
     activeStream,
-    streamingThisProduct,
-    streamingOtherProduct: !!activeStream && !streamingThisProduct,
+    ...getStreamingState(product, activeStream),
     ownedByMe: product.ownedBy === 'me',
     goToProfile: () => router.push('/account'),
     goToActiveStreamProduct: () => {
