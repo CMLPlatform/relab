@@ -105,6 +105,43 @@ describe('useProductsScreen', () => {
     });
   });
 
+  it('re-syncs the toolbar to an external URL query without clobbering it back', async () => {
+    const { result, rerender } = await renderUseProductsScreen();
+
+    // User types; it settles into the URL.
+    act(() => {
+      result.current.search.setQuery('laptop');
+      jest.advanceTimersByTime(500);
+    });
+    await waitFor(() => {
+      expect(mockSetParams).toHaveBeenCalledWith({ q: 'laptop', page: '1' });
+    });
+    mockSearchParams = { q: 'laptop' };
+    rerender({});
+    mockSetParams.mockClear();
+
+    // External navigation (browser back/forward) points ?q= somewhere else.
+    mockSearchParams = { q: 'phone' };
+    rerender({});
+
+    // The toolbar reflects the external query...
+    expect(result.current.search.query).toBe('phone');
+
+    // ...and the settling debounce must not write the stale 'laptop' back.
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const clobbered = mockSetParams.mock.calls.some(
+      ([params]) => (params as { q?: string }).q === 'laptop',
+    );
+    expect(clobbered).toBe(false);
+
+    mockSearchParams = {};
+  });
+
   it('stores the guest info-card dismissal locally', async () => {
     const { result } = await renderUseProductsScreen();
 

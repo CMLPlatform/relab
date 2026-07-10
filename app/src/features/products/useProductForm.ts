@@ -129,6 +129,7 @@ function useProductFormActions({
   dialog,
   isDirty,
   isNew,
+  onDeleteSuccess,
   onSaveSuccess,
   product,
   replace,
@@ -140,6 +141,7 @@ function useProductFormActions({
   dialog: ReturnType<typeof useDialog>;
   isDirty: boolean;
   isNew: boolean;
+  onDeleteSuccess?: () => void;
   onSaveSuccess?: (savedId: number) => void;
   product: Product;
   replace: ReturnType<typeof useRouter>['replace'];
@@ -190,7 +192,14 @@ function useProductFormActions({
         // Same rationale as save: clear the form so the unsaved-changes guard
         // on /products/[id] doesn't fire during the redirect.
         reset(product);
-        replace('/products');
+        // Let the screen own where a delete lands (a component returns to its
+        // parent, not the root list) and skip the beforeRemove guard, mirroring
+        // onSaveSuccess. Fall back to the root list for callers without a wrapper.
+        if (onDeleteSuccess) {
+          onDeleteSuccess();
+        } else {
+          replace('/products');
+        }
       },
       onError: (err) => {
         // Without this a failed delete is swallowed by react-query — the entity
@@ -214,6 +223,8 @@ export type UseProductFormOptions = {
   initialEditMode?: boolean;
   /** Called after a successful save. The /edit and /new routes use this to navigate out. */
   onSaveSuccess?: (savedId: number) => void;
+  /** Called after a successful delete. The detail screen uses this to navigate back to the parent. */
+  onDeleteSuccess?: () => void;
   /**
    * Force new-draft mode independent of the `id` param. Used by static create
    * routes (/products/new, /products/[id]/components/new, and
@@ -281,6 +292,7 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
     dialog,
     isDirty,
     isNew,
+    onDeleteSuccess: options.onDeleteSuccess,
     onSaveSuccess: options.onSaveSuccess,
     product,
     replace,

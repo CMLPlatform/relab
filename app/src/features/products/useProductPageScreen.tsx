@@ -41,11 +41,15 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
   const [fabExtended, setFabExtended] = useState(true);
   const [streamPickerVisible, setStreamPickerVisible] = useState(false);
   const skipNextBeforeRemoveRef = useRef(false);
+  // navigateBack is defined further down, after wrappedFormOptions needs it;
+  // route the delete callback through a ref so the memo doesn't depend on it.
+  const navigateBackRef = useRef<() => void>(() => {});
 
   // Wrap the caller's onSaveSuccess so a successful save bypasses the unsaved-
   // changes guard: immediately after mutation resolves the form is still
   // `isDirty` (and new drafts stay `isNew` for their whole session), so the
-  // guard would otherwise block the navigation the caller just requested.
+  // guard would otherwise block the navigation the caller just requested. Delete
+  // gets the same guard-skip and lands via navigateBack (parent, not root list).
   const wrappedFormOptions = useMemo<UseProductFormOptions>(() => {
     const callerOnSaveSuccess = formOptions.onSaveSuccess;
     return {
@@ -53,6 +57,10 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
       onSaveSuccess: (savedId: number) => {
         skipNextBeforeRemoveRef.current = true;
         callerOnSaveSuccess?.(savedId);
+      },
+      onDeleteSuccess: () => {
+        skipNextBeforeRemoveRef.current = true;
+        navigateBackRef.current();
       },
     };
   }, [formOptions]);
@@ -153,6 +161,9 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
       router.replace('/products');
     }
   }, [directParent?.role, isProductComponent, product.parentID, product.parentRole, router]);
+  useEffect(() => {
+    navigateBackRef.current = navigateBack;
+  }, [navigateBack]);
 
   const goBackWithGuards = useCallback(() => {
     if (hasUnsavedChanges || capabilities.streamingThisProduct) {

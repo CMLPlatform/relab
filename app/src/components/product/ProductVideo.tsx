@@ -209,7 +209,9 @@ function VideoList({
 }) {
   return videos.map((video, idx) => (
     <VideoRow
-      key={video.id ?? idx}
+      // Namespace persisted ids and positional fallbacks so a saved `{id: 0}`
+      // can't collide with a new unsaved row at index 0.
+      key={video.id == null ? `new-${idx}` : `id-${video.id}`}
       video={video}
       idx={idx}
       editMode={editMode}

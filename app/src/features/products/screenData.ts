@@ -142,20 +142,27 @@ export function useProductsParamsSync({
   currentUser,
   debouncedSearchQuery,
   filterMode,
+  searchQuery,
   searchQueryURL,
   updateParams,
 }: {
   currentUser: ReturnType<typeof useAuth>['user'];
   debouncedSearchQuery: string;
   filterMode: ProductFilter;
+  searchQuery: string;
   searchQueryURL: string;
   updateParams: (newParams: RouterSetParams) => void;
 }) {
   useEffect(() => {
+    // Only push once the debounce has settled onto the current buffer. Pushing a
+    // stale in-between value would fight an external URL reset — the buffer resets
+    // to the new URL while `debouncedSearchQuery` still lags, and this effect would
+    // write the lagging value straight back, re-clobbering the intended ?q=.
+    if (debouncedSearchQuery !== searchQuery) return;
     if (debouncedSearchQuery !== searchQueryURL) {
       updateParams({ q: debouncedSearchQuery || undefined, page: '1' });
     }
-  }, [debouncedSearchQuery, searchQueryURL, updateParams]);
+  }, [debouncedSearchQuery, searchQuery, searchQueryURL, updateParams]);
 
   useEffect(() => {
     if (!currentUser && filterMode === 'mine') {

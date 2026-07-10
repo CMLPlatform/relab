@@ -87,7 +87,12 @@ export function useProductPageHeader({
     const needsCustomTitle = editMode || showTrail;
 
     const titleSlot = (
+      // Key on product identity: the detail screen stays mounted across
+      // product navigation, so remounting the header per product drops any
+      // stale edit buffer instead of carrying the previous typed name over.
+      // A same-product hydration keeps the same key, preserving in-flight typing.
       <ProductNameHeader
+        key={product.id}
         name={name}
         editMode={editMode}
         theme={theme}
@@ -121,7 +126,11 @@ export function useProductPageHeader({
     isProductComponent,
     navigation,
     onProductNameChange,
-    product,
+    // The effect only reads product.name/id (both primitives, stable while
+    // typing); depending on the whole `product` (a fresh useWatch reference
+    // every render) re-ran setOptions on every keystroke.
+    product.id,
+    product.name,
     theme,
   ]);
 }

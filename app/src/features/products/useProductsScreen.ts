@@ -42,6 +42,19 @@ export function useProductsScreen(numColumns: number) {
   }, [activeDatePreset]);
   const [searchQuery, setSearchQuery] = useState(searchQueryURL);
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+  // Re-sync the toolbar buffer when the URL's `q` changes from *outside* this
+  // screen (browser back/forward to a different ?q=), but not when the URL just
+  // caught up to our own debounced write. Guard by the debounced value — the
+  // exact string we push out — so an external change resets the buffer while
+  // in-flight typing (already past `debouncedSearchQuery`) is left alone.
+  // Render-phase reset, matching useProductsPaging.
+  const [lastSearchQueryURL, setLastSearchQueryURL] = useState(searchQueryURL);
+  if (searchQueryURL !== lastSearchQueryURL) {
+    setLastSearchQueryURL(searchQueryURL);
+    if (searchQueryURL !== debouncedSearchQuery) {
+      setSearchQuery(searchQueryURL);
+    }
+  }
   const filterUi = useProductsFilterUiState();
   const header = useProductsHeaderState();
   const isAuthenticated = !!currentUser;
@@ -58,6 +71,7 @@ export function useProductsScreen(numColumns: number) {
     currentUser,
     debouncedSearchQuery,
     filterMode,
+    searchQuery,
     searchQueryURL,
     updateParams,
   });

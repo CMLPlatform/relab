@@ -303,6 +303,29 @@ describe('useProductForm', () => {
     expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 
+  it('routes delete through onDeleteSuccess when provided instead of the root list', async () => {
+    const mockDeleteMutate = jest.fn((_payload: unknown, options: { onSuccess?: () => void }) =>
+      options.onSuccess?.(),
+    );
+    const onDeleteSuccess = jest.fn();
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: mockDeleteMutate });
+
+    const { result } = renderHook(
+      () => useProductForm('123', { role: 'product', onDeleteSuccess }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onProductDelete();
+    });
+
+    expect(onDeleteSuccess).toHaveBeenCalledTimes(1);
+    expect(mockReplace).not.toHaveBeenCalledWith('/products');
+  });
+
   it('calls onSaveSuccess with the savedId after saving a new draft', async () => {
     const mockMutate = jest.fn(
       (_payload: unknown, options: { onSuccess?: (savedId: number) => void }) =>
