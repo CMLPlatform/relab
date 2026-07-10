@@ -29,10 +29,12 @@ def test_material_negative_density_rejected() -> None:
 
 
 def test_material_source_normalizes_user_text_to_nfc() -> None:
-    """Reference data write schemas normalize free-form text."""
-    material = MaterialCreateWithCategories(name="Cafe\u0301 alloy", source="Leiden")
+    """Reference data write schemas normalize free-form text on every user-text field."""
+    material = MaterialCreateWithCategories(name="Cafe\u0301 alloy", source="Cafe\u0301 foundry")
 
     assert material.name == "Café alloy"
+    # `source` is the field this test is named for, so it needs its own combining-char input.
+    assert material.source == "Café foundry"
 
 
 def test_category_create_rejects_hidden_control_characters() -> None:

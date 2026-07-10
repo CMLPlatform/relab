@@ -117,15 +117,23 @@ async def test_delete_categorized_reference_deletes_media_before_resource(
     """Deletes attached files/images before deleting the reference-data resource."""
     session = mock_session
     db_material = MaterialFactory.build(id=1)
+    # Ordering is the invariant this test is named for: dropping the parent row first would
+    # orphan its media rows and the bytes they point at. Assert it, don't just count calls.
+    calls: list[str] = []
 
     with (
         patch(
             "app.api.reference_data.crud.categorized_resources.require_locked_model",
             return_value=db_material,
         ) as require_resource,
-        patch.object(MATERIAL_RESOURCE.files, "delete_all", new=AsyncMock()) as delete_files,
-        patch.object(MATERIAL_RESOURCE.images, "delete_all", new=AsyncMock()) as delete_images,
+        patch.object(
+            MATERIAL_RESOURCE.files, "delete_all", new=AsyncMock(side_effect=lambda *_a: calls.append("files"))
+        ) as delete_files,
+        patch.object(
+            MATERIAL_RESOURCE.images, "delete_all", new=AsyncMock(side_effect=lambda *_a: calls.append("images"))
+        ) as delete_images,
     ):
+        session.delete = AsyncMock(side_effect=lambda *_a: calls.append("parent"))
         await delete_categorized_reference(session, MATERIAL_RESOURCE, 1)
 
     require_resource.assert_awaited_once_with(session, Material, 1)
@@ -133,6 +141,7 @@ async def test_delete_categorized_reference_deletes_media_before_resource(
     delete_images.assert_awaited_once_with(session, 1)
     session.delete.assert_called_once_with(db_material)
     session.commit.assert_called_once()
+    assert calls == ["files", "images", "parent"]
 
 
 def _scalar_result(items: list[object]) -> MagicMock:

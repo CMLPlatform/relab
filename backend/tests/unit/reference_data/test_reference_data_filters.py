@@ -93,18 +93,16 @@ def test_search_is_handled_by_relab_adapter(filter_cls: type, table_name: str) -
 
 
 @pytest.mark.parametrize(
-    ("model_cls", "expected_fields"),
+    "model_cls",
     [
-        pytest.param(Material, ["name", "description", "source"], id="material"),
-        pytest.param(ProductType, ["name", "description"], id="product_type"),
-        pytest.param(Category, ["name", "description"], id="category"),
+        pytest.param(Material, id="material"),
+        pytest.param(ProductType, id="product_type"),
+        pytest.param(Category, id="category"),
     ],
 )
-def test_search_vector_is_computed(model_cls: type, expected_fields: list[str]) -> None:
+def test_search_vector_is_computed(model_cls: type) -> None:
     """The search_vector column must be a computed (generated) column."""
-    col = _table(model_cls).c.search_vector
-    assert col.computed is not None
-    assert expected_fields
+    assert _table(model_cls).c.search_vector.computed is not None
 
 
 @pytest.mark.parametrize(

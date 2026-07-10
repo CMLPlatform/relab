@@ -116,7 +116,20 @@ async def delete_categorized_reference[ResourceT: CategorizedReference, LinkT: C
     spec: CategorizedReferenceSpec[ResourceT, LinkT],
     parent_id: int,
 ) -> None:
-    """Delete a categorized reference-data resource after attached media."""
+    """Delete a categorized reference-data resource after attached media.
+
+    Media rows go first: dropping the parent first would orphan them and the bytes they
+    point at, since media reference their parent generically with no FK cascade.
+    """
+    # NOTE: the row lock only serializes entry to this function. `delete_all` commits
+    # internally (it has to: the stored bytes are unlinked only after the rows are durably
+    # gone), and that commit ends the transaction the lock lives in. So a concurrent delete
+    # blocks until the media phase commits, then proceeds against a parent whose media are
+    # already gone. That is safe -- the media phase is idempotent and the parent delete is
+    # a no-op second time -- but the whole operation is NOT atomic: if the parent delete
+    # below fails, the media rows and their bytes are already gone for good.
+    # Upgrade path: have `delete_all` take a `commit=False` variant so the media rows and
+    # the parent row drop in one transaction, and unlink the bytes after that single commit.
     db_parent = await require_locked_model(db, spec.model, parent_id)
     await spec.files.delete_all(db, parent_id)
     await spec.images.delete_all(db, parent_id)
