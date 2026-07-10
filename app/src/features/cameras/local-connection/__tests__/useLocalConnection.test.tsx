@@ -36,6 +36,13 @@ jest.mock('@/services/api/rpiCamera', () => ({
   fetchLocalAccessInfo: jest.fn(async () => null),
 }));
 
+const mockScreenFocused = jest.fn(() => true);
+jest.mock('@/hooks/useScreenFocused', () => ({
+  __esModule: true,
+  useScreenFocused: () => true,
+  useScreenFocusedSafe: () => mockScreenFocused(),
+}));
+
 describe('useLocalConnection', () => {
   async function settleConnectionHook() {
     await act(async () => {
@@ -47,6 +54,7 @@ describe('useLocalConnection', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockScreenFocused.mockReturnValue(true);
     jest.mocked(loadLocalConnection).mockImplementation(async () => ({ url: null, apiKey: null }));
     jest.mocked(probeLocalUrl).mockImplementation(async () => false);
     jest.mocked(probeAll).mockImplementation(async () => null);
@@ -263,6 +271,47 @@ describe('useLocalConnection', () => {
 
     unmount();
     expect(remove).toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('pauses the re-probe interval while the screen is unfocused', async () => {
+    jest.useFakeTimers();
+    jest.mocked(loadLocalConnection).mockImplementation(async () => ({
+      url: 'http://10.0.0.5:8018',
+      apiKey: 'local-key',
+    }));
+    jest.mocked(probeLocalUrl).mockImplementation(async () => true);
+
+    const { result, rerender } = renderHook(() => useLocalConnection('cam-1'));
+    await settleConnectionHook();
+    expect(result.current.mode).toBe('local');
+
+    const probes = () => jest.mocked(probeLocalUrl).mock.calls.length;
+
+    // Focused: the interval fires.
+    const afterBootstrap = probes();
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+    });
+    expect(probes()).toBe(afterBootstrap + 1);
+
+    // Unfocused (navigated behind another screen): the interval stops.
+    mockScreenFocused.mockReturnValue(false);
+    rerender({});
+    const afterBlur = probes();
+    await act(async () => {
+      jest.advanceTimersByTime(120_000);
+    });
+    expect(probes()).toBe(afterBlur);
+
+    // Refocused: the interval resumes.
+    mockScreenFocused.mockReturnValue(true);
+    rerender({});
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+    });
+    expect(probes()).toBe(afterBlur + 1);
+
     jest.useRealTimers();
   });
 });

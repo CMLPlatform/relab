@@ -35,6 +35,7 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { AppState } from 'react-native';
+import { useScreenFocusedSafe } from '@/hooks/useScreenFocused';
 import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
 import type { LocalAccessInfo } from '@/services/api/rpiCamera/shared';
 import {
@@ -232,11 +233,13 @@ export function useLocalConnection(
   // Keeps running after a relay fallback on purpose: a later successful probe is
   // what promotes the camera back to direct mode when the LAN link returns.
   //
-  // Paused while the app is backgrounded — otherwise a hidden tab keeps hitting a
-  // device on the user's LAN. Gated on AppState rather than navigation focus: this
-  // hook also runs outside a screen (CameraPickerDialog), where no navigator exists.
+  // Paused while the app is backgrounded *or* the screen is unfocused — otherwise a
+  // hidden tab or a stacked-behind screen keeps hitting a device on the user's LAN.
+  // `useScreenFocusedSafe` returns true off-navigator, so the CameraPickerDialog
+  // (no enclosing screen) keeps probing as it should.
+  const isScreenFocused = useScreenFocusedSafe();
   useEffect(() => {
-    if (!localBaseUrl) return;
+    if (!localBaseUrl || !isScreenFocused) return;
 
     let interval: ReturnType<typeof setInterval> | null = null;
     const start = () => {
@@ -263,7 +266,7 @@ export function useLocalConnection(
       stop();
       subscription.remove();
     };
-  }, [localBaseUrl, runProbe]);
+  }, [localBaseUrl, runProbe, isScreenFocused]);
 
   // ── Manual configuration ──
   const configure = useCallback(
