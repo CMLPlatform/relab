@@ -1,6 +1,6 @@
 - main:
   - heading "System design" [level=1]
-  - paragraph: RELab is split into a research app, a public website, and backend services so each part can evolve without forcing every workflow into one interface.
+  - paragraph: ReLab is split into a research app, a public website, and backend services so each part can evolve without forcing every workflow into one interface.
   - heading "High-level architecture" [level=2]
   - link "Section titled “High-level architecture”":
     - /url: "#high-level-architecture"
@@ -85,7 +85,7 @@
   - heading "Security architecture inventory" [level=2]
   - link "Section titled “Security architecture inventory”":
     - /url: "#security-architecture-inventory"
-  - paragraph: RELab is a single backend application with supporting infrastructure, not a large microservice fleet. Authorization stays in FastAPI route dependencies, ownership checks, and admin-only dependencies. Dedicated policy engines, service meshes, mTLS between containers, and internal identity-propagation tokens are out of scope for a single backend application.
+  - paragraph: ReLab is a single backend application with supporting infrastructure, not a large microservice fleet. Authorization stays in FastAPI route dependencies, ownership checks, and admin-only dependencies. Dedicated policy engines, service meshes, mTLS between containers, and internal identity-propagation tokens are out of scope for a single backend application.
   - paragraph:
     - text: Application services are
     - code: api
@@ -135,12 +135,12 @@
     - listitem: preserve a path toward dataset publication and external reuse
     - listitem: keep identifiers and exports stable enough to link with other datasets
     - listitem: avoid infrastructure complexity that isn’t justified by the project scale
-  - paragraph: "Architecture modernization should keep RELab as a modular monolith until a real deployment or runtime boundary justifies a split. The backend should continue to evolve around explicit bounded contexts: identity and access, data collection, reference data, media and storage, publication and export, and device integration."
+  - paragraph: "Architecture modernization should keep ReLab as a modular monolith until a real deployment or runtime boundary justifies a split. The backend should continue to evolve around explicit bounded contexts: identity and access, data collection, reference data, media and storage, publication and export, and device integration."
   - link "Edit page":
     - /url: https://github.com/CMLPlatform/relab/edit/main/docs/src/content/docs/architecture/system-design.mdx
   - paragraph:
     - text: "Last updated:"
-    - time: /Jun \d+, \d+/
+    - time: /Jul 9, \d+/
   - link "Previous API":
     - /url: /user-guides/api/
   - link "Next Data model":

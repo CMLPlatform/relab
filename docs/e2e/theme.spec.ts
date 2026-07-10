@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const HEADER_LOGO_NAME = /reverse engineering lab logo/i;
+const HEADER_LOGO_NAME = /relab/i;
 
 test('header logo renders and theme chooser updates the active theme', async ({ page }) => {
   await page.goto('/');

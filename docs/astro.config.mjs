@@ -85,7 +85,7 @@ const SIDEBAR = [
 ];
 const STARLIGHT_OPTIONS = {
   title: 'ReLab docs',
-  description: 'Technical documentation for the Reverse Engineering Lab research platform.',
+  description: 'Technical documentation for the ReLab research platform.',
   logo: {
     src: './public/images/wordmark.svg',
     alt: 'ReLab',

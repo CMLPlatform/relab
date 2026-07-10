@@ -2,7 +2,7 @@
   <img src="assets/r9lab-wordmark.png" alt="R9lab" width="340">
 </p>
 
-# ReLab: Reverse Engineering Lab
+# ReLab
 
 [![Version](https://img.shields.io/github/v/release/CMLPlatform/relab?include_prereleases&filter=v*)](CHANGELOG.md)
 [![License: AGPL-v3+](https://img.shields.io/badge/License-AGPL--v3+-rebeccapurple.svg)](LICENSE.md)

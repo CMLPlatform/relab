@@ -10,7 +10,7 @@
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Image Recognition",
   ]
-  description = "Data collection app for the reverse engineering lab project at CML."
+  description = "Data collection app for the ReLab project at CML."
   keywords = ["automated-lca", "circular-economy", "computer-vision"]
   license = { text = "AGPL-3.0-or-later" }
   maintainers = [{ name = "Simon van Lierde", email = "s.n.van.lierde@cml.leidenuniv.nl" }]

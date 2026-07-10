@@ -1,4 +1,4 @@
-"""Main application entrypoint for the Reverse Engineering Lab backend."""
+"""Main application entrypoint for the ReLab backend."""
 
 from functools import partial
 

@@ -1,5 +1,5 @@
 ---
-title: Reverse Engineering Lab
+title: ReLab
 description: Start here for ReLab guides, architecture reference, and project context.
 ---
 

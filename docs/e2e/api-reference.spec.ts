@@ -41,7 +41,7 @@ test.describe('API reference pages', () => {
     );
     await expect(page.getByRole('button', { name: 'Search' })).toHaveCount(0);
     await expect(page.getByRole('complementary')).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: 'Reverse Engineering Lab - Data Collection API' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'ReLab - Data Collection API' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Download OpenAPI Document' })).toHaveAttribute(
       'href',
       '/api/schemas/openapi.public.json',

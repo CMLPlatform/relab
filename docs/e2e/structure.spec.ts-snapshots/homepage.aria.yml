@@ -1,15 +1,15 @@
 - link "Skip to content":
   - /url: "#_top"
 - banner:
-  - link "Reverse Engineering Lab logo RELab docs":
+  - link "ReLab Docs":
     - /url: /
-    - img "Reverse Engineering Lab logo"
+    - img "ReLab"
     - text: ""
   - button "Search": Ctrl K
-  - link "Open RELab app":
-    - /url: https://app.cml-relab.org
   - link "GitHub":
     - /url: https://github.com/CMLPlatform/relab
+  - link "Open app":
+    - /url: https://app.cml-relab.org
   - text: Select theme
   - combobox "Select theme":
     - option "Dark"
@@ -71,6 +71,9 @@
           - listitem:
             - link "Deployment":
               - /url: /operations/deployment/
+          - listitem:
+            - link "Security and hardening":
+              - /url: /operations/security/
     - listitem:
       - group:
         - text: Project
@@ -104,9 +107,9 @@
         - link "Research motivation":
           - /url: "#research-motivation"
 - main:
-  - heading "Reverse Engineering Lab" [level=1]
+  - heading "ReLab" [level=1]
   - paragraph:
-    - text: RELab is a research platform for collecting and publicly viewing data on the disassembly of durable goods, developed by the
+    - text: ReLab is a research platform for collecting and publicly viewing data on the disassembly of durable goods, developed by the
     - link "Institute of Environmental Sciences (CML)":
       - /url: https://www.universiteitleiden.nl/en/science/environmental-sciences
     - text: at Leiden University. It supports structured data collection, media capture, and later analysis of product composition, materials, and circularity.
@@ -156,7 +159,7 @@
         - strong:
           - link "Project context":
             - /url: project/
-        - text: Why RELab exists, who it is for, and where the dataset work is heading.
+        - text: Why ReLab exists, who it is for, and where the dataset work is heading.
   - heading "API references" [level=2]
   - link "Section titled “API references”":
     - /url: "#api-references"
@@ -172,7 +175,7 @@
         - strong:
           - link "Device API reference":
             - /url: /api/device/
-        - text: Pairing and integration endpoints used by RELab devices and plugins.
+        - text: Pairing and integration endpoints used by ReLab devices and plugins.
     - listitem:
       - paragraph:
         - strong:
@@ -195,7 +198,7 @@
   - heading "Research motivation" [level=2]
   - link "Section titled “Research motivation”":
     - /url: "#research-motivation"
-  - paragraph: "Good product data is still surprisingly hard to get: what something is made of, how it comes apart, which parts matter, and what evidence supports those claims. RELab takes a bottom-up approach. It helps people who handle real products document what they see, with enough structure that the records can later be compared, reused, and linked to other industrial-ecology data."
+  - paragraph: "Good product data is still surprisingly hard to get: what something is made of, how it comes apart, which parts matter, and what evidence supports those claims. ReLab takes a bottom-up approach. It helps people who handle real products document what they see, with enough structure that the records can later be compared, reused, and linked to other industrial-ecology data."
   - paragraph:
     - text: For repository entry points and self-hosting, see
     - link "README.md":
@@ -211,6 +214,6 @@
     - /url: https://github.com/CMLPlatform/relab/edit/main/docs/src/content/docs/index.md
   - paragraph:
     - text: "Last updated:"
-    - time: /May \d+, \d+/
+    - time: /Jul 9, \d+/
   - link "Next Getting started":
     - /url: /user-guides/getting-started/

@@ -14,7 +14,7 @@ describe('Hero', () => {
       },
     });
 
-    expect(html).toContain('Reverse Engineering Lab');
+    expect(html).toContain('ReLab');
     expect(html).toContain('href="https://app.test"');
     expect(html).toContain('href="https://docs.test"');
     expect(html).toContain('href="https://github.test"');

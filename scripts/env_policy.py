@@ -36,7 +36,7 @@ VALIDATION_ENV_VALUES = {
     "EMAIL_PROVIDER": "smtp",
     "SMTP_HOST": "smtp.example.test",
     "SMTP_USERNAME": "relab@example.test",
-    "EMAIL_FROM": "Reverse Engineering Lab <relab@example.test>",
+    "EMAIL_FROM": "ReLab <relab@example.test>",
     "EMAIL_REPLY_TO": "relab@example.test",
     "BOOTSTRAP_SUPERUSER_EMAIL": "admin@example.test",
 }

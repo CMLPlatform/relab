@@ -25,7 +25,7 @@ export async function expectHomepageHero(page: Page) {
   const main = page.locator('main');
 
   await expect(
-    main.getByRole('heading', { name: 'Reverse Engineering Lab', level: 1 }),
+    main.getByRole('heading', { name: 'ReLab', level: 1 }),
   ).toBeVisible();
   await expect(main.getByText(HOMEPAGE_DESCRIPTION_PATTERN)).toBeVisible();
   await expect(main.getByRole('link', { name: OPEN_APP_ARIA_NAME })).toBeVisible();
