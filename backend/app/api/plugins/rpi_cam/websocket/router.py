@@ -283,9 +283,7 @@ async def _receive_loop(websocket: WebSocket, session: _RelayWebSocketSession) -
         elif _WS_BYTES in raw:
             binary_data: bytes = raw[_WS_BYTES]
             if len(binary_data) > settings.rpi_cam_ws_binary_frame_limit_bytes:
-                logger.warning(
-                    "Camera %s sent oversized binary frame; closing.", sanitize_log_value(session.camera_id)
-                )
+                logger.warning("Camera %s sent oversized binary frame; closing.", sanitize_log_value(session.camera_id))
                 await websocket.close(code=status.WS_1009_MESSAGE_TOO_BIG, reason="WebSocket frame too large.")
                 return
             session.handle_binary_frame(binary_data)

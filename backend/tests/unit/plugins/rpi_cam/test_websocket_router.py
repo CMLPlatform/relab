@@ -358,9 +358,7 @@ async def test_rejects_assertion_lifetime_over_cap() -> None:
     redis = AsyncMock()
     redis.set = AsyncMock(return_value=True)
 
-    assertion = _make_assertion(
-        private_key, str(camera.id), key_id, exp_offset=MAX_ASSERTION_TTL_SECONDS + 60
-    )
+    assertion = _make_assertion(private_key, str(camera.id), key_id, exp_offset=MAX_ASSERTION_TTL_SECONDS + 60)
     with pytest.raises(jwt.InvalidTokenError, match="lifetime"):
         await _verify_device_assertion(assertion, camera, redis)
 
