@@ -186,6 +186,12 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         """
         if not user.oauth_accounts:
             return
+        # OAuth-created accounts get a random password they can never use; record that
+        # so step-up re-auth (e.g. unlinking a social login) doesn't demand a password
+        # the user never set. Password signups keep the column default (True).
+        if user.has_usable_password:
+            user.has_usable_password = False
+            await self.user_db.session.commit()
         background_tasks = getattr(getattr(request, "state", None), "background_tasks", None)
         await send_oauth_welcome_notification(
             user.email,
@@ -218,6 +224,11 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
 
     async def on_after_reset_password(self, user: User, request: Request | None = None) -> None:
         """Revoke active refresh tokens and notify the user after a password reset."""
+        # A reset is how an OAuth-only account first gains a usable password, so the
+        # account can now be step-up challenged on sensitive changes.
+        if not user.has_usable_password:
+            user.has_usable_password = True
+            await self.user_db.session.commit()
         await revoke_user_refresh_tokens(user.id, request)
         await send_password_reset_confirmation_email(user.email, user.username)
 

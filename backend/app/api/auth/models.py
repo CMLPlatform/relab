@@ -25,6 +25,12 @@ class User(BaseUserDB, TimeStampMixinBare):
 
     username: Mapped[str | None] = mapped_column(String(50), index=True, unique=True, default=None)
 
+    # Whether the account has a user-set (usable) password, as opposed to the random
+    # password fastapi-users assigns to OAuth-created accounts. Gates step-up re-auth
+    # on sensitive changes (e.g. unlinking a social login) so an OAuth-only user is
+    # never asked for a password they never set.
+    has_usable_password: Mapped[bool] = mapped_column(nullable=False, server_default="true", default=True)
+
     # Login tracking without retaining network identifiers.
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 

@@ -326,11 +326,14 @@ async def test_on_after_forgot_password_uses_background_tasks_from_request_state
 
 async def test_on_after_reset_password_revokes_refresh_tokens_and_sends_confirmation() -> None:
     """Successful password resets should invalidate active sessions and send a confirmation email."""
-    manager, _ = _make_manager()
+    manager, mock_session = _make_manager()
+    mock_session.commit = AsyncMock()
     user = MagicMock()
     user.id = "user-id"
     user.email = "user@example.com"
     user.username = "user"
+    # An OAuth-only account resetting its password gains a usable one.
+    user.has_usable_password = False
     request = MagicMock()
     redis = object()
     request.app.state.services = AppServices(redis=redis)
@@ -349,6 +352,8 @@ async def test_on_after_reset_password_revokes_refresh_tokens_and_sends_confirma
 
     mock_revoke.assert_awaited_once_with(redis, "user-id")
     mock_send.assert_awaited_once_with("user@example.com", "user")
+    assert user.has_usable_password is True
+    mock_session.commit.assert_awaited_once()
 
 
 async def test_on_after_update_logs_deactivation_with_enum_action() -> None:
@@ -451,30 +456,39 @@ async def test_delete_aborts_without_removing_the_row_when_revocation_fails() ->
     manager.user_db.delete.assert_not_awaited()
 
 
-async def test_on_after_register_welcomes_oauth_signup() -> None:
-    """A user created via OAuth (with a linked account) receives a welcome email naming the provider."""
-    manager, _ = _make_manager()
+async def test_on_after_register_welcomes_oauth_signup_and_marks_password_unusable() -> None:
+    """A user created via OAuth is welcomed and recorded as having no usable password."""
+    manager, mock_session = _make_manager()
+    mock_session.commit = AsyncMock()
     oauth_account = MagicMock()
     oauth_account.oauth_name = "google"
     user = MagicMock()
     user.email = "new@example.com"
     user.username = "newuser"
     user.oauth_accounts = [oauth_account]
+    user.has_usable_password = True  # column default before the hook runs
 
     with patch("app.api.auth.services.user_manager.send_oauth_welcome_notification", new_callable=AsyncMock) as welcome:
         await manager.on_after_register(user, request=None)
 
     welcome.assert_awaited_once()
     assert welcome.await_args.kwargs["oauth_provider"] == "google"
+    # OAuth-created accounts get a random password they can never use.
+    assert user.has_usable_password is False
+    mock_session.commit.assert_awaited_once()
 
 
 async def test_on_after_register_skips_password_signup() -> None:
-    """A password signup (no linked OAuth account) is not welcomed here; the verify flow emails it."""
-    manager, _ = _make_manager()
+    """A password signup keeps its usable password and is not welcomed here."""
+    manager, mock_session = _make_manager()
+    mock_session.commit = AsyncMock()
     user = MagicMock()
     user.oauth_accounts = []
+    user.has_usable_password = True
 
     with patch("app.api.auth.services.user_manager.send_oauth_welcome_notification", new_callable=AsyncMock) as welcome:
         await manager.on_after_register(user, request=None)
 
     welcome.assert_not_called()
+    assert user.has_usable_password is True
+    mock_session.commit.assert_not_awaited()

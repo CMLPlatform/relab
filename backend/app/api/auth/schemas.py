@@ -170,6 +170,11 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
 
     oauth_accounts: list[OAuthAccountRead] = Field(default_factory=list, description="List of linked OAuth accounts.")
     mfa_enabled: bool = Field(default=False, description="Whether TOTP MFA is enabled for this account.")
+    has_usable_password: bool = Field(
+        default=True,
+        description="Whether the account has a user-set password (false for OAuth-only accounts). "
+        "Clients use it to decide whether unlinking a social login needs a password.",
+    )
     preferences: UserPreferences = Field(
         default_factory=UserPreferences,
         description="User preferences.",

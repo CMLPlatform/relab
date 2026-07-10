@@ -2051,7 +2051,7 @@ export interface paths {
     post?: never;
     /**
      * Remove Oauth Association
-     * @description Remove a linked OAuth account.
+     * @description Remove a linked OAuth account (step-up re-auth if the account has a password).
      */
     delete: operations['remove_oauth_association_v1_oauth__provider__associate_delete'];
     options?: never;
@@ -4215,6 +4215,14 @@ export interface components {
       /** Account Email */
       account_email: string;
     };
+    /**
+     * OAuthUnlinkRequest
+     * @description Optional step-up body for unlinking a social login.
+     */
+    OAuthUnlinkRequest: {
+      /** Current Password */
+      current_password?: string | null;
+    };
     /** Page[CameraRead] */
     Page_CameraRead_: {
       /** Items */
@@ -5210,6 +5218,12 @@ export interface components {
        * @default false
        */
       mfa_enabled: boolean;
+      /**
+       * Has Usable Password
+       * @description Whether the account has a user-set password (false for OAuth-only accounts). Clients use it to decide whether unlinking a social login needs a password.
+       * @default true
+       */
+      has_usable_password: boolean;
       /** @description User preferences. */
       preferences?: components['schemas']['UserPreferences'];
     };
@@ -10180,7 +10194,11 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['OAuthUnlinkRequest'] | null;
+      };
+    };
     responses: {
       /** @description Successful Response */
       204: {
