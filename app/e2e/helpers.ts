@@ -9,7 +9,6 @@ const NEW_PRODUCT_URL_PATTERN = /\/products\/new$/;
 const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const VIEW_IMAGE_LABEL_PATTERN = /^View image \d+$/;
-const makeProductDetailUrlPattern = (id: number) => new RegExp(`/products/${id}$`);
 const DISMISS_BUTTON_NAMES = ['Got it', 'Maybe later', 'Continue'] as const;
 
 function makeOnboardingUsername() {
@@ -184,13 +183,6 @@ export async function openSeededProductFromProductsPage(page: Page) {
   await expect(seededProduct).toBeVisible({ timeout: 10_000 });
   await seededProduct.click();
   await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN, { timeout: 10_000 });
-}
-
-export async function openProductDetail(page: Page, id: number) {
-  await page.goto(`/products/${id}`);
-  await expect(page).toHaveURL(makeProductDetailUrlPattern(id), {
-    timeout: 10_000,
-  });
 }
 
 export async function openProductByNameFromProductsPage(page: Page, name: string) {
