@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
+import { AppState, type AppStateStatus } from 'react-native';
 import {
   clearStoredLocalConnection,
   loadLocalConnection,
@@ -211,5 +212,57 @@ describe('useLocalConnection', () => {
     expect(result.current).toBe(first);
 
     unmount();
+  });
+
+  it('pauses the re-probe interval while the app is backgrounded', async () => {
+    jest.useFakeTimers();
+    let notify: ((state: AppStateStatus) => void) | undefined;
+    const remove = jest.fn();
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(((
+      _event: string,
+      handler: (state: AppStateStatus) => void,
+    ) => {
+      notify = handler;
+      return { remove };
+    }) as unknown as typeof AppState.addEventListener);
+
+    jest.mocked(loadLocalConnection).mockImplementation(async () => ({
+      url: 'http://10.0.0.5:8018',
+      apiKey: 'local-key',
+    }));
+    jest.mocked(probeLocalUrl).mockImplementation(async () => true);
+
+    const { result, unmount } = renderHook(() => useLocalConnection('cam-1'));
+    await settleConnectionHook();
+    expect(result.current.mode).toBe('local');
+
+    const probes = () => jest.mocked(probeLocalUrl).mock.calls.length;
+    const afterBootstrap = probes();
+
+    // Foregrounded: the interval fires.
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+    });
+    expect(probes()).toBe(afterBootstrap + 1);
+
+    // Backgrounded: the interval is cleared, so nothing hits the LAN.
+    act(() => notify?.('background'));
+    const afterBackground = probes();
+    await act(async () => {
+      jest.advanceTimersByTime(120_000);
+    });
+    expect(probes()).toBe(afterBackground);
+
+    // Foregrounded again: one immediate catch-up probe, then the interval resumes.
+    await act(async () => notify?.('active'));
+    expect(probes()).toBe(afterBackground + 1);
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+    });
+    expect(probes()).toBe(afterBackground + 2);
+
+    unmount();
+    expect(remove).toHaveBeenCalled();
+    jest.useRealTimers();
   });
 });

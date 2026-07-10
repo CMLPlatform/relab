@@ -34,6 +34,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { AppState } from 'react-native';
 import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
 import type { LocalAccessInfo } from '@/services/api/rpiCamera/shared';
 import {
@@ -230,14 +231,38 @@ export function useLocalConnection(
   // ── Periodic re-probe while a local URL is configured ──
   // Keeps running after a relay fallback on purpose: a later successful probe is
   // what promotes the camera back to direct mode when the LAN link returns.
+  //
+  // Paused while the app is backgrounded — otherwise a hidden tab keeps hitting a
+  // device on the user's LAN. Gated on AppState rather than navigation focus: this
+  // hook also runs outside a screen (CameraPickerDialog), where no navigator exists.
   useEffect(() => {
     if (!localBaseUrl) return;
 
-    const interval = setInterval(() => {
-      void runProbe(localBaseUrl);
-    }, PROBE_INTERVAL_ACTIVE_MS);
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      interval ??= setInterval(() => {
+        void runProbe(localBaseUrl);
+      }, PROBE_INTERVAL_ACTIVE_MS);
+    };
+    const stop = () => {
+      if (interval) clearInterval(interval);
+      interval = null;
+    };
 
-    return () => clearInterval(interval);
+    start();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        stop();
+        return;
+      }
+      void runProbe(localBaseUrl); // catch up on the LAN state we missed
+      start();
+    });
+
+    return () => {
+      stop();
+      subscription.remove();
+    };
   }, [localBaseUrl, runProbe]);
 
   // ── Manual configuration ──
