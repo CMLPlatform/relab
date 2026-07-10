@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { ProductImageCameraDialogs } from '@/components/product/gallery/ProductImageCameraDialogs';
 import { ProductImageEmptyEditState } from '@/components/product/gallery/ProductImageEmptyEditState';
 import { ProductImageGalleryContent } from '@/components/product/gallery/ProductImageGalleryContent';
@@ -33,13 +33,13 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
   }
 
   return (
-    <View style={{ marginBottom: 16 }}>
+    <View style={styles.container}>
       {media.imageCount > 0 ? (
         <ProductImageGalleryContent
           width={media.width}
           imageCount={media.imageCount}
           selectedIndex={viewer.selectedIndex}
-          mediumUrls={media.mediumUrls}
+          items={media.items}
           galleryRef={media.galleryRef}
           onSelectIndex={actions.selectIndex}
           onOpenLightbox={actions.openLightbox}
@@ -82,7 +82,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
 
       <ProductImageThumbnails
         imageCount={media.imageCount}
-        thumbnailUrls={media.thumbnailUrls}
+        items={media.items}
         selectedIndex={viewer.selectedIndex}
         thumbsRef={media.thumbsRef}
         onSelectIndex={actions.selectIndex}
@@ -91,7 +91,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
 
       <ProductImageLightbox
         visible={viewer.lightboxOpen}
-        images={media.largeUrls}
+        items={media.items}
         startIndex={viewer.selectedIndex}
         onIndexChange={actions.selectIndex}
         onClose={actions.closeLightbox}
@@ -99,3 +99,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { marginBottom: 16 },
+});

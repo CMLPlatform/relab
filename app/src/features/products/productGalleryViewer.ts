@@ -8,19 +8,19 @@ import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import type { Product } from '@/types/Product';
 
 export function useProductGalleryMedia(product: Product) {
-  const { images, thumbnailUrls, mediumUrls, largeUrls } = useMemo(
-    () => buildGalleryMedia(product),
-    [product],
-  );
-  const imageCount = images.length;
+  const { images, items } = useMemo(() => buildGalleryMedia(product), [product]);
+  const imageCount = items.length;
   const { width } = Dimensions.get('window');
+  const prefetchUrls = useMemo(
+    () => items.map((item) => item.mediumUrl).filter((url): url is string => url !== null),
+    [items],
+  );
 
   return {
     width,
     images,
-    thumbnailUrls,
-    mediumUrls,
-    largeUrls,
+    items,
+    prefetchUrls,
     imageCount,
   };
 }
@@ -28,12 +28,12 @@ export function useProductGalleryMedia(product: Product) {
 export function useProductGalleryViewer({
   width,
   imageCount,
-  mediumUrls,
+  prefetchUrls,
   productId,
 }: {
   width: number;
   imageCount: number;
-  mediumUrls: string[];
+  prefetchUrls: string[];
   productId: number | null;
 }) {
   const galleryRef = useRef<ScrollableListHandle | null>(null);
@@ -41,11 +41,6 @@ export function useProductGalleryViewer({
   const previousLightboxOpenRef = useRef(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const { pendingIndex, consumePendingIndex, persistIndex } = useGalleryIndexPersistence({
-    productId,
-    imageCount,
-  });
-
   const scrollToIndex = useCallback(
     (index: number) => {
       const clamped = Math.max(0, Math.min(index, imageCount - 1));
@@ -58,6 +53,21 @@ export function useProductGalleryViewer({
     [imageCount, width],
   );
 
+  // Plain callback: useGalleryIndexPersistence wraps it in an effect event, so a
+  // stale closure is not a concern here.
+  const restoreIndex = useCallback(
+    (index: number) => {
+      setSelectedIndex(index);
+      scrollToIndex(index);
+    },
+    [scrollToIndex],
+  );
+  const { persistIndex } = useGalleryIndexPersistence({
+    productId,
+    imageCount,
+    onRestore: restoreIndex,
+  });
+
   const updateCurrentIndex = useCallback(
     async (index: number) => {
       const clampedIndex = imageCount > 0 ? Math.max(0, Math.min(index, imageCount - 1)) : 0;
@@ -68,13 +78,6 @@ export function useProductGalleryViewer({
   );
 
   useEffect(() => {
-    if (pendingIndex !== null) {
-      scrollToIndex(pendingIndex);
-      consumePendingIndex();
-    }
-  }, [consumePendingIndex, pendingIndex, scrollToIndex]);
-
-  useEffect(() => {
     if (previousLightboxOpenRef.current && !lightboxOpen && imageCount > 0) {
       scrollToIndex(selectedIndex);
     }
@@ -82,10 +85,10 @@ export function useProductGalleryViewer({
   }, [imageCount, lightboxOpen, scrollToIndex, selectedIndex]);
 
   useEffect(() => {
-    for (const url of mediumUrls) {
+    for (const url of prefetchUrls) {
       Image.prefetch(url);
     }
-  }, [mediumUrls]);
+  }, [prefetchUrls]);
 
   return {
     galleryRef,

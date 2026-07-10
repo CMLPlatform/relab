@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
 import ProductDetailsSkeleton from '@/components/product/ProductDetailsSkeleton';
 import { entityLabel, entityLabelTitle } from '@/types/Product';
+import { getErrorMessage } from '@/utils/errors';
 
 type ProductPageErrorStateProps = {
   entityRole: 'product' | 'component';
@@ -55,7 +56,7 @@ export function ProductPageErrorState({
         Oops! Something went wrong
       </Text>
       <Text variant="bodyMedium" style={styles.subtleCenterText}>
-        {String(error) || `We encountered an error while loading the ${entity} details.`}
+        {getErrorMessage(error, `We encountered an error while loading the ${entity} details.`)}
       </Text>
       <Button mode="contained" onPress={onRetry} style={{ marginTop: 8 }}>
         Try Again

@@ -98,7 +98,7 @@ export function useProductImageGallery({
   const viewerState = useProductGalleryViewer({
     width: media.width,
     imageCount: media.imageCount,
-    mediumUrls: media.mediumUrls,
+    prefetchUrls: media.prefetchUrls,
     productId,
   });
   useProductGalleryKeyboardShortcuts({
@@ -123,9 +123,7 @@ export function useProductImageGallery({
         width: media.width,
         imageCount: media.imageCount,
         images: media.images,
-        thumbnailUrls: media.thumbnailUrls,
-        mediumUrls: media.mediumUrls,
-        largeUrls: media.largeUrls,
+        items: media.items,
         galleryRef: viewerState.galleryRef,
         thumbsRef: viewerState.thumbsRef,
       },
@@ -183,9 +181,7 @@ export function useProductImageGallery({
       captureState.showRpiButton,
       media.imageCount,
       media.images,
-      media.largeUrls,
-      media.mediumUrls,
-      media.thumbnailUrls,
+      media.items,
       media.width,
       viewerState.galleryRef,
       viewerState.lightboxOpen,

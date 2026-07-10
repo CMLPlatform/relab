@@ -71,6 +71,16 @@ jest.mock('@/components/cameras/LivePreview', () => ({
   LivePreview: () => null,
 }));
 
+function galleryItem(key: string, url: string | null) {
+  return {
+    key,
+    image: { id: key, url: url ?? '', description: '' },
+    thumbnailUrl: url,
+    mediumUrl: url,
+    largeUrl: url,
+  };
+}
+
 describe('product gallery section components', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -84,7 +94,7 @@ describe('product gallery section components', () => {
         width={320}
         imageCount={2}
         selectedIndex={0}
-        mediumUrls={['a.jpg', 'b.jpg']}
+        items={[galleryItem('a', 'a.jpg'), galleryItem('b', 'b.jpg')]}
         galleryRef={{ current: null }}
         onSelectIndex={jest.fn()}
         onOpenLightbox={jest.fn()}
@@ -135,7 +145,7 @@ describe('product gallery section components', () => {
     renderWithProviders(
       <ProductImageThumbnails
         imageCount={2}
-        thumbnailUrls={['a.jpg', 'b.jpg']}
+        items={[galleryItem('a', 'a.jpg'), galleryItem('b', 'b.jpg')]}
         selectedIndex={0}
         thumbsRef={{ current: null }}
         onSelectIndex={onSelectIndex}

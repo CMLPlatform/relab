@@ -21,12 +21,14 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon } from 'react-native-paper';
+import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import ZoomableImage from '@/components/base/ZoomableImage';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import {
   GalleryFlatList,
+  type GalleryItem,
+  galleryItemKeyExtractor,
   getTouchPointX,
-  indexKeyExtractor,
   makeHorizontalItemLayout,
   type ScrollableListHandle,
   type ScrollEvent,
@@ -34,7 +36,7 @@ import {
 
 type Props = {
   visible: boolean;
-  images: string[];
+  items: GalleryItem[];
   startIndex: number;
   onIndexChange: (index: number) => void;
   onClose: () => void;
@@ -43,7 +45,7 @@ type Props = {
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: the lightbox render logic is intentionally centralized for one complex modal surface.
 export function ProductImageLightbox({
   visible,
-  images,
+  items,
   startIndex,
   onIndexChange,
   onClose,
@@ -62,8 +64,8 @@ export function ProductImageLightbox({
   const index = startIndex;
 
   const clampIndex = useCallback(
-    (nextIndex: number) => Math.max(0, Math.min(nextIndex, images.length - 1)),
-    [images.length],
+    (nextIndex: number) => Math.max(0, Math.min(nextIndex, items.length - 1)),
+    [items.length],
   );
 
   const scrollToIndex = useCallback(
@@ -87,10 +89,14 @@ export function ProductImageLightbox({
     [clampIndex, onIndexChange, scrollToIndex],
   );
 
+  // Reset zoom here rather than at each call site: `scrollEnabled` and the touch
+  // handlers are gated on `isZoomed`, so a navigation that left it set (footer
+  // chevron, arrow key) permanently disabled paging on the next slide.
   const navigateBy = useCallback(
     (delta: number, animated: boolean = true) => {
       const nextIndex = clampIndex(targetIndexRef.current + delta);
       if (nextIndex !== targetIndexRef.current) {
+        setIsZoomed(false);
         setActiveIndex(nextIndex, animated);
       }
     },
@@ -195,9 +201,9 @@ export function ProductImageLightbox({
   }, []);
   const getItemLayout = useMemo(() => makeHorizontalItemLayout(screenWidth), [screenWidth]);
   const renderItem = useCallback(
-    ({ item }: { item: string }) => (
+    ({ item }: { item: GalleryItem }) => (
       <LightboxSlide
-        uri={item}
+        uri={item.largeUrl}
         styles={styles}
         screenWidth={screenWidth}
         screenHeight={screenHeight}
@@ -234,7 +240,8 @@ export function ProductImageLightbox({
 
         <GalleryFlatList
           ref={setScrollRef}
-          data={images}
+          testID="lightbox-pager"
+          data={items}
           horizontal
           pagingEnabled
           disableIntervalMomentum={true}
@@ -245,7 +252,7 @@ export function ProductImageLightbox({
           snapToAlignment="center"
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
-          keyExtractor={indexKeyExtractor}
+          keyExtractor={galleryItemKeyExtractor}
           getItemLayout={getItemLayout}
           onScrollBeginDrag={handleScrollBeginDrag}
           onScrollEndDrag={handleScrollEnd}
@@ -253,7 +260,7 @@ export function ProductImageLightbox({
           renderItem={renderItem}
         />
 
-        {images.length > 1 ? (
+        {items.length > 1 ? (
           <View style={styles.footerWrap}>
             <View style={styles.footerBar}>
               <Pressable
@@ -268,14 +275,14 @@ export function ProductImageLightbox({
               </Pressable>
 
               <Text style={[styles.counterText, { color: theme.tokens.text.onMedia }]}>
-                {index + 1} / {images.length}
+                {index + 1} / {items.length}
               </Text>
 
               <Pressable
                 onPress={goNext}
                 hitSlop={15}
-                style={[styles.navButton, index === images.length - 1 && styles.navButtonDisabled]}
-                disabled={index === images.length - 1}
+                style={[styles.navButton, index === items.length - 1 && styles.navButtonDisabled]}
+                disabled={index === items.length - 1}
                 accessibilityRole="button"
                 accessibilityLabel="Next image"
               >
@@ -299,7 +306,7 @@ const LightboxSlide = memo(function LightboxSlide({
   setIsZoomed,
   navigateBy,
 }: {
-  uri: string;
+  uri: string | null;
   styles: ReturnType<typeof createStyles>;
   screenWidth: number;
   screenHeight: number;
@@ -322,7 +329,11 @@ const LightboxSlide = memo(function LightboxSlide({
       onTouchEnd={onTouchEnd}
       style={[styles.slide, { width: screenWidth, height: screenHeight }]}
     >
-      <ZoomableImage uri={uri} setIsZoomed={setIsZoomed} onSwipe={handleSwipe} />
+      {uri ? (
+        <ZoomableImage uri={uri} setIsZoomed={setIsZoomed} onSwipe={handleSwipe} />
+      ) : (
+        <ImagePlaceholder width={screenWidth} height={screenHeight} borderRadius={0} />
+      )}
     </View>
   );
 });

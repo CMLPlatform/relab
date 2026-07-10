@@ -38,9 +38,15 @@ describe('ProductPhysicalProperties', () => {
     const weightInput = screen.getByDisplayValue('500');
     fireEvent.changeText(weightInput, '750');
     fireEvent(weightInput, 'blur');
-    expect(onChangePhysicalProperties).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 750 }),
-    );
+    // Assert the whole object, not objectContaining: dropping the `...spread` in
+    // the change handler would wipe the other three dimensions, and
+    // objectContaining({ weight: 750 }) would happily pass.
+    expect(onChangePhysicalProperties).toHaveBeenCalledWith({
+      width: 10,
+      height: 5,
+      depth: 3,
+      weight: 750,
+    });
   });
 
   it('inputs are not editable when editMode is false', () => {

@@ -2,11 +2,13 @@ import { Image } from 'expo-image';
 import { memo, useCallback, useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { ActivityIndicator, Icon } from 'react-native-paper';
+import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { useAppTheme } from '@/theme';
 import {
   GalleryFlatList,
+  type GalleryItem,
+  galleryItemKeyExtractor,
   IMAGE_HEIGHT,
-  indexKeyExtractor,
   makeHorizontalItemLayout,
   type ScrollableListHandle,
   type ScrollEvent,
@@ -17,7 +19,7 @@ type Props = {
   width: number;
   imageCount: number;
   selectedIndex: number;
-  mediumUrls: string[];
+  items: GalleryItem[];
   galleryRef: React.RefObject<ScrollableListHandle | null>;
   onSelectIndex: (index: number) => void;
   onOpenLightbox: (index: number) => void;
@@ -40,7 +42,7 @@ export function ProductImageGalleryContent({
   width,
   imageCount,
   selectedIndex,
-  mediumUrls,
+  items,
   galleryRef,
   onSelectIndex,
   onOpenLightbox,
@@ -69,9 +71,9 @@ export function ProductImageGalleryContent({
   );
   const getItemLayout = useMemo(() => makeHorizontalItemLayout(width), [width]);
   const renderItem = useCallback(
-    ({ item, index }: { item: string; index: number }) => (
+    ({ item, index }: { item: GalleryItem; index: number }) => (
       <GalleryImageItem
-        uri={item}
+        uri={item.mediumUrl}
         index={index}
         width={width}
         onSelectIndex={onSelectIndex}
@@ -85,11 +87,11 @@ export function ProductImageGalleryContent({
     <View style={styles.galleryContainer}>
       <GalleryFlatList
         ref={setGalleryRef}
-        data={mediumUrls}
+        data={items}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        keyExtractor={indexKeyExtractor}
+        keyExtractor={galleryItemKeyExtractor}
         getItemLayout={getItemLayout}
         renderItem={renderItem}
         onMomentumScrollEnd={onScrollEnd}
@@ -172,7 +174,7 @@ const GalleryImageItem = memo(function GalleryImageItem({
   onSelectIndex,
   onOpenLightbox,
 }: {
-  uri: string;
+  uri: string | null;
   index: number;
   width: number;
   onSelectIndex: (index: number) => void;
@@ -189,7 +191,11 @@ const GalleryImageItem = memo(function GalleryImageItem({
       accessibilityRole="button"
       accessibilityLabel={`View image ${index + 1}`}
     >
-      <Image source={{ uri }} contentFit="cover" style={{ width, height: IMAGE_HEIGHT }} />
+      {uri ? (
+        <Image source={{ uri }} contentFit="cover" style={{ width, height: IMAGE_HEIGHT }} />
+      ) : (
+        <ImagePlaceholder width={width} height={IMAGE_HEIGHT} borderRadius={0} />
+      )}
     </Pressable>
   );
 });

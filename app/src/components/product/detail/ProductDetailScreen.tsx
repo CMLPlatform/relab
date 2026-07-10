@@ -44,7 +44,6 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
   const { refetch } = screen;
   const handleRetry = useCallback(() => refetch(), [refetch]);
 
-  // biome-ignore lint/suspicious/noUnnecessaryConditions: screen.isLoading is boolean (verified via tsc); biome's inferencer can't trace it through useProductPageScreen's hook composition.
   if (screen.isLoading) {
     return (
       <ProductPageLoadingState

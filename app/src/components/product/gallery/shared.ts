@@ -21,8 +21,25 @@ export type ScrollableListHandle = {
 
 export const IMAGE_HEIGHT = 300;
 
-/** Stable FlatList keyExtractor that keys rows by index. */
-export const indexKeyExtractor = (_: unknown, index: number) => String(index);
+type ProductImage = NonNullable<Product['images']>[number];
+
+/**
+ * One gallery slide. Exactly one item per product image, in source order — the
+ * viewer's index is therefore also the index into `product.images`, which is
+ * what the add/delete actions write back.
+ *
+ * A URL is `null` when it cannot be resolved (the stored file is missing, so the
+ * API returns an empty url) or when it is not a safe image URL. Those items still
+ * occupy their slot and render a placeholder; dropping them would shift every
+ * later index and silently delete the image on the next save.
+ */
+export type GalleryItem = {
+  key: string;
+  image: ProductImage;
+  thumbnailUrl: string | null;
+  mediumUrl: string | null;
+  largeUrl: string | null;
+};
 
 /** Builds a FlatList getItemLayout for a horizontally-paged list of fixed-width items. */
 export function makeHorizontalItemLayout(width: number) {
@@ -33,6 +50,9 @@ export function makeHorizontalItemLayout(width: number) {
   });
 }
 
+/** Keys rows by image identity so deleting one does not re-key its neighbours. */
+export const galleryItemKeyExtractor = (item: GalleryItem) => item.key;
+
 export function getTouchPointX(event: GestureResponderEvent, type: 'start' | 'end'): number | null {
   const touch =
     type === 'start'
@@ -42,31 +62,27 @@ export function getTouchPointX(event: GestureResponderEvent, type: 'start' | 'en
   return touch?.pageX ?? null;
 }
 
+/**
+ * resolveApiMediaUrl is http-only; fall back to the raw url for locally-picked
+ * images (file:/blob:/content:) that never hit the API.
+ */
+function resolveImageUrl(url: string | undefined): string | null {
+  if (!url) return null;
+  return resolveApiMediaUrl(url) ?? (isSafeImageUrl(url) ? url : null);
+}
+
 export function buildGalleryMedia(product: Product) {
   const images = product.images ?? [];
-  const media = images.flatMap((image) => {
-    // resolveApiMediaUrl is http-only; fall back to the raw url for
-    // locally-picked images (file:/blob:/content:) that never hit the API.
-    const imageUrl =
-      resolveApiMediaUrl(image.url) ?? (isSafeImageUrl(image.url) ? image.url : undefined);
-    if (!imageUrl) {
-      return [];
-    }
-    const thumbnailUrl = resolveApiMediaUrl(image.thumbnailUrl) ?? imageUrl;
-    return [
-      {
-        image,
-        thumbnailUrl,
-        mediumUrl: imageUrl,
-        largeUrl: imageUrl,
-      },
-    ];
+  const items: GalleryItem[] = images.map((image, index) => {
+    const imageUrl = resolveImageUrl(image.url);
+    return {
+      key: image.id ?? (image.url || `missing-${index}`),
+      image,
+      thumbnailUrl: resolveImageUrl(image.thumbnailUrl) ?? imageUrl,
+      mediumUrl: imageUrl,
+      largeUrl: imageUrl,
+    };
   });
 
-  return {
-    images: media.map(({ image }) => image),
-    thumbnailUrls: media.map(({ thumbnailUrl }) => thumbnailUrl),
-    mediumUrls: media.map(({ mediumUrl }) => mediumUrl),
-    largeUrls: media.map(({ largeUrl }) => largeUrl),
-  };
+  return { images, items };
 }

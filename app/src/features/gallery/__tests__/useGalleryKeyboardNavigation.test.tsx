@@ -188,3 +188,105 @@ describe('useGalleryKeyboardNavigation', () => {
     expect(latestNext).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('useGalleryKeyboardNavigation guards', () => {
+  const originalPlatform = Platform.OS;
+  let listener: ((event: KeyboardEvent) => void) | undefined;
+  const addEventListener = jest.fn((_: string, handler: (event: KeyboardEvent) => void) => {
+    listener = handler;
+  });
+  const removeEventListener = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    listener = undefined;
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'web' });
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: { addEventListener, removeEventListener },
+    });
+  });
+
+  afterAll(() => {
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: originalPlatform });
+  });
+
+  function press(key: string, target: unknown) {
+    listener?.({ key, target } as unknown as KeyboardEvent);
+  }
+
+  // Regression: arrow keys typed into a text field also moved the gallery slide.
+  it.each([
+    ['INPUT'],
+    ['TEXTAREA'],
+    ['SELECT'],
+  ])('ignores arrow keys typed inside a %s', (tagName) => {
+    const onPrevious = jest.fn();
+    const onNext = jest.fn();
+    renderHook(() =>
+      useGalleryKeyboardNavigation({
+        enabled: true,
+        imageCount: 3,
+        selectedIndex: 1,
+        onPrevious,
+        onNext,
+      }),
+    );
+
+    act(() => press('ArrowRight', { tagName, isContentEditable: false }));
+    act(() => press('ArrowLeft', { tagName, isContentEditable: false }));
+
+    expect(onNext).not.toHaveBeenCalled();
+    expect(onPrevious).not.toHaveBeenCalled();
+  });
+
+  it('ignores arrow keys inside a contentEditable element', () => {
+    const onNext = jest.fn();
+    renderHook(() =>
+      useGalleryKeyboardNavigation({
+        enabled: true,
+        imageCount: 3,
+        selectedIndex: 0,
+        onPrevious: jest.fn(),
+        onNext,
+      }),
+    );
+
+    act(() => press('ArrowRight', { tagName: 'DIV', isContentEditable: true }));
+
+    expect(onNext).not.toHaveBeenCalled();
+  });
+
+  it('still navigates when the key lands outside a text field', () => {
+    const onNext = jest.fn();
+    renderHook(() =>
+      useGalleryKeyboardNavigation({
+        enabled: true,
+        imageCount: 3,
+        selectedIndex: 0,
+        onPrevious: jest.fn(),
+        onNext,
+      }),
+    );
+
+    act(() => press('ArrowRight', { tagName: 'DIV', isContentEditable: false }));
+
+    expect(onNext).toHaveBeenCalled();
+  });
+
+  // Regression: every existing test passed imageCount 3, so the single-image
+  // guard could be deleted with the suite still green.
+  it('does not bind arrow keys for a single-image gallery', () => {
+    renderHook(() =>
+      useGalleryKeyboardNavigation({
+        enabled: true,
+        imageCount: 1,
+        selectedIndex: 0,
+        onPrevious: jest.fn(),
+        onNext: jest.fn(),
+      }),
+    );
+
+    expect(addEventListener).not.toHaveBeenCalled();
+  });
+});

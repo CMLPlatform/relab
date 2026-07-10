@@ -1,15 +1,21 @@
 import { Image } from 'expo-image';
 import { memo, useCallback } from 'react';
 import { Pressable, View } from 'react-native';
+import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { useAppTheme } from '@/theme';
-import { GalleryFlatList, indexKeyExtractor, type ScrollableListHandle } from './shared';
+import {
+  GalleryFlatList,
+  type GalleryItem,
+  galleryItemKeyExtractor,
+  type ScrollableListHandle,
+} from './shared';
 import { createGalleryStyles } from './styles';
 
 type GalleryStyles = ReturnType<typeof createGalleryStyles>;
 
 type Props = {
   imageCount: number;
-  thumbnailUrls: string[];
+  items: GalleryItem[];
   selectedIndex: number;
   thumbsRef: React.RefObject<ScrollableListHandle | null>;
   onSelectIndex: (index: number) => void;
@@ -18,7 +24,7 @@ type Props = {
 
 export function ProductImageThumbnails({
   imageCount,
-  thumbnailUrls,
+  items,
   selectedIndex,
   thumbsRef,
   onSelectIndex,
@@ -35,9 +41,9 @@ export function ProductImageThumbnails({
     [thumbsRef],
   );
   const renderItem = useCallback(
-    ({ item, index }: { item: string; index: number }) => (
+    ({ item, index }: { item: GalleryItem; index: number }) => (
       <ThumbnailItem
-        uri={item}
+        uri={item.thumbnailUrl}
         index={index}
         selected={selectedIndex === index}
         selectedBorderColor={selectedBorderColor}
@@ -55,10 +61,10 @@ export function ProductImageThumbnails({
     <View style={styles.thumbnailContainer}>
       <GalleryFlatList
         ref={setThumbsRef}
-        data={thumbnailUrls}
+        data={items}
         horizontal
         showsHorizontalScrollIndicator={false}
-        keyExtractor={indexKeyExtractor}
+        keyExtractor={galleryItemKeyExtractor}
         renderItem={renderItem}
       />
     </View>
@@ -74,7 +80,7 @@ const ThumbnailItem = memo(function ThumbnailItem({
   onSelectIndex,
   onScrollToIndex,
 }: {
-  uri: string;
+  uri: string | null;
   index: number;
   selected: boolean;
   selectedBorderColor: string;
@@ -97,7 +103,11 @@ const ThumbnailItem = memo(function ThumbnailItem({
         { borderColor: selected ? selectedBorderColor : 'transparent' },
       ]}
     >
-      <Image source={{ uri }} style={{ width: 60, height: 60 }} />
+      {uri ? (
+        <Image source={{ uri }} style={{ width: 60, height: 60 }} />
+      ) : (
+        <ImagePlaceholder width={60} height={60} borderRadius={0} />
+      )}
     </Pressable>
   );
 });

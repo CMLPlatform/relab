@@ -245,6 +245,24 @@ describe('ProductPage state handling', () => {
     unmount();
   });
 
+  // Regression: States rendered `{String(error) || fallback}`, so a non-Error
+  // value showed "[object Object]" and the friendly fallback was dead code.
+  it('renders the friendly fallback when the error is not an Error', () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      isError: true,
+      error: { status: 500 },
+      refetch: jest.fn(),
+    } as never);
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    expect(screen.queryByText('[object Object]')).toBeNull();
+    expect(
+      screen.getByText('We encountered an error while loading the product details.'),
+    ).toBeOnTheScreen();
+  });
+
   it('renders the error state and retries the load', () => {
     const refetch = jest.fn();
     mockUseProductForm.mockReturnValue({
@@ -257,7 +275,10 @@ describe('ProductPage state handling', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     expect(screen.getByText('Oops! Something went wrong')).toBeOnTheScreen();
-    expect(screen.getByText('Error: boom')).toBeOnTheScreen();
+    // States now formats via getErrorMessage: the message, not `String(error)`
+    // (which rendered "[object Object]" for a non-Error and made the friendly
+    // fallback unreachable).
+    expect(screen.getByText('boom')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Try Again'));
 

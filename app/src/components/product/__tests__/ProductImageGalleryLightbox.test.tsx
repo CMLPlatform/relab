@@ -25,6 +25,7 @@ type FlatListCallProps = {
 type ZoomableImageMockProps = {
   uri: string;
   onSwipe?: (direction: -1 | 1) => void;
+  setIsZoomed?: (value: boolean) => void;
 };
 type GestureCallback = (...args: unknown[]) => unknown;
 
@@ -854,5 +855,39 @@ describe('ProductImages', () => {
     await waitFor(() => {
       expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
     });
+  });
+  // Regression: only the swipe path cleared isZoomed. Navigating with the footer
+  // chevron (or an arrow key) left it set, so `scrollEnabled` stayed false and
+  // paging/swiping were permanently disabled on the next slide.
+  it('clears the zoom flag when navigating with the lightbox chevron', async () => {
+    const productWithImages = {
+      ...baseProduct,
+      images: [
+        { id: '1', url: 'file://photo1.jpg', description: '' },
+        { id: '2', url: 'file://photo2.jpg', description: '' },
+      ],
+    } as Product;
+
+    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+      withDialog: true,
+    });
+
+    fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await waitFor(() => expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen());
+
+    const zoomable = mockZoomableImageCalls.find((props) => props.uri === 'file://photo1.jpg');
+    if (!zoomable?.setIsZoomed) throw new Error('Expected setIsZoomed on the zoomable image');
+
+    const pagerScrollEnabled = () =>
+      mockFlatListCalls.filter((call) => 'scrollEnabled' in call).at(-1)?.scrollEnabled;
+
+    act(() => zoomable.setIsZoomed?.(true));
+    await waitFor(() => expect(pagerScrollEnabled()).toBe(false));
+
+    // The lightbox footer and the main gallery both label their button this way;
+    // the lightbox one is rendered last, inside the modal.
+    fireEvent.press(screen.getAllByLabelText('Next image').at(-1) as never);
+
+    await waitFor(() => expect(pagerScrollEnabled()).toBe(true));
   });
 });
