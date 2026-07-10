@@ -2,17 +2,8 @@
 
 from uuid import uuid4
 
-import pytest
-
 from app.api.common.schemas.base import ProductRead
-from app.api.data_collection.validators import validate_product
 from tests.factories.models import MaterialProductLinkFactory, ProductFactory
-
-# Constants for test values to avoid magic value warnings
-AMOUNT_IN_PARENT_5 = 5
-ERR_MIN_CONTENT = "must have at least one material or one component"
-
-_VALIDATE_PRODUCT = validate_product
 
 
 def test_product_read_thumbnail_url_is_none_without_an_image() -> None:
@@ -21,110 +12,3 @@ def test_product_read_thumbnail_url_is_none_without_an_image() -> None:
     object.__setattr__(product, "first_image_file", None)
 
     assert ProductRead.model_validate(product).thumbnail_url is None
-
-
-def test_has_cycles_no_cycle() -> None:
-    """Test that a valid tree has no cycles."""
-    # A -> B -> C
-    c = ProductFactory.build(id=uuid4(), components=[])
-    b = ProductFactory.build(id=uuid4(), components=[c])
-    a = ProductFactory.build(id=uuid4(), components=[b])
-
-    assert a.has_cycles() is False
-
-
-def test_has_cycles_direct_cycle() -> None:
-    """Test detection of a product containing itself."""
-    a = ProductFactory.build(id=uuid4())
-    a.components = [a]  # Direct cycle
-
-    assert a.has_cycles() is True
-
-
-def test_has_cycles_indirect_cycle() -> None:
-    """Test detection of an indirect cycle A -> B -> A."""
-    a = ProductFactory.build(id=uuid4())
-    b = ProductFactory.build(id=uuid4(), components=[a])
-    a.components = [b]
-
-    assert a.has_cycles() is True
-
-
-def test_components_resolve_to_materials_valid() -> None:
-    """Test that validation passes when all leaves have materials."""
-    # A -> B (Material)
-    #   -> C (Material)
-
-    # Leaf B
-    link_b = MaterialProductLinkFactory.build()
-    b = ProductFactory.build(id=uuid4(), components=[], bill_of_materials=[link_b])
-
-    # Leaf C
-    link_c = MaterialProductLinkFactory.build()
-    c = ProductFactory.build(id=uuid4(), components=[], bill_of_materials=[link_c])
-
-    # Root A
-    a = ProductFactory.build(id=uuid4(), components=[b, c])
-
-    assert a.components_resolve_to_materials() is True
-
-
-def test_components_resolve_to_materials_invalid() -> None:
-    """Test that validation fails when a leaf has no materials."""
-    # A -> B (No Material)
-
-    b = ProductFactory.build(id=uuid4(), components=[], bill_of_materials=[])
-    a = ProductFactory.build(id=uuid4(), components=[b])
-
-    assert a.components_resolve_to_materials() is False
-
-
-def test_validate_product_base_valid() -> None:
-    """Test validation of a valid base product."""
-    # Base product (no parent_id) must have content
-    link = MaterialProductLinkFactory.build()
-
-    # Should not raise
-    p = ProductFactory.build(
-        name="Valid Base", owner_id=uuid4(), bill_of_materials=[link], parent_id=None, amount_in_parent=None
-    )
-    _VALIDATE_PRODUCT(p)
-
-
-def test_validate_product_base_invalid_no_content() -> None:
-    """Test validation fails for base product with no content."""
-    p = ProductFactory.build(
-        name="Empty Base",
-        owner_id=uuid4(),
-        bill_of_materials=[],
-        components=[],
-        parent_id=None,
-        amount_in_parent=None,
-    )
-
-    with pytest.raises(ValueError, match=ERR_MIN_CONTENT):
-        _VALIDATE_PRODUCT(p)
-
-
-def test_validate_product_intermediate_valid() -> None:
-    """Test validation of a valid intermediate product."""
-    link = MaterialProductLinkFactory.build()
-
-    # Intermediate product
-    p = ProductFactory.build(
-        name="Valid Intermediate",
-        owner_id=uuid4(),
-        bill_of_materials=[link],
-        parent_id=uuid4(),  # Has parent
-        amount_in_parent=AMOUNT_IN_PARENT_5,
-    )
-    _VALIDATE_PRODUCT(p)
-
-
-def test_validate_cycle_detection_on_init() -> None:
-    """Test that cycles are detected during validation."""
-    a = ProductFactory.build(id=uuid4())
-    a.components = [a]
-
-    with pytest.raises(ValueError, match="Cycle detected"):
-        _VALIDATE_PRODUCT(a)

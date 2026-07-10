@@ -134,7 +134,6 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         back_populates="product", lazy="selectin", cascade="all, delete-orphan"
     )
 
-
     @property
     def is_leaf_node(self) -> bool:
         """Check if the product is a leaf node (no components)."""
@@ -144,38 +143,6 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
     def is_base_product(self) -> bool:
         """Check if the product is a base product (no parent)."""
         return self.parent_id is None
-
-    def has_cycles(self) -> bool:
-        """Check if the product hierarchy contains cycles."""
-        visited: set[int | None] = set()
-
-        def visit(node: Product) -> bool:
-            if node.id in visited:
-                return True
-            visited.add(node.id)
-            if node.components:
-                for component in node.components:
-                    if visit(component):
-                        return True
-            visited.remove(node.id)
-            return False
-
-        return visit(self)
-
-    def components_resolve_to_materials(self) -> bool:
-        """Ensure all leaf components have a non-empty bill of materials."""
-
-        def check(node: Product) -> bool:
-            if not node.components:
-                if not node.bill_of_materials:
-                    return False
-            else:
-                for component in node.components:
-                    if not check(component):
-                        return False
-            return True
-
-        return check(self)
 
     @property
     def owner_username(self) -> str | None:
