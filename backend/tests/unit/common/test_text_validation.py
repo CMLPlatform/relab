@@ -1,8 +1,15 @@
 """Tests for shared text input validation helpers."""
 
 import pytest
+from pydantic import TypeAdapter, ValidationError
 
-from app.api.common.validation import normalize_user_text
+from app.api.common.validation import (
+    MAX_QUERY_LIST_ITEMS,
+    MAX_QUERY_TEXT_LENGTH,
+    BoundedQueryText,
+    BoundedQueryTextList,
+    normalize_user_text,
+)
 
 
 def test_normalize_user_text_uses_unicode_nfc() -> None:
@@ -32,3 +39,46 @@ def test_normalize_user_text_rejects_newlines_by_default() -> None:
     """Single-line fields reject line breaks."""
     with pytest.raises(ValueError, match="control characters"):
         normalize_user_text("Bosch\nIXO")
+
+
+_query_text = TypeAdapter(BoundedQueryText)
+_query_list = TypeAdapter(BoundedQueryTextList)
+
+
+def test_bounded_query_text_trims_and_drops_blanks() -> None:
+    """Whitespace-only search input is treated as no filter at all."""
+    assert _query_text.validate_python("  drill ") == "drill"
+    assert _query_text.validate_python("   ") is None
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ("x" * (MAX_QUERY_TEXT_LENGTH + 1), "at most"),
+        (123, "must be a string"),
+    ],
+)
+def test_bounded_query_text_rejects_unbounded_input(value: object, message: str) -> None:
+    """Query text is bounded before it reaches the database."""
+    with pytest.raises(ValidationError, match=message):
+        _query_text.validate_python(value)
+
+
+def test_bounded_query_text_list_splits_and_trims_csv() -> None:
+    """Comma-separated filter values arrive as a trimmed list."""
+    assert _query_list.validate_python("steel, copper") == ["steel", "copper"]
+    assert _query_list.validate_python([" steel "]) == ["steel"]
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ("steel,,copper", "must not be blank"),
+        ([f"m{i}" for i in range(MAX_QUERY_LIST_ITEMS + 1)], "at most"),
+        (["x" * (MAX_QUERY_TEXT_LENGTH + 1)], "at most"),
+    ],
+)
+def test_bounded_query_text_list_rejects_unbounded_input(value: object, message: str) -> None:
+    """List filters are bounded in both item count and item length."""
+    with pytest.raises(ValidationError, match=message):
+        _query_list.validate_python(value)

@@ -168,6 +168,20 @@ def test_image_upload_policy_rejects_hyperspectral_extensions(extension: str) ->
 
 
 @pytest.mark.parametrize(
+    ("filename", "content_type", "message"),
+    [
+        ("notes.csv", "image/png", "not supported for image uploads"),
+        ("photo.png", "application/pdf", "Invalid image MIME type"),
+        ("photo.png", "image/jpeg", "does not match file extension"),
+    ],
+)
+def test_image_upload_policy_rejects_mismatched_metadata(filename: str, content_type: str, message: str) -> None:
+    """The declared MIME type and the extension must agree on a supported image format."""
+    with pytest.raises(BadRequestError, match=message):
+        validate_image_upload_metadata(_upload(filename, content_type))
+
+
+@pytest.mark.parametrize(
     "filename",
     [
         "run.exe",
