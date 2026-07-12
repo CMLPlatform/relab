@@ -133,7 +133,12 @@ export function ProfileEmailUpdatesSection({
               {enabled ? 'Currently enabled.' : 'Currently disabled.'}
             </Text>
           </View>
-          <Switch value={enabled} onValueChange={onSetEnabled} disabled={saving} />
+          <Switch
+            value={enabled}
+            onValueChange={onSetEnabled}
+            disabled={saving}
+            accessibilityLabel="Receive ReLab account updates"
+          />
         </View>
       </View>
     </>

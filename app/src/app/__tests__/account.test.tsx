@@ -1,17 +1,16 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import { PaperProvider } from 'react-native-paper';
-import { StreamSessionProvider } from '@/context/StreamSessionProvider';
+import { act, fireEvent, waitFor } from '@testing-library/react-native';
 
 // Variables prefixed with 'mock' can be referenced inside jest.mock() factories.
 // babel-jest hoists jest.mock() calls but exempts 'mock'-prefixed variables from TDZ.
 const mockRefetch = jest.fn();
 const mockSetThemeMode = jest.fn();
 const mockRouterReplace = jest.fn();
+const mockRouterPush = jest.fn();
 const mockLogout = jest.fn();
 const mockUpdateUser = jest.fn();
 const mockVerify = jest.fn();
 const mockStopStreamMutate = jest.fn();
+const mockUseRpiIntegration = jest.fn();
 const PRIVATE_VISIBILITY_PATTERN = /private/i;
 const COMMUNITY_VISIBILITY_PATTERN = /community/i;
 
@@ -19,7 +18,7 @@ jest.mock('expo-router', () => {
   const React = require('react');
   return {
     useRouter: () => ({
-      push: jest.fn(),
+      push: mockRouterPush,
       replace: mockRouterReplace,
       back: jest.fn(),
       setParams: jest.fn(),
@@ -42,7 +41,7 @@ jest.mock('@/context/auth', () => ({
 }));
 
 jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
-  useRpiIntegration: () => ({ enabled: false, loading: false, setEnabled: jest.fn() }),
+  useRpiIntegration: () => mockUseRpiIntegration(),
 }));
 
 jest.mock('@/features/cameras/rpi/hooks', () => ({
@@ -79,344 +78,6 @@ jest.mock('expo-linking', () => ({
   openURL: jest.fn(),
 }));
 
-jest.mock('@/components/profile/shared', () => {
-  const React = require('react');
-  return {
-    ProfileLayout: ({ children }: { children: React.ReactNode }) =>
-      React.createElement(React.Fragment, null, children),
-  };
-});
-
-jest.mock('@/components/profile/HeroStats', () => {
-  const React = require('react');
-  const { Pressable, Text, View } = require('react-native');
-
-  return {
-    ProfileHero: ({
-      profile,
-      onEditUsername,
-    }: {
-      profile: { username: string; email: string };
-      onEditUsername: () => void;
-    }) =>
-      React.createElement(
-        View,
-        null,
-        React.createElement(Text, null, `${profile.username}.`),
-        React.createElement(Text, null, profile.email),
-        React.createElement(
-          Pressable,
-          {
-            accessibilityLabel: 'Edit username',
-            accessibilityRole: 'button',
-            onPress: onEditUsername,
-          },
-          React.createElement(Text, null, 'Edit username'),
-        ),
-      ),
-    ProfileStatsSection: ({
-      ownStats,
-      statsLoading,
-    }: {
-      ownStats?: { product_count?: number } | null;
-      statsLoading: boolean;
-    }) =>
-      React.createElement(
-        View,
-        null,
-        React.createElement(
-          Text,
-          null,
-          statsLoading ? '...' : String(ownStats?.product_count ?? 0),
-        ),
-      ),
-  };
-});
-
-jest.mock('@/components/profile/Preferences', () => {
-  const React = require('react');
-  const { Pressable, Text, View } = require('react-native');
-
-  return {
-    ProfileAppearanceSection: ({
-      onSetThemeMode,
-    }: {
-      onSetThemeMode: (mode: 'light' | 'dark' | 'auto') => void;
-    }) =>
-      React.createElement(
-        View,
-        null,
-        React.createElement(
-          Pressable,
-          {
-            accessibilityLabel: 'Dark theme',
-            accessibilityRole: 'button',
-            onPress: () => onSetThemeMode('dark'),
-          },
-          React.createElement(Text, null, 'Dark theme'),
-        ),
-        React.createElement(
-          Pressable,
-          {
-            accessibilityLabel: 'Light theme',
-            accessibilityRole: 'button',
-            onPress: () => onSetThemeMode('light'),
-          },
-          React.createElement(Text, null, 'Light theme'),
-        ),
-        React.createElement(
-          Pressable,
-          {
-            accessibilityLabel: 'Auto theme',
-            accessibilityRole: 'button',
-            onPress: () => onSetThemeMode('auto'),
-          },
-          React.createElement(Text, null, 'Auto theme'),
-        ),
-      ),
-    ProfileVisibilitySection: ({
-      onChangeVisibility,
-    }: {
-      onChangeVisibility: (visibility: 'public' | 'community' | 'private') => void;
-    }) =>
-      React.createElement(
-        View,
-        null,
-        React.createElement(
-          Pressable,
-          { accessibilityRole: 'radio', onPress: () => onChangeVisibility('private') },
-          React.createElement(Text, null, 'Private'),
-        ),
-        React.createElement(
-          Pressable,
-          { accessibilityRole: 'radio', onPress: () => onChangeVisibility('community') },
-          React.createElement(Text, null, 'Community'),
-        ),
-      ),
-    ProfileEmailUpdatesSection: ({ onSetEnabled }: { onSetEnabled: (enabled: boolean) => void }) =>
-      React.createElement(
-        View,
-        null,
-        React.createElement(
-          Pressable,
-          {
-            accessibilityRole: 'switch',
-            accessibilityLabel: 'Receive ReLab account updates',
-            onPress: () => onSetEnabled(true),
-          },
-          React.createElement(Text, null, 'Receive ReLab account updates'),
-        ),
-      ),
-  };
-});
-
-jest.mock('@/components/profile/AccountSections', () => {
-  const React = require('react');
-  const { Pressable, Text, View } = require('react-native');
-
-  return {
-    ProfileAccountSection: ({
-      isVerified,
-      onLogout,
-      onVerifyAccount,
-    }: {
-      isVerified: boolean;
-      onLogout: () => void;
-      onVerifyAccount: () => void;
-    }) =>
-      React.createElement(
-        View,
-        null,
-        !isVerified
-          ? React.createElement(
-              Pressable,
-              { accessibilityRole: 'button', onPress: onVerifyAccount },
-              React.createElement(Text, null, 'Verify email address'),
-            )
-          : null,
-        React.createElement(
-          Pressable,
-          { accessibilityLabel: 'Sign out', accessibilityRole: 'button', onPress: onLogout },
-          React.createElement(Text, null, 'Sign out'),
-        ),
-      ),
-    ProfileDangerZoneSection: ({ onDeleteAccount }: { onDeleteAccount: () => void }) =>
-      React.createElement(
-        Pressable,
-        {
-          accessibilityLabel: 'Delete account?',
-          accessibilityRole: 'button',
-          onPress: onDeleteAccount,
-        },
-        React.createElement(Text, null, 'Delete account?'),
-      ),
-    ProfileLinkedAccountsSection: ({
-      isGoogleLinked,
-      isGithubLinked,
-      onLinkOAuth,
-      onRequestUnlink,
-    }: {
-      isGoogleLinked: boolean;
-      isGithubLinked: boolean;
-      onLinkOAuth: (provider: string) => void;
-      onRequestUnlink: (provider: string) => void;
-    }) =>
-      React.createElement(
-        View,
-        null,
-        isGoogleLinked
-          ? React.createElement(
-              Pressable,
-              {
-                accessibilityLabel: 'Unlink Google',
-                accessibilityRole: 'button',
-                onPress: () => onRequestUnlink('google'),
-              },
-              React.createElement(Text, null, 'Unlink Google'),
-            )
-          : React.createElement(
-              Pressable,
-              { accessibilityRole: 'button', onPress: () => onLinkOAuth('google') },
-              React.createElement(Text, null, 'Link Google Account'),
-            ),
-        isGithubLinked
-          ? React.createElement(
-              Pressable,
-              {
-                accessibilityLabel: 'Unlink GitHub',
-                accessibilityRole: 'button',
-                onPress: () => onRequestUnlink('github'),
-              },
-              React.createElement(Text, null, 'Unlink GitHub'),
-            )
-          : React.createElement(
-              Pressable,
-              { accessibilityRole: 'button', onPress: () => onLinkOAuth('github') },
-              React.createElement(Text, null, 'Link GitHub Account'),
-            ),
-      ),
-  };
-});
-
-jest.mock('@/components/profile/Dialogs', () => {
-  const React = require('react');
-  const { Pressable, Text, TextInput, View } = require('react-native');
-
-  return {
-    ProfileDialogs: ({
-      editUsernameVisible,
-      onDismissEditUsername,
-      newUsername,
-      onChangeUsername,
-      onSaveUsername,
-      unlinkDialogVisible,
-      onDismissUnlink,
-      providerToUnlink,
-      onConfirmUnlink,
-      logoutDialogVisible,
-      onDismissLogout,
-      onConfirmLogout,
-      deleteDialogVisible,
-      onDismissDeleteDialog,
-    }: {
-      editUsernameVisible: boolean;
-      onDismissEditUsername: () => void;
-      newUsername: string;
-      onChangeUsername: (value: string) => void;
-      onSaveUsername: () => void;
-      unlinkDialogVisible: boolean;
-      onDismissUnlink: () => void;
-      providerToUnlink: string;
-      onConfirmUnlink: () => void;
-      logoutDialogVisible: boolean;
-      onDismissLogout: () => void;
-      onConfirmLogout: () => void;
-      deleteDialogVisible: boolean;
-      onDismissDeleteDialog: () => void;
-    }) =>
-      React.createElement(
-        View,
-        null,
-        editUsernameVisible
-          ? React.createElement(
-              View,
-              null,
-              React.createElement(Text, null, 'Edit username'),
-              React.createElement(TextInput, {
-                value: newUsername,
-                onChangeText: onChangeUsername,
-              }),
-              React.createElement(
-                Pressable,
-                { accessibilityRole: 'button', onPress: onSaveUsername },
-                React.createElement(Text, null, 'Save'),
-              ),
-              React.createElement(
-                Pressable,
-                { accessibilityRole: 'button', onPress: onDismissEditUsername },
-                React.createElement(Text, null, 'Cancel'),
-              ),
-            )
-          : null,
-        unlinkDialogVisible
-          ? React.createElement(
-              View,
-              null,
-              React.createElement(Text, null, 'Unlink account'),
-              React.createElement(Text, null, providerToUnlink),
-              React.createElement(
-                Pressable,
-                { accessibilityRole: 'button', onPress: onConfirmUnlink },
-                React.createElement(Text, null, 'Unlink'),
-              ),
-              React.createElement(
-                Pressable,
-                { accessibilityRole: 'button', onPress: onDismissUnlink },
-                React.createElement(Text, null, 'Cancel'),
-              ),
-            )
-          : null,
-        logoutDialogVisible
-          ? React.createElement(
-              View,
-              null,
-              React.createElement(Text, null, 'Are you sure you want to sign out?'),
-              React.createElement(
-                Pressable,
-                { accessibilityRole: 'button', onPress: onConfirmLogout },
-                React.createElement(Text, null, 'Sign out'),
-              ),
-              React.createElement(
-                Pressable,
-                { accessibilityRole: 'button', onPress: onDismissLogout },
-                React.createElement(Text, null, 'Cancel'),
-              ),
-            )
-          : null,
-        deleteDialogVisible
-          ? React.createElement(
-              View,
-              null,
-              React.createElement(Text, null, 'Delete account'),
-              React.createElement(
-                Pressable,
-                { accessibilityRole: 'button', onPress: onDismissDeleteDialog },
-                React.createElement(Text, null, 'Cancel'),
-              ),
-            )
-          : null,
-      ),
-  };
-});
-
-jest.mock('@/components/profile/Integrations', () => ({
-  ProfileIntegrationsSection: () => null,
-}));
-
-jest.mock('@/components/profile/SecuritySection', () => ({
-  ProfileSecuritySection: () => null,
-}));
-
 jest.mock('@/services/api/client', () => ({
   apiFetch: jest.fn().mockResolvedValue({
     ok: true,
@@ -437,20 +98,18 @@ const defaultUser = {
   preferences: { profile_visibility: 'public', theme_mode: 'auto', email_updates_enabled: false },
 };
 
+// Both modules are require()d lazily, not imported: a top-level import of either
+// pulls in @/services/api/auth/authentication before the mock* consts above are
+// initialised, so the jest.mock factory would capture them as undefined.
+function renderProfileTab() {
+  const { renderWithProviders } = require('@/test-utils/render.tsx');
+  const ProfileTab = require('@/app/account.tsx').default;
+  return renderWithProviders(<ProfileTab />, { withDialog: true });
+}
+
 /** Render the profile tab and wait for all initial async effects to settle. */
 async function renderProfile() {
-  const ProfileTab = require('@/app/account.tsx').default;
-  const result = render(<ProfileTab />, {
-    wrapper: ({ children }) => (
-      <QueryClientProvider
-        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-      >
-        <PaperProvider>
-          <StreamSessionProvider>{children}</StreamSessionProvider>
-        </PaperProvider>
-      </QueryClientProvider>
-    ),
-  });
+  const result = renderProfileTab();
   // Flush pending microtasks so profile stats loading effects settle
   // inside act() and don't trigger "not wrapped in act" warnings.
   await act(async () => {});
@@ -471,6 +130,11 @@ describe('ProfileTab', () => {
     mockStopStreamMutate.mockImplementation((...args: unknown[]) => {
       const options = args[1] as { onSuccess?: () => void } | undefined;
       options?.onSuccess?.();
+    });
+    mockUseRpiIntegration.mockReturnValue({
+      enabled: false,
+      loading: false,
+      setEnabled: jest.fn(),
     });
 
     const { getPublicProfile } = require('@/services/api/profiles.ts');
@@ -529,20 +193,9 @@ describe('ProfileTab', () => {
       // Stall getPublicProfile so the loading state stays visible
       (getPublicProfile as jest.Mock).mockReturnValue(new Promise(() => {}));
 
-      const ProfileTab = require('@/app/account.tsx').default;
-      const { getAllByText } = render(<ProfileTab />, {
-        wrapper: ({ children }) => (
-          <QueryClientProvider
-            client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-          >
-            <PaperProvider>
-              <StreamSessionProvider>{children}</StreamSessionProvider>
-            </PaperProvider>
-          </QueryClientProvider>
-        ),
-      });
+      const { getAllByText } = renderProfileTab();
       // statsLoading=true renders '...' for each of the four stat values
-      expect(getAllByText('...').length).toBeGreaterThanOrEqual(1);
+      expect(getAllByText('...')).toHaveLength(4);
       // Settle the stats effect to avoid act() warnings
       await act(async () => {});
     });
@@ -600,7 +253,8 @@ describe('ProfileTab', () => {
   describe('email updates', () => {
     it('calls updateUser when the email updates switch is toggled', async () => {
       const { findByRole } = await renderProfile();
-      fireEvent.press(await findByRole('switch', { name: 'Receive ReLab account updates' }));
+      const emailSwitch = await findByRole('switch', { name: 'Receive ReLab account updates' });
+      fireEvent(emailSwitch, 'valueChange', true);
       await waitFor(() => {
         expect(mockUpdateUser).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -649,10 +303,57 @@ describe('ProfileTab', () => {
     });
   });
 
+  describe('security section', () => {
+    it('offers only enrolment while two-step verification is off', async () => {
+      const { findByLabelText, queryByLabelText } = await renderProfile();
+
+      expect(await findByLabelText('Two-step verification')).toBeTruthy();
+      expect(queryByLabelText('Turn off two-step verification')).toBeNull();
+    });
+
+    it('offers the manage actions once two-step verification is on', async () => {
+      const { useAuth } = require('@/context/auth.ts');
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...defaultUser, mfaEnabled: true },
+        refetch: mockRefetch,
+      });
+
+      const { findByLabelText, findByText } = await renderProfile();
+
+      expect(await findByText('On — you enter a code at login')).toBeTruthy();
+      expect(await findByLabelText('Generate new recovery codes')).toBeTruthy();
+      expect(await findByLabelText('Reset authenticator key')).toBeTruthy();
+      expect(await findByLabelText('Turn off two-step verification')).toBeTruthy();
+    });
+  });
+
+  describe('integrations', () => {
+    it('hides the camera and YouTube rows while the RPi integration is off', async () => {
+      const { queryByLabelText, queryByText } = await renderProfile();
+
+      expect(queryByLabelText('Manage cameras')).toBeNull();
+      expect(queryByText('YouTube Live')).toBeNull();
+    });
+
+    it('reveals the camera and YouTube rows once the RPi integration is on', async () => {
+      mockUseRpiIntegration.mockReturnValue({
+        enabled: true,
+        loading: false,
+        setEnabled: jest.fn(),
+      });
+
+      const { findByLabelText, findByText } = await renderProfile();
+
+      expect(await findByText('YouTube Live')).toBeTruthy();
+      fireEvent.press(await findByLabelText('Manage cameras'));
+      expect(mockRouterPush).toHaveBeenCalledWith('/cameras');
+    });
+  });
+
   describe('linked accounts', () => {
-    it('shows "Link Google Account" when Google is not linked', async () => {
+    it('shows "Link Google account" when Google is not linked', async () => {
       const { findByText } = await renderProfile();
-      expect(await findByText('Link Google Account')).toBeTruthy();
+      expect(await findByText('Link Google account')).toBeTruthy();
     });
 
     it('shows "Unlink Google" and opens the dialog when Google is linked', async () => {

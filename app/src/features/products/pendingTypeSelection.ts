@@ -3,7 +3,7 @@
 // consumes it on focus. A module slot rather than a URL param, so the picker can
 // return to *any* route — an unsaved draft (`/products/new`) has no `[id]`
 // segment to round-trip a param through. Mirrors the pendingMfaLogin handoff.
-// ponytail: single global slot — only one type selection is ever in flight.
+// NOTE: single global slot — only one type selection is ever in flight.
 
 let pendingTypeId: number | null = null;
 

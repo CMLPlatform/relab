@@ -75,6 +75,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
           <TextInput
             mode="outlined"
             label="Current password"
+            accessibilityLabel="Current password"
             value={mfa.password}
             onChangeText={mfa.setPassword}
             secureTextEntry
