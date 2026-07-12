@@ -161,7 +161,7 @@ describe('useProductsScreen', () => {
 
     expect(mockAlert).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Sign In Required',
+        title: 'Sign in required',
       }),
     );
     expect(mockInput).not.toHaveBeenCalled();

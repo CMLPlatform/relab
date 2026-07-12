@@ -45,7 +45,7 @@ export function setCamerasHeaderOptions({
   const backProductId = captureAllProductId ?? streamProductId;
 
   navigation.setOptions({
-    title: streamModeEnabled ? 'Select camera to stream' : 'My Cameras',
+    title: streamModeEnabled ? 'Select camera to stream' : 'My cameras',
     headerLeft: (props: NativeStackHeaderBackProps) =>
       createElement(HeaderBackButton, {
         ...props,

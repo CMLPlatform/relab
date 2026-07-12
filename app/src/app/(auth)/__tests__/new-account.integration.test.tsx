@@ -178,7 +178,7 @@ describe('NewAccount screen', () => {
       );
     });
     await act(async () => {
-      fireEvent.press(screen.getByText('Create Account'));
+      fireEvent.press(screen.getByText('Create account'));
     });
 
     expect(mockedLogin).not.toHaveBeenCalled();
@@ -212,13 +212,13 @@ describe('NewAccount screen', () => {
     });
 
     await act(async () => {
-      fireEvent.press(screen.getByText('Create Account'));
+      fireEvent.press(screen.getByText('Create account'));
     });
 
     expect(register).toHaveBeenCalled();
     expect(mockDialogApi.alert).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Registration Failed',
+        title: 'Registration failed',
         message: 'Email already in use',
       }),
     );

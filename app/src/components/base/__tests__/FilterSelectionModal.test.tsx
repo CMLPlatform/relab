@@ -71,7 +71,7 @@ describe('FilterSelectionModal', () => {
       <FilterSelectionModal
         visible
         onDismiss={jest.fn()}
-        title="Select Brand"
+        title="Select brand"
         items={[]}
         selectedValues={[]}
         onSelectionChange={jest.fn()}
@@ -94,7 +94,7 @@ describe('FilterSelectionModal', () => {
       <FilterSelectionModal
         visible
         onDismiss={onDismiss}
-        title="Select Brand"
+        title="Select brand"
         items={[]}
         selectedValues={[]}
         onSelectionChange={onSelectionChange}
@@ -116,7 +116,7 @@ describe('FilterSelectionModal', () => {
       <FilterSelectionModal
         visible
         onDismiss={jest.fn()}
-        title="Filter by Brand"
+        title="Filter by brand"
         items={[]}
         selectedValues={[]}
         onSelectionChange={jest.fn()}

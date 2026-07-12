@@ -145,20 +145,20 @@ test.describe('Brand filter', () => {
   }) => {
     await goToProducts(page);
     await page.getByText('Brand', { exact: true }).click();
-    await expect(page.getByText('Filter by Brand')).toBeVisible({
+    await expect(page.getByText('Filter by brand')).toBeVisible({
       timeout: 5_000,
     });
-    await expect(page.getByPlaceholder('Search brands...')).toBeVisible();
+    await expect(page.getByPlaceholder('Search brands…')).toBeVisible();
   });
 
   test('dismissing the brand modal closes it without filtering', async ({ page }) => {
     await goToProducts(page);
     await page.getByText('Brand', { exact: true }).click();
-    await expect(page.getByText('Filter by Brand')).toBeVisible({
+    await expect(page.getByText('Filter by brand')).toBeVisible({
       timeout: 5_000,
     });
     await page.getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByText('Filter by Brand')).not.toBeVisible({
+    await expect(page.getByText('Filter by brand')).not.toBeVisible({
       timeout: 3_000,
     });
     // URL should not contain brands param
@@ -170,10 +170,10 @@ test.describe('Type filter', () => {
   test('Type chip opens a filter modal with a search field', async ({ page }) => {
     await goToProducts(page);
     await page.getByText('Type', { exact: true }).click();
-    await expect(page.getByText('Filter by Product Type')).toBeVisible({
+    await expect(page.getByText('Filter by product type')).toBeVisible({
       timeout: 5_000,
     });
-    await expect(page.getByPlaceholder('Search types...')).toBeVisible();
+    await expect(page.getByPlaceholder('Search types…')).toBeVisible();
   });
 });
 

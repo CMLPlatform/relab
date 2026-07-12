@@ -32,7 +32,7 @@ async function registerNewUserAndReachProducts(page: import('@playwright/test').
   await page.getByPlaceholder('Email address').fill(email);
   await page.getByTestId('email-next').click();
   await page.getByPlaceholder('Password').fill(password);
-  await page.getByRole('button', { name: 'Create Account' }).click();
+  await page.getByRole('button', { name: 'Create account' }).click();
 
   // Registration no longer auto-logs-in (non-enumerable signup): dismiss the
   // verify-email prompt, then log in with the new credentials to reach products.
@@ -42,7 +42,7 @@ async function registerNewUserAndReachProducts(page: import('@playwright/test').
 
   await page.getByPlaceholder('Email or username').fill(email);
   await page.getByPlaceholder('Password').fill(password);
-  await page.getByRole('button', { name: 'Login' }).click();
+  await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
   await finishOnboardingIfVisible(page);
   await dismissProductsInfoCard(page);
@@ -58,8 +58,8 @@ test.describe('Guest access', () => {
     await expect(page.getByPlaceholder('Search products')).toBeVisible({
       timeout: 10_000,
     });
-    // Header shows "Sign In" pill for guests
-    await expect(page.getByText('Sign In', { exact: true })).toBeVisible();
+    // Header shows "Sign in" pill for guests
+    await expect(page.getByText('Sign in', { exact: true })).toBeVisible();
   });
 });
 
@@ -95,7 +95,7 @@ test.describe('Search', () => {
     await page.getByPlaceholder('Search products').fill('xyz_no_match_99999');
     // searchQuery state updates immediately, so the no-match message appears before
     // the debounced API call even fires
-    await expect(page.getByText('No products found matching your search.')).toBeVisible({
+    await expect(page.getByText('No products match your search.')).toBeVisible({
       timeout: 5_000,
     });
   });
@@ -104,7 +104,7 @@ test.describe('Search', () => {
     await loginAndReachProducts(page);
     const searchBar = page.getByPlaceholder('Search products');
     await searchBar.fill('xyz_no_match_99999');
-    await expect(page.getByText('No products found matching your search.')).toBeVisible({
+    await expect(page.getByText('No products match your search.')).toBeVisible({
       timeout: 5_000,
     });
     await searchBar.clear();

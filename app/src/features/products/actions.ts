@@ -32,8 +32,7 @@ export function createProductAction({
   if (!currentUser.isVerified) {
     dialog.alert({
       title: 'Verify your email first',
-      message:
-        'Check your inbox for the verification link, or resend it from your Account.',
+      message: 'Check your inbox for the verification link, or resend it from your Account.',
       buttons: [{ text: 'OK' }, { text: 'Go to Account', onPress: () => router.push('/account') }],
     });
     return;

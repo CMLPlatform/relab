@@ -17,7 +17,7 @@ jest.mock('@/services/api/client', () => ({
 
 const AT_LEAST_12_PATTERN = /at least 12/i;
 const PASSWORDS_MATCH_PATTERN = /passwords must match/i;
-const PASSWORD_RESET_SUCCESS_PATTERN = /Password reset successful/i;
+const PASSWORD_RESET_SUCCESS_PATTERN = /Password reset\. You can now sign in\./i;
 const REDIRECTING_TO_LOGIN_PATTERN = /Redirecting to login/i;
 
 const mockedApiFetch = apiFetch as jest.MockedFunction<typeof apiFetch>;
@@ -66,10 +66,10 @@ beforeEach(() => {
 describe('ResetPasswordScreen rendering', () => {
   it('renders the reset password form', () => {
     renderResetPasswordScreen();
-    expect(screen.getAllByText('Reset Password')).not.toHaveLength(0);
+    expect(screen.getAllByText('Reset password')).not.toHaveLength(0);
     expect(screen.getByTestId('password-input')).toBeOnTheScreen();
     expect(screen.getByTestId('confirm-password-input')).toBeOnTheScreen();
-    expect(screen.getByText('Back to Login')).toBeOnTheScreen();
+    expect(screen.getByText('Back to login')).toBeOnTheScreen();
   });
 
   it('removes the token from browser history on web', () => {
@@ -122,7 +122,7 @@ describe('ResetPasswordScreen submission', () => {
     renderResetPasswordScreen();
     await submitResetPassword('correct-horse-battery-staple-v42');
 
-    expect(screen.getByText('No reset token provided')).toBeOnTheScreen();
+    expect(screen.getByText('This reset link is invalid. Request a new one.')).toBeOnTheScreen();
     expect(mockedApiFetch).not.toHaveBeenCalled();
   });
 
@@ -192,7 +192,7 @@ describe('ResetPasswordScreen submission', () => {
     renderResetPasswordScreen();
     await submitResetPassword('correct-horse-battery-staple-v42');
 
-    expect(screen.getByText('An error occurred during password reset')).toBeOnTheScreen();
+    expect(screen.getByText("Couldn't reset your password. Please try again.")).toBeOnTheScreen();
 
     consoleErrorSpy.mockRestore();
   });

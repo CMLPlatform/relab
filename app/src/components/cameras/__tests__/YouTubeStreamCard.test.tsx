@@ -72,7 +72,7 @@ describe('YouTubeStreamCard', () => {
     const alertConfig = mockAlert.mock.calls[0][0] as {
       buttons: { text: string; onPress?: () => void }[];
     };
-    const endStreamButton = alertConfig.buttons.find((button) => button.text === 'End Stream');
+    const endStreamButton = alertConfig.buttons.find((button) => button.text === 'End stream');
     endStreamButton?.onPress?.();
 
     expect(mockMutate).toHaveBeenCalledWith(
@@ -99,7 +99,7 @@ describe('YouTubeStreamCard', () => {
     const alertConfig = mockAlert.mock.calls[0][0] as {
       buttons: { text: string; onPress?: () => void }[];
     };
-    const endStreamButton = alertConfig.buttons.find((button) => button.text === 'End Stream');
+    const endStreamButton = alertConfig.buttons.find((button) => button.text === 'End stream');
     endStreamButton?.onPress?.();
 
     const mutateOptions = mockMutate.mock.calls[0][1] as { onError: (error: Error) => void };

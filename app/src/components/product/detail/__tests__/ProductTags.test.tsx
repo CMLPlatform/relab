@@ -56,7 +56,7 @@ describe('ProductTags', () => {
       withDialog: true,
     });
     fireEvent.press(screen.getByText(BRAND_PATTERN));
-    expect(screen.getByText('Select Brand')).toBeOnTheScreen();
+    expect(screen.getByText('Select brand')).toBeOnTheScreen();
   });
 
   it('does not open brand modal when not in editMode', async () => {
@@ -64,7 +64,7 @@ describe('ProductTags', () => {
       withDialog: true,
     });
     fireEvent.press(screen.getByText(BRAND_PATTERN));
-    expect(screen.queryByText('Select Brand')).toBeNull();
+    expect(screen.queryByText('Select brand')).toBeNull();
   });
 
   it('calls onBrandChange when a brand chip is pressed in the modal', async () => {
@@ -76,7 +76,7 @@ describe('ProductTags', () => {
       },
     );
     fireEvent.press(screen.getByText(BRAND_PATTERN));
-    await screen.findByText('Select Brand');
+    await screen.findByText('Select brand');
     fireEvent.press(screen.getByText('Samsung'));
     expect(onBrandChange).toHaveBeenCalledWith('Samsung');
   });
@@ -86,7 +86,7 @@ describe('ProductTags', () => {
       withDialog: true,
     });
     fireEvent.press(screen.getByText(BRAND_PATTERN));
-    await screen.findByText('Select Brand');
+    await screen.findByText('Select brand');
     fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
     await screen.findByText('MyNewBrand');
   });
@@ -100,7 +100,7 @@ describe('ProductTags', () => {
       },
     );
     fireEvent.press(screen.getByText(BRAND_PATTERN));
-    await screen.findByText('Select Brand');
+    await screen.findByText('Select brand');
     fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
     await screen.findByText('MyNewBrand');
     fireEvent.press(screen.getByText('MyNewBrand'));
@@ -112,7 +112,7 @@ describe('ProductTags', () => {
       withDialog: true,
     });
     fireEvent.press(screen.getByText(MODEL_PATTERN));
-    expect(screen.getByText('Set Model')).toBeOnTheScreen();
+    expect(screen.getByText('Set model')).toBeOnTheScreen();
   });
 
   it('calls onModelChange with the new name when OK is pressed in the model dialog', async () => {
@@ -124,7 +124,7 @@ describe('ProductTags', () => {
       },
     );
     fireEvent.press(screen.getByText(MODEL_PATTERN));
-    fireEvent.changeText(screen.getByPlaceholderText('Model Name'), 'NewModel');
+    fireEvent.changeText(screen.getByPlaceholderText('Model name'), 'NewModel');
     fireEvent.press(screen.getByText('OK'));
     expect(onModelChange).toHaveBeenCalledWith('NewModel');
   });

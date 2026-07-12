@@ -19,7 +19,7 @@ describe('streamingFeedback', () => {
 
     expect(feedback.alert).toHaveBeenCalledWith({
       title: 'Google account required',
-      message: 'Connect your Google account in Profile > Linked Accounts to stream to YouTube.',
+      message: 'Connect your Google account in Profile > Linked accounts to stream to YouTube.',
       buttons: [{ text: 'OK' }],
     });
   });

@@ -10,8 +10,8 @@ describe('LogoutConfirm', () => {
     renderWithProviders(<LogoutConfirm visible onDismiss={jest.fn()} onConfirm={jest.fn()} />, {
       withDialog: true,
     });
-    expect(screen.getAllByText('Logout').length).toBeGreaterThan(0);
-    expect(screen.getByText('Are you sure you want to log out?')).toBeOnTheScreen();
+    expect(screen.getAllByText('Sign out').length).toBeGreaterThan(0);
+    expect(screen.getByText('Are you sure you want to sign out?')).toBeOnTheScreen();
   });
 
   it('does not render dialog content when not visible', () => {
@@ -21,7 +21,7 @@ describe('LogoutConfirm', () => {
         withDialog: true,
       },
     );
-    expect(screen.queryByText('Are you sure you want to log out?')).toBeNull();
+    expect(screen.queryByText('Are you sure you want to sign out?')).toBeNull();
   });
 
   it('calls onDismiss when Cancel is pressed', async () => {
@@ -38,7 +38,7 @@ describe('LogoutConfirm', () => {
     renderWithProviders(<LogoutConfirm visible onDismiss={jest.fn()} onConfirm={onConfirm} />, {
       withDialog: true,
     });
-    const items = screen.getAllByText('Logout');
+    const items = screen.getAllByText('Sign out');
     await user.press(items[items.length - 1]);
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });

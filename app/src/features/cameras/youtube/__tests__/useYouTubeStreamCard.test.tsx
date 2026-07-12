@@ -124,7 +124,7 @@ describe('useYouTubeStreamCard', () => {
     const alertConfig = mockAlert.mock.calls[0]?.[0] as {
       buttons: { text: string; onPress?: () => void }[];
     };
-    const endStreamButton = alertConfig.buttons.find((button) => button.text === 'End Stream');
+    const endStreamButton = alertConfig.buttons.find((button) => button.text === 'End stream');
 
     act(() => {
       endStreamButton?.onPress?.();
@@ -154,7 +154,7 @@ describe('useYouTubeStreamCard', () => {
     const alertConfig = mockAlert.mock.calls[0]?.[0] as {
       buttons: { text: string; onPress?: () => void }[];
     };
-    const endStreamButton = alertConfig.buttons.find((button) => button.text === 'End Stream');
+    const endStreamButton = alertConfig.buttons.find((button) => button.text === 'End stream');
 
     act(() => {
       endStreamButton?.onPress?.();

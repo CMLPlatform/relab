@@ -321,7 +321,7 @@ export function NewAccountPasswordStep({
     <NewAccountStep
       {...shared}
       field="password"
-      lines={['Finally,', username, 'How will you log in?']}
+      lines={['Finally,', username, 'How will you sign in?']}
       inputProps={{
         autoComplete: 'password-new',
         textContentType: 'newPassword',

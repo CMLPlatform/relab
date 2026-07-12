@@ -57,8 +57,8 @@ beforeEach(() => {
 describe('ForgotPasswordScreen rendering', () => {
   it('renders the forgot password form', () => {
     renderForgotPasswordScreen();
-    expect(screen.getByText('Forgot Password')).toBeOnTheScreen();
-    expect(screen.getAllByText('Send Reset Link')).not.toHaveLength(0);
+    expect(screen.getByText('Forgot password')).toBeOnTheScreen();
+    expect(screen.getAllByText('Send reset link')).not.toHaveLength(0);
     expect(screen.getByText(FORGOT_PASSWORD_INSTRUCTIONS_PATTERN)).toBeOnTheScreen();
   });
 
@@ -138,7 +138,7 @@ describe('ForgotPasswordScreen navigation', () => {
     await submitForgotPasswordEmail('user@example.com');
     await screen.findByText(ACCOUNT_EXISTS_MESSAGE_PATTERN);
 
-    fireEvent.press(screen.getByText('Back to Login'));
+    fireEvent.press(screen.getByText('Back to login'));
     expect(mockPush).toHaveBeenCalledWith('/login');
   });
 });

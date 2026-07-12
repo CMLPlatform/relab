@@ -47,14 +47,14 @@ describe('HeaderRight', () => {
     jest.clearAllMocks();
   });
 
-  it('renders "Sign In" for guests', async () => {
+  it('renders "Sign in" for guests', async () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null });
 
     renderWithProviders(<HeaderRight />, { withAuth: true });
 
     await waitFor(
       () => {
-        expect(screen.getByText('Sign In')).toBeOnTheScreen();
+        expect(screen.getByText('Sign in')).toBeOnTheScreen();
       },
       { timeout: 3000 },
     );

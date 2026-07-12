@@ -258,9 +258,7 @@ describe('ProductPage state handling', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     expect(screen.queryByText('[object Object]')).toBeNull();
-    expect(
-      screen.getByText('We encountered an error while loading the product details.'),
-    ).toBeOnTheScreen();
+    expect(screen.getByText("Couldn't load the product details.")).toBeOnTheScreen();
   });
 
   it('renders the error state and retries the load', () => {
@@ -274,13 +272,13 @@ describe('ProductPage state handling', () => {
 
     renderWithProviders(<ProductPage />, { withDialog: true });
 
-    expect(screen.getByText('Oops! Something went wrong')).toBeOnTheScreen();
+    expect(screen.getByText('Something went wrong')).toBeOnTheScreen();
     // States now formats via getErrorMessage: the message, not `String(error)`
     // (which rendered "[object Object]" for a non-Error and made the friendly
     // fallback unreachable).
     expect(screen.getByText('boom')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('Try Again'));
+    fireEvent.press(screen.getByText('Try again'));
 
     expect(refetch).toHaveBeenCalled();
   });

@@ -80,7 +80,7 @@ describe('Onboarding screen submission', () => {
     fireEvent(screen.getByPlaceholderText('e.g. awesome_user'), 'submitEditing');
 
     await waitFor(() => {
-      expect(screen.getByText('Error')).toBeOnTheScreen();
+      expect(screen.getByText("Couldn't save username")).toBeOnTheScreen();
       expect(screen.getByText('Username already exists')).toBeOnTheScreen();
     });
   });

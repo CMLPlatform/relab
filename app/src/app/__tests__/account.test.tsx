@@ -236,19 +236,19 @@ jest.mock('@/components/profile/AccountSections', () => {
           : null,
         React.createElement(
           Pressable,
-          { accessibilityLabel: 'Logout', accessibilityRole: 'button', onPress: onLogout },
-          React.createElement(Text, null, 'Logout'),
+          { accessibilityLabel: 'Sign out', accessibilityRole: 'button', onPress: onLogout },
+          React.createElement(Text, null, 'Sign out'),
         ),
       ),
     ProfileDangerZoneSection: ({ onDeleteAccount }: { onDeleteAccount: () => void }) =>
       React.createElement(
         Pressable,
         {
-          accessibilityLabel: 'Delete Account?',
+          accessibilityLabel: 'Delete account?',
           accessibilityRole: 'button',
           onPress: onDeleteAccount,
         },
-        React.createElement(Text, null, 'Delete Account?'),
+        React.createElement(Text, null, 'Delete account?'),
       ),
     ProfileLinkedAccountsSection: ({
       isGoogleLinked,
@@ -341,7 +341,7 @@ jest.mock('@/components/profile/Dialogs', () => {
           ? React.createElement(
               View,
               null,
-              React.createElement(Text, null, 'Edit Username'),
+              React.createElement(Text, null, 'Edit username'),
               React.createElement(TextInput, {
                 value: newUsername,
                 onChangeText: onChangeUsername,
@@ -362,7 +362,7 @@ jest.mock('@/components/profile/Dialogs', () => {
           ? React.createElement(
               View,
               null,
-              React.createElement(Text, null, 'Unlink Account'),
+              React.createElement(Text, null, 'Unlink account'),
               React.createElement(Text, null, providerToUnlink),
               React.createElement(
                 Pressable,
@@ -380,11 +380,11 @@ jest.mock('@/components/profile/Dialogs', () => {
           ? React.createElement(
               View,
               null,
-              React.createElement(Text, null, 'Are you sure you want to log out?'),
+              React.createElement(Text, null, 'Are you sure you want to sign out?'),
               React.createElement(
                 Pressable,
                 { accessibilityRole: 'button', onPress: onConfirmLogout },
-                React.createElement(Text, null, 'Logout'),
+                React.createElement(Text, null, 'Sign out'),
               ),
               React.createElement(
                 Pressable,
@@ -397,7 +397,7 @@ jest.mock('@/components/profile/Dialogs', () => {
           ? React.createElement(
               View,
               null,
-              React.createElement(Text, null, 'Delete Account'),
+              React.createElement(Text, null, 'Delete account'),
               React.createElement(
                 Pressable,
                 { accessibilityRole: 'button', onPress: onDismissDeleteDialog },
@@ -614,16 +614,16 @@ describe('ProfileTab', () => {
   describe('logout flow', () => {
     it('opens the logout dialog when Logout is pressed', async () => {
       const { findByLabelText, findByText } = await renderProfile();
-      fireEvent.press(await findByLabelText('Logout'));
-      expect(await findByText('Are you sure you want to log out?')).toBeTruthy();
+      fireEvent.press(await findByLabelText('Sign out'));
+      expect(await findByText('Are you sure you want to sign out?')).toBeTruthy();
     });
 
     it('calls logout and triggers refetch on confirm', async () => {
       const { findByLabelText, findAllByText } = await renderProfile();
       // Open the logout dialog
-      fireEvent.press(await findByLabelText('Logout'));
-      // The dialog renders a second "Logout" button (the confirm button)
-      const logoutButtons = await findAllByText('Logout');
+      fireEvent.press(await findByLabelText('Sign out'));
+      // The dialog renders a second "Sign out" button (the confirm button)
+      const logoutButtons = await findAllByText('Sign out');
       await act(async () => {
         fireEvent.press(logoutButtons[logoutButtons.length - 1]);
       });
@@ -634,10 +634,10 @@ describe('ProfileTab', () => {
   });
 
   describe('delete account dialog', () => {
-    it('opens when Delete Account? is pressed', async () => {
+    it('opens when Delete account? is pressed', async () => {
       const { findByLabelText, findByText } = await renderProfile();
-      fireEvent.press(await findByLabelText('Delete Account?'));
-      expect(await findByText('Delete Account')).toBeTruthy();
+      fireEvent.press(await findByLabelText('Delete account?'));
+      expect(await findByText('Delete account')).toBeTruthy();
     });
   });
 
@@ -645,7 +645,7 @@ describe('ProfileTab', () => {
     it('opens when the username area is pressed', async () => {
       const { findByLabelText, findByText } = await renderProfile();
       fireEvent.press(await findByLabelText('Edit username'));
-      expect(await findByText('Edit Username')).toBeTruthy();
+      expect(await findByText('Save')).toBeTruthy();
     });
   });
 
@@ -667,7 +667,7 @@ describe('ProfileTab', () => {
 
       const { findByLabelText, findByText } = await renderProfile();
       fireEvent.press(await findByLabelText('Unlink Google'));
-      expect(await findByText('Unlink Account')).toBeTruthy();
+      expect(await findByText('Unlink account')).toBeTruthy();
     });
   });
 });

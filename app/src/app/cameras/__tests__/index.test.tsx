@@ -262,7 +262,7 @@ describe('CamerasScreen', () => {
     ).toBeOnTheScreen();
     expect(mockSetOptions).toHaveBeenCalled();
     expect(mockSetOptions.mock.calls[0][0]).toEqual(
-      expect.objectContaining({ title: 'My Cameras' }),
+      expect.objectContaining({ title: 'My cameras' }),
     );
 
     fireEvent.press(screen.getByLabelText('Add camera'));

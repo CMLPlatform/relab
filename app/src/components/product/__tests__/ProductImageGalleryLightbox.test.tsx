@@ -340,7 +340,7 @@ describe('ProductImages', () => {
       },
     );
 
-    fireEvent.press(screen.getByText('Add Photos'));
+    fireEvent.press(screen.getByText('Add photos'));
 
     await waitFor(() => {
       expect(onImagesChange).toHaveBeenCalledWith([
@@ -361,7 +361,7 @@ describe('ProductImages', () => {
       },
     );
 
-    fireEvent.press(screen.getByText('Add Photos'));
+    fireEvent.press(screen.getByText('Add photos'));
 
     await waitFor(() => {
       expect(onImagesChange).not.toHaveBeenCalled();
@@ -664,15 +664,15 @@ describe('ProductImages', () => {
     });
   });
 
-  it('shows Camera and Add Photos tiles on native when no images in edit mode', () => {
+  it('shows Camera and Add photos tiles on native when no images in edit mode', () => {
     renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
     expect(screen.getByText('Camera')).toBeOnTheScreen();
-    expect(screen.getByText('Add Photos')).toBeOnTheScreen();
+    expect(screen.getByText('Add photos')).toBeOnTheScreen();
   });
 
-  it('shows only Add Photos tile on desktop web when no images in edit mode', () => {
+  it('shows only Add photos tile on desktop web when no images in edit mode', () => {
     mockPlatform('web');
     setMatchMedia(false);
     setWindowImageConstructor();
@@ -681,10 +681,10 @@ describe('ProductImages', () => {
       withDialog: true,
     });
     expect(screen.queryByText('Camera')).toBeNull();
-    expect(screen.getByText('Add Photos')).toBeOnTheScreen();
+    expect(screen.getByText('Add photos')).toBeOnTheScreen();
   });
 
-  it('shows Camera and Add Photos tiles on mobile web when no images in edit mode', () => {
+  it('shows Camera and Add photos tiles on mobile web when no images in edit mode', () => {
     mockPlatform('web');
     setMatchMedia(true);
     setWindowImageConstructor();
@@ -693,7 +693,7 @@ describe('ProductImages', () => {
       withDialog: true,
     });
     expect(screen.getByText('Camera')).toBeOnTheScreen();
-    expect(screen.getByText('Add Photos')).toBeOnTheScreen();
+    expect(screen.getByText('Add photos')).toBeOnTheScreen();
   });
 
   it('requests camera permission then calls launchCameraAsync when Camera tile is pressed on native', async () => {

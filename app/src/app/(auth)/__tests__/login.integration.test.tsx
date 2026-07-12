@@ -50,7 +50,7 @@ jest.mock('@/components/auth/LoginSections', () => {
         ),
         children,
       ),
-    LoginBrandHero: () => React.createElement(Text, null, 'Login'),
+    LoginBrandHero: () => React.createElement(Text, null, 'Login hero'),
     LoginCard: ({ children }: { children: React.ReactNode }) =>
       React.createElement(View, null, children),
     LoginDivider: () => React.createElement(View, { testID: 'login-divider' }),
@@ -97,7 +97,7 @@ jest.mock('@/components/auth/LoginSections', () => {
         React.createElement(
           Pressable,
           { accessibilityRole: 'button', onPress: onSubmit },
-          React.createElement(Text, null, 'Login'),
+          React.createElement(Text, null, 'Sign in'),
         ),
         React.createElement(
           Pressable,
@@ -185,11 +185,11 @@ const mockedClaimOAuthMfaHandoff = claimOAuthMfaHandoff as jest.MockedFunction<
 const mockedSetPendingMfaLogin = setPendingMfaLogin as jest.MockedFunction<
   typeof setPendingMfaLogin
 >;
-const YOU_DENIED_ACCESS_PATTERN = /You denied access/i;
+const YOU_DENIED_ACCESS_PATTERN = /Access was declined/i;
 const ALREADY_EXISTS_PATTERN = /already exists/i;
-const ENSURE_DEVICE_INTERNET_PATTERN = /ensure your device has internet/i;
+const ENSURE_DEVICE_INTERNET_PATTERN = /check your internet connection/i;
 const ACCOUNT_SUSPENDED_PATTERN = /your account has been suspended/i;
-const UNABLE_TO_RETRIEVE_USER_PATTERN = /Unable to retrieve user information/;
+const UNABLE_TO_RETRIEVE_USER_PATTERN = /Couldn't load your account/;
 const UNEXPECTED_AUTHORIZATION_URL_PATTERN = /Unexpected authorization URL/;
 const UNEXPECTED_CALLBACK_URL_PATTERN = /Unexpected OAuth callback URL/;
 
@@ -243,14 +243,14 @@ describe('Login screen', () => {
 
   it('renders login form elements', async () => {
     renderWithProviders(<Login />, { withDialog: true });
-    expect(screen.getAllByText('Login').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Sign in').length).toBeGreaterThan(0);
     expect(screen.getByPlaceholderText('Email or username')).toBeOnTheScreen();
     expect(screen.getByPlaceholderText('Password')).toBeOnTheScreen();
   });
 
-  it('shows Login button', async () => {
+  it('shows Sign in button', async () => {
     renderWithProviders(<Login />, { withDialog: true });
-    expect(screen.getByRole('button', { name: 'Login' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();
   });
 
   it('redirects to products when already authenticated on mount', async () => {
@@ -296,7 +296,7 @@ describe('Login screen', () => {
       'correct-horse-battery-staple-v42',
     );
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Login' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
@@ -318,7 +318,7 @@ describe('Login screen', () => {
       'correct-horse-battery-staple-v42',
     );
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Login' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
@@ -339,7 +339,7 @@ describe('Login screen', () => {
       'correct-horse-battery-staple-v42',
     );
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Login' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
@@ -360,7 +360,7 @@ describe('Login screen', () => {
       'correct-horse-battery-staple-v42',
     );
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Login' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
@@ -373,7 +373,7 @@ describe('Login screen', () => {
     });
   });
 
-  it('shows Login Failed dialog when login returns null', async () => {
+  it('shows sign-in failure dialog when login returns null', async () => {
     mockedLogin.mockResolvedValue({ status: 'invalid_credentials' });
 
     renderWithProviders(<Login />, { withDialog: true });
@@ -381,20 +381,20 @@ describe('Login screen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'bad@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'wrongpass');
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Login' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Login Failed',
+          title: "Couldn't sign in",
           message: 'Invalid email or password.',
         }),
       );
     });
   });
 
-  it('shows Login Failed dialog on login exception', async () => {
+  it('shows sign-in failure dialog on login exception', async () => {
     mockedLogin.mockRejectedValue(new Error('Network error'));
 
     renderWithProviders(<Login />, { withDialog: true });
@@ -402,13 +402,13 @@ describe('Login screen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 't@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Login' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Login Failed',
+          title: "Couldn't sign in",
           message: 'Network error',
         }),
       );
@@ -591,7 +591,7 @@ describe('Login screen', () => {
       await waitFor(() => {
         expect(mockDialogApi.alert).toHaveBeenCalledWith(
           expect.objectContaining({
-            title: 'Login Failed',
+            title: "Couldn't sign in",
             message: expect.stringMatching(YOU_DENIED_ACCESS_PATTERN),
           }),
         );
@@ -621,7 +621,7 @@ describe('Login screen', () => {
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Email Already Registered',
+          title: 'Email already registered',
           message: expect.stringMatching(ALREADY_EXISTS_PATTERN),
         }),
       );
@@ -644,7 +644,7 @@ describe('Login screen', () => {
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Login Failed',
+          title: "Couldn't sign in",
           message: expect.stringMatching(YOU_DENIED_ACCESS_PATTERN),
         }),
       );
@@ -667,7 +667,7 @@ describe('Login screen', () => {
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Login Failed',
+          title: "Couldn't sign in",
           message: expect.stringMatching(ENSURE_DEVICE_INTERNET_PATTERN),
         }),
       );
@@ -717,7 +717,7 @@ describe('Login screen', () => {
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Account Suspended',
+          title: 'Account suspended',
           message: expect.stringMatching(ACCOUNT_SUSPENDED_PATTERN),
         }),
       );
@@ -746,13 +746,13 @@ describe('Login screen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'suspended@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Login' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Account Suspended',
+          title: 'Account suspended',
           message: expect.stringMatching(ACCOUNT_SUSPENDED_PATTERN),
         }),
       );
@@ -775,7 +775,7 @@ describe('Login screen', () => {
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Login Failed',
+          title: "Couldn't sign in",
           message: 'Endpoint not found',
         }),
       );
@@ -809,13 +809,13 @@ describe('Login screen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 't@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Login' }));
+      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Login Failed',
+          title: "Couldn't sign in",
           message: expect.stringMatching(UNABLE_TO_RETRIEVE_USER_PATTERN),
         }),
       );
@@ -839,7 +839,7 @@ describe('Login screen', () => {
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Login Failed',
+          title: "Couldn't sign in",
           message: expect.stringMatching(UNEXPECTED_AUTHORIZATION_URL_PATTERN),
         }),
       );
@@ -863,7 +863,7 @@ describe('Login screen', () => {
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Login Failed',
+          title: "Couldn't sign in",
           message: expect.stringMatching(UNEXPECTED_AUTHORIZATION_URL_PATTERN),
         }),
       );
@@ -886,7 +886,7 @@ describe('Login screen', () => {
     await waitFor(() => {
       expect(mockDialogApi.alert).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Login Failed',
+          title: "Couldn't sign in",
           message: expect.stringMatching(UNEXPECTED_CALLBACK_URL_PATTERN),
         }),
       );

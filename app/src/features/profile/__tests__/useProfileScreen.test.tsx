@@ -221,7 +221,7 @@ describe('useProfileScreen', () => {
     expect(mockLogout).not.toHaveBeenCalled();
     expect(mockSetActiveStream).not.toHaveBeenCalledWith(null);
     expect(mockFeedback.error).toHaveBeenCalledWith(
-      'Failed to stop the stream. Please stop it manually before logging out.',
+      'Failed to stop the stream. Please stop it manually before signing out.',
       'Stream error',
     );
   });
@@ -277,7 +277,7 @@ describe('useProfileScreen', () => {
     expect(mockRevokeAllSessions).not.toHaveBeenCalled();
     expect(mockSetActiveStream).not.toHaveBeenCalledWith(null);
     expect(mockFeedback.error).toHaveBeenCalledWith(
-      'Failed to stop the stream. Please stop it manually before logging out.',
+      'Failed to stop the stream. Please stop it manually before signing out.',
       'Stream error',
     );
   });

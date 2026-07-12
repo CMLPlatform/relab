@@ -116,9 +116,9 @@ describe('Camera detail screen', () => {
   it('does not auto-load the live preview for an online camera and sets the screen title', async () => {
     renderWithProviders(<CameraDetailScreen />);
 
-    // Preview is opt-in: nothing streams until the user taps "Load Preview".
+    // Preview is opt-in: nothing streams until the user taps "Load preview".
     expect(screen.queryByText('live-preview-stub')).toBeNull();
-    expect(screen.getByText('Load Preview')).toBeOnTheScreen();
+    expect(screen.getByText('Load preview')).toBeOnTheScreen();
     expect(mockNavigationSetOptions).toHaveBeenCalledWith({ title: 'Workbench Camera' });
   });
 
@@ -127,14 +127,14 @@ describe('Camera detail screen', () => {
 
     expect(screen.queryByText('live-preview-stub')).toBeNull();
 
-    fireEvent.press(screen.getByText('Load Preview'));
+    fireEvent.press(screen.getByText('Load preview'));
 
     expect(screen.getByText('live-preview-stub')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('Stop Preview'));
+    fireEvent.press(screen.getByText('Stop preview'));
 
     expect(screen.queryByText('live-preview-stub')).toBeNull();
-    expect(screen.getByText('Load Preview')).toBeOnTheScreen();
+    expect(screen.getByText('Load preview')).toBeOnTheScreen();
   });
 
   it('shows websocket offline helper copy and supports retrying camera status', async () => {

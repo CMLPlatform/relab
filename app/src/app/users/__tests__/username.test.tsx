@@ -64,7 +64,7 @@ describe('UserProfileScreen', () => {
     expect(screen.getByText('Products')).toBeOnTheScreen();
     expect(screen.getByText('Total kg')).toBeOnTheScreen();
     expect(screen.getByText('Photos')).toBeOnTheScreen();
-    expect(screen.getByText('Top Category')).toBeOnTheScreen();
+    expect(screen.getByText('Top category')).toBeOnTheScreen();
   });
 
   it('shows generic error message when fetch fails', async () => {

@@ -16,7 +16,7 @@ jest.mock('@/services/api/auth/authentication', () => ({
 }));
 
 const NO_VERIFICATION_TOKEN_PATTERN = /No verification token/;
-const EMAIL_VERIFIED_SUCCESS_PATTERN = /Email verified successfully/;
+const EMAIL_VERIFIED_SUCCESS_PATTERN = /Email verified!/;
 const GENERIC_VERIFY_ERROR_PATTERN = /An error occurred/;
 const mockedGetToken = jest.mocked(getToken);
 const mockedGetUser = jest.mocked(getUser);
@@ -61,7 +61,7 @@ describe('VerifyEmailScreen states', () => {
     );
     renderVerifyEmailScreen();
     await waitFor(() => {
-      expect(screen.getByText('Verifying your email...')).toBeOnTheScreen();
+      expect(screen.getByText('Verifying your email…')).toBeOnTheScreen();
     });
   });
 
@@ -127,7 +127,7 @@ describe('VerifyEmailScreen states', () => {
 });
 
 describe('VerifyEmailScreen navigation', () => {
-  it('Back to Home button calls router.replace on error', async () => {
+  it('Back to home button calls router.replace on error', async () => {
     const mockReplace = jest.fn();
     (useRouter as jest.Mock).mockReturnValue({
       push: jest.fn(),
@@ -138,9 +138,9 @@ describe('VerifyEmailScreen navigation', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: undefined });
     renderVerifyEmailScreen();
     await waitFor(() => {
-      expect(screen.getByText('Back to Home')).toBeOnTheScreen();
+      expect(screen.getByText('Back to home')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByText('Back to Home'));
+    fireEvent.press(screen.getByText('Back to home'));
     expect(mockReplace).toHaveBeenCalledWith('/');
   });
 });

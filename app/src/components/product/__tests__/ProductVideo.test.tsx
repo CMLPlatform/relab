@@ -92,7 +92,7 @@ describe('ProductVideo', () => {
   it('opens add video dialog on press', async () => {
     renderProductVideo({ editMode: true });
     fireEvent.press(screen.getByText('Add video'));
-    expect(await screen.findByText('Add Video')).toBeOnTheScreen();
+    expect(await screen.findByPlaceholderText('Video URL')).toBeOnTheScreen();
   });
 
   it('renders existing non-youtube video URLs in view mode', () => {
@@ -134,7 +134,7 @@ describe('ProductVideo', () => {
   it('disables Add in the dialog when URL is empty or invalid', async () => {
     renderProductVideo({ editMode: true });
     fireEvent.press(screen.getByText('Add video'));
-    expect(await screen.findByText('Add Video')).toBeOnTheScreen();
+    expect(await screen.findByPlaceholderText('Video URL')).toBeOnTheScreen();
 
     expect(screen.getByText('Add')).toBeDisabled();
 
@@ -147,7 +147,7 @@ describe('ProductVideo', () => {
     renderProductVideo({ editMode: true, onVideoChange });
 
     fireEvent.press(screen.getByText('Add video'));
-    expect(await screen.findByText('Add Video')).toBeOnTheScreen();
+    expect(await screen.findByPlaceholderText('Video URL')).toBeOnTheScreen();
 
     fireEvent.changeText(
       screen.getByPlaceholderText('Video URL'),

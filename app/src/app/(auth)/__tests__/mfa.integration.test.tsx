@@ -119,7 +119,7 @@ describe('MfaScreen challenge flow', () => {
 
     renderMfaScreen();
 
-    expect(screen.getByText('MFA session expired. Please log in again.')).toBeOnTheScreen();
+    expect(screen.getByText('MFA session expired. Please sign in again.')).toBeOnTheScreen();
     expect(screen.getByText('Continue')).toBeDisabled();
     expect(mockedCompleteMfaChallenge).not.toHaveBeenCalled();
   });

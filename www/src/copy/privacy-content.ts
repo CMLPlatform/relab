@@ -23,7 +23,7 @@ export const privacyContent = {
     {
       title: 'Account information',
       paragraphs: [
-        'When you create an account, we ask for a username, email address, and password. We store passwords only in protected hashed form. We use your email to help you sign in and to send important service messages. We record when you log in successfully, but we do not keep full login IP addresses on your account.',
+        'When you create an account, we ask for a username, email address, and password. We store passwords only in protected hashed form. We use your email to help you sign in and to send important service messages. We record when you log in successfully, but we do not keep login IP addresses on your account.',
         'If you connect Google, GitHub, or YouTube, ReLab stores the connection details encrypted. You can use “Sign out everywhere” in your profile to end active sessions on your other devices.',
       ],
     },

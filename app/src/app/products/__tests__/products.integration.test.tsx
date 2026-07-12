@@ -283,7 +283,7 @@ describe('Products screen', () => {
   it('shows search-specific empty state when searching', async () => {
     renderProducts();
     fireEvent.changeText(screen.getByPlaceholderText('Search products'), 'xyz');
-    expect(screen.getByText('No products found matching your search.')).toBeOnTheScreen();
+    expect(screen.getByText('No products match your search.')).toBeOnTheScreen();
   });
 
   it('resets page to 1 when search text changes (colocated in onChangeText)', async () => {
@@ -350,7 +350,7 @@ describe('Products screen', () => {
     rerender(<Products />);
 
     expect(screen.getByText('Ready to add products')).toBeOnTheScreen();
-    expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('New product').length).toBeGreaterThan(0);
     expect(screen.getByText('account')).toBeOnTheScreen();
   });
 
@@ -360,7 +360,7 @@ describe('Products screen', () => {
     renderProducts();
 
     expect(screen.getByText('Verify your email to start creating')).toBeOnTheScreen();
-    expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('New product').length).toBeGreaterThan(0);
     expect(screen.getByText('account')).toBeOnTheScreen();
     expect(screen.getByText('Got it')).toBeOnTheScreen();
     expect(screen.getByText('Verify email')).toBeOnTheScreen();
@@ -386,7 +386,7 @@ describe('FAB and new-product flow', () => {
     renderProducts();
     fireEvent.press(screen.getByLabelText('Sign in to create products'));
     expect(mockDialogApi.alert).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Sign In Required' }),
+      expect.objectContaining({ title: 'Sign in required' }),
     );
   });
 
@@ -403,7 +403,7 @@ describe('FAB and new-product flow', () => {
     renderProducts();
     fireEvent.press(screen.getByLabelText('Create new product'));
     expect(mockDialogApi.alert).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Email Verification Required' }),
+      expect.objectContaining({ title: 'Verify your email first' }),
     );
   });
 });
@@ -412,13 +412,13 @@ describe('Filter chips and modals', () => {
   it('opens brand filter modal when Brand chip is pressed', async () => {
     renderProducts();
     fireEvent.press(screen.getByText('Brand'));
-    expect(screen.getByText('Filter by Brand')).toBeOnTheScreen();
+    expect(screen.getByText('Filter by brand')).toBeOnTheScreen();
   });
 
   it('opens product type filter modal when Type chip is pressed', async () => {
     renderProducts();
     fireEvent.press(screen.getByText('Type'));
-    expect(screen.getByText('Filter by Product Type')).toBeOnTheScreen();
+    expect(screen.getByText('Filter by product type')).toBeOnTheScreen();
   });
 
   it('shows Date chip and opens dropdown menu when pressed', async () => {
@@ -476,7 +476,7 @@ describe('Empty-state messages', () => {
     expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine', page: '1' });
   });
 
-  it('shows a mine-specific empty state with a New Product CTA', async () => {
+  it('shows a mine-specific empty state with a New product CTA', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
     mockUseProductsQuery.mockReturnValue(emptyQueryResult);
     (useLocalSearchParams as jest.Mock).mockReturnValue({ filterMode: 'mine' });
@@ -484,7 +484,7 @@ describe('Empty-state messages', () => {
     renderProducts();
 
     expect(screen.getByText("You haven't created any products yet. Tap the")).toBeOnTheScreen();
-    expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('New product').length).toBeGreaterThan(0);
   });
 
   it('shows creation prompt when authenticated user has no products', async () => {
@@ -492,8 +492,8 @@ describe('Empty-state messages', () => {
     mockUseProductsQuery.mockReturnValue(emptyQueryResult);
     renderProducts();
 
-    expect(screen.getByText('No products yet. Start by tapping the')).toBeOnTheScreen();
-    expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
+    expect(screen.getByText('No products yet. Tap the')).toBeOnTheScreen();
+    expect(screen.getAllByText('New product').length).toBeGreaterThan(0);
   });
 });
 

@@ -78,7 +78,7 @@ export async function loginAndReachProducts(page: Page) {
   await page.goto('/login');
   await page.getByPlaceholder('Email or username').fill(EMAIL);
   await page.getByPlaceholder('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Login' }).click();
+  await page.getByRole('button', { name: 'Sign in' }).click();
 
   await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
   await finishOnboardingIfVisible(page);

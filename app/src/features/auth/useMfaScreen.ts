@@ -32,7 +32,7 @@ export function useMfaScreen() {
   const activeCode = useRecoveryCode ? recoveryCode.trim() : code;
   const canSubmit =
     Boolean(token) && (useRecoveryCode ? activeCode.length >= 6 : code.length === 6);
-  const visibleError = error ?? (pending ? null : 'MFA session expired. Please log in again.');
+  const visibleError = error ?? (pending ? null : 'MFA session expired. Please sign in again.');
   const handleCodeChange = useCallback((value: string) => setCode(normalizeTotpCode(value)), []);
   const handleRecoveryCodeChange = useCallback((value: string) => setRecoveryCode(value), []);
   const toggleRecoveryMode = useCallback(() => {
@@ -43,7 +43,7 @@ export function useMfaScreen() {
   const submit = useCallback(
     async (submitCode: string = activeCode) => {
       if (!token) {
-        setError('MFA session expired. Please log in again.');
+        setError('MFA session expired. Please sign in again.');
         return;
       }
       if (submitCode.length < 6 || inFlight.current) return;

@@ -25,8 +25,8 @@ test.describe('Authentication flow', () => {
     await page.goto('/');
     // Root redirects to /products; publicly accessible without login
     await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 5_000 });
-    // Header shows Sign In pill for guests
-    await expect(page.getByText('Sign In', { exact: true })).toBeVisible();
+    // Header shows Sign in pill for guests
+    await expect(page.getByText('Sign in', { exact: true })).toBeVisible();
   });
 
   test('login page shows expected fields and navigation links', async ({ page }) => {
@@ -41,9 +41,9 @@ test.describe('Authentication flow', () => {
     await page.goto('/login');
     await page.getByPlaceholder('Email or username').fill(EMAIL);
     await page.getByPlaceholder('Password').fill('wrong-password');
-    await page.getByRole('button', { name: 'Login' }).click();
-    // The app shows a "Login Failed" dialog on bad credentials
-    await expect(page.getByText('Login Failed')).toBeVisible({
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    // The app shows a "Couldn't sign in" dialog on bad credentials
+    await expect(page.getByText("Couldn't sign in")).toBeVisible({
       timeout: 10_000,
     });
   });
@@ -54,7 +54,7 @@ test.describe('Authentication flow', () => {
     await page.goto('/login');
     await page.getByPlaceholder('Email or username').fill(EMAIL);
     await page.getByPlaceholder('Password').fill(PASSWORD);
-    await page.getByRole('button', { name: 'Login' }).click();
+    await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
   });
 
@@ -66,7 +66,7 @@ test.describe('Authentication flow', () => {
     // ── Login ───────────────────────────────────────────────────────────────
     await page.getByPlaceholder('Email or username').fill(EMAIL);
     await page.getByPlaceholder('Password').fill(PASSWORD);
-    await page.getByRole('button', { name: 'Login' }).click();
+    await page.getByRole('button', { name: 'Sign in' }).click();
 
     await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
     await finishOnboardingIfVisible(page);
@@ -113,7 +113,7 @@ test.describe('Account registration', () => {
       timeout: 3_000,
     });
     await page.getByPlaceholder('Password').fill(password);
-    await page.getByRole('button', { name: 'Create Account' }).click();
+    await page.getByRole('button', { name: 'Create account' }).click();
 
     // Registration is non-enumerable: no auto-login. The app shows a verify-email
     // prompt and returns to /login (see useNewAccountScreen).
@@ -126,12 +126,12 @@ test.describe('Account registration', () => {
 test.describe('Forgot password', () => {
   test('forgot password page renders and accepts a valid email', async ({ page }) => {
     await page.goto('/forgot-password');
-    await expect(page.getByText('Forgot Password')).toBeVisible();
+    await expect(page.getByText('Forgot password')).toBeVisible();
 
     // Fill in a known email and submit
     // React Native Paper's label prop is visual-only and not an ARIA label
     await page.getByRole('textbox').fill(EMAIL);
-    await page.getByRole('button', { name: 'Send Reset Link' }).click();
+    await page.getByRole('button', { name: 'Send reset link' }).click();
 
     await expect(page.getByText(FORGOT_PASSWORD_SUCCESS_PATTERN)).toBeVisible({
       timeout: 15_000,

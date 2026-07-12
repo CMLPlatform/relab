@@ -30,7 +30,7 @@ describe('layout helpers rendering', () => {
   it('renders HeaderRightPill for guests and signed-in users', () => {
     mockUseAuth.mockReturnValueOnce({ user: null });
     const { rerender } = renderWithProviders(<HeaderRightPill />);
-    expect(screen.getByText('Sign In')).toBeOnTheScreen();
+    expect(screen.getByText('Sign in')).toBeOnTheScreen();
 
     mockUseAuth.mockReturnValueOnce({
       user: { id: 'user-1', username: 'averyverylongusername', email: 'test@example.com' },

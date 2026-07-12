@@ -23,7 +23,7 @@ describe('camera detail controllers', () => {
   it('toggles preview state and manages dialog visibility', () => {
     const { result } = renderHook(() => useCameraDetailDialogs(localConnection));
 
-    // Preview is opt-in: off until the user taps "Load Preview".
+    // Preview is opt-in: off until the user taps "Load preview".
     expect(result.current.preview.enabled).toBe(false);
 
     act(() => {
