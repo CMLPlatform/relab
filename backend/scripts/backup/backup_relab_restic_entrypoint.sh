@@ -37,6 +37,8 @@ prepare_readable_file_env RCLONE_CONFIG rclone.conf
 
 run_backup() {
     "$BACKUP_SCRIPT"
+    # Freshness stamp read by the container HEALTHCHECK.
+    touch "$BACKUP_WORK_DIR/.last-backup-ok"
 }
 
 if [[ "${BACKUP_ON_START:-true}" == "true" ]]; then

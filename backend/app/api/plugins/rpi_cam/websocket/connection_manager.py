@@ -15,7 +15,8 @@ if TYPE_CHECKING:
     from fastapi import WebSocket
 
     class _RelayCommand(Protocol):
-        def model_dump_json(self) -> str: ...
+        def model_dump_json(self) -> str:
+            """Serialize the relay command to JSON."""
 
     class _RelayModels(Protocol):
         def build_relay_command(
@@ -26,7 +27,8 @@ if TYPE_CHECKING:
             params: dict | None = None,
             body: dict | None = None,
             headers: dict[str, str] | None = None,
-        ) -> _RelayCommand: ...
+        ) -> _RelayCommand:
+            """Build a relay command message for one proxied device request."""
 
 
 logger = logging.getLogger(__name__)

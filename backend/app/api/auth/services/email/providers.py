@@ -48,11 +48,9 @@ class GraphHttpResponse(Protocol):
 
     def json(self) -> dict[str, object]:
         """Return a JSON response body."""
-        ...
 
     def raise_for_status(self) -> object:
         """Raise when the HTTP request failed."""
-        ...
 
 
 class GraphHttpClient(Protocol):
@@ -67,7 +65,6 @@ class GraphHttpClient(Protocol):
         json: object | None = None,
     ) -> GraphHttpResponse:
         """Send one HTTP POST request."""
-        ...
 
 
 def _name_email_payload(value: NameEmail) -> dict[str, dict[str, str]]:

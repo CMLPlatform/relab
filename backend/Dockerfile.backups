@@ -27,4 +27,9 @@ ENV BACKUP_SCRIPT=$WORKDIR/backup_relab_restic.sh
 
 USER $APP_USER
 
-ENTRYPOINT ["./backup_relab_restic_entrypoint.sh"]
+# Unhealthy when the success stamp is older than two backup intervals — catches
+# a hung restic/rclone run (a failed run exits the container via set -e). No
+# stamp yet (first backup still running, or BACKUP_ON_START=false) is healthy.
+HEALTHCHECK --interval=5m --timeout=10s --retries=3 \
+    CMD stamp="${BACKUP_WORK_DIR:-/tmp/relab-backups}/.last-backup-ok"; \
+        [ ! -e "$stamp" ] || [ "$(date +%s)" -lt "$(( $(stat -c %Y "$stamp") + 2 * ${BACKUP_INTERVAL_SECONDS:-86400} ))" ]

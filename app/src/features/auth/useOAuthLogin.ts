@@ -204,8 +204,11 @@ function useOAuthCallbackEffect({
   useEffect(() => {
     if (handledOAuthCallbackRef.current) return;
 
+    // The fragment only routes the UI flow; nothing here grants access. A
+    // forged #status=success still fails server-side (getUser needs the real
+    // session cookie, mfa_handoff is validated by the backend).
     const fragmentCallback =
-      Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash
+      Platform.OS === 'web' && typeof window !== 'undefined'
         ? parseOAuthCallbackUrl(window.location.href)
         : undefined;
 

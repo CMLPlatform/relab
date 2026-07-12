@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 /*
@@ -28,12 +28,15 @@ import { resolve } from 'node:path';
 */
 const main = () => {
   const file = resolve('src', 'types', 'api.generated.ts');
-  if (!existsSync(file)) {
+  // Read directly instead of existsSync + read: no check-then-use race, and a
+  // missing file surfaces as ENOENT here.
+  let src;
+  try {
+    src = readFileSync(file, 'utf8');
+  } catch {
     console.error('api.generated.ts not found. Run this from app.');
     process.exit(2);
   }
-
-  const src = readFileSync(file, 'utf8');
   const out = src.replace(/("access_token":\s*")[A-Za-z0-9._-]+(")/g, '$1<REDACTED_JWT>$2');
   if (out === src) {
     console.log('No JWT examples found to redact.');

@@ -80,7 +80,9 @@ export async function getUser(
       return await promise;
     } finally {
       // Only clear the slot if a newer request hasn't already replaced it.
-      if (authRuntime.getUserPromise === promise) authRuntime.getUserPromise = null;
+      // The sequence moves in lockstep with the slot, so this is an identity
+      // check on the promise without comparing promise objects directly.
+      if (authRuntime.getUserSequence === sequence) authRuntime.getUserPromise = null;
     }
   } catch (error) {
     logError('[GetUser Fetch Error]:', error);

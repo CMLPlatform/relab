@@ -132,8 +132,12 @@ async def _close_redis_client(redis_client: Redis | None) -> None:
 
 async def _run_shutdown_step(
     step: ShutdownStep,
-) -> BaseException | None:
-    """Run one shutdown step and return unexpected failures after logging them."""
+) -> Exception | None:
+    """Run one shutdown step and return unexpected failures after logging them.
+
+    Only ``Exception`` is caught: cancellation and interrupts must propagate
+    immediately instead of being deferred behind the remaining steps.
+    """
     if step.close is None:
         return None
     try:
@@ -142,7 +146,7 @@ async def _run_shutdown_step(
             await result
     except step.expected_errors as e:
         logger.warning("Error closing %s: %s", step.label, e)
-    except BaseException as e:
+    except Exception as e:
         logger.exception("Unexpected error closing %s", step.label)
         return e
     return None
@@ -183,7 +187,7 @@ async def shutdown_runtime_services(
 ) -> None:
     """Shutdown and clear all runtime services (domain steps first, then core)."""
     services = get_app_services(app)
-    unexpected_errors: list[BaseException] = []
+    unexpected_errors: list[Exception] = []
     try:
         steps: list[ShutdownStep] = []
         for domain in reversed(domains):

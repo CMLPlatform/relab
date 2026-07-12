@@ -11,7 +11,7 @@ test.describe('API reference pages', () => {
       liveSchemaRequests.push(route.request().url());
       await route.abort();
     });
-    await page.route(/https:\/\/(?:api|proxy|dashboard|registry)\.scalar\.com\/.*/, async (route) => {
+    await page.route(/^https:\/\/(?:api|proxy|dashboard|registry)\.scalar\.com\//, async (route) => {
       scalarServiceRequests.push(route.request().url());
       await route.abort();
     });
