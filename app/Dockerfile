@@ -70,7 +70,7 @@ WORKDIR $WORKDIR/app
 RUN pnpm exec expo export -p web -c
 
 # --- Runtime stage (default) ---
-FROM caddy:2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d AS runtime
+FROM caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648 AS runtime
 
 ARG WORKDIR
 

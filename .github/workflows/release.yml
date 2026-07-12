@@ -82,6 +82,16 @@ jobs:
           load: true
           pull: true
           tags: ${{ matrix.image_ref }}
+          # The www/app builds require their public URLs. These images are only
+          # used for SBOM generation, never deployed, so placeholders are fine.
+          build-args: |
+            PUBLIC_APP_URL=https://app.example.invalid
+            PUBLIC_DOCS_URL=https://docs.example.invalid
+            PUBLIC_SITE_URL=https://example.invalid
+            PUBLIC_API_URL=https://api.example.invalid
+            EXPO_PUBLIC_API_URL=https://api.example.invalid
+            EXPO_PUBLIC_WEBSITE_URL=https://example.invalid
+            EXPO_PUBLIC_DOCS_URL=https://docs.example.invalid
 
       - name: Generate SPDX SBOM
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25

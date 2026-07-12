@@ -3,35 +3,18 @@
 # Trivy's YAML ignore format is still experimental, so workflows pass this file
 # explicitly. Every entry must include an expiry and a clear statement.
 vulnerabilities:
-  # Caddy statically links these transitive Go deps. Upstream had not published
-  # a fixed caddy:2-alpine release when reviewed on 2026-07-08. None of these
-  # vulnerable code paths are reachable in ReLab's static-site Caddy usage:
-  # plain HTTP on a single high port, no step-CA, no gRPC, no JWE, Linux only.
-  - id: CVE-2026-34986
+  # The caddy:2-alpine binary is built against Go 1.26.3; these need 1.26.4+,
+  # which upstream had not shipped when reviewed on 2026-07-13. Re-check
+  # whenever the caddy:2-alpine digest is bumped.
+  - id: CVE-2026-27145
     expired_at: 2026-10-01
-    statement: go-jose JWE DoS; ReLab Caddy does not use JWE.
-  - id: CVE-2026-30836
+    statement: Go stdlib DoS; fixed in Go 1.26.4, no caddy release built with it yet.
+  - id: CVE-2026-39822
     expired_at: 2026-10-01
-    statement: smallstep/certificates SCEP issue; ReLab does not run an internal CA.
-  - id: CVE-2026-39883
+    statement: Go os.Root symlink traversal; caddy serves a fixed static /srv root, no user-controlled paths.
+  - id: CVE-2026-42504
     expired_at: 2026-10-01
-    statement: opentelemetry-go BSD kenv PATH issue; ReLab Caddy runtime is Linux-only.
-  - id: CVE-2026-33186
-    expired_at: 2026-10-01
-    statement: grpc-go authz HTTP/2 path validation; ReLab Caddy does not use gRPC authz.
-
-  # The Dockerfiles run package upgrades, but fixes were not yet available in
-  # alpine 3.23 repositories when reviewed on 2026-07-08. Re-check whenever the
-  # caddy:2-alpine base image is bumped.
-  - id: CVE-2026-28390
-    expired_at: 2026-10-01
-    statement: openssl CMS NULL-deref DoS; static docs servers do not parse CMS.
-  - id: CVE-2026-40200
-    expired_at: 2026-10-01
-    statement: musl utility stack overflow; reachable only through local utilities, not HTTP handling.
-  - id: CVE-2026-22184
-    expired_at: 2026-10-01
-    statement: zlib untgz buffer overflow; utility path is not linked into Caddy request handling.
+    statement: Go MIME header DoS; fixed in Go 1.26.4, no caddy release built with it yet.
 
 misconfigurations: []
 secrets: []
