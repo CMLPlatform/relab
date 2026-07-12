@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from app.api.auth.services.common_password_checker import CommonPasswordChecker
     from app.api.auth.services.email_checker import EmailChecker
     from app.api.file_storage.services.manager import FileCleanupManager
-    from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 
 _REQUIRED_SERVICE_UNAVAILABLE = "Required service is temporarily unavailable."
 
@@ -28,12 +27,9 @@ class AppServices:
     redis: Redis | None = None
     email_checker: EmailChecker | None = None
     common_password_checker: CommonPasswordChecker | None = None
-    camera_connection_manager: CameraConnectionManager | None = None
     file_cleanup_manager: FileCleanupManager | None = None
     http_client: AsyncClient | None = None
     image_resize_limiter: anyio.CapacityLimiter | None = None
-    storage_ready: bool = False
-    telemetry_enabled: bool = False
 
 
 def get_connection_services(connection: HTTPConnection) -> AppServices:

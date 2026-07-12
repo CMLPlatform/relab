@@ -200,10 +200,10 @@ async def test_startup_sets_runtime_services_on_app_state(runtime_app: FastAPI) 
 
 
 async def test_startup_initializes_storage_on_app_state(runtime_app: FastAPI) -> None:
-    """Startup should ensure storage, mount static files, and mark storage ready."""
+    """Startup should ensure storage and mount static files."""
     with patched_runtime_services() as runtime:
         async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
-            assert runtime_app.state.services.storage_ready is True
+            pass
 
     runtime.ensure_storage.assert_called_once()
     runtime.mount_static.assert_called_once_with(runtime_app)

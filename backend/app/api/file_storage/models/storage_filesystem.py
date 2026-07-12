@@ -62,18 +62,6 @@ class FileSystemStorage(BaseStorage):
 
         return str(path)
 
-    def generate_new_filename(self, filename: str) -> str:
-        """Generate a unique filename if collisions are not allowed."""
-        counter = 0
-        path = self._path / filename
-        stem, extension = Path(filename).stem, Path(filename).suffix
-
-        while path.exists():
-            counter += 1
-            path = self._path / f"{stem}_{counter}{extension}"
-
-        return path.name
-
     async def write_upload(self, upload_file: UploadFile, name: str) -> str:
         """Write an uploaded file using async file I/O."""
         self._ensure_path()

@@ -48,7 +48,6 @@ async def test_run_once_preserves_referenced_image_thumbnails(
     monkeypatch.setattr(settings, "file_storage_path", file_storage)
     monkeypatch.setattr(settings, "image_storage_path", image_storage)
     monkeypatch.setattr(settings, "file_cleanup_min_file_age_minutes", 30)
-    monkeypatch.setattr(settings, "file_cleanup_dry_run", False)
 
     product_type = await ProductTypeFactory.create_async(session=db_session)
     product = await ProductFactory.create_async(

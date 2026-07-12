@@ -33,8 +33,6 @@ def secure_filename(filename: str) -> str:
 class BaseStorage(ABC):
     """Abstract interface for storage backends."""
 
-    OVERWRITE_EXISTING_FILES = True
-
     @abstractmethod
     def get_name(self, name: str) -> str:
         """Return the normalized storage name."""
@@ -54,10 +52,6 @@ class BaseStorage(ABC):
     @abstractmethod
     def write(self, file: BinaryIO, name: str) -> str:
         """Persist a binary file and return the stored name."""
-
-    @abstractmethod
-    def generate_new_filename(self, filename: str) -> str:
-        """Generate a collision-free file name."""
 
     @abstractmethod
     async def write_upload(self, upload_file: UploadFile, name: str) -> str:
@@ -98,9 +92,6 @@ class StorageFile(str):
 
     def write(self, file: BinaryIO) -> str:
         """Write binary file contents to storage."""
-        if not self._storage.OVERWRITE_EXISTING_FILES:
-            self._name = self._storage.generate_new_filename(self._name)
-
         return self._storage.write(file=file, name=self._name)
 
     def __str__(self) -> str:

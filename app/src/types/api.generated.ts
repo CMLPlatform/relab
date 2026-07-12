@@ -2881,7 +2881,7 @@ export interface components {
      * @description Cache namespace identifiers for different application areas.
      * @enum {string}
      */
-    CacheNamespace: 'reference-data' | 'docs' | 'stats';
+    CacheNamespace: 'reference-data' | 'stats';
     /**
      * CameraConnectionStatus
      * @description Camera connection status.

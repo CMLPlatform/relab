@@ -92,10 +92,9 @@ async def _initialize_cache_services(services: AppServices) -> None:
     init_cache(services.redis)
 
 
-def _initialize_storage_mounts(app: FastAPI, services: AppServices) -> None:
+def _initialize_storage_mounts(app: FastAPI) -> None:
     """Prepare storage directories and static file mounts."""
     ensure_storage_directories()
-    services.storage_ready = True
     mount_static_directories(app)
     register_favicon_route(app)
 
@@ -104,7 +103,7 @@ def _initialize_http_and_observability(app: FastAPI, services: AppServices) -> N
     """Initialize shared HTTP and observability services."""
     services.http_client = create_http_client()
     services.image_resize_limiter = anyio.CapacityLimiter(settings.image_resize_workers)
-    services.telemetry_enabled = init_telemetry(app, async_engine)
+    init_telemetry(app, async_engine)
 
 
 async def initialize_runtime_services(app: FastAPI, domains: Sequence[DomainLifecycle]) -> AppServices:
@@ -115,7 +114,7 @@ async def initialize_runtime_services(app: FastAPI, domains: Sequence[DomainLife
         await _initialize_cache_services(services)
         for domain in domains:
             await domain.startup(app, services)
-        _initialize_storage_mounts(app, services)
+        _initialize_storage_mounts(app)
         _initialize_http_and_observability(app, services)
     except BaseException:
         await shutdown_runtime_services(app, domains, raise_unexpected=False)
@@ -193,7 +192,6 @@ async def shutdown_runtime_services(
         for step in steps:
             if error := await _run_shutdown_step(step):
                 unexpected_errors.extend([error])
-        services.telemetry_enabled = False
     finally:
         reset_app_services(app)
     if unexpected_errors and raise_unexpected:

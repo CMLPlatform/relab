@@ -34,5 +34,5 @@ class FileCleanupManager(PeriodicBackgroundTask):
         """Run one cleanup pass, deleting unreferenced files from storage."""
         logger.info("Starting scheduled background file cleanup...")
         async with self.session_factory() as session:
-            await cleanup_unreferenced_files(session, dry_run=settings.file_cleanup_dry_run)
+            await cleanup_unreferenced_files(session, dry_run=False)
         logger.info("Finished scheduled background file cleanup.")

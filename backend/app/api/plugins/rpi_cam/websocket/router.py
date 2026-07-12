@@ -22,7 +22,7 @@ from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.runtime.status import mark_camera_offline, mark_camera_online
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import run_relay_listener
-from app.api.plugins.rpi_cam.websocket.runtime_state import require_connection_camera_manager
+from app.api.plugins.rpi_cam.websocket.runtime_state import get_connection_manager
 from app.core.config import settings
 from app.core.database import get_async_session
 from app.core.logging import sanitize_log_value
@@ -136,7 +136,7 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
 
     await websocket.accept()
 
-    manager: CameraConnectionManager = require_connection_camera_manager(websocket)
+    manager: CameraConnectionManager = get_connection_manager()
     await manager.register(camera_id, websocket)
 
     redis = require_connection_redis(websocket)

@@ -4,7 +4,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from app.core.constants import DAY, HOUR
+from app.core.constants import DAY
 
 DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL = "your-email@example.com"
 DEFAULT_CORS_ORIGIN_REGEX = r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?"
@@ -14,7 +14,6 @@ class CacheNamespace(StrEnum):
     """Cache namespace identifiers for different application areas."""
 
     REFERENCE_DATA = "reference-data"
-    DOCS = "docs"
     STATS = "stats"
 
 
@@ -25,7 +24,6 @@ class CacheSettings(BaseModel):
     ttls: dict[CacheNamespace, int] = Field(
         default_factory=lambda: {
             CacheNamespace.REFERENCE_DATA: DAY,
-            CacheNamespace.DOCS: HOUR,
         }
     )
 

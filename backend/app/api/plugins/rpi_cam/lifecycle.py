@@ -13,8 +13,7 @@ if TYPE_CHECKING:
 
 
 async def _startup(app: FastAPI, services: AppServices) -> None:  # noqa: ARG001
-    services.camera_connection_manager = CameraConnectionManager()
-    set_connection_manager(services.camera_connection_manager)
+    set_connection_manager(CameraConnectionManager())
 
 
 def _shutdown_steps(app: FastAPI, services: AppServices) -> tuple[ShutdownStep, ...]:  # noqa: ARG001

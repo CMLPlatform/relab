@@ -21,7 +21,7 @@ async def test_clear_cache_returns_error_when_redis_is_unavailable(
     monkeypatch.setattr(clear_cache_script, "init_redis", mocker.AsyncMock(return_value=None))
     monkeypatch.setattr(clear_cache_script, "close_redis", close_redis_mock)
 
-    exit_code = await clear_cache_script.clear_cache(CacheNamespace.DOCS)
+    exit_code = await clear_cache_script.clear_cache(CacheNamespace.STATS)
 
     assert exit_code == 1
     close_redis_mock.assert_not_awaited()

@@ -205,7 +205,6 @@ class CoreSettings(ReLabBaseSettings):
     file_cleanup_enabled: bool = True
     file_cleanup_interval_hours: int = Field(default=24, ge=1)
     file_cleanup_min_file_age_minutes: int = Field(default=30, ge=0)
-    file_cleanup_dry_run: bool = False
 
     # ── Storage ───────────────────────────────────────────────────────────────────
     storage_backend: StorageBackend = StorageBackend.FILESYSTEM

@@ -123,25 +123,6 @@ class S3Storage(BaseStorage):
         client.upload_fileobj(file, Bucket=self._bucket, Key=self._s3_key(name))
         return filename
 
-    def generate_new_filename(self, filename: str) -> str:
-        """Return a collision-free key name by probing S3 with HEAD requests."""
-        client_error = _client_error_type()
-        client = self._get_client()
-        counter = 0
-        stem, extension = Path(filename).stem, Path(filename).suffix
-        name = filename
-        while True:
-            try:
-                client.head_object(Bucket=self._bucket, Key=self._s3_key(name))
-            except client_error as e:
-                error_response: dict[str, Any] = getattr(e, "response", {})
-                if error_response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
-                    break
-                raise
-            counter += 1
-            name = f"{stem}_{counter}{extension}"
-        return name
-
     async def write_upload(self, upload_file: UploadFile, name: str) -> str:
         """Upload a file to S3 using a background thread and return the stored name."""
         filename = self.get_name(name)

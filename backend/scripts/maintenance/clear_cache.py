@@ -7,7 +7,7 @@ Run with: python -m scripts.maintenance.clear_cache [namespace]
 
 Available namespaces:
 - reference-data (default): All reference data GET endpoints
-- docs: OpenAPI documentation endpoints
+- stats: Contribution statistics endpoints
 """
 
 import asyncio
