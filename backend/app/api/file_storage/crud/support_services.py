@@ -171,13 +171,11 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         del db
         return item
 
-    def validate_upload_metadata(self, upload_file: UploadFile) -> None:
+    def validate_upload_metadata(self, upload_file: UploadFile) -> None:  # noqa: B027 # deliberate no-op default hook
         """Validate upload metadata before storing bytes."""
-        del upload_file
 
-    def validate_upload_content(self, upload_file: UploadFile) -> None:
+    def validate_upload_content(self, upload_file: UploadFile) -> None:  # noqa: B027 # deliberate no-op default hook
         """Validate upload content before storing bytes."""
-        del upload_file
 
     async def create(
         self,

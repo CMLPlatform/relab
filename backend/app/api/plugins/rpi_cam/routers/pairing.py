@@ -59,8 +59,6 @@ POLL_RATE_LIMIT = "60/minute"
 CLAIM_RATE_LIMIT = "10/minute"
 CLAIM_CODE_RATE_LIMIT = "5/minute"
 
-_STATUS_WAITING = "waiting"
-
 
 def _pairing_key(code: str) -> str:
     return f"{PAIRING_KEY_PREFIX}:{code}"

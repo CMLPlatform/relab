@@ -11,6 +11,8 @@ import relab_rpi_cam_models as relay_models
 from pydantic import UUID4
 from relab_rpi_cam_models import RelayMessageType
 
+from app.core.logging import sanitize_log_value
+
 if TYPE_CHECKING:
     from fastapi import WebSocket
 
@@ -69,11 +71,11 @@ class CameraConnectionManager:
         """
         existing = self._connections.get(camera_id)
         if existing is not None:
-            logger.warning("Camera %s reconnected; closing stale connection.", camera_id)
+            logger.warning("Camera %s reconnected; closing stale connection.", sanitize_log_value(camera_id))
             with contextlib.suppress(Exception):
                 await existing.close(code=1001)  # 1001 = Going Away
         self._connections[camera_id] = ws
-        logger.info("Camera %s connected via WebSocket", camera_id)
+        logger.info("Camera %s connected via WebSocket", sanitize_log_value(camera_id))
 
     def unregister(self, camera_id: UUID4, ws: WebSocket) -> bool:
         """Remove a camera's connection and fail its pending futures so callers 503 fast.
@@ -83,7 +85,7 @@ class CameraConnectionManager:
         camera was actually unregistered.
         """
         if self._connections.get(camera_id) is not ws:
-            logger.info("Camera %s stale connection closed; newer connection kept.", camera_id)
+            logger.info("Camera %s stale connection closed; newer connection kept.", sanitize_log_value(camera_id))
             return False
         del self._connections[camera_id]
         for owner, future in self._pending.values():
@@ -91,7 +93,7 @@ class CameraConnectionManager:
                 future.set_exception(
                     CameraDisconnectedDuringCommandError(f"Camera {camera_id} disconnected during command.")
                 )
-        logger.info("Camera %s disconnected from WebSocket", camera_id)
+        logger.info("Camera %s disconnected from WebSocket", sanitize_log_value(camera_id))
         return True
 
     def is_connected(self, camera_id: UUID4) -> bool:

@@ -72,7 +72,7 @@ class FakeGraphClient:
     async def post(self, url: str, **kwargs: object) -> FakeResponse:
         """Record one fake HTTP post and return a token or send response."""
         self.posts.append({"url": url, **kwargs})
-        if "login.microsoftonline.com" in url:
+        if url.startswith("https://login.microsoftonline.com/"):
             return FakeResponse(
                 self.token_status,
                 {"access_token": "token-123", "expires_in": 3600},
@@ -142,8 +142,8 @@ async def test_graph_provider_reuses_cached_token() -> None:
     await provider.send(_message())
     await provider.send(_message())
 
-    token_calls = [call for call in client.posts if "login.microsoftonline.com" in str(call["url"])]
-    send_calls = [call for call in client.posts if "graph.microsoft.com/v1.0" in str(call["url"])]
+    token_calls = [call for call in client.posts if str(call["url"]).startswith("https://login.microsoftonline.com/")]
+    send_calls = [call for call in client.posts if str(call["url"]).startswith("https://graph.microsoft.com/v1.0/")]
     assert len(token_calls) == 1
     assert len(send_calls) == 2
 
@@ -157,7 +157,7 @@ async def test_graph_provider_refreshes_nearly_expired_cached_token() -> None:
 
     await provider.send(_message())
 
-    token_calls = [call for call in client.posts if "login.microsoftonline.com" in str(call["url"])]
+    token_calls = [call for call in client.posts if str(call["url"]).startswith("https://login.microsoftonline.com/")]
     assert len(token_calls) == 1
 
 

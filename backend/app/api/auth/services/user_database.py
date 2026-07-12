@@ -5,13 +5,11 @@ FastAPI Users requires.
 """
 
 import uuid
-from typing import TYPE_CHECKING, Annotated, Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from fastapi import Depends
 from fastapi_users.models import ID, UP
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy import String, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from app.api.auth.services.email_identity import canonicalize_email
@@ -19,11 +17,7 @@ from app.api.common.models.base import Base
 from app.core.crypto.sqlalchemy import EncryptedString
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
-
-    from pydantic import UUID4
-
-    from app.api.auth.models import User
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class BaseUserDB(Base):
@@ -85,20 +79,3 @@ class UserDatabaseAsync(SQLAlchemyUserDatabase[UP, ID]):
         email_canonical_column = cast("Any", self.user_table).email_canonical
         statement = select(self.user_table).where(email_canonical_column == canonicalize_email(email))
         return await self._get_user(statement)
-
-
-async def get_auth_async_session() -> AsyncGenerator[AsyncSession]:
-    """Yield the shared async database session for auth request dependencies."""
-    from app.core.database import get_async_session  # noqa: PLC0415
-
-    async for session in get_async_session():
-        yield session
-
-
-async def get_user_db(
-    session: Annotated[AsyncSession, Depends(get_auth_async_session)],
-) -> AsyncGenerator[UserDatabaseAsync[User, UUID4]]:
-    """Build the FastAPI Users database adapter from the shared DB session."""
-    from app.api.auth.models import OAuthAccount, User  # noqa: PLC0415
-
-    yield UserDatabaseAsync(session, User, OAuthAccount)

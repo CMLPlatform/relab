@@ -37,18 +37,16 @@ class CameraConnectionStatus(StrEnum):
 
     def to_http_error(self) -> tuple[int, str]:
         """Get appropriate HTTP status code and message for non-online status."""
-        match self:
-            case CameraConnectionStatus.ONLINE:
-                result = (200, "Camera is online")
-            case CameraConnectionStatus.OFFLINE:
-                result = (503, "Camera is offline")
-            case CameraConnectionStatus.UNAUTHORIZED:
-                result = (401, "Unauthorized access to camera")
-            case CameraConnectionStatus.FORBIDDEN:
-                result = (403, "Forbidden access to camera")
-            case CameraConnectionStatus.ERROR:
-                result = (500, "Camera access error")
-        return result
+        return _CONNECTION_HTTP_ERRORS[self]
+
+
+_CONNECTION_HTTP_ERRORS: dict[CameraConnectionStatus, tuple[int, str]] = {
+    CameraConnectionStatus.ONLINE: (200, "Camera is online"),
+    CameraConnectionStatus.OFFLINE: (503, "Camera is offline"),
+    CameraConnectionStatus.UNAUTHORIZED: (401, "Unauthorized access to camera"),
+    CameraConnectionStatus.FORBIDDEN: (403, "Forbidden access to camera"),
+    CameraConnectionStatus.ERROR: (500, "Camera access error"),
+}
 
 
 class CameraStatus(BaseModel):

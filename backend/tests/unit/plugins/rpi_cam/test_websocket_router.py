@@ -133,7 +133,10 @@ async def test_authenticate_enforces_redis_backed_rate_limit_before_auth_lookup(
         "10/minute",
         rate_limit_bucket_key("rpi-cam:ws-auth:ip", "203.0.113.10"),
     )
-    mock_limiter.hit_key.assert_any_call("10/minute", f"rpi-cam:ws-auth:camera:{camera_id}")
+    mock_limiter.hit_key.assert_any_call(
+        "10/minute",
+        rate_limit_bucket_key("rpi-cam:ws-auth:camera", str(camera_id)),
+    )
 
 
 async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:

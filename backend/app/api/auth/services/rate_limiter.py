@@ -79,7 +79,9 @@ class Limiter:
 
         parsed = parse(rate_string)
         if not self._limiter.hit(parsed, key):
-            logger.info("Rate limit exceeded for bucket %s", key)
+            # Safe to log: every caller builds keys via rate_limit_bucket_key, so
+            # sensitive dimensions arrive as `prefix:<hmac-digest>`, never raw.
+            logger.info("Rate limit exceeded for bucket %s", key)  # codeql[py/clear-text-logging-sensitive-data]
             raise RateLimitExceededError
 
     def hit_request(self, rate_string: str, request: Request) -> None:

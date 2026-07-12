@@ -47,7 +47,7 @@ def warn_on_placeholder_secrets(logger: logging.Logger, *settings_objects: BaseM
             "%s",
             rule,
             len(offenders),
-            "\n  - ".join(offenders),
+            "\n  - ".join(offenders),  # codeql[py/clear-text-logging-sensitive-data] -- field NAMES only, never values
             rule,
         )
     return offenders

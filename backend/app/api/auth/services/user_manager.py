@@ -2,7 +2,7 @@
 
 import logging
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Depends, params
 from fastapi.security import OAuth2PasswordRequestForm
@@ -10,10 +10,11 @@ from fastapi_users import FastAPIUsers, UUIDIDMixin, schemas
 from fastapi_users.manager import BaseUserManager
 from pydantic import UUID4, EmailStr, SecretStr, TypeAdapter, ValidationError
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.crud import update_user_override
-from app.api.auth.models import User
+from app.api.auth.models import OAuthAccount, User
 from app.api.auth.runtime_dependencies import get_common_password_checker
 from app.api.auth.schemas import UserCreateBase, UserUpdate
 from app.api.auth.services.account_security import (
@@ -35,7 +36,7 @@ from app.api.auth.services.email.service import send_oauth_welcome_notification
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter, rate_limit_bucket_key
-from app.api.auth.services.user_database import get_user_db
+from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.routers.dependencies import get_external_http_client
 
@@ -49,7 +50,6 @@ if TYPE_CHECKING:
     from starlette.responses import Response
 
     from app.api.auth.services.common_password_checker import CommonPasswordChecker
-    from app.api.auth.services.user_database import UserDatabaseAsync
 # Set up logging
 logger = logging.getLogger(__name__)
 
@@ -259,6 +259,21 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         user.last_login_at = datetime.now(UTC).replace(tzinfo=None)
         await self.user_db.session.commit()
         logger.info("User %s logged in", mask_email_for_log(user.email))
+
+
+async def get_auth_async_session() -> AsyncGenerator[AsyncSession]:
+    """Yield the shared async database session for auth request dependencies."""
+    from app.core.database import get_async_session  # noqa: PLC0415
+
+    async for session in get_async_session():
+        yield session
+
+
+async def get_user_db(
+    session: Annotated[AsyncSession, Depends(get_auth_async_session)],
+) -> AsyncGenerator[UserDatabaseAsync[User, UUID4]]:
+    """Build the FastAPI Users database adapter from the shared DB session."""
+    yield UserDatabaseAsync(session, User, OAuthAccount)
 
 
 async def get_user_manager(

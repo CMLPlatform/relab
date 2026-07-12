@@ -79,12 +79,13 @@ async def _dispatch(
     provider: EmailProvider,
 ) -> None:
     """Send or enqueue an email message and log the outcome."""
+    recipient = mask_email_for_log(to_email)
     if background_tasks:
         background_tasks.add_task(provider.send, message)
-        logger.info("%s queued for %s", log_label, mask_email_for_log(to_email))
+        logger.info("%s queued for %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
     else:
         await provider.send(message)
-        logger.info("%s sent to %s", log_label, mask_email_for_log(to_email))
+        logger.info("%s sent to %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
 
 
 async def _notify(

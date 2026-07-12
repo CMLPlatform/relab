@@ -1,11 +1,9 @@
 """Shared helpers for auth blocklist resources and Redis set caches."""
 
-from typing import TYPE_CHECKING
-
-from app.core.redis import redis_bool
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Awaitable, Callable, Iterable
     from pathlib import Path
 
     from redis.asyncio import Redis
@@ -28,7 +26,11 @@ def load_blocklist_text(raw_text: str, normalize: Callable[[str], str]) -> set[s
 
 async def redis_set_contains(redis: Redis, key: str, member: str) -> bool:
     """Return whether a Redis set contains a member."""
-    return await redis_bool(redis.sismember(key, member))
+    # Inlined bool coercion (rather than app.core.redis.redis_bool) so this module
+    # stays import-cycle-free: core.redis imports core.runtime, which type-references
+    # the auth services built on this store. The cast covers redis-py's unnarrowed
+    # ``ResponseT = Any | Awaitable[Any]`` stubs.
+    return bool(await cast("Awaitable[int]", redis.sismember(key, member)))
 
 
 async def redis_set_contains_any(redis: Redis, key: str, members: Iterable[str]) -> bool:

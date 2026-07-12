@@ -74,7 +74,7 @@ class _ClamAVResponseStream:
         return self
 
     async def __aexit__(self, *args) -> None:
-        del args
+        pass
 
     async def send(self, data: bytes) -> None:
         self.sent_chunks.append(data)
@@ -139,7 +139,7 @@ async def test_clamav_scanner_reports_broken_stream_as_unavailable(monkeypatch: 
             return self
 
         async def __aexit__(self, *args) -> None:
-            del args
+            pass
 
         async def send(self, data: bytes) -> None:
             del data
