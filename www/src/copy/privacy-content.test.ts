@@ -4,7 +4,9 @@ import { privacyContent } from './privacy-content.ts';
 
 describe('privacyContent', () => {
   it('keeps rich privacy copy as structured data instead of HTML strings', () => {
-    const rights = privacyContent.sections.find((section) => section.title === 'Your rights');
+    const rights = privacyContent.sections.find(
+      (section) => section.title === 'Your rights and choices',
+    );
 
     expect(rights?.paragraphs).toEqual(
       expect.arrayContaining([

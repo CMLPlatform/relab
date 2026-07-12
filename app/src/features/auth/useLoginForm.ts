@@ -31,7 +31,7 @@ async function attemptPasswordLogin({
     }
     if (token.status === 'invalid_credentials') {
       dialog.alert({
-        title: 'Login Failed',
+        title: "Couldn't sign in",
         message: 'Invalid email or password.',
       });
       return;
@@ -40,16 +40,16 @@ async function attemptPasswordLogin({
     const authenticatedUser = await getUser(true);
     if (!authenticatedUser) {
       dialog.alert({
-        title: 'Login Failed',
-        message: 'Unable to retrieve user information. Please try again.',
+        title: "Couldn't sign in",
+        message: "Couldn't load your account. Please try again.",
       });
       return;
     }
 
     if (!authenticatedUser.isActive) {
       dialog.alert({
-        title: 'Account Suspended',
-        message: 'Your account has been suspended. Please contact support for assistance.',
+        title: 'Account suspended',
+        message: 'Your account has been suspended. Please contact support.',
       });
       return;
     }
@@ -57,7 +57,7 @@ async function attemptPasswordLogin({
     await completeSuccessfulLogin(authenticatedUser);
   } catch (error: unknown) {
     dialog.alert({
-      title: 'Login Failed',
+      title: "Couldn't sign in",
       message: getErrorMessage(error, 'Unable to reach server. Please try again later.'),
     });
   }

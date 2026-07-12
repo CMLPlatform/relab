@@ -66,7 +66,7 @@ export function ProfileVisibilitySection({
 
   return (
     <>
-      <ProfileSectionHeader title="Profile Visibility" />
+      <ProfileSectionHeader title="Profile visibility" />
       <View style={styles.section}>
         {(
           [
@@ -79,7 +79,7 @@ export function ProfileVisibilitySection({
             {
               id: 'community',
               title: 'Community',
-              subtitle: 'Only logged-in users can see your profile.',
+              subtitle: 'Only signed-in users can see your profile.',
               icon: 'account-group',
             },
             {
@@ -121,7 +121,7 @@ export function ProfileEmailUpdatesSection({
 
   return (
     <>
-      <ProfileSectionHeader title="Email Updates" />
+      <ProfileSectionHeader title="Email updates" />
       <View style={styles.section}>
         <View style={styles.newsletterRow}>
           <View style={styles.newsletterCopy}>

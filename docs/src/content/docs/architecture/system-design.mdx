@@ -50,7 +50,7 @@ graph TD
     Admin -->|Authenticates| Auth
 
     subgraph External ["External services"]
-        RaspberryPi["RPI camera API"]
+        RaspberryPi["RPi camera API"]
         YouTube["YouTube API"]
     end
 
@@ -95,7 +95,7 @@ These choices keep the stack small enough to understand and operate without dedi
 
 ## Security architecture inventory
 
-ReLab is a single backend application with supporting infrastructure, not a large microservice fleet. Authorization stays in FastAPI route dependencies, ownership checks, and admin-only dependencies. Dedicated policy engines, service meshes, mTLS between containers, and internal identity-propagation tokens are out of scope for a single backend application.
+ReLab is a single backend application with supporting infrastructure, not a large microservice fleet. Authorization stays in FastAPI route dependencies, ownership checks, and admin-only dependencies. Dedicated policy engines, service meshes, mTLS between containers, and internal identity-propagation tokens are out of scope at this scale.
 
 Application services are `api`, `app`, `www`, `docs`, `migrator`, and optional `backup`. Supporting systems are PostgreSQL, Redis, file or S3-compatible storage, Cloudflare Tunnel, optional Loki/OTLP telemetry, and external OAuth, email, Have I Been Pwned, and YouTube providers.
 
@@ -105,7 +105,7 @@ Trust boundaries are intentionally narrow: clients and devices enter through the
 
 ## Backend domain structure
 
-The backend is organised mainly by domain:
+The backend is organized mainly by domain:
 
 ```sh
 app/

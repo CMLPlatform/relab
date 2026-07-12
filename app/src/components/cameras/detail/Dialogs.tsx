@@ -114,7 +114,7 @@ function ManualSetupDialog({
       <Dialog.Content style={styles.dialogContent}>
         <Text style={styles.connectionHint}>
           Direct connection bypasses the WebSocket relay, cutting preview latency from ~2 s to ~0.4
-          s. Connect an Ethernet cable between the Pi and this device - the app detects it
+          s. Connect an Ethernet cable between the Pi and this device — the app detects it
           automatically. Use this form only if auto-detection didn&apos;t find the Pi; the local API
           key is on the Pi&apos;s /setup page.
         </Text>

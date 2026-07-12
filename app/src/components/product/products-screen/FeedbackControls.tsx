@@ -58,7 +58,7 @@ export function ProductsFab({ extended, isAuthenticated, highlight, onPress }: P
   return (
     <AnimatedFAB
       icon="plus"
-      label="New Product"
+      label="New product"
       extended={extended}
       onPress={onPress}
       style={[

@@ -117,7 +117,7 @@ Biome is the primary formatter/linter for this app, including the React rules it
 - React prop assignment safety
 - general React module/export safety where configured
 
-ESLint is intentionally narrow: it covers only the React compiler checks that Biome does not handle, plus explicit Fast Refresh export-only structure via `eslint-plugin-react-refresh`.
+ESLint is intentionally narrow: it covers the React hooks and compiler checks that Biome does not handle, Fast Refresh export-only structure via `eslint-plugin-react-refresh`, and a small set of React Native accessibility rules via `eslint-plugin-react-native-a11y`.
 
 The React ESLint pass is blocking, not advisory. `pnpm run lint:react` must pass with zero warnings.
 
@@ -132,5 +132,6 @@ Key ESLint coverage includes:
 - `react-hooks/error-boundaries`
 - `react-hooks/set-state-in-render`
 - `react-refresh/only-export-components`
+- `react-native-a11y/*` accessibility prop checks (see `eslint.config.mjs` for the enabled rules)
 
-Biome is the only lint tool used for React Native-specific checks in this app, but it does not expose the RN rule surface needed for more targeted checks. RN-specific linting is intentionally minimal.
+Beyond those accessibility rules, React Native-specific linting is intentionally minimal: Biome does not expose an RN-specific rule surface.

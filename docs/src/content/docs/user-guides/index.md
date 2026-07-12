@@ -16,7 +16,7 @@ Guides for people collecting records, setting up capture tools, or using the API
 - **[Hardware](hardware/)**
   Simple and advanced capture setups. A phone is enough to start.
 
-- **[RPI camera](rpi-cam/)**
+- **[RPi camera](rpi-cam/)**
   Pair and use a camera-assisted capture setup.
 
 - **[API interaction](api/)**

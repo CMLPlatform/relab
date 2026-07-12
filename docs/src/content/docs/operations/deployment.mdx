@@ -173,7 +173,7 @@ Root deployment validation renders the supported Compose overlays with `just com
 
 ## Secrets and encrypted fields
 
-Most ReLab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPI camera keys, request IDs, and cache keys are not application-encrypted.
+Most ReLab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPi camera keys, request IDs, and cache keys are not application-encrypted.
 
 `deploy/env/variables.toml` is the source-controlled runtime secret inventory. It lists the secret files Compose should render under `secrets/<env>/` and keeps the future Infisical path template beside that contract. Use `just env-inventory` from the repo root when onboarding a host or reviewing secret-file changes.
 

@@ -187,27 +187,27 @@ export function ProductsFilterBar({
       <FilterSelectionModal
         visible={brandModalVisible}
         onDismiss={closeBrandModal}
-        title="Filter by Brand"
+        title="Filter by brand"
         items={brandResults ?? []}
         isLoading={brandsLoading}
         selectedValues={activeBrands}
         onSelectionChange={onBrandSelectionChange}
         searchQuery={brandSearch}
         onSearchChange={onSetBrandSearch}
-        searchPlaceholder="Search brands..."
+        searchPlaceholder="Search brands…"
       />
 
       <FilterSelectionModal
         visible={typeModalVisible}
         onDismiss={closeTypeModal}
-        title="Filter by Product Type"
+        title="Filter by product type"
         items={typeResults ?? []}
         isLoading={typesLoading}
         selectedValues={activeProductTypes}
         onSelectionChange={onTypeSelectionChange}
         searchQuery={typeSearch}
         onSearchChange={onSetTypeSearch}
-        searchPlaceholder="Search types..."
+        searchPlaceholder="Search types…"
       />
     </>
   );

@@ -52,7 +52,7 @@ products, profile, users live directly under `src/app/`.
    tests so component code is identical in prod and test.
 
 Client-only state (wizard progress, transient UI) lives in feature-local
-hooks/reducers or React context. Server state stays in TanStack Query, don't
+hooks/reducers or React context. Server state stays in TanStack Query; don't
 mirror it into client state stores.
 
 ## Testing layers
@@ -64,7 +64,7 @@ mirror it into client state stores.
 | E2E         | Playwright       | `e2e/`                            | Full-stack against the built web export + docker-compose backend. |
 
 **Location rule:** co-locate every Jest test in a `__tests__/` folder beside the
-code it covers, the Jest lane is chosen by the filename **suffix**, not the
+code it covers; the Jest lane is chosen by the filename **suffix**, not the
 folder (`.integration.test.*` → integration lane, everything else → unit). The
 unit lane auto-mocks `expo-router` (see `config/setup.unit.ts`); the integration
 lane doesn't, so integration tests mock it locally. Root-level/cross-cutting
@@ -91,7 +91,7 @@ Run via `just test-unit`, `just test-integration`, `just test-e2e`. See
 ## Linting ownership
 
 Biome is primary (formatting + most correctness). ESLint runs a narrow config
-for rules Biome doesn't yet expose (`react-hooks/*`, `react-refresh`). This is
-intentional overlap, see the "Lint Ownership" section of
-[README.md](README.md). When Biome ships the hooks/refresh rules, remove
-ESLint and its plugins.
+for rules Biome doesn't yet expose (`react-hooks/*`, `react-refresh`,
+`react-native-a11y`). This is intentional overlap; see the "Lint Ownership"
+section of [README.md](README.md). When Biome ships equivalents for these,
+remove ESLint and its plugins.

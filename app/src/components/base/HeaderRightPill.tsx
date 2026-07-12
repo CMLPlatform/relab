@@ -48,7 +48,7 @@ export function HeaderRightPill() {
       accessibilityRole="button"
       accessibilityLabel="Sign in"
     >
-      <Text style={primaryText}>Sign In</Text>
+      <Text style={primaryText}>Sign in</Text>
     </Pressable>
   );
 }

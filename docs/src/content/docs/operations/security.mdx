@@ -18,7 +18,7 @@ ReLab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-securi
 
 Valuable assets include accounts, profile/privacy settings, research records, uploaded media/files, OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup material, and runtime secrets.
 
-## Data Protection
+## Data protection
 
 ReLab classifies data by how much harm disclosure or misuse would cause, then keeps the protection rules close to that classification:
 
@@ -36,7 +36,7 @@ Protection requirements:
 - Store secret material in Docker secrets, secure platform stores, hashed/token-fingerprint state, or encrypted backup material as appropriate for the data type.
 - Delete obsolete runtime state through existing session revocation, upload deletion, cache invalidation, cleanup, and backup rotation workflows. Add explicit retention automation when a new data class needs a schedule beyond those workflows.
 
-## Logging and Error Handling
+## Logging and error handling
 
 The backend writes application, access, audit, and security-control events through the standard Python logging stack. Development logs are human-readable; production and staging logs are JSON on stderr so container log drivers and processors can parse them consistently. Each request gets an `X-Request-ID` value that is echoed to the client and attached to backend log records with method, path, status, and latency.
 
@@ -46,13 +46,13 @@ Container logs are the default storage and transport mechanism. Deploy hosts may
 
 Unexpected application errors are handled by the backend catch-all exception handler. Internal details and stack traces are logged for operators, while clients receive generic Problem Details responses with the request ID for correlation.
 
-## Inbound Edge
+## Inbound edge
 
 Production and staging are HTTPS-only behind Cloudflare Tunnel. Source-controlled Cloudflare configuration in `infra/cloudflare/` owns DNS records, public hostnames, tunnel ingress rules, TLS minimums, HTTPS redirects, and ReLab-specific rate limiting for auth, upload, and RPi camera traffic.
 
 Unknown tunnel hostnames fall through to a final `http_status:404` rule. Compose still owns runtime services; OpenTofu owns only the public edge.
 
-## Network Boundaries
+## Network boundaries
 
 The deploy stack keeps segmentation at Compose scale:
 
@@ -63,13 +63,13 @@ The deploy stack keeps segmentation at Compose scale:
 
 PostgreSQL and Redis do not publish host ports in prod or staging. The current internal-network defaults are `DATABASE_TLS=false` and `REDIS_TLS=false`. If either service moves to an external host, managed service, or other untrusted network, enable validating TLS with `DATABASE_TLS=true` or `REDIS_TLS=true`; set the matching CA file variable for private CAs.
 
-## Backend Egress
+## Backend egress
 
 Backend outbound HTTP must use the shared HTTP client unless a reviewed exception exists. The shared client ignores ambient proxy and CA environment variables, does not follow redirects, uses bounded timeouts, validates TLS certificates, and permits only `OUTBOUND_HTTP_ALLOWED_URLS`.
 
 Prefer exact HTTPS URLs. Use trailing-slash prefixes only for integrations with required dynamic path segments. Keep GitHub, raw GitHub, and provider API access narrowed to the specific integration URLs ReLab uses.
 
-## Denial-of-Service Controls
+## Denial-of-service controls
 
 ReLab keeps denial-of-service mitigation layered. Cloudflare Tunnel is the public ingress for production and staging; source-controlled edge rules cover `/v1/auth/*`, upload routes, RPi camera upload routes, and WebSocket connection attempts. Volumetric attacks are handled by Cloudflare and upstream infrastructure, not by FastAPI.
 
@@ -86,7 +86,7 @@ services:
       WEB_CONCURRENCY: "1"
 ```
 
-## Browser Runtime Policy
+## Browser runtime policy
 
 ReLab does not load third-party browser runtime JavaScript by default. Browser code is bundled and served first-party; Biome and CI checks block remote script tags, remote module imports, CDN runtime assets, analytics snippets, and tag-manager snippets.
 
@@ -94,7 +94,7 @@ The current exception is product video embedding from `https://www.youtube-nocoo
 
 The Expo web app requires inline and eval-style first-party script support in the enforced CSP. A stricter report-only policy is active and documented as an ASVS V3 L3 exception. Docs and public web origins enforce stricter script policies; all browser origins enforce `object-src`, `base-uri`, `frame-ancestors`, and referrer suppression.
 
-## Supply Chain
+## Supply chain
 
 GitHub Dependency Review and Dependency Graph gate dependency changes, while Renovate opens dependency update PRs. For an explicit full-tree dependency vulnerability sweep, run `just audit`.
 
@@ -113,7 +113,7 @@ Trusted dependency sources are the source-controlled package manifests, lockfile
 
 Risky components are dependencies that parse untrusted content, execute native code, perform cryptography, manage authentication, or open network/file boundaries. Current examples include image processing, archive/office file inspection, OAuth/provider clients, S3-compatible storage, Redis/PostgreSQL drivers, ClamAV, and browser media playback helpers. Changes to these components need maintainer review even when automated checks pass.
 
-## Dangerous Functionality
+## Dangerous functionality
 
 Dangerous functionality is isolated behind small modules and reviewed as a security-sensitive bucket:
 

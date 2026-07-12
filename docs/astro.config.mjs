@@ -51,7 +51,7 @@ const SIDEBAR = [
       { label: 'Getting started', slug: 'user-guides/getting-started' },
       { label: 'Data collection', slug: 'user-guides/data-collection' },
       { label: 'Hardware', slug: 'user-guides/hardware' },
-      { label: 'RPI camera', slug: 'user-guides/rpi-cam' },
+      { label: 'RPi camera', slug: 'user-guides/rpi-cam' },
       { label: 'API', slug: 'user-guides/api' },
     ],
   },
@@ -63,7 +63,7 @@ const SIDEBAR = [
       { label: 'API structure', slug: 'architecture/api' },
       { label: 'API reference', slug: 'api-reference' },
       { label: 'Authentication', slug: 'architecture/auth' },
-      { label: 'RPI camera plugin', slug: 'architecture/rpi-cam' },
+      { label: 'RPi camera plugin', slug: 'architecture/rpi-cam' },
     ],
   },
   {

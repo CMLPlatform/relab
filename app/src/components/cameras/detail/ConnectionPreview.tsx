@@ -102,9 +102,9 @@ export function CameraConnectionCard({
           {localConnection.mode === 'local'
             ? `Via Ethernet · ${localConnection.localBaseUrl ?? ''}`
             : localConnection.mode === 'probing' && isOnline
-              ? 'Camera online - checking local network for a faster direct connection'
+              ? 'Camera online — checking local network for a faster direct connection'
               : isOnline
-                ? 'Via WebSocket relay - connect Ethernet for ~0.4 s latency instead of ~2 s'
+                ? 'Via WebSocket relay — connect Ethernet for ~0.4 s latency instead of ~2 s'
                 : camera.status?.connection === 'offline'
                   ? 'Waiting for camera to connect via WebSocket relay'
                   : statusLabel}
@@ -136,7 +136,7 @@ export function CameraPreviewSection({
       <Card style={styles.card}>
         <Card.Content style={styles.previewControlContent}>
           <View style={styles.previewCopy}>
-            <Text variant="titleMedium">Camera Preview</Text>
+            <Text variant="titleMedium">Camera preview</Text>
             <Text variant="bodySmall" style={styles.connectionHint}>
               {previewEnabled
                 ? 'Preview is running. Stop it when you no longer need the live feed.'
@@ -144,7 +144,7 @@ export function CameraPreviewSection({
             </Text>
           </View>
           <Button mode={previewEnabled ? 'outlined' : 'contained'} onPress={onTogglePreview}>
-            {previewEnabled ? 'Stop Preview' : 'Load Preview'}
+            {previewEnabled ? 'Stop preview' : 'Load preview'}
           </Button>
         </Card.Content>
       </Card>

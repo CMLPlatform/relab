@@ -111,8 +111,8 @@ export default function Onboarding() {
       router.replace({ pathname: '/products', params: { authenticated: 'true' } });
     } catch (error: unknown) {
       dialog.alert({
-        title: 'Error',
-        message: getErrorMessage(error, 'Unable to save username. It might be taken.'),
+        title: "Couldn't save username",
+        message: getErrorMessage(error, 'It might already be taken.'),
       });
     }
   });

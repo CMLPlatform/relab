@@ -14,7 +14,7 @@
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](.github/CODE_OF_CONDUCT.md)
 [![Deployed](https://img.shields.io/website?url=https%3A%2F%2Fcml-relab.org&label=website)](https://cml-relab.org)
 
-ReLab is an open-source research platform for collecting and publicly viewing data on the disassembly of durable goods. It is built at [CML, Leiden University](https://www.universiteitleiden.nl/en/science/environmental-sciences) to support industrial ecology and circular economy research through better primary product data generation.
+ReLab is an open-source research platform for collecting and publicly viewing data on the disassembly of durable goods. It is built at [CML, Leiden University](https://www.universiteitleiden.nl/en/science/environmental-sciences) to support industrial ecology and circular economy research by generating better primary product data.
 
 It combines:
 
@@ -23,10 +23,7 @@ It combines:
 - an Astro site for publicly viewing project and dataset information
 - a separate docs site for architecture, workflows, and deployment notes
 
-The platform is meant to do two things at once:
-
-- support structured data collection during disassembly work
-- make that data easier to publish, browse, and reuse later
+The platform is meant to do two things at once: support structured data collection during disassembly work, and make that data easier to publish, browse, and reuse later.
 
 The broader research vision comes from a simple problem: industrial ecology has many data platforms, but far fewer open, low-barrier workflows for generating new standardized product-level observations.
 
@@ -36,7 +33,7 @@ ReLab addresses that gap with a bottom-up model:
 - collaborative and citizen-science style workflows can turn routine repair and disassembly into structured observations
 - the resulting records can be shared openly, linked to related databases, and reused in later research
 
-The long-term goal is to contribute to an open industrial ecology data commons by combining collaborative data collection, public data access, interoperability with existing and upcoming databases, and AI-ready structured observations.
+The long-term goal is to contribute to an open industrial ecology data commons: data that is collected collaboratively, publicly accessible, linkable to existing and upcoming databases, and structured enough for machine-learning use.
 
 ## Start Here
 

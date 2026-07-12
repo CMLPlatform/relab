@@ -2,7 +2,7 @@
 
 This subrepo contains the public website for ReLab, built with Astro. It is the small, mostly static front door for the project: the landing page, privacy page, and the links that point people toward the app, docs, and source code.
 
-If you are looking for the main application itself, that lives elsewhere in the monorepo. This package is the website around the project, not the research workflow UI.
+The main application lives in [`app/`](../app/). This package is the website around the project, not the research workflow UI.
 
 ## Quick start
 
@@ -25,14 +25,15 @@ In the full Docker stack, the site is served behind Caddy at <http://127.0.0.1:8
 - `src/components` for shared UI building blocks
 - `src/layouts` for the document shell
 - `src/scripts` for the small amount of client-side JavaScript
-- `src/content` for site copy and structured content
+- `src/lib` for shared helpers used by those scripts
+- `src/copy` for site copy kept as structured data
 - `src/config` for environment handling and shared config helpers
 - `src/styles` for the CSS layers and design tokens
 - `e2e` for Playwright browser tests
 
 ## Common commands
 
-Use `just` for repo-standard tasks. The build recipe loads the root deploy env so public URLs stay owned by the orchestration config.
+Use `just` for repo-standard tasks. The build recipe loads the root deploy env so public URLs come from `../deploy/env/` instead of values duplicated here.
 
 | Task                    | Command            |
 | ----------------------- | ------------------ |

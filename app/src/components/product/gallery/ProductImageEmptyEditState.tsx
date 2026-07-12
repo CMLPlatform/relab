@@ -39,7 +39,7 @@ export function ProductImageEmptyEditState({
 
       <EmptyActionCard
         onPress={onPickImage}
-        label="Add Photos"
+        label="Add photos"
         accessibilityLabel="Add photos from gallery"
         icon="image-plus"
       />
@@ -60,7 +60,7 @@ export function ProductImageEmptyEditState({
             <Icon source="camera-wireless" size={48} color={theme.tokens.text.muted} />
           )}
           <Text style={styles.emptyActionText}>
-            {hasCamerasConfigured ? 'RPi Camera' : 'Connect Camera'}
+            {hasCamerasConfigured ? 'RPi Camera' : 'Connect camera'}
           </Text>
         </Pressable>
       ) : null}

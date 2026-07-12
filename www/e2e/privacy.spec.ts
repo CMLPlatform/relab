@@ -13,7 +13,7 @@ test('privacy page renders', async ({ page }) => {
     'Account information',
     'Contributions',
     'AI and research use',
-    'Your rights',
+    'Your rights and choices',
   ]);
   await expectContentPage(page);
   await expect(page.getByText(GITHUB_AND_LINKEDIN_TEXT)).toBeVisible();

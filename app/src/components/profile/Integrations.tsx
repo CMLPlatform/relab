@@ -58,7 +58,7 @@ export function ProfileIntegrationsSection({
 
         {rpiEnabled ? (
           <ProfileAction
-            title="Manage Cameras"
+            title="Manage cameras"
             subtitle="Add, edit, or remove connected cameras"
             onPress={onManageCameras}
           />

@@ -68,7 +68,7 @@ export default function ProductVideo({
 
   const handleAdd = () => {
     dialog.input({
-      title: 'Add Video',
+      title: 'Add video',
       placeholder: 'Video URL',
       helperText: 'Paste a video URL (YouTube)',
       buttons: [

@@ -11,12 +11,12 @@ export default function VerifyEmailScreen() {
     <View style={styles.screen}>
       <Card>
         <Card.Content style={styles.cardContent}>
-          <Text variant="headlineMedium">Verify Email</Text>
+          <Text variant="headlineMedium">Verify email</Text>
 
           {isLoading ? (
             <View style={styles.centeredState}>
               <ActivityIndicator size="large" />
-              <Text variant="bodyLarge">Verifying your email...</Text>
+              <Text variant="bodyLarge">Verifying your email…</Text>
             </View>
           ) : null}
 
@@ -26,7 +26,7 @@ export default function VerifyEmailScreen() {
                 {error}
               </Text>
               <Button mode="contained" onPress={goHome}>
-                Back to Home
+                Back to home
               </Button>
             </View>
           )}
@@ -37,17 +37,17 @@ export default function VerifyEmailScreen() {
                 variant="bodyLarge"
                 style={{ color: theme.colors.primary, textAlign: 'center' }}
               >
-                Email verified successfully!
+                Email verified!
               </Text>
               {isLoggedIn ? (
-                <Text variant="bodyMedium">Taking you to your products...</Text>
+                <Text variant="bodyMedium">Taking you to your products…</Text>
               ) : (
                 <>
                   <Text variant="bodyMedium" style={{ textAlign: 'center' }}>
-                    If you signed up in the app, you're still logged in there — just head back.
+                    If you signed up in the app, you're still signed in there — just head back.
                   </Text>
                   <Button mode="contained" onPress={goToLogin}>
-                    Log in here
+                    Sign in here
                   </Button>
                 </>
               )}

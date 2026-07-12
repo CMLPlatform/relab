@@ -59,8 +59,8 @@ export default function ProductTags({
   const onEditModel = () => {
     if (!editMode) return;
     dialog.input({
-      title: 'Set Model',
-      placeholder: 'Model Name',
+      title: 'Set model',
+      placeholder: 'Model name',
       defaultValue: product.model ?? '',
       buttons: [
         { text: 'Cancel', onPress: () => undefined },
@@ -107,7 +107,7 @@ export default function ProductTags({
       <FilterSelectionModal
         visible={brandModalVisible}
         onDismiss={closeBrandModal}
-        title="Select Brand"
+        title="Select brand"
         items={brandResults ?? []}
         isLoading={brandsLoading}
         selectedValues={product.brand ? [product.brand] : []}

@@ -20,8 +20,9 @@ The public API is versioned under `/v1`. Client configuration should keep the AP
 - **Apps and scripts** use bearer tokens (`POST /v1/auth/bearer/login`)
 - Refresh-token handling depends on the Redis-backed auth path (see [Authentication](../../architecture/auth/))
 
-!!! note "Public vs. authenticated routes"
+:::note[Public vs. authenticated routes]
 Public reference data (taxonomies, materials, product types), product records, and uploaded media are accessible without authentication. Creating or changing records, account management, private user details, and owner-scoped workflows require a valid token.
+:::
 
 ## Suggested first steps
 
@@ -42,5 +43,4 @@ Point a client at the API and authenticate with a bearer token from `POST /v1/au
 
 - Build against the generated OpenAPI schema rather than copied examples, which can drift out of date.
 - For product circularity notes, use `circularity_properties` as either `null` or an object with optional `recyclability`, `disassemblability`, and `remanufacturability` strings. Empty objects and empty note strings are normalized to `null`.
-- Treat uploads and image handling as first-class API operations, not afterthoughts.
 - If you need a stable exported dataset rather than live application access, check the [dataset page](../../project/dataset/) first.

@@ -97,12 +97,12 @@ const AppStack = memo(function AppStack({ isDark }: { isDark: boolean }) {
       <Stack.Screen name="(auth)/forgot-password" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/mfa" options={{ title: 'Two-step verification' }} />
-      <Stack.Screen name="category-selection" options={{ title: 'Select Category' }} />
-      <Stack.Screen name="cameras/index" options={{ title: 'My Cameras' }} />
+      <Stack.Screen name="category-selection" options={{ title: 'Select category' }} />
+      <Stack.Screen name="cameras/index" options={{ title: 'My cameras' }} />
       <Stack.Screen
         name="cameras/add"
         options={{
-          title: 'Add Camera',
+          title: 'Add camera',
           headerLeft: (props) => <HeaderBackButton {...props} onPress={goToCameras} />,
         }}
       />

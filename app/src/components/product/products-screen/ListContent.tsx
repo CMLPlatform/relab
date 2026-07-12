@@ -288,7 +288,7 @@ export function ProductsListContent({
             <Card
               style={[styles.slowLoadingCard, { backgroundColor: theme.colors.surfaceVariant }]}
             >
-              <Text variant="bodySmall">This is taking longer than usual. Please wait...</Text>
+              <Text variant="bodySmall">This is taking longer than usual. Please wait…</Text>
             </Card>
           </View>
         ) : null}
@@ -321,7 +321,7 @@ export function ProductsListContent({
             accessibilityLabel=""
           />
           {searchQuery ? (
-            <Text>No products found matching your search.</Text>
+            <Text>No products match your search.</Text>
           ) : !isAuthenticated ? (
             <Text>No products available yet. Sign in to add your own.</Text>
           ) : filterMode === 'mine' ? (
@@ -330,13 +330,13 @@ export function ProductsListContent({
                 You haven&apos;t created any products yet. Tap the{' '}
               </Text>
               <NewProductPill />
-              <Text style={styles.emptyStateText}> button to create your first one!</Text>
+              <Text style={styles.emptyStateText}> button to add your first one.</Text>
             </View>
           ) : (
             <View style={styles.emptyStateBody}>
-              <Text style={styles.emptyStateText}>No products yet. Start by tapping the </Text>
+              <Text style={styles.emptyStateText}>No products yet. Tap the </Text>
               <NewProductPill />
-              <Text style={styles.emptyStateText}> button to create your first one!</Text>
+              <Text style={styles.emptyStateText}> button to add the first one.</Text>
             </View>
           )}
         </View>

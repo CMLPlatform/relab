@@ -22,7 +22,7 @@ export default function ResetPasswordScreen() {
       field: { onChange: (text: string) => void; value: string };
     }) => (
       <TextInput
-        label="New Password"
+        label="New password"
         testID="password-input"
         value={value}
         onChangeText={onChange}
@@ -45,7 +45,7 @@ export default function ResetPasswordScreen() {
       field: { onChange: (text: string) => void; value: string };
     }) => (
       <TextInput
-        label="Confirm New Password"
+        label="Confirm new password"
         testID="confirm-password-input"
         value={value}
         onChangeText={onChange}
@@ -63,14 +63,14 @@ export default function ResetPasswordScreen() {
     <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
       <Card>
         <Card.Content style={{ gap: 16 }}>
-          <Text variant="headlineMedium">Reset Password</Text>
+          <Text variant="headlineMedium">Reset password</Text>
 
           {success ? (
             <View style={{ gap: 12, alignItems: 'center', paddingVertical: 16 }}>
               <Text variant="bodyLarge" style={{ textAlign: 'center' }}>
-                Password reset successful! You can now login on the app.
+                Password reset. You can now sign in.
               </Text>
-              <Text variant="bodyMedium">Redirecting to login...</Text>
+              <Text variant="bodyMedium">Redirecting to login…</Text>
             </View>
           ) : (
             <>
@@ -90,14 +90,14 @@ export default function ResetPasswordScreen() {
                 loading={isSubmitting}
                 disabled={isSubmitting || !isValid}
               >
-                Reset Password
+                Reset password
               </Button>
 
               <View
                 style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}
               >
                 <Button mode="text" onPress={goToLogin}>
-                  Back to Login
+                  Back to login
                 </Button>
               </View>
             </>

@@ -16,15 +16,15 @@ This is enough for useful product documentation. You can take photos on your pho
 
 ## Tier 2: advanced capture setup
 
-- Raspberry Pi camera with the RPI camera plugin
+- Raspberry Pi camera with the RPi camera plugin
 - fixed or repeatable camera position
 - controlled lighting
 - gridded mats or similar backgrounds
 
-Use this if you want repeatable images across many products. Gridded mats help with later size and volume estimation. See [RPI camera integration](../rpi-cam/) for the platform-side setup.
+Use this if you want repeatable images across many products. Gridded mats help with later size and volume estimation. See [RPi camera integration](../rpi-cam/) for the platform-side setup.
 
 ## Practical advice
 
-- Prioritise consistent lighting over camera quality.
+- Prioritize consistent lighting over camera quality.
 - Use a plain background if you care about later image analysis.
 - Keep scale references consistent if you plan to compare products later.

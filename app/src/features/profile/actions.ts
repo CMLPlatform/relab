@@ -65,7 +65,7 @@ export function useProfileActions({
         onSuccess: proceed,
         onError: () => {
           feedback.error(
-            'Failed to stop the stream. Please stop it manually before logging out.',
+            'Failed to stop the stream. Please stop it manually before signing out.',
             'Stream error',
           );
           setIsLoggingOut(false);
@@ -79,10 +79,10 @@ export function useProfileActions({
     if (activeStream) {
       feedback.alert({
         title: 'Stream still active',
-        message: `You're live for "${activeStream.productName}". Logging out will stop the stream and save the recording.`,
+        message: `You're live for "${activeStream.productName}". Signing out will stop the stream and save the recording.`,
         buttons: [
           { text: 'Cancel' },
-          { text: 'Stop & log out', onPress: dialogs.logoutDialog.open },
+          { text: 'Stop & sign out', onPress: dialogs.logoutDialog.open },
         ],
       });
       return;

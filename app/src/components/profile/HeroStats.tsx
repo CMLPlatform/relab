@@ -77,7 +77,7 @@ export function ProfileStatsSection({ ownStats, statsLoading }: ProfileStatsSect
   const styles = createProfileSectionStyles(useAppTheme());
   return (
     <>
-      <ProfileSectionHeader title="Your Stats" />
+      <ProfileSectionHeader title="Your stats" />
       <View style={styles.statsRow}>
         <StatCard label="Products" value={statsLoading ? '...' : (ownStats?.product_count ?? 0)} />
         <StatCard label="Photos" value={statsLoading ? '...' : (ownStats?.image_count ?? 0)} />
@@ -86,7 +86,7 @@ export function ProfileStatsSection({ ownStats, statsLoading }: ProfileStatsSect
           value={statsLoading ? '...' : (ownStats?.total_weight_kg ?? 0)}
         />
         <StatCard
-          label="Top Category"
+          label="Top category"
           value={statsLoading ? '...' : (ownStats?.top_category ?? 'None')}
           singleLine
         />

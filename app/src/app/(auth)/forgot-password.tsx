@@ -36,7 +36,7 @@ export default function ForgotPasswordScreen() {
     <View style={styles.screen}>
       <Card>
         <Card.Content style={styles.cardContent}>
-          <Text variant="headlineMedium">Forgot Password</Text>
+          <Text variant="headlineMedium">Forgot password</Text>
 
           {success ? (
             <View style={styles.successContainer}>
@@ -44,10 +44,10 @@ export default function ForgotPasswordScreen() {
                 variant="bodyLarge"
                 style={{ color: theme.colors.primary, textAlign: 'center' }}
               >
-                If an account exists with this email, you will receive password reset instructions.
+                If an account exists with this email, we&apos;ve sent it a password reset link.
               </Text>
               <Button mode="contained" onPress={goToLogin}>
-                Back to Login
+                Back to login
               </Button>
             </View>
           ) : (
@@ -71,12 +71,12 @@ export default function ForgotPasswordScreen() {
                 loading={isSubmitting}
                 disabled={isSubmitting || !isValid}
               >
-                Send Reset Link
+                Send reset link
               </Button>
 
               <View style={styles.actions}>
                 <Button mode="text" onPress={goBack}>
-                  Back to Login
+                  Back to login
                 </Button>
               </View>
             </>

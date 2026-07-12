@@ -23,7 +23,7 @@ export function ProfileAccountSection({
       <ProfileSectionHeader title="Account" />
       <View style={styles.section}>
         <ProfileAction
-          title="Logout"
+          title="Sign out"
           subtitle="Switch to another account"
           onPress={onLogout}
           titleStyle={styles.danger}
@@ -70,7 +70,7 @@ export function ProfileLinkedAccountsSection({
   const linkGithub = useCallback(() => onLinkOAuth('github'), [onLinkOAuth]);
   return (
     <>
-      <ProfileSectionHeader title="Linked Accounts" />
+      <ProfileSectionHeader title="Linked accounts" />
       <View style={styles.section}>
         {isGoogleLinked ? (
           <ProfileAction
@@ -81,7 +81,7 @@ export function ProfileLinkedAccountsSection({
           />
         ) : (
           <ProfileAction
-            title="Link Google Account"
+            title="Link Google account"
             subtitle="Continue with Google"
             onPress={linkGoogle}
           />
@@ -96,7 +96,7 @@ export function ProfileLinkedAccountsSection({
           />
         ) : (
           <ProfileAction
-            title="Link GitHub Account"
+            title="Link GitHub account"
             subtitle="Continue with GitHub"
             onPress={linkGithub}
           />
@@ -114,10 +114,10 @@ export function ProfileDangerZoneSection({ onDeleteAccount }: ProfileDangerZoneS
   const styles = createProfileSectionStyles(useAppTheme());
   return (
     <>
-      <ProfileSectionHeader title="Danger Zone" />
+      <ProfileSectionHeader title="Danger zone" />
       <View style={[styles.section, styles.dangerSection]}>
         <ProfileAction
-          title="Delete Account?"
+          title="Delete account?"
           onPress={onDeleteAccount}
           titleStyle={{ ...styles.danger, fontSize: 15 }}
           hideChevron

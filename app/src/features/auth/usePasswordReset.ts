@@ -76,7 +76,7 @@ export function useResetPassword(token: string | undefined) {
 
   const submit = handleSubmit(async ({ password }) => {
     if (!token) {
-      setError('No reset token provided');
+      setError('This reset link is invalid. Request a new one.');
       return;
     }
     setError(null);
@@ -85,7 +85,9 @@ export function useResetPassword(token: string | undefined) {
       setSuccess(true);
     } catch (err) {
       logError('Password reset error:', err);
-      setError(err instanceof ApiError ? err.message : 'An error occurred during password reset');
+      setError(
+        err instanceof ApiError ? err.message : "Couldn't reset your password. Please try again.",
+      );
     }
   });
 

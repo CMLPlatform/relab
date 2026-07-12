@@ -11,9 +11,7 @@ No local setup is required.
 
 ## Self-hosting
 
-Self-hosting makes sense for evaluation, institutional deployment, offline use, or local development. If your main goal is contributing code, [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md) is the better starting point.
-
-This page is about running the stack. For tooling policy and contributor workflow, use [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md).
+Self-hosting makes sense for evaluation, institutional deployment, offline use, or local development. This page is about running the stack. If your main goal is contributing code, [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md) covers tooling policy and contributor workflow.
 
 ### Prerequisites
 
@@ -161,8 +159,6 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
    just staging-migrate YES
    just backup-restore-smoke staging
    ```
-
-   Deployment runs directly on the server.
 
 1. For Cloudflare edge changes, plan from the repo checkout or an ops machine
    with OpenTofu and Cloudflare credentials.

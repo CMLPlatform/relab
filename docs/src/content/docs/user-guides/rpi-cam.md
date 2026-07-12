@@ -1,9 +1,9 @@
 ---
-title: RPI camera integration
+title: RPi camera integration
 description: Set up and use the ReLab Raspberry Pi camera workflow from the platform side.
 ---
 
-This page covers the platform side: pairing a camera, checking that it is online, and using it during documentation. For device installation and plugin deployment, use the [RPI camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+This page covers the platform side: pairing a camera, checking that it is online, and using it during documentation. For device installation and plugin deployment, use the [RPi camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
 ## When it's worth setting up
 
@@ -60,8 +60,6 @@ app can also switch into local direct mode for lower-latency preview and
 capture. Relay remains the default path and the control-plane source of truth;
 local mode is an optimization, not a separate registration flow.
 
-Camera management (inspecting, updating, removing registered cameras) is available through the app's Cameras section.
-
 ## Managing cameras
 
 From the camera detail screen you can:
@@ -90,4 +88,4 @@ From the camera detail screen you can:
 
 For device installation, deployment, and hardware-specific details, see the external plugin documentation:
 
-[RPI camera plugin documentation](https://github.com/CMLPlatform/relab-rpi-cam-plugin)
+[RPi camera plugin documentation](https://github.com/CMLPlatform/relab-rpi-cam-plugin)

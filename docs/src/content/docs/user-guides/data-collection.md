@@ -30,8 +30,9 @@ Create a child record when:
 - the part needs its own images or notes
 - the part may be useful in later comparison across products
 
-!!! tip "A useful rule of thumb"
+:::tip[A useful rule of thumb]
 If you would photograph it separately and write notes about it specifically, it probably deserves its own record. A battery pack is a component. A single screw usually is not.
+:::
 
 ## Practical modeling advice
 
@@ -40,8 +41,9 @@ If you would photograph it separately and write notes about it specifically, it 
 - Use circularity notes for concise observations about recyclability, disassemblability, and remanufacturability. Leave them empty when there is no useful observation yet.
 - Treat images as part of the research record, not as decorative attachments.
 
-!!! note "Partial is fine"
+:::note[Partial is fine]
 Do not force precision where the evidence does not support it. A partial observation such as "likely polypropylene, unconfirmed" is more useful than invented detail.
+:::
 
 ## Good notes often include
 
@@ -64,7 +66,7 @@ Attach media in two ways:
 
 Use image uploads for ordinary display photos. Use file uploads for research documents and scientific datasets, including hyperspectral ENVI, HDF5, NITF, and GeoTIFF files, so ReLab stores the original data without image processing.
 
-If you are using the camera integration, see [RPI camera integration](../rpi-cam/).
+If you are using the camera integration, see [RPi camera integration](../rpi-cam/).
 
 ## Upload limits
 

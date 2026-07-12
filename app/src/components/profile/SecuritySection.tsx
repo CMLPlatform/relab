@@ -47,7 +47,7 @@ export function ProfileSecuritySection({ mfaEnabled, onEnrolled }: ProfileSecuri
             />
             <ProfileAction
               title="Turn off two-step verification"
-              subtitle="Log in with just your password"
+              subtitle="Sign in with just your password"
               onPress={beginTurnOff}
               titleStyle={styles.danger}
             />

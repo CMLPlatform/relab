@@ -53,13 +53,13 @@ export function ProductPageErrorState({
     <View style={styles.centerState}>
       <MaterialCommunityIcons name="alert-circle-outline" size={64} color={themeColors.error} />
       <Text variant="headlineSmall" style={styles.centerText}>
-        Oops! Something went wrong
+        Something went wrong
       </Text>
       <Text variant="bodyMedium" style={styles.subtleCenterText}>
-        {getErrorMessage(error, `We encountered an error while loading the ${entity} details.`)}
+        {getErrorMessage(error, `Couldn't load the ${entity} details.`)}
       </Text>
       <Button mode="contained" onPress={onRetry} style={{ marginTop: 8 }}>
-        Try Again
+        Try again
       </Button>
     </View>
   );
@@ -84,7 +84,7 @@ export function ProductPageLoadingState({
               paddingVertical: 8,
             }}
           >
-            <Text variant="bodySmall">This is taking longer than usual. Please wait...</Text>
+            <Text variant="bodySmall">This is taking longer than usual. Please wait…</Text>
           </Card>
         </View>
       ) : null}

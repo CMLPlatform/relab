@@ -51,7 +51,7 @@ export function ProfileDialogs({
   return (
     <Portal>
       <Dialog visible={editUsernameVisible} onDismiss={onDismissEditUsername}>
-        <Dialog.Title>Edit Username</Dialog.Title>
+        <Dialog.Title>Edit username</Dialog.Title>
         <Dialog.Content>
           <TextInput
             mode="outlined"
@@ -69,7 +69,7 @@ export function ProfileDialogs({
       </Dialog>
 
       <Dialog visible={unlinkDialogVisible} onDismiss={onDismissUnlink}>
-        <Dialog.Title>Unlink Account</Dialog.Title>
+        <Dialog.Title>Unlink account</Dialog.Title>
         <Dialog.Content>
           <Text>Are you sure you want to disconnect this {providerToUnlink} account?</Text>
           {isLastLinkedProvider ? (
@@ -109,17 +109,13 @@ export function ProfileDialogs({
       />
 
       <Dialog visible={deleteDialogVisible} onDismiss={onDismissDeleteDialog}>
-        <Dialog.Title>Delete Account</Dialog.Title>
+        <Dialog.Title>Delete account</Dialog.Title>
         <Dialog.Content>
-          <Text>
-            To delete your account and all associated data, please send an email request to:
-          </Text>
+          <Text>To delete your account and all its data, email us at:</Text>
           <Link href="mailto:relab@cml.leidenuniv.nl">
             <Text style={styles.deleteEmail}>relab@cml.leidenuniv.nl</Text>
           </Link>
-          <Text style={styles.deleteMessage}>
-            We&apos;ll process your request and confirm the deletion via email.
-          </Text>
+          <Text style={styles.deleteMessage}>We&apos;ll confirm the deletion by email.</Text>
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={onDismissDeleteDialog}>OK</Button>

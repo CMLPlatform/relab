@@ -31,7 +31,7 @@ function maybeUnrefTimer(timer: unknown): void {
 
 function getOAuthErrorMessage(error?: string, platform: 'ios' | 'android' | 'web' = 'web'): string {
   if (error === 'access_denied' || error === 'user_denied') {
-    return 'You denied access. Please try again and grant permission.';
+    return 'Access was declined. Try again and allow access to sign in.';
   }
   if (error === 'invalid_scope') {
     return 'Invalid scope requested. Please contact support.';
@@ -41,9 +41,9 @@ function getOAuthErrorMessage(error?: string, platform: 'ios' | 'android' | 'web
   }
   if (error) return error;
   if (platform !== 'web') {
-    return "OAuth login failed. Please ensure your device has internet and try again. If the browser didn't open, check your internet connection.";
+    return 'Sign-in failed. Check your internet connection and try again.';
   }
-  return 'OAuth login failed. Please try again.';
+  return 'Sign-in failed. Please try again.';
 }
 
 function isAccountNotLinkedError(error: string | undefined): boolean {
@@ -65,9 +65,9 @@ async function getAuthenticatedUserWithRetry(
   } catch {
     if (retryCount >= maxRetries) {
       throw new Error(
-        "OAuth succeeded but we couldn't establish your session. " +
+        "Signed in, but we couldn't start your session. " +
           (Platform.OS !== 'web'
-            ? 'Please try logging in again, or check your internet connection.'
+            ? 'Check your internet connection and try again.'
             : 'Please try again.'),
       );
     }
@@ -118,13 +118,13 @@ async function finalizeOAuthSession({
   const authenticatedUser = await getAuthenticatedUserWithRetry();
 
   if (!authenticatedUser) {
-    throw new Error('OAuth succeeded but session validation failed. Please try again.');
+    throw new Error("Signed in, but we couldn't start your session. Please try again.");
   }
 
   if (!authenticatedUser.isActive) {
     dialog.alert({
-      title: 'Account Suspended',
-      message: 'Your account has been suspended. Please contact support for assistance.',
+      title: 'Account suspended',
+      message: 'Your account has been suspended. Please contact support.',
     });
     return;
   }
@@ -160,7 +160,7 @@ async function startOAuthLogin({
         return;
       }
 
-      throw new Error(detail || 'Failed to reach authorization endpoint.');
+      throw new Error(detail || "Couldn't reach the sign-in service. Please try again.");
     }
 
     if (!isAllowedOAuthRedirectUrl(authorization.authorizationUrl)) {
@@ -184,8 +184,8 @@ async function startOAuthLogin({
     if (callback) await finalizeOAuthLogin(callback);
   } catch (error: unknown) {
     dialog.alert({
-      title: 'Login Failed',
-      message: getErrorMessage(error, 'OAuth login failed.'),
+      title: "Couldn't sign in",
+      message: getErrorMessage(error, 'Please try again.'),
     });
   }
 }
@@ -222,8 +222,8 @@ function useOAuthCallbackEffect({
 
     finalizeOAuthLogin(fragmentCallback).catch((error: unknown) => {
       dialog.alert({
-        title: 'Login Failed',
-        message: getErrorMessage(error, 'OAuth login failed.'),
+        title: "Couldn't sign in",
+        message: getErrorMessage(error, 'Please try again.'),
       });
     });
   }, [dialog, finalizeOAuthLogin, handledOAuthCallbackRef, postLoginRedirect]);

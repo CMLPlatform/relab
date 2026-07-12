@@ -16,13 +16,13 @@ How ReLab is built. These pages are for maintainers and contributors who need to
   Main entities and relationships.
 
 - **[API structure](api/)**
-  Route organisation and integration flow.
+  Route organization and integration flow.
 
 - **[Authentication](auth/)**
   Login, refresh, OAuth, and session handling.
 
-- **[RPI camera plugin architecture](rpi-cam/)**
-  Camera plugin architecture and interaction flows.
+- **[RPi camera plugin architecture](rpi-cam/)**
+  How the camera plugin talks to the backend and app clients.
 
 </div>
 

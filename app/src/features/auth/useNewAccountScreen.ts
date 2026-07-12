@@ -51,7 +51,7 @@ export function useNewAccountScreen() {
 
     if (!result.success) {
       dialog.alert({
-        title: 'Registration Failed',
+        title: 'Registration failed',
         message: result.error || 'Account creation failed. Please try again.',
       });
       return;
@@ -63,7 +63,7 @@ export function useNewAccountScreen() {
     dialog.alert({
       title: 'Check your email',
       message:
-        'If the email address is available, we sent a verification link. Verify your email, then log in.',
+        'If the email address is available, we sent a verification link. Verify your email, then sign in.',
     });
     router.replace('/login');
   });

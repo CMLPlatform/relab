@@ -14,14 +14,14 @@ export default function LogoutConfirm({
   return (
     <Portal>
       <Dialog visible={visible} onDismiss={onDismiss}>
-        <Dialog.Title>Logout</Dialog.Title>
+        <Dialog.Title>Sign out</Dialog.Title>
         <Dialog.Content>
-          <Text>Are you sure you want to log out?</Text>
+          <Text>Are you sure you want to sign out?</Text>
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={onDismiss}>Cancel</Button>
           <Button onPress={onConfirm} textColor={theme.tokens.status.danger}>
-            Logout
+            Sign out
           </Button>
         </Dialog.Actions>
       </Dialog>

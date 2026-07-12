@@ -2,7 +2,7 @@
 
 Standalone Astro Starlight documentation app for the ReLab platform.
 
-## Quick Start
+## Quick start
 
 ```bash
 fnm use 26 || nvm use 26
@@ -12,7 +12,7 @@ just dev
 
 The docs site runs on <http://127.0.0.1:8012>.
 
-## Common Commands
+## Common commands
 
 ```bash
 just build

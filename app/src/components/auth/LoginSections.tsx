@@ -128,7 +128,7 @@ export function LoginFormSection({
       <Controller control={control} name="email" render={renderEmail} />
       <Controller control={control} name="password" render={renderPassword} />
       <Button mode="contained" style={{ width: '100%', padding: 5 }} onPress={onSubmit}>
-        Login
+        Sign in
       </Button>
       <Button mode="text" compact onPress={onForgotPassword} style={{ alignSelf: 'flex-end' }}>
         Forgot password?

@@ -15,7 +15,7 @@ export function CamerasFab({ visible, onPress }: CamerasFabProps) {
   return (
     <AnimatedFAB
       icon="plus"
-      label="Add Camera"
+      label="Add camera"
       extended
       onPress={onPress}
       style={styles.fab}

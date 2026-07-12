@@ -89,7 +89,7 @@ export function useLoginScreen() {
 
   const showAccountAlreadyRegisteredDialog = useCallback(() => {
     dialog.alert({
-      title: 'Email Already Registered',
+      title: 'Email already registered',
       message:
         'An account with this email already exists. Sign in with your email and password below, then link your account from your profile settings.',
       buttons: [

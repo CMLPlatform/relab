@@ -11,8 +11,15 @@ ReLab helps you document a product while you take it apart. A useful first recor
 1. Register with email and password, or sign in with GitHub or Google.
 1. Verify your email if prompted. Some features only activate once the account is verified.
 
-!!! tip "Fastest path in"
+:::tip[Fastest path in]
 GitHub and Google OAuth skip the manual email-verification step. If you have access to either, use that.
+:::
+
+## Before you start
+
+- Prepare a workspace with enough space for the product and separated components.
+- Good lighting matters more than fancy equipment; see [Hardware](../hardware/) for what works.
+- Have a device ready for photos. A phone is fine; a camera rig is optional.
 
 ## Make your first product record
 
@@ -24,18 +31,13 @@ Once you're logged in, the core workflow is:
 1. As you disassemble, create **child records** for meaningful components, such as a battery pack, motor assembly, or housing.
 1. Attach images, measurements, and notes at the level where they belong.
 
-!!! note "Start simple"
+:::note[Start simple]
 A partial record with good photos and honest notes is usually more useful than an over-structured one that takes twice as long. You can fill in gaps later.
-
-## Before you start
-
-- Prepare a workspace with enough space for the product and separated components.
-- Good lighting matters more than fancy equipment, see [Hardware](../hardware/) for what works.
-- Have a device ready for photos. A phone is fine; a camera rig is optional.
+:::
 
 ## Next steps
 
 - [Data collection guide](../data-collection/): how to build a thorough record
 - [Hardware](../hardware/): simple and advanced capture setups
-- [RPI camera](../rpi-cam/): if you are using a camera device
+- [RPi camera](../rpi-cam/): if you are using a camera device
 - [API guide](../api/): for scripts and technical integrations

@@ -1,7 +1,7 @@
 # Shared Brand Assets
 
-This directory is the canonical source of truth for shared ReLab brand identity
-primitives used across the monorepo.
+This directory is the source of truth for the shared ReLab brand assets
+used across the monorepo.
 
 Edit the files here, then run:
 
@@ -19,12 +19,12 @@ just assets-check
 
 to verify that committed consumer files still match the canonical sources.
 
-The current logo is the Noto Color Emoji hammer-and-wrench stand-in
-(`svg/emoji_u1f6e0.svg`). Noto Emoji graphics are from Google's Noto Emoji
-project, licensed under Apache 2.0.
+The logo is the R9lab mark, generated from the sources in
+[logo-src/](logo-src/README.md). `logo.svg` is the wide flask logo; square
+favicons and app icons render from `r9lab-mark.svg`.
 
-The sync script uses ImageMagick `convert` to generate PNG and `.ico` favicon
-derivatives from `logo.svg`.
+The sync script uses ImageMagick (`magick`, or `convert` on IMv6) to generate
+the PNG and `.ico` derivatives from the SVG sources.
 
 Current shared assets:
 
@@ -32,6 +32,8 @@ Current shared assets:
 - `images/bg-light.jpg`
 - `images/bg-dark.jpg`
 - `logo.svg`
+- `r9lab-*.svg` / `r9lab-*.png` — mark, logo, wordmark, and og-image variants,
+  light and dark (see [logo-src/](logo-src/README.md))
 - `fonts/ibm-plex-sans-*.woff2`
 
 Typography ownership:
@@ -53,6 +55,6 @@ Generated consumer output groups:
 - Background images: copied to the app, docs, and www image asset folders.
 - Regular IBM Plex Sans web fonts: copied to the docs and www `public/fonts` folders.
 - Brand CSS: copied to docs and www style folders.
-- SVG logos and favicons: copied from `logo.svg` to docs and www public image folders.
+- SVG logos, wordmarks, and favicons: copied from the `r9lab-*` SVGs to docs and www public image folders; favicons use the square mark.
 - PNG outputs: generated for Expo app metadata, the www social preview logo, and docs/www Apple touch icons.
 - `.ico` fallback favicons: generated at the docs/www public root for legacy browser support and in backend static storage for `/favicon.ico` support.

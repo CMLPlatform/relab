@@ -8,7 +8,7 @@ type NewProductPillProps = {
   label?: string;
 };
 
-export function NewProductPill({ label = 'New Product' }: NewProductPillProps) {
+export function NewProductPill({ label = 'New product' }: NewProductPillProps) {
   const theme = useAppTheme();
 
   return (

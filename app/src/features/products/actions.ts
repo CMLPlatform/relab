@@ -20,7 +20,7 @@ export function createProductAction({
 }) {
   if (!currentUser) {
     dialog.alert({
-      title: 'Sign In Required',
+      title: 'Sign in required',
       message: 'Sign in to add new products and manage your own submissions.',
       buttons: [
         { text: 'Cancel' },
@@ -31,9 +31,9 @@ export function createProductAction({
   }
   if (!currentUser.isVerified) {
     dialog.alert({
-      title: 'Email Verification Required',
+      title: 'Verify your email first',
       message:
-        'Please verify your email address before creating products. Check your inbox for the verification link or go to your Account to resend it.',
+        'Check your inbox for the verification link, or resend it from your Account.',
       buttons: [{ text: 'OK' }, { text: 'Go to Account', onPress: () => router.push('/account') }],
     });
     return;

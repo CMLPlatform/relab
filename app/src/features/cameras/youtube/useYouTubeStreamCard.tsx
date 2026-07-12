@@ -28,7 +28,7 @@ export function useYouTubeStreamCard(cameraId: string, isOnline: boolean) {
       buttons: [
         { text: 'Cancel' },
         {
-          text: 'End Stream',
+          text: 'End stream',
           onPress: () =>
             stopMutation.mutate(undefined, {
               onSuccess: () => setActiveStream(null),

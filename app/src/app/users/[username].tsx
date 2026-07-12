@@ -90,7 +90,7 @@ export default function UserProfileScreen() {
                   <Text style={styles.statValue} numberOfLines={1}>
                     {profile.top_category || 'None'}
                   </Text>
-                  <Text style={styles.statLabel}>Top Category</Text>
+                  <Text style={styles.statLabel}>Top category</Text>
                 </Card.Content>
               </Card>
             </View>

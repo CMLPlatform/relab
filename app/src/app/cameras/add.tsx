@@ -106,8 +106,8 @@ export default function AddCameraScreen() {
         PAIRING CODE
       </Text>
       <MutedText style={styles.sectionHelp}>
-        Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed `PAIRING
-        READY` banner over SSH if the device is headless.
+        Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed
+        “PAIRING READY” banner over SSH if the device is headless.
       </MutedText>
       <Controller control={control} name="pairingCode" render={renderPairingCode} />
 

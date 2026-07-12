@@ -215,7 +215,7 @@ function NewAccountStep({
                 loading={submit.isSubmitting}
                 style={styles.registerButton}
               >
-                Create Account
+                Create account
               </Button>
             ) : null}
           </View>
