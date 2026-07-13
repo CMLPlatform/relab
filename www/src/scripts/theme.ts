@@ -1,5 +1,8 @@
 // biome-ignore-all lint/style/useGlobalThis: window is the correct reference for browser DOM APIs (localStorage/matchMedia); happy-dom exposes these on window, not globalThis.
 const STORAGE_KEY = 'relab-theme';
+// Mirrors --relab-brand-theme-color in src/styles/brand.css (a meta tag cannot
+// read the CSS light-dark() token); theme.test.ts pins the two against drift.
+const THEME_META_COLORS = { light: '#edf1f7', dark: '#0a0f1a' } as const;
 const THEMES = ['system', 'light', 'dark'] as const;
 type ThemeName = (typeof THEMES)[number];
 type ResolvedTheme = 'light' | 'dark';
@@ -39,11 +42,7 @@ function updateThemeMeta(theme: ResolvedTheme) {
     return;
   }
 
-  let themeColor = '#eef4f7';
-  if (theme === 'dark') {
-    themeColor = '#0a141d';
-  }
-  themeMeta.setAttribute('content', themeColor);
+  themeMeta.setAttribute('content', THEME_META_COLORS[theme]);
 }
 
 function applyTheme(theme: ThemeName) {
@@ -108,4 +107,12 @@ function initThemeControl() {
 }
 
 export type { ResolvedTheme, ThemeName };
-export { applyTheme, getStoredTheme, initThemeControl, resolveTheme, STORAGE_KEY, THEMES };
+export {
+  applyTheme,
+  getStoredTheme,
+  initThemeControl,
+  resolveTheme,
+  STORAGE_KEY,
+  THEME_META_COLORS,
+  THEMES,
+};

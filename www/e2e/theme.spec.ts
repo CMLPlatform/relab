@@ -15,12 +15,12 @@ test.describe('Theme control', () => {
     await toggle.click();
     await expect(html).toHaveAttribute('data-theme-preference', 'light');
     await expect(html).toHaveAttribute('data-theme', 'light');
-    await expect(metaTheme).toHaveAttribute('content', '#eef4f7');
+    await expect(metaTheme).toHaveAttribute('content', '#edf1f7');
 
     await toggle.click();
     await expect(html).toHaveAttribute('data-theme-preference', 'dark');
     await expect(html).toHaveAttribute('data-theme', 'dark');
-    await expect(metaTheme).toHaveAttribute('content', '#0a141d');
+    await expect(metaTheme).toHaveAttribute('content', '#0a0f1a');
 
     await toggle.click();
     await expect(html).toHaveAttribute('data-theme-preference', 'system');

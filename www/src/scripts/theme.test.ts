@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 // biome-ignore-all lint/style/useGlobalThis: window is the correct reference for browser DOM APIs; happy-dom exposes localStorage/matchMedia on window, not globalThis.
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -8,6 +9,7 @@ import {
   initThemeControl,
   resolveTheme,
   STORAGE_KEY,
+  THEME_META_COLORS,
 } from './theme.ts';
 
 function mockMatchMedia(prefersDark: boolean) {
@@ -83,10 +85,10 @@ describe('applyTheme', () => {
     document.head.append(meta);
 
     applyTheme('dark');
-    expect(meta.getAttribute('content')).toBe('#0a141d');
+    expect(meta.getAttribute('content')).toBe('#0a0f1a');
 
     applyTheme('light');
-    expect(meta.getAttribute('content')).toBe('#eef4f7');
+    expect(meta.getAttribute('content')).toBe('#edf1f7');
   });
 });
 
@@ -126,5 +128,17 @@ describe('initThemeControl', () => {
     button.click();
     // Only one listener wired, so exactly one step forward.
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('light');
+  });
+});
+
+describe('THEME_META_COLORS', () => {
+  it('stays in sync with --relab-brand-theme-color in brand.css', () => {
+    const brandCss = readFileSync('src/styles/brand.css', 'utf8');
+    const token = brandCss.match(
+      /--relab-brand-theme-color:\s*light-dark\(\s*([^,\s]+)\s*,\s*([^)\s]+)\s*\)/,
+    );
+    expect(token).not.toBeNull();
+    expect(THEME_META_COLORS.light).toBe(token?.[1]);
+    expect(THEME_META_COLORS.dark).toBe(token?.[2]);
   });
 });

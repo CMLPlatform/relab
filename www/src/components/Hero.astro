@@ -13,9 +13,12 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
 
 <section class="hero-panel card content-reveal">
   <div class="hero-copy">
-    <img class="hero-logo brand-light" src="/images/logo.svg" alt="" aria-hidden="true" width="132" height="132" />
-    <img class="hero-logo brand-dark" src="/images/logo-dark.svg" alt="" aria-hidden="true" width="132" height="132" />
-    <h1>{siteMeta.title}</h1>
+    <!-- both variants carry the alt: display:none removes the hidden one from
+         the accessibility tree, so exactly one name is exposed per theme -->
+    <h1 class="hero-brand">
+      <img class="hero-logo brand-light" src="/images/logo.svg" alt={siteMeta.title} width="467" height="256" />
+      <img class="hero-logo brand-dark" src="/images/logo-dark.svg" alt={siteMeta.title} width="467" height="256" />
+    </h1>
     <p class="hero-lead">{siteMeta.defaultDescription}</p>
 
     <div class="hero-actions">
@@ -51,10 +54,13 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
 </section>
 
 <style>
+  .hero-brand {
+    margin: 0 0 0.75rem;
+  }
   .hero-logo {
-    width: clamp(88px, 16vw, 132px);
-    height: auto;
-    margin-bottom: 0.75rem;
+    /* the ringed wordmark is the title now — wide lockup, sized by height */
+    height: clamp(88px, 14vw, 132px);
+    width: auto;
   }
   /* theme-swapped mark: teal on light, cyan on dark (system + manual toggle) */
   .brand-light {
