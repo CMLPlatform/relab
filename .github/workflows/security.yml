@@ -257,9 +257,23 @@ jobs:
           config-file: ./.github/codeql-config.yml
 
       - name: Perform CodeQL analysis
+        id: analyze
         uses: github/codeql-action/analyze@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
         with:
           category: "/language:${{ matrix.language }}"
+          output: sarif-results
+
+      # Code scanning stores but does not act on the suppression data that the
+      # AlertSuppression queries (see codeql-config.yml) emit for in-code
+      # `# codeql[query-id]` comments; this official action closes the loop by
+      # dismissing the matching alerts. Suppressions stay reviewable in diffs.
+      - name: Dismiss alerts suppressed in code
+        uses: advanced-security/dismiss-alerts@a18f986bdb40edba0dd7a74382c15d4a3d50a1c8 # v2.0.3
+        with:
+          sarif-id: ${{ steps.analyze.outputs.sarif-id }}
+          sarif-file: sarif-results
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
   scorecard:
     name: Scorecard
