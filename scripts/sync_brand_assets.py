@@ -13,12 +13,14 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-LOGO_SOURCE = ROOT / "assets/logo.svg"  # the flask logo (wide, detailed)
+LOGO_SOURCE = ROOT / "assets/r9lab-logo.svg"  # the ringed wordmark (wide)
 # Favicons / app icons are square and rendered as small as 16px, so they use the
 # simple near-square mark rather than the detailed logo.
 MARK_SOURCE = ROOT / "assets/r9lab-mark.svg"
 MARK_DARK_SOURCE = ROOT / "assets/r9lab-mark-dark.svg"
-LOGO_DARK_SOURCE = ROOT / "assets/r9lab-flask-logo-dark.svg"  # flask logo, cyan for dark backgrounds
+LOGO_DARK_SOURCE = ROOT / "assets/r9lab-logo-dark.svg"  # ringed wordmark for dark backgrounds
+OG_SOURCE = ROOT / "assets/r9lab-og.svg"  # 1200x630 social card (light)
+OG_DARK_SOURCE = ROOT / "assets/r9lab-og-dark.svg"
 WORDMARK_SOURCE = ROOT / "assets/r9lab-wordmark.svg"  # horizontal lockup (light mode)
 WORDMARK_DARK_SOURCE = ROOT / "assets/r9lab-wordmark-dark.svg"  # cyan variant for dark headers
 
@@ -34,8 +36,11 @@ def root_path(path: str) -> Path:
 
 
 WEB_FONT_FILES = (
+    "ibm-plex-mono-latin-400.woff2",
     "ibm-plex-sans-latin-ext.woff2",
     "ibm-plex-sans-latin.woff2",
+    "ibm-plex-serif-latin-400.woff2",
+    "ibm-plex-serif-latin-600.woff2",
 )
 
 COPY_ASSETS = (
@@ -89,20 +94,6 @@ COPY_ASSETS = (
             root_path("www/public/images/wordmark-dark.svg"),
         ),
     ),
-    (
-        root_path("assets/r9lab-og.png"),  # 1200x630 social share card (dark)
-        (
-            root_path("www/public/images/og.png"),
-            root_path("docs/public/images/og.png"),
-        ),
-    ),
-    (
-        root_path("assets/r9lab-og-light.png"),
-        (
-            root_path("www/public/images/og-light.png"),
-            root_path("docs/public/images/og-light.png"),
-        ),
-    ),
     *(
         (
             root_path(f"assets/fonts/{font_file}"),
@@ -136,24 +127,44 @@ def png_wide(height: int) -> tuple[str, ...]:
     return ("-resize", f"x{height}", "-depth", "8", "-strip")
 
 
-# (source, target, ImageMagick args). Square icons render from the mark; the wide
-# logo.png (used as the og/share image) keeps the full logo.
+PNG_OG = ("-resize", "1200x630", "-depth", "8", "-strip")
+DENSITY = 2048  # rasterization density for icon-scale SVGs
+# The og cards' SVGs are nominally 1200x630, so the icon density would blow past
+# ImageMagick's canvas limits; render them at a proportionally lower density.
+DENSITY_OG = 300
+
+# (source, target, ImageMagick args, density). Square icons render from the mark;
+# logos/wordmarks keep their natural wide aspect (consumers size by height).
 GENERATED_ASSETS = (
-    (MARK_SOURCE, root_path("app/src/assets/images/favicon.png"), png_args(512)),
-    (LOGO_SOURCE, root_path("app/src/assets/images/logo.png"), png_args(512)),
-    (LOGO_DARK_SOURCE, root_path("app/src/assets/images/logo-dark.png"), png_args(512)),
+    (MARK_SOURCE, root_path("app/src/assets/images/favicon.png"), png_args(512), DENSITY),
+    (LOGO_SOURCE, root_path("app/src/assets/images/logo.png"), png_wide(512), DENSITY),
+    (LOGO_DARK_SOURCE, root_path("app/src/assets/images/logo-dark.png"), png_wide(512), DENSITY),
     # in-app marks (mark for empty states, wordmark for the header) in light + dark
-    (MARK_SOURCE, root_path("app/src/assets/images/mark.png"), png_args(256)),
-    (MARK_DARK_SOURCE, root_path("app/src/assets/images/mark-dark.png"), png_args(256)),
-    (WORDMARK_SOURCE, root_path("app/src/assets/images/wordmark.png"), png_wide(240)),
-    (WORDMARK_DARK_SOURCE, root_path("app/src/assets/images/wordmark-dark.png"), png_wide(240)),
-    (LOGO_SOURCE, root_path("www/public/images/logo.png"), png_args(512)),
-    (WORDMARK_SOURCE, root_path("www/public/images/wordmark.png"), png_wide(240)),
-    (MARK_SOURCE, root_path("docs/public/images/apple-touch-icon.png"), png_args(180)),
-    (MARK_SOURCE, root_path("www/public/images/apple-touch-icon.png"), png_args(180)),
-    (MARK_SOURCE, root_path("backend/app/static/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
-    (MARK_SOURCE, root_path("docs/public/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
-    (MARK_SOURCE, root_path("www/public/favicon.ico"), ("-define", "icon:auto-resize=48,32,16")),
+    (MARK_SOURCE, root_path("app/src/assets/images/mark.png"), png_args(256), DENSITY),
+    (MARK_DARK_SOURCE, root_path("app/src/assets/images/mark-dark.png"), png_args(256), DENSITY),
+    (WORDMARK_SOURCE, root_path("app/src/assets/images/wordmark.png"), png_wide(240), DENSITY),
+    (WORDMARK_DARK_SOURCE, root_path("app/src/assets/images/wordmark-dark.png"), png_wide(240), DENSITY),
+    (LOGO_SOURCE, root_path("www/public/images/logo.png"), png_wide(512), DENSITY),
+    (WORDMARK_SOURCE, root_path("www/public/images/wordmark.png"), png_wide(240), DENSITY),
+    (MARK_SOURCE, root_path("docs/public/images/apple-touch-icon.png"), png_args(180), DENSITY),
+    (MARK_SOURCE, root_path("www/public/images/apple-touch-icon.png"), png_args(180), DENSITY),
+    (MARK_SOURCE, root_path("backend/app/static/favicon.ico"), ("-define", "icon:auto-resize=48,32,16"), DENSITY),
+    (MARK_SOURCE, root_path("docs/public/favicon.ico"), ("-define", "icon:auto-resize=48,32,16"), DENSITY),
+    (MARK_SOURCE, root_path("www/public/favicon.ico"), ("-define", "icon:auto-resize=48,32,16"), DENSITY),
+    # committed canonical PNGs next to the SVG sources (the root README embeds the wordmark)
+    (MARK_SOURCE, root_path("assets/r9lab-mark.png"), png_args(512), DENSITY),
+    (MARK_DARK_SOURCE, root_path("assets/r9lab-mark-dark.png"), png_args(512), DENSITY),
+    (WORDMARK_SOURCE, root_path("assets/r9lab-wordmark.png"), png_wide(240), DENSITY),
+    (WORDMARK_DARK_SOURCE, root_path("assets/r9lab-wordmark-dark.png"), png_wide(240), DENSITY),
+    (LOGO_SOURCE, root_path("assets/r9lab-logo.png"), png_wide(240), DENSITY),
+    (LOGO_DARK_SOURCE, root_path("assets/r9lab-logo-dark.png"), png_wide(240), DENSITY),
+    # 1200x630 social cards, rendered straight to every consumer
+    (OG_DARK_SOURCE, root_path("assets/r9lab-og.png"), PNG_OG, DENSITY_OG),
+    (OG_DARK_SOURCE, root_path("www/public/images/og.png"), PNG_OG, DENSITY_OG),
+    (OG_DARK_SOURCE, root_path("docs/public/images/og.png"), PNG_OG, DENSITY_OG),
+    (OG_SOURCE, root_path("assets/r9lab-og-light.png"), PNG_OG, DENSITY_OG),
+    (OG_SOURCE, root_path("www/public/images/og-light.png"), PNG_OG, DENSITY_OG),
+    (OG_SOURCE, root_path("docs/public/images/og-light.png"), PNG_OG, DENSITY_OG),
 )
 
 
@@ -186,21 +197,25 @@ PROCESSED_ASSETS = (
         root_path("assets/images/bg-light.jpg"),
         root_path("www/public/images/bg-light.jpg"),
         blurred_backdrop_args(),
+        DENSITY,
     ),
     (
         root_path("assets/images/bg-dark.jpg"),
         root_path("www/public/images/bg-dark.jpg"),
         blurred_backdrop_args(),
+        DENSITY,
     ),
     (
         root_path("assets/images/bg-light.jpg"),
         root_path("docs/public/images/bg-light.jpg"),
         blurred_backdrop_args(),
+        DENSITY,
     ),
     (
         root_path("assets/images/bg-dark.jpg"),
         root_path("docs/public/images/bg-dark.jpg"),
         blurred_backdrop_args(),
+        DENSITY,
     ),
 )
 
@@ -231,7 +246,7 @@ def copy_asset(source: Path, targets: tuple[Path, ...], *, check: bool) -> list[
     return out_of_sync
 
 
-def run_convert(source: Path, target: Path, args: tuple[str, ...]) -> None:
+def run_convert(source: Path, target: Path, args: tuple[str, ...], density: int) -> None:
     """Generate one asset with ImageMagick."""
     cli = imagemagick_cli()
     if cli is None:
@@ -240,7 +255,7 @@ def run_convert(source: Path, target: Path, args: tuple[str, ...]) -> None:
 
     target.parent.mkdir(parents=True, exist_ok=True)
     output = f"PNG32:{target}" if target.suffix == ".png" else str(target)
-    command = (cli, "-background", "none", "-density", "2048", str(source), *args, output)
+    command = (cli, "-background", "none", "-density", str(density), str(source), *args, output)
     try:
         subprocess.run(command, check=True, capture_output=True, text=True)  # noqa: S603
     except subprocess.CalledProcessError as exc:
@@ -249,15 +264,15 @@ def run_convert(source: Path, target: Path, args: tuple[str, ...]) -> None:
         raise RuntimeError(msg) from exc
 
 
-def render_asset(source: Path, target: Path, args: tuple[str, ...], *, check: bool) -> list[str]:
+def render_asset(source: Path, target: Path, args: tuple[str, ...], density: int, *, check: bool) -> list[str]:
     """Generate or verify one derived asset rendered from `source`."""
     if not check:
-        run_convert(source, target, args)
+        run_convert(source, target, args, density)
         return []
 
     with tempfile.TemporaryDirectory() as temp_dir:
         generated = Path(temp_dir) / target.name
-        run_convert(source, generated, args)
+        run_convert(source, generated, args, density)
         if compare_bytes(generated, target):
             return []
     return [relative(target)]
@@ -282,8 +297,8 @@ def main() -> int:
         # across cores since they're subprocess-bound and independent.
         with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
             futures = [
-                pool.submit(render_asset, source, target, convert_args, check=args.check)
-                for source, target, convert_args in (*GENERATED_ASSETS, *PROCESSED_ASSETS)
+                pool.submit(render_asset, source, target, convert_args, density, check=args.check)
+                for source, target, convert_args, density in (*GENERATED_ASSETS, *PROCESSED_ASSETS)
             ]
             for future in futures:
                 out_of_sync.extend(future.result())
