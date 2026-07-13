@@ -34,6 +34,8 @@ jobs:
       run-container-images: ${{ steps.decide.outputs.run-container-images }}
       container-security-matrix: ${{ steps.decide.outputs.container-security-matrix }}
       run-iac: ${{ steps.decide.outputs.run-iac }}
+      run-codeql: ${{ steps.decide.outputs.run-codeql }}
+      codeql-matrix: ${{ steps.decide.outputs.codeql-matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -83,6 +85,26 @@ jobs:
               .github/container-images.json)
             echo "run-container-images=true" >> "$GITHUB_OUTPUT"
             echo "container-security-matrix={\"include\":${include}}" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Which CodeQL languages to analyse. A backend-only PR has no TypeScript to
+          # scan, and vice versa. `shared` covers .github/**, so any workflow change
+          # (and every schedule/dispatch run) still analyses all three.
+          langs=()
+          if [[ "$shared_trigger" == "true" ]]; then langs+=(actions); fi
+          if [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]]; then langs+=(python); fi
+          if [[ "$shared_trigger" == "true" || "$APP" == "true" || "$WWW" == "true" || "$DOCS" == "true" ]]; then
+            langs+=(javascript-typescript)
+          fi
+
+          if ((${#langs[@]} == 0)); then
+            echo "run-codeql=false" >> "$GITHUB_OUTPUT"
+            echo 'codeql-matrix={"include":[]}' >> "$GITHUB_OUTPUT"
+          else
+            codeql_include=$(printf '%s\n' "${langs[@]}" \
+              | jq -Rsc 'split("\n") | map(select(length > 0) | {language: ., "build-mode": "none"})')
+            echo "run-codeql=true" >> "$GITHUB_OUTPUT"
+            echo "codeql-matrix={\"include\":${codeql_include}}" >> "$GITHUB_OUTPUT"
           fi
 
   secret-scan:
@@ -229,7 +251,8 @@ jobs:
 
   codeql:
     name: CodeQL (${{ matrix.language }})
-    if: github.event_name != 'branch_protection_rule'
+    needs: [ changes ]
+    if: needs.changes.outputs.run-codeql == 'true'
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
     timeout-minutes: 30
     permissions:
@@ -239,14 +262,7 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - language: actions
-            build-mode: none
-          - language: javascript-typescript
-            build-mode: none
-          - language: python
-            build-mode: none
+      matrix: ${{ fromJSON(needs.changes.outputs.codeql-matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -271,7 +287,10 @@ jobs:
       # AlertSuppression queries (see codeql-config.yml) emit for in-code
       # `# codeql[query-id]` comments; this official action closes the loop by
       # dismissing the matching alerts. Suppressions stay reviewable in diffs.
+      # Default branch only: dismissal is a global alert property, and the action
+      # only ever reads default-branch alerts, so on a PR it is a no-op at best.
       - name: Dismiss alerts suppressed in code
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: advanced-security/dismiss-alerts@a18f986bdb40edba0dd7a74382c15d4a3d50a1c8 # v2.0.3
         with:
           sarif-id: ${{ steps.analyze.outputs.sarif-id }}
