@@ -89,6 +89,6 @@ describe('layout helpers rendering', () => {
     mockUsePathname.mockReturnValue('/login');
     rerender({ isDark: true });
 
-    expect(result.current).toBe('rgba(203, 211, 216, 0.5)');
+    expect(result.current).toBe('rgba(203, 211, 224, 0.5)');
   });
 });

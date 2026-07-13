@@ -28,7 +28,7 @@ export function createTokens(scheme: AppScheme, colors: MD3Theme['colors']): App
       // Light scrim for hero screens (login/register) — just knocks the photo
       // back a touch; the auth card carries the actual control legibility.
       // Tinted to the theme background (not neutral gray) and kept low-alpha.
-      hero: isDark ? 'rgba(203, 211, 216, 0.5)' : 'rgba(251,252,254,0.5)',
+      hero: isDark ? 'rgba(203, 211, 224, 0.5)' : 'rgba(250,251,254,0.5)',
       scrim: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(244, 244, 244, 0.2)',
       media: 'rgba(0,0,0,0.5)',
       glass: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)',
