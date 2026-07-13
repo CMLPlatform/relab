@@ -118,8 +118,10 @@ openapi:
     uv run python -m scripts.generate.export_openapi
 
 # Check that exported docs OpenAPI schemas are current
+# NOTE: ENVIRONMENT=testing so CI (no .env.dev) gets settings from the committed
+# .env.test; schema output is identical under dev and testing.
 openapi-check:
-    uv run python -m scripts.generate.export_openapi --check
+    ENVIRONMENT=testing uv run python -m scripts.generate.export_openapi --check
 
 # Refresh the committed disposable-email fallback list from the upstream source
 refresh-disposable-email-domains:
