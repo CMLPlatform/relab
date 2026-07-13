@@ -1,11 +1,21 @@
 ---
 import { backendApiUrlForMode } from '@/lib/backend-api.ts';
+// This standalone (non-Starlight) page can't share the hashed brand.css
+// bundle, so inline the canonical synced copy at build time — one source,
+// no hand-kept duplicate. The theme-color meta derives from the same file.
+import brandCss from '../styles/brand.css?raw';
 
 interface Props {
   schemaUrl: string;
   serverUrl?: string;
   title: string;
 }
+
+const themeColorMatch = brandCss.match(/--relab-brand-theme-color:\s*light-dark\(\s*([^,\s]+)/);
+if (!themeColorMatch) {
+  throw new Error('brand.css is missing --relab-brand-theme-color');
+}
+const themeColor = themeColorMatch[1];
 
 const { schemaUrl, serverUrl, title } = Astro.props;
 const backendApiUrl = backendApiUrlForMode(import.meta.env.MODE);
@@ -28,7 +38,8 @@ const pluginReferences = [{ href: '/api/rpi-cam/', label: 'RPi camera API' }];
       name="description"
       content="Interactive ReLab API reference generated from the committed OpenAPI schema."
     />
-    <meta name="theme-color" content="#eef4f7" />
+    <meta name="theme-color" content={themeColor} />
+    <Fragment set:html={`<style>${brandCss}</style>`} />
     <link rel="icon" href="/images/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" sizes="180x180" />
     <link
@@ -77,26 +88,12 @@ const pluginReferences = [{ href: '/api/rpi-cam/', label: 'RPi camera API' }];
 </html>
 
 <style>
-  /* NOTE: this standalone (non-Starlight) page can't share the hashed
-     brand.css bundle, so the few brand tokens it uses are inlined here. Keep
-     these values in sync with src/styles/brand.css (the source of truth). */
-  @font-face {
-    font-family: "IBM Plex Sans";
-    font-style: normal;
-    font-weight: 400 600;
-    font-display: swap;
-    src: url("/fonts/ibm-plex-sans-latin.woff2") format("woff2");
-  }
-
+  /* Brand primitives (fonts, --relab-brand-* tokens, color-scheme) come from
+     the canonical brand.css inlined in <head>; only page-local vars live here. */
   :root {
-    color-scheme: light dark;
-    --relab-brand-primary: light-dark(#006783, #63d3ff);
-    --relab-brand-primary-strong: light-dark(#004f65, #a7e9ff);
-    --relab-brand-primary-soft: light-dark(rgba(0, 103, 131, 0.08), rgba(99, 211, 255, 0.14));
-    --relab-brand-text: light-dark(#13263a, #f2f8ff);
     --relab-nav-border: light-dark(rgba(15, 23, 42, 0.12), rgba(226, 232, 240, 0.16));
-    --relab-nav-bg: light-dark(rgba(255, 255, 255, 0.94), rgba(9, 19, 27, 0.94));
-    --relab-nav-hover: light-dark(rgba(0, 103, 131, 0.08), rgba(99, 211, 255, 0.12));
+    --relab-nav-bg: light-dark(rgba(255, 255, 255, 0.94), rgba(10, 15, 26, 0.94));
+    --relab-nav-hover: light-dark(rgba(31, 76, 150, 0.08), rgba(143, 184, 255, 0.12));
   }
 
   html,
