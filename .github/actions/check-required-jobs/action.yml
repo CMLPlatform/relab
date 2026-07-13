@@ -4,7 +4,9 @@ description: Fail when any required upstream job failed, was cancelled, or retur
 
 inputs:
   results:
-    description: The `needs` context serialized as JSON, i.e. `${{ toJSON(needs) }}`.
+    # Do not write an ${{ ... }} expression here: Actions evaluates descriptions,
+    # and `needs` is not a valid context inside a composite action.
+    description: The caller's `needs` context serialized as JSON via toJSON().
     required: true
 
 runs:

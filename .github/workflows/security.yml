@@ -211,6 +211,9 @@ jobs:
           output: trivy-iac.sarif
           exit-code: "1"
           severity: HIGH,CRITICAL
+          # Without this, the SARIF path reports every severity and `exit-code`
+          # then fails the job on LOW/MEDIUM findings too.
+          limit-severities-for-sarif: true
           trivyignores: .github/trivyignore.yaml
           skip-dirs: .venv,backend/.venv,node_modules,app/node_modules,docs/node_modules,www/node_modules
 
