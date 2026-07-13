@@ -45,7 +45,7 @@
           "backgroundColor": "#ffffff",
           "dark": {
             "image": "./src/assets/images/logo-dark.png",
-            "backgroundColor": "#09131b"
+            "backgroundColor": "#0a0f1a"
           }
         }
       ],
@@ -66,7 +66,8 @@
       ],
       "expo-image",
       "expo-video",
-      "expo-font"
+      "expo-font",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true

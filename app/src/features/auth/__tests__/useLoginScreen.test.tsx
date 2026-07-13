@@ -33,10 +33,6 @@ jest.mock('@/context/auth', () => ({
   }),
 }));
 
-jest.mock('@/context/themeMode', () => ({
-  useEffectiveColorScheme: () => 'light',
-}));
-
 jest.mock('react-hook-form', () => ({
   useForm: () => ({
     control: { field: 'control' },
@@ -77,7 +73,6 @@ describe('useLoginScreen', () => {
   it('returns grouped ui, form, and action domains', () => {
     const { result } = renderHook(() => useLoginScreen());
 
-    expect(result.current.ui.colorScheme).toBe('light');
     expect(result.current.ui.keyboardShown).toBe(false);
     expect(result.current.form.control).toEqual({ field: 'control' });
     expect(typeof result.current.form.submit).toBe('function');

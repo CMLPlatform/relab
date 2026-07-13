@@ -1,11 +1,17 @@
-import { Image } from 'expo-image';
 import { type RefObject, useCallback } from 'react';
 import type { Control, ControllerRenderProps } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
+import { BrandWordmark } from '@/components/base/BrandWordmark';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
+
+// shared frame so the auth card and the logo wash read as one family
+const cardFrame = {
+  borderRadius: 16,
+  borderWidth: StyleSheet.hairlineWidth,
+} as const;
 
 type LoginLayoutProps = {
   keyboardShown: boolean;
@@ -48,18 +54,17 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function LoginBrandHero({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
-  const source =
-    colorScheme === 'dark'
-      ? require('@/assets/images/logo-dark.png')
-      : require('@/assets/images/logo.png');
+export function LoginBrandHero() {
+  const theme = useAppTheme();
   return (
-    <Image
-      source={source}
-      style={styles.brandLogo}
-      contentFit="contain"
-      accessibilityLabel="ReLab"
-    />
+    <View
+      style={[
+        styles.brandWash,
+        { backgroundColor: theme.tokens.surface.card, borderColor: theme.tokens.border.subtle },
+      ]}
+    >
+      <BrandWordmark style={styles.brandLogo} />
+    </View>
   );
 }
 
@@ -199,8 +204,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   card: {
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
+    ...cardFrame,
     padding: 16,
     gap: 10,
   },
@@ -209,11 +213,20 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '100%',
   },
-  brandLogo: {
-    width: 128,
-    height: 128,
+  // Translucent wash behind the logo (same frame as the auth card) so the
+  // mark stays legible over the photo backdrop. Sizing lives here: the
+  // percentage binds on phones, maxWidth caps tablets/web.
+  brandWash: {
+    ...cardFrame,
+    width: '78%',
+    maxWidth: 480,
     alignSelf: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
     marginBottom: 4,
+  },
+  brandLogo: {
+    width: '100%',
   },
   dividerRow: {
     flexDirection: 'row',

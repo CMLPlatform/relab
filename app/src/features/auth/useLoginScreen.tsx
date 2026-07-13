@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Keyboard } from 'react-native';
 import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
-import { useEffectiveColorScheme } from '@/context/themeMode';
 import { type MfaLoginPending, setPendingMfaLogin } from '@/services/api/auth/authMfa';
 import type { User } from '@/types/User';
 import { useLoginForm } from './useLoginForm';
@@ -46,7 +45,6 @@ export function useLoginScreen() {
   }>();
   const dialog = useDialog();
   const { user, isLoading: authLoading, refetch } = useAuth();
-  const colorScheme = useEffectiveColorScheme();
   const postLoginRedirect = getSafeRedirectTarget(redirectTo);
   const keyboardShown = useKeyboardShownState();
 
@@ -110,7 +108,6 @@ export function useLoginScreen() {
   return {
     ui: {
       keyboardShown,
-      colorScheme,
     },
     form: {
       control,

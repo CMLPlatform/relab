@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
@@ -7,6 +6,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 
+import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
 import { updateUser } from '@/services/api/auth/authentication';
@@ -55,16 +55,7 @@ function OnboardingBody({
   return (
     <View style={[styles.body, { bottom: getKeyboardHeight() }]}>
       <LinearGradient colors={['transparent', theme.colors.background]} style={styles.gradient} />
-      <Image
-        source={
-          theme.dark
-            ? require('@/assets/images/logo-dark.png')
-            : require('@/assets/images/logo.png')
-        }
-        style={styles.brandLogo}
-        contentFit="contain"
-        accessibilityLabel="ReLab"
-      />
+      <BrandWordmark style={styles.brandLogo} />
       <Text style={[styles.title, textShadowStyle]}>Welcome!</Text>
       <Text style={[styles.subtitle, textShadowStyle]}>Choose a username to continue.</Text>
       <Controller control={control} name="username" render={renderUsername} />
@@ -149,8 +140,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       bottom: 0,
     },
     brandLogo: {
-      width: 92,
-      height: 92,
+      width: 220,
       alignSelf: 'center',
     },
     title: {

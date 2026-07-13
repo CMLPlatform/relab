@@ -17,7 +17,7 @@ export default function Login() {
 
   return (
     <LoginLayout keyboardShown={ui.keyboardShown} onBrowse={actions.browseProducts}>
-      <LoginBrandHero colorScheme={ui.colorScheme} />
+      <LoginBrandHero />
       <LoginCard>
         <LoginFormSection
           control={form.control}
