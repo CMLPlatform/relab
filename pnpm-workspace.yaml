@@ -27,6 +27,7 @@ overrides:
   "shell-quote@<1.8.4": ">=1.8.4"       # GHSA-w7jw-789q-3m8p
   "ws@>=7.0.0 <7.5.11": ">=7.5.11 <8"   # GHSA-96hv-2xvq-fx4p
   "uuid@<11.1.1": ">=11.1.1"            # GHSA-w5hq-g745-h8pq
+  "yaml@<2.8.1": ">=2.8.1"              # GHSA-48c2-rrv3-qjmp
 
 catalog:
   "@astrojs/check": ^0.9.9
