@@ -1,4 +1,4 @@
-# RELab: Reverse Engineering Lab
+# RELab
 
 [![Version](https://img.shields.io/github/v/release/CMLPlatform/relab?include_prereleases&filter=v*)](CHANGELOG.md)
 [![License: AGPL-v3+](https://img.shields.io/badge/License-AGPL--v3+-rebeccapurple.svg)](LICENSE.md)
