@@ -19,9 +19,10 @@ just assets-check
 
 to verify that committed consumer files still match the canonical sources.
 
-The logo is the R9lab mark, generated from the sources in
-[logo-src/](logo-src/README.md). `logo.svg` is the wide flask logo; square
-favicons and app icons render from `r9lab-mark.svg`.
+The logo is the R9lab mark — a font-derived, vertically squished 9 — generated
+from the sources in [logo-src/](logo-src/README.md). `r9lab-logo.svg` is the
+wide ringed wordmark; square favicons and app icons render from
+`r9lab-mark.svg`.
 
 The sync script uses ImageMagick (`magick`, or `convert` on IMv6) to generate
 the PNG and `.ico` derivatives from the SVG sources.
@@ -31,15 +32,15 @@ Current shared assets:
 - `brand.css`
 - `images/bg-light.jpg`
 - `images/bg-dark.jpg`
-- `logo.svg`
 - `r9lab-*.svg` / `r9lab-*.png` — mark, logo, wordmark, and og-image variants,
   light and dark (see [logo-src/](logo-src/README.md))
-- `fonts/ibm-plex-sans-*.woff2`
+- `fonts/ibm-plex-*.woff2`
 
-Typography ownership:
+Typography ownership (see [DESIGN.md](DESIGN.md) for the full design system):
 
-- `--relab-brand-font` is the single shared web/email font token.
-- IBM Plex Sans is the only custom web/email typeface.
+- The IBM Plex superfamily is the custom web/email typeface: Sans
+  (`--relab-brand-font`, UI/body), Serif (`--relab-brand-font-display`,
+  display/brand), Mono (`--relab-brand-font-mono`, data/labels).
 - WOFF2 files are for docs/www web delivery; italic is browser-synthesized when needed.
 - The Expo app intentionally uses platform system fonts.
 

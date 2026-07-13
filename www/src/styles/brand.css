@@ -24,16 +24,44 @@
     U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+@font-face {
+  font-family: "IBM Plex Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-serif-latin-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Serif";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-serif-latin-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-latin-400.woff2") format("woff2");
+}
+
 :root {
   color-scheme: light dark;
   --relab-brand-font: "IBM Plex Sans";
-  --relab-brand-primary: light-dark(#006783, #63d3ff);
-  --relab-brand-primary-strong: light-dark(#004f65, #a7e9ff);
-  --relab-brand-primary-soft: light-dark(rgba(0, 103, 131, 0.08), rgba(99, 211, 255, 0.14));
-  --relab-brand-accent: light-dark(#5c5b7d, #d2cbff);
-  --relab-brand-text: light-dark(#13263a, #f2f8ff);
-  --relab-brand-surface-wash: light-dark(rgba(248, 250, 252, 0.8), rgba(12, 23, 36, 0.74));
-  --relab-brand-theme-color: light-dark(#eef4f7, #09131b);
+  --relab-brand-font-display: "IBM Plex Serif";
+  --relab-brand-font-mono: "IBM Plex Mono";
+  --relab-brand-primary: light-dark(#1f4c96, #8fb8ff);
+  --relab-brand-primary-strong: light-dark(#143567, #bad3ff);
+  --relab-brand-primary-soft: light-dark(rgba(31, 76, 150, 0.08), rgba(143, 184, 255, 0.14));
+  --relab-brand-accent: light-dark(#8f6212, #e3b95c);
+  --relab-brand-text: light-dark(#16202e, #e9eff8);
+  --relab-brand-surface: light-dark(#fafbfe, #11141d);
+  --relab-brand-divider: light-dark(#d9dfe8, #24314a);
+  --relab-brand-surface-wash: light-dark(rgba(245, 247, 250, 0.8), rgba(12, 18, 32, 0.74));
+  --relab-brand-theme-color: light-dark(#edf1f7, #0a0f1a);
 }
 
 :root[data-theme="light"] {
