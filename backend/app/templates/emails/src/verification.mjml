@@ -6,7 +6,7 @@
   <mj-body background-color="{{brand:--relab-brand-theme-color}}">
     {{include:header}}
 
-    <mj-section background-color="#fbfcfe" padding="20px 40px">
+    <mj-section background-color="{{brand:--relab-brand-surface}}" padding="20px 40px">
       <mj-column>
         <mj-text font-size="16px" padding-bottom="20px"> Hello {{ username }}, </mj-text>
         <mj-text> Please verify your email by clicking the button below: </mj-text>

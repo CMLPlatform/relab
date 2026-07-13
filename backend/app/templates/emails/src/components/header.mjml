@@ -1,10 +1,10 @@
-<mj-section background-color="#fbfcfe" padding="28px 40px 16px">
+<mj-section background-color="{{brand:--relab-brand-surface}}" padding="28px 40px 16px">
   <mj-column>
     <mj-image
       src="https://cml-relab.org/images/wordmark.png"
-      alt="ReLab"
+      alt="Relab"
       css-class="wordmark-fallback"
-      width="150px"
+      width="170px"
       align="left"
       padding="0"
       font-size="27px"
@@ -21,8 +21,8 @@
     </mj-text>
   </mj-column>
 </mj-section>
-<mj-section background-color="#fbfcfe" padding="0 40px">
+<mj-section background-color="{{brand:--relab-brand-surface}}" padding="0 40px">
   <mj-column>
-    <mj-divider border-color="#dce4e9" border-width="1px" padding="0" />
+    <mj-divider border-color="{{brand:--relab-brand-divider}}" border-width="1px" padding="0" />
   </mj-column>
 </mj-section>

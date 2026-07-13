@@ -14,9 +14,10 @@
 </mj-attributes>
 <mj-style>
   /* Styled alt text so a blocked/missing wordmark image degrades to a neat
-     serif "R9lab" instead of a broken-image icon. */
+     "Relab" instead of a broken-image icon (alt carries the pronounced name;
+     the 9-as-e spelling is a purely visual device). */
   .wordmark-fallback img {
-    font-family: Georgia, "Times New Roman", serif !important;
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif !important;
     font-weight: 600 !important;
     letter-spacing: -0.5px !important;
     color: {{brand:--relab-brand-primary}} !important;

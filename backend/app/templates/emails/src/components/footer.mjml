@@ -1,6 +1,6 @@
-<mj-section background-color="#fbfcfe" padding="20px 40px 24px">
+<mj-section background-color="{{brand:--relab-brand-surface}}" padding="20px 40px 24px">
   <mj-column>
-    <mj-divider border-color="#dce4e9" border-width="1px" padding="0 0 20px" />
+    <mj-divider border-color="{{brand:--relab-brand-divider}}" border-width="1px" padding="0 0 20px" />
     <mj-text css-class="footer-text" align="left">
       Best regards,<br />
       The ReLab team
