@@ -11,7 +11,6 @@ const base = {
     enableGlobally: true,
     doNotFake: ['nextTick', 'queueMicrotask', 'setImmediate'],
   },
-  maxWorkers: '50%',
   testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
   transformIgnorePatterns: [
     'node_modules/(?!(?:.pnpm/.*?/node_modules/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|standard-navigation|msw|@mswjs|@open-draft/.*|until-async|rettime))',
@@ -28,13 +27,15 @@ const base = {
   },
 };
 
-// Coverage is a global (root-only) concern in multi-project mode — Jest ignores
-// these keys if set per project — so they live here, not in `base`.
+// Coverage and maxWorkers are global (root-only) concerns in multi-project mode —
+// Jest ignores these keys if set per project — so they live here, not in `base`.
 // Run a single lane with `jest --selectProjects unit` (or integration).
 module.exports = {
   rootDir: __dirname,
   testTimeout: 15_000,
   watchman: false,
+  // CI runners are dedicated, so use every core; locally leave headroom for the dev's machine.
+  maxWorkers: process.env.CI ? '100%' : '50%',
   // In CI also emit JUnit XML for Codecov Test Analytics (flaky/slow-test tracking).
   reporters: process.env.CI
     ? ['default', ['jest-junit', { outputDirectory: '<rootDir>', outputName: 'junit.xml' }]]
