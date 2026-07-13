@@ -147,8 +147,12 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           load: true
+          # `pull` keeps base images fresh so the scan sees current CVEs; the GHA
+          # cache still covers every layer built on top of them.
           pull: true
           tags: ${{ matrix.image_ref }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,scope=${{ matrix.service }},mode=max
           # The www/app builds require their public URLs. These images are only
           # scanned, never deployed, so placeholders are fine; unused args on the
           # other services are ignored.
