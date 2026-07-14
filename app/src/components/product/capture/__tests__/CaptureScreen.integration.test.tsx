@@ -32,7 +32,7 @@ jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
 }));
 
-const mockMutateAsync = jest.fn<() => Promise<number>>();
+const mockMutateAsync = jest.fn<(args: { product: { id?: number } }) => Promise<number>>();
 const mockUseAuth = jest.fn();
 
 jest.mock('@/context/auth', () => ({
@@ -189,6 +189,30 @@ describe('CaptureScreen', () => {
 
     expect(mockReplace).not.toHaveBeenCalled();
     expect(screen.getByPlaceholderText(NAME_PLACEHOLDER).props.value).toBe('');
+  });
+
+  // Batch mode has nothing left to batch once the record exists: a partial
+  // success (record POSTed, photo upload failed) routes to the detail screen
+  // for photo retry, same as a plain Create — it must not reset the form and
+  // silently discard the local photos that failed to upload.
+  it('routes to the detail screen after a partial-success Create & add another, without resetting the name', async () => {
+    mockMutateAsync.mockImplementationOnce(async ({ product }) => {
+      product.id = 31;
+      throw new Error('upload failed');
+    });
+    await renderCapture({ entityRole: 'component', parentID: 5, parentRole: 'product' });
+
+    fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Bolt');
+    fireEvent.press(screen.getByText('Create & add another'));
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith({
+        pathname: '/components/[id]',
+        params: { id: '31', edit: '1' },
+      });
+    });
+
+    expect(screen.getByPlaceholderText(NAME_PLACEHOLDER).props.value).toBe('Bolt');
   });
 
   it('keeps the entered name on screen after a failed create', async () => {

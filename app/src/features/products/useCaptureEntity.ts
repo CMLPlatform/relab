@@ -82,19 +82,21 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
     return result?.id;
   };
 
-  const createAndAddAnother = async (): Promise<boolean> => {
+  const createAndAddAnother = async (): Promise<{ id: number; partial: boolean } | undefined> => {
     const savedName = trimmedName;
     const result = await performCreate();
     // A partial success (record created, upload failed) already surfaced its
-    // own error above — don't also toast success and reset the form as if
-    // nothing went wrong.
-    if (result === undefined || result.partial) return false;
+    // own error above. Batch mode has nothing left to batch: the record
+    // exists and its photos need attention, same as a plain create — don't
+    // toast success or reset the form (that would discard the local photos
+    // that failed to upload). The caller routes to the detail screen instead.
+    if (result === undefined || result.partial) return result;
 
     feedback.toast(`${savedName} added`);
     setName('');
     setImages([]);
     setAmount(DEFAULT_AMOUNT);
-    return true;
+    return result;
   };
 
   return {

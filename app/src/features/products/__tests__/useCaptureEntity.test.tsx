@@ -159,7 +159,7 @@ describe('useCaptureEntity', () => {
     expect(mockError).toHaveBeenCalledWith('Created, but some photos failed to upload.');
   });
 
-  it('createAndAddAnother does not toast success or reset the form on a partial failure', async () => {
+  it('createAndAddAnother does not toast success or reset the form on a partial failure, and surfaces the id', async () => {
     mockMutateAsync.mockImplementationOnce(async ({ product }) => {
       product.id = 9;
       throw new Error('upload failed');
@@ -168,16 +168,20 @@ describe('useCaptureEntity', () => {
       useCaptureEntity({ role: 'component', parentID: 1, parentRole: 'product' }),
     );
 
-    act(() => result.current.setName('Bolt'));
-
-    let ok = true;
-    await act(async () => {
-      ok = await result.current.createAndAddAnother();
+    act(() => {
+      result.current.setName('Bolt');
+      result.current.setImages([{ url: 'file:///photo.jpg', description: '' }]);
     });
 
-    expect(ok).toBe(false);
+    let outcome: { id: number; partial: boolean } | undefined;
+    await act(async () => {
+      outcome = await result.current.createAndAddAnother();
+    });
+
+    expect(outcome).toEqual({ id: 9, partial: true });
     expect(mockToast).not.toHaveBeenCalled();
     expect(result.current.name).toBe('Bolt');
+    expect(result.current.images).toEqual([{ url: 'file:///photo.jpg', description: '' }]);
   });
 
   // newProduct() derives role from parentID, which is undefined for a
@@ -245,12 +249,12 @@ describe('useCaptureEntity', () => {
       result.current.setImages([{ url: 'x', description: '' }]);
     });
 
-    let ok = false;
+    let outcome: { id: number; partial: boolean } | undefined;
     await act(async () => {
-      ok = await result.current.createAndAddAnother();
+      outcome = await result.current.createAndAddAnother();
     });
 
-    expect(ok).toBe(true);
+    expect(outcome).toEqual({ id: 9, partial: false });
     expect(mockToast).toHaveBeenCalledWith('Bolt added');
     expect(result.current.name).toBe('');
     expect(result.current.images).toEqual([]);
@@ -258,18 +262,18 @@ describe('useCaptureEntity', () => {
     expect(result.current.typeID).toBe(5);
   });
 
-  it('createAndAddAnother returns false and keeps state on failure', async () => {
+  it('createAndAddAnother returns undefined and keeps state on total failure', async () => {
     mockMutateAsync.mockRejectedValueOnce(new Error('boom'));
     const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
 
     act(() => result.current.setName('Widget'));
 
-    let ok = true;
+    let outcome: { id: number; partial: boolean } | undefined = { id: -1, partial: false };
     await act(async () => {
-      ok = await result.current.createAndAddAnother();
+      outcome = await result.current.createAndAddAnother();
     });
 
-    expect(ok).toBe(false);
+    expect(outcome).toBeUndefined();
     expect(mockToast).not.toHaveBeenCalled();
     expect(result.current.name).toBe('Widget');
   });

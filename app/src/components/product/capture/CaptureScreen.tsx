@@ -177,8 +177,17 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
     });
   };
 
-  const handleCreateAndAddAnother = () => {
-    void createAndAddAnother();
+  const handleCreateAndAddAnother = async () => {
+    const result = await createAndAddAnother();
+    // Batch mode has nothing left to batch on a partial success: the record
+    // exists and its photos need attention, so route to the detail screen
+    // exactly like a plain Create instead of staying on the capture form.
+    if (!result?.partial) return;
+    skipNextBeforeRemoveRef.current = true;
+    router.replace({
+      pathname: role === 'component' ? '/components/[id]' : '/products/[id]',
+      params: { id: String(result.id), edit: '1' },
+    });
   };
 
   return (
