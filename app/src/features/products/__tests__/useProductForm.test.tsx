@@ -361,6 +361,46 @@ describe('useProductForm', () => {
     expect(onSaveSuccess).toHaveBeenCalledWith(987);
   });
 
+  it('reports errorCount and firstErrorSection from the current validation errors', async () => {
+    // Start from a fully valid product (unlike mockProduct, whose zeroed-out
+    // physicalProperties already fail validation on mount) so the two fields
+    // we invalidate below are the only — and orderly — error sources.
+    const validProduct = {
+      ...mockProduct,
+      physicalProperties: { weight: 850, width: 30, height: 12, depth: 25 },
+    };
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: validProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+
+    const { result } = renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+    await waitFor(() => expect(result.current.validationResult.isValid).toBe(true));
+
+    // Two genuinely failing fields per productSchema, invalidated in order: name
+    // below the 2-char minimum first, then a negative weight (schema requires
+    // positive-or-NaN) — so 'name' is the first error key and maps to 'overview'.
+    await act(async () => {
+      result.current.onProductNameChange('A');
+    });
+    await waitFor(() => expect(result.current.validationResult.errorCount).toBe(1));
+
+    await act(async () => {
+      result.current.onChangePhysicalProperties({
+        ...result.current.product.physicalProperties,
+        weight: -5,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.validationResult.errorCount).toBe(2);
+      expect(result.current.validationResult.firstErrorSection).toBe('overview');
+    });
+  });
+
   // Regression: delete had no onError handler, so a failed delete was swallowed
   // by react-query — the entity stayed on screen with no feedback.
   it('surfaces a dialog when the delete mutation fails', async () => {

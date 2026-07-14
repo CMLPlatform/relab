@@ -9,6 +9,7 @@ import {
   useWatch,
 } from 'react-hook-form';
 import { useDialog } from '@/components/base/dialogContext';
+import type { SectionKey } from '@/components/base/SectionNavContext';
 import { useAuth } from '@/context/auth';
 import { newProduct } from '@/services/api/products';
 import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
@@ -35,12 +36,31 @@ function getFirstFormError(errors: FieldErrors): string | undefined {
   return;
 }
 
+// Maps top-level form fields to the spec-sheet section that displays them, so an
+// invalid field can be scrolled to. Fields not listed here (e.g. componentIDs)
+// yield an undefined firstErrorSection.
+const FIELD_SECTION: Record<string, SectionKey> = {
+  name: 'overview',
+  description: 'overview',
+  brand: 'overview',
+  model: 'overview',
+  amountInParent: 'overview',
+  productTypeID: 'overview',
+  physicalProperties: 'physical',
+  circularityProperties: 'circularity',
+  videos: 'media',
+  images: 'media',
+};
+
 function buildValidationResult(
   formState: ReturnType<typeof useForm<ProductFormValues>>['formState'],
 ) {
+  const errorKeys = Object.keys(formState.errors);
   return {
     isValid: formState.isValid,
     error: getFirstFormError(formState.errors),
+    errorCount: errorKeys.length,
+    firstErrorSection: errorKeys.length > 0 ? FIELD_SECTION[errorKeys[0]] : undefined,
   };
 }
 

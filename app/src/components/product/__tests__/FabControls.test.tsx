@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ProductFabControls } from '@/components/product/detail/FabControls';
 
 jest.mock('react-native-paper', () => {
@@ -12,14 +12,16 @@ jest.mock('react-native-paper', () => {
       label,
       disabled,
       visible,
+      onPress,
     }: {
       label?: string;
       disabled?: boolean;
       visible?: boolean;
+      onPress?: () => void;
     }) =>
       React.createElement(
         Text,
-        { testID: 'primary-fab' },
+        { testID: 'primary-fab', onPress },
         `${label}|disabled=${disabled ? 'true' : 'false'}|visible=${visible ? 'true' : 'false'}`,
       ),
     Tooltip: ({ title, children }: { title: string; children: React.ReactNode }) =>
@@ -37,6 +39,9 @@ jest.mock('@/components/cameras/CameraStreamPicker', () => ({
 const DISABLED_FALSE = /disabled=false/;
 const DISABLED_TRUE = /disabled=true/;
 const EDIT_COMPONENT_PATTERN = /Edit Component/;
+const TWO_ERRORS_LABEL = /^2 fields need attention\|/;
+const ONE_ERROR_LABEL = /^1 field needs attention\|/;
+const SAVE_PRODUCT_LABEL = /^Save Product\|/;
 
 const baseProps = {
   entityRole: 'product' as const,
@@ -71,7 +76,9 @@ describe('ProductFabControls — primary FAB enabled state', () => {
     expect(screen.queryByTestId('tooltip')).toBeNull();
   });
 
-  it('disables the FAB and shows the validation tooltip when dirty edits are invalid', () => {
+  // Was "disables the FAB..." — invalid no longer disables it, so it stays
+  // pressable to route to the error summary (see the errorCount describe block).
+  it('keeps the FAB enabled but shows the validation tooltip when dirty edits are invalid', () => {
     render(
       <ProductFabControls
         {...baseProps}
@@ -82,7 +89,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
       />,
     );
     const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(DISABLED_TRUE);
+    expect(fab).toHaveTextContent(DISABLED_FALSE);
     expect(screen.getByTestId('tooltip')).toHaveTextContent('Name is required');
   });
 
@@ -106,7 +113,8 @@ describe('ProductFabControls — primary FAB enabled state', () => {
     expect(screen.getByTestId('primary-fab')).toHaveTextContent(DISABLED_TRUE);
   });
 
-  it('disables the FAB for a new product with no edits when validation fails', () => {
+  // Was "disables the FAB..." — same rationale as the dirty-edits case above.
+  it('keeps the FAB enabled for a new product with no edits when validation fails', () => {
     render(
       <ProductFabControls
         {...baseProps}
@@ -118,7 +126,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
       />,
     );
     const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(DISABLED_TRUE);
+    expect(fab).toHaveTextContent(DISABLED_FALSE);
     expect(screen.getByTestId('tooltip')).toHaveTextContent('Name is required');
   });
 
@@ -130,5 +138,66 @@ describe('ProductFabControls — primary FAB enabled state', () => {
   it('uses component labels for component pages', () => {
     render(<ProductFabControls {...baseProps} entityRole="component" editMode={false} />);
     expect(screen.getByTestId('primary-fab')).toHaveTextContent(EDIT_COMPONENT_PATTERN);
+  });
+});
+
+describe('ProductFabControls — error summary routing', () => {
+  it('labels the FAB with the plural error count and routes press to onErrorSummaryPress', () => {
+    const onPrimaryFabPress = jest.fn();
+    const onErrorSummaryPress = jest.fn();
+    render(
+      <ProductFabControls
+        {...baseProps}
+        editMode={true}
+        isDirty={true}
+        validationValid={false}
+        validationError="Name is required"
+        errorCount={2}
+        onPrimaryFabPress={onPrimaryFabPress}
+        onErrorSummaryPress={onErrorSummaryPress}
+      />,
+    );
+    const fab = screen.getByTestId('primary-fab');
+    expect(fab).toHaveTextContent(TWO_ERRORS_LABEL);
+    expect(fab).toHaveTextContent(DISABLED_FALSE);
+
+    fireEvent.press(fab);
+    expect(onErrorSummaryPress).toHaveBeenCalledTimes(1);
+    expect(onPrimaryFabPress).not.toHaveBeenCalled();
+  });
+
+  it('uses singular phrasing for a single error', () => {
+    render(
+      <ProductFabControls
+        {...baseProps}
+        editMode={true}
+        isDirty={true}
+        validationValid={false}
+        errorCount={1}
+      />,
+    );
+    expect(screen.getByTestId('primary-fab')).toHaveTextContent(ONE_ERROR_LABEL);
+  });
+
+  it('saves normally and routes press to onPrimaryFabPress when the form is valid', () => {
+    const onPrimaryFabPress = jest.fn();
+    const onErrorSummaryPress = jest.fn();
+    render(
+      <ProductFabControls
+        {...baseProps}
+        editMode={true}
+        isDirty={true}
+        validationValid={true}
+        errorCount={0}
+        onPrimaryFabPress={onPrimaryFabPress}
+        onErrorSummaryPress={onErrorSummaryPress}
+      />,
+    );
+    const fab = screen.getByTestId('primary-fab');
+    expect(fab).toHaveTextContent(SAVE_PRODUCT_LABEL);
+
+    fireEvent.press(fab);
+    expect(onPrimaryFabPress).toHaveBeenCalledTimes(1);
+    expect(onErrorSummaryPress).not.toHaveBeenCalled();
   });
 });

@@ -13,6 +13,8 @@ type ProductFabControlsProps = {
   fabExtended: boolean;
   validationError?: string;
   validationValid: boolean;
+  errorCount?: number;
+  onErrorSummaryPress?: () => void;
   isSaving: boolean;
   isDirty: boolean;
   isNew: boolean;
@@ -31,6 +33,8 @@ export function ProductFabControls({
   fabExtended,
   validationError,
   validationValid,
+  errorCount,
+  onErrorSummaryPress,
   isSaving,
   isDirty,
   isNew,
@@ -48,6 +52,8 @@ export function ProductFabControls({
         fabExtended={fabExtended}
         validationError={validationError}
         validationValid={validationValid}
+        errorCount={errorCount}
+        onErrorSummaryPress={onErrorSummaryPress}
         isSaving={isSaving}
         isDirty={isDirty}
         isNew={isNew}
@@ -73,6 +79,8 @@ function PrimaryProductFab({
   fabExtended,
   validationError,
   validationValid,
+  errorCount,
+  onErrorSummaryPress,
   isSaving,
   isDirty,
   isNew,
@@ -85,6 +93,8 @@ function PrimaryProductFab({
   fabExtended: boolean;
   validationError?: string;
   validationValid: boolean;
+  errorCount?: number;
+  onErrorSummaryPress?: () => void;
   isSaving: boolean;
   isDirty: boolean;
   isNew: boolean;
@@ -95,14 +105,22 @@ function PrimaryProductFab({
   // a new product (which has no "exit edit mode" state to fall back to).
   const wouldSave = editMode && (isDirty || isNew);
   const titleLabel = entityRole === 'component' ? 'Component' : 'Product';
+  // Invalid + errors to show: swap the FAB from "save" to "go to the first
+  // problem" instead of blocking the press behind a disabled button.
+  const needsAttention = wouldSave && !validationValid && !!errorCount && errorCount > 0;
+  const label = needsAttention
+    ? `${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`
+    : editMode
+      ? `Save ${titleLabel}`
+      : `Edit ${titleLabel}`;
   const fab = (
     <AnimatedFAB
       icon={icon}
-      onPress={onPress}
+      onPress={needsAttention ? (onErrorSummaryPress ?? onPress) : onPress}
       style={styles.rightFab}
-      disabled={(wouldSave && !validationValid) || isSaving}
+      disabled={isSaving}
       extended={fabExtended}
-      label={editMode ? `Save ${titleLabel}` : `Edit ${titleLabel}`}
+      label={label}
       visible={ownedByMe}
     />
   );

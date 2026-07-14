@@ -60,6 +60,16 @@ function SectionNavLayout({
   );
 }
 
+function useErrorSummaryPressHandler(
+  scrollTo: (key: SectionKey) => void,
+  firstErrorSection: SectionKey | undefined,
+) {
+  return useCallback(
+    () => scrollTo(firstErrorSection ?? 'overview'),
+    [scrollTo, firstErrorSection],
+  );
+}
+
 function useFabPressHandler({
   saveAndExit,
   editMode,
@@ -95,6 +105,10 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
     editMode: editing.editMode,
     isNew: capabilities.isNew,
   });
+  const onErrorSummaryPress = useErrorSummaryPressHandler(
+    nav.scrollTo,
+    editing.validationResult.firstErrorSection,
+  );
 
   const { refetch } = screen;
   const handleRetry = useCallback(() => refetch(), [refetch]);
@@ -199,6 +213,8 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
         fabExtended={editing.fabExtended}
         validationError={editing.validationResult.error}
         validationValid={editing.validationResult.isValid}
+        errorCount={editing.validationResult.errorCount}
+        onErrorSummaryPress={onErrorSummaryPress}
         isSaving={editing.isSaving}
         isDirty={editing.isDirty}
         onPrimaryFabPress={onPrimaryFabPress}
