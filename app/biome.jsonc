@@ -102,6 +102,28 @@
           "tailwindDirectives": true
         }
       }
+    },
+    {
+      // Vendored react-native-reusables (shadcn-style) primitives — upstream code we
+      // don't hand-refactor. Namespace imports, mixed component/variant-constant
+      // exports, and decorative web-only fragments are inherent to the template.
+      "includes": ["src/components/base/ui/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noUselessFragments": "off"
+          },
+          "performance": {
+            "noNamespaceImport": "off"
+          },
+          "security": {
+            "noSecrets": "off"
+          },
+          "style": {
+            "useComponentExportOnlyModules": "off"
+          }
+        }
+      }
     }
   ]
 }

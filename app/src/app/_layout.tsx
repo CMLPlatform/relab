@@ -7,6 +7,7 @@ import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
 import { memo, type ReactNode, useCallback, useEffect } from 'react';
 import { AppState, type AppStateStatus, Platform, View } from 'react-native';
+import { colorScheme as nativewindColorScheme } from 'react-native-css';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { PaperProvider } from 'react-native-paper';
@@ -227,6 +228,12 @@ const { LightTheme, DarkTheme } = createNavigationThemes();
 function ThemedProviders({ children }: { children: ReactNode }) {
   const colorScheme = useEffectiveColorScheme();
   const theme = getAppTheme(colorScheme);
+
+  // Keep NativeWind's (react-native-css) color scheme in sync with the app's own
+  // theme mode so `.dark:root` CSS variables (Task 2) apply to RNR components.
+  useEffect(() => {
+    nativewindColorScheme.set(colorScheme);
+  }, [colorScheme]);
 
   return (
     <PaperProvider theme={theme} settings={PAPER_SETTINGS}>

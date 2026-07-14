@@ -61,6 +61,14 @@ export default defineConfig([
     },
   },
   {
+    // Vendored react-native-reusables (shadcn-style) primitives export cva variant
+    // constants alongside their component by design; not hand-refactored.
+    files: ['src/components/base/ui/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
     ignores: [
       '.expo/**',
       'coverage/**',

@@ -10,3 +10,11 @@
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
 }
+
+/* Vendored RNR components (dropdown-menu) expect a "popover" surface; brand.generated.css
+ * (Task 2) has no separate popover token, so alias it to the existing card surface here
+ * rather than editing the generated file. */
+@theme inline {
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--card-foreground);
+}

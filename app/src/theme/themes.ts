@@ -18,7 +18,13 @@ import { createTokens } from './tokens';
 import type { AppScheme, AppTheme } from './types';
 
 export function useAppTheme() {
-  return usePaperTheme<AppTheme>();
+  const theme = usePaperTheme<AppTheme>();
+  // Outside a PaperProvider ancestor (e.g. a bare-render unit test with no provider
+  // wrapper) Paper's context falls back to its own MD3LightTheme, which lacks our
+  // `tokens`/`scheme` fields. Fall back to the app's light theme so every consumer
+  // of useAppTheme() sees a complete AppTheme, matching what the real app always
+  // provides via the root PaperProvider.
+  return theme.tokens ? theme : lightTheme;
 }
 
 /** '#1F4C96' -> 'rgb(31, 76, 150)' — matches the existing MD3 string format exactly. */
