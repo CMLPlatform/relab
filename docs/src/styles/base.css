@@ -1,6 +1,8 @@
 :root {
   --sl-content-width: 54rem;
   --sl-text-5xl: 3.4rem;
+  /* Starlight composes its code/mono stack from this token */
+  --sl-font-mono: var(--relab-brand-font-mono);
 }
 
 html,
@@ -57,8 +59,9 @@ h3,
 h4,
 .site-title,
 .hero {
-  font-family: var(--relab-brand-font), sans-serif;
-  letter-spacing: -0.025em;
+  font-family: var(--relab-brand-font-display), Georgia, serif;
+  /* serif carries its own width; tighter tracking than this reads cramped */
+  letter-spacing: -0.01em;
 }
 
 a {
