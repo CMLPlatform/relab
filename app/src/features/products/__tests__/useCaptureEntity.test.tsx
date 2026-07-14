@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
 import { useCaptureEntity } from '@/features/products/useCaptureEntity';
 
-const mockMutateAsync = jest.fn<() => Promise<number>>();
+const mockMutateAsync = jest.fn<(args: { product: { id?: number } }) => Promise<number>>();
 const mockToast = jest.fn();
 const mockError = jest.fn();
 
@@ -77,6 +77,28 @@ describe('useCaptureEntity', () => {
     });
   });
 
+  it('includes captured images in the mutation payload', async () => {
+    mockMutateAsync.mockResolvedValueOnce(42);
+    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+
+    act(() => {
+      result.current.setName('Widget');
+      result.current.setImages([{ url: 'file:///photo.jpg', description: '' }]);
+    });
+
+    await act(async () => {
+      await result.current.create();
+    });
+
+    expect(mockMutateAsync).toHaveBeenCalledWith({
+      product: expect.objectContaining({
+        images: [{ url: 'file:///photo.jpg', description: '' }],
+      }),
+      originalImages: [],
+      originalVideos: [],
+    });
+  });
+
   it('includes amountInParent only for components', async () => {
     mockMutateAsync.mockResolvedValueOnce(7);
     const { result } = renderHook(() =>
@@ -113,6 +135,101 @@ describe('useCaptureEntity', () => {
     expect(savedId).toBeUndefined();
     expect(mockError).toHaveBeenCalledWith('network down');
     expect(result.current.name).toBe('Widget');
+  });
+
+  // saveProduct's real saveNewProduct() POSTs, assigns the returned id onto
+  // the same draft object, then uploads images — so a rejection with an id
+  // already assigned means the record was created and only the upload
+  // failed. Re-pressing Create must not re-POST (would duplicate the record).
+  it('on a rejected image upload after a successful POST, keeps the created id and reports a partial failure', async () => {
+    mockMutateAsync.mockImplementationOnce(async ({ product }) => {
+      product.id = 42;
+      throw new Error('upload failed');
+    });
+    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+
+    act(() => result.current.setName('Widget'));
+
+    let savedId: number | undefined;
+    await act(async () => {
+      savedId = await result.current.create();
+    });
+
+    expect(savedId).toBe(42);
+    expect(mockError).toHaveBeenCalledWith('Created, but some photos failed to upload.');
+  });
+
+  it('createAndAddAnother does not toast success or reset the form on a partial failure', async () => {
+    mockMutateAsync.mockImplementationOnce(async ({ product }) => {
+      product.id = 9;
+      throw new Error('upload failed');
+    });
+    const { result } = renderHook(() =>
+      useCaptureEntity({ role: 'component', parentID: 1, parentRole: 'product' }),
+    );
+
+    act(() => result.current.setName('Bolt'));
+
+    let ok = true;
+    await act(async () => {
+      ok = await result.current.createAndAddAnother();
+    });
+
+    expect(ok).toBe(false);
+    expect(mockToast).not.toHaveBeenCalled();
+    expect(result.current.name).toBe('Bolt');
+  });
+
+  // newProduct() derives role from parentID, which is undefined for a
+  // malformed /components/new parent param — the draft must still carry the
+  // role the screen was opened for so the component create URL throws
+  // honestly instead of silently POSTing a top-level product.
+  it('pins draft.role to the requested role even when parentID is missing', async () => {
+    mockMutateAsync.mockResolvedValueOnce(3);
+    const { result } = renderHook(() =>
+      useCaptureEntity({ role: 'component', parentID: undefined, parentRole: 'product' }),
+    );
+
+    act(() => result.current.setName('Washer'));
+
+    await act(async () => {
+      await result.current.create();
+    });
+
+    expect(mockMutateAsync).toHaveBeenCalledWith({
+      product: expect.objectContaining({ role: 'component' }),
+      originalImages: [],
+      originalVideos: [],
+    });
+  });
+
+  it('guards against a double Create firing two mutations', async () => {
+    let resolveMutate: ((id: number) => void) | undefined;
+    mockMutateAsync.mockImplementationOnce(
+      () =>
+        new Promise<number>((resolve) => {
+          resolveMutate = resolve;
+        }),
+    );
+    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+    act(() => result.current.setName('Widget'));
+
+    let firstResult: number | undefined;
+    let secondResult: number | undefined;
+    await act(async () => {
+      const first = result.current.create().then((id) => {
+        firstResult = id;
+      });
+      const second = result.current.create().then((id) => {
+        secondResult = id;
+      });
+      resolveMutate?.(42);
+      await Promise.all([first, second]);
+    });
+
+    expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+    expect(firstResult).toBe(42);
+    expect(secondResult).toBeUndefined();
   });
 
   it('createAndAddAnother resets name/images/amount but keeps typeID and toasts on success', async () => {
@@ -170,5 +287,15 @@ describe('useCaptureEntity', () => {
 
     act(() => result.current.setName('X'));
     expect(result.current.isDirty).toBe(true);
+  });
+
+  // createAndAddAnother deliberately keeps typeID across a batch create, so
+  // counting it toward isDirty made the freshly reset screen look dirty and
+  // triggered a spurious "Discard changes?" prompt on the way out.
+  it('isDirty ignores a kept type selection', () => {
+    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+
+    act(() => result.current.setTypeID(5));
+    expect(result.current.isDirty).toBe(false);
   });
 });
