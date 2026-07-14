@@ -39,13 +39,14 @@ graph TD
     MainAPI -->|Images| FileStorage
     MainAPI -->|Session state| Redis
 
-    classDef actor fill:#e8f4f8,stroke:#2b6cb0,stroke-width:2px,color:#1a365d
-    classDef frontend fill:#f0fff4,stroke:#276749,stroke-width:1.5px,color:#1a4731
-    classDef backend fill:#fefcbf,stroke:#b7791f,stroke-width:2px,color:#5f4b0a
-    classDef datastore fill:#e9d8fd,stroke:#6b46c1,stroke-width:1.5px,color:#44337a
-    classDef external fill:#feebc8,stroke:#c05621,stroke-width:1.5px,color:#7b341e
-    classDef hardware fill:#fed7e2,stroke:#b83280,stroke-width:2px,color:#702459
-    classDef auth fill:#f8fafc,stroke:#475569,stroke-width:1.5px,color:#1e293b
+    %% Diagram palette from assets/DESIGN.md (categorical ramp)
+    classDef actor fill:#e3ecfa,stroke:#1f4c96,stroke-width:2px,color:#143567
+    classDef frontend fill:#e0f2ed,stroke:#0e6b5e,stroke-width:1.5px,color:#0a4f45
+    classDef backend fill:#f7ecd4,stroke:#8f6212,stroke-width:2px,color:#5c3f0a
+    classDef datastore fill:#ede6f7,stroke:#6d4fa3,stroke-width:1.5px,color:#44337a
+    classDef external fill:#f9e7de,stroke:#a8542f,stroke-width:1.5px,color:#6e371f
+    classDef hardware fill:#fae4ec,stroke:#b0316e,stroke-width:2px,color:#6e2048
+    classDef auth fill:#f1f4f8,stroke:#5a6675,stroke-width:1.5px,color:#16202e
 
     class Researcher actor
     class FrontendApp frontend

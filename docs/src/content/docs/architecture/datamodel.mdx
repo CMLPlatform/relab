@@ -45,18 +45,19 @@ graph TD
     Material -->|Has| LocalStorage
     ProductType -->|Has| LocalStorage
 
-    style LocalStorage fill:#f8fafc,stroke:#475569,stroke-width:1px,color:#1e293b;
+    %% Diagram palette from assets/DESIGN.md (categorical ramp)
+    style LocalStorage fill:#f1f4f8,stroke:#5a6675,stroke-width:1px,color:#16202e;
 
-    classDef UserManagementFill fill:#e9d8fd,stroke:#6b46c1,stroke-width:2px,color:#44337a;
+    classDef UserManagementFill fill:#ede6f7,stroke:#6d4fa3,stroke-width:2px,color:#44337a;
     class User,OAuthAccount UserManagementFill;
 
-    classDef DataCollectionFill fill:#d9f4fb,stroke:#006783,stroke-width:2px,color:#13263a;
+    classDef DataCollectionFill fill:#e3ecfa,stroke:#1f4c96,stroke-width:2px,color:#143567;
     class Product,PhysicalProperties,Camera DataCollectionFill;
 
-    classDef ReferenceDataFill fill:#f8fafc,stroke:#475569,stroke-width:2px,color:#1e293b;
+    classDef ReferenceDataFill fill:#f1f4f8,stroke:#5a6675,stroke-width:2px,color:#16202e;
     class Taxonomy,Material,Category,ProductType ReferenceDataFill;
 
-    classDef MediaFill fill:#f0fff4,stroke:#276749,stroke-width:2px,color:#1a4731;
+    classDef MediaFill fill:#e0f2ed,stroke:#0e6b5e,stroke-width:2px,color:#0a4f45;
     class File,Image,Video MediaFill;
 ```
 
