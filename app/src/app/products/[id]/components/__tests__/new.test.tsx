@@ -2,42 +2,30 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react-native';
 import type { Text as RNText } from 'react-native';
 
-const mockReplace = jest.fn();
-
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: '42' }),
-  useRouter: () => ({ replace: mockReplace }),
 }));
 
-jest.mock('@/components/product/detail/ProductDetailScreen', () => {
+jest.mock('@/components/product/capture/CaptureScreen', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
     Text: typeof RNText;
   };
   return {
-    ProductDetailScreen: (props: {
-      formOptions?: {
-        isNew?: boolean;
-        initialEditMode?: boolean;
-        draftSeed?: { parentID?: number; parentRole?: 'product' | 'component' };
-      };
-    }) => {
-      const o = props.formOptions ?? {};
-      const seed = o.draftSeed ?? {};
-      return mockReact.createElement(
+    CaptureScreen: (props: { role?: string; parentID?: number; parentRole?: string }) =>
+      mockReact.createElement(
         Text,
         null,
-        `new:${o.isNew ? 'y' : 'n'} edit:${o.initialEditMode ? 'y' : 'n'} parent:${seed.parentID ?? ''} parentRole:${seed.parentRole ?? ''}`,
-      );
-    },
+        `role:${props.role ?? ''} parent:${props.parentID ?? ''} parentRole:${props.parentRole ?? ''}`,
+      ),
   };
 });
 
 import ComponentNewPage from '@/app/products/[id]/components/new';
 
 describe('ComponentNewPage route', () => {
-  it('renders ProductDetailScreen in new+edit mode and seeds parent id from the URL', () => {
+  it('renders CaptureScreen for a new component and seeds parent id from the URL', () => {
     render(<ComponentNewPage />);
-    expect(screen.getByText('new:y edit:y parent:42 parentRole:product')).toBeOnTheScreen();
+    expect(screen.getByText('role:component parent:42 parentRole:product')).toBeOnTheScreen();
   });
 });

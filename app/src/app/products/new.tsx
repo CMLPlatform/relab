@@ -1,21 +1,6 @@
-import { useRouter } from 'expo-router';
-import { ProductDetailScreen } from '@/components/product/detail/ProductDetailScreen';
+import { CaptureScreen } from '@/components/product/capture/CaptureScreen';
 
 export default function ProductNewPage() {
-  const router = useRouter();
-  return (
-    <ProductDetailScreen
-      formOptions={{
-        role: 'product',
-        isNew: true,
-        initialEditMode: true,
-        onSaveSuccess: (savedId) => {
-          router.replace({
-            pathname: '/products/[id]',
-            params: { id: savedId.toString() },
-          });
-        },
-      }}
-    />
-  );
+  // biome-ignore lint/a11y/useValidAriaRole: CaptureScreen's own product/component prop, not an ARIA role.
+  return <CaptureScreen role="product" />;
 }
