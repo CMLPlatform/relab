@@ -16,7 +16,7 @@ export const palette = {
     "destructive": "#BA1A1A",
     "destructiveForeground": "#FFFFFF",
     "border": "#C4C6D0",
-    "input": "#747780",
+    "input": "#74777F",
     "ring": "#1F4C96"
   },
   "dark": {

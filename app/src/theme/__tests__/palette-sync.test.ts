@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { lightTheme } from '@/theme';
 import { palette } from '@/theme/palette.generated';
 
 test('generated artifacts carry the canonical palette values verbatim (exact case)', () => {
@@ -20,4 +21,8 @@ test('brand anchors match the Cyanotype palette (DESIGN.md)', () => {
   expect(palette.dark.primary).toBe('#8FB8FF');
   expect(palette.light.accent).toBe('#8F6212');
   expect(palette.dark.accent).toBe('#E3B95C');
+});
+
+test('derived MD3 outline keeps the pre-inversion literal (light input token)', () => {
+  expect(lightTheme.colors.outline).toBe('rgb(116, 119, 127)');
 });
