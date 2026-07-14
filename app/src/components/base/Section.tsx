@@ -1,4 +1,4 @@
-import { type ReactNode, useContext, useState } from 'react';
+import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { AppButton } from './AppButton';
 import { AppText } from './AppText';
@@ -32,8 +32,25 @@ export function Section({
 }: SectionProps) {
   const nav = useContext(SectionNavContext);
   const [expandedWhileEmpty, setExpandedWhileEmpty] = useState(false);
+  const isVisible = !(isEmpty && !editMode);
 
-  if (isEmpty && !editMode) return null;
+  // A section that collapses away (empty + view mode) must also drop out of
+  // the scroll-spy/chip registry, or a chip tap or scroll-spy pass can still
+  // land on the stale position of a section that isn't actually rendered.
+  // nav goes through a ref so the cleanup runs only on actual hide/unmount:
+  // the context value changes identity on every scroll-spy tick (activeKey),
+  // and depending on it directly would unregister a section that stays
+  // visible — with no onLayout re-fire to ever re-register it.
+  const navRef = useRef(nav);
+  useEffect(() => {
+    navRef.current = nav;
+  }, [nav]);
+  useEffect(() => {
+    if (!isVisible) return;
+    return () => navRef.current?.unregisterSection?.(sectionKey);
+  }, [isVisible, sectionKey]);
+
+  if (!isVisible) return null;
 
   const showAddRow = isEmpty && editMode && !expandedWhileEmpty;
 

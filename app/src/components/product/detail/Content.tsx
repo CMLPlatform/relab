@@ -1,15 +1,18 @@
 import type { ComponentProps, RefObject } from 'react';
+import { useContext } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
 import { View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Section } from '@/components/base/Section';
+import { SectionNavContext } from '@/components/base/SectionNavContext';
 import ProductDelete from '@/components/product/ProductDelete';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
 import type { Product } from '@/types/Product';
 import type { SectionContext, SectionRenderProps } from './content-sections';
 import { guardedSections } from './content-sections';
 import { SpecHeader } from './SpecHeader';
+import { useAnchoredSectionNav } from './useAnchoredSectionNav';
 
 type ProductPageContentProps = {
   product: Product;
@@ -52,6 +55,13 @@ export function ProductPageContent({
   onProductDelete,
   onGoLivePress,
 }: ProductPageContentProps) {
+  const outerNav = useContext(SectionNavContext);
+  const {
+    value: anchoredNav,
+    onPageContainerLayout,
+    onSectionsWrapperLayout,
+  } = useAnchoredSectionNav(outerNav);
+
   const ctx: SectionContext = { mediaStreamable };
   const sectionProps: SectionRenderProps = {
     product,
@@ -86,21 +96,23 @@ export function ProductPageContent({
           onImagesChange={onImagesChange}
         />
       </PageContainer>
-      <PageContainer>
-        <View style={{ gap: 15 }}>
+      <PageContainer onLayout={onPageContainerLayout}>
+        <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
           <SpecHeader product={product} />
-          {guardedSections({ isNew, isProductComponent }).map((section) => (
-            <Section
-              key={section.key}
-              title={section.label}
-              sectionKey={section.key}
-              isEmpty={section.isEmpty(product, ctx)}
-              editMode={editMode}
-              addLabel={section.addLabel}
-            >
-              {section.render(sectionProps)}
-            </Section>
-          ))}
+          <SectionNavContext.Provider value={anchoredNav}>
+            {guardedSections({ isNew, isProductComponent }).map((section) => (
+              <Section
+                key={section.key}
+                title={section.label}
+                sectionKey={section.key}
+                isEmpty={section.isEmpty(product, ctx)}
+                editMode={editMode}
+                addLabel={section.addLabel}
+              >
+                {section.render(sectionProps)}
+              </Section>
+            ))}
+          </SectionNavContext.Provider>
           <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
         </View>
       </PageContainer>

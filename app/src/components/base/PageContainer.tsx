@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { View } from 'react-native';
+import { type LayoutChangeEvent, View } from 'react-native';
 
 /**
  * Adaptive page scaffold: centers content at a max width with gutters that
@@ -9,17 +9,24 @@ import { View } from 'react-native';
 export function PageContainer({
   children,
   fullBleed = false,
+  onLayout,
 }: {
   children: ReactNode;
   fullBleed?: boolean;
+  onLayout?: (event: LayoutChangeEvent) => void;
 }) {
   if (fullBleed) {
-    return <View className="w-full">{children}</View>;
+    return (
+      <View className="w-full" onLayout={onLayout}>
+        {children}
+      </View>
+    );
   }
   return (
     <View
       testID="page-container-constrained"
       className="w-full max-w-[1100px] self-center px-4 md:px-6 lg:px-8"
+      onLayout={onLayout}
     >
       {children}
     </View>

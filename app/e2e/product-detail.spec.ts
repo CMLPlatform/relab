@@ -81,6 +81,35 @@ test.describe('Product detail: navigation', () => {
   });
 });
 
+// ─── Section nav anchors ────────────────────────────────────────────────────
+// Regression net for the section-anchor coordinate bug: Section registered
+// its onLayout y relative to its parent View, not the scroll content, so
+// chip taps landed roughly one section short (missing the gallery height).
+test.describe('Product detail: section navigation', () => {
+  test('clicking the Physical properties chip scrolls that section to the top of the viewport', async ({
+    page,
+  }) => {
+    await reachProductsPage(page);
+    await openSeededProductFromProductsPage(page);
+
+    // Both seeded products have physical properties set, so the section (and
+    // its nav chip/outline entry) is visible in view mode without editing.
+    await page.getByRole('button', { name: 'Physical properties' }).click();
+
+    // The chip/outline entry and the Section heading share the same text; the
+    // Section heading is the last match in DOM order (nav renders first).
+    const heading = page.getByText('Physical properties', { exact: true }).last();
+    await expect(heading).toBeVisible({ timeout: 5_000 });
+    // Poll: scrollTo animates, so the heading needs a moment to settle near
+    // the viewport top. Pre-fix it landed ~a full section short (y >> 200).
+    await expect
+      .poll(async () => (await heading.boundingBox())?.y ?? Number.POSITIVE_INFINITY, {
+        timeout: 5_000,
+      })
+      .toBeLessThan(200);
+  });
+});
+
 // ─── Product creation flow ─────────────────────────────────────────────────────
 
 test.describe('Product creation', () => {
@@ -156,7 +185,9 @@ test.describe('Product creation', () => {
 // ─── Product detail edit mode ──────────────────────────────────────────────────
 
 test.describe('Product detail: edit mode', () => {
-  test('new product page opens in edit mode with all major sections', async ({ page }) => {
+  test('new product page opens in edit mode with required fields and collapsed optional sections', async ({
+    page,
+  }) => {
     await loginAndReachProducts(page);
     await openNewProductPage(page);
     await expect(page).toHaveURL(NEW_OR_PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });

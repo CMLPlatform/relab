@@ -4,6 +4,8 @@ export type SectionKey = 'overview' | 'components' | 'physical' | 'circularity' 
 
 export type SectionNavApi = {
   registerSection: (key: SectionKey, y: number) => void;
+  /** Drops a section from the registry — collapsed/unmounted sections can't activate scroll-spy. */
+  unregisterSection?: (key: SectionKey) => void;
   scrollTo: (key: SectionKey) => void;
   activeKey: SectionKey;
 };

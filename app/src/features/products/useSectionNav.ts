@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { SectionKey, SectionNavApi } from '@/components/base/SectionNavContext';
 
 const SCROLL_OFFSET = 8;
@@ -17,6 +17,10 @@ export function useSectionNav(
 
   const registerSection = useCallback((key: SectionKey, y: number) => {
     positionsRef.current.set(key, y);
+  }, []);
+
+  const unregisterSection = useCallback((key: SectionKey) => {
+    positionsRef.current.delete(key);
   }, []);
 
   const scrollTo = useCallback(
@@ -38,5 +42,8 @@ export function useSectionNav(
     if (best) setActiveKey((current) => (current === best.key ? current : best.key));
   }, []);
 
-  return { registerSection, scrollTo, onScrollSpy, activeKey };
+  return useMemo(
+    () => ({ registerSection, unregisterSection, scrollTo, onScrollSpy, activeKey }),
+    [registerSection, unregisterSection, scrollTo, onScrollSpy, activeKey],
+  );
 }
