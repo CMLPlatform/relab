@@ -4,13 +4,13 @@ High-level map of `app`.
 
 ## Stack
 
-- **Runtime:** Expo SDK 55, React 19, React Native 0.83, React Native Web.
+- **Runtime:** Expo SDK 57, React 19, React Native 0.86, React Native Web.
 - **Routing:** [Expo Router](https://docs.expo.dev/router/introduction/) (file-based, typed routes).
 - **Data fetching:** [TanStack Query](https://tanstack.com/query) against a
   FastAPI backend. Types are generated from the backend's OpenAPI schema.
 - **Client state:** React context + feature-local hooks/reducers.
 - **Forms:** React Hook Form + Zod resolvers.
-- **UI kit:** React Native Paper (Material 3 theming).
+- **UI kit:** NativeWind v5 + vendored react-native-reusables primitives in src/components/base/ (React Native Paper remains for legacy screens and is being phased out; do not add new Paper imports).
 - **Compiler:** React Compiler enabled via `babel-plugin-react-compiler`.
 
 ## Source layout
@@ -33,6 +33,8 @@ src/
 `base/` components are generic primitives; `common/` are app-wide composites;
 the rest are domain-scoped. Keep imports flowing inward (features may use
 `base`/`common`, not the reverse).
+
+`src/components/base/ui/` is vendored react-native-reusables output — regenerate via the RNR CLI rather than hand-refactoring.
 
 ## Routing
 
