@@ -27,6 +27,7 @@ test('renders name, identity line, and facts that exist', () => {
   expect(screen.getByText('Office chair')).toBeOnTheScreen();
   expect(screen.getByText(IDENTITY_PATTERN)).toBeOnTheScreen();
   expect(screen.getByText('12 kg')).toBeOnTheScreen();
+  expect(screen.getByText('80×90×70 cm')).toBeOnTheScreen();
   expect(screen.getByText('2')).toBeOnTheScreen();
 });
 
