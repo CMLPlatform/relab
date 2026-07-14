@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import { alpha } from './color';
 import type { AppScheme, AppTokens } from './types';
@@ -53,6 +54,19 @@ export function createTokens(scheme: AppScheme, colors: MD3Theme['colors']): App
       // Translucent panel behind auth controls: opaque enough to keep labels
       // legible over a photo while a hint of the image still shows through.
       card: alpha(colors.surface, 0.8),
+    },
+    spacing: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 },
+    type: {
+      display: { fontSize: 38, lineHeight: 44 },
+      title: { fontSize: 24, lineHeight: 30 },
+      body: { fontSize: 16, lineHeight: 26 },
+      label: { fontSize: 13, lineHeight: 18, letterSpacing: 1.3 },
+      data: {
+        fontSize: 14,
+        lineHeight: 20,
+        fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+        fontVariant: ['tabular-nums'] as const,
+      },
     },
   };
 }

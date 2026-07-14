@@ -13,6 +13,7 @@ import {
   MD3LightTheme,
   useTheme as usePaperTheme,
 } from 'react-native-paper';
+import { palette } from './palette.generated';
 import { createTokens } from './tokens';
 import type { AppScheme, AppTheme } from './types';
 
@@ -20,33 +21,40 @@ export function useAppTheme() {
   return usePaperTheme<AppTheme>();
 }
 
+/** '#1F4C96' -> 'rgb(31, 76, 150)' — matches the existing MD3 string format exactly. */
+function rgb(hex: string): string {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+}
+
 function createThemeColors(isDark: boolean, baseColors: typeof MD3LightTheme.colors) {
+  const p = isDark ? palette.dark : palette.light;
   return {
     ...baseColors,
-    primary: isDark ? 'rgb(143, 184, 255)' : 'rgb(31, 76, 150)',
-    onPrimary: isDark ? 'rgb(10, 31, 64)' : 'rgb(255, 255, 255)',
+    primary: rgb(p.primary),
+    onPrimary: rgb(p.primaryForeground),
     primaryContainer: isDark ? 'rgb(20, 53, 103)' : 'rgb(216, 226, 255)',
     onPrimaryContainer: isDark ? 'rgb(216, 226, 255)' : 'rgb(0, 26, 65)',
-    secondary: isDark ? 'rgb(190, 198, 220)' : 'rgb(86, 94, 113)',
-    onSecondary: isDark ? 'rgb(40, 49, 65)' : 'rgb(255, 255, 255)',
+    secondary: rgb(p.secondary),
+    onSecondary: rgb(p.secondaryForeground),
     secondaryContainer: isDark ? 'rgb(62, 71, 89)' : 'rgb(218, 226, 249)',
     onSecondaryContainer: isDark ? 'rgb(218, 226, 249)' : 'rgb(19, 28, 43)',
-    tertiary: isDark ? 'rgb(227, 185, 92)' : 'rgb(143, 98, 18)',
-    onTertiary: isDark ? 'rgb(63, 46, 0)' : 'rgb(255, 255, 255)',
+    tertiary: rgb(p.accent),
+    onTertiary: rgb(p.accentForeground),
     tertiaryContainer: isDark ? 'rgb(91, 67, 0)' : 'rgb(255, 223, 158)',
     onTertiaryContainer: isDark ? 'rgb(255, 223, 158)' : 'rgb(42, 31, 0)',
-    error: isDark ? 'rgb(255, 180, 171)' : 'rgb(186, 26, 26)',
-    onError: isDark ? 'rgb(105, 0, 5)' : 'rgb(255, 255, 255)',
+    error: rgb(p.destructive),
+    onError: rgb(p.destructiveForeground),
     errorContainer: isDark ? 'rgb(147, 0, 10)' : 'rgb(255, 218, 214)',
     onErrorContainer: isDark ? 'rgb(255, 180, 171)' : 'rgb(65, 0, 2)',
-    background: isDark ? 'rgb(17, 20, 29)' : 'rgb(250, 251, 254)',
-    onBackground: isDark ? 'rgb(226, 230, 238)' : 'rgb(22, 32, 46)',
-    surface: isDark ? 'rgb(17, 20, 29)' : 'rgb(250, 251, 254)',
-    onSurface: isDark ? 'rgb(226, 230, 238)' : 'rgb(22, 32, 46)',
+    background: rgb(p.background),
+    onBackground: rgb(p.foreground),
+    surface: rgb(p.background),
+    onSurface: rgb(p.foreground),
     surfaceVariant: isDark ? 'rgb(68, 71, 79)' : 'rgb(224, 226, 236)',
-    onSurfaceVariant: isDark ? 'rgb(196, 198, 208)' : 'rgb(68, 71, 79)',
-    outline: isDark ? 'rgb(142, 144, 153)' : 'rgb(116, 119, 127)',
-    outlineVariant: isDark ? 'rgb(68, 71, 79)' : 'rgb(196, 198, 208)',
+    onSurfaceVariant: rgb(p.mutedForeground),
+    outline: rgb(p.input),
+    outlineVariant: rgb(p.border),
     shadow: 'rgb(0, 0, 0)',
     scrim: 'rgb(0, 0, 0)',
     inverseSurface: isDark ? 'rgb(226, 230, 238)' : 'rgb(47, 48, 54)',

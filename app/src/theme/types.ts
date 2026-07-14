@@ -35,6 +35,19 @@ export type AppTokens = {
     accent: string;
     card: string;
   };
+  spacing: { xs: number; sm: number; md: number; lg: number; xl: number };
+  type: {
+    display: { fontSize: number; lineHeight: number };
+    title: { fontSize: number; lineHeight: number };
+    body: { fontSize: number; lineHeight: number };
+    label: { fontSize: number; lineHeight: number; letterSpacing: number };
+    data: {
+      fontSize: number;
+      lineHeight: number;
+      fontFamily: string;
+      fontVariant: readonly ['tabular-nums'];
+    };
+  };
 };
 
 export type AppTheme = MD3Theme & {
