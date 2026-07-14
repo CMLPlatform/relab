@@ -90,13 +90,16 @@ build-web:
     @printf '%s\n' {{ quote("Building Expo web for E2E with EXPO_PUBLIC_API_URL=" + e2e_api_url) }}
     EXPO_PUBLIC_API_URL={{ quote(e2e_api_url) }} pnpm run build:web
 
-# Run full-stack E2E tests (requires a prior `just build-web` and compose.e2e.yaml running)
-test-e2e:
+# The suite runs against the static export in dist/, so build-web is a dependency:
+# a stale build silently tests old code.
+#
+# Run full-stack E2E tests (rebuilds dist/; requires compose.e2e.yaml running)
+test-e2e: build-web
     pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
 
 # Run the full cross-browser E2E matrix. `playwright install` is idempotent (skips
 # present browsers); set INSTALL=force to also run the slow --with-deps apt step.
-test-e2e-cross-browser:
+test-e2e-cross-browser: build-web
     {{ if env("INSTALL", "") == "force" { "pnpm exec playwright install --with-deps" } else { "pnpm exec playwright install" } }}
     pnpm run test:e2e:cross-browser
 
