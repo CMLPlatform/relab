@@ -217,6 +217,16 @@ def build_set(spec: dict, colors: dict) -> dict[str, str]:
     return out
 
 
+def adaptive(svg: str) -> str:
+    """Favicon variant: a light-palette SVG that swaps to the dark palette in dark tabs."""
+    rules = "".join(
+        f'[fill="{LIGHT[k]}"]{{fill:{DARK[k]}}}[stroke="{LIGHT[k]}"]{{stroke:{DARK[k]}}}'
+        for k in ("nine", "letters", "muted")
+    )
+    style = f"<style>@media (prefers-color-scheme: dark){{{rules}}}</style>"
+    return svg.replace(">", f">{style}", 1)  # inject after the opening <svg> tag
+
+
 def og_svg(spec: dict, colors: dict) -> str:
     """Build a 1200x630 social card: centred wordmark over the tagline."""
     nine = load_glyphs(FONTS / spec["nine_font"])
@@ -254,6 +264,7 @@ def og_svg(spec: dict, colors: dict) -> str:
 PROMOTION = {
     "mark.svg": "r9lab-mark.svg",
     "mark-dark.svg": "r9lab-mark-dark.svg",
+    "mark-adaptive.svg": "r9lab-mark-adaptive.svg",
     "wordmark.svg": "r9lab-wordmark.svg",
     "wordmark-dark.svg": "r9lab-wordmark-dark.svg",
     "logo.svg": "r9lab-logo.svg",
@@ -278,6 +289,7 @@ def main() -> None:
             for variant, svg in build_set(spec, colors).items():
                 (outdir / f"{variant}{suffix}.svg").write_text(svg)
             (outdir / f"og{suffix}.svg").write_text(og_svg(spec, colors))
+        (outdir / "mark-adaptive.svg").write_text(adaptive((outdir / "mark.svg").read_text()))
         sys.stdout.write(f"generated candidates/{name}/\n")
 
     if args.promote:
