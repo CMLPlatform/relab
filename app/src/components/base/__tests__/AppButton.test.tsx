@@ -18,3 +18,15 @@ test('loading disables the button and blocks presses', () => {
   fireEvent.press(screen.getByText('Save'));
   expect(onPress).not.toHaveBeenCalled();
 });
+
+test('primary variant label uses the primary-foreground text color', () => {
+  render(<AppButton variant="primary">Save</AppButton>);
+  expect(screen.getByText('Save').props.className).toEqual(
+    expect.stringContaining('text-primary-foreground'),
+  );
+});
+
+test('destructive variant label uses the white text color', () => {
+  render(<AppButton variant="destructive">Delete</AppButton>);
+  expect(screen.getByText('Delete').props.className).toEqual(expect.stringContaining('text-white'));
+});
