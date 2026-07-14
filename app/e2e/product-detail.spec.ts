@@ -29,9 +29,12 @@ const PRODUCTS_LIST_URL_PATTERN = /\/products$|\/products\?/;
 // The header back affordance is a Pressable (accessibilityRole="button", label "Go back"),
 // not a link — see HeaderBackButton.
 const BACK_CONTROL_NAME_PATTERN = /back/i;
-// Matches the section header only; a plain substring also matches the
-// "No associated circularity properties." empty-state summary.
-const CIRCULARITY_HEADER_PATTERN = /^Circularity Properties/;
+// Empty optional sections collapse to a single "Add …" row in edit mode
+// (Section.tsx showAddRow); pressing it reveals the real fields.
+const ADD_DESCRIPTION_LABEL = 'Add a description';
+const ADD_PHYSICAL_PROPERTIES_LABEL = 'Add physical properties';
+const ADD_CIRCULARITY_NOTES_LABEL = 'Add circularity notes';
+const DESCRIPTION_PLACEHOLDER = 'Add a product description';
 
 async function fillProductName(page: import('@playwright/test').Page, name: string): Promise<void> {
   const nameInput = page.getByRole('textbox', { name: 'Product name' });
@@ -44,6 +47,7 @@ async function fillRequiredProductFields(
   name: string,
 ): Promise<void> {
   await fillProductName(page, name);
+  await page.getByRole('button', { name: ADD_PHYSICAL_PROPERTIES_LABEL }).click();
   const weightInput = page.getByPlaceholder('> 0').first();
   await weightInput.fill('42');
   await weightInput.blur();
@@ -157,16 +161,25 @@ test.describe('Product detail: edit mode', () => {
     await openNewProductPage(page);
     await expect(page).toHaveURL(NEW_OR_PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
 
-    // Key sections that should be visible in edit mode
-    await expect(page.getByPlaceholder('Add a product description')).toBeVisible({
-      timeout: 10_000,
-    });
-    await expect(page.getByText('Physical Properties')).toBeVisible({
+    // A fresh draft's optional sections are all empty, so they collapse to a
+    // single "Add …" row (Section.tsx showAddRow) instead of their full
+    // content. Assert the row for Overview, then press it to prove it
+    // actually reveals the description field.
+    const addDescriptionRow = page.getByRole('button', { name: ADD_DESCRIPTION_LABEL });
+    await expect(addDescriptionRow).toBeVisible({ timeout: 10_000 });
+    await addDescriptionRow.click();
+    await expect(page.getByPlaceholder(DESCRIPTION_PLACEHOLDER)).toBeVisible({
       timeout: 5_000,
     });
-    await expect(page.getByText(CIRCULARITY_HEADER_PATTERN)).toBeVisible({
+
+    // Other empty sections stay collapsed but present.
+    await expect(page.getByRole('button', { name: ADD_PHYSICAL_PROPERTIES_LABEL })).toBeVisible({
       timeout: 5_000,
     });
+    await expect(page.getByRole('button', { name: ADD_CIRCULARITY_NOTES_LABEL })).toBeVisible({
+      timeout: 5_000,
+    });
+    // Metadata is never empty, so it always renders in full.
     await expect(page.getByText('Metadata')).toBeVisible({ timeout: 5_000 });
   });
 
@@ -174,11 +187,13 @@ test.describe('Product detail: edit mode', () => {
     await loginAndReachProducts(page);
     await openNewProductPage(page);
     await expect(page).toHaveURL(NEW_OR_PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
-    await expect(page.getByPlaceholder('Add a product description')).toBeVisible({
-      timeout: 10_000,
-    });
+    // Overview is empty on a fresh draft, so the description field sits
+    // behind the "Add a description" row until pressed.
+    await page.getByRole('button', { name: ADD_DESCRIPTION_LABEL }).click();
+    const descriptionInput = page.getByPlaceholder(DESCRIPTION_PLACEHOLDER);
+    await expect(descriptionInput).toBeVisible({ timeout: 10_000 });
     // Make the form dirty so the unsaved-changes guard fires (form starts pristine after creation)
-    await page.getByPlaceholder('Add a product description').fill('test description');
+    await descriptionInput.fill('test description');
 
     // Attempt to leave via the in-app header back control; the unsaved-changes guard should intercept.
     await page.getByRole('button', { name: BACK_CONTROL_NAME_PATTERN }).click();

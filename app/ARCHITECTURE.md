@@ -43,6 +43,10 @@ the URL. Layouts (`_layout.tsx`) wrap their siblings. Typed routes are on, so
 links are type-checked against the file tree. Routes for auth, cameras,
 products, profile, users live directly under `src/app/`.
 
+Detail screens are anchored-scroll documents: sections self-register with
+SectionNavContext; chips (phone) / outline (lg web) navigate via
+useSectionNav.
+
 ## Data flow
 
 1. Runtime API helpers call the backend at `$EXPO_PUBLIC_API_URL`, appending `/v1` for application routes.
