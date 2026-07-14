@@ -47,6 +47,10 @@ Detail screens are anchored-scroll documents: sections self-register with
 SectionNavContext; chips (phone) / outline (lg web) navigate via
 useSectionNav.
 
+Creation is capture-first: /products/new and components/new render
+CaptureScreen (photos/name/type), POST immediately, then land on the detail
+screen in edit mode.
+
 ## Data flow
 
 1. Runtime API helpers call the backend at `$EXPO_PUBLIC_API_URL`, appending `/v1` for application routes.
