@@ -1,0 +1,11 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";
+
+@source "./src";
+
+@theme {
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+}

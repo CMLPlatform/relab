@@ -24,6 +24,9 @@ const base = {
     ...expoPreset.moduleNameMapper,
     '^@/(.*)$': '<rootDir>/src/$1',
     '^msw/node$': '<rootDir>/node_modules/msw/lib/node/index.js',
+    // Jest has no CSS loader; NativeWind applies global.css via Metro/Babel at
+    // build time, not in tests, so map .css imports to a no-op stub.
+    '\\.css$': '<rootDir>/config/cssMock.js',
   },
 };
 

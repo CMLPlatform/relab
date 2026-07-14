@@ -87,6 +87,16 @@
           }
         }
       }
+    },
+    {
+      // NativeWind's global.css uses Tailwind CSS v4 at-rules (@source, @theme)
+      // that Biome's CSS parser rejects unless explicitly enabled.
+      "includes": ["global.css"],
+      "css": {
+        "parser": {
+          "tailwindDirectives": true
+        }
+      }
     }
   ]
 }

@@ -1,3 +1,6 @@
+// biome-ignore lint/style/noRestrictedImports: global.css lives at the app root (outside src/), so it has no '@/' alias path.
+import '../../global.css';
+
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
