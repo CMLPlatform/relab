@@ -73,7 +73,7 @@ const mockedTakePending = jest.mocked(takePendingTypeSelection);
 // leave a pending act() warning from the async setSelectedType update.
 async function renderCapture(props: Parameters<typeof CaptureScreen>[0]) {
   const result = renderWithProviders(<CaptureScreen {...props} />, { withDialog: true });
-  await screen.findByText('All categories');
+  await screen.findByText('Choose a type or material');
   return result;
 }
 
@@ -204,6 +204,21 @@ describe('CaptureScreen', () => {
       'maxLength',
       PRODUCT_NAME_MAX_LENGTH,
     );
+  });
+
+  it('shows an inviting empty state instead of the undefined category card when no type is picked', async () => {
+    await renderCapture({ entityRole: 'product' });
+
+    expect(screen.getByText('Choose a type or material')).toBeOnTheScreen();
+    expect(screen.queryByText('Category undefined')).toBeNull();
+  });
+
+  it('navigates to category selection when the empty-state row is pressed', async () => {
+    await renderCapture({ entityRole: 'product' });
+
+    fireEvent.press(screen.getByText('Choose a type or material'));
+
+    expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
 
   it('confirms discard when leaving the screen with unsaved changes', async () => {

@@ -68,7 +68,16 @@ function CaptureTypeRow({
       <AppText variant="label" className="uppercase opacity-60">
         Type or material
       </AppText>
-      {selectedType ? (
+      {typeID === undefined ? (
+        <AppButton
+          variant="outline"
+          className="w-full"
+          accessibilityLabel="Choose a type or material"
+          onPress={() => router.push('/category-selection')}
+        >
+          Choose a type or material
+        </AppButton>
+      ) : selectedType ? (
         <CPVCard CPV={selectedType} onPress={() => router.push('/category-selection')} />
       ) : null}
     </View>
