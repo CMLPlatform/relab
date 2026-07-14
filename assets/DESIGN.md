@@ -55,6 +55,30 @@ and stay as defined in `app/src/theme/tokens.ts`. `info` and `link` blues sit
 near the new primary by design — blue-primary apps read links as primary
 actions.
 
+### Diagram & chart palette
+
+Categorical ramp for mermaid diagrams (`docs/src/content/docs/architecture/`),
+the www stats chart, and future app charts. Blue and manila come straight from
+the brand; verdigris and copper are borrowed from the alternative direction
+below; violet, rose, and slate round out the seven roles the diagrams need.
+The same category always wears the same hue across diagrams.
+
+| Hue             | Fill      | Stroke    | Text      |
+| --------------- | --------- | --------- | --------- |
+| Blue (primary)  | `#E3ECFA` | `#1F4C96` | `#143567` |
+| Manila          | `#F7ECD4` | `#8F6212` | `#5C3F0A` |
+| Verdigris       | `#E0F2ED` | `#0E6B5E` | `#0A4F45` |
+| Copper          | `#F9E7DE` | `#A8542F` | `#6E371F` |
+| Violet          | `#EDE6F7` | `#6D4FA3` | `#44337A` |
+| Rose            | `#FAE4EC` | `#B0316E` | `#6E2048` |
+| Slate (neutral) | `#F1F4F8` | `#5A6675` | `#16202E` |
+
+Solid single-hue marks (the www activity bars) use the primary brightened into
+the data-viz band — `light-dark(#2f6bc7, #6fa8ff)` — because the brand blues
+are tuned for text/links, not large fills. If the palette direction ever
+changes, this table and `--color-chart-mark` in `www/src/styles/tokens.css`
+are the only places to update.
+
 ## Logo
 
 The mark is a **font-derived 9, vertically squished** so it reads as a loop
@@ -75,38 +99,6 @@ artwork itself. Never "R-nine-lab".
 
 Circularity framing, lab vernacular (products, components, materials,
 samples); never "reverse engineering" in new copy.
-
-## Roadmap — aligning the rest of the repo
-
-Ordered by impact; each is an independent piece of work.
-
-1. **Use the display and mono faces.** Plex Serif/Mono ship to docs/www but no
-   stylesheet sets `--relab-brand-font-display` (headings) or
-   `--relab-brand-font-mono` (IDs, measurements, code chips) yet. This is the
-   visible half of the type system.
-1. **Diagram & chart palette.** Derive a categorical ramp from the palette
-   (blue, manila, plus 2–3 companions) for mermaid diagrams
-   (`docs/.../datamodel.mdx` still uses teal `classDef`s), the www stats panel,
-   and future app charts; keep ≥3:1 contrast on data marks.
-1. **App type scale.** The app keeps system fonts, but the react-native-paper
-   `fonts` config still uses Paper defaults — adopt the weight/size scale
-   above, with `tabular-nums` where digits align.
-1. **Theme-adaptive favicon.** `favicon.svg` can carry an internal
-   `prefers-color-scheme` style so the tab mark swaps light/dark; the
-   generator can emit this variant.
-1. **Email dark mode.** Templates are light-only; add the dark-mode meta tags
-   and a `prefers-color-scheme` block in MJML.
-1. **Semantic blues in the app.** `SEMANTIC_COLORS.info`/`link` now sit near
-   primary; either accept (blue-primary apps read links as primary actions —
-   current stance) or shift info to a distinct hue.
-1. **Candidate decision.** Pick the final 9 font (Varela/Petrona/Titillium),
-   promote it, and delete the losing candidate sets.
-1. **Name migration.** The later "Relab" copy rename (`siteMeta`, README
-   title, app `name`) — out of scope until the rebrand lands publicly.
-
-The standalone docs API-reference page and the www theme-color script both
-derive their brand values from the synced brand.css (build-time inline and a
-unit-test pin respectively) — no hand-kept copies remain.
 
 ## Alternative direction — Verdigris & Copper
 
