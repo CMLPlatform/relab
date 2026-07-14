@@ -99,7 +99,8 @@ export async function openNewProductPage(page: Page) {
   await expect(page).toHaveURL(NEW_PRODUCT_URL_PATTERN, {
     timeout: 10_000,
   });
-  await expect(page.getByRole('textbox', { name: 'Product name' })).toBeVisible({
+  // Capture-first creation screen: a bare Name field, not the old full form.
+  await expect(page.getByRole('textbox', { name: 'Name' })).toBeVisible({
     timeout: 10_000,
   });
 }

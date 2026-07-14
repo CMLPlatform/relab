@@ -1,8 +1,9 @@
 /**
  * Product detail page E2E tests.
  *
- * Covers: creating a new product via the FAB dialog, verifying the detail
- * page loads in edit mode, editing fields, and the unsaved-changes guard.
+ * Covers: creating a new product via capture-first creation (name → Create),
+ * verifying the detail page loads in edit mode, editing fields, and the
+ * unsaved-changes guard.
  *
  * The test user (e2e-admin) is a verified superuser, so the "Create New
  * Product" dialog is always accessible without the email-verification gate.
@@ -19,11 +20,6 @@ import {
 test.setTimeout(60_000);
 
 const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
-const NEW_OR_PRODUCT_DETAIL_URL_PATTERN = /products\/(new|\d+)/;
-const NEW_PRODUCT_URL_PATTERN = /products\/new/;
-// A fresh/short-named draft has exactly one validation error (the name); the
-// save FAB then relabels to the error-count affordance.
-const ATTENTION_FAB_LABEL = '1 field needs attention';
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const PRODUCTS_LIST_URL_PATTERN = /\/products$|\/products\?/;
 // The header back affordance is a Pressable (accessibilityRole="button", label "Go back"),
@@ -36,17 +32,26 @@ const ADD_PHYSICAL_PROPERTIES_LABEL = 'Add physical properties';
 const ADD_CIRCULARITY_NOTES_LABEL = 'Add circularity notes';
 const DESCRIPTION_PLACEHOLDER = 'Add a product description';
 
-async function fillProductName(page: import('@playwright/test').Page, name: string): Promise<void> {
-  const nameInput = page.getByRole('textbox', { name: 'Product name' });
-  await nameInput.fill(name);
-  await nameInput.blur();
+// Stage 1 of capture-first creation: fill the name on the capture screen and
+// press Create. The backend saves immediately and the app redirects to the
+// new product's detail page in edit mode (?edit=1) — granular capture-form
+// validation (short names, Create disabled/enabled) is unit-tested on
+// CaptureScreen itself; this only proves the real navigation round-trip.
+async function createProduct(page: import('@playwright/test').Page, name: string): Promise<void> {
+  await openNewProductPage(page);
+  await page.getByRole('textbox', { name: 'Name' }).fill(name);
+  await page.getByRole('button', { name: 'Create product' }).click();
+  await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
 }
 
+// Stage 2: detail-in-edit. The product already exists at this point, so this
+// is an ordinary existing-record edit — same "Add …" row pattern as any other
+// empty section (see the 2a add-row coverage below).
 async function fillRequiredProductFields(
   page: import('@playwright/test').Page,
   name: string,
 ): Promise<void> {
-  await fillProductName(page, name);
+  await createProduct(page, name);
   await page.getByRole('button', { name: ADD_PHYSICAL_PROPERTIES_LABEL }).click();
   const weightInput = page.getByPlaceholder('> 0').first();
   await weightInput.fill('42');
@@ -54,7 +59,6 @@ async function fillRequiredProductFields(
 }
 
 async function saveNewProduct(page: import('@playwright/test').Page, name: string): Promise<void> {
-  await openNewProductPage(page);
   await fillRequiredProductFields(page, name);
   await expect(page.getByRole('button', { name: 'Save Product' })).toBeEnabled({
     timeout: 5_000,
@@ -111,67 +115,35 @@ test.describe('Product detail: section navigation', () => {
 });
 
 // ─── Product creation flow ─────────────────────────────────────────────────────
+// Capture-form-level validation (short names, Create disabled/enabled, 100-char
+// behavior — the capture Input has no cap, unlike the old full-form field) is
+// unit-tested on CaptureScreen; these only prove the real capture → detail
+// round-trip through the app and backend.
 
 test.describe('Product creation', () => {
-  test('FAB opens the new product page in edit mode', { tag: ['@cross-browser', '@auth'] }, async ({
-    page,
-  }) => {
-    await loginAndReachProducts(page);
-    await openNewProductPage(page);
-    await expect(page.getByRole('textbox', { name: 'Product name' })).toBeVisible();
-    // Until the name meets the 2-character minimum the save FAB is replaced by an
-    // enabled error-count affordance (only the name fails on a fresh draft), so
-    // saving is not possible: no "Save Product" button exists yet.
-    await expect(page.getByRole('button', { name: ATTENTION_FAB_LABEL })).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Save Product' })).toHaveCount(0);
-  });
-
-  test('saving is not possible for names shorter than 2 characters', async ({ page }) => {
-    await loginAndReachProducts(page);
-    await openNewProductPage(page);
-    await fillProductName(page, 'x');
-    const attentionFab = page.getByRole('button', { name: ATTENTION_FAB_LABEL });
-    await expect(attentionFab).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Save Product' })).toHaveCount(0);
-    // Pressing the FAB scrolls to the first error instead of saving: we stay on
-    // the new-product draft page.
-    await attentionFab.click();
-    await expect(page).toHaveURL(NEW_PRODUCT_URL_PATTERN);
-    await expect(page.getByRole('button', { name: 'Save Product' })).toHaveCount(0);
-  });
-
-  test('Product name input caps names at 100 characters', async ({ page }) => {
-    await loginAndReachProducts(page);
-    await openNewProductPage(page);
-    const nameInput = page.getByRole('textbox', { name: 'Product name' });
-    await nameInput.fill('x'.repeat(101));
-    await expect(nameInput).toHaveValue('x'.repeat(100));
-  });
-
-  test('Save button becomes enabled after required fields are valid', async ({ page }) => {
-    await loginAndReachProducts(page);
-    await openNewProductPage(page);
-    await fillRequiredProductFields(page, 'My Test Product');
-    await expect(page.getByRole('button', { name: 'Save Product' })).toBeEnabled({
-      timeout: 2_000,
-    });
-  });
-
-  test('saving the new product navigates to the created product detail page', async ({ page }) => {
+  test('creating a product via capture lands on its saved detail page in edit mode', {
+    tag: ['@cross-browser', '@auth'],
+  }, async ({ page }) => {
     await loginAndReachProducts(page);
     const productName = `E2E Test ${Date.now()}`;
-    await saveNewProduct(page, productName);
+    await createProduct(page, productName);
 
-    await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
-    await expect(page.getByRole('heading', { name: productName })).toBeVisible({
+    // In edit mode the header *is* the name field (a textbox), not a
+    // static heading — see productPageHelpers.tsx's useProductPageHeader.
+    await expect(page.getByRole('textbox', { name: 'Product name' })).toHaveValue(productName, {
       timeout: 10_000,
     });
+    await expect(page.getByRole('button', { name: 'Save Product' })).toBeVisible();
   });
 
-  test('discarding the new draft returns to the products page', async ({ page }) => {
+  test('discarding the capture draft returns to the products page', async ({ page }) => {
     await loginAndReachProducts(page);
     await openNewProductPage(page);
-    await page.getByRole('button', { name: BACK_CONTROL_NAME_PATTERN }).click();
+    await page.getByRole('textbox', { name: 'Name' }).fill('Discard me');
+    // Unlike the detail screen (a custom Pressable back button), the capture
+    // screen uses expo-router's default web back control, which renders as a
+    // link rather than a button.
+    await page.getByRole('link', { name: BACK_CONTROL_NAME_PATTERN }).click();
     await expect(page.getByText('Discard changes?')).toBeVisible({
       timeout: 10_000,
     });
@@ -180,19 +152,32 @@ test.describe('Product creation', () => {
       timeout: 10_000,
     });
   });
-});
 
-// ─── Product detail edit mode ──────────────────────────────────────────────────
-
-test.describe('Product detail: edit mode', () => {
-  test('new product page opens in edit mode with required fields and collapsed optional sections', async ({
+  test('saving physical properties on a freshly created product persists them', async ({
     page,
   }) => {
     await loginAndReachProducts(page);
-    await openNewProductPage(page);
-    await expect(page).toHaveURL(NEW_OR_PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
+    await saveNewProduct(page, `E2E Test ${Date.now()}`);
 
-    // A fresh draft's optional sections are all empty, so they collapse to a
+    await expect(page.getByRole('button', { name: 'Physical properties' })).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+});
+
+// ─── Product detail edit mode ──────────────────────────────────────────────────
+// Carried over from 2a-T7 almost verbatim: once a product exists (whether just
+// created via capture or opened from the list) its detail-in-edit behavior —
+// collapsed "Add …" rows, the unsaved-changes guard — is identical.
+
+test.describe('Product detail: edit mode', () => {
+  test('a freshly created product opens in edit mode with collapsed optional sections', async ({
+    page,
+  }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Test ${Date.now()}`);
+
+    // A fresh product's optional sections are all empty, so they collapse to a
     // single "Add …" row (Section.tsx showAddRow) instead of their full
     // content. Assert the row for Overview, then press it to prove it
     // actually reveals the description field.
@@ -216,9 +201,9 @@ test.describe('Product detail: edit mode', () => {
 
   test('unsaved-changes guard blocks navigation mid-edit', async ({ page }) => {
     await loginAndReachProducts(page);
-    await openNewProductPage(page);
-    await expect(page).toHaveURL(NEW_OR_PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
-    // Overview is empty on a fresh draft, so the description field sits
+    await createProduct(page, `E2E Test ${Date.now()}`);
+
+    // Overview is empty on a fresh product, so the description field sits
     // behind the "Add a description" row until pressed.
     await page.getByRole('button', { name: ADD_DESCRIPTION_LABEL }).click();
     const descriptionInput = page.getByPlaceholder(DESCRIPTION_PLACEHOLDER);
@@ -237,6 +222,6 @@ test.describe('Product detail: edit mode', () => {
     // Choose "Don't leave"; stays on the product page
     await page.getByRole('button', { name: "Don't leave" }).click();
     await expect(page.getByText('Discard changes?')).not.toBeVisible();
-    await expect(page).toHaveURL(NEW_OR_PRODUCT_DETAIL_URL_PATTERN);
+    await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN);
   });
 });
