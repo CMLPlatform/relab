@@ -10,10 +10,12 @@ import { PageContainer } from '@/components/base/PageContainer';
 import { Input } from '@/components/base/ui/input';
 import CPVCard from '@/components/product/CPVCard';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
+import { useAuth } from '@/context/auth';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { baseProductQueryOptions, componentQueryOptions } from '@/features/products/queries';
 import { useCaptureEntity } from '@/features/products/useCaptureEntity';
 import { newProduct } from '@/services/api/products';
+import { PRODUCT_NAME_MAX_LENGTH } from '@/services/api/validation/productSchema';
 import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
 
@@ -82,6 +84,14 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
   const router = useRouter();
   const navigation = useNavigation();
   const dialog = useDialog();
+  const { user } = useAuth();
+
+  // Creation needs an account; mirror the old isNew hydration's guest redirect
+  // so a logged-out user doesn't fill the form only to hit a dead Create.
+  useEffect(() => {
+    if (!user) router.replace({ pathname: '/login', params: { redirectTo: '/products' } });
+  }, [user, router]);
+
   const {
     name,
     setName,
@@ -174,6 +184,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
             value={name}
             onChangeText={setName}
             autoFocus
+            maxLength={PRODUCT_NAME_MAX_LENGTH}
             placeholder="e.g. Cordless drill"
             accessibilityLabel="Name"
             onSubmitEditing={() => {

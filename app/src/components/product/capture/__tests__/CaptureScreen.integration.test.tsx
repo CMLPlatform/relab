@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { CaptureScreen } from '@/components/product/capture/CaptureScreen';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
+import { PRODUCT_NAME_MAX_LENGTH } from '@/services/api/validation/productSchema';
 import { loadCPV } from '@/services/cpv';
 import { renderWithProviders } from '@/test-utils/index';
 
@@ -31,6 +32,11 @@ jest.mock('expo-router', () => ({
 }));
 
 const mockMutateAsync = jest.fn<() => Promise<number>>();
+const mockUseAuth = jest.fn();
+
+jest.mock('@/context/auth', () => ({
+  useAuth: () => mockUseAuth(),
+}));
 
 jest.mock('@/features/products/queries', () => ({
   useSaveProductMutation: () => ({ mutateAsync: mockMutateAsync, isPending: false }),
@@ -75,6 +81,7 @@ describe('CaptureScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockAddListenerImpl = () => jest.fn();
+    mockUseAuth.mockReturnValue({ user: { id: '1', username: 'owner' } });
     mockedLoadCPV.mockResolvedValue({
       root: {
         id: 0,
@@ -175,6 +182,28 @@ describe('CaptureScreen', () => {
 
     expect(mockReplace).not.toHaveBeenCalled();
     expect(screen.getByPlaceholderText(NAME_PLACEHOLDER).props.value).toBe('Widget');
+  });
+
+  it('redirects unauthenticated users to login', async () => {
+    mockUseAuth.mockReturnValue({ user: undefined });
+
+    renderWithProviders(<CaptureScreen entityRole="product" />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith({
+        pathname: '/login',
+        params: { redirectTo: '/products' },
+      });
+    });
+  });
+
+  it('caps the name input at the product name maximum', async () => {
+    await renderCapture({ entityRole: 'product' });
+
+    expect(screen.getByPlaceholderText(NAME_PLACEHOLDER)).toHaveProp(
+      'maxLength',
+      PRODUCT_NAME_MAX_LENGTH,
+    );
   });
 
   it('confirms discard when leaving the screen with unsaved changes', async () => {
