@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import type { ReactNode } from 'react';
 import { CaptureScreen } from '@/components/product/capture/CaptureScreen';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { PRODUCT_NAME_MAX_LENGTH } from '@/services/api/validation/productSchema';
@@ -52,6 +53,20 @@ jest.mock('@/features/products/queries', () => ({
   }),
 }));
 
+jest.mock('react-native-keyboard-controller', () => {
+  const mockReact = jest.requireActual<typeof import('react')>('react');
+  const { ScrollView } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    KeyboardAwareScrollView: ({
+      children,
+      ...props
+    }: {
+      children?: ReactNode;
+      [key: string]: unknown;
+    }) => mockReact.createElement(ScrollView, props, children),
+  };
+});
+
 jest.mock('@/components/product/ProductImageGallery', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -103,6 +118,13 @@ describe('CaptureScreen', () => {
     expect(screen.getByText('Create product')).toBeOnTheScreen();
     expect(screen.queryByText('Physical properties')).toBeNull();
     expect(screen.queryByText('Component of:', { exact: false })).toBeNull();
+  });
+
+  it('renders the body inside a scrollable container, so Create stays reachable behind the keyboard', async () => {
+    await renderCapture({ entityRole: 'product' });
+
+    expect(screen.getByTestId('capture-scroll')).toBeOnTheScreen();
+    expect(screen.getByText('Create product')).toBeOnTheScreen();
   });
 
   it('enables Create once a valid name is entered', async () => {

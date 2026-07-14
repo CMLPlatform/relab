@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Stack, useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { AmountStepper } from '@/components/base/AmountStepper';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
@@ -181,68 +182,74 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
   };
 
   return (
-    <PageContainer>
-      <Stack.Screen options={{ title: role === 'component' ? 'New component' : 'New product' }} />
-      <ProductImageGallery product={draftProduct} editMode onImagesChange={setImages} />
-      <View className="gap-4">
-        <View>
-          <AppText variant="label" className="uppercase opacity-60">
-            Name
-          </AppText>
-          <Input
-            value={name}
-            onChangeText={setName}
-            autoFocus
-            maxLength={PRODUCT_NAME_MAX_LENGTH}
-            placeholder="e.g. Cordless drill"
-            accessibilityLabel="Name"
-            onSubmitEditing={() => {
-              if (canCreate) void handleCreate();
-            }}
-          />
-        </View>
+    <KeyboardAwareScrollView
+      testID="capture-scroll"
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ paddingBottom: 32 }}
+    >
+      <PageContainer>
+        <Stack.Screen options={{ title: role === 'component' ? 'New component' : 'New product' }} />
+        <ProductImageGallery product={draftProduct} editMode onImagesChange={setImages} />
+        <View className="gap-4">
+          <View>
+            <AppText variant="label" className="uppercase opacity-60">
+              Name
+            </AppText>
+            <Input
+              value={name}
+              onChangeText={setName}
+              autoFocus
+              maxLength={PRODUCT_NAME_MAX_LENGTH}
+              placeholder="e.g. Cordless drill"
+              accessibilityLabel="Name"
+              onSubmitEditing={() => {
+                if (canCreate) void handleCreate();
+              }}
+            />
+          </View>
 
-        <CaptureTypeRow typeID={typeID} onTypeChange={setTypeID} />
+          <CaptureTypeRow typeID={typeID} onTypeChange={setTypeID} />
 
-        {role === 'component' ? (
-          <>
-            {parentQuery.data ? <AppText>Component of: {parentQuery.data.name}</AppText> : null}
-            <AmountStepper value={amount} onChange={setAmount} label="Amount in parent" />
-          </>
-        ) : null}
-
-        <View className="flex-row gap-3">
           {role === 'component' ? (
             <>
+              {parentQuery.data ? <AppText>Component of: {parentQuery.data.name}</AppText> : null}
+              <AmountStepper value={amount} onChange={setAmount} label="Amount in parent" />
+            </>
+          ) : null}
+
+          <View className="flex-row gap-3">
+            {role === 'component' ? (
+              <>
+                <AppButton
+                  variant="primary"
+                  disabled={!canCreate}
+                  loading={isCreating}
+                  onPress={handleCreate}
+                >
+                  Create component
+                </AppButton>
+                <AppButton
+                  variant="outline"
+                  disabled={!canCreate}
+                  loading={isCreating}
+                  onPress={handleCreateAndAddAnother}
+                >
+                  Create & add another
+                </AppButton>
+              </>
+            ) : (
               <AppButton
                 variant="primary"
                 disabled={!canCreate}
                 loading={isCreating}
                 onPress={handleCreate}
               >
-                Create component
+                Create product
               </AppButton>
-              <AppButton
-                variant="outline"
-                disabled={!canCreate}
-                loading={isCreating}
-                onPress={handleCreateAndAddAnother}
-              >
-                Create & add another
-              </AppButton>
-            </>
-          ) : (
-            <AppButton
-              variant="primary"
-              disabled={!canCreate}
-              loading={isCreating}
-              onPress={handleCreate}
-            >
-              Create product
-            </AppButton>
-          )}
+            )}
+          </View>
         </View>
-      </View>
-    </PageContainer>
+      </PageContainer>
+    </KeyboardAwareScrollView>
   );
 }
