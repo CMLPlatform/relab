@@ -22,7 +22,7 @@ import { useAuth } from '@/context/auth';
 import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
-import { useEffectiveColorScheme } from '@/context/themeMode';
+import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMode';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 import { useBackgroundOverlayColor } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
@@ -227,10 +227,12 @@ const { LightTheme, DarkTheme } = createNavigationThemes();
 /** Inner providers that depend on the resolved theme mode. */
 function ThemedProviders({ children }: { children: ReactNode }) {
   const colorScheme = useEffectiveColorScheme();
+  const systemColorScheme = useSystemColorScheme();
   const theme = getAppTheme(colorScheme);
 
   // Keep NativeWind's (react-native-css) color scheme in sync with the app's own
   // theme mode so `.dark:root` CSS variables (Task 2) apply to RNR components.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: systemColorScheme is unused in the body on purpose — see the dep array comment below.
   useEffect(() => {
     if (Platform.OS === 'web') {
       // react-native-css's setter routes through Appearance.setColorScheme,
@@ -239,8 +241,12 @@ function ThemedProviders({ children }: { children: ReactNode }) {
       document.documentElement.dataset.theme = colorScheme;
       return;
     }
+    // react-native-css@3.0.7 also wires an Appearance listener that writes this
+    // same colorScheme observable, so an OS scheme flip can silently overwrite a
+    // user-forced theme after this effect last ran. Re-run on system changes too
+    // (not just `colorScheme`) so a forced theme gets re-asserted afterwards.
     nativewindColorScheme.set(colorScheme);
-  }, [colorScheme]);
+  }, [colorScheme, systemColorScheme]);
 
   return (
     <PaperProvider theme={theme} settings={PAPER_SETTINGS}>

@@ -11,6 +11,18 @@
   --breakpoint-lg: 1024px;
 }
 
+/*
+ * Phase-2 items before any screen consumes components/base/ui on web:
+ * 1. `dark:` utilities currently compile to `prefers-color-scheme` media
+ *    queries — they follow the OS, not the app's theme toggle. Add
+ *    `@custom-variant dark (&:where(.dark, .dark *));` here when ui/*
+ *    components first render on web so they follow .dark like the
+ *    CSS variables already do.
+ * 2. Native: react-native-css also feeds its colorScheme from an
+ *    Appearance listener; the _layout sync effect re-asserts on system
+ *    scheme changes to avoid being overwritten (see _layout.tsx).
+ */
+
 /* Vendored RNR components (dropdown-menu) expect a "popover" surface; brand.generated.css
  * (Task 2) has no separate popover token, so alias it to the existing card surface here
  * rather than editing the generated file. */
