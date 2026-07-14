@@ -8,6 +8,7 @@ import {
 } from 'expo-router';
 import {
   adaptNavigationTheme,
+  configureFonts,
   MD3DarkTheme,
   MD3LightTheme,
   useTheme as usePaperTheme,
@@ -65,6 +66,18 @@ function createThemeColors(isDark: boolean, baseColors: typeof MD3LightTheme.col
   };
 }
 
+// Brand type scale (assets/DESIGN.md) over the MD3 defaults; the app stays on
+// platform system fonts, only sizes/tracking shift. Digits that must align
+// keep using per-component `fontVariant: ['tabular-nums']`.
+const fonts = configureFonts({
+  config: {
+    displaySmall: { fontSize: 38, lineHeight: 44 },
+    headlineSmall: { fontSize: 24, lineHeight: 30 },
+    bodyLarge: { lineHeight: 26 },
+    labelMedium: { fontSize: 13, lineHeight: 18, letterSpacing: 1.3 },
+  },
+});
+
 function createTheme(
   baseTheme: typeof MD3LightTheme | typeof MD3DarkTheme,
   scheme: AppScheme,
@@ -74,6 +87,7 @@ function createTheme(
   return {
     ...baseTheme,
     colors,
+    fonts,
     roundness: 1,
     dark: isDark,
     scheme,
