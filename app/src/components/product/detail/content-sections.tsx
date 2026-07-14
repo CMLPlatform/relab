@@ -49,6 +49,19 @@ export type SectionConfig = {
   render: (props: SectionRenderProps) => ReactNode;
 };
 
+// Overview also renders the brand/model/type tags and the component amount
+// chip (ProductTags/ProductType) — collapsing it on a bare description check
+// hid those in view mode even when they had content (e.g. a tagged component
+// with amountInParent > 1 but no description).
+function isOverviewEmpty(product: Product): boolean {
+  const hasDescription = !!product.description?.trim();
+  const hasBrand = !!product.brand?.trim();
+  const hasModel = !!product.model?.trim();
+  const hasType = product.productTypeID !== undefined || !!product.productTypeName;
+  const hasAmount = product.role === 'component' && (product.amountInParent ?? 1) > 1;
+  return !(hasDescription || hasBrand || hasModel || hasType || hasAmount);
+}
+
 function hasCircularityNotes(product: Product): boolean {
   const { recyclability, disassemblability, remanufacturability } = product.circularityProperties;
   return [recyclability, disassemblability, remanufacturability].some(
@@ -66,7 +79,7 @@ export const SECTIONS: SectionConfig[] = [
     key: 'overview',
     label: 'Overview',
     addLabel: 'Add a description',
-    isEmpty: (product) => !product.description?.trim(),
+    isEmpty: isOverviewEmpty,
     render: (props) => (
       <>
         <ProductDescription

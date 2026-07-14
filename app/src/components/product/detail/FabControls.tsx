@@ -113,19 +113,23 @@ function PrimaryProductFab({
     : editMode
       ? `Save ${titleLabel}`
       : `Edit ${titleLabel}`;
+  // Invalid with no known error count (errorCount undefined/0) has no error
+  // summary to route to, so — unlike the needsAttention case — the only safe
+  // move is to block the press outright instead of saving invalid data.
+  const blockedByValidation = wouldSave && !validationValid && !needsAttention;
   const fab = (
     <AnimatedFAB
       icon={icon}
       onPress={needsAttention ? (onErrorSummaryPress ?? onPress) : onPress}
       style={styles.rightFab}
-      disabled={isSaving}
+      disabled={isSaving || blockedByValidation}
       extended={fabExtended}
       label={label}
       visible={ownedByMe}
     />
   );
 
-  // On web, the tooltip surfaces why the disabled save-FAB is disabled. Fall back
+  // On web, the tooltip surfaces why the save-FAB is disabled/blocked. Fall back
   // to a generic hint when the form is invalid but no specific error has been
   // computed yet (e.g. brand-new draft before the user has touched any field).
   if (wouldSave && !validationValid) {

@@ -30,3 +30,8 @@ test('destructive variant label uses the white text color', () => {
   render(<AppButton variant="destructive">Delete</AppButton>);
   expect(screen.getByText('Delete').props.className).toEqual(expect.stringContaining('text-white'));
 });
+
+test('meets the 44px a11y tap-target floor regardless of caller className', () => {
+  render(<AppButton className="mx-4 my-2">Add component</AppButton>);
+  expect(screen.getByRole('button').props.className).toEqual(expect.stringContaining('min-h-11'));
+});

@@ -21,7 +21,16 @@ jest.mock('react-native-paper', () => {
     }) =>
       React.createElement(
         Text,
-        { testID: 'primary-fab', onPress },
+        {
+          testID: 'primary-fab',
+          // A no-op wrapper (not `undefined`) mirrors the real AnimatedFAB/Pressable
+          // gating the press internally — RNTL's fireEvent bubbles to find a handler,
+          // and an `undefined` onPress here would still find the un-gated `onPress`
+          // prop on this element's own AnimatedFAB(...) call one level up.
+          onPress: () => {
+            if (!disabled) onPress?.();
+          },
+        },
         `${label}|disabled=${disabled ? 'true' : 'false'}|visible=${visible ? 'true' : 'false'}`,
       ),
     Tooltip: ({ title, children }: { title: string; children: React.ReactNode }) =>
@@ -76,9 +85,11 @@ describe('ProductFabControls — primary FAB enabled state', () => {
     expect(screen.queryByTestId('tooltip')).toBeNull();
   });
 
-  // Was "disables the FAB..." — invalid no longer disables it, so it stays
-  // pressable to route to the error summary (see the errorCount describe block).
-  it('keeps the FAB enabled but shows the validation tooltip when dirty edits are invalid', () => {
+  // Invalid with no known error count (errorCount unset) has no error summary
+  // to route to, so the FAB blocks the save outright; the tooltip explains why.
+  // Once errorCount is known and > 0, the FAB stays pressable to route to the
+  // error summary instead (see the errorCount describe block).
+  it('disables the FAB but shows the validation tooltip when dirty edits are invalid with no known error count', () => {
     render(
       <ProductFabControls
         {...baseProps}
@@ -89,7 +100,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
       />,
     );
     const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(DISABLED_FALSE);
+    expect(fab).toHaveTextContent(DISABLED_TRUE);
     expect(screen.getByTestId('tooltip')).toHaveTextContent('Name is required');
   });
 
@@ -113,8 +124,9 @@ describe('ProductFabControls — primary FAB enabled state', () => {
     expect(screen.getByTestId('primary-fab')).toHaveTextContent(DISABLED_TRUE);
   });
 
-  // Was "disables the FAB..." — same rationale as the dirty-edits case above.
-  it('keeps the FAB enabled for a new product with no edits when validation fails', () => {
+  // Same rationale as the dirty-edits case above: no known error count means
+  // no error summary to route to, so the FAB blocks the save instead.
+  it('disables the FAB for a new product with no edits when validation fails and error count is unknown', () => {
     render(
       <ProductFabControls
         {...baseProps}
@@ -126,7 +138,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
       />,
     );
     const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(DISABLED_FALSE);
+    expect(fab).toHaveTextContent(DISABLED_TRUE);
     expect(screen.getByTestId('tooltip')).toHaveTextContent('Name is required');
   });
 
@@ -177,6 +189,25 @@ describe('ProductFabControls — error summary routing', () => {
       />,
     );
     expect(screen.getByTestId('primary-fab')).toHaveTextContent(ONE_ERROR_LABEL);
+  });
+
+  it('disables the FAB and blocks the press when invalid with a zero error count', () => {
+    const onPrimaryFabPress = jest.fn();
+    render(
+      <ProductFabControls
+        {...baseProps}
+        editMode={true}
+        isDirty={true}
+        validationValid={false}
+        errorCount={0}
+        onPrimaryFabPress={onPrimaryFabPress}
+      />,
+    );
+    const fab = screen.getByTestId('primary-fab');
+    expect(fab).toHaveTextContent(DISABLED_TRUE);
+
+    fireEvent.press(fab);
+    expect(onPrimaryFabPress).not.toHaveBeenCalled();
   });
 
   it('saves normally and routes press to onPrimaryFabPress when the form is valid', () => {

@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { Button } from '@/components/base/ui/button';
 import { Text } from '@/components/base/ui/text';
 import { type AppColors, useAppTheme } from '@/theme';
+import { cn } from '@/utils/cn';
 
 type RnrVariant = ComponentProps<typeof Button>['variant'];
 
@@ -46,7 +47,11 @@ export function AppButton({
       variant={VARIANT_MAP[variant]}
       disabled={disabled || loading}
       onPress={onPress}
-      className={className}
+      // min-h-11 (44px) is a different tailwind-merge group than the vendored
+      // button's h-10/sm:h-9 size classes, so it survives the merge and — since
+      // min-height clamps height from below — always wins the actual layout,
+      // keeping every AppButton at the 44px a11y tap-target floor.
+      className={cn('min-h-11', className)}
     >
       <View className="flex-row items-center gap-2">
         {loading ? <ActivityIndicator size="small" color={SPINNER_COLOR[variant](colors)} /> : null}
