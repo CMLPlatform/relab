@@ -1,6 +1,11 @@
 import { createContext } from 'react';
 
-export type SectionKey = 'overview' | 'components' | 'physical' | 'circularity' | 'media' | 'meta';
+/**
+ * A section's stable id within one screen's nav (e.g. 'overview', 'security').
+ * Deliberately a plain string: the registry is screen-agnostic, so product and
+ * account screens keep their own key vocabularies without widening a shared union.
+ */
+export type SectionKey = string;
 
 export type SectionNavApi = {
   registerSection: (key: SectionKey, y: number) => void;

@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
-import { useSectionNav } from '@/features/products/useSectionNav';
+import { useSectionNav } from '@/hooks/useSectionNav';
 
 test('scrollTo uses registered position minus offset, clamped at 0', () => {
   const scrollToY = jest.fn();
