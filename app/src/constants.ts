@@ -8,7 +8,9 @@ export const spacing = {
 } as const;
 
 export const breakpoints = {
-  desktop: 768,
+  desktop: 768, // legacy alias for md; existing call sites keep working
+  md: 768,
+  lg: 1024,
 } as const;
 
 export const radius = {
