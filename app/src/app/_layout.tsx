@@ -232,6 +232,13 @@ function ThemedProviders({ children }: { children: ReactNode }) {
   // Keep NativeWind's (react-native-css) color scheme in sync with the app's own
   // theme mode so `.dark:root` CSS variables (Task 2) apply to RNR components.
   useEffect(() => {
+    if (Platform.OS === 'web') {
+      // react-native-css's setter routes through Appearance.setColorScheme,
+      // which react-native-web doesn't implement; drive the CSS hooks directly.
+      document.documentElement.classList.toggle('dark', colorScheme === 'dark');
+      document.documentElement.dataset.theme = colorScheme;
+      return;
+    }
     nativewindColorScheme.set(colorScheme);
   }, [colorScheme]);
 
