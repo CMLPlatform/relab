@@ -116,9 +116,8 @@ test.describe('Product detail: section navigation', () => {
 
 // ─── Product creation flow ─────────────────────────────────────────────────────
 // Capture-form-level validation (short names, Create disabled/enabled, 100-char
-// behavior — the capture Input has no cap, unlike the old full-form field) is
-// unit-tested on CaptureScreen; these only prove the real capture → detail
-// round-trip through the app and backend.
+// behavior) is unit-tested on CaptureScreen; these only prove the real
+// capture → detail round-trip through the app and backend.
 
 test.describe('Product creation', () => {
   test('creating a product via capture lands on its saved detail page in edit mode', {

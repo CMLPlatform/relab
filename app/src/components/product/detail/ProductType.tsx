@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
+import { AppButton } from '@/components/base/AppButton';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import CPVCard from '@/components/product/CPVCard';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
@@ -50,16 +51,43 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     router.push('/category-selection');
   };
 
+  // A sub-heading within the Overview section (not a duplicate of the
+  // Section title "Overview"), so it's demoted below Section-title weight.
+  const header = (
+    <DetailSectionHeader
+      title="Type or Material"
+      tooltipTitle={`Select a fitting category for the ${entityLabel(product)}.`}
+      style={{ fontSize: 15, fontWeight: '600' }}
+    />
+  );
+
+  // No type set: the CPV "root" entry is a placeholder ({name: "undefined"})
+  // that CPVCard renders as a red error card — showing that as the default
+  // first impression of a freshly captured record reads as a bug, not an
+  // empty state. In edit mode, invite the user to pick a type instead; in
+  // view mode, render nothing (the Section's own isEmpty check already hides
+  // the whole section when there's no other content to show).
+  if (product.productTypeID === undefined) {
+    if (!editMode) return null;
+    return (
+      <View>
+        {header}
+        <AppButton
+          variant="outline"
+          className="w-full"
+          accessibilityLabel="Choose a type or material"
+          onPress={onTypeSelectionStart}
+        >
+          Choose a type or material
+        </AppButton>
+      </View>
+    );
+  }
+
   // Render
   return (
     <View>
-      {/* A sub-heading within the Overview section (not a duplicate of the
-          Section title "Overview"), so it's demoted below Section-title weight. */}
-      <DetailSectionHeader
-        title="Type or Material"
-        tooltipTitle={`Select a fitting category for the ${entityLabel(product)}.`}
-        style={{ fontSize: 15, fontWeight: '600' }}
-      />
+      {header}
       {selectedType ? (
         <CPVCard CPV={selectedType} onPress={editMode ? onTypeSelectionStart : undefined} />
       ) : null}

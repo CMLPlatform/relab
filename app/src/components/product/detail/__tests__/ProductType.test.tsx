@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { screen, waitFor } from '@testing-library/react-native';
+import { act, screen, waitFor } from '@testing-library/react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import ProductType from '@/components/product/detail/ProductType';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
@@ -58,20 +58,36 @@ describe('ProductType', () => {
   });
 
   it("renders 'Type or Material' heading", async () => {
-    renderWithProviders(<ProductType product={baseProduct} editMode={false} />);
+    renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
     expect(await screen.findByText(TYPE_OR_MATERIAL_PATTERN)).toBeOnTheScreen();
   });
 
   it('uses component tooltip wording for components', async () => {
     const component = { ...baseProduct, role: 'component' as const, parentID: 1 };
-    renderWithProviders(<ProductType product={component} editMode={false} />);
+    renderWithProviders(<ProductType product={component} editMode={true} />);
     expect(await screen.findByText(TYPE_OR_MATERIAL_PATTERN)).toBeOnTheScreen();
     expect(screen.queryByText('Select a fitting category for the product.')).toBeNull();
   });
 
-  it('renders the root category when productTypeID is undefined', async () => {
-    renderWithProviders(<ProductType product={baseProduct} editMode={false} />);
-    expect(await screen.findByText('All categories')).toBeOnTheScreen();
+  // Regression: the root CPV entry is a placeholder ({name: "undefined"})
+  // that CPVCard renders as a red error card — a typeless product must never
+  // show that as its default first impression.
+  it('shows an inviting empty state instead of the undefined category card when no type is picked', async () => {
+    renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
+    expect(await screen.findByText('Choose a type or material')).toBeOnTheScreen();
+    expect(screen.queryByText('Category undefined')).toBeNull();
+  });
+
+  it('renders nothing for a typeless product in view mode', async () => {
+    const { queryByText } = renderWithProviders(
+      <ProductType product={baseProduct} editMode={false} />,
+    );
+    // Flush the loadCPV() effect (its result is unused for a typeless
+    // product in view mode, but the effect still runs) before asserting.
+    await act(async () => {});
+    expect(queryByText(TYPE_OR_MATERIAL_PATTERN)).toBeNull();
+    expect(queryByText('Choose a type or material')).toBeNull();
+    expect(queryByText('Category undefined')).toBeNull();
   });
 
   it('renders the correct category description when productTypeID is set', async () => {
@@ -104,7 +120,7 @@ describe('ProductType', () => {
 
   it('navigates to category selection on press in editMode', async () => {
     renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
-    await user.press(await screen.findByText('All categories'));
+    await user.press(await screen.findByText('Choose a type or material'));
     expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
 
@@ -113,13 +129,14 @@ describe('ProductType', () => {
   it('opens the picker for an unsaved draft (no id) in editMode', async () => {
     const draft = { ...baseProduct, id: undefined } as unknown as Product;
     renderWithProviders(<ProductType product={draft} editMode={true} />);
-    await user.press(await screen.findByText('All categories'));
+    await user.press(await screen.findByText('Choose a type or material'));
     expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
 
   it('does not navigate when not in editMode', async () => {
-    renderWithProviders(<ProductType product={baseProduct} editMode={false} />);
-    await user.press(await screen.findByText('All categories'));
+    const product = { ...baseProduct, productTypeID: 1 };
+    renderWithProviders(<ProductType product={product} editMode={false} />);
+    await user.press(await screen.findByText('Agricultural products'));
     expect(mockPush).not.toHaveBeenCalled();
   });
 });
