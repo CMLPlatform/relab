@@ -14,7 +14,12 @@
 
       // Canonical OpenAPI schema is emitted by the backend exporter (Python
       // json.dumps); keep biome from reformatting it so `openapi-check` stays green.
-      "!src/types/openapi.json"
+      "!src/types/openapi.json",
+
+      // Generated palette artifacts are emitted by scripts/sync_brand_assets.py;
+      // keep biome from reformatting them so `--check` stays byte-stable.
+      "!src/theme/brand.generated.css",
+      "!src/theme/palette.generated.ts"
     ]
   },
   "linter": {
@@ -92,15 +97,6 @@
       // NativeWind's global.css uses Tailwind CSS v4 at-rules (@source, @theme)
       // that Biome's CSS parser rejects unless explicitly enabled.
       "includes": ["global.css"],
-      "css": {
-        "parser": {
-          "tailwindDirectives": true
-        }
-      }
-    },
-    {
-      // Generated palette CSS uses @theme inline (Tailwind v4 syntax).
-      "includes": ["src/theme/*.generated.css"],
       "css": {
         "parser": {
           "tailwindDirectives": true

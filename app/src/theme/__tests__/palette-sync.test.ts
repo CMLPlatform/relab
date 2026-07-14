@@ -2,12 +2,15 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { palette } from '@/theme/palette.generated';
 
-test('generated CSS carries the same hex values as the generated TS palette', () => {
+test('generated artifacts carry the canonical palette values verbatim (exact case)', () => {
+  const canonical = JSON.parse(
+    readFileSync(join(__dirname, '..', '..', '..', '..', 'assets', 'palette.json'), 'utf8'),
+  ) as typeof palette;
   const css = readFileSync(join(__dirname, '..', 'brand.generated.css'), 'utf8');
-  const cssLower = css.toLowerCase();
-  for (const scheme of [palette.light, palette.dark]) {
-    for (const value of Object.values(scheme)) {
-      expect(cssLower).toContain(value.toLowerCase());
+  for (const scheme of ['light', 'dark'] as const) {
+    for (const [token, value] of Object.entries(canonical[scheme])) {
+      expect(css).toContain(value);
+      expect(palette[scheme][token as keyof typeof palette.light]).toBe(value);
     }
   }
 });
