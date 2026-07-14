@@ -1,12 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackHeaderBackProps } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { AncestorTrailHeader } from '@/components/product/AncestorTrailHeader';
 import { ProductNameHeader } from '@/components/product/ProductNameHeader';
-import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import type { Product } from '@/types/Product';
 import { truncateHeaderLabel } from './truncateHeaderLabel';
 import type { AncestorCrumb } from './useAncestorTrail';
@@ -26,30 +25,6 @@ export function useSavedIndicator(justSaved: boolean) {
   }, [justSaved]);
 
   return showSavedIcon;
-}
-
-export function useStreamPrompt({
-  activeStream,
-  feedback,
-  isNew,
-  isProductComponent,
-}: {
-  activeStream: { productName: string } | null;
-  feedback: ReturnType<typeof useAppFeedback>;
-  isNew: boolean;
-  isProductComponent: boolean;
-}) {
-  const streamPromptedRef = useRef(false);
-
-  useEffect(() => {
-    if (!isNew || isProductComponent || !activeStream || streamPromptedRef.current) return;
-    streamPromptedRef.current = true;
-    feedback.alert({
-      title: "You're live on YouTube",
-      message: `Your stream for "${activeStream.productName}" is still running. It will keep going while you create this product.`,
-      buttons: [{ text: 'Got it' }],
-    });
-  }, [activeStream, feedback, isNew, isProductComponent]);
 }
 
 export function useProductPageHeader({
@@ -155,7 +130,6 @@ export function getProductCapabilities({
   rpiEnabled,
   youtubeEnabled,
   isGoogleLinked,
-  isNew,
   isProductComponent,
 }: {
   product: Product;
@@ -163,11 +137,9 @@ export function getProductCapabilities({
   rpiEnabled: boolean;
   youtubeEnabled: boolean;
   isGoogleLinked: boolean;
-  isNew: boolean;
   isProductComponent: boolean;
 }) {
   return {
-    isNew,
     isProductComponent,
     rpiEnabled,
     youtubeEnabled,

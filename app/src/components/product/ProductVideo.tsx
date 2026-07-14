@@ -22,18 +22,11 @@ interface Video {
 interface Props {
   product: Product;
   editMode: boolean;
-  isNew: boolean;
   onVideoChange?: (videos: Video[]) => void;
   onGoLivePress: () => void;
 }
 
-export default function ProductVideo({
-  product,
-  editMode,
-  isNew,
-  onVideoChange,
-  onGoLivePress,
-}: Props) {
+export default function ProductVideo({ product, editMode, onVideoChange, onGoLivePress }: Props) {
   const {
     rpiEnabled,
     youtubeEnabled,
@@ -97,7 +90,7 @@ export default function ProductVideo({
     onGoLivePress();
   };
 
-  const showGoLiveCta = !isNew && ownedByMe && rpiEnabled && !streamingThisProduct;
+  const showGoLiveCta = ownedByMe && rpiEnabled && !streamingThisProduct;
   const hasVideos = videos.length > 0;
   const showExpandToggle = !editMode && hasVideos;
   const showVideoRows = editMode || streamingThisProduct || expanded;

@@ -108,7 +108,6 @@ const baseFormReturn = {
   product: baseProduct,
   editMode: false,
   isDirty: false,
-  isNew: false,
   isProductComponent: false,
   validationResult: { isValid: true, error: '' },
   isLoading: false,
@@ -244,24 +243,6 @@ describe('useProductPageScreen', () => {
       pathname: '/components/[id]',
       params: { id: '17' },
     });
-  });
-
-  it('prompts before navigating back from a new (unsaved) product even with no edits', () => {
-    mockUseProductForm.mockReturnValueOnce({
-      ...baseFormReturn,
-      editMode: true,
-      isDirty: false,
-      isNew: true,
-    });
-
-    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
-
-    act(() => {
-      result.current.actions.goBackWithGuards();
-    });
-
-    expect(mockAlert).toHaveBeenCalledWith(expect.objectContaining({ title: 'Discard changes?' }));
-    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it('does not show the discard dialog twice after confirming a guarded back action', () => {

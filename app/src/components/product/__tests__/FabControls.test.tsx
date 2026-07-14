@@ -61,7 +61,6 @@ const baseProps = {
   validationValid: true,
   isSaving: false,
   isDirty: false,
-  isNew: false,
   onPrimaryFabPress: jest.fn(),
   streamPickerVisible: false,
   onDismissStreamPicker: jest.fn(),
@@ -122,24 +121,6 @@ describe('ProductFabControls — primary FAB enabled state', () => {
       />,
     );
     expect(screen.getByTestId('primary-fab')).toHaveTextContent(DISABLED_TRUE);
-  });
-
-  // Same rationale as the dirty-edits case above: no known error count means
-  // no error summary to route to, so the FAB blocks the save instead.
-  it('disables the FAB for a new product with no edits when validation fails and error count is unknown', () => {
-    render(
-      <ProductFabControls
-        {...baseProps}
-        editMode={true}
-        isNew={true}
-        isDirty={false}
-        validationValid={false}
-        validationError="Name is required"
-      />,
-    );
-    const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(DISABLED_TRUE);
-    expect(screen.getByTestId('tooltip')).toHaveTextContent('Name is required');
   });
 
   it('enables the FAB in view mode (validation is irrelevant)', () => {

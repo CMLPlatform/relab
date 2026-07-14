@@ -34,7 +34,6 @@ jest.mock('expo-router', () => ({
 const baseFormReturn = {
   product: baseProduct,
   editMode: false,
-  isNew: false,
   isProductComponent: false,
   validationResult: { isValid: true, error: '' },
   isLoading: false,
@@ -552,7 +551,6 @@ describe('ProductPage state handling', () => {
       ...baseFormReturn,
       product: { ...baseProduct, id: 42, ownedBy: 'me' },
       editMode: false,
-      isNew: false,
     } as never);
 
     renderWithProviders(<ProductPage />, { withDialog: true });

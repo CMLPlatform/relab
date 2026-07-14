@@ -10,7 +10,6 @@ import {
 } from 'react-hook-form';
 import { useDialog } from '@/components/base/dialogContext';
 import type { SectionKey } from '@/components/base/SectionNavContext';
-import { useAuth } from '@/context/auth';
 import { newProduct } from '@/services/api/products';
 import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';
@@ -87,50 +86,18 @@ function useProductFieldHandlers(
   };
 }
 
-type DraftSeed = {
-  name?: string;
-  brand?: string;
-  model?: string;
-  parentID?: number;
-  parentRole?: 'product' | 'component';
-};
-
 function useProductFormHydration({
-  draftSeed,
   editMode,
-  isNew,
-  replace,
   reset,
   serverProduct,
-  user,
 }: {
-  draftSeed: DraftSeed;
   editMode: boolean;
-  isNew: boolean;
-  replace: ReturnType<typeof useRouter>['replace'];
   reset: ReturnType<typeof useForm<ProductFormValues>>['reset'];
   serverProduct: Product | undefined;
-  user: ReturnType<typeof useAuth>['user'];
 }) {
-  const hydratedDraftRef = useRef(false);
   const lastHydratedProductRef = useRef<Product | null>(null);
 
   useEffect(() => {
-    if (isNew) {
-      if (hydratedDraftRef.current) return;
-      if (!user) {
-        replace({ pathname: '/login', params: { redirectTo: '/products' } });
-        return;
-      }
-      const newProd = newProduct(draftSeed);
-      if (typeof draftSeed.parentID === 'number' && !newProd.amountInParent) {
-        newProd.amountInParent = 1;
-      }
-      reset(newProd);
-      hydratedDraftRef.current = true;
-      return;
-    }
-
     if (!serverProduct || lastHydratedProductRef.current === serverProduct) return;
 
     // First load: always hydrate (the /edit route mounts with editMode=true but
@@ -141,14 +108,13 @@ function useProductFormHydration({
 
     reset(serverProduct);
     lastHydratedProductRef.current = serverProduct;
-  }, [serverProduct, isNew, editMode, reset, replace, user, draftSeed]);
+  }, [serverProduct, editMode, reset]);
 }
 
 function useProductFormActions({
   deleteMutation,
   dialog,
   isDirty,
-  isNew,
   onDeleteSuccess,
   onSaveSuccess,
   product,
@@ -160,7 +126,6 @@ function useProductFormActions({
   deleteMutation: ReturnType<typeof useDeleteProductMutation>;
   dialog: ReturnType<typeof useDialog>;
   isDirty: boolean;
-  isNew: boolean;
   onDeleteSuccess?: () => void;
   onSaveSuccess?: (savedId: number) => void;
   product: Product;
@@ -170,13 +135,9 @@ function useProductFormActions({
   serverProduct: Product | undefined;
 }) {
   const saveAndExit = () => {
-    // Clean form: treat as "close without writing". New drafts discard back to the
-    // list; existing entities just leave edit mode via the caller's onSaveSuccess.
+    // Clean form: treat as "close without writing", leaving edit mode via the
+    // caller's onSaveSuccess.
     if (!isDirty) {
-      if (isNew) {
-        replace('/products');
-        return;
-      }
       if (typeof product.id === 'number') onSaveSuccess?.(product.id);
       return;
     }
@@ -239,34 +200,23 @@ function useProductFormActions({
 export type UseProductFormOptions = {
   /** Which backend endpoint to fetch from. Required for view/edit flows. */
   role: ProductRole;
-  /** Start with editMode=true (used by dedicated /edit and /new routes). */
+  /** Start with editMode=true (used by the dedicated /edit route). */
   initialEditMode?: boolean;
-  /** Called after a successful save. The /edit and /new routes use this to navigate out. */
+  /** Called after a successful save. The /edit route uses this to navigate out. */
   onSaveSuccess?: (savedId: number) => void;
   /** Called after a successful delete. The detail screen uses this to navigate back to the parent. */
   onDeleteSuccess?: () => void;
-  /**
-   * Force new-draft mode independent of the `id` param. Used by static create
-   * routes (/products/new, /products/[id]/components/new, and
-   * /components/[id]/components/new) where the URL has no child id segment.
-   */
-  isNew?: boolean;
-  /** Initial draft fields. Only consumed when the form is in new-draft mode. */
-  draftSeed?: DraftSeed;
 };
 
 export function useProductForm(id: string | undefined, options: UseProductFormOptions) {
   const { replace } = useRouter();
   const dialog = useDialog();
-  const { user } = useAuth();
 
-  const isNew = options.isNew === true;
   const parsedId = parseInt(id ?? '', 10);
-  const numericId = !isNew && Number.isFinite(parsedId) ? parsedId : undefined;
-  const draftSeed = options.draftSeed ?? {};
+  const numericId = Number.isFinite(parsedId) ? parsedId : undefined;
 
   // Both hooks always run (React rule) but only the role's endpoint is enabled.
-  // When isNew (or the id is missing), neither is enabled so no fetch happens.
+  // When the id is missing, neither is enabled so no fetch happens.
   const isBaseRole = options.role === 'product';
   const baseQuery = useBaseProductQuery(isBaseRole ? numericId : undefined);
   const componentQuery = useComponentQuery(!isBaseRole ? numericId : undefined);
@@ -275,10 +225,10 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    // A valid empty product as the placeholder for both flows. For an existing
-    // product this is the loading sentinel until the query resolves and the
-    // hydration effect resets to server data; without it `product` would be a
-    // malformed `{}` and consumers (name, role, media) would read undefined.
+    // A valid empty product as the loading sentinel until the query resolves
+    // and the hydration effect resets to server data; without it `product`
+    // would be a malformed `{}` and consumers (name, role, media) would read
+    // undefined.
     defaultValues: newProduct(),
     mode: 'onChange',
   });
@@ -290,15 +240,15 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
     defaultValue: form.getValues(),
   }) as Product;
 
-  // Per-screen constant: the /edit and /new routes pass initialEditMode=true, the
-  // /detail routes leave it undefined. Nothing flips this at runtime anymore.
-  const editMode = isNew || options.initialEditMode === true;
+  // Per-screen constant: EntityDetailPage passes initialEditMode=true when the
+  // URL carries ?edit=1, undefined otherwise. Nothing flips this at runtime.
+  const editMode = options.initialEditMode === true;
 
-  useProductFormHydration({ draftSeed, editMode, isNew, replace, reset, serverProduct, user });
+  useProductFormHydration({ editMode, reset, serverProduct });
 
   // Populate validation errors eagerly on mount so the save-FAB tooltip can
   // surface what's missing even before the user touches a field. Without this,
-  // react-hook-form only runs validation on change, so a fresh /new route shows
+  // react-hook-form only runs validation on change, so entering edit mode shows
   // a disabled FAB with no hint why.
   useEffect(() => {
     if (editMode) trigger().catch(() => {});
@@ -311,7 +261,6 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
     deleteMutation,
     dialog,
     isDirty,
-    isNew,
     onDeleteSuccess: options.onDeleteSuccess,
     onSaveSuccess: options.onSaveSuccess,
     product,
@@ -329,7 +278,6 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
     editMode,
     isDirty,
     serverProduct,
-    isNew,
     isProductComponent,
     validationResult,
     isLoading,

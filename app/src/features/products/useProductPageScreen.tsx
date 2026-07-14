@@ -6,14 +6,12 @@ import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
 import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
 import { useYouTubeIntegration } from '@/features/cameras/youtube/useYouTubeIntegration';
-import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useAppTheme } from '@/theme';
 import {
   getPrimaryFabIcon,
   getProductCapabilities,
   useProductPageHeader,
   useSavedIndicator,
-  useStreamPrompt,
 } from './productPageHelpers';
 import { useSlowLoading } from './state';
 import { useAncestorTrail } from './useAncestorTrail';
@@ -29,7 +27,6 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
   const navigation = useNavigation();
   const router = useRouter();
   const dialog = useDialog();
-  const feedback = useAppFeedback();
   const theme = useAppTheme();
   const { user: profile } = useAuth();
   const { enabled: rpiEnabled } = useRpiIntegration();
@@ -47,9 +44,9 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
 
   // Wrap the caller's onSaveSuccess so a successful save bypasses the unsaved-
   // changes guard: immediately after mutation resolves the form is still
-  // `isDirty` (and new drafts stay `isNew` for their whole session), so the
-  // guard would otherwise block the navigation the caller just requested. Delete
-  // gets the same guard-skip and lands via navigateBack (parent, not root list).
+  // `isDirty`, so the guard would otherwise block the navigation the caller
+  // just requested. Delete gets the same guard-skip and lands via
+  // navigateBack (parent, not root list).
   const wrappedFormOptions = useMemo<UseProductFormOptions>(() => {
     const callerOnSaveSuccess = formOptions.onSaveSuccess;
     return {
@@ -69,7 +66,6 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     product,
     editMode,
     isDirty,
-    isNew,
     isProductComponent,
     validationResult,
     isLoading,
@@ -98,9 +94,8 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
 
   const slowLoading = useSlowLoading(isLoading);
   const showSavedIcon = useSavedIndicator(justSaved);
-  useStreamPrompt({ activeStream, feedback, isNew, isProductComponent });
 
-  const hasUnsavedChanges = isDirty || isNew;
+  const hasUnsavedChanges = isDirty;
 
   const confirmLeave = useCallback(
     (onConfirm: () => void) => {
@@ -143,10 +138,9 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
         rpiEnabled,
         youtubeEnabled,
         isGoogleLinked,
-        isNew,
         isProductComponent,
       }),
-    [product, activeStream, rpiEnabled, youtubeEnabled, isGoogleLinked, isNew, isProductComponent],
+    [product, activeStream, rpiEnabled, youtubeEnabled, isGoogleLinked, isProductComponent],
   );
 
   const navigateBack = useCallback(() => {

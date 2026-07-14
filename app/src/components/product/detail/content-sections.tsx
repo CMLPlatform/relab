@@ -16,7 +16,6 @@ import ProductType from './ProductType';
 export type SectionRenderProps = {
   product: Product;
   editMode: boolean;
-  isNew: boolean;
   isProductComponent: boolean;
   onChangeDescription: ComponentProps<typeof ProductDescription>['onChangeDescription'];
   onBrandChange: ComponentProps<typeof ProductTags>['onBrandChange'];
@@ -156,7 +155,6 @@ export const SECTIONS: SectionConfig[] = [
       <ProductVideo
         product={props.product}
         editMode={props.editMode}
-        isNew={props.isNew}
         onVideoChange={props.onVideoChange}
         onGoLivePress={props.onGoLivePress}
       />
@@ -171,28 +169,21 @@ export const SECTIONS: SectionConfig[] = [
 ];
 
 // Sections that don't apply at all to the current product/mode — distinct from
-// "empty" (which still shows an add-row in edit mode): components need a saved
-// product id to exist, media is a product-only concept.
-function passesGuard(
-  section: SectionConfig,
-  ctx: { isNew: boolean; isProductComponent: boolean },
-): boolean {
-  if (section.key === 'components' && ctx.isNew) return false;
+// "empty" (which still shows an add-row in edit mode): media is a
+// product-only concept.
+function passesGuard(section: SectionConfig, ctx: { isProductComponent: boolean }): boolean {
   if (section.key === 'media' && ctx.isProductComponent) return false;
   return true;
 }
 
-export function guardedSections(ctx: {
-  isNew: boolean;
-  isProductComponent: boolean;
-}): SectionConfig[] {
+export function guardedSections(ctx: { isProductComponent: boolean }): SectionConfig[] {
   return SECTIONS.filter((section) => passesGuard(section, ctx));
 }
 
 /** The sections actually rendered right now — reused by the nav chips/outline. */
 export function visibleSections(
   product: Product,
-  ctx: SectionContext & { editMode: boolean; isNew: boolean; isProductComponent: boolean },
+  ctx: SectionContext & { editMode: boolean; isProductComponent: boolean },
 ): { key: SectionKey; label: string }[] {
   return guardedSections(ctx)
     .filter((section) => ctx.editMode || !section.isEmpty(product, ctx))

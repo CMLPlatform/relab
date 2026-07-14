@@ -17,7 +17,6 @@ import { useAnchoredSectionNav } from './useAnchoredSectionNav';
 type ProductPageContentProps = {
   product: Product;
   editMode: boolean;
-  isNew: boolean;
   isProductComponent: boolean;
   mediaStreamable: boolean;
   scrollRef: RefObject<ScrollView | null>;
@@ -38,7 +37,6 @@ type ProductPageContentProps = {
 export function ProductPageContent({
   product,
   editMode,
-  isNew,
   isProductComponent,
   mediaStreamable,
   scrollRef,
@@ -66,7 +64,6 @@ export function ProductPageContent({
   const sectionProps: SectionRenderProps = {
     product,
     editMode,
-    isNew,
     isProductComponent,
     onChangeDescription,
     onBrandChange,
@@ -100,7 +97,7 @@ export function ProductPageContent({
         <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
           <SpecHeader product={product} />
           <SectionNavContext.Provider value={anchoredNav}>
-            {guardedSections({ isNew, isProductComponent }).map((section) => (
+            {guardedSections({ isProductComponent }).map((section) => (
               <Section
                 key={section.key}
                 title={section.label}

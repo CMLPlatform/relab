@@ -73,24 +73,21 @@ function useErrorSummaryPressHandler(
 function useFabPressHandler({
   saveAndExit,
   editMode,
-  isNew,
 }: {
   saveAndExit: () => void;
   editMode: boolean;
-  isNew: boolean;
 }) {
   const router = useRouter();
   return useCallback(() => {
-    // View mode on an existing entity → flip the ?edit=1 query param on the
-    // same screen. Keeps the component mounted so scroll position and fetched
-    // data survive the transition. New drafts and existing edit sessions go
-    // through saveAndExit directly.
-    if (!editMode && !isNew) {
+    // View mode → flip the ?edit=1 query param on the same screen. Keeps the
+    // component mounted so scroll position and fetched data survive the
+    // transition. An active edit session goes through saveAndExit directly.
+    if (!editMode) {
       router.setParams({ edit: '1' });
       return;
     }
     saveAndExit();
-  }, [editMode, isNew, router, saveAndExit]);
+  }, [editMode, router, saveAndExit]);
 }
 
 export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFormOptions }) {
@@ -103,7 +100,6 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
   const onPrimaryFabPress = useFabPressHandler({
     saveAndExit: actions.saveAndExit,
     editMode: editing.editMode,
-    isNew: capabilities.isNew,
   });
   const onErrorSummaryPress = useErrorSummaryPressHandler(
     nav.scrollTo,
@@ -148,7 +144,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
     );
   }
 
-  if (!(screen.product.id || capabilities.isNew)) {
+  if (!screen.product.id) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
@@ -165,7 +161,6 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
 
   const navSections = visibleSections(screen.product, {
     editMode: editing.editMode,
-    isNew: capabilities.isNew,
     isProductComponent: capabilities.isProductComponent,
     mediaStreamable,
   });
@@ -174,7 +169,6 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
     <ProductPageContent
       product={screen.product}
       editMode={editing.editMode}
-      isNew={capabilities.isNew}
       isProductComponent={capabilities.isProductComponent}
       mediaStreamable={mediaStreamable}
       scrollRef={scrollRef}
@@ -207,7 +201,6 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
         entityRole={screen.product.role}
         editMode={editing.editMode}
         ownedByMe={capabilities.ownedByMe}
-        isNew={capabilities.isNew}
         productId={typeof screen.product.id === 'number' ? screen.product.id : undefined}
         productName={screen.product.name ?? ''}
         fabExtended={editing.fabExtended}

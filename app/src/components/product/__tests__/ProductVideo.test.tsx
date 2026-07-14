@@ -57,7 +57,6 @@ type ProductVideoProps = ComponentProps<typeof ProductVideo>;
 const defaultProps: ProductVideoProps = {
   product: baseProduct,
   editMode: false,
-  isNew: false,
   onGoLivePress: jest.fn(),
 };
 const VIDEO_HEADING_PATTERN = /Video/;

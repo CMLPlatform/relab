@@ -17,7 +17,6 @@ type ProductFabControlsProps = {
   onErrorSummaryPress?: () => void;
   isSaving: boolean;
   isDirty: boolean;
-  isNew: boolean;
   onPrimaryFabPress: () => void;
   streamPickerVisible: boolean;
   onDismissStreamPicker: () => void;
@@ -37,7 +36,6 @@ export function ProductFabControls({
   onErrorSummaryPress,
   isSaving,
   isDirty,
-  isNew,
   onPrimaryFabPress,
   streamPickerVisible,
   onDismissStreamPicker,
@@ -56,7 +54,6 @@ export function ProductFabControls({
         onErrorSummaryPress={onErrorSummaryPress}
         isSaving={isSaving}
         isDirty={isDirty}
-        isNew={isNew}
         ownedByMe={ownedByMe}
         editMode={editMode}
       />
@@ -83,7 +80,6 @@ function PrimaryProductFab({
   onErrorSummaryPress,
   isSaving,
   isDirty,
-  isNew,
   ownedByMe,
   editMode,
 }: {
@@ -97,13 +93,11 @@ function PrimaryProductFab({
   onErrorSummaryPress?: () => void;
   isSaving: boolean;
   isDirty: boolean;
-  isNew: boolean;
   ownedByMe: boolean;
   editMode: boolean;
 }) {
-  // Validation gates the FAB whenever pressing it would save: dirty edits, or
-  // a new product (which has no "exit edit mode" state to fall back to).
-  const wouldSave = editMode && (isDirty || isNew);
+  // Validation gates the FAB whenever pressing it would save dirty edits.
+  const wouldSave = editMode && isDirty;
   const titleLabel = entityRole === 'component' ? 'Component' : 'Product';
   // Invalid + errors to show: swap the FAB from "save" to "go to the first
   // problem" instead of blocking the press behind a disabled button.
