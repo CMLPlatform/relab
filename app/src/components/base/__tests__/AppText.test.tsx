@@ -13,3 +13,15 @@ test('data variant uses tabular numerals styling', () => {
     expect.arrayContaining([expect.objectContaining({ fontVariant: ['tabular-nums'] })]),
   );
 });
+
+test('default color comes from the text-foreground class', () => {
+  render(<AppText>plain</AppText>);
+  expect(screen.getByText('plain').props.className).toContain('text-foreground');
+});
+
+test('caller color classes win over the default (tailwind-merge)', () => {
+  render(<AppText className="text-primary">tinted</AppText>);
+  const className = screen.getByText('tinted').props.className;
+  expect(className).toContain('text-primary');
+  expect(className).not.toContain('text-foreground');
+});
