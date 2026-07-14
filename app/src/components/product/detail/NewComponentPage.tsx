@@ -15,6 +15,5 @@ export function NewComponentPage({ parentRole }: { parentRole: 'product' | 'comp
   const parsedParentID = Number.parseInt(params.id ?? '', 10);
   const parentID = Number.isFinite(parsedParentID) ? parsedParentID : undefined;
 
-  // biome-ignore lint/a11y/useValidAriaRole: CaptureScreen's own product/component prop, not an ARIA role.
-  return <CaptureScreen role="component" parentID={parentID} parentRole={parentRole} />;
+  return <CaptureScreen entityRole="component" parentID={parentID} parentRole={parentRole} />;
 }

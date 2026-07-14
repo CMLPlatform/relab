@@ -18,7 +18,10 @@ import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 type CaptureScreenProps = {
-  role: 'product' | 'component';
+  // Named entityRole, not role: a JSX prop literally called `role` trips
+  // lint/a11y/useValidAriaRole at every call site and is a live RN-Web prop
+  // that would leak onto the DOM as an invalid ARIA role.
+  entityRole: 'product' | 'component';
   parentID?: number;
   parentRole?: 'product' | 'component';
 };
@@ -75,7 +78,7 @@ function CaptureTypeRow({
  * routes: a photo strip, a name, an optional type, and (for components) a
  * parent amount — no long form, no isNew branch through the detail screen.
  */
-export function CaptureScreen({ role, parentID, parentRole }: CaptureScreenProps) {
+export function CaptureScreen({ entityRole: role, parentID, parentRole }: CaptureScreenProps) {
   const router = useRouter();
   const navigation = useNavigation();
   const dialog = useDialog();

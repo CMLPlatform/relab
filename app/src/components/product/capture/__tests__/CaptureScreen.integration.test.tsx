@@ -90,7 +90,7 @@ describe('CaptureScreen', () => {
   });
 
   it('renders the capture layout for a new product with no physical-properties section', async () => {
-    await renderCapture({ role: 'product' });
+    await renderCapture({ entityRole: 'product' });
 
     expect(screen.getByPlaceholderText(NAME_PLACEHOLDER)).toBeOnTheScreen();
     expect(screen.getByText('Create product')).toBeOnTheScreen();
@@ -99,7 +99,7 @@ describe('CaptureScreen', () => {
   });
 
   it('enables Create once a valid name is entered', async () => {
-    await renderCapture({ role: 'product' });
+    await renderCapture({ entityRole: 'product' });
 
     expect(screen.getByText('Create product')).toBeDisabled();
 
@@ -110,7 +110,7 @@ describe('CaptureScreen', () => {
 
   it('routes to the saved product with edit=1 on successful create', async () => {
     mockMutateAsync.mockResolvedValueOnce(77);
-    await renderCapture({ role: 'product' });
+    await renderCapture({ entityRole: 'product' });
 
     fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Cordless drill');
     fireEvent.press(screen.getByText('Create product'));
@@ -123,8 +123,23 @@ describe('CaptureScreen', () => {
     });
   });
 
+  it('routes to the saved component with edit=1 on successful create', async () => {
+    mockMutateAsync.mockResolvedValueOnce(31);
+    await renderCapture({ entityRole: 'component', parentID: 5, parentRole: 'product' });
+
+    fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Bolt');
+    fireEvent.press(screen.getByText('Create component'));
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith({
+        pathname: '/components/[id]',
+        params: { id: '31', edit: '1' },
+      });
+    });
+  });
+
   it('shows the parent line and amount stepper for a component', async () => {
-    await renderCapture({ role: 'component', parentID: 5, parentRole: 'product' });
+    await renderCapture({ entityRole: 'component', parentID: 5, parentRole: 'product' });
 
     expect(await screen.findByText('Component of: Drill press')).toBeOnTheScreen();
     expect(screen.getByText('Amount in parent')).toBeOnTheScreen();
@@ -134,7 +149,7 @@ describe('CaptureScreen', () => {
 
   it('keeps the screen and resets the name after Create & add another', async () => {
     mockMutateAsync.mockResolvedValueOnce(9);
-    await renderCapture({ role: 'component', parentID: 5, parentRole: 'product' });
+    await renderCapture({ entityRole: 'component', parentID: 5, parentRole: 'product' });
 
     fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Bolt');
     fireEvent.press(screen.getByText('Create & add another'));
@@ -149,7 +164,7 @@ describe('CaptureScreen', () => {
 
   it('keeps the entered name on screen after a failed create', async () => {
     mockMutateAsync.mockRejectedValueOnce(new Error('network down'));
-    await renderCapture({ role: 'product' });
+    await renderCapture({ entityRole: 'product' });
 
     fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Widget');
     fireEvent.press(screen.getByText('Create product'));
@@ -171,7 +186,7 @@ describe('CaptureScreen', () => {
       return jest.fn();
     };
 
-    await renderCapture({ role: 'product' });
+    await renderCapture({ entityRole: 'product' });
     fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Widget');
 
     const preventDefault = jest.fn();

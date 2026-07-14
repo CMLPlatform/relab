@@ -8,11 +8,11 @@ jest.mock('@/components/product/capture/CaptureScreen', () => {
     Text: typeof RNText;
   };
   return {
-    CaptureScreen: (props: { role?: string; parentID?: number; parentRole?: string }) =>
+    CaptureScreen: (props: { entityRole?: string; parentID?: number; parentRole?: string }) =>
       mockReact.createElement(
         Text,
         null,
-        `role:${props.role ?? ''} parent:${props.parentID ?? ''} parentRole:${props.parentRole ?? ''}`,
+        `role:${props.entityRole ?? ''} parent:${props.parentID ?? ''} parentRole:${props.parentRole ?? ''}`,
       ),
   };
 });
