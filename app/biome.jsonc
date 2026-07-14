@@ -97,6 +97,15 @@
           "tailwindDirectives": true
         }
       }
+    },
+    {
+      // Generated palette CSS uses @theme inline (Tailwind v4 syntax).
+      "includes": ["src/theme/*.generated.css"],
+      "css": {
+        "parser": {
+          "tailwindDirectives": true
+        }
+      }
     }
   ]
 }

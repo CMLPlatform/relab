@@ -1,0 +1,40 @@
+{
+  "light": {
+    "background": "#FAFBFE",
+    "foreground": "#16202E",
+    "card": "#F0F3FA",
+    "cardForeground": "#16202E",
+    "primary": "#1F4C96",
+    "primaryForeground": "#FFFFFF",
+    "secondary": "#565E71",
+    "secondaryForeground": "#FFFFFF",
+    "muted": "#E0E2EC",
+    "mutedForeground": "#44474F",
+    "accent": "#8F6212",
+    "accentForeground": "#FFFFFF",
+    "destructive": "#BA1A1A",
+    "destructiveForeground": "#FFFFFF",
+    "border": "#C4C6D0",
+    "input": "#747780",
+    "ring": "#1F4C96"
+  },
+  "dark": {
+    "background": "#11141D",
+    "foreground": "#E2E6EE",
+    "card": "#1A2030",
+    "cardForeground": "#E2E6EE",
+    "primary": "#8FB8FF",
+    "primaryForeground": "#0A1F40",
+    "secondary": "#BEC6DC",
+    "secondaryForeground": "#283141",
+    "muted": "#44474F",
+    "mutedForeground": "#C4C6D0",
+    "accent": "#E3B95C",
+    "accentForeground": "#3F2E00",
+    "destructive": "#FFB4AB",
+    "destructiveForeground": "#690005",
+    "border": "#44474F",
+    "input": "#8E9099",
+    "ring": "#8FB8FF"
+  }
+}
