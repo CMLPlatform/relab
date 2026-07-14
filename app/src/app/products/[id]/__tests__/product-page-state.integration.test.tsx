@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ReactElement, ReactNode } from 'react';
 import type { Text as RNText } from 'react-native';
@@ -89,6 +89,23 @@ function mockCreateSectionStub(label: string) {
   }) {
     return mockReact.createElement(Text, props, children ?? label);
   };
+}
+
+// Walks the rendered tree collecting text nodes in document order — used to
+// assert section order without depending on a real layout engine.
+function collectText(instance: ReturnType<typeof screen.getByTestId>): string[] {
+  const out: string[] = [];
+  const walk = (node: ReturnType<typeof screen.getByTestId>) => {
+    for (const child of node.children) {
+      if (typeof child === 'string') {
+        out.push(child);
+      } else {
+        walk(child);
+      }
+    }
+  };
+  walk(instance);
+  return out;
 }
 
 jest.mock('@/components/base/HeaderBackButton', () => {
@@ -562,5 +579,122 @@ describe('ProductPage state handling', () => {
     });
 
     expect(screen.getByText('Edit Product:pencil')).toBeOnTheScreen();
+  });
+});
+
+describe('Section layout', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: '1',
+        username: 'owner',
+        email: 'owner@example.com',
+        isActive: true,
+        isVerified: true,
+        isSuperuser: false,
+        oauth_accounts: [],
+      },
+    });
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ id: '42' });
+    (useNavigation as jest.Mock).mockReturnValue({
+      setOptions: mockSetOptions,
+      canGoBack: jest.fn().mockReturnValue(false),
+      goBack: jest.fn(),
+      addListener: jest.fn(() => jest.fn()),
+      dispatch: jest.fn(),
+    });
+    (useRouter as jest.Mock).mockReturnValue({
+      push: jest.fn(),
+      replace: mockReplace,
+      back: jest.fn(),
+      setParams: jest.fn(),
+      dismissTo: jest.fn(),
+    });
+    mockUseBaseProductQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as never);
+    mockUseAncestorTrail.mockReturnValue({ ancestors: [], isLoading: false });
+  });
+
+  const fullProduct = {
+    ...baseProduct,
+    name: 'Full Spec Product',
+    description: 'A thorough description.',
+    videos: [{ id: 1, url: 'https://example.com/video', title: 'Demo', description: '' }],
+    circularityProperties: {
+      recyclability: 'Fully recyclable',
+      disassemblability: null,
+      remanufacturability: null,
+    },
+  };
+
+  it('renders sections in the new spec-sheet order for a full product', () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: fullProduct,
+    } as never);
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    const contentTexts = collectText(screen.getByTestId('product-scroll'));
+    const indexOf = (text: string) => contentTexts.indexOf(text);
+
+    expect(indexOf('ProductImageGallery')).toBeGreaterThanOrEqual(0);
+    expect(indexOf(fullProduct.name)).toBeGreaterThan(indexOf('ProductImageGallery'));
+    expect(indexOf('Overview')).toBeGreaterThan(indexOf(fullProduct.name));
+    expect(indexOf(`Description:${fullProduct.name}`)).toBeGreaterThan(indexOf('Overview'));
+    expect(indexOf('ProductTags')).toBeGreaterThan(indexOf(`Description:${fullProduct.name}`));
+    expect(indexOf('ProductType')).toBeGreaterThan(indexOf('ProductTags'));
+    expect(indexOf('Components')).toBeGreaterThan(indexOf('ProductType'));
+    expect(indexOf('ProductComponents')).toBeGreaterThan(indexOf('Components'));
+    expect(indexOf('Physical properties')).toBeGreaterThan(indexOf('ProductComponents'));
+    expect(indexOf('ProductPhysicalProperties')).toBeGreaterThan(indexOf('Physical properties'));
+    expect(indexOf('Circularity')).toBeGreaterThan(indexOf('ProductPhysicalProperties'));
+    expect(indexOf('ProductCircularityProperties')).toBeGreaterThan(indexOf('Circularity'));
+    expect(indexOf('Media')).toBeGreaterThan(indexOf('ProductCircularityProperties'));
+    expect(indexOf('ProductVideo')).toBeGreaterThan(indexOf('Media'));
+    expect(indexOf('Details')).toBeGreaterThan(indexOf('ProductVideo'));
+    expect(indexOf(`Meta:${fullProduct.name}`)).toBeGreaterThan(indexOf('Details'));
+  });
+
+  it('hides an empty circularity section in view mode and shows an add-row in edit mode', () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: baseProduct,
+      editMode: false,
+    } as never);
+
+    const { rerender } = renderWithProviders(<ProductPage />, { withDialog: true });
+
+    expect(screen.queryByText('Circularity')).toBeNull();
+    expect(screen.queryByText('ProductCircularityProperties')).toBeNull();
+
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: baseProduct,
+      editMode: true,
+    } as never);
+
+    rerender(<ProductPage />);
+
+    expect(screen.getByText('Add circularity notes')).toBeOnTheScreen();
+    expect(screen.queryByText('ProductCircularityProperties')).toBeNull();
+  });
+
+  it('renders phone section-nav chips with Overview and Components labels', () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: fullProduct,
+    } as never);
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    const chips = screen.getByTestId('section-nav-chips');
+    expect(within(chips).getByText('Overview')).toBeOnTheScreen();
+    expect(within(chips).getByText('Components')).toBeOnTheScreen();
   });
 });

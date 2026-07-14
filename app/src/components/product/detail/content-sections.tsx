@@ -1,0 +1,179 @@
+// Canonical home of SECTIONS/visibleSections — do not re-export from
+// Content.tsx (react-refresh/only-export-components forbids mixing
+// non-component exports into a file that also exports a component).
+import type { ComponentProps, ReactNode } from 'react';
+import type { SectionKey } from '@/components/base/SectionNavContext';
+import ProductDescription from '@/components/product/ProductDescription';
+import ProductVideo from '@/components/product/ProductVideo';
+import type { Product } from '@/types/Product';
+import ProductCircularityProperties from './ProductCircularityProperties';
+import ProductComponents from './ProductComponents';
+import ProductMetaData from './ProductMetaData';
+import ProductPhysicalProperties from './ProductPhysicalProperties';
+import ProductTags from './ProductTags';
+import ProductType from './ProductType';
+
+export type SectionRenderProps = {
+  product: Product;
+  editMode: boolean;
+  isNew: boolean;
+  isProductComponent: boolean;
+  onChangeDescription: ComponentProps<typeof ProductDescription>['onChangeDescription'];
+  onBrandChange: ComponentProps<typeof ProductTags>['onBrandChange'];
+  onModelChange: ComponentProps<typeof ProductTags>['onModelChange'];
+  onAmountInParentChange: ComponentProps<typeof ProductTags>['onAmountChange'];
+  onTypeChange: ComponentProps<typeof ProductType>['onTypeChange'];
+  onChangePhysicalProperties: ComponentProps<
+    typeof ProductPhysicalProperties
+  >['onChangePhysicalProperties'];
+  onChangeCircularityProperties: ComponentProps<
+    typeof ProductCircularityProperties
+  >['onChangeCircularityProperties'];
+  onVideoChange: ComponentProps<typeof ProductVideo>['onVideoChange'];
+  onGoLivePress: () => void;
+};
+
+// Emptiness context that can't be derived from `product` alone.
+// NOTE: mediaStreamable approximates "has a live-media affordance" as
+// go-live-eligible (owned + rpi camera) OR currently streaming — it doesn't
+// know about e.g. future media integrations. Extend this bag if that grows.
+export type SectionContext = {
+  mediaStreamable: boolean;
+};
+
+export type SectionConfig = {
+  key: SectionKey;
+  label: string;
+  addLabel?: string;
+  isEmpty: (product: Product, ctx: SectionContext) => boolean;
+  render: (props: SectionRenderProps) => ReactNode;
+};
+
+function hasCircularityNotes(product: Product): boolean {
+  const { recyclability, disassemblability, remanufacturability } = product.circularityProperties;
+  return [recyclability, disassemblability, remanufacturability].some(
+    (value) => typeof value === 'string' && value.trim() !== '',
+  );
+}
+
+/**
+ * Drives both the scroll order and the section nav (chips/outline). Order:
+ * gallery → SpecHeader → these sections → Delete (all outside this config —
+ * see Content.tsx's ProductPageContent).
+ */
+export const SECTIONS: SectionConfig[] = [
+  {
+    key: 'overview',
+    label: 'Overview',
+    addLabel: 'Add a description',
+    isEmpty: (product) => !product.description?.trim(),
+    render: (props) => (
+      <>
+        <ProductDescription
+          product={props.product}
+          editMode={props.editMode}
+          onChangeDescription={props.onChangeDescription}
+        />
+        <ProductTags
+          product={props.product}
+          editMode={props.editMode}
+          onBrandChange={props.onBrandChange}
+          onModelChange={props.onModelChange}
+          onAmountChange={props.onAmountInParentChange}
+          isComponent={props.isProductComponent}
+        />
+        <ProductType
+          product={props.product}
+          editMode={props.editMode}
+          onTypeChange={props.onTypeChange}
+        />
+      </>
+    ),
+  },
+  {
+    key: 'components',
+    label: 'Components',
+    // Task 5 refines this (BOM rows); never collapsed as empty for now.
+    isEmpty: () => false,
+    render: (props) => <ProductComponents product={props.product} editMode={props.editMode} />,
+  },
+  {
+    key: 'physical',
+    label: 'Physical properties',
+    addLabel: 'Add physical properties',
+    isEmpty: (product) => {
+      const { weight, width, height, depth } = product.physicalProperties;
+      return !(weight || width || height || depth);
+    },
+    render: (props) => (
+      <ProductPhysicalProperties
+        product={props.product}
+        editMode={props.editMode}
+        onChangePhysicalProperties={props.onChangePhysicalProperties}
+      />
+    ),
+  },
+  {
+    key: 'circularity',
+    label: 'Circularity',
+    addLabel: 'Add circularity notes',
+    isEmpty: (product) => !hasCircularityNotes(product),
+    render: (props) => (
+      <ProductCircularityProperties
+        product={props.product}
+        editMode={props.editMode}
+        onChangeCircularityProperties={props.onChangeCircularityProperties}
+      />
+    ),
+  },
+  {
+    key: 'media',
+    label: 'Media',
+    addLabel: 'Add a video',
+    isEmpty: (product, ctx) => (product.videos?.length ?? 0) === 0 && !ctx.mediaStreamable,
+    render: (props) => (
+      <ProductVideo
+        product={props.product}
+        editMode={props.editMode}
+        isNew={props.isNew}
+        onVideoChange={props.onVideoChange}
+        onGoLivePress={props.onGoLivePress}
+      />
+    ),
+  },
+  {
+    key: 'meta',
+    label: 'Details',
+    isEmpty: () => false,
+    render: (props) => <ProductMetaData product={props.product} />,
+  },
+];
+
+// Sections that don't apply at all to the current product/mode — distinct from
+// "empty" (which still shows an add-row in edit mode): components need a saved
+// product id to exist, media is a product-only concept.
+function passesGuard(
+  section: SectionConfig,
+  ctx: { isNew: boolean; isProductComponent: boolean },
+): boolean {
+  if (section.key === 'components' && ctx.isNew) return false;
+  if (section.key === 'media' && ctx.isProductComponent) return false;
+  return true;
+}
+
+export function guardedSections(ctx: {
+  isNew: boolean;
+  isProductComponent: boolean;
+}): SectionConfig[] {
+  return SECTIONS.filter((section) => passesGuard(section, ctx));
+}
+
+/** The sections actually rendered right now — reused by the nav chips/outline. */
+export function visibleSections(
+  product: Product,
+  ctx: SectionContext & { editMode: boolean; isNew: boolean; isProductComponent: boolean },
+): { key: SectionKey; label: string }[] {
+  return guardedSections(ctx)
+    .filter((section) => ctx.editMode || !section.isEmpty(product, ctx))
+    .map(({ key, label }) => ({ key, label }));
+}

@@ -1,37 +1,33 @@
-import type { ComponentProps } from 'react';
+import type { ComponentProps, RefObject } from 'react';
+import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
+import { View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import DetailCard from '@/components/base/DetailCard';
+import { PageContainer } from '@/components/base/PageContainer';
+import { Section } from '@/components/base/Section';
 import ProductDelete from '@/components/product/ProductDelete';
-import ProductDescription from '@/components/product/ProductDescription';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
-import ProductVideo from '@/components/product/ProductVideo';
 import type { Product } from '@/types/Product';
-import ProductCircularityProperties from './ProductCircularityProperties';
-import ProductComponents from './ProductComponents';
-import ProductMetaData from './ProductMetaData';
-import ProductPhysicalProperties from './ProductPhysicalProperties';
-import ProductTags from './ProductTags';
-import ProductType from './ProductType';
+import type { SectionContext, SectionRenderProps } from './content-sections';
+import { guardedSections } from './content-sections';
+import { SpecHeader } from './SpecHeader';
 
 type ProductPageContentProps = {
   product: Product;
   editMode: boolean;
   isNew: boolean;
   isProductComponent: boolean;
-  onScroll: ComponentProps<typeof KeyboardAwareScrollView>['onScroll'];
+  mediaStreamable: boolean;
+  scrollRef: RefObject<ScrollView | null>;
+  onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   onImagesChange: ComponentProps<typeof ProductImageGallery>['onImagesChange'];
-  onChangeDescription: ComponentProps<typeof ProductDescription>['onChangeDescription'];
-  onBrandChange: ComponentProps<typeof ProductTags>['onBrandChange'];
-  onModelChange: ComponentProps<typeof ProductTags>['onModelChange'];
-  onAmountInParentChange: ComponentProps<typeof ProductTags>['onAmountChange'];
-  onTypeChange: ComponentProps<typeof ProductType>['onTypeChange'];
-  onChangePhysicalProperties: ComponentProps<
-    typeof ProductPhysicalProperties
-  >['onChangePhysicalProperties'];
-  onChangeCircularityProperties: ComponentProps<
-    typeof ProductCircularityProperties
-  >['onChangeCircularityProperties'];
-  onVideoChange: ComponentProps<typeof ProductVideo>['onVideoChange'];
+  onChangeDescription: SectionRenderProps['onChangeDescription'];
+  onBrandChange: SectionRenderProps['onBrandChange'];
+  onModelChange: SectionRenderProps['onModelChange'];
+  onAmountInParentChange: SectionRenderProps['onAmountInParentChange'];
+  onTypeChange: SectionRenderProps['onTypeChange'];
+  onChangePhysicalProperties: SectionRenderProps['onChangePhysicalProperties'];
+  onChangeCircularityProperties: SectionRenderProps['onChangeCircularityProperties'];
+  onVideoChange: SectionRenderProps['onVideoChange'];
   onProductDelete: () => void;
   onGoLivePress: () => void;
 };
@@ -41,6 +37,8 @@ export function ProductPageContent({
   editMode,
   isNew,
   isProductComponent,
+  mediaStreamable,
+  scrollRef,
   onScroll,
   onImagesChange,
   onChangeDescription,
@@ -54,65 +52,58 @@ export function ProductPageContent({
   onProductDelete,
   onGoLivePress,
 }: ProductPageContentProps) {
+  const ctx: SectionContext = { mediaStreamable };
+  const sectionProps: SectionRenderProps = {
+    product,
+    editMode,
+    isNew,
+    isProductComponent,
+    onChangeDescription,
+    onBrandChange,
+    onModelChange,
+    onAmountInParentChange,
+    onTypeChange,
+    onChangePhysicalProperties,
+    onChangeCircularityProperties,
+    onVideoChange,
+    onGoLivePress,
+  };
+
   return (
     <KeyboardAwareScrollView
+      // KeyboardAwareScrollView forwards the real underlying ScrollView instance
+      // (see react-native-keyboard-controller source) with one extra method
+      // glued on; the plain ScrollView ref type is what callers need for scrollTo.
+      ref={scrollRef as never}
       contentContainerStyle={{ gap: 15, paddingBottom: 5 }}
       onScroll={onScroll}
       scrollEventThrottle={16}
     >
-      <ProductImageGallery product={product} editMode={editMode} onImagesChange={onImagesChange} />
-      <DetailCard>
-        <ProductDescription
+      <PageContainer fullBleed>
+        <ProductImageGallery
           product={product}
           editMode={editMode}
-          onChangeDescription={onChangeDescription}
+          onImagesChange={onImagesChange}
         />
-      </DetailCard>
-      <ProductTags
-        product={product}
-        editMode={editMode}
-        onBrandChange={onBrandChange}
-        onModelChange={onModelChange}
-        onAmountChange={onAmountInParentChange}
-        isComponent={isProductComponent}
-      />
-      <DetailCard>
-        <ProductType product={product} editMode={editMode} onTypeChange={onTypeChange} />
-      </DetailCard>
-      {!isProductComponent ? (
-        <DetailCard>
-          <ProductVideo
-            product={product}
-            editMode={editMode}
-            isNew={isNew}
-            onVideoChange={onVideoChange}
-            onGoLivePress={onGoLivePress}
-          />
-        </DetailCard>
-      ) : null}
-      <DetailCard>
-        <ProductPhysicalProperties
-          product={product}
-          editMode={editMode}
-          onChangePhysicalProperties={onChangePhysicalProperties}
-        />
-      </DetailCard>
-      <DetailCard>
-        <ProductCircularityProperties
-          product={product}
-          editMode={editMode}
-          onChangeCircularityProperties={onChangeCircularityProperties}
-        />
-      </DetailCard>
-      {!isNew ? (
-        <DetailCard>
-          <ProductComponents product={product} editMode={editMode} />
-        </DetailCard>
-      ) : null}
-      <DetailCard>
-        <ProductMetaData product={product} />
-      </DetailCard>
-      <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
+      </PageContainer>
+      <PageContainer>
+        <View style={{ gap: 15 }}>
+          <SpecHeader product={product} />
+          {guardedSections({ isNew, isProductComponent }).map((section) => (
+            <Section
+              key={section.key}
+              title={section.label}
+              sectionKey={section.key}
+              isEmpty={section.isEmpty(product, ctx)}
+              editMode={editMode}
+              addLabel={section.addLabel}
+            >
+              {section.render(sectionProps)}
+            </Section>
+          ))}
+          <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
+        </View>
+      </PageContainer>
     </KeyboardAwareScrollView>
   );
 }
