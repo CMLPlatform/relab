@@ -20,6 +20,10 @@ test.setTimeout(60_000);
 
 const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
 const NEW_OR_PRODUCT_DETAIL_URL_PATTERN = /products\/(new|\d+)/;
+const NEW_PRODUCT_URL_PATTERN = /products\/new/;
+// A fresh/short-named draft has exactly one validation error (the name); the
+// save FAB then relabels to the error-count affordance.
+const ATTENTION_FAB_LABEL = '1 field needs attention';
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const PRODUCTS_LIST_URL_PATTERN = /\/products$|\/products\?/;
 // The header back affordance is a Pressable (accessibilityRole="button", label "Go back"),
@@ -82,15 +86,25 @@ test.describe('Product creation', () => {
     await loginAndReachProducts(page);
     await openNewProductPage(page);
     await expect(page.getByRole('textbox', { name: 'Product name' })).toBeVisible();
-    // Save is disabled until the name meets the 2-character minimum.
-    await expect(page.getByRole('button', { name: 'Save Product' })).toBeDisabled();
+    // Until the name meets the 2-character minimum the save FAB is replaced by an
+    // enabled error-count affordance (only the name fails on a fresh draft), so
+    // saving is not possible: no "Save Product" button exists yet.
+    await expect(page.getByRole('button', { name: ATTENTION_FAB_LABEL })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Save Product' })).toHaveCount(0);
   });
 
-  test('Save button is disabled for names shorter than 2 characters', async ({ page }) => {
+  test('saving is not possible for names shorter than 2 characters', async ({ page }) => {
     await loginAndReachProducts(page);
     await openNewProductPage(page);
     await fillProductName(page, 'x');
-    await expect(page.getByRole('button', { name: 'Save Product' })).toBeDisabled();
+    const attentionFab = page.getByRole('button', { name: ATTENTION_FAB_LABEL });
+    await expect(attentionFab).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Save Product' })).toHaveCount(0);
+    // Pressing the FAB scrolls to the first error instead of saving: we stay on
+    // the new-product draft page.
+    await attentionFab.click();
+    await expect(page).toHaveURL(NEW_PRODUCT_URL_PATTERN);
+    await expect(page.getByRole('button', { name: 'Save Product' })).toHaveCount(0);
   });
 
   test('Product name input caps names at 100 characters', async ({ page }) => {

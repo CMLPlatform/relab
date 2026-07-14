@@ -107,7 +107,7 @@ function PrimaryProductFab({
   const titleLabel = entityRole === 'component' ? 'Component' : 'Product';
   // Invalid + errors to show: swap the FAB from "save" to "go to the first
   // problem" instead of blocking the press behind a disabled button.
-  const needsAttention = wouldSave && !validationValid && !!errorCount && errorCount > 0;
+  const needsAttention = wouldSave && !validationValid && (errorCount ?? 0) > 0;
   const label = needsAttention
     ? `${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`
     : editMode
