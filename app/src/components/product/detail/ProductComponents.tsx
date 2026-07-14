@@ -1,11 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import { Button } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { Text } from '@/components/base/Text';
-import ProductCard from '@/components/product/ProductCard';
 import { entityLabel, type Product } from '@/types/Product';
+import { ComponentRow } from './ComponentRow';
 
 interface Props {
   product: Product;
@@ -43,23 +43,17 @@ export default function ProductComponents({ product, editMode }: Props) {
         <Text style={{ opacity: 0.7, marginBottom: 8 }}>This {label} has no subcomponents.</Text>
       )}
       {visibleComponents.map((component) => (
-        <ProductCard key={component.id} product={component} enabled={!editMode} />
+        <ComponentRow key={component.id} component={component} enabled={!editMode} />
       ))}
       {components.length > 5 && (
-        <Button compact={true} mode="text" onPress={toggleExpanded}>
+        <AppButton variant="ghost" onPress={toggleExpanded}>
           {expanded ? 'Show less' : `Show ${hiddenCount} more`}
-        </Button>
+        </AppButton>
       )}
       {editMode || product.ownedBy !== 'me' || (
-        <Button
-          compact={true}
-          icon="plus"
-          mode="contained"
-          onPress={newComponent}
-          style={{ marginHorizontal: 16, marginVertical: 8 }}
-        >
+        <AppButton variant="primary" onPress={newComponent} className="mx-4 my-2">
           Add component
-        </Button>
+        </AppButton>
       )}
     </View>
   );

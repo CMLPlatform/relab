@@ -1,25 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
-import type { Text as RNText } from 'react-native';
 import ProductComponents from '@/components/product/detail/ProductComponents';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 const COMPONENTS_EMPTY_PATTERN = /Components \(0\)/;
-
-jest.mock('@/components/product/ProductCard', () => {
-  const React = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
-    Text: typeof RNText;
-  };
-  function ProductCardMock({ product }: { product: { name: string } }) {
-    return React.createElement(Text, null, product.name);
-  }
-
-  ProductCardMock.displayName = 'ProductCardMock';
-  return ProductCardMock;
-});
 
 const mockPush = jest.fn();
 
@@ -50,7 +36,7 @@ describe('ProductComponents', () => {
     });
   });
 
-  it('renders component cards when components are loaded', async () => {
+  it('renders component rows when components are loaded', async () => {
     const componentProduct: Product = {
       ...baseProduct,
       id: 2,

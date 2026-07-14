@@ -49,10 +49,12 @@ type ProductMapperPayload =
 // Fields mapped identically for base products and components. meId is threaded down
 // so nested children resolve ownedBy to 'me' the same way top-level fetches do.
 function commonProductFields(data: ProductMapperPayload, meId?: string) {
+  // undefined = child list not in this payload (nested ComponentRead items omit
+  // the key), [] = loaded and empty. Consumers use the distinction to lazy-fetch.
   const components =
     'components' in data
       ? (data.components?.map((component) => toComponent(component, meId)) ?? [])
-      : [];
+      : undefined;
   return {
     id: Number(data.id),
     name: data.name,
@@ -74,7 +76,9 @@ function commonProductFields(data: ProductMapperPayload, meId?: string) {
       remanufacturability: data.circularity_properties?.remanufacturability ?? null,
     },
     ownerUsername: data.owner_username ?? undefined,
-    componentIDs: components.map(({ id }) => Number(id)).filter((id) => Number.isFinite(id)),
+    componentIDs: (components ?? [])
+      .map(({ id }) => Number(id))
+      .filter((id) => Number.isFinite(id)),
     components,
     images:
       ('images' in data ? data.images : undefined)?.map((img: ApiImageRead) => ({
