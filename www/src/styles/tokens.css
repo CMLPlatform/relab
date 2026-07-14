@@ -25,11 +25,10 @@
   --color-muted: light-dark(rgb(83, 102, 122), rgb(179, 200, 216));
   --color-border: light-dark(rgba(23, 38, 45, 0.12), rgba(222, 239, 252, 0.12));
   --color-ring: color-mix(in srgb, var(--relab-brand-primary) 20%, transparent);
-  /* Chart marks: the brand primary hue snapped to the nearest step that clears
-     the data-viz chroma floor and per-mode lightness band against the card
-     surface. The brand tokens above are tuned for text/links and fail both as
-     large fills (light is below the chroma floor; dark is far too light). */
-  --color-chart-mark: light-dark(#0083a6, #29a2cc);
+  /* Chart marks: the cyanotype primary brightened into the data-viz band —
+     the brand tokens above are tuned for text/links, not large fills. The
+     pair is documented in assets/DESIGN.md (diagram & chart palette). */
+  --color-chart-mark: light-dark(#2f6bc7, #6fa8ff);
   --color-success: rgb(35, 115, 77);
   --color-error: rgb(178, 65, 65);
   --shadow-soft: light-dark(0 10px 28px rgba(16, 32, 38, 0.05), 0 20px 44px rgba(0, 0, 0, 0.24));

@@ -115,13 +115,14 @@
 }
 
 .btn-primary {
-  background: rgb(11, 89, 112);
-  color: rgb(255, 255, 255);
-  box-shadow: 0 10px 20px rgba(12, 91, 114, 0.18);
+  background: var(--color-primary);
+  /* dark-mode primary is a light blue, so the label flips to ink */
+  color: light-dark(rgb(255, 255, 255), rgb(12, 18, 32));
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
 .btn-primary:hover {
-  background: rgb(8, 75, 94);
+  background: var(--color-primary-strong);
 }
 
 .btn-muted {
@@ -144,8 +145,9 @@
 .stats-eyebrow,
 .stats-subhead {
   margin: 0;
+  font-family: var(--relab-brand-font-mono), monospace;
   font-size: 0.74rem;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-muted);
@@ -291,6 +293,7 @@
 .stats-chart-grid text,
 .stats-chart-xlabel {
   fill: var(--color-muted);
+  font-family: var(--relab-brand-font-mono), monospace;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
@@ -351,6 +354,7 @@
 }
 
 .stats-chart-tip-value {
+  font-family: var(--relab-brand-font-mono), monospace;
   font-variant-numeric: tabular-nums;
 }
 

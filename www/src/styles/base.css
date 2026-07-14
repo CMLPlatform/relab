@@ -27,9 +27,10 @@ h2,
 h3,
 h4 {
   margin: 0;
-  font-family: var(--relab-brand-font), sans-serif;
+  font-family: var(--relab-brand-font-display), Georgia, serif;
   color: var(--color-on-surface);
-  letter-spacing: -0.02em;
+  /* serif carries its own width; tighter tracking than this reads cramped */
+  letter-spacing: -0.01em;
   line-height: 1.1;
 }
 
