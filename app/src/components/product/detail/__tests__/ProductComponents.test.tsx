@@ -5,8 +5,6 @@ import ProductComponents from '@/components/product/detail/ProductComponents';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
-const COMPONENTS_EMPTY_PATTERN = /Components \(0\)/;
-
 const mockPush = jest.fn();
 
 describe('ProductComponents', () => {
@@ -20,13 +18,9 @@ describe('ProductComponents', () => {
     });
   });
 
-  it('renders the Components heading', async () => {
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
-      withDialog: true,
-    });
-    await screen.findByText(COMPONENTS_EMPTY_PATTERN);
-  });
-
+  // The "Components (n)" heading is now rendered by the wrapping Section
+  // (title + titleSuffix, see content-sections.test.ts) — this component no
+  // longer owns a heading of its own.
   it("shows 'no subcomponents' message when empty", async () => {
     renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
       withDialog: true,

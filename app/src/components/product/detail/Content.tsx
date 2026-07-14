@@ -108,6 +108,8 @@ export function ProductPageContent({
                 isEmpty={section.isEmpty(product, ctx)}
                 editMode={editMode}
                 addLabel={section.addLabel}
+                titleSuffix={section.titleSuffix?.(product)}
+                tooltip={section.tooltip?.(product)}
               >
                 {section.render(sectionProps)}
               </Section>

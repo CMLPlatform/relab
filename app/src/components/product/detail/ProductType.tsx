@@ -53,9 +53,12 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   // Render
   return (
     <View>
+      {/* A sub-heading within the Overview section (not a duplicate of the
+          Section title "Overview"), so it's demoted below Section-title weight. */}
       <DetailSectionHeader
         title="Type or Material"
         tooltipTitle={`Select a fitting category for the ${entityLabel(product)}.`}
+        style={{ fontSize: 15, fontWeight: '600' }}
       />
       {selectedType ? (
         <CPVCard CPV={selectedType} onPress={editMode ? onTypeSelectionStart : undefined} />

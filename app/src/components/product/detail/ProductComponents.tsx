@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
-import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { Text } from '@/components/base/Text';
 import { entityLabel, type Product } from '@/types/Product';
 import { ComponentRow } from './ComponentRow';
@@ -35,10 +34,6 @@ export default function ProductComponents({ product, editMode }: Props) {
 
   return (
     <View>
-      <DetailSectionHeader
-        title={`Components (${components.length})`}
-        tooltipTitle={`Add components after saving the ${label}.`}
-      />
       {components.length === 0 && (
         <Text style={{ opacity: 0.7, marginBottom: 8 }}>This {label} has no subcomponents.</Text>
       )}

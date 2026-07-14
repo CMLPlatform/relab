@@ -60,3 +60,17 @@ describe('overview section isEmpty', () => {
     expect(overview.isEmpty(product, { mediaStreamable: false })).toBe(true);
   });
 });
+
+describe('components section titleSuffix', () => {
+  const components = SECTIONS.find((section) => section.key === 'components');
+  if (!components) throw new Error('components section missing from SECTIONS');
+
+  it('counts the loaded components', () => {
+    const loaded = { ...bareProduct, id: 3, name: 'Child' };
+    expect(components.titleSuffix?.({ ...bareProduct, components: [loaded, loaded] })).toBe('(2)');
+  });
+
+  it('shows (0) when components is undefined', () => {
+    expect(components.titleSuffix?.({ ...bareProduct, components: undefined })).toBe('(0)');
+  });
+});

@@ -190,6 +190,8 @@ describe('Fetching API Service logic', () => {
       expect(p.physicalProperties.weight).toBe(100);
       expect(p.physicalProperties.height).toBe(10);
       expect(p.componentIDs).toEqual([1]);
+      // A detail payload with a `components` key maps to an array.
+      expect(Array.isArray(p.components)).toBe(true);
       expect(p.components ?? []).toHaveLength(1);
       expect(p.components?.[0]).toMatchObject({
         id: 1,
@@ -198,6 +200,10 @@ describe('Fetching API Service logic', () => {
         parentID: 42,
         amountInParent: 2,
       });
+      // The nested child is a bare ComponentRead (no `components` key of its
+      // own) — undefined means "not loaded", distinct from `[]` ("loaded and
+      // childless"); ComponentRow relies on this to decide whether to fetch.
+      expect(p.components?.[0].components).toBeUndefined();
       expect(p.images?.[0]?.description).toBe('Main image');
       expect(p.videos?.[0]?.title).toBe('Demo');
       expect(p.ownedBy).toBe('me');

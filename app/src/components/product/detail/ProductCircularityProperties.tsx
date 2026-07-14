@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { Text } from '@/components/base/Text';
 import { TextInput } from '@/components/base/TextInput';
 import { type AppColors, useAppTheme } from '@/theme';
@@ -58,19 +57,18 @@ export default function ProductCircularityProperties({
 
   return (
     <View>
-      <DetailSectionHeader
-        title="Circularity Properties"
-        tooltipTitle="Add optional recyclability, disassemblability, and remanufacturability notes."
-        rightElement={
-          <Pressable
-            onPress={toggleSection}
-            accessibilityRole="button"
-            accessibilityLabel={`${toggleSectionLabel.toLowerCase()} circularity properties`}
-          >
-            <Text style={{ fontWeight: '600', color: colors.primary }}>{toggleSectionLabel}</Text>
-          </Pressable>
-        }
-      />
+      {/* The Section title ("Circularity") already covers this heading — this
+          row is only the collapse/expand toggle, right-aligned to where
+          DetailSectionHeader's rightElement used to sit. */}
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <Pressable
+          onPress={toggleSection}
+          accessibilityRole="button"
+          accessibilityLabel={`${toggleSectionLabel.toLowerCase()} circularity properties`}
+        >
+          <Text style={{ fontWeight: '600', color: colors.primary }}>{toggleSectionLabel}</Text>
+        </Pressable>
+      </View>
 
       {!isSectionExpanded ? (
         <Text style={styles.sectionSummary}>{getHiddenSummary(noteCount)}</Text>

@@ -100,6 +100,36 @@ describe('ComponentRow', () => {
     expect(mockGetComponent).toHaveBeenCalledWith(10);
   });
 
+  it('keeps the row expanded with a "No subcomponents" line when a fetch resolves empty', async () => {
+    mockGetComponent.mockResolvedValue(makeComponent({ components: [] }));
+    renderWithProviders(
+      <ComponentRow component={makeComponent({ components: undefined })} enabled={true} />,
+    );
+
+    fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
+    expect(screen.getByText('Loading components…')).toBeOnTheScreen();
+
+    await waitFor(() => {
+      expect(screen.getByText('No subcomponents')).toBeOnTheScreen();
+    });
+    // The chevron stays put (as "Hide…") instead of vanishing mid-interaction.
+    expect(screen.getByLabelText('Hide components of Motor Assembly')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByLabelText('Hide components of Motor Assembly'));
+    expect(screen.queryByText('No subcomponents')).toBeNull();
+  });
+
+  it('falls back to "Unnamed component" for the a11y label when the name is blank', () => {
+    renderWithProviders(
+      <ComponentRow
+        component={makeComponent({ name: '', components: [loadedChild] })}
+        enabled={true}
+      />,
+    );
+    expect(screen.getByText('Unnamed component')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Show components of Unnamed component')).toBeOnTheScreen();
+  });
+
   it('shows a retryable error row when the fetch fails', async () => {
     // componentQueryOptions retries once internally, so fail both attempts.
     mockGetComponent

@@ -30,15 +30,22 @@ const THUMBNAIL_SIZE = 44;
 export function ComponentRow({ component, enabled, nested = false }: Props) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
+  const displayName = component.name || 'Unnamed component';
 
+  const wasUnknown = component.components === undefined;
   const query = useQuery({
     ...componentQueryOptions(component.id),
-    enabled: expanded && component.components === undefined && typeof component.id === 'number',
+    enabled: expanded && wasUnknown && typeof component.id === 'number',
   });
   const children = component.components ?? query.data?.components;
   const childCount = children?.length ?? 0;
-  // Chevron when children are known to exist, or unknown (undefined = not loaded).
-  const canExpand = !nested && (children === undefined || childCount > 0);
+  // A fetch we triggered resolved to zero children — distinct from a payload
+  // that already told us the count was zero (which never shows a chevron).
+  const fetchedEmpty = wasUnknown && query.isSuccess && childCount === 0;
+  // Chevron when children are known to exist, unknown (undefined = not
+  // loaded), or a fetch already found the row expanded-but-empty (so the
+  // user can still collapse it instead of the row vanishing mid-interaction).
+  const canExpand = !nested && (children === undefined || childCount > 0 || fetchedEmpty);
 
   const navigate = () => {
     if (typeof component.id !== 'number') return;
@@ -47,10 +54,18 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
 
   let expandedBody: ReactNode = null;
   if (expanded && canExpand) {
-    if (children) {
+    if (children && children.length > 0) {
       expandedBody = children.map((child) => (
         <ComponentRow key={child.id} component={child} enabled={enabled} nested={true} />
       ));
+    } else if (fetchedEmpty) {
+      expandedBody = (
+        <View className="min-h-11 justify-center">
+          <AppText variant="label" className="opacity-70">
+            No subcomponents
+          </AppText>
+        </View>
+      );
     } else if (query.isError) {
       expandedBody = (
         <Pressable
@@ -99,7 +114,7 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
           )}
           <View className="flex-1">
             <AppText variant="body" className="font-medium">
-              {component.name || 'Unnamed component'}
+              {displayName}
             </AppText>
             {component.productTypeName ? (
               <AppText variant="label" className="opacity-70">
@@ -116,7 +131,7 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
         {canExpand ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${expanded ? 'Hide' : 'Show'} components of ${component.name}`}
+            accessibilityLabel={`${expanded ? 'Hide' : 'Show'} components of ${displayName}`}
             onPress={() => setExpanded((current) => !current)}
             className="h-11 w-11 items-center justify-center"
           >

@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import { Divider } from 'react-native-paper';
-import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import LocalizedFloatInput from '@/components/base/LocalizedFloatInput';
 import Cube from '@/components/base/SVGCube';
 import type { PhysicalProperties, Product } from '@/types/Product';
@@ -43,11 +42,6 @@ export default function ProductPhysicalProperties({
   // Render
   return (
     <View>
-      <DetailSectionHeader
-        title="Physical Properties"
-        tooltipTitle="Must be greater than 0. Assume a bounding box for the dimensions."
-      />
-
       <Cube
         width={product.physicalProperties.width}
         height={product.physicalProperties.height}

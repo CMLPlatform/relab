@@ -42,6 +42,21 @@ test('edit mode + empty shows the add row, expands in place on press', () => {
   expect(screen.getByText('section body')).toBeOnTheScreen();
 });
 
+test('renders titleSuffix and tooltip beside the title', () => {
+  render(
+    <Section
+      title="Components"
+      sectionKey="components"
+      titleSuffix="(3)"
+      tooltip="Add components after saving."
+    >
+      {child}
+    </Section>,
+  );
+  expect(screen.getByText('Components')).toBeOnTheScreen();
+  expect(screen.getByText('(3)')).toBeOnTheScreen();
+});
+
 test('unregisters from the nav registry when it collapses to empty in view mode', () => {
   const registerSection = jest.fn();
   const unregisterSection = jest.fn();

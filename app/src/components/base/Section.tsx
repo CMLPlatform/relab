@@ -2,6 +2,7 @@ import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { AppButton } from './AppButton';
 import { AppText } from './AppText';
+import { InfoTooltip } from './InfoTooltip';
 import { SectionNavContext } from './SectionNavContext';
 
 export type { SectionKey } from './SectionNavContext';
@@ -14,6 +15,10 @@ type SectionProps = {
   isEmpty?: boolean;
   editMode?: boolean;
   addLabel?: string;
+  /** Muted text after the title, e.g. a component count like "(3)". */
+  titleSuffix?: string;
+  /** Info-tooltip text shown beside the title. */
+  tooltip?: string;
   children: ReactNode;
 };
 
@@ -28,6 +33,8 @@ export function Section({
   isEmpty = false,
   editMode = false,
   addLabel,
+  titleSuffix,
+  tooltip,
   children,
 }: SectionProps) {
   const nav = useContext(SectionNavContext);
@@ -65,9 +72,15 @@ export function Section({
         </AppButton>
       ) : (
         <>
-          <AppText variant="title" className="mb-2">
-            {title}
-          </AppText>
+          <View className="flex-row items-center gap-1.5 mb-2">
+            <AppText variant="title">{title}</AppText>
+            {titleSuffix ? (
+              <AppText variant="label" className="opacity-70">
+                {titleSuffix}
+              </AppText>
+            ) : null}
+            {tooltip ? <InfoTooltip title={tooltip} /> : null}
+          </View>
           {children}
         </>
       )}

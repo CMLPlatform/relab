@@ -5,7 +5,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import type { SectionKey } from '@/components/base/SectionNavContext';
 import ProductDescription from '@/components/product/ProductDescription';
 import ProductVideo from '@/components/product/ProductVideo';
-import type { Product } from '@/types/Product';
+import { entityLabel, type Product } from '@/types/Product';
 import ProductCircularityProperties from './ProductCircularityProperties';
 import ProductComponents from './ProductComponents';
 import ProductMetaData from './ProductMetaData';
@@ -45,6 +45,10 @@ export type SectionConfig = {
   key: SectionKey;
   label: string;
   addLabel?: string;
+  /** Muted text after the Section title, e.g. a component count like "(3)". */
+  titleSuffix?: (product: Product) => string | undefined;
+  /** Info-tooltip text shown beside the Section title. */
+  tooltip?: (product: Product) => string | undefined;
   isEmpty: (product: Product, ctx: SectionContext) => boolean;
   render: (props: SectionRenderProps) => ReactNode;
 };
@@ -108,6 +112,8 @@ export const SECTIONS: SectionConfig[] = [
     label: 'Components',
     // Task 5 refines this (BOM rows); never collapsed as empty for now.
     isEmpty: () => false,
+    titleSuffix: (product) => `(${(product.components ?? []).length})`,
+    tooltip: (product) => `Add components after saving the ${entityLabel(product)}.`,
     render: (props) => <ProductComponents product={props.product} editMode={props.editMode} />,
   },
   {
@@ -118,6 +124,7 @@ export const SECTIONS: SectionConfig[] = [
       const { weight, width, height, depth } = product.physicalProperties;
       return !(weight || width || height || depth);
     },
+    tooltip: () => 'Must be greater than 0. Assume a bounding box for the dimensions.',
     render: (props) => (
       <ProductPhysicalProperties
         product={props.product}
@@ -131,6 +138,7 @@ export const SECTIONS: SectionConfig[] = [
     label: 'Circularity',
     addLabel: 'Add circularity notes',
     isEmpty: (product) => !hasCircularityNotes(product),
+    tooltip: () => 'Add optional recyclability, disassemblability, and remanufacturability notes.',
     render: (props) => (
       <ProductCircularityProperties
         product={props.product}

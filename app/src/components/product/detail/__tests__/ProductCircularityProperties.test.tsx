@@ -5,8 +5,6 @@ import ProductCircularityProperties from '@/components/product/detail/ProductCir
 import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
-const CIRCULARITY_PROPERTIES_PATTERN = /Circularity Properties/;
-
 const emptyCircularity = {
   recyclability: null,
   disassemblability: null,
@@ -16,10 +14,11 @@ const emptyCircularity = {
 const baseProduct: Product = { ..._base, circularityProperties: emptyCircularity };
 
 describe('ProductCircularityProperties', () => {
-  it('renders the section heading collapsed by default', () => {
+  // The "Circularity" heading itself is rendered by the wrapping Section, not
+  // this component — verify only the toggle it owns.
+  it('renders the collapse/expand toggle collapsed by default', () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
 
-    expect(screen.getByText(CIRCULARITY_PROPERTIES_PATTERN)).toBeOnTheScreen();
     expect(screen.getByText('Show')).toBeOnTheScreen();
   });
 
