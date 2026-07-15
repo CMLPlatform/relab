@@ -330,7 +330,7 @@ describe('Products screen', () => {
 
   it('renders welcome banner on first visit', async () => {
     renderProducts();
-    expect(screen.getByText('Welcome to ReLab')).toBeOnTheScreen();
+    expect(screen.getByText('Welcome to Relab')).toBeOnTheScreen();
     expect(
       screen.getByText('Browse products freely. Sign in when you are ready to add your own.'),
     ).toBeOnTheScreen();
@@ -339,7 +339,7 @@ describe('Products screen', () => {
   it('dismisses welcome banner when Maybe later is pressed', async () => {
     renderProducts();
     fireEvent.press(screen.getByText('Maybe later'));
-    expect(screen.queryByText('Welcome to ReLab')).toBeNull();
+    expect(screen.queryByText('Welcome to Relab')).toBeNull();
   });
 
   it('shows the signed-in welcome after a guest dismisses the first-visit banner', async () => {

@@ -118,7 +118,7 @@ export function ProfileEmailUpdatesSection({
     <View style={styles.section}>
       <View style={styles.newsletterRow}>
         <View style={styles.newsletterCopy}>
-          <AppText style={styles.actionTitle}>Receive ReLab account updates</AppText>
+          <AppText style={styles.actionTitle}>Receive Relab account updates</AppText>
           <AppText style={styles.actionSubtitle}>
             Opt in to occasional product and project updates tied to your account.
           </AppText>
@@ -130,7 +130,7 @@ export function ProfileEmailUpdatesSection({
           checked={enabled}
           onCheckedChange={onSetEnabled}
           disabled={saving}
-          accessibilityLabel="Receive ReLab account updates"
+          accessibilityLabel="Receive Relab account updates"
         />
       </View>
     </View>

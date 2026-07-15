@@ -44,7 +44,7 @@ beforeEach(() => {
   mockStartTotpSetup.mockResolvedValue({
     setupToken: 'setup-token',
     secret: 'ABCDEFGH',
-    otpauthUri: 'otpauth://totp/ReLab:tester?secret=ABCDEFGH',
+    otpauthUri: 'otpauth://totp/Relab:tester?secret=ABCDEFGH',
   });
   mockConfirmTotpSetup.mockResolvedValue(RECOVERY_CODES);
   mockRegenerate.mockResolvedValue(RECOVERY_CODES);

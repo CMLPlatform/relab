@@ -45,7 +45,7 @@ export default function Products() {
   return (
     <>
       <Head>
-        <title>Products · ReLab</title>
+        <title>Products · Relab</title>
       </Head>
       <PageContainer phoneFullBleed>
         <View style={{ padding: 10, gap: 10 }} onLayout={handleLayout}>

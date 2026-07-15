@@ -95,7 +95,7 @@ export const AppStack = memo(function AppStack({
       <Stack.Screen
         name="products/index"
         options={{
-          title: 'ReLab',
+          title: 'Relab',
           headerTitle: () => <BrandHeaderTitle isDark={isDark} />,
           ...getProductsHeaderStyle(theme),
           headerRight: () => <HeaderRightPill />,

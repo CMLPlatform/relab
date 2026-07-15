@@ -59,8 +59,8 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Allow ReLab to use the camera for product photos.",
-          "photosPermission": "Allow ReLab to select product photos from your library.",
+          "cameraPermission": "Allow Relab to use the camera for product photos.",
+          "photosPermission": "Allow Relab to select product photos from your library.",
           "microphonePermission": false
         }
       ],

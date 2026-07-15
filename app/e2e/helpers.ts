@@ -37,7 +37,7 @@ async function suppressGuestWelcomeCard(page: Page) {
 
 export async function dismissProductsInfoCard(page: Page) {
   // Fallback dismissal for authenticated users (whose preference lives server-side).
-  const welcomeHeading = page.getByText('Welcome to ReLab', { exact: true });
+  const welcomeHeading = page.getByText('Welcome to Relab', { exact: true });
   const appeared = await welcomeHeading.isVisible({ timeout: 1_000 }).catch(() => false);
   if (!appeared) return;
 

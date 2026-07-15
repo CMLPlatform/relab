@@ -89,7 +89,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
           style={[local.field, { borderColor: theme.colors.outline }]}
         />
         <Text style={local.hint}>
-          Signed up with Google or GitHub? Use your ReLab account password — if you never set one,
+          Signed up with Google or GitHub? Use your Relab account password — if you never set one,
           create it with “Forgot password” on the login screen first.
         </Text>
 

@@ -270,7 +270,7 @@ describe('ProfileTab', () => {
   describe('email updates', () => {
     it('calls updateUser when the email updates switch is toggled', async () => {
       const { findByRole } = await renderProfile();
-      const emailSwitch = await findByRole('switch', { name: 'Receive ReLab account updates' });
+      const emailSwitch = await findByRole('switch', { name: 'Receive Relab account updates' });
       fireEvent.press(emailSwitch);
       await waitFor(() => {
         expect(mockUpdateUser).toHaveBeenCalledWith(
