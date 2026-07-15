@@ -1,8 +1,8 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
+import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { Text } from '@/components/base/Text';
-import { spacing } from '@/constants';
 
 export default function LogoutConfirm({
   visible,
@@ -15,11 +15,11 @@ export default function LogoutConfirm({
 }) {
   return (
     <AppDialog visible={visible} onDismiss={onDismiss}>
-      <Text accessibilityRole="header" style={styles.title}>
+      <Text accessibilityRole="header" style={dialogTitleStyle}>
         Sign out
       </Text>
       <Text>Are you sure you want to sign out?</Text>
-      <View style={styles.actions}>
+      <View style={dialogActionsStyle}>
         <AppButton variant="ghost" onPress={onDismiss}>
           Cancel
         </AppButton>
@@ -30,17 +30,3 @@ export default function LogoutConfirm({
     </AppDialog>
   );
 }
-
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.xs,
-    marginTop: spacing.md,
-  },
-});

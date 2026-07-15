@@ -2,7 +2,10 @@ import type { ComponentProps, RefObject } from 'react';
 import { useContext } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
 import { View } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import {
+  KeyboardAwareScrollView,
+  type KeyboardAwareScrollViewRef,
+} from 'react-native-keyboard-controller';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Section } from '@/components/base/Section';
 import { SectionNavContext } from '@/components/base/SectionNavContext';
@@ -80,8 +83,9 @@ export function ProductPageContent({
     <KeyboardAwareScrollView
       // KeyboardAwareScrollView forwards the real underlying ScrollView instance
       // (see react-native-keyboard-controller source) with one extra method
-      // glued on; the plain ScrollView ref type is what callers need for scrollTo.
-      ref={scrollRef as never}
+      // glued on; callers hold a plain ScrollView ref for scrollTo, so bridge
+      // the two ref shapes through `unknown` (they're runtime-compatible).
+      ref={scrollRef as unknown as RefObject<KeyboardAwareScrollViewRef>}
       contentContainerStyle={{ gap: 15, paddingBottom: 5 }}
       onScroll={onScroll}
       scrollEventThrottle={16}

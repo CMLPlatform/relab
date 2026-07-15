@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import LogoutConfirm from '@/components/auth/LogoutConfirm';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
+import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { Text } from '@/components/base/Text';
 import { TextInput } from '@/components/base/TextInput';
 import { radius, spacing } from '@/constants';
@@ -55,7 +56,7 @@ export function ProfileDialogs({
   return (
     <>
       <AppDialog visible={editUsernameVisible} onDismiss={onDismissEditUsername}>
-        <Text accessibilityRole="header" style={dialogStyles.title}>
+        <Text accessibilityRole="header" style={dialogTitleStyle}>
           Edit username
         </Text>
         <TextInput
@@ -67,7 +68,7 @@ export function ProfileDialogs({
           autoCorrect={false}
           style={[dialogStyles.input, { borderColor: theme.colors.outline }]}
         />
-        <View style={dialogStyles.actions}>
+        <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={onDismissEditUsername}>
             Cancel
           </AppButton>
@@ -78,7 +79,7 @@ export function ProfileDialogs({
       </AppDialog>
 
       <AppDialog visible={unlinkDialogVisible} onDismiss={onDismissUnlink}>
-        <Text accessibilityRole="header" style={dialogStyles.title}>
+        <Text accessibilityRole="header" style={dialogTitleStyle}>
           Unlink account
         </Text>
         <Text>Are you sure you want to disconnect this {providerToUnlink} account?</Text>
@@ -100,7 +101,7 @@ export function ProfileDialogs({
             style={[dialogStyles.input, { borderColor: theme.colors.outline }]}
           />
         ) : null}
-        <View style={dialogStyles.actions}>
+        <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={onDismissUnlink}>
             Cancel
           </AppButton>
@@ -121,7 +122,7 @@ export function ProfileDialogs({
       />
 
       <AppDialog visible={deleteDialogVisible} onDismiss={onDismissDeleteDialog}>
-        <Text accessibilityRole="header" style={dialogStyles.title}>
+        <Text accessibilityRole="header" style={dialogTitleStyle}>
           Delete account
         </Text>
         <Text>To delete your account and all its data, email us at:</Text>
@@ -129,7 +130,7 @@ export function ProfileDialogs({
           <Text style={styles.deleteEmail}>relab@cml.leidenuniv.nl</Text>
         </Link>
         <Text style={styles.deleteMessage}>We&apos;ll confirm the deletion by email.</Text>
-        <View style={dialogStyles.actions}>
+        <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={onDismissDeleteDialog}>
             OK
           </AppButton>
@@ -140,22 +141,11 @@ export function ProfileDialogs({
 }
 
 const dialogStyles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-  },
   input: {
     borderWidth: 1,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     marginTop: spacing.sm,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.xs,
-    marginTop: spacing.md,
   },
 });

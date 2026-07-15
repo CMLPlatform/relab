@@ -10,10 +10,10 @@ const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const VIEW_IMAGE_LABEL_PATTERN = /^View image \d+$/;
 const DISMISS_BUTTON_NAMES = ['Got it', 'Maybe later', 'Continue'] as const;
-// RN Paper's web Menu Portal collapses its layout measurement under CPU load,
-// tearing items down before we can catch them. Each open attempt is an
-// independent chance to hit a stable measurement, so a generous budget keeps
-// first-pass reliability high without leaning on full-test retries.
+// The menu is an RN-core Modal (Menu.tsx) that measures its anchor position on
+// open; under parallel-worker CPU load an open can occasionally land before the
+// items lay out. Each attempt is an independent chance at a clean open, so a
+// generous budget keeps first-pass reliability high without full-test retries.
 const MENU_OPEN_ATTEMPTS = 8;
 
 function makeOnboardingUsername() {
@@ -106,10 +106,10 @@ export async function openNewProductPage(page: Page) {
 }
 
 /**
- * Click an RN Paper Menu anchor and wait for items to mount. Retries on
- * failure: under parallel-worker CPU load, Paper's initial layout measurement
- * can return zero dimensions, leaving the Portal in "not rendered" state — a
- * second click triggers a fresh measurement and typically succeeds.
+ * Click a menu anchor and wait for items to mount. Retries on failure: under
+ * parallel-worker CPU load the Modal's open can briefly attach items before the
+ * anchor-position measurement settles — a second click re-opens and typically
+ * succeeds.
  */
 export async function openMenu(page: Page, anchor: Locator) {
   // Ensure the anchor is attached and actionable before we start dispatching clicks.
@@ -117,18 +117,17 @@ export async function openMenu(page: Page, anchor: Locator) {
 
   for (let attempt = 0; attempt < MENU_OPEN_ATTEMPTS; attempt++) {
     // Alternate click strategies: Playwright's trusted click first, then a
-    // synthetic DOM click via element.click(). RN Paper's IconButton in
-    // contained-tonal mode occasionally drops the first pointer event under
-    // parallel-worker CPU load; a direct element.click() bypasses any
-    // pointer-events quirks on the Surface wrapper.
+    // synthetic DOM click via element.click(). The anchor's IconButton
+    // occasionally drops the first pointer event under parallel-worker CPU
+    // load; a direct element.click() bypasses any pointer-events quirks.
     // biome-ignore lint/performance/noAwaitInLoops: sequential retry — each attempt must observe the previous one's outcome.
     await (attempt % 2 === 0
       ? anchor.click({ force: true })
       : anchor.evaluate((el) => (el as HTMLElement).click()));
     try {
-      // Poll in-browser for attached menu items. Paper's measurement phase can
-      // briefly attach items with opacity 0 / visibility:hidden; attachment is
-      // the earliest reliable signal that onPress fired and the Portal mounted.
+      // Poll in-browser for attached menu items. The menu Modal can briefly
+      // attach items before layout settles; attachment is the earliest reliable
+      // signal that onPress fired and the menu mounted.
       // In-browser polling at 50ms is fast enough to catch the window before
       // measurement tears items down; Playwright's network-hop locator polling
       // is too slow and would cause us to press Escape on a menu that just opened.
@@ -146,11 +145,11 @@ export async function openMenu(page: Page, anchor: Locator) {
 }
 
 /**
- * Open an RN Paper Menu via its anchor and click the item with the given label.
+ * Open a menu via its anchor and click the item with the given label.
  * Combining open + select into one retried operation is required because the
- * Menu can dismiss itself between separate calls (Paper re-measures on mount
- * and any stray pointer event closes the Portal). We retry the full sequence
- * until the item is clicked or we exhaust attempts.
+ * menu can dismiss itself between separate calls (a stray pointer event on the
+ * Modal backdrop closes it). We retry the full sequence until the item is
+ * clicked or we exhaust attempts.
  */
 export async function selectMenuItem(page: Page, anchor: Locator, label: string) {
   await anchor.waitFor({ state: 'visible', timeout: 10_000 });

@@ -10,6 +10,7 @@ import {
   type DialogContextType,
   type DialogOptions,
 } from './dialogContext';
+import { dialogActionsStyle, dialogTitleStyle } from './dialogStyles';
 import { OverlaySurface } from './OverlaySurface';
 import { Text } from './Text';
 import { TextInput } from './TextInput';
@@ -97,7 +98,7 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
   return (
     <AppDialog visible onDismiss={onDismiss}>
       {options.title ? (
-        <Text accessibilityRole="header" style={styles.title}>
+        <Text accessibilityRole="header" style={dialogTitleStyle}>
           {options.title}
         </Text>
       ) : null}
@@ -134,7 +135,7 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
         </Text>
       ) : null}
 
-      <View style={styles.actions}>
+      <View style={dialogActionsStyle}>
         {buttons.map((btn) => (
           <DialogActionButton
             key={btn.text}
@@ -199,11 +200,6 @@ function Toast({ message, onDismiss }: { message: string | null; onDismiss: () =
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-  },
   message: {
     marginBottom: spacing.sm,
   },
@@ -216,12 +212,6 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 12,
     marginTop: spacing.xs,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.xs,
-    marginTop: spacing.md,
   },
   toastContainer: {
     position: 'absolute',

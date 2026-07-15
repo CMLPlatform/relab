@@ -4,10 +4,11 @@ import { Linking, Platform, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
+import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { OtpInput } from '@/components/base/OtpInput';
 import { Text } from '@/components/base/Text';
 import { TextInput } from '@/components/base/TextInput';
-import { spacing } from '@/constants';
+import { radius, spacing } from '@/constants';
 import type { MfaSetupController } from '@/features/profile/useMfaSetup';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
@@ -47,7 +48,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
   return (
     <>
       <AppDialog visible={mfa.mode === 'enroll'} onDismiss={cancel}>
-        <Text accessibilityRole="header" style={local.title}>
+        <Text accessibilityRole="header" style={dialogTitleStyle}>
           Set up two-step verification
         </Text>
         <Text style={local.step}>
@@ -106,7 +107,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
 
         {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
 
-        <View style={local.actions}>
+        <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={cancel}>
             Cancel
           </AppButton>
@@ -117,7 +118,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
       </AppDialog>
 
       <AppDialog visible={mfa.mode === 'disable'} onDismiss={cancel}>
-        <Text accessibilityRole="header" style={local.title}>
+        <Text accessibilityRole="header" style={dialogTitleStyle}>
           Enter a current code
         </Text>
         <Text style={local.step}>
@@ -160,7 +161,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
             : 'Lost your authenticator? Use a recovery code'}
         </AppButton>
 
-        <View style={local.actions}>
+        <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={cancel}>
             Cancel
           </AppButton>
@@ -176,7 +177,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
       </AppDialog>
 
       <AppDialog visible={mfa.mode === 'regenerate'} onDismiss={cancel}>
-        <Text accessibilityRole="header" style={local.title}>
+        <Text accessibilityRole="header" style={dialogTitleStyle}>
           Generate new recovery codes
         </Text>
         <Text style={local.step}>
@@ -198,7 +199,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
 
         {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
 
-        <View style={local.actions}>
+        <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={cancel}>
             Cancel
           </AppButton>
@@ -209,7 +210,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
       </AppDialog>
 
       <AppDialog visible={mfa.mode === 'codes'} onDismiss={cancel} dismissable={false}>
-        <Text accessibilityRole="header" style={local.title}>
+        <Text accessibilityRole="header" style={dialogTitleStyle}>
           Save your recovery codes
         </Text>
         <Text style={local.step}>
@@ -229,7 +230,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
           Copy all
         </AppButton>
 
-        <View style={local.actions}>
+        <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={cancel}>
             Done
           </AppButton>
@@ -241,11 +242,6 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
 
 const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    title: {
-      fontSize: 18,
-      fontWeight: '600',
-      marginBottom: spacing.sm,
-    },
     step: {
       fontSize: 14,
       opacity: 0.75,
@@ -277,7 +273,7 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
     },
     field: {
       borderWidth: 1,
-      borderRadius: 4,
+      borderRadius: radius.sm,
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.sm,
       marginTop: 16,
@@ -308,12 +304,6 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
       marginTop: 12,
       fontSize: 13,
       color: theme.tokens.status.danger,
-    },
-    actions: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      gap: spacing.xs,
-      marginTop: spacing.md,
     },
   }),
 );
