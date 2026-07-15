@@ -15,7 +15,7 @@ interface PrivacySection {
 }
 
 export const privacyContent = {
-  description: 'Privacy information for ReLab accounts, contributions, and email preferences.',
+  description: 'Privacy information for Relab accounts, contributions, and email preferences.',
   title: 'Privacy policy',
   lastUpdated: 'Last updated: May 6, 2026',
   intro: 'This policy explains what we collect, how we use it, and what choices you have.',
@@ -24,14 +24,14 @@ export const privacyContent = {
       title: 'Account information',
       paragraphs: [
         'When you create an account, we ask for a username, email address, and password. We store passwords only in protected hashed form. We use your email to help you sign in and to send important service messages. We record when you log in successfully, but we do not keep login IP addresses on your account.',
-        'If you connect Google, GitHub, or YouTube, ReLab stores the connection details encrypted. You can use “Sign out everywhere” in your profile to end active sessions on your other devices.',
+        'If you connect Google, GitHub, or YouTube, Relab stores the connection details encrypted. You can use “Sign out everywhere” in your profile to end active sessions on your other devices.',
       ],
     },
     {
       title: 'Contributions',
       paragraphs: [
         'Your profile and contribution statistics are public by default. You can change your profile to community-only or private in your profile settings. This changes who can see your profile details, statistics, and owner name. It does not make uploaded product records, files, images, or videos private.',
-        'Product records, files, and images you upload may be public so the research dataset can be reused. We store uploads on our servers and include them in backups. We use them to show your contributions in ReLab, and for research when you choose to contribute them.',
+        'Product records, files, and images you upload may be public so the research dataset can be reused. We store uploads on our servers and include them in backups. We use them to show your contributions in Relab, and for research when you choose to contribute them.',
         'External videos load only after you choose to load them.',
         'You can delete your products and uploaded images in the app. If you need help, contact us and we will remove the related uploads and records.',
       ],

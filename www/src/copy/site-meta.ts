@@ -1,9 +1,9 @@
 const siteMeta = {
   defaultDescription:
-    'ReLab is an open-source research platform for documenting teardowns of durable goods and organising the resulting product data.',
-  name: 'ReLab',
+    'Relab is an open-source research platform for documenting teardowns of durable goods and organising the resulting product data.',
+  name: 'Relab',
   organization: 'CML, Leiden University',
-  title: 'ReLab',
+  title: 'Relab',
 };
 
 export const siteLinks = {

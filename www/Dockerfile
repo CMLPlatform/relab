@@ -77,7 +77,7 @@ FROM caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95a
 ARG WORKDIR
 
 # Upgrade packages to get latest security patches (Caddy image is pretty minimal, so this is low-risk).
-# ReLab serves Caddy on high ports, so remove the inherited low-port bind capability
+# Relab serves Caddy on high ports, so remove the inherited low-port bind capability
 # to work with no-new-privileges and dropped runtime capabilities.
 RUN apk upgrade --no-cache \
     && apk add --no-cache libcap \

@@ -1,6 +1,6 @@
-# ReLab Web
+# Relab Web
 
-This subrepo contains the public website for ReLab, built with Astro. It is the small, mostly static front door for the project: the landing page, privacy page, and the links that point people toward the app, docs, and source code.
+This subrepo contains the public website for Relab, built with Astro. It is the small, mostly static front door for the project: the landing page, privacy page, and the links that point people toward the app, docs, and source code.
 
 The main application lives in [`app/`](../app/). This package is the website around the project, not the research workflow UI.
 
