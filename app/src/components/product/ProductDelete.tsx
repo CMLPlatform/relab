@@ -1,5 +1,6 @@
-import { StyleSheet } from 'react-native';
-import { Button } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
 import { useDialog } from '@/components/base/dialogContext';
 import { useAppTheme } from '@/theme';
 import { entityLabel, entityLabelTitle, type Product } from '@/types/Product';
@@ -32,25 +33,13 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
   }
 
   return (
-    <Button
-      mode="contained"
-      onPress={onPressDelete}
-      icon={'delete'}
-      style={[styles.button, { backgroundColor: theme.colors.error }]}
-      textColor={theme.colors.onError}
-    >
-      Delete {label}
-    </Button>
+    <AppButton variant="destructive" onPress={onPressDelete} className={styles.button}>
+      <MaterialCommunityIcons name="delete" size={18} color={theme.colors.onError} />
+      <AppText style={{ color: theme.colors.onError }}>Delete {label}</AppText>
+    </AppButton>
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
-    marginTop: 10,
-    marginHorizontal: 14,
-    height: 54,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 16,
-  },
-});
+const styles = {
+  button: 'mt-2.5 mx-3.5 h-[54px] rounded-2xl',
+};

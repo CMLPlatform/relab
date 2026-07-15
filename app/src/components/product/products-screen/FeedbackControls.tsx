@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Platform, View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
 import { Fab } from '@/components/base/Fab';
 import { useAppTheme } from '@/theme';
 import { getErrorMessage } from '@/utils/errors';
@@ -34,21 +35,16 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
     >
       <MaterialCommunityIcons name="alert-circle-outline" size={24} color={theme.colors.error} />
       <View style={styles.errorContent}>
-        <Text style={[styles.errorTitle, { color: theme.colors.onErrorContainer }]}>
+        <AppText style={[styles.errorTitle, { color: theme.colors.onErrorContainer }]}>
           Load Failed
-        </Text>
-        <Text style={[styles.errorMessage, { color: theme.colors.onErrorContainer }]}>
+        </AppText>
+        <AppText style={[styles.errorMessage, { color: theme.colors.onErrorContainer }]}>
           {getErrorMessage(error, 'Something went wrong loading products.')}
-        </Text>
+        </AppText>
       </View>
-      <Button
-        mode="contained-tonal"
-        onPress={onRetry}
-        accessibilityLabel="Retry loading products"
-        compact
-      >
+      <AppButton variant="outline" onPress={onRetry} accessibilityLabel="Retry loading products">
         Retry
-      </Button>
+      </AppButton>
     </View>
   );
 }

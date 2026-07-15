@@ -2,10 +2,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { type ReactNode, useCallback } from 'react';
 import { Pressable, View } from 'react-native';
-import type { MD3Theme } from 'react-native-paper';
-import { Text } from 'react-native-paper';
+import { AppText } from '@/components/base/AppText';
 import { truncateHeaderLabel } from '@/features/products/truncateHeaderLabel';
 import type { AncestorCrumb } from '@/features/products/useAncestorTrail';
+import type { AppTheme } from '@/theme';
 
 export function AncestorTrailHeader({
   ancestors,
@@ -15,7 +15,7 @@ export function AncestorTrailHeader({
   ancestors: AncestorCrumb[];
   /** What renders at the tail of the trail — a plain label in view mode, an editable input in edit mode. */
   currentNameSlot: ReactNode;
-  theme: MD3Theme;
+  theme: AppTheme;
 }) {
   const perCrumbLimit = ancestors.length > 1 ? 14 : 20;
   return (
@@ -53,7 +53,7 @@ function TrailCrumb({
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
       <Pressable onPress={handlePress} hitSlop={6}>
-        <Text
+        <AppText
           numberOfLines={1}
           style={{
             maxWidth: 100,
@@ -63,7 +63,7 @@ function TrailCrumb({
           }}
         >
           {truncateHeaderLabel(crumb.name, perCrumbLimit)}
-        </Text>
+        </AppText>
       </Pressable>
       <MaterialCommunityIcons name="chevron-right" size={16} color={iconColor} />
     </View>

@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { AppText } from '@/components/base/AppText';
 import { useAppTheme } from '@/theme';
 import { productsScreenStyles as styles } from './shared';
 
@@ -20,9 +20,9 @@ export function NewProductPill({ label = 'New product' }: NewProductPillProps) {
         },
       ]}
     >
-      <Text style={[styles.inlineButtonText, { color: theme.colors.onPrimaryContainer }]}>
+      <AppText style={[styles.inlineButtonText, { color: theme.colors.onPrimaryContainer }]}>
         {label}
-      </Text>
+      </AppText>
     </View>
   );
 }
@@ -40,7 +40,12 @@ export function ProfilePill() {
       ]}
     >
       <MaterialCommunityIcons name="account-circle" size={14} color={theme.colors.onBackground} />
-      <Text style={[styles.inlineProfileText, { color: theme.colors.onBackground }]}>account</Text>
+      <AppText
+        testID="profile-pill-label"
+        style={[styles.inlineProfileText, { color: theme.colors.onBackground }]}
+      >
+        account
+      </AppText>
     </View>
   );
 }

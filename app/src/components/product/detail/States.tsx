@@ -1,6 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
-import { Button, Card, Text } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
 import ProductDetailsSkeleton from '@/components/product/ProductDetailsSkeleton';
 import { entityLabel, entityLabelTitle } from '@/types/Product';
 import { getErrorMessage } from '@/utils/errors';
@@ -36,15 +38,15 @@ export function ProductPageErrorState({
           size={64}
           color={themeColors.onSurfaceVariant}
         />
-        <Text variant="headlineSmall" style={styles.centerText}>
+        <AppText variant="title" style={styles.centerText}>
           {entityTitle} not found
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtleCenterText}>
+        </AppText>
+        <AppText style={styles.subtleCenterText}>
           This {entity} may have been removed or the link is no longer valid.
-        </Text>
-        <Button mode="contained" onPress={onBack} style={{ marginTop: 8 }}>
+        </AppText>
+        <AppButton variant="primary" onPress={onBack} className="mt-2">
           Back to products
-        </Button>
+        </AppButton>
       </View>
     );
   }
@@ -52,15 +54,15 @@ export function ProductPageErrorState({
   return (
     <View style={styles.centerState}>
       <MaterialCommunityIcons name="alert-circle-outline" size={64} color={themeColors.error} />
-      <Text variant="headlineSmall" style={styles.centerText}>
+      <AppText variant="title" style={styles.centerText}>
         Something went wrong
-      </Text>
-      <Text variant="bodyMedium" style={styles.subtleCenterText}>
+      </AppText>
+      <AppText style={styles.subtleCenterText}>
         {getErrorMessage(error, `Couldn't load the ${entity} details.`)}
-      </Text>
-      <Button mode="contained" onPress={onRetry} style={{ marginTop: 8 }}>
+      </AppText>
+      <AppButton variant="primary" onPress={onRetry} className="mt-2">
         Try again
-      </Button>
+      </AppButton>
     </View>
   );
 }
@@ -84,7 +86,9 @@ export function ProductPageLoadingState({
               paddingVertical: 8,
             }}
           >
-            <Text variant="bodySmall">This is taking longer than usual. Please wait…</Text>
+            <AppText style={{ fontSize: 12 }}>
+              This is taking longer than usual. Please wait…
+            </AppText>
           </Card>
         </View>
       ) : null}

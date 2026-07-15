@@ -2,10 +2,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackHeaderBackProps } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
-import type { MD3Theme } from 'react-native-paper';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { AncestorTrailHeader } from '@/components/product/AncestorTrailHeader';
 import { ProductNameHeader } from '@/components/product/ProductNameHeader';
+import type { AppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { truncateHeaderLabel } from './truncateHeaderLabel';
 import type { AncestorCrumb } from './useAncestorTrail';
@@ -49,7 +49,7 @@ export function useProductPageHeader({
   product: Product;
   ancestors: AncestorCrumb[];
   isProductComponent: boolean;
-  theme: MD3Theme;
+  theme: AppTheme;
   editMode: boolean;
   onProductNameChange?: (newName: string) => void;
 }) {
@@ -158,7 +158,7 @@ export function getPrimaryFabIcon({
   isSaving: boolean;
   showSavedIcon: boolean;
   editMode: boolean;
-  theme: MD3Theme;
+  theme: AppTheme;
 }) {
   if (isSaving) return <ActivityIndicator color={theme.colors.onBackground} />;
   if (showSavedIcon) {

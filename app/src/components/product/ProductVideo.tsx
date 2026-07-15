@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Button } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { useDialog } from '@/components/base/dialogContext';
 import { TextInput } from '@/components/base/TextInput';
@@ -306,6 +306,7 @@ function GoLiveCTA({
   onNavigateToProfile: () => void;
 }) {
   const dialog = useDialog();
+  const theme = useAppTheme();
   const ready = isGoogleLinked && youtubeEnabled;
 
   const handlePress = useCallback(() => {
@@ -324,14 +325,14 @@ function GoLiveCTA({
   }, [ready, isGoogleLinked, dialog, onNavigateToProfile, onGoLivePress]);
 
   return (
-    <Button
-      mode="outlined"
-      icon="youtube"
+    <AppButton
+      variant="outline"
       onPress={handlePress}
-      style={[styles.goLiveButton, { opacity: ready ? 1 : 0.5 }]}
+      className={`mx-3.5 mb-2 ${ready ? '' : 'opacity-50'}`}
     >
-      Go Live
-    </Button>
+      <MaterialCommunityIcons name="youtube" size={18} color={theme.colors.onSurface} />
+      <Text>Go Live</Text>
+    </AppButton>
   );
 }
 
@@ -375,10 +376,6 @@ const styles = StyleSheet.create({
     padding: 14,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  goLiveButton: {
-    marginHorizontal: 14,
-    marginBottom: 8,
   },
   emptyState: {
     opacity: 0.7,

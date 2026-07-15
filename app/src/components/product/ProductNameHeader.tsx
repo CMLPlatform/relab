@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
 import { type ColorValue, View } from 'react-native';
-import type { MD3Theme } from 'react-native-paper';
-import { Text } from 'react-native-paper';
+import { AppText } from '@/components/base/AppText';
 import { TextInput } from '@/components/base/TextInput';
 import { truncateHeaderLabel } from '@/features/products/truncateHeaderLabel';
 import { PRODUCT_NAME_MAX_LENGTH, productSchema } from '@/services/api/validation/productSchema';
+import type { AppTheme } from '@/theme';
 
 /**
  * Header title for the product detail screen. In view mode it renders the
@@ -20,7 +20,7 @@ export function ProductNameHeader({
 }: {
   name: string | undefined;
   editMode: boolean;
-  theme: MD3Theme;
+  theme: AppTheme;
   onProductNameChange?: (newName: string) => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -35,9 +35,9 @@ export function ProductNameHeader({
 
   if (!editMode) {
     return (
-      <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, fontWeight: '700' }}>
+      <AppText numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, fontWeight: '700' }}>
         {truncateHeaderLabel(name, 36)}
-      </Text>
+      </AppText>
     );
   }
 

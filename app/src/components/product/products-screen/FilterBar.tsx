@@ -1,10 +1,97 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type ComponentProps, useCallback } from 'react';
-import { ScrollView } from 'react-native';
-import { Chip } from 'react-native-paper';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
 import FilterSelectionModal from '@/components/base/FilterSelectionModal';
 import { Menu } from '@/components/base/Menu';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
+import { useAppTheme } from '@/theme';
 import { PRODUCTS_DATE_PRESETS, productsScreenStyles as styles } from './shared';
+
+type FilterChipIcon = ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+/**
+ * Filter pill combining a leading icon, label, selected state, and an
+ * optional trailing clear (x) — react-native-paper's Chip had all four built
+ * in; the base Chip primitive only supports a single trailing icon slot, so
+ * this composes Pressable/AppText/MaterialCommunityIcons directly, matching
+ * the base Chip's own internal building blocks.
+ */
+function FilterChip({
+  icon,
+  selected,
+  onPress,
+  onClose,
+  accessibilityLabel,
+  children,
+}: {
+  icon: FilterChipIcon;
+  selected: boolean;
+  onPress: () => void;
+  onClose?: () => void;
+  accessibilityLabel?: string;
+  children: string;
+}) {
+  const { colors } = useAppTheme();
+  const foreground = selected ? colors.onPrimaryContainer : colors.onSurface;
+
+  return (
+    <View
+      style={[
+        filterChipStyles.container,
+        {
+          backgroundColor: selected ? colors.primaryContainer : 'transparent',
+          borderColor: selected ? colors.primaryContainer : colors.outline,
+        },
+      ]}
+    >
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? children}
+        style={filterChipStyles.pressable}
+      >
+        <MaterialCommunityIcons name={icon} size={16} color={foreground} />
+        <AppText style={[filterChipStyles.label, { color: foreground }]}>{children}</AppText>
+      </Pressable>
+      {onClose ? (
+        <Pressable
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel={`Clear ${children} filter`}
+          hitSlop={8}
+          style={filterChipStyles.closeButton}
+        >
+          <MaterialCommunityIcons name="close" size={14} color={foreground} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+const filterChipStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingLeft: 12,
+    paddingRight: 8,
+  },
+  pressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 7,
+  },
+  label: {
+    fontSize: 14,
+  },
+  closeButton: {
+    marginLeft: 4,
+    padding: 4,
+  },
+});
 
 type DatePreset = (typeof PRODUCTS_DATE_PRESETS)[number];
 
@@ -111,36 +198,32 @@ export function ProductsFilterBar({
         contentContainerStyle={styles.filterScrollContent}
       >
         {isAuthenticated ? (
-          <Chip
+          <FilterChip
             icon="account"
             selected={filterMode === 'mine'}
-            mode={filterMode === 'mine' ? 'flat' : 'outlined'}
             onPress={onToggleMine}
             onClose={filterMode === 'mine' ? onClearMine : undefined}
-            compact
             accessibilityLabel={
               filterMode === 'mine' ? 'Show all products' : 'Show only my products'
             }
           >
             Mine
-          </Chip>
+          </FilterChip>
         ) : null}
 
         <Menu
           visible={dateMenuVisible}
           onDismiss={closeDateMenu}
           anchor={
-            <Chip
+            <FilterChip
               icon="calendar"
               selected={activeDatePreset !== null}
-              mode={activeDatePreset !== null ? 'flat' : 'outlined'}
               onPress={openDateMenu}
               onClose={activeDatePreset !== null ? clearDate : undefined}
-              compact
             >
               {PRODUCTS_DATE_PRESETS.find((preset) => preset.days === activeDatePreset)?.label ??
                 'Date'}
-            </Chip>
+            </FilterChip>
           }
         >
           {PRODUCTS_DATE_PRESETS.map((preset) => (
@@ -154,35 +237,31 @@ export function ProductsFilterBar({
           ))}
         </Menu>
 
-        <Chip
+        <FilterChip
           icon="tag"
           selected={activeBrands.length > 0}
-          mode={activeBrands.length > 0 ? 'flat' : 'outlined'}
           onPress={openBrandModal}
           onClose={activeBrands.length > 0 ? onClearBrands : undefined}
-          compact
         >
           {activeBrands.length === 1
             ? activeBrands[0]
             : activeBrands.length > 1
               ? `Brand (${activeBrands.length})`
               : 'Brand'}
-        </Chip>
+        </FilterChip>
 
-        <Chip
+        <FilterChip
           icon="shape"
           selected={activeProductTypes.length > 0}
-          mode={activeProductTypes.length > 0 ? 'flat' : 'outlined'}
           onPress={openTypeModal}
           onClose={activeProductTypes.length > 0 ? onClearTypes : undefined}
-          compact
         >
           {activeProductTypes.length === 1
             ? activeProductTypes[0]
             : activeProductTypes.length > 1
               ? `Type (${activeProductTypes.length})`
               : 'Type'}
-        </Chip>
+        </FilterChip>
       </ScrollView>
 
       <FilterSelectionModal

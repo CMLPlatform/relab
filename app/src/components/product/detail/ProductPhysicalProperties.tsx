@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
-import { Divider } from 'react-native-paper';
 import LocalizedFloatInput from '@/components/base/LocalizedFloatInput';
 import Cube from '@/components/base/SVGCube';
+import { Separator } from '@/components/base/ui/separator';
 import type { PhysicalProperties, Product } from '@/types/Product';
 
 interface Props {
@@ -78,7 +78,7 @@ function PhysicalPropertyRow({
 
   return (
     <View>
-      <Divider />
+      <Separator />
       <LocalizedFloatInput
         label={nameMap[propKey]}
         value={product.physicalProperties[propKey]}

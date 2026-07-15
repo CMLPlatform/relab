@@ -1,7 +1,7 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { memo, useCallback, useMemo } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { ActivityIndicator, Icon } from 'react-native-paper';
+import { type ComponentProps, memo, useCallback, useMemo } from 'react';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { useAppTheme } from '@/theme';
 import {
@@ -148,7 +148,11 @@ export function ProductImageGalleryContent({
                 {isCapturing || rpiCamerasLoading ? (
                   <ActivityIndicator size={18} color={theme.tokens.text.onMedia} />
                 ) : (
-                  <Icon source="camera-wireless" size={20} color={theme.tokens.text.onMedia} />
+                  <MaterialCommunityIcons
+                    name="camera-wireless"
+                    size={20}
+                    color={theme.tokens.text.onMedia}
+                  />
                 )}
               </Pressable>
             ) : null}
@@ -159,7 +163,7 @@ export function ProductImageGalleryContent({
             accessibilityLabel="Delete photo"
             style={styles.deleteButton}
           >
-            <Icon source="delete" size={20} color={theme.tokens.text.onMedia} />
+            <MaterialCommunityIcons name="delete" size={20} color={theme.tokens.text.onMedia} />
           </Pressable>
         </>
       ) : null}
@@ -207,13 +211,13 @@ function OverlayActionButton({
 }: {
   onPress: () => void;
   label: string;
-  icon: string;
+  icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
 }) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
   return (
     <Pressable onPress={onPress} accessibilityLabel={label} style={styles.overlayIconButton}>
-      <Icon source={icon} size={20} color={theme.tokens.text.onMedia} />
+      <MaterialCommunityIcons name={icon} size={20} color={theme.tokens.text.onMedia} />
     </Pressable>
   );
 }
@@ -241,8 +245,8 @@ function GalleryNavButton({
       hitSlop={15}
       style={[styles.navButton, style, { opacity: disabled ? 0.3 : 1 }]}
     >
-      <Icon
-        source={direction === 'left' ? 'chevron-left' : 'chevron-right'}
+      <MaterialCommunityIcons
+        name={direction === 'left' ? 'chevron-left' : 'chevron-right'}
         size={32}
         color={theme.tokens.text.onMedia}
       />

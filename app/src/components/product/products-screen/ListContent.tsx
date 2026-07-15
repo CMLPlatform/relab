@@ -2,13 +2,16 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useMemo } from 'react';
 import {
+  ActivityIndicator,
   type DimensionValue,
   FlatList,
   type FlatListProps,
   RefreshControl,
   View,
 } from 'react-native';
-import { ActivityIndicator, Button, Card, Text } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
@@ -84,25 +87,24 @@ function PaginationControls({
 
   return (
     <View style={styles.paginationContainer}>
-      <Text style={styles.paginationSummary}>
+      <AppText style={styles.paginationSummary}>
         Page {page} of {totalPages}; Showing {start.toLocaleString()}-{end.toLocaleString()} of{' '}
         {total.toLocaleString()} products
-      </Text>
+      </AppText>
       <View style={styles.paginationActions}>
-        <Button
-          mode="outlined"
-          compact
+        <AppButton
+          variant="outline"
           onPress={goPrev}
           disabled={page <= 1 || isFetching}
           accessibilityLabel="Previous page"
         >
           Previous
-        </Button>
+        </AppButton>
         {getPageNumbers().map((pageValue) =>
           pageValue === 'ellipsis-start' || pageValue === 'ellipsis-end' ? (
-            <Text key={pageValue} style={styles.paginationEllipsis}>
+            <AppText key={pageValue} style={styles.paginationEllipsis}>
               …
-            </Text>
+            </AppText>
           ) : (
             <PageButton
               key={pageValue}
@@ -113,15 +115,14 @@ function PaginationControls({
             />
           ),
         )}
-        <Button
-          mode="outlined"
-          compact
+        <AppButton
+          variant="outline"
           onPress={goNext}
           disabled={page >= totalPages || isFetching}
           accessibilityLabel="Next page"
         >
           Next
-        </Button>
+        </AppButton>
       </View>
     </View>
   );
@@ -141,15 +142,14 @@ function PageButton({
   const handlePress = useCallback(() => setPage(pageValue), [setPage, pageValue]);
 
   return (
-    <Button
-      mode={pageValue === currentPage ? 'contained' : 'outlined'}
-      compact
+    <AppButton
+      variant={pageValue === currentPage ? 'primary' : 'outline'}
       onPress={handlePress}
       disabled={isFetching}
       accessibilityLabel={`Page ${pageValue}`}
     >
       {String(pageValue)}
-    </Button>
+    </AppButton>
   );
 }
 
@@ -189,7 +189,9 @@ function ProductsListFooter({
   if (!hasMore && productCount > 0) {
     return (
       <View style={styles.footerSummary}>
-        <Text style={styles.footerSummaryText}>All {total.toLocaleString()} products shown</Text>
+        <AppText style={styles.footerSummaryText}>
+          All {total.toLocaleString()} products shown
+        </AppText>
       </View>
     );
   }
@@ -198,20 +200,20 @@ function ProductsListFooter({
 
   return (
     <View style={styles.loadMoreContainer}>
-      <Text style={styles.loadMoreSummary}>
+      <AppText style={styles.loadMoreSummary}>
         Showing {productCount.toLocaleString()} of {total.toLocaleString()}
-      </Text>
+      </AppText>
       {isFetching ? (
         <ActivityIndicator size="small" />
       ) : (
-        <Button
-          mode="outlined"
+        <AppButton
+          variant="outline"
           onPress={loadMore}
           disabled={isFetching}
           accessibilityLabel="Load more products"
         >
           Load more
-        </Button>
+        </AppButton>
       )}
     </View>
   );
@@ -288,7 +290,9 @@ export function ProductsListContent({
             <Card
               style={[styles.slowLoadingCard, { backgroundColor: theme.colors.surfaceVariant }]}
             >
-              <Text variant="bodySmall">This is taking longer than usual. Please wait…</Text>
+              <AppText style={{ fontSize: 12 }}>
+                This is taking longer than usual. Please wait…
+              </AppText>
             </Card>
           </View>
         ) : null}
@@ -321,22 +325,22 @@ export function ProductsListContent({
             accessibilityLabel=""
           />
           {searchQuery ? (
-            <Text>No products match your search.</Text>
+            <AppText>No products match your search.</AppText>
           ) : !isAuthenticated ? (
-            <Text>No products available yet. Sign in to add your own.</Text>
+            <AppText>No products available yet. Sign in to add your own.</AppText>
           ) : filterMode === 'mine' ? (
             <View style={styles.emptyStateBody}>
-              <Text style={styles.emptyStateText}>
+              <AppText style={styles.emptyStateText}>
                 You haven&apos;t created any products yet. Tap the{' '}
-              </Text>
+              </AppText>
               <NewProductPill />
-              <Text style={styles.emptyStateText}> button to add your first one.</Text>
+              <AppText style={styles.emptyStateText}> button to add your first one.</AppText>
             </View>
           ) : (
             <View style={styles.emptyStateBody}>
-              <Text style={styles.emptyStateText}>No products yet. Tap the </Text>
+              <AppText style={styles.emptyStateText}>No products yet. Tap the </AppText>
               <NewProductPill />
-              <Text style={styles.emptyStateText}> button to add the first one.</Text>
+              <AppText style={styles.emptyStateText}> button to add the first one.</AppText>
             </View>
           )}
         </View>

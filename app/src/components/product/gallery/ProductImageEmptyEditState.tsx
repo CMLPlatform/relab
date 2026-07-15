@@ -1,5 +1,6 @@
-import { Pressable, Text, View } from 'react-native';
-import { ActivityIndicator, Icon } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useAppTheme } from '@/theme';
 import { createGalleryStyles } from './styles';
 
@@ -57,7 +58,11 @@ export function ProductImageEmptyEditState({
           {isCapturing || rpiCamerasLoading ? (
             <ActivityIndicator size={32} />
           ) : (
-            <Icon source="camera-wireless" size={48} color={theme.tokens.text.muted} />
+            <MaterialCommunityIcons
+              name="camera-wireless"
+              size={48}
+              color={theme.tokens.text.muted}
+            />
           )}
           <Text style={styles.emptyActionText}>
             {hasCamerasConfigured ? 'RPi Camera' : 'Connect camera'}
@@ -77,7 +82,7 @@ function EmptyActionCard({
   onPress: () => void;
   label: string;
   accessibilityLabel: string;
-  icon: string;
+  icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
 }) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
@@ -88,7 +93,7 @@ function EmptyActionCard({
       accessibilityLabel={accessibilityLabel}
       style={styles.emptyActionCard}
     >
-      <Icon source={icon} size={48} color={theme.tokens.text.muted} />
+      <MaterialCommunityIcons name={icon} size={48} color={theme.tokens.text.muted} />
       <Text style={styles.emptyActionText}>{label}</Text>
     </Pressable>
   );

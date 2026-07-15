@@ -351,7 +351,7 @@ describe('Products screen', () => {
 
     expect(screen.getByText('Ready to add products')).toBeOnTheScreen();
     expect(screen.getAllByText('New product').length).toBeGreaterThan(0);
-    expect(screen.getByText('account')).toBeOnTheScreen();
+    expect(screen.getByTestId('profile-pill-label')).toBeOnTheScreen();
   });
 
   it('prompts unverified signed-in users to verify their email', async () => {
@@ -361,7 +361,7 @@ describe('Products screen', () => {
 
     expect(screen.getByText('Verify your email to start creating')).toBeOnTheScreen();
     expect(screen.getAllByText('New product').length).toBeGreaterThan(0);
-    expect(screen.getByText('account')).toBeOnTheScreen();
+    expect(screen.getByTestId('profile-pill-label')).toBeOnTheScreen();
     expect(screen.getByText('Got it')).toBeOnTheScreen();
     expect(screen.getByText('Verify email')).toBeOnTheScreen();
 
@@ -377,7 +377,7 @@ describe('Products screen', () => {
     renderProducts();
 
     expect(screen.getByText('Got it')).toBeOnTheScreen();
-    expect(screen.getByText('account')).toBeOnTheScreen();
+    expect(screen.getByTestId('profile-pill-label')).toBeOnTheScreen();
   });
 });
 
@@ -446,8 +446,7 @@ describe('Filter chips and modals', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '7' });
     renderProducts();
     expect(screen.getByText('Last 7d')).toBeOnTheScreen();
-    // react-native-paper Chip renders its close button with accessibilityLabel="Close"
-    const closeBtn = screen.getByLabelText('Close');
+    const closeBtn = screen.getByLabelText('Clear Last 7d filter');
     fireEvent.press(closeBtn);
     expect(mockSetParams).toHaveBeenCalledWith({ days: undefined, page: '1' });
   });

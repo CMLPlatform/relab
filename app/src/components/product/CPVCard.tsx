@@ -1,6 +1,6 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback } from 'react';
 import { Pressable, type PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
-import { Icon } from 'react-native-paper';
 import { useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
 
@@ -39,7 +39,7 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
       </Pressable>
       {actionElement ?? <Text style={[styles.subText, { color: textColor }]}>{CPV.name}</Text>}
       <View style={styles.shapes}>
-        <Icon source="shape" size={150} />
+        <MaterialCommunityIcons name="shape" size={150} color={textColor} />
       </View>
     </View>
   );

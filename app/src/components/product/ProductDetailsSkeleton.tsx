@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { AppText } from '@/components/base/AppText';
 import DetailCard from '@/components/base/DetailCard';
 import { Skeleton } from '@/components/base/Skeleton';
 import { radius, spacing } from '@/constants';
@@ -31,7 +31,7 @@ export default function ProductDetailsSkeleton() {
 
       {/* Product Type Placeholder */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.actualTitle}>Type or Material</Text>
+        <AppText style={styles.actualTitle}>Type or Material</AppText>
       </View>
       <DetailCard>
         <View style={styles.content}>
@@ -41,7 +41,7 @@ export default function ProductDetailsSkeleton() {
 
       {/* Properties Placeholder */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.actualTitle}>Physical Properties</Text>
+        <AppText style={styles.actualTitle}>Physical Properties</AppText>
       </View>
       <DetailCard>
         <View style={styles.content}>
@@ -58,7 +58,7 @@ export default function ProductDetailsSkeleton() {
 
       {/* Circularity Placeholder */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.actualTitle}>Circularity Properties</Text>
+        <AppText style={styles.actualTitle}>Circularity Properties</AppText>
       </View>
       <DetailCard>
         <View style={styles.content}>
@@ -68,7 +68,7 @@ export default function ProductDetailsSkeleton() {
 
       {/* Components Placeholder */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.actualTitle}>Components</Text>
+        <AppText style={styles.actualTitle}>Components</AppText>
       </View>
       <DetailCard>
         <View style={styles.content}>

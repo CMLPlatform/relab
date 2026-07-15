@@ -1,6 +1,9 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { View } from 'react-native';
-import { Button, Card, Text } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
 import { useAppTheme } from '@/theme';
 import { NewProductPill, ProfilePill } from './InlinePills';
 import { productsScreenStyles as styles } from './shared';
@@ -31,11 +34,8 @@ export function ProductsWelcomeCard({
   if (visible !== true) return null;
 
   return (
-    <Card
-      mode="contained"
-      style={[styles.welcomeCard, { backgroundColor: theme.colors.surfaceVariant }]}
-    >
-      <Card.Content style={styles.welcomeCardContent}>
+    <Card style={[styles.welcomeCard, { backgroundColor: theme.colors.surfaceVariant }]}>
+      <View style={styles.welcomeCardContent}>
         <View style={styles.welcomeHeaderRow}>
           <View style={[styles.welcomeIcon, { backgroundColor: theme.colors.primaryContainer }]}>
             <Image
@@ -50,57 +50,66 @@ export function ProductsWelcomeCard({
             />
           </View>
           <View style={styles.welcomeTextBlock}>
-            <Text style={styles.welcomeTitle}>
+            <AppText style={styles.welcomeTitle}>
               {!isAuthenticated
                 ? 'Welcome to ReLab'
                 : currentUser?.isVerified
                   ? 'Ready to add products'
                   : 'Verify your email to start creating'}
-            </Text>
+            </AppText>
           </View>
         </View>
 
         <View style={styles.welcomeBody}>
           {!isAuthenticated ? (
-            <Text style={styles.welcomeBodyText}>
+            <AppText style={styles.welcomeBodyText}>
               Browse products freely. Sign in when you are ready to add your own.
-            </Text>
+            </AppText>
           ) : currentUser?.isVerified ? (
             <View style={styles.welcomeSentence}>
-              <Text style={styles.welcomeBodyText}>Use the </Text>
+              <AppText style={styles.welcomeBodyText}>Use the </AppText>
               <NewProductPill />
-              <Text style={styles.welcomeBodyText}> button to add products, and manage your </Text>
+              <AppText style={styles.welcomeBodyText}>
+                {' button to add products, and manage your '}
+              </AppText>
               <ProfilePill />
-              <Text style={styles.welcomeBodyText}> anytime.</Text>
+              <AppText style={styles.welcomeBodyText}> anytime.</AppText>
             </View>
           ) : (
             <View style={styles.welcomeSentence}>
-              <Text style={styles.welcomeBodyText}>You can browse products and manage your</Text>
+              <AppText style={styles.welcomeBodyText}>
+                You can browse products and manage your
+              </AppText>
               <ProfilePill />
-              <Text style={styles.welcomeBodyText}>
+              <AppText style={styles.welcomeBodyText}>
                 . Once your email is verified, you can use the{' '}
-              </Text>
+              </AppText>
               <NewProductPill />
-              <Text style={styles.welcomeBodyText}> button to create products.</Text>
+              <AppText style={styles.welcomeBodyText}> button to create products.</AppText>
             </View>
           )}
         </View>
 
         <View style={styles.welcomeActions}>
           {!isAuthenticated ? (
-            <Button mode="contained-tonal" onPress={onSignIn}>
+            <AppButton variant="outline" onPress={onSignIn}>
               Sign in
-            </Button>
+            </AppButton>
           ) : !currentUser?.isVerified ? (
-            <Button mode="contained-tonal" icon="email-check-outline" onPress={onGoToProfile}>
-              Verify email
-            </Button>
+            <AppButton variant="outline" onPress={onGoToProfile}>
+              <MaterialCommunityIcons
+                name="email-check-outline"
+                size={18}
+                color={theme.colors.onSurface}
+              />
+              <AppText>Verify email</AppText>
+            </AppButton>
           ) : null}
-          <Button mode="text" onPress={onDismiss}>
+          <AppButton variant="ghost" onPress={onDismiss}>
             {isAuthenticated ? 'Got it' : 'Maybe later'}
-          </Button>
+          </AppButton>
         </View>
-      </Card.Content>
+      </View>
     </Card>
   );
 }

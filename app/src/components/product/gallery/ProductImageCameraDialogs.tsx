@@ -1,4 +1,7 @@
-import { Button, Dialog, Portal } from 'react-native-paper';
+import { View } from 'react-native';
+import { AppButton } from '@/components/base/AppButton';
+import { AppDialog } from '@/components/base/AppDialog';
+import { AppText } from '@/components/base/AppText';
 import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
@@ -34,29 +37,37 @@ export function ProductImageCameraDialogs({
         onSelect={onSelectCamera}
       />
 
-      <Portal>
-        <Dialog
-          visible={previewCamera !== null}
-          onDismiss={onDismissPreview}
-          style={styles.previewDialog}
-        >
-          <Dialog.Title>{previewCamera?.name ?? 'Camera preview'}</Dialog.Title>
-          <Dialog.Content style={styles.previewDialogContent}>
-            <LivePreview camera={previewCamera} enabled={previewCamera !== null} />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={onDismissPreview}>Cancel</Button>
-            <Button
-              mode="contained"
-              disabled={isCapturing}
-              loading={isCapturing}
-              onPress={onCapturePreview}
-            >
-              Capture
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      <AppDialog visible={previewCamera !== null} onDismiss={onDismissPreview}>
+        <AppText accessibilityRole="header" style={dialogStyles.title}>
+          {previewCamera?.name ?? 'Camera preview'}
+        </AppText>
+        <View style={styles.previewDialogContent}>
+          <LivePreview camera={previewCamera} enabled={previewCamera !== null} />
+        </View>
+        <View style={dialogStyles.actions}>
+          <AppButton variant="ghost" onPress={onDismissPreview}>
+            Cancel
+          </AppButton>
+          <AppButton
+            variant="primary"
+            disabled={isCapturing}
+            loading={isCapturing}
+            onPress={onCapturePreview}
+          >
+            Capture
+          </AppButton>
+        </View>
+      </AppDialog>
     </>
   );
 }
+
+const dialogStyles = {
+  title: { fontSize: 18, fontWeight: '600' as const, marginBottom: 8 },
+  actions: {
+    flexDirection: 'row' as const,
+    justifyContent: 'flex-end' as const,
+    gap: 4,
+    marginTop: 16,
+  },
+};

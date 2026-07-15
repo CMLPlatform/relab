@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { Card } from 'react-native-paper';
+import { Card } from '@/components/base/Card';
 import { Skeleton } from '@/components/base/Skeleton';
 import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
@@ -9,7 +9,7 @@ export default function ProductCardSkeleton() {
   const bg = theme.colors.surfaceVariant;
 
   return (
-    <Card elevation={2} style={{ marginHorizontal: 10, marginVertical: 5 }}>
+    <Card style={{ marginHorizontal: 10, marginVertical: 5 }}>
       <View style={styles.row}>
         <Skeleton style={[styles.thumbnail, { backgroundColor: bg }]} />
         <View style={styles.content}>

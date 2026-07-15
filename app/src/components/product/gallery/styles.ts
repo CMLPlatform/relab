@@ -82,11 +82,6 @@ export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {
       overflow: 'hidden',
       borderWidth: 2,
     },
-    previewDialog: {
-      maxWidth: 600,
-      alignSelf: 'center',
-      width: '100%',
-    },
     previewDialogContent: {
       alignItems: 'center',
       gap: 12,

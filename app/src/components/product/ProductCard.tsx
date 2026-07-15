@@ -1,8 +1,9 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Card, Icon } from 'react-native-paper';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Card } from '@/components/base/Card';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
 import { Text } from '@/components/base/Text';
@@ -64,62 +65,84 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   const handleImageError = useCallback(() => setHadError(true), []);
 
   return (
-    <Card elevation={2} onPress={enabled ? navigateToProduct : undefined} style={styles.card}>
-      <View style={styles.row}>
-        <View style={styles.thumbnailWrap}>
-          {hasThumbnail ? (
-            <View style={[styles.thumbnailFrame, { backgroundColor: theme.colors.surfaceVariant }]}>
-              <Image
-                source={{ uri: product.thumbnailUrl }}
-                style={styles.thumbnailImage}
-                contentFit="cover"
-                onError={handleImageError}
+    <Pressable
+      onPress={enabled ? navigateToProduct : undefined}
+      disabled={!enabled}
+      accessibilityRole={enabled ? 'button' : undefined}
+      style={({ pressed }) => (pressed && enabled ? styles.pressed : undefined)}
+    >
+      <Card style={styles.card}>
+        <View style={styles.row}>
+          <View style={styles.thumbnailWrap}>
+            {hasThumbnail ? (
+              <View
+                style={[styles.thumbnailFrame, { backgroundColor: theme.colors.surfaceVariant }]}
+              >
+                <Image
+                  source={{ uri: product.thumbnailUrl }}
+                  style={styles.thumbnailImage}
+                  contentFit="cover"
+                  onError={handleImageError}
+                  testID="product-thumbnail"
+                />
+              </View>
+            ) : (
+              <ImagePlaceholder
+                width={80}
+                height={80}
+                borderRadius={12}
                 testID="product-thumbnail"
               />
-            </View>
-          ) : (
-            <ImagePlaceholder width={80} height={80} borderRadius={12} testID="product-thumbnail" />
-          )}
-        </View>
+            )}
+          </View>
 
-        {/* Content */}
-        <View style={styles.content}>
-          <Text style={[styles.title, { color: theme.colors.onSurface }]}>
-            {product.name || 'Unnamed Product'}
-          </Text>
-          <MutedText style={styles.detailText} numberOfLines={1} ellipsizeMode="tail">
-            {detailList.join(' • ')}
-          </MutedText>
-          <MutedText style={styles.description} numberOfLines={1} ellipsizeMode="tail">
-            {product.description}
-          </MutedText>
-          {hasMetadata ? (
-            <View style={styles.metadataRow}>
-              {createdAgo ? (
-                <View style={styles.metadataItem}>
-                  <Icon source="clock-outline" size={12} color={theme.colors.outline} />
-                  <Text style={[styles.metadataText, { color: theme.colors.outline }]}>
-                    {createdAgo}
-                  </Text>
-                </View>
-              ) : null}
-              {ownerLabel ? (
-                <View style={styles.metadataItem}>
-                  <Icon source="account-outline" size={12} color={theme.colors.outline} />
-                  <Text
-                    style={[styles.metadataText, { color: theme.colors.primary }]}
-                    numberOfLines={1}
-                    onPress={navigateToOwner}
-                  >
-                    {ownerLabel}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
+          {/* Content */}
+          <View style={styles.content}>
+            <Text style={[styles.title, { color: theme.colors.onSurface }]}>
+              {product.name || 'Unnamed Product'}
+            </Text>
+            <MutedText style={styles.detailText} numberOfLines={1} ellipsizeMode="tail">
+              {detailList.join(' • ')}
+            </MutedText>
+            <MutedText style={styles.description} numberOfLines={1} ellipsizeMode="tail">
+              {product.description}
+            </MutedText>
+            {hasMetadata ? (
+              <View style={styles.metadataRow}>
+                {createdAgo ? (
+                  <View style={styles.metadataItem}>
+                    <MaterialCommunityIcons
+                      name="clock-outline"
+                      size={12}
+                      color={theme.colors.outline}
+                    />
+                    <Text style={[styles.metadataText, { color: theme.colors.outline }]}>
+                      {createdAgo}
+                    </Text>
+                  </View>
+                ) : null}
+                {ownerLabel ? (
+                  <View style={styles.metadataItem}>
+                    <MaterialCommunityIcons
+                      name="account-outline"
+                      size={12}
+                      color={theme.colors.outline}
+                    />
+                    <Text
+                      style={[styles.metadataText, { color: theme.colors.primary }]}
+                      numberOfLines={1}
+                      onPress={navigateToOwner}
+                    >
+                      {ownerLabel}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
         </View>
-      </View>
-    </Card>
+      </Card>
+    </Pressable>
   );
 }
 
@@ -128,6 +151,9 @@ const ProductCard = memo(ProductCardComponent);
 export default ProductCard;
 
 const styles = StyleSheet.create({
+  pressed: {
+    opacity: 0.7,
+  },
   card: {
     marginHorizontal: 10,
     marginVertical: 5,
