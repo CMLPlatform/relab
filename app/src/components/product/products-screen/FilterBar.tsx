@@ -49,6 +49,7 @@ function FilterChip({
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? children}
+        accessibilityState={{ selected }}
         style={filterChipStyles.pressable}
       >
         <MaterialCommunityIcons name={icon} size={16} color={foreground} />

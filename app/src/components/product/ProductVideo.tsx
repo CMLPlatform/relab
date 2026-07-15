@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { useDialog } from '@/components/base/dialogContext';
 import { TextInput } from '@/components/base/TextInput';
@@ -331,7 +332,7 @@ function GoLiveCTA({
       className={`mx-3.5 mb-2 ${ready ? '' : 'opacity-50'}`}
     >
       <MaterialCommunityIcons name="youtube" size={18} color={theme.colors.onSurface} />
-      <Text>Go Live</Text>
+      <AppText style={{ color: theme.colors.onSurface }}>Go Live</AppText>
     </AppButton>
   );
 }

@@ -674,6 +674,15 @@ describe('Mine filter chip', () => {
     fireEvent.press(screen.getByText('Mine'));
     expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'all', page: '1' });
   });
+
+  it('exposes the active filter to screen readers via accessibilityState.selected', async () => {
+    mockUseAuth.mockReturnValue({ user: mockUser() });
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ filterMode: 'mine' });
+    renderProducts();
+    expect(screen.getByLabelText('Show all products').props.accessibilityState).toMatchObject({
+      selected: true,
+    });
+  });
 });
 
 describe('Date filter dropdown', () => {
