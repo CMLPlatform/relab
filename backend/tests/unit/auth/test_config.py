@@ -44,12 +44,12 @@ def test_email_parsing_reuses_sender_when_reply_to_is_omitted() -> None:
     """Parsed sender/reply-to values should share the same fallback logic."""
     settings = AuthSettings(
         smtp_username="smtp@example.com",
-        email_from="ReLab <noreply@example.com>",
+        email_from="Relab <noreply@example.com>",
         email_reply_to="",
     )
     assert settings.email.sender is not None
     assert settings.email.reply_to is not None
-    assert settings.email.sender.name == "ReLab"
+    assert settings.email.sender.name == "Relab"
     assert settings.email.sender.email == "noreply@example.com"
     assert settings.email.reply_to == settings.email.sender
 
@@ -210,7 +210,7 @@ def test_auth_settings_load_runtime_secrets_from_secret_files(tmp_path: Path, mo
         github_oauth_client_id=SecretStr("github-client-id"),
         smtp_host="smtp.example.com",
         smtp_username="sender@example.com",
-        email_from="ReLab <sender@example.com>",
+        email_from="Relab <sender@example.com>",
         email_reply_to="relab@example.com",
     )
 

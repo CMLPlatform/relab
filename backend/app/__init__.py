@@ -1,1 +1,1 @@
-"""Main application module for the ReLab - Data collection API."""
+"""Main application module for the Relab - Data collection API."""

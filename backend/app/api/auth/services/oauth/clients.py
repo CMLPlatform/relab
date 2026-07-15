@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 class _ReLabGoogleOAuth2(GoogleOAuth2):
-    """Google OAuth client that uses ReLab's shared outbound HTTP policy."""
+    """Google OAuth client that uses Relab's shared outbound HTTP policy."""
 
     def get_httpx_client(self) -> AsyncClient:
         """Return the shared SSRF-hardened HTTP client."""
@@ -47,7 +47,7 @@ class _ReLabGoogleOAuth2(GoogleOAuth2):
 
 
 class _ReLabGitHubOAuth2(GitHubOAuth2):
-    """GitHub OAuth client that uses ReLab's shared outbound HTTP policy."""
+    """GitHub OAuth client that uses Relab's shared outbound HTTP policy."""
 
     def get_httpx_client(self) -> AsyncClient:
         """Return the shared SSRF-hardened HTTP client."""

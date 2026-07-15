@@ -23,7 +23,7 @@ def test_build_email_provider_uses_smtp_by_default() -> None:
         smtp_host="smtp.example.com",
         smtp_username="relab@example.com",
         smtp_password=SecretStr("password"),
-        email_from="ReLab <relab@example.com>",
+        email_from="Relab <relab@example.com>",
         email_reply_to="relab@example.com",
     )
 
@@ -36,7 +36,7 @@ def test_build_email_provider_uses_microsoft_graph_when_configured() -> None:
     """Graph provider should be selected entirely by config."""
     settings = AuthSettings(
         email_provider=EmailProviderName.MICROSOFT_GRAPH,
-        email_from="ReLab <relab@example.com>",
+        email_from="Relab <relab@example.com>",
         email_reply_to="support@example.com",
         microsoft_graph_tenant_id="tenant-id",
         microsoft_graph_client_id="client-id",
@@ -72,7 +72,7 @@ def test_production_validation_is_provider_specific_for_graph() -> None:
         github_oauth_client_id=SecretStr("github-id"),
         github_oauth_client_secret=SecretStr("github-secret"),
         email_provider=EmailProviderName.MICROSOFT_GRAPH,
-        email_from="ReLab <relab@example.com>",
+        email_from="Relab <relab@example.com>",
         email_reply_to="support@example.com",
         microsoft_graph_tenant_id="tenant-id",
         microsoft_graph_client_id="client-id",
@@ -95,7 +95,7 @@ def test_production_validation_requires_graph_credentials() -> None:
             github_oauth_client_id=SecretStr("github-id"),
             github_oauth_client_secret=SecretStr("github-secret"),
             email_provider=EmailProviderName.MICROSOFT_GRAPH,
-            email_from="ReLab <relab@example.com>",
+            email_from="Relab <relab@example.com>",
             email_reply_to="support@example.com",
             microsoft_graph_tenant_id="tenant-id",
             microsoft_graph_sender_user="relab@example.com",

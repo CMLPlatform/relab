@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run ReLab restic backups once or on a simple interval.
+# Run Relab restic backups once or on a simple interval.
 
 set -euo pipefail
 
@@ -49,7 +49,7 @@ if [[ "${BACKUP_RUN_ONCE:-false}" == "true" ]]; then
     exit 0
 fi
 
-echo "[$(date -Iseconds)] ReLab backup service started. Interval: ${BACKUP_INTERVAL_SECONDS}s"
+echo "[$(date -Iseconds)] Relab backup service started. Interval: ${BACKUP_INTERVAL_SECONDS}s"
 
 while true; do
     sleep "$BACKUP_INTERVAL_SECONDS"

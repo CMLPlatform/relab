@@ -2,7 +2,7 @@
 
 Flow:
 1. RPi generates a key pair and 6-char code, then POSTs code + public key to /register.
-2. User enters the code in the ReLab UI and POSTs to /claim.
+2. User enters the code in the Relab UI and POSTs to /claim.
 3. Backend creates the camera and stores non-secret relay metadata in Redis.
 4. RPi polls /poll until claimed, saves the camera id/backend URL, and starts the relay.
 """

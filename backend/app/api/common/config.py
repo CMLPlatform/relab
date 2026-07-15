@@ -18,8 +18,8 @@ class OpenAPISettings(BaseModel):
 def build_public_docs() -> OpenAPISettings:
     """Build public OpenAPI metadata."""
     return OpenAPISettings(
-        title="ReLab - Data Collection API",
-        description="Data collection app for the ReLab project at CML.",
+        title="Relab - Data Collection API",
+        description="Data collection app for the Relab project at CML.",
         version=version,
         license_info={
             "name": "GNU Affero General Public License v3.0",

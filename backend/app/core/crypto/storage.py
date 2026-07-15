@@ -20,7 +20,7 @@ def get_data_encryption_key_bytes() -> bytes:
 
 
 def is_encrypted(value: str | None) -> bool:
-    """Return whether a stored string carries ReLab's encrypted-value prefix."""
+    """Return whether a stored string carries Relab's encrypted-value prefix."""
     return bool(value and value.startswith(ENCRYPTED_TEXT_PREFIX))
 
 

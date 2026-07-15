@@ -198,7 +198,7 @@ async def test_send_email_changed_notification_uses_plain_message(
     await_args = mock_email_sending.await_args
     assert await_args is not None
     message = await_args.args[0]
-    assert message.subject == "Your ReLab account email changed"
+    assert message.subject == "Your Relab account email changed"
     assert "token=" not in message.html_body
 
 
@@ -211,7 +211,7 @@ async def test_send_password_reset_confirmation_email_uses_plain_safe_message(
     await_args = mock_email_sending.await_args
     assert await_args is not None
     message = await_args.args[0]
-    assert message.subject == "Your ReLab password was reset"
+    assert message.subject == "Your Relab password was reset"
     assert email_data["username"] in message.html_body
     assert email_data["token"] not in message.html_body
     assert "token=" not in message.html_body
@@ -228,7 +228,7 @@ async def test_send_oauth_welcome_notification_uses_template_contract(
     await_args = mock_email_sending.await_args
     assert await_args is not None
     message = await_args.args[0]
-    assert message.subject == "Welcome to ReLab"
+    assert message.subject == "Welcome to Relab"
     assert email_data["username"] in message.html_body
     assert "Google" in message.html_body
     assert "token=" not in message.html_body
@@ -254,7 +254,7 @@ async def test_send_oauth_link_changed_notification_reflects_action(
     assert await_args is not None
     message = await_args.args[0]
     assert message.subject == ("A social login was linked" if linked else "A social login was unlinked")
-    assert f"Github was {expected_verb} your ReLab account" in message.html_body
+    assert f"Github was {expected_verb} your Relab account" in message.html_body
     assert email_data["username"] in message.html_body
     assert "token=" not in message.html_body
 

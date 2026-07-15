@@ -1,1 +1,1 @@
-"""Integration flows for the ReLab backend."""
+"""Integration flows for the Relab backend."""

@@ -40,7 +40,7 @@ def test_login_router_wiring_uses_standard_google_client() -> None:
 
 
 async def test_oauth_clients_use_shared_outbound_http_policy() -> None:
-    """OAuth provider calls should use ReLab's shared HTTP client configuration."""
+    """OAuth provider calls should use Relab's shared HTTP client configuration."""
     for client in (google_oauth_client, google_youtube_oauth_client, github_oauth_client):
         http_client = client.get_httpx_client()
         try:

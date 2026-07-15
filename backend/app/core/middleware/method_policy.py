@@ -16,7 +16,7 @@ ALLOW_HEADER_VALUE = ", ".join(SUPPORTED_HTTP_METHODS)
 
 
 class MethodPolicyMiddleware:
-    """Block dangerous HTTP methods that ReLab does not support."""
+    """Block dangerous HTTP methods that Relab does not support."""
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app

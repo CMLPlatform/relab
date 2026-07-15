@@ -21,7 +21,7 @@ def _message() -> EmailMessage:
     return EmailMessage(
         subject="Welcome",
         recipients=[NameEmail(name="Ada", email="ada@example.com")],
-        sender=NameEmail(name="ReLab", email="relab@example.com"),
+        sender=NameEmail(name="Relab", email="relab@example.com"),
         reply_to=[NameEmail(name="Support", email="support@example.com")],
         html_body="<p>Hello Ada</p>",
     )
@@ -128,7 +128,7 @@ async def test_graph_provider_requests_token_and_posts_send_mail_payload() -> No
             "body": {"contentType": "HTML", "content": "<p>Hello Ada</p>"},
             "toRecipients": [{"emailAddress": {"address": "ada@example.com", "name": "Ada"}}],
             "replyTo": [{"emailAddress": {"address": "support@example.com", "name": "Support"}}],
-            "from": {"emailAddress": {"address": "relab@example.com", "name": "ReLab"}},
+            "from": {"emailAddress": {"address": "relab@example.com", "name": "Relab"}},
         },
         "saveToSentItems": False,
     }
@@ -198,7 +198,7 @@ def test_smtp_provider_builds_from_resolved_email_settings() -> None:
         password=SecretStr("smtp-password"),
         host="smtp.example.com",
         port=587,
-        sender=NameEmail(name="ReLab", email="relab@example.com"),
+        sender=NameEmail(name="Relab", email="relab@example.com"),
         reply_to=NameEmail(name="Support", email="support@example.com"),
     )
 
@@ -208,4 +208,4 @@ def test_smtp_provider_builds_from_resolved_email_settings() -> None:
     assert provider.config.MAIL_USERNAME == "smtp-user"
     assert provider.config.MAIL_SERVER == "smtp.example.com"
     assert provider.config.MAIL_FROM == "relab@example.com"
-    assert provider.config.MAIL_FROM_NAME == "ReLab"
+    assert provider.config.MAIL_FROM_NAME == "Relab"

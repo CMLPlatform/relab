@@ -64,7 +64,7 @@ class BaseOAuthAccountDB(Base):
 
 
 class UserDatabaseAsync(SQLAlchemyUserDatabase[UP, ID]):
-    """FastAPI-Users SQLAlchemy adapter with ReLab's canonical email lookup."""
+    """FastAPI-Users SQLAlchemy adapter with Relab's canonical email lookup."""
 
     def __init__(
         self,
@@ -75,7 +75,7 @@ class UserDatabaseAsync(SQLAlchemyUserDatabase[UP, ID]):
         super().__init__(session, user_table, cast("Any", oauth_account_table))
 
     async def get_by_email(self, email: str) -> UP | None:
-        """Get a single user by ReLab's canonical email identity."""
+        """Get a single user by Relab's canonical email identity."""
         email_canonical_column = cast("Any", self.user_table).email_canonical
         statement = select(self.user_table).where(email_canonical_column == canonicalize_email(email))
         return await self._get_user(statement)

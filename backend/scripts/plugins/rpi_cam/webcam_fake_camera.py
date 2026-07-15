@@ -328,7 +328,7 @@ examples:
     # WebSocket
     ws_parser = sub.add_parser("ws", help="Connect to backend via WebSocket relay")
     ws_parser.add_argument("--backend-url", required=True, help="WebSocket URL of the backend relay")
-    ws_parser.add_argument("--camera-id", required=True, help="Camera UUID from ReLab")
+    ws_parser.add_argument("--camera-id", required=True, help="Camera UUID from Relab")
     ws_parser.add_argument("--api-key", required=True, help="API key from camera registration")
 
     args = parser.parse_args()
