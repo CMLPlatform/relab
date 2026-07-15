@@ -104,7 +104,8 @@ const ThumbnailItem = memo(function ThumbnailItem({
       ]}
     >
       {uri ? (
-        <Image source={{ uri }} style={{ width: 60, height: 60 }} />
+        // Decorative: the wrapping Pressable carries the "Select image N" label.
+        <Image source={{ uri }} style={{ width: 60, height: 60 }} accessibilityLabel="" />
       ) : (
         <ImagePlaceholder width={60} height={60} borderRadius={0} />
       )}

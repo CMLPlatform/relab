@@ -52,6 +52,13 @@ describe('ProductCard', () => {
     expect(screen.getByTestId('product-thumbnail')).toBeOnTheScreen();
   });
 
+  it('marks the thumbnail as decorative (empty alt) since the name is shown as text', () => {
+    renderWithProviders(
+      <ProductCard product={{ ...baseProduct, thumbnailUrl: 'http://example.com/img.png' }} />,
+    );
+    expect(screen.getByTestId('product-thumbnail').props.accessibilityLabel).toBe('');
+  });
+
   it('uses the placeholder thumbnail when thumbnailUrl is missing', () => {
     renderWithProviders(<ProductCard product={{ ...baseProduct, thumbnailUrl: undefined }} />);
     expect(screen.getByTestId('product-thumbnail')).toBeOnTheScreen();

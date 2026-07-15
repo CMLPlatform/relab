@@ -196,7 +196,13 @@ const GalleryImageItem = memo(function GalleryImageItem({
       accessibilityLabel={`View image ${index + 1}`}
     >
       {uri ? (
-        <Image source={{ uri }} contentFit="cover" style={{ width, height: IMAGE_HEIGHT }} />
+        // Decorative: the wrapping Pressable carries the "View image N" label.
+        <Image
+          source={{ uri }}
+          contentFit="cover"
+          style={{ width, height: IMAGE_HEIGHT }}
+          accessibilityLabel=""
+        />
       ) : (
         <ImagePlaceholder width={width} height={IMAGE_HEIGHT} borderRadius={0} />
       )}

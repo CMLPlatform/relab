@@ -84,6 +84,10 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                   contentFit="cover"
                   onError={handleImageError}
                   testID="product-thumbnail"
+                  // Decorative: the product name is shown as adjacent text, so
+                  // an empty alt keeps the <img> valid for axe without making
+                  // screen readers announce the name twice per card.
+                  accessibilityLabel=""
                 />
               </View>
             ) : (
