@@ -978,7 +978,7 @@
     }
   },
   "info": {
-    "description": "This API allows you to remotely capture images and stream video from a Raspberry Pi camera. It is used as a plugin for the ReLab platform.<br>For more info, visit the <a href=\"https://github.com/CMLplatform/relab\" target=\"_blank\">ReLab GitHub</a>.",
+    "description": "This API allows you to remotely capture images and stream video from a Raspberry Pi camera. It is used as a plugin for the Relab platform.<br>For more info, visit the <a href=\"https://github.com/CMLplatform/relab\" target=\"_blank\">Relab GitHub</a>.",
     "title": "Raspberry Pi Camera API",
     "version": "0.5.0"
   },
@@ -1212,7 +1212,7 @@
     },
     "/pairing": {
       "delete": {
-        "description": "Clear relay credentials and restart the pairing flow.\n\nReturns 204 immediately so the response can propagate back through the\nrelay WebSocket before the relay task is cancelled. The actual reset runs\n100 ms later in a background task.\n\nCalled two ways:\n- By the ReLab backend through the relay when a camera is deleted.\n- By the local browser UI \"Unpair\" button on the setup page.",
+        "description": "Clear relay credentials and restart the pairing flow.\n\nReturns 204 immediately so the response can propagate back through the\nrelay WebSocket before the relay task is cancelled. The actual reset runs\n100 ms later in a background task.\n\nCalled two ways:\n- By the Relab backend through the relay when a camera is deleted.\n- By the local browser UI \"Unpair\" button on the setup page.",
         "operationId": "unpair_pairing_delete",
         "responses": {
           "204": {

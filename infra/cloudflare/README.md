@@ -1,9 +1,9 @@
-# ReLab Cloudflare Edge
+# Relab Cloudflare Edge
 
-This directory manages ReLab's Cloudflare edge with OpenTofu:
+This directory manages Relab's Cloudflare edge with OpenTofu:
 
 - Cloudflare Tunnel per environment
-- DNS records for public ReLab hostnames
+- DNS records for public Relab hostnames
 - Tunnel ingress routes to the Compose `edge` network
 - TLS zone settings
 - zone rate limiting, cache, and custom firewall rules

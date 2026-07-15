@@ -61,7 +61,7 @@ def get_secrets_dir(
     return local_secrets_dir if local_secrets_dir.exists() else None
 
 
-class ReLabBaseSettings(BaseSettings):
+class RelabBaseSettings(BaseSettings):
     """Shared settings base class for backend modules."""
 
     model_config = SettingsConfigDict(env_file=get_env_file(BACKEND_DIR), extra="ignore", secrets_dir=get_secrets_dir())

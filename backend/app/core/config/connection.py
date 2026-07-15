@@ -10,7 +10,7 @@ from pydantic import AliasChoices, Field, PostgresDsn, RedisDsn, SecretStr
 from pydantic_settings import SettingsConfigDict
 from sqlalchemy.engine import URL
 
-from app.core.env import ReLabBaseSettings
+from app.core.env import RelabBaseSettings
 
 DATABASE_DRIVER_PSYCOPG = "psycopg"
 DATABASE_DRIVER_ASYNCPG = "asyncpg"
@@ -18,7 +18,7 @@ DATABASE_SSLMODE_DISABLE = "disable"
 DATABASE_SSLMODE_VERIFY_FULL = "verify-full"
 
 
-class DatabaseSettings(ReLabBaseSettings):
+class DatabaseSettings(RelabBaseSettings):
     """Connection settings and URL builders for PostgreSQL."""
 
     model_config = SettingsConfigDict(env_prefix="DATABASE_")
@@ -143,7 +143,7 @@ class DatabaseSettings(ReLabBaseSettings):
         return errors
 
 
-class RedisSettings(ReLabBaseSettings):
+class RedisSettings(RelabBaseSettings):
     """Connection settings and URL builder for Redis."""
 
     model_config = SettingsConfigDict(env_prefix="REDIS_")

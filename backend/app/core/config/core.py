@@ -27,7 +27,7 @@ from app.core.config.models import (
     StorageBackend,
 )
 from app.core.crypto.keys import decode_data_encryption_key
-from app.core.env import BACKEND_DIR, ReLabBaseSettings
+from app.core.env import BACKEND_DIR, RelabBaseSettings
 from app.core.secrets import validate_min_secret_bytes
 
 if TYPE_CHECKING:
@@ -52,7 +52,7 @@ DEFAULT_OUTBOUND_HTTP_ALLOWED_URLS: tuple[OutboundHttpsUrl, ...] = (
 )
 
 
-class CoreSettings(ReLabBaseSettings):
+class CoreSettings(RelabBaseSettings):
     """Settings class to store all the configurations for the app."""
 
     # ── Environment ──────────────────────────────────────────────────────────────

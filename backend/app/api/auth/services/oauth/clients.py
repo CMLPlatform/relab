@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
 
 
-class _ReLabGoogleOAuth2(GoogleOAuth2):
+class _RelabGoogleOAuth2(GoogleOAuth2):
     """Google OAuth client that uses Relab's shared outbound HTTP policy."""
 
     def get_httpx_client(self) -> AsyncClient:
@@ -46,7 +46,7 @@ class _ReLabGoogleOAuth2(GoogleOAuth2):
         return profile["resourceName"], email
 
 
-class _ReLabGitHubOAuth2(GitHubOAuth2):
+class _RelabGitHubOAuth2(GitHubOAuth2):
     """GitHub OAuth client that uses Relab's shared outbound HTTP policy."""
 
     def get_httpx_client(self) -> AsyncClient:
@@ -76,7 +76,7 @@ class _ReLabGitHubOAuth2(GitHubOAuth2):
 
 
 # Google
-google_oauth_client = _ReLabGoogleOAuth2(
+google_oauth_client = _RelabGoogleOAuth2(
     settings.google_oauth_client_id.get_secret_value(),
     settings.google_oauth_client_secret.get_secret_value(),
     scopes=GOOGLE_BASE_SCOPES,
@@ -85,14 +85,14 @@ google_oauth_client = _ReLabGoogleOAuth2(
 # YouTube (only used for RPi-cam plugin)
 YOUTUBE_API_SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 GOOGLE_YOUTUBE_SCOPES = GOOGLE_BASE_SCOPES + YOUTUBE_API_SCOPES
-google_youtube_oauth_client = _ReLabGoogleOAuth2(
+google_youtube_oauth_client = _RelabGoogleOAuth2(
     settings.google_oauth_client_id.get_secret_value(),
     settings.google_oauth_client_secret.get_secret_value(),
     scopes=GOOGLE_YOUTUBE_SCOPES,
 )
 
 # GitHub
-github_oauth_client = _ReLabGitHubOAuth2(
+github_oauth_client = _RelabGitHubOAuth2(
     settings.github_oauth_client_id.get_secret_value(),
     settings.github_oauth_client_secret.get_secret_value(),
 )
