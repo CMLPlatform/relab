@@ -84,8 +84,11 @@ are the only places to update.
 The mark is a **font-derived 9, vertically squished** so it reads as a loop
 (and as a mirrored "e" — the wordmark whispers "Relab"). Letters are IBM Plex;
 the flask emblem is retired, replaced by a plain ring in the ringed lockup.
-Three candidate fonts for the 9 are generated side by side (winner pending;
-Varela is the current default) — see [logo-src/](logo-src/README.md). Colours
+Three candidate fonts for the 9 are generated side by side; **Titillium** is
+the promoted canonical mark (was Varela), with Petrona and Varela kept as
+alternates in `logo-src/candidates/` — see [logo-src/](logo-src/README.md).
+Promote another via `make_r9lab.py --promote <name>` + `just assets-sync`.
+Colours
 follow the palette above; og-images and all PNG derivatives regenerate from
 the same pipeline.
 
