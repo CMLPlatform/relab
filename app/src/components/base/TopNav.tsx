@@ -27,7 +27,12 @@ export function TopNav() {
         onPress={() => router.push('/products')}
         accessibilityRole="button"
         accessibilityLabel="Relab, go to products"
-        className="min-h-11 cursor-pointer justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={cn(
+          'min-h-11 justify-center',
+          Platform.select({
+            web: 'cursor-pointer outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring',
+          }),
+        )}
       >
         <BrandHeaderTitle isDark={theme.scheme === 'dark'} />
       </Pressable>
@@ -42,8 +47,11 @@ export function TopNav() {
               accessibilityRole="button"
               accessibilityLabel={active ? `${destination.label}, current page` : destination.label}
               className={cn(
-                'min-h-11 cursor-pointer justify-center rounded-full px-4 py-2 outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'min-h-11 justify-center rounded-full px-4 py-2',
                 active ? 'bg-primary/10' : 'opacity-70',
+                Platform.select({
+                  web: 'cursor-pointer outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring',
+                }),
               )}
             >
               <AppText variant="label" className={cn(active && 'text-primary')}>

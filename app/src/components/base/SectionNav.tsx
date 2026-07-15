@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import type { SectionKey } from './SectionNavContext';
@@ -23,6 +23,9 @@ export function SectionNav({ sections, activeKey, onPress, orientation }: Sectio
         className={cn(
           'min-h-11 justify-center rounded-full px-4 py-2',
           active ? 'bg-primary/10' : 'opacity-70',
+          Platform.select({
+            web: 'cursor-pointer outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring',
+          }),
         )}
       >
         <AppText variant="label" className={cn(active && 'text-primary')}>

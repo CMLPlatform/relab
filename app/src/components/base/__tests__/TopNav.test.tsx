@@ -65,3 +65,11 @@ test('pressing a destination routes', () => {
   fireEvent.press(screen.getByText('Cameras'));
   expect(push).toHaveBeenCalledWith('/cameras');
 });
+
+test('destinations have a web hover affordance', () => {
+  (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+  render(<TopNav />);
+  expect(screen.getByLabelText('Cameras').props.className).toEqual(
+    expect.stringContaining('hover:'),
+  );
+});

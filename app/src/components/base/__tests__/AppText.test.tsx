@@ -25,3 +25,28 @@ test('caller color classes win over the default (tailwind-merge)', () => {
   expect(className).toContain('text-primary');
   expect(className).not.toContain('text-foreground');
 });
+
+test('body variant (default) is selectable — record content is documentation', () => {
+  render(<AppText variant="body">record note</AppText>);
+  expect(screen.getByText('record note').props.selectable).toBe(true);
+});
+
+test('data variant is selectable', () => {
+  render(<AppText variant="data">42 g</AppText>);
+  expect(screen.getByText('42 g').props.selectable).toBe(true);
+});
+
+test('display variant is not selectable', () => {
+  render(<AppText variant="display">Heading</AppText>);
+  expect(screen.getByText('Heading').props.selectable).not.toBe(true);
+});
+
+test('title variant is not selectable', () => {
+  render(<AppText variant="title">Section title</AppText>);
+  expect(screen.getByText('Section title').props.selectable).not.toBe(true);
+});
+
+test('label variant is not selectable', () => {
+  render(<AppText variant="label">Field label</AppText>);
+  expect(screen.getByText('Field label').props.selectable).not.toBe(true);
+});

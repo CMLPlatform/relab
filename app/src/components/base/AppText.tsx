@@ -5,6 +5,13 @@ import { cn } from '@/utils/cn';
 
 type Variant = 'display' | 'title' | 'body' | 'label' | 'data';
 
+// Record content (body copy, data readouts) is documentation — make it
+// selectable so it can be copied. Headings and labels aren't content, so they
+// stay non-selectable. RN's `selectable` prop maps to CSS `user-select` on
+// RN-web (react-native-web's Text applies `styles.selectable`/`notSelectable`
+// based on this prop) and is a harmless no-op on native.
+const SELECTABLE_VARIANTS = new Set<Variant>(['body', 'data']);
+
 type AppTextProps = ComponentProps<typeof Text> & { variant?: Variant };
 
 /**
@@ -16,5 +23,12 @@ type AppTextProps = ComponentProps<typeof Text> & { variant?: Variant };
 export function AppText({ variant = 'body', style, className, ...rest }: AppTextProps) {
   const { tokens } = useAppTheme();
   const scale = tokens.type[variant];
-  return <Text {...rest} className={cn('text-foreground', className)} style={[scale, style]} />;
+  return (
+    <Text
+      selectable={SELECTABLE_VARIANTS.has(variant)}
+      {...rest}
+      className={cn('text-foreground', className)}
+      style={[scale, style]}
+    />
+  );
 }
