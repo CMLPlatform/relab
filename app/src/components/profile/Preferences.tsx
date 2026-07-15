@@ -1,15 +1,16 @@
+import type { LucideIcon } from 'lucide-react-native';
+import { Check, EyeOff, Globe, Moon, Sun, SunMoon, Users } from 'lucide-react-native';
 import { useCallback } from 'react';
 import { Pressable, View } from 'react-native';
-import { Icon, Switch } from 'react-native-paper';
-import { Text } from '@/components/base/Text';
+import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/ui/icon';
+import { Switch } from '@/components/base/ui/switch';
 import { useAppTheme } from '@/theme';
 import type { ThemeMode, User } from '@/types/User';
 import { createProfileSectionStyles } from './styles';
 
 type ProfileSectionStyles = ReturnType<typeof createProfileSectionStyles>;
 type VisibilityId = 'public' | 'community' | 'private';
-
-import { ProfileSectionHeader } from './shared';
 
 type ProfileAppearanceSectionProps = {
   themeMode: ThemeMode;
@@ -22,30 +23,27 @@ export function ProfileAppearanceSection({
 }: ProfileAppearanceSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
-    <>
-      <ProfileSectionHeader title="Appearance" />
-      <View style={styles.section}>
-        <View style={styles.themeModeRow}>
-          {(
-            [
-              { mode: 'auto', icon: 'theme-light-dark', label: 'Auto' },
-              { mode: 'light', icon: 'white-balance-sunny', label: 'Light' },
-              { mode: 'dark', icon: 'moon-waning-crescent', label: 'Dark' },
-            ] as const
-          ).map(({ mode, icon, label }) => (
-            <ThemeModeOption
-              key={mode}
-              mode={mode}
-              icon={icon}
-              label={label}
-              active={themeMode === mode}
-              styles={styles}
-              onSetThemeMode={onSetThemeMode}
-            />
-          ))}
-        </View>
+    <View style={styles.section}>
+      <View style={styles.themeModeRow}>
+        {(
+          [
+            { mode: 'auto', icon: SunMoon, label: 'Auto' },
+            { mode: 'light', icon: Sun, label: 'Light' },
+            { mode: 'dark', icon: Moon, label: 'Dark' },
+          ] as const
+        ).map(({ mode, icon, label }) => (
+          <ThemeModeOption
+            key={mode}
+            mode={mode}
+            icon={icon}
+            label={label}
+            active={themeMode === mode}
+            styles={styles}
+            onSetThemeMode={onSetThemeMode}
+          />
+        ))}
       </View>
-    </>
+    </View>
   );
 }
 
@@ -65,43 +63,40 @@ export function ProfileVisibilitySection({
   const activeVisibility = profile.preferences.profile_visibility || 'public';
 
   return (
-    <>
-      <ProfileSectionHeader title="Profile visibility" />
-      <View style={styles.section}>
-        {(
-          [
-            {
-              id: 'public',
-              title: 'Public',
-              subtitle: 'Visible to everyone. Best for sharing your work.',
-              icon: 'earth',
-            },
-            {
-              id: 'community',
-              title: 'Community',
-              subtitle: 'Only signed-in users can see your profile.',
-              icon: 'account-group',
-            },
-            {
-              id: 'private',
-              title: 'Private',
-              subtitle: 'Only you can see your profile. Uploads are anonymous.',
-              icon: 'eye-off',
-            },
-          ] as const
-        ).map((option) => (
-          <VisibilityOption
-            key={option.id}
-            option={option}
-            isActive={activeVisibility === option.id}
-            saving={visibilitySaving}
-            theme={theme}
-            styles={styles}
-            onChangeVisibility={onChangeVisibility}
-          />
-        ))}
-      </View>
-    </>
+    <View style={styles.section}>
+      {(
+        [
+          {
+            id: 'public',
+            title: 'Public',
+            subtitle: 'Visible to everyone. Best for sharing your work.',
+            icon: Globe,
+          },
+          {
+            id: 'community',
+            title: 'Community',
+            subtitle: 'Only signed-in users can see your profile.',
+            icon: Users,
+          },
+          {
+            id: 'private',
+            title: 'Private',
+            subtitle: 'Only you can see your profile. Uploads are anonymous.',
+            icon: EyeOff,
+          },
+        ] as const
+      ).map((option) => (
+        <VisibilityOption
+          key={option.id}
+          option={option}
+          isActive={activeVisibility === option.id}
+          saving={visibilitySaving}
+          theme={theme}
+          styles={styles}
+          onChangeVisibility={onChangeVisibility}
+        />
+      ))}
+    </View>
   );
 }
 
@@ -120,28 +115,25 @@ export function ProfileEmailUpdatesSection({
   const styles = createProfileSectionStyles(theme);
 
   return (
-    <>
-      <ProfileSectionHeader title="Email updates" />
-      <View style={styles.section}>
-        <View style={styles.newsletterRow}>
-          <View style={styles.newsletterCopy}>
-            <Text style={styles.actionTitle}>Receive ReLab account updates</Text>
-            <Text style={styles.actionSubtitle}>
-              Opt in to occasional product and project updates tied to your account.
-            </Text>
-            <Text style={styles.newsletterState}>
-              {enabled ? 'Currently enabled.' : 'Currently disabled.'}
-            </Text>
-          </View>
-          <Switch
-            value={enabled}
-            onValueChange={onSetEnabled}
-            disabled={saving}
-            accessibilityLabel="Receive ReLab account updates"
-          />
+    <View style={styles.section}>
+      <View style={styles.newsletterRow}>
+        <View style={styles.newsletterCopy}>
+          <AppText style={styles.actionTitle}>Receive ReLab account updates</AppText>
+          <AppText style={styles.actionSubtitle}>
+            Opt in to occasional product and project updates tied to your account.
+          </AppText>
+          <AppText style={styles.newsletterState}>
+            {enabled ? 'Currently enabled.' : 'Currently disabled.'}
+          </AppText>
         </View>
+        <Switch
+          checked={enabled}
+          onCheckedChange={onSetEnabled}
+          disabled={saving}
+          accessibilityLabel="Receive ReLab account updates"
+        />
       </View>
-    </>
+    </View>
   );
 }
 
@@ -154,7 +146,7 @@ function ThemeModeOption({
   onSetThemeMode,
 }: {
   mode: ThemeMode;
-  icon: string;
+  icon: LucideIcon;
   label: string;
   active: boolean;
   styles: ProfileSectionStyles;
@@ -170,8 +162,8 @@ function ThemeModeOption({
       accessibilityState={{ selected: active }}
       accessibilityLabel={`${label} theme`}
     >
-      <Icon source={icon} size={22} />
-      <Text style={styles.themeModeLabel}>{label}</Text>
+      <Icon as={icon} size={22} />
+      <AppText style={styles.themeModeLabel}>{label}</AppText>
     </Pressable>
   );
 }
@@ -184,7 +176,7 @@ function VisibilityOption({
   styles,
   onChangeVisibility,
 }: {
-  option: { id: VisibilityId; title: string; subtitle: string; icon: string };
+  option: { id: VisibilityId; title: string; subtitle: string; icon: LucideIcon };
   isActive: boolean;
   saving: boolean;
   theme: ReturnType<typeof useAppTheme>;
@@ -206,18 +198,18 @@ function VisibilityOption({
     >
       <View style={styles.visibilityIcon}>
         <Icon
-          source={option.icon}
+          as={option.icon}
           size={24}
           color={isActive ? theme.colors.primary : theme.tokens.text.muted}
         />
       </View>
       <View style={styles.actionCopy}>
-        <Text style={[styles.actionTitle, isActive && { color: theme.colors.primary }]}>
+        <AppText style={[styles.actionTitle, isActive && { color: theme.colors.primary }]}>
           {option.title}
-        </Text>
-        <Text style={styles.actionSubtitle}>{option.subtitle}</Text>
+        </AppText>
+        <AppText style={styles.actionSubtitle}>{option.subtitle}</AppText>
       </View>
-      {isActive ? <Icon source="check" size={20} color={theme.colors.primary} /> : null}
+      {isActive ? <Icon as={Check} size={20} color={theme.colors.primary} /> : null}
     </Pressable>
   );
 }

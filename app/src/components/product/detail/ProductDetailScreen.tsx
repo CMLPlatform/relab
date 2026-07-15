@@ -1,11 +1,10 @@
 import { useRouter } from 'expo-router';
-import type { ReactNode } from 'react';
 import { useCallback, useRef } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
 import { ActivityIndicator, View } from 'react-native';
-import { SectionNav } from '@/components/base/SectionNav';
 import type { SectionKey } from '@/components/base/SectionNavContext';
 import { SectionNavContext } from '@/components/base/SectionNavContext';
+import { SectionNavLayout } from '@/components/base/SectionNavLayout';
 import type { UseProductFormOptions } from '@/features/products/useProductForm';
 import { useProductPageScreen } from '@/features/products/useProductPageScreen';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -15,50 +14,6 @@ import { ProductPageContent } from './Content';
 import { visibleSections } from './content-sections';
 import { ProductFabControls } from './FabControls';
 import { ProductPageErrorState, ProductPageLoadingState } from './States';
-
-/** Phone: chips row pinned above the scroll. ≥lg web: fixed outline column beside it. */
-function SectionNavLayout({
-  isLg,
-  navSections,
-  activeKey,
-  onPressSection,
-  children,
-}: {
-  isLg: boolean;
-  navSections: { key: SectionKey; label: string }[];
-  activeKey: SectionKey;
-  onPressSection: (key: SectionKey) => void;
-  children: ReactNode;
-}) {
-  if (isLg) {
-    return (
-      <View style={{ flex: 1, flexDirection: 'row' }}>
-        <View testID="section-nav-outline" style={{ width: 200, padding: 16 }}>
-          <SectionNav
-            sections={navSections}
-            activeKey={activeKey}
-            onPress={onPressSection}
-            orientation="outline"
-          />
-        </View>
-        <View style={{ flex: 1 }}>{children}</View>
-      </View>
-    );
-  }
-  return (
-    <View style={{ flex: 1 }}>
-      <View testID="section-nav-chips">
-        <SectionNav
-          sections={navSections}
-          activeKey={activeKey}
-          onPress={onPressSection}
-          orientation="chips"
-        />
-      </View>
-      {children}
-    </View>
-  );
-}
 
 function useErrorSummaryPressHandler(
   scrollTo: (key: SectionKey) => void,

@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 import type { SectionNavApi } from '@/components/base/SectionNavContext';
-import { useAnchoredSectionNav } from '@/components/product/detail/useAnchoredSectionNav';
+import { useAnchoredSectionNav } from '@/hooks/useAnchoredSectionNav';
 
 function layoutEvent(y: number) {
   return { nativeEvent: { layout: { y, x: 0, width: 0, height: 0 } } } as never;

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import { useAppTheme } from '@/theme';
-import { type OAuthAccount, ProfileAction, ProfileSectionHeader } from './shared';
+import { type OAuthAccount, ProfileAction } from './shared';
 import { createProfileSectionStyles } from './styles';
 
 type ProfileAccountSectionProps = {
@@ -19,30 +19,27 @@ export function ProfileAccountSection({
 }: ProfileAccountSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
-    <>
-      <ProfileSectionHeader title="Account" />
-      <View style={styles.section}>
+    <View style={styles.section}>
+      <ProfileAction
+        title="Sign out"
+        subtitle="Switch to another account"
+        onPress={onLogout}
+        titleStyle={styles.danger}
+      />
+      <ProfileAction
+        title="Sign out everywhere"
+        subtitle="End all active sessions for this account"
+        onPress={onRevokeAllSessions}
+        titleStyle={styles.danger}
+      />
+      {!isVerified ? (
         <ProfileAction
-          title="Sign out"
-          subtitle="Switch to another account"
-          onPress={onLogout}
-          titleStyle={styles.danger}
+          title="Verify email address"
+          subtitle="Resend the verification email"
+          onPress={onVerifyAccount}
         />
-        <ProfileAction
-          title="Sign out everywhere"
-          subtitle="End all active sessions for this account"
-          onPress={onRevokeAllSessions}
-          titleStyle={styles.danger}
-        />
-        {!isVerified ? (
-          <ProfileAction
-            title="Verify email address"
-            subtitle="Resend the verification email"
-            onPress={onVerifyAccount}
-          />
-        ) : null}
-      </View>
-    </>
+      ) : null}
+    </View>
   );
 }
 
@@ -69,40 +66,37 @@ export function ProfileLinkedAccountsSection({
   const unlinkGithub = useCallback(() => onRequestUnlink('github'), [onRequestUnlink]);
   const linkGithub = useCallback(() => onLinkOAuth('github'), [onLinkOAuth]);
   return (
-    <>
-      <ProfileSectionHeader title="Linked accounts" />
-      <View style={styles.section}>
-        {isGoogleLinked ? (
-          <ProfileAction
-            title="Unlink Google"
-            subtitle={`Connected as ${googleAccount?.account_email ?? ''}`}
-            onPress={unlinkGoogle}
-            titleStyle={styles.danger}
-          />
-        ) : (
-          <ProfileAction
-            title="Link Google account"
-            subtitle="Continue with Google"
-            onPress={linkGoogle}
-          />
-        )}
+    <View style={styles.section}>
+      {isGoogleLinked ? (
+        <ProfileAction
+          title="Unlink Google"
+          subtitle={`Connected as ${googleAccount?.account_email ?? ''}`}
+          onPress={unlinkGoogle}
+          titleStyle={styles.danger}
+        />
+      ) : (
+        <ProfileAction
+          title="Link Google account"
+          subtitle="Continue with Google"
+          onPress={linkGoogle}
+        />
+      )}
 
-        {isGithubLinked ? (
-          <ProfileAction
-            title="Unlink GitHub"
-            subtitle={`Connected as ${githubAccount?.account_email ?? ''}`}
-            onPress={unlinkGithub}
-            titleStyle={styles.danger}
-          />
-        ) : (
-          <ProfileAction
-            title="Link GitHub account"
-            subtitle="Continue with GitHub"
-            onPress={linkGithub}
-          />
-        )}
-      </View>
-    </>
+      {isGithubLinked ? (
+        <ProfileAction
+          title="Unlink GitHub"
+          subtitle={`Connected as ${githubAccount?.account_email ?? ''}`}
+          onPress={unlinkGithub}
+          titleStyle={styles.danger}
+        />
+      ) : (
+        <ProfileAction
+          title="Link GitHub account"
+          subtitle="Continue with GitHub"
+          onPress={linkGithub}
+        />
+      )}
+    </View>
   );
 }
 
@@ -113,16 +107,13 @@ type ProfileDangerZoneSectionProps = {
 export function ProfileDangerZoneSection({ onDeleteAccount }: ProfileDangerZoneSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
-    <>
-      <ProfileSectionHeader title="Danger zone" />
-      <View style={[styles.section, styles.dangerSection]}>
-        <ProfileAction
-          title="Delete account?"
-          onPress={onDeleteAccount}
-          titleStyle={{ ...styles.danger, fontSize: 15 }}
-          hideChevron
-        />
-      </View>
-    </>
+    <View style={[styles.section, styles.dangerSection]}>
+      <ProfileAction
+        title="Delete account?"
+        onPress={onDeleteAccount}
+        titleStyle={{ ...styles.danger, fontSize: 15 }}
+        hideChevron
+      />
+    </View>
   );
 }

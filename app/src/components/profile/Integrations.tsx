@@ -1,11 +1,13 @@
+import { Radio, Webcam } from 'lucide-react-native';
 import { useCallback } from 'react';
 import { View } from 'react-native';
-import { Icon, Switch } from 'react-native-paper';
-import { Text } from '@/components/base/Text';
+import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/ui/icon';
+import { Switch } from '@/components/base/ui/switch';
 import { DOCS_URL } from '@/config';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
-import { ProfileAction, ProfileSectionHeader } from './shared';
+import { ProfileAction } from './shared';
 import { createProfileSectionStyles } from './styles';
 
 type ProfileIntegrationsSectionProps = {
@@ -37,54 +39,57 @@ export function ProfileIntegrationsSection({
     }
   }, []);
   return (
-    <>
-      <ProfileSectionHeader title="Integrations" />
-      <View style={styles.section}>
+    <View style={styles.section}>
+      <View style={styles.integrationRow}>
+        <View style={styles.integrationIcon}>
+          <Icon as={Webcam} size={22} color={theme.colors.onSurfaceVariant} />
+        </View>
+        <View style={styles.integrationCopy}>
+          <AppText style={styles.actionTitle}>RPi Camera</AppText>
+          <AppText style={styles.actionSubtitle}>
+            Capture images with a Raspberry Pi camera during disassembly.{' '}
+            <AppText style={styles.docsLink} onPress={openDocs}>
+              Learn more
+            </AppText>
+          </AppText>
+        </View>
+        <Switch
+          checked={rpiEnabled}
+          onCheckedChange={onSetRpiEnabled}
+          disabled={rpiLoading}
+          accessibilityLabel="RPi Camera"
+        />
+      </View>
+
+      {rpiEnabled ? (
+        <ProfileAction
+          title="Manage cameras"
+          subtitle="Add, edit, or remove connected cameras"
+          onPress={onManageCameras}
+        />
+      ) : null}
+
+      {rpiEnabled ? (
         <View style={styles.integrationRow}>
           <View style={styles.integrationIcon}>
-            <Icon source="camera-wireless" size={22} color={theme.colors.onSurfaceVariant} />
+            <Icon as={Radio} size={22} color={theme.colors.onSurfaceVariant} />
           </View>
           <View style={styles.integrationCopy}>
-            <Text style={styles.actionTitle}>RPi Camera</Text>
-            <Text style={styles.actionSubtitle}>
-              Capture images with a Raspberry Pi camera during disassembly.{' '}
-              <Text style={styles.docsLink} onPress={openDocs}>
-                Learn more
-              </Text>
-            </Text>
+            <AppText style={styles.actionTitle}>YouTube Live</AppText>
+            <AppText style={styles.actionSubtitle}>
+              {youtubeAuthPending
+                ? 'Connecting to Google…'
+                : 'Stream product sessions live to YouTube.'}
+            </AppText>
           </View>
-          <Switch value={rpiEnabled} onValueChange={onSetRpiEnabled} disabled={rpiLoading} />
-        </View>
-
-        {rpiEnabled ? (
-          <ProfileAction
-            title="Manage cameras"
-            subtitle="Add, edit, or remove connected cameras"
-            onPress={onManageCameras}
+          <Switch
+            checked={youtubeEnabled}
+            onCheckedChange={onToggleYouTube}
+            disabled={youtubeLoading || youtubeAuthPending}
+            accessibilityLabel="YouTube Live"
           />
-        ) : null}
-
-        {rpiEnabled ? (
-          <View style={styles.integrationRow}>
-            <View style={styles.integrationIcon}>
-              <Icon source="youtube" size={22} color={theme.colors.onSurfaceVariant} />
-            </View>
-            <View style={styles.integrationCopy}>
-              <Text style={styles.actionTitle}>YouTube Live</Text>
-              <Text style={styles.actionSubtitle}>
-                {youtubeAuthPending
-                  ? 'Connecting to Google…'
-                  : 'Stream product sessions live to YouTube.'}
-              </Text>
-            </View>
-            <Switch
-              value={youtubeEnabled}
-              onValueChange={onToggleYouTube}
-              disabled={youtubeLoading || youtubeAuthPending}
-            />
-          </View>
-        ) : null}
-      </View>
-    </>
+        </View>
+      ) : null}
+    </View>
   );
 }

@@ -1,10 +1,9 @@
 import { Platform, Pressable, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
 import { Chip } from '@/components/base/Chip';
-import { Text } from '@/components/base/Text';
 import type { PublicProfileView } from '@/services/api/profiles';
 import { useAppTheme } from '@/theme';
 import type { User } from '@/types/User';
-import { ProfileSectionHeader } from './shared';
 import { createProfileSectionStyles } from './styles';
 
 type ProfileHeroProps = {
@@ -12,30 +11,33 @@ type ProfileHeroProps = {
   onEditUsername: () => void;
 };
 
+/** Account page header: identity block in the same spec-sheet voice as the product SpecHeader. */
 export function ProfileHero({ profile, onEditUsername }: ProfileHeroProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
-    <View style={styles.hero}>
-      <Text style={styles.hiText}>Hi,</Text>
+    <View className="gap-2 px-4 py-3">
+      <AppText variant="label" className="opacity-60 uppercase">
+        Hi,
+      </AppText>
       <Pressable
         onPress={onEditUsername}
         accessibilityRole="button"
         accessibilityLabel="Edit username"
       >
-        <Text
-          style={styles.usernameText}
+        <AppText
+          variant="display"
           numberOfLines={Platform.OS === 'web' ? undefined : 1}
           adjustsFontSizeToFit
         >
           {`${profile.username}.`}
-        </Text>
+        </AppText>
       </Pressable>
 
-      <View style={styles.metaRow}>
-        <Text style={styles.metaText}>{profile.email}</Text>
-      </View>
+      <AppText variant="body" className="opacity-70">
+        {profile.email}
+      </AppText>
 
-      <View style={styles.chipRow}>
+      <View className="flex-row flex-wrap gap-2 mt-1">
         {profile.isActive ? <Chip>Active</Chip> : <Chip style={styles.greyChip}>Inactive</Chip>}
         {profile.isSuperuser ? <Chip>Superuser</Chip> : null}
         {profile.isVerified ? (
@@ -65,10 +67,10 @@ function StatCard({
   const styles = createProfileSectionStyles(useAppTheme());
   return (
     <View style={styles.statItem}>
-      <Text style={styles.statValue} numberOfLines={singleLine ? 1 : undefined}>
+      <AppText style={styles.statValue} numberOfLines={singleLine ? 1 : undefined}>
         {value}
-      </Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      </AppText>
+      <AppText style={styles.statLabel}>{label}</AppText>
     </View>
   );
 }
@@ -76,21 +78,18 @@ function StatCard({
 export function ProfileStatsSection({ ownStats, statsLoading }: ProfileStatsSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
-    <>
-      <ProfileSectionHeader title="Your stats" />
-      <View style={styles.statsRow}>
-        <StatCard label="Products" value={statsLoading ? '...' : (ownStats?.product_count ?? 0)} />
-        <StatCard label="Photos" value={statsLoading ? '...' : (ownStats?.image_count ?? 0)} />
-        <StatCard
-          label="Weight (kg)"
-          value={statsLoading ? '...' : (ownStats?.total_weight_kg ?? 0)}
-        />
-        <StatCard
-          label="Top category"
-          value={statsLoading ? '...' : (ownStats?.top_category ?? 'None')}
-          singleLine
-        />
-      </View>
-    </>
+    <View style={styles.statsRow}>
+      <StatCard label="Products" value={statsLoading ? '...' : (ownStats?.product_count ?? 0)} />
+      <StatCard label="Photos" value={statsLoading ? '...' : (ownStats?.image_count ?? 0)} />
+      <StatCard
+        label="Weight (kg)"
+        value={statsLoading ? '...' : (ownStats?.total_weight_kg ?? 0)}
+      />
+      <StatCard
+        label="Top category"
+        value={statsLoading ? '...' : (ownStats?.top_category ?? 'None')}
+        singleLine
+      />
+    </View>
   );
 }

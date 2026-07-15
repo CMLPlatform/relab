@@ -1,11 +1,12 @@
+import { CheckCircle2 } from 'lucide-react-native';
 import { useCallback } from 'react';
 import { View } from 'react-native';
-import { Icon } from 'react-native-paper';
-import { Text } from '@/components/base/Text';
+import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/ui/icon';
 import { useMfaSetup } from '@/features/profile/useMfaSetup';
 import { useAppTheme } from '@/theme';
 import { MfaDialogs } from './MfaDialogs';
-import { ProfileAction, ProfileSectionHeader } from './shared';
+import { ProfileAction } from './shared';
 import { createProfileSectionStyles } from './styles';
 
 type ProfileSecuritySectionProps = {
@@ -24,16 +25,15 @@ export function ProfileSecuritySection({ mfaEnabled, onEnrolled }: ProfileSecuri
 
   return (
     <>
-      <ProfileSectionHeader title="Security" />
       <View style={styles.section}>
         {mfaEnabled ? (
           <>
             <View style={styles.action}>
               <View style={styles.actionCopy}>
-                <Text style={styles.actionTitle}>Two-step verification</Text>
-                <Text style={styles.actionSubtitle}>On — you enter a code at login</Text>
+                <AppText style={styles.actionTitle}>Two-step verification</AppText>
+                <AppText style={styles.actionSubtitle}>On — you enter a code at login</AppText>
               </View>
-              <Icon source="check-circle" size={22} color={theme.tokens.status.success} />
+              <Icon as={CheckCircle2} size={22} color={theme.tokens.status.success} />
             </View>
             <ProfileAction
               title="Generate new recovery codes"

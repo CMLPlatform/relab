@@ -1,57 +1,11 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import type { AppTheme } from '@/theme';
 import { memoizeByTheme } from '@/theme';
 
 export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
-    container: {
-      paddingBottom: 40,
-    },
-    hero: {
-      paddingHorizontal: 20,
-      paddingTop: 60,
-      paddingBottom: 24,
-    },
-    hiText: {
-      fontSize: 28,
-      opacity: 0.6,
-    },
-    usernameText: {
-      fontSize: Platform.OS === 'web' ? 48 : 72,
-      fontWeight: 'bold',
-      lineHeight: Platform.OS === 'web' ? 56 : 80,
-    },
-    metaRow: {
-      marginTop: 16,
-      gap: 4,
-    },
-    metaText: {
-      fontSize: 15,
-      opacity: 0.65,
-    },
-    chipRow: {
-      marginTop: 12,
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-    },
     greyChip: {
       backgroundColor: theme.colors.surfaceVariant,
-    },
-    divider: {
-      marginTop: 24,
-      marginBottom: 4,
-      marginHorizontal: 20,
-    },
-    sectionTitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      opacity: 0.45,
-      letterSpacing: 0.8,
-      textTransform: 'uppercase',
-      marginHorizontal: 20,
-      marginTop: 8,
-      marginBottom: 2,
     },
     section: {
       marginHorizontal: 4,

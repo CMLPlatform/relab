@@ -1,27 +1,13 @@
-import type { ReactNode } from 'react';
-import { Pressable, ScrollView, type TextStyle, View } from 'react-native';
-import { Divider, Icon } from 'react-native-paper';
-import { Text } from '@/components/base/Text';
+import { ChevronRight } from 'lucide-react-native';
+import { Pressable, type TextStyle, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/ui/icon';
 import { useAppTheme } from '@/theme';
 import { createProfileSectionStyles } from './styles';
 
 export type OAuthAccount = {
   account_email?: string | null;
 };
-
-type ProfileSectionHeaderProps = {
-  title: string;
-};
-
-export function ProfileSectionHeader({ title }: ProfileSectionHeaderProps) {
-  const styles = useStyles();
-  return (
-    <>
-      <Divider style={styles.divider} />
-      <Text style={styles.sectionTitle}>{title}</Text>
-    </>
-  );
-}
 
 type ProfileActionProps = {
   onPress: () => void;
@@ -31,6 +17,7 @@ type ProfileActionProps = {
   hideChevron?: boolean;
 };
 
+/** A tappable settings row: title, optional subtitle, chevron. Rows within one Section. */
 export function ProfileAction({
   onPress,
   title,
@@ -42,26 +29,18 @@ export function ProfileAction({
   return (
     <Pressable
       style={styles.action}
+      className="min-h-11"
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
     >
       <View style={styles.actionCopy}>
-        <Text style={[styles.actionTitle, titleStyle]}>{title}</Text>
-        {subtitle ? <Text style={styles.actionSubtitle}>{subtitle}</Text> : null}
+        <AppText style={[styles.actionTitle, titleStyle]}>{title}</AppText>
+        {subtitle ? <AppText style={styles.actionSubtitle}>{subtitle}</AppText> : null}
       </View>
-      {!hideChevron ? <Icon source="chevron-right" size={26} /> : null}
+      {!hideChevron ? <Icon as={ChevronRight} size={26} className="opacity-70" /> : null}
     </Pressable>
   );
-}
-
-type ProfileLayoutProps = {
-  children: ReactNode;
-};
-
-export function ProfileLayout({ children }: ProfileLayoutProps) {
-  const styles = useStyles();
-  return <ScrollView contentContainerStyle={styles.container}>{children}</ScrollView>;
 }
 
 function useStyles() {

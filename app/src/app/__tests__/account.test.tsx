@@ -1,4 +1,5 @@
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
+import type { ReactNode } from 'react';
 
 // Variables prefixed with 'mock' can be referenced inside jest.mock() factories.
 // babel-jest hoists jest.mock() calls but exempts 'mock'-prefixed variables from TDZ.
@@ -84,6 +85,22 @@ jest.mock('@/services/api/client', () => ({
     json: async () => ({ authorization_url: 'https://oauth.example.com' }),
   }),
 }));
+
+// The real KeyboardAwareScrollView needs native modules unavailable in jest —
+// mirrors the detail/capture screens' own integration test mocks.
+jest.mock('react-native-keyboard-controller', () => {
+  const mockReact = jest.requireActual<typeof import('react')>('react');
+  const { ScrollView } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    KeyboardAwareScrollView: ({
+      children,
+      ...props
+    }: {
+      children?: ReactNode;
+      [key: string]: unknown;
+    }) => mockReact.createElement(ScrollView, { ...props, testID: 'account-scroll' }, children),
+  };
+});
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -254,7 +271,7 @@ describe('ProfileTab', () => {
     it('calls updateUser when the email updates switch is toggled', async () => {
       const { findByRole } = await renderProfile();
       const emailSwitch = await findByRole('switch', { name: 'Receive ReLab account updates' });
-      fireEvent(emailSwitch, 'valueChange', true);
+      fireEvent.press(emailSwitch);
       await waitFor(() => {
         expect(mockUpdateUser).toHaveBeenCalledWith(
           expect.objectContaining({

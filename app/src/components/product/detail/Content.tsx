@@ -8,11 +8,11 @@ import { Section } from '@/components/base/Section';
 import { SectionNavContext } from '@/components/base/SectionNavContext';
 import ProductDelete from '@/components/product/ProductDelete';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
+import { useAnchoredSectionNav } from '@/hooks/useAnchoredSectionNav';
 import type { Product } from '@/types/Product';
 import type { SectionContext, SectionRenderProps } from './content-sections';
 import { guardedSections } from './content-sections';
 import { SpecHeader } from './SpecHeader';
-import { useAnchoredSectionNav } from './useAnchoredSectionNav';
 
 type ProductPageContentProps = {
   product: Product;
