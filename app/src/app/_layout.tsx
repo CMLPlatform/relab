@@ -27,6 +27,7 @@ import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMo
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useGlobalDialogA11y } from '@/hooks/useGlobalDialogA11y';
 import { createNavigationThemes, getAppTheme } from '@/theme';
+import { AppThemeProvider } from '@/theme/AppThemeProvider';
 import { useBackgroundOverlayColor } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
@@ -272,15 +273,25 @@ function ThemedProviders({ children }: { children: ReactNode }) {
     nativewindColorScheme.set(colorScheme);
   }, [colorScheme, systemColorScheme]);
 
+  // AppThemeProvider wraps PaperProvider (not nested inside it): react-native-paper's
+  // Portal (Dialog/Menu/Snackbar) renders its content via a PortalManager that is a
+  // *sibling* of PaperProvider's normal children, not a descendant — so a provider
+  // placed inside PaperProvider never reaches portaled content. Paper works around
+  // this for its own theme by re-injecting it inside Portal (see Portal.tsx), but
+  // that only covers Paper's context. Wrapping PaperProvider instead keeps
+  // useAppTheme() correct for our own components (e.g. Text) rendered inside a
+  // Paper Dialog, such as MfaDialogs.
   return (
-    <PaperProvider theme={theme} settings={PAPER_SETTINGS}>
-      <ThemeProvider value={colorScheme === 'light' ? LightTheme : DarkTheme}>
-        <KeyboardProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <DialogProvider>{children}</DialogProvider>
-          </GestureHandlerRootView>
-        </KeyboardProvider>
-      </ThemeProvider>
-    </PaperProvider>
+    <AppThemeProvider scheme={colorScheme}>
+      <PaperProvider theme={theme} settings={PAPER_SETTINGS}>
+        <ThemeProvider value={colorScheme === 'light' ? LightTheme : DarkTheme}>
+          <KeyboardProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <DialogProvider>{children}</DialogProvider>
+            </GestureHandlerRootView>
+          </KeyboardProvider>
+        </ThemeProvider>
+      </PaperProvider>
+    </AppThemeProvider>
   );
 }

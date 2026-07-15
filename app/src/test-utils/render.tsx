@@ -10,6 +10,7 @@ import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { getAppTheme } from '@/theme';
+import { AppThemeProvider } from '@/theme/AppThemeProvider';
 
 interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
   withDialog?: boolean;
@@ -67,9 +68,14 @@ export function renderWithProviders(
     let content = withDialog ? <DialogProvider>{children}</DialogProvider> : children;
     content = <StreamSessionProvider>{content}</StreamSessionProvider>;
     if (withThemeMode) content = <ThemeModeProvider>{content}</ThemeModeProvider>;
+    // AppThemeProvider wraps PaperProvider, not the reverse — see the matching
+    // comment in _layout.tsx: Paper's Portal (Dialog/Menu/Snackbar) renders outside
+    // PaperProvider's normal children, so a provider nested inside PaperProvider
+    // never reaches portaled content.
     const withPaper = <PaperProvider theme={testTheme}>{content}</PaperProvider>;
+    const withAppTheme = <AppThemeProvider scheme={colorScheme}>{withPaper}</AppThemeProvider>;
     const withSafeArea = (
-      <SafeAreaProvider initialMetrics={safeAreaMetrics}>{withPaper}</SafeAreaProvider>
+      <SafeAreaProvider initialMetrics={safeAreaMetrics}>{withAppTheme}</SafeAreaProvider>
     );
     const withAuth = needsAuth ? <AuthProvider>{withSafeArea}</AuthProvider> : withSafeArea;
     return <QueryClientProvider client={queryClient}>{withAuth}</QueryClientProvider>;
