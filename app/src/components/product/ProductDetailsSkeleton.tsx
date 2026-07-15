@@ -1,136 +1,85 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { AppText } from '@/components/base/AppText';
 import DetailCard from '@/components/base/DetailCard';
 import { Skeleton } from '@/components/base/Skeleton';
 import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 
+/**
+ * Loading placeholder mirroring the detail layout (Content.tsx): a full-bleed
+ * gallery, the SpecHeader identity block (name + a couple of facts), then a few
+ * titled section cards.
+ */
 export default function ProductDetailsSkeleton() {
   const theme = useAppTheme();
   const bg = theme.colors.surfaceVariant;
 
   return (
     <ScrollView contentContainerStyle={styles.container} scrollEnabled={false}>
-      {/* Image Gallery Placeholder */}
-      <Skeleton style={[styles.imageGallery, { backgroundColor: bg }]} />
+      {/* Full-bleed image gallery */}
+      <Skeleton style={[styles.gallery, { backgroundColor: bg }]} />
 
-      {/* Description Placeholder */}
-      <DetailCard>
-        <View style={styles.content}>
-          <Skeleton style={[styles.descLine, { backgroundColor: bg }]} />
-          <Skeleton style={[styles.descLine, { backgroundColor: bg }]} />
-          <Skeleton style={[styles.descLine, { backgroundColor: bg, width: '90%' }]} />
-        </View>
-      </DetailCard>
-
-      {/* Tags Placeholder (Brand & Model) */}
-      <View style={styles.tagRow}>
-        <Skeleton style={[styles.chip, { backgroundColor: bg, width: 80 }]} />
-        <Skeleton style={[styles.chip, { backgroundColor: bg, width: 100 }]} />
+      {/* SpecHeader: name + a couple of fact lines */}
+      <View style={styles.specHeader}>
+        <Skeleton style={[styles.name, { backgroundColor: bg }]} />
+        <Skeleton style={[styles.fact, { backgroundColor: bg }]} />
+        <Skeleton style={[styles.fact, { backgroundColor: bg, width: '40%' }]} />
       </View>
 
-      {/* Product Type Placeholder */}
-      <View style={styles.sectionHeader}>
-        <AppText style={styles.actualTitle}>Type or Material</AppText>
-      </View>
-      <DetailCard>
-        <View style={styles.content}>
-          <Skeleton style={[styles.descLine, { backgroundColor: bg, height: 40 }]} />
+      {/* A few titled section cards */}
+      {[1, 2, 3].map((n) => (
+        <View key={n} style={styles.section}>
+          <Skeleton style={[styles.sectionTitle, { backgroundColor: bg }]} />
+          <DetailCard>
+            <View style={styles.cardContent}>
+              <Skeleton style={[styles.line, { backgroundColor: bg }]} />
+              <Skeleton style={[styles.line, { backgroundColor: bg, width: '90%' }]} />
+            </View>
+          </DetailCard>
         </View>
-      </DetailCard>
-
-      {/* Properties Placeholder */}
-      <View style={styles.sectionHeader}>
-        <AppText style={styles.actualTitle}>Physical Properties</AppText>
-      </View>
-      <DetailCard>
-        <View style={styles.content}>
-          <View style={styles.propertyRow}>
-            <Skeleton style={[styles.propertyLabel, { backgroundColor: bg }]} />
-            <Skeleton style={[styles.propertyValue, { backgroundColor: bg }]} />
-          </View>
-          <View style={styles.propertyRow}>
-            <Skeleton style={[styles.propertyLabel, { backgroundColor: bg }]} />
-            <Skeleton style={[styles.propertyValue, { backgroundColor: bg }]} />
-          </View>
-        </View>
-      </DetailCard>
-
-      {/* Circularity Placeholder */}
-      <View style={styles.sectionHeader}>
-        <AppText style={styles.actualTitle}>Circularity Properties</AppText>
-      </View>
-      <DetailCard>
-        <View style={styles.content}>
-          <Skeleton style={[styles.descLine, { backgroundColor: bg }]} />
-        </View>
-      </DetailCard>
-
-      {/* Components Placeholder */}
-      <View style={styles.sectionHeader}>
-        <AppText style={styles.actualTitle}>Components</AppText>
-      </View>
-      <DetailCard>
-        <View style={styles.content}>
-          <Skeleton style={[styles.descLine, { backgroundColor: bg, height: 60 }]} />
-        </View>
-      </DetailCard>
+      ))}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 0,
     gap: 15,
     paddingBottom: 20,
   },
-  imageGallery: {
+  gallery: {
     width: '100%',
     aspectRatio: 16 / 9,
   },
-  content: {
+  specHeader: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  name: {
+    height: 28,
+    borderRadius: radius.sm,
+    width: '70%',
+  },
+  fact: {
+    height: 14,
+    borderRadius: radius.sm,
+    width: '55%',
+  },
+  section: {
+    paddingHorizontal: spacing.md,
+    gap: 10,
+  },
+  sectionTitle: {
+    height: 18,
+    borderRadius: radius.sm,
+    width: '35%',
+  },
+  cardContent: {
     gap: 12,
   },
-  descLine: {
+  line: {
     height: 16,
     borderRadius: radius.sm,
     width: '100%',
-  },
-  tagRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-    marginVertical: 12,
-    paddingHorizontal: spacing.md,
-  },
-  chip: {
-    height: 32,
-    borderRadius: radius.lg,
-    width: 60,
-  },
-  sectionHeader: {
-    paddingLeft: 14,
-    marginTop: 8,
-  },
-  actualTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  propertyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  propertyLabel: {
-    height: 14,
-    borderRadius: radius.sm,
-    width: '30%',
-  },
-  propertyValue: {
-    height: 14,
-    borderRadius: radius.sm,
-    width: '20%',
   },
 });
