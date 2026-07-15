@@ -47,6 +47,11 @@ Detail screens are anchored-scroll documents: sections self-register with
 SectionNavContext; chips (phone) / outline (lg web) navigate via
 useSectionNav.
 
+The account screen uses the same anchored-scroll document pattern. On web at
+lg and above, TopNav (src/components/base/TopNav.tsx) renders the persistent
+app bar from src/navigation/destinations.ts and the stack header is hidden for
+the screens it covers; phones keep the stack headers.
+
 Creation is capture-first: /products/new and components/new render
 CaptureScreen (photos/name/type), POST immediately, then land on the detail
 screen in edit mode.

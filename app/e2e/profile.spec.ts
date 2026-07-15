@@ -16,8 +16,10 @@ const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
 // The profile page is served at the /account route.
 const PROFILE_URL_PATTERN = /account/;
 const EMAIL_UPDATES_STATUS_PATTERN = /Currently (enabled|disabled)\./;
-const GOOGLE_LINK_PATTERN = /^(Link Google Account|Unlink Google)$/;
-const GITHUB_LINK_PATTERN = /^(Link GitHub Account|Unlink GitHub)$/;
+// Matches AccountSections.tsx's ProfileLinkedAccountsSection titles exactly
+// (lowercase "account" in the not-yet-linked case — see its own unit test).
+const GOOGLE_LINK_PATTERN = /^(Link Google account|Unlink Google)$/;
+const GITHUB_LINK_PATTERN = /^(Link GitHub account|Unlink GitHub)$/;
 const PRODUCTS_URL_PATTERN = /products/;
 
 test.describe('Profile: access', () => {
@@ -61,13 +63,16 @@ test.describe('Profile: content', () => {
 
   test('shows all expected profile sections', async ({ page }) => {
     await loginAndGoToProfile(page);
-    // Section headers rendered by SectionHeader component. Use exact: true so
-    // "Account" doesn't match "Linked accounts"; use .last() to target the
-    // section header rather than the /account route's nav header (both say "Account").
-    await expect(page.getByText('Account', { exact: true }).last()).toBeVisible();
-    await expect(page.getByText('Email updates')).toBeVisible();
-    await expect(page.getByText('Linked accounts')).toBeVisible();
-    await expect(page.getByText('Danger zone')).toBeVisible();
+    // Section headers are the five ACCOUNT_SECTIONS titles (accountSections.tsx)
+    // — the account screen's grouped-section restructure retired the old
+    // standalone "Account"/"Email updates"/"Linked accounts" headings. Each
+    // title doubles as the section-nav chip/outline label, so exact + .last()
+    // targets the Section heading (nav renders first in DOM order).
+    await Promise.all(
+      ['Profile', 'Preferences', 'Integrations', 'Security & sessions', 'Danger zone'].map(
+        (title) => expect(page.getByText(title, { exact: true }).last()).toBeVisible(),
+      ),
+    );
   });
 
   test('email updates status text is displayed', async ({ page }) => {
