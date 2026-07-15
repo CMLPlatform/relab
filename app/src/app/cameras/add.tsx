@@ -4,6 +4,7 @@ import { Controller } from 'react-hook-form';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Dialog, Divider, Portal, Text, TextInput } from 'react-native-paper';
 import { MutedText } from '@/components/base/MutedText';
+import { PageContainer } from '@/components/base/PageContainer';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useAppTheme } from '@/theme';
 
@@ -102,51 +103,62 @@ export default function AddCameraScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text variant="labelMedium" style={styles.sectionLabel}>
-        PAIRING CODE
-      </Text>
-      <MutedText style={styles.sectionHelp}>
-        Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed “PAIRING
-        READY” banner over SSH if the device is headless.
-      </MutedText>
-      <Controller control={control} name="pairingCode" render={renderPairingCode} />
+      <PageContainer>
+        <View style={styles.form}>
+          <Text variant="labelMedium" style={styles.sectionLabel}>
+            PAIRING CODE
+          </Text>
+          <MutedText style={styles.sectionHelp}>
+            Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed
+            “PAIRING READY” banner over SSH if the device is headless.
+          </MutedText>
+          <Controller control={control} name="pairingCode" render={renderPairingCode} />
 
-      <Divider style={styles.divider} />
+          <Divider style={styles.divider} />
 
-      <Controller control={control} name="name" render={renderName} />
+          <Controller control={control} name="name" render={renderName} />
 
-      <Controller control={control} name="description" render={renderDescription} />
+          <Controller control={control} name="description" render={renderDescription} />
 
-      <View style={[styles.infoBox, { backgroundColor: theme.tokens.surface.accent }]}>
-        <MaterialCommunityIcons name="information-outline" size={18} color={theme.colors.primary} />
-        <Text variant="bodySmall" style={{ flex: 1, color: theme.colors.onSurfaceVariant }}>
-          Make sure your Raspberry Pi is powered on and has{' '}
-          <Text style={{ fontFamily: 'monospace', fontSize: 11 }}>PAIRING_BACKEND_URL</Text> set in
-          its .env file. The pairing code appears on the RPi setup page and in the startup logs.
-        </Text>
-      </View>
+          <View style={[styles.infoBox, { backgroundColor: theme.tokens.surface.accent }]}>
+            <MaterialCommunityIcons
+              name="information-outline"
+              size={18}
+              color={theme.colors.primary}
+            />
+            <Text variant="bodySmall" style={{ flex: 1, color: theme.colors.onSurfaceVariant }}>
+              Make sure your Raspberry Pi is powered on and has{' '}
+              <Text style={{ fontFamily: 'monospace', fontSize: 11 }}>PAIRING_BACKEND_URL</Text> set
+              in its .env file. The pairing code appears on the RPi setup page and in the startup
+              logs.
+            </Text>
+          </View>
 
-      <Button
-        mode="contained"
-        icon="link-variant"
-        onPress={submit}
-        loading={isPending}
-        disabled={isPending}
-        style={styles.submitButton}
-        contentStyle={{ paddingVertical: 6 }}
-      >
-        Pair camera
-      </Button>
+          <Button
+            mode="contained"
+            icon="link-variant"
+            onPress={submit}
+            loading={isPending}
+            disabled={isPending}
+            style={styles.submitButton}
+            contentStyle={{ paddingVertical: 6 }}
+          >
+            Pair camera
+          </Button>
 
-      <PairingSuccessDialog visible={pairingSuccess} onDismiss={dismissSuccess} />
+          <PairingSuccessDialog visible={pairingSuccess} onDismiss={dismissSuccess} />
+        </View>
+      </PageContainer>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    paddingTop: 16,
     paddingBottom: 48,
+  },
+  form: {
     gap: 12,
   },
   sectionLabel: {

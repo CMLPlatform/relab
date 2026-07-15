@@ -16,6 +16,7 @@ import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { HeaderRightPill } from '@/components/base/HeaderRightPill';
 import { StaticBackground } from '@/components/base/StaticBackground';
+import { TopNav } from '@/components/base/TopNav';
 import { ActiveStreamBanner } from '@/components/cameras/ActiveStreamBanner';
 import { AuthProvider } from '@/context/AuthProvider';
 import { useAuth } from '@/context/auth';
@@ -23,6 +24,7 @@ import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMode';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 import { useBackgroundOverlayColor } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
@@ -69,12 +71,25 @@ function AppBackground({ overlayColor }: { overlayColor: string }) {
 }
 
 // memo: AppShell re-renders on every route change and stream-telemetry tick, and
-// this rebuilds every screen's options object and header renderer. Only isDark matters.
-const AppStack = memo(function AppStack({ isDark }: { isDark: boolean }) {
+// this rebuilds every screen's options object and header renderer. Bail unless
+// isDark or isLg changes. Both are plain props on AppStack — React.memo's default
+// shallow-prop compare already covers isLg without a custom comparator, but it
+// only works if isLg keeps being passed as an actual prop; don't move this back
+// to reading useBreakpoint() from inside a component the memo doesn't see.
+export const AppStack = memo(function AppStack({
+  isDark,
+  isLg,
+}: {
+  isDark: boolean;
+  isLg: boolean;
+}) {
   const router = useRouter();
   const theme = getAppTheme(isDark ? 'dark' : 'light');
   const goToProducts = useCallback(() => router.replace('/products'), [router]);
   const goToCameras = useCallback(() => router.replace('/cameras'), [router]);
+  // TopNav (mounted in AppShell) already covers these on >=lg web, so the stack's
+  // own header would just duplicate it. Every other screen keeps its header.
+  const hideForTopNav = isLg;
   return (
     <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -86,6 +101,7 @@ const AppStack = memo(function AppStack({ isDark }: { isDark: boolean }) {
           ...getProductsHeaderStyle(theme),
           headerRight: () => <HeaderRightPill />,
           headerLeft: () => null,
+          headerShown: !hideForTopNav,
         }}
       />
       <Stack.Screen
@@ -93,6 +109,7 @@ const AppStack = memo(function AppStack({ isDark }: { isDark: boolean }) {
         options={{
           title: 'Account',
           headerLeft: (props) => <HeaderBackButton {...props} onPress={goToProducts} />,
+          headerShown: !hideForTopNav,
         }}
       />
       <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
@@ -102,7 +119,10 @@ const AppStack = memo(function AppStack({ isDark }: { isDark: boolean }) {
       <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/mfa" options={{ title: 'Two-step verification' }} />
       <Stack.Screen name="category-selection" options={{ title: 'Select category' }} />
-      <Stack.Screen name="cameras/index" options={{ title: 'My cameras' }} />
+      <Stack.Screen
+        name="cameras/index"
+        options={{ title: 'My cameras', headerShown: !hideForTopNav }}
+      />
       <Stack.Screen
         name="cameras/add"
         options={{
@@ -130,6 +150,7 @@ function AppShell() {
   const { user, isLoading: authLoading } = useAuth();
   const { activeStream } = useStreamSession();
   const overlayColor = useBackgroundOverlayColor(isDark);
+  const { isLg } = useBreakpoint();
 
   // On native there's no document/visibilitychange, so TanStack's focus
   // manager reports always-focused and refetch intervals (camera telemetry,
@@ -170,7 +191,8 @@ function AppShell() {
   return (
     <View style={{ flex: 1 }}>
       <AppBackground overlayColor={overlayColor} />
-      <AppStack isDark={isDark} />
+      <TopNav />
+      <AppStack isDark={isDark} isLg={isLg} />
       <ActiveStreamBanner />
     </View>
   );

@@ -23,9 +23,14 @@ export function PageContainer({
     );
   }
   return (
+    // flex-1: several screens hand this a flex:1 child (a FlatList that must
+    // fill the remaining viewport height) — without it, that child loses its
+    // flex-basis chain the moment this wrapper sits between it and the
+    // screen's flex:1 root. Inert when nested in a ScrollView instead (no
+    // definite parent height to grow into), so it's safe for both cases.
     <View
       testID="page-container-constrained"
-      className="w-full max-w-[1100px] self-center px-4 md:px-6 lg:px-8"
+      className="w-full max-w-[1100px] flex-1 self-center px-4 md:px-6 lg:px-8"
       onLayout={onLayout}
     >
       {children}

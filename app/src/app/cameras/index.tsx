@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
+import { PageContainer } from '@/components/base/PageContainer';
 import { GoLiveDialog } from '@/components/cameras/GoLiveDialog';
 import { SelectionBar } from '@/components/cameras/SelectionBar';
 import { CamerasFab, CamerasSnackbar } from '@/components/cameras/screen/Chrome';
@@ -26,26 +27,28 @@ export default function CamerasScreen() {
 
   return (
     <>
-      <SelectionBar
-        visible={selection.selectionMode}
-        selectedCount={selection.selectedCount}
-        onlineCount={screen.onlineCount}
-        onSelectAll={selection.handleSelectAll}
-        onClear={selection.clearSelection}
-        onCaptureAll={selection.handleCaptureSelected}
-        isCapturing={selection.captureAllPending}
-      />
+      <PageContainer>
+        <SelectionBar
+          visible={selection.selectionMode}
+          selectedCount={selection.selectedCount}
+          onlineCount={screen.onlineCount}
+          onSelectAll={selection.handleSelectAll}
+          onClear={selection.clearSelection}
+          onCaptureAll={selection.handleCaptureSelected}
+          isCapturing={selection.captureAllPending}
+        />
 
-      <CamerasGrid
-        rows={screen.rows}
-        numColumns={screen.numColumns}
-        selectedIds={selection.selectedIds}
-        isFetching={screen.isFetching}
-        onRefresh={handleRetry}
-        onCardPress={actions.handleCardTap}
-        onCardLongPress={actions.handleCardLongPress}
-        onEffectiveConnectionChange={actions.handleEffectiveConnectionChange}
-      />
+        <CamerasGrid
+          rows={screen.rows}
+          numColumns={screen.numColumns}
+          selectedIds={selection.selectedIds}
+          isFetching={screen.isFetching}
+          onRefresh={handleRetry}
+          onCardPress={actions.handleCardTap}
+          onCardLongPress={actions.handleCardLongPress}
+          onEffectiveConnectionChange={actions.handleEffectiveConnectionChange}
+        />
+      </PageContainer>
 
       <CamerasFab visible={!screen.streamModeEnabled} onPress={actions.openAddCamera} />
 

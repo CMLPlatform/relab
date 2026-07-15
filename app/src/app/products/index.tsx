@@ -1,6 +1,7 @@
 import Head from 'expo-router/head';
 import { useCallback } from 'react';
 import { type LayoutChangeEvent, useWindowDimensions, View } from 'react-native';
+import { PageContainer } from '@/components/base/PageContainer';
 import {
   ProductsErrorBanner,
   ProductsFab,
@@ -46,81 +47,83 @@ export default function Products() {
       <Head>
         <title>Products · ReLab</title>
       </Head>
-      <View style={{ padding: 10, gap: 10 }} onLayout={handleLayout}>
-        <ProductsWelcomeCard
-          visible={screen.showWelcomeCard}
-          isAuthenticated={screen.isAuthenticated}
-          currentUser={screen.currentUser}
-          onDismiss={actions.dismissWelcomeCard}
-          onSignIn={handleGoToLogin}
-          onGoToProfile={handleGoToProfile}
-        />
+      <PageContainer>
+        <View style={{ padding: 10, gap: 10 }} onLayout={handleLayout}>
+          <ProductsWelcomeCard
+            visible={screen.showWelcomeCard}
+            isAuthenticated={screen.isAuthenticated}
+            currentUser={screen.currentUser}
+            onDismiss={actions.dismissWelcomeCard}
+            onSignIn={handleGoToLogin}
+            onGoToProfile={handleGoToProfile}
+          />
 
-        <ProductsSearchToolbar
-          searchQuery={search.query}
-          debouncedSearchQuery={search.debouncedQuery}
-          isFetching={list.isFetching}
-          searchQueryURL={search.queryFromUrl}
-          sortBy={search.sortBy}
-          sortOptions={SORT_OPTIONS}
-          sortMenuVisible={search.sortMenuVisible}
-          onSearchChange={search.setQuery}
-          onClearSearch={search.clearQuery}
-          onSetSortMenuVisible={search.setSortMenuVisible}
-          onSortChange={search.applySort}
-        />
+          <ProductsSearchToolbar
+            searchQuery={search.query}
+            debouncedSearchQuery={search.debouncedQuery}
+            isFetching={list.isFetching}
+            searchQueryURL={search.queryFromUrl}
+            sortBy={search.sortBy}
+            sortOptions={SORT_OPTIONS}
+            sortMenuVisible={search.sortMenuVisible}
+            onSearchChange={search.setQuery}
+            onClearSearch={search.clearQuery}
+            onSetSortMenuVisible={search.setSortMenuVisible}
+            onSortChange={search.applySort}
+          />
 
-        <ProductsFilterBar
-          isAuthenticated={screen.isAuthenticated}
-          filterMode={screen.filterMode}
-          activeDatePreset={screen.activeDatePreset}
-          activeBrands={screen.activeBrands}
-          activeProductTypes={screen.activeProductTypes}
-          dateMenuVisible={filters.dateMenuVisible}
-          brandModalVisible={filters.brandModalVisible}
-          typeModalVisible={filters.typeModalVisible}
-          brandResults={filters.brandResults}
-          brandsLoading={filters.brandsLoading}
-          typeResults={filters.typeResults}
-          typesLoading={filters.typesLoading}
-          brandSearch={filters.brandSearch}
-          typeSearch={filters.typeSearch}
-          onToggleMine={filters.toggleMine}
-          onClearMine={filters.clearMine}
-          onSetDateMenuVisible={filters.setDateMenuVisible}
-          onDateChange={filters.applyDatePreset}
-          onSetBrandModalVisible={filters.setBrandModalVisible}
-          onBrandSelectionChange={filters.applyBrandSelection}
-          onSetBrandSearch={filters.setBrandSearch}
-          onClearBrands={filters.clearBrands}
-          onSetTypeModalVisible={filters.setTypeModalVisible}
-          onTypeSelectionChange={filters.applyTypeSelection}
-          onSetTypeSearch={filters.setTypeSearch}
-          onClearTypes={filters.clearTypes}
-        />
+          <ProductsFilterBar
+            isAuthenticated={screen.isAuthenticated}
+            filterMode={screen.filterMode}
+            activeDatePreset={screen.activeDatePreset}
+            activeBrands={screen.activeBrands}
+            activeProductTypes={screen.activeProductTypes}
+            dateMenuVisible={filters.dateMenuVisible}
+            brandModalVisible={filters.brandModalVisible}
+            typeModalVisible={filters.typeModalVisible}
+            brandResults={filters.brandResults}
+            brandsLoading={filters.brandsLoading}
+            typeResults={filters.typeResults}
+            typesLoading={filters.typesLoading}
+            brandSearch={filters.brandSearch}
+            typeSearch={filters.typeSearch}
+            onToggleMine={filters.toggleMine}
+            onClearMine={filters.clearMine}
+            onSetDateMenuVisible={filters.setDateMenuVisible}
+            onDateChange={filters.applyDatePreset}
+            onSetBrandModalVisible={filters.setBrandModalVisible}
+            onBrandSelectionChange={filters.applyBrandSelection}
+            onSetBrandSearch={filters.setBrandSearch}
+            onClearBrands={filters.clearBrands}
+            onSetTypeModalVisible={filters.setTypeModalVisible}
+            onTypeSelectionChange={filters.applyTypeSelection}
+            onSetTypeSearch={filters.setTypeSearch}
+            onClearTypes={filters.clearTypes}
+          />
 
-        <ProductsErrorBanner error={list.error} onRetry={handleRetry} />
-      </View>
+          <ProductsErrorBanner error={list.error} onRetry={handleRetry} />
+        </View>
 
-      <View style={{ flex: 1 }}>
-        <ProductsListContent
-          numColumns={numColumns}
-          productList={list.productList}
-          filterMode={screen.filterMode}
-          isFetching={list.isFetching}
-          isLoading={list.isLoading}
-          slowLoading={screen.slowLoading}
-          total={list.total}
-          totalPages={list.totalPages}
-          hasMore={list.hasMore}
-          effectivePage={list.effectivePage}
-          searchQuery={search.query}
-          isAuthenticated={screen.isAuthenticated}
-          onScroll={list.onScroll}
-          onRefresh={handleRetry}
-          onSetPage={list.setPage}
-        />
-      </View>
+        <View style={{ flex: 1 }}>
+          <ProductsListContent
+            numColumns={numColumns}
+            productList={list.productList}
+            filterMode={screen.filterMode}
+            isFetching={list.isFetching}
+            isLoading={list.isLoading}
+            slowLoading={screen.slowLoading}
+            total={list.total}
+            totalPages={list.totalPages}
+            hasMore={list.hasMore}
+            effectivePage={list.effectivePage}
+            searchQuery={search.query}
+            isAuthenticated={screen.isAuthenticated}
+            onScroll={list.onScroll}
+            onRefresh={handleRetry}
+            onSetPage={list.setPage}
+          />
+        </View>
+      </PageContainer>
 
       <ProductsHeaderFade headerBottom={screen.headerBottom} overlayColor={bgOverlay} />
 

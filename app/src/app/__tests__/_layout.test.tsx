@@ -1,13 +1,27 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { screen, waitFor } from '@testing-library/react-native';
+import { render, screen, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { Text, View } from 'react-native';
-import { HeaderRight, Providers } from '@/app/_layout';
+import { AppStack, HeaderRight, Providers } from '@/app/_layout';
 import { useAuth } from '@/context/auth';
 import { renderWithProviders } from '@/test-utils/index';
 
+// Populated by the Stack.Screen mock below with each screen's `name` ->
+// `options`, keyed fresh on every render/rerender. 'mock'-prefixed names are
+// exempt from babel-jest's hoisting TDZ check, so the factory can close over it.
+const mockScreenOptions: Record<string, Record<string, unknown> | undefined> = {};
+
 jest.mock('expo-router', () => {
   const { DefaultTheme, DarkTheme, ThemeProvider } = require('@react-navigation/native');
+  const ReactActual = require('react');
+  function StackScreenMock({ name, options }: { name: string; options?: Record<string, unknown> }) {
+    mockScreenOptions[name] = options;
+    return null;
+  }
+  function StackMock({ children }: { children?: React.ReactNode }) {
+    return ReactActual.createElement(ReactActual.Fragment, null, children);
+  }
+  StackMock.Screen = StackScreenMock;
   return {
     DefaultTheme,
     DarkTheme,
@@ -17,6 +31,7 @@ jest.mock('expo-router', () => {
       replace: jest.fn(),
     })),
     usePathname: jest.fn(() => '/products'),
+    Stack: StackMock,
   };
 });
 
@@ -87,5 +102,40 @@ describe('Providers', () => {
       { withAuth: true },
     );
     expect(screen.getByTestId('child')).toBeOnTheScreen();
+  });
+});
+
+describe('AppStack header visibility', () => {
+  beforeEach(() => {
+    for (const key of Object.keys(mockScreenOptions)) delete mockScreenOptions[key];
+  });
+
+  // AppStack is memo()'d on {isDark, isLg}. This proves isLg reaching the
+  // component as a real prop is enough for React.memo's default shallow
+  // compare to pick it up on rerender — the TopNav-covered screens' headers
+  // flip with it, and screens TopNav doesn't cover (back button / name
+  // editing / add-camera) are untouched either way.
+  it('hides headers only for the TopNav-covered screens, only when isLg, and recomputes on rerender', () => {
+    const { rerender } = render(<AppStack isDark={false} isLg={false} />);
+
+    expect(mockScreenOptions['products/index']?.headerShown).not.toBe(false);
+    expect(mockScreenOptions.account?.headerShown).not.toBe(false);
+    expect(mockScreenOptions['cameras/index']?.headerShown).not.toBe(false);
+    expect(mockScreenOptions['cameras/add']?.headerShown).toBeUndefined();
+
+    rerender(<AppStack isDark={false} isLg={true} />);
+
+    expect(mockScreenOptions['products/index']?.headerShown).toBe(false);
+    expect(mockScreenOptions.account?.headerShown).toBe(false);
+    expect(mockScreenOptions['cameras/index']?.headerShown).toBe(false);
+    // Detail/auth/add screens keep their header regardless of isLg.
+    expect(mockScreenOptions['cameras/add']?.headerShown).toBeUndefined();
+    expect(mockScreenOptions['cameras/[id]']?.headerShown).toBeUndefined();
+
+    rerender(<AppStack isDark={false} isLg={false} />);
+
+    expect(mockScreenOptions['products/index']?.headerShown).not.toBe(false);
+    expect(mockScreenOptions.account?.headerShown).not.toBe(false);
+    expect(mockScreenOptions['cameras/index']?.headerShown).not.toBe(false);
   });
 });

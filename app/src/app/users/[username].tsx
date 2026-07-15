@@ -3,6 +3,7 @@ import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Card, Icon } from 'react-native-paper';
 
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
+import { PageContainer } from '@/components/base/PageContainer';
 import { Text } from '@/components/base/Text';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { type AppTheme, alpha, memoizeByTheme, useAppTheme } from '@/theme';
@@ -21,81 +22,83 @@ export default function UserProfileScreen() {
         }}
       />
       <ScrollView contentContainerStyle={styles.container}>
-        {loading ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator
-              testID="activity-indicator"
-              size="large"
-              color={theme.colors.primary}
-            />
-          </View>
-        ) : null}
-
-        {hasError ? (
-          <View style={styles.centerContainer}>
-            <Icon source="account-cancel-outline" size={48} color={theme.colors.error} />
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
-        ) : null}
-
-        {!(loading || hasError) && profile ? (
-          <View style={styles.profileContainer}>
-            <View style={styles.heroSection}>
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>
-                  {profile.username.substring(0, 2).toUpperCase()}
-                </Text>
-              </View>
-              <Text style={styles.usernameText}>{profile.username}</Text>
-              {profile.created_at ? (
-                <Text style={styles.joinedText}>
-                  Joined{' '}
-                  {new Date(profile.created_at).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </Text>
-              ) : null}
+        <PageContainer>
+          {loading ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator
+                testID="activity-indicator"
+                size="large"
+                color={theme.colors.primary}
+              />
             </View>
+          ) : null}
 
-            <View style={styles.statsSection}>
-              <Card style={styles.statCard} mode="outlined">
-                <Card.Content style={styles.statContent}>
-                  <Icon source="package-variant-closed" size={32} color={theme.colors.primary} />
-                  <Text style={styles.statValue}>{profile.product_count}</Text>
-                  <Text style={styles.statLabel}>Products</Text>
-                </Card.Content>
-              </Card>
+          {hasError ? (
+            <View style={styles.centerContainer}>
+              <Icon source="account-cancel-outline" size={48} color={theme.colors.error} />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
 
-              <Card style={styles.statCard} mode="outlined">
-                <Card.Content style={styles.statContent}>
-                  <Icon source="weight-kilogram" size={32} color={theme.colors.secondary} />
-                  <Text style={styles.statValue}>{profile.total_weight_kg}</Text>
-                  <Text style={styles.statLabel}>Total kg</Text>
-                </Card.Content>
-              </Card>
-
-              <Card style={styles.statCard} mode="outlined">
-                <Card.Content style={styles.statContent}>
-                  <Icon source="image-multiple" size={32} color={theme.tokens.status.success} />
-                  <Text style={styles.statValue}>{profile.image_count}</Text>
-                  <Text style={styles.statLabel}>Photos</Text>
-                </Card.Content>
-              </Card>
-
-              <Card style={styles.statCard} mode="outlined">
-                <Card.Content style={styles.statContent}>
-                  <Icon source="tag-outline" size={32} color={theme.tokens.status.warning} />
-                  <Text style={styles.statValue} numberOfLines={1}>
-                    {profile.top_category || 'None'}
+          {!(loading || hasError) && profile ? (
+            <View style={styles.profileContainer}>
+              <View style={styles.heroSection}>
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarText}>
+                    {profile.username.substring(0, 2).toUpperCase()}
                   </Text>
-                  <Text style={styles.statLabel}>Top category</Text>
-                </Card.Content>
-              </Card>
+                </View>
+                <Text style={styles.usernameText}>{profile.username}</Text>
+                {profile.created_at ? (
+                  <Text style={styles.joinedText}>
+                    Joined{' '}
+                    {new Date(profile.created_at).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </Text>
+                ) : null}
+              </View>
+
+              <View style={styles.statsSection}>
+                <Card style={styles.statCard} mode="outlined">
+                  <Card.Content style={styles.statContent}>
+                    <Icon source="package-variant-closed" size={32} color={theme.colors.primary} />
+                    <Text style={styles.statValue}>{profile.product_count}</Text>
+                    <Text style={styles.statLabel}>Products</Text>
+                  </Card.Content>
+                </Card>
+
+                <Card style={styles.statCard} mode="outlined">
+                  <Card.Content style={styles.statContent}>
+                    <Icon source="weight-kilogram" size={32} color={theme.colors.secondary} />
+                    <Text style={styles.statValue}>{profile.total_weight_kg}</Text>
+                    <Text style={styles.statLabel}>Total kg</Text>
+                  </Card.Content>
+                </Card>
+
+                <Card style={styles.statCard} mode="outlined">
+                  <Card.Content style={styles.statContent}>
+                    <Icon source="image-multiple" size={32} color={theme.tokens.status.success} />
+                    <Text style={styles.statValue}>{profile.image_count}</Text>
+                    <Text style={styles.statLabel}>Photos</Text>
+                  </Card.Content>
+                </Card>
+
+                <Card style={styles.statCard} mode="outlined">
+                  <Card.Content style={styles.statContent}>
+                    <Icon source="tag-outline" size={32} color={theme.tokens.status.warning} />
+                    <Text style={styles.statValue} numberOfLines={1}>
+                      {profile.top_category || 'None'}
+                    </Text>
+                    <Text style={styles.statLabel}>Top category</Text>
+                  </Card.Content>
+                </Card>
+              </View>
             </View>
-          </View>
-        ) : null}
+          ) : null}
+        </PageContainer>
       </ScrollView>
     </>
   );
@@ -105,7 +108,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
     container: {
       flexGrow: 1,
-      padding: 16,
+      paddingVertical: 16,
     },
     centerContainer: {
       flex: 1,
