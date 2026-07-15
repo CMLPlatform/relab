@@ -47,7 +47,7 @@ export default function Products() {
       <Head>
         <title>Products · ReLab</title>
       </Head>
-      <PageContainer>
+      <PageContainer phoneFullBleed>
         <View style={{ padding: 10, gap: 10 }} onLayout={handleLayout}>
           <ProductsWelcomeCard
             visible={screen.showWelcomeCard}

@@ -27,7 +27,7 @@ export default function CamerasScreen() {
 
   return (
     <>
-      <PageContainer>
+      <PageContainer phoneFullBleed>
         <SelectionBar
           visible={selection.selectionMode}
           selectedCount={selection.selectedCount}

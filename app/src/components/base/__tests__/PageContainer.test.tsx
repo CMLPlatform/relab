@@ -20,3 +20,15 @@ test('fullBleed renders children without the width-constrained wrapper', () => {
   expect(screen.getByText('hero')).toBeOnTheScreen();
   expect(screen.queryByTestId('page-container-constrained')).toBeNull();
 });
+
+test('phoneFullBleed keeps the constrained (centered, max-width) wrapper', () => {
+  // Distinct from fullBleed: it only drops the phone gutter, so it must still
+  // render the width-constrained wrapper (desktop centering is preserved).
+  render(
+    <PageContainer phoneFullBleed>
+      <Text>list</Text>
+    </PageContainer>,
+  );
+  expect(screen.getByText('list')).toBeOnTheScreen();
+  expect(screen.getByTestId('page-container-constrained')).toBeOnTheScreen();
+});
