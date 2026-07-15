@@ -1,5 +1,6 @@
 import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
+import { cn } from '@/utils/cn';
 import { AppButton } from './AppButton';
 import { AppText } from './AppText';
 import { InfoTooltip } from './InfoTooltip';
@@ -19,6 +20,14 @@ type SectionProps = {
   titleSuffix?: string;
   /** Info-tooltip text shown beside the title. */
   tooltip?: string;
+  /**
+   * Extra classes merged onto the section's root View. Section must stay a
+   * direct child of its screen's shared section-list wrapper — see
+   * useAnchoredSectionNav's base-offset math — so per-section styling (e.g.
+   * the account screen's danger-zone divider) goes here instead of an extra
+   * wrapping View, which would zero out that section's registered anchor.
+   */
+  className?: string;
   children: ReactNode;
 };
 
@@ -35,6 +44,7 @@ export function Section({
   addLabel,
   titleSuffix,
   tooltip,
+  className,
   children,
 }: SectionProps) {
   const nav = useContext(SectionNavContext);
@@ -64,7 +74,7 @@ export function Section({
   return (
     <View
       onLayout={(event) => nav?.registerSection(sectionKey, event.nativeEvent.layout.y)}
-      className="rounded-lg bg-card border border-border px-4 py-3"
+      className={cn('rounded-lg bg-card border border-border px-4 py-3', className)}
     >
       {showAddRow ? (
         <AppButton variant="ghost" onPress={() => setExpandedWhileEmpty(true)}>

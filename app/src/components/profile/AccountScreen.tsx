@@ -41,16 +41,18 @@ function AccountBody({ ctx, profile }: { ctx: AccountSectionContext; profile: Us
         <ProfileHero profile={profile} onEditUsername={ctx.profile.openEditUsername} />
         <SectionNavContext.Provider value={anchoredNav}>
           {ACCOUNT_SECTIONS.map((section) => (
-            <View
+            <Section
               key={section.key}
+              sectionKey={section.key}
+              title={section.title}
+              // Section must stay a direct child of this wrapper (not nested
+              // in a per-item View) — see its className prop doc.
               className={
                 section.key === DANGER_ZONE_KEY ? 'mt-6 border-t border-border pt-6' : undefined
               }
             >
-              <Section sectionKey={section.key} title={section.title}>
-                {section.render(ctx)}
-              </Section>
-            </View>
+              {section.render(ctx)}
+            </Section>
           ))}
         </SectionNavContext.Provider>
       </View>
