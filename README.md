@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/r9lab-wordmark.png" alt="R9lab" width="340">
+  <img src="assets/r9lab-wordmark.png" alt="Relab" width="340">
 </p>
 
-# ReLab
+# Relab
 
 [![Version](https://img.shields.io/github/v/release/CMLPlatform/relab?include_prereleases&filter=v*)](CHANGELOG.md)
 [![License: AGPL-v3+](https://img.shields.io/badge/License-AGPL--v3+-rebeccapurple.svg)](LICENSE.md)
@@ -14,7 +14,7 @@
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](.github/CODE_OF_CONDUCT.md)
 [![Deployed](https://img.shields.io/website?url=https%3A%2F%2Fcml-relab.org&label=website)](https://cml-relab.org)
 
-ReLab is an open-source research platform for collecting and publicly viewing data on the disassembly of durable goods. It is built at [CML, Leiden University](https://www.universiteitleiden.nl/en/science/environmental-sciences) to support industrial ecology and circular economy research by generating better primary product data.
+Relab is an open-source research platform for collecting and publicly viewing data on the disassembly of durable goods. It is built at [CML, Leiden University](https://www.universiteitleiden.nl/en/science/environmental-sciences) to support industrial ecology and circular economy research by generating better primary product data.
 
 It combines:
 
@@ -27,7 +27,7 @@ The platform is meant to do two things at once: support structured data collecti
 
 The broader research vision comes from a simple problem: industrial ecology has many data platforms, but far fewer open, low-barrier workflows for generating new standardized product-level observations.
 
-ReLab addresses that gap with a bottom-up model:
+Relab addresses that gap with a bottom-up model:
 
 - middle- and end-of-life actors such as repairers, refurbishers, dismantlers, and recyclers can contribute data directly
 - collaborative and citizen-science style workflows can turn routine repair and disassembly into structured observations

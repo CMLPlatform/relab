@@ -20,7 +20,7 @@ Please include enough detail for us to reproduce the problem. That saves time fo
 
 ## Security Baseline
 
-ReLab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline and the [OWASP Secure Product Design](https://cheatsheetseries.owasp.org/cheatsheets/Secure_Product_Design_Cheat_Sheet.html) lens for product decisions. Keep controls simple, reviewable, and documented near the behavior they protect.
+Relab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline and the [OWASP Secure Product Design](https://cheatsheetseries.owasp.org/cheatsheets/Secure_Product_Design_Cheat_Sheet.html) lens for product decisions. Keep controls simple, reviewable, and documented near the behavior they protect.
 
 For the deployed security posture, trust-boundary model, egress policy, browser runtime policy, and supply-chain artifact posture, see [Security and hardening](https://docs.cml-relab.org/operations/security/).
 
@@ -51,7 +51,7 @@ Supply-chain and code-security checks:
 
 - Dependencies: GitHub Dependency Review / Dependency Graph and Renovate.
 - Runtime images: Trivy scans and SPDX JSON SBOM artifacts.
-- Infrastructure as code: Trivy misconfiguration scans for supported repo config files, OpenTofu validates Cloudflare edge config, plus ReLab Compose render and deploy secret path checks.
+- Infrastructure as code: Trivy misconfiguration scans for supported repo config files, OpenTofu validates Cloudflare edge config, plus Relab Compose render and deploy secret path checks.
 - Source code: CodeQL.
 - Secrets: Gitleaks.
 - GitHub Actions workflows: actionlint and Zizmor.

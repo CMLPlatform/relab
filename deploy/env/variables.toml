@@ -1,4 +1,4 @@
-# ReLab runtime secret inventory.
+# Relab runtime secret inventory.
 #
 # This provider-neutral contract leaves a clean path for a later external
 # manager such as Infisical to sync runtime secrets into host files.

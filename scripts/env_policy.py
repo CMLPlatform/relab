@@ -36,7 +36,7 @@ VALIDATION_ENV_VALUES = {
     "EMAIL_PROVIDER": "smtp",
     "SMTP_HOST": "smtp.example.test",
     "SMTP_USERNAME": "relab@example.test",
-    "EMAIL_FROM": "ReLab <relab@example.test>",
+    "EMAIL_FROM": "Relab <relab@example.test>",
     "EMAIL_REPLY_TO": "relab@example.test",
     "BOOTSTRAP_SUPERUSER_EMAIL": "admin@example.test",
 }
@@ -152,7 +152,7 @@ def _as_string_set(raw_values: object, name: str) -> set[str]:
 
 
 def load_secret_inventory(path: Path = SECRET_INVENTORY_FILE) -> dict[str, Any]:
-    """Load ReLab's compact provider-neutral secret inventory."""
+    """Load Relab's compact provider-neutral secret inventory."""
     with path.open("rb") as f:
         raw = tomllib.load(f)
 
@@ -339,7 +339,7 @@ def assert_infra_boundaries_are_preserved() -> None:
 
 
 def assert_telemetry_examples_use_department_contract() -> None:
-    """Ensure ReLab documents the central telemetry endpoint contract it consumes."""
+    """Ensure Relab documents the central telemetry endpoint contract it consumes."""
     contents = (ROOT / ".env.example").read_text(encoding="utf-8")
     require(
         "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org" in contents,
@@ -450,7 +450,7 @@ def run_e2e_compose_check(config_path: Path) -> None:
 def format_inventory(secret_inventory: dict[str, Any]) -> str:
     """Render the runtime secret inventory for operators."""
     lines = [
-        "ReLab runtime secret inventory",
+        "Relab runtime secret inventory",
         "Infisical-ready contract: sync runtime_secret_files as host files before Compose starts.",
         "",
     ]

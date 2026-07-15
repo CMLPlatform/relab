@@ -1,6 +1,6 @@
 # Shared Brand Assets
 
-This directory is the source of truth for the shared ReLab brand assets
+This directory is the source of truth for the shared Relab brand assets
 used across the monorepo.
 
 Edit the files here, then run:
