@@ -18,5 +18,25 @@ const publicSiteConfig = getPublicSiteConfig();
     docsUrl={publicSiteConfig.docsUrl}
     githubUrl={siteLinks.github}
   />
+  <section class="card content-reveal about-panel">
+    <h2>Built around the circular economy</h2>
+    <p>
+      Relab is built around the circular economy and the nine &ldquo;R&rdquo;
+      strategies &mdash; the 9R framework, from refuse and reuse through to
+      recycle and recover. The platform documents how durable goods come apart
+      so the resulting product data can support repair, refurbishment, and
+      remanufacturing. The 9 in the wordmark nods to those nine strategies.
+    </p>
+  </section>
   <StatsPanel />
 </Layout>
+
+<style>
+  .about-panel h2 {
+    margin: 0 0 0.5rem;
+  }
+  .about-panel p {
+    margin: 0;
+    max-width: 60ch;
+  }
+</style>
