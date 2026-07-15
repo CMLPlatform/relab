@@ -1,7 +1,6 @@
 // biome-ignore lint/style/noRestrictedImports: global.css lives at the app root (outside src/), so it has no '@/' alias path.
 import '../../global.css';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
@@ -10,7 +9,6 @@ import { AppState, type AppStateStatus, Platform, View } from 'react-native';
 import { colorScheme as nativewindColorScheme } from 'react-native-css';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { PaperProvider } from 'react-native-paper';
 import { BrandHeaderTitle } from '@/components/base/BrandHeaderTitle';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
@@ -25,7 +23,6 @@ import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMode';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { useGlobalDialogA11y } from '@/hooks/useGlobalDialogA11y';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
 import { useBackgroundOverlayColor } from '@/utils/router/background';
@@ -153,7 +150,6 @@ function AppShell() {
   const { activeStream } = useStreamSession();
   const overlayColor = useBackgroundOverlayColor(isDark);
   const { isLg } = useBreakpoint();
-  useGlobalDialogA11y();
 
   // On native there's no document/visibilitychange, so TanStack's focus
   // manager reports always-focused and refetch intervals (camera telemetry,
@@ -215,37 +211,6 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * Paper renders string-named icons as unlabeled role="img" on web, which trips
- * axe's role-img-alt on every decorative icon. Paper icons live inside labeled
- * controls (buttons, chips, list items) or beside text, so they're decorative —
- * mark them aria-hidden. Same Material Design Icons font the app already uses.
- */
-const PAPER_SETTINGS = {
-  icon: ({
-    name,
-    color,
-    size,
-    allowFontScaling,
-  }: {
-    name: string;
-    color?: string;
-    size: number;
-    direction?: 'rtl' | 'ltr';
-    testID?: string;
-    allowFontScaling?: boolean;
-  }) => (
-    <MaterialCommunityIcons
-      // biome-ignore lint/suspicious/noExplicitAny: @expo/vector-icons omits aria-* from its prop types but forwards them to the DOM on web.
-      {...({ 'aria-hidden': true } as any)}
-      name={name as keyof typeof MaterialCommunityIcons.glyphMap}
-      color={color}
-      size={size}
-      allowFontScaling={allowFontScaling}
-    />
-  ),
-};
-
 // Derived from module constants only, so build the pair once rather than per render.
 const { LightTheme, DarkTheme } = createNavigationThemes();
 
@@ -253,7 +218,6 @@ const { LightTheme, DarkTheme } = createNavigationThemes();
 function ThemedProviders({ children }: { children: ReactNode }) {
   const colorScheme = useEffectiveColorScheme();
   const systemColorScheme = useSystemColorScheme();
-  const theme = getAppTheme(colorScheme);
 
   // Keep NativeWind's (react-native-css) color scheme in sync with the app's own
   // theme mode so `.dark:root` CSS variables (Task 2) apply to RNR components.
@@ -273,25 +237,15 @@ function ThemedProviders({ children }: { children: ReactNode }) {
     nativewindColorScheme.set(colorScheme);
   }, [colorScheme, systemColorScheme]);
 
-  // AppThemeProvider wraps PaperProvider (not nested inside it): react-native-paper's
-  // Portal (Dialog/Menu/Snackbar) renders its content via a PortalManager that is a
-  // *sibling* of PaperProvider's normal children, not a descendant — so a provider
-  // placed inside PaperProvider never reaches portaled content. Paper works around
-  // this for its own theme by re-injecting it inside Portal (see Portal.tsx), but
-  // that only covers Paper's context. Wrapping PaperProvider instead keeps
-  // useAppTheme() correct for our own components (e.g. Text) rendered inside a
-  // Paper Dialog, such as MfaDialogs.
   return (
     <AppThemeProvider scheme={colorScheme}>
-      <PaperProvider theme={theme} settings={PAPER_SETTINGS}>
-        <ThemeProvider value={colorScheme === 'light' ? LightTheme : DarkTheme}>
-          <KeyboardProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <DialogProvider>{children}</DialogProvider>
-            </GestureHandlerRootView>
-          </KeyboardProvider>
-        </ThemeProvider>
-      </PaperProvider>
+      <ThemeProvider value={colorScheme === 'light' ? LightTheme : DarkTheme}>
+        <KeyboardProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <DialogProvider>{children}</DialogProvider>
+          </GestureHandlerRootView>
+        </KeyboardProvider>
+      </ThemeProvider>
     </AppThemeProvider>
   );
 }

@@ -10,7 +10,7 @@ High-level map of `app`.
   FastAPI backend. Types are generated from the backend's OpenAPI schema.
 - **Client state:** React context + feature-local hooks/reducers.
 - **Forms:** React Hook Form + Zod resolvers.
-- **UI kit:** NativeWind v5 + vendored react-native-reusables primitives in src/components/base/ (React Native Paper remains for legacy screens and is being phased out; do not add new Paper imports).
+- **UI kit:** NativeWind v5 + vendored react-native-reusables primitives in src/components/base/. React Native Paper has been fully removed; theme (colors, type scale, semantic tokens) is delivered via `AppThemeProvider`/`useAppTheme()` (src/theme/).
 - **Compiler:** React Compiler enabled via `babel-plugin-react-compiler`.
 
 ## Source layout

@@ -1,31 +1,21 @@
-// Type-only import (erased at build, so it does not trip expo-router's runtime
-// react-navigation guard): react-native-paper's adaptNavigationTheme is typed against
-// react-navigation's Theme, while expo-router re-exports the same objects under its own type.
-import type { Theme } from '@react-navigation/native';
 import {
   DarkTheme as navigationDarkTheme,
   DefaultTheme as navigationLightTheme,
 } from 'expo-router';
-import {
-  adaptNavigationTheme,
-  configureFonts,
-  MD3DarkTheme,
-  MD3LightTheme,
-} from 'react-native-paper';
+import { Platform } from 'react-native';
 import { palette } from './palette.generated';
 import { createTokens } from './tokens';
-import type { AppScheme, AppTheme } from './types';
+import type { AppFonts, AppScheme, AppTheme } from './types';
 
-/** '#1F4C96' -> 'rgb(31, 76, 150)' — matches the existing MD3 string format exactly. */
+/** '#1F4C96' -> 'rgb(31, 76, 150)' — matches the previous MD3-derived string format exactly. */
 function rgb(hex: string): string {
   const n = Number.parseInt(hex.slice(1), 16);
   return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
 }
 
-function createThemeColors(isDark: boolean, baseColors: typeof MD3LightTheme.colors) {
+function createThemeColors(isDark: boolean) {
   const p = isDark ? palette.dark : palette.light;
   return {
-    ...baseColors,
     primary: rgb(p.primary),
     onPrimary: rgb(p.primaryForeground),
     primaryContainer: isDark ? 'rgb(20, 53, 103)' : 'rgb(216, 226, 255)',
@@ -69,52 +59,113 @@ function createThemeColors(isDark: boolean, baseColors: typeof MD3LightTheme.col
   };
 }
 
-// Brand type scale (assets/DESIGN.md) over the MD3 defaults; the app stays on
-// platform system fonts, only sizes/tracking shift. Digits that must align
-// keep using per-component `fontVariant: ['tabular-nums']`.
-const fonts = configureFonts({
-  config: {
-    displaySmall: { fontSize: 38, lineHeight: 44 },
-    headlineSmall: { fontSize: 24, lineHeight: 30 },
-    bodyLarge: { lineHeight: 26 },
-    labelMedium: { fontSize: 13, lineHeight: 18, letterSpacing: 1.3 },
-  },
+// Brand type scale (assets/DESIGN.md) over Paper's former MD3 default type scale;
+// the app stays on platform system fonts, only sizes/tracking shift. Digits that
+// must align keep using per-component `fontVariant: ['tabular-nums']`. Values
+// below are the byte-identical output of the old `configureFonts({ config: {...} })`
+// call, captured as literals so removing the dependency changes nothing at runtime.
+const REGULAR_FAMILY = Platform.select({
+  web: 'Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif',
+  ios: 'System',
+  default: 'sans-serif',
 });
+const MEDIUM_FAMILY = Platform.select({
+  web: 'Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif',
+  ios: 'System',
+  default: 'sans-serif-medium',
+});
+const regularType = { fontFamily: REGULAR_FAMILY, letterSpacing: 0, fontWeight: '400' } as const;
+const mediumType = { fontFamily: MEDIUM_FAMILY, letterSpacing: 0.15, fontWeight: '500' } as const;
 
-function createTheme(
-  baseTheme: typeof MD3LightTheme | typeof MD3DarkTheme,
-  scheme: AppScheme,
-): AppTheme {
+const fonts: AppFonts = {
+  displayLarge: { ...regularType, lineHeight: 64, fontSize: 57 },
+  displayMedium: { ...regularType, lineHeight: 52, fontSize: 45 },
+  displaySmall: { ...regularType, lineHeight: 44, fontSize: 38 },
+  headlineLarge: { ...regularType, lineHeight: 40, fontSize: 32 },
+  headlineMedium: { ...regularType, lineHeight: 36, fontSize: 28 },
+  headlineSmall: { ...regularType, lineHeight: 30, fontSize: 24 },
+  titleLarge: { ...regularType, lineHeight: 28, fontSize: 22 },
+  titleMedium: { ...mediumType, lineHeight: 24, fontSize: 16 },
+  titleSmall: { ...mediumType, letterSpacing: 0.1, lineHeight: 20, fontSize: 14 },
+  labelLarge: { ...mediumType, letterSpacing: 0.1, lineHeight: 20, fontSize: 14 },
+  labelMedium: { ...mediumType, letterSpacing: 1.3, lineHeight: 18, fontSize: 13 },
+  labelSmall: { ...mediumType, letterSpacing: 0.5, lineHeight: 16, fontSize: 11 },
+  bodyLarge: {
+    ...mediumType,
+    fontWeight: '400',
+    fontFamily: REGULAR_FAMILY,
+    lineHeight: 26,
+    fontSize: 16,
+  },
+  bodyMedium: {
+    ...mediumType,
+    fontWeight: '400',
+    fontFamily: REGULAR_FAMILY,
+    letterSpacing: 0.25,
+    lineHeight: 20,
+    fontSize: 14,
+  },
+  bodySmall: {
+    ...mediumType,
+    fontWeight: '400',
+    fontFamily: REGULAR_FAMILY,
+    letterSpacing: 0.4,
+    lineHeight: 16,
+    fontSize: 12,
+  },
+};
+
+function createTheme(scheme: AppScheme): AppTheme {
   const isDark = scheme === 'dark';
-  const colors = createThemeColors(isDark, baseTheme.colors);
+  const colors = createThemeColors(isDark);
   return {
-    ...baseTheme,
     colors,
     fonts,
-    roundness: 1,
     dark: isDark,
     scheme,
     tokens: createTokens(scheme, colors),
   };
 }
 
-export const lightTheme = createTheme(MD3LightTheme, 'light');
-export const darkTheme = createTheme(MD3DarkTheme, 'dark');
+export const lightTheme = createTheme('light');
+export const darkTheme = createTheme('dark');
 
 export function getAppTheme(scheme: AppScheme) {
   return scheme === 'dark' ? darkTheme : lightTheme;
 }
 
+/**
+ * Hand-built react-navigation theme, replacing Paper's `adaptNavigationTheme`.
+ * Only the fields react-navigation's `Theme` type requires are meaningful here
+ * (`dark` + the six `colors` keys) — expo-router's base theme already supplies
+ * a valid `fonts` shape, so it's kept as-is rather than remapped from our type
+ * scale (nothing in the app reads react-navigation's theme fonts).
+ */
 export function createNavigationThemes() {
-  const { LightTheme, DarkTheme } = adaptNavigationTheme({
-    reactNavigationLight: navigationLightTheme as Theme,
-    reactNavigationDark: navigationDarkTheme as Theme,
-    materialLight: lightTheme,
-    materialDark: darkTheme,
-  });
-
-  LightTheme.colors.background = 'transparent';
-  DarkTheme.colors.background = 'transparent';
+  const LightTheme = {
+    ...navigationLightTheme,
+    colors: {
+      ...navigationLightTheme.colors,
+      primary: lightTheme.colors.primary,
+      background: 'transparent',
+      card: lightTheme.colors.elevation.level2,
+      text: lightTheme.colors.onSurface,
+      border: lightTheme.colors.outline,
+      notification: lightTheme.colors.error,
+    },
+  };
+  const DarkTheme = {
+    ...navigationDarkTheme,
+    colors: {
+      ...navigationDarkTheme.colors,
+      primary: darkTheme.colors.primary,
+      background: 'transparent',
+      card: darkTheme.colors.elevation.level2,
+      text: darkTheme.colors.onSurface,
+      border: darkTheme.colors.outline,
+      notification: darkTheme.colors.error,
+    },
+  };
 
   return { LightTheme, DarkTheme };
 }

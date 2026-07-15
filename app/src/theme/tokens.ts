@@ -1,7 +1,6 @@
 import { Platform } from 'react-native';
-import type { MD3Theme } from 'react-native-paper';
 import { alpha } from './color';
-import type { AppScheme, AppTokens } from './types';
+import type { AppColorScale, AppScheme, AppTokens } from './types';
 
 export const SEMANTIC_COLORS = {
   live: '#e53935',
@@ -12,7 +11,7 @@ export const SEMANTIC_COLORS = {
   link: '#1565C0',
 } as const;
 
-export function createTokens(scheme: AppScheme, colors: MD3Theme['colors']): AppTokens {
+export function createTokens(scheme: AppScheme, colors: AppColorScale): AppTokens {
   const isDark = scheme === 'dark';
 
   return {

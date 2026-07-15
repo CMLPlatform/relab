@@ -84,19 +84,6 @@ jest.mock('@/features/products/useAncestorTrail', () => ({
   useAncestorTrail: (...args: unknown[]) => mockUseAncestorTrail(...args),
 }));
 
-jest.mock('react-native-paper', () => {
-  const actual = jest.requireActual<typeof import('react-native-paper')>('react-native-paper');
-  return {
-    ...actual,
-    useTheme: () => ({
-      colors: {
-        onBackground: '#000',
-        onSurfaceVariant: '#999',
-      },
-    }),
-  };
-});
-
 const baseProduct = {
   id: 42,
   name: 'Desk Radio',

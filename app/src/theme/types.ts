@@ -1,6 +1,73 @@
-import type { MD3Theme } from 'react-native-paper';
-
 export type AppScheme = 'light' | 'dark';
+
+type FontVariant = {
+  fontFamily: string | undefined;
+  letterSpacing: number;
+  fontWeight: string;
+  lineHeight: number;
+  fontSize: number;
+};
+
+export type AppFonts = {
+  displayLarge: FontVariant;
+  displayMedium: FontVariant;
+  displaySmall: FontVariant;
+  headlineLarge: FontVariant;
+  headlineMedium: FontVariant;
+  headlineSmall: FontVariant;
+  titleLarge: FontVariant;
+  titleMedium: FontVariant;
+  titleSmall: FontVariant;
+  labelLarge: FontVariant;
+  labelMedium: FontVariant;
+  labelSmall: FontVariant;
+  bodyLarge: FontVariant;
+  bodyMedium: FontVariant;
+  bodySmall: FontVariant;
+};
+
+export type AppColorScale = {
+  primary: string;
+  onPrimary: string;
+  primaryContainer: string;
+  onPrimaryContainer: string;
+  secondary: string;
+  onSecondary: string;
+  secondaryContainer: string;
+  onSecondaryContainer: string;
+  tertiary: string;
+  onTertiary: string;
+  tertiaryContainer: string;
+  onTertiaryContainer: string;
+  error: string;
+  onError: string;
+  errorContainer: string;
+  onErrorContainer: string;
+  background: string;
+  onBackground: string;
+  surface: string;
+  onSurface: string;
+  surfaceVariant: string;
+  onSurfaceVariant: string;
+  outline: string;
+  outlineVariant: string;
+  shadow: string;
+  scrim: string;
+  inverseSurface: string;
+  inverseOnSurface: string;
+  inversePrimary: string;
+  elevation: {
+    level0: string;
+    level1: string;
+    level2: string;
+    level3: string;
+    level4: string;
+    level5: string;
+  };
+  surfaceDisabled: string;
+  onSurfaceDisabled: string;
+  backdrop: string;
+};
 
 export type AppTokens = {
   status: {
@@ -50,9 +117,12 @@ export type AppTokens = {
   };
 };
 
-export type AppTheme = MD3Theme & {
+export interface AppTheme {
+  colors: AppColorScale;
+  fonts: AppFonts;
+  dark: boolean;
   scheme: AppScheme;
   tokens: AppTokens;
-};
+}
 
 export type AppColors = AppTheme['colors'];
