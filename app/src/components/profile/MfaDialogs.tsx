@@ -1,10 +1,13 @@
 import { setStringAsync } from 'expo-clipboard';
 import { useCallback } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
-import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
 import QRCode from 'react-native-qrcode-svg';
+import { AppButton } from '@/components/base/AppButton';
+import { AppDialog } from '@/components/base/AppDialog';
 import { OtpInput } from '@/components/base/OtpInput';
 import { Text } from '@/components/base/Text';
+import { TextInput } from '@/components/base/TextInput';
+import { spacing } from '@/constants';
 import type { MfaSetupController } from '@/features/profile/useMfaSetup';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
@@ -42,191 +45,207 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
   }, [otpauthUri]);
 
   return (
-    <Portal>
-      <Dialog visible={mfa.mode === 'enroll'} onDismiss={cancel}>
-        <Dialog.Title>Set up two-step verification</Dialog.Title>
-        <Dialog.Content>
-          <Text style={local.step}>
-            Scan this with an authenticator app, or enter the key by hand. Then type the 6-digit
-            code it shows.
-          </Text>
+    <>
+      <AppDialog visible={mfa.mode === 'enroll'} onDismiss={cancel}>
+        <Text accessibilityRole="header" style={local.title}>
+          Set up two-step verification
+        </Text>
+        <Text style={local.step}>
+          Scan this with an authenticator app, or enter the key by hand. Then type the 6-digit code
+          it shows.
+        </Text>
 
-          {otpauthUri ? (
-            <View style={local.qrFrame}>
-              <QRCode value={otpauthUri} size={168} color="#101010" backgroundColor="#ffffff" />
-            </View>
-          ) : null}
-
-          <View style={local.keyRow}>
-            <Text selectable style={local.key}>
-              {chunkSecret(secret)}
-            </Text>
-            <Button compact icon="content-copy" onPress={copyKey}>
-              Copy
-            </Button>
+        {otpauthUri ? (
+          <View style={local.qrFrame}>
+            <QRCode value={otpauthUri} size={168} color="#101010" backgroundColor="#ffffff" />
           </View>
+        ) : null}
 
-          {Platform.OS !== 'web' && otpauthUri ? (
-            <Button compact onPress={openAuthenticatorApp}>
-              Open authenticator app
-            </Button>
-          ) : null}
+        <View style={local.keyRow}>
+          <Text selectable style={local.key}>
+            {chunkSecret(secret)}
+          </Text>
+          {/* NOTE: dropped Paper's leading copy icon — AppButton has no icon slot; text-only matches Chip's precedent. */}
+          <AppButton variant="ghost" onPress={copyKey}>
+            Copy
+          </AppButton>
+        </View>
 
-          <TextInput
-            mode="outlined"
-            label="Current password"
-            accessibilityLabel="Current password"
-            value={mfa.password}
-            onChangeText={mfa.setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="current-password"
-            textContentType="password"
-            style={local.passwordField}
+        {Platform.OS !== 'web' && otpauthUri ? (
+          <AppButton variant="ghost" onPress={openAuthenticatorApp}>
+            Open authenticator app
+          </AppButton>
+        ) : null}
+
+        <TextInput
+          value={mfa.password}
+          onChangeText={mfa.setPassword}
+          placeholder="Current password"
+          accessibilityLabel="Current password"
+          secureTextEntry
+          autoCapitalize="none"
+          autoComplete="current-password"
+          textContentType="password"
+          style={[local.field, { borderColor: theme.colors.outline }]}
+        />
+        <Text style={local.hint}>
+          Signed up with Google or GitHub? Use your ReLab account password — if you never set one,
+          create it with “Forgot password” on the login screen first.
+        </Text>
+
+        <View style={local.codeField}>
+          <OtpInput
+            value={mfa.code}
+            onChangeText={mfa.setCode}
+            onComplete={confirm}
+            disabled={mfa.busy}
+            hasError={Boolean(mfa.error)}
+            accessibilityLabel="Setup code"
           />
-          <Text style={local.hint}>
-            Signed up with Google or GitHub? Use your ReLab account password — if you never set one,
-            create it with “Forgot password” on the login screen first.
-          </Text>
+        </View>
 
+        {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
+
+        <View style={local.actions}>
+          <AppButton variant="ghost" onPress={cancel}>
+            Cancel
+          </AppButton>
+          <AppButton onPress={submitEnroll} loading={mfa.busy} disabled={!mfa.canSubmit}>
+            Confirm
+          </AppButton>
+        </View>
+      </AppDialog>
+
+      <AppDialog visible={mfa.mode === 'disable'} onDismiss={cancel}>
+        <Text accessibilityRole="header" style={local.title}>
+          Enter a current code
+        </Text>
+        <Text style={local.step}>
+          {mfa.useRecoveryCode
+            ? 'Enter one of your saved recovery codes to confirm it’s you.'
+            : 'Type a code from your authenticator app to confirm it’s you.'}
+        </Text>
+
+        {mfa.useRecoveryCode ? (
+          <TextInput
+            value={mfa.recoveryInput}
+            onChangeText={mfa.setRecoveryInput}
+            placeholder="Recovery code"
+            accessibilityLabel="Recovery code"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            autoComplete="off"
+            editable={!mfa.busy}
+            style={[local.codeField, local.field, { borderColor: theme.colors.outline }]}
+          />
+        ) : (
           <View style={local.codeField}>
             <OtpInput
               value={mfa.code}
               onChangeText={mfa.setCode}
-              onComplete={confirm}
-              disabled={mfa.busy}
-              hasError={Boolean(mfa.error)}
-              accessibilityLabel="Setup code"
-            />
-          </View>
-
-          {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={cancel}>Cancel</Button>
-          <Button onPress={submitEnroll} loading={mfa.busy} disabled={!mfa.canSubmit}>
-            Confirm
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
-
-      <Dialog visible={mfa.mode === 'disable'} onDismiss={cancel}>
-        <Dialog.Title>Enter a current code</Dialog.Title>
-        <Dialog.Content>
-          <Text style={local.step}>
-            {mfa.useRecoveryCode
-              ? 'Enter one of your saved recovery codes to confirm it’s you.'
-              : 'Type a code from your authenticator app to confirm it’s you.'}
-          </Text>
-
-          {mfa.useRecoveryCode ? (
-            <TextInput
-              mode="outlined"
-              label="Recovery code"
-              accessibilityLabel="Recovery code"
-              value={mfa.recoveryInput}
-              onChangeText={mfa.setRecoveryInput}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              autoComplete="off"
-              disabled={mfa.busy}
-              style={local.codeField}
-            />
-          ) : (
-            <View style={local.codeField}>
-              <OtpInput
-                value={mfa.code}
-                onChangeText={mfa.setCode}
-                onComplete={disable}
-                disabled={mfa.busy}
-                hasError={Boolean(mfa.error)}
-                autoFocus
-                accessibilityLabel="Current code"
-              />
-            </View>
-          )}
-
-          {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
-
-          <Button compact onPress={mfa.toggleRecoveryInput} style={local.toggle}>
-            {mfa.useRecoveryCode
-              ? 'Use your authenticator app'
-              : 'Lost your authenticator? Use a recovery code'}
-          </Button>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={cancel}>Cancel</Button>
-          <Button
-            onPress={submitDisable}
-            loading={mfa.busy}
-            disabled={!mfa.canSubmit}
-            textColor={theme.tokens.status.danger}
-          >
-            Confirm
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
-
-      <Dialog visible={mfa.mode === 'regenerate'} onDismiss={cancel}>
-        <Dialog.Title>Generate new recovery codes</Dialog.Title>
-        <Dialog.Content>
-          <Text style={local.step}>
-            Enter a code from your authenticator app. This replaces your old codes — any you
-            haven&apos;t used will stop working.
-          </Text>
-
-          <View style={local.codeField}>
-            <OtpInput
-              value={mfa.code}
-              onChangeText={mfa.setCode}
-              onComplete={regenerate}
+              onComplete={disable}
               disabled={mfa.busy}
               hasError={Boolean(mfa.error)}
               autoFocus
               accessibilityLabel="Current code"
             />
           </View>
+        )}
 
-          {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={cancel}>Cancel</Button>
-          <Button onPress={submitRegenerate} loading={mfa.busy} disabled={!mfa.canSubmit}>
+        {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
+
+        <AppButton variant="ghost" onPress={mfa.toggleRecoveryInput} className="mt-3 self-start">
+          {mfa.useRecoveryCode
+            ? 'Use your authenticator app'
+            : 'Lost your authenticator? Use a recovery code'}
+        </AppButton>
+
+        <View style={local.actions}>
+          <AppButton variant="ghost" onPress={cancel}>
+            Cancel
+          </AppButton>
+          <AppButton
+            variant="destructive"
+            onPress={submitDisable}
+            loading={mfa.busy}
+            disabled={!mfa.canSubmit}
+          >
+            Confirm
+          </AppButton>
+        </View>
+      </AppDialog>
+
+      <AppDialog visible={mfa.mode === 'regenerate'} onDismiss={cancel}>
+        <Text accessibilityRole="header" style={local.title}>
+          Generate new recovery codes
+        </Text>
+        <Text style={local.step}>
+          Enter a code from your authenticator app. This replaces your old codes — any you
+          haven&apos;t used will stop working.
+        </Text>
+
+        <View style={local.codeField}>
+          <OtpInput
+            value={mfa.code}
+            onChangeText={mfa.setCode}
+            onComplete={regenerate}
+            disabled={mfa.busy}
+            hasError={Boolean(mfa.error)}
+            autoFocus
+            accessibilityLabel="Current code"
+          />
+        </View>
+
+        {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
+
+        <View style={local.actions}>
+          <AppButton variant="ghost" onPress={cancel}>
+            Cancel
+          </AppButton>
+          <AppButton onPress={submitRegenerate} loading={mfa.busy} disabled={!mfa.canSubmit}>
             Generate
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
+          </AppButton>
+        </View>
+      </AppDialog>
 
-      <Dialog visible={mfa.mode === 'codes'} onDismiss={cancel} dismissable={false}>
-        <Dialog.Title>Save your recovery codes</Dialog.Title>
-        <Dialog.Content>
-          <Text style={local.step}>
-            Keep these somewhere safe. Each code works once to sign in if you lose your
-            authenticator. This is the only time they&apos;re shown.
-          </Text>
+      <AppDialog visible={mfa.mode === 'codes'} onDismiss={cancel} dismissable={false}>
+        <Text accessibilityRole="header" style={local.title}>
+          Save your recovery codes
+        </Text>
+        <Text style={local.step}>
+          Keep these somewhere safe. Each code works once to sign in if you lose your authenticator.
+          This is the only time they&apos;re shown.
+        </Text>
 
-          <View style={local.codesBox}>
-            {(recoveryCodes ?? []).map((recoveryCode) => (
-              <Text key={recoveryCode} selectable style={local.recoveryCode}>
-                {recoveryCode}
-              </Text>
-            ))}
-          </View>
+        <View style={local.codesBox}>
+          {(recoveryCodes ?? []).map((recoveryCode) => (
+            <Text key={recoveryCode} selectable style={local.recoveryCode}>
+              {recoveryCode}
+            </Text>
+          ))}
+        </View>
 
-          <Button compact icon="content-copy" onPress={copyRecoveryCodes}>
-            Copy all
-          </Button>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={cancel}>Done</Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+        <AppButton variant="ghost" onPress={copyRecoveryCodes}>
+          Copy all
+        </AppButton>
+
+        <View style={local.actions}>
+          <AppButton variant="ghost" onPress={cancel}>
+            Done
+          </AppButton>
+        </View>
+      </AppDialog>
+    </>
   );
 }
 
 const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
+    title: {
+      fontSize: 18,
+      fontWeight: '600',
+      marginBottom: spacing.sm,
+    },
     step: {
       fontSize: 14,
       opacity: 0.75,
@@ -256,7 +275,11 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
       letterSpacing: 1,
       fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
     },
-    passwordField: {
+    field: {
+      borderWidth: 1,
+      borderRadius: 4,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.sm,
       marginTop: 16,
     },
     hint: {
@@ -266,10 +289,6 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
     },
     codeField: {
       marginTop: 16,
-    },
-    toggle: {
-      marginTop: 12,
-      alignSelf: 'flex-start',
     },
     codesBox: {
       backgroundColor: theme.tokens.surface.sunken,
@@ -289,6 +308,12 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
       marginTop: 12,
       fontSize: 13,
       color: theme.tokens.status.danger,
+    },
+    actions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: spacing.xs,
+      marginTop: spacing.md,
     },
   }),
 );

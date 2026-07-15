@@ -1,7 +1,11 @@
 import { Link } from 'expo-router';
-import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
 import LogoutConfirm from '@/components/auth/LogoutConfirm';
+import { AppButton } from '@/components/base/AppButton';
+import { AppDialog } from '@/components/base/AppDialog';
 import { Text } from '@/components/base/Text';
+import { TextInput } from '@/components/base/TextInput';
+import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { createProfileSectionStyles } from './styles';
 
@@ -49,58 +53,66 @@ export function ProfileDialogs({
   const theme = useAppTheme();
   const styles = createProfileSectionStyles(theme);
   return (
-    <Portal>
-      <Dialog visible={editUsernameVisible} onDismiss={onDismissEditUsername}>
-        <Dialog.Title>Edit username</Dialog.Title>
-        <Dialog.Content>
-          <TextInput
-            mode="outlined"
-            label="Username"
-            value={newUsername}
-            onChangeText={onChangeUsername}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onDismissEditUsername}>Cancel</Button>
-          <Button onPress={onSaveUsername}>Save</Button>
-        </Dialog.Actions>
-      </Dialog>
+    <>
+      <AppDialog visible={editUsernameVisible} onDismiss={onDismissEditUsername}>
+        <Text accessibilityRole="header" style={dialogStyles.title}>
+          Edit username
+        </Text>
+        <TextInput
+          value={newUsername}
+          onChangeText={onChangeUsername}
+          placeholder="Username"
+          accessibilityLabel="Username"
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={[dialogStyles.input, { borderColor: theme.colors.outline }]}
+        />
+        <View style={dialogStyles.actions}>
+          <AppButton variant="ghost" onPress={onDismissEditUsername}>
+            Cancel
+          </AppButton>
+          <AppButton variant="ghost" onPress={onSaveUsername}>
+            Save
+          </AppButton>
+        </View>
+      </AppDialog>
 
-      <Dialog visible={unlinkDialogVisible} onDismiss={onDismissUnlink}>
-        <Dialog.Title>Unlink account</Dialog.Title>
-        <Dialog.Content>
-          <Text>Are you sure you want to disconnect this {providerToUnlink} account?</Text>
-          {isLastLinkedProvider ? (
-            <Text style={styles.unlinkWarning}>
-              This is your only linked account. If you never set a password, you will have to reset
-              it by email to sign in again.
-            </Text>
-          ) : null}
-          {unlinkRequiresPassword ? (
-            <TextInput
-              mode="outlined"
-              label="Current password"
-              value={unlinkPassword}
-              onChangeText={onChangeUnlinkPassword}
-              secureTextEntry
-              autoComplete="current-password"
-              textContentType="password"
-            />
-          ) : null}
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onDismissUnlink}>Cancel</Button>
-          <Button
+      <AppDialog visible={unlinkDialogVisible} onDismiss={onDismissUnlink}>
+        <Text accessibilityRole="header" style={dialogStyles.title}>
+          Unlink account
+        </Text>
+        <Text>Are you sure you want to disconnect this {providerToUnlink} account?</Text>
+        {isLastLinkedProvider ? (
+          <Text style={styles.unlinkWarning}>
+            This is your only linked account. If you never set a password, you will have to reset it
+            by email to sign in again.
+          </Text>
+        ) : null}
+        {unlinkRequiresPassword ? (
+          <TextInput
+            value={unlinkPassword}
+            onChangeText={onChangeUnlinkPassword}
+            placeholder="Current password"
+            accessibilityLabel="Current password"
+            secureTextEntry
+            autoComplete="current-password"
+            textContentType="password"
+            style={[dialogStyles.input, { borderColor: theme.colors.outline }]}
+          />
+        ) : null}
+        <View style={dialogStyles.actions}>
+          <AppButton variant="ghost" onPress={onDismissUnlink}>
+            Cancel
+          </AppButton>
+          <AppButton
+            variant="destructive"
             onPress={onConfirmUnlink}
             disabled={unlinkRequiresPassword && unlinkPassword.length === 0}
-            textColor={theme.tokens.status.danger}
           >
             Unlink
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
+          </AppButton>
+        </View>
+      </AppDialog>
 
       <LogoutConfirm
         visible={logoutDialogVisible}
@@ -108,19 +120,42 @@ export function ProfileDialogs({
         onConfirm={onConfirmLogout}
       />
 
-      <Dialog visible={deleteDialogVisible} onDismiss={onDismissDeleteDialog}>
-        <Dialog.Title>Delete account</Dialog.Title>
-        <Dialog.Content>
-          <Text>To delete your account and all its data, email us at:</Text>
-          <Link href="mailto:relab@cml.leidenuniv.nl">
-            <Text style={styles.deleteEmail}>relab@cml.leidenuniv.nl</Text>
-          </Link>
-          <Text style={styles.deleteMessage}>We&apos;ll confirm the deletion by email.</Text>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onDismissDeleteDialog}>OK</Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+      <AppDialog visible={deleteDialogVisible} onDismiss={onDismissDeleteDialog}>
+        <Text accessibilityRole="header" style={dialogStyles.title}>
+          Delete account
+        </Text>
+        <Text>To delete your account and all its data, email us at:</Text>
+        <Link href="mailto:relab@cml.leidenuniv.nl">
+          <Text style={styles.deleteEmail}>relab@cml.leidenuniv.nl</Text>
+        </Link>
+        <Text style={styles.deleteMessage}>We&apos;ll confirm the deletion by email.</Text>
+        <View style={dialogStyles.actions}>
+          <AppButton variant="ghost" onPress={onDismissDeleteDialog}>
+            OK
+          </AppButton>
+        </View>
+      </AppDialog>
+    </>
   );
 }
+
+const dialogStyles = StyleSheet.create({
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+});

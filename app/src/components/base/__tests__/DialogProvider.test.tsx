@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { Pressable, Text } from 'react-native';
 import { useDialog } from '@/components/base/dialogContext';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
@@ -256,5 +256,57 @@ describe('DialogProvider', () => {
 
     // submitEditing is a custom event not supported by userEvent
     fireEvent(screen.getByPlaceholderText('type here'), 'submitEditing');
+  });
+
+  it('pressing Cancel dismisses the dialog without invoking the confirm action', async () => {
+    const onConfirm = jest.fn();
+
+    function CancelTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() =>
+        dialog.alert({
+          title: 'Discard changes?',
+          buttons: [{ text: 'Cancel' }, { text: 'Discard', onPress: onConfirm }],
+        }),
+      );
+    }
+
+    renderWithProviders(<CancelTest />, { withDialog: true });
+
+    await user.press(screen.getByTestId('trigger'));
+    expect(screen.getByText('Discard changes?')).toBeOnTheScreen();
+
+    await user.press(screen.getByText('Cancel'));
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(screen.queryByText('Discard changes?')).toBeNull();
+  });
+
+  it('toast() auto-dismisses after its duration and announces via aria-live without a Modal', async () => {
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => dialog.toast('Saved'));
+    }
+
+    renderWithProviders(<ToastTest />, { withDialog: true });
+
+    await user.press(screen.getByTestId('trigger'));
+
+    const toastText = screen.getByText('Saved');
+    expect(toastText).toBeOnTheScreen();
+    expect(toastText).toHaveProp('accessibilityLiveRegion', 'polite');
+
+    // A toast must not steal focus or block the rest of the screen — the
+    // trigger stays pressable while the toast is showing.
+    await user.press(screen.getByTestId('trigger'));
+    expect(screen.getByText('Saved')).toBeOnTheScreen();
+
+    act(() => {
+      jest.advanceTimersByTime(4000);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Saved')).toBeNull();
+    });
   });
 });

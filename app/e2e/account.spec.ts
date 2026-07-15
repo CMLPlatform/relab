@@ -41,11 +41,11 @@ test.describe('Account: section navigation', () => {
 });
 
 // ─── Dialog keyboard a11y ───────────────────────────────────────────────────
-// react-native-paper's web Dialog ships with no keyboard a11y of its own (its
-// Modal source notes it's "NOT accessible by default"); useGlobalDialogA11y
-// (src/hooks/useGlobalDialogA11y.ts, mounted once in AppShell) adds a focus
-// trap and Escape-to-dismiss for every Paper dialog in the app. Verify both
-// against the account screen's edit-username dialog.
+// The edit-username dialog (src/components/profile/Dialogs.tsx) is built on
+// React Native's core Modal, which react-native-web backs with its own focus
+// trap and Escape → onRequestClose (no react-native-paper involved here
+// anymore — see DialogProvider.tsx for the rationale). Verify both against
+// the account screen's edit-username dialog.
 test.describe('Account: dialog keyboard a11y', () => {
   test('focus stays trapped inside the edit-username dialog and Escape closes it', async ({
     page,
@@ -57,13 +57,15 @@ test.describe('Account: dialog keyboard a11y', () => {
     await hiText.locator('xpath=following-sibling::*[1]').click();
     await expect(page.getByText('Edit username')).toBeVisible({ timeout: 3_000 });
 
+    // react-native-web's core Modal marks its root role="dialog" while active.
     // Tab well past the dialog's three focusables (username input, Cancel,
     // Save) — every stop must stay inside the dialog's DOM subtree.
+    const dialogRoot = page.getByRole('dialog');
     for (let i = 0; i < 6; i++) {
       // biome-ignore lint/performance/noAwaitInLoops: sequential — each Tab must land before the next is pressed.
       await page.keyboard.press('Tab');
-      const insideDialog = await page.evaluate(() =>
-        Boolean(document.activeElement?.closest('[data-testid="modal-wrapper"]')),
+      const insideDialog = await dialogRoot.evaluate((root) =>
+        Boolean(document.activeElement && root.contains(document.activeElement)),
       );
       expect(insideDialog).toBe(true);
     }
