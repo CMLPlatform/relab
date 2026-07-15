@@ -185,7 +185,7 @@ export function LoginOAuthSection({ onGoogle, onGithub }: LoginOAuthSectionProps
 
 export function LoginSecondaryAction({ onCreateAccount }: { onCreateAccount: () => void }) {
   return (
-    <AppButton variant="outline" onPress={onCreateAccount} className="w-full mt-1">
+    <AppButton variant="tonal" onPress={onCreateAccount} className="w-full mt-1">
       Create a new account
     </AppButton>
   );

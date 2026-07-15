@@ -9,6 +9,7 @@ type RnrVariant = ComponentProps<typeof Button>['variant'];
 
 const VARIANT_MAP = {
   primary: 'default',
+  tonal: 'tonal',
   outline: 'outline',
   ghost: 'ghost',
   destructive: 'destructive',
@@ -18,6 +19,7 @@ const VARIANT_MAP = {
 // loading spinner matches the label instead of a hard-coded default.
 const SPINNER_COLOR: Record<keyof typeof VARIANT_MAP, (colors: AppColors) => string> = {
   primary: (colors) => colors.onPrimary,
+  tonal: (colors) => colors.primary,
   outline: (colors) => colors.onSurface,
   ghost: (colors) => colors.onSurface,
   destructive: () => '#FFFFFF', // buttonTextVariants hard-codes text-white for destructive

@@ -42,7 +42,7 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
           {getErrorMessage(error, 'Something went wrong loading products.')}
         </AppText>
       </View>
-      <AppButton variant="outline" onPress={onRetry} accessibilityLabel="Retry loading products">
+      <AppButton variant="tonal" onPress={onRetry} accessibilityLabel="Retry loading products">
         Retry
       </AppButton>
     </View>

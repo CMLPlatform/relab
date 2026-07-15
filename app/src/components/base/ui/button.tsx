@@ -33,6 +33,12 @@ const buttonVariants = cva(
           'bg-secondary active:bg-secondary/80 shadow-sm shadow-black/5',
           Platform.select({ web: 'hover:bg-secondary/80' }),
         ),
+        // Soft-primary fill — the replacement for Paper's contained-tonal:
+        // a low-emphasis-but-still-filled CTA (flat, no shadow).
+        tonal: cn(
+          'bg-primary/12 active:bg-primary/20',
+          Platform.select({ web: 'hover:bg-primary/20' }),
+        ),
         ghost: cn(
           'active:bg-accent dark:active:bg-accent/50',
           Platform.select({ web: 'hover:bg-accent dark:hover:bg-accent/50' }),
@@ -68,6 +74,7 @@ const buttonTextVariants = cva(
           Platform.select({ web: 'group-hover:text-accent-foreground' }),
         ),
         secondary: 'text-secondary-foreground',
+        tonal: 'text-primary',
         ghost: 'group-active:text-accent-foreground',
         link: cn(
           'text-primary group-active:underline',

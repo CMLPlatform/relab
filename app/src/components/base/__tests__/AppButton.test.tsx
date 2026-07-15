@@ -47,6 +47,16 @@ test('destructive variant label uses the white text color', () => {
   expect(screen.getByText('Delete').props.className).toEqual(expect.stringContaining('text-white'));
 });
 
+test('tonal variant uses the soft-primary fill and primary text color', () => {
+  render(<AppButton variant="tonal">Sign in</AppButton>);
+  expect(screen.getByRole('button').props.className).toEqual(
+    expect.stringContaining('bg-primary/12'),
+  );
+  expect(screen.getByText('Sign in').props.className).toEqual(
+    expect.stringContaining('text-primary'),
+  );
+});
+
 test('meets the 44px a11y tap-target floor regardless of caller className', () => {
   render(<AppButton className="mx-4 my-2">Add component</AppButton>);
   expect(screen.getByRole('button').props.className).toEqual(expect.stringContaining('min-h-11'));

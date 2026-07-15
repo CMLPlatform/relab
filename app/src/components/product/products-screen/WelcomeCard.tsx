@@ -92,15 +92,15 @@ export function ProductsWelcomeCard({
 
         <View style={styles.welcomeActions}>
           {!isAuthenticated ? (
-            <AppButton variant="outline" onPress={onSignIn}>
+            <AppButton variant="tonal" onPress={onSignIn}>
               Sign in
             </AppButton>
           ) : !currentUser?.isVerified ? (
-            <AppButton variant="outline" onPress={onGoToProfile}>
+            <AppButton variant="tonal" onPress={onGoToProfile}>
               <MaterialCommunityIcons
                 name="email-check-outline"
                 size={18}
-                color={theme.colors.onSurface}
+                color={theme.colors.primary}
               />
               <AppText>Verify email</AppText>
             </AppButton>
