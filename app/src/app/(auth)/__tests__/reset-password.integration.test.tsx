@@ -45,8 +45,8 @@ async function submitResetPassword(password: string, confirmPassword = password)
   fireEvent.changeText(screen.getByTestId('password-input'), password);
   fireEvent.changeText(screen.getByTestId('confirm-password-input'), confirmPassword);
   await settleForm();
-  expect(screen.getAllByTestId('button')[0].props.accessibilityState.disabled).toBe(false);
-  fireEvent.press(screen.getAllByTestId('button')[0]);
+  expect(screen.getByRole('button', { name: 'Reset password' })).not.toBeDisabled();
+  fireEvent.press(screen.getByRole('button', { name: 'Reset password' }));
   await settleForm();
 }
 
@@ -111,7 +111,7 @@ describe('ResetPasswordScreen rendering', () => {
     await settleForm();
 
     expect(screen.getByText(PASSWORDS_MATCH_PATTERN)).toBeOnTheScreen();
-    expect(screen.getAllByTestId('button')[0].props.accessibilityState.disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Reset password' })).toBeDisabled();
   });
 });
 
@@ -202,7 +202,7 @@ describe('ResetPasswordScreen navigation', () => {
   it('navigates to login from the button and after success delay', async () => {
     renderResetPasswordScreen();
 
-    fireEvent.press(screen.getAllByTestId('button')[1]);
+    fireEvent.press(screen.getByRole('button', { name: 'Back to login' }));
     expect(mockPush).toHaveBeenCalledWith('/login');
 
     await submitResetPassword('correct-horse-battery-staple-v42');

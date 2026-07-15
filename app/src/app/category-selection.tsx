@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback } from 'react';
 import {
   FlatList,
@@ -7,7 +8,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { HelperText, Icon } from 'react-native-paper';
 
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { Searchbar } from '@/components/base/Searchbar';
@@ -29,6 +29,7 @@ export default function CategorySelection() {
     selectType,
   } = useCategorySelection();
 
+  const { colors } = useAppTheme();
   const renderItem = useCallback(
     ({ item }: { item: CPVCategory }) => (
       <CategoryListItem item={item} onSelectType={selectType} onSelectBranch={selectBranch} />
@@ -49,10 +50,17 @@ export default function CategorySelection() {
         onChangeText={setSearchQuery}
         value={searchQuery}
       />
-      <HelperText type="info" style={{ marginTop: 70, marginHorizontal: 15 }}>
+      <Text
+        style={{
+          marginTop: 70,
+          marginHorizontal: 15,
+          fontSize: 12,
+          color: colors.onSurfaceVariant,
+        }}
+      >
         Search by name or description, or browse with the &apos;Subcategories&apos; button on each
         card. Tap or click a card to select it.
-      </HelperText>
+      </Text>
       {history.length > 1 && <CPVHistory history={history} onPress={moveUp} />}
       <FlatList
         contentContainerStyle={{
@@ -107,7 +115,7 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
       accessibilityRole="button"
       accessibilityLabel="Go back to parent category"
     >
-      <Icon size={20} source={'chevron-left'} color={colors.onTertiaryContainer} />
+      <MaterialCommunityIcons size={20} name="chevron-left" color={colors.onTertiaryContainer} />
       <Text
         numberOfLines={2}
         ellipsizeMode={'tail'}
@@ -144,7 +152,7 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
       <Text style={[styles.linkText, { color: colors.onSecondaryContainer }]}>
         {`${CPV.directChildren.length} subcategories`}
       </Text>
-      <Icon size={20} source={'chevron-right'} color={colors.onSecondaryContainer} />
+      <MaterialCommunityIcons size={20} name="chevron-right" color={colors.onSecondaryContainer} />
     </Pressable>
   );
 }

@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { Chip, Text } from 'react-native-paper';
+import { AppText } from '@/components/base/AppText';
 import type { CameraTelemetry, ThermalState } from '@/services/api/rpiCamera';
 import { getStatusTone, useAppTheme } from '@/theme';
 
@@ -22,18 +22,13 @@ export function TelemetryBadge({ telemetry }: { telemetry: CameraTelemetry | nul
 
   return (
     <View style={styles.row}>
-      <Chip
-        mode="flat"
-        compact
-        style={[styles.chip, { backgroundColor: getStatusTone(color), borderColor: color }]}
-        textStyle={{ color, fontSize: 11 }}
-      >
-        {label}
-      </Chip>
+      <View style={[styles.chip, { backgroundColor: getStatusTone(color), borderColor: color }]}>
+        <AppText style={{ color, fontSize: 11 }}>{label}</AppText>
+      </View>
       {telemetry.preview_sessions > 0 && (
-        <Text variant="labelSmall" style={styles.subtext}>
+        <AppText variant="label" style={styles.subtext}>
           {telemetry.preview_sessions} live
-        </Text>
+        </AppText>
       )}
     </View>
   );
@@ -62,6 +57,9 @@ const styles = StyleSheet.create({
   chip: {
     borderWidth: 1,
     height: 22,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    borderRadius: 11,
   },
   subtext: {
     opacity: 0.6,

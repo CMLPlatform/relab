@@ -1,5 +1,7 @@
-import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Text } from 'react-native-paper';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
 import { useVerifyEmail } from '@/features/auth/useVerifyEmail';
 import { useAppTheme } from '@/theme';
 
@@ -10,50 +12,47 @@ export default function VerifyEmailScreen() {
   return (
     <View style={styles.screen}>
       <Card>
-        <Card.Content style={styles.cardContent}>
-          <Text variant="headlineMedium">Verify email</Text>
+        <View style={styles.cardContent}>
+          <AppText variant="display">Verify email</AppText>
 
           {isLoading ? (
             <View style={styles.centeredState}>
               <ActivityIndicator size="large" />
-              <Text variant="bodyLarge">Verifying your email…</Text>
+              <AppText variant="body">Verifying your email…</AppText>
             </View>
           ) : null}
 
           {error && !isLoading && (
             <View style={styles.centeredState}>
-              <Text variant="bodyLarge" style={{ color: theme.colors.error, textAlign: 'center' }}>
+              <AppText variant="body" style={{ color: theme.colors.error, textAlign: 'center' }}>
                 {error}
-              </Text>
-              <Button mode="contained" onPress={goHome}>
+              </AppText>
+              <AppButton variant="primary" onPress={goHome}>
                 Back to home
-              </Button>
+              </AppButton>
             </View>
           )}
 
           {success && !isLoading && (
             <View style={styles.centeredState}>
-              <Text
-                variant="bodyLarge"
-                style={{ color: theme.colors.primary, textAlign: 'center' }}
-              >
+              <AppText variant="body" style={{ color: theme.colors.primary, textAlign: 'center' }}>
                 Email verified!
-              </Text>
+              </AppText>
               {isLoggedIn ? (
-                <Text variant="bodyMedium">Taking you to your products…</Text>
+                <AppText variant="body">Taking you to your products…</AppText>
               ) : (
                 <>
-                  <Text variant="bodyMedium" style={{ textAlign: 'center' }}>
+                  <AppText variant="body" style={{ textAlign: 'center' }}>
                     If you signed up in the app, you're still signed in there — just head back.
-                  </Text>
-                  <Button mode="contained" onPress={goToLogin}>
+                  </AppText>
+                  <AppButton variant="primary" onPress={goToLogin}>
                     Sign in here
-                  </Button>
+                  </AppButton>
                 </>
               )}
             </View>
           )}
-        </Card.Content>
+        </View>
       </Card>
     </View>
   );
@@ -64,6 +63,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardContent: {
+    padding: 16,
     gap: 16,
     alignItems: 'center',
     paddingVertical: 32,

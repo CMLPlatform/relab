@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Pressable, View } from 'react-native';
-import { ActivityIndicator, Card, Text } from 'react-native-paper';
+import { ActivityIndicator, Pressable, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
 import { useAppTheme } from '@/theme';
 import { createLivePreviewStyles } from './styles';
 
@@ -15,13 +16,12 @@ export function PreviewShell({
   const styles = createLivePreviewStyles(theme);
   return (
     <Card style={styles.card}>
-      <Card.Content style={styles.content}>
+      <View style={styles.content}>
         {children}
-        {/* Paper's Text, not MutedText: the latter wraps RN Text and has no `variant`. */}
-        <Text variant="bodySmall" style={styles.caption}>
+        <AppText variant="body" style={styles.caption}>
           {caption}
-        </Text>
-      </Card.Content>
+        </AppText>
+      </View>
     </Card>
   );
 }
@@ -32,7 +32,7 @@ export function PreviewLoadingOverlay() {
   return (
     <View style={styles.overlay}>
       <ActivityIndicator size={24} />
-      <Text style={styles.overlayText}>Loading preview…</Text>
+      <AppText style={styles.overlayText}>Loading preview…</AppText>
     </View>
   );
 }
@@ -49,9 +49,9 @@ export function PreviewErrorOverlay({
   return (
     <View style={styles.overlay}>
       <MaterialCommunityIcons name="video-off" size={32} color={theme.tokens.text.muted} />
-      <Text style={styles.overlayText}>{message}</Text>
+      <AppText style={styles.overlayText}>{message}</AppText>
       <Pressable onPress={onRetry}>
-        <Text style={styles.retryText}>Tap to retry</Text>
+        <AppText style={styles.retryText}>Tap to retry</AppText>
       </Pressable>
     </View>
   );

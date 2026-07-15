@@ -1,6 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { View } from 'react-native';
-import { ActivityIndicator, Button, Card, Text } from 'react-native-paper';
+import { ActivityIndicator, View } from 'react-native';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
 import { IconButton } from '@/components/base/IconButton';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
@@ -33,14 +35,14 @@ export function CameraConnectionCard({
 
   return (
     <Card style={styles.card}>
-      <Card.Content style={styles.connectionContent}>
+      <View style={styles.connectionContent}>
         <View style={styles.statusRow}>
           {localConnection.mode === 'probing' ? (
             <>
               <ActivityIndicator size={14} style={styles.inlineSpinner} />
-              <Text variant="titleSmall" style={styles.statusTextMuted}>
+              <AppText variant="title" style={styles.statusTextMuted}>
                 {isOnline ? 'Searching for direct connection…' : 'Checking connection…'}
-              </Text>
+              </AppText>
             </>
           ) : localConnection.mode === 'local' ? (
             <>
@@ -50,30 +52,30 @@ export function CameraConnectionCard({
                 color={theme.tokens.status.success}
                 style={styles.inlineIcon}
               />
-              <Text
-                variant="titleSmall"
+              <AppText
+                variant="title"
                 style={[styles.statusTextLocal, { color: theme.tokens.status.success }]}
               >
                 Connected - Direct · &lt;1 s
-              </Text>
+              </AppText>
             </>
           ) : isOnline ? (
             <>
               <View
                 style={[styles.statusDot, { backgroundColor: statusColor }, styles.inlineDot]}
               />
-              <Text variant="titleSmall" style={[styles.statusText, { color: statusColor }]}>
+              <AppText variant="title" style={[styles.statusText, { color: statusColor }]}>
                 Connected - Remote · ~2 s
-              </Text>
+              </AppText>
             </>
           ) : (
             <>
               <View
                 style={[styles.statusDot, { backgroundColor: statusColor }, styles.inlineDot]}
               />
-              <Text variant="titleSmall" style={[styles.statusText, { color: statusColor }]}>
+              <AppText variant="title" style={[styles.statusText, { color: statusColor }]}>
                 {statusLabel}
-              </Text>
+              </AppText>
             </>
           )}
 
@@ -87,19 +89,19 @@ export function CameraConnectionCard({
           />
 
           {localConnection.mode === 'local' ? (
-            <Button compact mode="text" onPress={onDisconnectLocal}>
+            <AppButton variant="ghost" onPress={onDisconnectLocal}>
               Disconnect
-            </Button>
+            </AppButton>
           ) : null}
 
           {localConnection.mode === 'relay' ? (
-            <Button compact mode="text" onPress={onOpenManualSetup}>
+            <AppButton variant="ghost" onPress={onOpenManualSetup}>
               Manual setup…
-            </Button>
+            </AppButton>
           ) : null}
         </View>
 
-        <Text variant="bodySmall" style={styles.connectionHint}>
+        <AppText variant="body" style={styles.connectionHint}>
           {localConnection.mode === 'local'
             ? `Via Ethernet · ${localConnection.localBaseUrl ?? ''}`
             : localConnection.mode === 'probing' && isOnline
@@ -109,8 +111,8 @@ export function CameraConnectionCard({
                 : camera.status?.connection === 'offline'
                   ? 'Waiting for camera to connect via WebSocket relay'
                   : statusLabel}
-        </Text>
-      </Card.Content>
+        </AppText>
+      </View>
     </Card>
   );
 }
@@ -135,19 +137,19 @@ export function CameraPreviewSection({
   return (
     <>
       <Card style={styles.card}>
-        <Card.Content style={styles.previewControlContent}>
+        <View style={styles.previewControlContent}>
           <View style={styles.previewCopy}>
-            <Text variant="titleMedium">Camera preview</Text>
-            <Text variant="bodySmall" style={styles.connectionHint}>
+            <AppText variant="title">Camera preview</AppText>
+            <AppText variant="body" style={styles.connectionHint}>
               {previewEnabled
                 ? 'Preview is running. Stop it when you no longer need the live feed.'
                 : 'Load the live feed when you want to check framing or focus.'}
-            </Text>
+            </AppText>
           </View>
-          <Button mode={previewEnabled ? 'outlined' : 'contained'} onPress={onTogglePreview}>
+          <AppButton variant={previewEnabled ? 'outline' : 'primary'} onPress={onTogglePreview}>
             {previewEnabled ? 'Stop preview' : 'Load preview'}
-          </Button>
-        </Card.Content>
+          </AppButton>
+        </View>
       </Card>
       {previewEnabled ? <LivePreview camera={camera} connectionInfo={connectionInfo} /> : null}
     </>

@@ -8,7 +8,10 @@ export const createLivePreviewStyles = memoizeByTheme((theme: AppTheme) => {
       marginHorizontal: 16,
       marginTop: 12,
     },
+    // Base Card has no built-in content padding (unlike Paper's Card.Content,
+    // which defaulted to padding: 16) — added explicitly here.
     content: {
+      padding: 16,
       alignItems: 'center',
       gap: 8,
     },

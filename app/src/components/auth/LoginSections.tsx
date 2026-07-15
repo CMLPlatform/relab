@@ -1,9 +1,12 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type RefObject, useCallback } from 'react';
 import type { Control, ControllerRenderProps } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import { Keyboard, StyleSheet, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
+import { TextInput } from '@/components/base/TextInput';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
 
@@ -24,9 +27,14 @@ export function LoginLayout({ keyboardShown, children, onBrowse }: LoginLayoutPr
   const keyboardHeight = keyboardShown && Keyboard.metrics() ? Keyboard.metrics()?.height : 0;
   return (
     <View style={styles.root}>
-      <Button mode="text" icon="arrow-left" onPress={onBrowse} style={styles.browseButton} compact>
-        Browse
-      </Button>
+      <AppButton
+        variant="ghost"
+        onPress={onBrowse}
+        className="self-start absolute top-4 left-2 z-10"
+      >
+        <MaterialCommunityIcons name="arrow-left" size={16} color={theme.colors.onSurface} />
+        <AppText style={{ color: theme.colors.onSurface }}>Browse</AppText>
+      </AppButton>
 
       <View style={[styles.overlayContent, { bottom: keyboardHeight }]}>{children}</View>
 
@@ -81,6 +89,7 @@ export function LoginFormSection({
   onSubmit,
   onForgotPassword,
 }: LoginFormSectionProps) {
+  const theme = useAppTheme();
   const setEmailRef = useCallback(
     (instance: { focus(): void } | null) => {
       emailRef.current = instance;
@@ -95,7 +104,6 @@ export function LoginFormSection({
     }) => (
       <TextInput
         ref={setEmailRef}
-        mode="outlined"
         value={value}
         onChangeText={onChange}
         autoCapitalize="none"
@@ -103,9 +111,10 @@ export function LoginFormSection({
         autoComplete="username"
         textContentType="username"
         placeholder="Email or username"
+        style={[styles.input, { borderColor: theme.colors.outline }]}
       />
     ),
-    [setEmailRef],
+    [setEmailRef, theme.colors.outline],
   );
   const renderPassword = useCallback(
     ({
@@ -114,7 +123,6 @@ export function LoginFormSection({
       field: ControllerRenderProps<LoginFormValues, 'password'>;
     }) => (
       <TextInput
-        mode="outlined"
         value={value}
         onChangeText={onChange}
         autoCapitalize="none"
@@ -123,21 +131,22 @@ export function LoginFormSection({
         secureTextEntry
         placeholder="Password"
         onSubmitEditing={onSubmit}
+        style={[styles.input, { borderColor: theme.colors.outline }]}
       />
     ),
-    [onSubmit],
+    [onSubmit, theme.colors.outline],
   );
 
   return (
     <>
       <Controller control={control} name="email" render={renderEmail} />
       <Controller control={control} name="password" render={renderPassword} />
-      <Button mode="contained" style={{ width: '100%', padding: 5 }} onPress={onSubmit}>
+      <AppButton variant="primary" className="w-full" onPress={onSubmit}>
         Sign in
-      </Button>
-      <Button mode="text" compact onPress={onForgotPassword} style={{ alignSelf: 'flex-end' }}>
+      </AppButton>
+      <AppButton variant="ghost" onPress={onForgotPassword} className="self-end">
         Forgot password?
-      </Button>
+      </AppButton>
     </>
   );
 }
@@ -147,7 +156,7 @@ export function LoginDivider() {
   return (
     <View style={styles.dividerRow}>
       <View style={[styles.dividerLine, { backgroundColor: theme.colors.outline }]} />
-      <Text style={styles.dividerText}>or</Text>
+      <AppText style={styles.dividerText}>or</AppText>
       <View style={[styles.dividerLine, { backgroundColor: theme.colors.outline }]} />
     </View>
   );
@@ -159,43 +168,32 @@ type LoginOAuthSectionProps = {
 };
 
 export function LoginOAuthSection({ onGoogle, onGithub }: LoginOAuthSectionProps) {
+  const theme = useAppTheme();
   return (
     <>
-      <Button mode="outlined" icon="google" style={{ width: '100%' }} onPress={onGoogle}>
-        Continue with Google
-      </Button>
-      <Button mode="outlined" icon="github" style={{ width: '100%' }} onPress={onGithub}>
-        Continue with GitHub
-      </Button>
+      <AppButton variant="outline" className="w-full" onPress={onGoogle}>
+        <MaterialCommunityIcons name="google" size={16} color={theme.colors.onSurface} />
+        <AppText style={{ color: theme.colors.onSurface }}>Continue with Google</AppText>
+      </AppButton>
+      <AppButton variant="outline" className="w-full" onPress={onGithub}>
+        <MaterialCommunityIcons name="github" size={16} color={theme.colors.onSurface} />
+        <AppText style={{ color: theme.colors.onSurface }}>Continue with GitHub</AppText>
+      </AppButton>
     </>
   );
 }
 
 export function LoginSecondaryAction({ onCreateAccount }: { onCreateAccount: () => void }) {
-  const theme = useAppTheme();
-
   return (
-    <Button
-      mode="contained-tonal"
-      buttonColor={theme.colors.secondaryContainer}
-      textColor={theme.colors.onSecondaryContainer}
-      onPress={onCreateAccount}
-      style={styles.secondaryAction}
-    >
+    <AppButton variant="outline" onPress={onCreateAccount} className="w-full mt-1">
       Create a new account
-    </Button>
+    </AppButton>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-  },
-  browseButton: {
-    position: 'absolute',
-    top: 16,
-    left: 8,
-    zIndex: 10,
   },
   overlayContent: {
     padding: 20,
@@ -228,6 +226,12 @@ const styles = StyleSheet.create({
   brandLogo: {
     width: '100%',
   },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -241,9 +245,5 @@ const styles = StyleSheet.create({
   dividerText: {
     marginHorizontal: 10,
     opacity: 0.5,
-  },
-  secondaryAction: {
-    width: '100%',
-    marginTop: 4,
   },
 });

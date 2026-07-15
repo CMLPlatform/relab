@@ -99,7 +99,7 @@ describe('CamerasScreen', () => {
   });
 
   it('shows an empty state and lets the user navigate to add a camera', () => {
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     expect(screen.getByText('No cameras yet')).toBeOnTheScreen();
     expect(
@@ -132,7 +132,7 @@ describe('CamerasScreen', () => {
       refetch: mockRefetch,
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     expect(screen.getByText('Workbench Camera')).toBeOnTheScreen();
     expect(screen.getByText('Workbench Camera')).toBeOnTheScreen();
@@ -167,7 +167,7 @@ describe('CamerasScreen', () => {
       localBaseUrl: 'http://192.168.7.1:8018',
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     expect(screen.getByText('Direct Camera')).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
@@ -185,7 +185,7 @@ describe('CamerasScreen', () => {
       refetch: mockRefetch,
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     expect(screen.getByText('Error: Broken camera list')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Retry'));
@@ -202,7 +202,7 @@ describe('CamerasScreen', () => {
       error: null,
       refetch: mockRefetch,
     });
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
     // Loading state renders an ActivityIndicator; no list or empty-state text
     expect(screen.queryByText('No cameras yet')).toBeNull();
     expect(screen.queryByText('Retry')).toBeNull();
@@ -219,7 +219,7 @@ describe('CamerasScreen', () => {
       refetch: mockRefetch,
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     // Long-press a camera in capture mode → enters selection mode → SelectionBar appears
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
@@ -237,7 +237,7 @@ describe('CamerasScreen', () => {
       refetch: mockRefetch,
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     // Long-press should not enter selection mode (captureModeEnabled=false)
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
@@ -261,7 +261,7 @@ describe('CamerasScreen', () => {
       opts.onSuccess({ total: 2, succeeded: 2, failed: 0 });
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
     expect(screen.getByText('1 selected')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Capture 1'));
@@ -286,7 +286,7 @@ describe('CamerasScreen', () => {
       opts.onSuccess({ total: 3, succeeded: 2, failed: 1 });
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
     expect(screen.getByText('1 selected')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Capture 1'));
@@ -309,7 +309,7 @@ describe('CamerasScreen', () => {
       opts.onError(new Error('timeout'));
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
     expect(screen.getByText('1 selected')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Capture 1'));
@@ -320,7 +320,7 @@ describe('CamerasScreen', () => {
   it('redirects unauthenticated users to login', async () => {
     mockUseAuth.mockReturnValue({ user: undefined });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
@@ -343,7 +343,7 @@ describe('CamerasScreen', () => {
       refetch: mockRefetch,
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
 
@@ -364,7 +364,7 @@ describe('CamerasScreen', () => {
       refetch: mockRefetch,
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     // Enter selection mode with cam-1
     fireEvent(screen.getByLabelText('Camera: Cam A'), 'longPress');
@@ -393,7 +393,7 @@ describe('CamerasScreen', () => {
       refetch: mockRefetch,
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     // Long-press the offline camera directly — shows snackbar without entering selection mode
     fireEvent(screen.getByLabelText('Camera: Offline Cam'), 'longPress');
@@ -420,7 +420,7 @@ describe('CamerasScreen', () => {
       refetch: mockRefetch,
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     // Enter selection mode
     fireEvent(screen.getByLabelText('Camera: Cam A'), 'longPress');
@@ -449,7 +449,7 @@ describe('CamerasScreen', () => {
       opts.onSuccess({ total: 1, succeeded: 1, failed: 0 });
     });
 
-    renderWithProviders(<CamerasScreen />);
+    renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
     expect(screen.getByText('1 selected')).toBeOnTheScreen();
@@ -479,7 +479,7 @@ describe('CamerasScreen', () => {
       refetch: mockRefetch,
     });
 
-    const { UNSAFE_getByProps } = renderWithProviders(<CamerasScreen />);
+    const { UNSAFE_getByProps } = renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     // The FlatList RefreshControl fires onRefresh when pulled
     const refreshControl = UNSAFE_getByProps({ refreshing: false });
@@ -501,7 +501,7 @@ describe('CamerasScreen', () => {
       refetch: mockRefetch,
     });
 
-    const { UNSAFE_getByProps } = renderWithProviders(<CamerasScreen />);
+    const { UNSAFE_getByProps } = renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     const list = UNSAFE_getByProps({ numColumns: 3 });
     expect(list).toBeTruthy();
@@ -518,7 +518,7 @@ describe('CamerasScreen', () => {
       refetch: mockRefetch,
     });
 
-    const { UNSAFE_getByProps } = renderWithProviders(<CamerasScreen />);
+    const { UNSAFE_getByProps } = renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     const list = UNSAFE_getByProps({ numColumns: 2 });
     expect(list).toBeTruthy();

@@ -1,7 +1,10 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Dialog, Icon, Portal, Text } from 'react-native-paper';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { AppButton } from '@/components/base/AppButton';
+import { AppDialog } from '@/components/base/AppDialog';
+import { AppText } from '@/components/base/AppText';
 import { MutedText } from '@/components/base/MutedText';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
 import {
@@ -50,30 +53,33 @@ export function CameraPickerDialog({
   );
 
   return (
-    <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss}>
-        <Dialog.Title>{title}</Dialog.Title>
-        <Dialog.Content style={styles.content}>
-          {isLoading ? (
-            <ActivityIndicator style={styles.loading} />
-          ) : sorted.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Icon source="camera-off" size={32} color={theme.tokens.text.muted} />
-              <MutedText style={styles.emptyText}>No cameras registered</MutedText>
-            </View>
-          ) : (
-            sorted.map((cam) => <CameraPickerRow key={cam.id} camera={cam} onSelect={onSelect} />)
-          )}
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={handleManage} icon="cog" compact>
-            Manage
-          </Button>
-          <View style={styles.spacer} />
-          <Button onPress={onDismiss}>Cancel</Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+    <AppDialog visible={visible} onDismiss={onDismiss}>
+      <AppText accessibilityRole="header" style={styles.title}>
+        {title}
+      </AppText>
+      <View style={styles.content}>
+        {isLoading ? (
+          <ActivityIndicator style={styles.loading} />
+        ) : sorted.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="camera-off" size={32} color={theme.tokens.text.muted} />
+            <MutedText style={styles.emptyText}>No cameras registered</MutedText>
+          </View>
+        ) : (
+          sorted.map((cam) => <CameraPickerRow key={cam.id} camera={cam} onSelect={onSelect} />)
+        )}
+      </View>
+      <View style={styles.actions}>
+        <AppButton variant="ghost" onPress={handleManage}>
+          <MaterialCommunityIcons name="cog" size={16} color={theme.colors.onSurface} />
+          <AppText style={{ color: theme.colors.onSurface }}>Manage</AppText>
+        </AppButton>
+        <View style={styles.spacer} />
+        <AppButton variant="ghost" onPress={onDismiss}>
+          Cancel
+        </AppButton>
+      </View>
+    </AppDialog>
   );
 }
 
@@ -109,23 +115,28 @@ function CameraPickerRow({
           { backgroundColor: isReachable ? theme.tokens.status.success : theme.tokens.text.muted },
         ]}
       />
-      <Icon source="access-point" size={20} />
-      <Text style={styles.rowTitle}>{camera.name}</Text>
+      <MaterialCommunityIcons name="access-point" size={20} color={theme.colors.onSurface} />
+      <AppText style={styles.rowTitle}>{camera.name}</AppText>
       {effectiveConnection.detailLabel ? (
-        <Text variant="labelSmall" style={{ color: theme.tokens.status.success }}>
+        <AppText variant="label" style={{ color: theme.tokens.status.success }}>
           Direct
-        </Text>
+        </AppText>
       ) : null}
       {!isReachable && (
-        <Text variant="labelSmall" style={{ color: theme.tokens.text.muted }}>
+        <AppText variant="label" style={{ color: theme.tokens.text.muted }}>
           Offline
-        </Text>
+        </AppText>
       )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
   content: {
     gap: 8,
   },
@@ -139,6 +150,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 16,
   },
   spacer: {
     flex: 1,

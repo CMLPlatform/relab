@@ -1,10 +1,14 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
-import { Button, HelperText, Text, TextInput } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
 import { OtpInput } from '@/components/base/OtpInput';
+import { TextInput } from '@/components/base/TextInput';
 import { useMfaScreen } from '@/features/auth/useMfaScreen';
+import { useAppTheme } from '@/theme';
 
 export default function MfaScreen() {
+  const theme = useAppTheme();
   const {
     code,
     recoveryCode,
@@ -23,25 +27,31 @@ export default function MfaScreen() {
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 20 }}>
       <View style={{ gap: 6 }}>
-        <Text variant="headlineMedium">Two-step verification</Text>
-        <Text variant="bodyMedium" style={{ opacity: 0.7 }}>
+        <AppText variant="display">Two-step verification</AppText>
+        <AppText variant="body" style={{ opacity: 0.7 }}>
           {useRecoveryCode
             ? 'Enter one of your saved recovery codes.'
             : 'Enter the 6-digit code from your authenticator app.'}
-        </Text>
+        </AppText>
       </View>
 
       {useRecoveryCode ? (
         <TextInput
-          mode="outlined"
-          label="Recovery code"
-          accessibilityLabel="Recovery code"
           value={recoveryCode}
           onChangeText={handleRecoveryCodeChange}
           autoCapitalize="characters"
           autoCorrect={false}
           autoComplete="off"
-          disabled={isSubmitting || !tokenPresent}
+          editable={!isSubmitting && tokenPresent}
+          placeholder="Recovery code"
+          accessibilityLabel="Recovery code"
+          style={{
+            borderWidth: 1,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            borderColor: theme.colors.outline,
+          }}
         />
       ) : (
         <OtpInput
@@ -56,23 +66,21 @@ export default function MfaScreen() {
       )}
 
       {visibleError ? (
-        <HelperText type="error" visible>
-          {visibleError}
-        </HelperText>
+        <AppText style={{ color: theme.tokens.status.danger }}>{visibleError}</AppText>
       ) : null}
 
-      <Button
-        mode="contained"
+      <AppButton
+        variant="primary"
         onPress={submitCurrent}
         loading={isSubmitting}
         disabled={isSubmitting || !canSubmit}
       >
         {useRecoveryCode ? 'Sign in' : 'Continue'}
-      </Button>
+      </AppButton>
 
-      <Button mode="text" compact onPress={toggleRecoveryMode} disabled={!tokenPresent}>
+      <AppButton variant="ghost" onPress={toggleRecoveryMode} disabled={!tokenPresent}>
         {useRecoveryCode ? 'Use your authenticator app' : 'Use a recovery code'}
-      </Button>
+      </AppButton>
     </View>
   );
 }

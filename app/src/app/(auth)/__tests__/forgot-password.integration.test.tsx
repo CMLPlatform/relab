@@ -36,11 +36,11 @@ function renderForgotPasswordScreen() {
 }
 
 async function submitForgotPasswordEmail(email: string) {
-  fireEvent.changeText(screen.getByTestId('text-input-flat'), email);
+  fireEvent.changeText(screen.getByLabelText('Email'), email);
   await waitFor(() => {
-    expect(screen.getAllByTestId('button')[0].props.accessibilityState.disabled).toBe(false);
+    expect(screen.getByText('Send reset link')).not.toBeDisabled();
   });
-  fireEvent.press(screen.getAllByTestId('button')[0]);
+  fireEvent.press(screen.getByText('Send reset link'));
 }
 
 beforeEach(() => {
@@ -64,7 +64,7 @@ describe('ForgotPasswordScreen rendering', () => {
 
   it('shows a validation error for an invalid email address', async () => {
     renderForgotPasswordScreen();
-    fireEvent.changeText(screen.getByTestId('text-input-flat'), 'not-an-email');
+    fireEvent.changeText(screen.getByLabelText('Email'), 'not-an-email');
 
     await waitFor(() => {
       expect(screen.getByText(VALID_EMAIL_PATTERN)).toBeOnTheScreen();
@@ -132,7 +132,7 @@ describe('ForgotPasswordScreen navigation', () => {
   it('allows navigating back to login from both states', async () => {
     renderForgotPasswordScreen();
 
-    fireEvent.press(screen.getAllByTestId('button')[1]);
+    fireEvent.press(screen.getByText('Back to login'));
     expect(mockBack).toHaveBeenCalledTimes(1);
 
     await submitForgotPasswordEmail('user@example.com');

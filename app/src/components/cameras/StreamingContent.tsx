@@ -1,8 +1,10 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Chip, Text } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
 import type { StreamSession } from '@/context/streamSession';
 import { useStreamSession } from '@/context/streamSession';
 import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
@@ -59,18 +61,14 @@ export function StreamingContent({
 
   return (
     <View style={styles.root}>
-      {/* Header: LIVE chip + elapsed */}
+      {/* Header: LIVE badge + elapsed */}
       <View style={styles.header}>
-        <Chip
-          compact
-          style={[styles.liveChip, { backgroundColor: theme.tokens.status.live }]}
-          textStyle={styles.liveChipText}
-        >
-          LIVE
-        </Chip>
-        <Text style={styles.elapsed} variant="bodySmall">
+        <View style={[styles.liveChip, { backgroundColor: theme.tokens.status.live }]}>
+          <AppText style={styles.liveChipText}>LIVE</AppText>
+        </View>
+        <AppText variant="body" style={styles.elapsed}>
           {elapsed}
-        </Text>
+        </AppText>
       </View>
 
       {/* Live camera preview (compact) */}
@@ -80,32 +78,27 @@ export function StreamingContent({
 
       {/* Actions */}
       <View style={styles.actions}>
-        <Button mode="outlined" onPress={handleWatch} style={styles.actionBtn} icon="open-in-new">
-          Watch on YouTube
-        </Button>
-        <Button
-          mode="outlined"
+        <AppButton variant="outline" onPress={handleWatch} className="flex-1">
+          <MaterialCommunityIcons name="open-in-new" size={16} color={theme.colors.onSurface} />
+          <AppText style={{ color: theme.colors.onSurface }}>Watch on YouTube</AppText>
+        </AppButton>
+        <AppButton
+          variant="destructive"
           onPress={handleStop}
           loading={stopMutation.isPending}
           disabled={stopMutation.isPending}
-          textColor={theme.colors.error}
-          style={[styles.actionBtn, { borderColor: theme.colors.error }]}
+          className="flex-1"
         >
           Stop stream
-        </Button>
+        </AppButton>
       </View>
 
       {/* Product link (sheet mode only) */}
       {showProductLink ? (
-        <Button
-          mode="text"
-          onPress={handleGoToProduct}
-          icon="chevron-right"
-          contentStyle={styles.productLinkContent}
-          style={styles.productLink}
-        >
-          Go to {session.productName}
-        </Button>
+        <AppButton variant="ghost" onPress={handleGoToProduct} className="self-start ml-2 mt-0.5">
+          <AppText style={{ color: theme.colors.onSurface }}>Go to {session.productName}</AppText>
+          <MaterialCommunityIcons name="chevron-right" size={16} color={theme.colors.onSurface} />
+        </AppButton>
       ) : null}
     </View>
   );
@@ -125,6 +118,9 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     liveChip: {
       height: 24,
+      justifyContent: 'center',
+      paddingHorizontal: 8,
+      borderRadius: 12,
     },
     liveChipText: {
       color: theme.colors.onError,
@@ -147,17 +143,6 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       gap: 8,
       paddingHorizontal: 16,
       paddingTop: 4,
-    },
-    actionBtn: {
-      flex: 1,
-    },
-    productLink: {
-      alignSelf: 'flex-start',
-      marginLeft: 8,
-      marginTop: 2,
-    },
-    productLinkContent: {
-      flexDirection: 'row-reverse',
     },
   });
 }

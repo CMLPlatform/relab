@@ -2,7 +2,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { memo, useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Card, Text } from 'react-native-paper';
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
 import { StatusBadge } from '@/components/base/StatusBadge';
 import { STATUS_LABEL } from '@/components/cameras/detail/styles';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
@@ -75,12 +76,12 @@ function CameraCardComponent({
                   color={theme.colors.onSurfaceVariant}
                   style={styles.placeholderIcon}
                 />
-                <Text
-                  variant="bodySmall"
+                <AppText
+                  variant="body"
                   style={[styles.thumbnailCaption, { color: theme.tokens.text.muted }]}
                 >
                   No preview available
-                </Text>
+                </AppText>
               </>
             ) : (
               <>
@@ -90,27 +91,27 @@ function CameraCardComponent({
                   color={theme.colors.onSurfaceVariant}
                   style={styles.placeholderIcon}
                 />
-                <Text
-                  variant="bodySmall"
+                <AppText
+                  variant="body"
                   style={[styles.thumbnailCaption, { color: theme.tokens.text.muted }]}
                 >
                   Offline
-                </Text>
+                </AppText>
               </>
             )}
           </View>
         )}
       </View>
 
-      <Card.Content style={styles.cardContent}>
+      <View style={styles.cardContent}>
         <View style={styles.cardBody}>
-          <Text variant="titleMedium" numberOfLines={1}>
+          <AppText variant="title" numberOfLines={1}>
             {camera.name}
-          </Text>
+          </AppText>
           {camera.description ? (
-            <Text variant="bodySmall" numberOfLines={1} style={{ opacity: 0.65, marginTop: 2 }}>
+            <AppText variant="body" numberOfLines={1} style={{ opacity: 0.65, marginTop: 2 }}>
               {camera.description}
-            </Text>
+            </AppText>
           ) : null}
           <View style={styles.cardChips}>
             <StatusBadge
@@ -119,20 +120,20 @@ function CameraCardComponent({
             />
             {isOnline ? (
               effectiveConnection?.detailLabel ? (
-                <Text variant="labelSmall" style={styles.lastSeenText}>
+                <AppText variant="label" style={styles.lastSeenText}>
                   {effectiveConnection.detailLabel}
-                </Text>
+                </AppText>
               ) : (
                 <TelemetryBadge telemetry={camera.telemetry} />
               )
             ) : (
-              <Text variant="labelSmall" style={styles.lastSeenText}>
+              <AppText variant="label" style={styles.lastSeenText}>
                 Last seen {formatLastSeen(camera.status?.last_seen_at)}
-              </Text>
+              </AppText>
             )}
           </View>
         </View>
-      </Card.Content>
+      </View>
     </Card>
   );
 }
@@ -170,8 +171,11 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   thumbnailCaption: {},
+  // Base Card has no built-in content padding (unlike Paper's Card.Content,
+  // which defaulted to paddingHorizontal: 16) — added explicitly here.
   cardContent: {
     paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   cardBody: {
     gap: 4,

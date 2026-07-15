@@ -7,7 +7,7 @@ import {
   RefreshControl,
   View,
 } from 'react-native';
-import { Text } from 'react-native-paper';
+import { AppText } from '@/components/base/AppText';
 import { MutedText } from '@/components/base/MutedText';
 import { CameraCard } from '@/components/cameras/CameraCard';
 import {
@@ -74,9 +74,9 @@ export function CamerasGrid({
             color={theme.colors.onSurfaceVariant}
             style={styles.emptyIcon}
           />
-          <Text variant="titleMedium" style={styles.emptyTitle}>
+          <AppText variant="title" style={styles.emptyTitle}>
             No cameras yet
-          </Text>
+          </AppText>
           <MutedText style={styles.emptyBody}>
             Tap the + button to register your first RPi camera.
           </MutedText>

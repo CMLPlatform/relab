@@ -2,33 +2,33 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback } from 'react';
 import { Controller } from 'react-hook-form';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Dialog, Divider, Portal, Text, TextInput } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppDialog } from '@/components/base/AppDialog';
+import { AppText } from '@/components/base/AppText';
 import { MutedText } from '@/components/base/MutedText';
 import { PageContainer } from '@/components/base/PageContainer';
+import { TextInput } from '@/components/base/TextInput';
+import { Separator } from '@/components/base/ui/separator';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useAppTheme } from '@/theme';
 
 function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
   const theme = useAppTheme();
   return (
-    <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss}>
-        <Dialog.Content style={{ alignItems: 'center', gap: 12, paddingTop: 24 }}>
-          <MaterialCommunityIcons
-            name="check-circle"
-            size={56}
-            color={theme.tokens.status.success}
-          />
-          <Text variant="titleMedium">Camera paired</Text>
-          <MutedText style={{ textAlign: 'center', opacity: 0.7 }}>
-            Your camera should come online within a few seconds.
-          </MutedText>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onDismiss}>Done</Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+    <AppDialog visible={visible} onDismiss={onDismiss}>
+      <View style={styles.successContent}>
+        <MaterialCommunityIcons name="check-circle" size={56} color={theme.tokens.status.success} />
+        <AppText variant="title">Camera paired</AppText>
+        <MutedText style={{ textAlign: 'center', opacity: 0.7 }}>
+          Your camera should come online within a few seconds.
+        </MutedText>
+      </View>
+      <View style={styles.dialogActions}>
+        <AppButton variant="ghost" onPress={onDismiss}>
+          Done
+        </AppButton>
+      </View>
+    </AppDialog>
   );
 }
 
@@ -43,18 +43,24 @@ export default function AddCameraScreen() {
       field: { value: string; onChange: (text: string) => void };
     }) => (
       <TextInput
-        mode="outlined"
-        label="Pairing code"
         value={value}
         // biome-ignore lint/performance/noJsxPropsBind: transform-on-change needs the per-field onChange; the row only rerenders when its own value changes.
         onChangeText={(v) => onChange(sanitizePairingCode(v))}
         maxLength={6}
         autoCapitalize="characters"
-        style={[styles.input, { fontFamily: 'monospace', fontSize: 20 }]}
-        contentStyle={{ textAlign: 'center' }}
+        accessibilityLabel="Pairing code"
+        style={[
+          styles.input,
+          {
+            fontFamily: 'monospace',
+            fontSize: 20,
+            textAlign: 'center',
+            borderColor: theme.colors.outline,
+          },
+        ]}
       />
     ),
-    [],
+    [theme.colors.outline],
   );
 
   const renderName = useCallback(
@@ -64,19 +70,33 @@ export default function AddCameraScreen() {
     }: {
       field: { value: string; onChange: (text: string) => void };
       fieldState: { error?: unknown };
-    }) => (
-      <TextInput
-        label="Camera name *"
-        mode="outlined"
-        value={value}
-        onChangeText={onChange}
-        maxLength={100}
-        autoCapitalize="words"
-        style={styles.input}
-        error={Boolean(error) && value.trim().length > 0}
-      />
-    ),
-    [],
+    }) => {
+      const hasError = Boolean(error) && value.trim().length > 0;
+      return (
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          maxLength={100}
+          autoCapitalize="words"
+          placeholder="Camera name"
+          accessibilityLabel="Camera name *"
+          style={[
+            styles.input,
+            {
+              borderColor: hasError ? theme.tokens.status.danger : theme.colors.outline,
+              backgroundColor: hasError ? theme.colors.errorContainer : undefined,
+              color: hasError ? theme.colors.onErrorContainer : undefined,
+            },
+          ]}
+        />
+      );
+    },
+    [
+      theme.colors.outline,
+      theme.colors.errorContainer,
+      theme.colors.onErrorContainer,
+      theme.tokens.status.danger,
+    ],
   );
 
   const renderDescription = useCallback(
@@ -86,17 +106,17 @@ export default function AddCameraScreen() {
       field: { value: string | undefined; onChange: (text: string) => void };
     }) => (
       <TextInput
-        label="Description (optional)"
-        mode="outlined"
         value={value ?? ''}
         onChangeText={onChange}
         maxLength={500}
         multiline
         numberOfLines={2}
-        style={styles.input}
+        placeholder="Description (optional)"
+        accessibilityLabel="Description (optional)"
+        style={[styles.input, { borderColor: theme.colors.outline }]}
       />
     ),
-    [],
+    [theme.colors.outline],
   );
 
   if (!user) return null;
@@ -105,19 +125,25 @@ export default function AddCameraScreen() {
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <PageContainer>
         <View style={styles.form}>
-          <Text variant="labelMedium" style={styles.sectionLabel}>
+          <AppText variant="label" style={styles.sectionLabel}>
             PAIRING CODE
-          </Text>
+          </AppText>
           <MutedText style={styles.sectionHelp}>
             Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed
             “PAIRING READY” banner over SSH if the device is headless.
           </MutedText>
           <Controller control={control} name="pairingCode" render={renderPairingCode} />
 
-          <Divider style={styles.divider} />
+          <Separator style={styles.divider} />
 
+          <AppText variant="label" style={styles.fieldLabel}>
+            Camera name *
+          </AppText>
           <Controller control={control} name="name" render={renderName} />
 
+          <AppText variant="label" style={styles.fieldLabel}>
+            Description (optional)
+          </AppText>
           <Controller control={control} name="description" render={renderDescription} />
 
           <View style={[styles.infoBox, { backgroundColor: theme.tokens.surface.accent }]}>
@@ -126,25 +152,26 @@ export default function AddCameraScreen() {
               size={18}
               color={theme.colors.primary}
             />
-            <Text variant="bodySmall" style={{ flex: 1, color: theme.colors.onSurfaceVariant }}>
+            <AppText variant="body" style={{ flex: 1, color: theme.colors.onSurfaceVariant }}>
               Make sure your Raspberry Pi is powered on and has{' '}
-              <Text style={{ fontFamily: 'monospace', fontSize: 11 }}>PAIRING_BACKEND_URL</Text> set
-              in its .env file. The pairing code appears on the RPi setup page and in the startup
-              logs.
-            </Text>
+              <AppText style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                PAIRING_BACKEND_URL
+              </AppText>{' '}
+              set in its .env file. The pairing code appears on the RPi setup page and in the
+              startup logs.
+            </AppText>
           </View>
 
-          <Button
-            mode="contained"
-            icon="link-variant"
+          <AppButton
+            variant="primary"
             onPress={submit}
             loading={isPending}
             disabled={isPending}
-            style={styles.submitButton}
-            contentStyle={{ paddingVertical: 6 }}
+            className="mt-2"
           >
-            Pair camera
-          </Button>
+            <MaterialCommunityIcons name="link-variant" size={18} color={theme.colors.onPrimary} />
+            <AppText style={{ color: theme.colors.onPrimary }}>Pair camera</AppText>
+          </AppButton>
 
           <PairingSuccessDialog visible={pairingSuccess} onDismiss={dismissSuccess} />
         </View>
@@ -169,10 +196,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     opacity: 0.6,
   },
+  fieldLabel: {
+    opacity: 0.6,
+    marginBottom: -4,
+  },
   divider: {
     marginVertical: 4,
   },
   input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginBottom: 4,
   },
   infoBox: {
@@ -182,8 +217,14 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
   },
-  submitButton: {
-    marginTop: 8,
-    borderRadius: 8,
+  successContent: {
+    alignItems: 'center',
+    gap: 12,
+    paddingTop: 24,
+  },
+  dialogActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 16,
   },
 });

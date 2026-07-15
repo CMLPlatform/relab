@@ -1,7 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Dialog, Portal, Text, TextInput } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppDialog } from '@/components/base/AppDialog';
+import { AppText } from '@/components/base/AppText';
+import { TextInput } from '@/components/base/TextInput';
 import { Text as UiText } from '@/components/base/ui/text';
 import { ToggleGroup, ToggleGroupItem } from '@/components/base/ui/toggle-group';
 import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera';
@@ -49,55 +52,73 @@ export function GoLiveDialog({
   );
 
   return (
-    <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss}>
-        <Dialog.Title>Go Live on {cameraName}</Dialog.Title>
-        <Dialog.Content style={styles.content}>
-          <TextInput
-            mode="outlined"
-            label="Stream title (optional)"
-            value={title}
-            onChangeText={onChangeTitle}
-            maxLength={100}
-          />
-          <Text variant="labelMedium" style={styles.label}>
-            Visibility
-          </Text>
-          <ToggleGroup type="single" value={privacy} onValueChange={handleValueChange}>
-            <ToggleGroupItem value="private" isFirst>
-              <MaterialCommunityIcons name="lock" size={16} color={theme.colors.onSurface} />
-              <UiText>Private</UiText>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="unlisted">
-              <MaterialCommunityIcons name="eye-off" size={16} color={theme.colors.onSurface} />
-              <UiText>Unlisted</UiText>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="public" isLast>
-              <MaterialCommunityIcons name="earth" size={16} color={theme.colors.onSurface} />
-              <UiText>Public</UiText>
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onSecondary} disabled={loading}>
-            {secondaryLabel}
-          </Button>
-          {showSpacer ? <View style={styles.spacer} /> : null}
-          <Button onPress={onStart} loading={loading} disabled={loading}>
-            Go Live
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+    <AppDialog visible={visible} onDismiss={onDismiss}>
+      <AppText accessibilityRole="header" style={styles.title}>
+        Go Live on {cameraName}
+      </AppText>
+      <View style={styles.content}>
+        <TextInput
+          value={title}
+          onChangeText={onChangeTitle}
+          maxLength={100}
+          placeholder="Stream title (optional)"
+          accessibilityLabel="Stream title (optional)"
+          style={[styles.input, { borderColor: theme.colors.outline }]}
+        />
+        <AppText variant="label" style={styles.label}>
+          Visibility
+        </AppText>
+        <ToggleGroup type="single" value={privacy} onValueChange={handleValueChange}>
+          <ToggleGroupItem value="private" isFirst>
+            <MaterialCommunityIcons name="lock" size={16} color={theme.colors.onSurface} />
+            <UiText>Private</UiText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="unlisted">
+            <MaterialCommunityIcons name="eye-off" size={16} color={theme.colors.onSurface} />
+            <UiText>Unlisted</UiText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="public" isLast>
+            <MaterialCommunityIcons name="earth" size={16} color={theme.colors.onSurface} />
+            <UiText>Public</UiText>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </View>
+      <View style={styles.actions}>
+        <AppButton variant="ghost" onPress={onSecondary} disabled={loading}>
+          {secondaryLabel}
+        </AppButton>
+        {showSpacer ? <View style={styles.spacer} /> : null}
+        <AppButton variant="primary" onPress={onStart} loading={loading} disabled={loading}>
+          Go Live
+        </AppButton>
+      </View>
+    </AppDialog>
   );
 }
 
 const styles = StyleSheet.create({
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
   content: {
     gap: 12,
   },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   label: {
     marginTop: 4,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 4,
+    marginTop: 16,
   },
   spacer: {
     flex: 1,

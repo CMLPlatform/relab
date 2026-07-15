@@ -9,7 +9,8 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Button, HelperText, TextInput } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { TextInput } from '@/components/base/TextInput';
 import { WEBSITE_URL } from '@/config';
 import type { NewAccountFormValues } from '@/services/api/validation/userSchema';
 import { openExternalUrl } from '@/services/externalLinks';
@@ -61,9 +62,15 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     marginRight: 10,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   helperText: {
-    marginTop: -8,
+    marginTop: -4,
+    marginBottom: 4,
+    fontSize: 12,
   },
   backButton: {
     flexDirection: 'row',
@@ -95,9 +102,6 @@ const styles = StyleSheet.create({
   privacyLink: {
     fontSize: 12,
     textDecorationLine: 'underline',
-  },
-  registerButton: {
-    minWidth: 140,
   },
 });
 
@@ -159,16 +163,21 @@ function NewAccountStep({
   const renderInput = useCallback(
     ({ field: { onChange, value } }: { field: ControllerRenderProps<NewAccountFormValues> }) => (
       <TextInput
-        style={styles.textInput}
-        mode="outlined"
         value={value}
         onChangeText={onChange}
         autoCapitalize="none"
-        error={Boolean(error)}
+        accessibilityLabel={inputProps.placeholder}
         {...inputProps}
+        style={[
+          styles.textInput,
+          {
+            borderColor: error ? theme.tokens.status.danger : theme.colors.outline,
+            backgroundColor: error ? theme.colors.errorContainer : undefined,
+          },
+        ]}
       />
     ),
-    [error, inputProps],
+    [error, inputProps, theme],
   );
   const arrowStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
@@ -209,20 +218,20 @@ function NewAccountStep({
               </Pressable>
             ) : null}
             {submit ? (
-              <Button
-                mode="contained"
+              <AppButton
+                variant="primary"
                 onPress={submit.onPress}
                 loading={submit.isSubmitting}
-                style={styles.registerButton}
+                className="min-w-[140px]"
               >
                 Create account
-              </Button>
+              </AppButton>
             ) : null}
           </View>
           {error ? (
-            <HelperText type="error" visible style={styles.helperText}>
+            <Text style={[styles.helperText, { color: theme.tokens.status.danger }]}>
               {error.message}
-            </HelperText>
+            </Text>
           ) : null}
         </View>
         {back ? (
@@ -357,7 +366,9 @@ export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayo
 
       <View style={styles.bottomContainer}>
         <PrivacyPolicy />
-        <Button onPress={onNavigateToLogin}>I already have an account</Button>
+        <AppButton variant="ghost" onPress={onNavigateToLogin}>
+          I already have an account
+        </AppButton>
       </View>
     </View>
   );

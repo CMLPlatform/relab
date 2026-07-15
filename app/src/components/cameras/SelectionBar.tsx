@@ -1,5 +1,7 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
 import { IconButton } from '@/components/base/IconButton';
 import { useAppTheme } from '@/theme';
 
@@ -34,27 +36,29 @@ export function SelectionBar({
   return (
     <View style={[styles.bar, { backgroundColor: theme.tokens.surface.accent }]}>
       <IconButton icon="close" onPress={onClear} accessibilityLabel="Clear selection" />
-      <Text variant="titleMedium" style={styles.label}>
+      <AppText variant="title" style={styles.label}>
         {selectedCount} selected
-      </Text>
+      </AppText>
       <View style={styles.spacer} />
-      <Button
-        mode="text"
+      <AppButton
+        variant="ghost"
         onPress={onSelectAll}
         disabled={onlineCount === 0 || selectedCount === onlineCount}
         accessibilityLabel="Select all online cameras"
       >
         Select all ({onlineCount})
-      </Button>
-      <Button
-        mode="contained"
-        icon="camera-burst"
+      </AppButton>
+      <AppButton
+        variant="primary"
         onPress={onCaptureAll}
         loading={isCapturing}
         disabled={!canCapture}
       >
-        {isCapturing ? 'Capturing…' : `Capture ${selectedCount}`}
-      </Button>
+        <MaterialCommunityIcons name="camera-burst" size={16} color={theme.colors.onPrimary} />
+        <AppText style={{ color: theme.colors.onPrimary }}>
+          {isCapturing ? 'Capturing…' : `Capture ${selectedCount}`}
+        </AppText>
+      </AppButton>
     </View>
   );
 }

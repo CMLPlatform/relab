@@ -1,5 +1,5 @@
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Portal, Surface, Text } from 'react-native-paper';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
 import { IconButton } from '@/components/base/IconButton';
 import { OverlaySurface } from '@/components/base/OverlaySurface';
 import type { StreamSession } from '@/context/streamSession';
@@ -18,13 +18,13 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
   if (!(visible && session)) return null;
 
   return (
-    <Portal>
+    <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable
         style={[styles.backdrop, { backgroundColor: theme.tokens.overlay.scrim }]}
         onPress={onDismiss}
       />
 
-      <Surface style={styles.sheet} elevation={4}>
+      <View style={[styles.sheet, { backgroundColor: theme.colors.elevation.level4 }]}>
         <View style={styles.headerRow}>
           <OverlaySurface style={styles.handle} tone="glass" />
           <IconButton
@@ -36,15 +36,15 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
           />
         </View>
 
-        <Text variant="titleSmall" style={styles.cameraLabel}>
+        <AppText variant="title" style={styles.cameraLabel}>
           {session.cameraName}
-        </Text>
+        </AppText>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <StreamingContent session={session} onStop={onDismiss} showProductLink />
         </ScrollView>
-      </Surface>
-    </Portal>
+      </View>
+    </Modal>
   );
 }
 
@@ -63,6 +63,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 32 : 16, // clears the iOS home indicator
     overflow: 'hidden',
+    elevation: 4,
   },
   headerRow: {
     flexDirection: 'row',

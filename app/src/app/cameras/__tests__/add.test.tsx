@@ -46,14 +46,12 @@ describe('AddCameraScreen', () => {
     });
   });
 
-  function getOutlinedInputs() {
-    return screen.getAllByTestId('text-input-outlined');
-  }
-
   it('submits the pairing flow with sanitized uppercase codes', async () => {
     renderWithProviders(<AddCameraScreen />);
 
-    const [pairingCodeInput, cameraNameInput, descriptionInput] = getOutlinedInputs();
+    const pairingCodeInput = screen.getByLabelText('Pairing code');
+    const cameraNameInput = screen.getByLabelText('Camera name *');
+    const descriptionInput = screen.getByLabelText('Description (optional)');
     fireEvent.changeText(pairingCodeInput, 'ab-12cd9');
     fireEvent.changeText(cameraNameInput, 'Workbench Camera');
     fireEvent.changeText(descriptionInput, 'Bench setup');
@@ -78,7 +76,8 @@ describe('AddCameraScreen', () => {
   it('alerts on pairing error', async () => {
     renderWithProviders(<AddCameraScreen />);
 
-    const [pairingCodeInput, cameraNameInput] = getOutlinedInputs();
+    const pairingCodeInput = screen.getByLabelText('Pairing code');
+    const cameraNameInput = screen.getByLabelText('Camera name *');
     fireEvent.changeText(pairingCodeInput, 'AB12CD');
     fireEvent.changeText(cameraNameInput, 'Test Camera');
     fireEvent.press(screen.getByText('Pair camera'));
@@ -94,7 +93,8 @@ describe('AddCameraScreen', () => {
   it('dismisses the pairing success dialog and navigates to the camera list', async () => {
     renderWithProviders(<AddCameraScreen />);
 
-    const [pairingCodeInput, cameraNameInput] = getOutlinedInputs();
+    const pairingCodeInput = screen.getByLabelText('Pairing code');
+    const cameraNameInput = screen.getByLabelText('Camera name *');
     fireEvent.changeText(pairingCodeInput, 'AB12CD');
     fireEvent.changeText(cameraNameInput, 'Test Camera');
     fireEvent.press(screen.getByText('Pair camera'));

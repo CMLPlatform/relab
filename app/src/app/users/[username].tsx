@@ -1,7 +1,9 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Card, Icon } from 'react-native-paper';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Text } from '@/components/base/Text';
@@ -35,7 +37,11 @@ export default function UserProfileScreen() {
 
           {hasError ? (
             <View style={styles.centerContainer}>
-              <Icon source="account-cancel-outline" size={48} color={theme.colors.error} />
+              <MaterialCommunityIcons
+                name="account-cancel-outline"
+                size={48}
+                color={theme.colors.error}
+              />
               <Text style={styles.errorText}>{errorMessage}</Text>
             </View>
           ) : null}
@@ -62,38 +68,54 @@ export default function UserProfileScreen() {
               </View>
 
               <View style={styles.statsSection}>
-                <Card style={styles.statCard} mode="outlined">
-                  <Card.Content style={styles.statContent}>
-                    <Icon source="package-variant-closed" size={32} color={theme.colors.primary} />
-                    <Text style={styles.statValue}>{profile.product_count}</Text>
-                    <Text style={styles.statLabel}>Products</Text>
-                  </Card.Content>
+                <Card style={styles.statCard}>
+                  <View style={styles.statContent}>
+                    <MaterialCommunityIcons
+                      name="package-variant-closed"
+                      size={32}
+                      color={theme.colors.primary}
+                    />
+                    <AppText style={styles.statValue}>{profile.product_count}</AppText>
+                    <AppText style={styles.statLabel}>Products</AppText>
+                  </View>
                 </Card>
 
-                <Card style={styles.statCard} mode="outlined">
-                  <Card.Content style={styles.statContent}>
-                    <Icon source="weight-kilogram" size={32} color={theme.colors.secondary} />
-                    <Text style={styles.statValue}>{profile.total_weight_kg}</Text>
-                    <Text style={styles.statLabel}>Total kg</Text>
-                  </Card.Content>
+                <Card style={styles.statCard}>
+                  <View style={styles.statContent}>
+                    <MaterialCommunityIcons
+                      name="weight-kilogram"
+                      size={32}
+                      color={theme.colors.secondary}
+                    />
+                    <AppText style={styles.statValue}>{profile.total_weight_kg}</AppText>
+                    <AppText style={styles.statLabel}>Total kg</AppText>
+                  </View>
                 </Card>
 
-                <Card style={styles.statCard} mode="outlined">
-                  <Card.Content style={styles.statContent}>
-                    <Icon source="image-multiple" size={32} color={theme.tokens.status.success} />
-                    <Text style={styles.statValue}>{profile.image_count}</Text>
-                    <Text style={styles.statLabel}>Photos</Text>
-                  </Card.Content>
+                <Card style={styles.statCard}>
+                  <View style={styles.statContent}>
+                    <MaterialCommunityIcons
+                      name="image-multiple"
+                      size={32}
+                      color={theme.tokens.status.success}
+                    />
+                    <AppText style={styles.statValue}>{profile.image_count}</AppText>
+                    <AppText style={styles.statLabel}>Photos</AppText>
+                  </View>
                 </Card>
 
-                <Card style={styles.statCard} mode="outlined">
-                  <Card.Content style={styles.statContent}>
-                    <Icon source="tag-outline" size={32} color={theme.tokens.status.warning} />
-                    <Text style={styles.statValue} numberOfLines={1}>
+                <Card style={styles.statCard}>
+                  <View style={styles.statContent}>
+                    <MaterialCommunityIcons
+                      name="tag-outline"
+                      size={32}
+                      color={theme.tokens.status.warning}
+                    />
+                    <AppText style={styles.statValue} numberOfLines={1}>
                       {profile.top_category || 'None'}
-                    </Text>
-                    <Text style={styles.statLabel}>Top category</Text>
-                  </Card.Content>
+                    </AppText>
+                    <AppText style={styles.statLabel}>Top category</AppText>
+                  </View>
                 </Card>
               </View>
             </View>

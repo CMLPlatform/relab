@@ -24,7 +24,14 @@ export const cameraDetailStyles = StyleSheet.create({
   card: {
     borderRadius: 12,
   },
+  // Base Card has no built-in content padding (unlike Paper's Card.Content,
+  // which defaults to padding: 16) — every former Card.Content wrapper needs
+  // it added explicitly.
+  cardContent: {
+    padding: 16,
+  },
   connectionContent: {
+    padding: 16,
     gap: 6,
   },
   statusRow: {
@@ -63,6 +70,7 @@ export const cameraDetailStyles = StyleSheet.create({
     opacity: 0.55,
   },
   previewControlContent: {
+    padding: 16,
     alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
@@ -71,6 +79,7 @@ export const cameraDetailStyles = StyleSheet.create({
     flex: 1,
   },
   detailsContent: {
+    padding: 16,
     gap: 0,
   },
   detailRow: {

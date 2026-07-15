@@ -1,6 +1,8 @@
-import type { ReactNode } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { ComponentProps, ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
 import { IconButton } from '@/components/base/IconButton';
 import { useAppTheme } from '@/theme';
 import { cameraDetailStyles } from './styles';
@@ -28,10 +30,10 @@ export function DetailRow({
 
   return (
     <View style={styles.detailRow}>
-      <Text variant="labelSmall" style={styles.detailLabel}>
+      <AppText variant="label" style={styles.detailLabel}>
         {label}
-      </Text>
-      <Text
+      </AppText>
+      <AppText
         selectable
         numberOfLines={1}
         style={[
@@ -41,7 +43,7 @@ export function DetailRow({
         ]}
       >
         {value}
-      </Text>
+      </AppText>
       {onEdit ? (
         <IconButton
           icon="pencil"
@@ -64,7 +66,7 @@ export function ActionRow({
 }: {
   label: string;
   subtitle?: string;
-  icon: string;
+  icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
   onPress: () => void;
   danger?: boolean;
   loading?: boolean;
@@ -73,25 +75,23 @@ export function ActionRow({
   const color = danger ? theme.colors.error : theme.colors.onSurface;
 
   return (
-    <Button
-      mode="text"
-      icon={icon}
+    <AppButton
+      variant="ghost"
       onPress={onPress}
       loading={loading}
       disabled={loading}
-      textColor={color}
-      style={styles.stretchButton}
-      contentStyle={styles.actionButtonContent}
+      className="w-full justify-start"
     >
+      <MaterialCommunityIcons name={icon} size={18} color={color} />
       <View>
-        <Text style={[styles.actionLabel, { color }]}>{label}</Text>
+        <AppText style={[styles.actionLabel, { color }]}>{label}</AppText>
         {subtitle ? (
-          <Text variant="bodySmall" style={styles.actionSubtitle}>
+          <AppText variant="body" style={styles.actionSubtitle}>
             {subtitle}
-          </Text>
+          </AppText>
         ) : null}
       </View>
-    </Button>
+    </AppButton>
   );
 }
 

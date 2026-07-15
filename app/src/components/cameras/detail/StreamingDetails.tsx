@@ -1,4 +1,7 @@
-import { Card, Divider, Text } from 'react-native-paper';
+import { View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
+import { Separator } from '@/components/base/ui/separator';
 import { YouTubeStreamCard } from '@/components/cameras/YouTubeStreamCard';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { ActionRow, DetailRow } from './detailRows';
@@ -27,19 +30,19 @@ export function CameraDetailsCard({
 }: CameraDetailsCardProps) {
   return (
     <Card style={styles.card}>
-      <Card.Content style={styles.detailsContent}>
+      <View style={styles.detailsContent}>
         <DetailRow label="Name" value={camera.name} onEdit={onEditName} />
-        <Divider />
+        <Separator />
         <DetailRow
           label="Description"
           value={camera.description ?? '—'}
           onEdit={onEditDescription}
         />
-        <Divider />
+        <Separator />
         <DetailRow label="Key ID" value={camera.relay_key_id} mono />
-        <Divider />
+        <Separator />
         <DetailRow label="Camera ID" value={camera.id} mono />
-      </Card.Content>
+      </View>
     </Card>
   );
 }
@@ -51,9 +54,11 @@ type CameraDangerZoneProps = {
 export function CameraDangerZone({ onDelete }: CameraDangerZoneProps) {
   return (
     <>
-      <Text style={styles.sectionLabel}>DANGER ZONE</Text>
+      <AppText variant="label" style={styles.sectionLabel}>
+        DANGER ZONE
+      </AppText>
       <Card style={styles.card}>
-        <Card.Content>
+        <View style={styles.cardContent}>
           <ActionRow
             label="Delete camera"
             subtitle="Permanently removes this camera and all its settings"
@@ -61,7 +66,7 @@ export function CameraDangerZone({ onDelete }: CameraDangerZoneProps) {
             onPress={onDelete}
             danger
           />
-        </Card.Content>
+        </View>
       </Card>
     </>
   );

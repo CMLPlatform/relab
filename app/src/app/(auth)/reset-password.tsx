@@ -1,12 +1,18 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Controller } from 'react-hook-form';
-import { View } from 'react-native';
-import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
+import { Pressable, View } from 'react-native';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
+import { TextInput } from '@/components/base/TextInput';
 import { useResetPassword } from '@/features/auth/usePasswordReset';
 import { useSensitiveAuthToken } from '@/features/auth/useSensitiveAuthToken';
+import { useAppTheme } from '@/theme';
 
 export default function ResetPasswordScreen() {
+  const theme = useAppTheme();
   const router = useRouter();
   const { token: tokenParam } = useLocalSearchParams<{ token: string }>();
   const token = useSensitiveAuthToken(typeof tokenParam === 'string' ? tokenParam : undefined);
@@ -21,22 +27,49 @@ export default function ResetPasswordScreen() {
     }: {
       field: { onChange: (text: string) => void; value: string };
     }) => (
-      <TextInput
-        label="New password"
-        testID="password-input"
-        value={value}
-        onChangeText={onChange}
-        secureTextEntry={!showPassword}
-        autoCapitalize="none"
-        autoComplete="password-new"
-        textContentType="newPassword"
-        disabled={isSubmitting}
-        right={
-          <TextInput.Icon icon={showPassword ? 'eye-off' : 'eye'} onPress={toggleShowPassword} />
-        }
-      />
+      <View style={{ justifyContent: 'center' }}>
+        <TextInput
+          testID="password-input"
+          value={value}
+          onChangeText={onChange}
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          autoComplete="password-new"
+          textContentType="newPassword"
+          editable={!isSubmitting}
+          placeholder="New password"
+          accessibilityLabel="New password"
+          style={{
+            borderWidth: 1,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            paddingRight: 40,
+            borderColor: theme.colors.outline,
+          }}
+        />
+        <Pressable
+          onPress={toggleShowPassword}
+          accessibilityRole="button"
+          accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+          hitSlop={8}
+          style={{ position: 'absolute', right: 12 }}
+        >
+          <MaterialCommunityIcons
+            name={showPassword ? 'eye-off' : 'eye'}
+            size={20}
+            color={theme.colors.onSurfaceVariant}
+          />
+        </Pressable>
+      </View>
     ),
-    [showPassword, isSubmitting, toggleShowPassword],
+    [
+      showPassword,
+      isSubmitting,
+      toggleShowPassword,
+      theme.colors.outline,
+      theme.colors.onSurfaceVariant,
+    ],
   );
   const renderConfirmPassword = useCallback(
     ({
@@ -45,7 +78,6 @@ export default function ResetPasswordScreen() {
       field: { onChange: (text: string) => void; value: string };
     }) => (
       <TextInput
-        label="Confirm new password"
         testID="confirm-password-input"
         value={value}
         onChangeText={onChange}
@@ -53,24 +85,33 @@ export default function ResetPasswordScreen() {
         autoCapitalize="none"
         autoComplete="password-new"
         textContentType="newPassword"
-        disabled={isSubmitting}
+        editable={!isSubmitting}
+        placeholder="Confirm new password"
+        accessibilityLabel="Confirm new password"
+        style={{
+          borderWidth: 1,
+          borderRadius: 8,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          borderColor: theme.colors.outline,
+        }}
       />
     ),
-    [showPassword, isSubmitting],
+    [showPassword, isSubmitting, theme.colors.outline],
   );
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
       <Card>
-        <Card.Content style={{ gap: 16 }}>
-          <Text variant="headlineMedium">Reset password</Text>
+        <View style={{ padding: 16, gap: 16 }}>
+          <AppText variant="display">Reset password</AppText>
 
           {success ? (
             <View style={{ gap: 12, alignItems: 'center', paddingVertical: 16 }}>
-              <Text variant="bodyLarge" style={{ textAlign: 'center' }}>
+              <AppText variant="body" style={{ textAlign: 'center' }}>
                 Password reset. You can now sign in.
-              </Text>
-              <Text variant="bodyMedium">Redirecting to login…</Text>
+              </AppText>
+              <AppText variant="body">Redirecting to login…</AppText>
             </View>
           ) : (
             <>
@@ -79,30 +120,30 @@ export default function ResetPasswordScreen() {
               <Controller control={control} name="confirmPassword" render={renderConfirmPassword} />
 
               {error || fieldError ? (
-                <HelperText type="error" visible>
+                <AppText style={{ color: theme.tokens.status.danger }}>
                   {error ?? fieldError}
-                </HelperText>
+                </AppText>
               ) : null}
 
-              <Button
-                mode="contained"
+              <AppButton
+                variant="primary"
                 onPress={submit}
                 loading={isSubmitting}
                 disabled={isSubmitting || !isValid}
               >
                 Reset password
-              </Button>
+              </AppButton>
 
               <View
                 style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}
               >
-                <Button mode="text" onPress={goToLogin}>
+                <AppButton variant="ghost" onPress={goToLogin}>
                   Back to login
-                </Button>
+                </AppButton>
               </View>
             </>
           )}
-        </Card.Content>
+        </View>
       </Card>
     </View>
   );

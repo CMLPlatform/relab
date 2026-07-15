@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react';
-import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
-import { Text } from '@/components/base/Text';
+import { StyleSheet, View } from 'react-native';
+import { AppButton } from '@/components/base/AppButton';
+import { AppDialog } from '@/components/base/AppDialog';
+import { AppText } from '@/components/base/AppText';
+import { TextInput } from '@/components/base/TextInput';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
-import { cameraDetailStyles as styles } from './styles';
 
 function EditNameDialog({
   initialName,
@@ -16,33 +18,47 @@ function EditNameDialog({
   onDismiss: () => void;
   loading: boolean;
 }) {
+  const theme = useAppTheme();
   const [value, setValue] = useState(initialName);
   const valid = value.trim().length >= 2 && value.trim().length <= 100;
+  const hasError = value.trim().length > 0 && !valid;
   const handleSave = useCallback(() => onSave(value.trim()), [onSave, value]);
 
   return (
-    <Dialog visible onDismiss={onDismiss}>
-      <Dialog.Title>Edit name</Dialog.Title>
-      <Dialog.Content>
-        <TextInput
-          mode="outlined"
-          label="Camera name"
-          value={value}
-          onChangeText={setValue}
-          maxLength={100}
-          autoFocus
-          error={value.trim().length > 0 && !valid}
-        />
-      </Dialog.Content>
-      <Dialog.Actions>
-        <Button onPress={onDismiss} disabled={loading}>
+    <AppDialog visible onDismiss={onDismiss}>
+      <AppText accessibilityRole="header" style={styles.title}>
+        Edit name
+      </AppText>
+      <TextInput
+        value={value}
+        onChangeText={setValue}
+        maxLength={100}
+        autoFocus
+        placeholder="Camera name"
+        accessibilityLabel="Camera name"
+        style={[
+          styles.input,
+          {
+            borderColor: hasError ? theme.tokens.status.danger : theme.colors.outline,
+            backgroundColor: hasError ? theme.colors.errorContainer : undefined,
+            color: hasError ? theme.colors.onErrorContainer : undefined,
+          },
+        ]}
+      />
+      <View style={styles.actions}>
+        <AppButton variant="ghost" onPress={onDismiss} disabled={loading}>
           Cancel
-        </Button>
-        <Button onPress={handleSave} disabled={!valid || loading} loading={loading}>
+        </AppButton>
+        <AppButton
+          variant="primary"
+          onPress={handleSave}
+          disabled={!valid || loading}
+          loading={loading}
+        >
           Save
-        </Button>
-      </Dialog.Actions>
-    </Dialog>
+        </AppButton>
+      </View>
+    </AppDialog>
   );
 }
 
@@ -57,33 +73,35 @@ function EditDescriptionDialog({
   onDismiss: () => void;
   loading: boolean;
 }) {
+  const theme = useAppTheme();
   const [value, setValue] = useState(initialDescription);
   const handleSave = useCallback(() => onSave(value.trim()), [onSave, value]);
 
   return (
-    <Dialog visible onDismiss={onDismiss}>
-      <Dialog.Title>Edit description</Dialog.Title>
-      <Dialog.Content>
-        <TextInput
-          mode="outlined"
-          label="Description"
-          value={value}
-          onChangeText={setValue}
-          maxLength={500}
-          multiline
-          numberOfLines={3}
-          autoFocus
-        />
-      </Dialog.Content>
-      <Dialog.Actions>
-        <Button onPress={onDismiss} disabled={loading}>
+    <AppDialog visible onDismiss={onDismiss}>
+      <AppText accessibilityRole="header" style={styles.title}>
+        Edit description
+      </AppText>
+      <TextInput
+        value={value}
+        onChangeText={setValue}
+        maxLength={500}
+        multiline
+        numberOfLines={3}
+        autoFocus
+        placeholder="Description"
+        accessibilityLabel="Description"
+        style={[styles.input, styles.multilineInput, { borderColor: theme.colors.outline }]}
+      />
+      <View style={styles.actions}>
+        <AppButton variant="ghost" onPress={onDismiss} disabled={loading}>
           Cancel
-        </Button>
-        <Button onPress={handleSave} disabled={loading} loading={loading}>
+        </AppButton>
+        <AppButton variant="primary" onPress={handleSave} disabled={loading} loading={loading}>
           Save
-        </Button>
-      </Dialog.Actions>
-    </Dialog>
+        </AppButton>
+      </View>
+    </AppDialog>
   );
 }
 
@@ -108,50 +126,54 @@ function ManualSetupDialog({
   onChangeKey,
   onConnect,
 }: ManualSetupDialogProps) {
+  const theme = useAppTheme();
   return (
-    <Dialog visible={visible} onDismiss={onDismiss}>
-      <Dialog.Title>Manual direct connection</Dialog.Title>
-      <Dialog.Content style={styles.dialogContent}>
-        <Text style={styles.connectionHint}>
+    <AppDialog visible={visible} onDismiss={onDismiss}>
+      <AppText accessibilityRole="header" style={styles.title}>
+        Manual direct connection
+      </AppText>
+      <View style={styles.dialogContent}>
+        <AppText style={styles.connectionHint}>
           Direct connection bypasses the WebSocket relay, cutting preview latency from ~2 s to ~0.4
           s. Connect an Ethernet cable between the Pi and this device — the app detects it
           automatically. Use this form only if auto-detection didn&apos;t find the Pi; the local API
           key is on the Pi&apos;s /setup page.
-        </Text>
+        </AppText>
         <TextInput
-          mode="outlined"
-          label="Pi API URL"
-          placeholder="http://192.168.7.1:8018"
           value={localUrlInput}
           onChangeText={onChangeUrl}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
+          placeholder="Pi API URL (e.g. http://192.168.7.1:8018)"
+          accessibilityLabel="Pi API URL"
+          style={[styles.input, { borderColor: theme.colors.outline }]}
         />
         <TextInput
-          mode="outlined"
-          label="Local API key"
-          placeholder="local_…"
           value={localKeyInput}
           onChangeText={onChangeKey}
           autoCapitalize="none"
           autoCorrect={false}
           secureTextEntry
+          placeholder="Local API key"
+          accessibilityLabel="Local API key"
+          style={[styles.input, { borderColor: theme.colors.outline }]}
         />
-      </Dialog.Content>
-      <Dialog.Actions>
-        <Button onPress={onDismiss} disabled={saving}>
+      </View>
+      <View style={styles.actions}>
+        <AppButton variant="ghost" onPress={onDismiss} disabled={saving}>
           Cancel
-        </Button>
-        <Button
+        </AppButton>
+        <AppButton
+          variant="primary"
           onPress={onConnect}
           loading={saving}
           disabled={!(localUrlInput.trim() && localKeyInput.trim()) || saving}
         >
           Connect
-        </Button>
-      </Dialog.Actions>
-    </Dialog>
+        </AppButton>
+      </View>
+    </AppDialog>
   );
 }
 
@@ -170,26 +192,24 @@ function CameraDeleteDialog({
   onDismiss,
   onConfirmDelete,
 }: CameraDeleteDialogProps) {
-  const theme = useAppTheme();
-
   return (
-    <Dialog visible={visible} onDismiss={onDismiss}>
-      <Dialog.Title>Delete camera?</Dialog.Title>
-      <Dialog.Content>
-        <Text>
-          This will permanently delete <Text style={styles.boldText}>{cameraName}</Text> and revoke
-          its device credential. The Raspberry Pi will lose access immediately.
-        </Text>
-      </Dialog.Content>
-      <Dialog.Actions>
-        <Button onPress={onDismiss} disabled={loading}>
+    <AppDialog visible={visible} onDismiss={onDismiss}>
+      <AppText accessibilityRole="header" style={styles.title}>
+        Delete camera?
+      </AppText>
+      <AppText>
+        This will permanently delete <AppText style={styles.boldText}>{cameraName}</AppText> and
+        revoke its device credential. The Raspberry Pi will lose access immediately.
+      </AppText>
+      <View style={styles.actions}>
+        <AppButton variant="ghost" onPress={onDismiss} disabled={loading}>
           Cancel
-        </Button>
-        <Button onPress={onConfirmDelete} loading={loading} textColor={theme.colors.error}>
+        </AppButton>
+        <AppButton variant="destructive" onPress={onConfirmDelete} loading={loading}>
           Delete
-        </Button>
-      </Dialog.Actions>
-    </Dialog>
+        </AppButton>
+      </View>
+    </AppDialog>
   );
 }
 
@@ -239,7 +259,7 @@ export function CameraDetailDialogs({
   onConnectLocal,
 }: CameraDetailDialogsProps) {
   return (
-    <Portal>
+    <>
       {editNameVisible ? (
         <EditNameDialog
           initialName={camera.name}
@@ -276,6 +296,40 @@ export function CameraDetailDialogs({
         onChangeKey={onChangeLocalKey}
         onConnect={onConnectLocal}
       />
-    </Portal>
+    </>
   );
 }
+
+const styles = StyleSheet.create({
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  multilineInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  dialogContent: {
+    gap: 12,
+  },
+  connectionHint: {
+    opacity: 0.7,
+    fontSize: 13,
+  },
+  boldText: {
+    fontWeight: '700',
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 4,
+    marginTop: 16,
+  },
+});

@@ -2,7 +2,10 @@ import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Controller } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
-import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
+import { TextInput } from '@/components/base/TextInput';
 import { useForgotPassword } from '@/features/auth/usePasswordReset';
 import { useAppTheme } from '@/theme';
 
@@ -20,68 +23,67 @@ export default function ForgotPasswordScreen() {
       field: { onChange: (text: string) => void; value: string };
     }) => (
       <TextInput
-        label="Email"
         value={value}
         onChangeText={onChange}
         keyboardType="email-address"
         autoCapitalize="none"
         autoComplete="email"
-        disabled={isSubmitting}
+        editable={!isSubmitting}
+        placeholder="Email"
+        accessibilityLabel="Email"
+        style={[styles.input, { borderColor: theme.colors.outline }]}
       />
     ),
-    [isSubmitting],
+    [isSubmitting, theme.colors.outline],
   );
 
   return (
     <View style={styles.screen}>
       <Card>
-        <Card.Content style={styles.cardContent}>
-          <Text variant="headlineMedium">Forgot password</Text>
+        <View style={styles.cardContent}>
+          <AppText variant="display">Forgot password</AppText>
 
           {success ? (
             <View style={styles.successContainer}>
-              <Text
-                variant="bodyLarge"
-                style={{ color: theme.colors.primary, textAlign: 'center' }}
-              >
+              <AppText variant="body" style={{ color: theme.colors.primary, textAlign: 'center' }}>
                 If an account exists with this email, we&apos;ve sent it a password reset link.
-              </Text>
-              <Button mode="contained" onPress={goToLogin}>
+              </AppText>
+              <AppButton variant="primary" onPress={goToLogin}>
                 Back to login
-              </Button>
+              </AppButton>
             </View>
           ) : (
             <>
-              <Text variant="bodyMedium">
+              <AppText variant="body">
                 Enter your email address and we&apos;ll send you instructions to reset your
                 password.
-              </Text>
+              </AppText>
 
               <Controller control={control} name="email" render={renderEmail} />
 
               {error || fieldError ? (
-                <HelperText type="error" visible>
+                <AppText style={{ color: theme.tokens.status.danger }}>
                   {error ?? fieldError}
-                </HelperText>
+                </AppText>
               ) : null}
 
-              <Button
-                mode="contained"
+              <AppButton
+                variant="primary"
                 onPress={submit}
                 loading={isSubmitting}
                 disabled={isSubmitting || !isValid}
               >
                 Send reset link
-              </Button>
+              </AppButton>
 
               <View style={styles.actions}>
-                <Button mode="text" onPress={goBack}>
+                <AppButton variant="ghost" onPress={goBack}>
                   Back to login
-                </Button>
+                </AppButton>
               </View>
             </>
           )}
-        </Card.Content>
+        </View>
       </Card>
     </View>
   );
@@ -92,7 +94,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardContent: {
+    padding: 16,
     gap: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   successContainer: {
     gap: 12,

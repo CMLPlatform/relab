@@ -4,10 +4,12 @@ import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
 
+import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { useDialog } from '@/components/base/dialogContext';
+import { TextInput } from '@/components/base/TextInput';
 import { useAuth } from '@/context/auth';
 import { updateUser } from '@/services/api/auth/authentication';
 import { type OnboardingFormValues, onboardingSchema } from '@/services/api/validation/userSchema';
@@ -40,34 +42,38 @@ function OnboardingBody({
       field: { onChange: (text: string) => void; value: string };
     }) => (
       <TextInput
-        mode="outlined"
         value={value}
         onChangeText={onChange}
         autoCapitalize="none"
         autoCorrect={false}
         placeholder="e.g. awesome_user"
+        accessibilityLabel="Username"
         onSubmitEditing={submitUsername}
+        style={[
+          styles.input,
+          { borderColor: theme.colors.outline, backgroundColor: theme.tokens.surface.card },
+        ]}
       />
     ),
-    [submitUsername],
+    [submitUsername, theme.colors.outline, theme.tokens.surface.card, styles.input],
   );
 
   return (
     <View style={[styles.body, { bottom: getKeyboardHeight() }]}>
       <LinearGradient colors={['transparent', theme.colors.background]} style={styles.gradient} />
       <BrandWordmark style={styles.brandLogo} />
-      <Text style={[styles.title, textShadowStyle]}>Welcome!</Text>
-      <Text style={[styles.subtitle, textShadowStyle]}>Choose a username to continue.</Text>
+      <AppText style={[styles.title, textShadowStyle]}>Welcome!</AppText>
+      <AppText style={[styles.subtitle, textShadowStyle]}>Choose a username to continue.</AppText>
       <Controller control={control} name="username" render={renderUsername} />
-      <Button
-        mode="contained"
+      <AppButton
+        variant="primary"
         loading={isSubmitting}
         disabled={isSubmitting || !isValid}
-        style={styles.button}
+        className="w-full"
         onPress={submitUsername}
       >
         Continue
-      </Button>
+      </AppButton>
     </View>
   );
 }
@@ -155,9 +161,11 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       marginBottom: 10,
       color: theme.colors.onBackground,
     },
-    button: {
-      width: '100%',
-      padding: 5,
+    input: {
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
     },
     keyboardSpacer: {
       position: 'absolute',
