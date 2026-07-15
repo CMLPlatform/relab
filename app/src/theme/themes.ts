@@ -2,10 +2,9 @@ import {
   DarkTheme as navigationDarkTheme,
   DefaultTheme as navigationLightTheme,
 } from 'expo-router';
-import { Platform } from 'react-native';
 import { palette } from './palette.generated';
 import { createTokens } from './tokens';
-import type { AppFonts, AppScheme, AppTheme } from './types';
+import type { AppScheme, AppTheme } from './types';
 
 /** '#1F4C96' -> 'rgb(31, 76, 150)' — matches the previous MD3-derived string format exactly. */
 function rgb(hex: string): string {
@@ -59,68 +58,11 @@ function createThemeColors(isDark: boolean) {
   };
 }
 
-// Brand type scale (assets/DESIGN.md) over Paper's former MD3 default type scale;
-// the app stays on platform system fonts, only sizes/tracking shift. Digits that
-// must align keep using per-component `fontVariant: ['tabular-nums']`. Values
-// below are the byte-identical output of the old `configureFonts({ config: {...} })`
-// call, captured as literals so removing the dependency changes nothing at runtime.
-const REGULAR_FAMILY = Platform.select({
-  web: 'Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif',
-  ios: 'System',
-  default: 'sans-serif',
-});
-const MEDIUM_FAMILY = Platform.select({
-  web: 'Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif',
-  ios: 'System',
-  default: 'sans-serif-medium',
-});
-const regularType = { fontFamily: REGULAR_FAMILY, letterSpacing: 0, fontWeight: '400' } as const;
-const mediumType = { fontFamily: MEDIUM_FAMILY, letterSpacing: 0.15, fontWeight: '500' } as const;
-
-const fonts: AppFonts = {
-  displayLarge: { ...regularType, lineHeight: 64, fontSize: 57 },
-  displayMedium: { ...regularType, lineHeight: 52, fontSize: 45 },
-  displaySmall: { ...regularType, lineHeight: 44, fontSize: 38 },
-  headlineLarge: { ...regularType, lineHeight: 40, fontSize: 32 },
-  headlineMedium: { ...regularType, lineHeight: 36, fontSize: 28 },
-  headlineSmall: { ...regularType, lineHeight: 30, fontSize: 24 },
-  titleLarge: { ...regularType, lineHeight: 28, fontSize: 22 },
-  titleMedium: { ...mediumType, lineHeight: 24, fontSize: 16 },
-  titleSmall: { ...mediumType, letterSpacing: 0.1, lineHeight: 20, fontSize: 14 },
-  labelLarge: { ...mediumType, letterSpacing: 0.1, lineHeight: 20, fontSize: 14 },
-  labelMedium: { ...mediumType, letterSpacing: 1.3, lineHeight: 18, fontSize: 13 },
-  labelSmall: { ...mediumType, letterSpacing: 0.5, lineHeight: 16, fontSize: 11 },
-  bodyLarge: {
-    ...mediumType,
-    fontWeight: '400',
-    fontFamily: REGULAR_FAMILY,
-    lineHeight: 26,
-    fontSize: 16,
-  },
-  bodyMedium: {
-    ...mediumType,
-    fontWeight: '400',
-    fontFamily: REGULAR_FAMILY,
-    letterSpacing: 0.25,
-    lineHeight: 20,
-    fontSize: 14,
-  },
-  bodySmall: {
-    ...mediumType,
-    fontWeight: '400',
-    fontFamily: REGULAR_FAMILY,
-    letterSpacing: 0.4,
-    lineHeight: 16,
-    fontSize: 12,
-  },
-};
-
 function createTheme(scheme: AppScheme): AppTheme {
   const isDark = scheme === 'dark';
   const colors = createThemeColors(isDark);
   return {
     colors,
-    fonts,
     dark: isDark,
     scheme,
     tokens: createTokens(scheme, colors),

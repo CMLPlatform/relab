@@ -1,31 +1,5 @@
 export type AppScheme = 'light' | 'dark';
 
-type FontVariant = {
-  fontFamily: string | undefined;
-  letterSpacing: number;
-  fontWeight: string;
-  lineHeight: number;
-  fontSize: number;
-};
-
-export type AppFonts = {
-  displayLarge: FontVariant;
-  displayMedium: FontVariant;
-  displaySmall: FontVariant;
-  headlineLarge: FontVariant;
-  headlineMedium: FontVariant;
-  headlineSmall: FontVariant;
-  titleLarge: FontVariant;
-  titleMedium: FontVariant;
-  titleSmall: FontVariant;
-  labelLarge: FontVariant;
-  labelMedium: FontVariant;
-  labelSmall: FontVariant;
-  bodyLarge: FontVariant;
-  bodyMedium: FontVariant;
-  bodySmall: FontVariant;
-};
-
 export type AppColorScale = {
   primary: string;
   onPrimary: string;
@@ -119,7 +93,6 @@ export type AppTokens = {
 
 export interface AppTheme {
   colors: AppColorScale;
-  fonts: AppFonts;
   dark: boolean;
   scheme: AppScheme;
   tokens: AppTokens;
