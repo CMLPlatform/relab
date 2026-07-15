@@ -5,7 +5,7 @@
  */
 
 import { expect, test } from '@playwright/test';
-import { loginAndReachProducts, reachProductsPage } from './helpers';
+import { dismissProductsInfoCard, loginAndGoToProfile, reachProductsPage } from './helpers';
 
 test.setTimeout(60_000);
 
@@ -21,23 +21,50 @@ const CAMERAS_URL_PATTERN = /cameras/;
 test.describe('Top nav (>=lg)', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test('renders Products and Cameras, marks the active destination, and navigates on click', async ({
+  test('renders Products, marks the active destination, and hides Cameras until RPi camera is enabled', async ({
     page,
   }) => {
-    await loginAndReachProducts(page);
+    await loginAndGoToProfile(page);
+
+    // The RPi setting is server-side on the shared e2e-admin account, so a
+    // prior run (or this test's own leftover state) can start it enabled.
+    // Force it off first so "hidden by default" below is deterministic.
+    const rpiSwitch = page.getByLabel('RPi Camera');
+    await expect(rpiSwitch).toBeVisible();
+    if (await rpiSwitch.isChecked()) {
+      await rpiSwitch.click();
+      await expect(rpiSwitch).not.toBeChecked({ timeout: 10_000 });
+    }
 
     // The brand pressable is the TopNav-only landmark (the stack header's
     // wordmark has no such accessible name), so its presence proves the top
     // bar itself rendered.
     await expect(page.getByLabel('Relab, go to products')).toBeVisible();
     await expect(page.getByRole('img', { name: WORDMARK_IMAGE_NAME })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Products', exact: true })).toBeVisible();
 
+    // Cameras is gated on the RPi camera integration setting (Integrations
+    // section of the account screen) and is hidden by default.
+    await expect(page.getByRole('button', { name: 'Cameras', exact: true })).not.toBeVisible();
+
+    // Enable RPi camera, then confirm the nav link appears and works.
+    await rpiSwitch.click();
+    await expect(rpiSwitch).toBeChecked({ timeout: 10_000 });
+
+    await page.goto('/products');
+    await dismissProductsInfoCard(page);
     await expect(page.getByRole('button', { name: 'Products, current page' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cameras' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cameras', exact: true })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Cameras' }).click();
+    await page.getByRole('button', { name: 'Cameras', exact: true }).click();
     await expect(page).toHaveURL(CAMERAS_URL_PATTERN, { timeout: 10_000 });
     await expect(page.getByRole('button', { name: 'Cameras, current page' })).toBeVisible();
+
+    // Leave the shared account clean for other tests/runs.
+    await page.goto('/account');
+    await expect(rpiSwitch).toBeVisible();
+    await rpiSwitch.click();
+    await expect(rpiSwitch).not.toBeChecked({ timeout: 10_000 });
   });
 
   test('does not duplicate the stack header on a screen the top nav covers', async ({ page }) => {

@@ -81,7 +81,9 @@ function MenuItem({
         pressed && { backgroundColor: theme.colors.surfaceVariant },
       ]}
     >
-      <AppText style={styles.itemLabel}>{title}</AppText>
+      <AppText testID="menu-item-title" style={styles.itemLabel}>
+        {title}
+      </AppText>
       {trailingIcon ? (
         <MaterialCommunityIcons name={trailingIcon} size={18} color={theme.colors.onSurface} />
       ) : null}

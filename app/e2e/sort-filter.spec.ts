@@ -118,8 +118,10 @@ test.describe('Date filter chips', () => {
     await goToProducts(page);
     await selectMenuItem(page, page.getByText('Date', { exact: true }), 'Last 30d');
     await expect(page).toHaveURL(DAYS_30_URL_PATTERN, { timeout: 3_000 });
-    // Toggle off via the close (×) button on the active chip
-    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    // Toggle off via the close (×) button on the active chip. FilterChip
+    // (base/ui replacement for Paper's Chip) labels it "Clear {label} filter"
+    // rather than a bare "Close".
+    await page.getByRole('button', { name: 'Clear Last 30d filter', exact: true }).click();
     await expect(page).not.toHaveURL(ANY_DAYS_URL_PATTERN, { timeout: 5_000 });
   });
 
