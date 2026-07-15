@@ -5,6 +5,7 @@ import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { StatusPill } from '@/components/base/StatusPill';
 import type { StreamSession } from '@/context/streamSession';
 import { useStreamSession } from '@/context/streamSession';
 import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
@@ -63,9 +64,7 @@ export function StreamingContent({
     <View style={styles.root}>
       {/* Header: LIVE badge + elapsed */}
       <View style={styles.header}>
-        <View style={[styles.liveChip, { backgroundColor: theme.tokens.status.live }]}>
-          <AppText style={styles.liveChipText}>LIVE</AppText>
-        </View>
+        <StatusPill label="LIVE" tone="live" />
         <AppText variant="body" style={styles.elapsed}>
           {elapsed}
         </AppText>
@@ -115,18 +114,6 @@ function createStyles(theme: ReturnType<typeof useAppTheme>) {
       gap: 8,
       paddingHorizontal: 16,
       paddingVertical: 4,
-    },
-    liveChip: {
-      height: 24,
-      justifyContent: 'center',
-      paddingHorizontal: 8,
-      borderRadius: 12,
-    },
-    liveChipText: {
-      color: theme.colors.onError,
-      fontSize: 11,
-      fontWeight: '700',
-      lineHeight: 14,
     },
     elapsed: {
       flex: 1,

@@ -4,6 +4,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { MutedText } from '@/components/base/MutedText';
+import { StatusPill } from '@/components/base/StatusPill';
 import type { StreamView } from '@/services/api/rpiCamera';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
@@ -24,14 +25,6 @@ const createThemedStyles = memoizeByTheme((theme: AppTheme) => {
       borderLeftWidth: 3,
       borderLeftColor: theme.tokens.status.live,
     },
-    liveChip: {
-      backgroundColor: theme.tokens.status.live,
-      height: 22,
-      justifyContent: 'center',
-      paddingHorizontal: 8,
-      borderRadius: 11,
-    },
-    liveChipText: { color: theme.colors.onError, fontSize: 11, fontWeight: '700' },
     watchLink: { color: theme.colors.primary },
   });
 });
@@ -70,11 +63,7 @@ export function YouTubeStreamCardView({
           <AppText variant="title" style={styles.headerTitle}>
             YouTube Live
           </AppText>
-          {isLive ? (
-            <View style={themed.liveChip}>
-              <AppText style={themed.liveChipText}>LIVE</AppText>
-            </View>
-          ) : null}
+          {isLive ? <StatusPill label="LIVE" tone="live" /> : null}
         </View>
 
         {isLoading && !streamStatus ? (
