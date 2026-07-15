@@ -25,6 +25,7 @@ import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMode';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useGlobalDialogA11y } from '@/hooks/useGlobalDialogA11y';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 import { useBackgroundOverlayColor } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
@@ -151,6 +152,7 @@ function AppShell() {
   const { activeStream } = useStreamSession();
   const overlayColor = useBackgroundOverlayColor(isDark);
   const { isLg } = useBreakpoint();
+  useGlobalDialogA11y();
 
   // On native there's no document/visibilitychange, so TanStack's focus
   // manager reports always-focused and refetch intervals (camera telemetry,
