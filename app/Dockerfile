@@ -17,11 +17,10 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH
 
-RUN npm install -g pnpm@11.1.1
-
 COPY package.json pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
 COPY app/package.json app/package.json
+RUN npm install -g corepack@latest && corepack enable
 RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter ./app... --prefer-offline
 
