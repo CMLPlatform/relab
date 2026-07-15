@@ -1,13 +1,13 @@
 ---
 title: Security and hardening
-description: ReLab's deployed security posture and trust-boundary controls.
+description: Relab's deployed security posture and trust-boundary controls.
 ---
 
-ReLab is a self-hosted research platform. Its security posture is intentionally small and explicit: public traffic enters through Cloudflare Tunnel, data services stay on private Compose networks, outbound backend HTTP is allowlisted, and sensitive application behavior is covered by source-controlled checks.
+Relab is a self-hosted research platform. Its security posture is intentionally small and explicit: public traffic enters through Cloudflare Tunnel, data services stay on private Compose networks, outbound backend HTTP is allowlisted, and sensitive application behavior is covered by source-controlled checks.
 
 ## Baseline
 
-ReLab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline. The practical review focus is:
+Relab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline. The practical review focus is:
 
 - authentication, OAuth, and token flows
 - public read APIs and authenticated mutation APIs
@@ -20,7 +20,7 @@ Valuable assets include accounts, profile/privacy settings, research records, up
 
 ## Data protection
 
-ReLab classifies data by how much harm disclosure or misuse would cause, then keeps the protection rules close to that classification:
+Relab classifies data by how much harm disclosure or misuse would cause, then keeps the protection rules close to that classification:
 
 - **Public research data:** product records, public catalog/reference data, public dataset metadata, and intentionally public uploaded media. These may be cached when responses are public and content-addressed assets must 404 when missing rather than falling back to the app shell.
 - **User and account data:** email addresses, usernames, profile preferences, contribution statistics, owner attribution, and account state. These are access-controlled by backend dependencies and privacy policy helpers. Viewer-dependent API responses use `no-store`, and product owner identity is redacted when profile visibility does not allow the current viewer to see it.
@@ -42,13 +42,13 @@ The backend writes application, access, audit, and security-control events throu
 
 Structured audit events cover accountability actions and security-control outcomes such as login success or failure, MFA challenge success or failure, logout, all-session revocation, authorization denial, and rate limiting. Event fields are sanitized before logging. Logs may include stable IDs, masked account identifiers, request metadata, action names, resource labels, outcomes, and non-secret reasons; they must not include passwords, raw tokens, OAuth material, private URLs, or raw sensitive payload bodies.
 
-Container logs are the default storage and transport mechanism. Deploy hosts may add the optional Loki logging overlay, and OpenTelemetry export may be enabled when an operator has a separate collector. Log access, retention, backup, and deletion are operator responsibilities outside the application process; ReLab only emits to the documented stdout/stderr, Loki, or OTel paths configured for that deployment.
+Container logs are the default storage and transport mechanism. Deploy hosts may add the optional Loki logging overlay, and OpenTelemetry export may be enabled when an operator has a separate collector. Log access, retention, backup, and deletion are operator responsibilities outside the application process; Relab only emits to the documented stdout/stderr, Loki, or OTel paths configured for that deployment.
 
 Unexpected application errors are handled by the backend catch-all exception handler. Internal details and stack traces are logged for operators, while clients receive generic Problem Details responses with the request ID for correlation.
 
 ## Inbound edge
 
-Production and staging are HTTPS-only behind Cloudflare Tunnel. Source-controlled Cloudflare configuration in `infra/cloudflare/` owns DNS records, public hostnames, tunnel ingress rules, TLS minimums, HTTPS redirects, and ReLab-specific rate limiting for auth, upload, and RPi camera traffic.
+Production and staging are HTTPS-only behind Cloudflare Tunnel. Source-controlled Cloudflare configuration in `infra/cloudflare/` owns DNS records, public hostnames, tunnel ingress rules, TLS minimums, HTTPS redirects, and Relab-specific rate limiting for auth, upload, and RPi camera traffic.
 
 Unknown tunnel hostnames fall through to a final `http_status:404` rule. Compose still owns runtime services; OpenTofu owns only the public edge.
 
@@ -67,11 +67,11 @@ PostgreSQL and Redis do not publish host ports in prod or staging. The current i
 
 Backend outbound HTTP must use the shared HTTP client unless a reviewed exception exists. The shared client ignores ambient proxy and CA environment variables, does not follow redirects, uses bounded timeouts, validates TLS certificates, and permits only `OUTBOUND_HTTP_ALLOWED_URLS`.
 
-Prefer exact HTTPS URLs. Use trailing-slash prefixes only for integrations with required dynamic path segments. Keep GitHub, raw GitHub, and provider API access narrowed to the specific integration URLs ReLab uses.
+Prefer exact HTTPS URLs. Use trailing-slash prefixes only for integrations with required dynamic path segments. Keep GitHub, raw GitHub, and provider API access narrowed to the specific integration URLs Relab uses.
 
 ## Denial-of-service controls
 
-ReLab keeps denial-of-service mitigation layered. Cloudflare Tunnel is the public ingress for production and staging; source-controlled edge rules cover `/v1/auth/*`, upload routes, RPi camera upload routes, and WebSocket connection attempts. Volumetric attacks are handled by Cloudflare and upstream infrastructure, not by FastAPI.
+Relab keeps denial-of-service mitigation layered. Cloudflare Tunnel is the public ingress for production and staging; source-controlled edge rules cover `/v1/auth/*`, upload routes, RPi camera upload routes, and WebSocket connection attempts. Volumetric attacks are handled by Cloudflare and upstream infrastructure, not by FastAPI.
 
 The expensive paths are media uploads, image processing and thumbnails, malware scanning, file cleanup, backups, OpenAPI/schema generation, YouTube API calls, and RPi camera relay/HLS traffic. The backend keeps these bounded with JSON streaming limits, multipart upload caps, file format allowlists, user upload quotas, Redis-backed route rate limits, image worker limits, ClamAV scan timeouts, bounded outbound HTTP timeouts/retries, WebSocket authentication and frame limits, and camera relay circuit-breaking.
 
@@ -88,7 +88,7 @@ services:
 
 ## Browser runtime policy
 
-ReLab does not load third-party browser runtime JavaScript by default. Browser code is bundled and served first-party; Biome and CI checks block remote script tags, remote module imports, CDN runtime assets, analytics snippets, and tag-manager snippets.
+Relab does not load third-party browser runtime JavaScript by default. Browser code is bundled and served first-party; Biome and CI checks block remote script tags, remote module imports, CDN runtime assets, analytics snippets, and tag-manager snippets.
 
 The current exception is product video embedding from `https://www.youtube-nocookie.com`, constrained by CSP and iframe/WebView controls. Any new third-party runtime script must be reviewed, documented, CSP-allowlisted, and tested.
 
@@ -109,7 +109,7 @@ Dependency updates use risk-based timeframes:
 
 If no upstream fix exists, record the accepted risk, compensating control, or temporary pin in the PR, issue, or nearest maintainer documentation. Do not keep production dependencies past these windows without an explicit maintainer decision.
 
-Trusted dependency sources are the source-controlled package manifests, lockfiles, Docker image references, GitHub Actions pins, and Renovate configuration. SBOMs produced by security and release workflows are the deployable dependency inventory. ReLab deploys locally built Compose images, so release attestations prove SBOM file provenance; image-digest-bound SBOM attestations require publishing runtime images to a registry.
+Trusted dependency sources are the source-controlled package manifests, lockfiles, Docker image references, GitHub Actions pins, and Renovate configuration. SBOMs produced by security and release workflows are the deployable dependency inventory. Relab deploys locally built Compose images, so release attestations prove SBOM file provenance; image-digest-bound SBOM attestations require publishing runtime images to a registry.
 
 Risky components are dependencies that parse untrusted content, execute native code, perform cryptography, manage authentication, or open network/file boundaries. Current examples include image processing, archive/office file inspection, OAuth/provider clients, S3-compatible storage, Redis/PostgreSQL drivers, ClamAV, and browser media playback helpers. Changes to these components need maintainer review even when automated checks pass.
 

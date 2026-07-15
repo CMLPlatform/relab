@@ -20,6 +20,6 @@ Guides for people collecting records, setting up capture tools, or using the API
   Pair and use a camera-assisted capture setup.
 
 - **[API interaction](api/)**
-  Read and write ReLab data from scripts, notebooks, or integrations.
+  Read and write Relab data from scripts, notebooks, or integrations.
 
 </div>

@@ -1,6 +1,6 @@
 ---
 title: Data collection guide
-description: Capture a solid ReLab record with clear hierarchy, media, and reference data.
+description: Capture a solid Relab record with clear hierarchy, media, and reference data.
 ---
 
 A good record captures what the product is, how it comes apart, and what evidence you collected along the way. Photos and notes are often more valuable than a perfectly filled form.
@@ -64,7 +64,7 @@ Attach media in two ways:
 - manual upload of files and images
 - device-assisted capture through the Raspberry Pi camera integration
 
-Use image uploads for ordinary display photos. Use file uploads for research documents and scientific datasets, including hyperspectral ENVI, HDF5, NITF, and GeoTIFF files, so ReLab stores the original data without image processing.
+Use image uploads for ordinary display photos. Use file uploads for research documents and scientific datasets, including hyperspectral ENVI, HDF5, NITF, and GeoTIFF files, so Relab stores the original data without image processing.
 
 If you are using the camera integration, see [RPi camera integration](../rpi-cam/).
 
@@ -76,7 +76,7 @@ Accepted types and size limits:
 - Research files: `.csv`, `.docx`, `.json`, `.md`, `.pdf`, `.pptx`, `.tsv`, `.txt`, `.xlsx` — up to 50 MiB.
 - Scientific data: `.dat`, `.h5`, `.hdr`, `.hdf5`, `.img`, `.nitf`, `.ntf`, `.raw`, `.tif`, `.tiff` — up to 50 MiB.
 
-ReLab validates type, size, and content before storing a file. Office files are unpacked and inspected before acceptance. Each account has a cap on total file count and storage used. If malware scanning is enabled, files are scanned on upload and rejected if flagged.
+Relab validates type, size, and content before storing a file. Office files are unpacked and inspected before acceptance. Each account has a cap on total file count and storage used. If malware scanning is enabled, files are scanned on upload and rejected if flagged.
 
 ## Final check
 

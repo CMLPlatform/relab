@@ -1,9 +1,9 @@
 ---
 title: Dataset
-description: How to browse current ReLab records and how curated dataset releases will differ.
+description: How to browse current Relab records and how curated dataset releases will differ.
 ---
 
-Current ReLab records can be browsed in the production app: [app.cml-relab.org](https://app.cml-relab.org).
+Current Relab records can be browsed in the production app: [app.cml-relab.org](https://app.cml-relab.org).
 
 The app is the live operational system. A curated dataset release is a different thing: a reviewed, versioned snapshot with clear scope, metadata, and licensing.
 

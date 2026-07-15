@@ -1,12 +1,12 @@
 ---
 title: Roadmap
-description: Research and platform priorities for the next ReLab phases.
+description: Research and platform priorities for the next Relab phases.
 ---
 
 ## Research direction
 
 The main question is how to make product data collection more scalable, collaborative, and reusable.
-ReLab focuses on open, FAIR product-level disassembly data, with automation kept
+Relab focuses on open, FAIR product-level disassembly data, with automation kept
 human-verified rather than fully automatic.
 
 The live work list is tracked in the public [GitHub issues](https://github.com/CMLPlatform/relab/issues).

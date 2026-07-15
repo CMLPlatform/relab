@@ -1,9 +1,9 @@
 ---
 title: Deployment and operations
-description: The self-hosted ReLab deployment topology and its operational trade-offs.
+description: The self-hosted Relab deployment topology and its operational trade-offs.
 ---
 
-ReLab runs as a self-hosted Docker Compose stack sized for a single VPS.
+Relab runs as a self-hosted Docker Compose stack sized for a single VPS.
 
 ## Compose service topology
 
@@ -71,7 +71,7 @@ Focused subrepo work should use the subrepo `justfile`.
 
 ## Cloudflare edge as code
 
-ReLab manages public hostnames through OpenTofu in `infra/cloudflare/`. The
+Relab manages public hostnames through OpenTofu in `infra/cloudflare/`. The
 configuration is intentionally narrow: DNS records, separate prod/staging
 Cloudflare Tunnels, Tunnel ingress rules, and a final `http_status:404` catch-all
 for unknown hostnames. It does not manage app secrets, Compose services,
@@ -116,7 +116,7 @@ model.
 Production and staging are HTTPS-only behind Cloudflare Tunnel. The Cloudflare
 edge configuration in `infra/cloudflare/` enforces TLS 1.2 or newer, enables TLS
 1.3, redirects HTTP requests to HTTPS before they reach the tunnel, and owns
-ReLab-specific Cloudflare rate limiting policy for auth, upload, and RPi camera
+Relab-specific Cloudflare rate limiting policy for auth, upload, and RPi camera
 traffic.
 
 Every deployed browser-facing origin emits:
@@ -134,7 +134,7 @@ service moves off that trusted network, enable validating TLS with
 private CAs. See [Security and hardening](/operations/security/) for the broader
 trust-boundary model.
 
-Supported browsers must implement HTTPS, HSTS, Content Security Policy, host-prefixed secure cookies, SameSite cookies, CORS preflight enforcement, and the modern cross-origin isolation headers used by ReLab (`Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy`). Unsupported browsers are not given a fallback security mode; they may fail to authenticate, fail to load protected media, or be blocked by browser policy.
+Supported browsers must implement HTTPS, HSTS, Content Security Policy, host-prefixed secure cookies, SameSite cookies, CORS preflight enforcement, and the modern cross-origin isolation headers used by Relab (`Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy`). Unsupported browsers are not given a fallback security mode; they may fail to authenticate, fail to load protected media, or be blocked by browser policy.
 
 ## Deploy flow
 
@@ -173,7 +173,7 @@ Root deployment validation renders the supported Compose overlays with `just com
 
 ## Secrets and encrypted fields
 
-Most ReLab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPi camera keys, request IDs, and cache keys are not application-encrypted.
+Most Relab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPi camera keys, request IDs, and cache keys are not application-encrypted.
 
 `deploy/env/variables.toml` is the source-controlled runtime secret inventory. It lists the secret files Compose should render under `secrets/<env>/` and keeps the future Infisical path template beside that contract. Use `just env-inventory` from the repo root when onboarding a host or reviewing secret-file changes.
 

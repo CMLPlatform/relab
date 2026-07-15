@@ -84,11 +84,11 @@ const SIDEBAR = [
   },
 ];
 const STARLIGHT_OPTIONS = {
-  title: 'ReLab docs',
-  description: 'Technical documentation for the ReLab research platform.',
+  title: 'Relab docs',
+  description: 'Technical documentation for the Relab research platform.',
   logo: {
     src: './public/images/wordmark.svg',
-    alt: 'ReLab',
+    alt: 'Relab',
     replacesTitle: true,
   },
   favicon: '/images/favicon.svg',
@@ -96,7 +96,7 @@ const STARLIGHT_OPTIONS = {
   lastUpdated: true,
   pagefind: true,
   social: [
-    { icon: 'external', label: 'Open ReLab app', href: 'https://app.cml-relab.org' },
+    { icon: 'external', label: 'Open Relab app', href: 'https://app.cml-relab.org' },
     { icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' },
   ],
   editLink: {

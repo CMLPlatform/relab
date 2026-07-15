@@ -3,7 +3,7 @@ title: Architecture
 description: System design, data model, API, and auth.
 ---
 
-How ReLab is built. These pages are for maintainers and contributors who need to understand the main system boundaries before changing code.
+How Relab is built. These pages are for maintainers and contributors who need to understand the main system boundaries before changing code.
 
 ## Architecture
 
@@ -26,7 +26,7 @@ How ReLab is built. These pages are for maintainers and contributors who need to
 
 </div>
 
-## Running ReLab
+## Running Relab
 
 <div class="grid cards relab-card-grid" markdown>
 

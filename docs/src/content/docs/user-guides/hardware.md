@@ -1,6 +1,6 @@
 ---
 title: Hardware
-description: Choose a simple or advanced capture setup for ReLab documentation work.
+description: Choose a simple or advanced capture setup for Relab documentation work.
 ---
 
 Good lighting and a clean workspace matter more than fancy equipment. Start simple; add complexity only if your workflow actually needs it.

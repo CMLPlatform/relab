@@ -1,9 +1,9 @@
 ---
 title: API reference
-description: Choose an interactive ReLab API reference generated from the committed OpenAPI schemas.
+description: Choose an interactive Relab API reference generated from the committed OpenAPI schemas.
 ---
 
-The ReLab API references are interactive views of the generated OpenAPI schemas committed with the docs site. Use them for endpoint details, request and response models, authentication requirements, and schema downloads.
+The Relab API references are interactive views of the generated OpenAPI schemas committed with the docs site. Use them for endpoint details, request and response models, authentication requirements, and schema downloads.
 
 <div class="grid cards relab-card-grid" markdown>
 
@@ -11,7 +11,7 @@ The ReLab API references are interactive views of the generated OpenAPI schemas 
   Application API for platform data, accounts, authentication, media, and public research records.
 
 - **[Device API](/api/device/)**
-  Backend-facing integration API for pairing devices and ReLab plugins with the platform.
+  Backend-facing integration API for pairing devices and Relab plugins with the platform.
 
 - **[RPi camera API](/api/rpi-cam/)**
   Local camera service API for status checks, capture workflows, and camera-device integration.

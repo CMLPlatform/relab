@@ -1,6 +1,6 @@
 ---
 title: API interaction guide
-description: Use the ReLab API safely for scripts, notebooks, and external tooling.
+description: Use the Relab API safely for scripts, notebooks, and external tooling.
 ---
 
 For the authoritative schema, request models, and endpoint list, start from the [API reference overview](/api-reference/). Use the [public API reference](/api/public/) for application and data endpoints, the [device API reference](/api/device/) for backend-facing device integration, and the [RPi camera API reference](/api/rpi-cam/) for the local camera service. For how the API is designed internally, see [API structure](../../architecture/api/).
@@ -10,7 +10,7 @@ The public API is versioned under `/v1`. Client configuration should keep the AP
 ## When to use the API directly
 
 - scripted or batch access to structured research data
-- connecting ReLab records to notebooks or external tooling
+- connecting Relab records to notebooks or external tooling
 - automating repetitive reference-data lookups
 - building custom integrations on top of the platform
 

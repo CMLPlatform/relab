@@ -1,9 +1,9 @@
 ---
 title: RPi camera plugin architecture
-description: How the ReLab Raspberry Pi camera plugin talks to the backend and app clients.
+description: How the Relab Raspberry Pi camera plugin talks to the backend and app clients.
 ---
 
-The RPi camera plugin is optional. It connects camera devices to ReLab for remote capture, HLS preview streaming, and YouTube streaming. The backend remains the control plane and default relay path; when the camera and client share a LAN, the ReLab app can optionally switch to direct local access for lower-latency preview and capture.
+The RPi camera plugin is optional. It connects camera devices to Relab for remote capture, HLS preview streaming, and YouTube streaming. The backend remains the control plane and default relay path; when the camera and client share a LAN, the Relab app can optionally switch to direct local access for lower-latency preview and capture.
 
 For platform-side setup and day-to-day usage, see the [RPi camera user guide](../../user-guides/rpi-cam/). For endpoint details, start from the [API reference overview](/api-reference/): app-facing camera routes are in the [public API reference](/api/public/), backend-facing device routes are in the [device API reference](/api/device/), and the local plugin service is in the [RPi camera API reference](/api/rpi-cam/). For device installation and deployment, see the [RPi camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
@@ -131,7 +131,7 @@ sequenceDiagram
 - **Two contract layers**: backend OpenAPI remains the public app-facing contract, while a smaller shared private device contract covers pairing payloads, relay envelopes, local-access bootstrap, and Pi-initiated upload acknowledgements.
 - **Optional local direct mode**: After pairing, the app can switch to LAN-direct access with a device-local API key for lower-latency preview and capture when the device is reachable locally.
 - **Relay-first registration**: Cameras pair through a short-lived code and receive runtime relay credentials from the backend; operators do not manually copy long-lived API keys in the normal path.
-- **Media storage**: Captured images are stored in ReLab's file storage and linked to the originating product or component record automatically.
+- **Media storage**: Captured images are stored in Relab's file storage and linked to the originating product or component record automatically.
 - **Optional YouTube integration**: Streaming is mediated through the backend's OAuth connection to YouTube. The device streams directly to YouTube once authorized.
 
 ## Contract ownership
