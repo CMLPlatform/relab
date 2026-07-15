@@ -8,14 +8,34 @@ describe('useGlobalDialogA11y', () => {
   const originalPlatform = Platform.OS;
   const addEventListener = jest.fn();
   const removeEventListener = jest.fn();
+  const observe = jest.fn();
+  const disconnect = jest.fn();
+  // Captures the callback passed to `new MutationObserver(cb)` so tests can
+  // fire it manually to simulate the modal-wrapper node appearing/disappearing.
+  let mutationCallback: (() => void) | undefined;
+  class MockMutationObserver {
+    constructor(callback: () => void) {
+      mutationCallback = callback;
+    }
+    observe = observe;
+    disconnect = disconnect;
+  }
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mutationCallback = undefined;
     Object.defineProperty(Platform, 'OS', { configurable: true, value: 'web' });
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
       value: { addEventListener, removeEventListener },
     });
+    Object.defineProperty(globalThis, 'MutationObserver', {
+      configurable: true,
+      value: MockMutationObserver,
+    });
+    // Base default so mount doesn't throw on `document.body` in tests that
+    // don't need a fuller document mock; per-test overrides below replace it.
+    Object.defineProperty(globalThis, 'document', { configurable: true, value: {} });
   });
 
   afterAll(() => {
@@ -96,5 +116,43 @@ describe('useGlobalDialogA11y', () => {
 
     expect(preventDefault).toHaveBeenCalled();
     expect(first.focus).toHaveBeenCalled();
+  });
+
+  it('restores focus to the trigger element after the dialog closes', () => {
+    const trigger = { focus: jest.fn() };
+    let wrapperOpen = true;
+    const querySelector = jest.fn(() => (wrapperOpen ? {} : null));
+    const contains = jest.fn().mockReturnValue(true);
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { querySelector, activeElement: trigger, contains },
+    });
+
+    renderHook(() => useGlobalDialogA11y());
+    mutationCallback?.(); // dialog opens: captures `trigger` as document.activeElement
+
+    wrapperOpen = false;
+    mutationCallback?.(); // dialog closes: should restore focus
+
+    expect(trigger.focus).toHaveBeenCalled();
+  });
+
+  it('does not restore focus if the trigger element left the document', () => {
+    const trigger = { focus: jest.fn() };
+    let wrapperOpen = true;
+    const querySelector = jest.fn(() => (wrapperOpen ? {} : null));
+    const contains = jest.fn().mockReturnValue(false);
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { querySelector, activeElement: trigger, contains },
+    });
+
+    renderHook(() => useGlobalDialogA11y());
+    mutationCallback?.();
+
+    wrapperOpen = false;
+    mutationCallback?.();
+
+    expect(trigger.focus).not.toHaveBeenCalled();
   });
 });

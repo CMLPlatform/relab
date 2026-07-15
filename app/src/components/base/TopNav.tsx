@@ -13,6 +13,11 @@ import { HeaderRightPill } from './HeaderRightPill';
 // header, so the persistent top bar shouldn't layer on top of them either.
 // Concretely: it was duplicating "Sign in" with the login form's own submit
 // button.
+//
+// /mfa and /category-selection keep their own stack header (AppStack doesn't
+// hide it for them), so TopNav suppresses itself there too — otherwise lg
+// shows both bars, and on /mfa the Products/Cameras links let a keyboard user
+// tab away mid login-challenge.
 const NO_CHROME_PATHS = new Set([
   '/',
   '/login',
@@ -20,6 +25,8 @@ const NO_CHROME_PATHS = new Set([
   '/new-account',
   '/forgot-password',
   '/reset-password',
+  '/mfa',
+  '/category-selection',
 ]);
 
 /**

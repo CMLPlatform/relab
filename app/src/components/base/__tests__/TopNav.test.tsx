@@ -81,6 +81,8 @@ test.each([
   '/new-account',
   '/forgot-password',
   '/reset-password',
+  '/mfa',
+  '/category-selection',
 ])('renders nothing on the chrome-free route %s, even at lg', (path) => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
   (usePathname as jest.Mock).mockReturnValue(path);

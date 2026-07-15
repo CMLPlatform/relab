@@ -18,6 +18,24 @@ export function useGlobalDialogA11y() {
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
+    // Paper mounts/unmounts the modal-wrapper node rather than toggling its
+    // visibility, so a MutationObserver on the body is how we notice a
+    // dialog opening or closing without threading dialog state through every
+    // call site (same DOM-query approach as handleKeyDown below).
+    let trigger: HTMLElement | null = null;
+    const focusObserver = new MutationObserver(() => {
+      const wrapper = document.querySelector<HTMLElement>(MODAL_WRAPPER_SELECTOR);
+      if (wrapper && !trigger) {
+        trigger = document.activeElement as HTMLElement | null;
+      } else if (!wrapper && trigger) {
+        if (document.contains(trigger) && typeof trigger.focus === 'function') {
+          trigger.focus();
+        }
+        trigger = null;
+      }
+    });
+    focusObserver.observe(document.body, { childList: true, subtree: true });
+
     function handleKeyDown(event: KeyboardEvent) {
       const wrapper = document.querySelector<HTMLElement>(MODAL_WRAPPER_SELECTOR);
       if (!wrapper) return;
@@ -50,6 +68,9 @@ export function useGlobalDialogA11y() {
     }
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      focusObserver.disconnect();
+    };
   }, []);
 }
