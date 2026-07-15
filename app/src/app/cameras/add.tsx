@@ -18,7 +18,9 @@ function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDism
     <AppDialog visible={visible} onDismiss={onDismiss}>
       <View style={styles.successContent}>
         <MaterialCommunityIcons name="check-circle" size={56} color={theme.tokens.status.success} />
-        <AppText variant="title">Camera paired</AppText>
+        <AppText variant="title" accessibilityRole="header">
+          Camera paired
+        </AppText>
         <MutedText style={{ textAlign: 'center', opacity: 0.7 }}>
           Your camera should come online within a few seconds.
         </MutedText>

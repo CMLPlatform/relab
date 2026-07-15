@@ -1,5 +1,6 @@
 import { usePathname, useRouter } from 'expo-router';
 import { Platform, Pressable, View } from 'react-native';
+import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { PRIMARY_DESTINATIONS } from '@/navigation/destinations';
 import { useAppTheme } from '@/theme';
@@ -39,8 +40,13 @@ export function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
   const theme = useAppTheme();
+  const { enabled: rpiEnabled } = useRpiIntegration();
 
   if (!(Platform.OS === 'web' && isLg) || NO_CHROME_PATHS.has(pathname)) return null;
+
+  const destinations = PRIMARY_DESTINATIONS.filter(
+    (destination) => destination.key !== 'cameras' || rpiEnabled,
+  );
 
   return (
     <View className="border-border bg-background flex-row items-center gap-1 border-b px-4 py-2">
@@ -58,7 +64,7 @@ export function TopNav() {
         <BrandHeaderTitle isDark={theme.scheme === 'dark'} />
       </Pressable>
       <View className="flex-row gap-1 pl-4">
-        {PRIMARY_DESTINATIONS.map((destination) => {
+        {destinations.map((destination) => {
           const active =
             pathname === destination.href || pathname.startsWith(`${destination.href}/`);
           return (

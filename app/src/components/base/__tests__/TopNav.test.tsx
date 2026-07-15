@@ -17,6 +17,11 @@ jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(() => ({ user: null })),
 }));
 
+const mockUseRpiIntegration = jest.fn();
+jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
+  useRpiIntegration: () => mockUseRpiIntegration(),
+}));
+
 const push = jest.fn();
 
 beforeEach(() => {
@@ -24,6 +29,7 @@ beforeEach(() => {
   mockPlatform('web');
   (useRouter as jest.Mock).mockReturnValue({ push });
   (usePathname as jest.Mock).mockReturnValue('/products');
+  mockUseRpiIntegration.mockReturnValue({ enabled: true });
 });
 
 afterEach(() => {
@@ -72,6 +78,22 @@ test('destinations have a web hover affordance', () => {
   expect(screen.getByLabelText('Cameras').props.className).toEqual(
     expect.stringContaining('hover:'),
   );
+});
+
+test('hides Cameras when rpi cameras are disabled', () => {
+  (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+  mockUseRpiIntegration.mockReturnValue({ enabled: false });
+  render(<TopNav />);
+  expect(screen.getByText('Products')).toBeOnTheScreen();
+  expect(screen.queryByText('Cameras')).toBeNull();
+});
+
+test('shows Cameras when rpi cameras are enabled', () => {
+  (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+  mockUseRpiIntegration.mockReturnValue({ enabled: true });
+  render(<TopNav />);
+  expect(screen.getByText('Products')).toBeOnTheScreen();
+  expect(screen.getByText('Cameras')).toBeOnTheScreen();
 });
 
 test.each([
