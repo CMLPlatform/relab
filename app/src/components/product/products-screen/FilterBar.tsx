@@ -1,7 +1,8 @@
 import { type ComponentProps, useCallback } from 'react';
 import { ScrollView } from 'react-native';
-import { Chip, Menu } from 'react-native-paper';
+import { Chip } from 'react-native-paper';
 import FilterSelectionModal from '@/components/base/FilterSelectionModal';
+import { Menu } from '@/components/base/Menu';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { PRODUCTS_DATE_PRESETS, productsScreenStyles as styles } from './shared';
 

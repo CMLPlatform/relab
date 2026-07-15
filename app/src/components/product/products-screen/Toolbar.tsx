@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
-import { IconButton, Menu, Searchbar } from 'react-native-paper';
+import { IconButton } from '@/components/base/IconButton';
+import { Menu } from '@/components/base/Menu';
+import { Searchbar } from '@/components/base/Searchbar';
 import { productsScreenStyles as styles } from './shared';
 
 type SortOption = {
@@ -53,8 +55,6 @@ export function ProductsSearchToolbar({
         placeholder="Search products"
         onChangeText={handleSearchChange}
         value={searchQuery}
-        icon="magnify"
-        clearIcon="close"
         loading={isFetching && !!debouncedSearchQuery}
         style={styles.searchbar}
       />

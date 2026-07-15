@@ -264,6 +264,7 @@ jest.mock('react-native-reanimated', () => {
     withSequence: (...values: number[]) => values[values.length - 1],
     interpolate: (value: number) => value,
     Extrapolation: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
+    ReduceMotion: { System: 'system', Always: 'always', Never: 'never' },
     SensorType: {
       ROTATION: 'ROTATION',
       GRAVITY: 'GRAVITY',

@@ -136,34 +136,6 @@ jest.mock('react-native-keyboard-controller', () => {
   };
 });
 
-jest.mock('react-native-paper', () => {
-  const actual = jest.requireActual<typeof import('react-native-paper')>('react-native-paper');
-  const React = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
-    Text: typeof RNText;
-  };
-
-  return {
-    ...actual,
-    AnimatedFAB: ({
-      icon,
-      label,
-      ...props
-    }: {
-      icon?: string | (() => ReactNode);
-      label?: string;
-      [key: string]: unknown;
-    }) => {
-      const iconNode = typeof icon === 'function' ? icon() : icon;
-      const iconName = React.isValidElement(iconNode)
-        ? ((iconNode.props as { name?: string }).name ??
-          (iconNode.type === actual.ActivityIndicator ? 'loading' : 'unknown'))
-        : 'unknown';
-      return React.createElement(Text, { ...props }, `${label}:${iconName}`);
-    },
-  };
-});
-
 jest.mock('@/components/product/detail/ProductCircularityProperties', () =>
   mockCreateSectionStub('ProductCircularityProperties'),
 );
@@ -255,7 +227,7 @@ describe('ProductPage state handling', () => {
     const { unmount } = renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText('Edit Product:check-bold')).toBeOnTheScreen();
+      expect(screen.getByTestId('icon-check-bold')).toBeOnTheScreen();
     });
 
     unmount();
@@ -344,21 +316,21 @@ describe('ProductPage state handling', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText('Edit Product:pencil')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
     });
 
     // Fire scroll events to exercise the onScroll handler
-    fireEvent.scroll(screen.getByText('Edit Product:pencil'), {
+    fireEvent.scroll(screen.getByLabelText('Edit Product'), {
       nativeEvent: { contentOffset: { y: 100 } },
     });
 
     // Scroll back to top
-    fireEvent.scroll(screen.getByText('Edit Product:pencil'), {
+    fireEvent.scroll(screen.getByLabelText('Edit Product'), {
       nativeEvent: { contentOffset: { y: 0 } },
     });
 
     // Component doesn't crash and FAB still renders
-    expect(screen.getByText('Edit Product:pencil')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
   });
 
   it('shows slow-loading card after timeout', async () => {
@@ -556,10 +528,10 @@ describe('ProductPage state handling', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText('Edit Product:pencil')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
     });
 
-    fireEvent.press(screen.getByText('Edit Product:pencil'));
+    fireEvent.press(screen.getByLabelText('Edit Product'));
 
     expect(mockSetParams).toHaveBeenCalledWith({ edit: '1' });
     expect(baseFormReturn.saveAndExit).not.toHaveBeenCalled();
@@ -569,14 +541,14 @@ describe('ProductPage state handling', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText('Edit Product:pencil')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
     });
 
     fireEvent.scroll(screen.getByTestId('product-scroll'), {
       nativeEvent: { contentOffset: { y: 120 } },
     });
 
-    expect(screen.getByText('Edit Product:pencil')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
   });
 });
 

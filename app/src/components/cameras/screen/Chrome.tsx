@@ -1,4 +1,5 @@
-import { AnimatedFAB, Snackbar } from 'react-native-paper';
+import { Snackbar } from 'react-native-paper';
+import { Fab } from '@/components/base/Fab';
 import { useAppTheme } from '@/theme';
 import { createCameraScreenStyles } from './styles';
 
@@ -13,7 +14,7 @@ export function CamerasFab({ visible, onPress }: CamerasFabProps) {
   if (!visible) return null;
 
   return (
-    <AnimatedFAB
+    <Fab
       icon="plus"
       label="Add camera"
       extended

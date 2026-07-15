@@ -7,9 +7,10 @@ import {
   Text,
   View,
 } from 'react-native';
-import { HelperText, Icon, Searchbar } from 'react-native-paper';
+import { HelperText, Icon } from 'react-native-paper';
 
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
+import { Searchbar } from '@/components/base/Searchbar';
 import CPVCard from '@/components/product/CPVCard';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
 import { useAppTheme } from '@/theme';

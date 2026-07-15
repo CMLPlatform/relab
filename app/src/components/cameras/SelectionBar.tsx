@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
-import { Button, IconButton, Text } from 'react-native-paper';
+import { Button, Text } from 'react-native-paper';
+import { IconButton } from '@/components/base/IconButton';
 import { useAppTheme } from '@/theme';
 
 /**

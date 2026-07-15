@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Platform, View } from 'react-native';
-import { AnimatedFAB, Button, Text } from 'react-native-paper';
+import { Button, Text } from 'react-native-paper';
+import { Fab } from '@/components/base/Fab';
 import { useAppTheme } from '@/theme';
 import { getErrorMessage } from '@/utils/errors';
 import { productsScreenStyles as styles } from './shared';
@@ -56,7 +57,7 @@ export function ProductsFab({ extended, isAuthenticated, highlight, onPress }: P
   const theme = useAppTheme();
 
   return (
-    <AnimatedFAB
+    <Fab
       icon="plus"
       label="New product"
       extended={extended}

@@ -1,5 +1,6 @@
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { IconButton, Portal, Surface, Text } from 'react-native-paper';
+import { Portal, Surface, Text } from 'react-native-paper';
+import { IconButton } from '@/components/base/IconButton';
 import { OverlaySurface } from '@/components/base/OverlaySurface';
 import type { StreamSession } from '@/context/streamSession';
 import { useAppTheme } from '@/theme';

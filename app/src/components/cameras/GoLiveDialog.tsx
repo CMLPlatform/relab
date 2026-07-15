@@ -1,7 +1,11 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Dialog, Portal, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { Button, Dialog, Portal, Text, TextInput } from 'react-native-paper';
+import { Text as UiText } from '@/components/base/ui/text';
+import { ToggleGroup, ToggleGroupItem } from '@/components/base/ui/toggle-group';
 import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera';
+import { useAppTheme } from '@/theme';
 
 type GoLiveDialogProps = {
   visible: boolean;
@@ -33,8 +37,14 @@ export function GoLiveDialog({
   onSecondary,
   showSpacer = false,
 }: GoLiveDialogProps) {
+  const theme = useAppTheme();
   const handleValueChange = useCallback(
-    (value: string) => onChangePrivacy(value as YouTubePrivacyStatus),
+    // Single-select toggle groups can report `undefined` (pressing the
+    // already-active item) — visibility must always have a value, so that's
+    // treated as a no-op rather than clearing the selection.
+    (value: string | undefined) => {
+      if (value) onChangePrivacy(value as YouTubePrivacyStatus);
+    },
     [onChangePrivacy],
   );
 
@@ -53,15 +63,20 @@ export function GoLiveDialog({
           <Text variant="labelMedium" style={styles.label}>
             Visibility
           </Text>
-          <SegmentedButtons
-            value={privacy}
-            onValueChange={handleValueChange}
-            buttons={[
-              { value: 'private', label: 'Private', icon: 'lock' },
-              { value: 'unlisted', label: 'Unlisted', icon: 'eye-off' },
-              { value: 'public', label: 'Public', icon: 'earth' },
-            ]}
-          />
+          <ToggleGroup type="single" value={privacy} onValueChange={handleValueChange}>
+            <ToggleGroupItem value="private" isFirst>
+              <MaterialCommunityIcons name="lock" size={16} color={theme.colors.onSurface} />
+              <UiText>Private</UiText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="unlisted">
+              <MaterialCommunityIcons name="eye-off" size={16} color={theme.colors.onSurface} />
+              <UiText>Unlisted</UiText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="public" isLast>
+              <MaterialCommunityIcons name="earth" size={16} color={theme.colors.onSurface} />
+              <UiText>Public</UiText>
+            </ToggleGroupItem>
+          </ToggleGroup>
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={onSecondary} disabled={loading}>

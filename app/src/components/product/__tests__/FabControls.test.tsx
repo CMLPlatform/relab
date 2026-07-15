@@ -2,55 +2,9 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ProductFabControls } from '@/components/product/detail/FabControls';
 
-jest.mock('react-native-paper', () => {
-  const React = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-  const actual = jest.requireActual<typeof import('react-native-paper')>('react-native-paper');
-  return {
-    ...actual,
-    AnimatedFAB: ({
-      label,
-      disabled,
-      visible,
-      onPress,
-    }: {
-      label?: string;
-      disabled?: boolean;
-      visible?: boolean;
-      onPress?: () => void;
-    }) =>
-      React.createElement(
-        Text,
-        {
-          testID: 'primary-fab',
-          // A no-op wrapper (not `undefined`) mirrors the real AnimatedFAB/Pressable
-          // gating the press internally — RNTL's fireEvent bubbles to find a handler,
-          // and an `undefined` onPress here would still find the un-gated `onPress`
-          // prop on this element's own AnimatedFAB(...) call one level up.
-          onPress: () => {
-            if (!disabled) onPress?.();
-          },
-        },
-        `${label}|disabled=${disabled ? 'true' : 'false'}|visible=${visible ? 'true' : 'false'}`,
-      ),
-    Tooltip: ({ title, children }: { title: string; children: React.ReactNode }) =>
-      React.createElement(React.Fragment, null, [
-        React.createElement(Text, { key: 'tooltip', testID: 'tooltip' }, title),
-        children,
-      ]),
-  };
-});
-
 jest.mock('@/components/cameras/CameraStreamPicker', () => ({
   CameraStreamPicker: () => null,
 }));
-
-const DISABLED_FALSE = /disabled=false/;
-const DISABLED_TRUE = /disabled=true/;
-const EDIT_COMPONENT_PATTERN = /Edit Component/;
-const TWO_ERRORS_LABEL = /^2 fields need attention\|/;
-const ONE_ERROR_LABEL = /^1 field needs attention\|/;
-const SAVE_PRODUCT_LABEL = /^Save Product\|/;
 
 const baseProps = {
   entityRole: 'product' as const,
@@ -67,6 +21,10 @@ const baseProps = {
   primaryFabIcon: 'pencil' as const,
 };
 
+function fabButton() {
+  return screen.getByRole('button');
+}
+
 describe('ProductFabControls — primary FAB enabled state', () => {
   it('enables the FAB in edit mode with no edits, even when validation fails', () => {
     render(
@@ -78,8 +36,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
         validationError="Type is required"
       />,
     );
-    const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(DISABLED_FALSE);
+    expect(fabButton().props.accessibilityState.disabled).toBe(false);
     // No tooltip because we're not actually trying to save
     expect(screen.queryByTestId('tooltip')).toBeNull();
   });
@@ -88,7 +45,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
   // to route to, so the FAB blocks the save outright; the tooltip explains why.
   // Once errorCount is known and > 0, the FAB stays pressable to route to the
   // error summary instead (see the errorCount describe block).
-  it('disables the FAB but shows the validation tooltip when dirty edits are invalid with no known error count', () => {
+  it('disables the FAB but offers the validation tooltip when dirty edits are invalid with no known error count', () => {
     render(
       <ProductFabControls
         {...baseProps}
@@ -98,8 +55,8 @@ describe('ProductFabControls — primary FAB enabled state', () => {
         validationError="Name is required"
       />,
     );
-    const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(DISABLED_TRUE);
+    expect(fabButton().props.accessibilityState.disabled).toBe(true);
+    fireEvent(screen.getByTestId('fab-tooltip-trigger'), 'pressIn');
     expect(screen.getByTestId('tooltip')).toHaveTextContent('Name is required');
   });
 
@@ -107,7 +64,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
     render(
       <ProductFabControls {...baseProps} editMode={true} isDirty={true} validationValid={true} />,
     );
-    expect(screen.getByTestId('primary-fab')).toHaveTextContent(DISABLED_FALSE);
+    expect(fabButton().props.accessibilityState.disabled).toBe(false);
   });
 
   it('disables the FAB while saving regardless of dirty/valid state', () => {
@@ -120,17 +77,17 @@ describe('ProductFabControls — primary FAB enabled state', () => {
         isSaving={true}
       />,
     );
-    expect(screen.getByTestId('primary-fab')).toHaveTextContent(DISABLED_TRUE);
+    expect(fabButton().props.accessibilityState.disabled).toBe(true);
   });
 
   it('enables the FAB in view mode (validation is irrelevant)', () => {
     render(<ProductFabControls {...baseProps} editMode={false} validationValid={false} />);
-    expect(screen.getByTestId('primary-fab')).toHaveTextContent(DISABLED_FALSE);
+    expect(fabButton().props.accessibilityState.disabled).toBe(false);
   });
 
   it('uses component labels for component pages', () => {
     render(<ProductFabControls {...baseProps} entityRole="component" editMode={false} />);
-    expect(screen.getByTestId('primary-fab')).toHaveTextContent(EDIT_COMPONENT_PATTERN);
+    expect(screen.getByText('Edit Component')).toBeOnTheScreen();
   });
 });
 
@@ -150,11 +107,10 @@ describe('ProductFabControls — error summary routing', () => {
         onErrorSummaryPress={onErrorSummaryPress}
       />,
     );
-    const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(TWO_ERRORS_LABEL);
-    expect(fab).toHaveTextContent(DISABLED_FALSE);
+    expect(screen.getByText('2 fields need attention')).toBeOnTheScreen();
+    expect(fabButton().props.accessibilityState.disabled).toBe(false);
 
-    fireEvent.press(fab);
+    fireEvent.press(fabButton());
     expect(onErrorSummaryPress).toHaveBeenCalledTimes(1);
     expect(onPrimaryFabPress).not.toHaveBeenCalled();
   });
@@ -169,7 +125,7 @@ describe('ProductFabControls — error summary routing', () => {
         errorCount={1}
       />,
     );
-    expect(screen.getByTestId('primary-fab')).toHaveTextContent(ONE_ERROR_LABEL);
+    expect(screen.getByText('1 field needs attention')).toBeOnTheScreen();
   });
 
   it('disables the FAB and blocks the press when invalid with a zero error count', () => {
@@ -184,10 +140,9 @@ describe('ProductFabControls — error summary routing', () => {
         onPrimaryFabPress={onPrimaryFabPress}
       />,
     );
-    const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(DISABLED_TRUE);
+    expect(fabButton().props.accessibilityState.disabled).toBe(true);
 
-    fireEvent.press(fab);
+    fireEvent.press(fabButton());
     expect(onPrimaryFabPress).not.toHaveBeenCalled();
   });
 
@@ -205,10 +160,9 @@ describe('ProductFabControls — error summary routing', () => {
         onErrorSummaryPress={onErrorSummaryPress}
       />,
     );
-    const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(SAVE_PRODUCT_LABEL);
+    expect(screen.getByText('Save Product')).toBeOnTheScreen();
 
-    fireEvent.press(fab);
+    fireEvent.press(fabButton());
     expect(onPrimaryFabPress).toHaveBeenCalledTimes(1);
     expect(onErrorSummaryPress).not.toHaveBeenCalled();
   });
