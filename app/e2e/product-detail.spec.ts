@@ -194,8 +194,11 @@ test.describe('Product detail: edit mode', () => {
     await expect(page.getByRole('button', { name: ADD_CIRCULARITY_NOTES_LABEL })).toBeVisible({
       timeout: 5_000,
     });
-    // Metadata is never empty, so it always renders in full.
-    await expect(page.getByText('Metadata')).toBeVisible({ timeout: 5_000 });
+    // The Details section (product metadata) is never empty, so it always
+    // renders in full rather than collapsing to an "Add …" row. Its always-
+    // present "Product ID: N" line proves it rendered (the section no longer
+    // carries a redundant inner "Metadata" header — the Section title labels it).
+    await expect(page.getByText(/Product ID: \d+/)).toBeVisible({ timeout: 5_000 });
   });
 
   test('unsaved-changes guard blocks navigation mid-edit', async ({ page }) => {
