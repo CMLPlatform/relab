@@ -14,6 +14,7 @@ import {
 import { ProductsSearchToolbar } from '@/components/product/products-screen/Toolbar';
 import { ProductsWelcomeCard } from '@/components/product/products-screen/WelcomeCard';
 import { useEffectiveColorScheme } from '@/context/themeMode';
+import { productGridColumns } from '@/features/products/productGridColumns';
 import { PRODUCT_SORT_OPTIONS } from '@/features/products/queries';
 import { useProductsScreen } from '@/features/products/useProductsScreen';
 import { getAppTheme } from '@/theme';
@@ -24,7 +25,7 @@ export default function Products() {
   const colorScheme = useEffectiveColorScheme();
   const bgOverlay = getAppTheme(colorScheme).tokens.overlay.page;
   const { width } = useWindowDimensions();
-  const numColumns = width < 600 ? 1 : width < 1000 ? 2 : 3;
+  const numColumns = productGridColumns(width);
 
   const { screen, search, filters, list, actions } = useProductsScreen(numColumns);
   const handleGoToLogin = async () => {

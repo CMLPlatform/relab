@@ -229,7 +229,7 @@ beforeEach(async () => {
   jest.clearAllMocks();
   // Default to wide viewport (numColumns=3) so most tests get pagination mode
   jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
-    width: 1024,
+    width: 1280,
     height: 768,
     scale: 1,
     fontScale: 1,
@@ -500,7 +500,7 @@ describe('PaginationControls (multi-column)', () => {
   beforeEach(() => {
     // Wide viewport already set globally; confirm numColumns=3 → pagination
     jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
-      width: 1024,
+      width: 1280,
       height: 768,
       scale: 1,
       fontScale: 1,
