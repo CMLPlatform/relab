@@ -56,7 +56,11 @@ function CaptureTypeRow({
     loadCPV()
       .then((cpv) => {
         if (!isMounted) return;
-        setSelectedType(cpv[String(typeID ?? 'root')] ?? cpv.root);
+        // Never fall back to cpv.root — its {name: "undefined"} placeholder
+        // renders as a red "Category undefined" error card. An unresolvable
+        // type id resolves to null (renders nothing); the typeless case is
+        // handled by the `typeID === undefined` invite above.
+        setSelectedType(cpv[String(typeID ?? 'root')] ?? null);
       })
       .catch(() => {});
     return () => {

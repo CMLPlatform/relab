@@ -28,10 +28,12 @@ describe('ProductType', () => {
     mockPush.mockReset();
     mockSetParams.mockReset();
     mockedLoadCPV.mockResolvedValue({
+      // Mirror the real cpv.json root placeholder — CPVCard renders a category
+      // whose name === 'undefined' as a red "Category undefined" error card.
       root: {
         id: 0,
-        name: 'root',
-        description: 'All categories',
+        name: 'undefined',
+        description: 'Category undefined',
         allChildren: [],
         directChildren: [],
         updatedAt: '',
@@ -96,10 +98,13 @@ describe('ProductType', () => {
     expect(await screen.findByText('Agricultural products')).toBeOnTheScreen();
   });
 
-  it('falls back to the root category when the selected type is missing', async () => {
+  // Regression: an unresolvable (stale/unknown) type id used to fall back to
+  // cpv.root, which CPVCard renders as a red "Category undefined" error card.
+  it('renders nothing for an unresolvable type id instead of the undefined error card', async () => {
     const product = { ...baseProduct, productTypeID: 999 };
     renderWithProviders(<ProductType product={product} editMode={false} />);
-    expect(await screen.findByText('All categories')).toBeOnTheScreen();
+    await act(async () => {});
+    expect(screen.queryByText('Category undefined')).toBeNull();
   });
 
   it('applies a pending type selection when the screen regains focus', async () => {

@@ -36,7 +36,11 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     loadCPV()
       .then((cpv) => {
         if (!isMounted) return;
-        setSelectedType(cpv[String(product.productTypeID ?? 'root')] ?? cpv.root);
+        // Never fall back to cpv.root — its {name: "undefined"} placeholder
+        // renders as a red "Category undefined" error card. An unresolvable
+        // (stale/unknown) type id resolves to null and renders nothing, not an
+        // error; the typeless (undefined id) case is handled by the guard below.
+        setSelectedType(cpv[String(product.productTypeID ?? 'root')] ?? null);
       })
       .catch(() => {});
 
