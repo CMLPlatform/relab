@@ -89,6 +89,19 @@ tests with no single home (config, security policy, theme regressions) live in
 Run via `just test-unit`, `just test-integration`, `just test-e2e`. See
 [README.md](README.md) for profiling tips.
 
+**E2E environmental failures (not code bugs):** `just test-e2e` needs the
+`compose.e2e.yaml` stack running against a clean database. A few known-failing
+specs are environmental, not regressions — do **not** edit specs to accommodate
+them:
+
+- **"Mine" empty-state / seeded-product-not-on-page-1** — the e2e Postgres has
+  accumulated test data. Fix by resetting/reseeding the e2e DB, not the spec.
+- **OAuth sign-in specs** — `compose.e2e.yaml` doesn't inject Google/GitHub OAuth
+  credentials, so those flows can't complete in CI-local runs.
+
+If a spec fails, first confirm the stack is up and the DB is freshly seeded
+before treating it as a code regression.
+
 ## Build & deploy
 
 - **Dev (web):** `just dev`: Expo Metro on :8081.
