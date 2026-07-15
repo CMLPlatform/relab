@@ -55,7 +55,8 @@ export function Searchbar({
           onPress={() => onChangeText('')}
           accessibilityRole="button"
           accessibilityLabel="Clear search"
-          hitSlop={8}
+          // 20px glyph + 12px hitSlop/side = 44px tap target (a11y floor).
+          hitSlop={12}
           style={styles.trailing}
         >
           <MaterialCommunityIcons name="close" size={20} color={theme.colors.onSurfaceVariant} />

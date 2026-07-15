@@ -52,6 +52,7 @@ export function Menu({ visible, onDismiss, anchor, children }: MenuProps) {
           {/* Swallow presses so tapping an item doesn't fall through to the backdrop. */}
           <Pressable
             onPress={(e) => e.stopPropagation()}
+            accessibilityRole="menu"
             style={[styles.content, position, { backgroundColor: theme.colors.elevation.level2 }]}
           >
             {children}

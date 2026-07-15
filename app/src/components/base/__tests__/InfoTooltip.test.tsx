@@ -37,6 +37,8 @@ describe('InfoTooltip component', () => {
     renderWithProviders(<InfoTooltip title={title} />);
 
     const pressable = screen.getByTestId('info-pressable');
+    // 20px glyph + spacing.sm padding (36px) + 4px hitSlop/side = 44px a11y floor.
+    expect(pressable.props.hitSlop).toBe(4);
     await user.press(pressable);
 
     expect(screen.getByText(title)).toBeOnTheScreen();

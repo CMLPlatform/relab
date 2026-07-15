@@ -31,6 +31,15 @@ describe('Menu', () => {
     expect(screen.getByText('A-Z')).toBeOnTheScreen();
   });
 
+  it('exposes the popover container with a menu role', () => {
+    render(
+      <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" onPress={jest.fn()} />
+      </Menu>,
+    );
+    expect(screen.getByRole('menu')).toBeOnTheScreen();
+  });
+
   it('fires onPress and does not dismiss via the item press itself', () => {
     const onPress = jest.fn();
     const onDismiss = jest.fn();

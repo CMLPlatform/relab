@@ -41,6 +41,8 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           testID="info-pressable"
           accessibilityRole="button"
           accessibilityLabel={`Info: ${title}`}
+          // 20px glyph + spacing.sm padding (36px) + 4px hitSlop/side = 44px.
+          hitSlop={4}
         >
           <MaterialCommunityIcons
             name="information-outline"
@@ -83,6 +85,8 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
         style={styles.iconContainer}
         accessibilityRole="button"
         accessibilityLabel={`Info: ${title}`}
+        // 20px glyph + spacing.sm padding (36px) + 4px hitSlop/side = 44px.
+        hitSlop={4}
       >
         <MaterialCommunityIcons
           name="information-outline"

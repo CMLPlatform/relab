@@ -52,7 +52,8 @@ export default function ResetPasswordScreen() {
           onPress={toggleShowPassword}
           accessibilityRole="button"
           accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-          hitSlop={8}
+          // 20px glyph + 12px hitSlop/side = 44px tap target (a11y floor).
+          hitSlop={12}
           style={{ position: 'absolute', right: 12 }}
         >
           <MaterialCommunityIcons

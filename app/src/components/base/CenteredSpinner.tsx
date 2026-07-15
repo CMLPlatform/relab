@@ -5,7 +5,12 @@ import { useAppTheme } from '@/theme';
 export function CenteredSpinner() {
   const { colors } = useAppTheme();
   return (
-    <View style={styles.center} accessible accessibilityRole="progressbar">
+    <View
+      style={styles.center}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityState={{ busy: true }}
+    >
       <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );

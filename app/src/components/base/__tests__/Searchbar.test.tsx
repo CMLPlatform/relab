@@ -17,6 +17,12 @@ describe('Searchbar', () => {
     expect(onChangeText).toHaveBeenCalledWith('');
   });
 
+  it('gives the clear button a 44px tap target via hitSlop', () => {
+    render(<Searchbar value="drill" onChangeText={jest.fn()} placeholder="Search" />);
+    // 20px glyph + 12px hitSlop/side = 44px a11y floor.
+    expect(screen.getByLabelText('Clear search').props.hitSlop).toBe(12);
+  });
+
   it('omits the clear button when the query is empty', () => {
     render(<Searchbar value="" onChangeText={jest.fn()} placeholder="Search" />);
     expect(screen.queryByLabelText('Clear search')).toBeNull();

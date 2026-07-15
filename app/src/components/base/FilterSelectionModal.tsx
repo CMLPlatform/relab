@@ -116,7 +116,12 @@ export default function FilterSelectionModal({
               style={[styles.search, { borderColor: theme.colors.outline }]}
             />
             {isLoading ? (
-              <View style={styles.loading} accessible accessibilityRole="progressbar">
+              <View
+                style={styles.loading}
+                accessible
+                accessibilityRole="progressbar"
+                accessibilityState={{ busy: true }}
+              >
                 <ActivityIndicator color={theme.colors.primary} />
               </View>
             ) : visibleItems.length === 0 && !canAddNew ? (
