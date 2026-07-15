@@ -1,8 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button } from 'react-native-paper';
 import { useAppTheme } from '@/theme';
+import { AppButton } from './AppButton';
 import { Text } from './Text';
 
 type Props = {
@@ -19,9 +19,9 @@ export function ErrorState({ message, onRetry, icon = 'alert-circle-outline' }: 
     <View style={styles.center}>
       <MaterialCommunityIcons name={icon} size={48} color={theme.colors.error} />
       <Text style={styles.message}>{message}</Text>
-      <Button mode="contained" onPress={onRetry} style={styles.retry}>
+      <AppButton variant="primary" onPress={onRetry} className="mt-4">
         Retry
-      </Button>
+      </AppButton>
     </View>
   );
 }
@@ -37,8 +37,5 @@ const styles = StyleSheet.create({
   message: {
     marginTop: 12,
     textAlign: 'center',
-  },
-  retry: {
-    marginTop: 16,
   },
 });

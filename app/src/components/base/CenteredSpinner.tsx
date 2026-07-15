@@ -1,11 +1,12 @@
-import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator } from 'react-native-paper';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useAppTheme } from '@/theme';
 
 /** Full-height centered loading spinner for screen-level pending states. */
 export function CenteredSpinner() {
+  const { colors } = useAppTheme();
   return (
-    <View style={styles.center}>
-      <ActivityIndicator size="large" />
+    <View style={styles.center} accessible accessibilityRole="progressbar">
+      <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );
 }

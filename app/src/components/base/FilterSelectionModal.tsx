@@ -1,7 +1,12 @@
 import { useCallback } from 'react';
-import { ScrollView, View } from 'react-native';
-import { ActivityIndicator, Button, Chip, Dialog, Portal, Searchbar } from 'react-native-paper';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { radius, spacing } from '@/constants';
+import { useAppTheme } from '@/theme';
+import { AppButton } from './AppButton';
+import { Chip } from './Chip';
+import { OverlaySurface } from './OverlaySurface';
 import { Text } from './Text';
+import { TextInput } from './TextInput';
 
 function SelectableChip({
   item,
@@ -12,9 +17,15 @@ function SelectableChip({
   selected: boolean;
   onToggle: (value: string) => void;
 }) {
+  const { colors } = useAppTheme();
   const handlePress = useCallback(() => onToggle(item), [onToggle, item]);
   return (
-    <Chip onPress={handlePress} selected={selected} mode={selected ? 'flat' : 'outlined'}>
+    <Chip
+      onPress={handlePress}
+      style={selected ? { borderWidth: 2, borderColor: colors.primary } : undefined}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+    >
       {item}
     </Chip>
   );
@@ -50,6 +61,7 @@ export default function FilterSelectionModal({
   searchPlaceholder = 'Search…',
   singleSelect = false,
 }: Props) {
+  const theme = useAppTheme();
   const toggle = useCallback(
     (value: string) => {
       if (singleSelect) {
@@ -85,50 +97,128 @@ export default function FilterSelectionModal({
     !visibleItems.some((v) => v.toLowerCase() === searchQuery.trim().toLowerCase());
 
   return (
-    <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={{ maxHeight: '85%' }}>
-        <Dialog.Title>{title}</Dialog.Title>
-        <Dialog.Content style={{ paddingBottom: 0 }}>
-          <Searchbar
-            placeholder={searchPlaceholder}
-            value={searchQuery}
-            onChangeText={onSearchChange}
-            style={{ marginBottom: 12 }}
-          />
-          {isLoading ? (
-            <View style={{ paddingVertical: 24, alignItems: 'center' }}>
-              <ActivityIndicator />
-            </View>
-          ) : visibleItems.length === 0 && !canAddNew ? (
-            <Text style={{ opacity: 0.5, paddingBottom: 8 }}>No results</Text>
-          ) : (
-            <ScrollView style={{ maxHeight: 320 }}>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 8 }}>
-                {canAddNew ? (
-                  <Chip key="__new__" icon="plus" mode="outlined" onPress={addNew}>
-                    {searchQuery.trim()}
-                  </Chip>
-                ) : null}
-                {visibleItems.map((item) => (
-                  <SelectableChip
-                    key={item}
-                    item={item}
-                    selected={selectedValues.includes(item)}
-                    onToggle={toggle}
-                  />
-                ))}
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+      <Pressable
+        style={[styles.overlay, { backgroundColor: theme.tokens.overlay.scrim }]}
+        onPress={onDismiss}
+      >
+        {/* Swallow presses so tapping inside the dialog doesn't dismiss it. */}
+        <Pressable onPress={(e) => e.stopPropagation()} style={styles.dialogWrapper}>
+          <OverlaySurface style={styles.dialog} tone="scrim">
+            <Text accessibilityRole="header" style={styles.title}>
+              {title}
+            </Text>
+            <TextInput
+              placeholder={searchPlaceholder}
+              value={searchQuery}
+              onChangeText={onSearchChange}
+              accessibilityRole="search"
+              style={[styles.search, { borderColor: theme.colors.outline }]}
+            />
+            {isLoading ? (
+              <View style={styles.loading} accessible accessibilityRole="progressbar">
+                <ActivityIndicator color={theme.colors.primary} />
               </View>
-            </ScrollView>
-          )}
-        </Dialog.Content>
-        <Dialog.Actions>
-          {selectedValues.length > 0 ? (
-            <Button onPress={handleClearAll}>{singleSelect ? 'Clear' : 'Clear all'}</Button>
-          ) : null}
-          {!singleSelect ? <Button onPress={onDismiss}>Done</Button> : null}
-          {singleSelect ? <Button onPress={onDismiss}>Cancel</Button> : null}
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+            ) : visibleItems.length === 0 && !canAddNew ? (
+              <Text style={styles.empty}>No results</Text>
+            ) : (
+              <ScrollView style={styles.scroll}>
+                <View style={styles.chips}>
+                  {canAddNew ? (
+                    // NOTE: dropped Paper's leading "+" icon — Chip's icon prop
+                    // renders inside the same Text node as the label, which would
+                    // break exact getByText(searchQuery) matches in callers/tests.
+                    <Chip
+                      key="__new__"
+                      onPress={addNew}
+                      accessibilityLabel={`Add "${searchQuery.trim()}"`}
+                    >
+                      {searchQuery.trim()}
+                    </Chip>
+                  ) : null}
+                  {visibleItems.map((item) => (
+                    <SelectableChip
+                      key={item}
+                      item={item}
+                      selected={selectedValues.includes(item)}
+                      onToggle={toggle}
+                    />
+                  ))}
+                </View>
+              </ScrollView>
+            )}
+            <View style={styles.actions}>
+              {selectedValues.length > 0 ? (
+                <AppButton variant="ghost" onPress={handleClearAll}>
+                  {singleSelect ? 'Clear' : 'Clear all'}
+                </AppButton>
+              ) : null}
+              {!singleSelect ? (
+                <AppButton variant="ghost" onPress={onDismiss}>
+                  Done
+                </AppButton>
+              ) : null}
+              {singleSelect ? (
+                <AppButton variant="ghost" onPress={onDismiss}>
+                  Cancel
+                </AppButton>
+              ) : null}
+            </View>
+          </OverlaySurface>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  dialogWrapper: {
+    width: '100%',
+    maxWidth: 480,
+    maxHeight: '85%',
+  },
+  dialog: {
+    padding: spacing.md,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+  },
+  search: {
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  loading: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  empty: {
+    opacity: 0.5,
+    paddingBottom: spacing.sm,
+  },
+  scroll: {
+    maxHeight: 320,
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+});

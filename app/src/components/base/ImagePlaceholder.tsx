@@ -1,5 +1,5 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
-import { Icon } from 'react-native-paper';
 import { useAppTheme } from '@/theme';
 import { Text } from './Text';
 
@@ -33,7 +33,15 @@ export default function ImagePlaceholder({
         justifyContent: 'center',
       }}
     >
-      <Icon source="image-outline" size={iconSize} color={theme.colors.outline} />
+      <MaterialCommunityIcons
+        name="image-outline"
+        size={iconSize}
+        color={theme.colors.outline}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        // biome-ignore lint/suspicious/noExplicitAny: @expo/vector-icons omits aria-* from its prop types but forwards them to the DOM on web — decorative icon, same treatment as _layout.tsx's PAPER_SETTINGS.icon.
+        {...({ 'aria-hidden': true } as any)}
+      />
       {label ? (
         <Text
           numberOfLines={2}

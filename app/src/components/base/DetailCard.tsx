@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
-import { Card } from 'react-native-paper';
+import type { StyleProp, ViewStyle } from 'react-native';
+import { Card } from './Card';
 
 interface Props {
   children: ReactNode;
@@ -9,19 +9,8 @@ interface Props {
 
 export default function DetailCard({ children, style }: Props) {
   return (
-    <Card elevation={2} style={[styles.card, style]}>
-      <Card.Content style={styles.content}>{children}</Card.Content>
+    <Card className="mx-3.5 px-3 pt-1.5 pb-1.5 shadow-sm shadow-black/5" style={style}>
+      {children}
     </Card>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    marginHorizontal: 14,
-  },
-  content: {
-    paddingHorizontal: 12,
-    paddingTop: 6,
-    paddingBottom: 6,
-  },
-});

@@ -1,10 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Text, Tooltip } from 'react-native-paper';
 import { radius, spacing } from '@/constants';
 import { alpha, useAppTheme } from '@/theme';
 import { OverlaySurface } from './OverlaySurface';
+import { Text } from './Text';
 
 const MOBILE_USER_AGENT_PATTERN = /iPhone|iPad|iPod|Android/i;
 
@@ -63,9 +63,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
               ]}
               tone="scrim"
             >
-              <Text variant="labelLarge" style={{ color: theme.colors.inverseOnSurface }}>
-                {title}
-              </Text>
+              <Text style={{ color: theme.colors.inverseOnSurface }}>{title}</Text>
             </OverlaySurface>
           </Pressable>
         </Modal>
@@ -73,16 +71,45 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
     );
   }
 
+  // Native app + desktop web: a small bubble anchored under the icon, shown on
+  // press (native) or hover (web) — no portal needed since it's positioned
+  // relative to its own wrapper rather than covering the full screen.
   return (
-    <Tooltip title={title} enterTouchDelay={100} leaveTouchDelay={exitDelay}>
-      <MaterialCommunityIcons
-        name="information-outline"
-        size={20}
-        color={theme.colors.onSurfaceVariant}
-        style={{ padding: 8 }}
-        testID="info-icon"
-      />
-    </Tooltip>
+    <View style={styles.anchor}>
+      <Pressable
+        onPress={show}
+        onHoverIn={Platform.OS === 'web' ? show : undefined}
+        onHoverOut={Platform.OS === 'web' ? hide : undefined}
+        style={styles.iconContainer}
+        accessibilityRole="button"
+        accessibilityLabel={`Info: ${title}`}
+      >
+        <MaterialCommunityIcons
+          name="information-outline"
+          size={20}
+          color={theme.colors.onSurfaceVariant}
+          testID="info-icon"
+        />
+      </Pressable>
+      {visible ? (
+        <OverlaySurface
+          style={[
+            styles.floating,
+            tooltipShadowStyle,
+            { backgroundColor: theme.colors.inverseSurface },
+          ]}
+          tone="scrim"
+        >
+          <Text
+            accessibilityLiveRegion="polite"
+            numberOfLines={1}
+            style={{ color: theme.colors.inverseOnSurface }}
+          >
+            {title}
+          </Text>
+        </OverlaySurface>
+      ) : null}
+    </View>
   );
 };
 
@@ -101,6 +128,21 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     maxWidth: '80%',
     minWidth: 200,
+    elevation: 3,
+  },
+  anchor: {
+    alignSelf: 'flex-start',
+  },
+  floating: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    marginTop: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
+    maxWidth: 240,
+    zIndex: 10,
     elevation: 3,
   },
 });
