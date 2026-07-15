@@ -63,14 +63,16 @@ test.describe('Profile: content', () => {
 
   test('shows all expected profile sections', async ({ page }) => {
     await loginAndGoToProfile(page);
-    // Section headers are the five ACCOUNT_SECTIONS titles (accountSections.tsx)
+    // Section headers are the four ACCOUNT_SECTIONS titles (accountSections.tsx)
     // — the account screen's grouped-section restructure retired the old
-    // standalone "Account"/"Email updates"/"Linked accounts" headings. Each
-    // title doubles as the section-nav chip/outline label, so exact + .last()
-    // targets the Section heading (nav renders first in DOM order).
+    // standalone "Account"/"Email updates"/"Linked accounts" headings, and the
+    // stats row folded into the hero header rather than its own "Profile"
+    // section. Each title doubles as the section-nav chip/outline label, so
+    // exact + .last() targets the Section heading (nav renders first in DOM
+    // order).
     await Promise.all(
-      ['Profile', 'Preferences', 'Integrations', 'Security & sessions', 'Danger zone'].map(
-        (title) => expect(page.getByText(title, { exact: true }).last()).toBeVisible(),
+      ['Preferences', 'Integrations', 'Security & sessions', 'Danger zone'].map((title) =>
+        expect(page.getByText(title, { exact: true }).last()).toBeVisible(),
       ),
     );
   });

@@ -15,12 +15,12 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useSectionNav } from '@/hooks/useSectionNav';
 import type { User } from '@/types/User';
 import { ProfileDialogs } from './Dialogs';
-import { ProfileHero } from './HeroStats';
+import { ProfileHero, ProfileStatsSection } from './HeroStats';
 
 const DANGER_ZONE_KEY = 'danger';
 
 /**
- * The scrollable document body: hero header + the five grouped sections.
+ * The scrollable document body: hero header (identity + stats) + the four grouped sections.
  * Registers each section's position through the same base-offset composition
  * as the product detail screen's Content.tsx (useAnchoredSectionNav) — the
  * outer nav context supplies raw scroll-content coordinates once the
@@ -39,6 +39,10 @@ function AccountBody({ ctx, profile }: { ctx: AccountSectionContext; profile: Us
     <PageContainer onLayout={onPageContainerLayout}>
       <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
         <ProfileHero profile={profile} onEditUsername={ctx.profile.openEditUsername} />
+        <ProfileStatsSection
+          ownStats={ctx.profile.ownStats}
+          statsLoading={ctx.profile.statsLoading}
+        />
         <SectionNavContext.Provider value={anchoredNav}>
           {ACCOUNT_SECTIONS.map((section) => (
             <Section

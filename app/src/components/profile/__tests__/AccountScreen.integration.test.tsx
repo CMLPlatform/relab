@@ -107,7 +107,7 @@ jest.mock('@/hooks/useSectionNav', () => ({
     unregisterSection: jest.fn(),
     scrollTo: mockScrollTo,
     onScrollSpy: jest.fn(),
-    activeKey: 'profile',
+    activeKey: 'preferences',
   }),
 }));
 
@@ -122,13 +122,7 @@ const defaultUser = {
   preferences: { profile_visibility: 'public', theme_mode: 'auto', email_updates_enabled: false },
 };
 
-const SECTION_LABELS = [
-  'Profile',
-  'Preferences',
-  'Integrations',
-  'Security & sessions',
-  'Danger zone',
-];
+const SECTION_LABELS = ['Preferences', 'Integrations', 'Security & sessions', 'Danger zone'];
 
 // Both modules are require()d lazily, not imported: a top-level import pulls in
 // @/services/api/auth/authentication before the mock* consts above are initialised,
@@ -191,7 +185,15 @@ describe('AccountScreen', () => {
     expect(await findByText('tester.')).toBeTruthy();
   });
 
-  it('renders all five section titles in order', async () => {
+  it('folds the stats row into the header (no separate Profile section)', async () => {
+    const { findByText, queryByText } = await renderAccount();
+    // product_count: 3 from the getPublicProfile mock — proves stats render
+    // in the header now that the standalone "profile" section is gone.
+    expect(await findByText('3')).toBeTruthy();
+    expect(queryByText('Profile')).toBeNull();
+  });
+
+  it('renders all four section titles in order', async () => {
     await renderAccount();
     const scroll = screen.getByTestId('account-scroll');
     const texts = collectText(scroll);
@@ -200,7 +202,7 @@ describe('AccountScreen', () => {
     expect(indices).toEqual([...indices].sort((a, b) => a - b));
   });
 
-  it('renders chips with the five section labels', async () => {
+  it('renders chips with the four section labels', async () => {
     await renderAccount();
     const chips = screen.getByTestId('section-nav-chips');
     for (const label of SECTION_LABELS) {

@@ -7,7 +7,6 @@ import {
   ProfileDangerZoneSection,
   ProfileLinkedAccountsSection,
 } from '@/components/profile/AccountSections';
-import { ProfileStatsSection } from '@/components/profile/HeroStats';
 import { ProfileIntegrationsSection } from '@/components/profile/Integrations';
 import {
   ProfileAppearanceSection,
@@ -17,7 +16,7 @@ import {
 import { ProfileSecuritySection } from '@/components/profile/SecuritySection';
 import type { useProfileScreen } from '@/features/profile/useProfileScreen';
 
-export type AccountSectionKey = 'profile' | 'preferences' | 'integrations' | 'security' | 'danger';
+export type AccountSectionKey = 'preferences' | 'integrations' | 'security' | 'danger';
 
 export type AccountSectionContext = ReturnType<typeof useProfileScreen> & {
   onManageCameras: () => void;
@@ -36,14 +35,6 @@ export type AccountSectionDef = {
 // never invokes render() before that guard passes — the `return null` guards
 // below just satisfy that type, they never trigger in practice.
 export const ACCOUNT_SECTIONS: AccountSectionDef[] = [
-  {
-    key: 'profile',
-    label: 'Profile',
-    title: 'Profile',
-    render: ({ profile }) => (
-      <ProfileStatsSection ownStats={profile.ownStats} statsLoading={profile.statsLoading} />
-    ),
-  },
   {
     key: 'preferences',
     label: 'Preferences',
