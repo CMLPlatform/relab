@@ -51,6 +51,14 @@ test('marks the active destination from the pathname', () => {
   expect(screen.getByLabelText('Products')).toBeOnTheScreen();
 });
 
+test('marks the active destination on a detail route (prefix match)', () => {
+  (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+  (usePathname as jest.Mock).mockReturnValue('/products/123');
+  render(<TopNav />);
+  expect(screen.getByLabelText('Products, current page')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Cameras')).toBeOnTheScreen();
+});
+
 test('pressing a destination routes', () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
   render(<TopNav />);

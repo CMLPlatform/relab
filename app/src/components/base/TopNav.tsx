@@ -33,7 +33,8 @@ export function TopNav() {
       </Pressable>
       <View className="flex-row gap-1 pl-4">
         {PRIMARY_DESTINATIONS.map((destination) => {
-          const active = pathname === destination.href;
+          const active =
+            pathname === destination.href || pathname.startsWith(`${destination.href}/`);
           return (
             <Pressable
               key={destination.key}
