@@ -73,3 +73,17 @@ test('destinations have a web hover affordance', () => {
     expect.stringContaining('hover:'),
   );
 });
+
+test.each([
+  '/',
+  '/login',
+  '/onboarding',
+  '/new-account',
+  '/forgot-password',
+  '/reset-password',
+])('renders nothing on the chrome-free route %s, even at lg', (path) => {
+  (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+  (usePathname as jest.Mock).mockReturnValue(path);
+  render(<TopNav />);
+  expect(screen.queryByText('Products')).toBeNull();
+});

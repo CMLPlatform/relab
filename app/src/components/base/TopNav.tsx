@@ -8,6 +8,20 @@ import { AppText } from './AppText';
 import { BrandHeaderTitle } from './BrandHeaderTitle';
 import { HeaderRightPill } from './HeaderRightPill';
 
+// Full-bleed, chrome-free routes (AppStack's own headerShown: false list in
+// _layout.tsx) — splash and the auth flow already opt out of the stack
+// header, so the persistent top bar shouldn't layer on top of them either.
+// Concretely: it was duplicating "Sign in" with the login form's own submit
+// button.
+const NO_CHROME_PATHS = new Set([
+  '/',
+  '/login',
+  '/onboarding',
+  '/new-account',
+  '/forgot-password',
+  '/reset-password',
+]);
+
 /**
  * Slim persistent top bar shown on desktop web (>=lg) only. Phone and native
  * keep today's stack headers untouched — see PRIMARY_DESTINATIONS for the
@@ -19,7 +33,7 @@ export function TopNav() {
   const pathname = usePathname();
   const theme = useAppTheme();
 
-  if (!(Platform.OS === 'web' && isLg)) return null;
+  if (!(Platform.OS === 'web' && isLg) || NO_CHROME_PATHS.has(pathname)) return null;
 
   return (
     <View className="border-border bg-background flex-row items-center gap-1 border-b px-4 py-2">
