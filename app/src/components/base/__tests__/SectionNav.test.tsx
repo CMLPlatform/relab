@@ -7,6 +7,10 @@ const sections = [
   { key: 'components', label: 'Components' },
 ] as const;
 
+afterEach(() => {
+  restorePlatform();
+});
+
 test('fires onPress with the section key', () => {
   const onPress = jest.fn();
   render(
@@ -48,5 +52,4 @@ test('has web hover, cursor, and focus-visible affordances', () => {
   expect(className).toEqual(expect.stringContaining('cursor-pointer'));
   expect(className).toEqual(expect.stringContaining('hover:'));
   expect(className).toEqual(expect.stringContaining('focus-visible:'));
-  restorePlatform();
 });
