@@ -1,7 +1,7 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/Icon';
 import { IconButton } from '@/components/base/IconButton';
 import { useAppTheme } from '@/theme';
 
@@ -54,7 +54,7 @@ export function SelectionBar({
         loading={isCapturing}
         disabled={!canCapture}
       >
-        <MaterialCommunityIcons name="camera-burst" size={16} color={theme.colors.onPrimary} />
+        <Icon name="camera-burst" size={16} color={theme.colors.onPrimary} />
         <AppText style={{ color: theme.colors.onPrimary }}>
           {isCapturing ? 'Capturing…' : `Capture ${selectedCount}`}
         </AppText>

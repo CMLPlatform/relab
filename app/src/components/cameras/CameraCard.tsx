@@ -1,9 +1,9 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { memo, useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { Icon } from '@/components/base/Icon';
 import { StatusBadge } from '@/components/base/StatusBadge';
 import { STATUS_LABEL } from '@/components/cameras/detail/styles';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
@@ -70,12 +70,9 @@ function CameraCardComponent({
           <View style={styles.thumbnailPlaceholder}>
             {isOnline ? (
               <>
-                <MaterialCommunityIcons
-                  name="image-outline"
-                  size={40}
-                  color={theme.colors.onSurfaceVariant}
-                  style={styles.placeholderIcon}
-                />
+                <View style={styles.placeholderIcon}>
+                  <Icon name="image-outline" size={40} color={theme.colors.onSurfaceVariant} />
+                </View>
                 <AppText
                   variant="body"
                   style={[styles.thumbnailCaption, { color: theme.tokens.text.muted }]}
@@ -85,12 +82,9 @@ function CameraCardComponent({
               </>
             ) : (
               <>
-                <MaterialCommunityIcons
-                  name="camera-off"
-                  size={40}
-                  color={theme.colors.onSurfaceVariant}
-                  style={styles.placeholderIcon}
-                />
+                <View style={styles.placeholderIcon}>
+                  <Icon name="camera-off" size={40} color={theme.colors.onSurfaceVariant} />
+                </View>
                 <AppText
                   variant="body"
                   style={[styles.thumbnailCaption, { color: theme.tokens.text.muted }]}

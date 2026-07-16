@@ -1,7 +1,7 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { Icon } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
 import { createLivePreviewStyles } from './styles';
 
@@ -48,7 +48,7 @@ export function PreviewErrorOverlay({
   const styles = createLivePreviewStyles(theme);
   return (
     <View style={styles.overlay}>
-      <MaterialCommunityIcons name="video-off" size={32} color={theme.tokens.text.muted} />
+      <Icon name="video-off" size={32} color={theme.tokens.text.muted} />
       <AppText style={styles.overlayText}>{message}</AppText>
       <Pressable onPress={onRetry}>
         <AppText style={styles.retryText}>Tap to retry</AppText>

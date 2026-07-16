@@ -1,10 +1,10 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/Icon';
 import { StatusPill } from '@/components/base/StatusPill';
 import type { StreamSession } from '@/context/streamSession';
 import { useStreamSession } from '@/context/streamSession';
@@ -78,7 +78,7 @@ export function StreamingContent({
       {/* Actions */}
       <View style={styles.actions}>
         <AppButton variant="outline" onPress={handleWatch} className="flex-1">
-          <MaterialCommunityIcons name="open-in-new" size={16} color={theme.colors.onSurface} />
+          <Icon name="open-in-new" size={16} color={theme.colors.onSurface} />
           <AppText style={{ color: theme.colors.onSurface }}>Watch on YouTube</AppText>
         </AppButton>
         <AppButton
@@ -96,7 +96,7 @@ export function StreamingContent({
       {showProductLink ? (
         <AppButton variant="ghost" onPress={handleGoToProduct} className="self-start ml-2 mt-0.5">
           <AppText style={{ color: theme.colors.onSurface }}>Go to {session.productName}</AppText>
-          <MaterialCommunityIcons name="chevron-right" size={16} color={theme.colors.onSurface} />
+          <Icon name="chevron-right" size={16} color={theme.colors.onSurface} />
         </AppButton>
       ) : null}
     </View>

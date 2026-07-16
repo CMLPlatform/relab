@@ -1,8 +1,8 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { Icon, type IconName } from '@/components/base/Icon';
 import { IconButton } from '@/components/base/IconButton';
 import { useAppTheme } from '@/theme';
 import { cameraDetailStyles } from './styles';
@@ -66,7 +66,7 @@ export function ActionRow({
 }: {
   label: string;
   subtitle?: string;
-  icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
+  icon: IconName;
   onPress: () => void;
   danger?: boolean;
   loading?: boolean;
@@ -82,7 +82,7 @@ export function ActionRow({
       disabled={loading}
       className="w-full justify-start"
     >
-      <MaterialCommunityIcons name={icon} size={18} color={color} />
+      <Icon name={icon} size={18} color={color} />
       <View>
         <AppText style={[styles.actionLabel, { color }]}>{label}</AppText>
         {subtitle ? (

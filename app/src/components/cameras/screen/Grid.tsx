@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { memo, useCallback, useEffect } from 'react';
 import {
   FlatList,
@@ -8,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { CameraCard } from '@/components/cameras/CameraCard';
 import {
@@ -68,12 +68,9 @@ export function CamerasGrid({
       columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
       ListEmptyComponent={
         <View style={styles.empty}>
-          <MaterialCommunityIcons
-            name="camera-off"
-            size={64}
-            color={theme.colors.onSurfaceVariant}
-            style={styles.emptyIcon}
-          />
+          <View style={styles.emptyIcon}>
+            <Icon name="camera-off" size={64} color={theme.colors.onSurfaceVariant} />
+          </View>
           <AppText variant="title" style={styles.emptyTitle}>
             No cameras yet
           </AppText>

@@ -1,8 +1,8 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ActivityIndicator, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { Icon } from '@/components/base/Icon';
 import { IconButton } from '@/components/base/IconButton';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
@@ -46,12 +46,9 @@ export function CameraConnectionCard({
             </>
           ) : localConnection.mode === 'local' ? (
             <>
-              <MaterialCommunityIcons
-                name="ethernet"
-                size={18}
-                color={theme.tokens.status.success}
-                style={styles.inlineIcon}
-              />
+              <View style={styles.inlineIcon}>
+                <Icon name="ethernet" size={18} color={theme.tokens.status.success} />
+              </View>
               <AppText
                 variant="title"
                 style={[styles.statusTextLocal, { color: theme.tokens.status.success }]}

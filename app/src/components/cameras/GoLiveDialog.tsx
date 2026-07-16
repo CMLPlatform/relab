@@ -1,9 +1,9 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { Text as UiText } from '@/components/base/ui/text';
 import { ToggleGroup, ToggleGroupItem } from '@/components/base/ui/toggle-group';
@@ -70,15 +70,15 @@ export function GoLiveDialog({
         </AppText>
         <ToggleGroup type="single" value={privacy} onValueChange={handleValueChange}>
           <ToggleGroupItem value="private" isFirst>
-            <MaterialCommunityIcons name="lock" size={16} color={theme.colors.onSurface} />
+            <Icon name="lock" size={16} color={theme.colors.onSurface} />
             <UiText>Private</UiText>
           </ToggleGroupItem>
           <ToggleGroupItem value="unlisted">
-            <MaterialCommunityIcons name="eye-off" size={16} color={theme.colors.onSurface} />
+            <Icon name="eye-off" size={16} color={theme.colors.onSurface} />
             <UiText>Unlisted</UiText>
           </ToggleGroupItem>
           <ToggleGroupItem value="public" isLast>
-            <MaterialCommunityIcons name="earth" size={16} color={theme.colors.onSurface} />
+            <Icon name="earth" size={16} color={theme.colors.onSurface} />
             <UiText>Public</UiText>
           </ToggleGroupItem>
         </ToggleGroup>

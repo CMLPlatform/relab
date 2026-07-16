@@ -1,10 +1,10 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
 import {
@@ -62,7 +62,7 @@ export function CameraPickerDialog({
           <ActivityIndicator style={styles.loading} />
         ) : sorted.length === 0 ? (
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="camera-off" size={32} color={theme.tokens.text.muted} />
+            <Icon name="camera-off" size={32} color={theme.tokens.text.muted} />
             <MutedText style={styles.emptyText}>No cameras registered</MutedText>
           </View>
         ) : (
@@ -71,7 +71,7 @@ export function CameraPickerDialog({
       </View>
       <View style={styles.actions}>
         <AppButton variant="ghost" onPress={handleManage}>
-          <MaterialCommunityIcons name="cog" size={16} color={theme.colors.onSurface} />
+          <Icon name="cog" size={16} color={theme.colors.onSurface} />
           <AppText style={{ color: theme.colors.onSurface }}>Manage</AppText>
         </AppButton>
         <View style={styles.spacer} />
@@ -115,7 +115,7 @@ function CameraPickerRow({
           { backgroundColor: isReachable ? theme.tokens.status.success : theme.tokens.text.muted },
         ]}
       />
-      <MaterialCommunityIcons name="access-point" size={20} color={theme.colors.onSurface} />
+      <Icon name="access-point" size="md" color={theme.colors.onSurface} />
       <AppText style={styles.rowTitle}>{camera.name}</AppText>
       {effectiveConnection.detailLabel ? (
         <AppText variant="label" style={{ color: theme.tokens.status.success }}>
