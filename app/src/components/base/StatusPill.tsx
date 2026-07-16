@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { radius } from '@/constants';
 import { getStatusTone, useAppTheme } from '@/theme';
 import type { AppTokens } from '@/theme/types';
 
@@ -50,7 +51,9 @@ const styles = StyleSheet.create({
     height: 22,
     justifyContent: 'center',
     paddingHorizontal: 8,
-    borderRadius: 11,
+    // Inline status chip — control radius, not a pill (DESIGN.md reserves the
+    // `full` radius for avatars/true pills).
+    borderRadius: radius.control,
   },
   label: {
     fontSize: 11,
