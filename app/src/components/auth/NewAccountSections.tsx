@@ -15,23 +15,43 @@ import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { WEBSITE_URL } from '@/config';
 import { radius } from '@/constants';
-import type { NewAccountFormValues } from '@/services/api/validation/userSchema';
+import {
+  type NewAccountFormValues,
+  PASSWORD_MIN_LENGTH,
+} from '@/services/api/validation/userSchema';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
 
-// Every row in the card is a fixed slot, so the three steps are identical and
-// the card never resizes as the error message comes and goes.
+// Every row is a fixed slot, so the three steps are identical and nothing moves
+// as the error message comes and goes.
+const LABEL_ROW_HEIGHT = 16;
 const INPUT_ROW_HEIGHT = 48;
 const HELPER_SLOT_HEIGHT = 18;
-const BACK_SLOT_HEIGHT = 32;
+const ACTION_ROW_HEIGHT = 44;
 const CARD_PADDING = 16;
-const CARD_HEIGHT = CARD_PADDING * 2 + INPUT_ROW_HEIGHT + HELPER_SLOT_HEIGHT + BACK_SLOT_HEIGHT;
+const CARD_GAP = 6;
+const CARD_HEIGHT =
+  CARD_PADDING * 2 +
+  LABEL_ROW_HEIGHT +
+  INPUT_ROW_HEIGHT +
+  HELPER_SLOT_HEIGHT +
+  ACTION_ROW_HEIGHT +
+  CARD_GAP * 3;
+// The mark and the 80px name are different heights; pinning the slot keeps the
+// card from jumping between step one and the rest.
+const BRAND_SLOT_HEIGHT = 96;
 
 const styles = StyleSheet.create({
   welcomeText: {
     marginTop: 80,
     fontSize: 40,
     marginLeft: 5,
+  },
+  // Fixed height: the mark and the 80px name measure differently, and without
+  // this the card sat 22px lower on step one than on the rest.
+  brandSlot: {
+    height: BRAND_SLOT_HEIGHT,
+    justifyContent: 'center',
   },
   brandText: {
     fontSize: 80,
@@ -42,7 +62,6 @@ const styles = StyleSheet.create({
   brandLogo: {
     width: 200,
     marginLeft: 5,
-    marginVertical: 4,
   },
   questionText: {
     fontSize: 31,
@@ -62,34 +81,33 @@ const styles = StyleSheet.create({
     width: '100%',
     height: CARD_HEIGHT,
     justifyContent: 'center',
+    gap: CARD_GAP,
   },
-  inputContainer: {
-    flexDirection: 'column',
+  // A visible label that survives typing — the placeholder used to be the only
+  // name for the field, and it disappears the moment you type into it.
+  label: {
+    height: LABEL_ROW_HEIGHT,
+    fontSize: 12,
+    opacity: 0.7,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     height: INPUT_ROW_HEIGHT,
   },
-  arrowButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowButtonDisabled: {
-    opacity: 0.35,
-  },
-  arrowButtonText: {
-    fontSize: 28,
-    lineHeight: 28,
-  },
   textInput: {
     flex: 1,
-    marginRight: 10,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 10,
+  },
+  // Back left, primary right — the wizard convention. The primary action gets
+  // its own row so "Create account" stops overflowing the card's padding.
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: ACTION_ROW_HEIGHT,
   },
   // Reserved, never conditional: the message fills this slot instead of growing
   // the card. The error still stays until the field is actually fixed — it is
@@ -101,10 +119,10 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 12,
   },
-  // Reserved on every step, including the first, which has no back action —
-  // otherwise the card would change height between steps.
+  // Holds the left half of the action row even on step one, which has no back
+  // action — otherwise the primary button would slide across between steps.
   backSlot: {
-    height: BACK_SLOT_HEIGHT,
+    flex: 1,
     justifyContent: 'center',
   },
   backButton: {
@@ -197,6 +215,7 @@ function NewAccountStep({
   mutedColor,
   field,
   lines,
+  label,
   brandLogo,
   inputProps,
   next,
@@ -205,6 +224,7 @@ function NewAccountStep({
 }: SharedStepProps & {
   field: StepFieldName;
   lines: [string, string, string];
+  label: string;
   brandLogo?: boolean;
   inputProps: ComponentProps<typeof TextInput>;
   next?: { testID: string; accessibilityLabel: string; onPress: () => void };
@@ -219,7 +239,7 @@ function NewAccountStep({
         value={value}
         onChangeText={onChange}
         autoCapitalize="none"
-        accessibilityLabel={inputProps.placeholder}
+        accessibilityLabel={label}
         {...inputProps}
         style={[
           styles.textInput,
@@ -230,25 +250,19 @@ function NewAccountStep({
         ]}
       />
     ),
-    [error, inputProps, theme],
-  );
-  const arrowStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.arrowButton,
-      error ? styles.arrowButtonDisabled : null,
-      pressed && !error ? { opacity: 0.7 } : null,
-    ],
-    [error],
+    [error, inputProps, label, theme],
   );
 
   return (
     <View>
       <Text style={[styles.welcomeText, { color: headlineColor }]}>{lines[0]}</Text>
-      {brandLogo ? (
-        <BrandWordmark style={styles.brandLogo} />
-      ) : (
-        <Text style={[styles.brandText, { color: headlineColor }]}>{lines[1]}</Text>
-      )}
+      <View style={styles.brandSlot}>
+        {brandLogo ? (
+          <BrandWordmark style={styles.brandLogo} />
+        ) : (
+          <Text style={[styles.brandText, { color: headlineColor }]}>{lines[1]}</Text>
+        )}
+      </View>
       <Text style={[styles.questionText, { color: headlineColor }]}>{lines[2]}</Text>
       <View
         style={[
@@ -259,52 +273,47 @@ function NewAccountStep({
           },
         ]}
       >
-        <View style={styles.inputContainer}>
-          <View style={styles.inputRow}>
-            <Controller control={control} name={field} render={renderInput} />
-            {next ? (
+        <Text style={[styles.label, { color: headlineColor }]}>{label}</Text>
+        <View style={styles.inputRow}>
+          <Controller control={control} name={field} render={renderInput} />
+        </View>
+        <View style={styles.helperSlot}>
+          {error ? (
+            <Text style={[styles.helperText, { color: theme.tokens.status.danger }]}>
+              {error.message}
+            </Text>
+          ) : null}
+        </View>
+        <View style={styles.actionRow}>
+          <View style={styles.backSlot}>
+            {back ? (
               <Pressable
-                testID={next.testID}
+                style={styles.backButton}
+                onPress={back.onPress}
                 accessibilityRole="button"
-                accessibilityLabel={next.accessibilityLabel}
-                disabled={Boolean(error)}
-                onPress={next.onPress}
-                style={arrowStyle}
+                accessibilityLabel={back.accessibilityLabel}
+                hitSlop={12}
               >
-                <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
+                <Icon name="chevron-left" size={16} color={mutedColor} />
+                <Text style={[styles.backButtonText, { color: mutedColor }]}>{back.label}</Text>
               </Pressable>
             ) : null}
-            {submit ? (
-              <AppButton
-                variant="primary"
-                onPress={submit.onPress}
-                loading={submit.isSubmitting}
-                className="min-w-[140px]"
-              >
-                Create account
-              </AppButton>
-            ) : null}
           </View>
-          <View style={styles.helperSlot}>
-            {error ? (
-              <Text style={[styles.helperText, { color: theme.tokens.status.danger }]}>
-                {error.message}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-        <View style={styles.backSlot}>
-          {back ? (
-            <Pressable
-              style={styles.backButton}
-              onPress={back.onPress}
-              accessibilityRole="button"
-              accessibilityLabel={back.accessibilityLabel}
-              hitSlop={12}
+          {next ? (
+            <AppButton
+              variant="primary"
+              testID={next.testID}
+              accessibilityLabel={next.accessibilityLabel}
+              disabled={Boolean(error)}
+              onPress={next.onPress}
             >
-              <Icon name="chevron-left" size={16} color={mutedColor} />
-              <Text style={[styles.backButtonText, { color: mutedColor }]}>{back.label}</Text>
-            </Pressable>
+              Continue
+            </AppButton>
+          ) : null}
+          {submit ? (
+            <AppButton variant="primary" onPress={submit.onPress} loading={submit.isSubmitting}>
+              Create account
+            </AppButton>
           ) : null}
         </View>
       </View>
@@ -321,12 +330,13 @@ export function NewAccountUsernameStep({
       {...shared}
       field="username"
       lines={['Welcome to', 'Relab', 'Who are you?']}
+      label="Username"
       brandLogo
       inputProps={{
         autoCorrect: false,
         autoComplete: 'username-new',
         textContentType: 'username',
-        placeholder: 'Username',
+        placeholder: 'e.g. awesome_user',
         returnKeyType: 'next',
         onSubmitEditing: onAdvance,
       }}
@@ -354,12 +364,13 @@ export function NewAccountEmailStep({
       {...shared}
       field="email"
       lines={['Hi', username, 'How do we reach you?']}
+      label="Email address"
       inputProps={{
         autoCorrect: false,
         autoComplete: 'email',
         textContentType: 'emailAddress',
         keyboardType: 'email-address',
-        placeholder: 'Email address',
+        placeholder: 'e.g. you@university.edu',
         returnKeyType: 'next',
         onSubmitEditing: onAdvance,
       }}
@@ -394,11 +405,14 @@ export function NewAccountPasswordStep({
       {...shared}
       field="password"
       lines={['Finally,', username, 'How will you sign in?']}
+      label="Password"
       inputProps={{
         autoComplete: 'password-new',
         textContentType: 'newPassword',
         secureTextEntry: true,
-        placeholder: 'Password',
+        // An example/hint, not a second label — and sourced from the schema's
+        // own constant so it cannot drift from the rule it describes.
+        placeholder: `At least ${PASSWORD_MIN_LENGTH} characters`,
         returnKeyType: 'done',
         onSubmitEditing: onSubmit,
       }}

@@ -33,6 +33,7 @@ type AppButtonProps = {
   children: ReactNode;
   className?: string;
   accessibilityLabel?: string;
+  testID?: string;
 };
 
 /** App button over the vendored RNR button; maps app variants and a loading state. */
@@ -44,6 +45,7 @@ export function AppButton({
   children,
   className,
   accessibilityLabel,
+  testID,
 }: AppButtonProps) {
   const { colors } = useAppTheme();
   return (
@@ -52,6 +54,7 @@ export function AppButton({
       disabled={disabled || loading}
       onPress={onPress}
       accessibilityLabel={accessibilityLabel}
+      testID={testID}
       // min-h-11 (44px) is a different tailwind-merge group than the vendored
       // button's h-10/sm:h-9 size classes, so it survives the merge and — since
       // min-height clamps height from below — always wins the actual layout,

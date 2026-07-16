@@ -76,17 +76,17 @@ describe('NewAccount screen', () => {
 
   it('renders the username section by default', () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
-    expect(screen.getByPlaceholderText('Username')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Username')).toBeOnTheScreen();
     expect(screen.getByText('Who are you?')).toBeOnTheScreen();
   });
 
   it('shows validation error for invalid username', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a');
+      fireEvent.changeText(screen.getByLabelText('Username'), 'a');
     });
     await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
 
     await waitFor(() => {
@@ -96,20 +96,20 @@ describe('NewAccount screen', () => {
 
   it('chevron button is disabled for invalid username', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
-    const input = screen.getByPlaceholderText('Username');
+    const input = screen.getByLabelText('Username');
     await act(async () => {
       fireEvent.changeText(input, '');
     });
-    expect(screen.getByPlaceholderText('Username')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Username')).toBeOnTheScreen();
   });
 
   it('advances to email section with valid username', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
+      fireEvent.changeText(screen.getByLabelText('Username'), 'validuser');
     });
     await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
 
     expect(screen.getByText(HOW_DO_WE_REACH_YOU_PATTERN)).toBeOnTheScreen();
@@ -118,11 +118,11 @@ describe('NewAccount screen', () => {
   it('does not advance from username when invalid', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a');
+      fireEvent.changeText(screen.getByLabelText('Username'), 'a');
     });
 
     await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
 
     expect(screen.queryByText(HOW_DO_WE_REACH_YOU_PATTERN)).toBeNull();
@@ -131,17 +131,17 @@ describe('NewAccount screen', () => {
   it('shows email validation error for invalid email', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
+      fireEvent.changeText(screen.getByLabelText('Username'), 'validuser');
     });
     await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
-    await screen.findByPlaceholderText('Email address');
+    await screen.findByLabelText('Email address');
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'not_an_email');
+      fireEvent.changeText(screen.getByLabelText('Email address'), 'not_an_email');
     });
     await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+      fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
     });
 
     await waitFor(() => {
@@ -156,26 +156,23 @@ describe('NewAccount screen', () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
 
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'newuser');
+      fireEvent.changeText(screen.getByLabelText('Username'), 'newuser');
     });
     await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
-    });
-
-    await screen.findByPlaceholderText('Email address');
-    await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'user@example.com');
-    });
-    await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
 
-    await screen.findByPlaceholderText('Password');
+    await screen.findByLabelText('Email address');
     await act(async () => {
-      fireEvent.changeText(
-        screen.getByPlaceholderText('Password'),
-        'correct-horse-battery-staple-v42',
-      );
+      fireEvent.changeText(screen.getByLabelText('Email address'), 'user@example.com');
+    });
+    await act(async () => {
+      fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
+    });
+
+    await screen.findByLabelText('Password');
+    await act(async () => {
+      fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
     });
     await act(async () => {
       fireEvent.press(screen.getByText('Create account'));
@@ -191,24 +188,21 @@ describe('NewAccount screen', () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
 
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'newuser');
+      fireEvent.changeText(screen.getByLabelText('Username'), 'newuser');
     });
     await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
-    await screen.findByPlaceholderText('Email address');
+    await screen.findByLabelText('Email address');
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'taken@example.com');
+      fireEvent.changeText(screen.getByLabelText('Email address'), 'taken@example.com');
     });
     await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+      fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
     });
-    await screen.findByPlaceholderText('Password');
+    await screen.findByLabelText('Password');
     await act(async () => {
-      fireEvent.changeText(
-        screen.getByPlaceholderText('Password'),
-        'correct-horse-battery-staple-v42',
-      );
+      fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
     });
 
     await act(async () => {
@@ -228,22 +222,22 @@ describe('NewAccount screen', () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
 
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
+      fireEvent.changeText(screen.getByLabelText('Username'), 'validuser');
     });
     await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
-    await screen.findByPlaceholderText('Email address');
+    await screen.findByLabelText('Email address');
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'valid@example.com');
+      fireEvent.changeText(screen.getByLabelText('Email address'), 'valid@example.com');
     });
     await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+      fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
     });
 
-    await screen.findByPlaceholderText('Password');
+    await screen.findByLabelText('Password');
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Password'), '123');
+      fireEvent.changeText(screen.getByLabelText('Password'), '123');
     });
 
     await waitFor(() => {
@@ -255,18 +249,18 @@ describe('NewAccount screen', () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
 
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'testuser');
+      fireEvent.changeText(screen.getByLabelText('Username'), 'testuser');
     });
     await act(async () => {
-      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
 
-    await screen.findByPlaceholderText('Email address');
+    await screen.findByLabelText('Email address');
     await act(async () => {
       fireEvent.press(screen.getByText('Edit username'));
     });
 
-    expect(screen.getByPlaceholderText('Username')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Username')).toBeOnTheScreen();
   });
 
   it('navigates to login via "I already have an account"', async () => {
