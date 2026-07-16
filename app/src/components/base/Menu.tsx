@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { radius, spacing } from '@/constants';
@@ -13,7 +13,42 @@ type MenuProps = {
   children: ReactNode;
 };
 
-type Position = { top: number; left: number };
+/** Kept in sync with `styles.content.minWidth` — the flip decision needs it. */
+const MENU_MIN_WIDTH = 180;
+/** Breathing room between the menu and the viewport edge. */
+const EDGE_MARGIN = spacing.sm;
+
+type Position = { top: number; left: number } | { top: number; right: number };
+
+/**
+ * Where to pin the menu relative to a measured anchor. Exported for tests: the
+ * flip is the only non-obvious part of this component.
+ *
+ * Left-anchored by default, so the menu grows rightwards from the anchor. For
+ * an anchor near the right edge that runs it off-screen, so flip to
+ * right-anchored and let it grow inwards instead. Flipping (rather than
+ * clamping `left`) stays correct for menus wider than the minimum, whose width
+ * isn't known until after layout.
+ */
+export function getMenuPosition({
+  anchorX,
+  anchorY,
+  anchorWidth,
+  anchorHeight,
+  windowWidth,
+}: {
+  anchorX: number;
+  anchorY: number;
+  anchorWidth: number;
+  anchorHeight: number;
+  windowWidth: number;
+}): Position {
+  const top = anchorY + anchorHeight + spacing.xs;
+  const overflowsRight = anchorX + MENU_MIN_WIDTH + EDGE_MARGIN > windowWidth;
+  return overflowsRight
+    ? { top, right: Math.max(EDGE_MARGIN, windowWidth - (anchorX + anchorWidth)) }
+    : { top, left: Math.max(EDGE_MARGIN, anchorX) };
+}
 
 /**
  * Anchored dropdown menu, replacing react-native-paper's Menu. Renders in an
@@ -29,14 +64,23 @@ type Position = { top: number; left: number };
 export function Menu({ visible, onDismiss, anchor, children }: MenuProps) {
   const theme = useAppTheme();
   const anchorRef = useRef<View>(null);
+  const { width: windowWidth } = useWindowDimensions();
   const [position, setPosition] = useState<Position>({ top: 0, left: 0 });
 
   useEffect(() => {
     if (!visible) return;
-    anchorRef.current?.measureInWindow((x, y, _width, height) => {
-      setPosition({ top: y + height + spacing.xs, left: x });
+    anchorRef.current?.measureInWindow((x, y, width, height) => {
+      setPosition(
+        getMenuPosition({
+          anchorX: x,
+          anchorY: y,
+          anchorWidth: width,
+          anchorHeight: height,
+          windowWidth,
+        }),
+      );
     });
-  }, [visible]);
+  }, [visible, windowWidth]);
 
   return (
     <>
@@ -100,7 +144,8 @@ Menu.Item = MenuItem;
 const styles = StyleSheet.create({
   content: {
     position: 'absolute',
-    minWidth: 180,
+    minWidth: MENU_MIN_WIDTH,
+    maxWidth: '92%',
     // Floating surface: overlay radius + the shared overlay elevation tier
     // (applied inline below, since it is theme-dependent).
     borderRadius: radius.overlay,
