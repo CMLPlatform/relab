@@ -34,7 +34,6 @@
     color-mix(in srgb, var(--color-surface-raised) 96%, transparent);
 }
 
-.hero-copy,
 .page-intro,
 .empty-state {
   display: grid;
@@ -396,11 +395,6 @@
   }
 }
 
-.theme-control {
-  display: inline-flex;
-  flex-shrink: 0;
-}
-
 .theme-toggle {
   appearance: none;
   border: 1px solid var(--color-page-border);
@@ -510,7 +504,6 @@
     height: 0.82rem;
   }
 
-  .hero-copy,
   .page-intro,
   .empty-state {
     gap: 0.8rem;
