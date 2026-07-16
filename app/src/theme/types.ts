@@ -1,3 +1,5 @@
+import type { ViewStyle } from 'react-native';
+
 export type AppScheme = 'light' | 'dark';
 
 export type AppColorScale = {
@@ -58,6 +60,9 @@ export type AppTokens = {
     scrim: string;
     media: string;
     glass: string;
+  };
+  elevation: {
+    overlay: ViewStyle;
   };
   border: {
     subtle: string;

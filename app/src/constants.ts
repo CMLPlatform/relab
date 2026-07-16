@@ -14,8 +14,13 @@ export const breakpoints = {
 } as const;
 
 export const radius = {
-  sm: 4,
-  md: 8,
-  lg: 16,
+  control: 6,
+  card: 8,
+  overlay: 12,
   full: 9999,
+  // Back-compat aliases onto the new tiers above — existing call sites keep
+  // compiling; migrate them to the semantic names opportunistically.
+  sm: 6,
+  md: 8,
+  lg: 12,
 } as const;

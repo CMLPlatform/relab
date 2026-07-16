@@ -29,9 +29,26 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       // back a touch; the auth card carries the actual control legibility.
       // Tinted to the theme background (not neutral gray) and kept low-alpha.
       hero: isDark ? 'rgba(203, 211, 224, 0.5)' : 'rgba(250,251,254,0.5)',
-      scrim: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(244, 244, 244, 0.2)',
+      scrim: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(12,18,32,0.50)',
       media: 'rgba(0,0,0,0.5)',
       glass: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)',
+    },
+    elevation: {
+      overlay: isDark
+        ? {
+            shadowColor: '#000',
+            shadowOpacity: 0.55,
+            shadowRadius: 24,
+            shadowOffset: { width: 0, height: 8 },
+            elevation: 12,
+          }
+        : {
+            shadowColor: 'rgba(20,40,80,1)',
+            shadowOpacity: 0.16,
+            shadowRadius: 24,
+            shadowOffset: { width: 0, height: 8 },
+            elevation: 8,
+          },
     },
     border: {
       subtle: 'rgba(128,128,128,0.2)',
