@@ -57,13 +57,13 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: radius.sm + 1,
+    borderRadius: radius.control,
     flexDirection: 'row',
   },
   text: {
     paddingVertical: spacing.sm,
     paddingHorizontal: 12,
-    borderRadius: radius.sm + 1,
+    borderRadius: radius.control,
     textAlign: 'center',
     fontWeight: '500',
     fontSize: 15,

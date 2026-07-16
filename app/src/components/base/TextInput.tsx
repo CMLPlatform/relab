@@ -1,5 +1,6 @@
 import type React from 'react';
 import { TextInput as NativeTextInput, type TextInputProps } from 'react-native';
+import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 
 interface Props extends TextInputProps {
@@ -25,7 +26,9 @@ export function TextInput({
     <NativeTextInput
       ref={ref}
       style={[
-        { color: theme.colors.onSurface },
+        // The primitive owns the control radius so call sites don't hardcode one
+        // (DESIGN.md form language); a caller style can still override it.
+        { color: theme.colors.onSurface, borderRadius: radius.control },
         error && {
           backgroundColor: theme.colors.errorContainer,
           color: theme.colors.onErrorContainer,

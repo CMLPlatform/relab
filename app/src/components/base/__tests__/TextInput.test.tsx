@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
 import { TextInput } from '@/components/base/TextInput';
+import { radius } from '@/constants';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { renderWithProviders } from '@/test-utils/index';
 import { getAppTheme } from '@/theme';
@@ -48,6 +49,20 @@ describe('<TextInput />', () => {
     expect(input).toHaveProp('placeholderTextColor', getAppTheme('dark').colors.onSurfaceVariant);
 
     jest.mocked(useEffectiveColorScheme).mockReturnValue('light');
+  });
+
+  // DESIGN.md "Form language — Flat & Sharp": the primitive owns the control
+  // radius so call sites don't hardcode one; a caller style may still override.
+  it('applies the control radius by default', () => {
+    renderWithProviders(<TextInput testID="radius-default" value="" />);
+    expect(screen.getByTestId('radius-default')).toHaveStyle({ borderRadius: radius.control });
+  });
+
+  it('lets a caller style override the default radius', () => {
+    renderWithProviders(
+      <TextInput testID="radius-override" value="" style={{ borderRadius: 2 }} />,
+    );
+    expect(screen.getByTestId('radius-override')).toHaveStyle({ borderRadius: 2 });
   });
 
   it('does not treat a passing customValidation function as an error', () => {
