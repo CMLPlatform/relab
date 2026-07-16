@@ -7,6 +7,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { TextInput } from '@/components/base/TextInput';
+import { useIsDesktop } from '@/hooks/useIsDesktop';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
 
@@ -24,17 +25,33 @@ type LoginLayoutProps = {
 
 export function LoginLayout({ keyboardShown, children, onBrowse }: LoginLayoutProps) {
   const theme = useAppTheme();
+  const isDesktop = useIsDesktop();
   const keyboardHeight = keyboardShown && Keyboard.metrics() ? Keyboard.metrics()?.height : 0;
+
+  const browse = (
+    <AppButton variant="ghost" onPress={onBrowse} className="self-start absolute top-4 left-2 z-10">
+      <MaterialCommunityIcons name="arrow-left" size={16} color={theme.colors.onSurface} />
+      <AppText style={{ color: theme.colors.onSurface }}>Browse</AppText>
+    </AppButton>
+  );
+
+  // Desktop has no software keyboard, so the phone's bottom-sheet framing turns
+  // into a full-width bar pinned to the viewport floor. Center a constrained
+  // column over the backdrop instead — the readable-measure auth pattern.
+  if (isDesktop) {
+    return (
+      <View style={styles.root}>
+        {browse}
+        <View style={styles.desktopCenter}>
+          <View style={styles.desktopColumn}>{children}</View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
-      <AppButton
-        variant="ghost"
-        onPress={onBrowse}
-        className="self-start absolute top-4 left-2 z-10"
-      >
-        <MaterialCommunityIcons name="arrow-left" size={16} color={theme.colors.onSurface} />
-        <AppText style={{ color: theme.colors.onSurface }}>Browse</AppText>
-      </AppButton>
+      {browse}
 
       <View style={[styles.overlayContent, { bottom: keyboardHeight }]}>{children}</View>
 
@@ -64,10 +81,14 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
 
 export function LoginBrandHero() {
   const theme = useAppTheme();
+  const isDesktop = useIsDesktop();
   return (
     <View
       style={[
         styles.brandWash,
+        // In the centered desktop column, fill the width so the wash lines up
+        // with the card edges; the phone bottom sheet keeps the 78% left inset.
+        isDesktop && styles.brandWashDesktop,
         { backgroundColor: theme.tokens.surface.card, borderColor: theme.tokens.border.subtle },
       ]}
     >
@@ -201,6 +222,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
   },
+  desktopCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  desktopColumn: {
+    width: '100%',
+    maxWidth: 420,
+    gap: 12,
+  },
   card: {
     ...cardFrame,
     padding: 16,
@@ -222,6 +254,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 18,
     marginBottom: 4,
+  },
+  brandWashDesktop: {
+    width: '100%',
+    maxWidth: undefined,
+    alignSelf: 'stretch',
   },
   brandLogo: {
     width: '100%',
