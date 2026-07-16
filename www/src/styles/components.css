@@ -1,7 +1,7 @@
 .card {
   padding: 1.55rem;
   background: color-mix(in srgb, var(--color-surface-raised) 98%, transparent);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-page-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(12px);
@@ -128,7 +128,7 @@
 .btn-muted {
   background: transparent;
   color: var(--color-on-surface);
-  border-color: var(--color-border);
+  border-color: var(--color-page-border);
 }
 
 .stats-panel {
@@ -169,7 +169,7 @@
   display: grid;
   gap: 0.3rem;
   padding-right: 2rem;
-  border-right: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-page-border);
 }
 
 /* The one hero figure on the page. Proportional digits: `tabular-nums` gives
@@ -232,7 +232,7 @@
 .stats-controls {
   display: inline-flex;
   flex-wrap: wrap;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-page-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -286,7 +286,7 @@
 
 /* Recessive chrome: solid hairlines, one shade off the surface. */
 .stats-chart-grid line {
-  stroke: var(--color-border);
+  stroke: var(--color-page-border);
   stroke-width: 1;
 }
 
@@ -403,7 +403,7 @@
 
 .theme-toggle {
   appearance: none;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-page-border);
   background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
   color: var(--color-muted);
   width: 2.1rem;
@@ -423,7 +423,7 @@
 
 .theme-toggle:hover {
   transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
+  border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-page-border));
 }
 
 .theme-control[data-theme-current="light"] .theme-toggle,

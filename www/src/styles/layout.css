@@ -14,7 +14,7 @@
 .site-footer {
   margin-top: auto;
   padding-top: 0.8rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-page-border);
 }
 
 .site-footer-inner {
@@ -49,7 +49,7 @@
 .footer-theme {
   display: inline-flex;
   padding-left: 1rem;
-  border-left: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--color-page-border) 76%, transparent);
   justify-content: flex-end;
 }
 

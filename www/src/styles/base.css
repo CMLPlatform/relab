@@ -13,9 +13,9 @@ body {
   color: var(--color-text);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-surface) 92%, rgb(212, 229, 238)) 0%,
-    var(--color-surface) 18%,
-    color-mix(in srgb, var(--color-surface) 86%, white) 100%
+    color-mix(in srgb, var(--color-page-surface) 92%, rgb(212, 229, 238)) 0%,
+    var(--color-page-surface) 18%,
+    color-mix(in srgb, var(--color-page-surface) 86%, white) 100%
   );
   display: flex;
   flex-direction: column;

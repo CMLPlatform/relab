@@ -1,9 +1,15 @@
 @import "tailwindcss";
-@import "./tokens.css";
-@import "./base.css";
-@import "./layout.css";
-@import "./components.css";
-@import "./utilities.css";
+/* Legacy hand-written CSS is imported unlayered by default, which beats any
+   layered Tailwind utility regardless of specificity or source order (see
+   tokens.css's --color-surface/--color-border note below for the same
+   defect). Placing it in Tailwind's own base/components layers restores
+   normal cascade behavior: Tailwind's `utilities` layer (highest priority)
+   can now override these rules, which utility-migrated markup relies on. */
+@import "./tokens.css" layer(base);
+@import "./base.css" layer(base);
+@import "./layout.css" layer(components);
+@import "./components.css" layer(components);
+@import "./utilities.css" layer(components);
 
 @theme {
   --color-primary: var(--relab-brand-primary);
