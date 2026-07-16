@@ -1,7 +1,6 @@
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { maybeCompleteAuthSession } from 'expo-web-browser';
-import { useCallback, useEffect, useState } from 'react';
-import { Keyboard } from 'react-native';
+import { useCallback } from 'react';
 import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
 import { type MfaLoginPending, setPendingMfaLogin } from '@/services/api/auth/authMfa';
@@ -18,26 +17,6 @@ maybeCompleteAuthSession();
 
 const MFA_ROUTE = '/mfa' as Href;
 
-function useKeyboardShownState() {
-  const [keyboardShown, setKeyboardShown] = useState(false);
-
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
-      setKeyboardShown(true);
-    });
-    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardShown(false);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
-
-  return keyboardShown;
-}
-
 export function useLoginScreen() {
   const router = useRouter();
   const { redirectTo } = useLocalSearchParams<{
@@ -46,7 +25,6 @@ export function useLoginScreen() {
   const dialog = useDialog();
   const { user, isLoading: authLoading, refetch } = useAuth();
   const postLoginRedirect = getSafeRedirectTarget(redirectTo);
-  const keyboardShown = useKeyboardShownState();
 
   useAuthenticatedUserRedirect({
     authLoading,
@@ -106,9 +84,6 @@ export function useLoginScreen() {
   });
 
   return {
-    ui: {
-      keyboardShown,
-    },
     form: {
       control,
       emailRef,

@@ -1,4 +1,5 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
@@ -10,7 +11,7 @@ export default function VerifyEmailScreen() {
   const { isLoading, error, success, isLoggedIn, goToLogin, goHome } = useVerifyEmail();
 
   return (
-    <View style={styles.screen}>
+    <AuthScreen>
       <Card>
         <View style={styles.cardContent}>
           <AppText variant="display">Verify email</AppText>
@@ -54,14 +55,11 @@ export default function VerifyEmailScreen() {
           )}
         </View>
       </Card>
-    </View>
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
   cardContent: {
     padding: 16,
     gap: 16,

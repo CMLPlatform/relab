@@ -2,12 +2,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type RefObject, useCallback } from 'react';
 import type { Control, ControllerRenderProps } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
-import { Keyboard, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { TextInput } from '@/components/base/TextInput';
-import { useIsDesktop } from '@/hooks/useIsDesktop';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
 
@@ -18,49 +18,26 @@ const cardFrame = {
 } as const;
 
 type LoginLayoutProps = {
-  keyboardShown: boolean;
   children: React.ReactNode;
   onBrowse: () => void;
 };
 
-export function LoginLayout({ keyboardShown, children, onBrowse }: LoginLayoutProps) {
+export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
   const theme = useAppTheme();
-  const isDesktop = useIsDesktop();
-  const keyboardHeight = keyboardShown && Keyboard.metrics() ? Keyboard.metrics()?.height : 0;
-
-  const browse = (
-    <AppButton variant="ghost" onPress={onBrowse} className="self-start absolute top-4 left-2 z-10">
-      <MaterialCommunityIcons name="arrow-left" size={16} color={theme.colors.onSurface} />
-      <AppText style={{ color: theme.colors.onSurface }}>Browse</AppText>
-    </AppButton>
-  );
-
-  // Desktop has no software keyboard, so the phone's bottom-sheet framing turns
-  // into a full-width bar pinned to the viewport floor. Center a constrained
-  // column over the backdrop instead — the readable-measure auth pattern.
-  if (isDesktop) {
-    return (
-      <View style={styles.root}>
-        {browse}
-        <View style={styles.desktopCenter}>
-          <View style={styles.desktopColumn}>{children}</View>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.root}>
-      {browse}
+      <AppButton
+        variant="ghost"
+        onPress={onBrowse}
+        className="self-start absolute top-4 left-2 z-10"
+      >
+        <MaterialCommunityIcons name="arrow-left" size={16} color={theme.colors.onSurface} />
+        <AppText style={{ color: theme.colors.onSurface }}>Browse</AppText>
+      </AppButton>
 
-      <View style={[styles.overlayContent, { bottom: keyboardHeight }]}>{children}</View>
-
-      <View
-        style={[
-          styles.keyboardFill,
-          { height: keyboardHeight, backgroundColor: theme.colors.background },
-        ]}
-      />
+      <AuthScreen>
+        <View style={styles.stack}>{children}</View>
+      </AuthScreen>
     </View>
   );
 }
@@ -81,14 +58,10 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
 
 export function LoginBrandHero() {
   const theme = useAppTheme();
-  const isDesktop = useIsDesktop();
   return (
     <View
       style={[
         styles.brandWash,
-        // In the centered desktop column, fill the width so the wash lines up
-        // with the card edges; the phone bottom sheet keeps the 78% left inset.
-        isDesktop && styles.brandWashDesktop,
         { backgroundColor: theme.tokens.surface.card, borderColor: theme.tokens.border.subtle },
       ]}
     >
@@ -216,21 +189,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  overlayContent: {
-    padding: 20,
-    gap: 10,
-    position: 'absolute',
-    width: '100%',
-  },
-  desktopCenter: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  desktopColumn: {
-    width: '100%',
-    maxWidth: 420,
+  stack: {
     gap: 12,
   },
   card: {
@@ -238,27 +197,14 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
   },
-  keyboardFill: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-  },
   // Translucent wash behind the logo (same frame as the auth card) so the
-  // mark stays legible over the photo backdrop. Sizing lives here: the
-  // percentage binds on phones, maxWidth caps tablets/web.
+  // mark stays legible over the photo backdrop, and its edges line up with
+  // the card below it.
   brandWash: {
     ...cardFrame,
-    width: '78%',
-    maxWidth: 480,
-    alignSelf: 'flex-start',
     paddingVertical: 12,
     paddingHorizontal: 18,
     marginBottom: 4,
-  },
-  brandWashDesktop: {
-    width: '100%',
-    maxWidth: undefined,
-    alignSelf: 'stretch',
   },
   brandLogo: {
     width: '100%',

@@ -76,6 +76,13 @@ export function useMfaScreen() {
     [activeCode, pending?.redirectTo, refetch, router, token],
   );
 
+  // Abandon the half-finished challenge so the pending token doesn't linger,
+  // then send the user back to re-enter credentials.
+  const goToLogin = useCallback(() => {
+    clearPendingMfaLogin();
+    router.replace('/login');
+  }, [router]);
+
   return {
     code,
     recoveryCode,
@@ -88,5 +95,6 @@ export function useMfaScreen() {
     handleRecoveryCodeChange,
     toggleRecoveryMode,
     submit,
+    goToLogin,
   };
 }

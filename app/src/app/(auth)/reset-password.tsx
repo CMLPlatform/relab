@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import { Pressable, View } from 'react-native';
+import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
@@ -102,7 +103,7 @@ export default function ResetPasswordScreen() {
   );
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
+    <AuthScreen>
       <Card>
         <View style={{ padding: 16, gap: 16 }}>
           <AppText variant="display">Reset password</AppText>
@@ -146,6 +147,6 @@ export default function ResetPasswordScreen() {
           )}
         </View>
       </Card>
-    </View>
+    </AuthScreen>
   );
 }

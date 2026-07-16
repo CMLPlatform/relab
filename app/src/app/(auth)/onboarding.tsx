@@ -3,8 +3,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Keyboard, Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
@@ -15,11 +16,6 @@ import { updateUser } from '@/services/api/auth/authentication';
 import { type OnboardingFormValues, onboardingSchema } from '@/services/api/validation/userSchema';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import { getErrorMessage } from '@/utils/errors';
-import { textGlow } from '@/utils/platformLayout';
-
-function getKeyboardHeight() {
-  return Platform.OS !== 'web' && Keyboard.metrics() ? Keyboard.metrics()?.height : 0;
-}
 
 function OnboardingBody({
   control,
@@ -33,7 +29,6 @@ function OnboardingBody({
   isValid: boolean;
 }) {
   const theme = useAppTheme();
-  const textShadowStyle = textGlow(theme.colors.background);
   const styles = createStyles(theme);
   const renderUsername = useCallback(
     ({
@@ -59,11 +54,11 @@ function OnboardingBody({
   );
 
   return (
-    <View style={[styles.body, { bottom: getKeyboardHeight() }]}>
+    <View style={styles.body}>
       <LinearGradient colors={['transparent', theme.colors.background]} style={styles.gradient} />
       <BrandWordmark style={styles.brandLogo} />
-      <AppText style={[styles.title, textShadowStyle]}>Welcome!</AppText>
-      <AppText style={[styles.subtitle, textShadowStyle]}>Choose a username to continue.</AppText>
+      <AppText style={styles.title}>Welcome!</AppText>
+      <AppText style={styles.subtitle}>Choose a username to continue.</AppText>
       <Controller control={control} name="username" render={renderUsername} />
       <AppButton
         variant="primary"
@@ -78,18 +73,10 @@ function OnboardingBody({
   );
 }
 
-function OnboardingKeyboardSpacer() {
-  const theme = useAppTheme();
-  const styles = createStyles(theme);
-  return <View style={[styles.keyboardSpacer, { height: getKeyboardHeight() }]} />;
-}
-
 export default function Onboarding() {
   const router = useRouter();
   const dialog = useDialog();
   const { refetch } = useAuth();
-  const theme = useAppTheme();
-  const styles = createStyles(theme);
 
   const {
     control,
@@ -115,29 +102,24 @@ export default function Onboarding() {
   });
 
   return (
-    <View style={styles.container}>
+    <AuthScreen>
       <OnboardingBody
         control={control}
         submitUsername={submitUsername}
         isSubmitting={isSubmitting}
         isValid={isValid}
       />
-      <OnboardingKeyboardSpacer />
-    </View>
+    </AuthScreen>
   );
 }
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-    },
+    // Sizing and centering come from AuthScreen; this only sets inner rhythm.
     body: {
-      padding: 20,
       gap: 15,
-      position: 'absolute',
-      width: '100%',
     },
+    // Soft wash behind the column so the text stays legible over the backdrop.
     gradient: {
       position: 'absolute',
       top: -50,
@@ -166,12 +148,6 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       borderRadius: 8,
       paddingHorizontal: 12,
       paddingVertical: 10,
-    },
-    keyboardSpacer: {
-      position: 'absolute',
-      bottom: 0,
-      width: '100%',
-      backgroundColor: theme.colors.background,
     },
   }),
 );

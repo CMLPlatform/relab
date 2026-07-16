@@ -129,16 +129,17 @@ describe('ForgotPasswordScreen navigation', () => {
     expect(mockReplace).toHaveBeenCalledWith('/login');
   });
 
-  it('allows navigating back to login from both states', async () => {
+  it('navigates to login from both states (not history back, which may be invalid)', async () => {
     renderForgotPasswordScreen();
 
     fireEvent.press(screen.getByText('Back to login'));
-    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockReplace).toHaveBeenCalledWith('/login');
+    expect(mockBack).not.toHaveBeenCalled();
 
     await submitForgotPasswordEmail('user@example.com');
     await screen.findByText(ACCOUNT_EXISTS_MESSAGE_PATTERN);
 
     fireEvent.press(screen.getByText('Back to login'));
-    expect(mockPush).toHaveBeenCalledWith('/login');
+    expect(mockReplace).toHaveBeenCalledWith('/login');
   });
 });

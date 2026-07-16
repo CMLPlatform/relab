@@ -10,12 +10,13 @@ import {
   View,
 } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
+import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { TextInput } from '@/components/base/TextInput';
 import { WEBSITE_URL } from '@/config';
+import { useIsDesktop } from '@/hooks/useIsDesktop';
 import type { NewAccountFormValues } from '@/services/api/validation/userSchema';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
-import { textGlow } from '@/utils/platformLayout';
 
 const styles = StyleSheet.create({
   welcomeText: {
@@ -26,6 +27,13 @@ const styles = StyleSheet.create({
   brandText: {
     fontSize: 80,
     fontWeight: 'bold',
+  },
+  // Logo standing in for the "Relab" wordmark on the first step; sized to
+  // carry the same visual weight as the 80px brandText it replaces.
+  brandLogo: {
+    width: 200,
+    marginLeft: 5,
+    marginVertical: 4,
   },
   questionText: {
     fontSize: 31,
@@ -86,6 +94,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 4,
   },
+  desktopColumn: {
+    width: '100%',
+    maxWidth: 480,
+  },
   bottomContainer: {
     position: 'absolute',
     bottom: 20,
@@ -145,6 +157,7 @@ function NewAccountStep({
   mutedColor,
   field,
   lines,
+  brandLogo,
   inputProps,
   next,
   submit,
@@ -152,13 +165,13 @@ function NewAccountStep({
 }: SharedStepProps & {
   field: StepFieldName;
   lines: [string, string, string];
+  brandLogo?: boolean;
   inputProps: ComponentProps<typeof TextInput>;
   next?: { testID: string; accessibilityLabel: string; onPress: () => void };
   submit?: { isSubmitting: boolean; onPress: () => void };
   back?: { label: string; accessibilityLabel: string; onPress: () => void };
 }) {
   const theme = useAppTheme();
-  const glow = textGlow(theme.dark ? theme.colors.scrim : theme.colors.background);
   const error = errors[field];
   const renderInput = useCallback(
     ({ field: { onChange, value } }: { field: ControllerRenderProps<NewAccountFormValues> }) => (
@@ -190,9 +203,13 @@ function NewAccountStep({
 
   return (
     <View>
-      <Text style={[styles.welcomeText, { color: headlineColor }, glow]}>{lines[0]}</Text>
-      <Text style={[styles.brandText, { color: headlineColor }, glow]}>{lines[1]}</Text>
-      <Text style={[styles.questionText, { color: headlineColor }, glow]}>{lines[2]}</Text>
+      <Text style={[styles.welcomeText, { color: headlineColor }]}>{lines[0]}</Text>
+      {brandLogo ? (
+        <BrandWordmark style={styles.brandLogo} />
+      ) : (
+        <Text style={[styles.brandText, { color: headlineColor }]}>{lines[1]}</Text>
+      )}
+      <Text style={[styles.questionText, { color: headlineColor }]}>{lines[2]}</Text>
       <View
         style={[
           styles.card,
@@ -259,6 +276,7 @@ export function NewAccountUsernameStep({
       {...shared}
       field="username"
       lines={['Welcome to', 'Relab', 'Who are you?']}
+      brandLogo
       inputProps={{
         autoCorrect: false,
         autoComplete: 'username-new',
@@ -355,13 +373,19 @@ type NewAccountLayoutProps = {
 };
 
 export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayoutProps) {
+  const isDesktop = useIsDesktop();
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 120 }}
+        contentContainerStyle={[
+          { flexGrow: 1, padding: 20, paddingBottom: 120 },
+          // Center the step column and cap its measure on desktop so the big
+          // headlines and input card don't span the whole viewport.
+          isDesktop && { alignItems: 'center' },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
-        {children}
+        <View style={isDesktop ? styles.desktopColumn : undefined}>{children}</View>
       </ScrollView>
 
       <View style={styles.bottomContainer}>

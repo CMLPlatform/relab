@@ -70,10 +70,9 @@ describe('useLoginScreen', () => {
     jest.clearAllMocks();
   });
 
-  it('returns grouped ui, form, and action domains', () => {
+  it('returns grouped form and action domains', () => {
     const { result } = renderHook(() => useLoginScreen());
 
-    expect(result.current.ui.keyboardShown).toBe(false);
     expect(result.current.form.control).toEqual({ field: 'control' });
     expect(typeof result.current.form.submit).toBe('function');
     expect(typeof result.current.actions.loginWithGoogle).toBe('function');

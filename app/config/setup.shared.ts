@@ -95,6 +95,12 @@ jest.mock('expo-linear-gradient', () => ({
   LinearGradient: 'LinearGradient',
 }));
 
+// The library's own Jest mock — its native module isn't linked under Jest, so
+// any screen using AuthScreen's KeyboardAvoidingView would fail to load.
+jest.mock('react-native-keyboard-controller', () =>
+  require('react-native-keyboard-controller/jest'),
+);
+
 // Mock Expo Auth Session Google hook to avoid browser-session side effects in Jest.
 jest.mock('expo-auth-session/providers/google', () => ({
   useAuthRequest: jest.fn(() => [null, null, jest.fn()]),

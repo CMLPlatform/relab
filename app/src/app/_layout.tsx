@@ -116,7 +116,8 @@ export const AppStack = memo(function AppStack({
       <Stack.Screen name="(auth)/new-account" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/forgot-password" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
-      <Stack.Screen name="(auth)/mfa" options={{ title: 'Two-step verification' }} />
+      <Stack.Screen name="(auth)/mfa" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)/verify" options={{ headerShown: false }} />
       <Stack.Screen name="category-selection" options={{ title: 'Select category' }} />
       <Stack.Screen
         name="cameras/index"

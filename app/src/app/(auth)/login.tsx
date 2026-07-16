@@ -10,13 +10,13 @@ import {
 import { useLoginScreen } from '@/features/auth/useLoginScreen';
 
 export default function Login() {
-  const { ui, form, actions } = useLoginScreen();
+  const { form, actions } = useLoginScreen();
   const handleSubmit = async () => form.submit();
   const handleGoogleLogin = async () => actions.loginWithGoogle();
   const handleGithubLogin = async () => actions.loginWithGithub();
 
   return (
-    <LoginLayout keyboardShown={ui.keyboardShown} onBrowse={actions.browseProducts}>
+    <LoginLayout onBrowse={actions.browseProducts}>
       <LoginBrandHero />
       <LoginCard>
         <LoginFormSection

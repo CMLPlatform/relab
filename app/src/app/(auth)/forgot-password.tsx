@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Controller } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
+import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
@@ -14,8 +15,7 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { control, fieldError, isValid, isSubmitting, success, error, submit } =
     useForgotPassword();
-  const goToLogin = () => router.push('/login');
-  const goBack = useCallback(() => router.back(), [router]);
+  const goToLogin = useCallback(() => router.replace('/login'), [router]);
   const renderEmail = useCallback(
     ({
       field: { onChange, value },
@@ -38,7 +38,7 @@ export default function ForgotPasswordScreen() {
   );
 
   return (
-    <View style={styles.screen}>
+    <AuthScreen>
       <Card>
         <View style={styles.cardContent}>
           <AppText variant="display">Forgot password</AppText>
@@ -77,7 +77,7 @@ export default function ForgotPasswordScreen() {
               </AppButton>
 
               <View style={styles.actions}>
-                <AppButton variant="ghost" onPress={goBack}>
+                <AppButton variant="ghost" onPress={goToLogin}>
                   Back to login
                 </AppButton>
               </View>
@@ -85,14 +85,11 @@ export default function ForgotPasswordScreen() {
           )}
         </View>
       </Card>
-    </View>
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
   cardContent: {
     padding: 16,
     gap: 16,
