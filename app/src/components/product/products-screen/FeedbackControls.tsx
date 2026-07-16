@@ -14,7 +14,6 @@ type ProductsErrorBannerProps = {
 
 type ProductsFabProps = {
   extended: boolean;
-  isAuthenticated: boolean;
   highlight: boolean;
   onPress: () => void;
 };
@@ -49,7 +48,13 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
   );
 }
 
-export function ProductsFab({ extended, isAuthenticated, highlight, onPress }: ProductsFabProps) {
+/**
+ * The fab never dims or relabels for guests: it is fully enabled for them, and
+ * `createProductAction` explains the sign-in gate on press. Dimming a working
+ * control reads as disabled, and the accessible name must contain the visible
+ * label (WCAG 2.5.3) — so both stay constant.
+ */
+export function ProductsFab({ extended, highlight, onPress }: ProductsFabProps) {
   const theme = useAppTheme();
 
   return (
@@ -61,7 +66,6 @@ export function ProductsFab({ extended, isAuthenticated, highlight, onPress }: P
       style={[
         styles.fab,
         {
-          opacity: isAuthenticated ? 1 : 0.65,
           borderWidth: highlight ? 1 : 0,
           borderColor: highlight ? theme.colors.primaryContainer : 'transparent',
           ...(Platform.OS === 'web'
@@ -75,7 +79,7 @@ export function ProductsFab({ extended, isAuthenticated, highlight, onPress }: P
               }),
         },
       ]}
-      accessibilityLabel={isAuthenticated ? 'Create new product' : 'Sign in to create products'}
+      accessibilityLabel="New product"
     />
   );
 }

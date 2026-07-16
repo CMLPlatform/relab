@@ -384,7 +384,7 @@ describe('Products screen', () => {
 describe('FAB and new-product flow', () => {
   it('shows sign-in dialog when guest presses the FAB', async () => {
     renderProducts();
-    fireEvent.press(screen.getByLabelText('Sign in to create products'));
+    fireEvent.press(screen.getByLabelText('New product'));
     expect(mockDialogApi.alert).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Sign in required' }),
     );
@@ -393,7 +393,7 @@ describe('FAB and new-product flow', () => {
   it('navigates to /products/new when verified user presses FAB', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
     renderProducts();
-    fireEvent.press(screen.getByLabelText('Create new product'));
+    fireEvent.press(screen.getByLabelText('New product'));
     expect(mockDialogApi.input).not.toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith('/products/new');
   });
@@ -401,7 +401,7 @@ describe('FAB and new-product flow', () => {
   it('shows email-verification dialog when unverified user presses FAB', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser({ isVerified: false }) });
     renderProducts();
-    fireEvent.press(screen.getByLabelText('Create new product'));
+    fireEvent.press(screen.getByLabelText('New product'));
     expect(mockDialogApi.alert).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Verify your email first' }),
     );

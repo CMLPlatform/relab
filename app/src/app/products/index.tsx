@@ -130,7 +130,6 @@ export default function Products() {
 
       <ProductsFab
         extended={screen.fabExtended}
-        isAuthenticated={screen.isAuthenticated}
         highlight={screen.showWelcomeCard === true && screen.isAuthenticated && screen.fabExtended}
         onPress={actions.createProduct}
       />
