@@ -1,14 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 
 import { AuthScreen } from '@/components/auth/AuthScreen';
+import { LoginBrandHero, LoginCard } from '@/components/auth/LoginSections';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
-import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { useDialog } from '@/components/base/dialogContext';
 import { TextInput } from '@/components/base/TextInput';
 import { useAuth } from '@/context/auth';
@@ -55,20 +54,23 @@ function OnboardingBody({
 
   return (
     <View style={styles.body}>
-      <LinearGradient colors={['transparent', theme.colors.background]} style={styles.gradient} />
-      <BrandWordmark style={styles.brandLogo} />
-      <AppText style={styles.title}>Welcome!</AppText>
-      <AppText style={styles.subtitle}>Choose a username to continue.</AppText>
-      <Controller control={control} name="username" render={renderUsername} />
-      <AppButton
-        variant="primary"
-        loading={isSubmitting}
-        disabled={isSubmitting || !isValid}
-        className="w-full"
-        onPress={submitUsername}
-      >
-        Continue
-      </AppButton>
+      <LoginBrandHero />
+      {/* The hero scrim is deliberately light — the card is what carries control
+          legibility over the photo backdrop, so the copy and field live on it. */}
+      <LoginCard>
+        <AppText style={styles.title}>Welcome!</AppText>
+        <AppText style={styles.subtitle}>Choose a username to continue.</AppText>
+        <Controller control={control} name="username" render={renderUsername} />
+        <AppButton
+          variant="primary"
+          loading={isSubmitting}
+          disabled={isSubmitting || !isValid}
+          className="w-full"
+          onPress={submitUsername}
+        >
+          Continue
+        </AppButton>
+      </LoginCard>
     </View>
   );
 }
@@ -117,19 +119,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
     // Sizing and centering come from AuthScreen; this only sets inner rhythm.
     body: {
-      gap: 15,
-    },
-    // Soft wash behind the column so the text stays legible over the backdrop.
-    gradient: {
-      position: 'absolute',
-      top: -50,
-      left: 0,
-      right: 0,
-      bottom: 0,
-    },
-    brandLogo: {
-      width: 220,
-      alignSelf: 'center',
+      gap: 12,
     },
     title: {
       fontSize: 32,

@@ -11,11 +11,21 @@ import {
 } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
+import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { WEBSITE_URL } from '@/config';
+import { radius } from '@/constants';
 import type { NewAccountFormValues } from '@/services/api/validation/userSchema';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
+
+// Every row in the card is a fixed slot, so the three steps are identical and
+// the card never resizes as the error message comes and goes.
+const INPUT_ROW_HEIGHT = 48;
+const HELPER_SLOT_HEIGHT = 18;
+const BACK_SLOT_HEIGHT = 32;
+const CARD_PADDING = 16;
+const CARD_HEIGHT = CARD_PADDING * 2 + INPUT_ROW_HEIGHT + HELPER_SLOT_HEIGHT + BACK_SLOT_HEIGHT;
 
 const styles = StyleSheet.create({
   welcomeText: {
@@ -40,18 +50,26 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     marginBottom: 40,
   },
+  // maxWidth: the control block is a compact instrument under a wide headline —
+  // a username field has no business being 390px. Fixed height so all three
+  // steps are the same size and nothing moves when the error slot fills.
   card: {
-    borderRadius: 16,
+    borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 16,
+    padding: CARD_PADDING,
+    maxWidth: 380,
+    alignSelf: 'flex-start',
+    width: '100%',
+    height: CARD_HEIGHT,
+    justifyContent: 'center',
   },
   inputContainer: {
     flexDirection: 'column',
-    marginBottom: 10,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: INPUT_ROW_HEIGHT,
   },
   arrowButton: {
     width: 44,
@@ -73,20 +91,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
+  // Reserved, never conditional: the message fills this slot instead of growing
+  // the card. The error still stays until the field is actually fixed — it is
+  // not on a timer — it just no longer moves the layout when it appears.
+  helperSlot: {
+    height: HELPER_SLOT_HEIGHT,
+    justifyContent: 'center',
+  },
   helperText: {
-    marginTop: -4,
-    marginBottom: 4,
     fontSize: 12,
+  },
+  // Reserved on every step, including the first, which has no back action —
+  // otherwise the card would change height between steps.
+  backSlot: {
+    height: BACK_SLOT_HEIGHT,
+    justifyContent: 'center',
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-  },
-  backButtonArrow: {
-    fontSize: 18,
-    marginRight: 4,
-    lineHeight: 18,
+    alignSelf: 'flex-start',
   },
   backButtonText: {
     fontSize: 13,
@@ -111,7 +135,16 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     alignItems: 'center',
-    gap: 8,
+  },
+  footerCard: {
+    borderRadius: radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 4,
+    width: '100%',
+    maxWidth: 480,
   },
   privacyText: {
     fontSize: 12,
@@ -252,23 +285,28 @@ function NewAccountStep({
               </AppButton>
             ) : null}
           </View>
-          {error ? (
-            <Text style={[styles.helperText, { color: theme.tokens.status.danger }]}>
-              {error.message}
-            </Text>
+          <View style={styles.helperSlot}>
+            {error ? (
+              <Text style={[styles.helperText, { color: theme.tokens.status.danger }]}>
+                {error.message}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+        <View style={styles.backSlot}>
+          {back ? (
+            <Pressable
+              style={styles.backButton}
+              onPress={back.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={back.accessibilityLabel}
+              hitSlop={12}
+            >
+              <Icon name="chevron-left" size={16} color={mutedColor} />
+              <Text style={[styles.backButtonText, { color: mutedColor }]}>{back.label}</Text>
+            </Pressable>
           ) : null}
         </View>
-        {back ? (
-          <Pressable
-            style={styles.backButton}
-            onPress={back.onPress}
-            accessibilityRole="button"
-            accessibilityLabel={back.accessibilityLabel}
-          >
-            <Text style={[styles.backButtonArrow, { color: mutedColor }]}>‹</Text>
-            <Text style={[styles.backButtonText, { color: mutedColor }]}>{back.label}</Text>
-          </Pressable>
-        ) : null}
       </View>
     </View>
   );
@@ -380,17 +418,30 @@ type NewAccountLayoutProps = {
 };
 
 export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayoutProps) {
+  const theme = useAppTheme();
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.column}>{children}</View>
       </ScrollView>
 
+      {/* On a card, not bare over the photo: the hero scrim is light by design
+          and the backdrop's densest area sits right behind this footer. */}
       <View style={styles.bottomContainer}>
-        <PrivacyPolicy />
-        <AppButton variant="ghost" onPress={onNavigateToLogin}>
-          I already have an account
-        </AppButton>
+        <View
+          style={[
+            styles.footerCard,
+            {
+              backgroundColor: theme.tokens.surface.card,
+              borderColor: theme.tokens.border.subtle,
+            },
+          ]}
+        >
+          <PrivacyPolicy />
+          <AppButton variant="ghost" onPress={onNavigateToLogin}>
+            I already have an account
+          </AppButton>
+        </View>
       </View>
     </View>
   );
