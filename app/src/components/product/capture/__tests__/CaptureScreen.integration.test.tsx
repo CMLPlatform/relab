@@ -120,6 +120,20 @@ describe('CaptureScreen', () => {
     expect(screen.queryByText('Component of:', { exact: false })).toBeNull();
   });
 
+  // Only a component can be a material; a product is always a type.
+  it('labels the type row "Type" for a product', async () => {
+    await renderCapture({ entityRole: 'product' });
+
+    expect(screen.getByText('Type')).toBeOnTheScreen();
+    expect(screen.queryByText('Type or material')).toBeNull();
+  });
+
+  it('labels the type row "Type or material" for a component', async () => {
+    await renderCapture({ entityRole: 'component' });
+
+    expect(screen.getByText('Type or material')).toBeOnTheScreen();
+  });
+
   it('renders the body inside a scrollable container, so Create stays reachable behind the keyboard', async () => {
     await renderCapture({ entityRole: 'product' });
 

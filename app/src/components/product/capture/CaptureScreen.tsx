@@ -30,16 +30,18 @@ type CaptureScreenProps = {
 };
 
 /**
- * Type-or-material row: same round-trip pattern as ProductType.tsx (pending
- * selection slot + loadCPV lookup), but driven by a plain typeID/onChange pair
- * instead of a saved product, since a capture draft has no [id] route.
+ * Type row: same round-trip pattern as ProductType.tsx (pending selection slot
+ * + loadCPV lookup), but driven by a plain typeID/onChange pair instead of a
+ * saved product, since a capture draft has no [id] route.
  */
 function CaptureTypeRow({
   typeID,
   onTypeChange,
+  entityRole,
 }: {
   typeID: number | undefined;
   onTypeChange: (typeID: number) => void;
+  entityRole: 'product' | 'component';
 }) {
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<CPVCategory | null>(null);
@@ -71,7 +73,8 @@ function CaptureTypeRow({
   return (
     <View>
       <AppText variant="label" className="uppercase opacity-60">
-        Type or material
+        {/* Only a component can be a material — a product is always a type. */}
+        {entityRole === 'component' ? 'Type or material' : 'Type'}
       </AppText>
       {typeID === undefined ? (
         <AppButton
@@ -198,7 +201,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
     <KeyboardAwareScrollView
       testID="capture-scroll"
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ paddingBottom: 32 }}
+      contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
     >
       <PageContainer>
         <Stack.Screen options={{ title: role === 'component' ? 'New component' : 'New product' }} />
@@ -221,7 +224,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
             />
           </View>
 
-          <CaptureTypeRow typeID={typeID} onTypeChange={setTypeID} />
+          <CaptureTypeRow typeID={typeID} onTypeChange={setTypeID} entityRole={role} />
 
           {role === 'component' ? (
             <>
