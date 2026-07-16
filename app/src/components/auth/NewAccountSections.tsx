@@ -44,10 +44,14 @@ const BRAND_SLOT_HEIGHT = 96;
 const CARD_MAX_WIDTH = 380;
 
 const styles = StyleSheet.create({
+  step: {
+    width: '100%',
+    maxWidth: CARD_MAX_WIDTH,
+    alignSelf: 'center',
+  },
   welcomeText: {
     marginTop: 80,
     fontSize: 40,
-    marginLeft: 5,
   },
   // Fixed height: the mark and the 80px name measure differently, and without
   // this the card sat 22px lower on step one than on the rest.
@@ -55,20 +59,21 @@ const styles = StyleSheet.create({
     height: BRAND_SLOT_HEIGHT,
     justifyContent: 'center',
   },
+  // 64, not 80: it has to fit the card's measure now, and a username is
+  // arbitrary text — the slot is a fixed height, so it truncates rather than
+  // wrapping out of it.
   brandText: {
-    fontSize: 80,
+    fontSize: 64,
     fontWeight: 'bold',
   },
   // Logo standing in for the "Relab" wordmark on the first step; sized to
-  // carry the same visual weight as the 80px brandText it replaces.
+  // carry the same visual weight as the brandText it replaces.
   brandLogo: {
     width: 200,
-    marginLeft: 5,
   },
   questionText: {
     fontSize: 31,
     marginTop: 80,
-    marginLeft: 5,
     marginBottom: 40,
   },
   // maxWidth: the control block is a compact instrument under a wide headline —
@@ -78,8 +83,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
     padding: CARD_PADDING,
-    maxWidth: CARD_MAX_WIDTH,
-    alignSelf: 'center',
     width: '100%',
     height: CARD_HEIGHT,
     justifyContent: 'center',
@@ -256,13 +259,21 @@ function NewAccountStep({
   );
 
   return (
-    <View>
+    // One column for the headline and the card, so the copy starts exactly at
+    // the card's left edge instead of floating out to the wider measure.
+    <View style={styles.step}>
       <Text style={[styles.welcomeText, { color: headlineColor }]}>{lines[0]}</Text>
       <View style={styles.brandSlot}>
         {brandLogo ? (
           <BrandWordmark style={styles.brandLogo} />
         ) : (
-          <Text style={[styles.brandText, { color: headlineColor }]}>{lines[1]}</Text>
+          <Text
+            style={[styles.brandText, { color: headlineColor }]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {lines[1]}
+          </Text>
         )}
       </View>
       <Text style={[styles.questionText, { color: headlineColor }]}>{lines[2]}</Text>

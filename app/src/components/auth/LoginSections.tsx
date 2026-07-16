@@ -59,14 +59,11 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
 }
 
 export function LoginBrandHero() {
-  const theme = useAppTheme();
+  // No wash behind the mark: the hero scrim's centre band already calms the
+  // backdrop here, and the logo is a high-contrast shape that reads without a
+  // panel of its own. One less surface between the brand and the photo.
   return (
-    <View
-      style={[
-        styles.brandWash,
-        { backgroundColor: theme.tokens.surface.card, borderColor: theme.tokens.border.subtle },
-      ]}
-    >
+    <View style={styles.brandWash}>
       <BrandWordmark style={styles.brandLogo} />
     </View>
   );
@@ -206,11 +203,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
   },
-  // Translucent wash behind the logo (same frame as the auth card) so the
-  // mark stays legible over the photo backdrop, and its edges line up with
-  // the card below it.
   brandWash: {
-    ...cardFrame,
     paddingVertical: 12,
     paddingHorizontal: 18,
     marginBottom: 4,
