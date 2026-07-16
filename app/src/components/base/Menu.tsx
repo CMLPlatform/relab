@@ -1,8 +1,8 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { Icon, type IconName } from '@/components/base/Icon';
 import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 
@@ -69,7 +69,7 @@ function MenuItem({
   onPress,
 }: {
   title: string;
-  trailingIcon?: ComponentProps<typeof MaterialCommunityIcons>['name'];
+  trailingIcon?: IconName;
   onPress: () => void;
 }) {
   const theme = useAppTheme();
@@ -85,9 +85,7 @@ function MenuItem({
       <AppText testID="menu-item-title" style={styles.itemLabel}>
         {title}
       </AppText>
-      {trailingIcon ? (
-        <MaterialCommunityIcons name={trailingIcon} size={18} color={theme.colors.onSurface} />
-      ) : null}
+      {trailingIcon ? <Icon name={trailingIcon} size="md" color={theme.colors.onSurface} /> : null}
     </Pressable>
   );
 }

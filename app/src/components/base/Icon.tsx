@@ -61,6 +61,7 @@ const iconMap = {
   'camera-burst': Images,
   'camera-off': CameraOff,
   'camera-wireless': Camera,
+  check: Check,
   'check-bold': Check,
   'check-circle': CircleCheckBig,
   'chevron-left': ChevronLeft,
