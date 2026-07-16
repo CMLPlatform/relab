@@ -1,14 +1,13 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { ComponentProps } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useAppTheme } from '@/theme';
 import { AppButton } from './AppButton';
+import { Icon, type IconName } from './Icon';
 import { Text } from './Text';
 
 type Props = {
   message: string;
   onRetry: () => void;
-  icon?: ComponentProps<typeof MaterialCommunityIcons>['name'];
+  icon?: IconName;
 };
 
 /** Full-height centered error state with an icon, message, and retry button. */
@@ -17,7 +16,7 @@ export function ErrorState({ message, onRetry, icon = 'alert-circle-outline' }: 
 
   return (
     <View style={styles.center}>
-      <MaterialCommunityIcons name={icon} size={48} color={theme.colors.error} />
+      <Icon name={icon} size={48} color={theme.colors.error} />
       <Text style={styles.message}>{message}</Text>
       <AppButton variant="primary" onPress={onRetry} className="mt-4">
         Retry

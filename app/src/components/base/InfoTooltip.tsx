@@ -1,8 +1,8 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { radius, spacing } from '@/constants';
 import { alpha, useAppTheme } from '@/theme';
+import { Icon } from './Icon';
 import { OverlaySurface } from './OverlaySurface';
 import { Text } from './Text';
 
@@ -44,12 +44,11 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           // 20px glyph + spacing.sm padding (36px) + 4px hitSlop/side = 44px.
           hitSlop={4}
         >
-          <MaterialCommunityIcons
-            name="information-outline"
-            size={20}
-            color={theme.colors.onSurfaceVariant}
-            testID="info-icon"
-          />
+          {/* Icon doesn't forward testID (Lucide maps it to a data-testid attribute
+              RNTL can't query), so the test target wraps the glyph instead. */}
+          <View testID="info-icon">
+            <Icon name="information-outline" size="md" color={theme.colors.onSurfaceVariant} />
+          </View>
         </Pressable>
 
         <Modal visible={visible} transparent animationType="fade" onRequestClose={hide}>
@@ -88,12 +87,9 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
         // 20px glyph + spacing.sm padding (36px) + 4px hitSlop/side = 44px.
         hitSlop={4}
       >
-        <MaterialCommunityIcons
-          name="information-outline"
-          size={20}
-          color={theme.colors.onSurfaceVariant}
-          testID="info-icon"
-        />
+        <View testID="info-icon">
+          <Icon name="information-outline" size="md" color={theme.colors.onSurfaceVariant} />
+        </View>
       </Pressable>
       {visible ? (
         <OverlaySurface

@@ -1,5 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { ComponentProps } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,9 +6,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useAppTheme } from '@/theme';
+import { Icon, type IconName } from './Icon';
 
 type IconButtonProps = {
-  icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
+  icon: IconName;
   onPress: () => void;
   accessibilityLabel: string;
   size?: number;
@@ -52,7 +51,7 @@ export function IconButton({
       {loading ? (
         <ActivityIndicator size="small" color={theme.colors.onSurface} />
       ) : (
-        <MaterialCommunityIcons name={icon} size={size} color={theme.colors.onSurface} />
+        <Icon name={icon} size={size} color={theme.colors.onSurface} />
       )}
     </Pressable>
   );

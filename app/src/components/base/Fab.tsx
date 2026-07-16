@@ -1,5 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { Pressable, type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
 import Animated, {
@@ -11,10 +10,11 @@ import Animated, {
 import { AppText } from '@/components/base/AppText';
 import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
+import { Icon, type IconName } from './Icon';
 
 type FabProps = {
-  /** A MaterialCommunityIcons glyph name, or a render function for a custom icon (e.g. a saving spinner). */
-  icon: ComponentProps<typeof MaterialCommunityIcons>['name'] | (() => ReactNode);
+  /** An Icon glyph name, or a render function for a custom icon (e.g. a saving spinner). */
+  icon: IconName | (() => ReactNode);
   label: string;
   extended: boolean;
   onPress: () => void;
@@ -84,7 +84,7 @@ export function Fab({
       {typeof icon === 'function' ? (
         icon()
       ) : (
-        <MaterialCommunityIcons name={icon} size={24} color={theme.colors.onPrimaryContainer} />
+        <Icon name={icon} size="lg" color={theme.colors.onPrimaryContainer} />
       )}
       {extended ? (
         <Animated.View style={[styles.labelClip, labelStyle]}>

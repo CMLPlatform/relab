@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable } from 'react-native';
@@ -6,6 +5,7 @@ import { useAuth } from '@/context/auth';
 import { useAppTheme } from '@/theme';
 import { needsUsernameOnboarding } from '@/utils/router/onboarding';
 import { createHeaderRightPillStyles } from '@/utils/router/styles';
+import { Icon } from './Icon';
 import { Text } from './Text';
 
 function truncateUsername(username: string) {
@@ -33,7 +33,7 @@ export function HeaderRightPill() {
         accessibilityRole="button"
         accessibilityLabel={needsOnboarding ? 'Complete profile' : `Account: ${username}`}
       >
-        <MaterialCommunityIcons name="account-circle" size={18} color={theme.colors.onBackground} />
+        <Icon name="account-circle" size={18} color={theme.colors.onBackground} />
         <Text style={primaryText} numberOfLines={1}>
           {username}
         </Text>

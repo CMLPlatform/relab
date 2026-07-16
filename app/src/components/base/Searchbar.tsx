@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Pressable,
@@ -10,6 +9,7 @@ import {
 import { Input } from '@/components/base/ui/input';
 import { spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
+import { Icon } from './Icon';
 
 type SearchbarProps = {
   value: string;
@@ -31,12 +31,9 @@ export function Searchbar({
 
   return (
     <View style={[styles.container, style]}>
-      <MaterialCommunityIcons
-        name="magnify"
-        size={20}
-        color={theme.colors.onSurfaceVariant}
-        style={styles.leadingIcon}
-      />
+      <View style={styles.leadingIcon}>
+        <Icon name="magnify" size="md" color={theme.colors.onSurfaceVariant} />
+      </View>
       <Input
         value={value}
         onChangeText={onChangeText}
@@ -59,7 +56,7 @@ export function Searchbar({
           hitSlop={12}
           style={styles.trailing}
         >
-          <MaterialCommunityIcons name="close" size={20} color={theme.colors.onSurfaceVariant} />
+          <Icon name="close" size="md" color={theme.colors.onSurfaceVariant} />
         </Pressable>
       ) : null}
     </View>

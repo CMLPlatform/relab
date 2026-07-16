@@ -1,7 +1,7 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackHeaderBackProps } from 'expo-router';
 import { Pressable } from 'react-native';
 import { useAppTheme } from '@/theme';
+import { Icon } from './Icon';
 
 // SDK 57 dropped the importable `@react-navigation/elements` HeaderBackButton, and
 // expo-router ships no replacement component — a custom `headerLeft` fully replaces the
@@ -20,7 +20,7 @@ export function HeaderBackButton({ onPress, tintColor }: HeaderBackButtonProps) 
       hitSlop={12}
       style={{ paddingHorizontal: 4 }}
     >
-      <MaterialCommunityIcons name="chevron-left" size={28} color={color} />
+      <Icon name="chevron-left" size={28} color={color} />
     </Pressable>
   );
 }

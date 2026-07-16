@@ -3,11 +3,6 @@ import { act, screen, waitFor } from '@testing-library/react-native';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { mockPlatform, renderWithProviders, restorePlatform, setupUser } from '@/test-utils/index';
 
-// Mock MaterialCommunityIcons
-jest.mock('@expo/vector-icons', () => ({
-  MaterialCommunityIcons: 'MaterialCommunityIcons',
-}));
-
 describe('InfoTooltip component', () => {
   const title = 'Test Tooltip Info';
   const user = setupUser();
