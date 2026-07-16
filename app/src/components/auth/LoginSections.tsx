@@ -7,6 +7,7 @@ import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
+import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
@@ -31,7 +32,7 @@ export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
         onPress={onBrowse}
         className="self-start absolute top-4 left-2 z-10"
       >
-        <MaterialCommunityIcons name="arrow-left" size={16} color={theme.colors.onSurface} />
+        <Icon name="arrow-left" size={16} color={theme.colors.onSurface} />
         <AppText style={{ color: theme.colors.onSurface }}>Browse</AppText>
       </AppButton>
 
