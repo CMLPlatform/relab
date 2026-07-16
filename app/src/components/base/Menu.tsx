@@ -53,7 +53,12 @@ export function Menu({ visible, onDismiss, anchor, children }: MenuProps) {
           <Pressable
             onPress={(e) => e.stopPropagation()}
             accessibilityRole="menu"
-            style={[styles.content, position, { backgroundColor: theme.colors.elevation.level2 }]}
+            style={[
+              styles.content,
+              position,
+              theme.tokens.elevation.overlay,
+              { backgroundColor: theme.colors.elevation.level2 },
+            ]}
           >
             {children}
           </Pressable>
@@ -96,9 +101,10 @@ const styles = StyleSheet.create({
   content: {
     position: 'absolute',
     minWidth: 180,
-    borderRadius: radius.md,
+    // Floating surface: overlay radius + the shared overlay elevation tier
+    // (applied inline below, since it is theme-dependent).
+    borderRadius: radius.overlay,
     paddingVertical: spacing.xs,
-    elevation: 4,
   },
   item: {
     flexDirection: 'row',

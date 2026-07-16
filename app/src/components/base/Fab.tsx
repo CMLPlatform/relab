@@ -75,6 +75,7 @@ export function Fab({
       accessibilityState={{ disabled }}
       style={({ pressed }) => [
         styles.fab,
+        theme.tokens.elevation.overlay,
         { backgroundColor: theme.colors.primaryContainer },
         disabled && styles.disabled,
         pressed && !disabled && styles.pressed,
@@ -106,9 +107,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minWidth: 44,
     minHeight: 44,
-    borderRadius: radius.full,
+    // Floating surface: overlay radius, not `full` — DESIGN.md reserves the pill
+    // radius for avatars/true pills. Elevation comes from the shared overlay
+    // tier, applied inline since it is theme-dependent.
+    borderRadius: radius.overlay,
     paddingHorizontal: spacing.md,
-    elevation: 4,
   },
   disabled: {
     opacity: 0.5,

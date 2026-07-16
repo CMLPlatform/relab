@@ -2,6 +2,8 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { Fab } from '@/components/base/Fab';
+import { radius } from '@/constants';
+import { getAppTheme } from '@/theme';
 
 describe('Fab', () => {
   it('renders the label when extended', () => {
@@ -59,6 +61,19 @@ describe('Fab', () => {
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
     expect(style.minWidth).toBeGreaterThanOrEqual(44);
     expect(style.minHeight).toBeGreaterThanOrEqual(44);
+  });
+
+  // DESIGN.md "Form language — Flat & Sharp": the FAB is a floating surface, so
+  // it takes the overlay radius (not the `full` pill radius, which is reserved
+  // for avatars/true pills) plus the single shared overlay elevation tier.
+  it('uses the overlay radius and the shared elevation tier', () => {
+    render(<Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />);
+    const style = StyleSheet.flatten(screen.getByRole('button').props.style);
+    const overlay = getAppTheme('light').tokens.elevation.overlay;
+    expect(style.borderRadius).toBe(radius.overlay);
+    expect(style.shadowRadius).toBe(overlay.shadowRadius);
+    expect(style.shadowOpacity).toBe(overlay.shadowOpacity);
+    expect(style.elevation).toBe(overlay.elevation);
   });
 
   it('exposes the accessibility label', () => {
