@@ -3,11 +3,11 @@
   "main": "expo-router/entry",
   "version": "0.2.0",
   "scripts": {
-    "dev": "[ \"$(uname)\" = Linux ] && export ELECTRON_DISABLE_SANDBOX=1; expo start --web --port 8011",
+    "dev": "[ \"$(uname)\" = Linux ] && export ELECTRON_DISABLE_SANDBOX=1; BROWSER=none expo start --web --port 8011",
     "start": "[ \"$(uname)\" = Linux ] && export ELECTRON_DISABLE_SANDBOX=1; expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "[ \"$(uname)\" = Linux ] && export ELECTRON_DISABLE_SANDBOX=1; expo start --web --port 8011",
+    "web": "[ \"$(uname)\" = Linux ] && export ELECTRON_DISABLE_SANDBOX=1; BROWSER=none expo start --web --port 8011",
     "check": "pnpm run lint && pnpm run typecheck",
     "lint": "biome check . && pnpm run lint:react",
     "lint:react": "eslint --cache --max-warnings=0 src --ext .ts,.tsx",
