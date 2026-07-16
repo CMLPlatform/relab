@@ -46,8 +46,8 @@ import {
 
 // Curated MaterialCommunityIcons -> Lucide name map. Keys match the existing
 // MCI `name` strings used across the app so call sites migrate 1:1. Brand
-// marks (google, github, youtube) have no Lucide glyph and intentionally
-// stay off this map — see task-2-report.md.
+// marks (google, github, youtube) stay off this map — Lucide ships no brand
+// glyphs, so these remain on @expo/vector-icons (see assets/DESIGN.md).
 const iconMap = {
   'access-point': RadioTower,
   account: User,
@@ -111,7 +111,7 @@ type IconProps = {
 /** Thin wrapper resolving a curated MCI-style name + size token to a Lucide glyph. */
 export function Icon({ name, size = 'md', color, strokeWidth = 2 }: IconProps) {
   const Glyph = iconMap[name];
-  // ponytail: name is a compile-time-enforced union, but guard the runtime
+  // NOTE: name is a compile-time-enforced union, but guard the runtime
   // lookup anyway — non-TS callers (e.g. content driven by a string) can
   // still hand this an unmapped value.
   if (!Glyph) return null;
