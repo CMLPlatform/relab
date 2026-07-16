@@ -56,9 +56,11 @@ export type AppTokens = {
   };
   overlay: {
     page: string;
-    /** Centre band of the hero scrim, behind the content column. */
+    /** Flat scrim for auth screens whose content sits on cards. */
     hero: string;
-    /** Outer edges of the hero scrim, where the backdrop stays vivid. */
+    /** Centre band of the hero gradient, behind the content column. */
+    heroBand: string;
+    /** Outer edges of the hero gradient, where the backdrop stays vivid. */
     heroEdge: string;
     scrim: string;
     media: string;

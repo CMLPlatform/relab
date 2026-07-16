@@ -1,5 +1,5 @@
 import { usePathname } from 'expo-router';
-import { AUTH_HERO_PATHS } from '@/constants';
+import { AUTH_HERO_PATHS, HERO_BAND_PATHS } from '@/constants';
 import { getAppTheme } from '@/theme';
 
 // Hero screens keep the background photo visible, so they get a light scrim
@@ -8,13 +8,17 @@ function isHeroPath(pathname: string) {
   return AUTH_HERO_PATHS.some((path) => pathname.includes(path));
 }
 
+function isBandPath(pathname: string) {
+  return HERO_BAND_PATHS.some((path) => pathname.includes(path));
+}
+
 export type BackgroundOverlay = {
-  /** Fill for a page overlay, or the centre band of a hero gradient. */
+  /** Flat fill, or the centre band when `edgeColor` is set. */
   color: string;
   /**
-   * Set only on hero routes, where the scrim is a horizontal gradient: this is
-   * the near-clear colour at the left and right edges. `null` means paint a
-   * flat fill instead.
+   * Set only on the band routes, where the scrim is a horizontal gradient: the
+   * near-clear colour at the left and right edges. `null` means paint a flat
+   * fill instead.
    */
   edgeColor: string | null;
 };
@@ -23,7 +27,11 @@ export type BackgroundOverlay = {
 export function useBackgroundOverlay(isDark: boolean): BackgroundOverlay {
   const pathname = usePathname();
   const { overlay } = getAppTheme(isDark ? 'dark' : 'light').tokens;
-  return isHeroPath(pathname)
-    ? { color: overlay.hero, edgeColor: overlay.heroEdge }
-    : { color: overlay.page, edgeColor: null };
+  if (isBandPath(pathname)) {
+    return { color: overlay.heroBand, edgeColor: overlay.heroEdge };
+  }
+  if (isHeroPath(pathname)) {
+    return { color: overlay.hero, edgeColor: null };
+  }
+  return { color: overlay.page, edgeColor: null };
 }

@@ -15,21 +15,25 @@ function overlayFor(pathname: string, isDark = false) {
 describe('useBackgroundOverlay', () => {
   const { overlay } = getAppTheme('light').tokens;
 
-  // Every `headerShown: false` (auth) screen in app/_layout.tsx is a hero screen:
-  // a card floating over the background photo, which the page scrim would hide.
+  // Only these two have content bare on the photo, so only these two need the
+  // gradient to read against.
+  it.each(['/login', '/new-account'])('uses the hero gradient bands on %s', (pathname) => {
+    expect(overlayFor(pathname)).toEqual({
+      color: overlay.heroBand,
+      edgeColor: overlay.heroEdge,
+    });
+  });
+
+  // The rest of the auth flow puts everything on a card, so a flat light scrim
+  // is enough and the backdrop stays livelier.
   it.each([
-    '/login',
-    '/new-account',
     '/onboarding',
     '/forgot-password',
     '/reset-password',
     '/mfa',
     '/verify',
-  ])('uses the hero gradient bands on %s', (pathname) => {
-    expect(overlayFor(pathname)).toEqual({
-      color: overlay.hero,
-      edgeColor: overlay.heroEdge,
-    });
+  ])('uses the flat hero scrim on %s', (pathname) => {
+    expect(overlayFor(pathname)).toEqual({ color: overlay.hero, edgeColor: null });
   });
 
   // edgeColor null is what tells AppBackground to paint a flat fill rather than
@@ -45,8 +49,18 @@ describe('useBackgroundOverlay', () => {
   it('resolves the scrim against the active colour scheme', () => {
     const dark = getAppTheme('dark').tokens.overlay;
     expect(overlayFor('/login', true)).toEqual({
-      color: dark.hero,
+      color: dark.heroBand,
       edgeColor: dark.heroEdge,
     });
+  });
+
+  // A light film over a dark photo washes it the wrong way; the dark scrim has
+  // to darken. Guards the bug where dark mode reused the light-mode colour.
+  it('darkens rather than lightens in dark mode', () => {
+    const dark = getAppTheme('dark').tokens.overlay;
+    for (const band of [dark.hero, dark.heroBand, dark.heroEdge]) {
+      const [r, g, b] = band.match(/\d+/g)!.map(Number);
+      expect(Math.max(r, g, b)).toBeLessThan(60);
+    }
   });
 });

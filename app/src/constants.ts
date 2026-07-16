@@ -29,6 +29,14 @@ export const AUTH_HERO_PATHS = [
   '/verify',
 ] as const;
 
+/**
+ * The subset of auth routes with content sitting bare on the backdrop — the
+ * login mark and the new-account headline. They get the centre-weighted
+ * gradient to read against; everywhere else the card does that job, so a flat
+ * scrim is enough and the photo stays livelier.
+ */
+export const HERO_BAND_PATHS = ['/login', '/new-account'] as const;
+
 export const radius = {
   control: 6,
   card: 8,

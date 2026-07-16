@@ -93,6 +93,7 @@ describe('layout helpers rendering', () => {
     mockUsePathname.mockReturnValue('/login');
     rerender({ isDark: true });
 
-    expect(result.current).toEqual({ color: dark.hero, edgeColor: dark.heroEdge });
+    // /login is a band route: gradient, not the flat hero scrim.
+    expect(result.current).toEqual({ color: dark.heroBand, edgeColor: dark.heroEdge });
   });
 });
