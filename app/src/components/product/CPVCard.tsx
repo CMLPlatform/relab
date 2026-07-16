@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Pressable, type PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { Icon } from '@/components/base/Icon';
+import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
 
@@ -47,7 +48,7 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 5,
+    borderRadius: radius.card,
     overflow: 'hidden',
     height: 100,
     justifyContent: 'space-between',

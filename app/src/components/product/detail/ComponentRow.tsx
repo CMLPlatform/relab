@@ -10,6 +10,7 @@ import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { Badge } from '@/components/base/ui/badge';
 import { Icon } from '@/components/base/ui/icon';
 import { Text } from '@/components/base/ui/text';
+import { radius } from '@/constants';
 import { componentQueryOptions } from '@/features/products/queries';
 import type { Product } from '@/types/Product';
 
@@ -101,7 +102,7 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
           {component.thumbnailUrl ? (
             <Image
               source={{ uri: component.thumbnailUrl }}
-              style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE, borderRadius: 8 }}
+              style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE, borderRadius: radius.card }}
               contentFit="cover"
               testID="component-thumbnail"
             />

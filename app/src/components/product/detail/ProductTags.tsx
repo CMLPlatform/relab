@@ -12,6 +12,7 @@ import FilterSelectionModal from '@/components/base/FilterSelectionModal';
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { Text } from '@/components/base/Text';
+import { radius } from '@/constants';
 import { useSearchBrandsQuery } from '@/features/products/queries';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
@@ -248,7 +249,7 @@ function StepButton({
 
 const amountStyles = StyleSheet.create({
   container: {
-    borderRadius: 5,
+    borderRadius: radius.control,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -265,14 +266,14 @@ const amountStyles = StyleSheet.create({
   valueText: {
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 5,
+    borderRadius: radius.control,
     fontWeight: '500',
     fontSize: 15,
   },
   editorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 5,
+    borderRadius: radius.control,
     overflow: 'hidden',
   },
   stepBtn: {

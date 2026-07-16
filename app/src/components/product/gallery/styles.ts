@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { radius } from '@/constants';
 import type { AppTheme } from '@/theme';
 import { alpha, memoizeByTheme } from '@/theme';
 
@@ -18,7 +19,7 @@ export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {
       backgroundColor: theme.tokens.overlay.media,
       width: 36,
       height: 36,
-      borderRadius: 18,
+      borderRadius: radius.full,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -28,7 +29,7 @@ export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {
       marginTop: -22,
       width: 44,
       height: 44,
-      borderRadius: 22,
+      borderRadius: radius.full,
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: alpha(theme.colors.scrim, 0.35),
@@ -40,7 +41,7 @@ export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {
       backgroundColor: alpha(theme.colors.scrim, 0.6),
       paddingHorizontal: 12,
       paddingVertical: 4,
-      borderRadius: 16,
+      borderRadius: radius.full,
     },
     deleteButton: {
       position: 'absolute',
@@ -49,7 +50,7 @@ export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {
       backgroundColor: alpha(theme.tokens.status.danger, 0.8),
       width: 36,
       height: 36,
-      borderRadius: 18,
+      borderRadius: radius.full,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -63,7 +64,7 @@ export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {
       backgroundColor: theme.tokens.surface.sunken,
       justifyContent: 'center',
       alignItems: 'center',
-      borderRadius: 8,
+      borderRadius: radius.card,
       borderWidth: 2,
       borderColor: theme.tokens.border.subtle,
       borderStyle: 'dashed',
@@ -78,7 +79,7 @@ export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {
     },
     thumbnailItem: {
       marginRight: 8,
-      borderRadius: 6,
+      borderRadius: radius.control,
       overflow: 'hidden',
       borderWidth: 2,
     },

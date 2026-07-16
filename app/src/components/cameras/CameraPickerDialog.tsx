@@ -6,6 +6,7 @@ import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
+import { radius } from '@/constants';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
 import {
   resolveEffectiveCameraConnection,
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: radius.card,
     borderWidth: 1,
   },
   dot: {

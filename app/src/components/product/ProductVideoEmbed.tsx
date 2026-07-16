@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { radius } from '@/constants';
 import { extractYouTubeVideoId } from '@/services/api/validation/productSchema';
 import { openExternalUrl } from '@/services/externalLinks';
 
@@ -10,7 +11,7 @@ const embedContainerStyle = {
   alignSelf: 'center' as const,
   marginHorizontal: 14,
   marginVertical: 8,
-  borderRadius: 8,
+  borderRadius: radius.card,
   overflow: 'hidden' as const,
 };
 
@@ -83,6 +84,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderWidth: 0,
-    borderRadius: 8,
+    borderRadius: radius.card,
   },
 });

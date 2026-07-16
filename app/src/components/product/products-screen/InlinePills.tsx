@@ -35,14 +35,14 @@ export function ProfilePill() {
       style={[
         styles.inlineProfilePill,
         {
-          backgroundColor: theme.tokens.overlay.glass,
+          backgroundColor: theme.colors.primaryContainer,
         },
       ]}
     >
-      <Icon name="account-circle" size={14} color={theme.colors.onBackground} />
+      <Icon name="account-circle" size={14} color={theme.colors.onPrimaryContainer} />
       <AppText
         testID="profile-pill-label"
-        style={[styles.inlineProfileText, { color: theme.colors.onBackground }]}
+        style={[styles.inlineProfileText, { color: theme.colors.onPrimaryContainer }]}
       >
         account
       </AppText>

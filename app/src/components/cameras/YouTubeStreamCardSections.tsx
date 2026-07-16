@@ -5,11 +5,12 @@ import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { MutedText } from '@/components/base/MutedText';
 import { StatusPill } from '@/components/base/StatusPill';
+import { radius } from '@/constants';
 import type { StreamView } from '@/services/api/rpiCamera';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 12 },
+  card: { borderRadius: radius.card },
   content: { padding: 12, gap: 8 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerTitle: { flex: 1 },
@@ -21,7 +22,7 @@ const styles = StyleSheet.create({
 const createThemedStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
     liveCard: {
-      borderRadius: 12,
+      borderRadius: radius.card,
       borderLeftWidth: 3,
       borderLeftColor: theme.tokens.status.live,
     },

@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { radius } from '@/constants';
 import { getFloatingPosition } from '@/utils/platformLayout';
 
 export const PAGE_SIZE = 24;
@@ -12,7 +13,7 @@ export const PRODUCTS_DATE_PRESETS = [
 export const productsScreenStyles = StyleSheet.create({
   errorBanner: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: radius.card,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -61,7 +62,7 @@ export const productsScreenStyles = StyleSheet.create({
   inlineButtonPill: {
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 999,
+    borderRadius: radius.full,
     alignSelf: 'center',
   },
   inlineButtonText: {
@@ -71,7 +72,7 @@ export const productsScreenStyles = StyleSheet.create({
   inlineProfilePill: {
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 999,
+    borderRadius: radius.full,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -83,7 +84,7 @@ export const productsScreenStyles = StyleSheet.create({
   },
   welcomeCard: {
     marginHorizontal: 0,
-    borderRadius: 24,
+    borderRadius: radius.card,
   },
   welcomeCardContent: {
     gap: 12,
@@ -96,7 +97,7 @@ export const productsScreenStyles = StyleSheet.create({
   welcomeIcon: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: radius.card,
     alignItems: 'center',
     justifyContent: 'center',
   },

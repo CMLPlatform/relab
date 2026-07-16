@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/base/Text';
+import { radius } from '@/constants';
 import { useStreamSession } from '@/context/streamSession';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useAppTheme } from '@/theme';
@@ -72,7 +73,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 24,
+    borderRadius: radius.card,
     // subtle red glow via shadow
     ...(Platform.OS === 'web'
       ? {}

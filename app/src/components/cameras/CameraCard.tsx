@@ -6,6 +6,7 @@ import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import { StatusBadge } from '@/components/base/StatusBadge';
 import { STATUS_LABEL } from '@/components/cameras/detail/styles';
+import { radius } from '@/constants';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { getStatusColor, useAppTheme } from '@/theme';
@@ -139,7 +140,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     alignSelf: 'center',
-    borderRadius: 12,
+    borderRadius: radius.card,
   },
   cardOffline: {
     opacity: 0.6,

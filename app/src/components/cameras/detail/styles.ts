@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { radius } from '@/constants';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraConnectionStatus } from '@/services/api/rpiCamera';
 
@@ -26,7 +27,7 @@ export const cameraDetailStyles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    borderRadius: 12,
+    borderRadius: radius.card,
   },
   // Base Card has no built-in content padding (unlike Paper's Card.Content,
   // which defaults to padding: 16) — every former Card.Content wrapper needs

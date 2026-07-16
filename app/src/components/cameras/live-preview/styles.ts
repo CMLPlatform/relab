@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { radius } from '@/constants';
 import type { AppTheme } from '@/theme';
 import { memoizeByTheme } from '@/theme';
 
@@ -23,7 +24,7 @@ export const createLivePreviewStyles = memoizeByTheme((theme: AppTheme) => {
     nativeVideo: {
       width: '100%',
       height: '100%',
-      borderRadius: 8,
+      borderRadius: radius.card,
       backgroundColor: theme.colors.scrim,
     },
     overlay: {
@@ -55,7 +56,7 @@ export const createLivePreviewStyles = memoizeByTheme((theme: AppTheme) => {
 export const createWebVideoStyle = memoizeByTheme((theme: AppTheme) => ({
   width: '100%',
   height: '100%',
-  borderRadius: 8,
+  borderRadius: radius.card,
   objectFit: 'contain' as const,
   backgroundColor: theme.colors.scrim,
 }));

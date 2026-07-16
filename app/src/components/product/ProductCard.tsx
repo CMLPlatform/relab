@@ -7,6 +7,7 @@ import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
 import { Text } from '@/components/base/Text';
+import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { getProfileHref } from '@/utils/router/profiles';
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
   thumbnailFrame: {
     width: 80,
     height: 80,
-    borderRadius: 12,
+    borderRadius: radius.card,
     overflow: 'hidden',
   },
   thumbnailImage: {

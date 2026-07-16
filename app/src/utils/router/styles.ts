@@ -1,3 +1,4 @@
+import { radius } from '@/constants';
 import type { AppTheme } from '@/theme';
 import { memoizeByTheme } from '@/theme';
 
@@ -10,11 +11,13 @@ export const createHeaderRightPillStyles = memoizeByTheme((theme: AppTheme) => {
       marginRight: 16,
       paddingHorizontal: 12,
       paddingVertical: 6,
-      borderRadius: 20,
-      backgroundColor: theme.tokens.overlay.glass,
+      borderRadius: radius.control,
+      // Interactive header control — primary family, never the neutral glass
+      // (DESIGN.md: primary blue carries all interaction).
+      backgroundColor: theme.colors.primaryContainer,
     },
     primaryText: {
-      color: theme.colors.onBackground,
+      color: theme.colors.onPrimaryContainer,
       fontWeight: '600' as const,
       fontSize: 14,
     },

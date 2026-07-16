@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { radius } from '@/constants';
 import type { AppTheme } from '@/theme';
 import { memoizeByTheme } from '@/theme';
 import { getFloatingPosition } from '@/utils/platformLayout';
@@ -20,7 +21,7 @@ export const createCameraScreenStyles = memoizeByTheme((theme: AppTheme) => {
       flex: 1,
     },
     cellPressable: {
-      borderRadius: 14,
+      borderRadius: radius.card,
     },
     cellPressed: {
       opacity: 0.9,

@@ -30,10 +30,12 @@ export function HeaderRightPill() {
       <Pressable
         onPress={goToAccount}
         style={pill}
+        // ~32px pill + 6px hitSlop/side = 44px tap target (a11y floor).
+        hitSlop={6}
         accessibilityRole="button"
         accessibilityLabel={needsOnboarding ? 'Complete profile' : `Account: ${username}`}
       >
-        <Icon name="account-circle" size={18} color={theme.colors.onBackground} />
+        <Icon name="account-circle" size={18} color={theme.colors.onPrimaryContainer} />
         <Text style={primaryText} numberOfLines={1}>
           {username}
         </Text>
@@ -45,6 +47,7 @@ export function HeaderRightPill() {
     <Pressable
       onPress={goToLogin}
       style={pill}
+      hitSlop={6}
       accessibilityRole="button"
       accessibilityLabel="Sign in"
     >

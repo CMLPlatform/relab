@@ -13,6 +13,7 @@ import { Icon } from '@/components/base/Icon';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Searchbar } from '@/components/base/Searchbar';
 import CPVCard from '@/components/product/CPVCard';
+import { radius } from '@/constants';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
 import { useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
     left: 15,
     right: 15,
     zIndex: 1,
-    borderRadius: 5,
+    borderRadius: radius.control,
   },
   historyText: {
     flexShrink: 1,

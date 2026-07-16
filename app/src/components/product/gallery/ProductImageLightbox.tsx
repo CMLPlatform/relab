@@ -23,6 +23,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import ZoomableImage from '@/components/base/ZoomableImage';
+import { radius } from '@/constants';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import {
   GalleryFlatList,
@@ -350,7 +351,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       right: 20,
       zIndex: 10,
       backgroundColor: theme.tokens.overlay.media,
-      borderRadius: 20,
+      borderRadius: radius.full,
       width: 44,
       height: 44,
       justifyContent: 'center',
@@ -373,7 +374,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: theme.tokens.overlay.media,
-      borderRadius: 24,
+      borderRadius: radius.overlay,
       paddingHorizontal: 16,
       paddingVertical: 8,
     },

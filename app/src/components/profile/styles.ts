@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { radius } from '@/constants';
 import type { AppTheme } from '@/theme';
 import { memoizeByTheme } from '@/theme';
 
@@ -58,7 +59,7 @@ export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
       alignItems: 'center',
       gap: 6,
       paddingVertical: 12,
-      borderRadius: 12,
+      borderRadius: radius.card,
       borderWidth: 1,
       borderColor: theme.tokens.border.subtle,
     },
@@ -76,7 +77,7 @@ export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
       gap: 12,
       paddingVertical: 12,
       paddingHorizontal: 16,
-      borderRadius: 12,
+      borderRadius: radius.card,
       marginVertical: 2,
     },
     visibilityOptionActive: {
@@ -119,7 +120,7 @@ export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
       alignItems: 'center',
       padding: 10,
       backgroundColor: theme.tokens.surface.accent,
-      borderRadius: 12,
+      borderRadius: radius.card,
     },
     statValue: {
       fontSize: 20,

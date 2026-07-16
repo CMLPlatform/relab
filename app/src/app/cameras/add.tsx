@@ -9,6 +9,7 @@ import { MutedText } from '@/components/base/MutedText';
 import { PageContainer } from '@/components/base/PageContainer';
 import { TextInput } from '@/components/base/TextInput';
 import { Separator } from '@/components/base/ui/separator';
+import { radius } from '@/constants';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useAppTheme } from '@/theme';
 
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 8,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: radius.card,
   },
   successContent: {
     alignItems: 'center',

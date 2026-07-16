@@ -9,12 +9,13 @@ import { AppText } from '@/components/base/AppText';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
+import { radius } from '@/constants';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
 
 // shared frame so the auth card and the logo wash read as one family
 const cardFrame = {
-  borderRadius: 16,
+  borderRadius: radius.card,
   borderWidth: StyleSheet.hairlineWidth,
 } as const;
 

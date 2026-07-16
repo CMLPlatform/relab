@@ -7,6 +7,7 @@ import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { Icon } from '@/components/base/Icon';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Text } from '@/components/base/Text';
+import { radius } from '@/constants';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { type AppTheme, alpha, memoizeByTheme, useAppTheme } from '@/theme';
 
@@ -134,7 +135,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
     avatarPlaceholder: {
       width: 120,
       height: 120,
-      borderRadius: 60,
+      borderRadius: radius.full,
       backgroundColor: theme.colors.primaryContainer,
       justifyContent: 'center',
       alignItems: 'center',

@@ -7,6 +7,7 @@ import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { Text as UiText } from '@/components/base/ui/text';
 import { ToggleGroup, ToggleGroupItem } from '@/components/base/ui/toggle-group';
+import { radius } from '@/constants';
 import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
 
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.control,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },

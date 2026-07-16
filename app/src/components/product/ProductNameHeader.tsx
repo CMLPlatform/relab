@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { type ColorValue, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { TextInput } from '@/components/base/TextInput';
+import { radius } from '@/constants';
 import { truncateHeaderLabel } from '@/features/products/truncateHeaderLabel';
 import { PRODUCT_NAME_MAX_LENGTH, productSchema } from '@/services/api/validation/productSchema';
 import type { AppTheme } from '@/theme';
@@ -57,7 +58,7 @@ export function ProductNameHeader({
           fontWeight: '700',
           paddingVertical: 4,
           paddingHorizontal: 8,
-          borderRadius: 6,
+          borderRadius: radius.control,
           backgroundColor: isInvalid
             ? theme.colors.errorContainer
             : (theme.colors.surfaceVariant as ColorValue),

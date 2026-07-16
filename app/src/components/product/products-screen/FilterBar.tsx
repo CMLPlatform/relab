@@ -4,6 +4,7 @@ import { AppText } from '@/components/base/AppText';
 import FilterSelectionModal from '@/components/base/FilterSelectionModal';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { Menu } from '@/components/base/Menu';
+import { radius } from '@/constants';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { useAppTheme } from '@/theme';
 import { PRODUCTS_DATE_PRESETS, productsScreenStyles as styles } from './shared';
@@ -75,7 +76,7 @@ const filterChipStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: radius.control,
     paddingLeft: 12,
     paddingRight: 8,
   },

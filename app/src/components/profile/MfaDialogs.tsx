@@ -250,7 +250,7 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
     qrFrame: {
       alignSelf: 'center',
       padding: 16,
-      borderRadius: 16,
+      borderRadius: radius.card,
       backgroundColor: '#ffffff',
       marginBottom: 16,
     },
@@ -260,7 +260,7 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
       justifyContent: 'space-between',
       gap: 8,
       backgroundColor: theme.tokens.surface.sunken,
-      borderRadius: 10,
+      borderRadius: radius.control,
       paddingVertical: 8,
       paddingLeft: 14,
       paddingRight: 6,
@@ -288,7 +288,7 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
     },
     codesBox: {
       backgroundColor: theme.tokens.surface.sunken,
-      borderRadius: 10,
+      borderRadius: radius.card,
       paddingVertical: 12,
       paddingHorizontal: 16,
       marginBottom: 8,

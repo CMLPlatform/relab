@@ -4,6 +4,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { TextInput } from '@/components/base/TextInput';
+import { radius } from '@/constants';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
 
@@ -308,7 +309,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.control,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
