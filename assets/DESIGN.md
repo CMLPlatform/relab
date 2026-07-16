@@ -79,6 +79,73 @@ are tuned for text/links, not large fills. If the palette direction ever
 changes, this table and `--color-chart-mark` in `www/src/styles/tokens.css`
 are the only places to update.
 
+## Form language — Flat & Sharp
+
+The palette and type above set the brand; this sets the **shape**. Direction:
+**flat & sharp** — the geometry of an engineering document. It replaces the
+MD3/Paper-era look (pill buttons, ambient drop shadows, oversized radii) the
+app carried over from its react-native-paper origins. It reads crisp/technical
+on desktop and stays ergonomic on mobile.
+
+### Radius
+
+| Token            | Value | Applies to                                 |
+| ---------------- | ----- | ------------------------------------------ |
+| `radius-control` | 6px   | buttons, inputs, chips, segmented controls |
+| `radius-card`    | 8px   | cards, panels, list rows                   |
+| `radius-overlay` | 12px  | dialogs, bottom sheets, menus, FAB         |
+| `radius-full`    | 9999  | avatars, true pills only                   |
+
+Large surfaces stay a step softer than small controls, so sharp corners never
+read brittle on a phone. In the app these map through `app/src/constants.ts`.
+
+### Elevation — flat base, one floating tier
+
+Inline surfaces (cards, rows, inputs) are **flat**: a 1px hairline `border` +
+`surface` fill, **no shadow**. Shadow is reserved for surfaces that actually
+float, as a single tier:
+
+| Token            | Light                           | Dark                         | Use                                    |
+| ---------------- | ------------------------------- | ---------------------------- | -------------------------------------- |
+| `shadow-overlay` | `0 8px 24px rgba(20,40,80,.16)` | `0 8px 24px rgba(0,0,0,.55)` | menus, dialogs, sheets, FAB, snackbars |
+| `scrim`          | `rgba(12,18,32,.50)` (45–55%)   | `rgba(0,0,0,.55)`            | behind modals / sheets                 |
+
+This single tier removes the "everything floats" MD3 tell while keeping
+overlays legible on mobile.
+
+### Density, touch, motion
+
+- **Touch floor 44/48px**, 8px minimum gaps, 4/8px spacing rhythm. Sharpness
+  comes from tighter section spacing and hairlines, never smaller tap targets.
+- **Motion is functional**: 150–300ms, ease-out entering / ease-in exiting;
+  press feedback via opacity/state-layer with no layout shift; overlays animate
+  from their trigger; `prefers-reduced-motion` respected.
+- **Dark mode in parity**: desaturated tonal surfaces, borders visible in both
+  schemes, scrim strong enough to isolate overlays.
+
+### Icons — Lucide
+
+One icon family: **`lucide-react-native`** — consistent 2px stroke, sharp
+corners, outline style throughout. It is the technical/blueprint counterpart to
+the flat-&-sharp geometry, replacing the mixed-weight `@expo/vector-icons`
+(MaterialCommunityIcons) set. Sizes are tokens (`icon-sm` 16, `icon-md` 20,
+`icon-lg` 24); icon-only controls keep a ≥44px hit area.
+
+### Colour & type roles within the form
+
+Primary blue carries **all interaction** — actions, links, and every
+hover/pressed/selected state. Interaction states use a subtler shade of the
+primary (`primary-strong` for filled controls; a primary tint / state-layer for
+ghost/tonal/outline buttons) — **never the accent.**
+
+The **manila accent is a text colour** — mono eyebrow labels, data highlights,
+live/status pills, and strategy tags. It never fills a button or drives a
+hover/pressed state; manila on interactive surfaces (e.g. the Browse or
+Forgot-password button hovers) is the specific thing that reads as ugly, and is
+the misuse this rule exists to prevent. Lean on the mono voice (IBM Plex Mono on
+web, platform monospace in the app) for IDs, counts, and measurements — the
+"lab instrument" register.
+
 ## Logo
 
 The mark is a **font-derived 9, vertically squished** so it reads as a loop
