@@ -24,9 +24,9 @@ const buttonVariants = cva(
           }),
         ),
         outline: cn(
-          'border-border bg-background active:bg-accent dark:bg-input/30 dark:border-input dark:active:bg-input/50 border',
+          'border-border bg-background active:bg-primary/10 dark:bg-input/30 dark:border-input border',
           Platform.select({
-            web: 'hover:bg-accent dark:hover:bg-input/50',
+            web: 'hover:bg-primary/10',
           }),
         ),
         secondary: cn(
@@ -39,10 +39,7 @@ const buttonVariants = cva(
           'bg-primary/12 active:bg-primary/20',
           Platform.select({ web: 'hover:bg-primary/20' }),
         ),
-        ghost: cn(
-          'active:bg-accent dark:active:bg-accent/50',
-          Platform.select({ web: 'hover:bg-accent dark:hover:bg-accent/50' }),
-        ),
+        ghost: cn('active:bg-primary/10', Platform.select({ web: 'hover:bg-primary/10' })),
         link: '',
       },
       size: {
@@ -70,12 +67,15 @@ const buttonTextVariants = cva(
         default: 'text-primary-foreground',
         destructive: 'text-white',
         outline: cn(
-          'group-active:text-accent-foreground',
-          Platform.select({ web: 'group-hover:text-accent-foreground' }),
+          'group-active:text-primary',
+          Platform.select({ web: 'group-hover:text-primary' }),
         ),
         secondary: 'text-secondary-foreground',
         tonal: 'text-primary',
-        ghost: 'group-active:text-accent-foreground',
+        ghost: cn(
+          'group-active:text-primary',
+          Platform.select({ web: 'group-hover:text-primary' }),
+        ),
         link: cn(
           'text-primary group-active:underline',
           Platform.select({ web: 'underline-offset-4 hover:underline group-hover:underline' }),

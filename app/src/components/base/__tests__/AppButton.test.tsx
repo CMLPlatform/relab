@@ -58,6 +58,7 @@ test('tonal variant uses the soft-primary fill and primary text color', () => {
 });
 
 const SHADOW_CLASS_PATTERN = /\bshadow-(sm|md|lg|xl)\b/;
+const ACCENT_CLASS_PATTERN = /\baccent\b/;
 
 // DESIGN.md "Form language — Flat & Sharp": inline surfaces carry no elevation,
 // and controls sit at the 6px control radius (Tailwind's rounded-md === 6px).
@@ -72,6 +73,32 @@ test.each([
   const className = screen.getByRole('button').props.className;
   expect(className).not.toMatch(SHADOW_CLASS_PATTERN);
   expect(className).toEqual(expect.stringContaining('rounded-md'));
+});
+
+// DESIGN.md: "the manila accent is a text colour only — never a button fill or a
+// hover/pressed state; interaction states use a subtler shade of the primary."
+// `accent` is the brand manila (brand.generated.css: --accent: #8F6212), so no
+// button variant or state may reference it — pressed/hover are primary-derived.
+test.each([
+  'primary',
+  'tonal',
+  'outline',
+  'ghost',
+  'destructive',
+] as const)('%s variant never uses the accent for a fill or state', (variant) => {
+  render(<AppButton variant={variant}>Label</AppButton>);
+  expect(screen.getByRole('button').props.className).not.toMatch(ACCENT_CLASS_PATTERN);
+  expect(screen.getByText('Label').props.className).not.toMatch(ACCENT_CLASS_PATTERN);
+});
+
+test.each([
+  'outline',
+  'ghost',
+] as const)('%s variant uses a primary tint state-layer, not a neutral', (variant) => {
+  render(<AppButton variant={variant}>Label</AppButton>);
+  expect(screen.getByRole('button').props.className).toEqual(
+    expect.stringContaining('active:bg-primary/'),
+  );
 });
 
 test('meets the 44px a11y tap-target floor regardless of caller className', () => {
