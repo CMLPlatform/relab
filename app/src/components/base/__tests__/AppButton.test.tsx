@@ -57,6 +57,23 @@ test('tonal variant uses the soft-primary fill and primary text color', () => {
   );
 });
 
+const SHADOW_CLASS_PATTERN = /\bshadow-(sm|md|lg|xl)\b/;
+
+// DESIGN.md "Form language — Flat & Sharp": inline surfaces carry no elevation,
+// and controls sit at the 6px control radius (Tailwind's rounded-md === 6px).
+test.each([
+  'primary',
+  'tonal',
+  'outline',
+  'ghost',
+  'destructive',
+] as const)('%s variant is flat and uses the control radius', (variant) => {
+  render(<AppButton variant={variant}>Label</AppButton>);
+  const className = screen.getByRole('button').props.className;
+  expect(className).not.toMatch(SHADOW_CLASS_PATTERN);
+  expect(className).toEqual(expect.stringContaining('rounded-md'));
+});
+
 test('meets the 44px a11y tap-target floor regardless of caller className', () => {
   render(<AppButton className="mx-4 my-2">Add component</AppButton>);
   expect(screen.getByRole('button').props.className).toEqual(expect.stringContaining('min-h-11'));

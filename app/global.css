@@ -27,4 +27,16 @@
 @theme inline {
   --color-popover: var(--card);
   --color-popover-foreground: var(--card-foreground);
+
+  /* Token-semantics collision: the vendored RNR/shadcn primitives use `accent`
+   * as their NEUTRAL hover/pressed state-layer (button ghost+outline,
+   * dropdown-menu, toggle, badge, dialog), but brand.generated.css feeds
+   * `--accent` the *brand* manila (#8F6212) — so every pressed/hover state came
+   * out manila (the Browse / Forgot-password hovers most visibly).
+   * assets/DESIGN.md is explicit: manila is a text colour only, never a button
+   * fill or an interaction state. Alias the state token onto the neutral muted
+   * surface here rather than editing the generated file (same pattern as
+   * popover above). The brand manila stays available as `--accent` itself. */
+  --color-accent: var(--muted);
+  --color-accent-foreground: var(--muted-foreground);
 }
