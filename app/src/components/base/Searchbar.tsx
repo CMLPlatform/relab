@@ -39,7 +39,11 @@ export function Searchbar({
         onChangeText={onChangeText}
         placeholder={placeholder}
         accessibilityLabel={placeholder ?? 'Search'}
-        style={styles.input}
+        // Inset via className, not `style`: react-native-web compiles
+        // StyleSheet.create to atomic CSS classes, so a `style` padding lands in
+        // the same cascade as the primitive's own `px-3` and loses on source
+        // order. Through `cn` it merges instead, and the text clears the icons.
+        className="pl-10 pr-10"
       />
       {loading ? (
         <ActivityIndicator
@@ -75,9 +79,5 @@ const styles = StyleSheet.create({
   trailing: {
     position: 'absolute',
     right: spacing.sm + 4,
-  },
-  input: {
-    paddingLeft: 40,
-    paddingRight: 40,
   },
 });
