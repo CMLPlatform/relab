@@ -1,10 +1,10 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
+import { Icon } from '@/components/base/Icon';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Text } from '@/components/base/Text';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
@@ -37,11 +37,7 @@ export default function UserProfileScreen() {
 
           {hasError ? (
             <View style={styles.centerContainer}>
-              <MaterialCommunityIcons
-                name="account-cancel-outline"
-                size={48}
-                color={theme.colors.error}
-              />
+              <Icon name="account-cancel-outline" size={48} color={theme.colors.error} />
               <Text style={styles.errorText}>{errorMessage}</Text>
             </View>
           ) : null}
@@ -70,11 +66,7 @@ export default function UserProfileScreen() {
               <View style={styles.statsSection}>
                 <Card style={styles.statCard}>
                   <View style={styles.statContent}>
-                    <MaterialCommunityIcons
-                      name="package-variant-closed"
-                      size={32}
-                      color={theme.colors.primary}
-                    />
+                    <Icon name="package-variant-closed" size={32} color={theme.colors.primary} />
                     <AppText style={styles.statValue}>{profile.product_count}</AppText>
                     <AppText style={styles.statLabel}>Products</AppText>
                   </View>
@@ -82,11 +74,7 @@ export default function UserProfileScreen() {
 
                 <Card style={styles.statCard}>
                   <View style={styles.statContent}>
-                    <MaterialCommunityIcons
-                      name="weight-kilogram"
-                      size={32}
-                      color={theme.colors.secondary}
-                    />
+                    <Icon name="weight-kilogram" size={32} color={theme.colors.secondary} />
                     <AppText style={styles.statValue}>{profile.total_weight_kg}</AppText>
                     <AppText style={styles.statLabel}>Total kg</AppText>
                   </View>
@@ -94,11 +82,7 @@ export default function UserProfileScreen() {
 
                 <Card style={styles.statCard}>
                   <View style={styles.statContent}>
-                    <MaterialCommunityIcons
-                      name="image-multiple"
-                      size={32}
-                      color={theme.tokens.status.success}
-                    />
+                    <Icon name="image-multiple" size={32} color={theme.tokens.status.success} />
                     <AppText style={styles.statValue}>{profile.image_count}</AppText>
                     <AppText style={styles.statLabel}>Photos</AppText>
                   </View>
@@ -106,11 +90,7 @@ export default function UserProfileScreen() {
 
                 <Card style={styles.statCard}>
                   <View style={styles.statContent}>
-                    <MaterialCommunityIcons
-                      name="tag-outline"
-                      size={32}
-                      color={theme.tokens.status.warning}
-                    />
+                    <Icon name="tag-outline" size={32} color={theme.tokens.status.warning} />
                     <AppText style={styles.statValue} numberOfLines={1}>
                       {profile.top_category || 'None'}
                     </AppText>

@@ -1,10 +1,10 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback } from 'react';
 import { Controller } from 'react-hook-form';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { PageContainer } from '@/components/base/PageContainer';
 import { TextInput } from '@/components/base/TextInput';
@@ -17,7 +17,7 @@ function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDism
   return (
     <AppDialog visible={visible} onDismiss={onDismiss}>
       <View style={styles.successContent}>
-        <MaterialCommunityIcons name="check-circle" size={56} color={theme.tokens.status.success} />
+        <Icon name="check-circle" size={56} color={theme.tokens.status.success} />
         <AppText variant="title" accessibilityRole="header">
           Camera paired
         </AppText>
@@ -149,11 +149,7 @@ export default function AddCameraScreen() {
           <Controller control={control} name="description" render={renderDescription} />
 
           <View style={[styles.infoBox, { backgroundColor: theme.tokens.surface.accent }]}>
-            <MaterialCommunityIcons
-              name="information-outline"
-              size={18}
-              color={theme.colors.primary}
-            />
+            <Icon name="information-outline" size={18} color={theme.colors.primary} />
             <AppText variant="body" style={{ flex: 1, color: theme.colors.onSurfaceVariant }}>
               Make sure your Raspberry Pi is powered on and has{' '}
               <AppText style={{ fontFamily: 'monospace', fontSize: 11 }}>
@@ -171,7 +167,7 @@ export default function AddCameraScreen() {
             disabled={isPending}
             className="mt-2"
           >
-            <MaterialCommunityIcons name="link-variant" size={18} color={theme.colors.onPrimary} />
+            <Icon name="link-variant" size={18} color={theme.colors.onPrimary} />
             <AppText style={{ color: theme.colors.onPrimary }}>Pair camera</AppText>
           </AppButton>
 

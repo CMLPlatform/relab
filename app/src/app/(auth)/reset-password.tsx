@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Controller } from 'react-hook-form';
@@ -7,6 +6,7 @@ import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { useResetPassword } from '@/features/auth/usePasswordReset';
 import { useSensitiveAuthToken } from '@/features/auth/useSensitiveAuthToken';
@@ -57,9 +57,9 @@ export default function ResetPasswordScreen() {
           hitSlop={12}
           style={{ position: 'absolute', right: 12 }}
         >
-          <MaterialCommunityIcons
+          <Icon
             name={showPassword ? 'eye-off' : 'eye'}
-            size={20}
+            size="md"
             color={theme.colors.onSurfaceVariant}
           />
         </Pressable>
