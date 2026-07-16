@@ -23,6 +23,8 @@ describe('useBackgroundOverlayColor', () => {
     '/onboarding',
     '/forgot-password',
     '/reset-password',
+    '/mfa',
+    '/verify',
   ])('uses the light hero scrim on %s', (pathname) => {
     expect(overlayFor(pathname)).toBe(overlay.hero);
   });
@@ -31,7 +33,6 @@ describe('useBackgroundOverlayColor', () => {
     '/products',
     '/cameras',
     '/account',
-    '/mfa',
   ])('uses the near-opaque page overlay on %s', (pathname) => {
     expect(overlayFor(pathname)).toBe(overlay.page);
   });

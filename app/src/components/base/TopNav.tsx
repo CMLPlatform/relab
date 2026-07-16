@@ -1,5 +1,6 @@
 import { usePathname, useRouter } from 'expo-router';
 import { Platform, Pressable, View } from 'react-native';
+import { AUTH_HERO_PATHS } from '@/constants';
 import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { PRIMARY_DESTINATIONS } from '@/navigation/destinations';
@@ -19,16 +20,7 @@ import { HeaderRightPill } from './HeaderRightPill';
 // hide it for them), so TopNav suppresses itself there too — otherwise lg
 // shows both bars, and on /mfa the Products/Cameras links let a keyboard user
 // tab away mid login-challenge.
-const NO_CHROME_PATHS = new Set([
-  '/',
-  '/login',
-  '/onboarding',
-  '/new-account',
-  '/forgot-password',
-  '/reset-password',
-  '/mfa',
-  '/category-selection',
-]);
+const NO_CHROME_PATHS = new Set<string>(['/', '/category-selection', ...AUTH_HERO_PATHS]);
 
 /**
  * Slim persistent top bar shown on desktop web (>=lg) only. Phone and native

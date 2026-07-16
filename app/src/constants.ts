@@ -13,6 +13,22 @@ export const breakpoints = {
   lg: 1024,
 } as const;
 
+/**
+ * The auth routes: no app chrome, and the photo backdrop stays visible behind
+ * the light hero scrim. These are the `headerShown: false` screens in
+ * app/_layout.tsx — one list, because TopNav and the background scrim both
+ * need it and silently drifted apart when they were maintained separately.
+ */
+export const AUTH_HERO_PATHS = [
+  '/login',
+  '/onboarding',
+  '/new-account',
+  '/forgot-password',
+  '/reset-password',
+  '/mfa',
+  '/verify',
+] as const;
+
 export const radius = {
   control: 6,
   card: 8,

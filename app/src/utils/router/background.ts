@@ -1,19 +1,11 @@
 import { usePathname } from 'expo-router';
+import { AUTH_HERO_PATHS } from '@/constants';
 import { getAppTheme } from '@/theme';
 
 // Hero screens keep the background photo visible, so they get a light scrim
-// instead of the near-opaque page overlay other screens use. Must stay in sync
-// with the `headerShown: false` (auth) screens in app/_layout.tsx.
-const HERO_OVERLAY_PATHS = [
-  '/login',
-  '/new-account',
-  '/onboarding',
-  '/forgot-password',
-  '/reset-password',
-];
-
+// instead of the near-opaque page overlay other screens use.
 function isHeroPath(pathname: string) {
-  return HERO_OVERLAY_PATHS.some((path) => pathname.includes(path));
+  return AUTH_HERO_PATHS.some((path) => pathname.includes(path));
 }
 
 // The scrim colour drawn over the static background image for the current route.
