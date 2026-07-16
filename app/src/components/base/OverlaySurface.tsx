@@ -6,16 +6,19 @@ import { useAppTheme } from '@/theme';
 type OverlaySurfaceProps = {
   children?: ReactNode;
   style?: ViewStyle | ViewStyle[];
-  tone?: 'scrim' | 'media' | 'glass';
+  /**
+   * 'surface' is an opaque panel — what a dialog or modal needs, since content
+   * sits on it and has to be readable. The rest are translucent films meant to
+   * be drawn *over* content ('scrim' also being the colour of the backdrop
+   * behind a modal), so a panel painted with one shows the page through itself.
+   */
+  tone?: 'surface' | 'scrim' | 'media' | 'glass';
 };
 
 export function OverlaySurface({ children, style, tone = 'scrim' }: OverlaySurfaceProps) {
   const theme = useAppTheme();
-  return (
-    <View style={[styles.base, { backgroundColor: theme.tokens.overlay[tone] }, style]}>
-      {children}
-    </View>
-  );
+  const backgroundColor = tone === 'surface' ? theme.colors.surface : theme.tokens.overlay[tone];
+  return <View style={[styles.base, { backgroundColor }, style]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({

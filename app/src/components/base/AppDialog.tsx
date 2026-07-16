@@ -37,7 +37,7 @@ export function AppDialog({ visible, onDismiss, dismissable = true, children }: 
       >
         {/* Swallow presses so tapping inside the dialog doesn't dismiss it. */}
         <Pressable onPress={(e) => e.stopPropagation()} style={styles.dialogWrapper}>
-          <OverlaySurface style={[styles.dialog, theme.tokens.elevation.overlay]} tone="scrim">
+          <OverlaySurface style={[styles.dialog, theme.tokens.elevation.overlay]} tone="surface">
             {children}
           </OverlaySurface>
         </Pressable>

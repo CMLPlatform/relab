@@ -104,7 +104,7 @@ export default function FilterSelectionModal({
       >
         {/* Swallow presses so tapping inside the dialog doesn't dismiss it. */}
         <Pressable onPress={(e) => e.stopPropagation()} style={styles.dialogWrapper}>
-          <OverlaySurface style={styles.dialog} tone="scrim">
+          <OverlaySurface style={styles.dialog} tone="surface">
             <Text accessibilityRole="header" style={styles.title}>
               {title}
             </Text>
