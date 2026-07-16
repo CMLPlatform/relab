@@ -95,7 +95,7 @@ describe('Saving API Service', () => {
 
       await saveProduct(componentProduct);
 
-      const calledUrl = (mockFetchWithAuth.mock.calls[0]?.[0] as URL).href;
+      const calledUrl = (mockFetchWithAuth.mock.calls[0][0] as URL).href;
       expect(calledUrl).toContain('/products/5/components');
     });
 
@@ -111,7 +111,7 @@ describe('Saving API Service', () => {
 
       await saveProduct(componentProduct);
 
-      const calledUrl = (mockFetchWithAuth.mock.calls[0]?.[0] as URL).href;
+      const calledUrl = (mockFetchWithAuth.mock.calls[0][0] as URL).href;
       expect(calledUrl).toContain('/components/7/components');
     });
 
@@ -454,7 +454,8 @@ describe('Saving API Service', () => {
       const uploadCall = mockFetchWithAuth.mock.calls.find(
         (c) => (c[0] as URL).href.includes('/images') && c[1]?.method === 'POST',
       );
-      const file = (uploadCall?.[1]?.body as FormData).get('file') as File;
+      expect(uploadCall).toBeDefined();
+      const file = (uploadCall?.[1]?.body as FormData | undefined)?.get('file') as File;
       expect(file.name).toBe('image.jpg');
       expect(file.type).toBe('image/jpeg');
     });
