@@ -25,10 +25,12 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
     },
     overlay: {
       page: isDark ? 'rgba(10,10,10,0.90)' : 'rgba(242,242,242,0.95)',
-      // Light scrim for hero screens (login/register) — just knocks the photo
-      // back a touch; the auth card carries the actual control legibility.
-      // Tinted to the theme background (not neutral gray) and kept low-alpha.
-      hero: isDark ? 'rgba(203, 211, 224, 0.5)' : 'rgba(250,251,254,0.5)',
+      // Hero scrim, drawn as a horizontal gradient: a calmer centre band behind
+      // the content column (the new-account headline sits bare on the photo and
+      // needs it) fading to near-clear edges, so the backdrop still reads as a
+      // photo rather than a flat wash. Tinted to the theme background, not gray.
+      hero: isDark ? 'rgba(203, 211, 224, 0.78)' : 'rgba(250,251,254,0.78)',
+      heroEdge: isDark ? 'rgba(203, 211, 224, 0.18)' : 'rgba(250,251,254,0.18)',
       scrim: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(12,18,32,0.50)',
       media: 'rgba(0,0,0,0.5)',
       glass: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)',

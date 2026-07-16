@@ -56,7 +56,10 @@ export type AppTokens = {
   };
   overlay: {
     page: string;
+    /** Centre band of the hero scrim, behind the content column. */
     hero: string;
+    /** Outer edges of the hero scrim, where the backdrop stays vivid. */
+    heroEdge: string;
     scrim: string;
     media: string;
     glass: string;

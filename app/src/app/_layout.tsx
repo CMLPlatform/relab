@@ -2,10 +2,11 @@
 import '../../global.css';
 
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
 import { memo, type ReactNode, useCallback, useEffect } from 'react';
-import { AppState, type AppStateStatus, Platform, View } from 'react-native';
+import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react-native';
 import { colorScheme as nativewindColorScheme } from 'react-native-css';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -25,7 +26,7 @@ import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMo
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
-import { useBackgroundOverlayColor } from '@/utils/router/background';
+import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
 
@@ -50,21 +51,29 @@ export function HeaderRight() {
   return <HeaderRightPill />;
 }
 
-function AppBackground({ overlayColor }: { overlayColor: string }) {
+function AppBackground({ overlay }: { overlay: BackgroundOverlay }) {
   return (
     <>
       <StaticBackground />
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: overlayColor,
-          pointerEvents: 'none',
-        }}
-      />
+      {overlay.edgeColor ? (
+        // Hero routes: calm the band behind the centred content column but let
+        // the backdrop stay vivid at the edges, so it still reads as a photo.
+        <LinearGradient
+          colors={[overlay.edgeColor, overlay.color, overlay.color, overlay.edgeColor]}
+          locations={[0, 0.3, 0.7, 1]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+      ) : (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: overlay.color, pointerEvents: 'none' },
+          ]}
+        />
+      )}
     </>
   );
 }
@@ -149,7 +158,7 @@ function AppShell() {
   const theme = getAppTheme(colorScheme);
   const { user, isLoading: authLoading } = useAuth();
   const { activeStream } = useStreamSession();
-  const overlayColor = useBackgroundOverlayColor(isDark);
+  const overlay = useBackgroundOverlay(isDark);
   const { isLg } = useBreakpoint();
 
   // On native there's no document/visibilitychange, so TanStack's focus
@@ -190,7 +199,7 @@ function AppShell() {
 
   return (
     <View style={{ flex: 1 }}>
-      <AppBackground overlayColor={overlayColor} />
+      <AppBackground overlay={overlay} />
       <TopNav />
       <AppStack isDark={isDark} isLg={isLg} />
       <ActiveStreamBanner />

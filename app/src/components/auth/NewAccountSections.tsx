@@ -40,6 +40,8 @@ const CARD_HEIGHT =
 // The mark and the 80px name are different heights; pinning the slot keeps the
 // card from jumping between step one and the rest.
 const BRAND_SLOT_HEIGHT = 96;
+// Shared by the step card and the footer card so the two line up.
+const CARD_MAX_WIDTH = 380;
 
 const styles = StyleSheet.create({
   welcomeText: {
@@ -76,8 +78,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
     padding: CARD_PADDING,
-    maxWidth: 380,
-    alignSelf: 'flex-start',
+    maxWidth: CARD_MAX_WIDTH,
+    alignSelf: 'center',
     width: '100%',
     height: CARD_HEIGHT,
     justifyContent: 'center',
@@ -162,7 +164,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     width: '100%',
-    maxWidth: 480,
+    maxWidth: CARD_MAX_WIDTH,
   },
   privacyText: {
     fontSize: 12,

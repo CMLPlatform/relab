@@ -3,7 +3,7 @@ import { renderHook, screen } from '@testing-library/react-native';
 import { HeaderRightPill } from '@/components/base/HeaderRightPill';
 import { renderWithProviders } from '@/test-utils/index';
 import { getAppTheme } from '@/theme';
-import { useBackgroundOverlayColor } from '@/utils/router/background';
+import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
 
@@ -78,17 +78,21 @@ describe('layout helpers rendering', () => {
     ).toBeNull();
   });
 
-  it('returns the overlay colour for normal and auth routes', () => {
-    const { result, rerender } = renderHook<string, { isDark: boolean }>(
-      ({ isDark }) => useBackgroundOverlayColor(isDark),
+  // Reads the values from the tokens rather than restating them: hardcoded
+  // rgba literals here just break whenever the scrim is retuned.
+  it('returns the overlay for normal and auth routes', () => {
+    const light = getAppTheme('light').tokens.overlay;
+    const dark = getAppTheme('dark').tokens.overlay;
+    const { result, rerender } = renderHook<BackgroundOverlay, { isDark: boolean }>(
+      ({ isDark }) => useBackgroundOverlay(isDark),
       { initialProps: { isDark: false } },
     );
 
-    expect(result.current).toBe('rgba(242,242,242,0.95)');
+    expect(result.current).toEqual({ color: light.page, edgeColor: null });
 
     mockUsePathname.mockReturnValue('/login');
     rerender({ isDark: true });
 
-    expect(result.current).toBe('rgba(203, 211, 224, 0.5)');
+    expect(result.current).toEqual({ color: dark.hero, edgeColor: dark.heroEdge });
   });
 });
