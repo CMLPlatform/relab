@@ -2,8 +2,7 @@
   padding: 1.55rem;
   background: color-mix(in srgb, var(--color-surface-raised) 98%, transparent);
   border: 1px solid var(--color-page-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-card);
   backdrop-filter: blur(12px);
 }
 
@@ -84,28 +83,21 @@
   justify-content: center;
   gap: 0.4rem;
   border: 1px solid transparent;
-  border-radius: 20px;
+  border-radius: var(--radius-control);
   padding: 0.8rem 1.15rem;
   font-size: 1rem;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
   transition:
-    transform 160ms ease,
     background 160ms ease,
     color 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease;
-}
-
-.btn:hover {
-  transform: translateY(-1px);
+    border-color 160ms ease;
 }
 
 .btn:disabled {
   cursor: progress;
   opacity: 0.7;
-  transform: none;
 }
 
 .btn-large {
@@ -117,7 +109,6 @@
   background: var(--color-primary);
   /* dark-mode primary is a light blue, so the label flips to ink */
   color: light-dark(rgb(255, 255, 255), rgb(12, 18, 32));
-  box-shadow: 0 10px 20px color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
 .btn-primary:hover {
@@ -128,6 +119,11 @@
   background: transparent;
   color: var(--color-on-surface);
   border-color: var(--color-page-border);
+}
+
+.btn-muted:hover {
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  border-color: var(--color-primary);
 }
 
 .stats-panel {
@@ -150,6 +146,12 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-muted);
+}
+
+/* The one eyebrow label on the page: manila is a text colour reserved for
+   mono eyebrow/label/tag text (DESIGN.md), never an interactive fill. */
+.stats-eyebrow {
+  color: var(--color-accent);
 }
 
 .stats-panel h2 {
@@ -232,7 +234,7 @@
   display: inline-flex;
   flex-wrap: wrap;
   border: 1px solid var(--color-page-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-control);
   overflow: hidden;
 }
 
@@ -280,7 +282,7 @@
 .stats-chart svg:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 4px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-control);
 }
 
 /* Recessive chrome: solid hairlines, one shade off the surface. */
@@ -403,7 +405,7 @@
   width: 2.1rem;
   height: 2.1rem;
   padding: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -411,12 +413,10 @@
   transition:
     background 160ms ease,
     border-color 160ms ease,
-    color 160ms ease,
-    transform 160ms ease;
+    color 160ms ease;
 }
 
 .theme-toggle:hover {
-  transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-page-border));
 }
 
@@ -424,7 +424,6 @@
 .theme-control[data-theme-current="dark"] .theme-toggle {
   background: var(--color-surface-strong);
   color: var(--color-on-surface);
-  box-shadow: var(--shadow-card);
 }
 
 .theme-icon {
@@ -510,7 +509,6 @@
   .hero-panel,
   .empty-state {
     padding: 0.9rem;
-    border-radius: 18px;
   }
 
   .hero-actions {
