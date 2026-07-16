@@ -1,9 +1,9 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { Icon } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
 import { NewProductPill, ProfilePill } from './InlinePills';
 import { productsScreenStyles as styles } from './shared';
@@ -97,11 +97,7 @@ export function ProductsWelcomeCard({
             </AppButton>
           ) : !currentUser?.isVerified ? (
             <AppButton variant="tonal" onPress={onGoToProfile}>
-              <MaterialCommunityIcons
-                name="email-check-outline"
-                size={18}
-                color={theme.colors.primary}
-              />
+              <Icon name="email-check-outline" size={18} color={theme.colors.primary} />
               <AppText>Verify email</AppText>
             </AppButton>
           ) : null}

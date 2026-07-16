@@ -1,21 +1,21 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type ComponentProps, useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import FilterSelectionModal from '@/components/base/FilterSelectionModal';
+import { Icon, type IconName } from '@/components/base/Icon';
 import { Menu } from '@/components/base/Menu';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { useAppTheme } from '@/theme';
 import { PRODUCTS_DATE_PRESETS, productsScreenStyles as styles } from './shared';
 
-type FilterChipIcon = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type FilterChipIcon = IconName;
 
 /**
  * Filter pill combining a leading icon, label, selected state, and an
  * optional trailing clear (x) — react-native-paper's Chip had all four built
  * in; the base Chip primitive only supports a single trailing icon slot, so
- * this composes Pressable/AppText/MaterialCommunityIcons directly, matching
- * the base Chip's own internal building blocks.
+ * this composes Pressable/AppText/Icon directly, matching the base Chip's
+ * own internal building blocks.
  */
 function FilterChip({
   icon,
@@ -52,7 +52,7 @@ function FilterChip({
         accessibilityState={{ selected }}
         style={filterChipStyles.pressable}
       >
-        <MaterialCommunityIcons name={icon} size={16} color={foreground} />
+        <Icon name={icon} size="sm" color={foreground} />
         <AppText style={[filterChipStyles.label, { color: foreground }]}>{children}</AppText>
       </Pressable>
       {onClose ? (
@@ -63,7 +63,7 @@ function FilterChip({
           hitSlop={8}
           style={filterChipStyles.closeButton}
         >
-          <MaterialCommunityIcons name="close" size={14} color={foreground} />
+          <Icon name="close" size={14} color={foreground} />
         </Pressable>
       ) : null}
     </View>

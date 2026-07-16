@@ -1,8 +1,8 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Platform, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Fab } from '@/components/base/Fab';
+import { Icon } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
 import { getErrorMessage } from '@/utils/errors';
 import { productsScreenStyles as styles } from './shared';
@@ -33,7 +33,7 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
         },
       ]}
     >
-      <MaterialCommunityIcons name="alert-circle-outline" size={24} color={theme.colors.error} />
+      <Icon name="alert-circle-outline" size="lg" color={theme.colors.error} />
       <View style={styles.errorContent}>
         <AppText style={[styles.errorTitle, { color: theme.colors.onErrorContainer }]}>
           Load Failed

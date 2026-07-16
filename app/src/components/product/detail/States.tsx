@@ -1,8 +1,8 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { Icon } from '@/components/base/Icon';
 import ProductDetailsSkeleton from '@/components/product/ProductDetailsSkeleton';
 import { entityLabel, entityLabelTitle } from '@/types/Product';
 import { getErrorMessage } from '@/utils/errors';
@@ -33,11 +33,7 @@ export function ProductPageErrorState({
   if (isNotFound) {
     return (
       <View style={styles.centerState}>
-        <MaterialCommunityIcons
-          name="package-variant-closed-remove"
-          size={64}
-          color={themeColors.onSurfaceVariant}
-        />
+        <Icon name="package-variant-closed-remove" size={64} color={themeColors.onSurfaceVariant} />
         <AppText variant="title" style={styles.centerText}>
           {entityTitle} not found
         </AppText>
@@ -53,7 +49,7 @@ export function ProductPageErrorState({
 
   return (
     <View style={styles.centerState}>
-      <MaterialCommunityIcons name="alert-circle-outline" size={64} color={themeColors.error} />
+      <Icon name="alert-circle-outline" size={64} color={themeColors.error} />
       <AppText variant="title" style={styles.centerText}>
         Something went wrong
       </AppText>

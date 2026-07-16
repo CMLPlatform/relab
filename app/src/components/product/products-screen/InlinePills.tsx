@@ -1,6 +1,6 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
 import { productsScreenStyles as styles } from './shared';
 
@@ -39,7 +39,7 @@ export function ProfilePill() {
         },
       ]}
     >
-      <MaterialCommunityIcons name="account-circle" size={14} color={theme.colors.onBackground} />
+      <Icon name="account-circle" size={14} color={theme.colors.onBackground} />
       <AppText
         testID="profile-pill-label"
         style={[styles.inlineProfileText, { color: theme.colors.onBackground }]}

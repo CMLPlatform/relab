@@ -1,8 +1,8 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackHeaderBackProps } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
+import { Icon } from '@/components/base/Icon';
 import { AncestorTrailHeader } from '@/components/product/AncestorTrailHeader';
 import { ProductNameHeader } from '@/components/product/ProductNameHeader';
 import type { AppTheme } from '@/theme';
@@ -162,12 +162,16 @@ export function getPrimaryFabIcon({
 }) {
   if (isSaving) return <ActivityIndicator color={theme.colors.onBackground} />;
   if (showSavedIcon) {
-    return <MaterialCommunityIcons name="check-bold" size={20} color={theme.colors.onBackground} />;
-  }
-  if (editMode) {
+    // Icon doesn't forward testID (Lucide maps it to a data-testid attribute
+    // RNTL can't query), so the "saved" integration test targets this wrapper.
     return (
-      <MaterialCommunityIcons name="content-save" size={20} color={theme.colors.onBackground} />
+      <View testID="icon-check-bold">
+        <Icon name="check-bold" color={theme.colors.onBackground} />
+      </View>
     );
   }
-  return <MaterialCommunityIcons name="pencil" size={20} color={theme.colors.onBackground} />;
+  if (editMode) {
+    return <Icon name="content-save" color={theme.colors.onBackground} />;
+  }
+  return <Icon name="pencil" color={theme.colors.onBackground} />;
 }

@@ -1,8 +1,8 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { type ReactNode, useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/Icon';
 import { truncateHeaderLabel } from '@/features/products/truncateHeaderLabel';
 import type { AncestorCrumb } from '@/features/products/useAncestorTrail';
 import type { AppTheme } from '@/theme';
@@ -65,7 +65,7 @@ function TrailCrumb({
           {truncateHeaderLabel(crumb.name, perCrumbLimit)}
         </AppText>
       </Pressable>
-      <MaterialCommunityIcons name="chevron-right" size={16} color={iconColor} />
+      <Icon name="chevron-right" size="sm" color={iconColor} />
     </View>
   );
 }

@@ -5,6 +5,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { useDialog } from '@/components/base/dialogContext';
+import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { StreamingContent } from '@/components/cameras/StreamingContent';
 import { useProductVideo } from '@/features/products/useProductVideo';
@@ -288,7 +289,7 @@ function VideoRow({
           onPress={handleRemove}
           style={styles.deleteButton}
         >
-          <MaterialCommunityIcons name="delete" size={24} color="red" />
+          <Icon name="delete" size="lg" color="red" />
         </TouchableOpacity>
       ) : null}
     </View>

@@ -1,9 +1,9 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Card } from '@/components/base/Card';
+import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
 import { Text } from '@/components/base/Text';
@@ -115,11 +115,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               <View style={styles.metadataRow}>
                 {createdAgo ? (
                   <View style={styles.metadataItem}>
-                    <MaterialCommunityIcons
-                      name="clock-outline"
-                      size={12}
-                      color={theme.colors.outline}
-                    />
+                    <Icon name="clock-outline" size={12} color={theme.colors.outline} />
                     <Text style={[styles.metadataText, { color: theme.colors.outline }]}>
                       {createdAgo}
                     </Text>
@@ -127,11 +123,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                 ) : null}
                 {ownerLabel ? (
                   <View style={styles.metadataItem}>
-                    <MaterialCommunityIcons
-                      name="account-outline"
-                      size={12}
-                      color={theme.colors.outline}
-                    />
+                    <Icon name="account-outline" size={12} color={theme.colors.outline} />
                     <Text
                       style={[styles.metadataText, { color: theme.colors.primary }]}
                       numberOfLines={1}

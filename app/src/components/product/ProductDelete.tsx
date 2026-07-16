@@ -1,7 +1,7 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { useDialog } from '@/components/base/dialogContext';
+import { Icon } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
 import { entityLabel, entityLabelTitle, type Product } from '@/types/Product';
 
@@ -34,7 +34,7 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
 
   return (
     <AppButton variant="destructive" onPress={onPressDelete} className={styles.button}>
-      <MaterialCommunityIcons name="delete" size={18} color={theme.colors.onError} />
+      <Icon name="delete" size={18} color={theme.colors.onError} />
       <AppText style={{ color: theme.colors.onError }}>Delete {label}</AppText>
     </AppButton>
   );

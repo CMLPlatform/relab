@@ -129,7 +129,7 @@ describe('ProductTags', () => {
     expect(onModelChange).toHaveBeenCalledWith('NewModel');
   });
 
-  it('renders without error chips when product is a component (isComponent=true)', () => {
+  it('renders Brand/Model/Amount chips when product is a component (isComponent=true)', () => {
     const componentProduct = {
       ...baseProduct,
       brand: undefined,
@@ -141,7 +141,11 @@ describe('ProductTags', () => {
         withDialog: true,
       },
     );
-    expect(screen.queryByText('Unknown')).toBeNull();
+    // isComponent relaxes brand/model from required (styling only — Chip has
+    // no testable error signal) to optional; the fallback label still shows,
+    // and the Amount chip (isComponent-only) renders alongside it.
+    expect(screen.getAllByText('Unknown').length).toBe(2);
+    expect(screen.getByText('Amount')).toBeOnTheScreen();
   });
 });
 

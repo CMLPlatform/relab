@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   type Dispatch,
   memo,
@@ -21,6 +20,7 @@ import {
   View,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import ZoomableImage from '@/components/base/ZoomableImage';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
@@ -235,7 +235,7 @@ export function ProductImageLightbox({
           accessibilityLabel="Close lightbox"
           style={styles.closeButton}
         >
-          <MaterialCommunityIcons name="close" size={28} color={theme.tokens.text.onMedia} />
+          <Icon name="close" size={28} color={theme.tokens.text.onMedia} />
         </Pressable>
 
         <GalleryFlatList
@@ -271,11 +271,7 @@ export function ProductImageLightbox({
                 accessibilityRole="button"
                 accessibilityLabel="Previous image"
               >
-                <MaterialCommunityIcons
-                  name="chevron-left"
-                  size={32}
-                  color={theme.tokens.text.onMedia}
-                />
+                <Icon name="chevron-left" size={32} color={theme.tokens.text.onMedia} />
               </Pressable>
 
               <Text style={[styles.counterText, { color: theme.tokens.text.onMedia }]}>
@@ -290,11 +286,7 @@ export function ProductImageLightbox({
                 accessibilityRole="button"
                 accessibilityLabel="Next image"
               >
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={32}
-                  color={theme.tokens.text.onMedia}
-                />
+                <Icon name="chevron-right" size={32} color={theme.tokens.text.onMedia} />
               </Pressable>
             </View>
           </View>

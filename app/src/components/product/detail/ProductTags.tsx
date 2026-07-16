@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type JSX, useCallback, useState } from 'react';
 import {
   Pressable,
@@ -10,6 +9,7 @@ import {
 import { Chip } from '@/components/base/Chip';
 import { useDialog } from '@/components/base/dialogContext';
 import FilterSelectionModal from '@/components/base/FilterSelectionModal';
+import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { Text } from '@/components/base/Text';
 import { useSearchBrandsQuery } from '@/features/products/queries';
@@ -34,6 +34,7 @@ export default function ProductTags({
   isComponent = false,
 }: Props) {
   const dialog = useDialog();
+  const theme = useAppTheme();
 
   const isBrandRequired = !isComponent;
   const isModelRequired = !isComponent;
@@ -87,7 +88,7 @@ export default function ProductTags({
       <Chip
         title={'Brand'}
         onPress={onEditBrand}
-        icon={editMode && <MaterialCommunityIcons name={'pencil'} />}
+        icon={editMode && <Icon name="pencil" color={theme.colors.onPrimaryContainer} />}
         error={isBrandRequired && !product.brand}
       >
         {product.brand ?? 'Unknown'}
@@ -95,7 +96,7 @@ export default function ProductTags({
       <Chip
         title={'Model'}
         onPress={onEditModel}
-        icon={editMode && <MaterialCommunityIcons name={'pencil'} />}
+        icon={editMode && <Icon name="pencil" color={theme.colors.onPrimaryContainer} />}
         error={isModelRequired && !product.model}
       >
         {product.model ?? 'Unknown'}
@@ -240,7 +241,7 @@ function StepButton({
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <MaterialCommunityIcons name={icon} size={14} color={color} />
+      <Icon name={icon} size={14} color={color} />
     </Pressable>
   );
 }
