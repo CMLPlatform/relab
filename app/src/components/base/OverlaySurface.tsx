@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 
 type OverlaySurfaceProps = {
@@ -19,6 +20,7 @@ export function OverlaySurface({ children, style, tone = 'scrim' }: OverlaySurfa
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: 12,
+    // Floating chrome (tooltips, toasts, dialog surfaces) — overlay radius.
+    borderRadius: radius.overlay,
   },
 });

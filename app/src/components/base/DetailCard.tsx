@@ -9,7 +9,7 @@ interface Props {
 
 export default function DetailCard({ children, style }: Props) {
   return (
-    <Card className="mx-3.5 px-3 pt-1.5 pb-1.5 shadow-sm shadow-black/5" style={style}>
+    <Card className="mx-3.5 px-3 pt-1.5 pb-1.5" style={style}>
       {children}
     </Card>
   );
