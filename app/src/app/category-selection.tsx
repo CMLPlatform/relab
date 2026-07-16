@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback } from 'react';
 import {
   FlatList,
@@ -10,6 +9,8 @@ import {
 } from 'react-native';
 
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
+import { Icon } from '@/components/base/Icon';
+import { PageContainer } from '@/components/base/PageContainer';
 import { Searchbar } from '@/components/base/Searchbar';
 import CPVCard from '@/components/product/CPVCard';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
@@ -43,7 +44,9 @@ export default function CategorySelection() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    // phoneFullBleed: the search bar, blurb, and list already own their 15px
+    // phone insets, so only the desktop centering/cap is wanted here.
+    <PageContainer phoneFullBleed>
       <Searchbar
         style={{ position: 'absolute', top: 15, left: 15, right: 15, zIndex: 1 }}
         placeholder="Search"
@@ -72,7 +75,7 @@ export default function CategorySelection() {
         data={filtered}
         renderItem={renderItem}
       />
-    </View>
+    </PageContainer>
   );
 }
 
@@ -115,7 +118,7 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
       accessibilityRole="button"
       accessibilityLabel="Go back to parent category"
     >
-      <MaterialCommunityIcons size={20} name="chevron-left" color={colors.onTertiaryContainer} />
+      <Icon size="md" name="chevron-left" color={colors.onTertiaryContainer} />
       <Text
         numberOfLines={2}
         ellipsizeMode={'tail'}
@@ -152,7 +155,7 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
       <Text style={[styles.linkText, { color: colors.onSecondaryContainer }]}>
         {`${CPV.directChildren.length} subcategories`}
       </Text>
-      <MaterialCommunityIcons size={20} name="chevron-right" color={colors.onSecondaryContainer} />
+      <Icon size="md" name="chevron-right" color={colors.onSecondaryContainer} />
     </Pressable>
   );
 }

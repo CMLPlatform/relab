@@ -16,9 +16,13 @@ export type EffectiveConnection = Pick<
 >;
 
 export const cameraDetailStyles = StyleSheet.create({
+  // Vertical padding only — PageContainer owns the horizontal gutters, the
+  // max width, and the desktop centering.
   container: {
-    padding: 12,
+    paddingTop: 12,
     paddingBottom: 48,
+  },
+  stack: {
     gap: 12,
   },
   card: {

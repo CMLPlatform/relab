@@ -4,6 +4,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { IconButton } from '@/components/base/IconButton';
+import { PageContainer } from '@/components/base/PageContainer';
 import { useAppTheme } from '@/theme';
 import { cameraDetailStyles } from './styles';
 
@@ -12,7 +13,13 @@ type CameraDetailLayoutProps = {
 };
 
 export function CameraDetailLayout({ children }: CameraDetailLayoutProps) {
-  return <ScrollView contentContainerStyle={styles.container}>{children}</ScrollView>;
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <PageContainer>
+        <View style={styles.stack}>{children}</View>
+      </PageContainer>
+    </ScrollView>
+  );
 }
 
 export function DetailRow({
