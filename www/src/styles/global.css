@@ -1,5 +1,21 @@
+@import "tailwindcss";
 @import "./tokens.css";
 @import "./base.css";
 @import "./layout.css";
 @import "./components.css";
 @import "./utilities.css";
+
+@theme {
+  --color-primary: var(--relab-brand-primary);
+  --color-primary-strong: var(--relab-brand-primary-strong);
+  --color-accent: var(--relab-brand-accent);
+  --color-text: var(--relab-brand-text);
+  --color-surface: var(--relab-brand-surface);
+  --color-border: var(--relab-brand-divider);
+  --font-sans: var(--relab-brand-font);
+  --font-serif: var(--relab-brand-font-display);
+  --font-mono: var(--relab-brand-font-mono);
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-overlay: 12px;
+}

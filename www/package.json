@@ -36,9 +36,11 @@
     "@axe-core/playwright": "catalog:",
     "@biomejs/biome": "catalog:",
     "@playwright/test": "catalog:",
+    "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "^4.1.10",
     "happy-dom": "^20.10.6",
+    "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vitest": "^4.1.10"
   }
