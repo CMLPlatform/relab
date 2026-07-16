@@ -13,7 +13,6 @@ import { AppButton } from '@/components/base/AppButton';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { TextInput } from '@/components/base/TextInput';
 import { WEBSITE_URL } from '@/config';
-import { useIsDesktop } from '@/hooks/useIsDesktop';
 import type { NewAccountFormValues } from '@/services/api/validation/userSchema';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
@@ -94,7 +93,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 4,
   },
-  desktopColumn: {
+  scroll: {
+    flexGrow: 1,
+    padding: 20,
+    paddingBottom: 120,
+    alignItems: 'center',
+  },
+  // An intrinsic cap rather than a breakpoint: the column fills narrow screens
+  // and stops growing past a readable measure, so there's no width at which the
+  // layout jumps.
+  column: {
     width: '100%',
     maxWidth: 480,
   },
@@ -373,19 +381,10 @@ type NewAccountLayoutProps = {
 };
 
 export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayoutProps) {
-  const isDesktop = useIsDesktop();
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView
-        contentContainerStyle={[
-          { flexGrow: 1, padding: 20, paddingBottom: 120 },
-          // Center the step column and cap its measure on desktop so the big
-          // headlines and input card don't span the whole viewport.
-          isDesktop && { alignItems: 'center' },
-        ]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={isDesktop ? styles.desktopColumn : undefined}>{children}</View>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <View style={styles.column}>{children}</View>
       </ScrollView>
 
       <View style={styles.bottomContainer}>
