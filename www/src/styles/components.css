@@ -443,29 +443,6 @@
   fill: currentColor;
 }
 
-.footer-meta a,
-.footer-links a {
-  color: var(--color-muted);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-
-.footer-icon-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  color: var(--color-muted);
-}
-
-.footer-icon-link svg {
-  width: 1.18rem;
-  height: 1.18rem;
-  fill: currentColor;
-}
-
 @media (max-width: 760px) {
   .card,
   .hero-panel,

@@ -40,12 +40,6 @@
   align-items: center;
 }
 
-.footer-social {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-}
-
 .footer-theme {
   display: inline-flex;
   padding-left: 1rem;
