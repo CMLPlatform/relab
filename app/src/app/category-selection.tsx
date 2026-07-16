@@ -10,6 +10,7 @@ import {
 
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { Icon } from '@/components/base/Icon';
+import { PageContainer } from '@/components/base/PageContainer';
 import { Searchbar } from '@/components/base/Searchbar';
 import CPVCard from '@/components/product/CPVCard';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
@@ -43,7 +44,9 @@ export default function CategorySelection() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    // phoneFullBleed: the search bar, blurb, and list already own their 15px
+    // phone insets, so only the desktop centering/cap is wanted here.
+    <PageContainer phoneFullBleed>
       <Searchbar
         style={{ position: 'absolute', top: 15, left: 15, right: 15, zIndex: 1 }}
         placeholder="Search"
@@ -72,7 +75,7 @@ export default function CategorySelection() {
         data={filtered}
         renderItem={renderItem}
       />
-    </View>
+    </PageContainer>
   );
 }
 
