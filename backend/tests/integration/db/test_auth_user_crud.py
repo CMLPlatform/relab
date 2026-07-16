@@ -111,6 +111,13 @@ async def test_get_by_email_matches_canonical_equivalent(db_session: AsyncSessio
     assert result.id == user.id
 
 
+async def test_get_by_email_returns_none_for_malformed_email(db_session: AsyncSession) -> None:
+    """A non-email username matches no user instead of raising (would 500 login)."""
+    user_db = _make_user_db(db_session)
+
+    assert await user_db.get_by_email("not-an-email") is None
+
+
 async def test_returns_user_when_found(db_session: AsyncSession) -> None:
     """Existing username → returns the matching User instance."""
     user = await UserFactory.create_async(db_session, email="user@example.com", username="find_me")
