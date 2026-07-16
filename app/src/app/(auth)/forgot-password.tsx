@@ -22,17 +22,20 @@ export default function ForgotPasswordScreen() {
     }: {
       field: { onChange: (text: string) => void; value: string };
     }) => (
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoComplete="email"
-        editable={!isSubmitting}
-        placeholder="Email"
-        accessibilityLabel="Email"
-        style={[styles.input, { borderColor: theme.colors.outline }]}
-      />
+      <View style={styles.field}>
+        <AppText variant="label">Email</AppText>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          editable={!isSubmitting}
+          placeholder="e.g. you@university.edu"
+          accessibilityLabel="Email"
+          style={[styles.input, { borderColor: theme.colors.outline }]}
+        />
+      </View>
     ),
     [isSubmitting, theme.colors.outline],
   );
@@ -93,6 +96,9 @@ const styles = StyleSheet.create({
   cardContent: {
     padding: 16,
     gap: 16,
+  },
+  field: {
+    gap: 4,
   },
   input: {
     borderWidth: 1,

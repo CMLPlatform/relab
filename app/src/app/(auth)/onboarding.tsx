@@ -35,21 +35,24 @@ function OnboardingBody({
     }: {
       field: { onChange: (text: string) => void; value: string };
     }) => (
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        autoCapitalize="none"
-        autoCorrect={false}
-        placeholder="e.g. awesome_user"
-        accessibilityLabel="Username"
-        onSubmitEditing={submitUsername}
-        style={[
-          styles.input,
-          { borderColor: theme.colors.outline, backgroundColor: theme.tokens.surface.card },
-        ]}
-      />
+      <View style={styles.field}>
+        <AppText variant="label">Username</AppText>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder="e.g. awesome_user"
+          accessibilityLabel="Username"
+          onSubmitEditing={submitUsername}
+          style={[
+            styles.input,
+            { borderColor: theme.colors.outline, backgroundColor: theme.tokens.surface.card },
+          ]}
+        />
+      </View>
     ),
-    [submitUsername, theme.colors.outline, theme.tokens.surface.card, styles.input],
+    [submitUsername, theme.colors.outline, theme.tokens.surface.card, styles.input, styles.field],
   );
 
   return (
@@ -132,6 +135,9 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       textAlign: 'center',
       marginBottom: 10,
       color: theme.colors.onBackground,
+    },
+    field: {
+      gap: 4,
     },
     input: {
       borderWidth: 1,

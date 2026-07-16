@@ -98,17 +98,21 @@ export function LoginFormSection({
     }: {
       field: ControllerRenderProps<LoginFormValues, 'email'>;
     }) => (
-      <TextInput
-        ref={setEmailRef}
-        value={value}
-        onChangeText={onChange}
-        autoCapitalize="none"
-        autoCorrect={false}
-        autoComplete="username"
-        textContentType="username"
-        placeholder="Email or username"
-        style={[styles.input, { borderColor: theme.colors.outline }]}
-      />
+      <View style={styles.field}>
+        <AppText variant="label">Email or username</AppText>
+        <TextInput
+          ref={setEmailRef}
+          value={value}
+          onChangeText={onChange}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="username"
+          textContentType="username"
+          accessibilityLabel="Email or username"
+          placeholder="e.g. you@university.edu"
+          style={[styles.input, { borderColor: theme.colors.outline }]}
+        />
+      </View>
     ),
     [setEmailRef, theme.colors.outline],
   );
@@ -118,17 +122,20 @@ export function LoginFormSection({
     }: {
       field: ControllerRenderProps<LoginFormValues, 'password'>;
     }) => (
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        autoCapitalize="none"
-        autoComplete="current-password"
-        textContentType="password"
-        secureTextEntry
-        placeholder="Password"
-        onSubmitEditing={onSubmit}
-        style={[styles.input, { borderColor: theme.colors.outline }]}
-      />
+      <View style={styles.field}>
+        <AppText variant="label">Password</AppText>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          autoCapitalize="none"
+          autoComplete="current-password"
+          textContentType="password"
+          secureTextEntry
+          accessibilityLabel="Password"
+          onSubmitEditing={onSubmit}
+          style={[styles.input, { borderColor: theme.colors.outline }]}
+        />
+      </View>
     ),
     [onSubmit, theme.colors.outline],
   );
@@ -210,6 +217,11 @@ const styles = StyleSheet.create({
   },
   brandLogo: {
     width: '100%',
+  },
+  // A visible name that survives typing: the placeholder used to be the only
+  // label, and it disappears the moment the field has a value.
+  field: {
+    gap: 4,
   },
   input: {
     borderWidth: 1,

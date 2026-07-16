@@ -148,8 +148,8 @@ describe('Login screen', () => {
   it('renders login form elements', async () => {
     renderWithProviders(<Login />, { withDialog: true });
     expect(screen.getAllByText('Sign in').length).toBeGreaterThan(0);
-    expect(screen.getByPlaceholderText('Email or username')).toBeOnTheScreen();
-    expect(screen.getByPlaceholderText('Password')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Email or username')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Password')).toBeOnTheScreen();
   });
 
   it('shows Sign in button', async () => {
@@ -194,11 +194,8 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
-    fireEvent.changeText(
-      screen.getByPlaceholderText('Password'),
-      'correct-horse-battery-staple-v42',
-    );
+    fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
     await act(async () => {
       fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
@@ -216,11 +213,8 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
-    fireEvent.changeText(
-      screen.getByPlaceholderText('Password'),
-      'correct-horse-battery-staple-v42',
-    );
+    fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
     await act(async () => {
       fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
@@ -237,11 +231,8 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
-    fireEvent.changeText(
-      screen.getByPlaceholderText('Password'),
-      'correct-horse-battery-staple-v42',
-    );
+    fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
     await act(async () => {
       fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
@@ -258,11 +249,8 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
-    fireEvent.changeText(
-      screen.getByPlaceholderText('Password'),
-      'correct-horse-battery-staple-v42',
-    );
+    fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
     await act(async () => {
       fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
@@ -282,8 +270,8 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'bad@example.com');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'wrongpass');
+    fireEvent.changeText(screen.getByLabelText('Email or username'), 'bad@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'wrongpass');
     await act(async () => {
       fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
@@ -303,8 +291,8 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 't@example.com');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
+    fireEvent.changeText(screen.getByLabelText('Email or username'), 't@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'pass');
     await act(async () => {
       fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
@@ -647,8 +635,8 @@ describe('Login screen', () => {
     mockedGetUser.mockResolvedValue(mockUser({ isActive: false }));
 
     renderWithProviders(<Login />, { withDialog: true });
-    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'suspended@example.com');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
+    fireEvent.changeText(screen.getByLabelText('Email or username'), 'suspended@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'pass');
     await act(async () => {
       fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
@@ -710,8 +698,8 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 't@example.com');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
+    fireEvent.changeText(screen.getByLabelText('Email or username'), 't@example.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'pass');
     await act(async () => {
       fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });

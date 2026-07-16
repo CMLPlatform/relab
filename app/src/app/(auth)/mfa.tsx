@@ -39,22 +39,25 @@ export default function MfaScreen() {
         </View>
 
         {useRecoveryCode ? (
-          <TextInput
-            value={recoveryCode}
-            onChangeText={handleRecoveryCodeChange}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            autoComplete="off"
-            editable={!isSubmitting && tokenPresent}
-            placeholder="Recovery code"
-            accessibilityLabel="Recovery code"
-            style={{
-              borderWidth: 1,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              borderColor: theme.colors.outline,
-            }}
-          />
+          <View style={{ gap: 4 }}>
+            <AppText variant="label">Recovery code</AppText>
+            <TextInput
+              value={recoveryCode}
+              onChangeText={handleRecoveryCodeChange}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              autoComplete="off"
+              editable={!isSubmitting && tokenPresent}
+              placeholder="One of your saved codes"
+              accessibilityLabel="Recovery code"
+              style={{
+                borderWidth: 1,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                borderColor: theme.colors.outline,
+              }}
+            />
+          </View>
         ) : (
           <OtpInput
             value={code}
