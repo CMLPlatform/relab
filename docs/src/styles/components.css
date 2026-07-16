@@ -1,5 +1,5 @@
 .site-title img {
-  border-radius: 0.45rem;
+  border-radius: var(--radius-control);
 }
 
 @media (min-width: 50rem) {
@@ -13,25 +13,19 @@
   margin: 0.2rem 0 1.2rem;
   border-left: 4px solid var(--relab-brand-primary);
   background: var(--relab-brand-primary-soft);
-  border-radius: 0.8rem;
+  border-radius: var(--radius-card);
 }
 
+/* Flat panel: hairline border + a flat primary tint. The manila radial wash
+   that used to sit here was the accent used as a *fill*, which DESIGN.md
+   reserves for text only — and the gradients were the last soft-surface
+   holdover from the old look. */
 .relab-hero {
   padding: 1.25rem 1.3rem;
   margin: 0.2rem 0 1.4rem;
   border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 18%, transparent);
-  border-radius: 1rem;
-  background:
-    radial-gradient(
-      circle at top right,
-      color-mix(in srgb, var(--relab-brand-accent) 14%, transparent),
-      transparent 30%
-    ),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--relab-brand-primary) 10%, transparent),
-      transparent 55%
-    );
+  border-radius: var(--radius-card);
+  background: var(--relab-brand-primary-soft);
 }
 
 .relab-hero h1 {
@@ -84,7 +78,7 @@
   margin: 0;
   padding: 1rem 1.1rem;
   border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 18%, transparent);
-  border-radius: 1rem;
+  border-radius: var(--radius-card);
   background: color-mix(in srgb, var(--relab-brand-primary) 4%, transparent);
 }
 
@@ -113,7 +107,7 @@
   margin: 1rem 0 1.5rem;
   padding: 1rem;
   overflow-x: auto;
-  border-radius: 1rem;
+  border-radius: var(--radius-card);
   border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 16%, transparent);
   background: color-mix(in srgb, white 88%, var(--relab-brand-primary) 6%);
 }

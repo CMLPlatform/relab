@@ -34,6 +34,17 @@
   --sl-text-5xl: 3.4rem;
   /* Starlight composes its code/mono stack from this token */
   --sl-font-mono: var(--relab-brand-font-mono);
+
+  /* Starlight's "accent" is its INTERACTION colour — links, active nav, focus
+     rings — not the Relab manila accent. It must map to the primary family:
+     pointing it at --relab-brand-accent would turn every link and active nav
+     item manila, which is exactly what DESIGN.md's accent rule forbids. Left
+     unmapped it falls back to Starlight's stock blue (hsl(234 90% 60%)), which
+     is off-brand. The -low/-high tiers line up with the brand's own soft/strong
+     shades in both themes, since every value is a light-dark() pair. */
+  --sl-color-accent-low: var(--relab-brand-primary-soft);
+  --sl-color-accent: var(--relab-brand-primary);
+  --sl-color-accent-high: var(--relab-brand-primary-strong);
 }
 
 html,
