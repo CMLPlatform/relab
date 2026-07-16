@@ -1,7 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
-import { getMenuPosition, Menu } from '@/components/base/Menu';
+import { Menu } from '@/components/base/Menu';
+import { getMenuPosition } from '@/components/base/menuPosition';
 
 describe('getMenuPosition', () => {
   const anchor = { anchorY: 100, anchorWidth: 40, anchorHeight: 40 };
