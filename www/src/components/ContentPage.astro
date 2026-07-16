@@ -9,7 +9,7 @@ interface Props {
 const { title, intro, meta } = Astro.props;
 ---
 
-<div class="content-page stack-md">
+<div class="content-page grid gap-4">
   <section class="page-intro content-reveal">
     <h1>{title}</h1>
     {meta && <p class="page-meta">{meta}</p>}

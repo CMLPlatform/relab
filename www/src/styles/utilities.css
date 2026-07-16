@@ -26,19 +26,6 @@
   border: 0;
 }
 
-.stack-sm,
-.stack-md {
-  display: grid;
-}
-
-.stack-sm {
-  gap: 0.7rem;
-}
-
-.stack-md {
-  gap: 1rem;
-}
-
 .content-page {
   --content-page-body-size: var(--font-size-body-compact);
   --content-page-line-height: var(--line-height-body-compact);

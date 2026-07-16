@@ -11,10 +11,10 @@ import Layout from '@/layouts/Layout.astro';
     meta={privacyContent.lastUpdated}
     intro={privacyContent.intro}
   >
-    <section class="stack-md">
+    <section class="grid gap-4">
       {
         privacyContent.sections.map((section) => (
-          <article class="card stack-sm">
+          <article class="card grid gap-[0.7rem]">
             <h2>{section.title}</h2>
             {section.paragraphs.map((paragraph) =>
               typeof paragraph === 'string' ? (
