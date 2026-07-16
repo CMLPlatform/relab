@@ -63,6 +63,11 @@ ci: check test-ci
 dev PORT="8011":
     pnpm exec expo start --port {{ quote(PORT) }} --web
 
+# Start dev server with a cleared Metro cache — fixes stale-bundle errors
+# (an edited module still serving its old code after a reload).
+dev-clean PORT="8011":
+    pnpm exec expo start --port {{ quote(PORT) }} --web --clear
+
 # Scan dependencies for known vulnerabilities
 audit:
     pnpm run audit
