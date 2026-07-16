@@ -50,7 +50,6 @@ export default function MfaScreen() {
             accessibilityLabel="Recovery code"
             style={{
               borderWidth: 1,
-              borderRadius: 8,
               paddingHorizontal: 12,
               paddingVertical: 10,
               borderColor: theme.colors.outline,

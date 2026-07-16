@@ -106,7 +106,9 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
   const historyStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
       styles.historyContainer,
-      { backgroundColor: colors.tertiaryContainer },
+      // Interactive surface — primary family, never the manila accent
+      // (MD3 `tertiary` maps to the brand accent; DESIGN.md keeps manila to text).
+      { backgroundColor: colors.primaryContainer },
       pressed && { opacity: 0.5 },
     ],
     [colors],

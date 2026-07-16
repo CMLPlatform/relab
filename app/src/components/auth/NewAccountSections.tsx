@@ -70,7 +70,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
     borderWidth: 1,
-    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },

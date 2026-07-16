@@ -42,7 +42,6 @@ export default function ResetPasswordScreen() {
           accessibilityLabel="New password"
           style={{
             borderWidth: 1,
-            borderRadius: 8,
             paddingHorizontal: 12,
             paddingVertical: 10,
             paddingRight: 40,
@@ -92,7 +91,6 @@ export default function ResetPasswordScreen() {
         accessibilityLabel="Confirm new password"
         style={{
           borderWidth: 1,
-          borderRadius: 8,
           paddingHorizontal: 12,
           paddingVertical: 10,
           borderColor: theme.colors.outline,
