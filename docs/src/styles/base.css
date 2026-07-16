@@ -1,3 +1,28 @@
+@import "tailwindcss";
+
+/* Starlight imports customCss (this file included) unlayered and before its
+   own `@layer starlight.base, starlight.reset, ...` declaration (see
+   node_modules/@astrojs/starlight/components/Page.astro), so Tailwind's
+   theme/base/components/utilities layers are established first and lose to
+   Starlight's layers on any conflicting declaration — this keeps Tailwind's
+   preflight from fighting Starlight's own reset. The rest of this file's
+   rules stay unlayered like before, so they keep overriding Starlight same
+   as pre-Tailwind. */
+@theme {
+  --color-primary: var(--relab-brand-primary);
+  --color-primary-strong: var(--relab-brand-primary-strong);
+  --color-accent: var(--relab-brand-accent);
+  --color-text: var(--relab-brand-text);
+  --color-surface: var(--relab-brand-surface);
+  --color-border: var(--relab-brand-divider);
+  --font-sans: var(--relab-brand-font);
+  --font-serif: var(--relab-brand-font-display);
+  --font-mono: var(--relab-brand-font-mono);
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-overlay: 12px;
+}
+
 :root {
   --sl-content-width: 54rem;
   --sl-text-5xl: 3.4rem;

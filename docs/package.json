@@ -39,10 +39,12 @@
     "@axe-core/playwright": "catalog:",
     "@biomejs/biome": "catalog:",
     "@playwright/test": "catalog:",
+    "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
     "linkinator": "^7.6.1",
     "markdownlint-cli2": "^0.23.0",
     "playwright": "catalog:",
+    "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vitest": "^4.1.10"
   }
