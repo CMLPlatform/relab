@@ -31,7 +31,7 @@ export type AccountSectionDef = {
 };
 
 // NOTE: profile.profile is typed User | undefined by useProfileScreen, but
-// the screen (today: account.tsx's `if (!profile.profile) return null`)
+// the screen (today: AccountScreen.tsx's `if (!profile.profile) return null`)
 // never invokes render() before that guard passes — the `return null` guards
 // below just satisfy that type, they never trigger in practice.
 export const ACCOUNT_SECTIONS: AccountSectionDef[] = [
