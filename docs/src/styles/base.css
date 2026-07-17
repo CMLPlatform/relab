@@ -1,32 +1,17 @@
-/* Import only Tailwind's theme (CSS variables) and utilities — not
-   `tailwindcss/preflight`. Preflight lands in the `base` layer, which beats
-   `starlight.reset`/`starlight.core` in the compiled layer order regardless
-   of import position, so its reset (e.g. stripped list bullets/indent) wins
-   uncontested over Starlight's own comprehensive reset. Starlight already
-   resets its own chrome, so preflight here is redundant, not required. */
-@import "tailwindcss/theme" layer(theme);
-@import "tailwindcss/utilities" layer(utilities);
+/* The Relab brand reaches this site as plain CSS custom properties:
+   assets/palette.json -> scripts/sync_brand_assets.py -> brand.css, which
+   Starlight loads via `customCss` (see astro.config.mjs). Starlight is then
+   themed through its own documented `--sl-color-*` variables below. That is
+   the whole integration — docs deliberately has NO Tailwind: it contributed
+   only an alias layer, and its preflight reset silently stripped the bullets
+   and indent from every markdown list. Do not add it back to style docs; use
+   these variables and Starlight's own `sl-*` utilities. */
 
-/* Starlight imports customCss (this file included) unlayered and before its
-   own `@layer starlight.base, starlight.reset, ...` declaration (see
-   node_modules/@astrojs/starlight/components/Page.astro), so Tailwind's
-   theme/utilities layers are established first and lose to Starlight's
-   layers on any conflicting declaration. The rest of this file's rules stay
-   unlayered like before, so they keep overriding Starlight same as
-   pre-Tailwind. */
-@theme {
-  --color-primary: var(--relab-brand-primary);
-  --color-primary-strong: var(--relab-brand-primary-strong);
-  --color-accent: var(--relab-brand-accent);
-  --color-text: var(--relab-brand-text);
-  --color-surface: var(--relab-brand-surface);
-  --color-border: var(--relab-brand-divider);
-  --font-sans: var(--relab-brand-font);
-  --font-serif: var(--relab-brand-font-display);
-  --font-mono: var(--relab-brand-font-mono);
+:root {
+  /* The flat & sharp radius scale (assets/DESIGN.md). Only the two tiers docs
+     actually uses — it has no floating surface of its own, so no overlay. */
   --radius-control: 6px;
   --radius-card: 8px;
-  --radius-overlay: 12px;
 }
 
 :root {

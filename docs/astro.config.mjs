@@ -1,7 +1,6 @@
 import process from 'node:process';
 import mdx from '@astrojs/mdx';
 import starlight from '@astrojs/starlight';
-import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 
 const MODE_SITES = {
@@ -122,7 +121,6 @@ const site = process.env.PUBLIC_DOCS_URL?.trim() || MODE_SITES[buildMode] || MOD
 export default defineConfig({
   site,
   vite: {
-    plugins: [tailwindcss()],
     server: {
       watch: {
         ignored: [
