@@ -36,8 +36,10 @@ function getFirstFormError(errors: FieldErrors): string | undefined {
 }
 
 // Maps top-level form fields to the spec-sheet section that displays them, so an
-// invalid field can be scrolled to. Fields not listed here (e.g. componentIDs)
-// yield an undefined firstErrorSection.
+// invalid field can be scrolled to. Declaration order is on-screen order:
+// firstErrorSection walks it, so it lands on the visually first invalid field
+// rather than whichever one react-hook-form happened to register first. Fields
+// not listed here (e.g. componentIDs) never yield a section.
 const FIELD_SECTION: Record<string, SectionKey> = {
   name: 'overview',
   description: 'overview',
@@ -54,12 +56,13 @@ const FIELD_SECTION: Record<string, SectionKey> = {
 function buildValidationResult(
   formState: ReturnType<typeof useForm<ProductFormValues>>['formState'],
 ) {
-  const errorKeys = Object.keys(formState.errors);
+  const { errors } = formState;
+  const firstErrorField = Object.keys(FIELD_SECTION).find((field) => field in errors);
   return {
     isValid: formState.isValid,
-    error: getFirstFormError(formState.errors),
-    errorCount: errorKeys.length,
-    firstErrorSection: errorKeys.length > 0 ? FIELD_SECTION[errorKeys[0]] : undefined,
+    error: getFirstFormError(errors),
+    errorCount: Object.keys(errors).length,
+    firstErrorSection: firstErrorField ? FIELD_SECTION[firstErrorField] : undefined,
   };
 }
 

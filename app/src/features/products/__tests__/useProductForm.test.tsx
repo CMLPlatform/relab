@@ -251,9 +251,8 @@ describe('useProductForm', () => {
     await waitFor(() => expect(result.current.product.id).toBe(123));
     await waitFor(() => expect(result.current.validationResult.isValid).toBe(true));
 
-    // Two genuinely failing fields per productSchema, invalidated in order: name
-    // below the 2-char minimum first, then a negative weight (schema requires
-    // positive-or-NaN) — so 'name' is the first error key and maps to 'overview'.
+    // Two genuinely failing fields per productSchema: name below the 2-char
+    // minimum, then a negative weight (schema requires positive-or-NaN).
     await act(async () => {
       result.current.onProductNameChange('A');
     });
@@ -264,6 +263,45 @@ describe('useProductForm', () => {
         ...result.current.product.physicalProperties,
         weight: -5,
       });
+    });
+
+    await waitFor(() => {
+      expect(result.current.validationResult.errorCount).toBe(2);
+      expect(result.current.validationResult.firstErrorSection).toBe('overview');
+    });
+  });
+
+  // Regression: firstErrorSection used to read react-hook-form's first error
+  // key, whose order follows when each field failed — invalidating a lower
+  // section first scrolled past the invalid field above it.
+  it('reports the visually first error section regardless of which field failed first', async () => {
+    const validProduct = {
+      ...mockProduct,
+      physicalProperties: { weight: 850, width: 30, height: 12, depth: 25 },
+    };
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: validProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+
+    const { result } = renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+    await waitFor(() => expect(result.current.validationResult.isValid).toBe(true));
+
+    // Invalidate the lower section (physical) first, then the higher one
+    // (overview) — the reverse of the test above.
+    await act(async () => {
+      result.current.onChangePhysicalProperties({
+        ...result.current.product.physicalProperties,
+        weight: -5,
+      });
+    });
+    await waitFor(() => expect(result.current.validationResult.errorCount).toBe(1));
+
+    await act(async () => {
+      result.current.onProductNameChange('A');
     });
 
     await waitFor(() => {
