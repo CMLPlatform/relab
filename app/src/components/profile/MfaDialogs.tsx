@@ -4,6 +4,7 @@ import { Linking, Platform, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
+import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { OtpInput } from '@/components/base/OtpInput';
 import { Text } from '@/components/base/Text';
@@ -128,17 +129,22 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
         </Text>
 
         {mfa.useRecoveryCode ? (
-          <TextInput
-            value={mfa.recoveryInput}
-            onChangeText={mfa.setRecoveryInput}
-            placeholder="Recovery code"
-            accessibilityLabel="Recovery code"
-            autoCapitalize="characters"
-            autoCorrect={false}
-            autoComplete="off"
-            editable={!mfa.busy}
-            style={[local.codeField, local.field, { borderColor: theme.colors.outline }]}
-          />
+          // Labelled like the OtpInput it swaps with, so toggling recovery mode
+          // doesn't make the field's label appear and disappear.
+          <View style={[local.codeField, { gap: 4 }]}>
+            <AppText variant="label">Recovery code</AppText>
+            <TextInput
+              value={mfa.recoveryInput}
+              onChangeText={mfa.setRecoveryInput}
+              placeholder="One of your saved codes"
+              accessibilityLabel="Recovery code"
+              autoCapitalize="characters"
+              autoCorrect={false}
+              autoComplete="off"
+              editable={!mfa.busy}
+              style={[local.field, { marginTop: 0, borderColor: theme.colors.outline }]}
+            />
+          </View>
         ) : (
           <View style={local.codeField}>
             <OtpInput

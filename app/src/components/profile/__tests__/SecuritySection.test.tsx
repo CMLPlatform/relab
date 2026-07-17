@@ -135,6 +135,21 @@ describe('ProfileSecuritySection management', () => {
     await waitFor(() => expect(mockDisableTotp).toHaveBeenCalledWith('aaaa-1111'));
   });
 
+  // Both branches of the toggle carry a visible label, so it can't appear and
+  // disappear as the user switches between them.
+  it('keeps a visible label on the code field in both authenticator and recovery mode', async () => {
+    renderSection(true);
+
+    fireEvent.press(screen.getByLabelText('Turn off two-step verification'));
+    await screen.findByText('Enter a current code');
+    expect(screen.getByText('Current code')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Lost your authenticator? Use a recovery code'));
+
+    expect(screen.getByText('Recovery code')).toBeOnTheScreen();
+    expect(screen.queryByText('Current code')).toBeNull();
+  });
+
   it('regenerates recovery codes and lets the user copy them', async () => {
     renderSection(true);
 
