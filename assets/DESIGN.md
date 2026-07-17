@@ -138,13 +138,23 @@ hover/pressed/selected state. Interaction states use a subtler shade of the
 primary (`primary-strong` for filled controls; a primary tint / state-layer for
 ghost/tonal/outline buttons) — **never the accent.**
 
-The **manila accent is a text colour** — mono eyebrow labels, data highlights,
-live/status pills, and strategy tags. It never fills a button or drives a
-hover/pressed state; manila on interactive surfaces (e.g. the Browse or
+The **manila accent is a text colour** — mono eyebrow labels, small data
+highlights, live/status pills, and strategy tags. It never fills a button or
+drives a hover/pressed state; manila on interactive surfaces (e.g. the Browse or
 Forgot-password button hovers) is the specific thing that reads as ugly, and is
 the misuse this rule exists to prevent. Lean on the mono voice (IBM Plex Mono on
 web, platform monospace in the app) for IDs, counts, and measurements — the
 "lab instrument" register.
+
+**Accent is for small text, never for mass.** Bars, big figures, and any other
+large or heavy element stay ink — including single-series chart bars and the
+hero/tile stat numbers. Manila reads as a highlight precisely because it is
+scarce and small; at size it stops accenting and starts competing, and the page
+loses its focal figure. When in doubt on something large, it is ink.
+
+This governs manila-as-*accent*. It does not touch the categorical ramp below,
+where manila is one of seven hues **encoding a category** — there the fill
+carries meaning rather than emphasis, so size is not the question.
 
 ## Logo
 
