@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+import { AppText } from './AppText';
 import { Text } from './Text';
 
 type OtpInputProps = {
@@ -12,6 +13,8 @@ type OtpInputProps = {
   disabled?: boolean;
   autoFocus?: boolean;
   hasError?: boolean;
+  /** Visible field label, rendered above the cells inside the same width cap. */
+  label?: string;
   accessibilityLabel?: string;
 };
 
@@ -28,7 +31,9 @@ export function OtpInput({
   disabled = false,
   autoFocus = false,
   hasError = false,
-  accessibilityLabel = 'One-time code',
+  label,
+  // Keep the accessible name equal to the visible label (WCAG 2.5.3).
+  accessibilityLabel = label ?? 'One-time code',
 }: OtpInputProps) {
   const styles = createStyles(useAppTheme());
   const inputRef = useRef<TextInput>(null);
@@ -52,6 +57,7 @@ export function OtpInput({
 
   return (
     <View style={styles.wrap}>
+      {label ? <AppText variant="label">{label}</AppText> : null}
       <View style={styles.row}>
         {Array.from({ length }, (_, index) => index).map((index) => {
           const filled = index < value.length;
@@ -98,6 +104,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       alignSelf: 'center',
       width: '100%',
       maxWidth: 320,
+      gap: 4,
     },
     row: {
       flexDirection: 'row',

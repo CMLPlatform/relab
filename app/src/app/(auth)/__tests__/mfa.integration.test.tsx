@@ -55,11 +55,20 @@ beforeEach(() => {
 });
 
 describe('MfaScreen challenge flow', () => {
+  // Every auth field carries a visible label, not just the recovery-code
+  // fallback — getByLabelText below only sees the accessible name, so the
+  // rendered label needs its own assertion.
+  it('labels the code field visibly', () => {
+    renderMfaScreen();
+
+    expect(screen.getByText('Authentication code')).toBeOnTheScreen();
+  });
+
   it('does not submit until a six digit code is entered', () => {
     renderMfaScreen();
 
     expect(screen.getByText('Continue')).toBeDisabled();
-    fireEvent.changeText(screen.getByLabelText('6-digit code'), '12345');
+    fireEvent.changeText(screen.getByLabelText('Authentication code'), '12345');
     expect(screen.getByText('Continue')).toBeDisabled();
     expect(mockedCompleteMfaChallenge).not.toHaveBeenCalled();
   });
@@ -69,7 +78,7 @@ describe('MfaScreen challenge flow', () => {
 
     renderMfaScreen();
 
-    fireEvent.changeText(screen.getByLabelText('6-digit code'), '123456');
+    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
@@ -84,13 +93,13 @@ describe('MfaScreen challenge flow', () => {
 
     renderMfaScreen();
 
-    fireEvent.changeText(screen.getByLabelText('6-digit code'), '000000');
+    fireEvent.changeText(screen.getByLabelText('Authentication code'), '000000');
 
     await waitFor(() => {
       expect(screen.getByText('Invalid MFA code.')).toBeOnTheScreen();
     });
 
-    fireEvent.changeText(screen.getByLabelText('6-digit code'), '123456');
+    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
@@ -105,7 +114,7 @@ describe('MfaScreen challenge flow', () => {
 
     renderMfaScreen();
 
-    fireEvent.changeText(screen.getByLabelText('6-digit code'), '123456');
+    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/account');

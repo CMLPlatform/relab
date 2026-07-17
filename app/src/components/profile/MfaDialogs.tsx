@@ -101,7 +101,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
             onComplete={confirm}
             disabled={mfa.busy}
             hasError={Boolean(mfa.error)}
-            accessibilityLabel="Setup code"
+            label="Setup code"
           />
         </View>
 
@@ -148,7 +148,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
               disabled={mfa.busy}
               hasError={Boolean(mfa.error)}
               autoFocus
-              accessibilityLabel="Current code"
+              label="Current code"
             />
           </View>
         )}
@@ -193,7 +193,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
             disabled={mfa.busy}
             hasError={Boolean(mfa.error)}
             autoFocus
-            accessibilityLabel="Current code"
+            label="Current code"
           />
         </View>
 
