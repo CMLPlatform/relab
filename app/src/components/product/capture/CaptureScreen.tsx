@@ -19,6 +19,7 @@ import { newProduct } from '@/services/api/products';
 import { PRODUCT_NAME_MAX_LENGTH } from '@/services/api/validation/productSchema';
 import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
+import { typeRowLabels } from '@/types/Product';
 
 type CaptureScreenProps = {
   // Named entityRole, not role: a JSX prop literally called `role` trips
@@ -70,20 +71,21 @@ function CaptureTypeRow({
     };
   }, [typeID]);
 
+  const labels = typeRowLabels(entityRole);
+
   return (
     <View>
       <AppText variant="label" className="uppercase opacity-60">
-        {/* Only a component can be a material — a product is always a type. */}
-        {entityRole === 'component' ? 'Type or material' : 'Type'}
+        {labels.title}
       </AppText>
       {typeID === undefined ? (
         <AppButton
           variant="outline"
           className="w-full"
-          accessibilityLabel="Choose a type or material"
+          accessibilityLabel={labels.choose}
           onPress={() => router.push('/category-selection')}
         >
-          Choose a type or material
+          {labels.choose}
         </AppButton>
       ) : selectedType ? (
         <CPVCard CPV={selectedType} onPress={() => router.push('/category-selection')} />

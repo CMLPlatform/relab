@@ -17,7 +17,6 @@ const mockPush = jest.fn();
 const mockSetParams = jest.fn();
 const mockedLoadCPV = jest.mocked(loadCPV);
 const mockedTakePending = jest.mocked(takePendingTypeSelection);
-const TYPE_OR_MATERIAL_PATTERN = /Type or Material/;
 
 const baseProduct: Product = { ..._base, productTypeID: undefined };
 
@@ -59,15 +58,19 @@ describe('ProductType', () => {
     });
   });
 
-  it("renders 'Type or Material' heading", async () => {
+  // Only a component can be a material, so the row is labelled by role.
+  it('labels the type row "Product type" for a product', async () => {
     renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
-    expect(await screen.findByText(TYPE_OR_MATERIAL_PATTERN)).toBeOnTheScreen();
+    expect(await screen.findByText('Product type')).toBeOnTheScreen();
+    expect(screen.getByText('Choose a product type')).toBeOnTheScreen();
+    expect(screen.queryByText('Component type or material')).toBeNull();
   });
 
-  it('uses component tooltip wording for components', async () => {
+  it('labels the type row "Component type or material" for a component', async () => {
     const component = { ...baseProduct, role: 'component' as const, parentID: 1 };
     renderWithProviders(<ProductType product={component} editMode={true} />);
-    expect(await screen.findByText(TYPE_OR_MATERIAL_PATTERN)).toBeOnTheScreen();
+    expect(await screen.findByText('Component type or material')).toBeOnTheScreen();
+    expect(screen.getByText('Choose component type or material')).toBeOnTheScreen();
     expect(screen.queryByText('Select a fitting category for the product.')).toBeNull();
   });
 
@@ -76,7 +79,7 @@ describe('ProductType', () => {
   // show that as its default first impression.
   it('shows an inviting empty state instead of the undefined category card when no type is picked', async () => {
     renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
-    expect(await screen.findByText('Choose a type or material')).toBeOnTheScreen();
+    expect(await screen.findByText('Choose a product type')).toBeOnTheScreen();
     expect(screen.queryByText('Category undefined')).toBeNull();
   });
 
@@ -87,8 +90,8 @@ describe('ProductType', () => {
     // Flush the loadCPV() effect (its result is unused for a typeless
     // product in view mode, but the effect still runs) before asserting.
     await act(async () => {});
-    expect(queryByText(TYPE_OR_MATERIAL_PATTERN)).toBeNull();
-    expect(queryByText('Choose a type or material')).toBeNull();
+    expect(queryByText('Product type')).toBeNull();
+    expect(queryByText('Choose a product type')).toBeNull();
     expect(queryByText('Category undefined')).toBeNull();
   });
 
@@ -125,7 +128,7 @@ describe('ProductType', () => {
 
   it('navigates to category selection on press in editMode', async () => {
     renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
-    await user.press(await screen.findByText('Choose a type or material'));
+    await user.press(await screen.findByText('Choose a product type'));
     expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
 
@@ -134,7 +137,7 @@ describe('ProductType', () => {
   it('opens the picker for an unsaved draft (no id) in editMode', async () => {
     const draft = { ...baseProduct, id: undefined } as unknown as Product;
     renderWithProviders(<ProductType product={draft} editMode={true} />);
-    await user.press(await screen.findByText('Choose a type or material'));
+    await user.press(await screen.findByText('Choose a product type'));
     expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
 

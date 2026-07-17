@@ -88,7 +88,9 @@ const mockedTakePending = jest.mocked(takePendingTypeSelection);
 // leave a pending act() warning from the async setSelectedType update.
 async function renderCapture(props: Parameters<typeof CaptureScreen>[0]) {
   const result = renderWithProviders(<CaptureScreen {...props} />, { withDialog: true });
-  await screen.findByText('Choose a type or material');
+  // Role-agnostic: the invite's wording differs per role, and this only waits
+  // for the row to render. The wording itself is pinned by its own tests.
+  await screen.findByText(/^Choose /);
   return result;
 }
 
@@ -121,17 +123,17 @@ describe('CaptureScreen', () => {
   });
 
   // Only a component can be a material; a product is always a type.
-  it('labels the type row "Type" for a product', async () => {
+  it('labels the type row "Product type" for a product', async () => {
     await renderCapture({ entityRole: 'product' });
 
-    expect(screen.getByText('Type')).toBeOnTheScreen();
-    expect(screen.queryByText('Type or material')).toBeNull();
+    expect(screen.getByText('Product type')).toBeOnTheScreen();
+    expect(screen.queryByText('Component type or material')).toBeNull();
   });
 
-  it('labels the type row "Type or material" for a component', async () => {
+  it('labels the type row "Component type or material" for a component', async () => {
     await renderCapture({ entityRole: 'component' });
 
-    expect(screen.getByText('Type or material')).toBeOnTheScreen();
+    expect(screen.getByText('Component type or material')).toBeOnTheScreen();
   });
 
   it('renders the body inside a scrollable container, so Create stays reachable behind the keyboard', async () => {
@@ -269,14 +271,14 @@ describe('CaptureScreen', () => {
   it('shows an inviting empty state instead of the undefined category card when no type is picked', async () => {
     await renderCapture({ entityRole: 'product' });
 
-    expect(screen.getByText('Choose a type or material')).toBeOnTheScreen();
+    expect(screen.getByText('Choose a product type')).toBeOnTheScreen();
     expect(screen.queryByText('Category undefined')).toBeNull();
   });
 
   it('navigates to category selection when the empty-state row is pressed', async () => {
     await renderCapture({ entityRole: 'product' });
 
-    fireEvent.press(screen.getByText('Choose a type or material'));
+    fireEvent.press(screen.getByText('Choose a product type'));
 
     expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });

@@ -7,7 +7,7 @@ import CPVCard from '@/components/product/CPVCard';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
-import { entityLabel, type Product } from '@/types/Product';
+import { entityLabel, type Product, typeRowLabels } from '@/types/Product';
 
 interface Props {
   product: Product;
@@ -55,11 +55,13 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     router.push('/category-selection');
   };
 
+  const labels = typeRowLabels(product.role);
+
   // A sub-heading within the Overview section (not a duplicate of the
   // Section title "Overview"), so it's demoted below Section-title weight.
   const header = (
     <DetailSectionHeader
-      title="Type or Material"
+      title={labels.title}
       tooltipTitle={`Select a fitting category for the ${entityLabel(product)}.`}
       style={{ fontSize: 15, fontWeight: '600' }}
     />
@@ -79,10 +81,10 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
         <AppButton
           variant="outline"
           className="w-full"
-          accessibilityLabel="Choose a type or material"
+          accessibilityLabel={labels.choose}
           onPress={onTypeSelectionStart}
         >
-          Choose a type or material
+          {labels.choose}
         </AppButton>
       </View>
     );

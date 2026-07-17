@@ -44,3 +44,14 @@ export function entityLabel(product: Pick<Product, 'role'>): 'product' | 'compon
 export function entityLabelTitle(product: Pick<Product, 'role'>): 'Product' | 'Component' {
   return product.role === 'component' ? 'Component' : 'Product';
 }
+
+/**
+ * Copy for the type row, which is labelled by role because only a component can
+ * be a material. Shared by the capture and detail screens so the same record
+ * can't change wording between them.
+ */
+export function typeRowLabels(role: Product['role']): { title: string; choose: string } {
+  return role === 'component'
+    ? { title: 'Component type or material', choose: 'Choose component type or material' }
+    : { title: 'Product type', choose: 'Choose a product type' };
+}
