@@ -59,8 +59,7 @@ type ProductPayload = {
 // ─── Serialization helpers ────────────────────────────────────────────────────
 
 function toNullableNumber(value: number | undefined): number | null {
-  if (value === undefined || Number.isNaN(value)) return null;
-  return value;
+  return value ?? null;
 }
 
 function toNullableText(value: string | null | undefined): string | null {

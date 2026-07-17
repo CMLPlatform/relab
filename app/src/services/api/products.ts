@@ -65,10 +65,10 @@ function commonProductFields(data: ProductMapperPayload, meId?: string) {
     updatedAt: data.updated_at ?? undefined,
     productTypeID: data.product_type_id ?? undefined,
     physicalProperties: {
-      weight: data.weight_g ?? NaN,
-      height: data.height_cm ?? NaN,
-      width: data.width_cm ?? NaN,
-      depth: data.depth_cm ?? NaN,
+      weight: data.weight_g ?? undefined,
+      height: data.height_cm ?? undefined,
+      width: data.width_cm ?? undefined,
+      depth: data.depth_cm ?? undefined,
     },
     circularityProperties: {
       recyclability: data.circularity_properties?.recyclability ?? null,
@@ -185,10 +185,10 @@ export function newProduct(
     brand: seed.brand,
     model: seed.model,
     physicalProperties: {
-      weight: NaN,
-      height: NaN,
-      width: NaN,
-      depth: NaN,
+      weight: undefined,
+      height: undefined,
+      width: undefined,
+      depth: undefined,
     },
     circularityProperties: {
       recyclability: null,

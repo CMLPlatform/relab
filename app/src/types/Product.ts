@@ -24,11 +24,14 @@ export type Product = {
   amountInParent?: number;
 };
 
+// `undefined` is the unset sentinel — a measurement the user hasn't given. The
+// keys stay required (not `weight?:`) because ProductPhysicalProperties renders
+// one row per Object.keys() entry, so an omitted key would silently drop a row.
 export type PhysicalProperties = {
-  weight: number;
-  width: number;
-  height: number;
-  depth: number;
+  weight: number | undefined;
+  width: number | undefined;
+  height: number | undefined;
+  depth: number | undefined;
 };
 
 export type CircularityProperties = {

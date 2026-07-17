@@ -31,11 +31,12 @@ export function extractYouTubeVideoId(url: string): string | null {
   return null;
 }
 
+// Optional: an unmeasured property is undefined, and stays saveable.
 const physicalPropertiesSchema = z.object({
-  weight: z.number().positive('Weight must be a positive number').or(z.nan()).optional(),
-  width: z.number().positive('Width must be a positive number').or(z.nan()).optional(),
-  height: z.number().positive('Height must be a positive number').or(z.nan()).optional(),
-  depth: z.number().positive('Depth must be a positive number').or(z.nan()).optional(),
+  weight: z.number().positive('Weight must be a positive number').optional(),
+  width: z.number().positive('Width must be a positive number').optional(),
+  height: z.number().positive('Height must be a positive number').optional(),
+  depth: z.number().positive('Depth must be a positive number').optional(),
 });
 
 const circularityPropertiesSchema = z.object({

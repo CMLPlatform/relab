@@ -58,12 +58,22 @@ describe('productSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('accepts an unknown weight (NaN) so weightless products/components can be saved', () => {
+  it('accepts an unknown weight (undefined) so weightless products/components can be saved', () => {
+    const result = productSchema.safeParse({
+      ...validBase,
+      physicalProperties: { ...validBase.physicalProperties, weight: undefined },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  // NaN is type-legal for `number | undefined` (typeof NaN === 'number'), so the
+  // schema is what keeps the old sentinel from reaching the save path.
+  it('rejects a NaN weight', () => {
     const result = productSchema.safeParse({
       ...validBase,
       physicalProperties: { ...validBase.physicalProperties, weight: Number.NaN },
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
   it('accepts optional fields as undefined', () => {

@@ -26,6 +26,28 @@ describe('ProductPhysicalProperties', () => {
     expect(screen.getByDisplayValue('500')).toBeOnTheScreen();
   });
 
+  // The rows come from Object.keys(physicalProperties), so an unmeasured
+  // property must stay a present key holding undefined — dropping the key
+  // would silently render fewer rows, and an empty field must not read "NaN".
+  it('renders all four rows as empty for a fully unmeasured product', () => {
+    const unmeasured: Product = {
+      ..._base,
+      physicalProperties: {
+        width: undefined,
+        height: undefined,
+        depth: undefined,
+        weight: undefined,
+      },
+    };
+    renderWithProviders(<ProductPhysicalProperties product={unmeasured} editMode={true} />);
+
+    for (const label of ['Weight', 'Height', 'Width', 'Depth']) {
+      expect(screen.getByText(label)).toBeOnTheScreen();
+    }
+    expect(screen.queryByDisplayValue('NaN')).toBeNull();
+    expect(screen.getAllByDisplayValue('')).toHaveLength(4);
+  });
+
   it('calls onChangePhysicalProperties when a value changes', () => {
     const onChangePhysicalProperties = jest.fn();
     renderWithProviders(

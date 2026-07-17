@@ -12,10 +12,6 @@ export default function Cube({ width = 1, height = 1, depth = 1 }: CubeProps) {
   // Hooks
   const theme = useAppTheme();
 
-  if (Number.isNaN(width)) width = 1;
-  if (Number.isNaN(height)) height = 1;
-  if (Number.isNaN(depth)) depth = 1;
-
   // Calculate SVG dimensions to fit the cube
   const highest = Math.max(width, depth, height);
   const factor = 90 / highest;
