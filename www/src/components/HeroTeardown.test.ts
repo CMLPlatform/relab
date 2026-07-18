@@ -58,15 +58,18 @@ describe('HeroTeardown', () => {
     expect(html).toMatch(/Add your teardown/);
   });
 
-  it('marks fixture data as example data', async () => {
+  it('marks fixture data as example data, without a record number', async () => {
     const html = await render({ fromFixture: true });
     expect(html).toContain('data-fixture-note');
     expect(html).toContain('Example teardown');
+    expect(html).toContain('teardown · example');
+    expect(html).not.toContain('№');
   });
 
   it('shows no example-data marker for live data', async () => {
     const html = await render({ fromFixture: false });
     expect(html).not.toContain('data-fixture-note');
     expect(html).not.toContain('Example teardown');
+    expect(html).toContain('teardown №47 · live');
   });
 });

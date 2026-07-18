@@ -54,7 +54,8 @@ const formatMassG = (weightG: number | null): string =>
       teardown && (
         <div class="blueprint">
           <p class="blueprint-eyebrow">
-            teardown №{teardown.id} · {fromFixture ? 'example' : 'live'}
+            {/* No record number for the fixture: an invented №id would read as a real record. */}
+            {fromFixture ? 'teardown · example' : `teardown №${teardown.id} · live`}
           </p>
           <h2 class="blueprint-title">{teardown.name}</h2>
           <ul class="blueprint-parts">
@@ -67,7 +68,7 @@ const formatMassG = (weightG: number | null): string =>
           </ul>
           {fromFixture && (
             <p class="blueprint-fixture-note" data-fixture-note>
-              Example teardown — live data appears when the lab is connected.
+              Example teardown with illustrative masses — not a live record.
             </p>
           )}
           {teardown.photos.length > 0 && (
