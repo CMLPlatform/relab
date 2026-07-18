@@ -59,20 +59,18 @@ describe('readPublicSiteConfig', () => {
     });
   });
 
-  it('throws when a required env var is missing', () => {
-    expect(() =>
-      readPublicSiteConfig(
-        envFixture([
-          ['PUBLIC_DOCS_URL', 'https://docs.example.com'],
-          ['PUBLIC_SITE_URL', 'https://example.com'],
-        ]),
-      ),
-    ).toThrow('Missing required public env var: PUBLIC_APP_URL');
+  it('defaults missing URL vars to the production origins', () => {
+    expect(readPublicSiteConfig({})).toEqual({
+      appUrl: 'https://app.cml-relab.org',
+      contactEmail: 'relab@cml.leidenuniv.nl',
+      docsUrl: 'https://docs.cml-relab.org',
+      siteUrl: 'https://cml-relab.org',
+    });
   });
 
-  it('throws when a required env var is blank', () => {
-    expect(() => readPublicSiteConfig(publicEnv([['PUBLIC_APP_URL', '   ']]))).toThrow(
-      'Missing required public env var: PUBLIC_APP_URL',
+  it('defaults a blank URL var to its production origin', () => {
+    expect(readPublicSiteConfig(publicEnv([['PUBLIC_APP_URL', '   ']])).appUrl).toBe(
+      'https://app.cml-relab.org',
     );
   });
 

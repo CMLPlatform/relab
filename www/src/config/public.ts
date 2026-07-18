@@ -1,4 +1,4 @@
-import { type EnvSource, getOptional, getRequired } from './env.ts';
+import { type EnvSource, getOptional } from './env.ts';
 
 interface PublicSiteConfig {
   appUrl: string;
@@ -29,12 +29,23 @@ export function readSiteUrl(env: EnvSource, fallback: string): string {
   return validateHttpUrl(value, 'PUBLIC_SITE_URL');
 }
 
+// These are committed public identity (deploy/env/prod.compose.env), not
+// secrets, so an unset build falls back to production rather than failing:
+// the site only needs them for outbound links.
+const DEFAULTS = {
+  PUBLIC_APP_URL: 'https://app.cml-relab.org',
+  PUBLIC_DOCS_URL: 'https://docs.cml-relab.org',
+  PUBLIC_SITE_URL: 'https://cml-relab.org',
+} as const;
+
 export function readPublicSiteConfig(env: EnvSource): PublicSiteConfig {
+  const read = (key: keyof typeof DEFAULTS): string =>
+    validateHttpUrl(getOptional(env, key) ?? DEFAULTS[key], key);
   return {
-    appUrl: validateHttpUrl(getRequired(env, 'PUBLIC_APP_URL', LABEL), 'PUBLIC_APP_URL'),
-    docsUrl: validateHttpUrl(getRequired(env, 'PUBLIC_DOCS_URL', LABEL), 'PUBLIC_DOCS_URL'),
+    appUrl: read('PUBLIC_APP_URL'),
+    docsUrl: read('PUBLIC_DOCS_URL'),
     contactEmail: getOptional(env, 'PUBLIC_CONTACT_EMAIL') ?? 'relab@cml.leidenuniv.nl',
-    siteUrl: validateHttpUrl(getRequired(env, 'PUBLIC_SITE_URL', LABEL), 'PUBLIC_SITE_URL'),
+    siteUrl: read('PUBLIC_SITE_URL'),
   };
 }
 
