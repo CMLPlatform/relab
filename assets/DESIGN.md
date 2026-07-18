@@ -174,8 +174,8 @@ the same pipeline.
 The brand is always read and pronounced **"Relab"**, and that is how it is
 written in running copy, alt text, and aria-labels. The `R9lab` spelling is a
 purely visual device — the squished 9 reads as a mirrored "e" while hinting at
-the nine circular-economy (9R) strategies — and lives only in the wordmark
-artwork itself. Never "R-nine-lab".
+the 9R framework of circular-economy strategies (the framework itself spans
+R0–R9) — and lives only in the wordmark artwork itself. Never "R-nine-lab".
 
 Circularity framing, lab vernacular (products, components, materials,
 samples); never "reverse engineering" in new copy.

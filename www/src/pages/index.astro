@@ -1,6 +1,7 @@
 ---
 
 import HeroTeardown from '@/components/HeroTeardown.astro';
+import NineRLadder from '@/components/NineRLadder.astro';
 import StatsPanel from '@/components/StatsPanel.astro';
 import WhyRelab from '@/components/WhyRelab.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
@@ -25,5 +26,6 @@ const landing = await loadLandingData();
     fromFixture={landing.fromFixture}
   />
   <WhyRelab />
+  <NineRLadder />
   <StatsPanel />
 </Layout>
