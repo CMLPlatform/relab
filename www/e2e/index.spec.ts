@@ -4,7 +4,8 @@ import { expectCanonicalUrl, expectHomepageHero, expectThemeToggle } from './hel
 const HOMEPAGE_TITLE_PATTERN = /Relab/i;
 const META_TITLE_PATTERN = /Relab/i;
 const META_DESCRIPTION_PATTERN = /open-source research platform/i;
-const HOMEPAGE_MAIN_LINK_COUNT = 3;
+// The hero CTA and the 9R source citation; header/footer links sit outside <main>.
+const HOMEPAGE_MAIN_LINK_COUNT = 2;
 
 test.describe('Landing page', () => {
   test('renders the homepage shell, core links, and metadata @smoke', async ({ page }) => {

@@ -6,8 +6,7 @@ const CANONICAL_URL_PATTERN =
 const HERO_HEADLINE = 'Every durable good, taken apart and written down.';
 const HERO_LEAD_PATTERN = /part by part, weighed and photographed/i;
 
-export const ADD_TEARDOWN_LINK_NAME = 'Add your teardown';
-export const BROWSE_DATASET_LINK_NAME = 'Browse the dataset';
+export const EXPLORE_DATASET_LINK_NAME = 'Explore the dataset';
 
 // Aligned across www/docs/app: WCAG 2.0 + 2.1, level A + AA — the real-world
 // baseline. (WCAG 2.2-only criteria are omitted; axe-core's rule coverage for
@@ -48,8 +47,7 @@ export async function expectHomepageHero(page: Page) {
 
   await expect(main.getByRole('heading', { name: HERO_HEADLINE, level: 1 })).toBeVisible();
   await expect(main.getByText(HERO_LEAD_PATTERN)).toBeVisible();
-  await expect(main.getByRole('link', { name: ADD_TEARDOWN_LINK_NAME })).toBeVisible();
-  await expect(main.getByRole('link', { name: BROWSE_DATASET_LINK_NAME })).toBeVisible();
+  await expect(main.getByRole('link', { name: EXPLORE_DATASET_LINK_NAME })).toBeVisible();
 }
 
 export async function expectContentPage(page: Page) {

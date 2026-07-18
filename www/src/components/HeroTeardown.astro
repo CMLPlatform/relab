@@ -28,16 +28,15 @@ const formatMassG = (weightG: number | null): string =>
       <h1 class="hero-headline">{siteMeta.heroHeadline}</h1>
       <p class="hero-lead">{siteMeta.heroLead}</p>
       <div class="hero-actions">
-        <a href={appBase} class="btn btn-primary btn-large" target="_blank" rel="noopener noreferrer">
-          Add your teardown
-        </a>
+        {/* One CTA: the app root redirects to /products anyway, so a second
+            button would point at the same place. Contribution starts there. */}
         <a
           href={`${appBase}/products`}
-          class="btn btn-muted btn-large"
+          class="btn btn-primary btn-large"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Browse the dataset
+          Explore the dataset
         </a>
       </div>
       {

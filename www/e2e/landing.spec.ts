@@ -1,11 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import {
-  ADD_TEARDOWN_LINK_NAME,
-  analyzeAccessibility,
-  BROWSE_DATASET_LINK_NAME,
-  expectHomepageHero,
-} from './helpers.ts';
+import { analyzeAccessibility, EXPLORE_DATASET_LINK_NAME, expectHomepageHero } from './helpers.ts';
 
 // "212 g" — grouped digits, a space, the unit. The em dash used for unrecorded
 // masses never matches, so this finds parts with a real recorded mass.
@@ -50,17 +45,14 @@ test.describe('Landing page content', () => {
     }
   });
 
-  test('both calls to action point at the app @smoke', async ({ page }) => {
+  test('the call to action points at the app dataset @smoke', async ({ page }) => {
     await page.goto('/');
 
-    const addTeardown = page.getByRole('link', { name: ADD_TEARDOWN_LINK_NAME });
-    const browseDataset = page.getByRole('link', { name: BROWSE_DATASET_LINK_NAME });
+    const exploreDataset = page.getByRole('link', { name: EXPLORE_DATASET_LINK_NAME });
 
-    const appUrl = await addTeardown.getAttribute('href');
-    expect(appUrl).toMatch(/^https?:\/\//);
-    await expect(browseDataset).toHaveAttribute('href', `${appUrl}/products`);
-    await expect(addTeardown).toHaveAttribute('rel', 'noopener noreferrer');
-    await expect(browseDataset).toHaveAttribute('rel', 'noopener noreferrer');
+    const href = await exploreDataset.getAttribute('href');
+    expect(href).toMatch(/^https?:\/\/.+\/products$/);
+    await expect(exploreDataset).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   test('the 9R ladder runs from Refuse down to Recover', async ({ page }) => {

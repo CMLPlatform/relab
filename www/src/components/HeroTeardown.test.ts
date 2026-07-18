@@ -52,10 +52,11 @@ describe('HeroTeardown', () => {
     expect(html).not.toContain('data-metrics');
   });
 
-  it('links both CTAs to the app', async () => {
+  it('links the single CTA to the dataset', async () => {
     const html = await render({});
     expect(html).toContain('https://app.cml-relab.org/products');
-    expect(html).toMatch(/Add your teardown/);
+    expect(html).toMatch(/Explore the dataset/);
+    expect(html).not.toMatch(/Add your teardown/);
   });
 
   it('marks fixture data as example data, without a record number', async () => {
