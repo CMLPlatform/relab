@@ -25,13 +25,16 @@ It combines:
 
 The platform is meant to do two things at once: support structured data collection during disassembly work, and make that data easier to publish, browse, and reuse later.
 
-The broader research vision comes from a simple problem: industrial ecology has many data platforms, but far fewer open, low-barrier workflows for generating new standardized product-level observations.
+The broader research vision comes from a simple problem: circular-economy and industrial-ecology research depends on detailed product data — what things are made of, how they come apart, which parts matter — yet that data is scarce, mostly closed, and slow to produce. Producers tend to treat it as proprietary, and the alternative of small expert teams sampling by hand cannot keep pace with the products entering the market.
 
 Relab addresses that gap with a bottom-up model:
 
 - middle- and end-of-life actors such as repairers, refurbishers, dismantlers, and recyclers can contribute data directly
+- these downstream actors meet products at the point of failure, capturing as-failed composition, wear, and recoverability that as-designed producer specifications never show
 - collaborative and citizen-science style workflows can turn routine repair and disassembly into structured observations
 - the resulting records can be shared openly, linked to related databases, and reused in later research
+
+Value is meant to flow back to contributors too — composition insight, sustainability metrics, and repair or R-strategy guidance — so routine disassembly becomes a two-way exchange rather than one-way data entry. We call this a circular data economy: middle- and end-of-life observations feed back into the upstream data infrastructure that research and design rely on, complementing the top-down flow of producer specifications.
 
 The long-term goal is to contribute to an open industrial ecology data commons: data that is collected collaboratively, publicly accessible, linkable to existing and upcoming databases, and structured enough for machine-learning use.
 
