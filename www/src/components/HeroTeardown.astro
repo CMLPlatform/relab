@@ -1,0 +1,219 @@
+---
+// Blueprint-style hero: the featured teardown rendered as a parts schedule,
+// baked in at build time by loadLandingData() so it paints without JS.
+import { siteMeta } from '@/copy/site-meta.ts';
+import type { FeaturedTeardown } from '@/lib/landing.ts';
+import { formatCount, type HomeStats } from '@/lib/stats.ts';
+
+interface Props {
+  teardown: FeaturedTeardown | null;
+  stats: HomeStats | null;
+  appUrl: string;
+  /** True when the teardown shown is the committed fixture, not live data. */
+  fromFixture?: boolean;
+}
+
+const { teardown, stats, appUrl, fromFixture = false } = Astro.props;
+
+const appBase = appUrl.replace(/\/$/, '');
+
+/** "212 g" for recorded masses; an em dash — never "null"/"NaN" — otherwise. */
+const formatMassG = (weightG: number | null): string =>
+  weightG === null ? '—' : `${formatCount(weightG)} g`;
+---
+
+<section class="hero-panel card content-reveal">
+  <div class="hero-grid">
+    <div class="hero-pitch">
+      <h1 class="hero-headline">{siteMeta.heroHeadline}</h1>
+      <p class="hero-lead">{siteMeta.heroLead}</p>
+      <div class="hero-actions">
+        <a href={appBase} class="btn btn-primary btn-large" target="_blank" rel="noopener noreferrer">
+          Add your teardown
+        </a>
+        <a
+          href={`${appBase}/products`}
+          class="btn btn-muted btn-large"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Browse the dataset
+        </a>
+      </div>
+      {
+        stats && (
+          <p class="hero-metrics" data-metrics>
+            {formatCount(stats.totals.teardowns)} teardowns · {formatCount(stats.totals.parts)}{' '}
+            parts · {formatCount(stats.totals.mass_kg)} kg logged
+          </p>
+        )
+      }
+    </div>
+
+    {
+      teardown && (
+        <div class="blueprint">
+          <p class="blueprint-eyebrow">
+            teardown №{teardown.id} · {fromFixture ? 'example' : 'live'}
+          </p>
+          <h2 class="blueprint-title">{teardown.name}</h2>
+          <ul class="blueprint-parts">
+            {teardown.parts.map((part) => (
+              <li class="blueprint-part">
+                <span class="blueprint-part-name">{part.name}</span>
+                <span class="blueprint-part-mass">{formatMassG(part.weightG)}</span>
+              </li>
+            ))}
+          </ul>
+          {fromFixture && (
+            <p class="blueprint-fixture-note" data-fixture-note>
+              Example teardown — live data appears when the lab is connected.
+            </p>
+          )}
+          {teardown.photos.length > 0 && (
+            <ul class="photo-strip" data-photo-strip>
+              {teardown.photos.map((photo) => (
+                <li class="photo-frame">
+                  <img src={photo.url} alt={photo.alt} loading="lazy" width="120" height="90" />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .hero-pitch {
+    display: grid;
+    gap: 1.2rem;
+  }
+
+  .hero-headline {
+    margin: 0;
+  }
+
+  .hero-metrics {
+    margin: 0;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-muted);
+  }
+
+  /* The blueprint panel: hairline border, card radius, no shadow, and a faint
+     drafting grid mixed from the brand primary — never a raw hex. */
+  .blueprint {
+    display: grid;
+    gap: 0.9rem;
+    padding: 1.25rem;
+    border: 1px solid var(--color-page-border);
+    border-radius: var(--radius-card);
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in srgb, var(--color-primary) 7%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--color-primary) 7%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 1.5rem 1.5rem;
+  }
+
+  /* Manila is reserved for this small mono eyebrow — never fills or figures. */
+  .blueprint-eyebrow {
+    margin: 0;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.74rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .blueprint-title {
+    margin: 0;
+    font-size: 1.35rem;
+    color: var(--color-on-surface);
+  }
+
+  .blueprint-parts {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .blueprint-part {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--color-page-border);
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent);
+    font-size: 0.92rem;
+  }
+
+  .blueprint-part-mass {
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-on-surface);
+    white-space: nowrap;
+  }
+
+  .blueprint-fixture-note {
+    margin: 0;
+    font-size: 0.8rem;
+    font-style: italic;
+    color: var(--color-muted);
+  }
+
+  /* Demoted photo strip: small frames, duotoned in CSS so mixed webcam shots
+     read as one house style. `luminosity` keeps the image's lightness and
+     takes hue from the brand primary underneath, in both themes. */
+  .photo-strip {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .photo-frame {
+    overflow: hidden;
+    border: 1px solid var(--color-page-border);
+    border-radius: var(--radius-control);
+    background: var(--color-primary);
+  }
+
+  .photo-frame img {
+    display: block;
+    width: 120px;
+    height: 90px;
+    object-fit: cover;
+    filter: grayscale(1) contrast(1.06);
+    mix-blend-mode: luminosity;
+  }
+
+  @media (max-width: 860px) {
+    .hero-grid {
+      grid-template-columns: 1fr;
+      gap: 1.4rem;
+    }
+  }
+</style>

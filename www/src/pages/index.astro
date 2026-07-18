@@ -1,9 +1,9 @@
 ---
 
-import Hero from '@/components/Hero.astro';
+import HeroTeardown from '@/components/HeroTeardown.astro';
 import StatsPanel from '@/components/StatsPanel.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
-import { siteLinks, siteMeta } from '@/copy/site-meta.ts';
+import { siteMeta } from '@/copy/site-meta.ts';
 import Layout from '@/layouts/Layout.astro';
 import { loadLandingData } from '@/lib/landing.ts';
 
@@ -17,10 +17,11 @@ const landing = await loadLandingData();
   title="Relab | Product data and disassembly records for the circular economy"
   description={siteMeta.defaultDescription}
 >
-  <Hero
+  <HeroTeardown
+    teardown={landing.teardown}
+    stats={landing.stats}
     appUrl={publicSiteConfig.appUrl}
-    docsUrl={publicSiteConfig.docsUrl}
-    githubUrl={siteLinks.github}
+    fromFixture={landing.fromFixture}
   />
   <section class="card content-reveal about-panel">
     <h2>Built around the circular economy</h2>
