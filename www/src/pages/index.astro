@@ -5,8 +5,12 @@ import StatsPanel from '@/components/StatsPanel.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
 import { siteLinks, siteMeta } from '@/copy/site-meta.ts';
 import Layout from '@/layouts/Layout.astro';
+import { loadLandingData } from '@/lib/landing.ts';
 
 const publicSiteConfig = getPublicSiteConfig();
+
+// Runs at build time only. Never throws — falls back to a committed fixture.
+const landing = await loadLandingData();
 ---
 
 <Layout
