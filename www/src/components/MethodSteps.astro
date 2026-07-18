@@ -1,0 +1,95 @@
+---
+// The method section: teardown to data in three steps.
+// Step copy is owner-approved verbatim — do not paraphrase or reorder.
+const steps = [
+  {
+    name: 'Disassemble',
+    text: 'Open the product with hand tools, recording each part as it comes out.',
+  },
+  {
+    name: 'Weigh',
+    text: 'Record mass and dimensions for every component.',
+  },
+  {
+    name: 'Photograph',
+    text: 'Capture standardised images, by phone or a fixed camera rig.',
+  },
+];
+---
+
+<section class="card content-reveal method-steps" aria-labelledby="method-steps-heading">
+  <p class="method-eyebrow">method</p>
+  <h2 id="method-steps-heading">From teardown to data</h2>
+  <ol class="steps">
+    {
+      steps.map((step, i) => (
+        <li class="step">
+          <span class="step-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+          <h3 class="step-name">{step.name}</h3>
+          <p class="step-text">{step.text}</p>
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<style>
+  /* Manila stays confined to this small mono eyebrow — never the numbers. */
+  .method-eyebrow {
+    margin: 0 0 0.35rem;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.74rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .method-steps h2 {
+    margin: 0 0 1.4rem;
+  }
+
+  .steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+  }
+
+  /* Flat drafting divider per step: hairline top rule, no shadow. */
+  .step {
+    border-top: 1px solid var(--color-page-border);
+    padding-top: 0.9rem;
+  }
+
+  /* Numbered because the sequence is real: parts come out before they are
+     weighed, and weighed before they are photographed. Ink, not manila. */
+  .step-num {
+    display: block;
+    margin: 0 0 0.6rem;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: var(--color-primary);
+  }
+
+  .step-name {
+    margin: 0 0 0.6rem;
+    font-size: 1.05rem;
+  }
+
+  .step-text {
+    margin: 0;
+    max-width: 60ch;
+    font-size: var(--font-size-body-compact);
+    line-height: var(--line-height-body-compact);
+  }
+
+  @media (max-width: 860px) {
+    .steps {
+      grid-template-columns: 1fr;
+      gap: 1.4rem;
+    }
+  }
+</style>
