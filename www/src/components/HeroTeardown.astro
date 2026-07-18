@@ -58,7 +58,8 @@ const formatMassG = (weightG: number | null): string =>
             {fromFixture ? 'teardown · example' : `teardown №${teardown.id} · live`}
           </p>
           <h2 class="blueprint-title">{teardown.name}</h2>
-          <ul class="blueprint-parts">
+          {/* Explicit role: WebKit drops list semantics under list-style: none. */}
+          <ul class="blueprint-parts" role="list">
             {teardown.parts.map((part) => (
               <li class="blueprint-part">
                 <span class="blueprint-part-name">{part.name}</span>
@@ -72,7 +73,7 @@ const formatMassG = (weightG: number | null): string =>
             </p>
           )}
           {teardown.photos.length > 0 && (
-            <ul class="photo-strip" data-photo-strip>
+            <ul class="photo-strip" data-photo-strip role="list">
               {teardown.photos.map((photo) => (
                 <li class="photo-frame">
                   <img src={photo.url} alt={photo.alt} loading="lazy" width="120" height="90" />
