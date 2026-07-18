@@ -8,9 +8,16 @@ const TEARDOWN = {
   name: 'Dell XPS 13',
   brand: 'Dell',
   weightG: 1190,
+  productType: 'Laptop',
   parts: [
-    { name: 'Battery pack', weightG: 212 },
-    { name: 'Shell', weightG: null },
+    { name: 'Battery pack', weightG: 212, share: 0.684 },
+    {
+      name: 'Mainboard',
+      weightG: 98,
+      share: 0.316,
+      children: [{ name: 'PCB assembly', weightG: 74 }],
+    },
+    { name: 'Shell', weightG: null, share: null },
   ],
   photos: [{ url: '/media/a.jpg', alt: 'Dell XPS 13, photographed during disassembly' }],
 };
@@ -40,6 +47,43 @@ describe('HeroTeardown', () => {
     const html = await render({});
     expect(html).not.toMatch(/null|NaN/);
     expect(html).toContain('—');
+  });
+
+  it('renders a mass bar sized by the share only for weighed parts', async () => {
+    const html = await render({});
+    expect(html).toContain('--share: 0.684');
+    expect(html).toContain('--share: 0.316');
+    // Two weighed parts -> exactly two inline shares; the unweighed Shell gets none.
+    expect(html.match(/style="--share:/g)).toHaveLength(2);
+  });
+
+  it('shows the product type as a tag and omits it when absent', async () => {
+    const html = await render({});
+    expect(html).toContain('data-product-type');
+    expect(html).toContain('Laptop');
+
+    const { productType, ...rest } = TEARDOWN;
+    const withoutType = await render({ teardown: rest });
+    expect(withoutType).not.toContain('data-product-type');
+  });
+
+  it('renders a disclosure with subcomponents only for parts with children', async () => {
+    const html = await render({});
+    // Only Mainboard has children -> exactly one <details>/<summary> pair.
+    expect(html.match(/<details/g)).toHaveLength(1);
+    expect(html).toContain('<summary');
+    expect(html).toContain('PCB assembly');
+    expect(html).toContain('74 g');
+
+    const flat = await render({
+      teardown: { ...TEARDOWN, parts: [{ name: 'Battery pack', weightG: 212, share: 1 }] },
+    });
+    expect(flat).not.toContain('<details');
+  });
+
+  it('keeps explicit list semantics on the nested subcomponent list', async () => {
+    const html = await render({});
+    expect(html.match(/role="list"/g)?.length).toBeGreaterThanOrEqual(3);
   });
 
   it('omits the photo strip when there are no photos', async () => {

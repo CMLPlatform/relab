@@ -56,15 +56,57 @@ const formatMassG = (weightG: number | null): string =>
             {/* No record number for the fixture: an invented №id would read as a real record. */}
             {fromFixture ? 'teardown · example' : `teardown №${teardown.id} · live`}
           </p>
-          <h2 class="blueprint-title">{teardown.name}</h2>
+          <div class="blueprint-heading">
+            <h2 class="blueprint-title">{teardown.name}</h2>
+            {teardown.productType && (
+              <span class="blueprint-type" data-product-type>
+                {teardown.productType}
+              </span>
+            )}
+          </div>
           {/* Explicit role: WebKit drops list semantics under list-style: none. */}
           <ul class="blueprint-parts" role="list">
-            {teardown.parts.map((part) => (
-              <li class="blueprint-part">
-                <span class="blueprint-part-name">{part.name}</span>
-                <span class="blueprint-part-mass">{formatMassG(part.weightG)}</span>
-              </li>
-            ))}
+            {teardown.parts.map((part) =>
+              part.children?.length ? (
+                <li class="blueprint-part-group">
+                  {/* Native disclosure, closed in the baked HTML: opening it is
+                      user-initiated, so it never counts as layout shift. */}
+                  <details>
+                    <summary class="blueprint-part">
+                      <span class="blueprint-part-name">{part.name}</span>
+                      <span class="blueprint-part-mass">{formatMassG(part.weightG)}</span>
+                      {part.share !== null && (
+                        <span
+                          class="blueprint-part-bar"
+                          style={`--share: ${part.share}`}
+                          aria-hidden="true"
+                        />
+                      )}
+                    </summary>
+                    <ul class="blueprint-subparts" role="list">
+                      {part.children.map((child) => (
+                        <li class="blueprint-subpart">
+                          <span class="blueprint-subpart-name">{child.name}</span>
+                          <span class="blueprint-part-mass">{formatMassG(child.weightG)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                </li>
+              ) : (
+                <li class="blueprint-part">
+                  <span class="blueprint-part-name">{part.name}</span>
+                  <span class="blueprint-part-mass">{formatMassG(part.weightG)}</span>
+                  {part.share !== null && (
+                    <span
+                      class="blueprint-part-bar"
+                      style={`--share: ${part.share}`}
+                      aria-hidden="true"
+                    />
+                  )}
+                </li>
+              ),
+            )}
           </ul>
           {fromFixture && (
             <p class="blueprint-fixture-note" data-fixture-note>
@@ -151,10 +193,30 @@ const formatMassG = (weightG: number | null): string =>
     color: var(--color-accent);
   }
 
+  .blueprint-heading {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
   .blueprint-title {
     margin: 0;
     font-size: 1.35rem;
     color: var(--color-on-surface);
+  }
+
+  /* Product-type tag: same chip chrome as the 9R rungs — hairline border,
+     control radius, small mono. Muted ink; manila stays on the eyebrow only. */
+  .blueprint-type {
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--color-page-border);
+    border-radius: var(--radius-control);
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.74rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
   }
 
   .blueprint-parts {
@@ -166,15 +228,74 @@ const formatMassG = (weightG: number | null): string =>
   }
 
   .blueprint-part {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: baseline;
-    gap: 1rem;
+    column-gap: 1rem;
+    row-gap: 0.35rem;
     padding: 0.45rem 0.65rem;
     border: 1px solid var(--color-page-border);
     border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent);
     font-size: 0.92rem;
+  }
+
+  /* Mass bar: thin single-hue mark on a faint full-width track. The track is
+     the product's total recorded part mass, the fill this part's share of it.
+     --color-chart-mark is the designated ink/primary bar hue (see DESIGN.md);
+     the accent never touches bars. */
+  .blueprint-part-bar {
+    grid-column: 1 / -1;
+    height: 4px;
+    border-radius: 2px;
+    background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    background-image: linear-gradient(var(--color-chart-mark), var(--color-chart-mark));
+    background-size: calc(var(--share, 0) * 100%) 100%;
+    background-repeat: no-repeat;
+  }
+
+  summary.blueprint-part {
+    cursor: pointer;
+    list-style: none;
+  }
+
+  summary.blueprint-part::-webkit-details-marker {
+    display: none;
+  }
+
+  /* Disclosure affordance replacing the suppressed native marker. The
+     doubled `content` keeps a visible glyph where the `/ ''` alt-text
+     syntax is unsupported; details/summary already announce state. */
+  summary.blueprint-part .blueprint-part-name::before {
+    content: '▸ ';
+    content: '▸ ' / '';
+    color: var(--color-muted);
+  }
+
+  .blueprint-part-group details[open] > summary.blueprint-part .blueprint-part-name::before {
+    content: '▾ ';
+    content: '▾ ' / '';
+  }
+
+  .blueprint-subparts {
+    margin: 0.35rem 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .blueprint-subpart {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0 0.65rem 0 1.6rem;
+    font-size: 0.85rem;
+  }
+
+  .blueprint-subpart-name {
+    color: var(--color-muted);
   }
 
   .blueprint-part-mass {

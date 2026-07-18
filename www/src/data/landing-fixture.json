@@ -4,11 +4,26 @@
     "name": "Dell XPS 13",
     "brand": "Dell",
     "weightG": 1190,
+    "productType": "Laptop",
     "parts": [
       { "name": "Battery pack", "weightG": 212 },
-      { "name": "Display assembly", "weightG": 184 },
+      {
+        "name": "Display assembly",
+        "weightG": 184,
+        "children": [
+          { "name": "LCD panel", "weightG": 121 },
+          { "name": "Lid and hinges", "weightG": 63 }
+        ]
+      },
       { "name": "Chassis (base)", "weightG": 156 },
-      { "name": "Mainboard", "weightG": 98 },
+      {
+        "name": "Mainboard",
+        "weightG": 98,
+        "children": [
+          { "name": "PCB assembly", "weightG": 74 },
+          { "name": "Port brackets", "weightG": 24 }
+        ]
+      },
       { "name": "Keyboard deck", "weightG": 71 },
       { "name": "Cooling fan", "weightG": 24 }
     ],

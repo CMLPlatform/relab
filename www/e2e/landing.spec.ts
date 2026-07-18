@@ -29,6 +29,21 @@ test.describe('Landing page content', () => {
     ).toBeVisible();
   });
 
+  test('expandable parts reveal their subcomponents without JS', async ({ page }) => {
+    await page.goto('/');
+
+    // Live builds may feature a product with no recorded subcomponents, so
+    // only the fixture build (which commits two expandable parts) asserts.
+    if ((await page.locator('[data-fixture-note]').count()) === 0) {
+      return;
+    }
+    const group = page.locator('.blueprint-part-group').first();
+    await expect(group.locator('.blueprint-subparts')).not.toBeVisible();
+    await group.locator('summary').click();
+    await expect(group.locator('.blueprint-subparts')).toBeVisible();
+    await expect(group.locator('.blueprint-subpart').first()).toContainText('LCD panel');
+  });
+
   test('the teardown is labelled honestly as example or live data', async ({ page }) => {
     await page.goto('/');
 
