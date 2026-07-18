@@ -1,70 +1,38 @@
 ---
-// The 9R ladder — canonical names and descriptions after Potting et al. (2017).
-// Content is approved verbatim: do not paraphrase, reorder, or "improve" it.
+// The 9R framework as a compact tier strip. Names only; the full canonical
+// definitions (Potting et al. 2017, approved verbatim) live in the docs at
+// project/9r-framework — do not restate them here.
+interface Props {
+  docsUrl: string;
+}
+
+const { docsUrl } = Astro.props;
+const frameworkUrl = `${docsUrl.replace(/\/$/, '')}/project/9r-framework/`;
+
 const tiers = [
   {
     label: 'Smarter product use and manufacture',
     rungs: [
-      {
-        r: 'R0',
-        name: 'Refuse',
-        text: 'Make product redundant by abandoning its function or offering the same function with a radically different product.',
-      },
-      {
-        r: 'R1',
-        name: 'Rethink',
-        text: 'Make product use more intensive (e.g. sharing, or multi-functional products).',
-      },
-      {
-        r: 'R2',
-        name: 'Reduce',
-        text: 'Increase efficiency in manufacture or use by consuming fewer resources and materials.',
-      },
+      { r: 'R0', name: 'Refuse' },
+      { r: 'R1', name: 'Rethink' },
+      { r: 'R2', name: 'Reduce' },
     ],
   },
   {
     label: 'Extend lifespan of product and its parts',
     rungs: [
-      {
-        r: 'R3',
-        name: 'Re-use',
-        text: 'Re-use by another consumer of a discarded product still in good condition and fulfilling its original function.',
-      },
-      {
-        r: 'R4',
-        name: 'Repair',
-        text: 'Repair and maintenance of a defective product so it can be used with its original function.',
-      },
-      {
-        r: 'R5',
-        name: 'Refurbish',
-        text: 'Restore an old product and bring it up to date.',
-      },
-      {
-        r: 'R6',
-        name: 'Remanufacture',
-        text: 'Use parts of a discarded product in a new product with the same function.',
-      },
-      {
-        r: 'R7',
-        name: 'Repurpose',
-        text: 'Use a discarded product or its parts in a new product with a different function.',
-      },
+      { r: 'R3', name: 'Re-use' },
+      { r: 'R4', name: 'Repair' },
+      { r: 'R5', name: 'Refurbish' },
+      { r: 'R6', name: 'Remanufacture' },
+      { r: 'R7', name: 'Repurpose' },
     ],
   },
   {
     label: 'Useful application of materials',
     rungs: [
-      {
-        r: 'R8',
-        name: 'Recycle',
-        text: 'Process materials to obtain the same (high-grade) or lower (low-grade) quality.',
-      },
-      {
-        r: 'R9',
-        name: 'Recover',
-        text: 'Incineration of materials with energy recovery.',
-      },
+      { r: 'R8', name: 'Recycle' },
+      { r: 'R9', name: 'Recover' },
     ],
   },
 ];
@@ -84,10 +52,9 @@ const tiers = [
         {/* Explicit role: WebKit drops list semantics under list-style: none. */}
         <ol class="rungs" role="list">
           {tier.rungs.map((rung) => (
-            <li class="rung" style={`--i: ${Number(rung.r.slice(1))}`}>
+            <li class="rung">
               <span class="rung-num">{rung.r}</span>
               <span class="rung-name">{rung.name}</span>
-              <p class="rung-desc">{rung.text}</p>
             </li>
           ))}
         </ol>
@@ -96,12 +63,9 @@ const tiers = [
   }
   <p class="nine-r-source">
     {/* Explicit space: Astro strips the inter-node newline before the <a>. */}
-    The 9R framework, after Potting et al. (2017),{' '}
-    <a
-      href="https://www.pbl.nl/uploads/default/downloads/pbl-2016-circular-economy-measuring-innovation-in-product-chains-2544.pdf"
-      target="_blank"
-      rel="noopener noreferrer"><cite>Circular Economy: Measuring Innovation in the Product Chain</cite></a
-    > (PBL).
+    After Potting et al. (2017) —{' '}
+    <a href={frameworkUrl} target="_blank" rel="noopener noreferrer">full definitions in the docs</a
+    >.
   </p>
 </section>
 
@@ -121,7 +85,7 @@ const tiers = [
   }
 
   .nine-r-lede {
-    margin: 0 0 1.6rem;
+    margin: 0 0 1.4rem;
     max-width: 62ch;
     font-size: var(--font-size-body-compact);
     line-height: var(--line-height-body-compact);
@@ -129,17 +93,16 @@ const tiers = [
   }
 
   .tier {
+    display: grid;
+    grid-template-columns: 16rem 1fr;
+    column-gap: 1.2rem;
+    align-items: baseline;
     border-top: 1px solid var(--color-page-border);
-    padding-top: 0.9rem;
-    margin-top: 1.1rem;
-  }
-
-  .tier:first-of-type {
-    margin-top: 0;
+    padding: 0.7rem 0;
   }
 
   .tier-label {
-    margin: 0 0 0.5rem;
+    margin: 0;
     font-family: var(--relab-brand-font-mono), monospace;
     font-size: 0.74rem;
     font-weight: 500;
@@ -152,27 +115,24 @@ const tiers = [
     margin: 0;
     padding: 0;
     list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
   }
 
-  /* Each rung is a flat grid row; the hairlines between rungs draw the ladder
-     itself, and the stepped inset (--i is the R-number) narrows it downward:
-     the lower the rung, the less of the product's value is left. */
   .rung {
-    display: grid;
-    grid-template-columns: 3.4rem 10.5rem 1fr;
-    column-gap: 1.2rem;
+    display: inline-flex;
     align-items: baseline;
-    padding: 0.55rem 0;
-    margin-left: calc(var(--i) * 0.35rem);
-  }
-
-  .rung + .rung {
-    border-top: 1px solid var(--color-page-border);
+    gap: 0.4rem;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--color-page-border);
+    border-radius: var(--radius-control);
+    font-size: 0.88rem;
   }
 
   .rung-num {
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     letter-spacing: 0.08em;
     color: var(--color-accent);
   }
@@ -181,28 +141,16 @@ const tiers = [
     font-weight: 600;
   }
 
-  .rung-desc {
-    margin: 0;
-    max-width: 60ch;
-    font-size: var(--font-size-body-compact);
-    line-height: var(--line-height-body-compact);
-  }
-
   .nine-r-source {
-    margin: 1.6rem 0 0;
+    margin: 1.2rem 0 0;
     font-size: var(--font-size-meta);
     color: var(--color-muted);
   }
 
   @media (max-width: 860px) {
-    .rung {
-      grid-template-columns: 3.4rem 1fr;
-      row-gap: 0.15rem;
-      margin-left: 0;
-    }
-
-    .rung-desc {
-      grid-column: 2;
+    .tier {
+      grid-template-columns: 1fr;
+      row-gap: 0.4rem;
     }
   }
 </style>

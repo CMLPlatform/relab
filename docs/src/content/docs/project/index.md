@@ -18,6 +18,9 @@ The aim is a two-way exchange rather than one-way data entry — a **circular da
 - **[Use cases](use-cases/)**
   Who Relab is for and what the platform deliberately does not try to be.
 
+- **[The 9R framework](9r-framework/)**
+  The ten circularity strategies, R0 to R9, that frame what Relab records.
+
 - **[Roadmap](roadmap/)**
   Current priorities, with GitHub issues as the live work list.
 

@@ -2,7 +2,10 @@ import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { describe, expect, it } from 'vitest';
 import NineRLadder from './NineRLadder.astro';
 
-const render = async () => (await AstroContainer.create()).renderToString(NineRLadder);
+const render = async () =>
+  (await AstroContainer.create()).renderToString(NineRLadder, {
+    props: { docsUrl: 'https://docs.example.com' },
+  });
 
 describe('NineRLadder', () => {
   it('renders all ten strategies in order, R0 through R9', async () => {
@@ -31,13 +34,19 @@ describe('NineRLadder', () => {
     expect(html).toContain('Useful application of materials');
   });
 
-  it('credits the source', async () => {
+  it('credits the source and links the full definitions in the docs', async () => {
     const html = await render();
     expect(html).toContain('Potting');
-    expect(html).toContain('pbl.nl');
+    expect(html).toContain('https://docs.example.com/project/9r-framework/');
     // Regression: Astro strips the inter-node newline before the <a>, which
-    // once glued "(2017)," to the cite title.
-    expect(html).toMatch(/\(2017\),\s+<a/);
+    // once glued the source line to its link text.
+    expect(html).toMatch(/\(2017\) —\s+<a/);
+  });
+
+  it('keeps the definitions in the docs, not on the landing page', async () => {
+    const html = await render();
+    expect(html).not.toContain('Incineration');
+    expect(html).not.toContain('radically different product');
   });
 
   it('does not claim there are nine strategies', async () => {

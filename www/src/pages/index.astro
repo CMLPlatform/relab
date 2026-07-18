@@ -27,7 +27,7 @@ const landing = await loadLandingData();
     fromFixture={landing.fromFixture}
   />
   <WhyRelab />
-  <NineRLadder />
+  <NineRLadder docsUrl={publicSiteConfig.docsUrl} />
   <MethodSteps />
   <StatsPanel />
 </Layout>
