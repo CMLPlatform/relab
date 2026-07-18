@@ -280,6 +280,8 @@ services:
         PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
         PUBLIC_SITE_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
         PUBLIC_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+        # Optional: the landing hero falls back to the committed fixture when unset.
+        PUBLIC_FEATURED_PRODUCT_ID: ${FEATURED_PRODUCT_ID:-}
     environment:
       # Needed by Caddyfile to allow the homepage stats fetch in the CSP.
       CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}

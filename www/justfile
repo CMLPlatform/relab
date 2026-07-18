@@ -61,6 +61,7 @@ build:
     export PUBLIC_DOCS_URL="$DOCS_PUBLIC_URL"
     export PUBLIC_SITE_URL="$SITE_PUBLIC_URL"
     export PUBLIC_API_URL="$API_PUBLIC_URL"
+    export PUBLIC_FEATURED_PRODUCT_ID="${FEATURED_PRODUCT_ID:-}"
     pnpm run build
 
 # Run unit tests

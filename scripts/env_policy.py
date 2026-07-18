@@ -51,6 +51,8 @@ COMMITTED_DEPLOY_ENV_NAMES = {
     "APP_PUBLIC_URL",
     "SITE_PUBLIC_URL",
     "DOCS_PUBLIC_URL",
+    # May be empty: the www landing hero falls back to its committed fixture.
+    "FEATURED_PRODUCT_ID",
 }
 REQUIRED_ROOT_OPERATOR_INPUT_NAMES = {
     "CLOUDFLARE_TUNNEL_TOKEN",

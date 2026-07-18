@@ -62,10 +62,14 @@ ARG PUBLIC_SITE_URL
 # fetched from the visitor's browser at runtime. When unset or unreachable the
 # stats panel simply stays hidden.
 ARG PUBLIC_API_URL
+# Optional: product whose teardown the landing hero features, fetched at build
+# time. When unset or unreachable the hero renders the committed fixture.
+ARG PUBLIC_FEATURED_PRODUCT_ID
 ENV PUBLIC_APP_URL=${PUBLIC_APP_URL} \
     PUBLIC_DOCS_URL=${PUBLIC_DOCS_URL} \
     PUBLIC_SITE_URL=${PUBLIC_SITE_URL} \
-    PUBLIC_API_URL=${PUBLIC_API_URL}
+    PUBLIC_API_URL=${PUBLIC_API_URL} \
+    PUBLIC_FEATURED_PRODUCT_ID=${PUBLIC_FEATURED_PRODUCT_ID}
 
 WORKDIR $WORKDIR/www
 
