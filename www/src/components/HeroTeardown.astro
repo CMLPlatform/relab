@@ -86,6 +86,14 @@ const formatMassG = (weightG: number | null): string =>
   </div>
 </section>
 
+<script>
+  import { refreshLanding } from '@/scripts/landing-refresh.ts';
+
+  refreshLanding().catch(() => {
+    // Best-effort refresh: any failure leaves the baked metrics as-is.
+  });
+</script>
+
 <style>
   .hero-grid {
     display: grid;
