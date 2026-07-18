@@ -34,11 +34,13 @@ export interface HomeStats {
   generatedAt: string;
 }
 
-function apiBaseUrl(): string {
+/** Backend base URL without a trailing slash, or '' when it is not configured. */
+export function apiBaseUrl(): string {
   // Only dev builds fall back to the local backend; a prod build without
   // PUBLIC_API_URL should skip the fetch instead of hitting the visitor's
   // own localhost.
-  return import.meta.env.PUBLIC_API_URL?.trim() || (import.meta.env.DEV ? DEV_API_URL : '');
+  const raw = import.meta.env.PUBLIC_API_URL?.trim() || (import.meta.env.DEV ? DEV_API_URL : '');
+  return raw.endsWith('/') ? raw.slice(0, -1) : raw;
 }
 
 async function getJson<T>(url: string): Promise<T> {
@@ -75,11 +77,10 @@ export function zeroFillSeries(series: SeriesPoint[], keys: string[]): SeriesPoi
 
 /** Fetch homepage stats. Returns null on any failure. */
 export async function fetchHomeStats(): Promise<HomeStats | null> {
-  const raw = apiBaseUrl();
-  if (!raw) {
+  const base = apiBaseUrl();
+  if (!base) {
     return null;
   }
-  const base = raw.endsWith('/') ? raw.slice(0, -1) : raw;
   const keys = monthKeys(SERIES_MONTHS);
   const start = `${keys[0]}-01`;
   const end = new Date().toISOString().slice(0, 10);

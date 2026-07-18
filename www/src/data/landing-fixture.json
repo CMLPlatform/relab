@@ -1,0 +1,17 @@
+{
+  "teardown": {
+    "id": 47,
+    "name": "Dell XPS 13",
+    "brand": "Dell",
+    "weightG": 1190,
+    "parts": [
+      { "name": "Battery pack", "weightG": 212 },
+      { "name": "Display assembly", "weightG": 184 },
+      { "name": "Chassis (base)", "weightG": 156 },
+      { "name": "Mainboard", "weightG": 98 },
+      { "name": "Keyboard deck", "weightG": 71 },
+      { "name": "Cooling fan", "weightG": 24 }
+    ],
+    "photos": []
+  }
+}
