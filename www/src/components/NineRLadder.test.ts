@@ -35,6 +35,9 @@ describe('NineRLadder', () => {
     const html = await render();
     expect(html).toContain('Potting');
     expect(html).toContain('pbl.nl');
+    // Regression: Astro strips the inter-node newline before the <a>, which
+    // once glued "(2017)," to the cite title.
+    expect(html).toMatch(/\(2017\),\s+<a/);
   });
 
   it('does not claim there are nine strategies', async () => {
