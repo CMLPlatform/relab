@@ -4,6 +4,7 @@ import '@/styles/brand.css';
 import '@/styles/global.css';
 
 import SiteFooter from '@/components/SiteFooter.astro';
+import SiteHeader from '@/components/SiteHeader.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
 import { siteLinks, siteMeta } from '@/copy/site-meta.ts';
 
@@ -72,6 +73,12 @@ const currentYear = new Date().getFullYear();
   <body>
     <div class="site-backdrop" aria-hidden="true">
     </div>
+
+    <SiteHeader
+      appUrl={publicSiteConfig.appUrl}
+      docsUrl={publicSiteConfig.docsUrl}
+      githubUrl={siteLinks.github}
+    />
 
     <main class="page-shell">
       <slot />

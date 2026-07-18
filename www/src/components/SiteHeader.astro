@@ -1,0 +1,88 @@
+---
+// Slim brand bar: the wordmark plus the three places visitors actually go.
+// The landing hero keeps the page's h1; this is navigation, not a heading.
+interface Props {
+  appUrl: string;
+  docsUrl: string;
+  githubUrl: string;
+}
+
+const { appUrl, docsUrl, githubUrl } = Astro.props;
+---
+
+<header class="site-header">
+  {/* The link carries the name: whichever wordmark the theme shows is
+      display: none in the other theme, which would leave the link nameless. */}
+  <a href="/" class="site-header-brand" aria-label="Relab">
+    <img class="brand-light" src="/images/wordmark.svg" alt="" aria-hidden="true" height="22" />
+    <img class="brand-dark" src="/images/wordmark-dark.svg" alt="" aria-hidden="true" height="22" />
+  </a>
+  <nav class="site-header-nav" aria-label="Site">
+    <a href={appUrl} target="_blank" rel="noopener noreferrer">App</a>
+    <a href={docsUrl} target="_blank" rel="noopener noreferrer">Docs</a>
+    <a href={githubUrl} target="_blank" rel="noopener noreferrer">GitHub</a>
+  </nav>
+</header>
+
+<style>
+  .site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    max-width: var(--page-max-width, 72rem);
+    margin: 0 auto;
+    padding: 1rem 1.5rem 0;
+  }
+
+  .site-header-brand {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .site-header-brand img {
+    display: block;
+    height: 22px;
+    width: auto;
+  }
+
+  .site-header-nav {
+    display: flex;
+    gap: 1.25rem;
+  }
+
+  .site-header-nav a {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-on-surface);
+    text-decoration: none;
+  }
+
+  .site-header-nav a:hover,
+  .site-header-nav a:focus-visible {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  /* Theme-swapped wordmark, mirroring SiteFooter's pattern. */
+  .brand-dark {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .brand-light {
+      display: none;
+    }
+    :global(:root:not([data-theme='light'])) .brand-dark {
+      display: block;
+    }
+  }
+
+  :global(:root[data-theme='dark']) .brand-light {
+    display: none;
+  }
+
+  :global(:root[data-theme='dark']) .brand-dark {
+    display: block;
+  }
+</style>
