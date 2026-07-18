@@ -20,7 +20,8 @@ const steps = [
 <section class="card content-reveal method-steps" aria-labelledby="method-steps-heading">
   <p class="method-eyebrow">method</p>
   <h2 id="method-steps-heading">From teardown to data</h2>
-  <ol class="steps">
+  {/* Explicit role: WebKit drops list semantics under list-style: none. */}
+  <ol class="steps" role="list">
     {
       steps.map((step, i) => (
         <li class="step">

@@ -81,7 +81,8 @@ const tiers = [
     tiers.map((tier) => (
       <div class="tier">
         <h3 class="tier-label">{tier.label}</h3>
-        <ol class="rungs">
+        {/* Explicit role: WebKit drops list semantics under list-style: none. */}
+        <ol class="rungs" role="list">
           {tier.rungs.map((rung) => (
             <li class="rung" style={`--i: ${Number(rung.r.slice(1))}`}>
               <span class="rung-num">{rung.r}</span>
