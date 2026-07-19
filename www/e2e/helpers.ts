@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test';
 
 const CANONICAL_URL_PATTERN =
   /^https?:\/\/((127\.0\.0\.1|localhost):(8013|18013)|cml-relab\.org)(\/.*)?$/;
-const HERO_HEADLINE = 'Every durable good, taken apart and written down.';
+const HERO_HEADLINE = 'Open product data for circular-economy research';
 const HERO_LEAD_PATTERN = /part by part, weighed and photographed/i;
 
 export const EXPLORE_DATASET_LINK_NAME = 'Explore the dataset';

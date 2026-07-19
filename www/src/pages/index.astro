@@ -1,5 +1,6 @@
 ---
 
+import BrandHero from '@/components/BrandHero.astro';
 import HeroTeardown from '@/components/HeroTeardown.astro';
 import MethodSteps from '@/components/MethodSteps.astro';
 import NineRLadder from '@/components/NineRLadder.astro';
@@ -20,14 +21,13 @@ const landing = await loadLandingData();
   title="Relab | Product data and disassembly records for the circular economy"
   description={siteMeta.defaultDescription}
 >
-  <HeroTeardown
-    teardown={landing.teardown}
-    stats={landing.stats}
-    appUrl={publicSiteConfig.appUrl}
-    fromFixture={landing.fromFixture}
-  />
+  {/* Narrative order: what Relab is (hero) -> what a record looks like
+      (teardown) -> why it matters (motivation) -> how records are made
+      (method) -> what they are for (9R) -> how many exist (stats). */}
+  <BrandHero stats={landing.stats} appUrl={publicSiteConfig.appUrl} />
+  <HeroTeardown teardown={landing.teardown} fromFixture={landing.fromFixture} />
   <WhyRelab />
-  <NineRLadder docsUrl={publicSiteConfig.docsUrl} />
   <MethodSteps />
+  <NineRLadder docsUrl={publicSiteConfig.docsUrl} />
   <StatsPanel />
 </Layout>

@@ -11,28 +11,43 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
 ---
 
 <header class="site-header">
-  {/* The link carries the name: whichever wordmark the theme shows is
-      display: none in the other theme, which would leave the link nameless. */}
-  <a href="/" class="site-header-brand" aria-label="Relab">
-    <img class="brand-light" src="/images/wordmark.svg" alt="" aria-hidden="true" height="22" />
-    <img class="brand-dark" src="/images/wordmark-dark.svg" alt="" aria-hidden="true" height="22" />
-  </a>
-  <nav class="site-header-nav" aria-label="Site">
-    <a href={appUrl} target="_blank" rel="noopener noreferrer">App</a>
-    <a href={docsUrl} target="_blank" rel="noopener noreferrer">Docs</a>
-    <a href={githubUrl} target="_blank" rel="noopener noreferrer">GitHub</a>
-  </nav>
+  <div class="site-header-inner">
+    {/* The link carries the name: whichever logo the theme shows is
+        display: none in the other theme, which would leave the link nameless. */}
+    <a href="/" class="site-header-brand" aria-label="Relab">
+      <img class="brand-light" src="/images/logo.svg" alt="" aria-hidden="true" height="38" />
+      <img class="brand-dark" src="/images/logo-dark.svg" alt="" aria-hidden="true" height="38" />
+    </a>
+    <nav class="site-header-nav" aria-label="Site">
+      <a href={appUrl} target="_blank" rel="noopener noreferrer">App</a>
+      <a href={docsUrl} target="_blank" rel="noopener noreferrer">Docs</a>
+      <a href={githubUrl} target="_blank" rel="noopener noreferrer">GitHub</a>
+    </nav>
+  </div>
 </header>
 
 <style>
+  /* Sticky, flat and sharp: a translucent blurred surface with a hairline
+     bottom rule — no shadow. Keeps App/Docs/GitHub reachable down the page. */
   .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--color-page-surface) 82%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--color-page-border);
+  }
+
+  /* Full-bleed bar, content aligned with the page column. */
+  .site-header-inner {
+    width: min(calc(100% - 2rem), var(--content-width));
+    margin: 0 auto;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
-    max-width: var(--page-max-width, 72rem);
-    margin: 0 auto;
-    padding: 1rem 1.5rem 0;
+    padding: 0.55rem 0;
   }
 
   .site-header-brand {
@@ -42,7 +57,7 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
 
   .site-header-brand img {
     display: block;
-    height: 22px;
+    height: 38px;
     width: auto;
   }
 
@@ -64,8 +79,9 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
     text-decoration: underline;
   }
 
-  /* Theme-swapped wordmark, mirroring SiteFooter's pattern. */
-  .brand-dark {
+  /* Theme-swapped logo, mirroring SiteFooter's pattern. The parent class is
+     required: `.site-header-brand img` above outweighs a bare `.brand-dark`. */
+  .site-header-brand .brand-dark {
     display: none;
   }
 
@@ -84,5 +100,33 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
 
   :global(:root[data-theme='dark']) .brand-dark {
     display: block;
+  }
+
+  /* The melt: the hero's large logo dissolves as the page scrolls (BrandHero)
+     while this one fades in to take its place. Scroll-driven and
+     reduced-motion-gated; without support the logo is simply always visible. */
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      /* Longhands, never the `animation` shorthand — see BrandHero. */
+      .site-header-brand {
+        animation-name: site-header-logo-in;
+        animation-duration: auto;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: scroll(root);
+        animation-range: 90px 180px;
+      }
+    }
+  }
+
+  @keyframes site-header-logo-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 </style>

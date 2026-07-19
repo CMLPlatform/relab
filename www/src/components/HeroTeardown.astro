@@ -1,54 +1,25 @@
 ---
-// Blueprint-style hero: the featured teardown rendered as a parts schedule,
-// baked in at build time by loadLandingData() so it paints without JS.
-import { siteMeta } from '@/copy/site-meta.ts';
+// The featured teardown rendered as a blueprint parts schedule, baked in at
+// build time by loadLandingData() so it paints without JS. The page's headline,
+// CTA and totals live in BrandHero above this.
 import type { FeaturedTeardown } from '@/lib/landing.ts';
-import { formatCount, type HomeStats } from '@/lib/stats.ts';
+import { formatCount } from '@/lib/stats.ts';
 
 interface Props {
   teardown: FeaturedTeardown | null;
-  stats: HomeStats | null;
-  appUrl: string;
   /** True when the teardown shown is the committed fixture, not live data. */
   fromFixture?: boolean;
 }
 
-const { teardown, stats, appUrl, fromFixture = false } = Astro.props;
-
-const appBase = appUrl.replace(/\/$/, '');
+const { teardown, fromFixture = false } = Astro.props;
 
 /** "212 g" for recorded masses; an em dash — never "null"/"NaN" — otherwise. */
 const formatMassG = (weightG: number | null): string =>
   weightG === null ? '—' : `${formatCount(weightG)} g`;
 ---
 
-<section class="hero-panel card content-reveal">
-  <div class="hero-grid">
-    <div class="hero-pitch">
-      <h1 class="hero-headline">{siteMeta.heroHeadline}</h1>
-      <p class="hero-lead">{siteMeta.heroLead}</p>
-      <div class="hero-actions">
-        {/* One CTA: the app root redirects to /products anyway, so a second
-            button would point at the same place. Contribution starts there. */}
-        <a
-          href={`${appBase}/products`}
-          class="btn btn-primary btn-large"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Explore the dataset
-        </a>
-      </div>
-      {
-        stats && (
-          <p class="hero-metrics" data-metrics>
-            {formatCount(stats.totals.teardowns)} teardowns · {formatCount(stats.totals.parts)}{' '}
-            parts · {formatCount(stats.totals.mass_kg)} kg logged
-          </p>
-        )
-      }
-    </div>
-
+<section class="teardown-panel card content-reveal">
+  <div class="teardown-grid">
     {
       teardown && (
         <div class="blueprint">
@@ -128,37 +99,14 @@ const formatMassG = (weightG: number | null): string =>
   </div>
 </section>
 
-<script>
-  import { refreshLanding } from '@/scripts/landing-refresh.ts';
-
-  refreshLanding().catch(() => {
-    // Best-effort refresh: any failure leaves the baked metrics as-is.
-  });
-</script>
-
 <style>
-  .hero-grid {
+  /* Without the old pitch column beside it, the schedule would stretch the
+     full card width and leave each part name marooned from its mass. */
+  .teardown-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-    gap: 2rem;
-    align-items: start;
-  }
-
-  .hero-pitch {
-    display: grid;
-    gap: 1.2rem;
-  }
-
-  .hero-headline {
-    margin: 0;
-  }
-
-  .hero-metrics {
-    margin: 0;
-    font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.82rem;
-    font-variant-numeric: tabular-nums;
-    color: var(--color-muted);
+    width: 100%;
+    max-width: 60rem;
+    margin-inline: auto;
   }
 
   /* The blueprint panel: hairline border, card radius, no shadow, and a faint
@@ -340,10 +288,4 @@ const formatMassG = (weightG: number | null): string =>
     mix-blend-mode: luminosity;
   }
 
-  @media (max-width: 860px) {
-    .hero-grid {
-      grid-template-columns: 1fr;
-      gap: 1.4rem;
-    }
-  }
 </style>

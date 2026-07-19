@@ -1,0 +1,142 @@
+---
+// The brand hero: the large logo, the page's thesis, a one-line nutshell, the
+// dataset CTA, and the live totals. On scroll the logo hands off to the sticky
+// header's logo (see the scroll-driven animation below and in SiteHeader).
+import { siteMeta } from '@/copy/site-meta.ts';
+import { formatCount, type HomeStats } from '@/lib/stats.ts';
+
+interface Props {
+  stats: HomeStats | null;
+  appUrl: string;
+}
+
+const { stats, appUrl } = Astro.props;
+const appBase = appUrl.replace(/\/$/, '');
+---
+
+<section class="brand-hero content-reveal">
+  {/* Decorative here: the sticky header's brand link carries the "Relab" name. */}
+  <div class="brand-hero-logo" aria-hidden="true">
+    <img class="brand-light" src="/images/logo.svg" alt="" width="475" height="256" />
+    <img class="brand-dark" src="/images/logo-dark.svg" alt="" width="475" height="256" />
+  </div>
+  <h1 class="brand-hero-title">{siteMeta.heroTitle}</h1>
+  <p class="brand-hero-lead">{siteMeta.heroNutshell}</p>
+  <div class="brand-hero-actions">
+    <a
+      href={`${appBase}/products`}
+      class="btn btn-primary btn-large"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Explore the dataset
+    </a>
+  </div>
+  {
+    stats && (
+      <p class="brand-hero-metrics" data-metrics>
+        {formatCount(stats.totals.teardowns)} teardowns · {formatCount(stats.totals.parts)} parts ·{' '}
+        {formatCount(stats.totals.mass_kg)} kg logged
+      </p>
+    )
+  }
+</section>
+
+<script>
+  import { refreshLanding } from '@/scripts/landing-refresh.ts';
+
+  refreshLanding().catch(() => {
+    // Best-effort refresh: any failure leaves the baked metrics as-is.
+  });
+</script>
+
+<style>
+  .brand-hero {
+    display: grid;
+    justify-items: center;
+    gap: 1.1rem;
+    padding: 1.5rem 0 0.5rem;
+    text-align: center;
+  }
+
+  .brand-hero-logo img {
+    display: block;
+    height: clamp(80px, 11vw, 128px);
+    width: auto;
+  }
+
+  /* Theme-swapped logo, mirroring SiteHeader/SiteFooter. */
+  .brand-hero-logo .brand-dark {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .brand-hero-logo .brand-light {
+      display: none;
+    }
+    :global(:root:not([data-theme='light'])) .brand-hero-logo .brand-dark {
+      display: block;
+    }
+  }
+
+  :global(:root[data-theme='dark']) .brand-hero-logo .brand-light {
+    display: none;
+  }
+
+  :global(:root[data-theme='dark']) .brand-hero-logo .brand-dark {
+    display: block;
+  }
+
+  /* No measure cap on the title: it is short enough to hold one line on
+     desktop and wraps on its own once the viewport narrows. */
+  .brand-hero-title {
+    margin: 0;
+  }
+
+  .brand-hero-lead {
+    margin: 0;
+    max-width: 72ch;
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+    color: var(--color-muted);
+  }
+
+  .brand-hero-actions {
+    margin-top: 0.2rem;
+  }
+
+  .brand-hero-metrics {
+    margin: 0;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-muted);
+  }
+
+  /* The melt: as the page scrolls the hero logo dissolves upward while the
+     header logo fades in (SiteHeader). Scroll-driven and reduced-motion-gated,
+     so unsupported browsers simply keep the logo static and visible. */
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      /* Longhands, never the `animation` shorthand: the CSS minifier folds a
+         shorthand plus animation-timeline into `animation: … scroll(root)`,
+         which no browser parses, silently killing the effect. */
+      .brand-hero-logo {
+        animation-name: brand-hero-logo-melt;
+        animation-duration: auto;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: scroll(root);
+        animation-range: 0 180px;
+        transform-origin: center top;
+      }
+    }
+  }
+
+  @keyframes brand-hero-logo-melt {
+    to {
+      opacity: 0;
+      transform: scale(0.86) translateY(-10px);
+    }
+  }
+</style>
