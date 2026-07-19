@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from fastapi import HTTPException
 from opentelemetry.propagate import inject
 from pydantic import UUID4
+from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL, extract_safe_relay_headers, relay_command_is_allowed
 
 from app.api.plugins.rpi_cam.relay_response import RelayResponse
 from app.api.plugins.rpi_cam.runtime.status import get_camera_online_cache_key
@@ -18,7 +19,6 @@ from app.api.plugins.rpi_cam.websocket.cross_worker_relay import relay_cross_wor
 from app.api.plugins.rpi_cam.websocket.runtime_state import get_connection_manager
 from app.core.logging import sanitize_log_value
 from app.core.redis import get_redis_value
-from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL, extract_safe_relay_headers, relay_command_is_allowed
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -54,6 +54,10 @@ async def _attempt_cross_worker_relay(
     timeout would be pointless. A Redis outage also fast-fails: the bridge itself
     runs on Redis, so the relay attempt could not succeed anyway.
     """
+    # NOTE: this online-key check replaced the cross-worker circuit breaker. Ceiling:
+    # if the owning worker's relay listener dies while its heartbeat keeps the key
+    # alive, every request waits out the full BLPOP timeout. Bring back a
+    # failure-count breaker if that mode shows up in practice.
     if not await get_redis_value(redis, get_camera_online_cache_key(camera_id)):
         logger.debug("Camera %s is not marked online; skipping cross-worker relay.", camera_id)
         raise _camera_not_connected()
@@ -128,8 +132,7 @@ async def relay_via_websocket(
     except CameraDisconnectedDuringCommandError as exc:
         # This worker owned the socket and it disconnected mid-command — the camera is
         # gone, not just "not registered here". Don't fall through to the cross-worker
-        # bridge (no other worker can reach it either) and don't record a circuit-breaker
-        # failure for a call that never actually attempted the cross-worker path.
+        # bridge (no other worker can reach it either).
         raise _camera_not_connected() from exc
     except RuntimeError:
         # Camera not connected in this worker — try the cross-worker bridge.

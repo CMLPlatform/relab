@@ -73,7 +73,7 @@ Prefer exact HTTPS URLs. Use trailing-slash prefixes only for integrations with 
 
 Relab keeps denial-of-service mitigation layered. Cloudflare Tunnel is the public ingress for production and staging; source-controlled edge rules cover `/v1/auth/*`, upload routes, RPi camera upload routes, and WebSocket connection attempts. Volumetric attacks are handled by Cloudflare and upstream infrastructure, not by FastAPI.
 
-The expensive paths are media uploads, image processing and thumbnails, malware scanning, file cleanup, backups, OpenAPI/schema generation, YouTube API calls, and RPi camera relay/HLS traffic. The backend keeps these bounded with JSON streaming limits, multipart upload caps, file format allowlists, user upload quotas, Redis-backed route rate limits, image worker limits, ClamAV scan timeouts, bounded outbound HTTP timeouts/retries, WebSocket authentication and frame limits, and camera relay circuit-breaking.
+The expensive paths are media uploads, image processing and thumbnails, malware scanning, file cleanup, backups, OpenAPI/schema generation, YouTube API calls, and RPi camera relay/HLS traffic. The backend keeps these bounded with JSON streaming limits, multipart upload caps, file format allowlists, user upload quotas, Redis-backed route rate limits, image worker limits, ClamAV scan timeouts, bounded outbound HTTP timeouts/retries, WebSocket authentication and frame limits, and camera relay commands that fast-fail for cameras without a live heartbeat-maintained online status.
 
 Long-running maintenance work should stay in `just` tasks, scripts, migrations, or background services rather than request handlers. New API paths that can exceed normal client timeouts need asynchronous processing or explicit limits before exposure.
 
