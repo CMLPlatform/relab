@@ -5,40 +5,22 @@ import contextlib
 import json
 import logging
 import uuid
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING
 
-import relab_rpi_cam_models as relay_models
 from pydantic import UUID4
-from relab_rpi_cam_models import RelayMessageType
+from relab_rpi_cam_models import RELAY_COMMAND_TIMEOUT_SECONDS, RelayMessageType, build_relay_command
 
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
     from fastapi import WebSocket
 
-    class _RelayCommand(Protocol):
-        def model_dump_json(self) -> str:
-            """Serialize the relay command to JSON."""
-
-    class _RelayModels(Protocol):
-        def build_relay_command(
-            self,
-            msg_id: str,
-            method: str,
-            path: str,
-            params: dict | None = None,
-            body: dict | None = None,
-            headers: dict[str, str] | None = None,
-        ) -> _RelayCommand:
-            """Build a relay command message for one proxied device request."""
-
-
 logger = logging.getLogger(__name__)
 
-# How long to wait for a command response before giving up.
-DEFAULT_COMMAND_TIMEOUT = 30.0
-# How long to wait for a response that includes a binary frame (e.g. image download).
-BINARY_COMMAND_TIMEOUT = 60.0
+# How long to wait for a command response before giving up. The Pi cuts off its
+# local dispatch at RELAY_COMMAND_TIMEOUT_SECONDS; the grace period lets the
+# device-side timeout response win the race over a backend-side TimeoutError.
+DEFAULT_COMMAND_TIMEOUT = RELAY_COMMAND_TIMEOUT_SECONDS + 5.0
 
 
 class CameraDisconnectedDuringCommandError(RuntimeError):
@@ -131,11 +113,7 @@ class CameraConnectionManager:
         self._pending[msg_id] = (camera_id, future)
 
         try:
-            payload = (
-                cast("_RelayModels", relay_models)
-                .build_relay_command(msg_id, method, path, params, body, headers)
-                .model_dump_json()
-            )
+            payload = build_relay_command(msg_id, method, path, params, body, headers).model_dump_json()
             await ws.send_text(payload)
             return await future
         finally:

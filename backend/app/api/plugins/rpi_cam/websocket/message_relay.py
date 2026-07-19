@@ -7,18 +7,18 @@ from typing import TYPE_CHECKING
 from fastapi import HTTPException
 from opentelemetry.propagate import inject
 from pydantic import UUID4
-from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL, extract_safe_relay_headers, relay_command_is_allowed
 
 from app.api.plugins.rpi_cam.relay_response import RelayResponse
-from app.api.plugins.rpi_cam.websocket import cross_worker_circuit_breaker as circuit_breaker
+from app.api.plugins.rpi_cam.runtime.status import get_camera_online_cache_key
 from app.api.plugins.rpi_cam.websocket.connection_manager import (
-    BINARY_COMMAND_TIMEOUT,
     DEFAULT_COMMAND_TIMEOUT,
     CameraDisconnectedDuringCommandError,
 )
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import relay_cross_worker
 from app.api.plugins.rpi_cam.websocket.runtime_state import get_connection_manager
 from app.core.logging import sanitize_log_value
+from app.core.redis import get_redis_value
+from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL, extract_safe_relay_headers, relay_command_is_allowed
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -47,20 +47,21 @@ async def _attempt_cross_worker_relay(
     *,
     timeout_s: float,
 ) -> tuple[dict, bytes | None]:
-    """Dispatch a relay command across worker processes, gated by the circuit breaker.
+    """Dispatch a relay command across worker processes.
 
-    Raises ``HTTPException(503)`` immediately when the circuit is open to spare
-    callers the full BLPOP timeout. Success resets the circuit; failure advances it
-    toward the open state.
+    Fast-fails with ``HTTPException(503)`` when the camera's heartbeat-maintained
+    online key is absent — no worker holds its socket, so waiting out the BLPOP
+    timeout would be pointless. A Redis outage also fast-fails: the bridge itself
+    runs on Redis, so the relay attempt could not succeed anyway.
     """
-    if await circuit_breaker.is_open(camera_id, redis):
-        logger.debug("Cross-worker relay circuit open for camera %s; fast-failing", camera_id)
+    if not await get_redis_value(redis, get_camera_online_cache_key(camera_id)):
+        logger.debug("Camera %s is not marked online; skipping cross-worker relay.", camera_id)
         raise _camera_not_connected()
 
     logger.debug("Camera %s not in local manager; attempting cross-worker relay.", camera_id)
     try:
         # relay_cross_worker enforces timeout_s internally via its deadline.
-        result = await relay_cross_worker(
+        return await relay_cross_worker(
             redis,
             camera_id,
             method,
@@ -72,11 +73,7 @@ async def _attempt_cross_worker_relay(
         )
     except (RuntimeError, TimeoutError) as cross_exc:
         logger.warning("Cross-worker relay failed for camera %s: %s", camera_id, cross_exc)
-        await circuit_breaker.record_failure(camera_id, redis)
         raise
-
-    await circuit_breaker.record_success(camera_id, redis)
-    return result
 
 
 def _build_relay_trace_headers() -> dict[str, str]:
@@ -94,7 +91,6 @@ async def relay_via_websocket(
     body: dict | None = None,
     *,
     error_msg: str | None = None,
-    expect_binary: bool = False,
     redis: Redis,
 ) -> RelayResponse:
     """Send an allowlisted command to a camera over its WebSocket connection.
@@ -116,7 +112,7 @@ async def relay_via_websocket(
         raise HTTPException(status_code=403, detail=RELAY_COMMAND_FORBIDDEN_DETAIL)
 
     manager = get_connection_manager()
-    timeout = BINARY_COMMAND_TIMEOUT if expect_binary else DEFAULT_COMMAND_TIMEOUT
+    timeout = DEFAULT_COMMAND_TIMEOUT
     relay_headers = _build_relay_trace_headers()
 
     try:

@@ -1,7 +1,7 @@
 """Shared device-assertion verification used by the WebSocket relay and HTTP endpoints.
 
 Both transports accept the same ES256 JWT minted by the Pi (``build_device_assertion``
-in ``relab-rpi-cam-plugin/app/utils/device_jwt.py``): the audience is shared, the
+in ``relab-rpi-cam-plugin/app/relay/device_jwt.py``): the audience is shared, the
 replay-protection namespace in Redis is shared, and the verification logic is
 therefore identical. Keeping it in one place prevents drift between the two
 code paths.

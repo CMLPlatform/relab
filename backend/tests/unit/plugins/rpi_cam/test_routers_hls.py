@@ -52,7 +52,6 @@ async def test_playlist_request_forwarded_and_returned_as_hls_text(
     kwargs = mock_camera_request.await_args.kwargs
     assert kwargs["endpoint"] == "/preview/hls/cam-preview/index.m3u8"
     assert kwargs["method"] == HttpMethod.GET
-    assert kwargs["expect_binary"] is True
 
 
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.hls.get_user_owned_camera")

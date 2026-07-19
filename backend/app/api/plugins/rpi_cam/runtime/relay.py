@@ -46,8 +46,6 @@ def build_camera_request(
         method: HttpMethod,
         error_msg: str | None = None,
         body: dict | None = None,
-        *,
-        expect_binary: bool = False,
     ) -> RelayResponse:
         return await relay_via_websocket(
             camera.id,
@@ -55,7 +53,6 @@ def build_camera_request(
             endpoint,
             body=body,
             error_msg=error_msg,
-            expect_binary=expect_binary,
             redis=redis,
         )
 

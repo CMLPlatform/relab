@@ -16,7 +16,7 @@ command to the worker that owns the connection:
       RPUSH relay_cmd:{camera_id}  ──► run_relay_listener()
         {msg_id, method, path, …}       BLPOP relay_cmd:{camera_id}
       BLPOP relay_resp:{msg_id}    ◄──  manager.send_command() → Pi
-        timeout = 30 s / 60 s          RPUSH relay_resp:{msg_id}
+        timeout = DEFAULT_COMMAND_TIMEOUT  RPUSH relay_resp:{msg_id}
 
 Binary payloads (HLS segments, captured images) are base-64 encoded inside
 the JSON response so a single ``decode_responses=True`` Redis client suffices.

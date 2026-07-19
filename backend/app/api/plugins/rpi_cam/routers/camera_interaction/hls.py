@@ -79,7 +79,6 @@ async def proxy_hls(
                 endpoint=f"/preview/hls/{hls_path}",
                 method=HttpMethod.GET,
                 error_msg="Failed to fetch HLS data",
-                expect_binary=True,
             )
             break
         except HTTPException as exc:
