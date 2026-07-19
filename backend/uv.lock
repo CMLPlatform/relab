@@ -1875,7 +1875,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "python-json-logger", specifier = ">=4.1.0" },
     { name = "redis", specifier = ">=5.2.1" },
-    { name = "relab-rpi-cam-models", specifier = ">=0.4.0" },
+    { name = "relab-rpi-cam-models", specifier = ">=0.5.0" },
     { name = "sqlalchemy", specifier = ">=2.0.41" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.42.0" },
 ]
@@ -1920,14 +1920,14 @@ tests = [
 
 [[package]]
 name = "relab-rpi-cam-models"
-version = "0.4.0"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cf/7e/d9b341cbe0e4ea8b0709c6ddfa96963eeebbfa076f00c33dc78f6155519a/relab_rpi_cam_models-0.4.0.tar.gz", hash = "sha256:8227e8cf0fa2e7d24f289e1c98465dd3d308c5ffde464cc6f3220c43bc53f8f3", size = 8181, upload-time = "2026-07-02T13:21:06.627Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/94/b6/fdbc496ba6f6838230210f3ae59d06a61a009a08c7624f159eae8ac40afd/relab_rpi_cam_models-0.5.0.tar.gz", hash = "sha256:e2b8e50a75b3ea9b506a385e57e3fe51c007f22f4ab007a513ac81368f5b0c70", size = 8315, upload-time = "2026-07-19T22:09:24.359Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/a0/e70ed8a6a99f3ba3875bc1197d73c8dea6667b3e402b1cc885b9d31f08f0/relab_rpi_cam_models-0.4.0-py3-none-any.whl", hash = "sha256:beb755316ed929402708b28312255f058a1bbf981a5951c8817d83ed2c5b1b55", size = 10738, upload-time = "2026-07-02T13:21:05.263Z" },
+    { url = "https://files.pythonhosted.org/packages/7f/83/9d8d8f61f251accc4697e422c3618b83978a5653081b4de12b8e12fd6796/relab_rpi_cam_models-0.5.0-py3-none-any.whl", hash = "sha256:fa3a8d63d380b6c80f68e25aee442114420f62dd1c46f7a9e206c242b342fe3c", size = 10883, upload-time = "2026-07-19T22:09:23.129Z" },
 ]
 
 [[package]]
