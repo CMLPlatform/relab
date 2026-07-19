@@ -13,7 +13,6 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from jwt import InvalidTokenError
 from pydantic import UUID4, ValidationError
 from relab_rpi_cam_models import RELAY_WS_TEXT_FRAME_LIMIT_BYTES, RelayMessageType, RelayResponseEnvelope
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, limiter, rate_limit_bucket_key
 from app.api.common.exceptions import ServiceUnavailableError
@@ -24,7 +23,7 @@ from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectio
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import run_relay_listener
 from app.api.plugins.rpi_cam.websocket.runtime_state import get_connection_manager
 from app.core.config import settings
-from app.core.database import get_async_session
+from app.core.database import async_session_context
 from app.core.logging import sanitize_log_value
 from app.core.middleware.client_ip import extract_client_ip
 from app.core.runtime import require_connection_redis
@@ -242,12 +241,8 @@ def _extract_bearer_token(websocket: WebSocket) -> str:
 
 
 async def _get_camera(camera_id: UUID4) -> Camera | None:
-    session_gen = get_async_session()
-    session: AsyncSession = await session_gen.__anext__()
-    try:
+    async with async_session_context() as session:
         return await session.get(Camera, camera_id)
-    finally:
-        await session.close()
 
 
 async def _heartbeat_loop(websocket: WebSocket, session: _RelayWebSocketSession) -> None:
