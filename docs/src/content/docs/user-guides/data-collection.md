@@ -39,10 +39,10 @@ If you would photograph it separately and write notes about it specifically, it 
 - Use parent-child product links to represent the physical breakdown of the object.
 - Keep free-text notes for uncertainty, unusual joins, damage, or ambiguous materials.
 - Use circularity notes for concise observations about recyclability, disassemblability, and remanufacturability. Leave them empty when there is no useful observation yet.
-- Treat images as part of the research record, not as decorative attachments.
+- Photograph anything a later reader might want to check; images often carry more evidence than the form fields.
 
 :::note[Partial is fine]
-Do not force precision where the evidence does not support it. A partial observation such as "likely polypropylene, unconfirmed" is more useful than invented detail.
+If you are not sure, say so in the record. "Likely polypropylene, unconfirmed" is a perfectly good observation — and more useful than a guess.
 :::
 
 ## Good notes often include
@@ -55,7 +55,7 @@ Do not force precision where the evidence does not support it. A partial observa
 
 ## Reference data
 
-Use materials, categories, taxonomies, and product types when they improve consistency. Do not force a taxonomy entry when the evidence is weak; a missing link is clearer than a wrong one.
+Use materials, categories, taxonomies, and product types when they improve consistency. If no entry fits, leave the field empty rather than picking the closest match.
 
 ## Media capture
 
@@ -84,4 +84,4 @@ Relab validates type, size, and content before storing a file. Office files are 
 - Make sure important images are attached to the right record.
 - Add missing notes while the work is still fresh.
 - Normalize product types or materials where possible.
-- Leave uncertainty explicit rather than silently resolving it.
+- Keep "unconfirmed" notes as they are — do not replace them with guesses.

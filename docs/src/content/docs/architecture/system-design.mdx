@@ -94,15 +94,9 @@ graph TD
 
 These choices keep the stack small enough to understand and operate without dedicated infrastructure work.
 
-## Security architecture inventory
+## Security architecture
 
-Relab is a single backend application with supporting infrastructure, not a large microservice fleet. Authorization stays in FastAPI route dependencies, ownership checks, and admin-only dependencies. Dedicated policy engines, service meshes, mTLS between containers, and internal identity-propagation tokens are out of scope at this scale.
-
-Application services are `api`, `app`, `www`, `docs`, `migrator`, and optional `backup`. Supporting systems are PostgreSQL, Redis, file or S3-compatible storage, Cloudflare Tunnel, optional Loki/OTLP telemetry, and external OAuth, email, Have I Been Pwned, and YouTube providers.
-
-Sensitive data assets include accounts, profile/privacy settings, research records, uploaded media, OAuth and YouTube tokens, refresh-token state, RPi camera credentials, database dumps, backups, runtime secrets, and encryption keys. Public research records, request IDs, cache keys, and public camera key material are not application-encrypted secrets.
-
-Trust boundaries are intentionally narrow: clients and devices enter through the API; Cloudflare fronts public ingress; PostgreSQL and Redis stay on the internal `data` network; runtime secrets stay in Docker secret files; and telemetry leaves the stack only when explicitly enabled. Main data flows are client-to-API requests, device assertions/uploads, backend reads and writes to Postgres/Redis/storage, OAuth/email/YouTube calls, backup reads from Postgres/uploads, and optional log/trace export.
+Relab is a single backend application, not a microservice fleet: authorization lives in FastAPI route dependencies, public traffic enters through Cloudflare Tunnel, and PostgreSQL and Redis stay on internal networks. The full trust-boundary model, asset inventory, and hardening posture are documented in [Security and hardening](/operations/security/).
 
 ## Backend domain structure
 
@@ -122,17 +116,6 @@ app/
 └── templates/            # Email and HTML templates
 ```
 
-## Runtime behavior
-
-At startup the backend:
-
-- validates security-sensitive configuration
-- initializes Redis and API caching
-- creates storage directories for uploads
-- mounts static and upload-backed routes
-- prepares shared outbound HTTP clients
-- starts background cleanup infrastructure
-
 ## Design priorities
 
 - keep the data model explicit and inspectable
@@ -142,8 +125,7 @@ At startup the backend:
 - keep identifiers and exports stable enough to link with other datasets
 - avoid infrastructure complexity that isn't justified by the project scale
 
-Architecture modernization should keep Relab as a modular monolith until a real
-deployment or runtime boundary justifies a split. The backend should continue to
-evolve around explicit bounded contexts: identity and access, data collection,
-reference data, media and storage, publication and export, and device
-integration.
+Relab is a modular monolith, and stays one until a real deployment or runtime
+boundary justifies a split. The backend is organized around explicit bounded
+contexts: identity and access, data collection, reference data, media and
+storage, publication and export, and device integration.

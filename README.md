@@ -34,7 +34,7 @@ Relab addresses that gap with a bottom-up model:
 - collaborative and citizen-science style workflows can turn routine repair and disassembly into structured observations
 - the resulting records can be shared openly, linked to related databases, and reused in later research
 
-Value is meant to flow back to contributors too — composition insight, sustainability metrics, and repair or R-strategy guidance — so routine disassembly becomes a two-way exchange rather than one-way data entry. We call this a circular data economy: middle- and end-of-life observations feed back into the upstream data infrastructure that research and design rely on, complementing the top-down flow of producer specifications.
+Contributors get value back too — composition insight, sustainability metrics, and repair or R-strategy guidance — so routine disassembly becomes a two-way exchange rather than one-way data entry. We call this a circular data economy: middle- and end-of-life observations feed back into the upstream data infrastructure that research and design rely on, complementing the top-down flow of producer specifications.
 
 The long-term goal is to contribute to an open industrial ecology data commons: data that is collected collaboratively, publicly accessible, linkable to existing and upcoming databases, and structured enough for machine-learning use.
 

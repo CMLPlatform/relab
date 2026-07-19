@@ -5,7 +5,7 @@ description: How the Relab Raspberry Pi camera plugin talks to the backend and a
 
 The RPi camera plugin is optional. It connects camera devices to Relab for remote capture, HLS preview streaming, and YouTube streaming. The backend remains the control plane and default relay path; when the camera and client share a LAN, the Relab app can optionally switch to direct local access for lower-latency preview and capture.
 
-For platform-side setup and day-to-day usage, see the [RPi camera user guide](../../user-guides/rpi-cam/). For endpoint details, start from the [API reference overview](/api-reference/): app-facing camera routes are in the [public API reference](/api/public/), backend-facing device routes are in the [device API reference](/api/device/), and the local plugin service is in the [RPi camera API reference](/api/rpi-cam/). For device installation and deployment, see the [RPi camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+For platform-side setup and day-to-day usage, see the [RPi camera user guide](../../user-guides/rpi-cam/). For endpoint details, start from the [API reference overview](/api-reference/). For device installation and deployment, see the [RPi camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
 ## System diagram
 
@@ -128,18 +128,11 @@ sequenceDiagram
 ## Key design decisions
 
 - **Backend as control plane**: Pairing, relay orchestration, capture storage, and YouTube coordination stay in the main backend.
-- **Two contract layers**: backend OpenAPI remains the public app-facing contract, while a smaller shared private device contract covers pairing payloads, relay envelopes, local-access bootstrap, and Pi-initiated upload acknowledgements.
+- **Two contract layers**: a public app-facing API plus a smaller private device contract for pairing, relay, and uploads (see [Protocol boundaries](#protocol-boundaries)).
 - **Optional local direct mode**: After pairing, the app can switch to LAN-direct access with a device-local API key for lower-latency preview and capture when the device is reachable locally.
 - **Relay-first registration**: Cameras pair through a short-lived code and receive runtime relay credentials from the backend; operators do not manually copy long-lived API keys in the normal path.
 - **Media storage**: Captured images are stored in Relab's file storage and linked to the originating product or component record automatically.
 - **Optional YouTube integration**: Streaming is mediated through the backend's OAuth connection to YouTube. The device streams directly to YouTube once authorized.
-
-## Contract ownership
-
-- **Frontend -> backend** uses only backend-owned public app API routes and schemas.
-- **Pi -> backend** uses the backend-owned device API for callbacks and pairing routes.
-- **Backend -> plugin** uses a smaller private shared DTO seam: pairing register/poll payloads, relay command/response envelopes, local-access info, and direct upload/self-unpair acknowledgements.
-- **Shared models** exist to keep that private seam typed and versioned without leaking plugin implementation details into the frontend contract.
 
 ## Protocol boundaries
 
@@ -149,7 +142,7 @@ The plugin uses three separate contracts:
 - **Device REST API**: `/v1/plugins/rpi-cam/device/cameras/*` for Pi-originated callbacks such as image upload, preview thumbnail upload, and self-unpair. These routes authenticate with short-lived device assertions rather than a user session.
 - **Device WebSocket protocol**: `/v1/plugins/rpi-cam/ws/connect` for the persistent outbound relay tunnel from the Pi to the backend. It is a non-browser endpoint: the Pi authenticates with a short-lived bearer device assertion, production pairing returns a `wss://` URL, browser `Origin` handshakes are rejected, WebSocket compression is disabled, and frame/queue sizes are bounded.
 
-OpenAPI covers the HTTP routes: use the [public API reference](/api/public/) for app REST routes, the [device API reference](/api/device/) for Pi callback and pairing routes, and the [RPi camera API reference](/api/rpi-cam/) for the plugin's local HTTP API. The WebSocket tunnel is a protocol contract and should be treated separately from generated REST clients.
+OpenAPI covers the HTTP routes; see the [API reference overview](/api-reference/). The WebSocket tunnel is a separate protocol contract and is not part of the generated REST clients.
 
 ### WebSocket relay envelope
 
@@ -171,9 +164,9 @@ The backend sends command envelopes to the device:
 
 The device replies with a matching response envelope. The shared model package owns the exact envelope schema so the backend and plugin stay in lockstep.
 
-The relay allowlist is intentionally small and lives in the shared
-`relab_rpi_cam_models` package. Backend and plugin code both enforce that
-contract-owned policy instead of maintaining separate route lists.
+The relay allowlist lives in the shared `relab_rpi_cam_models` package and is
+enforced by both the backend and the plugin, so there is a single route list to
+maintain.
 
 Captured image bytes do not travel through the WebSocket. After a capture command succeeds, the Pi uploads the file and metadata directly to `/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload`.
 

@@ -5,9 +5,9 @@ description: How to browse current Relab records and how curated dataset release
 
 Current Relab records can be browsed in the production app: [app.cml-relab.org](https://app.cml-relab.org).
 
-The app is the live operational system. A curated dataset release is a different thing: a reviewed, versioned snapshot with clear scope, metadata, and licensing.
+The app shows the live, evolving records. A curated dataset release is different: a reviewed, versioned snapshot with clear scope, metadata, and licensing, suitable for citation and reuse.
 
-## What a release should contain
+## What a release will contain
 
 Expected data elements:
 
@@ -30,7 +30,7 @@ Expected uses:
 
 Current records can be explored in the app or through the API. For technical access, see the [API reference overview](/api-reference/) or go directly to the [public API reference](/api/public/).
 
-Curated releases will carry authoritative scope, versioning, and licensing metadata. The goal is to contribute to an open industrial ecology data commons, not just publish an isolated file.
+Curated releases will have a defined scope, version, and license, so they can be cited and linked with other open industrial-ecology datasets. The data is published under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/).
 
 ## Dublin Core metadata
 
@@ -51,10 +51,6 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
 | Language    | en-US                                                                                                                                 |
 | Coverage    | Products: Power tools; Time: 2025-; Geographic location: NL                                                                           |
 | Rights      | <https://opendatacommons.org/licenses/odbl/>                                                                                          |
-
-## License
-
-The dataset is published under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/).
 
 ## Contact
 

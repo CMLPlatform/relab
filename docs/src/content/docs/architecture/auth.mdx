@@ -88,7 +88,7 @@ Existing access tokens are not tracked in a separate revocation list. Authentica
 
 Refresh tokens are random bearer secrets. Redis stores them under SHA-256 fingerprints rather than raw token values, so storage keys are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with AES-256-GCM using the backend `DATA_ENCRYPTION_KEY`.
 
-Encryption is not used as a substitute for authorization. Authenticated API handlers must still check resource ownership and route-level permissions before returning or mutating data.
+Encryption does not replace authorization: authenticated API handlers check resource ownership and route-level permissions before returning or mutating data.
 
 Authorization is enforced in the backend route layer, not by client-side UI state. FastAPI dependencies separate public reads, authenticated self-service, verified-user writes, owner-scoped resources, device assertions, and superuser-only admin routes. Client request bodies cannot set account-control or ownership fields, and product owner identity is redacted from viewers who cannot see the owner's profile.
 

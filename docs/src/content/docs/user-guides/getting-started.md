@@ -3,7 +3,7 @@ title: Getting started
 description: Create an account and capture a first Relab product record.
 ---
 
-Relab helps you document a product while you take it apart. A useful first record does not need to be perfect; it needs a clear product identity, a few good photos, and honest notes about what you saw.
+Relab helps you document a product while you take it apart. A useful first record does not need to be perfect; it needs a clear product identity, a few good photos, and notes on what you found.
 
 ## Create an account
 
@@ -32,7 +32,7 @@ Once you're logged in, the core workflow is:
 1. Attach images, measurements, and notes at the level where they belong.
 
 :::note[Start simple]
-A partial record with good photos and honest notes is usually more useful than an over-structured one that takes twice as long. You can fill in gaps later.
+A partial record with good photos beats a perfect one that never gets finished. You can fill in gaps later.
 :::
 
 ## Next steps

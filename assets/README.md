@@ -42,7 +42,7 @@ Typography ownership (see [DESIGN.md](DESIGN.md) for the full design system):
   (`--relab-brand-font`, UI/body), Serif (`--relab-brand-font-display`,
   display/brand), Mono (`--relab-brand-font-mono`, data/labels).
 - WOFF2 files are for docs/www web delivery; italic is browser-synthesized when needed.
-- The Expo app intentionally uses platform system fonts.
+- The Expo app uses platform system fonts (see [DESIGN.md](DESIGN.md)).
 
 Brand primitive ownership:
 

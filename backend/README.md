@@ -38,7 +38,7 @@ The disposable-email validator seeds itself from the committed runtime fallback 
 
 Committed migration/bootstrap payloads live under [data/seed/](data/seed/). The migrations image includes that directory, while generated uploads stay excluded from Docker build contexts.
 
-Taxonomy imports are intentionally opt-in for the migrations image. If you want `SEED_CPV_*` or `SEED_HS_CATEGORIES`, rebuild `backend/Dockerfile.migrations` with `BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true` so the optional `seed-taxonomies` dependency group is available.
+Taxonomy imports are opt-in for the migrations image. If you want `SEED_CPV_*` or `SEED_HS_CATEGORIES`, rebuild `backend/Dockerfile.migrations` with `BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true` so the optional `seed-taxonomies` dependency group is available.
 
 The main [`backend/Dockerfile`](Dockerfile) is multi-target: the default `runtime` stage builds the slim production image, and `--target dev` produces the hot-reload dev image used by `compose.dev.yaml`.
 
@@ -48,7 +48,7 @@ The backend uses explicit, domain-owned seams rather than broad internal registr
 
 - Routers are thin orchestration layers.
 - Domain read paths use small local `select(...).where(...)` helpers rather than generic query-builder indirection.
-- The shared CRUD/query kernel is intentionally small: `require_model`, `require_models`, `page_models`, `exists`, and persistence helpers.
+- The shared CRUD/query kernel is small: `require_model`, `require_models`, `page_models`, `exists`, and persistence helpers.
 - Recursive endpoints such as `/v1/categories/tree` and `/v1/products/{product_id}/components/tree` use bounded tree loaders plus pure serialization, not lazy ORM traversal during response assembly.
 - Query parameters stay in SQLAlchemy expressions so user values become bind parameters. Dynamic identifiers such as sort or facet fields go through explicit allowlists before SQL is built. Raw SQL stays static; runtime values are bound separately.
 
@@ -59,7 +59,7 @@ Key reference points for the domain shape:
 
 ## RPi Camera Contract Boundary
 
-The Raspberry Pi camera integration has two intentional contract layers:
+The Raspberry Pi camera integration has two contract layers:
 
 - **Public/frontend contract**: backend routes and OpenAPI remain the only app-facing API surface
 - **Public device/plugin contract**: `/openapi.device.json` documents the supported device integration surface, with the human reference hosted by the docs site

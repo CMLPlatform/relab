@@ -5,12 +5,12 @@ description: How the Relab API is organized and how the main domain surfaces fit
 
 Routes are organized by domain, not by HTTP verb. The same API serves the research app, the public web frontend, and external tooling. Public and authenticated surfaces are separated in practice, but the cleanest source of truth is the live OpenAPI docs.
 
-For live schemas and request models, start from the [API reference overview](/api-reference/). Use the [public API reference](/api/public/) for application routes, the [device API reference](/api/device/) for backend-facing device integration, and the [RPi camera API reference](/api/rpi-cam/) for the local camera service. For practical usage guidance, see the [API interaction guide](../../user-guides/api/).
+For live schemas and request models, start from the [API reference overview](/api-reference/). For practical usage guidance, see the [API interaction guide](../../user-guides/api/).
 
-Architecture changes should keep these surfaces explicit: the public app API is
-the frontend and external-client contract, the device API is the Pi-originated
-HTTP callback contract, and the private shared DTO seam is limited to backend
-device integration plus the RPi camera plugin.
+There are three distinct surfaces: the public app API is the contract for the
+frontend and external clients, the device API handles Pi-originated HTTP
+callbacks, and a small private DTO seam covers backend device integration plus
+the RPi camera plugin.
 
 ## Route organization
 

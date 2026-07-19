@@ -50,24 +50,9 @@ pnpm run profile:compiler:web  # local web profiling with production/staging com
 
 ## Test Layers
 
-The app uses three test layers with different speed and confidence tradeoffs:
+Three layers with different speed and confidence tradeoffs: `unit` and `integration` (both Jest; `just test` runs both), and `e2e` (Playwright against a built web app; requires `just build-web` and the `compose.e2e.yaml` stack). See [ARCHITECTURE.md](ARCHITECTURE.md#testing-layers) for the location rules and lane selection.
 
-- `unit`: fast Jest tests for pure logic, smaller hooks, isolated components, and API helpers
-- `integration`: slower Jest tests for screen composition, router behavior, provider stacks, and MSW-backed user flows
-- `e2e`: Playwright browser flows against a built web app
-
-`just test` and `pnpm test` run the full Jest suite (unit + integration).
-
-Use explicit commands when you need a narrower or broader scope:
-
-```bash
-just test-unit         # fast unit suite only
-just test-integration  # app-level Jest integration tests
-just test-e2e          # Playwright browser E2E (requires `just build-web` and compose.e2e.yaml running)
-pnpm run test:ci       # unit + integration with CI flags and coverage
-```
-
-Jest integration tests in this repo still run in-memory with `jest-expo` and React Native Testing Library. They are broader than unit tests, but they are not a substitute for device-native end-to-end coverage.
+Jest integration tests run in-memory with `jest-expo` and React Native Testing Library. They are broader than unit tests, but they are not a substitute for device-native end-to-end coverage.
 
 ## Timing Jest Suites
 
@@ -83,7 +68,7 @@ For emulator and device setup, testing patterns, and app-specific development no
 
 ## Styling And Theming
 
-Styling in `app` follows a single-theme setup built on React Native Paper MD3.
+Styling in `app` is built on NativeWind v5, with colors, type scale, and semantic tokens delivered through `AppThemeProvider` (see [ARCHITECTURE.md](ARCHITECTURE.md)).
 
 - Import theme values from `@/theme`, not from `src/assets/themes/*`
 - Use `useAppTheme()` as the default hook for theme access
@@ -107,7 +92,7 @@ Memoization changes in this app should be validated in a release-like build, not
 1. Confirm the slow interaction in the profiler before changing memoization.
 1. Re-profile after the change and keep manual `useMemo` / `useCallback` / `React.memo` only where the compiled build still benefits.
 
-The default `pnpm run dev` flow intentionally keeps compiler transforms off for faster Metro feedback while you iterate.
+The default `pnpm run dev` flow keeps compiler transforms off for faster Metro feedback while you iterate.
 
 ## Lint Ownership
 

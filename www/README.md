@@ -49,7 +49,7 @@ Use `just` for repo-standard tasks. The build recipe loads the root deploy env s
 
 ## Development notes
 
-- Astro does most of the work here. The site is intentionally light on client-side JavaScript.
+- Astro does most of the work here. The site is light on client-side JavaScript.
 - Biome handles linting and formatting.
 - Vitest covers utilities and small DOM scripts.
 - Playwright covers the browser flows and accessibility checks.

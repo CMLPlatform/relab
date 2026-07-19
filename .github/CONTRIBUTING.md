@@ -1,6 +1,6 @@
 # Contributing to Relab
 
-Thanks for contributing. Relab is a research platform developed at CML, Leiden University. The goal of this document is simple: get you productive without making you dig through the repo first.
+Thanks for contributing. Relab is a research platform developed at CML, Leiden University. This page gets you productive without digging through the repo first.
 
 This page is for code and documentation changes. If you mainly want to run or deploy the stack, see [Install and self-host](https://docs.cml-relab.org/operations/install/).
 
@@ -121,10 +121,7 @@ Use this when you want the full stack without configuring each subrepo manually.
 
 ### Local Service URLs
 
-- API: <http://127.0.0.1:8010>
-- App frontend: <http://127.0.0.1:8011>
-- Docs: <http://127.0.0.1:8012>
-- Landing site: <http://127.0.0.1:8013>
+The services run on the same URLs as the [forwarded ports](#forwarded-ports) above.
 
 Docker development ports bind to localhost. If you want to test the Expo app from another phone, tablet, or computer over your LAN, run the Expo server directly from `app/` with `just dev` instead of using the Docker app service.
 
@@ -177,7 +174,7 @@ Use `just --list` in any directory to see what is available there.
 
 Use `.tool-versions` as the source of truth for local tool versions. Do not duplicate exact versions in docs unless a manifest or generated file requires it.
 
-Configuration ownership should stay predictable:
+Each configuration surface has one job:
 
 - root `justfile`: repo-wide orchestration and cross-project workflows
 - subrepo `justfile`: local commands for one project

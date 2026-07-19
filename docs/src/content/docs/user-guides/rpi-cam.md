@@ -16,11 +16,7 @@ This page covers the platform side: pairing a camera, checking that it is online
 
 The camera connects to the platform via **WebSocket relay**. The Raspberry Pi opens an outbound WebSocket connection to the backend, which relays commands (capture, preview, stream) through the tunnel. No public IP, port forwarding, or reverse proxy is needed.
 
-From the app's perspective, the backend remains the only public API surface.
-The device/plugin uses a smaller private backend-facing contract for pairing,
-relay, and direct upload flows.
-
-For endpoint-level details, start from the [API reference overview](/api-reference/). The app-facing camera routes are in the [public API reference](/api/public/), backend-facing pairing and device callbacks are in the [device API reference](/api/device/), and the local camera service is documented in the [RPi camera API reference](/api/rpi-cam/).
+For endpoint-level details, start from the [API reference overview](/api-reference/).
 
 ## Platform setup
 
@@ -55,10 +51,9 @@ Use this when automatic pairing is unavailable.
 1. The backend relays the request to the device via the WebSocket tunnel.
 1. Captured images are uploaded back to Relab and linked to the record automatically.
 
-When the camera is already paired and the client is on the same LAN, the Relab
-app can also switch into local direct mode for lower-latency preview and
-capture. Relay remains the default path and the control-plane source of truth;
-local mode is an optimization, not a separate registration flow.
+When the camera is already paired and your device is on the same network, the
+Relab app can switch to direct local access for faster preview and capture. No
+extra setup is needed; the relay path keeps working as the default.
 
 ## Managing cameras
 
@@ -73,7 +68,6 @@ From the camera detail screen you can:
 - Test the full setup before documenting a real product.
 - Use clear, descriptive camera names so the physical workstation is obvious at a glance.
 - Keep device configuration notes somewhere outside the platform as well.
-- The camera is a capture aid, not a replacement for good documentation practice.
 
 ## Troubleshooting
 

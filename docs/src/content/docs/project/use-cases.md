@@ -25,4 +25,4 @@ Relab is not:
 - a fully automated computer-vision pipeline
 - a highly elastic cloud-native platform
 
-Those boundaries are intentional. Relab is a research platform first; it should stay understandable enough for a small project team to maintain while data collection is still evolving.
+Keeping the scope narrow keeps the platform simple enough for a small research team to run — and for new contributors to learn quickly.

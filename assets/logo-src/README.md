@@ -16,7 +16,7 @@ Needs [`uv`](https://docs.astral.sh/uv/). Run from this directory:
 uv run --with fonttools --with brotli python3 make_r9lab.py
 
 # additionally copy one candidate onto the canonical ../r9lab-*.svg + ../logo.svg
-uv run --with fonttools --with brotli python3 make_r9lab.py --promote varela
+uv run --with fonttools --with brotli python3 make_r9lab.py --promote titillium
 ```
 
 After promoting, run `just assets-sync` from the repo root to regenerate the
@@ -24,8 +24,9 @@ PNG/ico derivatives and consumer copies.
 
 ## Candidates
 
-Three finalist fonts for the 9 (winner not yet picked; **varela** is the
-current default). Tuned values live in `CANDIDATES` in `make_r9lab.py`:
+Three candidate fonts for the 9; **titillium** is the promoted canonical mark,
+with petrona and varela kept as alternates. Tuned values live in `CANDIDATES`
+in `make_r9lab.py`:
 
 | Candidate   | 9 from            | Letters            | Notes                             |
 | ----------- | ----------------- | ------------------ | --------------------------------- |

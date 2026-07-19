@@ -71,6 +71,5 @@ Automated checks do not replace reviewer judgment. For changes that touch authen
 - logs do not include tokens, passwords, private URLs, OAuth material, or other sensitive values
 - secure defaults fail closed in production and staging
 - auth, permission, upload, and device-flow behavior has focused test coverage
-- docs and examples change only when they clarify real behavior
 
-Audience-filtered OpenAPI schemas and API reference pages are contract and inventory tools, not authorization controls. Keep endpoint authorization enforced in backend dependencies and services even when a route is absent from a public docs audience.
+Filtering a route out of a public OpenAPI schema hides it from the docs, not from attackers. Authorization must be enforced in backend dependencies and services regardless of which schemas list the route.

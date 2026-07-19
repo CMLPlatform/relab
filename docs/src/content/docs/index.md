@@ -19,7 +19,7 @@ Relab is a research platform for collecting and publicly viewing data on the dis
 <div class="grid cards relab-card-grid" markdown>
 
 - **[Getting started](user-guides/getting-started/)**
-  Create an account and document a first product without overthinking the model.
+  Create an account and document your first product.
 
 - **[Guides](user-guides/)**
   Practical help for data collection, hardware, camera capture, and API access.
@@ -32,21 +32,6 @@ Relab is a research platform for collecting and publicly viewing data on the dis
 
 - **[Project context](project/)**
   Why Relab exists, who it is for, and where the dataset work is heading.
-
-</div>
-
-## API references
-
-<div class="grid cards relab-card-grid" markdown>
-
-- **[Public API reference](/api/public/)**
-  Endpoints and schemas for platform data, accounts, authentication, media, and public records.
-
-- **[Device API reference](/api/device/)**
-  Pairing and integration endpoints used by Relab devices and plugins.
-
-- **[RPi camera API reference](/api/rpi-cam/)**
-  Local camera-service endpoints for capture workflows and device status.
 
 </div>
 

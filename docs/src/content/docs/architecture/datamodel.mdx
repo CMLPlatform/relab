@@ -65,7 +65,7 @@ The full data schema is broken up into four modules: user management, reference 
 
 ## User management
 
-This part covers user accounts, linked OAuth accounts, and ownership and access control. It is kept separate from the research entities so auth concerns do not leak into the product model more than necessary.
+This part covers user accounts, linked OAuth accounts, and ownership and access control. It is kept separate from the research entities so account details stay out of the product model.
 
 ```mermaid
 erDiagram
@@ -227,7 +227,7 @@ erDiagram
 
 ## File storage and media
 
-Media is treated as part of the record, not as decoration. In practice, images often carry a large part of the evidential value of a product record. Files and images support polymorphic associations, allowing them to be linked to products, materials, or product types. Videos are linked via URLs rather than stored directly.
+Images often carry a large part of the evidential value of a product record, so media is modeled as part of the record itself. Files and images support polymorphic associations, allowing them to be linked to products, materials, or product types. Videos are linked via URLs rather than stored directly.
 
 ```mermaid
 erDiagram

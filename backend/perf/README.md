@@ -25,7 +25,7 @@ This directory contains a small `k6` baseline suite for the Relab backend.
 
 ## Thresholds
 
-These thresholds are intentionally conservative and serve as a regression tripwire, not a capacity target.
+These thresholds are conservative regression tripwires, not capacity targets.
 
 - `live_probe`: `p(95) < 1200ms`
 - `product_list_read`: `p(95) < 1800ms`
@@ -47,11 +47,7 @@ Use the root perf entrypoint to manage that stack:
 just docker-ci-perf-baseline
 ```
 
-Treat local Docker CI runs as smoke validation, not as the source of truth for threshold calibration.
-
-- local runs are useful for proving the workflow works end to end
-- local runs are often distorted by laptop CPU contention, Docker overhead, and disk pressure
-- threshold calibration should come from the GitHub Actions perf workflow, because that is the environment that will run the recurring baseline checks
+Local runs prove the workflow works end to end but are distorted by laptop CPU contention, Docker overhead, and disk pressure. Calibrate thresholds from the GitHub Actions perf workflow instead — that is the environment that runs the recurring baseline checks.
 
 ## Usage
 
@@ -124,8 +120,3 @@ just perf-baseline
 To recalibrate thresholds, run the `Performance Baseline` workflow with `workflow_dispatch`, download the `backend-perf-baseline-artifacts` artifact, then use the maintainer-only perf helpers in `backend/justfile` to refresh thresholds in `perf/k6-baseline.js`. Commit the updated thresholds. Include key numbers in the PR description rather than committing dated report files.
 
 Threshold refresh is a maintenance operation, not a routine command. The helper recipes are hidden in `backend/justfile` to keep the public task surface small.
-
-## Measurement Scope
-
-- `/v1/products` is part of the baseline because it is a supported public catalog read, not an internal implementation detail.
-- The perf workflow must not depend on embedded image data in `/v1/products`; the baseline must run cleanly even when no seeded media URL is present.

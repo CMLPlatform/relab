@@ -140,21 +140,16 @@ ghost/tonal/outline buttons) — **never the accent.**
 
 The **manila accent is a text colour** — mono eyebrow labels, small data
 highlights, live/status pills, and strategy tags. It never fills a button or
-drives a hover/pressed state; manila on interactive surfaces (e.g. the Browse or
-Forgot-password button hovers) is the specific thing that reads as ugly, and is
-the misuse this rule exists to prevent. Lean on the mono voice (IBM Plex Mono on
-web, platform monospace in the app) for IDs, counts, and measurements — the
+drives a hover/pressed state. Lean on the mono voice (IBM Plex Mono on web,
+platform monospace in the app) for IDs, counts, and measurements — the
 "lab instrument" register.
 
-**Accent is for small text, never for mass.** Bars, big figures, and any other
-large or heavy element stay ink — including single-series chart bars and the
-hero/tile stat numbers. Manila reads as a highlight precisely because it is
-scarce and small; at size it stops accenting and starts competing, and the page
-loses its focal figure. When in doubt on something large, it is ink.
-
-This governs manila-as-*accent*. It does not touch the categorical ramp below,
-where manila is one of seven hues **encoding a category** — there the fill
-carries meaning rather than emphasis, so size is not the question.
+**Accent is for small text, never for mass.** Bars, big figures, and other
+large elements stay ink — including single-series chart bars and the hero/tile
+stat numbers. Manila reads as a highlight because it is scarce and small; at
+size it competes instead of accenting. When in doubt on something large, use
+ink. (In the categorical diagram ramp above, manila encodes a category rather
+than emphasis, so these size rules do not apply there.)
 
 ## Logo
 
@@ -182,7 +177,7 @@ samples); never "reverse engineering" in new copy.
 
 ## Alternative direction — Verdigris & Copper
 
-Runner-up palette, kept for review with supervision; typography is identical.
+Runner-up palette, kept as a fallback pending supervisor review; typography is identical.
 Story: copper is the most recovered material in the industrial stream, and
 verdigris is what it wears when it comes back. The green-teal primary is a
 half-step from the original teal (`#006783`) — lowest migration cost of the
