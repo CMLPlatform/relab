@@ -7,16 +7,17 @@
 // CSS variables and font. Each node carries a <title> — the accessible name and
 // the no-JS hover tooltip; method-flow.ts upgrades those into a popover that
 // also works on touch and keyboard, across whichever variant is shown.
-import methodFlowSvg from '@/assets/method-flow.svg?raw';
-import methodFlowTbSvg from '@/assets/method-flow-tb.svg?raw';
+
+import MethodFlow from '@/assets/method-flow.svg';
+import MethodFlowTb from '@/assets/method-flow-tb.svg';
 ---
 
 <section class="card content-reveal method-steps" aria-labelledby="method-steps-heading">
   <p class="method-eyebrow">method</p>
   <h2 id="method-steps-heading">From teardown to data</h2>
   <figure class="method-flow">
-    <div class="flow-wide"><Fragment set:html={methodFlowSvg} /></div>
-    <div class="flow-narrow"><Fragment set:html={methodFlowTbSvg} /></div>
+    <div class="flow-wide"><MethodFlow /></div>
+    <div class="flow-narrow"><MethodFlowTb /></div>
     <figcaption>
       The collection workflow, from product intake to the open dataset. Hover or tap a step for
       detail.
