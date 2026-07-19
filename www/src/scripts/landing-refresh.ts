@@ -10,7 +10,7 @@ import { fetchHomeStats, formatCount, type HomeStats } from '@/lib/stats.ts';
 /** Rewrite the metrics line's text in place. Same wording as the baked hero. */
 export function applyRefresh(stats: Pick<HomeStats, 'totals'> | null): void {
   const metrics = document.querySelector('[data-metrics]');
-  if (!metrics || !stats) {
+  if (!(metrics && stats)) {
     return;
   }
   const { teardowns, parts, mass_kg } = stats.totals;

@@ -85,7 +85,16 @@ test.describe('Landing page content', () => {
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'From teardown to data' })).toBeVisible();
-    await expect(page.locator('.step-name')).toHaveText(['Disassemble', 'Weigh', 'Photograph']);
+    const flow = page.locator('#method-flow');
+    await expect(flow).toBeVisible();
+    await expect(flow.locator('g.node')).toHaveCount(8);
+
+    // The script lifts each node's <title> into a popover shown on interaction.
+    const popover = page.locator('#method-flow-popover');
+    await expect(popover).toBeHidden();
+    await flow.locator('g.node').first().click();
+    await expect(popover).toBeVisible();
+    await expect(popover).not.toBeEmpty();
   });
 
   test('the stats panel shell ships with the page', async ({ page }) => {

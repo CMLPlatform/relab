@@ -78,6 +78,20 @@
           "tailwindDirectives": true
         }
       }
+    },
+    {
+      // Generated mermaid flowcharts (see method-flow.mmd). `role="group"` on
+      // <svg> is correct — it labels the diagram and lets it hold the
+      // interactive step nodes — but Biome's useSemanticElements suggests
+      // <fieldset>, which is invalid inside SVG. noImportantStyles fires on
+      // mermaid's own animation CSS. Neither is actionable in generated output.
+      "includes": ["src/assets/*.svg"],
+      "linter": {
+        "rules": {
+          "a11y": { "useSemanticElements": "off" },
+          "complexity": { "noImportantStyles": "off" }
+        }
+      }
     }
   ]
 }
