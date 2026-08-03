@@ -1,0 +1,515 @@
+# Production cutover: `main` → the MVP release
+
+One-time runbook for upgrading the production host from the `main` revision to
+the current release. Written 2026-08-03. Supersedes
+`secrets/prod/PROD_MIGRATION_PLAYBOOK.md`, which covered the May role-hardening
+cutover and is already applied.
+
+This file is committed deliberately: it contains no secrets, and the previous
+playbook lived under `secrets/`, which is gitignored and therefore never reached
+the deploy host.
+
+Alembic: prod is at `6f2b9e4a1c3d`, the release is `5bfb8deb5fa6` (17 migrations).
+
+## What makes this cutover different
+
+This is not a routine deploy. The deployment layout itself changed:
+
+- Backend configuration moved out of a hand-maintained `backend/.env.prod` into
+  15 files under `secrets/prod/`. **`backend/.env.prod` is no longer read at all.**
+- Five services were renamed, so the old stack must be stopped from the *old*
+  checkout or it leaves orphaned containers running.
+- Three least-privilege database roles are expected to exist, but the scripts
+  that create them only run on an empty Postgres volume — **so they must be
+  created by hand on prod.**
+- A new ClamAV service gates API startup and needs 3–4 GiB of RAM.
+
+Read section 1 fully before touching anything. Steps 2–6 are preparation and can
+be done ahead of the window; the outage starts at step 7.
+
+## 0. Abort rule
+
+Do not remove the old volume, the old backup directory, or `backend/.env.prod`
+until all of the following hold:
+
+- the post-upgrade verification in step 9 passes,
+- an upload, an OAuth login, and a product page have been exercised by hand,
+- `just backup-restore-smoke prod` succeeds.
+
+The migration runs as a **single transaction** (`backend/alembic/env.py` never
+sets `transaction_per_migration`), so any failure during step 8 rolls the schema
+back to `6f2b9e4a1c3d` untouched — no partial state, no `alembic stamp` repair.
+The irreversible risks are the *data* losses flagged in step 3, which the
+pre-upgrade dump is the only recovery path for.
+
+______________________________________________________________________
+
+## 1. Preparation on the deploy host (no downtime)
+
+```bash
+cd /path/to/relab
+git fetch origin
+git status                 # confirm a clean tree before switching
+```
+
+Record the current state while the old stack is still running:
+
+```bash
+docker ps -a --format '{{.Names}}\t{{.Image}}' | tee ~/relab-cutover/containers-before.txt
+docker volume ls | grep relab | tee ~/relab-cutover/volumes-before.txt
+```
+
+Volumes are **not** renamed in this release — `relab_prod_database_data`,
+`relab_prod_user_uploads`, and `relab_prod_cache_data` carry over untouched, and
+the project name is still `relab_prod`. No volume migration is needed.
+
+### 1a. Check the host has room for ClamAV
+
+The new `clamav` service is a hard dependency of `api`
+(`depends_on: condition: service_healthy`, `mem_limit: 4g`). Its first start
+downloads virus signatures into a fresh `clamav_db` volume and can take several
+minutes, during which the API will not come up. Confirm free memory:
+
+```bash
+free -g
+```
+
+If the host cannot spare ~4 GiB, resolve that before starting — the cutover will
+otherwise stall with a perpetually unhealthy `api`.
+
+______________________________________________________________________
+
+## 2. Take the backup that everything else depends on
+
+```bash
+mkdir -p ~/relab-cutover
+docker compose -p relab_prod exec -T postgres \
+  pg_dump -U "$PGSUPERUSER" -d relab_db --format=custom \
+  > ~/relab-cutover/prod-pre-mvp.dump
+
+docker run --rm \
+  -v relab_prod_user_uploads:/uploads:ro \
+  -v ~/relab-cutover:/out \
+  alpine:3.22 tar -C /uploads -czf /out/user_uploads-pre-mvp.tar.gz .
+
+ls -lh ~/relab-cutover        # both must be non-empty
+```
+
+`$PGSUPERUSER` is whatever your cluster was initialized with — see step 5, this
+is very likely **not** `postgres`.
+
+Also preserve the old backup directory: the release replaces the plain-copy
+backup services with an encrypted **restic** repository, and the old dumps are
+not readable by the new tooling.
+
+```bash
+cp -a "${BACKUP_DIR:-./backups}" ~/relab-cutover/old-backups
+```
+
+______________________________________________________________________
+
+## 3. Pre-flight data checks (read-only, run against live prod)
+
+Run these *before* the window. Each one exists because a migration either aborts
+or destroys data. Record every number — step 9 compares against them.
+
+```bash
+docker compose -p relab_prod exec -T postgres psql -U "$PGSUPERUSER" -d relab_db
+```
+
+```sql
+-- A. Email canonicalization (f8a91c2d4e6b) ABORTS the whole upgrade on a hit.
+SELECT lower(btrim(email)) AS canonical, count(*), array_agg(email)
+FROM "user" GROUP BY 1 HAVING count(*) > 1;
+
+SELECT id, email FROM "user"
+WHERE email IS NULL OR email <> btrim(email)
+   OR email !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'
+   OR email ~ '[^[:ascii:]]' OR length(email) > 254;
+-- Both MUST return 0 rows. Fix the offending rows first; the migration
+-- cannot be told to skip them.
+
+-- B. Recording sessions (8b70d4c2f1a9) are DELETED unconditionally.
+SELECT count(*) FROM recording_session;      -- must be 0, else a recording is in flight
+SELECT * FROM recording_session;             -- capture these rows if any exist
+
+-- C. Circularity notes (c7d8e9f0a1b2): record the expected post-upgrade count.
+SELECT count(*) AS will_be_non_null FROM product
+WHERE NULLIF(btrim(coalesce(recyclability_observation,'')),'')       IS NOT NULL
+   OR NULLIF(btrim(coalesce(recyclability_comment,'')),'')           IS NOT NULL
+   OR NULLIF(btrim(coalesce(recyclability_reference,'')),'')         IS NOT NULL
+   OR NULLIF(btrim(coalesce(repairability_observation,'')),'')       IS NOT NULL
+   OR NULLIF(btrim(coalesce(repairability_comment,'')),'')           IS NOT NULL
+   OR NULLIF(btrim(coalesce(repairability_reference,'')),'')         IS NOT NULL
+   OR NULLIF(btrim(coalesce(remanufacturability_observation,'')),'') IS NOT NULL
+   OR NULLIF(btrim(coalesce(remanufacturability_comment,'')),'')     IS NOT NULL
+   OR NULLIF(btrim(coalesce(remanufacturability_reference,'')),'')   IS NOT NULL;
+
+-- D. Data that is dropped outright, with schema-only downgrades. Export anything
+--    you still want.
+SELECT (SELECT count(*) FROM organization)                                AS orgs_dropped,
+       (SELECT count(*) FROM newslettersubscriber)                        AS newsletter_dropped,
+       (SELECT count(*) FROM product WHERE dismantling_notes IS NOT NULL) AS notes_dropped,
+       (SELECT count(*) FROM "user" WHERE last_login_ip IS NOT NULL)      AS last_ip_dropped;
+-- If newsletter_dropped > 0:
+-- \copy (SELECT email, is_confirmed, created_at FROM newslettersubscriber) TO '/tmp/newsletter.csv' CSV HEADER
+
+-- E. THE UPLOAD QUOTA LOCKOUT — read the note below.
+SELECT owner_id, count(*) AS media_count FROM (
+  SELECT p.owner_id FROM file  f JOIN product p ON f.parent_type='PRODUCT' AND f.parent_id=p.id
+  UNION ALL
+  SELECT p.owner_id FROM image i JOIN product p ON i.parent_type='PRODUCT' AND i.parent_id=p.id
+) m GROUP BY owner_id ORDER BY media_count DESC;
+
+-- F. Baseline counts for step 9.
+SELECT (SELECT count(*) FROM product WHERE parent_id IS NULL)     AS base_products,
+       (SELECT count(*) FROM product WHERE parent_id IS NOT NULL) AS components,
+       (SELECT count(*) FROM image)                               AS images,
+       (SELECT count(*) FROM file)                                AS files,
+       (SELECT count(*) FROM "user")                              AS users,
+       (SELECT count(*) FROM oauthaccount)                        AS oauth_links;
+```
+
+### The quota lockout (query E) — expect this to bite
+
+The release adds a per-user upload ledger. `upload_file_count` is backfilled
+**accurately** from real rows, and `max_upload_files_per_user` defaults to
+**1000** with no override anywhere in `deploy/`. Enforcement is
+`User.upload_file_count < file_limit`.
+
+With ~3,610 images concentrated in the lab account, that account very likely
+lands above 1000 and is **permanently blocked from all further uploads** the
+moment the app restarts, returning `413 Upload quota exceeded`.
+
+If any row in query E is at or near 1000, set a higher limit in the root `.env`
+before bringing the app up:
+
+```env
+MAX_UPLOAD_FILES_PER_USER=100000
+```
+
+Related, and worth knowing rather than acting on: `upload_size_bytes` is added
+with a default of `0` and **no backfill script exists anywhere in the repo**, so
+every pre-existing file counts as zero bytes and `upload_total_bytes` will read
+0 for every user. Byte-based quota is therefore meaningless after this upgrade —
+leave `MAX_UPLOAD_BYTES_PER_USER_MB` high enough that it cannot bite until
+someone writes a backfill.
+
+______________________________________________________________________
+
+## 4. Migrate secrets to the new layout
+
+The release reads secrets as **files** under `secrets/prod/`, via
+pydantic-settings `secrets_dir`. `backend/.env.prod` is no longer loaded.
+
+Exactly two files are missing, and both are renames. **Copy the values across —
+do not generate new ones:**
+
+```bash
+cd /path/to/relab
+cp secrets/prod/fastapi_users_secret secrets/prod/auth_token_secret
+cp secrets/prod/superuser_password   secrets/prod/bootstrap_superuser_password
+chmod 600 secrets/prod/auth_token_secret secrets/prod/bootstrap_superuser_password
+```
+
+`auth_token_secret` signs password-reset and email-verification links; a new
+value silently invalidates every reset link already in someone's inbox.
+
+Fill any remaining gaps and verify:
+
+```bash
+just deploy-secrets-template prod   # creates only what is missing, 0600
+just env-inventory                  # the 15 expected names
+just deploy-secrets-check
+```
+
+`deploy-secrets-template` now generates real random values rather than
+`replace-me-*` placeholders, except for external identity credentials
+(`*_oauth_client_secret`, `microsoft_graph_client_secret`) which it cannot
+invent. **Fill those in by hand** — production now *refuses to start* on a
+placeholder rather than warning.
+
+Leave the two old files (`fastapi_users_secret`, `superuser_password`) in place
+until the cutover is verified, then delete them.
+
+______________________________________________________________________
+
+## 5. Create the database roles by hand — do not skip
+
+The release connects as three least-privilege roles (`relab_app`,
+`relab_migrator`, `relab_backup`) instead of the cluster superuser.
+`deploy/postgres/initdb/10-relab-roles.sh` creates them, but
+`/docker-entrypoint-initdb.d` scripts **only run when the data directory is
+empty**. Prod's volume is populated, so they will never run and the API will
+fail to connect.
+
+First establish what your cluster actually is — staging, for reference, has a
+single login role `cml_test_admin` and no `postgres` role at all:
+
+```bash
+docker compose -p relab_prod exec -T postgres \
+  psql -U "$PGSUPERUSER" -d relab_db -c "\du"
+```
+
+> **If the superuser is not named `postgres`:** `compose.deploy.yaml` hardcodes
+> `POSTGRES_USER: postgres`, and the healthcheck runs `pg_isready -U postgres`.
+> A cluster whose superuser has a different name will fail its healthcheck and
+> never become ready. Resolve this before the window — either create a
+> `postgres` superuser role in the cluster, or change the hardcoded value.
+> This is a genuine mismatch, not a formality.
+
+Then apply the role setup against the live database, using
+`deploy/postgres/initdb/10-relab-roles.sh` as the authoritative source (read it
+and mirror it — passwords come from the matching `secrets/prod/database_*_password`
+files):
+
+```bash
+docker compose -p relab_prod exec -T postgres psql -U "$PGSUPERUSER" -d relab_db
+```
+
+Beyond what that script does, the existing database needs grants on objects that
+**already exist** — the script's `ALTER DEFAULT PRIVILEGES` only affects future
+objects, because on a fresh volume there are no tables yet:
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES    IN SCHEMA public TO relab_app;
+GRANT USAGE, SELECT                  ON ALL SEQUENCES IN SCHEMA public TO relab_app;
+GRANT SELECT                         ON ALL TABLES    IN SCHEMA public TO relab_backup;
+```
+
+Verify all three roles exist and can log in before continuing.
+
+______________________________________________________________________
+
+## 6. Update the root `.env`
+
+Backend settings that used to live in `backend/.env.prod` are now split: secrets
+into `secrets/prod/`, non-secret public URLs into the committed
+`deploy/env/prod.compose.env` (do not edit it), and operator inputs into the
+root `.env`.
+
+**Required — the stack will not render without these:**
+
+```env
+CLOUDFLARE_TUNNEL_TOKEN=…   # renamed from TUNNEL_TOKEN, same value
+EMAIL_PROVIDER=smtp         # or microsoft_graph
+EMAIL_FROM=…
+EMAIL_REPLY_TO=…
+BOOTSTRAP_SUPERUSER_EMAIL=…
+```
+
+**Carry across from `backend/.env.prod`,** noting the renames:
+
+| old                                            | new                                                      |
+| ---------------------------------------------- | -------------------------------------------------------- |
+| `EMAIL_HOST` / `EMAIL_PORT` / `EMAIL_USERNAME` | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USERNAME`              |
+| `SUPERUSER_EMAIL` / `SUPERUSER_NAME`           | `BOOTSTRAP_SUPERUSER_EMAIL` / `BOOTSTRAP_SUPERUSER_NAME` |
+| `LOKI_URL`                                     | `LOKI_PUSH_URL`                                          |
+| `BACKUP_DIR`                                   | `BACKUP_HOST_DIR`                                        |
+
+`LOKI_PUSH_URL` matters: log shipping is enabled by the *presence* of that
+variable, so an `.env` still saying `LOKI_URL=` silently stops shipping logs.
+The Loki label set also changed from `service,env,host` to
+`service,env,project`, so existing Grafana queries filtering on `host=` need
+updating.
+
+**Delete these stale names:** `APP_ENV`, `COMPOSE_PROJECT_NAME`, `BUILD_MODE`,
+`CSP_API_ORIGIN`, `WEB_CONCURRENCY`, `BACKEND_API_URL`, `FRONTEND_APP_URL`,
+`DOCS_URL`, `OAUTH_ALLOWED_REDIRECT_URIS`, and any `RELAB_*_IMAGE` overrides
+(the release always builds locally and silently ignores them).
+
+Check it:
+
+```bash
+just env-policy-check
+just compose-config
+```
+
+______________________________________________________________________
+
+## 7. Stop the old stack — from the old checkout
+
+Five services were renamed (`docs-site`→`docs`, `app-site`→`app`,
+`web-site`→`www`, and `uploads-backup`+`postgres-backup`→`backup`). The new
+compose files do not know the old names, and `just prod-down` does not pass
+`--remove-orphans`, so bringing the stack down *after* switching branches leaves
+the old containers running and still serving traffic.
+
+**Stop first, then switch:**
+
+```bash
+just prod-down YES backups          # still on the old revision
+docker ps -a | grep relab_prod      # must be empty of running containers
+```
+
+Only then:
+
+```bash
+git checkout <release-branch> && git pull --ff-only
+```
+
+If you switched too early, remove the orphans by name:
+
+```bash
+docker rm -f relab_prod-docs-site-1 relab_prod-app-site-1 relab_prod-web-site-1 \
+             relab_prod-uploads-backup-1 relab_prod-postgres-backup-1
+```
+
+______________________________________________________________________
+
+## 8. Build, start, migrate
+
+Images are built locally and pinned to `:prod-local` with no registry pull — a
+stale image silently runs the *old* code, so the rebuild is mandatory:
+
+```bash
+just prod-build
+```
+
+Confirm no seeding is enabled (`SEED_DUMMY_DATA`, `SEED_CPV_CATEGORIES`,
+`SEED_CPV_PRODUCT_TYPES`, `SEED_HS_CATEGORIES` unset or false) — the taxonomy
+seeds are not gated on an empty database.
+
+```bash
+just prod-up YES
+just prod-migrate YES
+```
+
+`prod-up` starts the database, cache, and ClamAV; expect the API to stay
+unhealthy for a few minutes on first boot while virus signatures download.
+`prod-migrate` runs the 17 migrations in one transaction, then always runs
+`create_superuser` (which only creates when absent — it will not reset your
+existing superuser's password).
+
+If the migration aborts, prod is untouched at `6f2b9e4a1c3d`. Fix the data
+(almost certainly a query-A email), and re-run.
+
+______________________________________________________________________
+
+## 9. Verify before declaring success
+
+```sql
+SELECT version_num FROM alembic_version;      -- 5bfb8deb5fa6
+
+-- Compare against the step 3 baseline (query F).
+SELECT (SELECT count(*) FROM product WHERE parent_id IS NULL)     AS base_products,
+       (SELECT count(*) FROM product WHERE parent_id IS NOT NULL) AS components,
+       (SELECT count(*) FROM image)                               AS images,
+       (SELECT count(*) FROM file)                                AS files,
+       (SELECT count(*) FROM "user")                              AS users,
+       (SELECT count(*) FROM oauthaccount)                        AS oauth_links;
+
+-- Circularity notes: 'populated' must equal query C, and no empty objects.
+SELECT count(*) FILTER (WHERE circularity_properties IS NOT NULL)   AS populated,
+       count(*) FILTER (WHERE circularity_properties = '{}'::jsonb) AS empty_objects
+FROM product;
+SELECT id, jsonb_pretty(circularity_properties) FROM product
+WHERE circularity_properties IS NOT NULL LIMIT 5;   -- comments/refs should be folded in
+
+-- Email canonicalization complete and unique: all three equal.
+SELECT count(*), count(email_canonical), count(DISTINCT email_canonical) FROM "user";
+
+-- No orphaned media.
+SELECT count(*) FROM image i WHERE i.parent_type='PRODUCT'
+  AND NOT EXISTS (SELECT 1 FROM product p WHERE p.id = i.parent_id);   -- 0
+
+-- Quota ledger: file counts real, bytes expected 0 (see step 3).
+SELECT sum(upload_file_count), sum(upload_total_bytes), max(upload_file_count) FROM "user";
+
+ANALYZE product; ANALYZE "user"; ANALYZE image; ANALYZE file;
+```
+
+Then exercise the real paths:
+
+```bash
+curl -fsS https://api.cml-relab.org/live
+curl -fsS https://api.cml-relab.org/health
+```
+
+By hand: log in with Google **and** GitHub (the GitHub client changed in this
+release), open a product with images, and **upload one image** — that last one
+confirms the quota ledger is not tripping.
+
+______________________________________________________________________
+
+## 10. Re-enable backups
+
+```bash
+just prod-up YES backups
+just backup-restore-smoke prod
+```
+
+Backups are now an encrypted restic repository under
+`${BACKUP_HOST_DIR:-./backups}/restic`, needing `secrets/prod/restic_password`.
+Do not rotate that password — existing snapshots depend on it. For offsite:
+
+```env
+RESTIC_OFFSITE_REPOSITORY=rclone:<remote>:relab/prod/restic
+```
+
+```bash
+just backup-offsite-copy prod
+```
+
+______________________________________________________________________
+
+## 11. Cloudflare — do nothing, deliberately
+
+`infra/cloudflare/` is new in this release. **Do not run `just cloudflare-apply`
+during or after this cutover.**
+
+There is no OpenTofu state for either workspace (`terraform.tfstate.d/staging/`
+is empty; no `prod` workspace exists), so an apply against the live,
+hand-configured zone would try to create everything from scratch: duplicate DNS
+records, a **new** tunnel whose id does not match your live
+`CLOUDFLARE_TUNNEL_TOKEN`, and — worst — new entries in the
+`http_ratelimit`, `http_request_cache_settings`, and
+`http_request_firewall_custom` phases, which allow exactly one ruleset per
+(zone, phase) and could overwrite your hand-made rules.
+
+Live traffic depends only on `CLOUDFLARE_TUNNEL_TOKEN` being set in the root
+`.env` for the `cloudflared` service. It does not depend on this Terraform.
+
+`just cloudflare-check` is safe (format, init, validate — no credentials, no
+network). Adopting the module properly means importing each existing tunnel, DNS
+record, and ruleset into state first; `infra/cloudflare/README.md` describes the
+workflow but provides no import commands, so treat it as a separate project
+after launch.
+
+______________________________________________________________________
+
+## 12. Rollback
+
+If verification fails and the release cannot be trusted:
+
+1. `just prod-down YES backups` from the release checkout.
+
+1. `git checkout main`.
+
+1. Restore the database from `~/relab-cutover/prod-pre-mvp.dump`:
+
+   ```bash
+   docker compose -p relab_prod exec -T postgres \
+     pg_restore --clean --if-exists --no-owner -U "$PGSUPERUSER" -d relab_db \
+     < ~/relab-cutover/prod-pre-mvp.dump
+   ```
+
+1. Restore uploads from `user_uploads-pre-mvp.tar.gz` if anything wrote to them.
+
+1. `just prod-up YES` on `main`.
+
+The schema has no scripted down-migration path for the dropped data: the
+`downgrade()` functions restore column *shape* but not content. The dump from
+step 2 is the real recovery mechanism, which is why step 0 forbids deleting it
+early.
+
+## Known post-launch gaps
+
+Not blockers, but do not discover them by surprise:
+
+- **No byte-quota accounting** until an `upload_size_bytes` backfill is written.
+- **No alerting.** Detection of a bad deploy is manual (`docker ps`, the health
+  endpoints, logs) until the Grafana stack lands.
+- **Deploy order is start-then-migrate.** `prod-up` brings the API up against
+  the old schema before `prod-migrate` runs. Harmless here because you are
+  taking a full outage, but it is not safe for a zero-downtime deploy.
