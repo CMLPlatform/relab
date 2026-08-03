@@ -5,6 +5,7 @@ import {
   StyleSheet,
   type ViewStyle,
 } from 'react-native';
+import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon, type IconName } from './Icon';
 
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 22,
+    borderRadius: radius.control,
   },
   pressed: {
     opacity: 0.6,

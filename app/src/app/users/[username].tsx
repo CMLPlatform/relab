@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
@@ -9,7 +9,7 @@ import { PageContainer } from '@/components/base/PageContainer';
 import { Text } from '@/components/base/Text';
 import { radius } from '@/constants';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
-import { type AppTheme, alpha, memoizeByTheme, useAppTheme } from '@/theme';
+import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
 export default function UserProfileScreen() {
   const theme = useAppTheme();
@@ -140,15 +140,6 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: 24,
-      elevation: 4,
-      ...(Platform.OS === 'web'
-        ? { boxShadow: `0px 2px 8px ${alpha(theme.colors.shadow, 0.1)}` }
-        : {
-            shadowColor: theme.colors.shadow,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-          }),
     },
     avatarText: {
       fontSize: 48,

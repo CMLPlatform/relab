@@ -1,7 +1,7 @@
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { radius, spacing } from '@/constants';
-import { alpha, useAppTheme } from '@/theme';
+import { spacing } from '@/constants';
+import { useAppTheme } from '@/theme';
 import { Icon } from './Icon';
 import { OverlaySurface } from './OverlaySurface';
 import { Text } from './Text';
@@ -18,9 +18,8 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   const [visible, setVisible] = useState(false);
   const show = useCallback(() => setVisible(true), []);
   const hide = useCallback(() => setVisible(false), []);
-  const tooltipShadowStyle = {
-    boxShadow: `0px 2px 4px ${alpha(theme.colors.shadow, 0.25)}`,
-  };
+  // Both variants float over content, so they take the single overlay tier.
+  const tooltipShadowStyle = theme.tokens.elevation.overlay;
 
   // Settings
   const exitDelay = 1500; // milliseconds
@@ -125,10 +124,8 @@ const styles = StyleSheet.create({
   tooltip: {
     padding: 12,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
     maxWidth: '80%',
     minWidth: 200,
-    elevation: 3,
   },
   anchor: {
     alignSelf: 'flex-start',
@@ -140,9 +137,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
-    borderRadius: radius.sm,
     maxWidth: 240,
     zIndex: 10,
-    elevation: 3,
   },
 });

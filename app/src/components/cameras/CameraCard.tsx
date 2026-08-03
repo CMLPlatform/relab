@@ -149,8 +149,9 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 16 / 10,
     overflow: 'hidden',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    // Matches the card's own radius so the thumbnail sits flush in its corners.
+    borderTopLeftRadius: radius.card,
+    borderTopRightRadius: radius.card,
   },
   thumbnail: {
     width: '100%',

@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { IconButton } from '@/components/base/IconButton';
+import { radius } from '@/constants';
 
 describe('IconButton', () => {
   it('fires onPress', () => {
@@ -33,5 +34,11 @@ describe('IconButton', () => {
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
     expect(style.minWidth).toBeGreaterThanOrEqual(44);
     expect(style.minHeight).toBeGreaterThanOrEqual(44);
+  });
+
+  it('uses the control radius, not a bespoke circle', () => {
+    render(<IconButton icon="close" onPress={jest.fn()} accessibilityLabel="Close" />);
+    const style = StyleSheet.flatten(screen.getByRole('button').props.style);
+    expect(style.borderRadius).toBe(radius.control);
   });
 });

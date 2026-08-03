@@ -2,6 +2,7 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-
 import { AppText } from '@/components/base/AppText';
 import { IconButton } from '@/components/base/IconButton';
 import { OverlaySurface } from '@/components/base/OverlaySurface';
+import { radius } from '@/constants';
 import type { StreamSession } from '@/context/streamSession';
 import { useAppTheme } from '@/theme';
 import { getFloatingPosition } from '@/utils/platformLayout';
@@ -24,7 +25,14 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
         onPress={onDismiss}
       />
 
-      <View style={[styles.sheet, { backgroundColor: theme.colors.elevation.level4 }]}>
+      <View
+        testID="streaming-sheet"
+        style={[
+          styles.sheet,
+          theme.tokens.elevation.overlay,
+          { backgroundColor: theme.colors.elevation.level4 },
+        ]}
+      >
         <View style={styles.headerRow}>
           <OverlaySurface style={styles.handle} tone="glass" />
           <IconButton
@@ -58,12 +66,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     maxHeight: '60%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: radius.overlay,
+    borderTopRightRadius: radius.overlay,
     paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 32 : 16, // clears the iOS home indicator
     overflow: 'hidden',
-    elevation: 4,
   },
   headerRow: {
     flexDirection: 'row',

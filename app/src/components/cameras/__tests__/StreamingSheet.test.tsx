@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { StreamingSheet } from '@/components/cameras/StreamingSheet';
+import { radius } from '@/constants';
 import { renderWithProviders } from '@/test-utils/index';
+import { getAppTheme } from '@/theme';
 
 const mockStreamingContent = jest.fn();
 
@@ -58,5 +61,17 @@ describe('StreamingSheet', () => {
     fireEvent.press(screen.getByLabelText('Close'));
 
     expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('carries the overlay radius and the single elevation tier', () => {
+    renderWithProviders(<StreamingSheet visible session={session} onDismiss={jest.fn()} />);
+
+    const style = StyleSheet.flatten(screen.getByTestId('streaming-sheet').props.style);
+    const overlay = getAppTheme('light').tokens.elevation.overlay;
+
+    expect(style.borderTopLeftRadius).toBe(radius.overlay);
+    expect(style.borderTopRightRadius).toBe(radius.overlay);
+    expect(style.shadowRadius).toBe(overlay.shadowRadius);
+    expect(style.elevation).toBe(overlay.elevation);
   });
 });

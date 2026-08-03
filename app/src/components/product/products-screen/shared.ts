@@ -195,7 +195,6 @@ export const productsScreenStyles = StyleSheet.create({
     right: 16,
     bottom: 16,
     zIndex: 31,
-    elevation: 12,
     margin: 0,
   },
 });

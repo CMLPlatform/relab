@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type RN from 'react-native';
 import { Platform, Pressable } from 'react-native';
+import { radius } from '@/constants';
 import { Text } from './Text';
 import { TextInput } from './TextInput';
 
@@ -74,7 +75,7 @@ export default function LocalizedFloatInput({
     height: 38,
     paddingHorizontal: 10,
     marginVertical: 2,
-    borderRadius: 50,
+    borderRadius: radius.control,
     ...style,
   } as RN.TextStyle;
   const webOnlyInputStyle =

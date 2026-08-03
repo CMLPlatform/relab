@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
+import { radius } from '@/constants';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import { AppText } from './AppText';
 import { Text } from './Text';
@@ -113,7 +114,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
     cell: {
       flex: 1,
       height: 56,
-      borderRadius: 12,
+      borderRadius: radius.control,
       borderWidth: 1.5,
       borderColor: theme.tokens.border.subtle,
       backgroundColor: theme.tokens.surface.sunken,

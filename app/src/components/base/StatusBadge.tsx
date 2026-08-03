@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native';
+import { radius } from '@/constants';
 import { getStatusTone } from '@/theme';
 import { Text } from './Text';
 
@@ -17,7 +18,7 @@ export function StatusBadge({ label, color }: StatusBadgeProps) {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 8,
+    borderRadius: radius.control,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
