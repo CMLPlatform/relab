@@ -24,14 +24,46 @@ def upgrade() -> None:
         "product",
         sa.Column("circularity_properties", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     )
+    # The JSONB model keeps one free-text note per strategy, so the retired
+    # comment/reference columns are folded into the note they annotated rather
+    # than dropped. left() caps each note at the schema's 500-character limit.
+    op.execute("""
+        CREATE FUNCTION pg_temp.relab_circularity_note(
+            observation text, comment text, reference text
+        ) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+            SELECT left(
+                NULLIF(
+                    concat_ws(
+                        ' ',
+                        NULLIF(btrim(coalesce(observation, '')), ''),
+                        NULLIF(btrim(coalesce(comment, '')), ''),
+                        CASE
+                            WHEN NULLIF(btrim(coalesce(reference, '')), '') IS NULL THEN NULL
+                            ELSE '(ref: ' || btrim(reference) || ')'
+                        END
+                    ),
+                    ''
+                ),
+                500
+            )
+        $$
+    """)
     op.execute("""
         UPDATE product
         SET circularity_properties = NULLIF(
             jsonb_strip_nulls(
                 jsonb_build_object(
-                    'recyclability', recyclability_observation,
-                    'disassemblability', repairability_observation,
-                    'remanufacturability', remanufacturability_observation
+                    'recyclability', pg_temp.relab_circularity_note(
+                        recyclability_observation, recyclability_comment, recyclability_reference
+                    ),
+                    'disassemblability', pg_temp.relab_circularity_note(
+                        repairability_observation, repairability_comment, repairability_reference
+                    ),
+                    'remanufacturability', pg_temp.relab_circularity_note(
+                        remanufacturability_observation,
+                        remanufacturability_comment,
+                        remanufacturability_reference
+                    )
                 )
             ),
             '{}'::jsonb

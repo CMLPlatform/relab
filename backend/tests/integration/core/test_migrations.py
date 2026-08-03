@@ -137,3 +137,53 @@ def test_alembic_autogenerate_is_clean(relab_alembic_config: Config) -> None:
     drifted from the migration history, this assertion fails.
     """
     command.check(relab_alembic_config)
+
+
+@pytest.mark.migration
+def test_circularity_migration_preserves_comments_and_references(
+    relab_alembic_config: Config, migration_helper: MigrationHelper
+) -> None:
+    """The circularity JSONB migration must not silently discard researcher notes.
+
+    The retired ``*_comment`` and ``*_reference`` columns held hand-entered field
+    notes and literature references. They have no home in the three-key JSONB
+    model, so the migration folds them into the note they annotated. Seeding real
+    rows is what makes this observable: the rest of the migration suite runs
+    against an empty database, where no data-dependent step does anything.
+    """
+    circularity_revision = "c7d8e9f0a1b2"
+    command.downgrade(relab_alembic_config, f"{circularity_revision}-1")
+
+    migration_helper.execute_sql("""
+        INSERT INTO "user" (id, email, hashed_password, is_active, is_superuser, is_verified, username)
+        VALUES (gen_random_uuid(), 'circularity-fixture@example.com', 'x', true, false, true, 'circfixture')
+        RETURNING id
+    """)
+    migration_helper.execute_sql("""
+        INSERT INTO product (
+            owner_id, name, weight_g, dismantling_time_start, dismantling_time_end,
+            recyclability_observation, recyclability_comment, recyclability_reference,
+            repairability_observation, repairability_comment, repairability_reference,
+            remanufacturability_observation, remanufacturability_comment, remanufacturability_reference
+        ) VALUES (
+            (SELECT id FROM "user" WHERE username = 'circfixture'),
+            'Circularity fixture', 100, now(), now(),
+            'mostly recyclable', 'casing is ABS', 'ISO 1234',
+            'hard to open', 'glued seams', 'iFixit 42',
+            '', 'no observation recorded', ''
+        )
+        RETURNING id
+    """)
+
+    command.upgrade(relab_alembic_config, "head")
+
+    props = migration_helper.execute_sql("""
+        SELECT circularity_properties FROM product WHERE name = 'Circularity fixture'
+    """)[0][0]
+
+    assert "casing is ABS" in props["recyclability"], props
+    assert "ISO 1234" in props["recyclability"], props
+    assert "glued seams" in props["disassemblability"], props
+    assert "iFixit 42" in props["disassemblability"], props
+    # A comment with no observation would previously have vanished entirely.
+    assert "no observation recorded" in props["remanufacturability"], props
