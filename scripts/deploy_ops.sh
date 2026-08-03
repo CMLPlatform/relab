@@ -126,11 +126,9 @@ deploy_secret_template_value() {
     local env="$1"
     local name="$2"
 
-    if [[ "$env" != "dev" ]]; then
-        printf 'replace-me-%s-%s\n' "$env" "$name"
-        return
-    fi
-
+    # Every environment auto-generates what it can. Seeding prod/staging with
+    # derivable placeholders left security-critical secrets (auth_token_secret,
+    # oauth_state_secret) guessable from a public repo.
     case "$name" in
         data_encryption_key)
             python3 -c 'import base64, secrets; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip("="))'

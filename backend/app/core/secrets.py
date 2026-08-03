@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, SecretStr
 
+from app.core.env import is_production_like_environment
+
 if TYPE_CHECKING:
     import logging
 
@@ -34,8 +36,19 @@ def find_placeholder_secret_names(settings_obj: BaseModel) -> list[str]:
 
 
 def warn_on_placeholder_secrets(logger: logging.Logger, *settings_objects: BaseModel) -> list[str]:
-    """Log a loud warning for any secret still holding a deploy placeholder; return their names."""
+    """Reject placeholder secrets in production-like environments; warn loudly elsewhere.
+
+    A placeholder is derivable from the public repository, so treating one as a
+    real credential in production is equivalent to having no secret at all.
+    """
     offenders = [name for obj in settings_objects for name in find_placeholder_secret_names(obj)]
+    if offenders and is_production_like_environment():
+        msg = (
+            f"{len(offenders)} secret(s) still hold deploy placeholders in a production-like "
+            f"environment: {', '.join(offenders)}. Set real values in secrets/<env>/ and recreate "
+            "the container."
+        )
+        raise RuntimeError(msg)
     if offenders:
         rule = "!" * 72
         logger.warning(

@@ -62,7 +62,9 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
       # Trust forwarded headers only from Docker-internal proxy addresses.
       FORWARDED_ALLOW_IPS: 172.16.0.0/12
-      TRUSTED_PROXY_CIDRS: 172.16.0.0/12
+      # Complex settings types are JSON-decoded by pydantic-settings; a bare
+      # string fails to parse and the container never starts.
+      TRUSTED_PROXY_CIDRS: '["172.16.0.0/12"]'
       # OpenTelemetry — OTEL_EXPORTER_OTLP_ENDPOINT is the on/off switch;
       # leave unset in root .env to disable. OTEL_SERVICE_NAME is read by the
       # OTEL SDK automatically from the container env and matches the compose
