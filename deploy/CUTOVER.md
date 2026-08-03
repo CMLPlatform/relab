@@ -1,33 +1,106 @@
 # Production cutover: `main` → the MVP release
 
 One-time runbook for upgrading the production host from the `main` revision to
-the current release. Written 2026-08-03. Supersedes
-`secrets/prod/PROD_MIGRATION_PLAYBOOK.md`, which covered the May role-hardening
-cutover and is already applied.
+the current release. Written 2026-08-03.
+
+Supersedes `secrets/prod/PROD_MIGRATION_PLAYBOOK.md`. That playbook described
+the role-hardening, encryption, and restic work as if it were being applied in
+May — but none of it exists on `main`, so **prod never received it**. Those
+steps are folded into this document instead (5, 8a, and 10).
 
 This file is committed deliberately: it contains no secrets, and the previous
 playbook lived under `secrets/`, which is gitignored and therefore never reached
 the deploy host.
 
-Alembic: prod is at `6f2b9e4a1c3d`, the release is `5bfb8deb5fa6` (17 migrations).
+If prod is exactly at `main`, its Alembic head is `6f2b9e4a1c3d` and the release
+is `5bfb8deb5fa6` (17 migrations). **Verify that rather than assuming it** —
+step 0 exists because the assumption is known to be shaky.
 
 ## What makes this cutover different
 
 This is not a routine deploy. The deployment layout itself changed:
 
-- Backend configuration moved out of a hand-maintained `backend/.env.prod` into
-  15 files under `secrets/prod/`. **`backend/.env.prod` is no longer read at all.**
+- Backend configuration moves out of a hand-maintained `backend/.env.prod` into
+  15 files under `secrets/prod/`. **`backend/.env.prod` is no longer read at
+  all**, and `main` had no secret-file mechanism whatsoever, so these files
+  likely do not exist on prod yet and must be created from the values currently
+  in `backend/.env.prod`.
+- Three least-privilege database roles are expected to exist. `main` has no
+  role-hardening script at all, and the scripts that create them only run on an
+  empty Postgres volume — **so they must be created by hand on prod.**
+- OAuth tokens and YouTube broadcast keys are stored **in plaintext** on `main`
+  (it has no `data_encryption_key`). They need a one-time encryption pass.
 - Five services were renamed, so the old stack must be stopped from the *old*
   checkout or it leaves orphaned containers running.
-- Three least-privilege database roles are expected to exist, but the scripts
-  that create them only run on an empty Postgres volume — **so they must be
-  created by hand on prod.**
-- A new ClamAV service gates API startup and needs 3–4 GiB of RAM.
+- Backups become an encrypted restic repository. `main` has no restic tooling,
+  so this is first-time setup, not a re-enable.
+- ClamAV is new, needs 3–4 GiB, and is now behind the `scanning` profile.
 
-Read section 1 fully before touching anything. Steps 2–6 are preparation and can
-be done ahead of the window; the outage starts at step 7.
+Read sections 0 and 1 fully before touching anything. Steps 2–6 are preparation
+and can be done ahead of the window; the outage starts at step 7.
 
-## 0. Abort rule
+______________________________________________________________________
+
+## 0. Establish what prod actually is — do this first
+
+The rest of this runbook assumes prod sits at `main` with no local changes.
+That assumption is **not** currently verified, and there is a known report of
+unpushed local commits on the prod host. Settle it before planning the window.
+
+On the deploy host:
+
+```bash
+cd /path/to/relab
+git status                        # dirty tree? uncommitted hotfixes?
+git log --oneline -5              # what revision is actually deployed
+git fetch origin
+git log --oneline origin/main..HEAD   # LOCAL COMMITS NOT ON ORIGIN
+git diff origin/main --stat            # uncommitted + committed drift
+```
+
+**If `origin/main..HEAD` is non-empty, stop and deal with it.** Those commits
+exist only on that host. Checking out the release branch does not delete them,
+but nobody has reviewed them, they are absent from the release, and any fix they
+contain will silently regress on cutover. Push them to a branch first so they
+are recoverable and reviewable:
+
+```bash
+git branch prod-local-$(date +%Y%m%d)
+git push origin prod-local-$(date +%Y%m%d)
+```
+
+Then diff them against the release and decide, per commit, whether it is already
+covered, needs porting, or can be dropped. Do not start the cutover with this
+unresolved.
+
+Next, establish the database and config state:
+
+```bash
+# Actual Alembic revision (the real input to the migration plan)
+docker compose -p relab_prod exec -T postgres \
+  psql -U "$PGSUPERUSER" -d relab_db -c 'SELECT version_num FROM alembic_version;'
+
+# Which config mechanism is live
+ls -la backend/.env.prod 2>/dev/null   && echo 'env-file config (main-era)'
+ls -la secrets/prod/ 2>/dev/null        && echo 'secret files already present'
+
+# Cluster superuser and whether the least-privilege roles exist
+docker compose -p relab_prod exec -T postgres psql -U "$PGSUPERUSER" -d relab_db -c '\du'
+```
+
+Record four answers before continuing:
+
+| Question                                 | Why it matters                                                                       |
+| ---------------------------------------- | ------------------------------------------------------------------------------------ |
+| Alembic revision                         | If not `6f2b9e4a1c3d`, the 17-migration count and the step 3 checks need re-deriving |
+| `backend/.env.prod` present?             | It is the **source** for the secret files created in step 4                          |
+| `secrets/prod/` present?                 | Absent is expected; step 4 creates it                                                |
+| Superuser name, `relab_*` roles present? | Drives steps 5 and every `psql` call here                                            |
+
+`$PGSUPERUSER` throughout this document is whatever that `\du` reports — on
+`main` it came from `backend/.env.prod`, so it is **not** necessarily `postgres`.
+
+## 0b. Abort rule
 
 Do not remove the old volume, the old backup directory, or `backend/.env.prod`
 until all of the following hold:
@@ -63,19 +136,32 @@ Volumes are **not** renamed in this release — `relab_prod_database_data`,
 `relab_prod_user_uploads`, and `relab_prod_cache_data` carry over untouched, and
 the project name is still `relab_prod`. No volume migration is needed.
 
-### 1a. Check the host has room for ClamAV
+### 1a. Decide whether to run ClamAV
 
-The new `clamav` service is a hard dependency of `api`
-(`depends_on: condition: service_healthy`, `mem_limit: 4g`). Its first start
-downloads virus signatures into a fresh `clamav_db` volume and can take several
-minutes, during which the API will not come up. Confirm free memory:
+`clamav` sits behind the `scanning` Compose profile. It needs 3–4 GiB of RAM,
+and its first start downloads virus signatures into a fresh `clamav_db` volume,
+which can take several minutes during which the API stays unhealthy.
 
 ```bash
 free -g
 ```
 
-If the host cannot spare ~4 GiB, resolve that before starting — the cutover will
-otherwise stall with a perpetually unhealthy `api`.
+**With enough RAM** — run it, and pass the profile on every up/down:
+
+```bash
+just prod-up YES scanning
+```
+
+**Without** — omit the profile *and* disable scanning in the root `.env`, or
+uploads fail closed:
+
+```env
+MALWARE_SCAN_ENABLED=false
+```
+
+Running without scanning means uploaded files are not checked for malware on a
+platform that accepts uploads from external contributors. Treat it as an
+explicit, temporary accepted risk, not a default.
 
 ______________________________________________________________________
 
@@ -181,11 +267,11 @@ With ~3,610 images concentrated in the lab account, that account very likely
 lands above 1000 and is **permanently blocked from all further uploads** the
 moment the app restarts, returning `413 Upload quota exceeded`.
 
-If any row in query E is at or near 1000, set a higher limit in the root `.env`
-before bringing the app up:
+The default is now **5000**, and it is overridable from the root `.env`. If any
+row in query E is at or near that, raise it before bringing the app up:
 
 ```env
-MAX_UPLOAD_FILES_PER_USER=100000
+MAX_UPLOAD_FILES_PER_USER=20000
 ```
 
 Related, and worth knowing rather than acting on: `upload_size_bytes` is added
@@ -202,18 +288,55 @@ ______________________________________________________________________
 The release reads secrets as **files** under `secrets/prod/`, via
 pydantic-settings `secrets_dir`. `backend/.env.prod` is no longer loaded.
 
-Exactly two files are missing, and both are renames. **Copy the values across —
-do not generate new ones:**
+Which path applies depends on what step 0 found.
+
+**If `secrets/prod/` does not exist on the host** (expected — `main` had no
+secret-file mechanism at all), you are creating all 15 from scratch, and the
+values must come out of the live `backend/.env.prod`. Generate the scaffolding
+first, then overwrite the carried-over ones by hand:
 
 ```bash
-cd /path/to/relab
+just deploy-secrets-template prod    # creates all 15 at 0600 with fresh values
+```
+
+Then, for each row below, replace the generated file's contents with the value
+already in `backend/.env.prod`. **Carrying these across matters** — a fresh
+value is not equivalent:
+
+| `backend/.env.prod` variable    | `secrets/prod/` file            | Why it must be carried over                                                                                |
+| ------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `FASTAPI_USERS_SECRET`          | `auth_token_secret`             | Signs password-reset and verification links; a new value invalidates every link already in someone's inbox |
+| `SUPERUSER_PASSWORD`            | `bootstrap_superuser_password`  | Your documented emergency admin password                                                                   |
+| `POSTGRES_PASSWORD`             | `postgres_password`             | Must match the existing cluster or nothing connects                                                        |
+| `REDIS_PASSWORD`                | `redis_password`                | Must match the running cache                                                                               |
+| `OAUTH_STATE_SECRET`            | `oauth_state_secret`            | Invalidates in-flight OAuth logins if changed                                                              |
+| `CACHE_SIGNING_SECRET`          | `cache_signing_secret`          | Invalidates signed cache entries if changed                                                                |
+| `GOOGLE_OAUTH_CLIENT_SECRET`    | `google_oauth_client_secret`    | Real credential, cannot be invented                                                                        |
+| `GITHUB_OAUTH_CLIENT_SECRET`    | `github_oauth_client_secret`    | Real credential                                                                                            |
+| `MICROSOFT_GRAPH_CLIENT_SECRET` | `microsoft_graph_client_secret` | Real credential                                                                                            |
+| `EMAIL_PASSWORD`                | `smtp_password`                 | Real credential                                                                                            |
+
+Write them without leaving values in shell history:
+
+```bash
+install -m 600 /dev/null secrets/prod/auth_token_secret
+printf '%s\n' 'VALUE_FROM_ENV_PROD' > secrets/prod/auth_token_secret   # repeat per row
+```
+
+The three `database_*_password` files and `restic_password` are new — the
+generated random values are correct, and the database ones are consumed by the
+roles you create in step 5. `data_encryption_key` is also new; keep the
+generated value and **record it**, because step 6a encrypts existing data with
+it and the data is unreadable without it.
+
+**If `secrets/prod/` already exists** with the old names, the delta is just two
+renames — copy, do not regenerate:
+
+```bash
 cp secrets/prod/fastapi_users_secret secrets/prod/auth_token_secret
 cp secrets/prod/superuser_password   secrets/prod/bootstrap_superuser_password
 chmod 600 secrets/prod/auth_token_secret secrets/prod/bootstrap_superuser_password
 ```
-
-`auth_token_secret` signs password-reset and email-verification links; a new
-value silently invalidates every reset link already in someone's inbox.
 
 Fill any remaining gaps and verify:
 
@@ -371,18 +494,42 @@ Confirm no seeding is enabled (`SEED_DUMMY_DATA`, `SEED_CPV_CATEGORIES`,
 seeds are not gated on an empty database.
 
 ```bash
-just prod-up YES
+just prod-up YES scanning     # drop `scanning` if you decided against ClamAV in 1a
 just prod-migrate YES
 ```
 
-`prod-up` starts the database, cache, and ClamAV; expect the API to stay
-unhealthy for a few minutes on first boot while virus signatures download.
+`prod-up` starts the database, cache, and (with the profile) ClamAV; expect the
+API to stay unhealthy for a few minutes on first boot while virus signatures
+download.
 `prod-migrate` runs the 17 migrations in one transaction, then always runs
 `create_superuser` (which only creates when absent — it will not reset your
 existing superuser's password).
 
 If the migration aborts, prod is untouched at `6f2b9e4a1c3d`. Fix the data
 (almost certainly a query-A email), and re-run.
+
+______________________________________________________________________
+
+## 8a. Encrypt the previously plaintext columns
+
+Only if step 0 found prod at `main` (or any revision without
+`DATA_ENCRYPTION_KEY`). `main` stores OAuth access/refresh tokens and YouTube
+broadcast keys as plaintext; the release expects them AES-256-GCM encrypted
+under `secrets/prod/data_encryption_key`. Until this runs, OAuth refresh and
+any YouTube flow will fail to read their stored values.
+
+Dry run first:
+
+```bash
+docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
+  -f compose.yaml -f compose.deploy.yaml \
+  --profile migrations run --rm --entrypoint python \
+  migrator -m scripts.maintenance.migrate_encryption_v1_to_v2 --dry-run
+```
+
+If it reports no errors, run it for real by dropping `--dry-run`. It is a
+one-time pass tied to the key created in step 4 — losing that key makes the
+encrypted columns unrecoverable.
 
 ______________________________________________________________________
 
@@ -432,7 +579,7 @@ confirms the quota ledger is not tripping.
 
 ______________________________________________________________________
 
-## 10. Re-enable backups
+## 10. Set up backups
 
 ```bash
 just prod-up YES backups
@@ -441,7 +588,10 @@ just backup-restore-smoke prod
 
 Backups are now an encrypted restic repository under
 `${BACKUP_HOST_DIR:-./backups}/restic`, needing `secrets/prod/restic_password`.
-Do not rotate that password — existing snapshots depend on it. For offsite:
+`main` has no restic tooling at all, so on a prod host coming from `main` this
+is **first-time setup**: the repository is initialized on first run and there
+are no pre-existing snapshots. From that point on, do not rotate
+`restic_password` — every later snapshot depends on it. For offsite:
 
 ```env
 RESTIC_OFFSITE_REPOSITORY=rclone:<remote>:relab/prod/restic

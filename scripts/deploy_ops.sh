@@ -253,17 +253,17 @@ stack_command() {
 
     case "$action" in
         up)
-            parse_profiles "$env" "migrations backups" "$@"
+            parse_profiles "$env" "migrations backups scanning" "$@"
             require_confirmation "start the $env stack" "just $env-up YES [profiles...]" "FORCE=1 just $env-up [profiles...]"
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" up -d
             ;;
         down)
-            parse_profiles "$env" "migrations backups" "$@"
+            parse_profiles "$env" "migrations backups scanning" "$@"
             require_confirmation "stop the $env stack" "just $env-down YES [profiles...]" "FORCE=1 just $env-down [profiles...]"
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" down
             ;;
         build)
-            parse_profiles "$env" "migrations backups" "$@"
+            parse_profiles "$env" "migrations backups scanning" "$@"
             if [[ "${#DEPLOY_PROFILE_FLAGS[@]}" -eq 0 ]]; then
                 DEPLOY_PROFILE_FLAGS=(--profile migrations --profile backups)
             fi

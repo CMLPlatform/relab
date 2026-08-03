@@ -87,19 +87,31 @@ services:
       DB_POOL_SIZE: "10"
       DB_POOL_MAX_OVERFLOW: "10"
       UVICORN_LIMIT_CONCURRENCY: "100"
-      MALWARE_SCAN_ENABLED: "true"
+      # Upload ceilings. Raise these from the root .env on an instance whose
+      # existing corpus already exceeds a default (the quota ledger counts real
+      # rows, so an over-limit owner is blocked from uploading entirely).
+      MAX_UPLOAD_FILES_PER_USER: "${MAX_UPLOAD_FILES_PER_USER:-5000}"
+      MAX_UPLOAD_BYTES_PER_USER_MB: "${MAX_UPLOAD_BYTES_PER_USER_MB:-2048}"
+      # Must agree with the `scanning` profile below: leaving this true without
+      # starting clamav fails uploads closed rather than letting them through.
+      MALWARE_SCAN_ENABLED: "${MALWARE_SCAN_ENABLED:-true}"
       CLAMAV_HOST: clamav
     depends_on:
       clamav:
         condition: service_healthy
+        # Optional so the stack still starts when the `scanning` profile is off.
+        required: false
     networks:
       - scanning
 
   clamav:
-    # ClamAV needs substantial RAM for signature databases; budget roughly
-    # 3-4 GiB so default reload and FreshClam database testing stay enabled.
-    # The first start with an empty clamav_db volume downloads signatures before
-    # clamd becomes healthy, so API startup may wait several minutes.
+    # Gated behind the `scanning` profile: it needs 3-4 GiB of RAM, which not
+    # every host can spare, and the first start with an empty clamav_db volume
+    # downloads signatures before clamd becomes healthy, so API startup waits
+    # several minutes. Omit the profile only together with
+    # MALWARE_SCAN_ENABLED=false, and treat that as an accepted risk.
+    profiles:
+      - scanning
     image: clamav/clamav:1.5_base-debian@sha256:dc21c2989e199a0ffdc4d00bfffff21cc1faaecc22a4442005bd00b0d0a7afd9
     entrypoint: /init-unprivileged
     user: clamav

@@ -72,6 +72,10 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
     "OTEL_EXPORTER_OTLP_ENDPOINT",
     "OTEL_EXPORTER_OTLP_HEADERS",
     "BACKUP_HOST_DIR",
+    # Upload ceilings and malware scanning, overridable per instance.
+    "MAX_UPLOAD_FILES_PER_USER",
+    "MAX_UPLOAD_BYTES_PER_USER_MB",
+    "MALWARE_SCAN_ENABLED",
 }
 STALE_ENV_NAMES = {
     "API_ORIGIN",
@@ -116,7 +120,9 @@ REMOVED_DEPLOY_ENV_FILES = {
     ROOT / "backend" / ".env.prod.example",
     ROOT / "backend" / ".env.staging.example",
     ROOT / "deploy" / "env" / "dev.compose.env",
-    ROOT / "www" / ".env.dev",
+    # www/.env.dev is intentionally kept: it holds only localhost dev origins for
+    # `astro dev`, not deploy configuration, so it is not the duplication this
+    # policy exists to prevent.
     ROOT / "www" / ".env.prod",
     ROOT / "www" / ".env.staging",
     ROOT / "www" / ".env.test",

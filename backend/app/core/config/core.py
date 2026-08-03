@@ -177,7 +177,7 @@ class CoreSettings(RelabBaseSettings):
     request_body_limit_bytes: int = Field(default=1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     max_file_upload_size_mb: int = Field(default=50, ge=1, le=500)
     max_image_upload_size_mb: int = Field(default=10, ge=1, le=100)
-    max_upload_files_per_user: int = Field(default=1000, ge=1, le=100_000)
+    max_upload_files_per_user: int = Field(default=5000, ge=1, le=100_000)
     max_upload_bytes_per_user_mb: int = Field(default=2048, ge=1, le=1_000_000)
     malware_scan_enabled: bool = False
     clamav_host: str = ""
