@@ -74,6 +74,26 @@ class _RelabGitHubOAuth2(GitHubOAuth2):
         """Return GitHub email addresses through the shared HTTP client."""
         return cast("list[dict[str, Any]]", await self._get_authenticated_json(token, GITHUB_EMAILS_ENDPOINT))
 
+    async def get_id_email(self, token: str) -> tuple[str, str | None]:
+        """Return (id, primary email) only when GitHub marks that email verified.
+
+        The library default takes the primary address without consulting the
+        ``verified`` flag, and falls back to the first address when none is
+        primary. Because ``is_verified_by_default`` trusts this address to create
+        a verified account, an unverified address would let anyone claim a
+        stranger's email. Mirrors the Google client above.
+        """
+        try:
+            profile = await self.get_profile(token)
+            emails = await self.get_emails(token)
+        except GetProfileError as exc:
+            raise GetIdEmailError(response=exc.response) from exc
+        email = next(
+            (entry["email"] for entry in emails if entry.get("primary") and entry.get("verified")),
+            None,
+        )
+        return str(profile["id"]), email
+
 
 # Google
 google_oauth_client = _RelabGoogleOAuth2(
