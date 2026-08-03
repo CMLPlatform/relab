@@ -219,7 +219,7 @@ export type ProductsQuery = {
 // FILTER_CSV_SEPARATOR. A comma collides with user text (brand/type names may
 // contain commas), so use the ASCII Unit Separator, which is rejected in stored
 // text and never appears in sort identifiers.
-const FILTER_CSV_SEPARATOR = '\x1f';
+export const FILTER_CSV_SEPARATOR = '\x1f';
 
 function buildProductsUrl(query: ProductsQuery): URL {
   const url = new URL(`${baseUrl}/products`);

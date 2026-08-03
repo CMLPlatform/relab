@@ -2,6 +2,7 @@ import { useQueries } from '@tanstack/react-query';
 import type { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { useAuth } from '@/context/auth';
+import { FILTER_CSV_SEPARATOR } from '@/services/api/products';
 import type { Product } from '@/types/Product';
 import { DEFAULT_PRODUCT_SORT, PRODUCT_SORT_OPTIONS, productsQueryOptions } from './queries';
 
@@ -33,8 +34,10 @@ export function normalizeProductsParams(params: ProductsSearchParams) {
         ? []
         : Array.from(DEFAULT_PRODUCT_SORT ?? FALLBACK_DEFAULT_SORT),
     activeDatePreset,
-    activeBrands: params.brands ? params.brands.split(',') : [],
-    activeProductTypes: params.types ? params.types.split(',') : [],
+    // Brand and type values are free user text that may contain commas, so the
+    // URL round-trip uses the same separator the API layer sends.
+    activeBrands: params.brands ? params.brands.split(FILTER_CSV_SEPARATOR) : [],
+    activeProductTypes: params.types ? params.types.split(FILTER_CSV_SEPARATOR) : [],
   };
 }
 

@@ -13,7 +13,7 @@ from sqlalchemy import ColumnElement, Select, or_
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from app.api.common.search_utils import apply_ts_rank_ordering, build_text_search_clause
-from app.api.common.validation import BoundedQueryText, BoundedQueryTextList
+from app.api.common.validation import FILTER_CSV_SEPARATOR, BoundedQueryText, BoundedQueryTextList
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -22,13 +22,9 @@ if TYPE_CHECKING:
 
 SUB_RESOURCE_LIMIT: int = 200
 
-# Separator for multi-valued CSV query params (``field[in]``, ``order_by``).
-# A literal comma collides with user text — brand/type names may contain commas
-# ("Johnson, Inc") — so use the ASCII Unit Separator (U+001F), which
-# normalize_user_text rejects in stored text and never appears in sort
-# identifiers. The frontend joins these params with the same character. Set at
-# import so every request context inherits it before any query param is parsed.
-FILTER_CSV_SEPARATOR = "\x1f"
+# Set at import so every request context inherits the separator before any
+# query param is parsed. The constant itself lives in app.api.common.validation,
+# which owns the normalization that has to split on it.
 csv_separator_config.set(FILTER_CSV_SEPARATOR)
 
 _QUERY_TEXT_ADAPTER = TypeAdapter(BoundedQueryText)
@@ -172,9 +168,22 @@ def apply_filter[MT: Base](
         statement = apply_ts_rank_ordering(statement, model_filter.search_vector_column(), model_filter.search)
 
     if model_filter.sorting:
+        relationship_columns = _relationship_columns(model_filter)
+        # Postgres requires every ORDER BY expression under SELECT DISTINCT
+        # (applied by paginate_select) to appear in the select list. Sorting on a
+        # joined column would otherwise raise 42P10. Same approach as
+        # apply_ts_rank_ordering; DISTINCT still collapses duplicates because the
+        # added column is functionally dependent on the joined row.
+        sorted_relationship_columns = [
+            column
+            for field, _direction, _nulls in model_filter.sorting
+            if (column := relationship_columns.get(field)) is not None
+        ]
+        if sorted_relationship_columns:
+            statement = statement.add_columns(*sorted_relationship_columns)
         statement = cast(
             "Select[tuple[MT]]",
-            apply_sorting(statement, model_filter.sorting, additional=_relationship_columns(model_filter)),
+            apply_sorting(statement, model_filter.sorting, additional=relationship_columns),
         )
     return statement
 

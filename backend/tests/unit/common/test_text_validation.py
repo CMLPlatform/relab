@@ -4,6 +4,7 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from app.api.common.validation import (
+    FILTER_CSV_SEPARATOR,
     MAX_QUERY_LIST_ITEMS,
     MAX_QUERY_TEXT_LENGTH,
     BoundedQueryText,
@@ -65,15 +66,26 @@ def test_bounded_query_text_rejects_unbounded_input(value: object, message: str)
 
 
 def test_bounded_query_text_list_splits_and_trims_csv() -> None:
-    """Comma-separated filter values arrive as a trimmed list."""
-    assert _query_list.validate_python("steel, copper") == ["steel", "copper"]
+    """Separator-joined filter values arrive as a trimmed list.
+
+    fastapi-filters hands list-typed filters through as a single-element list,
+    so the separator has to be split out of that form too — otherwise a
+    two-value filter is queried as one literal string and matches nothing.
+    """
+    assert _query_list.validate_python(f"steel{FILTER_CSV_SEPARATOR} copper") == ["steel", "copper"]
+    assert _query_list.validate_python([f"steel{FILTER_CSV_SEPARATOR}copper"]) == ["steel", "copper"]
     assert _query_list.validate_python([" steel "]) == ["steel"]
+
+
+def test_bounded_query_text_list_keeps_commas_inside_values() -> None:
+    """A comma is legitimate user text (``Johnson, Inc``) and must not split a value."""
+    assert _query_list.validate_python(["Johnson, Inc"]) == ["Johnson, Inc"]
 
 
 @pytest.mark.parametrize(
     ("value", "message"),
     [
-        ("steel,,copper", "must not be blank"),
+        (f"steel{FILTER_CSV_SEPARATOR}{FILTER_CSV_SEPARATOR}copper", "must not be blank"),
         ([f"m{i}" for i in range(MAX_QUERY_LIST_ITEMS + 1)], "at most"),
         (["x" * (MAX_QUERY_TEXT_LENGTH + 1)], "at most"),
     ],

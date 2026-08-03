@@ -1,6 +1,7 @@
 import type { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import type { DialogContextType } from '@/components/base/dialogContext';
+import { FILTER_CSV_SEPARATOR } from '@/services/api/products';
 import type { ProductFilter, RouterSetParams } from './screenData';
 
 type CurrentUser = { isVerified: boolean };
@@ -69,7 +70,10 @@ export function useProductsActions({
   );
   const applyBrandSelection = useCallback(
     (values: string[]) =>
-      updateParams({ brands: values.length ? values.join(',') : undefined, page: '1' }),
+      updateParams({
+        brands: values.length ? values.join(FILTER_CSV_SEPARATOR) : undefined,
+        page: '1',
+      }),
     [updateParams],
   );
   const clearBrands = useCallback(
@@ -78,7 +82,10 @@ export function useProductsActions({
   );
   const applyTypeSelection = useCallback(
     (values: string[]) =>
-      updateParams({ types: values.length ? values.join(',') : undefined, page: '1' }),
+      updateParams({
+        types: values.length ? values.join(FILTER_CSV_SEPARATOR) : undefined,
+        page: '1',
+      }),
     [updateParams],
   );
   const clearTypes = useCallback(

@@ -81,3 +81,26 @@ async def test_admin_users_returns_page_envelope(api_client_superuser_light: Asy
     response = await api_client_superuser_light.get("/v1/admin/users")
     assert response.status_code == status.HTTP_200_OK
     assert "items" in response.json()
+
+
+@pytest.mark.parametrize(
+    ("path", "sort_field"),
+    [
+        ("/v1/products", "product_type_name"),
+        ("/v1/materials", "category_name"),
+        ("/v1/categories", "taxonomy_name"),
+    ],
+)
+async def test_sorting_by_joined_column_does_not_error(
+    api_client_light: AsyncClient, db_session: AsyncSession, path: str, sort_field: str
+) -> None:
+    """Sorting on a relationship column must not trip Postgres 42P10 under SELECT DISTINCT.
+
+    paginate_select applies .distinct(), and Postgres requires every ORDER BY
+    expression to appear in the select list, so a joined sort column has to be
+    added there explicitly.
+    """
+    await MaterialFactory.create_async(session=db_session, name="JoinedSortMaterial")
+    response = await api_client_light.get(f"{path}?order_by={sort_field}")
+    assert response.status_code == status.HTTP_200_OK, response.text
+    assert "items" in response.json()

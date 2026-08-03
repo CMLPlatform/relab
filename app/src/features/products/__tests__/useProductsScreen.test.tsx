@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { productsQueryOptions } from '@/features/products/queries';
 import { useProductsScreen } from '@/features/products/useProductsScreen';
+import { FILTER_CSV_SEPARATOR } from '@/services/api/products';
 
 let mockSearchParams: Record<string, string> = {};
 const mockSetParams: jest.Mock = jest.fn();
@@ -207,7 +208,10 @@ describe('useProductsScreen', () => {
     });
 
     expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine', page: '1' });
-    expect(mockSetParams).toHaveBeenCalledWith({ brands: 'Apple,Dell', page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({
+      brands: `Apple${FILTER_CSV_SEPARATOR}Dell`,
+      page: '1',
+    });
     expect(mockSetParams).toHaveBeenCalledWith({ page: '3' });
   });
 
