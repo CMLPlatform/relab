@@ -57,11 +57,15 @@ export default defineConfig({
       grepInvert: /@auth/,
     },
   ],
-  // Serves the pre-built Expo web dist/ unless BASE_URL is already set
+  // Serves the pre-built Expo web dist/ unless BASE_URL is already set.
+  // --single is load-bearing: app.json sets web.output "single", so dist/ holds
+  // one index.html and every route is resolved client-side. Without the SPA
+  // fallback every deep link (/products, /login, …) 404s here, while prod is
+  // fine because Caddy does `try_files {path} /index.html`.
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: 'pnpm exec serve dist -l 18011 --no-clipboard',
+        command: 'pnpm exec serve dist -l 18011 --single --no-clipboard',
         url: 'http://localhost:18011',
         reuseExistingServer: !process.env.CI,
       },

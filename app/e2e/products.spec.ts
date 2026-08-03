@@ -15,6 +15,7 @@ import {
   finishOnboardingIfVisible,
   loginAndReachProducts,
   openNewProductPage,
+  suppressGuestWelcomeCard,
 } from './helpers';
 
 const LOGIN_URL_PATTERN = /login/;
@@ -27,11 +28,11 @@ async function registerNewUserAndReachProducts(page: import('@playwright/test').
   const password = 'correct-horse-battery-staple-v42';
 
   await page.goto('/new-account');
-  await page.getByPlaceholder('Username', { exact: true }).fill(username);
+  await page.getByLabel('Username', { exact: true }).fill(username);
   await page.getByTestId('username-next').click();
-  await page.getByPlaceholder('Email address').fill(email);
+  await page.getByLabel('Email address').fill(email);
   await page.getByTestId('email-next').click();
-  await page.getByPlaceholder('Password').fill(password);
+  await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Create account' }).click();
 
   // Registration no longer auto-logs-in (non-enumerable signup): dismiss the
@@ -40,8 +41,8 @@ async function registerNewUserAndReachProducts(page: import('@playwright/test').
   await page.getByRole('button', { name: 'OK' }).click();
   await expect(page).toHaveURL(LOGIN_URL_PATTERN, { timeout: 5_000 });
 
-  await page.getByPlaceholder('Email or username').fill(email);
-  await page.getByPlaceholder('Password').fill(password);
+  await page.getByLabel('Email or username').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
   await finishOnboardingIfVisible(page);
@@ -53,13 +54,16 @@ test.describe('Guest access', () => {
   test('products page is publicly accessible without signing in', {
     tag: '@cross-browser',
   }, async ({ page }) => {
+    // The guest welcome card carries its own "Sign in" button, so suppressing it
+    // leaves the header pill as the only match for the assertion below.
+    await suppressGuestWelcomeCard(page);
     await page.goto('/products');
     await dismissProductsInfoCard(page);
     await expect(page.getByPlaceholder('Search products')).toBeVisible({
       timeout: 10_000,
     });
     // Header shows "Sign in" pill for guests
-    await expect(page.getByText('Sign in', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
   });
 });
 
@@ -101,7 +105,10 @@ test.describe('Search', () => {
   });
 
   test('clearing the search bar restores the default empty-state message', async ({ page }) => {
-    await loginAndReachProducts(page);
+    // A fresh account, not the shared admin: the "Mine" empty state is only
+    // reachable for a user who owns nothing, and the product-creation specs add
+    // products under the admin during the same run.
+    await registerNewUserAndReachProducts(page);
     const searchBar = page.getByPlaceholder('Search products');
     await searchBar.fill('xyz_no_match_99999');
     await expect(page.getByText('No products match your search.')).toBeVisible({

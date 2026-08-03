@@ -104,13 +104,18 @@ test.describe('Product detail: section navigation', () => {
     // Section heading is the last match in DOM order (nav renders first).
     const heading = page.getByText('Physical properties', { exact: true }).last();
     await expect(heading).toBeVisible({ timeout: 5_000 });
-    // Poll: scrollTo animates, so the heading needs a moment to settle near
-    // the viewport top. Pre-fix it landed ~a full section short (y >> 200).
+    // The heading settles just under the sticky chrome (top nav + product header
+    // + chip bar), so the ceiling is measured from that chrome rather than a
+    // magic number that drifts every time the header changes height. Pre-fix the
+    // scroll landed ~a full section short — hundreds of px below this bound.
+    const chipBar = await page.getByRole('button', { name: 'Physical properties' }).boundingBox();
+    const chromeBottom = (chipBar?.y ?? 0) + (chipBar?.height ?? 0);
+    // Poll: scrollTo animates, so the heading needs a moment to settle.
     await expect
       .poll(async () => (await heading.boundingBox())?.y ?? Number.POSITIVE_INFINITY, {
         timeout: 5_000,
       })
-      .toBeLessThan(200);
+      .toBeLessThan(chromeBottom + 100);
   });
 });
 

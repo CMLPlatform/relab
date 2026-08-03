@@ -9,7 +9,9 @@ const NEW_PRODUCT_URL_PATTERN = /\/products\/new$/;
 const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const VIEW_IMAGE_LABEL_PATTERN = /^View image \d+$/;
-const DISMISS_BUTTON_NAMES = ['Got it', 'Maybe later', 'Continue'] as const;
+// ProductsWelcomeCard's dismiss affordance: "Maybe later" for guests, "Got it"
+// once signed in. "Continue" covers the onboarding variant.
+const WELCOME_CARD_DISMISS_PATTERN = /^(Got it|Maybe later|Continue)$/;
 // The menu is an RN-core Modal (Menu.tsx) that measures its anchor position on
 // open; under parallel-worker CPU load an open can occasionally land before the
 // items lay out. Each attempt is an independent chance at a clean open, so a
@@ -25,7 +27,7 @@ function makeOnboardingUsername() {
  * Must be called before any goto() on this page. The key matches
  * GUEST_INFO_CARD_STORAGE_KEY in useProductsWelcomeCard.ts.
  */
-async function suppressGuestWelcomeCard(page: Page) {
+export async function suppressGuestWelcomeCard(page: Page) {
   await page.addInitScript(() => {
     try {
       localStorage.setItem('products_info_card_dismissed_guest', 'true');
@@ -36,20 +38,23 @@ async function suppressGuestWelcomeCard(page: Page) {
 }
 
 export async function dismissProductsInfoCard(page: Page) {
-  // Fallback dismissal for authenticated users (whose preference lives server-side).
-  const welcomeHeading = page.getByText('Welcome to Relab', { exact: true });
-  const appeared = await welcomeHeading.isVisible({ timeout: 1_000 }).catch(() => false);
-  if (!appeared) return;
+  // Fallback dismissal for authenticated users (whose preference lives server-side,
+  // so the localStorage suppression above can't reach them).
+  //
+  // Keyed on the dismiss button, not the card's title: ProductsWelcomeCard shows
+  // three different titles (guest / verified / unverified) and matching one of
+  // them silently no-ops for the other two, leaving the card covering the list.
+  // The card also renders a beat after the search bar, so this waits rather than
+  // probing once.
+  const dismissButton = page
+    .getByRole('button', { name: WELCOME_CARD_DISMISS_PATTERN })
+    .filter({ visible: true })
+    .first();
 
-  for (const name of DISMISS_BUTTON_NAMES) {
-    const button = page.getByRole('button', { name, exact: true });
-    // biome-ignore lint/performance/noAwaitInLoops: probe dismiss buttons in order; first visible wins.
-    if (await button.isVisible({ timeout: 500 }).catch(() => false)) {
-      await button.click();
-      await expect(welcomeHeading).not.toBeVisible({ timeout: 5_000 });
-      return;
-    }
-  }
+  if (!(await dismissButton.isVisible({ timeout: 5_000 }).catch(() => false))) return;
+
+  await dismissButton.click();
+  await expect(dismissButton).not.toBeVisible({ timeout: 5_000 });
 }
 
 export async function reachProductsPage(page: Page) {
@@ -76,8 +81,11 @@ export async function finishOnboardingIfVisible(page: Page) {
 export async function loginAndReachProducts(page: Page) {
   await suppressGuestWelcomeCard(page);
   await page.goto('/login');
-  await page.getByPlaceholder('Email or username').fill(EMAIL);
-  await page.getByPlaceholder('Password').fill(PASSWORD);
+  // Auth fields are addressed by their visible label, not their placeholder:
+  // the redesign moved the field name out of the placeholder (now an example
+  // value, e.g. "you@university.edu") into a label that survives typing.
+  await page.getByLabel('Email or username').fill(EMAIL);
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Sign in' }).click();
 
   await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
@@ -95,7 +103,7 @@ export async function loginAndGoToProfile(page: Page) {
 }
 
 export async function openNewProductPage(page: Page) {
-  await page.getByRole('button', { name: 'Create new product' }).click();
+  await page.getByRole('button', { name: 'New product' }).click();
   await expect(page).toHaveURL(NEW_PRODUCT_URL_PATTERN, {
     timeout: 10_000,
   });

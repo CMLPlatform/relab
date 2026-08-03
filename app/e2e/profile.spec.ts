@@ -30,13 +30,13 @@ test.describe('Profile: access', () => {
 
   test('header shows username pill (not Sign in) after login', async ({ page }) => {
     await page.goto('/login');
-    await page.getByPlaceholder('Email or username').fill(EMAIL);
-    await page.getByPlaceholder('Password').fill(PASSWORD);
+    await page.getByLabel('Email or username').fill(EMAIL);
+    await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
     await finishOnboardingIfVisible(page);
     // Once authenticated, the header pill switches from "Sign in" to the username
-    await expect(page.getByText('Sign in', { exact: true })).not.toBeVisible({
+    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).not.toBeVisible({
       timeout: 5_000,
     });
     // The header also shows the email address as part of the identity in the profile page,
@@ -146,7 +146,7 @@ test.describe('Profile: logout dialog', () => {
     await page.getByRole('button', { name: 'Sign out', exact: true }).last().click();
     await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 15_000 });
     // The header should now show "Sign in" instead of the username
-    await expect(page.getByText('Sign in', { exact: true })).toBeVisible({
+    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible({
       timeout: 5_000,
     });
   });
