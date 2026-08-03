@@ -216,29 +216,28 @@ describe('useGalleryKeyboardNavigation guards', () => {
   }
 
   // Regression: arrow keys typed into a text field also moved the gallery slide.
-  it.each([
-    ['INPUT'],
-    ['TEXTAREA'],
-    ['SELECT'],
-  ])('ignores arrow keys typed inside a %s', (tagName) => {
-    const onPrevious = jest.fn();
-    const onNext = jest.fn();
-    renderHook(() =>
-      useGalleryKeyboardNavigation({
-        enabled: true,
-        imageCount: 3,
-        selectedIndex: 1,
-        onPrevious,
-        onNext,
-      }),
-    );
+  it.each([['INPUT'], ['TEXTAREA'], ['SELECT']])(
+    'ignores arrow keys typed inside a %s',
+    (tagName) => {
+      const onPrevious = jest.fn();
+      const onNext = jest.fn();
+      renderHook(() =>
+        useGalleryKeyboardNavigation({
+          enabled: true,
+          imageCount: 3,
+          selectedIndex: 1,
+          onPrevious,
+          onNext,
+        }),
+      );
 
-    act(() => press('ArrowRight', { tagName, isContentEditable: false }));
-    act(() => press('ArrowLeft', { tagName, isContentEditable: false }));
+      act(() => press('ArrowRight', { tagName, isContentEditable: false }));
+      act(() => press('ArrowLeft', { tagName, isContentEditable: false }));
 
-    expect(onNext).not.toHaveBeenCalled();
-    expect(onPrevious).not.toHaveBeenCalled();
-  });
+      expect(onNext).not.toHaveBeenCalled();
+      expect(onPrevious).not.toHaveBeenCalled();
+    },
+  );
 
   it('ignores arrow keys inside a contentEditable element', () => {
     const onNext = jest.fn();

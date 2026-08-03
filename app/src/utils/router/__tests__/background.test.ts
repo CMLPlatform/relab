@@ -26,25 +26,21 @@ describe('useBackgroundOverlay', () => {
 
   // The rest of the auth flow puts everything on a card, so a flat light scrim
   // is enough and the backdrop stays livelier.
-  it.each([
-    '/onboarding',
-    '/forgot-password',
-    '/reset-password',
-    '/mfa',
-    '/verify',
-  ])('uses the flat hero scrim on %s', (pathname) => {
-    expect(overlayFor(pathname)).toEqual({ color: overlay.hero, edgeColor: null });
-  });
+  it.each(['/onboarding', '/forgot-password', '/reset-password', '/mfa', '/verify'])(
+    'uses the flat hero scrim on %s',
+    (pathname) => {
+      expect(overlayFor(pathname)).toEqual({ color: overlay.hero, edgeColor: null });
+    },
+  );
 
   // edgeColor null is what tells AppBackground to paint a flat fill rather than
   // a gradient, so it is part of the contract, not an incidental value.
-  it.each([
-    '/products',
-    '/cameras',
-    '/account',
-  ])('uses the flat near-opaque page overlay on %s', (pathname) => {
-    expect(overlayFor(pathname)).toEqual({ color: overlay.page, edgeColor: null });
-  });
+  it.each(['/products', '/cameras', '/account'])(
+    'uses the flat near-opaque page overlay on %s',
+    (pathname) => {
+      expect(overlayFor(pathname)).toEqual({ color: overlay.page, edgeColor: null });
+    },
+  );
 
   it('resolves the scrim against the active colour scheme', () => {
     const dark = getAppTheme('dark').tokens.overlay;
