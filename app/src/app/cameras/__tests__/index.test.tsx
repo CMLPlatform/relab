@@ -10,7 +10,7 @@ const mockUseAuth = jest.fn();
 const mockUseCamerasQuery = jest.fn();
 const mockUseLocalConnection = jest.fn();
 const mockCaptureMutate = jest.fn();
-const mockUseIsDesktop = jest.fn<() => boolean>(() => false);
+const mockUseBreakpoint = jest.fn(() => ({ isMd: false, isLg: false }));
 
 jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
@@ -28,8 +28,8 @@ jest.mock('@/features/cameras/local-connection/useLocalConnection', () => ({
   useLocalConnection: (...args: unknown[]) => mockUseLocalConnection(...args),
 }));
 
-jest.mock('@/hooks/useIsDesktop', () => ({
-  useIsDesktop: () => mockUseIsDesktop(),
+jest.mock('@/hooks/useBreakpoint', () => ({
+  useBreakpoint: () => mockUseBreakpoint(),
 }));
 
 jest.mock('@/components/base/CenteredSpinner', () => {
@@ -95,7 +95,7 @@ describe('CamerasScreen', () => {
       mode: 'relay',
       localBaseUrl: null,
     });
-    mockUseIsDesktop.mockReturnValue(false);
+    mockUseBreakpoint.mockReturnValue({ isMd: false, isLg: false });
   });
 
   it('shows an empty state and lets the user navigate to add a camera', () => {
@@ -491,7 +491,7 @@ describe('CamerasScreen', () => {
   // ── Column layout ──────────────────────────────────────────────────────────
 
   it('desktop layout uses 3 columns', () => {
-    mockUseIsDesktop.mockReturnValue(true);
+    mockUseBreakpoint.mockReturnValue({ isMd: true, isLg: false });
     mockUseCamerasQuery.mockReturnValue({
       data: [],
       isLoading: false,
@@ -508,7 +508,7 @@ describe('CamerasScreen', () => {
   });
 
   it('mobile layout uses 2 columns', () => {
-    mockUseIsDesktop.mockReturnValue(false);
+    mockUseBreakpoint.mockReturnValue({ isMd: false, isLg: false });
     mockUseCamerasQuery.mockReturnValue({
       data: [],
       isLoading: false,

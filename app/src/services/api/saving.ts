@@ -186,6 +186,10 @@ async function deleteImage(product: Product, image: { id: string }) {
     method: 'DELETE',
     headers: ACCEPT_HEADERS,
   });
+  // A 404 means the image is already gone server-side — treat as success so a
+  // retried save (e.g. after a sibling upload failed) doesn't get stuck
+  // re-issuing DELETE for an image the cache hasn't dropped yet.
+  if (response.status === 404) return;
   await throwOnError(response, 'delete image');
 }
 

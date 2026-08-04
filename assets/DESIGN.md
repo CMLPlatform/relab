@@ -131,6 +131,12 @@ the flat-&-sharp geometry, replacing the mixed-weight `@expo/vector-icons`
 (MaterialCommunityIcons) set. Sizes are tokens (`icon-sm` 16, `icon-md` 20,
 `icon-lg` 24); icon-only controls keep a ≥44px hit area.
 
+Brand marks are the one exception: GitHub, Google, YouTube, and LinkedIn are
+vendored monochrome SVGs in `assets/icons/brand/` (Simple Icons, CC0-1.0),
+rendered filled with `currentColor` at the same size tokens as Lucide glyphs.
+Lucide stays the only family for non-brand glyphs; never recolor a brand mark
+into its own brand palette.
+
 ### Colour & type roles within the form
 
 Primary blue carries **all interaction** — actions, links, and every

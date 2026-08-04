@@ -42,8 +42,8 @@ jest.mock('@/features/cameras/useEffectiveCameraConnection', () => ({
   resolveEffectiveCameraConnection: () => ({ isReachable: true }),
 }));
 
-jest.mock('@/hooks/useIsDesktop', () => ({
-  useIsDesktop: () => false,
+jest.mock('@/hooks/useBreakpoint', () => ({
+  useBreakpoint: () => ({ isMd: false, isLg: false }),
 }));
 
 jest.mock('@/features/products/queries', () => ({

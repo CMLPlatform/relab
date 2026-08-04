@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
-import DetailCard from '@/components/base/DetailCard';
+import { Card } from '@/components/base/Card';
 import { Skeleton } from '@/components/base/Skeleton';
 import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
@@ -29,12 +29,12 @@ export default function ProductDetailsSkeleton() {
       {[1, 2, 3].map((n) => (
         <View key={n} style={styles.section}>
           <Skeleton style={[styles.sectionTitle, { backgroundColor: bg }]} />
-          <DetailCard>
+          <Card className="mx-3.5 px-3 pt-1.5 pb-1.5">
             <View style={styles.cardContent}>
               <Skeleton style={[styles.line, { backgroundColor: bg }]} />
               <Skeleton style={[styles.line, { backgroundColor: bg, width: '90%' }]} />
             </View>
-          </DetailCard>
+          </Card>
         </View>
       ))}
     </ScrollView>

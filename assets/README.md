@@ -35,6 +35,9 @@ Current shared assets:
 - `r9lab-*.svg` / `r9lab-*.png` — mark, logo, wordmark, and og-image variants,
   light and dark (see [logo-src/](logo-src/README.md))
 - `fonts/ibm-plex-*.woff2`
+- `icons/brand/{github,google,youtube,linkedin}.svg` — monochrome brand marks
+  (Simple Icons, CC0-1.0); `just assets-sync` copies them to
+  `docs/src/assets/icons/brand/` and `www/src/assets/icons/brand/`.
 
 Typography ownership (see [DESIGN.md](DESIGN.md) for the full design system):
 
@@ -56,6 +59,10 @@ Generated consumer output groups:
 - Background images: copied to the app, docs, and www image asset folders.
 - Regular IBM Plex Sans web fonts: copied to the docs and www `public/fonts` folders.
 - Brand CSS: copied to docs and www style folders.
-- SVG logos, wordmarks, and favicons: copied from the `r9lab-*` SVGs to docs and www public image folders; favicons use the square mark.
-- PNG outputs: generated for Expo app metadata, the www social preview logo, and docs/www Apple touch icons.
-- `.ico` fallback favicons: generated at the docs/www public root for legacy browser support and in backend static storage for `/favicon.ico` support.
+- SVG logos, wordmarks, and favicons: copied from the `r9lab-*` SVGs to docs and www public image
+  folders; favicons use the square mark.
+- PNG outputs: generated for Expo app metadata, the www social preview logo, and docs/www Apple
+  touch icons.
+- `.ico` fallback favicons: generated at the docs/www public root for legacy browser support and in
+  backend static storage for `/favicon.ico` support.
+- Brand icon SVGs: copied from `icons/brand/` to the docs and www icon asset folders.

@@ -9,7 +9,7 @@ import { useCamerasQuery, useCaptureAllMutation } from '@/features/cameras/rpi/h
 import { useCameraStreamActions } from '@/features/cameras/youtube/streamActions';
 import { useBaseProductQuery } from '@/features/products/queries';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { useIsDesktop } from '@/hooks/useIsDesktop';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { setCamerasHeaderOptions, useCameraScreenData } from './helpers';
@@ -23,7 +23,9 @@ export function useCamerasScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const feedback = useAppFeedback();
-  const isDesktop = useIsDesktop();
+  // Web at >= the desktop breakpoint — centralizes the check the screen's grid
+  // and selection UI key off (was its own useIsDesktop hook; single caller).
+  const isDesktop = useBreakpoint().isMd;
   const { captureAllProductId, captureModeEnabled, streamProductId, streamModeEnabled } =
     useCameraRouteModes();
   const streaming = useCameraStreamingController();

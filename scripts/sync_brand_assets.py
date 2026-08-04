@@ -28,6 +28,9 @@ OG_DARK_SOURCE = ROOT / "assets/r9lab-og-dark.svg"
 WORDMARK_SOURCE = ROOT / "assets/r9lab-wordmark.svg"  # horizontal lockup (light mode)
 WORDMARK_DARK_SOURCE = ROOT / "assets/r9lab-wordmark-dark.svg"  # cyan variant for dark headers
 
+# Vendored monochrome brand marks (Simple Icons, CC0-1.0) — see assets/icons/brand/.
+BRAND_ICON_NAMES = ("github", "google", "youtube", "linkedin")
+
 
 def imagemagick_cli() -> str | None:
     """Resolve the ImageMagick CLI: `magick` (IMv7) with a `convert` (IMv6) fallback."""
@@ -107,6 +110,16 @@ COPY_ASSETS = (
             ),
         )
         for font_file in WEB_FONT_FILES
+    ),
+    *(
+        (
+            root_path(f"assets/icons/brand/{icon_name}.svg"),
+            (
+                root_path(f"docs/src/assets/icons/brand/{icon_name}.svg"),
+                root_path(f"www/src/assets/icons/brand/{icon_name}.svg"),
+            ),
+        )
+        for icon_name in BRAND_ICON_NAMES
     ),
 )
 

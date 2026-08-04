@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { Card } from '@/components/base/Card';
-import DetailCard from '@/components/base/DetailCard';
 
 const SHADOW_CLASS_PATTERN = /\bshadow-(sm|md|lg|xl)\b/;
 
@@ -40,16 +39,6 @@ test('Card is a flat hairline surface at the card radius', () => {
   expect(className).not.toMatch(SHADOW_CLASS_PATTERN);
   expect(className).toEqual(expect.stringContaining('border'));
   expect(className).toEqual(expect.stringContaining('rounded-lg'));
-});
-
-test('DetailCard inherits the flat card surface (carries no shadow)', () => {
-  render(
-    <DetailCard>
-      <Text>Detail</Text>
-    </DetailCard>,
-  );
-  expect(screen.getByText('Detail')).toBeOnTheScreen();
-  expect(screen.root.props.className).not.toMatch(SHADOW_CLASS_PATTERN);
 });
 
 test('forwards a style prop', () => {

@@ -259,6 +259,19 @@ describe('Saving API Service', () => {
       expect(deleteCalls).toHaveLength(1);
     });
 
+    it('treats a 404 on image delete as already-deleted instead of throwing', async () => {
+      const originalImages = [{ id: '10', url: 'http://example.com/img.jpg', description: 'old' }];
+      const productWithExistingImage = {
+        ...baseProduct,
+        id: 42,
+        images: [], // no images in new version
+      };
+      mockFetchOk({ id: 42 }); // PATCH product
+      mockFetchError(404, { detail: 'Not found' }); // DELETE image/10 — already gone
+
+      await expect(saveProduct(productWithExistingImage, originalImages)).resolves.toBe(42);
+    });
+
     it('adds images that have no id', async () => {
       // Mock fetch for the blob download path
       mockFetch.mockResolvedValueOnce({
