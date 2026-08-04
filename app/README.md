@@ -43,7 +43,7 @@ instead of using the Docker app service.
 
 ```bash
 just check       # lint
-just test        # fast Jest unit tests
+just test        # full Jest suite (unit + integration)
 just test-integration  # slower Jest integration tests
 just test-e2e    # Playwright browser E2E
 just test-ci     # CI-style Jest run with coverage

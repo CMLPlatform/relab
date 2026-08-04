@@ -32,8 +32,7 @@ src/
 ├── utils/            # Framework-agnostic helpers, incl. router/ (Expo Router glue).
 ├── test-utils/       # Shared test fixtures, MSW handlers, render helpers.
 ├── hooks/            # Cross-feature custom hooks.
-├── assets/           # Fonts, images, icons.
-└── public/           # Files copied verbatim into the web export.
+└── assets/           # Fonts, images, icons.
 ```
 
 `base/` components are generic primitives (incl. vendored react-native-reusables
