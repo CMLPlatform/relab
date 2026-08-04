@@ -60,7 +60,14 @@ services:
     env_file: ./backend/.env.test
 
   redis:
-    image: redis:8-alpine@sha256:81b6f81d6a6c5b9019231a2e8eb10085e3a139a34f833dcc965a8a959b040b72
+    # Inherits the image pin and server flags from the base file. No password is
+    # set in this environment, which the inherited command already handles:
+    # `--requirepass` is only appended when REDIS_PASSWORD is non-empty.
+    extends:
+      file: compose.yaml
+      service: redis
+    restart: "no"
+    networks: [default]
     healthcheck:
       test: [ "CMD-SHELL", "redis-cli ping | grep -q PONG" ]
       interval: 10s
@@ -68,14 +75,22 @@ services:
       start_period: 5s
       start_interval: 5s
       retries: 5
-    # No password for test environment: simplifies healthcheck and connection strings
-    command: [ "redis-server", "--appendonly", "yes", "--save", "60", "1" ]
 
   postgres:
-    image: postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4
+    # Inherits the image pin, server tuning and initdb mount from the base file
+    # so they cannot drift. Only the test database name and restart policy
+    # differ. Full layering (-f compose.yaml -f compose.e2e.yaml) is not usable
+    # here: the base migrator sits behind the `migrations` profile, so api's
+    # depends_on would resolve to nothing.
+    extends:
+      file: compose.yaml
+      service: postgres
     env_file: ./backend/.env.test
-    volumes:
-      - ./deploy/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    restart: "no"
+    # extends merges networks rather than replacing them, so the inherited
+    # `data` membership stays. This stack is flat, so postgres also has to join
+    # `default` or api and migrator cannot reach it.
+    networks: [default]
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -h localhost -U postgres -d relab_e2e_db" ]
       interval: 10s
@@ -86,3 +101,9 @@ services:
 
 volumes:
   user_uploads:
+  # Both come in with the extended postgres service. The stack is torn down
+  # with `down -v`, so the database volume stays throwaway.
+  database_data:
+
+networks:
+  data:

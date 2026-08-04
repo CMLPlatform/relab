@@ -41,6 +41,19 @@ x-service-hardening: &service-hardening
       soft: 8192
       hard: 8192
 
+# Hardening for the stateful official images (postgres, redis). Same as above but
+# WITHOUT `cap_drop: ALL`: their entrypoints start as root and drop privileges via
+# gosu/su-exec (and postgres runs initdb on a fresh volume), which needs SETUID/SETGID/
+# CHOWN — dropping all capabilities makes the container exit at startup (verified).
+x-stateful-hardening: &stateful-hardening
+  pids_limit: 512
+  security_opt:
+    - no-new-privileges:true
+  ulimits:
+    nofile:
+      soft: 8192
+      hard: 8192
+
 services:
   api:
     <<: *service-hardening
@@ -96,20 +109,78 @@ services:
       - data
 
   redis:
+    <<: *stateful-hardening
     image: redis:8-alpine@sha256:81b6f81d6a6c5b9019231a2e8eb10085e3a139a34f833dcc965a8a959b040b72
     restart: unless-stopped
     healthcheck:
       <<: *healthcheck-defaults
       test: [ "CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a $${REDIS_PASSWORD}} ping | grep -q PONG" ]
       start_period: 5s
-    command: [ "sh", "-c", "redis-server --appendonly yes --save 60 1 $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}" ]
+    # Roughly double maxmemory: an AOF rewrite forks and can transiently hold a
+    # second copy of the changed pages.
+    mem_limit: 1g
+    # Redis holds refresh-token blacklists alongside cache and rate-limit keys,
+    # so eviction is not safe here: dropping a blacklist entry would let a
+    # revoked token be accepted again. Every key is written with a TTL, so
+    # `noeviction` turns a memory blow-up into loud write failures rather than
+    # silent security loss.
+    command: [ "sh", "-c", "redis-server --appendonly yes --save 60 1 --maxmemory 512mb --maxmemory-policy noeviction $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}" ]
     networks:
       - data
 
   postgres:
+    <<: *stateful-hardening
     image: postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4
     restart: unless-stopped
-    command: [ "postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "pg_stat_statements.track=all" ]
+    # Hard cap matching the tuning below. These two must move together: the
+    # kernel OOM-kills a backend if the cgroup limit is breached, and Postgres
+    # answers that by restarting the whole cluster and dropping every
+    # connection. Worst case under this config is roughly 2.5 GiB
+    # (shared_buffers + autovacuum workers + per-backend work_mem), so 4 GiB is
+    # a backstop, not a working budget.
+    mem_limit: 4g
+    # Sized for Postgres getting ~4 GiB of a ~20 GiB host. Raise mem_limit,
+    # shared_buffers and effective_cache_size together if that changes; the
+    # rest are scale-independent corrections to defaults that assume spinning
+    # disks.
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+      # Pool is 15 per API worker; the rest covers migrator, backup and psql.
+      - -c
+      - max_connections=50
+      - -c
+      - shared_buffers=1GB
+      # Page cache counts against the cgroup limit too, so this reflects what
+      # actually fits inside mem_limit, not the host's free memory.
+      - -c
+      - effective_cache_size=2560MB
+      # Deliberately NOT scaled with the rest: work_mem is per sort/hash node,
+      # so it multiplies by active connections and is the one value that can
+      # breach mem_limit on its own. 16MB already covers this workload's sorts.
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=256MB
+      # Bounds the 3 autovacuum workers to 384MB total, while leaving the
+      # larger maintenance_work_mem available for manual index builds.
+      - -c
+      - autovacuum_work_mem=128MB
+      # SSD-backed storage: the 4.0 default steers the planner off the GIN and
+      # trigram indexes on the search paths.
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      # Makes pg_stat_statements and EXPLAIN (BUFFERS) report real I/O time.
+      - -c
+      - track_io_timing=on
+      # ponytail: OLTP-only workload, JIT compile costs more than it saves.
+      - -c
+      - jit=off
     volumes:
       - database_data:/var/lib/postgresql
       # Postgres runs initdb files in sorted order on fresh volumes.
