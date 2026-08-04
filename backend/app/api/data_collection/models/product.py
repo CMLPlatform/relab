@@ -41,6 +41,10 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         Index("ix_product_owner_id", "owner_id"),
         # Base products only; keeps user product-list queries on a smaller targeted index.
         Index("ix_product_base_owner_id", "owner_id", postgresql_where=text("parent_id IS NULL")),
+        # Components load eagerly on every product read, and the delete cascade
+        # walks the same column.
+        Index("ix_product_parent_id", "parent_id"),
+        Index("ix_product_product_type_id", "product_type_id"),
         CheckConstraint(
             "(parent_id IS NULL AND amount_in_parent IS NULL) "
             "OR (parent_id IS NOT NULL AND amount_in_parent IS NOT NULL)",

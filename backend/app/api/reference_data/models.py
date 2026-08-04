@@ -25,6 +25,8 @@ class CategoryMaterialLink(Base):
     """Association table to link Category with Material."""
 
     __tablename__ = "categorymateriallink"
+    # The composite primary key already covers category_id as its leading column.
+    __table_args__ = (Index("ix_categorymateriallink_material_id", "material_id"),)
 
     category_id: Mapped[int] = mapped_column(ForeignKey("category.id"), primary_key=True)
     material_id: Mapped[int] = mapped_column(ForeignKey("material.id"), primary_key=True)
@@ -34,6 +36,8 @@ class CategoryProductTypeLink(Base):
     """Association table to link Category with ProductType."""
 
     __tablename__ = "categoryproducttypelink"
+    # The composite primary key already covers category_id as its leading column.
+    __table_args__ = (Index("ix_categoryproducttypelink_product_type_id", "product_type_id"),)
 
     category_id: Mapped[int] = mapped_column(ForeignKey("category.id"), primary_key=True)
     product_type_id: Mapped[int] = mapped_column(ForeignKey("producttype.id"), primary_key=True)
@@ -72,6 +76,9 @@ class Category(TimeStampMixinBare, Base):
     __table_args__ = (
         Index("category_search_vector_idx", "search_vector", postgresql_using="gin"),
         Index("category_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
+        # Subcategories load eagerly; taxonomy_id backs the per-taxonomy reads.
+        Index("ix_category_supercategory_id", "supercategory_id"),
+        Index("ix_category_taxonomy_id", "taxonomy_id"),
     )
 
     search_vector: Mapped[str | None] = mapped_column(

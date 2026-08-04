@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import UUID4, BaseModel
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -61,6 +61,7 @@ class Camera(TimeStampMixinBare, Base):
     """Database model for a WebSocket-relayed Raspberry Pi camera."""
 
     __tablename__ = "camera"
+    __table_args__ = (Index("ix_camera_owner_id", "owner_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(100), index=True)
@@ -94,6 +95,8 @@ class RecordingSession(TimeStampMixinBare, Base):
     """Durable backstop for an in-progress YouTube recording."""
 
     __tablename__ = "recording_session"
+    # camera_id is the primary key; video_id needs its own index for the cascade.
+    __table_args__ = (Index("ix_recording_session_video_id", "video_id"),)
 
     camera_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("camera.id", ondelete="CASCADE"), primary_key=True)
     video_id: Mapped[int] = mapped_column(ForeignKey("video.id", ondelete="CASCADE"), nullable=False)

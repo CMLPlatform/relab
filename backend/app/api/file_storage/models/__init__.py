@@ -65,6 +65,7 @@ class Video(TimeStampMixinBare, Base):
     """Database model for videos stored online."""
 
     __tablename__ = "video"
+    __table_args__ = (Index("ix_video_product_id", "product_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     url: Mapped[str] = mapped_column(nullable=False, doc="URL linking to the video")

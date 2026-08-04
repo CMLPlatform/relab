@@ -4,7 +4,7 @@ import uuid  # noqa: TC003 # Used at runtime for ORM mapped annotations
 from datetime import datetime  # noqa: TC003 # Used at runtime for ORM mapped annotations
 from typing import Any  # noqa: TC003 # Used at runtime for ORM mapped annotations
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -77,4 +77,9 @@ class OAuthAccount(BaseOAuthAccountDB, TimeStampMixinBare):
         foreign_keys="[OAuthAccount.user_id]",
     )
 
-    __table_args__ = (UniqueConstraint("oauth_name", "account_id", name="uq_oauth_account_identity"),)
+    __table_args__ = (
+        UniqueConstraint("oauth_name", "account_id", name="uq_oauth_account_identity"),
+        # Redefining user_id above drops the index=True carried by the mixin,
+        # so the FK backing the joined oauth_accounts load needs it restated.
+        Index("ix_oauthaccount_user_id", "user_id"),
+    )
