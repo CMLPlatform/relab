@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -9,7 +10,14 @@ import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon, type IconName } from './Icon';
 
-type IconButtonProps = {
+// Everything not already named below (accessibilityHint, onLongPress, aria-*,
+// ...) passes through via `...rest`; `onPress`/`disabled`/`accessibilityState`
+// stay controlled by this component so the loading behavior can't be
+// clobbered by a caller-supplied override.
+type IconButtonProps = Omit<
+  ComponentProps<typeof Pressable>,
+  'onPress' | 'style' | 'children' | 'accessibilityLabel' | 'disabled' | 'accessibilityState'
+> & {
   icon: IconName;
   onPress: () => void;
   accessibilityLabel: string;
@@ -30,11 +38,13 @@ export function IconButton({
   mode = 'default',
   style,
   testID,
+  ...rest
 }: IconButtonProps) {
   const theme = useAppTheme();
 
   return (
     <Pressable
+      {...rest}
       onPress={loading ? undefined : onPress}
       disabled={loading}
       testID={testID}

@@ -1,17 +1,19 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type RefObject, useCallback } from 'react';
-import type { Control, ControllerRenderProps } from 'react-hook-form';
+import type { Control, ControllerFieldState, ControllerRenderProps } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
+import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { radius } from '@/constants';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
+import { describedBy } from '@/utils/a11y';
 
 // shared frame so the auth card and the logo wash read as one family
 const cardFrame = {
@@ -92,49 +94,69 @@ export function LoginFormSection({
   const renderEmail = useCallback(
     ({
       field: { onChange, value },
+      fieldState,
     }: {
       field: ControllerRenderProps<LoginFormValues, 'email'>;
-    }) => (
-      <View style={styles.field}>
-        <AppText variant="label">Email or username</AppText>
-        <TextInput
-          ref={setEmailRef}
-          value={value}
-          onChangeText={onChange}
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="username"
-          textContentType="username"
-          accessibilityLabel="Email or username"
-          placeholder="e.g. you@university.edu"
-          style={[styles.input, { borderColor: theme.colors.outline }]}
-        />
-      </View>
-    ),
-    [setEmailRef, theme.colors.outline],
+      fieldState: ControllerFieldState;
+    }) => {
+      const { error } = fieldState;
+      return (
+        <View style={styles.field}>
+          <AppText variant="label">Email or username</AppText>
+          <TextInput
+            ref={setEmailRef}
+            value={value}
+            onChangeText={onChange}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="username"
+            textContentType="username"
+            accessibilityLabel="Email or username"
+            placeholder="e.g. you@university.edu"
+            {...describedBy('login-email-error', Boolean(error))}
+            style={[
+              styles.input,
+              { borderColor: error ? theme.tokens.status.danger : theme.colors.outline },
+            ]}
+          />
+          <FormFieldError errorId="login-email-error" message={error?.message} />
+        </View>
+      );
+    },
+    [setEmailRef, theme.colors.outline, theme.tokens.status.danger],
   );
   const renderPassword = useCallback(
     ({
       field: { onChange, value },
+      fieldState,
     }: {
       field: ControllerRenderProps<LoginFormValues, 'password'>;
-    }) => (
-      <View style={styles.field}>
-        <AppText variant="label">Password</AppText>
-        <TextInput
-          value={value}
-          onChangeText={onChange}
-          autoCapitalize="none"
-          autoComplete="current-password"
-          textContentType="password"
-          secureTextEntry
-          accessibilityLabel="Password"
-          onSubmitEditing={onSubmit}
-          style={[styles.input, { borderColor: theme.colors.outline }]}
-        />
-      </View>
-    ),
-    [onSubmit, theme.colors.outline],
+      fieldState: ControllerFieldState;
+    }) => {
+      const { error } = fieldState;
+      return (
+        <View style={styles.field}>
+          <AppText variant="label">Password</AppText>
+          <TextInput
+            value={value}
+            onChangeText={onChange}
+            autoCapitalize="none"
+            autoComplete="current-password"
+            textContentType="password"
+            secureTextEntry
+            accessibilityLabel="Password"
+            onSubmitEditing={onSubmit}
+            {...describedBy('login-password-error', Boolean(error))}
+            style={[
+              styles.input,
+              { borderColor: error ? theme.tokens.status.danger : theme.colors.outline },
+            ]}
+          />
+          <FormFieldError errorId="login-password-error" message={error?.message} />
+        </View>
+      );
+    },
+    [onSubmit, theme.colors.outline, theme.tokens.status.danger],
   );
 
   return (

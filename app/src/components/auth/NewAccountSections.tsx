@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
+import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { WEBSITE_URL } from '@/config';
@@ -21,6 +22,7 @@ import {
 } from '@/services/api/validation/userSchema';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
+import { describedBy } from '@/utils/a11y';
 
 // Every row is a fixed slot, so the three steps are identical and nothing moves
 // as the error message comes and goes.
@@ -238,6 +240,7 @@ function NewAccountStep({
 }) {
   const theme = useAppTheme();
   const error = errors[field];
+  const errorId = `${field}-error`;
   const renderInput = useCallback(
     ({ field: { onChange, value } }: { field: ControllerRenderProps<NewAccountFormValues> }) => (
       <TextInput
@@ -246,6 +249,7 @@ function NewAccountStep({
         autoCapitalize="none"
         accessibilityLabel={label}
         {...inputProps}
+        {...describedBy(errorId, Boolean(error))}
         style={[
           styles.textInput,
           {
@@ -255,7 +259,7 @@ function NewAccountStep({
         ]}
       />
     ),
-    [error, inputProps, label, theme],
+    [error, errorId, inputProps, label, theme],
   );
 
   return (
@@ -291,11 +295,7 @@ function NewAccountStep({
           <Controller control={control} name={field} render={renderInput} />
         </View>
         <View style={styles.helperSlot}>
-          {error ? (
-            <Text style={[styles.helperText, { color: theme.tokens.status.danger }]}>
-              {error.message}
-            </Text>
-          ) : null}
+          <FormFieldError errorId={errorId} message={error?.message} style={styles.helperText} />
         </View>
         <View style={styles.actionRow}>
           <View style={styles.backSlot}>

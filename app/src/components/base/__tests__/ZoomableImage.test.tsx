@@ -19,6 +19,18 @@ describe('ZoomableImage', () => {
     expect(image.props.source).toEqual({ uri: testUri });
   });
 
+  it('defaults to a decorative (empty) accessibilityLabel', () => {
+    render(<ZoomableImage uri={testUri} />);
+    expect(screen.getByTestId('expo-image').props.accessibilityLabel).toBe('');
+  });
+
+  it('forwards a caller-supplied accessibilityLabel', () => {
+    render(<ZoomableImage uri={testUri} accessibilityLabel="Close-up of the motor housing" />);
+    expect(screen.getByTestId('expo-image').props.accessibilityLabel).toBe(
+      'Close-up of the motor housing',
+    );
+  });
+
   it('executes pinch update callback', () => {
     const mockPinch = {
       onUpdate: jest.fn().mockReturnThis(),

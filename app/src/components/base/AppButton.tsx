@@ -25,15 +25,15 @@ const SPINNER_COLOR: Record<keyof typeof VARIANT_MAP, (colors: AppColors) => str
   destructive: () => '#FFFFFF', // buttonTextVariants hard-codes text-white for destructive
 };
 
-type AppButtonProps = {
+// Omit 'variant' from the vendored button's props: AppButton remaps its own
+// app-level variant names to the RNR ones via VARIANT_MAP. Everything else
+// (accessibilityHint, accessibilityState, aria-*, onLongPress, ...) passes
+// through via `...rest` so callers aren't limited to the props this file
+// happened to name explicitly.
+type AppButtonProps = Omit<ComponentProps<typeof Button>, 'variant'> & {
   variant?: keyof typeof VARIANT_MAP;
   loading?: boolean;
-  disabled?: boolean;
-  onPress?: () => void;
   children: ReactNode;
-  className?: string;
-  accessibilityLabel?: string;
-  testID?: string;
 };
 
 /** App button over the vendored RNR button; maps app variants and a loading state. */
@@ -41,25 +41,21 @@ export function AppButton({
   variant = 'primary',
   loading = false,
   disabled = false,
-  onPress,
   children,
   className,
-  accessibilityLabel,
-  testID,
+  ...rest
 }: AppButtonProps) {
   const { colors } = useAppTheme();
   return (
     <Button
       variant={VARIANT_MAP[variant]}
       disabled={disabled || loading}
-      onPress={onPress}
-      accessibilityLabel={accessibilityLabel}
-      testID={testID}
       // min-h-11 (44px) is a different tailwind-merge group than the vendored
       // button's h-10/sm:h-9 size classes, so it survives the merge and — since
       // min-height clamps height from below — always wins the actual layout,
       // keeping every AppButton at the 44px a11y tap-target floor.
       className={cn('min-h-11', className)}
+      {...rest}
     >
       <View className="flex-row items-center gap-2">
         {loading ? <ActivityIndicator size="small" color={SPINNER_COLOR[variant](colors)} /> : null}

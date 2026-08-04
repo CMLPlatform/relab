@@ -122,6 +122,7 @@ export default function LocalizedFloatInput({
         placeholder={placeholder}
         editable={editable}
         ref={textInput}
+        accessibilityLabel={label}
       />
       {unit ? (
         <Text

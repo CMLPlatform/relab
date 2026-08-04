@@ -76,6 +76,20 @@ describe('Fab', () => {
     expect(style.elevation).toBe(overlay.elevation);
   });
 
+  it('forwards arbitrary accessibility props (accessibilityHint)', () => {
+    render(
+      <Fab
+        icon="plus"
+        label="New"
+        extended
+        onPress={jest.fn()}
+        accessibilityLabel="a"
+        accessibilityHint="Creates a new product"
+      />,
+    );
+    expect(screen.getByRole('button').props.accessibilityHint).toBe('Creates a new product');
+  });
+
   it('exposes the accessibility label', () => {
     render(
       <Fab

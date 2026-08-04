@@ -36,6 +36,18 @@ describe('IconButton', () => {
     expect(style.minHeight).toBeGreaterThanOrEqual(44);
   });
 
+  it('forwards arbitrary accessibility props (accessibilityHint)', () => {
+    render(
+      <IconButton
+        icon="pencil"
+        onPress={jest.fn()}
+        accessibilityLabel="Edit name"
+        accessibilityHint="Opens the name editor"
+      />,
+    );
+    expect(screen.getByRole('button').props.accessibilityHint).toBe('Opens the name editor');
+  });
+
   it('uses the control radius, not a bespoke circle', () => {
     render(<IconButton icon="close" onPress={jest.fn()} accessibilityLabel="Close" />);
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);

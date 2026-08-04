@@ -6,6 +6,7 @@ import { useAppTheme } from '@/theme';
 import {
   GalleryFlatList,
   type GalleryItem,
+  galleryItemAltText,
   galleryItemKeyExtractor,
   type ScrollableListHandle,
 } from './shared';
@@ -20,6 +21,8 @@ type Props = {
   thumbsRef: React.RefObject<ScrollableListHandle | null>;
   onSelectIndex: (index: number) => void;
   onScrollToIndex: (index: number) => void;
+  /** Product/component name — the alt-text fallback when an image has no description. */
+  fallbackLabel: string;
 };
 
 export function ProductImageThumbnails({
@@ -29,6 +32,7 @@ export function ProductImageThumbnails({
   thumbsRef,
   onSelectIndex,
   onScrollToIndex,
+  fallbackLabel,
 }: Props) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
@@ -45,6 +49,7 @@ export function ProductImageThumbnails({
       <ThumbnailItem
         uri={item.thumbnailUrl}
         index={index}
+        altText={galleryItemAltText(item, index, items.length, fallbackLabel)}
         selected={selectedIndex === index}
         selectedBorderColor={selectedBorderColor}
         styles={styles}
@@ -52,7 +57,15 @@ export function ProductImageThumbnails({
         onScrollToIndex={onScrollToIndex}
       />
     ),
-    [selectedIndex, selectedBorderColor, styles, onSelectIndex, onScrollToIndex],
+    [
+      items,
+      fallbackLabel,
+      selectedIndex,
+      selectedBorderColor,
+      styles,
+      onSelectIndex,
+      onScrollToIndex,
+    ],
   );
 
   if (imageCount <= 1) return null;
@@ -74,6 +87,7 @@ export function ProductImageThumbnails({
 const ThumbnailItem = memo(function ThumbnailItem({
   uri,
   index,
+  altText,
   selected,
   selectedBorderColor,
   styles,
@@ -82,6 +96,7 @@ const ThumbnailItem = memo(function ThumbnailItem({
 }: {
   uri: string | null;
   index: number;
+  altText: string;
   selected: boolean;
   selectedBorderColor: string;
   styles: GalleryStyles;
@@ -97,14 +112,14 @@ const ThumbnailItem = memo(function ThumbnailItem({
     <Pressable
       onPress={handlePress}
       accessibilityRole="button"
-      accessibilityLabel={`Select image ${index + 1}`}
+      accessibilityLabel={`Select ${altText}`}
       style={[
         styles.thumbnailItem,
         { borderColor: selected ? selectedBorderColor : 'transparent' },
       ]}
     >
       {uri ? (
-        // Decorative: the wrapping Pressable carries the "Select image N" label.
+        // Decorative: the wrapping Pressable already carries the descriptive label.
         <Image source={{ uri }} style={{ width: 60, height: 60 }} accessibilityLabel="" />
       ) : (
         <ImagePlaceholder width={60} height={60} borderRadius={0} />

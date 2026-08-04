@@ -28,6 +28,7 @@ import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import {
   GalleryFlatList,
   type GalleryItem,
+  galleryItemAltText,
   galleryItemKeyExtractor,
   getTouchPointX,
   makeHorizontalItemLayout,
@@ -41,6 +42,8 @@ type Props = {
   startIndex: number;
   onIndexChange: (index: number) => void;
   onClose: () => void;
+  /** Product/component name — the alt-text fallback when an image has no description. */
+  fallbackLabel: string;
 };
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: the lightbox render logic is intentionally centralized for one complex modal surface.
@@ -50,6 +53,7 @@ export function ProductImageLightbox({
   startIndex,
   onIndexChange,
   onClose,
+  fallbackLabel,
 }: Props) {
   const theme = useAppTheme();
   const styles = createStyles(theme);
@@ -202,9 +206,10 @@ export function ProductImageLightbox({
   }, []);
   const getItemLayout = useMemo(() => makeHorizontalItemLayout(screenWidth), [screenWidth]);
   const renderItem = useCallback(
-    ({ item }: { item: GalleryItem }) => (
+    ({ item, index }: { item: GalleryItem; index: number }) => (
       <LightboxSlide
         uri={item.largeUrl}
+        altText={galleryItemAltText(item, index, items.length, fallbackLabel)}
         styles={styles}
         screenWidth={screenWidth}
         screenHeight={screenHeight}
@@ -214,7 +219,16 @@ export function ProductImageLightbox({
         navigateBy={navigateBy}
       />
     ),
-    [styles, screenWidth, screenHeight, handleTouchStart, handleTouchEnd, navigateBy],
+    [
+      items,
+      fallbackLabel,
+      styles,
+      screenWidth,
+      screenHeight,
+      handleTouchStart,
+      handleTouchEnd,
+      navigateBy,
+    ],
   );
   const goPrev = useCallback(() => navigateBy(-1), [navigateBy]);
   const goNext = useCallback(() => navigateBy(1), [navigateBy]);
@@ -299,6 +313,7 @@ export function ProductImageLightbox({
 
 const LightboxSlide = memo(function LightboxSlide({
   uri,
+  altText,
   styles,
   screenWidth,
   screenHeight,
@@ -308,6 +323,7 @@ const LightboxSlide = memo(function LightboxSlide({
   navigateBy,
 }: {
   uri: string | null;
+  altText: string;
   styles: ReturnType<typeof createStyles>;
   screenWidth: number;
   screenHeight: number;
@@ -331,7 +347,12 @@ const LightboxSlide = memo(function LightboxSlide({
       style={[styles.slide, { width: screenWidth, height: screenHeight }]}
     >
       {uri ? (
-        <ZoomableImage uri={uri} setIsZoomed={setIsZoomed} onSwipe={handleSwipe} />
+        <ZoomableImage
+          uri={uri}
+          accessibilityLabel={altText}
+          setIsZoomed={setIsZoomed}
+          onSwipe={handleSwipe}
+        />
       ) : (
         <ImagePlaceholder width={screenWidth} height={screenHeight} borderRadius={0} />
       )}

@@ -77,9 +77,15 @@ describe('ComponentRow', () => {
 
     expect(screen.getByText('1')).toBeOnTheScreen(); // child-count badge
 
-    fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
+    const toggle = screen.getByLabelText('Show components of Motor Assembly');
+    expect(toggle.props.accessibilityState).toEqual({ expanded: false });
+
+    fireEvent.press(toggle);
     expect(screen.getByText('Rotor')).toBeOnTheScreen();
     expect(mockGetComponent).not.toHaveBeenCalled();
+    expect(
+      screen.getByLabelText('Hide components of Motor Assembly').props.accessibilityState,
+    ).toEqual({ expanded: true });
 
     fireEvent.press(screen.getByLabelText('Hide components of Motor Assembly'));
     expect(screen.queryByText('Rotor')).toBeNull();

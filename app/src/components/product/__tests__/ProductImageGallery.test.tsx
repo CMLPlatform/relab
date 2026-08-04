@@ -221,9 +221,10 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
       withDialog: true,
     });
 
-    // Two thumbnail strip items with "Select image N" labels
-    expect(screen.getByLabelText('Select image 1')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Select image 2')).toBeOnTheScreen();
+    // Two thumbnail strip items — undescribed images fall back to the product
+    // name plus a 1-based position so they stay distinguishable.
+    expect(screen.getByLabelText('Select Recycled Aluminum Laptop Stand 1')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Select Recycled Aluminum Laptop Stand 2')).toBeOnTheScreen();
   });
 
   // ── Delete ─────────────────────────────────────────────────────────────────

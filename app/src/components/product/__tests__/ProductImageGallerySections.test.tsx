@@ -111,6 +111,7 @@ describe('product gallery section components', () => {
         onPickImage={jest.fn()}
         onRpiCapture={jest.fn()}
         onDeleteImage={jest.fn()}
+        fallbackLabel="Widget"
       />,
     );
 
@@ -150,10 +151,11 @@ describe('product gallery section components', () => {
         thumbsRef={{ current: null }}
         onSelectIndex={onSelectIndex}
         onScrollToIndex={onScrollToIndex}
+        fallbackLabel="Widget"
       />,
     );
 
-    fireEvent.press(screen.getByLabelText('Select image 2'));
+    fireEvent.press(screen.getByLabelText('Select Widget 2'));
     expect(onSelectIndex).toHaveBeenCalledWith(1);
     expect(onScrollToIndex).toHaveBeenCalledWith(1);
   });

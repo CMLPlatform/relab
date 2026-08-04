@@ -1,5 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
-import { buildGalleryMedia, galleryItemKeyExtractor } from '@/components/product/gallery/shared';
+import {
+  buildGalleryMedia,
+  galleryItemAltText,
+  galleryItemKeyExtractor,
+} from '@/components/product/gallery/shared';
 import type { Product } from '@/types/Product';
 
 function product(images: Product['images']): Product {
@@ -56,6 +60,32 @@ describe('buildGalleryMedia', () => {
     );
 
     expect(items[0]?.thumbnailUrl).toBe('https://cdn.test/a.jpg');
+  });
+
+  describe('galleryItemAltText', () => {
+    function item(description: string) {
+      return buildGalleryMedia(product([{ id: 'a', url: 'https://cdn.test/a.jpg', description }]))
+        .items[0];
+    }
+
+    it('uses the image description when present', () => {
+      expect(galleryItemAltText(item('Close-up of the motor housing'), 0, 1, 'Drill')).toBe(
+        'Close-up of the motor housing',
+      );
+    });
+
+    it('falls back to the product name with no position suffix when there is one image', () => {
+      expect(galleryItemAltText(item(''), 0, 1, 'Drill')).toBe('Drill');
+    });
+
+    it('appends a 1-based position to the fallback name when there are multiple images', () => {
+      expect(galleryItemAltText(item(''), 0, 3, 'Drill')).toBe('Drill 1');
+      expect(galleryItemAltText(item(''), 2, 3, 'Drill')).toBe('Drill 3');
+    });
+
+    it('falls back to a generic label when there is no name either', () => {
+      expect(galleryItemAltText(item(''), 0, 1, '')).toBe('Product image');
+    });
   });
 
   describe('keys', () => {

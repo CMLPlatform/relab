@@ -23,6 +23,11 @@ describe('LocalizedFloatInput', () => {
     expect(screen.getByText('Weight')).toBeOnTheScreen();
   });
 
+  it('derives the input accessibilityLabel from the label prop', () => {
+    render(<LocalizedFloatInput value={undefined} label="Weight" />);
+    expect(screen.getByLabelText('Weight')).toBeOnTheScreen();
+  });
+
   it('calls onChange with undefined on blur when input is empty', async () => {
     const onChange = jest.fn();
     render(<LocalizedFloatInput value={5} onChange={onChange} />);

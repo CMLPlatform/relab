@@ -12,9 +12,19 @@ interface Props {
   onScaleChange?: (scale: number) => void;
   setIsZoomed?: (isZoomed: boolean) => void;
   onSwipe?: (direction: -1 | 1) => void;
+  /** WCAG 1.1.1 — defaults to decorative ('') only because most callers wrap
+   * this in their own labelled control; the lightbox (which doesn't) passes
+   * a real description. */
+  accessibilityLabel?: string;
 }
 
-export default function ZoomableImage({ uri, onScaleChange, setIsZoomed, onSwipe }: Props) {
+export default function ZoomableImage({
+  uri,
+  onScaleChange,
+  setIsZoomed,
+  onSwipe,
+  accessibilityLabel = '',
+}: Props) {
   const [isZoomedInternal, setIsZoomedInternal] = useState(false);
 
   const scale = useSharedValue(1);
@@ -124,7 +134,12 @@ export default function ZoomableImage({ uri, onScaleChange, setIsZoomed, onSwipe
       userSelect={Platform.OS === 'web' ? 'none' : undefined}
     >
       <Animated.View style={[styles.container, animatedStyle]}>
-        <Image source={{ uri }} contentFit="contain" style={styles.image} accessibilityLabel="" />
+        <Image
+          source={{ uri }}
+          contentFit="contain"
+          style={styles.image}
+          accessibilityLabel={accessibilityLabel}
+        />
       </Animated.View>
     </GestureDetector>
   );

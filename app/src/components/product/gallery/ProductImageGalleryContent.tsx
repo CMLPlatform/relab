@@ -7,6 +7,7 @@ import { useAppTheme } from '@/theme';
 import {
   GalleryFlatList,
   type GalleryItem,
+  galleryItemAltText,
   galleryItemKeyExtractor,
   IMAGE_HEIGHT,
   makeHorizontalItemLayout,
@@ -36,6 +37,8 @@ type Props = {
   onPickImage: () => void;
   onRpiCapture: () => void;
   onDeleteImage: () => void;
+  /** Product/component name — the alt-text fallback when an image has no description. */
+  fallbackLabel: string;
 };
 
 export function ProductImageGalleryContent({
@@ -59,6 +62,7 @@ export function ProductImageGalleryContent({
   onPickImage,
   onRpiCapture,
   onDeleteImage,
+  fallbackLabel,
 }: Props) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
@@ -76,11 +80,12 @@ export function ProductImageGalleryContent({
         uri={item.mediumUrl}
         index={index}
         width={width}
+        altText={galleryItemAltText(item, index, items.length, fallbackLabel)}
         onSelectIndex={onSelectIndex}
         onOpenLightbox={onOpenLightbox}
       />
     ),
-    [width, onSelectIndex, onOpenLightbox],
+    [width, items, fallbackLabel, onSelectIndex, onOpenLightbox],
   );
 
   return (
@@ -171,12 +176,14 @@ const GalleryImageItem = memo(function GalleryImageItem({
   uri,
   index,
   width,
+  altText,
   onSelectIndex,
   onOpenLightbox,
 }: {
   uri: string | null;
   index: number;
   width: number;
+  altText: string;
   onSelectIndex: (index: number) => void;
   onOpenLightbox: (index: number) => void;
 }) {
@@ -189,10 +196,10 @@ const GalleryImageItem = memo(function GalleryImageItem({
     <Pressable
       onPress={handlePress}
       accessibilityRole="button"
-      accessibilityLabel={`View image ${index + 1}`}
+      accessibilityLabel={`View ${altText}`}
     >
       {uri ? (
-        // Decorative: the wrapping Pressable carries the "View image N" label.
+        // Decorative: the wrapping Pressable already carries the descriptive label.
         <Image
           source={{ uri }}
           contentFit="cover"

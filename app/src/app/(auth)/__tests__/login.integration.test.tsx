@@ -786,6 +786,18 @@ describe('Login screen', () => {
     });
   });
 
+  it('shows an inline field error when a required field is cleared', async () => {
+    renderWithProviders(<Login />, { withDialog: true });
+
+    const emailInput = screen.getByLabelText('Email or username');
+    fireEvent.changeText(emailInput, 'test@example.com');
+    fireEvent.changeText(emailInput, '');
+
+    await waitFor(() => {
+      expect(screen.getByText('Email is required')).toBeOnTheScreen();
+    });
+  });
+
   it('initiates GitHub OAuth login', async () => {
     mockedOpenOAuthBrowserSession.mockResolvedValueOnce({
       type: WebBrowserResultType.CANCEL,

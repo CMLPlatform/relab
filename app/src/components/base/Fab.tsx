@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { useEffect } from 'react';
 import { Pressable, type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
 import Animated, {
@@ -12,7 +12,13 @@ import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon, type IconName } from './Icon';
 
-type FabProps = {
+// `...rest` (accessibilityHint, onLongPress, aria-*, ...) passes through;
+// onPress/disabled/accessibilityState stay controlled here so the
+// disabled/blocked behavior can't be clobbered by a caller override.
+type FabProps = Omit<
+  ComponentProps<typeof Pressable>,
+  'onPress' | 'style' | 'children' | 'accessibilityLabel' | 'disabled' | 'accessibilityState'
+> & {
   /** An Icon glyph name, or a render function for a custom icon (e.g. a saving spinner). */
   icon: IconName | (() => ReactNode);
   label: string;
@@ -48,6 +54,7 @@ export function Fab({
   accessibilityLabel,
   style,
   testID,
+  ...rest
 }: FabProps) {
   const theme = useAppTheme();
   const progress = useSharedValue(extended ? 1 : 0);
@@ -67,6 +74,7 @@ export function Fab({
 
   return (
     <Pressable
+      {...rest}
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
       testID={testID}

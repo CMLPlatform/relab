@@ -133,6 +133,7 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${expanded ? 'Hide' : 'Show'} components of ${displayName}`}
+            accessibilityState={{ expanded }}
             onPress={() => setExpanded((current) => !current)}
             className="h-11 w-11 items-center justify-center"
           >

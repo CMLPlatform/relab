@@ -56,6 +56,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
           onPickImage={handlePickImage}
           onRpiCapture={actions.requestRpiCapture}
           onDeleteImage={handleDeleteImage}
+          fallbackLabel={product.name}
         />
       ) : editMode ? (
         <ProductImageEmptyEditState
@@ -87,6 +88,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
         thumbsRef={media.thumbsRef}
         onSelectIndex={actions.selectIndex}
         onScrollToIndex={actions.scrollToIndex}
+        fallbackLabel={product.name}
       />
 
       <ProductImageLightbox
@@ -95,6 +97,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
         startIndex={viewer.selectedIndex}
         onIndexChange={actions.selectIndex}
         onClose={actions.closeLightbox}
+        fallbackLabel={product.name}
       />
     </View>
   );

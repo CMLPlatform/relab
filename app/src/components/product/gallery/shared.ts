@@ -71,6 +71,25 @@ function resolveImageUrl(url: string | undefined): string | null {
   return resolveApiMediaUrl(url) ?? (isSafeImageUrl(url) ? url : null);
 }
 
+/**
+ * Accessible label for a gallery item: the uploader's own description when
+ * there is one (WCAG 1.1.1 — meaningful alt text, not "image 3"). Otherwise
+ * falls back to the product/component name, plus a 1-based position when
+ * there is more than one image, since two undescribed images sharing the
+ * same fallback name would otherwise be indistinguishable to a screen reader.
+ */
+export function galleryItemAltText(
+  item: GalleryItem,
+  index: number,
+  total: number,
+  fallbackName: string,
+): string {
+  const description = item.image.description.trim();
+  if (description) return description;
+  const name = fallbackName.trim() || 'Product image';
+  return total > 1 ? `${name} ${index + 1}` : name;
+}
+
 export function buildGalleryMedia(product: Product) {
   const images = product.images ?? [];
   const items: GalleryItem[] = images.map((image, index) => {

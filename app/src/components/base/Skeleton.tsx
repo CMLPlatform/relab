@@ -1,5 +1,13 @@
-import { useEffect, useMemo } from 'react';
-import { Animated, Platform, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
+import Animated, {
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 interface SkeletonProps {
   style?: StyleProp<ViewStyle>;
@@ -7,29 +15,25 @@ interface SkeletonProps {
 }
 
 /**
- * Animated skeleton placeholder with a pulsing opacity effect.
+ * Animated skeleton placeholder with a pulsing opacity effect. Honors the OS
+ * reduce-motion setting via Reanimated's `ReduceMotion.System` — same gate
+ * Fab's extend/collapse animation uses — instead of pulsing indefinitely
+ * regardless of the user's accessibility preference.
  */
 export function Skeleton({ style, duration = 750 }: SkeletonProps) {
-  const opacity = useMemo(() => new Animated.Value(0.4), []);
+  const opacity = useSharedValue(0.4);
 
   useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.4,
-          duration,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-      ]),
+    opacity.value = withRepeat(
+      withSequence(withTiming(1, { duration }), withTiming(0.4, { duration })),
+      -1,
+      false,
+      undefined,
+      ReduceMotion.System,
     );
-    anim.start();
-    return () => anim.stop();
   }, [opacity, duration]);
 
-  return <Animated.View style={[{ opacity }, style]} />;
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  return <Animated.View style={[animatedStyle, style]} />;
 }

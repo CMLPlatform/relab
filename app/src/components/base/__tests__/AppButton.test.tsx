@@ -100,6 +100,11 @@ test('meets the 44px a11y tap-target floor regardless of caller className', () =
   expect(screen.getByRole('button').props.className).toEqual(expect.stringContaining('min-h-11'));
 });
 
+test('forwards arbitrary accessibility props (accessibilityHint) to the underlying button', () => {
+  render(<AppButton accessibilityHint="Saves the current product">Save</AppButton>);
+  expect(screen.getByRole('button').props.accessibilityHint).toBe('Saves the current product');
+});
+
 test('has web hover, cursor, and focus-visible affordances', () => {
   render(<AppButton>Save</AppButton>);
   const className = screen.getByRole('button').props.className;
