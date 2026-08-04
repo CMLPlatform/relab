@@ -10,6 +10,7 @@ import hmac
 import logging
 from typing import TYPE_CHECKING
 
+import anyio.to_thread
 from fastapi import Depends, Request
 from fastapi.params import Depends as DependsParam
 from fastapi.responses import JSONResponse
@@ -87,6 +88,17 @@ class Limiter:
     def hit_request(self, rate_string: str, request: Request) -> None:
         """Enforce *rate_string* for a FastAPI request."""
         self.hit_key(rate_string, self._key_func(request))
+
+    async def ahit_key(self, rate_string: str, key: str) -> None:
+        """Async ``hit_key`` for callers already on the event loop.
+
+        The ``limits`` Redis backend is synchronous (its async backend would pull in a
+        second Redis client, coredis), so a direct call from an async handler blocks the
+        event loop on every login/reset/pairing attempt — a cheap DoS lever under load.
+        Offloading to a worker thread keeps the loop free, exactly as FastAPI already does
+        for the sync ``dependency`` path. Sync callers (that path) must not use this.
+        """
+        await anyio.to_thread.run_sync(self.hit_key, rate_string, key)
 
     def dependency(self, rate_string: str, *, name: str = "rate_limit") -> DependsParam:
         """Return a FastAPI dependency that enforces *rate_string* for a request."""

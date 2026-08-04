@@ -49,7 +49,7 @@ async def forgot_password(
 ) -> None:
     """Start a forgot-password request without revealing whether the account exists."""
     started_at = time.monotonic()
-    limiter.hit_key(PASSWORD_RESET_RATE_LIMIT, _password_reset_identifier_rate_limit_key(str(email)))
+    await limiter.ahit_key(PASSWORD_RESET_RATE_LIMIT, _password_reset_identifier_rate_limit_key(str(email)))
     request.state.background_tasks = background_tasks
 
     try:

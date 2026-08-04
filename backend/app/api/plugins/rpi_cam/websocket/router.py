@@ -172,8 +172,8 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
 async def _enforce_ws_auth_rate_limit(websocket: WebSocket, client_ip_bucket: str, camera_key: str) -> bool:
     """Apply shared Redis-backed rate limits to WebSocket authentication attempts."""
     try:
-        limiter.hit_key(settings.rpi_cam_ws_auth_rate_limit, client_ip_bucket)
-        limiter.hit_key(
+        await limiter.ahit_key(settings.rpi_cam_ws_auth_rate_limit, client_ip_bucket)
+        await limiter.ahit_key(
             settings.rpi_cam_ws_auth_rate_limit,
             rate_limit_bucket_key("rpi-cam:ws-auth:camera", camera_key),
         )

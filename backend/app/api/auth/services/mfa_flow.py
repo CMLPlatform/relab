@@ -29,10 +29,10 @@ from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.redis import Redis
 
 
-def get_mfa_token(token: SecretStr) -> str:
+async def get_mfa_token(token: SecretStr) -> str:
     """Extract, rate-limit, and return the raw MFA token value."""
     raw = token.get_secret_value()
-    mfa_service.enforce_mfa_token_rate_limit(raw)
+    await mfa_service.enforce_mfa_token_rate_limit(raw)
     return raw
 
 
@@ -62,17 +62,26 @@ async def confirm_totp_setup(
     background_tasks: BackgroundTasks,
 ) -> MfaRecoveryCodesResponse:
     """Confirm authenticated TOTP enrollment and issue one-time recovery codes."""
-    setup_token = get_mfa_token(payload.setup_token)
+    setup_token = await get_mfa_token(payload.setup_token)
     setup = await mfa_service.get_totp_setup(redis, setup_token, user_id=current_user.id)
     user = await user_manager.get(current_user.id)
     if user.mfa_enabled or user.mfa_totp_secret:
         raise MfaChallengeInvalidError
     # Reauthenticate before enabling: an active session alone isn't enough (OWASP).
-    account_security.verify_current_password(
-        password_helper=user_manager.password_helper,
-        password=payload.password.get_secret_value(),
-        user=user,
-    )
+    # OAuth-only accounts have no usable password to re-enter, so the session is the
+    # only available factor there — matching the step-up in oauth/accounts.py, which
+    # would otherwise make MFA impossible to enable for those accounts.
+    if user.has_usable_password:
+        if payload.password is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is required to enable MFA.",
+            )
+        account_security.verify_current_password(
+            password_helper=user_manager.password_helper,
+            password=payload.password.get_secret_value(),
+            user=user,
+        )
     counter = await mfa_service.verify_totp_code(
         redis,
         user_id=current_user.id,
@@ -158,7 +167,7 @@ async def regenerate_recovery_codes(
 
 async def claim_oauth_mfa_handoff(payload: MfaOAuthClaimRequest, *, redis: Redis) -> MfaPendingResponse:
     """Claim a one-time OAuth MFA handoff and return pending MFA state."""
-    handoff = get_mfa_token(payload.mfa_handoff)
+    handoff = await get_mfa_token(payload.mfa_handoff)
     mfa_token = await mfa_service.consume_oauth_handoff(redis, handoff)
     return MfaPendingResponse(mfa_token=mfa_token)
 
@@ -173,7 +182,7 @@ async def complete_mfa_challenge(
     cookie_strategy: Strategy,
 ) -> RefreshTokenResponse | None:
     """Complete login with either a TOTP code or a single-use recovery code."""
-    mfa_token = get_mfa_token(payload.mfa_token)
+    mfa_token = await get_mfa_token(payload.mfa_token)
     challenge = await mfa_service.get_login_challenge(redis, mfa_token)
     try:
         user = await user_manager.get(challenge.user_id)

@@ -19,13 +19,15 @@ from app.api.auth.services import mfa_flow, mfa_service
 from app.api.common.audit import AuditAction
 
 
-def test_get_mfa_token_applies_fingerprint_rate_limit() -> None:
+async def test_get_mfa_token_applies_fingerprint_rate_limit() -> None:
     """Raw MFA tokens should be extracted through the shared token rate limiter."""
-    with patch("app.api.auth.services.mfa_flow.mfa_service.enforce_mfa_token_rate_limit") as enforce:
-        token = mfa_flow.get_mfa_token(SecretStr("token-value"))
+    with patch(
+        "app.api.auth.services.mfa_flow.mfa_service.enforce_mfa_token_rate_limit", new_callable=AsyncMock
+    ) as enforce:
+        token = await mfa_flow.get_mfa_token(SecretStr("token-value"))
 
     assert token == "token-value"
-    enforce.assert_called_once_with("token-value")
+    enforce.assert_awaited_once_with("token-value")
 
 
 async def test_claim_oauth_mfa_handoff_consumes_handoff_token() -> None:
@@ -147,6 +149,76 @@ async def test_confirm_totp_setup_rejects_wrong_password() -> None:
         )
 
     assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
+    enable.assert_not_awaited()
+
+
+async def test_confirm_totp_setup_allows_oauth_only_account_without_password() -> None:
+    """An OAuth-only account (no usable password) can enable MFA on the session alone.
+
+    Regression: verify_current_password ran unconditionally, so an account created via
+    Google/GitHub (random password, has_usable_password=False) got 401 and could never
+    turn MFA on.
+    """
+    user = MagicMock()
+    user.id = "user-id"
+    user.mfa_enabled = False
+    user.mfa_totp_secret = None
+    user.has_usable_password = False
+    user_manager = MagicMock()
+    user_manager.get = AsyncMock(return_value=user)
+
+    setup = MagicMock()
+    setup.secret = "secret"
+
+    with (
+        patch("app.api.auth.services.mfa_flow.mfa_service.get_totp_setup", new=AsyncMock(return_value=setup)),
+        patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code", new=AsyncMock(return_value=42)),
+        patch("app.api.auth.services.mfa_flow.mfa_service.consume_totp_setup", new=AsyncMock(return_value=setup)),
+        patch("app.api.auth.services.mfa_flow.mfa_service.enable_totp", new=AsyncMock()) as enable,
+        patch("app.api.auth.services.mfa_flow.mfa_service.burn_totp_counter", new=AsyncMock()),
+        patch("app.api.auth.services.mfa_flow.mfa_service.set_recovery_codes", new=AsyncMock()),
+        patch("app.api.auth.services.mfa_flow.send_mfa_changed_notification", new=AsyncMock()),
+    ):
+        result = await mfa_flow.confirm_totp_setup(
+            MfaTotpConfirmRequest(setup_token=SecretStr("setup-token"), code="123456"),
+            current_user=user,
+            user_manager=user_manager,
+            redis=MagicMock(),
+            background_tasks=MagicMock(),
+        )
+
+    enable.assert_awaited_once()
+    assert len(result.recovery_codes) == 10
+    # The password helper is never consulted for a password-less account.
+    user_manager.password_helper.verify_and_update.assert_not_called()
+
+
+async def test_confirm_totp_setup_requires_password_when_account_has_one() -> None:
+    """An account with a usable password must still supply it (400 when omitted)."""
+    user = MagicMock()
+    user.id = "user-id"
+    user.mfa_enabled = False
+    user.mfa_totp_secret = None
+    user.has_usable_password = True
+    user_manager = MagicMock()
+    user_manager.get = AsyncMock(return_value=user)
+    setup = MagicMock()
+    setup.secret = "secret"
+
+    with (
+        patch("app.api.auth.services.mfa_flow.mfa_service.get_totp_setup", new=AsyncMock(return_value=setup)),
+        patch("app.api.auth.services.mfa_flow.mfa_service.enable_totp", new=AsyncMock()) as enable,
+        pytest.raises(HTTPException) as exc,
+    ):
+        await mfa_flow.confirm_totp_setup(
+            MfaTotpConfirmRequest(setup_token=SecretStr("setup-token"), code="123456"),
+            current_user=user,
+            user_manager=user_manager,
+            redis=MagicMock(),
+            background_tasks=MagicMock(),
+        )
+
+    assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
     enable.assert_not_awaited()
 
 

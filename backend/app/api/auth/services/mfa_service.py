@@ -106,9 +106,11 @@ def _parse_transport(metadata: dict[str, str]) -> MfaTransport:
     return transport
 
 
-def enforce_mfa_token_rate_limit(token: str) -> None:
+async def enforce_mfa_token_rate_limit(token: str) -> None:
     """Apply the shared login-attempt limit to an MFA token fingerprint."""
-    limiter.hit_key(MFA_TOKEN_ATTEMPT_RATE_LIMIT, rate_limit_bucket_key("auth:mfa:token", token_fingerprint(token)))
+    await limiter.ahit_key(
+        MFA_TOKEN_ATTEMPT_RATE_LIMIT, rate_limit_bucket_key("auth:mfa:token", token_fingerprint(token))
+    )
 
 
 def generate_totp_secret() -> str:

@@ -3,6 +3,7 @@
 import base64
 import time
 from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -111,25 +112,26 @@ async def test_mfa_setup_token_is_consumed_after_successful_confirmation(redis_c
 
 async def test_mfa_token_rate_limit_uses_keyed_token_fingerprint(mocker: MockerFixture) -> None:
     """MFA token attempt limits should use the shared keyed token fingerprint."""
-    hit_key = mocker.patch("app.api.auth.services.mfa_service.limiter.hit_key")
+    ahit_key = mocker.patch("app.api.auth.services.mfa_service.limiter.ahit_key", new_callable=AsyncMock)
     token = "setup-token-value"
 
-    mfa_service.enforce_mfa_token_rate_limit(token)
+    await mfa_service.enforce_mfa_token_rate_limit(token)
 
-    rate, key = hit_key.call_args.args
+    rate, key = ahit_key.call_args.args
     assert rate == mfa_service.MFA_TOKEN_ATTEMPT_RATE_LIMIT
     assert key == rate_limit_bucket_key("auth:mfa:token", mfa_service.token_fingerprint(token))
 
 
-def test_mfa_token_rate_limit_propagates_rate_limit_error(mocker: MockerFixture) -> None:
+async def test_mfa_token_rate_limit_propagates_rate_limit_error(mocker: MockerFixture) -> None:
     """The MFA service should let the shared rate-limit exception become a 429 response."""
     mocker.patch(
-        "app.api.auth.services.mfa_service.limiter.hit_key",
+        "app.api.auth.services.mfa_service.limiter.ahit_key",
+        new_callable=AsyncMock,
         side_effect=RateLimitExceededError,
     )
 
     with pytest.raises(RateLimitExceededError):
-        mfa_service.enforce_mfa_token_rate_limit("setup-token-value")
+        await mfa_service.enforce_mfa_token_rate_limit("setup-token-value")
 
 
 async def test_corrupt_stored_mfa_token_metadata_is_rejected(redis_client: Redis) -> None:

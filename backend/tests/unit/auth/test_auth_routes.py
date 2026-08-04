@@ -69,6 +69,7 @@ async def test_forgot_password_applies_account_rate_limit_to_all_requests() -> N
         patch("app.api.auth.routers.password_reset.limiter") as mock_limiter,
         patch("app.api.auth.routers.password_reset._sleep_until_minimum_elapsed", new_callable=AsyncMock),
     ):
+        mock_limiter.ahit_key = AsyncMock()
         await forgot_password(
             request=_request(),
             email=" User@Example.COM ",
@@ -76,8 +77,8 @@ async def test_forgot_password_applies_account_rate_limit_to_all_requests() -> N
             user_manager=user_manager,
         )
 
-    mock_limiter.hit_key.assert_called_once()
-    rate, key = mock_limiter.hit_key.call_args.args
+    mock_limiter.ahit_key.assert_called_once()
+    rate, key = mock_limiter.ahit_key.call_args.args
     assert rate == PASSWORD_RESET_RATE_LIMIT
     assert key.startswith("auth:password-reset:account:")
     assert "User@Example.COM" not in key
@@ -104,9 +105,10 @@ async def test_forgot_password_returns_same_response_for_missing_and_inactive_us
     user_manager.forgot_password = AsyncMock(side_effect=forgot_side_effect)
 
     with (
-        patch("app.api.auth.routers.password_reset.limiter"),
+        patch("app.api.auth.routers.password_reset.limiter") as reset_limiter,
         patch("app.api.auth.routers.password_reset._sleep_until_minimum_elapsed", new_callable=AsyncMock),
     ):
+        reset_limiter.ahit_key = AsyncMock()
         result = await forgot_password(
             request=_request(),
             email="user@example.com",
@@ -126,9 +128,10 @@ async def test_forgot_password_existing_user_passes_background_tasks_through_req
     background_tasks = MagicMock(spec=BackgroundTasks)
 
     with (
-        patch("app.api.auth.routers.password_reset.limiter"),
+        patch("app.api.auth.routers.password_reset.limiter") as reset_limiter,
         patch("app.api.auth.routers.password_reset._sleep_until_minimum_elapsed", new_callable=AsyncMock),
     ):
+        reset_limiter.ahit_key = AsyncMock()
         await forgot_password(
             request=_request(),
             email="user@example.com",

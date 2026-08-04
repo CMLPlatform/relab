@@ -60,11 +60,12 @@ async def test_applies_account_aware_rate_limit_before_lookup() -> None:
         patch("app.api.auth.services.user_manager.limiter", create=True) as mock_limiter,
         patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock) as mock_super,
     ):
+        mock_limiter.ahit_key = AsyncMock()
         mock_super.return_value = None
         await manager.authenticate(credentials)
 
-    mock_limiter.hit_key.assert_called_once()
-    rate, key = mock_limiter.hit_key.call_args.args
+    mock_limiter.ahit_key.assert_called_once()
+    rate, key = mock_limiter.ahit_key.call_args.args
     assert rate == "3/minute"
     assert key.startswith("auth:login:account:")
     assert "user@example.com" not in key
@@ -77,7 +78,7 @@ async def test_account_rate_limit_exceeded_skips_lookup() -> None:
     credentials = _make_credentials("blocked@example.com")
 
     with patch("app.api.auth.services.user_manager.limiter", create=True) as mock_limiter:
-        mock_limiter.hit_key.side_effect = RateLimitExceededError
+        mock_limiter.ahit_key.side_effect = RateLimitExceededError
         with pytest.raises(RateLimitExceededError):
             await manager.authenticate(credentials)
 
@@ -139,16 +140,18 @@ async def test_username_and_email_login_share_rate_limit_bucket() -> None:
         patch("app.api.auth.services.user_manager.limiter", create=True) as username_limiter,
         patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock),
     ):
+        username_limiter.ahit_key = AsyncMock()
         await username_manager.authenticate(_make_credentials("myusername"))
-    username_key = username_limiter.hit_key.call_args.args[1]
+    username_key = username_limiter.ahit_key.call_args.args[1]
 
     email_manager, _ = _make_manager()
     with (
         patch("app.api.auth.services.user_manager.limiter", create=True) as email_limiter,
         patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock),
     ):
+        email_limiter.ahit_key = AsyncMock()
         await email_manager.authenticate(_make_credentials("shared@example.com"))
-    email_key = email_limiter.hit_key.call_args.args[1]
+    email_key = email_limiter.ahit_key.call_args.args[1]
 
     assert username_key == email_key
 
@@ -225,7 +228,7 @@ async def test_self_service_update_requires_the_current_password() -> None:
 
 
 async def test_superuser_update_does_not_require_the_target_password() -> None:
-    """`PATCH /users/{id}` (safe=False) must not demand a password the admin cannot know.
+    """`PATCH /admin/users/{user_id}` (safe=False) must not demand a password the admin cannot know.
 
     Regression: the reauth gate ran on both paths, so every admin-initiated email or
     password change 400'd with "Current password is required for this account update."

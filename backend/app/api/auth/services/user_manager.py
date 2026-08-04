@@ -115,7 +115,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         # email share one bucket instead of doubling the allowed brute-force attempts.
         # Unknown identifiers have no canonical form to resolve to, so credentials.username
         # is still the normalized raw input in that case.
-        limiter.hit_key(LOGIN_RATE_LIMIT, _login_identifier_rate_limit_key(credentials.username))
+        await limiter.ahit_key(LOGIN_RATE_LIMIT, _login_identifier_rate_limit_key(credentials.username))
         return await super().authenticate(credentials)
 
     async def validate_password(
