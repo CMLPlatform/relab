@@ -418,24 +418,29 @@ docker compose -p relab_prod exec -T postgres \
 > `postgres` superuser role in the cluster, or change the hardcoded value.
 > This is a genuine mismatch, not a formality.
 
-Then apply the role setup against the live database, using
-`deploy/postgres/initdb/10-relab-roles.sh` as the authoritative source (read it
-and mirror it — passwords come from the matching `secrets/prod/database_*_password`
-files):
+Then run the role script against the live database. It is idempotent and
+already mounted inside the container, so run it directly rather than
+transcribing it — hand-copying is how the per-role timeouts at the bottom get
+missed:
 
 ```bash
-docker compose -p relab_prod exec -T postgres psql -U "$PGSUPERUSER" -d relab_db
+docker compose -p relab_prod exec -T postgres bash /docker-entrypoint-initdb.d/10-relab-roles.sh
 ```
 
-Beyond what that script does, the existing database needs grants on objects that
-**already exist** — the script's `ALTER DEFAULT PRIVILEGES` only affects future
-objects, because on a fresh volume there are no tables yet:
+It reads the role names from the container environment and the passwords from
+the mounted `secrets/prod/database_*_password` files, so there is nothing to
+fill in. Replayed against a populated database it will:
 
-```sql
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES    IN SCHEMA public TO relab_app;
-GRANT USAGE, SELECT                  ON ALL SEQUENCES IN SCHEMA public TO relab_app;
-GRANT SELECT                         ON ALL TABLES    IN SCHEMA public TO relab_backup;
-```
+- create only the roles that do not exist yet, leaving any existing role's
+  password untouched;
+- grant on the tables and sequences that **already exist**, which
+  `ALTER DEFAULT PRIVILEGES` alone does not cover;
+- apply `statement_timeout`, `lock_timeout` and
+  `idle_in_transaction_session_timeout` to `relab_app`.
+
+No downtime is needed: `ALTER ROLE ... SET` applies to new sessions, so restart
+the API afterwards (or wait out the 30-minute connection recycle) for the
+timeouts to take effect on the pool.
 
 Verify all three roles exist and can log in before continuing.
 

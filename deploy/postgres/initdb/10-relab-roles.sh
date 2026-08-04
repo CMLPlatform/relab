@@ -46,23 +46,30 @@ psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
 \getenv app_password DATABASE_APP_PASSWORD
 \getenv migration_password DATABASE_MIGRATION_PASSWORD
 \getenv backup_password DATABASE_BACKUP_PASSWORD
+-- Role creation is guarded so this script can also be replayed against a live
+-- database whose data directory predates it (initdb only runs on empty ones).
+-- \gexec on an empty result set runs nothing. An existing role keeps its
+-- current password: this script never overwrites credentials it did not set.
 SELECT format(
     'CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
     :'migration_user',
     :'migration_password'
 )
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'migration_user')
 \gexec
 SELECT format(
     'CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
     :'app_user',
     :'app_password'
 )
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user')
 \gexec
 SELECT format(
     'CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
     :'backup_user',
     :'backup_password'
 )
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'backup_user')
 \gexec
 
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
@@ -106,6 +113,14 @@ SELECT format(
     :'backup_user'
 )
 \gexec
+
+-- ALTER DEFAULT PRIVILEGES only covers objects created from here on. On a
+-- fresh volume there are none yet and these are no-ops; on a database that
+-- already has tables they are what actually grants access to them.
+SELECT format('GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO %I', :'app_user') \gexec
+SELECT format('GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO %I', :'app_user') \gexec
+SELECT format('GRANT SELECT ON ALL TABLES IN SCHEMA public TO %I', :'backup_user') \gexec
+SELECT format('GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO %I', :'backup_user') \gexec
 
 SELECT format('ALTER ROLE %I SET search_path = public, pg_catalog', :'migration_user') \gexec
 SELECT format('ALTER ROLE %I SET search_path = public, pg_catalog', :'app_user') \gexec
