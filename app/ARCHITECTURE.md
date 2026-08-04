@@ -10,31 +10,39 @@ High-level map of `app`.
   FastAPI backend. Types are generated from the backend's OpenAPI schema.
 - **Client state:** React context + feature-local hooks/reducers.
 - **Forms:** React Hook Form + Zod resolvers.
-- **UI kit:** NativeWind v5 + vendored react-native-reusables primitives in src/components/base/. Theme (colors, type scale, semantic tokens) is delivered via `AppThemeProvider`/`useAppTheme()` (src/theme/); react-native-paper is not used — do not reintroduce it.
+- **UI kit:** NativeWind v5 + vendored react-native-reusables primitives in src/components/base/.
+  Theme (colors, type scale, semantic tokens) is delivered via `AppThemeProvider`/`useAppTheme()`
+  (src/theme/); react-native-paper is not used — do not reintroduce it.
 - **Compiler:** React Compiler enabled via `babel-plugin-react-compiler`.
 
 ## Source layout
 
-```
+```text
 src/
 ├── app/              # Expo Router tree, one file per route.
-├── components/       # Feature folders (auth, cameras, product, profile, common, base).
-├── hooks/            # Cross-feature custom hooks.
+├── components/       # Feature folders (auth, cameras, product, profile, base).
+├── features/         # Feature hooks/logic per domain.
+├── navigation/       # Shared destination definitions.
 ├── services/         # Backend integration: api/, media/, storage, domain stores.
 ├── context/          # React context providers (auth session, theme, etc.).
+├── theme/            # Theme provider, tokens, generated palette.
 ├── types/            # Hand-written types + api.generated.ts (do not edit).
+├── config.ts         # App configuration.
 ├── constants.ts      # Static values (routes, colors, env-derived constants).
 ├── utils/            # Framework-agnostic helpers, incl. router/ (Expo Router glue).
 ├── test-utils/       # Shared test fixtures, MSW handlers, render helpers.
+├── hooks/            # Cross-feature custom hooks.
 ├── assets/           # Fonts, images, icons.
 └── public/           # Files copied verbatim into the web export.
 ```
 
-`base/` components are generic primitives; `common/` are app-wide composites;
-the rest are domain-scoped. Keep imports flowing inward (features may use
-`base`/`common`, not the reverse).
+`base/` components are generic primitives (incl. vendored react-native-reusables
+under `base/ui/`); other component folders are domain-scoped. Feature logic
+lives in `src/features/`. Keep imports flowing inward (features may use `base`,
+not the reverse).
 
-`src/components/base/ui/` is vendored react-native-reusables output — regenerate via the RNR CLI rather than hand-refactoring.
+`src/components/base/ui/` is vendored react-native-reusables output — regenerate via the RNR CLI
+rather than hand-refactoring.
 
 ## Routing
 
@@ -58,9 +66,12 @@ screen in edit mode.
 
 ## Data flow
 
-1. Runtime API helpers call the backend at `$EXPO_PUBLIC_API_URL`, appending `/v1` for application routes.
-1. `just backend/openapi` exports the canonical schema to [src/types/openapi.json](src/types/openapi.json); `just codegen`
-   regenerates [src/types/api.generated.ts](src/types/api.generated.ts) from it and runs `scripts/redact_api.mjs` to strip JWT examples before commit.
+1. Runtime API helpers call the backend at `$EXPO_PUBLIC_API_URL`, appending `/v1` for application
+   routes.
+1. `just backend/openapi` exports the canonical schema to
+   [src/types/openapi.json](src/types/openapi.json); `just codegen` regenerates
+   [src/types/api.generated.ts](src/types/api.generated.ts) from it and runs
+   `scripts/redact_api.mjs` to strip JWT examples before commit.
 1. Request helpers live in [src/services/api](src/services/api); feature hooks
    wrap them with TanStack Query, returning typed data.
 1. MSW handlers in `src/test-utils/` mock the same surface in unit/integration
