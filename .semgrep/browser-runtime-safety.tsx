@@ -4,6 +4,12 @@ document.body.innerHTML = '<p>unsafe</p>';
 // ruleid: relab.browser-runtime-safety.dom-html-sink
 document.body.insertAdjacentHTML('beforeend', '<p>unsafe</p>');
 
+// ruleid: relab.browser-runtime-safety.dom-html-sink
+document.body.setHTMLUnsafe('<p>unsafe</p>');
+
+// ruleid: relab.browser-runtime-safety.dom-html-sink
+const Unsafe = () => <div dangerouslySetInnerHTML={{ __html: '<p>unsafe</p>' }} />;
+
 // ok: relab.browser-runtime-safety.dom-html-sink
 document.body.append(document.createElement('p'));
 
@@ -33,3 +39,6 @@ function ReviewedWebView() {
 
 // ruleid: relab.browser-runtime-safety.webview-new-usage
 const { WebView: ImportedWebView } = require('react-native-webview');
+
+// ruleid: relab.browser-runtime-safety.webview-new-usage
+import { WebView } from 'react-native-webview';

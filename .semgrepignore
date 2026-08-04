@@ -1,5 +1,7 @@
 **/__tests__/**
 **/*.test.*
+**/*.spec.*
+**/e2e/**
 **/node_modules/**
 **/dist/**
 **/.astro/**

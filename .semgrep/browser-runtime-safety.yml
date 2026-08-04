@@ -7,7 +7,6 @@ rules:
       include:
         - "/docs/src/**/*.astro"
         - "/www/src/**/*.astro"
-        - "/app/src/**/*.astro"
     pattern-regex: '\bset:html\s*='
 
   - id: relab.browser-runtime-safety.dom-html-sink
@@ -17,9 +16,11 @@ rules:
     paths:
       include:
         - "/docs/src/**"
+        - "/docs/public/**"
         - "/www/src/**"
+        - "/www/public/**"
         - "/app/src/**"
-    pattern-regex: '\.(?:innerHTML|outerHTML)\s*=|\binsertAdjacentHTML\s*\(|\bdocument\.write\s*\('
+    pattern-regex: '\.(?:innerHTML|outerHTML)\s*=|\binsertAdjacentHTML\s*\(|\bdocument\.write\s*\(|\bdangerouslySetInnerHTML\b|\.setHTMLUnsafe\s*\('
 
   - id: relab.browser-runtime-safety.webview-unsafe-origin
     message: Do not add permissive or plaintext React Native WebView origins.

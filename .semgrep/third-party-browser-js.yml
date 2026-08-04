@@ -15,7 +15,8 @@ rules:
     message: Do not add CDN-hosted browser runtime assets; install and serve first-party bundled assets.
     severity: ERROR
     languages: [ generic ]
-    paths:
+    # Anchored so the marketing-tag rule below scans exactly the same surface.
+    paths: &browser-asset-paths
       include:
         - "/app/**"
         - "/docs/src/components/**"
@@ -24,27 +25,17 @@ rules:
         - "/docs/public/**"
         - "/docs/Caddyfile"
         - "/docs/package.json"
+        - "/docs/astro.config.*"
         - "/www/src/**"
         - "/www/public/**"
         - "/www/Caddyfile"
         - "/www/package.json"
+        - "/www/astro.config.*"
     pattern-regex: 'https?://(?:[^/\s"''`<>]+\.)?(?:cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com|cdn\.[^/\s"''`<>]+)'
 
   - id: relab.third-party-browser-js.marketing-tag-signature
     message: Do not add browser marketing or analytics tags without an explicit third-party JavaScript security review.
     severity: ERROR
     languages: [ generic ]
-    paths:
-      include:
-        - "/app/**"
-        - "/docs/src/components/**"
-        - "/docs/src/pages/**"
-        - "/docs/src/scripts/**"
-        - "/docs/public/**"
-        - "/docs/Caddyfile"
-        - "/docs/package.json"
-        - "/www/src/**"
-        - "/www/public/**"
-        - "/www/Caddyfile"
-        - "/www/package.json"
+    paths: *browser-asset-paths
     pattern-regex: '\b(?:googletagmanager|google-analytics|gtag\s*\(|dataLayer|plausible\.io|matomo|hotjar|segment\.com)'
