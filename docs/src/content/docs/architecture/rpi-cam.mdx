@@ -15,6 +15,8 @@ config:
     layout: elk
 ---
 graph TD
+    accTitle: RPi camera plugin system diagram
+    accDescr: The Expo app calls the FastAPI backend, which relays commands to the RPi camera API over a WebSocket tunnel and receives HLS preview and image uploads back; the app can also reach the camera API directly over the LAN; the backend stores metadata in PostgreSQL, images in file storage, and session state in Redis, and coordinates YouTube streaming through Google OAuth.
     Researcher["Researcher"] -->|Capture workflow| FrontendApp["Expo app"]
     FrontendApp -->|API requests| MainAPI["FastAPI backend"]
 
@@ -62,6 +64,8 @@ graph TD
 
 ```mermaid
 sequenceDiagram
+    accTitle: RPi camera pairing, capture, and streaming flow
+    accDescr: Shows camera pairing through a claimed code, image capture relayed from the app through the backend to the camera and back, optional LAN-direct preview and capture once paired, YouTube live streaming started through backend-mediated OAuth, local HLS preview streaming, and how each flow is stopped.
     participant Researcher
     participant App as Expo App
     participant Backend as Main Backend

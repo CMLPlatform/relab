@@ -9,13 +9,14 @@ config:
     layout: elk
 ---
 graph TD
+    accTitle: Relab data model overview
+    accDescr: Users own cameras and products and link OAuth accounts; products form a self-referential component hierarchy, carry physical properties and circularity notes directly, and are linked to product types and materials; product types and materials are categorized under taxonomies; products, materials, and product types can each have files and images attached, and products can also have videos.
 
         User["User"]
         OAuthAccount["OAuth account"]
 
         Camera["Camera"]
         Product["Product"]
-        PhysicalProperties["Physical properties"]
 
         Taxonomy["Taxonomy"]
         Material["Material"]
@@ -35,7 +36,6 @@ graph TD
     Product -->|Has Components| Product
     Product -->|Contains| Material
     Product -->|Is Type Of| ProductType
-    Product -->|Has| PhysicalProperties
     ProductType -->|Categorized As| Category
     Material -->|Categorized As| Category
     Category -->|Sub-Category Of| Category
@@ -52,7 +52,7 @@ graph TD
     class User,OAuthAccount UserManagementFill;
 
     classDef DataCollectionFill fill:#e3ecfa,stroke:#1f4c96,stroke-width:2px,color:#143567;
-    class Product,PhysicalProperties,Camera DataCollectionFill;
+    class Product,Camera DataCollectionFill;
 
     classDef ReferenceDataFill fill:#f1f4f8,stroke:#5a6675,stroke-width:2px,color:#16202e;
     class Taxonomy,Material,Category,ProductType ReferenceDataFill;
@@ -69,6 +69,8 @@ This part covers user accounts, linked OAuth accounts, and ownership and access 
 
 ```mermaid
 erDiagram
+    accTitle: User management entities
+    accDescr: A USER has a unique id, email, canonical email, hashed password, active/superuser/verified flags, and an optional unique username; each USER can have zero or more OAUTHACCOUNT records storing the OAuth provider name, access and refresh tokens, expiry, and the linked provider account id and email.
     USER {
         uuid id PK
         varchar email UK
@@ -104,6 +106,8 @@ These records are shared across users and products. They are not the research re
 
 ```mermaid
 erDiagram
+    accTitle: Reference data entities and relationships
+    accDescr: PRODUCTTYPE and MATERIAL are each linked to PRODUCT and to CATEGORY through join tables; CATEGORY can nest under a parent CATEGORY and belongs to a TAXONOMY, which declares one or more domains such as products or materials.
     PRODUCTTYPE {
         integer id PK
         varchar name
@@ -177,14 +181,16 @@ Important characteristics:
 
 ```mermaid
 erDiagram
+    accTitle: Data collection entities and relationships
+    accDescr: Each USER owns zero or more RPI_CAMERA and PRODUCT records; a PRODUCT carries name, brand, model, physical dimensions, and circularity properties directly, can reference a parent PRODUCT to form a component hierarchy, is typed by PRODUCTTYPE, and can contain zero or more VIDEO records.
     RPI_CAMERA {
         uuid id PK
         varchar name
         varchar description
-        varchar encrypted_api_key
+        jsonb relay_public_key_jwk
+        varchar relay_key_id
+        cameracredentialstatus relay_credential_status "active, revoked"
         uuid owner_id FK
-        varchar url
-        varchar encrypted_auth_headers
     }
 
     PRODUCT {
@@ -193,20 +199,15 @@ erDiagram
         varchar description
         varchar brand
         varchar model
+        float weight_g
+        float height_cm
+        float width_cm
+        float depth_cm
         jsonb circularity_properties
         integer parent_id FK
         integer amount_in_parent
         integer product_type_id FK
         integer owner_id FK
-    }
-
-    PHYSICALPROPERTIES {
-        integer id PK
-        float weight_kg
-        float height_cm
-        float width_cm
-        float depth_cm
-        integer product_id FK
     }
 
     VIDEO {
@@ -220,7 +221,6 @@ erDiagram
 
     USER ||--o{ RPI_CAMERA : "owns"
     USER ||--o{ PRODUCT : "owns"
-    PRODUCT ||--o{ PHYSICALPROPERTIES : "has"
     PRODUCT ||--o{ VIDEO : "contains"
     PRODUCT ||--o{ PRODUCT : "is part of"
 ```
@@ -231,15 +231,16 @@ Images often carry a large part of the evidential value of a product record, so 
 
 ```mermaid
 erDiagram
+    accTitle: File and image storage entities
+    accDescr: FILE and IMAGE records store a filename, storage path, upload size in bytes, and a parent_type plus parent_id pair that polymorphically links each record to a PRODUCT, MATERIAL, or PRODUCTTYPE; IMAGE additionally stores image metadata as JSON.
     FILE {
         uuid id PK
         varchar description
         varchar filename
         varchar file
+        integer upload_size_bytes
         fileparenttype parent_type "product, material, product_type"
-        integer product_id FK
-        integer material_id FK
-        integer product_type_id FK
+        integer parent_id
     }
 
     IMAGE {
@@ -247,10 +248,9 @@ erDiagram
         varchar description
         varchar filename
         varchar file
+        integer upload_size_bytes
         imageparenttype parent_type "product, material, product_type"
-        integer product_id FK
-        integer material_id FK
-        integer product_type_id FK
+        integer parent_id
         jsonb image_metadata
     }
 

@@ -16,6 +16,8 @@ config:
 ---
 
 graph TD
+    accTitle: Relab system architecture overview
+    accDescr: Researchers and public visitors reach the Expo app, Astro landing page, and Starlight docs frontends; the Expo app and admins call the FastAPI backend, which authenticates through OAuth and bearer/cookie auth, reads and writes PostgreSQL and Redis, manages file storage, and integrates with the RPi camera API and YouTube API.
     Researcher["Researcher"] -->|Data entry| FrontendApp
     PublicUser["Public visitor"] -->|Browses products| FrontendApp
     PublicUser -->|Reads landing page| FrontendWeb
@@ -110,6 +112,7 @@ app/
 │   ├── data_collection/  # Products, components, search, related properties
 │   ├── file_storage/     # Uploaded files, images, linked media records
 │   ├── plugins/          # Optional integrations such as rpi_cam
+│   ├── stats/            # Aggregate public totals, series, and category stats
 │   └── common/           # Shared routers, helpers, exceptions
 ├── core/                 # Runtime configuration, DB, cache, logging, HTTP clients
 ├── static/               # Static assets served by the backend
@@ -128,4 +131,4 @@ app/
 Relab is a modular monolith, and stays one until a real deployment or runtime
 boundary justifies a split. The backend is organized around explicit bounded
 contexts: identity and access, data collection, reference data, media and
-storage, publication and export, and device integration.
+storage, statistics, and device integration.

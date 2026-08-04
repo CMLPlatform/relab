@@ -16,7 +16,7 @@ the RPi camera plugin.
 
 ### Authentication and user management
 
-- `/v1/auth/*` — login, logout, refresh, registration, verification, and password reset
+- `/v1/auth/*` — login, logout, refresh, registration, verification, password reset, and TOTP MFA setup/challenge flows
 - `/v1/oauth/*` — Google, GitHub, and YouTube account authorization, callbacks, token exchange, and account linking
 - `/v1/users/*` — authenticated user self-management
 - `/v1/profiles/{username}` — username-addressed public profile reads
@@ -25,6 +25,7 @@ the RPi camera plugin.
 ### Data collection
 
 - `/v1/products/*` — base-product creation, reads, updates, search, owner filters, base-product media, videos, bill-of-materials, and parent-scoped component lists
+- `/v1/products/facets` and `/v1/products/suggestions/*` — filter facets and brand/model autocomplete suggestions for product search
 - `/v1/components/*` — stable component reads, updates, component-scoped media, and component bill-of-materials
 - `/v1/products?owner=me` and `/v1/users/{user_id}/products/*` — user-scoped product access
 
@@ -32,6 +33,10 @@ the RPi camera plugin.
 
 - public `/v1/taxonomies`, `/v1/categories`, `/v1/materials`, `/v1/product-types`, and `/v1/units` endpoints for reference lookups
 - `/v1/admin/*` variants for controlled management of reference data
+
+### Statistics
+
+- `/v1/stats/totals`, `/v1/stats/series`, and `/v1/stats/categories` — aggregate public totals, time series, and category breakdowns for dashboards and reporting
 
 ### Media
 
@@ -75,6 +80,8 @@ The app-facing camera routes appear in the [public API reference](/api/public/).
 
 ```mermaid
 sequenceDiagram
+    accTitle: Example product and image capture interaction flow
+    accDescr: A researcher authenticates with the API, then repeatedly creates products, optionally requests an image capture that the API relays through the RPi camera API and stores in file storage, and adds components linked to the parent product.
     participant Researcher
     participant API as FastAPI Backend
     participant DB as Database

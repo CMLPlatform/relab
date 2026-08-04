@@ -11,12 +11,18 @@ No local setup is required.
 
 ## Self-hosting
 
-Self-hosting makes sense for evaluation, institutional deployment, offline use, or local development. This page is about running the stack. If your main goal is contributing code, [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md) covers tooling policy and contributor workflow.
+Self-hosting makes sense for evaluation, institutional deployment, offline use, or local
+development. This page is about running the stack. If your main goal is contributing code,
+[CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md) covers
+tooling policy and contributor workflow.
 
 ### Prerequisites
 
 - [Docker Desktop](https://docs.docker.com/get-started/get-docker/)
 - [`just`](https://just.systems/man/en/) is optional but recommended
+- Contributing code additionally requires [`uv`](https://docs.astral.sh/uv/), Node 26.x, and pnpm
+  11.x — see step 2 below and
+  [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md)
 
 ## Local Docker setup
 
@@ -39,9 +45,11 @@ Self-hosting makes sense for evaluation, institutional deployment, offline use, 
    just deploy-secrets-template dev
    ```
 
-   Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email, or bootstrap settings. Replace values under `secrets/dev/` only when you need real local credentials for integrations.
+   Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email,
+   or bootstrap settings. Replace values under `secrets/dev/` only when you need real local
+   credentials for integrations.
 
-   ```text
+   ```text title="backend/.env.dev"
    GOOGLE_OAUTH_CLIENT_ID=google-oauth-client-id
    GITHUB_OAUTH_CLIENT_ID=github-oauth-client-id
    EMAIL_PROVIDER=smtp
@@ -97,7 +105,11 @@ Self-hosting makes sense for evaluation, institutional deployment, offline use, 
 
 ## Production and staging deployment
 
-Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging are selected by committed non-secret Compose env files under `deploy/env/`, while each host keeps host-local interpolation values in the gitignored root `.env`. Cloudflare Tunnel remains the supported ingress path. The operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
+Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging are selected by
+committed non-secret Compose env files under `deploy/env/`, while each host keeps host-local
+interpolation values in the gitignored root `.env`. Cloudflare Tunnel remains the supported ingress
+path. The operational path is manual on the server: pull the repo, run the deploy stack, run
+migrations, verify health.
 
 1. Configure a Cloudflare tunnel.
 
@@ -113,18 +125,40 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
    cp .env.example .env
    ```
 
-   The root `.env` holds host-local values that Compose must interpolate. It can contain two types of values:
+   The root `.env` holds host-local values that Compose must interpolate. It can contain two types
+   of values:
 
-   - **Non-secret** values, such as OAuth client IDs, email sender metadata, the initial superuser email, the backup host directory, and optional telemetry endpoints.
-   - **Secret** values only when a host helper or Compose interpolation requires them, such as `CLOUDFLARE_TUNNEL_TOKEN` or optional authenticated telemetry URLs/headers.
+   - **Non-secret** values, such as OAuth client IDs, email sender metadata, the initial superuser
+     email, the backup host directory, and optional telemetry endpoints.
+   - **Secret** values only when a host helper or Compose interpolation requires them, such as
+     `CLOUDFLARE_TUNNEL_TOKEN` or optional authenticated telemetry URLs/headers.
 
-   For prod or staging, fill the required non-secret backend deploy inputs in `.env`: `GOOGLE_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_ID`, `EMAIL_PROVIDER`, email sender fields, and `BOOTSTRAP_SUPERUSER_EMAIL`. Use the prod or staging Cloudflare tunnel token for `CLOUDFLARE_TUNNEL_TOKEN`. Compose requires the shared email identity values; backend startup validation enforces provider-specific settings. With `EMAIL_PROVIDER=smtp`, fill `SMTP_HOST`, `SMTP_USERNAME`, and `secrets/<env>/smtp_password`. With `EMAIL_PROVIDER=microsoft_graph`, fill the Microsoft Graph tenant/client/sender values and `secrets/<env>/microsoft_graph_client_secret`.
+   For prod or staging, fill the required non-secret backend deploy inputs in `.env`:
+   `GOOGLE_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_ID`, `EMAIL_PROVIDER`, email sender fields, and
+   `BOOTSTRAP_SUPERUSER_EMAIL`. Use the prod or staging Cloudflare tunnel token for
+   `CLOUDFLARE_TUNNEL_TOKEN`. Compose requires the shared email identity values; backend startup
+   validation enforces provider-specific settings. With `EMAIL_PROVIDER=smtp`, fill `SMTP_HOST`,
+   `SMTP_USERNAME`, and `secrets/<env>/smtp_password`. With `EMAIL_PROVIDER=microsoft_graph`, fill
+   the Microsoft Graph tenant/client/sender values and
+   `secrets/<env>/microsoft_graph_client_secret`.
 
-   Environment identity and public origins live in `deploy/env/prod.compose.env` and `deploy/env/staging.compose.env`. Each deploy env file defines the environment plus the four public service URLs once: `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL`, and `DOCS_PUBLIC_URL`.
+   Also review the per-user upload ceiling and scanning inputs: `MAX_UPLOAD_FILES_PER_USER` and
+   `MAX_UPLOAD_BYTES_PER_USER_MB` cap how many files and how much storage each account can use. The
+   quota ledger counts existing rows, so raise these before first start on a host with a large
+   existing dataset, or an owner whose existing uploads already exceed the new limit is blocked from
+   uploading entirely. `MALWARE_SCAN_ENABLED` controls ClamAV upload scanning and must agree with
+   whether the stack starts with the `scanning` Compose profile — see the two modes in the "Start
+   the stack" step below.
+
+   Environment identity and public origins live in `deploy/env/prod.compose.env` and
+   `deploy/env/staging.compose.env`. Each deploy env file defines the environment plus the four
+   public service URLs once: `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL`, and
+   `DOCS_PUBLIC_URL`.
 
 1. Review the non-secret deploy settings for this host.
 
-   Edit `deploy/env/prod.compose.env` or `deploy/env/staging.compose.env` only for committed public URL changes. Keep application/runtime secrets out of `.env`; they belong under `secrets/<env>/`.
+   Edit `deploy/env/prod.compose.env` or `deploy/env/staging.compose.env` only for committed public
+   URL changes. Keep application/runtime secrets out of `.env`; they belong under `secrets/<env>/`.
    To inspect the runtime secret inventory, run:
 
    ```bash
@@ -137,7 +171,12 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
    just deploy-secrets-template prod
    ```
 
-   Replace every placeholder value under `secrets/prod/`. Use `just deploy-secrets-template staging` for staging or `just deploy-secrets-template dev` for local development. Required secret filenames are declared by the rendered Compose overlays and the runtime secret inventory in `deploy/env/variables.toml`; `just deploy-secrets-check` verifies that every rendered secret points at the expected `secrets/<env>/` file. Existing database volumes must be dumped and recreated before the database role layout can take effect.
+   Replace every placeholder value under `secrets/prod/`. Use `just deploy-secrets-template staging`
+   for staging or `just deploy-secrets-template dev` for local development. Required secret
+   filenames are declared by the rendered Compose overlays and the runtime secret inventory in
+   `deploy/env/variables.toml`; `just deploy-secrets-check` verifies that every rendered secret
+   points at the expected `secrets/<env>/` file. Existing database volumes must be dumped and
+   recreated before the database role layout can take effect.
 
 1. Validate the deployment configuration.
 
@@ -148,9 +187,24 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
 
 1. Start the stack.
 
-   ```bash
-   just prod-up YES
-   ```
+   ClamAV upload scanning is an optional Compose profile, off by default:
+
+   - **Default (no scanning)** — set `MALWARE_SCAN_ENABLED=false` in the root `.env` and start
+     without the `scanning` profile. Uploads are accepted unscanned; treat this as an explicit,
+     temporary accepted risk, not a default to keep long-term.
+
+     ```bash
+     just prod-up YES
+     ```
+
+   - **With scanning** — keep `MALWARE_SCAN_ENABLED=true` in the root `.env` and pass the
+     `scanning` profile on every up/down. Budget roughly 3-4 GiB of extra RAM for ClamAV.
+
+     ```bash
+     just prod-up YES scanning
+     ```
+
+   Leaving `MALWARE_SCAN_ENABLED=true` without the `scanning` profile fails all uploads closed.
 
    For a local production-like backup rehearsal, prefer staging:
 
@@ -176,6 +230,18 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
    just cloudflare-check
    just cloudflare-plan staging
    just cloudflare-plan prod
+   ```
+
+   :::danger
+   Only run `cloudflare-apply` against a greenfield Cloudflare zone, or after importing the
+   existing DNS records, tunnels, and rulesets into OpenTofu state. Applying against a
+   hand-configured zone tries to create everything from scratch: it duplicates DNS records,
+   creates a new tunnel whose id will not match the live `CLOUDFLARE_TUNNEL_TOKEN` (breaking
+   ingress), and can overwrite existing rulesets, since each Cloudflare phase allows only one
+   ruleset per zone (source: `deploy/CUTOVER.md` §11).
+   :::
+
+   ```bash
    just cloudflare-apply staging YES
    just cloudflare-apply prod YES
    ```
@@ -205,7 +271,8 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging ar
 
 ### Optional WebDAV offsite backups
 
-The supported offsite path is a second restic repository copied from the local restic repository. WebDAV is handled through restic's rclone backend.
+The supported offsite path is a second restic repository copied from the local restic repository.
+WebDAV is handled through restic's rclone backend.
 
 1. Create `secrets/<env>/rclone.conf` with a WebDAV remote.
 
@@ -225,7 +292,8 @@ The supported offsite path is a second restic repository copied from the local r
 
 ### Optional: central telemetry
 
-If you run a central monitoring stack (Grafana + Loki + Tempo + Prometheus), prod and staging can ship to it without any code changes:
+If you run a central monitoring stack (Grafana + Loki + Tempo + Prometheus), prod and staging can
+ship to it without any code changes:
 
 1. Install the Loki Docker driver plugin on the host (once):
 
@@ -233,7 +301,9 @@ If you run a central monitoring stack (Grafana + Loki + Tempo + Prometheus), pro
    docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
    ```
 
-1. Set `LOKI_PUSH_URL` (and optionally `OTEL_EXPORTER_OTLP_ENDPOINT`) in the host's root `.env`. The `prod-up` / `staging-up` recipes auto-include `compose.logging.loki.yaml` when `LOKI_PUSH_URL` is non-empty. Hosts without the variable keep Docker's default `json-file` driver.
+1. Set `LOKI_PUSH_URL` (and optionally `OTEL_EXPORTER_OTLP_ENDPOINT`) in the host's root `.env`. The
+   `prod-up` / `staging-up` recipes auto-include `compose.logging.loki.yaml` when `LOKI_PUSH_URL` is
+   non-empty. Hosts without the variable keep Docker's default `json-file` driver.
 
 See [Deployment and operations](/operations/deployment/#telemetry) for the full flow.
 
@@ -243,8 +313,14 @@ If you want camera-assisted capture, see the external plugin repository:
 
 [Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin)
 
-The plugin uses **WebSocket relay** — the RPi connects outbound to the backend, so no public IP or port forwarding is needed. The quickest setup is **automatic pairing**: set `PAIRING_BACKEND_URL` on the RPi, boot it, and enter the displayed pairing code in the app. See the [plugin install guide](https://github.com/CMLPlatform/relab-rpi-cam-plugin/blob/main/INSTALL.md), the [platform camera guide](/user-guides/rpi-cam/), and the [API reference overview](/api-reference/) for endpoint details.
-If the Pi is headless, you can read the pairing code either from its local `/setup` page or from the `PAIRING READY` log line over SSH, `docker compose logs`, or `journalctl`.
+The plugin uses **WebSocket relay** — the RPi connects outbound to the backend, so no public IP or
+port forwarding is needed. The quickest setup is **automatic pairing**: set `PAIRING_BACKEND_URL` on
+the RPi, boot it, and enter the displayed pairing code in the app. See the
+[plugin install guide](https://github.com/CMLPlatform/relab-rpi-cam-plugin/blob/main/INSTALL.md),
+the [platform camera guide](/user-guides/rpi-cam/), and the
+[API reference overview](/api-reference/) for endpoint details. If the Pi is headless, you can read
+the pairing code either from its local `/setup` page or from the `PAIRING READY` log line over SSH,
+`docker compose logs`, or `journalctl`.
 
 ## Need help?
 

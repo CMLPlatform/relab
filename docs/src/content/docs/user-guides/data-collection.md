@@ -3,7 +3,8 @@ title: Data collection guide
 description: Capture a solid Relab record with clear hierarchy, media, and reference data.
 ---
 
-A good record captures what the product is, how it comes apart, and what evidence you collected along the way. Photos and notes are often more valuable than a perfectly filled form.
+A good record captures what the product is, how it comes apart, and what evidence you collected
+along the way. Photos and notes are often more valuable than a perfectly filled form.
 
 ## Before you start
 
@@ -14,12 +15,14 @@ A good record captures what the product is, how it comes apart, and what evidenc
 
 ## Recommended workflow
 
-1. Create a top-level product record for the item you are about to document, such as a cordless drill.
+1. Create a top-level product record for the item you are about to document, such as a cordless
+   drill.
 1. Add identifying metadata: name, brand, model, and descriptive notes.
 1. Record initial media for the intact product.
 1. As disassembly progresses, create child records for meaningful components or subassemblies.
 1. Attach images, files, measurements, and notes to the most appropriate record level.
-1. Link product types, categories, or materials where those observations are known with reasonable confidence.
+1. Link product types, categories, or materials where those observations are known with reasonable
+   confidence.
 
 ## When to create a child component
 
@@ -31,18 +34,22 @@ Create a child record when:
 - the part may be useful in later comparison across products
 
 :::tip[A useful rule of thumb]
-If you would photograph it separately and write notes about it specifically, it probably deserves its own record. A battery pack is a component. A single screw usually is not.
+If you would photograph it separately and write notes about it specifically, it probably deserves
+its own record. A battery pack is a component. A single screw usually is not.
 :::
 
 ## Practical modeling advice
 
 - Use parent-child product links to represent the physical breakdown of the object.
 - Keep free-text notes for uncertainty, unusual joins, damage, or ambiguous materials.
-- Use circularity notes for concise observations about recyclability, disassemblability, and remanufacturability. Leave them empty when there is no useful observation yet.
-- Photograph anything a later reader might want to check; images often carry more evidence than the form fields.
+- Use circularity notes for concise observations about recyclability, disassemblability, and
+  remanufacturability. Leave them empty when there is no useful observation yet.
+- Photograph anything a later reader might want to check; images often carry more evidence than the
+  form fields.
 
 :::note[Partial is fine]
-If you are not sure, say so in the record. "Likely polypropylene, unconfirmed" is a perfectly good observation — and more useful than a guess.
+If you are not sure, say so in the record. "Likely polypropylene, unconfirmed" is a perfectly good
+observation — and more useful than a guess.
 :::
 
 ## Good notes often include
@@ -55,7 +62,8 @@ If you are not sure, say so in the record. "Likely polypropylene, unconfirmed" i
 
 ## Reference data
 
-Use materials, categories, taxonomies, and product types when they improve consistency. If no entry fits, leave the field empty rather than picking the closest match.
+Use materials, categories, taxonomies, and product types when they improve consistency. If no entry
+fits, leave the field empty rather than picking the closest match.
 
 ## Media capture
 
@@ -64,7 +72,9 @@ Attach media in two ways:
 - manual upload of files and images
 - device-assisted capture through the Raspberry Pi camera integration
 
-Use image uploads for ordinary display photos. Use file uploads for research documents and scientific datasets, including hyperspectral ENVI, HDF5, NITF, and GeoTIFF files, so Relab stores the original data without image processing.
+Use image uploads for ordinary display photos. Use file uploads for research documents and
+scientific datasets, including hyperspectral ENVI, HDF5, NITF, and GeoTIFF files, so Relab stores
+the original data without image processing.
 
 If you are using the camera integration, see [RPi camera integration](../rpi-cam/).
 
@@ -73,10 +83,16 @@ If you are using the camera integration, see [RPi camera integration](../rpi-cam
 Accepted types and size limits:
 
 - Images: `.bmp`, `.gif`, `.jpeg`, `.jpg`, `.png`, `.webp` — up to 10 MiB.
-- Research files: `.csv`, `.docx`, `.json`, `.md`, `.pdf`, `.pptx`, `.tsv`, `.txt`, `.xlsx` — up to 50 MiB.
-- Scientific data: `.dat`, `.h5`, `.hdr`, `.hdf5`, `.img`, `.nitf`, `.ntf`, `.raw`, `.tif`, `.tiff` — up to 50 MiB.
+- Research files: `.csv`, `.docx`, `.json`, `.md`, `.pdf`, `.pptx`, `.tsv`, `.txt`, `.xlsx` — up to
+  50 MiB.
+- Scientific data: `.dat`, `.h5`, `.hdr`, `.hdf5`, `.img`, `.nitf`, `.ntf`, `.raw`, `.tif`, `.tiff`
+  — up to 50 MiB.
 
-Relab validates type, size, and content before storing a file. Office files are unpacked and inspected before acceptance. Each account has a cap on total file count and storage used. If malware scanning is enabled, files are scanned on upload and rejected if flagged.
+Relab validates type, size, and content before storing a file. Office files are unpacked and
+inspected before acceptance. Each account has a cap on total file count and storage used — 5000
+files and 2048 MB by default, tunable per instance by the operator through
+`MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB`. If malware scanning is enabled,
+files are scanned on upload and rejected if flagged.
 
 ## Final check
 
