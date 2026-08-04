@@ -26,7 +26,7 @@ if (typeof window !== 'undefined' && typeof window.history?.replaceState !== 'fu
 // ── MSW server lifecycle ───────────────────────────────────────────────────
 // Open a fresh interceptor layer per test so worker processes don't keep
 // long-lived network hooks around until suite teardown.
-beforeEach(() => server.listen({ onUnhandledRequest: 'warn' }));
+beforeEach(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();
   server.close();
