@@ -12,9 +12,10 @@ This file is committed deliberately: it contains no secrets, and the previous
 playbook lived under `secrets/`, which is gitignored and therefore never reached
 the deploy host.
 
-If prod is exactly at `main`, its Alembic head is `6f2b9e4a1c3d` and the release
-is `5bfb8deb5fa6` (17 migrations). **Verify that rather than assuming it** —
-step 0 exists because the assumption is known to be shaky.
+Prod's Alembic revision is `6f2b9e4a1c3d` and the release is `5bfb8deb5fa6`
+(17 migrations). Prod's *code*, however, is not at `main` — see step 0, which
+records what the host actually looks like and why that does not change the
+migration plan.
 
 ## What makes this cutover different
 
@@ -43,9 +44,8 @@ ______________________________________________________________________
 
 ## 0. Establish what prod actually is — do this first
 
-The rest of this runbook assumes prod sits at `main` with no local changes.
-That assumption is **not** currently verified, and there is a known report of
-unpushed local commits on the prod host. Settle it before planning the window.
+This section was run on 2026-08-03 and its findings are recorded below. Re-run
+it on the day of the cutover rather than trusting them — the host can move.
 
 On the deploy host:
 
@@ -54,28 +54,8 @@ cd /path/to/relab
 git status                        # dirty tree? uncommitted hotfixes?
 git log --oneline -5              # what revision is actually deployed
 git fetch origin
-git log --oneline origin/main..HEAD   # LOCAL COMMITS NOT ON ORIGIN
-git diff origin/main --stat            # uncommitted + committed drift
-```
+git log --oneline origin/main..HEAD   # see the caveat below before reading this
 
-**If `origin/main..HEAD` is non-empty, stop and deal with it.** Those commits
-exist only on that host. Checking out the release branch does not delete them,
-but nobody has reviewed them, they are absent from the release, and any fix they
-contain will silently regress on cutover. Push them to a branch first so they
-are recoverable and reviewable:
-
-```bash
-git branch prod-local-$(date +%Y%m%d)
-git push origin prod-local-$(date +%Y%m%d)
-```
-
-Then diff them against the release and decide, per commit, whether it is already
-covered, needs porting, or can be dropped. Do not start the cutover with this
-unresolved.
-
-Next, establish the database and config state:
-
-```bash
 # Actual Alembic revision (the real input to the migration plan)
 docker compose -p relab_prod exec -T postgres \
   psql -U "$PGSUPERUSER" -d relab_db -c 'SELECT version_num FROM alembic_version;'
@@ -88,14 +68,63 @@ ls -la secrets/prod/ 2>/dev/null        && echo 'secret files already present'
 docker compose -p relab_prod exec -T postgres psql -U "$PGSUPERUSER" -d relab_db -c '\du'
 ```
 
-Record four answers before continuing:
+### What this found (checked 2026-08-03)
 
-| Question                                 | Why it matters                                                                       |
-| ---------------------------------------- | ------------------------------------------------------------------------------------ |
-| Alembic revision                         | If not `6f2b9e4a1c3d`, the 17-migration count and the step 3 checks need re-deriving |
-| `backend/.env.prod` present?             | It is the **source** for the secret files created in step 4                          |
-| `secrets/prod/` present?                 | Absent is expected; step 4 creates it                                                |
-| Superuser name, `relab_*` roles present? | Drives steps 5 and every `psql` call here                                            |
+Prod is **not** at `main`. It sits on a pre-rewrite lineage of the working
+branch, tip `2abd707e` dated **2026-04-24** — roughly three months of drift, and
+older than the `frontend-app/` → `app/` rename.
+
+The working branch history was rewritten at some point, so prod's commits will
+never appear in `origin`: the same release commit exists twice under different
+hashes (`5e13df20` on prod vs `39c58600` on `main`). That makes
+`origin/main..HEAD` misleading — it lists ~70 commits that are mostly a rewrite
+artifact, not genuine local work. Comparing by content instead:
+
+- The six commits after prod last merged `main` are all 2026-04-24, and their
+  content is already in the release. The one functional change among them, the
+  `numColumns` paging fix (`83b2dda0`), survives verbatim in
+  `app/src/features/products/screenData.ts`. The rest (CI workflow
+  consolidation, biome schema paths, an Expo Dockerfile env fix, linting) are
+  superseded by later work.
+- **Nothing needs porting off the prod host.** Verify this again before the
+  window rather than trusting this paragraph, but that was the finding.
+
+The old lineage is preserved locally as the branch `backup/pre-rewrite-working`,
+which is **not on origin**. Push it before the cutover, so the only copies are
+not one laptop and one production host:
+
+```bash
+git push origin backup/pre-rewrite-working
+```
+
+Because the histories diverged, do not try to `git pull` or merge on prod — it
+will conflict across the directory rename. Tag the current state, then check the
+release out cleanly:
+
+```bash
+git tag prod-pre-mvp-$(date +%Y%m%d) && git push origin --tags   # if origin is reachable
+git checkout <release-branch> && git pull --ff-only
+```
+
+### The reassuring part: the schema plan is unaffected
+
+Prod's Alembic revision is `6f2b9e4a1c3d`, and the migration surface at prod's
+April tip is **identical to `main`** — 20 files, no extras. So despite the code
+drift, the database is exactly where this runbook assumes, and the 17-migration
+path to `5bfb8deb5fa6` applies unchanged. That path was verified by replaying it
+against a seeded scratch database at `6f2b9e4a1c3d`.
+
+The four answers that drive the rest of this document:
+
+| Question                                 | Answer as of 2026-08-03                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------------------- |
+| Alembic revision                         | `6f2b9e4a1c3d` — matches `main`, so the 17-migration plan applies unchanged     |
+| `backend/.env.prod` present?             | Yes — it is the **source** for the secret files created in step 4               |
+| `secrets/prod/` present?                 | No — step 4 creates all 15 from scratch                                         |
+| Superuser name, `relab_*` roles present? | Custom name from `backend/.env.prod`; no `relab_*` roles, so step 5 is required |
+
+Re-confirm these on the day rather than trusting the table: it records one
+observation, and anything could change in between.
 
 `$PGSUPERUSER` throughout this document is whatever that `\du` reports — on
 `main` it came from `backend/.env.prod`, so it is **not** necessarily `postgres`.
