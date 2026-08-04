@@ -68,10 +68,26 @@ export function parseOAuthCallbackUrl(url: string): OAuthCallbackResult | undefi
   };
 }
 
-export async function fetchOAuthAuthorizationUrl(authorizeUrl: string) {
+export async function fetchOAuthAuthorizationUrl(
+  authorizeUrl: string,
+  stepUp?: { currentPassword?: string },
+) {
   // fetchWithAuth attaches the bearer token when a session exists (association
   // flows) and is a plain fetch when none does (login flows).
-  const response = await fetchWithAuth(authorizeUrl, {});
+  //
+  // Association authorize is a POST: linking a provider changes how the account can be
+  // signed into, so the server requires the account password (step-up), which must
+  // travel in a body rather than a query string. Login authorize stays a GET.
+  const init = stepUp
+    ? {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          stepUp.currentPassword ? { current_password: stepUp.currentPassword } : {},
+        ),
+      }
+    : {};
+  const response = await fetchWithAuth(authorizeUrl, init);
   const payload = await response.json().catch(() => null);
 
   return {

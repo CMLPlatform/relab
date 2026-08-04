@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react-native';
+import { DialogProvider } from '@/components/base/DialogProvider';
 import type React from 'react';
 import { useProfileScreen } from '@/features/profile/useProfileScreen';
 
@@ -128,7 +129,13 @@ describe('useProfileScreen', () => {
         mutations: { retry: false, gcTime: 0 },
       },
     });
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    // DialogProvider: useProfileScreen collects the step-up password through it when
+    // linking a social login, and useDialog throws without a provider.
+    return (
+      <QueryClientProvider client={queryClient}>
+        <DialogProvider>{children}</DialogProvider>
+      </QueryClientProvider>
+    );
   }
 
   beforeEach(() => {

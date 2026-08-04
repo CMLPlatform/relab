@@ -277,6 +277,18 @@ class MfaTotpSetupResponse(BaseModel):
     otpauth_uri: str
 
 
+class OAuthStepUpRequest(BaseModel):
+    """Optional step-up body for linking or unlinking a social login.
+
+    Optional because an OAuth-only account has no usable password to re-assert; the
+    server decides whether one is required from ``user.has_usable_password``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: SecretStr | None = None
+
+
 class MfaTotpConfirmRequest(BaseModel):
     """Request to confirm authenticated TOTP setup."""
 
@@ -284,7 +296,13 @@ class MfaTotpConfirmRequest(BaseModel):
 
     setup_token: SecretStr
     code: str = Field(min_length=6, max_length=6)
-    password: SecretStr = Field(description="Current account password, to reauthenticate the change.")
+    password: SecretStr | None = Field(
+        default=None,
+        description=(
+            "Current account password, to reauthenticate the change. "
+            "Required unless the account has no usable password (OAuth-only)."
+        ),
+    )
 
 
 class MfaChallengeRequest(BaseModel):

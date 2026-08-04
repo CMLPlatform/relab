@@ -57,6 +57,33 @@ def require_current_password_for_sensitive_update(
     )
 
 
+def require_step_up_password(
+    *,
+    password_helper: PasswordHelper,
+    user: User,
+    current_password: str | None,
+    action: str,
+) -> None:
+    """Require the account password before changing an authentication method.
+
+    Linking or unlinking a social login changes how the account can be signed into, so
+    it needs the same re-authentication as an email or password change (ASVS V7.5.1) —
+    an active session alone is not enough, or a stolen session can attach a provider the
+    attacker controls and keep access after the victim resets their password.
+
+    An OAuth-only account has no usable password to re-assert; the out-of-band
+    notification email is the compensating control there.
+    """
+    if not user.has_usable_password:
+        return
+    if not current_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Current password is required to {action}.",
+        )
+    verify_current_password(password_helper=password_helper, password=current_password, user=user)
+
+
 async def revoke_user_refresh_tokens(user_id: UUID4, request: Request | None) -> None:
     """Revoke every refresh-token session for a user in the current request context."""
     if request is None:

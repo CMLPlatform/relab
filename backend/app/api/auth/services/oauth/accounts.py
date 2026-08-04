@@ -2,13 +2,13 @@
 
 from typing import TYPE_CHECKING
 
-from fastapi import BackgroundTasks, HTTPException, status
+from fastapi import BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.exceptions import InvalidOAuthProviderError, OAuthAccountNotLinkedError
 from app.api.auth.models import OAuthAccount, User
-from app.api.auth.services.account_security import verify_current_password
+from app.api.auth.services.account_security import require_step_up_password
 from app.api.auth.services.email.service import send_oauth_link_changed_notification
 
 if TYPE_CHECKING:
@@ -46,15 +46,14 @@ async def remove_oauth_association(
     if not oauth_account:
         raise OAuthAccountNotLinkedError(provider)
 
-    # Step-up re-auth after confirming the link exists: an account with a usable
-    # password must re-enter it, matching email/password changes.
-    if current_user.has_usable_password:
-        if not current_password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Current password is required to unlink a social login.",
-            )
-        verify_current_password(password_helper=password_helper, password=current_password, user=current_user)
+    # Step-up re-auth after confirming the link exists. Shared with the link flow so the
+    # two cannot drift apart.
+    require_step_up_password(
+        password_helper=password_helper,
+        user=current_user,
+        current_password=current_password,
+        action="unlink a social login",
+    )
 
     await session.delete(oauth_account)
     await session.commit()

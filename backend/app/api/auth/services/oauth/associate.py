@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Annotated, Any, Protocol, cast
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Request, Response
 from fastapi.responses import Response as FastAPIResponse
 from fastapi_users import schemas
 from fastapi_users.models import UserOAuthProtocol
@@ -17,6 +17,8 @@ from app.api.auth.exceptions import (
     OAuthInvalidStateError,
 )
 from app.api.auth.models import OAuthAccount, User
+from app.api.auth.schemas import OAuthStepUpRequest
+from app.api.auth.services.account_security import require_step_up_password
 from app.api.auth.services.email.service import send_oauth_link_changed_notification
 from app.api.auth.services.oauth.base import (
     OAuthFlowConfig,
@@ -104,7 +106,11 @@ def build_oauth_associate_router(
     get_current_active_user = authenticator.current_user(active=True, verified=requires_verification)
     oauth2_authorize_callback = authorize_callback_dependency(config, callback_route_name)
 
-    @router.get(
+    # POST rather than GET: linking a provider changes how the account can be signed
+    # into, so it needs step-up re-authentication (ASVS V7.5.1), and the password has to
+    # travel in a body rather than a query string. The route already returned JSON for
+    # the client to navigate to, so this is not a redirect endpoint.
+    @router.post(
         "/authorize",
         name=authorize_route_name,
         response_model=OAuth2AuthorizeResponse,
@@ -113,7 +119,22 @@ def build_oauth_associate_router(
         request: Request,
         response: Response,
         user: Annotated[User, Depends(get_current_active_user)],
+        user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
+        payload: Annotated[OAuthStepUpRequest | None, Body()] = None,
     ) -> OAuth2AuthorizeResponse:
+        # Required for every provider, including the YouTube data-scope client: the link
+        # is stored under ``oauth_client.name`` ("google" for both), which is the field
+        # the login flow matches on — so any association grants sign-in capability.
+        # Bound to this request rather than a time-windowed "sudo mode" grant that any
+        # sensitive action could redeem.
+        require_step_up_password(
+            password_helper=user_manager.password_helper,
+            user=user,
+            current_password=(
+                payload.current_password.get_secret_value() if payload and payload.current_password else None
+            ),
+            action="link a social login",
+        )
         return await build_authorize_response(
             config,
             request,

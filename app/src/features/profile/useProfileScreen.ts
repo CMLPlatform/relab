@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useDialog } from '@/components/base/dialogContext';
 import { useCallback, useState } from 'react';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
@@ -23,6 +24,7 @@ export function useProfileScreen() {
   const { user: profile, refetch } = useAuth();
   const feedback = useAppFeedback();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const dialog = useDialog();
   const dialogs = useProfileDialogs(profile);
   const {
     enabled: rpiEnabled,
@@ -60,6 +62,7 @@ export function useProfileScreen() {
     feedback,
     refetch,
     setYoutubeEnabled,
+    dialog,
   });
 
   const handleVisibilityChange = useCallback(

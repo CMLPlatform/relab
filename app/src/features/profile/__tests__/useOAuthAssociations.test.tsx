@@ -42,6 +42,8 @@ jest.mock('@/services/api/oauthFlow', () => ({
 }));
 
 describe('useOAuthAssociations', () => {
+  const mockDialog = { input: jest.fn() };
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.mocked(createURL).mockReturnValue('relab-app://account');
@@ -58,6 +60,7 @@ describe('useOAuthAssociations', () => {
       type: 'success',
       url: 'relab-app://account#status=success',
     }));
+    mockDialog.input.mockReset();
     mockRefetch.mockImplementation(async () => undefined);
     mockSetYoutubeEnabled.mockImplementation(async () => undefined);
   });
@@ -68,6 +71,7 @@ describe('useOAuthAssociations', () => {
         feedback: mockFeedback,
         refetch: mockRefetch,
         setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
       }),
     );
 
@@ -84,6 +88,7 @@ describe('useOAuthAssociations', () => {
         feedback: mockFeedback,
         refetch: mockRefetch,
         setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
       }),
     );
 
@@ -102,6 +107,7 @@ describe('useOAuthAssociations', () => {
         feedback: mockFeedback,
         refetch: mockRefetch,
         setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
       }),
     );
 
@@ -124,6 +130,7 @@ describe('useOAuthAssociations', () => {
         feedback: mockFeedback,
         refetch: mockRefetch,
         setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
       }),
     );
 
@@ -144,6 +151,7 @@ describe('useOAuthAssociations', () => {
         feedback: mockFeedback,
         refetch: mockRefetch,
         setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
       }),
     );
 
@@ -151,10 +159,62 @@ describe('useOAuthAssociations', () => {
       await result.current.actions.linkOAuth('google');
     });
 
+    // Linking always goes through the step-up POST; the password is undefined until
+    // the API asks for it.
     expect(fetchOAuthAuthorizationUrl).toHaveBeenCalledWith(
       expect.stringContaining('/oauth/google/associate/authorize'),
+      { currentPassword: undefined },
     );
     expect(mockRefetch).toHaveBeenCalled();
+  });
+
+  it('prompts for the password and retries when the API requires step-up', async () => {
+    // The API answers 400 until the account password is supplied, because linking a
+    // provider changes how the account can be signed into.
+    jest
+      .mocked(fetchOAuthAuthorizationUrl)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        detail: 'Current password is required to link a social login.',
+        authorizationUrl: undefined,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        detail: undefined,
+        authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
+      });
+
+    const { result } = renderHook(() =>
+      useOAuthAssociations({
+        feedback: mockFeedback,
+        refetch: mockRefetch,
+        setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.actions.linkOAuth('google');
+    });
+
+    // The 400 is an ask, not a failure: prompt rather than surface an error.
+    expect(mockDialog.input).toHaveBeenCalledTimes(1);
+    expect(mockFeedback.error).not.toHaveBeenCalled();
+
+    const options = mockDialog.input.mock.calls[0]?.[0] as {
+      buttons?: { text: string; onPress?: (value?: string) => void }[];
+    };
+    const confirm = options.buttons?.find((button) => button.text === 'Continue');
+    await act(async () => {
+      confirm?.onPress?.('hunter2');
+    });
+
+    // The retry carries the password the user just entered.
+    expect(fetchOAuthAuthorizationUrl).toHaveBeenLastCalledWith(expect.any(String), {
+      currentPassword: 'hunter2',
+    });
   });
 
   it('shows an error when starting a link flow fails', async () => {
@@ -170,6 +230,7 @@ describe('useOAuthAssociations', () => {
         feedback: mockFeedback,
         refetch: mockRefetch,
         setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
       }),
     );
 
@@ -191,6 +252,7 @@ describe('useOAuthAssociations', () => {
         feedback: mockFeedback,
         refetch: mockRefetch,
         setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
       }),
     );
 
@@ -214,6 +276,7 @@ describe('useOAuthAssociations', () => {
         feedback: mockFeedback,
         refetch: mockRefetch,
         setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
       }),
     );
 
@@ -230,6 +293,8 @@ describe('useOAuthAssociations', () => {
 });
 
 describe('linkOAuth callback status', () => {
+  const mockDialog = { input: jest.fn() };
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.mocked(createURL).mockReturnValue('relab-app://account');
@@ -260,6 +325,7 @@ describe('linkOAuth callback status', () => {
         feedback: mockFeedback,
         refetch: mockRefetch,
         setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
       }),
     );
 
@@ -282,6 +348,7 @@ describe('linkOAuth callback status', () => {
         feedback: mockFeedback,
         refetch: mockRefetch,
         setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
       }),
     );
 
