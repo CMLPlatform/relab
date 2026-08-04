@@ -92,6 +92,17 @@
           "complexity": { "noImportantStyles": "off" }
         }
       }
+    },
+    {
+      // Decorative brand glyphs consumed as Astro SVG components: the
+      // accessible name lives on the consuming link's aria-label, so an
+      // embedded <title> here would just duplicate (or conflict with) it.
+      "includes": ["src/assets/icons/brand/*.svg"],
+      "linter": {
+        "rules": {
+          "a11y": { "noSvgWithoutTitle": "off" }
+        }
+      }
     }
   ]
 }
