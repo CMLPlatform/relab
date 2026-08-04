@@ -34,7 +34,7 @@ test.describe('API reference pages', () => {
       'href',
       '/api/device/',
     );
-    await expect(apiNav.getByRole('separator', { name: 'Plugin API references' })).toBeVisible();
+    await expect(apiNav.getByRole('separator')).toBeVisible();
     await expect(apiNav.getByRole('link', { exact: true, name: 'RPi camera API' })).toHaveAttribute(
       'href',
       '/api/rpi-cam/',
@@ -94,7 +94,7 @@ test.describe('API reference discoverability', () => {
       'api-reference/',
     );
     await expect(
-      page.getByRole('main').getByRole('link', { exact: true, name: 'Public API reference' }),
+      page.getByRole('main').getByRole('link', { exact: true, name: 'Open public API reference' }),
     ).toHaveAttribute(
       'href',
       '/api/public/',

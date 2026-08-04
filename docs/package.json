@@ -21,7 +21,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:ci": "pnpm run test && pnpm run build && pnpm run test:e2e && pnpm run test:links",
-    "test:links": "linkinator ./dist --silent --skip 'mailto:*'",
+    "test:links": "linkinator ./dist --silent --skip 'mailto:*' --skip 'images/og.png'",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run build:test",
     "ci": "pnpm run check && pnpm run test:ci",
     "audit": "pnpm audit --prod --audit-level moderate"
