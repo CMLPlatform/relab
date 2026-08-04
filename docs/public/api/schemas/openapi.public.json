@@ -147,6 +147,38 @@
         "title": "Body_capture_image_v1_plugins_rpi_cam_cameras__camera_id__captures_post",
         "type": "object"
       },
+      "Body_reset_forgot_password_v1_auth_forgot_password_post": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "Body_reset_forgot_password_v1_auth_forgot_password_post",
+        "type": "object"
+      },
+      "Body_reset_reset_password_v1_auth_reset_password_post": {
+        "properties": {
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "password"
+        ],
+        "title": "Body_reset_reset_password_v1_auth_reset_password_post",
+        "type": "object"
+      },
       "Body_start_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_post": {
         "properties": {
           "description": {
@@ -319,6 +351,33 @@
           "file"
         ],
         "title": "Body_upload_product_image_v1_products__product_id__images_post",
+        "type": "object"
+      },
+      "Body_verify_request_token_v1_auth_request_verify_token_post": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "Body_verify_request_token_v1_auth_request_verify_token_post",
+        "type": "object"
+      },
+      "Body_verify_verify_v1_auth_verify_post": {
+        "properties": {
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "Body_verify_verify_v1_auth_verify_post",
         "type": "object"
       },
       "CameraConnectionStatus": {
@@ -3169,11 +3228,18 @@
             "type": "string"
           },
           "password": {
-            "description": "Current account password, to reauthenticate the change.",
-            "format": "password",
-            "title": "Password",
-            "type": "string",
-            "writeOnly": true
+            "anyOf": [
+              {
+                "format": "password",
+                "type": "string",
+                "writeOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current account password, to reauthenticate the change. Required unless the account has no usable password (OAuth-only).",
+            "title": "Password"
           },
           "setup_token": {
             "format": "password",
@@ -3184,8 +3250,7 @@
         },
         "required": [
           "setup_token",
-          "code",
-          "password"
+          "code"
         ],
         "title": "MfaTotpConfirmRequest",
         "type": "object"
@@ -3229,6 +3294,64 @@
           "otpauth_uri"
         ],
         "title": "MfaTotpSetupResponse",
+        "type": "object"
+      },
+      "OAuth2AuthorizeResponse": {
+        "description": "Response model for OAuth2 authorization endpoint.",
+        "properties": {
+          "authorization_url": {
+            "title": "Authorization Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorization_url"
+        ],
+        "title": "OAuth2AuthorizeResponse",
+        "type": "object"
+      },
+      "OAuthAccountRead": {
+        "description": "Read schema for OAuth accounts.",
+        "properties": {
+          "account_email": {
+            "title": "Account Email",
+            "type": "string"
+          },
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "oauth_name": {
+            "title": "Oauth Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "oauth_name",
+          "account_id",
+          "account_email"
+        ],
+        "title": "OAuthAccountRead",
+        "type": "object"
+      },
+      "OAuthUnlinkRequest": {
+        "description": "Optional step-up body for unlinking a social login.",
+        "properties": {
+          "current_password": {
+            "anyOf": [
+              {
+                "format": "password",
+                "type": "string",
+                "writeOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Password"
+          }
+        },
+        "title": "OAuthUnlinkRequest",
         "type": "object"
       },
       "Page_CategoryReadWithRecursiveSubCategories_": {
@@ -3687,6 +3810,32 @@
           "camera_name"
         ],
         "title": "PairingClaimRequest",
+        "type": "object"
+      },
+      "PairingPollRequest": {
+        "description": "Pi -> backend: poll pairing status.\n\nSent as a POST body (not query params) so the pairing code and device\nfingerprint never land in reverse-proxy or uvicorn access logs.",
+        "properties": {
+          "code": {
+            "description": "Pairing code generated by the Pi.",
+            "maxLength": 6,
+            "minLength": 6,
+            "pattern": "^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "fingerprint": {
+            "description": "Random device fingerprint nonce chosen at registration.",
+            "maxLength": 64,
+            "minLength": 8,
+            "title": "Fingerprint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "fingerprint"
+        ],
+        "title": "PairingPollRequest",
         "type": "object"
       },
       "PairingPollResponse": {
@@ -4677,6 +4826,16 @@
         "title": "ProductUpdate",
         "type": "object"
       },
+      "ProfileVisibility": {
+        "description": "Discrete values stored on ``User.preferences[\"profile_visibility\"]``.",
+        "enum": [
+          "public",
+          "community",
+          "private"
+        ],
+        "title": "ProfileVisibility",
+        "type": "string"
+      },
       "PublicProfileView": {
         "description": "Detailed public profile view with aggregated stats.",
         "properties": {
@@ -5219,6 +5378,16 @@
         "title": "TelemetrySnapshot",
         "type": "object"
       },
+      "ThemeMode": {
+        "description": "Supported app theme modes.",
+        "enum": [
+          "light",
+          "dark",
+          "auto"
+        ],
+        "title": "ThemeMode",
+        "type": "string"
+      },
       "ThermalState": {
         "description": "Coarse thermal classification used by the thermal governor.",
         "enum": [
@@ -5294,6 +5463,195 @@
         "title": "Unit",
         "type": "string"
       },
+      "UserPreferences": {
+        "additionalProperties": false,
+        "description": "Typed user preferences persisted as JSONB.",
+        "properties": {
+          "email_updates_enabled": {
+            "default": false,
+            "title": "Email Updates Enabled",
+            "type": "boolean"
+          },
+          "products_welcome_dismissed": {
+            "default": false,
+            "title": "Products Welcome Dismissed",
+            "type": "boolean"
+          },
+          "profile_visibility": {
+            "$ref": "#/components/schemas/ProfileVisibility",
+            "default": "public"
+          },
+          "rpi_camera_enabled": {
+            "default": false,
+            "title": "Rpi Camera Enabled",
+            "type": "boolean"
+          },
+          "theme_mode": {
+            "$ref": "#/components/schemas/ThemeMode",
+            "default": "auto"
+          },
+          "youtube_streaming_enabled": {
+            "default": false,
+            "title": "Youtube Streaming Enabled",
+            "type": "boolean"
+          }
+        },
+        "title": "UserPreferences",
+        "type": "object"
+      },
+      "UserPreferencesUpdate": {
+        "additionalProperties": false,
+        "description": "Patch model for user preferences updates.",
+        "properties": {
+          "email_updates_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Updates Enabled"
+          },
+          "products_welcome_dismissed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Products Welcome Dismissed"
+          },
+          "profile_visibility": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProfileVisibility"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rpi_camera_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpi Camera Enabled"
+          },
+          "theme_mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThemeMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "youtube_streaming_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Youtube Streaming Enabled"
+          }
+        },
+        "title": "UserPreferencesUpdate",
+        "type": "object"
+      },
+      "UserRead": {
+        "description": "Read schema for users.",
+        "examples": [
+          {
+            "email": "user@example.com",
+            "id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "is_active": true,
+            "is_superuser": false,
+            "is_verified": true,
+            "username": "username"
+          }
+        ],
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "has_usable_password": {
+            "default": true,
+            "description": "Whether the account has a user-set password (false for OAuth-only accounts). Clients use it to decide whether unlinking a social login needs a password.",
+            "title": "Has Usable Password",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_superuser": {
+            "default": false,
+            "title": "Is Superuser",
+            "type": "boolean"
+          },
+          "is_verified": {
+            "default": false,
+            "title": "Is Verified",
+            "type": "boolean"
+          },
+          "mfa_enabled": {
+            "default": false,
+            "description": "Whether TOTP MFA is enabled for this account.",
+            "title": "Mfa Enabled",
+            "type": "boolean"
+          },
+          "oauth_accounts": {
+            "description": "List of linked OAuth accounts.",
+            "items": {
+              "$ref": "#/components/schemas/OAuthAccountRead"
+            },
+            "title": "Oauth Accounts",
+            "type": "array"
+          },
+          "preferences": {
+            "$ref": "#/components/schemas/UserPreferences",
+            "description": "User preferences."
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ],
+        "title": "UserRead",
+        "type": "object"
+      },
       "UserRegister": {
         "additionalProperties": false,
         "description": "Registration schema for password sign-up.",
@@ -5329,6 +5687,85 @@
           "username"
         ],
         "title": "UserRegister",
+        "type": "object"
+      },
+      "UserUpdate": {
+        "additionalProperties": false,
+        "description": "Update schema for users.",
+        "examples": [
+          {
+            "email": "user@example.com",
+            "password": "newpassword",
+            "username": "username"
+          }
+        ],
+        "properties": {
+          "current_password": {
+            "anyOf": [
+              {
+                "format": "password",
+                "type": "string",
+                "writeOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current password required when changing email or password.",
+            "format": "password",
+            "title": "Current Password"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "minLength": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "format": "password",
+            "title": "Password"
+          },
+          "preferences": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserPreferencesUpdate"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "User preferences (partial merge)."
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "title": "UserUpdate",
         "type": "object"
       },
       "ValidationError": {
@@ -5780,8 +6217,7 @@
         "x-audience": [
           "public",
           "app"
-        ],
-        "x-public": true
+        ]
       }
     },
     "/v1/auth/bearer/logout": {
@@ -5836,8 +6272,7 @@
         "x-audience": [
           "public",
           "app"
-        ],
-        "x-public": true
+        ]
       }
     },
     "/v1/auth/bearer/refresh": {
@@ -5891,8 +6326,51 @@
         "x-audience": [
           "public",
           "app"
+        ]
+      }
+    },
+    "/v1/auth/forgot-password": {
+      "post": {
+        "description": "Start a forgot-password request without revealing whether the account exists.",
+        "operationId": "reset_forgot_password_v1_auth_forgot_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_reset_forgot_password_v1_auth_forgot_password_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reset:Forgot Password",
+        "tags": [
+          "auth"
         ],
-        "x-public": true
+        "x-audience": [
+          "public",
+          "app"
+        ]
       }
     },
     "/v1/auth/mfa/challenge": {
@@ -5948,8 +6426,7 @@
         "x-audience": [
           "public",
           "app"
-        ],
-        "x-public": true
+        ]
       }
     },
     "/v1/auth/mfa/oauth/claim": {
@@ -5997,8 +6474,7 @@
         "x-audience": [
           "public",
           "app"
-        ],
-        "x-public": true
+        ]
       }
     },
     "/v1/auth/mfa/recovery-codes/regenerate": {
@@ -6054,8 +6530,7 @@
         "x-audience": [
           "public",
           "app"
-        ],
-        "x-public": true
+        ]
       }
     },
     "/v1/auth/mfa/totp/confirm": {
@@ -6111,8 +6586,7 @@
         "x-audience": [
           "public",
           "app"
-        ],
-        "x-public": true
+        ]
       }
     },
     "/v1/auth/mfa/totp/disable": {
@@ -6161,8 +6635,7 @@
         "x-audience": [
           "public",
           "app"
-        ],
-        "x-public": true
+        ]
       }
     },
     "/v1/auth/mfa/totp/setup": {
@@ -6198,8 +6671,7 @@
         "x-audience": [
           "public",
           "app"
-        ],
-        "x-public": true
+        ]
       }
     },
     "/v1/auth/register": {
@@ -6246,8 +6718,121 @@
         "x-audience": [
           "public",
           "app"
+        ]
+      }
+    },
+    "/v1/auth/request-verify-token": {
+      "post": {
+        "operationId": "verify_request_token_v1_auth_request_verify_token_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_verify_request_token_v1_auth_request_verify_token_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify:Request-Token",
+        "tags": [
+          "auth"
         ],
-        "x-public": true
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/auth/reset-password": {
+      "post": {
+        "description": "Reset a password while preserving FastAPI-Users' public error contract.",
+        "operationId": "reset_reset_password_v1_auth_reset_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_reset_reset_password_v1_auth_reset_password_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "RESET_PASSWORD_BAD_TOKEN": {
+                    "summary": "Bad or expired token.",
+                    "value": {
+                      "detail": "RESET_PASSWORD_BAD_TOKEN"
+                    }
+                  },
+                  "RESET_PASSWORD_INVALID_PASSWORD": {
+                    "summary": "Password validation failed.",
+                    "value": {
+                      "detail": {
+                        "code": "RESET_PASSWORD_INVALID_PASSWORD",
+                        "reason": "Password should be at least 3 characters"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reset:Reset Password",
+        "tags": [
+          "auth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
       }
     },
     "/v1/auth/session/login": {
@@ -6312,8 +6897,7 @@
         "x-audience": [
           "public",
           "app"
-        ],
-        "x-public": true
+        ]
       }
     },
     "/v1/auth/session/logout": {
@@ -6385,8 +6969,7 @@
         "x-audience": [
           "public",
           "app"
-        ],
-        "x-public": true
+        ]
       }
     },
     "/v1/auth/session/refresh": {
@@ -6434,8 +7017,7 @@
         "x-audience": [
           "public",
           "app"
-        ],
-        "x-public": true
+        ]
       }
     },
     "/v1/auth/sessions/revoke-all": {
@@ -6463,8 +7045,138 @@
         "x-audience": [
           "public",
           "app"
+        ]
+      }
+    },
+    "/v1/auth/validate-email": {
+      "get": {
+        "description": "Validate email address for registration.",
+        "operationId": "validate_email_v1_auth_validate_email_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "email",
+            "required": true,
+            "schema": {
+              "format": "email",
+              "title": "Email",
+              "type": "string"
+            }
+          }
         ],
-        "x-public": true
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "title": "Response Validate Email V1 Auth Validate Email Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validate Email",
+        "tags": [
+          "auth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/auth/verify": {
+      "post": {
+        "operationId": "verify_verify_v1_auth_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_verify_verify_v1_auth_verify_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "VERIFY_USER_ALREADY_VERIFIED": {
+                    "summary": "The user is already verified.",
+                    "value": {
+                      "detail": "VERIFY_USER_ALREADY_VERIFIED"
+                    }
+                  },
+                  "VERIFY_USER_BAD_TOKEN": {
+                    "summary": "Bad token, not existing user or not the e-mail currently set for the user.",
+                    "value": {
+                      "detail": "VERIFY_USER_BAD_TOKEN"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify:Verify",
+        "tags": [
+          "auth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
       }
     },
     "/v1/categories": {
@@ -10186,6 +10898,1000 @@
         ]
       }
     },
+    "/v1/oauth/github/associate/authorize": {
+      "get": {
+        "operationId": "oauth_associate_github_authorize_v1_oauth_github_associate_authorize_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuth2AuthorizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Oauth-Associate:Github.Authorize",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/github/associate/callback": {
+      "get": {
+        "description": "The response varies based on the authentication backend used.",
+        "operationId": "oauth_associate_github_callback_v1_oauth_github_associate_callback_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code_verifier",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code Verifier"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Oauth-Associate:Github.Callback",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/github/session/authorize": {
+      "get": {
+        "operationId": "oauth_github_cookie_authorize_v1_oauth_github_session_authorize_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuth2AuthorizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Oauth:Github.Cookie.Authorize",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/github/session/callback": {
+      "get": {
+        "description": "The response varies based on the authentication backend used.",
+        "operationId": "oauth_github_cookie_callback_v1_oauth_github_session_callback_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code_verifier",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code Verifier"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Oauth:Github.Cookie.Callback",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/github/token/authorize": {
+      "get": {
+        "operationId": "oauth_github_bearer_authorize_v1_oauth_github_token_authorize_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuth2AuthorizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Oauth:Github.Bearer.Authorize",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/github/token/callback": {
+      "get": {
+        "description": "The response varies based on the authentication backend used.",
+        "operationId": "oauth_github_bearer_callback_v1_oauth_github_token_callback_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code_verifier",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code Verifier"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Oauth:Github.Bearer.Callback",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/google-youtube/associate/authorize": {
+      "get": {
+        "operationId": "oauth_associate_google_youtube_authorize_v1_oauth_google_youtube_associate_authorize_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuth2AuthorizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Oauth-Associate:Google-Youtube.Authorize",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/google-youtube/associate/callback": {
+      "get": {
+        "description": "The response varies based on the authentication backend used.",
+        "operationId": "oauth_associate_google_youtube_callback_v1_oauth_google_youtube_associate_callback_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code_verifier",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code Verifier"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Oauth-Associate:Google-Youtube.Callback",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/google/associate/authorize": {
+      "get": {
+        "operationId": "oauth_associate_google_authorize_v1_oauth_google_associate_authorize_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuth2AuthorizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Oauth-Associate:Google.Authorize",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/google/associate/callback": {
+      "get": {
+        "description": "The response varies based on the authentication backend used.",
+        "operationId": "oauth_associate_google_callback_v1_oauth_google_associate_callback_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code_verifier",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code Verifier"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Oauth-Associate:Google.Callback",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/google/session/authorize": {
+      "get": {
+        "operationId": "oauth_google_cookie_authorize_v1_oauth_google_session_authorize_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuth2AuthorizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Oauth:Google.Cookie.Authorize",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/google/session/callback": {
+      "get": {
+        "description": "The response varies based on the authentication backend used.",
+        "operationId": "oauth_google_cookie_callback_v1_oauth_google_session_callback_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code_verifier",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code Verifier"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Oauth:Google.Cookie.Callback",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/google/token/authorize": {
+      "get": {
+        "operationId": "oauth_google_bearer_authorize_v1_oauth_google_token_authorize_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuth2AuthorizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Oauth:Google.Bearer.Authorize",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/google/token/callback": {
+      "get": {
+        "description": "The response varies based on the authentication backend used.",
+        "operationId": "oauth_google_bearer_callback_v1_oauth_google_token_callback_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code_verifier",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code Verifier"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Oauth:Google.Bearer.Callback",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/oauth/{provider}/associate": {
+      "delete": {
+        "description": "Remove a linked OAuth account (step-up re-auth if the account has a password).",
+        "operationId": "remove_oauth_association_v1_oauth__provider__associate_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/OAuthUnlinkRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Remove Oauth Association",
+        "tags": [
+          "oauth"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
     "/v1/plugins/rpi-cam/cameras": {
       "get": {
         "description": "Get all Raspberry Pi cameras of the current user.",
@@ -10827,6 +12533,58 @@
         ]
       }
     },
+    "/v1/plugins/rpi-cam/cameras/{camera_id}/preview-thumbnail": {
+      "get": {
+        "description": "Serve the owner's cached preview thumbnail.\n\nOwner-checked (``UserOwnedCameraDep`` 404s for non-owners) and served off the\nprivate preview directory rather than the public ``/uploads/images`` mount, so\na camera id alone no longer grants a stranger a recent frame. Cached only\nprivately and revalidated \u2014 never long-lived immutable like the public mount.",
+        "operationId": "get_camera_preview_thumbnail_v1_plugins_rpi_cam_cameras__camera_id__preview_thumbnail_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "camera_id",
+            "required": true,
+            "schema": {
+              "format": "uuid4",
+              "title": "Camera Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "No cached preview thumbnail available for this camera."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Get a camera's cached preview thumbnail",
+        "tags": [
+          "rpi-cam-management"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
     "/v1/plugins/rpi-cam/cameras/{camera_id}/recording-stream": {
       "delete": {
         "description": "Stop the active YouTube recording and return its video record.",
@@ -11234,34 +12992,19 @@
       }
     },
     "/v1/plugins/rpi-cam/pairing/poll": {
-      "get": {
-        "description": "Poll for pairing completion. Returns non-secret relay metadata once claimed.",
-        "operationId": "poll_pairing_status_v1_plugins_rpi_cam_pairing_poll_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "code",
-            "required": true,
-            "schema": {
-              "maxLength": 6,
-              "minLength": 6,
-              "pattern": "^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$",
-              "title": "Code",
-              "type": "string"
+      "post": {
+        "description": "Poll for pairing completion. Returns non-secret relay metadata once claimed.\n\nTakes the code and fingerprint in a POST body (not query params) so the\nclaim credential never reaches proxy/uvicorn access logs.",
+        "operationId": "poll_pairing_status_v1_plugins_rpi_cam_pairing_poll_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairingPollRequest"
+              }
             }
           },
-          {
-            "in": "query",
-            "name": "fingerprint",
-            "required": true,
-            "schema": {
-              "maxLength": 64,
-              "minLength": 8,
-              "title": "Fingerprint",
-              "type": "string"
-            }
-          }
-        ],
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -17253,6 +18996,123 @@
         "summary": "Get Units",
         "tags": [
           "units"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/users/me": {
+      "get": {
+        "operationId": "users_current_user_v1_users_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing token or inactive user."
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Users:Current User",
+        "tags": [
+          "users"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      },
+      "patch": {
+        "operationId": "users_patch_current_user_v1_users_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "UPDATE_USER_EMAIL_ALREADY_EXISTS": {
+                    "summary": "A user with this email already exists.",
+                    "value": {
+                      "detail": "UPDATE_USER_EMAIL_ALREADY_EXISTS"
+                    }
+                  },
+                  "UPDATE_USER_INVALID_PASSWORD": {
+                    "summary": "Password validation failed.",
+                    "value": {
+                      "detail": {
+                        "code": "UPDATE_USER_INVALID_PASSWORD",
+                        "reason": "Password should beat least 3 characters"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Missing token or inactive user."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Users:Patch Current User",
+        "tags": [
+          "users"
         ],
         "x-audience": [
           "public",
