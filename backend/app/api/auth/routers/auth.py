@@ -1,7 +1,5 @@
 """Authentication router composition."""
 
-from fastapi import APIRouter
-
 from app.api.auth.routers import email_validation, login, mfa, password_reset, refresh, register
 from app.api.auth.schemas import UserRead
 from app.api.auth.services.rate_limiter import (
@@ -11,12 +9,12 @@ from app.api.auth.services.rate_limiter import (
 from app.api.auth.services.user_manager import (
     fastapi_user_manager,
 )
-from app.api.common.routers.openapi import mark_router_routes_public
+from app.api.common.audiences import PublicAPIRouter
 
 FORGOT_PASSWORD_PATH = password_reset.FORGOT_PASSWORD_PATH
 RESET_PASSWORD_PATH = password_reset.RESET_PASSWORD_PATH
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = PublicAPIRouter(prefix="/auth", tags=["auth"])
 
 router.include_router(login.router)
 
@@ -26,9 +24,6 @@ router.include_router(register.router, tags=["auth"])
 # Refresh token and multi-device session management
 router.include_router(refresh.router, tags=["auth"])
 router.include_router(mfa.router, tags=["auth"])
-
-# Mark all routes in the auth router thus far as public
-mark_router_routes_public(router)
 
 # Verification and password reset routes
 verify_router = fastapi_user_manager.get_verify_router(user_schema=UserRead)

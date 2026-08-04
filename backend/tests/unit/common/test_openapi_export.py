@@ -32,6 +32,30 @@ def test_export_openapi_schemas_writes_public_and_device_contracts(
     assert "/v1/plugins/rpi-cam/pairing/register" in device_schema["paths"]
 
 
+def test_public_schema_covers_routes_added_through_sub_routers(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Operations pulled in via ``include_router`` must inherit their parent's audience."""
+    _redirect_output_paths(tmp_path, monkeypatch)
+
+    export_openapi.export_openapi_schemas()
+
+    public_paths = json.loads((tmp_path / "openapi.public.json").read_text(encoding="utf-8"))["paths"]
+
+    assert {
+        "/v1/auth/verify",
+        "/v1/auth/forgot-password",
+        "/v1/auth/reset-password",
+        "/v1/auth/validate-email",
+        "/v1/oauth/google/session/authorize",
+        "/v1/users/me",
+    } <= public_paths.keys()
+    # A device sub-router mounted under a public prefix keeps its own audience.
+    assert "/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload" not in public_paths
+    assert "/v1/admin/users" not in public_paths
+    # fastapi-users' superuser-by-id routes are dropped from /users entirely;
+    # by-id management lives on the audited /admin/users surface.
+    assert "/v1/users/{id}" not in public_paths
+
+
 def test_schemas_are_current_detects_stale_schema(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """The check helper should fail when any generated docs schema is stale."""
     _redirect_output_paths(tmp_path, monkeypatch)

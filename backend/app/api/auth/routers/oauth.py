@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Body, status
+from fastapi import BackgroundTasks, Body, status
 from pydantic import BaseModel, SecretStr
 
 from app.api.auth.dependencies import CurrentActiveUserDep, UserManagerDep
@@ -11,9 +11,10 @@ from app.api.auth.services.oauth.routes import (
     PUBLIC_OAUTH_CALLBACK_PREFIX,
     include_oauth_routes,
 )
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep
 
-router = APIRouter(prefix="/oauth", tags=["oauth"])
+router = PublicAPIRouter(prefix="/oauth", tags=["oauth"])
 
 
 include_oauth_routes(router, public_callback_prefix=PUBLIC_OAUTH_CALLBACK_PREFIX)
