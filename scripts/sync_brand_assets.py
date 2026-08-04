@@ -47,10 +47,10 @@ WEB_FONT_FILES = (
     "ibm-plex-serif-latin-600.woff2",
 )
 
-# www's brand images land in src/assets so its build hashes them into /_astro/,
-# which Caddy serves with immutable cache headers; docs still serves its copies
-# straight from public/. Anything with a stable public URL (og.png, favicons,
-# wordmark.png in the backend's emails) has to stay in public/.
+# Brand images land in src/assets wherever the site's build can hash them into
+# /_astro/, which Caddy serves with immutable cache headers. Anything needing a
+# stable public URL (og.png, favicons, apple-touch-icon, wordmark.png in the
+# backend's emails) has to stay in public/ and gets a shorter max-age instead.
 COPY_ASSETS = (
     (
         root_path("assets/brand.css"),
@@ -67,19 +67,15 @@ COPY_ASSETS = (
         root_path("assets/images/bg-dark.jpg"),
         (root_path("app/src/assets/images/bg-dark.jpg"),),
     ),
+    # NOTE: docs has no logo target — its header renders the wordmark via a custom
+    # SiteTitle override, so a synced logo.svg would just be a dead file in public/.
     (
         LOGO_SOURCE,
-        (
-            root_path("docs/public/images/logo.svg"),
-            root_path("www/src/assets/images/logo.svg"),
-        ),
+        (root_path("www/src/assets/images/logo.svg"),),
     ),
     (
         LOGO_DARK_SOURCE,
-        (
-            root_path("docs/public/images/logo-dark.svg"),
-            root_path("www/src/assets/images/logo-dark.svg"),
-        ),
+        (root_path("www/src/assets/images/logo-dark.svg"),),
     ),
     (
         MARK_ADAPTIVE_SOURCE,
@@ -213,13 +209,13 @@ PROCESSED_ASSETS = (
     ),
     (
         root_path("assets/images/bg-light.jpg"),
-        root_path("docs/public/images/bg-light.jpg"),
+        root_path("docs/src/assets/images/bg-light.jpg"),
         blurred_backdrop_args(),
         DENSITY,
     ),
     (
         root_path("assets/images/bg-dark.jpg"),
-        root_path("docs/public/images/bg-dark.jpg"),
+        root_path("docs/src/assets/images/bg-dark.jpg"),
         blurred_backdrop_args(),
         DENSITY,
     ),

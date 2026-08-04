@@ -2,6 +2,12 @@ import { expect, test } from '@playwright/test';
 
 const HEADER_LOGO_NAME = /relab/i;
 
+// The backdrops live in src/assets, so the build emits them content-hashed under
+// /_astro/ where Caddy serves them immutable. Matching the hash keeps this test
+// honest: if they ever slip back to an unhashed /images/ path, it fails.
+const backdrop = (theme: 'light' | 'dark') =>
+  new RegExp(String.raw`/_astro/bg-${theme}\.[\w-]+\.jpg`);
+
 test('header logo renders and theme chooser updates the active theme', async ({ page }) => {
   await page.goto('/');
 
@@ -16,7 +22,7 @@ test('header logo renders and theme chooser updates the active theme', async ({ 
     .poll(async () =>
       page.evaluate(() => getComputedStyle(document.body, '::before').backgroundImage),
     )
-    .toContain('bg-dark.jpg');
+    .toMatch(backdrop('dark'));
 
   await themeSelect.selectOption('light');
   await expect.poll(async () => page.locator('html').getAttribute('data-theme')).toBe('light');
@@ -24,5 +30,5 @@ test('header logo renders and theme chooser updates the active theme', async ({ 
     .poll(async () =>
       page.evaluate(() => getComputedStyle(document.body, '::before').backgroundImage),
     )
-    .toContain('bg-light.jpg');
+    .toMatch(backdrop('light'));
 });

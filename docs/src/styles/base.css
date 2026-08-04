@@ -47,14 +47,14 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: url("/images/bg-light.jpg") center / cover no-repeat;
+  background: url("../assets/images/bg-light.jpg") center / cover no-repeat;
   opacity: 0.34;
   filter: blur(8px) saturate(0.92);
   transform: scale(1.035);
 }
 
 :root[data-theme="dark"] body::before {
-  background-image: url("/images/bg-dark.jpg");
+  background-image: url("../assets/images/bg-dark.jpg");
   opacity: 0.32;
 }
 

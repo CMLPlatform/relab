@@ -35,6 +35,18 @@
 		file_server
 	}
 
+	# Fonts and the remaining /images/* assets — favicons, the apple-touch
+	# icon, and OG cards need stable (unhashed) URLs that crawlers and
+	# browsers can pin, as do the synced brand fonts. So: long cache without
+	# immutable — a week keeps navigations cheap and a brand-asset swap
+	# propagates within days. The backdrops moved to src/assets/ and are
+	# served hashed under /_astro/ by the matcher above.
+	@long_lived path /fonts/* /images/*
+	handle @long_lived {
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
+
 	# Docs HTML — browser always revalidates; Cloudflare edge-caches for 1hr
 	# via s-maxage with stale-while-revalidate fallback for 24hr
 	handle {
