@@ -17,6 +17,9 @@ regexes = [
 [[allowlists]]
 description = "Deliberate passphrase fixture used in password validation and auth tests"
 condition = "AND"
+# NOTE: keep these unanchored. gitleaks scans all history, so they must also match the
+# pre-rename frontend-app/ paths (e.g. "frontend-app/e2e/..." contains "app/e2e/").
+# Anchoring them with ^ re-breaks the scheduled scan on ~9 historical findings.
 paths = [
   '''backend/tests/.*''',
   '''app/e2e/.*''',

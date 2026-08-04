@@ -34,6 +34,10 @@ jobs:
       run-container-images: ${{ steps.decide.outputs.run-container-images }}
       container-security-matrix: ${{ steps.decide.outputs.container-security-matrix }}
       run-iac: ${{ steps.decide.outputs.run-iac }}
+      run-audit-python: ${{ steps.decide.outputs.run-audit-python }}
+      run-audit-www: ${{ steps.decide.outputs.run-audit-www }}
+      run-audit-app: ${{ steps.decide.outputs.run-audit-app }}
+      run-audit-docs: ${{ steps.decide.outputs.run-audit-docs }}
       run-codeql: ${{ steps.decide.outputs.run-codeql }}
       codeql-matrix: ${{ steps.decide.outputs.codeql-matrix }}
     steps:
@@ -66,6 +70,15 @@ jobs:
 
           shared_trigger=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)
           echo "run-iac=$shared_trigger" >> "$GITHUB_OUTPUT"
+
+          # Scheduled dependency audits, gated the same way as the CodeQL language
+          # matrix below: a subrepo-only change only needs its own audit re-run.
+          {
+            echo "run-audit-python=$([[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && echo true || echo false)"
+            echo "run-audit-www=$([[ "$shared_trigger" == "true" || "$WWW" == "true" ]] && echo true || echo false)"
+            echo "run-audit-app=$([[ "$shared_trigger" == "true" || "$APP" == "true" ]] && echo true || echo false)"
+            echo "run-audit-docs=$([[ "$shared_trigger" == "true" || "$DOCS" == "true" ]] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
 
           # Which subrepos' images to scan. The image definitions themselves live in
           # .github/container-images.json, shared with the release SBOM matrix.
@@ -144,6 +157,130 @@ jobs:
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48
         with:
           fail-on-severity: moderate
+
+  python-audit:
+    name: Python Audit (root + backend)
+    needs: [ changes ]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-audit-python == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-python: "true"
+          uv-cache-dependency-glob: |
+            uv.lock
+            backend/uv.lock
+
+      - name: Install root dependencies
+        run: uv sync --frozen
+
+      - name: Run root dependency audit
+        run: just audit-root
+
+      - name: Install backend dependencies
+        run: just backend/install
+
+      - name: Run backend dependency audit
+        run: just backend/audit
+
+  www-node-audit:
+    name: Node Audit (www)
+    needs: [ changes ]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-audit-www == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just www/install
+
+      - name: Run dependency audit
+        run: just www/audit
+
+  app-node-audit:
+    name: Node Audit (app)
+    needs: [ changes ]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-audit-app == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just app/install
+
+      - name: Run dependency audit
+        run: just app/audit
+
+  docs-node-audit:
+    name: Node Audit (docs)
+    needs: [ changes ]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-audit-docs == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Docs dependencies carry known low-severity advisories that aren't worth
+    # blocking merges over; surface them without failing the workflow.
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just docs/install
+
+      - name: Run dependency audit
+        run: |
+          set -o pipefail
+          output="$(just docs/audit 2>&1)"
+          status=$?
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
+
+          if printf '%s\n' "$output" | grep -Eq '^Found [1-9][0-9]* known vulnerability|^Vulnerabilities:'; then
+            echo "::warning title=Docs dependency audit::Vulnerabilities were found in docs dependencies. Review the audit output above."
+            {
+              printf '### Docs dependency audit\n\n'
+              printf 'Warning: vulnerabilities were found in docs dependencies.\n\n'
+              printf 'This check is intentionally non-blocking so the pull request can still be merged.\n\n'
+              printf 'Review the audit output in the step log above.\n'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   container-security:
     name: Container Security (${{ matrix.service }})
@@ -338,6 +475,10 @@ jobs:
       - changes
       - secret-scan
       - dependency-review
+      - python-audit
+      - www-node-audit
+      - app-node-audit
+      - docs-node-audit
       - container-security
       - trivy-iac
       - codeql

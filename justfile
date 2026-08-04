@@ -439,6 +439,12 @@ docker-smoke-www:
     set -euo pipefail
     trap 'just _docker-smoke-down www' EXIT
     just _docker-smoke-up www 60
+    # Assert security headers on a live response, not just the Caddyfile text.
+    # The runtime image has no curl (kept out on purpose to stay minimal); wget -S
+    # is the same tool the image's own HEALTHCHECK already relies on.
+    headers=$({{ ci_compose }} exec -T www wget -qS -O /dev/null http://localhost:8081/ 2>&1)
+    echo "$headers" | grep -qi 'Content-Security-Policy:'
+    echo "$headers" | grep -qi 'Strict-Transport-Security:'
     echo "✅ www smoke test passed"
 
 # Smoke test: app static server (slow: expo export runs during build)

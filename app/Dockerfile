@@ -20,7 +20,7 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
 COPY package.json pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
 COPY app/package.json app/package.json
-RUN npm install -g corepack@latest && corepack enable
+RUN npm install -g corepack@0.35.0 && corepack enable
 RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter ./app... --prefer-offline
 
