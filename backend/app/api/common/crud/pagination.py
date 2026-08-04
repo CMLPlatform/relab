@@ -51,6 +51,14 @@ async def paginate_select[T, U, ModelT: Base](
             total = (await db.execute(count_query)).scalar_one()
 
     paginated_statement = statement.distinct() if model is not None else statement
+
+    # LIMIT/OFFSET over an unordered (or ambiguously ordered) result has no
+    # defined row order, so a row can repeat on one page and vanish from
+    # another. Appending the primary key orders otherwise-unsorted queries and
+    # breaks ties in the sorted ones, which is what makes paging stable.
+    if model is not None and (pk_col := _primary_key_column(model)) is not None:
+        paginated_statement = paginated_statement.order_by(pk_col)
+
     limit = getattr(raw_params, "limit", None)
     offset = getattr(raw_params, "offset", None)
     if limit is not None:

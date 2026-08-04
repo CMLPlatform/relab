@@ -56,6 +56,32 @@ async def test_page_beyond_total_returns_empty_items(api_client_light: AsyncClie
     assert body["items"] == []
 
 
+async def test_paging_without_a_sort_never_repeats_or_drops_rows(
+    api_client_light: AsyncClient, db_session: AsyncSession
+) -> None:
+    """Walking every page of an unsorted list must yield each row exactly once.
+
+    LIMIT/OFFSET over a query with no ORDER BY has no defined row order, so
+    without the primary-key fallback Postgres may hand back the same row on two
+    pages and never return another.
+    """
+    created = {f"StablePaging{i}" for i in range(10)}
+    for name in created:
+        await MaterialFactory.create_async(session=db_session, name=name)
+
+    seen: list[str] = []
+    page = 1
+    while True:
+        body = (await api_client_light.get(f"/v1/materials?size=3&page={page}")).json()
+        if not body["items"]:
+            break
+        seen.extend(item["name"] for item in body["items"])
+        page += 1
+
+    assert len(seen) == len(set(seen)), "a row was returned on more than one page"
+    assert created <= set(seen), "a row never appeared on any page"
+
+
 @pytest.mark.parametrize(
     ("path", "factory"),
     [
