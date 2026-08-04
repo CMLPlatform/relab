@@ -52,7 +52,6 @@
     "expo-auth-session": "~57.0.3",
     "expo-blur": "~57.0.2",
     "expo-clipboard": "~57.0.1",
-    "expo-constants": "~57.0.5",
     "expo-font": "~57.0.1",
     "expo-haptics": "~57.0.1",
     "expo-image": "~57.0.1",
@@ -116,7 +115,6 @@
     "postcss": "8.5.16",
     "serve": "^14.2.6",
     "tailwindcss": "4.3.2",
-    "ts-node": "^10.9.2",
     "typescript": "catalog:"
   },
   "private": true
