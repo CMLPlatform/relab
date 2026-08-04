@@ -5,8 +5,21 @@ const { siteTitleHref } = Astro.locals.starlightRoute;
 ---
 
 <a href={siteTitleHref} class="site-title sl-flex" translate="no">
-  <img class="brand-wordmark dark:sl-hidden" src="/images/wordmark.svg" alt="Relab" />
-  <img class="brand-wordmark light:sl-hidden" src="/images/wordmark-dark.svg" alt="" aria-hidden="true" />
+  <img
+    class="brand-wordmark dark:sl-hidden"
+    src="/images/wordmark.svg"
+    alt="Relab"
+    width="810"
+    height="256"
+  />
+  <img
+    class="brand-wordmark light:sl-hidden"
+    src="/images/wordmark-dark.svg"
+    alt=""
+    aria-hidden="true"
+    width="810"
+    height="256"
+  />
   <span class="brand-docs">Docs</span>
 </a>
 
@@ -32,7 +45,10 @@ const { siteTitleHref } = Astro.locals.starlightRoute;
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--sl-color-gray-3);
+    /* gray-3 only clears ~4.49:1 against --sl-color-bg-nav in dark mode, just
+       under WCAG AA's 4.5:1; gray-2 (the sitewide body-text token) clears both
+       themes with margin: 10.92:1 light, 8.57:1 dark. */
+    color: var(--sl-color-gray-2);
   }
   .brand-docs::before {
     content: '';

@@ -126,8 +126,18 @@ const ensureMermaidContainers = () => {
 
     const container = document.createElement('div');
     container.className = 'relab-mermaid';
+    container.tabIndex = 0;
+    container.setAttribute('role', 'group');
+    container.setAttribute('aria-label', 'Diagram, scrollable');
     container.dataset.mermaidSource = normalizeMermaidSource(readMermaidSource(sourceElement));
     container.textContent = container.dataset.mermaidSource;
+    // Reserve the pre-render block's height so the swap never shrinks
+    // already-laid-out content. NOTE: taller diagrams still grow the page —
+    // this only prevents shrink-then-grow shift, not all reflow.
+    const preRenderHeight = currentContainer.offsetHeight;
+    if (preRenderHeight > 0) {
+      container.style.minHeight = `${preRenderHeight}px`;
+    }
     currentContainer.replaceWith(container);
   }
 };
