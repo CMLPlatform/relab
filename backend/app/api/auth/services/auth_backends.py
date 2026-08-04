@@ -7,13 +7,13 @@ from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
     CookieTransport,
-    RedisStrategy,
     Strategy,
 )
 from pydantic import UUID4
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.models import User
+from app.api.auth.services.access_token_store import ACCESS_TOKEN_KEY_PREFIX, RevocableRedisStrategy
 from app.core.http_headers import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.core.redis import RedisDep
 
@@ -86,7 +86,13 @@ bearer_transport = BearerTransport(tokenUrl="/v1/auth/bearer/login")
 
 def get_token_strategy(redis: RedisDep) -> Strategy[User, UUID4]:
     """Return an authentication token strategy."""
-    return cast("Strategy[User, UUID4]", RedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL))
+    # RevocableRedisStrategy, not the upstream RedisStrategy: it stamps each token with
+    # its issue time so a global revocation can refuse tokens issued before it, which
+    # upstream cannot do (see access_token_store).
+    return cast(
+        "Strategy[User, UUID4]",
+        RevocableRedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL, key_prefix=ACCESS_TOKEN_KEY_PREFIX),
+    )
 
 
 def build_authentication_backends() -> tuple[AuthenticationBackend[User, UUID4], AuthenticationBackend[User, UUID4]]:

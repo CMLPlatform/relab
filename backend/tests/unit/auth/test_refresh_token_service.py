@@ -3,11 +3,12 @@
 import json
 import uuid
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from app.api.auth.exceptions import RefreshTokenInvalidError, RefreshTokenRevokedError
+from app.api.auth.services.access_token_store import ACCESS_TOKEN_KEY_PREFIX, RevocableRedisStrategy
 from app.api.auth.services.refresh_token_service import (
     _REUSE_GRACE_SECONDS,
     _blacklist_key,
@@ -305,3 +306,79 @@ async def test_revoke_all_user_tokens_revokes_only_that_user(redis_client: Redis
     with pytest.raises(RefreshTokenRevokedError):
         await verify_refresh_token(redis_client, token)
     assert await verify_refresh_token(redis_client, other_token) == other_user_id
+
+
+async def test_dropped_rotation_response_retry_does_not_revoke_family(
+    redis_client: Redis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A benign retry after a dropped rotation response must not log the user out everywhere.
+
+    The client aborts a refresh at DEFAULT_API_TIMEOUT_MS = 15s and resubmits the same
+    token, so the grace window must outlast that timeout. Regression for a 5s grace, which
+    misread the 15s retry as stolen-token reuse and revoked the whole session family.
+    """
+    now = 1_700_000_000
+    monkeypatch.setattr("app.api.auth.services.refresh_token_service.time.time", lambda: now)
+
+    user_id = uuid.uuid4()
+    old_token = await create_refresh_token(redis_client, user_id)
+    sibling_token = await create_refresh_token(redis_client, user_id)
+    new_token = await rotate_refresh_token(redis_client, old_token)
+
+    # The client's request timeout is 15s; the retry lands around there.
+    now += 15
+
+    with (
+        patch("app.api.auth.services.refresh_token_service.audit_event") as audit,
+        pytest.raises(RefreshTokenRevokedError),
+    ):
+        await verify_refresh_token(redis_client, old_token)
+
+    # Tolerated as a benign retry, not acted on: the family survives.
+    assert audit.call_args.kwargs["context"].reason == "refresh_token_replay_within_grace"
+    assert await verify_refresh_token(redis_client, new_token) == user_id
+    assert await verify_refresh_token(redis_client, sibling_token) == user_id
+
+
+async def test_revoke_all_user_tokens_also_revokes_access_tokens(redis_client: Redis) -> None:
+    """The shared revocation entry point must kill access tokens, not just refresh tokens.
+
+    Every revoke path (log out all devices, password reset, deactivation, delete, and
+    refresh-token reuse) funnels through here, so covering it covers all of them.
+    """
+    user_id = uuid.uuid4()
+    user = MagicMock()
+    user.id = user_id
+    manager = MagicMock()
+    manager.parse_id = lambda value: value
+    manager.get = AsyncMock(return_value=user)
+    strategy = RevocableRedisStrategy(redis_client, lifetime_seconds=900, key_prefix=ACCESS_TOKEN_KEY_PREFIX)
+
+    access_token = await strategy.write_token(user)
+    await create_refresh_token(redis_client, user_id)
+    assert await strategy.read_token(access_token, manager) is not None
+
+    await revoke_all_user_tokens(redis_client, user_id)
+
+    assert await strategy.read_token(access_token, manager) is None
+
+
+async def test_revoke_all_user_tokens_revokes_access_tokens_with_no_refresh_token(redis_client: Redis) -> None:
+    """A user with no live refresh token must still have their access tokens revoked.
+
+    Regression: the early return for "no refresh fingerprints" skipped the access-token
+    revocation entirely, so this exact case silently kept working sessions alive.
+    """
+    user_id = uuid.uuid4()
+    user = MagicMock()
+    user.id = user_id
+    manager = MagicMock()
+    manager.parse_id = lambda value: value
+    manager.get = AsyncMock(return_value=user)
+    strategy = RevocableRedisStrategy(redis_client, lifetime_seconds=900, key_prefix=ACCESS_TOKEN_KEY_PREFIX)
+
+    access_token = await strategy.write_token(user)
+
+    await revoke_all_user_tokens(redis_client, user_id)
+
+    assert await strategy.read_token(access_token, manager) is None

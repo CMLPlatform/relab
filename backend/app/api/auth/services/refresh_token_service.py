@@ -14,6 +14,7 @@ from pydantic import UUID4
 
 from app.api.auth.config import settings
 from app.api.auth.exceptions import RefreshTokenInvalidError, RefreshTokenRevokedError
+from app.api.auth.services.access_token_store import revoke_user_access_tokens
 from app.api.auth.services.token_store import (
     new_token,
     read_token_metadata,
@@ -48,7 +49,13 @@ _REFRESH_TOKEN_PATTERN = re.compile(rf"^[A-Za-z0-9_-]{{{_REFRESH_TOKEN_MIN_LENGT
 #
 # NOTE: the real fix is sender-constrained refresh tokens (DPoP, RFC 9449), which makes a
 # stolen bearer token useless and lets this window drop to zero.
-_REUSE_GRACE_SECONDS = 5
+#
+# The window must exceed the client's own request timeout, or the benign case it exists for
+# is misclassified: the app aborts a refresh at DEFAULT_API_TIMEOUT_MS = 15s
+# (app/src/services/api/request.ts) and retries the same token, so a dropped rotation
+# response would otherwise land outside a sub-15s grace and revoke the whole family. 30s
+# clears that with margin while keeping the stolen-token exposure short and audited.
+_REUSE_GRACE_SECONDS = 30
 
 
 def _refresh_token_key_from_fingerprint(fingerprint: str) -> str:
@@ -317,7 +324,11 @@ async def revoke_all_user_tokens(
     redis: Redis,
     user_id: UUID4,
 ) -> None:
-    """Revoke all active refresh tokens for a user.
+    """Revoke every active token for a user, refresh and access alike.
+
+    Order matters: refresh state is purged first, so a concurrent rotation can no longer
+    succeed and mint a fresh access token after the access epoch is stamped. Reversing
+    these two leaves a racing refresh holding a token valid for its full lifetime.
 
     Args:
         redis: Redis client
@@ -326,7 +337,10 @@ async def revoke_all_user_tokens(
     user_tokens_key = _user_tokens_key(user_id)
     fingerprints = sorted(await redis_str_set(redis.smembers(user_tokens_key)))
     if not fingerprints:
+        # No refresh tokens is not "nothing to do": the user can still hold a live access
+        # token, so the epoch has to be stamped before returning.
         await redis.delete(user_tokens_key)
+        await revoke_user_access_tokens(redis, user_id)
         return
 
     # Two round-trips instead of 3N: read every token's remaining TTL in one pipeline,
@@ -343,6 +357,8 @@ async def revoke_all_user_tokens(
         write_pipe.delete(_refresh_token_key_from_fingerprint(fingerprint))
     write_pipe.delete(user_tokens_key)
     await write_pipe.execute()
+
+    await revoke_user_access_tokens(redis, user_id)
 
 
 async def rotate_refresh_token(
