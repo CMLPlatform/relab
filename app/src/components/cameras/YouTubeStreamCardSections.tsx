@@ -1,8 +1,8 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { StatusPill } from '@/components/base/StatusPill';
 import { radius } from '@/constants';
@@ -56,9 +56,9 @@ export function YouTubeStreamCardView({
     <Card style={isLive ? themed.liveCard : styles.card}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <MaterialCommunityIcons
+          <Icon
             name="youtube"
-            size={20}
+            size="md"
             color={isLive ? theme.tokens.status.live : theme.colors.onSurfaceVariant}
           />
           <AppText variant="title" style={styles.headerTitle}>

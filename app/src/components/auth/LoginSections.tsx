@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type RefObject, useCallback } from 'react';
 import type { Control, ControllerFieldState, ControllerRenderProps } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
@@ -194,11 +193,11 @@ export function LoginOAuthSection({ onGoogle, onGithub }: LoginOAuthSectionProps
   return (
     <>
       <AppButton variant="outline" className="w-full" onPress={onGoogle}>
-        <MaterialCommunityIcons name="google" size={16} color={theme.colors.onSurface} />
+        <Icon name="google" size="sm" color={theme.colors.onSurface} />
         <AppText style={{ color: theme.colors.onSurface }}>Continue with Google</AppText>
       </AppButton>
       <AppButton variant="outline" className="w-full" onPress={onGithub}>
-        <MaterialCommunityIcons name="github" size={16} color={theme.colors.onSurface} />
+        <Icon name="github" size="sm" color={theme.colors.onSurface} />
         <AppText style={{ color: theme.colors.onSurface }}>Continue with GitHub</AppText>
       </AppButton>
     </>

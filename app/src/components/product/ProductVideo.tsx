@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
@@ -332,7 +331,7 @@ function GoLiveCTA({
       onPress={handlePress}
       className={`mx-3.5 mb-2 ${ready ? '' : 'opacity-50'}`}
     >
-      <MaterialCommunityIcons name="youtube" size={18} color={theme.colors.onSurface} />
+      <Icon name="youtube" size={18} color={theme.colors.onSurface} />
       <AppText style={{ color: theme.colors.onSurface }}>Go Live</AppText>
     </AppButton>
   );

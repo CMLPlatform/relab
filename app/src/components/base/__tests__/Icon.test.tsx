@@ -33,3 +33,10 @@ test('unknown names fail typecheck (compile-time)', () => {
   // @ts-expect-error not in the name map
   render(<Icon name="definitely-not-a-glyph" />);
 });
+
+test('renders a brand glyph as an Svg and respects a numeric size', () => {
+  const { UNSAFE_root } = render(<Icon name="github" size={32} />);
+  const svg = UNSAFE_root.findByType(Svg);
+  expect(svg.props.width).toBe(32);
+  expect(svg.props.height).toBe(32);
+});
