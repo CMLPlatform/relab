@@ -57,6 +57,10 @@ _REFRESH_TOKEN_PATTERN = re.compile(rf"^[A-Za-z0-9_-]{{{_REFRESH_TOKEN_MIN_LENGT
 # clears that with margin while keeping the stolen-token exposure short and audited.
 _REUSE_GRACE_SECONDS = 30
 
+# Passes of the revocation sweep before giving up, so a client rotating in a tight loop
+# cannot keep it spinning. Two is enough for a single racing rotation.
+_REVOKE_SWEEP_LIMIT = 3
+
 
 def _refresh_token_key_from_fingerprint(fingerprint: str) -> str:
     return f"{_REFRESH_TOKEN_KEY_PREFIX}:{fingerprint}"
@@ -335,13 +339,27 @@ async def revoke_all_user_tokens(
         user_id: User's UUID
     """
     user_tokens_key = _user_tokens_key(user_id)
+    # Read-then-delete is not atomic: a rotation completing between the read and the
+    # delete adds a fingerprint that this pass never saw, leaving a live refresh token
+    # behind. Re-sweep until a pass finds nothing new, so the survivor is caught on the
+    # next one. Bounded, because a client rotating in a tight loop must not spin here.
+    for _ in range(_REVOKE_SWEEP_LIMIT):
+        if not await _revoke_refresh_token_sweep(redis, user_id, user_tokens_key):
+            break
+
+    await revoke_user_access_tokens(redis, user_id)
+
+
+async def _revoke_refresh_token_sweep(redis: Redis, user_id: UUID4, user_tokens_key: str) -> bool:
+    """Blacklist and delete every refresh token currently in the user's set.
+
+    Returns whether any token was found, so the caller can sweep again for tokens added
+    while this pass ran.
+    """
     fingerprints = sorted(await redis_str_set(redis.smembers(user_tokens_key)))
     if not fingerprints:
-        # No refresh tokens is not "nothing to do": the user can still hold a live access
-        # token, so the epoch has to be stamped before returning.
         await redis.delete(user_tokens_key)
-        await revoke_user_access_tokens(redis, user_id)
-        return
+        return False
 
     # Two round-trips instead of 3N: read every token's remaining TTL in one pipeline,
     # then blacklist + delete them (and the set) in a second.
@@ -355,10 +373,12 @@ async def revoke_all_user_tokens(
     for fingerprint, ttl_seconds in zip(fingerprints, ttls, strict=True):
         write_pipe.setex(_blacklist_key_from_fingerprint(fingerprint), ttl_seconds if ttl_seconds > 0 else HOUR, value)
         write_pipe.delete(_refresh_token_key_from_fingerprint(fingerprint))
-    write_pipe.delete(user_tokens_key)
+    # SREM the fingerprints this pass handled rather than deleting the whole set: a
+    # rotation that added one while this pass ran must stay in the set so the next
+    # sweep can find it. Deleting the key here would discard exactly that evidence.
+    write_pipe.srem(user_tokens_key, *fingerprints)
     await write_pipe.execute()
-
-    await revoke_user_access_tokens(redis, user_id)
+    return True
 
 
 async def rotate_refresh_token(

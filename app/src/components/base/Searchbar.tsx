@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -11,7 +12,10 @@ import { spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon } from './Icon';
 
-type SearchbarProps = {
+type SearchbarProps = Omit<
+  ComponentProps<typeof Input>,
+  'value' | 'onChangeText' | 'placeholder' | 'style'
+> & {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
@@ -26,6 +30,9 @@ export function Searchbar({
   placeholder,
   loading = false,
   style,
+  // Forwarded to the Input, the element that takes focus, so callers can supply
+  // accessibilityHint and friends instead of having them silently dropped.
+  ...rest
 }: SearchbarProps) {
   const theme = useAppTheme();
 
@@ -39,6 +46,7 @@ export function Searchbar({
         onChangeText={onChangeText}
         placeholder={placeholder}
         accessibilityLabel={placeholder ?? 'Search'}
+        {...rest}
         // Inset via className, not `style`: react-native-web compiles
         // StyleSheet.create to atomic CSS classes, so a `style` padding lands in
         // the same cascade as the primitive's own `px-3` and loses on source

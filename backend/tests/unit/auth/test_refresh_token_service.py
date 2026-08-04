@@ -382,3 +382,32 @@ async def test_revoke_all_user_tokens_revokes_access_tokens_with_no_refresh_toke
     await revoke_all_user_tokens(redis_client, user_id)
 
     assert await strategy.read_token(access_token, manager) is None
+
+
+async def test_revoke_all_user_tokens_catches_a_token_created_mid_revocation(redis_client: Redis) -> None:
+    """A rotation landing between the read and the delete must not survive the revoke.
+
+    Regression: the sweep read the token set once, so a token added while it ran was
+    never blacklisted and stayed usable for its full lifetime.
+    """
+    user_id = uuid.uuid4()
+    await create_refresh_token(redis_client, user_id)
+
+    raced_token: dict[str, str] = {}
+    real_smembers = redis_client.smembers
+    calls = {"n": 0}
+
+    async def smembers_then_race(key: str):
+        members = await real_smembers(key)
+        calls["n"] += 1
+        if calls["n"] == 1:
+            # Simulate a refresh completing after this pass read the set.
+            raced_token["value"] = await create_refresh_token(redis_client, user_id)
+        return members
+
+    with patch.object(redis_client, "smembers", smembers_then_race):
+        await revoke_all_user_tokens(redis_client, user_id)
+
+    assert raced_token["value"], "the racing token was never created"
+    with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
+        await verify_refresh_token(redis_client, raced_token["value"])

@@ -34,6 +34,10 @@ export const handlers = [
       is_verified: user.isVerified,
       username: user.username,
       oauth_accounts: user.oauth_accounts,
+      // Required by UserRead. Omitting them left mapApiUserToUser with an undefined
+      // mfaEnabled, so MFA-off assertions passed for the wrong reason.
+      mfa_enabled: user.mfaEnabled,
+      has_usable_password: user.hasUsablePassword,
     });
   }),
   http.post(`${API_URL}/auth/register`, () => HttpResponse.json({}, { status: 201 })),
@@ -62,6 +66,8 @@ export const handlers = [
       is_verified: user.isVerified,
       username: user.username,
       oauth_accounts: user.oauth_accounts,
+      mfa_enabled: user.mfaEnabled,
+      has_usable_password: user.hasUsablePassword,
       ...body,
     });
   }),
