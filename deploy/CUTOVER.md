@@ -13,9 +13,17 @@ playbook lived under `secrets/`, which is gitignored and therefore never reached
 the deploy host.
 
 Prod's Alembic revision is `6f2b9e4a1c3d` and the release is `5bfb8deb5fa6`
-(17 migrations). Prod's *code*, however, is not at `main` — see step 0, which
-records what the host actually looks like and why that does not change the
-migration plan.
+(17 migrations).
+
+Prod's *code* is not literally at `main` — it sits on a pre-rewrite lineage of
+the working branch from April (step 0). For deployment purposes the two are
+equivalent, and that was checked rather than assumed: prod's tip and `main`
+declare the **same** Compose services (`api`, `app-site`, `docs-site`,
+`web-site`, `migrator`, `postgres`, `redis`, `cloudflared`, `postgres-backup`,
+`uploads-backup`), the **same** volumes (`database_data`, `user_uploads`,
+`cache_data`), the same `relab_prod` project name, the same `backend/.env.prod`
+config mechanism, and the same 20 migrations. Everything below that is phrased
+as "on `main`" therefore applies to the host as it actually is.
 
 ## What makes this cutover different
 
