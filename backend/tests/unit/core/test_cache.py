@@ -3,6 +3,8 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from cashews.exceptions import UnSecureDataError
+from fastapi_pagination import Params
+from fastapi_pagination.api import set_params
 from pydantic import SecretStr
 
 from app.core.cache import (
@@ -35,6 +37,40 @@ def test_cache_key_varies_with_query_string() -> None:
 
     assert key_page_1 != key_page_2
     assert key_page_1 == key_page_1_again
+
+
+def test_cache_key_varies_by_page_without_a_request_parameter() -> None:
+    """Paginated endpoints must vary per page even when they declare no ``Request``.
+
+    Regression: fastapi-pagination reads page/size from a ContextVar, and the key only
+    folded in the query string, which is unavailable when the endpoint has no ``Request``
+    parameter (``/products/suggestions/brands`` and ``/models``). Every page therefore
+    hashed to one entry and page 1 was served for every page for the whole TTL.
+    """
+    with set_params(Params(page=1, size=50)):
+        key_page_1 = _cache_key_excluding_dependencies(_example_endpoint)
+    with set_params(Params(page=2, size=50)):
+        key_page_2 = _cache_key_excluding_dependencies(_example_endpoint)
+    with set_params(Params(page=1, size=50)):
+        key_page_1_again = _cache_key_excluding_dependencies(_example_endpoint)
+
+    assert key_page_1 != key_page_2
+    # Still a cache: the same page must reuse its entry.
+    assert key_page_1 == key_page_1_again
+
+
+def test_cache_key_outside_a_pagination_context_omits_the_page_part() -> None:
+    """An unpaginated endpoint keys without a page fragment instead of raising.
+
+    ``set_params`` is used as a context manager so the ContextVar is reset on exit —
+    otherwise a page set by an earlier test leaks in and this passes vacuously.
+    """
+    unpaginated = _cache_key_excluding_dependencies(_example_endpoint)
+    with set_params(Params(page=1, size=50)):
+        paginated = _cache_key_excluding_dependencies(_example_endpoint)
+
+    assert unpaginated != paginated
+    assert unpaginated == _cache_key_excluding_dependencies(_example_endpoint)
 
 
 def test_init_with_redis_client() -> None:

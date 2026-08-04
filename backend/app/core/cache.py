@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from cashews import Cache
 from cashews.exceptions import UnSecureDataError
+from fastapi_pagination.api import resolve_params
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.responses import Response
@@ -109,6 +110,22 @@ async def cache_delete_pattern(pattern: str) -> None:
     await _backend.delete_match(pattern)
 
 
+def _pagination_key_part() -> str:
+    """Return the active pagination params as a key fragment, or "" when unpaginated.
+
+    fastapi-pagination reads page/size from a ContextVar rather than the endpoint's
+    parameters, so they are invisible to both ``kwargs`` and — on an endpoint that does
+    not declare a ``Request`` — the query string. Reading the ContextVar directly makes
+    the key fail closed: a paginated endpoint varies per page whether or not its author
+    remembered to declare ``Request``.
+    """
+    try:
+        raw = resolve_params().to_raw_params()
+    except Exception:  # noqa: BLE001 - unpaginated endpoints raise; they simply have no page to add
+        return ""
+    return f"{getattr(raw, 'limit', None)}:{getattr(raw, 'offset', None)}"
+
+
 def _cache_key_excluding_dependencies(
     func: Callable[..., Any],
     namespace: str = "",
@@ -132,7 +149,9 @@ def _cache_key_excluding_dependencies(
     # not a parameter) — vary the key. Without this, every page of a paginated @cache
     # endpoint collides onto one entry and serves page 1 for all pages.
     query = request.url.query if request is not None else ""
-    cache_key_source = f"{module_name}:{function_name}:{filtered_args}:{filtered_kwargs}:{query}"
+    cache_key_source = (
+        f"{module_name}:{function_name}:{filtered_args}:{filtered_kwargs}:{query}:{_pagination_key_part()}"
+    )
     cache_key = hashlib.sha1(cache_key_source.encode(), usedforsecurity=False).hexdigest()
     return f"{namespace}:{cache_key}"
 
