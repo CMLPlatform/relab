@@ -5,9 +5,13 @@ import type React from 'react';
 // can then opt into expo-router/testing-library with the real router module.
 jest.mock('expo-router', () => {
   const React = require('react');
-  // Theme values/provider moved from @react-navigation/native to expo-router in SDK 57;
-  // re-expose the real objects so theme adaptation still works under the mock.
-  const { DefaultTheme, DarkTheme, ThemeProvider } = require('@react-navigation/native');
+  // Theme values/provider live on expo-router itself since SDK 57. Pull them from
+  // the lightweight `expo-router/react-navigation` compat module rather than the
+  // real `expo-router` entry point — that entry eagerly evaluates `ExpoRoot`,
+  // which reads `window.location` and crashes outside a real router tree.
+  const { DefaultTheme, DarkTheme, ThemeProvider } = jest.requireActual<
+    typeof import('expo-router/react-navigation')
+  >('expo-router/react-navigation');
   return {
     DefaultTheme,
     DarkTheme,
@@ -20,6 +24,7 @@ jest.mock('expo-router', () => {
     }),
     useSegments: () => [],
     useFocusEffect: jest.fn(),
+    useIsFocused: jest.fn().mockReturnValue(true),
     useLocalSearchParams: jest.fn().mockReturnValue({}),
     useGlobalSearchParams: jest.fn().mockReturnValue({}),
     useNavigation: jest.fn().mockReturnValue({

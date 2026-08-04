@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsFocused } from 'expo-router';
 import { useMemo } from 'react';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import { invalidateProductQuery } from '@/features/products/queries';
-import { useScreenFocused } from '@/hooks/useScreenFocused';
 import type { CameraUpdate, PairingClaimRequest } from '@/services/api/rpiCamera';
 import {
   claimPairingCode,
@@ -62,7 +62,7 @@ export function useCamerasQuery(
   }: { enabled?: boolean; includeTelemetry?: boolean } = {},
 ) {
   // Stop polling (and live updates) while the screen is stacked behind another.
-  const subscribed = useScreenFocused();
+  const subscribed = useIsFocused();
   return useQuery({
     ...camerasQueryOptions(includeStatus, { includeTelemetry }),
     enabled,
@@ -75,7 +75,7 @@ export function useCameraQuery(
   includeStatus = false,
   { includeTelemetry = false }: { includeTelemetry?: boolean } = {},
 ) {
-  const subscribed = useScreenFocused();
+  const subscribed = useIsFocused();
   return useQuery({ ...cameraQueryOptions(id, includeStatus, { includeTelemetry }), subscribed });
 }
 
@@ -83,7 +83,7 @@ export function useCameraTelemetryQuery(
   cameraId: string | null,
   { enabled = true, refetchInterval = 5_000 }: { enabled?: boolean; refetchInterval?: number } = {},
 ) {
-  const subscribed = useScreenFocused();
+  const subscribed = useIsFocused();
   return useQuery({
     ...cameraTelemetryQueryOptions(cameraId, { enabled, refetchInterval }),
     subscribed,
@@ -135,7 +135,7 @@ export function useStreamStatusQuery(
   cameraId: string | null,
   { enabled = true }: { enabled?: boolean } = {},
 ) {
-  const subscribed = useScreenFocused();
+  const subscribed = useIsFocused();
   return useQuery({ ...streamStatusQueryOptions(cameraId, { enabled }), subscribed });
 }
 

@@ -12,7 +12,12 @@ import { renderWithProviders } from '@/test-utils/index';
 const mockScreenOptions: Record<string, Record<string, unknown> | undefined> = {};
 
 jest.mock('expo-router', () => {
-  const { DefaultTheme, DarkTheme, ThemeProvider } = require('@react-navigation/native');
+  // `expo-router/react-navigation` is the lightweight compat module — unlike the
+  // real `expo-router` entry point, it doesn't eagerly evaluate `ExpoRoot` (which
+  // reads `window.location` and crashes outside a real router tree).
+  const { DefaultTheme, DarkTheme, ThemeProvider } = jest.requireActual<
+    typeof import('expo-router/react-navigation')
+  >('expo-router/react-navigation');
   const ReactActual = require('react');
   function StackScreenMock({ name, options }: { name: string; options?: Record<string, unknown> }) {
     mockScreenOptions[name] = options;

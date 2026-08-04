@@ -39,7 +39,6 @@ jest.mock('@/services/api/rpiCamera', () => ({
 const mockScreenFocused = jest.fn(() => true);
 jest.mock('@/hooks/useScreenFocused', () => ({
   __esModule: true,
-  useScreenFocused: () => true,
   useScreenFocusedSafe: () => mockScreenFocused(),
 }));
 
