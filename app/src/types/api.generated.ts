@@ -1861,10 +1861,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Oauth-Associate:Github.Authorize */
-    get: operations['oauth_associate_github_authorize_v1_oauth_github_associate_authorize_get'];
+    get?: never;
     put?: never;
-    post?: never;
+    /** Oauth-Associate:Github.Authorize */
+    post: operations['oauth_associate_github_authorize_v1_oauth_github_associate_authorize_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1972,10 +1972,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Oauth-Associate:Google.Authorize */
-    get: operations['oauth_associate_google_authorize_v1_oauth_google_associate_authorize_get'];
+    get?: never;
     put?: never;
-    post?: never;
+    /** Oauth-Associate:Google.Authorize */
+    post: operations['oauth_associate_google_authorize_v1_oauth_google_associate_authorize_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2009,10 +2009,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Oauth-Associate:Google-Youtube.Authorize */
-    get: operations['oauth_associate_google_youtube_authorize_v1_oauth_google_youtube_associate_authorize_get'];
+    get?: never;
     put?: never;
-    post?: never;
+    /** Oauth-Associate:Google-Youtube.Authorize */
+    post: operations['oauth_associate_google_youtube_authorize_v1_oauth_google_youtube_associate_authorize_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -4231,10 +4231,13 @@ export interface components {
       account_email: string;
     };
     /**
-     * OAuthUnlinkRequest
-     * @description Optional step-up body for unlinking a social login.
+     * OAuthStepUpRequest
+     * @description Optional step-up body for linking or unlinking a social login.
+     *
+     *     Optional because an OAuth-only account has no usable password to re-assert; the
+     *     server decides whether one is required from ``user.has_usable_password``.
      */
-    OAuthUnlinkRequest: {
+    OAuthStepUpRequest: {
       /** Current Password */
       current_password?: string | null;
     };
@@ -9954,14 +9957,18 @@ export interface operations {
       };
     };
   };
-  oauth_associate_github_authorize_v1_oauth_github_associate_authorize_get: {
+  oauth_associate_github_authorize_v1_oauth_github_associate_authorize_post: {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['OAuthStepUpRequest'] | null;
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
@@ -9970,6 +9977,15 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OAuth2AuthorizeResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -10116,14 +10132,18 @@ export interface operations {
       };
     };
   };
-  oauth_associate_google_authorize_v1_oauth_google_associate_authorize_get: {
+  oauth_associate_google_authorize_v1_oauth_google_associate_authorize_post: {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['OAuthStepUpRequest'] | null;
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
@@ -10132,6 +10152,15 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OAuth2AuthorizeResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -10170,14 +10199,18 @@ export interface operations {
       };
     };
   };
-  oauth_associate_google_youtube_authorize_v1_oauth_google_youtube_associate_authorize_get: {
+  oauth_associate_google_youtube_authorize_v1_oauth_google_youtube_associate_authorize_post: {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['OAuthStepUpRequest'] | null;
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
@@ -10186,6 +10219,15 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OAuth2AuthorizeResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -10235,7 +10277,7 @@ export interface operations {
     };
     requestBody?: {
       content: {
-        'application/json': components['schemas']['OAuthUnlinkRequest'] | null;
+        'application/json': components['schemas']['OAuthStepUpRequest'] | null;
       };
     };
     responses: {

@@ -3334,8 +3334,9 @@
         "title": "OAuthAccountRead",
         "type": "object"
       },
-      "OAuthUnlinkRequest": {
-        "description": "Optional step-up body for unlinking a social login.",
+      "OAuthStepUpRequest": {
+        "additionalProperties": false,
+        "description": "Optional step-up body for linking or unlinking a social login.\n\nOptional because an OAuth-only account has no usable password to re-assert; the\nserver decides whether one is required from ``user.has_usable_password``.",
         "properties": {
           "current_password": {
             "anyOf": [
@@ -3351,7 +3352,7 @@
             "title": "Current Password"
           }
         },
-        "title": "OAuthUnlinkRequest",
+        "title": "OAuthStepUpRequest",
         "type": "object"
       },
       "Page_CategoryReadWithRecursiveSubCategories_": {
@@ -10899,8 +10900,25 @@
       }
     },
     "/v1/oauth/github/associate/authorize": {
-      "get": {
-        "operationId": "oauth_associate_github_authorize_v1_oauth_github_associate_authorize_get",
+      "post": {
+        "operationId": "oauth_associate_github_authorize_v1_oauth_github_associate_authorize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/OAuthStepUpRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -10911,6 +10929,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -11292,8 +11320,25 @@
       }
     },
     "/v1/oauth/google-youtube/associate/authorize": {
-      "get": {
-        "operationId": "oauth_associate_google_youtube_authorize_v1_oauth_google_youtube_associate_authorize_get",
+      "post": {
+        "operationId": "oauth_associate_google_youtube_authorize_v1_oauth_google_youtube_associate_authorize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/OAuthStepUpRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -11304,6 +11349,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -11435,8 +11490,25 @@
       }
     },
     "/v1/oauth/google/associate/authorize": {
-      "get": {
-        "operationId": "oauth_associate_google_authorize_v1_oauth_google_associate_authorize_get",
+      "post": {
+        "operationId": "oauth_associate_google_authorize_v1_oauth_google_associate_authorize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/OAuthStepUpRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -11447,6 +11519,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -11848,7 +11930,7 @@
               "schema": {
                 "anyOf": [
                   {
-                    "$ref": "#/components/schemas/OAuthUnlinkRequest"
+                    "$ref": "#/components/schemas/OAuthStepUpRequest"
                   },
                   {
                     "type": "null"

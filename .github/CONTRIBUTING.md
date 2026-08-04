@@ -1,8 +1,10 @@
 # Contributing to Relab
 
-Thanks for contributing. Relab is a research platform developed at CML, Leiden University. This page gets you productive without digging through the repo first.
+Thanks for contributing. Relab is a research platform developed at CML, Leiden University. This page
+gets you productive without digging through the repo first.
 
-This page is for code and documentation changes. If you mainly want to run or deploy the stack, see [Install and self-host](https://docs.cml-relab.org/operations/install/).
+This page is for code and documentation changes. If you mainly want to run or deploy the stack, see
+[Install and self-host](https://docs.cml-relab.org/operations/install/).
 
 ## Start Here
 
@@ -38,7 +40,9 @@ This is the recommended path into the repo if you use VS Code.
    just deploy-secrets-template dev
    ```
 
-   Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email, or bootstrap settings. Runtime secrets live in gitignored files under `secrets/dev/`. Local PostgreSQL and Redis run through Docker Compose.
+   Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email,
+   or bootstrap settings. Runtime secrets live in gitignored files under `secrets/dev/`. Local
+   PostgreSQL and Redis run through Docker Compose.
 
 1. Reopen the repo in the `relab-fullstack` devcontainer.
 
@@ -86,8 +90,9 @@ Use this when you want the full stack without configuring each subrepo manually.
    just deploy-secrets-template dev
    ```
 
-   `backend/.env.dev` is optional backend-app-only local configuration. Root `.env` is for deploy hosts, and runtime secrets live in `secrets/dev/`.
-   A typical override file only contains integration-facing values:
+   `backend/.env.dev` is optional backend-app-only local configuration. Root `.env` is for deploy
+   hosts, and runtime secrets live in `secrets/dev/`. A typical override file only contains
+   integration-facing values:
 
    ```text
    GOOGLE_OAUTH_CLIENT_ID=google-oauth-client-id
@@ -123,7 +128,9 @@ Use this when you want the full stack without configuring each subrepo manually.
 
 The services run on the same URLs as the [forwarded ports](#forwarded-ports) above.
 
-Docker development ports bind to localhost. If you want to test the Expo app from another phone, tablet, or computer over your LAN, run the Expo server directly from `app/` with `just dev` instead of using the Docker app service.
+Docker development ports bind to localhost. If you want to test the Expo app from another phone,
+tablet, or computer over your LAN, run the Expo server directly from `app/` with `just dev` instead
+of using the Docker app service.
 
 ### Useful Commands
 
@@ -172,19 +179,22 @@ Use `just --list` in any directory to see what is available there.
 
 ## Tooling and Configuration
 
-Use `.tool-versions` as the source of truth for local tool versions. Do not duplicate exact versions in docs unless a manifest or generated file requires it.
+Use `.tool-versions` as the source of truth for local tool versions. Do not duplicate exact versions
+in docs unless a manifest or generated file requires it.
 
 Each configuration surface has one job:
 
 - root `justfile`: repo-wide orchestration and cross-project workflows
 - subrepo `justfile`: local commands for one project
 - `pyproject.toml`: Python dependencies and Python tool configuration
-- `pnpm-workspace.yaml`: JavaScript workspace membership, package-manager policy, and shared tooling catalogs
+- `pnpm-workspace.yaml`: JavaScript workspace membership, package-manager policy, and shared tooling
+  catalogs
 - `package.json`: JavaScript package dependencies and script wrappers
 - env files: runtime and build-time configuration only
 - GitHub workflow YAML: CI/CD wiring; move complex logic to versioned scripts
 
-Keep new settings in the smallest surface that actually needs them. If a change adds or renames env vars, update the examples, validation rules, and affected docs in the same PR.
+Keep new settings in the smallest surface that actually needs them. If a change adds or renames env
+vars, update the examples, validation rules, and affected docs in the same PR.
 
 ## Quality Controls
 
@@ -195,7 +205,8 @@ Run the relevant subrepo checks before opening a pull request:
 - www: Vitest, Astro checks, and Playwright where browser behavior changes
 - docs: formatting and build smoke check
 
-For cross-repo or policy changes, also run `just ci` from the root. GitHub Actions covers dependency review, container scanning, repository hygiene, and release artifact checks on every push.
+For cross-repo or policy changes, also run `just ci` from the root. GitHub Actions covers dependency
+review, container scanning, repository hygiene, and release artifact checks on every push.
 
 ### Accessibility
 
@@ -208,10 +219,10 @@ A/AA rule tags and strips animations for deterministic runs.
 | `docs/` | homepage + getting-started `<main>`, contrast checked; snapshots: `just docs/test-e2e`              | Biome `a11y`                                     |
 | `app/`  | products list + detail on the Expo web build (`color-contrast` off): `just app/test-e2e-full-stack` | Biome `a11y` + `eslint-plugin-react-native-a11y` |
 
-The `www/` and `docs/` axe scans gate every PR. The `app/` scan needs the full
-Docker backend, so it runs post-merge or on demand; the per-PR net for the app
-is `eslint-plugin-react-native-a11y`, which validates RN accessibility props on
-each lint run. See [validate.yml](workflows/validate.yml).
+The `www/` and `docs/` axe scans gate every PR that touches `www/`, `docs/`, or shared files. The
+`app/` scan needs the full Docker backend, so it runs post-merge or on demand; the per-PR net for
+the app is `eslint-plugin-react-native-a11y`, which validates RN accessibility props on each lint
+run. See [validate.yml](workflows/validate.yml).
 
 These are automated checks, so a passing run is a floor, not proof of WCAG
 conformance. The `app/` scan runs against the react-native-web build, so it does
@@ -221,7 +232,9 @@ pending a labelling pass (`has-valid-accessibility-descriptors`,
 
 ## Security
 
-For changes that touch authentication, authorization, uploads, device flows, admin APIs, secrets, or personal data, include security context in the pull request and update the relevant docs if behavior changes. See [SECURITY.md](SECURITY.md) for the reviewer checklist.
+For changes that touch authentication, authorization, uploads, device flows, admin APIs, secrets, or
+personal data, include security context in the pull request and update the relevant docs if behavior
+changes. See [SECURITY.md](SECURITY.md) for the reviewer checklist.
 
 Use `just security` for local diagnosis.
 
@@ -247,13 +260,14 @@ cd backend
 just dev
 ```
 
-The API is available at <http://127.0.0.1:8010>.
-Use `SEED_DUMMY_DATA=true just dev-migrate` when you want sample data.
-Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email, or bootstrap settings.
+The API is available at <http://127.0.0.1:8010>. Use `SEED_DUMMY_DATA=true just dev-migrate` when
+you want sample data. Create `backend/.env.dev` only when you need backend-only local overrides such
+as OAuth, email, or bootstrap settings.
 
 - Public API reference: <http://127.0.0.1:8012/api/public/>
 - Device API reference: <http://127.0.0.1:8012/api/device/>
-- Development/testing-only JSON contracts: <http://127.0.0.1:8010/openapi.json> and <http://127.0.0.1:8010/openapi.admin.json>
+- Development/testing-only JSON contracts: <http://127.0.0.1:8010/openapi.json> and
+  <http://127.0.0.1:8010/openapi.admin.json>
 
 ### OpenAPI Examples
 
@@ -261,7 +275,8 @@ Keep examples centralized and predictable:
 
 - Domain-specific examples go in `examples.py` (e.g., `backend/app/api/data_collection/examples.py`)
 - Cross-domain examples go in `backend/app/api/common/openapi_examples.py`
-- Use `*_EXAMPLE` for single payloads, `*_EXAMPLES` for schema lists, `*_OPENAPI_EXAMPLES` for FastAPI named maps
+- Use `*_EXAMPLE` for single payloads, `*_EXAMPLES` for schema lists, `*_OPENAPI_EXAMPLES` for
+  FastAPI named maps
 - In routers, pass examples via `openapi_examples=...` parameter
 - Update `backend/tests/integration/api/test_openapi_endpoints.py` when changing examples
 
@@ -285,7 +300,8 @@ just test-flows
 just test-ci
 ```
 
-Standard fixture names: `db_session`, `db_user`, `db_superuser`, `api_client`, `api_client_user`, `api_client_superuser`, `redis_client`.
+Standard fixture names: `db_session`, `db_user`, `db_superuser`, `api_client`, `api_client_user`,
+`api_client_superuser`, `redis_client`.
 
 ## Frontend Setup
 
@@ -299,9 +315,12 @@ just dev
 
 The Expo dev server runs on <http://127.0.0.1:8011>.
 
-If you are using a physical device or a non-default backend URL, create `app/.env.local` and set `EXPO_PUBLIC_API_URL`.
+If you are using a physical device or a non-default backend URL, create `app/.env.local` and set
+`EXPO_PUBLIC_API_URL`.
 
-To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in your env file to the web client ID from Google Cloud Console. The authorized redirect URI for your environment must also be registered there (e.g. `http://127.0.0.1:8011/login` for local dev).
+To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in your env file to the web
+client ID from Google Cloud Console. The authorized redirect URI for your environment must also be
+registered there (e.g. `http://127.0.0.1:8011/login` for local dev).
 
 ### Regenerating API types
 
@@ -372,7 +391,8 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 
 ## Backend Development
 
-For code style, test commands, migration workflow, and email templates, see [backend/README.md](../backend/README.md).
+For code style, test commands, migration workflow, and email templates, see
+[backend/README.md](../backend/README.md).
 
 ## Frontend Development
 
@@ -404,7 +424,8 @@ just test-e2e
 just check
 ```
 
-When adding a new public-facing page to `www`, add at least one browser test. When adding app behavior in `app`, add Jest coverage for the new logic or screen behavior.
+When adding a new public-facing page to `www`, add at least one browser test. When adding app
+behavior in `app`, add Jest coverage for the new logic or screen behavior.
 
 ## Docs Development
 
@@ -431,4 +452,5 @@ just format
 
 ## License
 
-By contributing, you agree that your contributions are licensed under the project [LICENSE](LICENSE).
+By contributing, you agree that your contributions are licensed under the project
+[LICENSE](LICENSE).
