@@ -115,7 +115,7 @@ locals {
         local.api_hosts_expression,
         "(${join(" or ", [
           "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/register\")",
-          "(http.request.method eq \"GET\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/poll\")",
+          "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/poll\")",
           "http.request.uri.path eq \"/v1/plugins/rpi-cam/ws/connect\"",
           "(http.request.method eq \"POST\" and http.request.uri.path matches \"^/v1/plugins/rpi-cam/device/cameras/[^/]+/(image-upload|preview-thumbnail-upload)$\")",
         ])})",

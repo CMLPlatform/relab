@@ -34,6 +34,7 @@ from app.api.plugins.rpi_cam.runtime.preview import get_preview_thumbnail_path, 
 from app.api.plugins.rpi_cam.runtime.relay import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.utils.metadata import validate_rpi_cam_metadata_object
 from app.core.config import settings
+from app.core.logging import sanitize_log_value
 from app.core.redis import RedisDep
 
 if TYPE_CHECKING:
@@ -173,7 +174,7 @@ async def receive_camera_upload(
         "Receiving pushed image from camera %s for product %s (filename=%s)",
         camera.id,
         product_id_int,
-        file.filename,
+        sanitize_log_value(file.filename),
     )
     image = await image_storage_service.create(session, image_data, quota_user_id=camera.owner_id)
 

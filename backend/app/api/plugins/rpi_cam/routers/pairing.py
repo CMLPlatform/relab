@@ -9,12 +9,10 @@ Flow:
 
 import hmac
 import logging
-from typing import Annotated
 
-from fastapi import Query, status
+from fastapi import status
 from relab_rpi_cam_models import (
     PairingClaimedRecord,
-    PairingCode,
     PairingPendingRecord,
     PairingPollResponse,
     PairingRegisterRequest,
@@ -34,7 +32,7 @@ from app.api.plugins.rpi_cam.exceptions import (
 )
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead
-from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest
+from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest, PairingPollRequest
 from app.api.plugins.rpi_cam.utils.device_contracts import (
     build_claimed_bootstrap,
     build_claimed_record,
@@ -62,6 +60,16 @@ CLAIM_CODE_RATE_LIMIT = "5/minute"
 
 def _pairing_key(code: str) -> str:
     return f"{PAIRING_KEY_PREFIX}:{code}"
+
+
+def _pairing_log_id(code: str) -> str:
+    """Return a non-reversible digest of a pairing code, safe to write to logs.
+
+    The raw code is the claim credential for its TTL, so it must never appear in
+    logs. Reuse the rate-limiter's keyed HMAC digest so the same code maps to a
+    stable identifier across correlated log lines without exposing the secret.
+    """
+    return rate_limit_bucket_key("rpi-cam:pairing", code)
 
 
 def _build_ws_url() -> str:
@@ -95,7 +103,7 @@ async def register_pairing_code(
     if not stored:
         raise PairingCodeCollisionError
 
-    logger.info("Pairing code %s registered.", sanitize_log_value(body.code))
+    logger.info("Pairing code %s registered.", _pairing_log_id(body.code))
     return PairingRegisterResponse(code=body.code, expires_in=PAIRING_TTL_SECONDS)
 
 
@@ -112,7 +120,7 @@ async def claim_pairing_code(
     redis: RedisDep,
 ) -> Camera:
     """Claim a pairing code and create a WebSocket-relayed camera."""
-    limiter.hit_key(CLAIM_CODE_RATE_LIMIT, rate_limit_bucket_key("rpi-cam:pairing:claim:code", body.code))
+    await limiter.ahit_key(CLAIM_CODE_RATE_LIMIT, rate_limit_bucket_key("rpi-cam:pairing:claim:code", body.code))
     key = _pairing_key(body.code)
     raw = await get_redis_value(redis, key)
     if raw is None:
@@ -146,26 +154,29 @@ async def claim_pairing_code(
 
     logger.info(
         "Pairing code %s claimed by user %s, camera %s.",
-        sanitize_log_value(body.code),
+        _pairing_log_id(body.code),
         sanitize_log_value(current_user.id),
         sanitize_log_value(db_camera.id),
     )
     return db_camera
 
 
-@router.get(
+@router.post(
     "/poll",
     response_model=PairingPollResponse,
     summary="Poll pairing status (called by RPi)",
     dependencies=[limiter.dependency(POLL_RATE_LIMIT)],
 )
 async def poll_pairing_status(
+    body: PairingPollRequest,
     redis: RedisDep,
-    code: Annotated[PairingCode, Query()],
-    fingerprint: str = Query(min_length=8, max_length=64),
 ) -> PairingPollResponse:
-    """Poll for pairing completion. Returns non-secret relay metadata once claimed."""
-    key = _pairing_key(code)
+    """Poll for pairing completion. Returns non-secret relay metadata once claimed.
+
+    Takes the code and fingerprint in a POST body (not query params) so the
+    claim credential never reaches proxy/uvicorn access logs.
+    """
+    key = _pairing_key(body.code)
     raw = await get_redis_value(redis, key)
     if raw is None:
         raise PairingCodeNotFoundError
@@ -173,15 +184,15 @@ async def poll_pairing_status(
     record = parse_pairing_record(raw)
 
     if isinstance(record, PairingPendingRecord):
-        if not hmac.compare_digest(record.rpi_fingerprint, fingerprint):
+        if not hmac.compare_digest(record.rpi_fingerprint, body.fingerprint):
             raise PairingFingerprintMismatchError
         return PairingPollResponse.waiting()
 
     if isinstance(record, PairingClaimedRecord):
-        if not hmac.compare_digest(record.rpi_fingerprint, fingerprint):
+        if not hmac.compare_digest(record.rpi_fingerprint, body.fingerprint):
             raise PairingFingerprintMismatchError
         await delete_redis_key(redis, key)
-        logger.info("Pairing credentials retrieved for code %s.", sanitize_log_value(code))
+        logger.info("Pairing credentials retrieved for code %s.", _pairing_log_id(body.code))
         return PairingPollResponse.from_claimed_bootstrap(
             build_claimed_bootstrap(
                 camera_id=record.camera_id,

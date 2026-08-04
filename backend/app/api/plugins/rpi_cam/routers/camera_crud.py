@@ -7,6 +7,7 @@ from fastapi import BackgroundTasks, HTTPException, Query
 from pydantic import UUID4
 from relab_rpi_cam_models import LocalAccessInfo
 from sqlalchemy import select
+from starlette.responses import FileResponse
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
@@ -115,6 +116,30 @@ async def get_user_camera(
         redis,
         include_telemetry=include_telemetry,
         preview_thumbnail_url=preview_thumbnail_url,
+    )
+
+
+@camera_router.get(
+    "/{camera_id}/preview-thumbnail",
+    summary="Get a camera's cached preview thumbnail",
+    response_class=FileResponse,
+    responses={404: {"description": "No cached preview thumbnail available for this camera."}},
+)
+async def get_camera_preview_thumbnail(camera: UserOwnedCameraDep) -> FileResponse:
+    """Serve the owner's cached preview thumbnail.
+
+    Owner-checked (``UserOwnedCameraDep`` 404s for non-owners) and served off the
+    private preview directory rather than the public ``/uploads/images`` mount, so
+    a camera id alone no longer grants a stranger a recent frame. Cached only
+    privately and revalidated — never long-lived immutable like the public mount.
+    """
+    path = get_preview_thumbnail_path(camera.id)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="No preview thumbnail available for this camera.")
+    return FileResponse(
+        path,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "private, no-cache", "X-Content-Type-Options": "nosniff"},
     )
 
 

@@ -104,7 +104,7 @@ async def test_authenticate_sanitizes_client_ip_when_blocked() -> None:
         patch("app.api.plugins.rpi_cam.websocket.router.limiter") as mock_limiter,
         patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger,
     ):
-        mock_limiter.hit_key.side_effect = RateLimitExceededError
+        mock_limiter.ahit_key = AsyncMock(side_effect=RateLimitExceededError)
         result = await _authenticate(websocket, camera_id)
 
     assert result is False
@@ -126,14 +126,15 @@ async def test_authenticate_enforces_redis_backed_rate_limit_before_auth_lookup(
     camera_id = uuid4()
 
     with patch("app.api.plugins.rpi_cam.websocket.router.limiter", create=True) as mock_limiter:
+        mock_limiter.ahit_key = AsyncMock()
         result = await _authenticate(websocket, camera_id)
 
     assert result is False
-    mock_limiter.hit_key.assert_any_call(
+    mock_limiter.ahit_key.assert_any_await(
         "10/minute",
         rate_limit_bucket_key("rpi-cam:ws-auth:ip", "203.0.113.10"),
     )
-    mock_limiter.hit_key.assert_any_call(
+    mock_limiter.ahit_key.assert_any_await(
         "10/minute",
         rate_limit_bucket_key("rpi-cam:ws-auth:camera", str(camera_id)),
     )

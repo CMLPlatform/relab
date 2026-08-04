@@ -101,6 +101,7 @@ async def test_non_owner_cannot_access_camera(
 
     get_response = await api_client_user.get(f"/v1/plugins/rpi-cam/cameras/{camera.id}")
     status_response = await api_client_user.get(f"/v1/plugins/rpi-cam/cameras/{camera.id}/status")
+    preview_response = await api_client_user.get(f"/v1/plugins/rpi-cam/cameras/{camera.id}/preview-thumbnail")
     patch_response = await api_client_user.patch(
         f"/v1/plugins/rpi-cam/cameras/{camera.id}",
         json={"name": UPDATED_CAM_NAME},
@@ -109,5 +110,8 @@ async def test_non_owner_cannot_access_camera(
 
     assert get_response.status_code == status.HTTP_404_NOT_FOUND
     assert status_response.status_code == status.HTTP_404_NOT_FOUND
+    # Preview frames are a live view of a private workspace: a non-owner must not
+    # be able to pull one, even though the camera id is a known value.
+    assert preview_response.status_code == status.HTTP_404_NOT_FOUND
     assert patch_response.status_code == status.HTTP_404_NOT_FOUND
     assert delete_response.status_code == status.HTTP_404_NOT_FOUND

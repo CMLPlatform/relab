@@ -15,6 +15,7 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.images import (
     receive_camera_upload,
     receive_preview_thumbnail_upload,
 )
+from app.api.plugins.rpi_cam.runtime.preview import get_preview_thumbnail_path
 from app.core.config import settings
 
 if TYPE_CHECKING:
@@ -115,21 +116,57 @@ async def test_rejects_upload_for_product_not_owned_by_camera_owner(mock_camera:
     mock_storage.create.assert_not_awaited()
 
 
+async def test_pushed_image_log_sanitizes_device_filename(mock_camera: Camera) -> None:
+    """A device-supplied filename must be sanitized before it reaches the log line."""
+    upload = UploadFile(filename="cap\r\nINJECTED forged log line.jpg", file=BytesIO(b"jpeg-bytes"))
+
+    with (
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.images.get_user_owned_object",
+            new=AsyncMock(),
+        ),
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.images.image_storage_service.create",
+            new=AsyncMock(side_effect=RuntimeError("stop after logging")),
+        ),
+        patch("app.api.plugins.rpi_cam.routers.camera_interaction.images.logger") as mock_logger,
+        pytest.raises(RuntimeError),
+    ):
+        await receive_camera_upload(
+            camera_id=mock_camera.id,
+            camera=mock_camera,
+            session=MagicMock(),
+            file=upload,
+            capture_metadata="{}",
+            upload_metadata='{"product_id": 1}',
+        )
+
+    logged_filename = mock_logger.info.call_args.args[3]
+    assert "\r" not in logged_filename
+    assert "\n" not in logged_filename
+
+
 async def test_persists_deterministic_preview_thumbnail_and_returns_url(
     mock_camera: Camera,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A device upload should overwrite the deterministic preview-thumbnail cache file."""
-    monkeypatch.setattr(settings, "image_storage_path", tmp_path)
+    monkeypatch.setattr(settings, "image_storage_path", tmp_path / "images")
     upload = _jpeg_upload()
 
     ack = await receive_preview_thumbnail_upload(camera_id=mock_camera.id, camera=mock_camera, file=upload)
 
-    path = tmp_path / "rpi-cam-preview" / f"{mock_camera.id}.jpg"
+    path = get_preview_thumbnail_path(mock_camera.id)
     assert path.read_bytes().startswith(b"\xff\xd8")
+    # Preview frames live off the public /uploads/images mount and are served via
+    # the owner-checked API route, not the static mount.
+    assert settings.image_storage_path not in path.parents
     expected_mtime = int(path.stat().st_mtime)
-    assert ack.preview_thumbnail_url == f"/uploads/images/rpi-cam-preview/{mock_camera.id}.jpg?v={expected_mtime}"
+    assert (
+        ack.preview_thumbnail_url
+        == f"/v1/plugins/rpi-cam/cameras/{mock_camera.id}/preview-thumbnail?v={expected_mtime}"
+    )
 
 
 async def test_rejects_empty_preview_thumbnail_upload(
@@ -178,7 +215,7 @@ async def test_preview_thumbnail_upload_fails_closed_when_scanner_unavailable(
     With scanning enabled but no scanner reachable, the upload must be rejected
     (503) rather than silently stored — guarding the scan bypass this route had.
     """
-    monkeypatch.setattr(settings, "image_storage_path", tmp_path)
+    monkeypatch.setattr(settings, "image_storage_path", tmp_path / "images")
     monkeypatch.setattr("app.api.file_storage.upload_security.settings.malware_scan_enabled", True)
     monkeypatch.setattr("app.api.file_storage.upload_security.settings.clamav_host", "")
     upload = _jpeg_upload()
@@ -187,4 +224,4 @@ async def test_preview_thumbnail_upload_fails_closed_when_scanner_unavailable(
         await receive_preview_thumbnail_upload(camera_id=mock_camera.id, camera=mock_camera, file=upload)
 
     assert exc_info.value.status_code == 503
-    assert not (tmp_path / "rpi-cam-preview" / f"{mock_camera.id}.jpg").exists()
+    assert not get_preview_thumbnail_path(mock_camera.id).exists()
