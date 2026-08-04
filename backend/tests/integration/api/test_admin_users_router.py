@@ -36,6 +36,7 @@ class TestAdminUsersAuthorization:
         [
             ("get", ""),
             ("get", "/{uid}"),
+            ("patch", "/{uid}"),
             ("delete", "/{uid}"),
             ("post", "/{uid}/mfa/reset"),
         ],
@@ -45,7 +46,8 @@ class TestAdminUsersAuthorization:
     ) -> None:
         """A non-superuser is denied every admin verb."""
         path = ADMIN_USERS + path_suffix.format(uid=db_superuser.id)
-        response = await getattr(api_client_user, method)(path)
+        kwargs = {"json": {}} if method == "patch" else {}
+        response = await getattr(api_client_user, method)(path, **kwargs)
         assert response.status_code in (401, 403)
 
     async def test_guest_is_unauthorized(self, api_client, db_user: User) -> None:
@@ -61,12 +63,13 @@ class TestAdminUsersNotFound:
     # raised UserNotExists straight into the catch-all handler as a 500.
     @pytest.mark.parametrize(
         ("method", "path_suffix"),
-        [("get", "/{uid}"), ("delete", "/{uid}"), ("post", "/{uid}/mfa/reset")],
+        [("get", "/{uid}"), ("patch", "/{uid}"), ("delete", "/{uid}"), ("post", "/{uid}/mfa/reset")],
     )
     async def test_missing_user_returns_404(self, api_client_superuser, method: str, path_suffix: str) -> None:
         """Each admin verb maps a missing id to 404."""
         path = ADMIN_USERS + path_suffix.format(uid=uuid4())
-        response = await getattr(api_client_superuser, method)(path)
+        kwargs = {"json": {}} if method == "patch" else {}
+        response = await getattr(api_client_superuser, method)(path, **kwargs)
         assert response.status_code == 404
 
     async def test_malformed_id_is_rejected_before_the_handler(self, api_client_superuser) -> None:
@@ -76,7 +79,7 @@ class TestAdminUsersNotFound:
 
 
 class TestAdminUsersActions:
-    """Delete and MFA-reset perform their action and audit the acting superuser."""
+    """Delete, update, and MFA-reset perform their action and audit the acting superuser."""
 
     async def test_superuser_deletes_a_user_and_audits_the_actor(
         self, api_client_superuser, db_superuser: User, db_user: User
@@ -87,6 +90,20 @@ class TestAdminUsersActions:
 
         assert response.status_code == 204
         log_audit.assert_called_once_with(db_superuser.id, AuditAction.DELETE, User, db_user.id)
+
+    async def test_superuser_updates_a_user_and_audits_the_actor(
+        self, api_client_superuser, db_superuser: User, db_user: User
+    ) -> None:
+        """Update returns the changed user without the target's password and audits the actor."""
+        with patch("app.api.auth.routers.admin.users.audit_event") as log_audit:
+            response = await api_client_superuser.patch(
+                f"{ADMIN_USERS}/{db_user.id}",
+                json={"username": "renamed_by_admin"},  # no current_password supplied — safe=False must not demand one
+            )
+
+        assert response.status_code == 200
+        assert response.json()["username"] == "renamed_by_admin"
+        log_audit.assert_called_once_with(db_superuser.id, AuditAction.UPDATE, User, db_user.id)
 
     async def test_superuser_resets_user_mfa(self, api_client_superuser, db_user: User) -> None:
         """MFA reset returns 204 and clears the target's TOTP enrolment."""

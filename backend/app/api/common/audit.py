@@ -15,6 +15,7 @@ class AuditAction(StrEnum):
     """Supported audit action names."""
 
     DELETE = "delete"
+    UPDATE = "update"
     DEACTIVATE = "deactivate"
     SUPERUSER_ACCESS = "superuser_access"
     LOGIN_SUCCESS = "login_success"

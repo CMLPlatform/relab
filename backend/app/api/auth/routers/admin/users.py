@@ -2,8 +2,9 @@
 
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
 from fastapi_pagination import Page
+from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
 from app.api.auth.dependencies import (
     CurrentActiveSuperUserDep,
@@ -14,7 +15,7 @@ from app.api.auth.dependencies import (
 from app.api.auth.examples import ADMIN_USERS_RESPONSE_EXAMPLES
 from app.api.auth.filters import UserFilter
 from app.api.auth.models import User
-from app.api.auth.schemas import UserRead
+from app.api.auth.schemas import UserRead, UserUpdate
 from app.api.auth.services import mfa_service
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.crud.filtering import create_filter_dependency
@@ -57,6 +58,35 @@ async def get_users(
 async def get_user(user: UserByIDDep) -> User:
     """Get a user by ID."""
     return user
+
+
+## PATCH ##
+@router.patch(
+    "/{user_id}",  # noqa: FAST003 # user_id is bound by the get_user_or_404 dependency
+    summary="Update a user by ID",
+    response_model=UserRead,
+)
+async def update_user(
+    user_update: UserUpdate,
+    user: UserByIDDep,
+    user_manager: UserManagerDep,
+    actor: CurrentActiveSuperUserDep,
+    request: Request,
+) -> User:
+    """Update a user by ID without requiring the target account's password.
+
+    `safe=False` lets an administrator change fields the self-service route
+    reauthenticates for; UserManager skips the current-password gate on this path.
+    """
+    try:
+        updated = await user_manager.update(user_update, user, safe=False, request=request)
+    except UserAlreadyExists as e:
+        # Admins are trusted, so unlike registration there is nothing to hide here.
+        raise HTTPException(status_code=409, detail="A user with this email already exists") from e
+    except InvalidPasswordException as e:
+        raise HTTPException(status_code=400, detail=str(e.reason)) from e
+    audit_event(actor.id, AuditAction.UPDATE, User, user.id)
+    return updated
 
 
 ## DELETE ##
