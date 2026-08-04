@@ -68,9 +68,11 @@ def _make_upload_file(content_type: str) -> UploadFile:
 
 
 def test_validate_dimensions_accepts_valid_images() -> None:
-    """Images within the limit (and exactly at the limit) should not raise."""
+    """Images within both the per-side and total-pixel limits should not raise."""
     validate_image_dimensions(PILImage.new("RGB", (100, 100)))
-    validate_image_dimensions(PILImage.new("RGB", (MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)))
+    # At the per-side limit but within the pixel cap (a square at the per-side max would
+    # be 64 MPx, over the 30 MPx bomb guard, and is rejected by the pixel-flood test).
+    validate_image_dimensions(PILImage.new("RGB", (MAX_IMAGE_DIMENSION, 3000)))
 
 
 def test_validate_dimensions_exceeds_width() -> None:
@@ -346,3 +348,57 @@ def test_delete_thumbnails_removes_generated_files(large_image: Path) -> None:
 def test_delete_thumbnails_noop_when_none_exist(large_image: Path) -> None:
     """Should not raise when no thumbnails exist."""
     delete_thumbnails(large_image)  # Should not raise
+
+
+def test_multiframe_gif_without_exif_is_left_untouched(tmp_path: Path) -> None:
+    """A non-JPEG with no EXIF and no rotation must not be re-encoded.
+
+    Regression: process_image_for_storage re-saved every non-JPEG single-frame, which
+    flattened animated GIFs to one frame and re-encoded lossless WebP lossily.
+    """
+    path = tmp_path / "animated.gif"
+    frames = [PILImage.new("RGB", (48, 48), color).convert("P") for color in ((200, 0, 0), (0, 200, 0), (0, 0, 200))]
+    frames[0].save(path, save_all=True, append_images=frames[1:], duration=100, loop=0)
+
+    before = path.read_bytes()
+    process_image_for_storage(path)
+
+    assert path.read_bytes() == before, "GIF was re-encoded despite needing no processing"
+    assert PILImage.open(path).n_frames == 3
+
+
+def test_lossless_webp_without_exif_is_left_untouched(tmp_path: Path) -> None:
+    """A lossless WebP with no EXIF must be preserved byte-for-byte, not re-encoded."""
+    path = tmp_path / "image.webp"
+    PILImage.new("RGB", (64, 64), (10, 20, 30)).save(path, format="WEBP", lossless=True)
+
+    before = path.read_bytes()
+    process_image_for_storage(path)
+
+    assert path.read_bytes() == before
+
+
+def test_validate_image_dimensions_rejects_pixel_flood() -> None:
+    """An image within the per-side cap but over the pixel cap must be rejected.
+
+    7000x7000 = 49 MPx is under the 8000px/side limit but over the total-pixel cap, so
+    the decompression-bomb guard now fires before any decode.
+    """
+    img = PILImage.new("L", (7000, 7000))
+    with pytest.raises(ValueError, match="pixels"):
+        validate_image_dimensions(img)
+
+
+def test_jpeg_with_exif_orientation_is_still_rotated_and_stripped(tmp_path: Path) -> None:
+    """The processing path must still apply rotation and strip EXIF when present."""
+    path = tmp_path / "rotated.jpg"
+    img = PILImage.new("RGB", (40, 60), (90, 90, 90))
+    exif = img.getexif()
+    exif[0x0112] = 6  # orientation: rotate 90°
+    img.save(path, format="JPEG", exif=exif)
+
+    process_image_for_storage(path)
+
+    out = PILImage.open(path)
+    assert out.size == (60, 40)
+    assert 0x0112 not in out.getexif()

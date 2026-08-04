@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from PIL import Image as PILImage
 from PIL import UnidentifiedImageError
 
-from .constants import ALLOWED_IMAGE_MIME_TYPES, MAX_IMAGE_DIMENSION
+from .constants import ALLOWED_IMAGE_MIME_TYPES, MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS
 
 if TYPE_CHECKING:
     from typing import BinaryIO
@@ -13,11 +13,22 @@ if TYPE_CHECKING:
     from fastapi import UploadFile
 
 
-def validate_image_dimensions(img: PILImage.Image, max_dimension: int = MAX_IMAGE_DIMENSION) -> None:
-    """Raise ValueError if either image dimension exceeds the maximum allowed."""
+def validate_image_dimensions(
+    img: PILImage.Image,
+    max_dimension: int = MAX_IMAGE_DIMENSION,
+    max_pixels: int = MAX_IMAGE_PIXELS,
+) -> None:
+    """Raise ValueError if the image exceeds the per-side or total-pixel limit.
+
+    The total-pixel check runs on ``img.size``, available after ``open`` without a full
+    decode, so it rejects a decompression bomb before any operation that would decode it.
+    """
     width, height = img.size
     if width > max_dimension or height > max_dimension:
         msg = f"Image dimensions {width}x{height} exceed the maximum allowed {max_dimension}px per side."
+        raise ValueError(msg)
+    if width * height > max_pixels:
+        msg = f"Image has {width * height} pixels, exceeding the maximum allowed {max_pixels}."
         raise ValueError(msg)
 
 

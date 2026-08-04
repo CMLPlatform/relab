@@ -7,6 +7,7 @@ __all__ = [
     "FORMAT_JPEG",
     "FORMAT_WEBP",
     "MAX_IMAGE_DIMENSION",
+    "MAX_IMAGE_PIXELS",
     "RESAMPLE_FILTER",
     "THUMBNAIL_WIDTHS",
     "_EXIF_ORIENTATION_TAG",
@@ -17,6 +18,13 @@ __all__ = [
 FORMAT_JPEG = "JPEG"
 FORMAT_WEBP = "WEBP"
 MAX_IMAGE_DIMENSION = 8000
+# Total-pixel ceiling, independent of the per-side cap. 8000x8000 = 64 MPx sits
+# below Pillow's default decompression-bomb guard (89 MPx), so a crafted image
+# that is within the per-side limit still decodes to a huge bitmap and can OOM the
+# worker during post-write processing/thumbnailing. Cap the pixel count directly
+# and lower Pillow's own guard to match, so the check also covers those opens.
+MAX_IMAGE_PIXELS = 30_000_000
+PILImage.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
     {
         "image/bmp",

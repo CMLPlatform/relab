@@ -11,7 +11,12 @@ from PIL import Image as PILImage
 from starlette.datastructures import Headers
 
 from app.api.common.exceptions import BadRequestError
-from app.api.file_storage.crud.support_paths import delete_file_from_storage, delete_image_from_storage
+from app.api.file_storage.crud.support_paths import (
+    delete_file_from_storage,
+    delete_image_from_storage,
+    storage_item_exists,
+    stored_file_path,
+)
 from app.api.file_storage.crud.support_uploads import process_uploadfile_name, sanitize_filename
 from app.api.file_storage.upload_policy import (
     HYPERSPECTRAL_FILE_EXTENSIONS,
@@ -328,3 +333,34 @@ def test_image_upload_content_rejects_pixel_flood_images() -> None:
     with pytest.raises(BadRequestError, match="exceed"):
         validate_image_upload_content(upload)
     assert upload.file.tell() == 0
+
+
+def _item_with_path(path: str | None):
+    """Build a minimal file-backed item exposing ``item.file.path``."""
+    item = MagicMock()
+    item.file.path = path
+    return item
+
+
+def test_storage_item_exists_treats_remote_url_as_present(tmp_path: Path) -> None:
+    """The S3 backend stores a URL in ``file.path``; it must count as present.
+
+    Regression: ``Path(url).exists()`` is always False, so every S3-backed item was
+    silently filtered out of media listings.
+    """
+    remote = _item_with_path("https://bucket.s3.eu-west-1.amazonaws.com/media/x.jpg")
+    assert storage_item_exists(remote) is True
+    # Local filesystem operations must skip a remote object rather than treat the URL as a path.
+    assert stored_file_path(remote) is None
+
+    missing = tmp_path / "gone.jpg"
+    local_missing = _item_with_path(str(missing))
+    assert storage_item_exists(local_missing) is False
+
+    present = tmp_path / "here.jpg"
+    present.write_bytes(b"x")
+    local_present = _item_with_path(str(present))
+    assert storage_item_exists(local_present) is True
+    assert stored_file_path(local_present) == present
+
+    assert storage_item_exists(_item_with_path(None)) is False
