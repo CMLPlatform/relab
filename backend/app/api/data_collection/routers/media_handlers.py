@@ -77,6 +77,9 @@ async def handle_list_files(
     statement = parent_media_select(
         File, parent_type=MediaParentType.PRODUCT, parent_id=parent_id, filter_params=item_filter
     )
+    # NOTE: `total` counts DB rows, but the transform below drops rows whose backing file
+    # is missing from storage — so `total` can exceed the number of items actually
+    # returned. Accepted: storage cleanup reconciles orphaned rows separately.
     page = await paginate_select(
         session,
         statement,
@@ -139,6 +142,9 @@ async def handle_list_images(
     statement = parent_media_select(
         Image, parent_type=MediaParentType.PRODUCT, parent_id=parent_id, filter_params=item_filter
     )
+    # NOTE: `total` counts DB rows, but the transform below drops rows whose backing file
+    # is missing from storage — so `total` can exceed the number of items actually
+    # returned. Accepted: storage cleanup reconciles orphaned rows separately.
     page = await paginate_select(
         session,
         statement,
@@ -172,7 +178,14 @@ async def handle_upload_image(
     image_metadata: str | None,
     current_user: User,
 ) -> ImageReadWithinParent:
-    """Attach a new image to the given parent and refresh user stats."""
+    """Attach a new image to the given parent and refresh the product owner's stats.
+
+    Components denormalize their base's owner_id, so this resolves correctly for either
+    role — and matches ``handle_delete_image``, which also recomputes for the owner
+    rather than the acting user (who may be a superuser uploading on someone else's
+    behalf).
+    """
+    db_product = await session.get(Product, parent_id)
     item = await create_parent_media(
         session,
         parent_id=parent_id,
@@ -186,8 +199,9 @@ async def handle_upload_image(
         ),
         quota_user_id=current_user.id,
     )
-    await recompute_user_profile_stats(session, current_user.id)
-    await session.commit()
+    if db_product and db_product.owner_id is not None:
+        await recompute_user_profile_stats(session, db_product.owner_id)
+        await session.commit()
     return ImageReadWithinParent.model_validate(item)
 
 

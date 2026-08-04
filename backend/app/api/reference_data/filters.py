@@ -88,9 +88,14 @@ class MaterialFilter(BaseFilterSet):
 
 
 class MaterialFilterWithRelationships(MaterialFilter):
-    """Material filters with explicit relationship-backed fields."""
+    """Material filters with explicit relationship-backed fields.
 
-    sortable_fields: ClassVar[tuple[str, ...]] = (*MaterialFilter.sortable_fields, "category_name")
+    NOTE: category_name is filterable but deliberately not sortable — it's a many-to-many
+    relationship, and sorting on it via the add-columns+DISTINCT mechanism breaks
+    pagination (each material can sort/paginate once per category). No client uses
+    order_by=category_name; add a correlated-subquery ORDER BY if that's ever needed.
+    """
+
     relationship_joins: ClassVar[tuple[RelationshipFilterJoin, ...]] = (
         RelationshipFilterJoin("category_name", (Material.categories,), Category.name),
         RelationshipFilterJoin("category_description", (Material.categories,), Category.description),
@@ -123,9 +128,12 @@ class ProductTypeFilter(BaseFilterSet):
 
 
 class ProductTypeFilterWithRelationships(ProductTypeFilter):
-    """ProductType filters with explicit relationship-backed fields."""
+    """ProductType filters with explicit relationship-backed fields.
 
-    sortable_fields: ClassVar[tuple[str, ...]] = (*ProductTypeFilter.sortable_fields, "category_name")
+    NOTE: category_name is filterable but deliberately not sortable — see the same note
+    on MaterialFilterWithRelationships.
+    """
+
     relationship_joins: ClassVar[tuple[RelationshipFilterJoin, ...]] = (
         RelationshipFilterJoin("category_name", (ProductType.categories,), Category.name),
         RelationshipFilterJoin("category_description", (ProductType.categories,), Category.description),

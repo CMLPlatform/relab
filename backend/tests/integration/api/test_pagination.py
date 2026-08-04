@@ -113,7 +113,6 @@ async def test_admin_users_returns_page_envelope(api_client_superuser_light: Asy
     ("path", "sort_field"),
     [
         ("/v1/products", "product_type_name"),
-        ("/v1/materials", "category_name"),
         ("/v1/categories", "taxonomy_name"),
     ],
 )
@@ -125,8 +124,23 @@ async def test_sorting_by_joined_column_does_not_error(
     paginate_select applies .distinct(), and Postgres requires every ORDER BY
     expression to appear in the select list, so a joined sort column has to be
     added there explicitly.
+
+    Materials' `category_name` is filterable but not sortable (it's a many-to-many
+    relationship — see test_material_category_name_sort_is_rejected below), so it's
+    excluded here.
     """
     await MaterialFactory.create_async(session=db_session, name="JoinedSortMaterial")
     response = await api_client_light.get(f"{path}?order_by={sort_field}")
     assert response.status_code == status.HTTP_200_OK, response.text
     assert "items" in response.json()
+
+
+async def test_material_category_name_sort_is_rejected(api_client_light: AsyncClient) -> None:
+    """category_name is a many-to-many field; it must stay out of sortable_fields.
+
+    Sorting on it via the add-columns+DISTINCT mechanism would duplicate rows across
+    pages (once per category), breaking pagination — so the API must reject it rather
+    than silently mis-paginate.
+    """
+    response = await api_client_light.get("/v1/materials?order_by=category_name")
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT, response.text

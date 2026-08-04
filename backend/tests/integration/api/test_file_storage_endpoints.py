@@ -8,7 +8,7 @@ import pytest
 from fastapi import status
 from PIL import Image as PILImage
 
-from tests.factories.models import ProductFactory, ProductTypeFactory
+from tests.factories.models import ProductFactory, ProductTypeFactory, UserFactory
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -75,6 +75,39 @@ async def setup_product_for_files(db_session: AsyncSession, db_superuser: User) 
         product_type_id=pt.id,
         name=PRODUCT_FILES_NAME,
     )
+
+
+async def test_upload_image_recomputes_stats_for_product_owner_not_uploader(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    db_superuser: User,
+) -> None:
+    """A superuser uploading to another user's product must refresh the owner's stats, not their own.
+
+    handle_upload_image previously recomputed profile_stats for current_user (the
+    uploader) instead of db_product.owner_id, mirroring handle_delete_image's correct
+    behavior.
+    """
+    owner = await UserFactory.create_async(session=db_session, is_active=True)
+    product_type = await ProductTypeFactory.create_async(session=db_session)
+    owned_product = await ProductFactory.create_async(
+        session=db_session, owner_id=owner.id, product_type_id=product_type.id
+    )
+    owner.profile_stats_computed_at = None
+    db_superuser.profile_stats_computed_at = None
+    await db_session.flush()
+
+    response = await api_client_superuser.post(
+        f"/v1/products/{owned_product.id}/images",
+        files={"file": (IMAGE_NAME, GIF_BYTES, IMAGE_MIMETYPE)},
+        data={"description": IMAGE_DESC},
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED, response.text
+    await db_session.refresh(owner)
+    await db_session.refresh(db_superuser)
+    assert owner.profile_stats_computed_at is not None
+    assert db_superuser.profile_stats_computed_at is None
 
 
 @pytest.mark.parametrize(

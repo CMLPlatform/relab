@@ -256,7 +256,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         response: Response | None = None,  # noqa: ARG002 # Response argument is expected in the method signature
     ) -> None:
         """Persist the login timestamp and log the event after successful authentication."""
-        user.last_login_at = datetime.now(UTC).replace(tzinfo=None)
+        user.last_login_at = datetime.now(UTC)
         await self.user_db.session.commit()
         logger.info("User %s logged in", mask_email_for_log(user.email))
 

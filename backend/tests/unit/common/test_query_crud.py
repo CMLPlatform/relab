@@ -11,6 +11,8 @@ from app.api.common.crud.exceptions import CRUDConfigurationError
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.query import require_locked_model, require_model
+from app.api.data_collection.filters import ProductFilterWithRelationships
+from app.api.data_collection.models.product import Product
 from app.api.reference_data.filters import MaterialFilterWithRelationships
 from app.api.reference_data.models import Material
 from app.api.reference_data.schemas import MaterialReadWithRelationships
@@ -100,15 +102,47 @@ def test_relationship_filter_uses_explicit_join_metadata() -> None:
 
 
 def test_relationship_sort_uses_explicit_join_metadata() -> None:
-    """Relationship-backed sort fields should also join their allowlisted relationship."""
+    """Relationship-backed sort fields should also join their allowlisted relationship.
+
+    This field is sort-only here (not filtered), so the join must be outer — see
+    test_sort_only_relationship_join_is_outer for the row-preservation regression test.
+    """
     filters = MaterialFilterWithRelationships().with_sorting([("category_name", "asc", None)])
 
     updated_statement = apply_filter(select(Material), filters)
     sql = str(updated_statement).lower()
 
-    assert "join categorymateriallink" in sql
+    assert "left outer join" in sql
+    assert "categorymateriallink" in sql
     assert "join category" in sql
     assert "order by category.name asc" in sql
+
+
+def test_sort_only_relationship_join_is_outer() -> None:
+    """A field used only for sorting must use an outer join so NULL-relationship rows survive.
+
+    Sorting by product_type_name on a product with no product_type should still return
+    that row (with a NULL sort key) rather than being dropped by an inner join.
+    """
+    filters = ProductFilterWithRelationships().with_sorting([("product_type_name", "asc", None)])
+
+    updated_statement = apply_filter(select(Product), filters)
+    sql = str(updated_statement).lower()
+
+    assert "left outer join producttype" in sql
+
+
+def test_filtered_and_sorted_relationship_join_stays_inner() -> None:
+    """A field that is both filtered and sorted keeps an inner join — filter semantics dominate."""
+    filters = ProductFilterWithRelationships.from_ops(
+        ProductFilterWithRelationships.product_type_name.ilike("plastic")
+    ).with_sorting([("product_type_name", "asc", None)])
+
+    updated_statement = apply_filter(select(Product), filters)
+    sql = str(updated_statement).lower()
+
+    assert "left outer join producttype" not in sql
+    assert "join producttype" in sql
 
 
 def test_relationship_filter_value_is_bound_not_sql_text() -> None:

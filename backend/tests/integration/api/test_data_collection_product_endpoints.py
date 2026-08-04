@@ -220,6 +220,61 @@ async def test_product_materials_reject_component_ids(
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
+async def test_sorting_products_by_product_type_name_keeps_untyped_products(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+    db_superuser: User,
+    db_product_type: ProductType,
+) -> None:
+    """order_by=product_type_name must not drop products with no product_type.
+
+    The join `apply_filter` adds for a sort-only relationship field must be an outer
+    join; an inner join would silently exclude every product_type_id=NULL row.
+    """
+    typed_product = Product(
+        owner_id=db_superuser.id, name=f"{PRODUCT_BASE_NAME}Typed", brand=BRAND_X, product_type=db_product_type
+    )
+    untyped_product = Product(owner_id=db_superuser.id, name=f"{PRODUCT_BASE_NAME}Untyped", brand=BRAND_X)
+    db_session.add_all([typed_product, untyped_product])
+    await db_session.flush()
+
+    response = await api_client.get("/v1/products?order_by=product_type_name")
+
+    assert response.status_code == status.HTTP_200_OK, response.text
+    ids = [item["id"] for item in response.json()["items"]]
+    assert typed_product.id in ids
+    assert untyped_product.id in ids
+
+
+async def test_product_materials_filter_by_material_name(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    setup_product: Product,
+) -> None:
+    """GET /products/{id}/materials?material_name= must not 500 and must match by name.
+
+    list_material_links_for_product previously added its own `.join(Material)` on top of
+    the join `apply_filter` adds for a `material_name` filter, producing an ambiguous
+    second join to the same table.
+    """
+    material = Material(name="Steel")
+    db_session.add(material)
+    await db_session.flush()
+    create_response = await api_client_superuser.post(
+        f"/v1/products/{setup_product.id}/materials",
+        json=[{"material_id": material.id, "quantity": BOM_QUANTITY, "unit": BOM_UNIT}],
+    )
+    assert create_response.status_code == status.HTTP_201_CREATED
+
+    filtered_response = await api_client_superuser.get(f"/v1/products/{setup_product.id}/materials?material_name=steel")
+    unfiltered_response = await api_client_superuser.get(f"/v1/products/{setup_product.id}/materials")
+
+    assert filtered_response.status_code == status.HTTP_200_OK, filtered_response.text
+    assert [item["material_id"] for item in filtered_response.json()] == [material.id]
+    assert unfiltered_response.status_code == status.HTTP_200_OK
+    assert [item["material_id"] for item in unfiltered_response.json()] == [material.id]
+
+
 async def test_product_videos_reject_component_ids(
     api_client_superuser: AsyncClient,
     setup_product_graph: ProductGraph,

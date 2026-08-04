@@ -11,9 +11,17 @@ from tests.factories.models import ProductFactory, UserFactory
 
 
 async def test_upload_product_image_updates_profile_stats() -> None:
-    """Uploading an image should update the owner's profile stats snapshot."""
+    """Uploading an image should update the product owner's profile stats snapshot.
+
+    The uploader may be a superuser acting on someone else's product, so the recompute
+    must target the product's owner_id, not the uploader's id.
+    """
     session = AsyncMock(spec=AsyncSession)
-    user = UserFactory.build(id=uuid4())
+    uploader = UserFactory.build(id=uuid4())
+    owner_id = uuid4()
+    product = ProductFactory.build(id=1)
+    product.owner_id = owner_id
+    session.get.return_value = product
     image = SimpleNamespace(
         id=uuid4(),
         filename="image.png",
@@ -39,10 +47,10 @@ async def test_upload_product_image_updates_profile_stats() -> None:
             AsyncMock(),
         ) as refresh_stats,
     ):
-        await upload_product_image(session, db_product, MagicMock(), user)
+        await upload_product_image(session, db_product, MagicMock(), uploader)
 
     session.commit.assert_awaited_once()
-    refresh_stats.assert_awaited_once_with(session, user.id)
+    refresh_stats.assert_awaited_once_with(session, owner_id)
 
 
 async def test_delete_product_image_updates_profile_stats() -> None:

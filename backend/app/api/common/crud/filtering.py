@@ -126,19 +126,31 @@ def _relationship_columns(model_filter: BaseFilterSet) -> dict[str, ColumnElemen
 
 
 def _apply_relationship_joins[MT: Base](statement: Select[tuple[MT]], model_filter: BaseFilterSet) -> Select[tuple[MT]]:
-    active_fields = {*model_filter.filter_values, *(field for field, _direction, _nulls in model_filter.sorting)}
+    filter_fields = set(model_filter.filter_values)
+    sorting_fields = {field for field, _direction, _nulls in model_filter.sorting}
     join_lookup = _relationship_join_lookup(model_filter)
-    applied: set[InstrumentedAttribute[Any]] = set()
 
-    for field in active_fields:
+    # A relationship may be pulled in by several fields (e.g. category_name and
+    # category_description both join through the same categories relationship). A
+    # sort-only field must use an outer join so rows with no related row still sort
+    # (instead of vanishing); a filtered field keeps an inner join, and filter semantics
+    # dominate when the same field is both filtered and sorted.
+    join_order: list[InstrumentedAttribute[Any]] = []
+    join_isouter: dict[InstrumentedAttribute[Any], bool] = {}
+    for field in filter_fields | sorting_fields:
         join = join_lookup.get(field)
         if join is None:
             continue
+        effective_isouter = join.isouter or field not in filter_fields
         for relationship in join.joins:
-            if relationship in applied:
-                continue
-            statement = statement.join(relationship, isouter=join.isouter)
-            applied.add(relationship)
+            if relationship not in join_isouter:
+                join_isouter[relationship] = effective_isouter
+                join_order.append(relationship)
+            elif not effective_isouter:
+                join_isouter[relationship] = False
+
+    for relationship in join_order:
+        statement = statement.join(relationship, isouter=join_isouter[relationship])
     return statement
 
 
