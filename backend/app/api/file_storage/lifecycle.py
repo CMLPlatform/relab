@@ -4,7 +4,7 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from app.api.file_storage.services.manager import FileCleanupManager
-from app.api.file_storage.upload_security import validate_malware_scanner_configuration
+from app.api.file_storage.upload_security import probe_malware_scanner, validate_malware_scanner_configuration
 from app.core.database import async_sessionmaker_factory
 from app.core.lifecycle import DomainLifecycle, ShutdownStep
 
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 async def _startup(app: FastAPI, services: AppServices) -> None:  # noqa: ARG001
     validate_malware_scanner_configuration()
+    await probe_malware_scanner()
     services.file_cleanup_manager = FileCleanupManager(async_sessionmaker_factory)
     await services.file_cleanup_manager.initialize()
 

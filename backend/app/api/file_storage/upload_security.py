@@ -1,5 +1,6 @@
 """ASVS V5 malware scanning controls for uploads."""
 
+import logging
 import struct
 from typing import TYPE_CHECKING, Protocol
 
@@ -14,7 +15,10 @@ if TYPE_CHECKING:
     from fastapi import UploadFile
 
 
+logger = logging.getLogger(__name__)
+
 CLAMAV_CHUNK_SIZE = 64 * 1024
+CLAMAV_PROBE_TIMEOUT_SECONDS = 2.0
 CLAMAV_FOUND_MARKER = " FOUND"
 CLAMAV_OK_MARKER = " OK"
 CLAMAV_UNAVAILABLE_EXCEPTIONS = (
@@ -100,6 +104,30 @@ def validate_malware_scanner_configuration() -> None:
     if scanner_missing:
         msg = "Malware scanning is enabled but CLAMAV_HOST is not configured."
         raise RuntimeError(msg)
+
+
+async def probe_malware_scanner() -> None:
+    """Report at startup when enabled upload scanning cannot reach its scanner.
+
+    Uploads already fail closed per request; this only surfaces the misconfiguration
+    before the first upload does. NOTE: a single advisory probe, never a startup
+    failure or a retry loop, because the scanner container may still be booting.
+    """
+    if not settings.malware_scan_enabled or not settings.clamav_host:
+        return
+
+    try:
+        with anyio.fail_after(CLAMAV_PROBE_TIMEOUT_SECONDS):
+            async with await anyio.connect_tcp(settings.clamav_host, settings.clamav_port):
+                pass
+    except CLAMAV_UNAVAILABLE_EXCEPTIONS:
+        logger.error(  # noqa: TRY400 - a connect traceback adds noise; the message is the signal
+            "MALWARE_SCAN_ENABLED is set but the ClamAV scanner at %s:%s is unreachable, so every "
+            "upload will be rejected. Start the scanner with the 'scanning' Compose profile, or "
+            "unset MALWARE_SCAN_ENABLED to accept unscanned uploads.",
+            settings.clamav_host,
+            settings.clamav_port,
+        )
 
 
 async def scan_upload_or_raise(

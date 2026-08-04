@@ -1,5 +1,6 @@
 """Tests for ASVS V5 malware scanning controls."""
 
+import logging
 from io import BytesIO
 
 import anyio
@@ -11,6 +12,7 @@ from app.api.file_storage.upload_security import (
     ClamAVScanner,
     MalwareDetectedError,
     get_upload_scanner,
+    probe_malware_scanner,
     scan_upload_or_raise,
     validate_malware_scanner_configuration,
 )
@@ -173,3 +175,24 @@ def test_disabled_malware_scanning_does_not_block_deployed_startup(monkeypatch: 
     monkeypatch.setattr("app.api.file_storage.upload_security.settings.clamav_host", "")
 
     validate_malware_scanner_configuration()
+
+
+async def test_startup_probe_reports_unreachable_scanner(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """An enabled but unreachable scanner should be reported at startup, not only per upload."""
+    monkeypatch.setattr("app.api.file_storage.upload_security.settings.malware_scan_enabled", True)
+    monkeypatch.setattr("app.api.file_storage.upload_security.settings.clamav_host", "clamav")
+    monkeypatch.setattr("app.api.file_storage.upload_security.settings.clamav_port", 3310)
+
+    async def _connect_tcp(host: str, port: int) -> None:
+        del host, port
+        raise OSError
+
+    monkeypatch.setattr("app.api.file_storage.upload_security.anyio.connect_tcp", _connect_tcp)
+
+    with caplog.at_level(logging.ERROR):
+        await probe_malware_scanner()
+
+    assert "MALWARE_SCAN_ENABLED" in caplog.text
+    assert "scanning" in caplog.text
