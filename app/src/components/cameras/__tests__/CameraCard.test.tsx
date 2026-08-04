@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { screen } from '@testing-library/react-native';
+import { screen, waitFor } from '@testing-library/react-native';
 import { CameraCard } from '@/components/cameras/CameraCard';
 import { resolveEffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
@@ -16,6 +16,12 @@ jest.mock('expo-image', () => {
       React.createElement(Text, { testID: 'camera-thumbnail' }, `img:${source?.uri ?? ''}`),
   };
 });
+
+// Preview thumbnails are owner-checked: on native the source carries a bearer
+// token, so the token has to resolve before the <Image> renders.
+jest.mock('@/services/api/auth/authentication', () => ({
+  getToken: () => Promise.resolve('test-token'),
+}));
 
 // TelemetryBadge makes an unrelated network hook call; stub it out.
 jest.mock('@/components/cameras/TelemetryBadge', () => {
@@ -54,12 +60,14 @@ describe('CameraCard', () => {
 
   // ── Three-state visual distinction ────────────────────────────────────────
 
-  it('online + preview_thumbnail_url: renders thumbnail, full opacity, "Online" chip', () => {
+  it('online + preview_thumbnail_url: renders thumbnail, full opacity, "Online" chip', async () => {
     const camera = makeCamera({ preview_thumbnail_url: 'https://example.com/preview.jpg' });
 
     const { UNSAFE_getByProps } = renderWithProviders(<CameraCard camera={camera} />);
 
-    expect(screen.getByTestId('camera-thumbnail')).toBeOnTheScreen();
+    // The preview route is owner-checked, so on native the thumbnail waits for the
+    // bearer token to resolve before it has a source to render.
+    await waitFor(() => expect(screen.getByTestId('camera-thumbnail')).toBeOnTheScreen());
     expect(screen.getByText('img:https://example.com/preview.jpg')).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
 

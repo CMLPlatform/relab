@@ -4,13 +4,24 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
-import { StatusBadge } from '@/components/base/StatusBadge';
+import { StatusPill, type StatusTone } from '@/components/base/StatusPill';
 import { STATUS_LABEL } from '@/components/cameras/detail/styles';
 import { radius } from '@/constants';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
-import { getStatusColor, useAppTheme } from '@/theme';
+import { useAuthedMediaSource } from '@/services/api/authedMedia';
+import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { useAppTheme } from '@/theme';
 import { TelemetryBadge } from './TelemetryBadge';
+
+// Mirrors theme/color.ts's getStatusColor mapping, but as StatusPill tone
+// keys rather than resolved colors — StatusPill resolves the color itself.
+const CONNECTION_TONE: Record<CameraConnectionStatus, StatusTone> = {
+  online: 'success',
+  offline: 'offline',
+  unauthorized: 'warning',
+  forbidden: 'warning',
+  error: 'danger',
+};
 
 /**
  * Format an ISO-8601 timestamp as a compact relative string for the offline
@@ -42,7 +53,11 @@ function CameraCardComponent({
   const connection = effectiveConnection?.status ?? camera.status?.connection ?? 'offline';
   const isOnline = connection === 'online';
   const thumbnailUrl = camera.preview_thumbnail_url ?? null;
-  const hasThumbnail = isOnline && Boolean(thumbnailUrl) && failedThumbnailUrl !== thumbnailUrl;
+  // Preview thumbnails are owner-checked, so the request has to carry credentials.
+  // Null while a native token resolves, which keeps the placeholder up instead of
+  // firing a spurious onError.
+  const thumbnailSource = useAuthedMediaSource(thumbnailUrl);
+  const hasThumbnail = isOnline && Boolean(thumbnailSource) && failedThumbnailUrl !== thumbnailUrl;
   const handleThumbnailError = useCallback(
     () => setFailedThumbnailUrl(thumbnailUrl),
     [thumbnailUrl],
@@ -61,7 +76,7 @@ function CameraCardComponent({
       <View style={[styles.thumbnailFrame, { backgroundColor: theme.colors.scrim }]}>
         {hasThumbnail ? (
           <Image
-            source={{ uri: thumbnailUrl ?? undefined }}
+            source={thumbnailSource}
             style={styles.thumbnail}
             contentFit="cover"
             transition={150}
@@ -109,9 +124,10 @@ function CameraCardComponent({
             </AppText>
           ) : null}
           <View style={styles.cardChips}>
-            <StatusBadge
+            <StatusPill
               label={STATUS_LABEL[connection]}
-              color={getStatusColor(theme, connection)}
+              tone={CONNECTION_TONE[connection]}
+              variant="soft"
             />
             {isOnline ? (
               effectiveConnection?.detailLabel ? (

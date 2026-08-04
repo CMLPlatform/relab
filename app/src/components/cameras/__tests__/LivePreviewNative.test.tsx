@@ -11,9 +11,14 @@
  */
 
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { act, screen } from '@testing-library/react-native';
+import { act, screen, waitFor } from '@testing-library/react-native';
 import { LivePreview, PreviewErrorBoundary } from '@/components/cameras/LivePreview';
 import { mockPlatform, renderWithProviders } from '@/test-utils/index';
+
+// The relayed LL-HLS route is owner-checked; native sends a bearer token.
+jest.mock('@/services/api/auth/authentication', () => ({
+  getToken: () => Promise.resolve('test-token'),
+}));
 
 // ─── useCameraLivePreview mock ─────────────────────────────────────────────────
 
@@ -120,12 +125,20 @@ describe('LivePreview', () => {
 
   // ── Native path internals ──────────────────────────────────────────────────
 
-  it('passes the hls URL and a setup callback to useVideoPlayer', () => {
+  it('passes the hls URL and a setup callback to useVideoPlayer', async () => {
     renderWithProviders(<LivePreview camera={CAMERA} />);
 
-    expect(mockUseVideoPlayer).toHaveBeenCalledTimes(1);
-    const call = mockUseVideoPlayer.mock.calls[0];
-    expect(call?.[0]).toBe(HLS_URL);
+    // The bearer token resolves asynchronously, so the player is first created with
+    // a null source and recreated once credentials are available (useVideoPlayer
+    // keys its shared object on the serialized source).
+    await waitFor(() => expect(mockUseVideoPlayer.mock.calls.at(-1)?.[0]).not.toBeNull());
+    const call = mockUseVideoPlayer.mock.calls.at(-1);
+    // The relayed HLS route is owner-checked and native has no session cookie, so
+    // the player must send the bearer token itself.
+    expect(call?.[0]).toEqual({
+      uri: HLS_URL,
+      headers: { Authorization: 'Bearer test-token' },
+    });
     expect(typeof call?.[1]).toBe('function');
   });
 

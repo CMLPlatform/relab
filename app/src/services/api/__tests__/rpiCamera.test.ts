@@ -18,7 +18,8 @@ jest.mock('@/services/api/auth/authentication', () => ({
 }));
 
 const mockFetchWithAuth = jest.mocked(fetchWithAuth);
-const PREVIEW_THUMBNAIL_PATH_PATTERN = /\/uploads\/images\/rpi-cam-preview\/cam-1\.jpg$/;
+const PREVIEW_THUMBNAIL_PATH_PATTERN =
+  /\/v1\/plugins\/rpi-cam\/cameras\/cam-1\/preview-thumbnail(\?|$)/;
 const ABSOLUTE_URL_PATTERN = /^https?:\/\//;
 
 function mockJsonResponse(body: unknown, { ok = true, status = 200 } = {}) {
@@ -214,7 +215,9 @@ describe('rpiCamera API service', () => {
     mockJsonResponse({
       id: 'cam-1',
       name: 'Desk Cam',
-      preview_thumbnail_url: '/uploads/images/rpi-cam-preview/cam-1.jpg',
+      // The backend now serves previews through an owner-checked API route, not the
+      // public /uploads mount, so the resolver must still absolutize this path.
+      preview_thumbnail_url: '/v1/plugins/rpi-cam/cameras/cam-1/preview-thumbnail?v=123',
     });
 
     const result = await fetchCamera('cam-1', true);
