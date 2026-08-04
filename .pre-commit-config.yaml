@@ -135,7 +135,7 @@ repos:
         name: brand-assets-check
         entry: just assets-check
         language: system
-        files: ^(?:assets/.*|scripts/sync_brand_assets\.py|justfile|docs/src/styles/brand\.css|www/src/styles/brand\.css|app/src/assets/images/(?:bg-(?:light|dark)\.jpg|favicon\.png)|docs/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|favicon\.(?:ico|svg)))|docs/src/assets/images/bg-(?:light|dark)\.jpg|www/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|favicon\.(?:ico|svg)))|www/src/assets/images/(?:bg-(?:light|dark)\.jpg|logo\.svg)|backend/app/static/favicon\.ico)$
+        files: ^(?:assets/.*|scripts/sync_brand_assets\.py|justfile|docs/src/styles/brand\.css|www/src/styles/brand\.css|app/src/assets/images/(?:bg-(?:light|dark)\.jpg|favicon\.png)|docs/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|favicon\.(?:ico|svg)))|docs/src/assets/images/bg-(?:light|dark)\.jpg|www/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|favicon\.(?:ico|svg)))|www/src/assets/images/(?:bg-(?:light|dark)\.jpg|logo\.svg)|docs/src/assets/icons/brand/(?:github|google|youtube|linkedin)\.svg|www/src/assets/icons/brand/(?:github|google|youtube|linkedin)\.svg|backend/app/static/favicon\.ico)$
         pass_filenames: false
         stages: [ pre-push ]
       - id: backend-openapi-check
