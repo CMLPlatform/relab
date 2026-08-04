@@ -30,6 +30,11 @@ function mockMatchMedia(prefersDark: boolean) {
   return mql;
 }
 
+/** Mutates a mocked MediaQueryList's `matches`, which the type says is readonly. */
+function setMatches(mql: MediaQueryList, matches: boolean) {
+  (mql as unknown as { matches: boolean }).matches = matches;
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   document.documentElement.removeAttribute('data-theme');
@@ -128,6 +133,32 @@ describe('initThemeControl', () => {
     button.click();
     // Only one listener wired, so exactly one step forward.
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('light');
+  });
+
+  it('follows an OS theme change while the stored preference is "system"', () => {
+    const mql = mockMatchMedia(false);
+    buildControl();
+    initThemeControl();
+    expect(document.documentElement.dataset.theme).toBe('light');
+
+    setMatches(mql, true);
+    mql.dispatchEvent(new Event('change'));
+
+    expect(document.documentElement.dataset.theme).toBe('dark');
+  });
+
+  it('ignores an OS theme change once an explicit theme is stored', () => {
+    const mql = mockMatchMedia(false);
+    window.localStorage.setItem(STORAGE_KEY, 'light');
+    buildControl();
+    initThemeControl();
+    expect(document.documentElement.dataset.theme).toBe('light');
+
+    setMatches(mql, true);
+    mql.dispatchEvent(new Event('change'));
+
+    // Still light: an explicit preference isn't overridden by the OS.
+    expect(document.documentElement.dataset.theme).toBe('light');
   });
 });
 

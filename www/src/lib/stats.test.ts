@@ -6,6 +6,7 @@ import {
   formatCount,
   formatMass,
   monthKeys,
+  resetStatsCacheForTests,
   zeroFillSeries,
 } from './stats.ts';
 
@@ -34,6 +35,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
   vi.useRealTimers();
+  resetStatsCacheForTests();
 });
 
 describe('fetchHomeStats', () => {
@@ -93,6 +95,26 @@ describe('fetchHomeStats', () => {
 
     const stats = await fetchHomeStats();
     expect(stats?.series.every((point) => point.teardowns === 0)).toBe(true);
+  });
+
+  it('single-flights concurrent calls: one fetch per endpoint, same result', async () => {
+    vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
+    const fetchMock = stubFetch(TOTALS_PAYLOAD, SERIES_PAYLOAD);
+
+    const [a, b] = await Promise.all([fetchHomeStats(), fetchHomeStats()]);
+    expect(a).toBe(b);
+    // Two endpoints (totals + series), each called exactly once despite two callers.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips the fetch entirely in prod without PUBLIC_API_URL', async () => {
+    vi.stubEnv('DEV', false);
+    vi.stubEnv('PUBLIC_API_URL', '');
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchHomeStats()).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

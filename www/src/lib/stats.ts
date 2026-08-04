@@ -75,8 +75,25 @@ export function zeroFillSeries(series: SeriesPoint[], keys: string[]): SeriesPoi
   );
 }
 
-/** Fetch homepage stats. Returns null on any failure. */
-export async function fetchHomeStats(): Promise<HomeStats | null> {
+// Single-flight cache: BrandHero and StatsPanel both call fetchHomeStats() on
+// page load. Without this they'd double the HTTP requests and could land on
+// different backend cache generations, making the hero line and panel tiles
+// disagree on the same paint. A failed (null) fetch is cached too, so both
+// consumers agree; a page reload gets a fresh attempt.
+let cached: Promise<HomeStats | null> | null = null;
+
+/** Fetch homepage stats. Returns null on any failure. Memoized per page load. */
+export function fetchHomeStats(): Promise<HomeStats | null> {
+  cached ??= fetchHomeStatsUncached();
+  return cached;
+}
+
+/** Test-only: clear the single-flight cache between tests. */
+export function resetStatsCacheForTests(): void {
+  cached = null;
+}
+
+async function fetchHomeStatsUncached(): Promise<HomeStats | null> {
   const base = apiBaseUrl();
   if (!base) {
     return null;

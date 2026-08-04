@@ -7,6 +7,11 @@ import fixture from '@/data/landing-fixture.json' with { type: 'json' };
 import { apiBaseUrl, fetchHomeStats, type HomeStats } from './stats.ts';
 
 const FETCH_TIMEOUT_MS = 4000;
+const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
+const HTTP_URL_PATTERN = /^https?:\/\//i;
+// Two slash-like chars ('//host', '/\host') resolve protocol-relative to an
+// external origin, so they are not same-origin relative paths.
+const PROTOCOL_RELATIVE_PATTERN = /^[/\\][/\\]/;
 
 export interface TeardownSubpart {
   name: string;
@@ -62,6 +67,24 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function trimmedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+/**
+ * Turn an API media path into a URL the visitor's browser can actually load.
+ *
+ * The API serves images as root-relative paths (`/uploads/images/...`) which
+ * would 404 on the www origin, so they are joined onto the API base. Absolute
+ * URLs must be http(s): a protocol-relative `//host` path or any other scheme
+ * (`javascript:`, `data:`) is server-supplied and gets dropped, not rendered.
+ */
+function resolveMediaUrl(path: string): string {
+  if (!path || PROTOCOL_RELATIVE_PATTERN.test(path)) {
+    return '';
+  }
+  if (URL_SCHEME_PATTERN.test(path)) {
+    return HTTP_URL_PATTERN.test(path) ? path : '';
+  }
+  return `${apiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
 function toSubpart(node: Record<string, unknown>): TeardownSubpart {
@@ -129,7 +152,7 @@ export function parseTeardown(raw: unknown, tree: unknown = null): FeaturedTeard
     photos: images
       .map(asRecord)
       .map((image) => ({
-        url: trimmedString(image.thumbnail_url) || trimmedString(image.image_url),
+        url: resolveMediaUrl(trimmedString(image.thumbnail_url) || trimmedString(image.image_url)),
         alt: `${name}, photographed during disassembly`,
       }))
       .filter((photo) => photo.url !== ''),
@@ -171,10 +194,13 @@ export async function loadLandingData(): Promise<LandingData> {
     } catch {
       // Fall through to the fixture below.
     }
+    // biome-ignore lint/suspicious/noConsole: diagnostic when the API is unreachable at build time
+    console.warn('[landing] API unavailable at build time — using the committed fixture.');
+  } else {
+    // biome-ignore lint/suspicious/noConsole: expected on builds without a featured product
+    console.info('[landing] no featured product configured — using the committed fixture.');
   }
 
-  // biome-ignore lint/suspicious/noConsole: diagnostic when the API is unreachable at build time
-  console.warn('[landing] API unavailable at build time — using the committed fixture.');
   return {
     // The fixture stores parts without shares so its masses stay the single
     // source of truth; compute the shares here like the live path does.

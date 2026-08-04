@@ -97,6 +97,18 @@ test.describe('Landing page content', () => {
     await expect(popover).not.toBeEmpty();
   });
 
+  test('Escape dismisses the method-flow popover', async ({ page }) => {
+    await page.goto('/');
+
+    const flow = page.locator('#method-flow');
+    const popover = page.locator('#method-flow-popover');
+    await flow.locator('g.node').first().click();
+    await expect(popover).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(popover).toBeHidden();
+  });
+
   test('the stats panel shell ships with the page', async ({ page }) => {
     await page.goto('/');
 
@@ -105,6 +117,34 @@ test.describe('Landing page content', () => {
     const panel = page.locator('#stats-panel');
     await expect(panel).toBeAttached();
     await expect(panel.locator('#stats-heading')).toHaveText('Torn down so far');
+  });
+});
+
+test.describe('Method flow touch interaction', () => {
+  test.use({ hasTouch: true });
+
+  test('tapping a flow node toggles the popover: first tap opens, second tap closes', async ({
+    page,
+  }) => {
+    // The page scrolls smoothly (base.css); a real tap doesn't drive a
+    // scroll animation, but Playwright's scroll-into-view before each tap
+    // does, and the animation's own 'scroll' events would otherwise trip
+    // method-flow.ts's scroll-dismiss handler mid-gesture. Reduced motion
+    // (which the site already treats as an instant-scroll signal) keeps the
+    // two taps deterministic without touching the popover's dismiss logic.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+
+    const flow = page.locator('#method-flow');
+    const node = flow.locator("g.node[tabindex='0']").first();
+    const popover = page.locator('#method-flow-popover');
+    await expect(popover).toBeHidden();
+
+    await node.tap();
+    await expect(popover).toBeVisible();
+
+    await node.tap();
+    await expect(popover).toBeHidden();
   });
 });
 

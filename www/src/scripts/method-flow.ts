@@ -56,12 +56,18 @@ export function initMethodFlow(): void {
     node.dataset.desc = desc;
     title?.remove();
     node.setAttribute('tabindex', '0');
-    node.setAttribute('role', 'button');
+    // No role="button": these nodes have no Enter/Space activation (focus
+    // alone opens the popover), so the ARIA button pattern doesn't apply.
+    // tabindex plus the full aria-label below is enough to expose them.
     node.setAttribute('aria-label', `${labelOf(node)}: ${desc}`);
 
-    // Mouse reveals on hover; keyboard on focus; touch on tap. The click
-    // handler only toggles for touch, so a mouse click (which already hovered)
-    // does not immediately dismiss what the hover just opened.
+    // Mouse reveals on hover; keyboard focus on tab; touch toggles on tap.
+    // pointerdown-driven focus (touch, and mouse click) is NOT keyboard
+    // focus, so it must not open the popover itself — otherwise a tap's
+    // focus event opens it and the click event right after immediately
+    // closes it again (tap-to-open would need two taps). Gating on
+    // :focus-visible leaves pointer-triggered opening to pointerenter
+    // (mouse) and click (touch).
     node.addEventListener('pointerdown', (event) => {
       lastPointerType = event.pointerType;
     });
@@ -75,7 +81,11 @@ export function initMethodFlow(): void {
         hide();
       }
     });
-    node.addEventListener('focus', () => place(node));
+    node.addEventListener('focus', () => {
+      if (node.matches(':focus-visible')) {
+        place(node);
+      }
+    });
     node.addEventListener('blur', () => hide());
     node.addEventListener('click', () => {
       if (lastPointerType === 'mouse') {

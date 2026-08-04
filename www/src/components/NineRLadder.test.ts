@@ -38,6 +38,7 @@ describe('NineRLadder', () => {
     const html = await render();
     expect(html).toContain('Potting');
     expect(html).toContain('https://docs.example.com/project/9r-framework/');
+    expect(html).toContain('(opens in new tab)');
     // Regression: Astro strips the inter-node newline before the <a>, which
     // once glued the source line to its link text.
     expect(html).toMatch(/\(2017\) —\s+<a/);

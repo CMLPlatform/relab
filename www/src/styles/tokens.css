@@ -1,6 +1,8 @@
 :root {
   color-scheme: light dark;
-  --bg-image: light-dark(url("/images/bg-light.jpg"), url("/images/bg-dark.jpg"));
+  /* Relative so the build hashes them into /_astro/ (immutable cache headers);
+     a /images/ path would ship uncached. Regenerate via `just assets-sync`. */
+  --bg-image: light-dark(url("../assets/images/bg-light.jpg"), url("../assets/images/bg-dark.jpg"));
   --backdrop-image-opacity: light-dark(0.74, 0.62);
   --backdrop-image-blur: light-dark(14px, 16px);
   --backdrop-image-scale: light-dark(1.06, 1.08);
@@ -28,16 +30,14 @@
   --color-text: var(--relab-brand-text);
   --color-muted: light-dark(rgb(83, 102, 122), rgb(179, 200, 216));
   --color-page-border: light-dark(rgba(23, 38, 45, 0.12), rgba(222, 239, 252, 0.12));
-  --color-ring: color-mix(in srgb, var(--relab-brand-primary) 20%, transparent);
+  /* Solid, not a tint: a translucent ring lands around 1.4:1 on both page and
+     card surfaces, well under the 3:1 WCAG 1.4.11 needs for focus indicators.
+     The brand primary clears it comfortably (7.5:1 light, 9.3:1 dark). */
+  --color-ring: var(--relab-brand-primary);
   /* Chart marks: the cyanotype primary brightened into the data-viz band —
      the brand tokens above are tuned for text/links, not large fills. The
      pair is documented in assets/DESIGN.md (diagram & chart palette). */
   --color-chart-mark: light-dark(#2f6bc7, #6fa8ff);
-  --color-success: rgb(35, 115, 77);
-  --color-error: rgb(178, 65, 65);
-  --shadow-soft: light-dark(0 10px 28px rgba(16, 32, 38, 0.05), 0 20px 44px rgba(0, 0, 0, 0.24));
-  --radius-sm: 10px;
-  --radius-md: 16px;
   --frame-width: 1280px;
   --content-width: 1248px;
   --font-size-body: 1rem;
@@ -45,5 +45,4 @@
   --line-height-body: 1.72;
   --line-height-body-compact: 1.62;
   --font-size-meta: 0.94rem;
-  --font-size-section-heading: clamp(1.55rem, 2.2vw, 2.05rem);
 }

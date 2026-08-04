@@ -1,6 +1,12 @@
 ---
 // Slim brand bar: the wordmark plus the three places visitors actually go.
 // The landing hero keeps the page's h1; this is navigation, not a heading.
+// `?url` keeps the logos as plain hashed URLs under /_astro/ (immutable cache
+// headers) instead of Astro's inlining SVG component — the two variants are
+// swapped by CSS, so only one is ever painted.
+import logoUrl from '@/assets/images/logo.svg?url';
+import logoDarkUrl from '@/assets/images/logo-dark.svg?url';
+
 interface Props {
   appUrl: string;
   docsUrl: string;
@@ -14,14 +20,22 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
   <div class="site-header-inner">
     {/* The link carries the name: whichever logo the theme shows is
         display: none in the other theme, which would leave the link nameless. */}
+    {/* width/height reserve the box before the SVG loads (the artwork is
+        475x256, so 38px tall is 70px wide); CSS still sizes it. */}
     <a href="/" class="site-header-brand" aria-label="Relab">
-      <img class="brand-light" src="/images/logo.svg" alt="" aria-hidden="true" height="38" />
-      <img class="brand-dark" src="/images/logo-dark.svg" alt="" aria-hidden="true" height="38" />
+      <img class="brand-light" src={logoUrl} alt="" aria-hidden="true" width="70" height="38" />
+      <img class="brand-dark" src={logoDarkUrl} alt="" aria-hidden="true" width="70" height="38" />
     </a>
     <nav class="site-header-nav" aria-label="Site">
-      <a href={appUrl} target="_blank" rel="noopener noreferrer">App</a>
-      <a href={docsUrl} target="_blank" rel="noopener noreferrer">Docs</a>
-      <a href={githubUrl} target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href={appUrl} target="_blank" rel="noopener noreferrer"
+        >App<span class="visually-hidden"> (opens in new tab)</span></a
+      >
+      <a href={docsUrl} target="_blank" rel="noopener noreferrer"
+        >Docs<span class="visually-hidden"> (opens in new tab)</span></a
+      >
+      <a href={githubUrl} target="_blank" rel="noopener noreferrer"
+        >GitHub<span class="visually-hidden"> (opens in new tab)</span></a
+      >
     </nav>
   </div>
 </header>
@@ -39,11 +53,14 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
     border-bottom: 1px solid var(--color-page-border);
   }
 
-  /* Full-bleed bar, content aligned with the page column. */
+  /* Full-bleed bar, content aligned with the page column. Both rows wrap: at a
+     narrow viewport with enlarged text the nav would otherwise force the page
+     to scroll sideways (the footer wraps too). */
   .site-header-inner {
     width: min(calc(100% - 2rem), var(--content-width));
     margin: 0 auto;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
@@ -63,7 +80,8 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
 
   .site-header-nav {
     display: flex;
-    gap: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
   }
 
   .site-header-nav a {

@@ -1,5 +1,10 @@
 ---
 
+// `?url`: hashed URLs under /_astro/ (immutable cache headers) rather than
+// Astro's inlining SVG component — CSS paints only one of the two variants.
+import wordmarkUrl from '@/assets/images/wordmark.svg?url';
+import wordmarkDarkUrl from '@/assets/images/wordmark-dark.svg?url';
+
 import ThemeControl from './ThemeControl.astro';
 
 interface Props {
@@ -16,9 +21,18 @@ const { contactEmail, currentYear, githubUrl, linkedInUrl, youtubeUrl } = Astro.
 <footer class="site-footer">
   <div class="frame site-footer-inner">
     <div class="footer-meta">
+      {/* width/height reserve the box before the SVG loads (the artwork is
+          810x256, so 26px tall is 82px wide); CSS still sizes it. */}
       <a href="/" class="footer-brand" aria-label="Relab home">
-        <img class="brand-light" src="/images/wordmark.svg" alt="Relab" height="26" />
-        <img class="brand-dark" src="/images/wordmark-dark.svg" alt="" aria-hidden="true" height="26" />
+        <img class="brand-light" src={wordmarkUrl} alt="Relab" width="82" height="26" />
+        <img
+          class="brand-dark"
+          src={wordmarkDarkUrl}
+          alt=""
+          aria-hidden="true"
+          width="82"
+          height="26"
+        />
       </a>
       <a
         href="/privacy"
@@ -37,11 +51,11 @@ const { contactEmail, currentYear, githubUrl, linkedInUrl, youtubeUrl } = Astro.
       >
         {contactEmail}
       </a>
-      <div class="inline-flex items-center gap-[0.55rem] footer-social">
+      <div class="inline-flex items-center gap-[0.15rem] footer-social">
         <a
           href={githubUrl}
-          class="inline-flex items-center justify-center w-8 h-8 text-[var(--color-muted)]"
-          aria-label="GitHub"
+          class="inline-flex items-center justify-center w-11 h-11 text-[var(--color-muted)]"
+          aria-label="GitHub (opens in new tab)"
           title="GitHub"
           target="_blank"
           rel="noopener noreferrer"
@@ -59,8 +73,8 @@ const { contactEmail, currentYear, githubUrl, linkedInUrl, youtubeUrl } = Astro.
         </a>
         <a
           href={linkedInUrl}
-          class="inline-flex items-center justify-center w-8 h-8 text-[var(--color-muted)]"
-          aria-label="LinkedIn"
+          class="inline-flex items-center justify-center w-11 h-11 text-[var(--color-muted)]"
+          aria-label="LinkedIn (opens in new tab)"
           title="LinkedIn"
           target="_blank"
           rel="noopener noreferrer"
@@ -76,8 +90,8 @@ const { contactEmail, currentYear, githubUrl, linkedInUrl, youtubeUrl } = Astro.
         </a>
         <a
           href={youtubeUrl}
-          class="inline-flex items-center justify-center w-8 h-8 text-[var(--color-muted)]"
-          aria-label="YouTube"
+          class="inline-flex items-center justify-center w-11 h-11 text-[var(--color-muted)]"
+          aria-label="YouTube (opens in new tab)"
           title="YouTube"
           target="_blank"
           rel="noopener noreferrer"

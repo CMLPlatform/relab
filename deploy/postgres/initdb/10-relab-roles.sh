@@ -72,6 +72,10 @@ SELECT format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), :'migrat
 SELECT format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), :'app_user') \gexec
 SELECT format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), :'backup_user') \gexec
 SELECT format('GRANT CREATE ON DATABASE %I TO %I', current_database(), :'migration_user') \gexec
+-- REVOKE ALL above strips the TEMP privilege PUBLIC holds by default. Data
+-- migrations build helper routines in pg_temp, so the migration role needs it
+-- back. The app role deliberately does not: it never creates temp objects.
+SELECT format('GRANT TEMPORARY ON DATABASE %I TO %I', current_database(), :'migration_user') \gexec
 
 SELECT format('GRANT USAGE, CREATE ON SCHEMA public TO %I', :'migration_user') \gexec
 SELECT format('GRANT USAGE ON SCHEMA public TO %I', :'app_user') \gexec

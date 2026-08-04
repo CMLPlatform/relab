@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { parseTeardown } from './landing.ts';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadLandingData, parseTeardown } from './landing.ts';
 
 const RAW = {
   id: 47,
@@ -15,6 +15,12 @@ const RAW = {
     { image_url: '/media/b.jpg', thumbnail_url: null, filename: 'b.jpg' },
   ],
 };
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
 
 describe('parseTeardown', () => {
   it('maps the API payload to camelCase', () => {
@@ -85,10 +91,30 @@ describe('parseTeardown', () => {
     }
   });
 
-  it('prefers the thumbnail and falls back to the full image', () => {
+  it('prefers the thumbnail, falls back to the full image, and resolves both against the API', () => {
+    vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
     const t = parseTeardown(RAW);
-    expect(t?.photos[0].url).toBe('/media/a-thumb.jpg');
-    expect(t?.photos[1].url).toBe('/media/b.jpg');
+    expect(t?.photos[0].url).toBe('http://api.test/media/a-thumb.jpg');
+    expect(t?.photos[1].url).toBe('http://api.test/media/b.jpg');
+  });
+
+  it('resolves the root-relative upload paths the API returns', () => {
+    vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
+    const t = parseTeardown({ ...RAW, images: [{ image_url: '/uploads/images/a.jpg' }] });
+    expect(t?.photos[0].url).toBe('http://api.test/uploads/images/a.jpg');
+  });
+
+  it('passes absolute http(s) image URLs through unchanged', () => {
+    vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
+    const t = parseTeardown({ ...RAW, images: [{ image_url: 'https://cdn.test/a.jpg' }] });
+    expect(t?.photos[0].url).toBe('https://cdn.test/a.jpg');
+  });
+
+  it('drops photos with a protocol-relative or non-http URL', () => {
+    vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
+    for (const image_url of ['//evil.test/a.jpg', '/\\evil.test/a.jpg', 'javascript:alert(1)']) {
+      expect(parseTeardown({ ...RAW, images: [{ image_url }] })?.photos).toEqual([]);
+    }
   });
 
   it('gives every photo descriptive alt text naming the product', () => {
@@ -118,4 +144,114 @@ describe('parseTeardown', () => {
     });
     expect(t?.parts).toEqual([{ name: 'Shell', weightG: null, share: null }]);
   });
+});
+
+const LIVE_PRODUCT = {
+  id: 47,
+  name: 'Framework 13',
+  components: [{ name: 'Battery pack', weight_g: 212 }],
+  images: [],
+};
+const LIVE_TREE = [{ name: 'Display assembly', weight_g: 184, components: [] }];
+
+function jsonResponse(body: unknown) {
+  return { ok: true, json: () => Promise.resolve(body) };
+}
+
+/**
+ * Route fetch by URL substring; anything unmapped (the stats endpoints) fails,
+ * which is the loader's own "no stats" path. Routes match in insertion order,
+ * so the tree route has to come before the bare product route.
+ */
+function stubFetch(routes: Record<string, () => unknown>) {
+  const fetchMock = vi.fn((url: string) => {
+    const route = Object.keys(routes).find((path) => String(url).includes(path));
+    return route ? Promise.resolve(routes[route]()) : Promise.reject(new Error(`unmapped ${url}`));
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
+
+/** Silence one console method and keep the spy: the loader logs its source. */
+function spyOnConsole(method: 'warn' | 'info') {
+  return vi.spyOn(console, method).mockImplementation(() => undefined);
+}
+
+describe('loadLandingData', () => {
+  let warn: ReturnType<typeof spyOnConsole>;
+  let info: ReturnType<typeof spyOnConsole>;
+
+  beforeEach(() => {
+    vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
+    vi.stubEnv('PUBLIC_FEATURED_PRODUCT_ID', '47');
+    warn = spyOnConsole('warn');
+    info = spyOnConsole('info');
+  });
+
+  it('returns the live teardown, with the tree as its parts', async () => {
+    stubFetch({
+      '/components/tree': () => jsonResponse(LIVE_TREE),
+      '/v1/products/47': () => jsonResponse(LIVE_PRODUCT),
+    });
+
+    const data = await loadLandingData();
+    expect(data.fromFixture).toBe(false);
+    expect(data.teardown?.name).toBe('Framework 13');
+    expect(data.teardown?.parts.map((p) => p.name)).toEqual(['Display assembly']);
+  });
+
+  it('keeps the live teardown when the component tree fetch fails', async () => {
+    stubFetch({
+      '/components/tree': () => {
+        throw new Error('tree down');
+      },
+      '/v1/products/47': () => jsonResponse(LIVE_PRODUCT),
+    });
+
+    const data = await loadLandingData();
+    expect(data.fromFixture).toBe(false);
+    expect(data.teardown?.parts.map((p) => p.name)).toEqual(['Battery pack']);
+  });
+
+  it('falls back to the fixture when the product fetch throws', async () => {
+    stubFetch({});
+
+    const data = await loadLandingData();
+    expect(data.fromFixture).toBe(true);
+    expect(data.teardown?.name).toBe('Dell XPS 13');
+    // The fixture stores parts without shares; the loader computes them.
+    expect(data.teardown?.parts[0].share).toBe(0.285);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('API unavailable at build time'));
+  });
+
+  it('falls back to the fixture on a non-ok response', async () => {
+    stubFetch({ '/v1/products/47': () => ({ ok: false, status: 500 }) });
+
+    await expect(loadLandingData()).resolves.toMatchObject({ fromFixture: true });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('API unavailable at build time'));
+  });
+
+  it('falls back to the fixture when the payload has no usable name', async () => {
+    stubFetch({ '/v1/products/47': () => jsonResponse({ id: 47 }) });
+
+    await expect(loadLandingData()).resolves.toMatchObject({ fromFixture: true });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('API unavailable at build time'));
+  });
+
+  // A blank, non-integer, zero or negative id is not a product to fetch.
+  it.each(['', '  ', 'abc', '0', '-3', '4.5'])(
+    'uses the fixture without warning for the featured product id %j',
+    async (raw) => {
+      vi.stubEnv('PUBLIC_FEATURED_PRODUCT_ID', raw);
+      const fetchMock = stubFetch({ '/v1/products': () => jsonResponse(LIVE_PRODUCT) });
+
+      await expect(loadLandingData()).resolves.toMatchObject({ fromFixture: true });
+
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/v1/products'))).toBe(
+        false,
+      );
+      expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('[landing]'));
+      expect(info).toHaveBeenCalledWith(expect.stringContaining('no featured product configured'));
+    },
+  );
 });

@@ -70,8 +70,6 @@ describe('Caddy baseline security headers', () => {
 
 describe('Caddy CSP security headers', () => {
   const enforced = () => matchOrThrow(ENFORCED_CSP_PATTERN, 'enforced Content-Security-Policy');
-  const reportOnly = () =>
-    matchOrThrow(REPORT_ONLY_CSP_PATTERN, 'report-only Content-Security-Policy');
 
   it('enforces the OWASP baseline CSP directives', () => {
     const policy = enforced();
@@ -91,14 +89,20 @@ describe('Caddy CSP security headers', () => {
     expect(scriptPolicy).not.toContain("'unsafe-eval'");
   });
 
-  it('tracks the stricter style policy in report-only mode', () => {
-    expect(cspDirective(reportOnly(), 'style-src')).not.toContain("'unsafe-inline'");
+  // The API serves the featured teardown's photos, so its origin has to be an
+  // allowed image source or the hero renders broken images.
+  it('allows API-hosted images', () => {
+    expect(cspDirective(enforced(), 'img-src')).toBe("img-src 'self' data: {$CADDY_API_ORIGIN}");
+  });
+
+  it('ships no report-only policy, which nothing collects', () => {
+    expect(caddyfile).not.toMatch(REPORT_ONLY_CSP_PATTERN);
   });
 
   it('does not allow wildcard scripts or javascript URLs', () => {
-    for (const policy of [enforced(), reportOnly()]) {
-      expect(policy).not.toContain('script-src *');
-      expect(policy).not.toContain('javascript:');
-    }
+    const policy = enforced();
+
+    expect(policy).not.toContain('script-src *');
+    expect(policy).not.toContain('javascript:');
   });
 });

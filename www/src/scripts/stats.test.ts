@@ -164,3 +164,83 @@ describe('renderStats', () => {
     expect(fetchHomeStats).not.toHaveBeenCalled();
   });
 });
+
+describe('chart tooltip', () => {
+  async function buildChart() {
+    const panel = buildPanel();
+    vi.mocked(fetchHomeStats).mockResolvedValue(STATS);
+    await renderStats();
+    const root = panel.querySelector<SVGSVGElement>('[data-stat="chart"] svg');
+    if (!root) {
+      throw new Error('buildChart: missing chart svg');
+    }
+    return { panel, root };
+  }
+
+  function tipText(panel: HTMLElement) {
+    return {
+      label: panel.querySelector('.stats-chart-tip-label')?.textContent,
+      value: panel.querySelector('.stats-chart-tip-value')?.textContent,
+    };
+  }
+
+  function isVisible(panel: HTMLElement) {
+    return panel.querySelector('.stats-chart-tip')?.classList.contains('is-visible');
+  }
+
+  it('steps through months on ArrowRight/ArrowLeft, preventing default so the page does not scroll', async () => {
+    const { panel, root } = await buildChart();
+
+    const right = new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true });
+    root.dispatchEvent(right);
+    expect(right.defaultPrevented).toBe(true);
+    expect(isVisible(panel)).toBe(true);
+    expect(tipText(panel)).toEqual({ label: 'Jan', value: '0' }); // parts for month 1
+
+    root.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true }));
+    expect(tipText(panel)).toEqual({ label: 'Feb', value: '10' });
+
+    root.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', cancelable: true }));
+    expect(tipText(panel)).toEqual({ label: 'Jan', value: '0' });
+  });
+
+  it('clamps ArrowLeft/ArrowRight at the series bounds', async () => {
+    const { panel, root } = await buildChart();
+
+    // Already at the first month: ArrowLeft must not step past it.
+    root.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true }));
+    root.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', cancelable: true }));
+    expect(tipText(panel)).toEqual({ label: 'Jan', value: '0' });
+
+    // Walk to the last month, then one more ArrowRight must hold there.
+    for (let i = 0; i < 12; i++) {
+      root.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true }));
+    }
+    expect(tipText(panel)).toEqual({ label: 'Dec', value: '110' });
+  });
+
+  it('dismisses the tooltip on Escape without preventing default', async () => {
+    const { panel, root } = await buildChart();
+    root.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true }));
+    expect(isVisible(panel)).toBe(true);
+
+    const escapeKey = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+    root.dispatchEvent(escapeKey);
+
+    expect(isVisible(panel)).toBe(false);
+    expect(escapeKey.defaultPrevented).toBe(false);
+  });
+
+  it('shows the tooltip on hit-target mouseenter and hides it on mouseleave', async () => {
+    const { panel, root } = await buildChart();
+    const hits = panel.querySelectorAll('.stats-chart-hits rect');
+    expect(hits).toHaveLength(12);
+
+    hits[5].dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    expect(isVisible(panel)).toBe(true);
+    expect(tipText(panel)).toEqual({ label: 'Jun', value: '50' });
+
+    root.dispatchEvent(new MouseEvent('mouseleave'));
+    expect(isVisible(panel)).toBe(false);
+  });
+});

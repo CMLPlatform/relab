@@ -47,6 +47,10 @@ WEB_FONT_FILES = (
     "ibm-plex-serif-latin-600.woff2",
 )
 
+# www's brand images land in src/assets so its build hashes them into /_astro/,
+# which Caddy serves with immutable cache headers; docs still serves its copies
+# straight from public/. Anything with a stable public URL (og.png, favicons,
+# wordmark.png in the backend's emails) has to stay in public/.
 COPY_ASSETS = (
     (
         root_path("assets/brand.css"),
@@ -67,14 +71,14 @@ COPY_ASSETS = (
         LOGO_SOURCE,
         (
             root_path("docs/public/images/logo.svg"),
-            root_path("www/public/images/logo.svg"),
+            root_path("www/src/assets/images/logo.svg"),
         ),
     ),
     (
         LOGO_DARK_SOURCE,
         (
             root_path("docs/public/images/logo-dark.svg"),
-            root_path("www/public/images/logo-dark.svg"),
+            root_path("www/src/assets/images/logo-dark.svg"),
         ),
     ),
     (
@@ -88,14 +92,14 @@ COPY_ASSETS = (
         WORDMARK_SOURCE,
         (
             root_path("docs/public/images/wordmark.svg"),
-            root_path("www/public/images/wordmark.svg"),
+            root_path("www/src/assets/images/wordmark.svg"),
         ),
     ),
     (
         WORDMARK_DARK_SOURCE,
         (
             root_path("docs/public/images/wordmark-dark.svg"),
-            root_path("www/public/images/wordmark-dark.svg"),
+            root_path("www/src/assets/images/wordmark-dark.svg"),
         ),
     ),
     *(
@@ -148,7 +152,6 @@ GENERATED_ASSETS = (
     (MARK_DARK_SOURCE, root_path("app/src/assets/images/mark-dark.png"), png_args(256), DENSITY),
     (WORDMARK_SOURCE, root_path("app/src/assets/images/wordmark.png"), png_wide(240), DENSITY),
     (WORDMARK_DARK_SOURCE, root_path("app/src/assets/images/wordmark-dark.png"), png_wide(240), DENSITY),
-    (LOGO_SOURCE, root_path("www/public/images/logo.png"), png_wide(512), DENSITY),
     (WORDMARK_SOURCE, root_path("www/public/images/wordmark.png"), png_wide(240), DENSITY),
     (MARK_SOURCE, root_path("docs/public/images/apple-touch-icon.png"), png_args(180), DENSITY),
     (MARK_SOURCE, root_path("www/public/images/apple-touch-icon.png"), png_args(180), DENSITY),
@@ -167,7 +170,6 @@ GENERATED_ASSETS = (
     (OG_DARK_SOURCE, root_path("www/public/images/og.png"), PNG_OG, DENSITY_OG),
     (OG_DARK_SOURCE, root_path("docs/public/images/og.png"), PNG_OG, DENSITY_OG),
     (OG_SOURCE, root_path("assets/r9lab-og-light.png"), PNG_OG, DENSITY_OG),
-    (OG_SOURCE, root_path("www/public/images/og-light.png"), PNG_OG, DENSITY_OG),
     (OG_SOURCE, root_path("docs/public/images/og-light.png"), PNG_OG, DENSITY_OG),
 )
 
@@ -199,13 +201,13 @@ def blurred_backdrop_args() -> tuple[str, ...]:
 PROCESSED_ASSETS = (
     (
         root_path("assets/images/bg-light.jpg"),
-        root_path("www/public/images/bg-light.jpg"),
+        root_path("www/src/assets/images/bg-light.jpg"),
         blurred_backdrop_args(),
         DENSITY,
     ),
     (
         root_path("assets/images/bg-dark.jpg"),
-        root_path("www/public/images/bg-dark.jpg"),
+        root_path("www/src/assets/images/bg-dark.jpg"),
         blurred_backdrop_args(),
         DENSITY,
     ),

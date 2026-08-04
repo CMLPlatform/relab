@@ -10,6 +10,8 @@ describe('StatsPanel', () => {
 
     expect(html).toContain('id="stats-panel"');
     expect(html).toContain('hidden');
+    // Async reveal (src/scripts/stats.ts) needs to be announced to screen readers.
+    expect(html).toContain('aria-live="polite"');
     for (const hook of [
       'hero',
       'tiles',

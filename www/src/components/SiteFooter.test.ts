@@ -21,6 +21,11 @@ describe('SiteFooter', () => {
     expect(html).toContain('href="https://github.test"');
     expect(html).toContain('href="https://linkedin.test"');
     expect(html).toContain('href="https://youtube.test"');
+    // The social links leave the site, and their labels say so.
+    expect(html).toContain('aria-label="GitHub (opens in new tab)"');
+    expect(html.match(/\(opens in new tab\)/g)).toHaveLength(3);
+    // Reserved wordmark box, so the footer does not shift once the SVG loads.
+    expect(html.match(/width="82"\s+height="26"/g)).toHaveLength(2);
     // The footer nests ThemeControl, so its markup renders too.
     expect(html).toContain('data-theme-control');
   });

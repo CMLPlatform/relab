@@ -91,4 +91,4 @@ audit:
 
 # Clean caches and build artifacts
 clean:
-    rm -rf .astro coverage dist playwright-report test-results
+    rm -rf .astro coverage dist playwright-report test-results junit.xml

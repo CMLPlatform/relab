@@ -18,5 +18,13 @@ describe('SiteHeader', () => {
     expect(html).toContain('https://app.example.com');
     expect(html).toContain('https://docs.example.com');
     expect(html).toContain('https://github.com/example/relab');
+    // All three leave the site, and each says so to a screen reader.
+    expect(html.match(/\(opens in new tab\)/g)).toHaveLength(3);
+  });
+
+  it('reserves the wordmark box so the header does not shift on load', async () => {
+    const container = await AstroContainer.create();
+    const html = await container.renderToString(SiteHeader, { props: PROPS });
+    expect(html.match(/width="70" height="38"/g)).toHaveLength(2);
   });
 });

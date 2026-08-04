@@ -6,40 +6,12 @@
   backdrop-filter: blur(12px);
 }
 
-.hero-panel {
-  position: relative;
-  overflow: hidden;
-  display: block;
-  background:
-    linear-gradient(
-      110deg,
-      rgba(184, 220, 234, 0.24) 0%,
-      rgba(255, 255, 255, 0.86) 34%,
-      rgba(255, 255, 255, 0.93) 68%,
-      rgba(191, 223, 236, 0.22) 100%
-    ),
-    color-mix(in srgb, var(--color-surface-raised) 96%, transparent);
-}
-
-:root[data-theme="dark"] .hero-panel {
-  background:
-    linear-gradient(
-      110deg,
-      rgba(39, 81, 101, 0.18) 0%,
-      rgba(14, 29, 38, 0.84) 34%,
-      rgba(14, 29, 38, 0.9) 68%,
-      rgba(67, 111, 130, 0.18) 100%
-    ),
-    color-mix(in srgb, var(--color-surface-raised) 96%, transparent);
-}
-
 .page-intro,
 .empty-state {
   display: grid;
   gap: 1rem;
 }
 
-.hero-panel h1,
 .page-intro h1,
 .empty-state h1 {
   font-size: clamp(2.85rem, 4.8vw, 4.2rem);
@@ -47,7 +19,6 @@
   line-height: 1.02;
 }
 
-.hero-lead,
 .footer-copy,
 .page-meta {
   color: var(--color-text);
@@ -55,13 +26,6 @@
   line-height: var(--line-height-body);
 }
 
-.hero-lead {
-  max-width: 100%;
-  font-size: 1.05rem;
-  font-weight: 460;
-}
-
-.hero-actions,
 .button-row {
   display: flex;
   flex-wrap: wrap;
@@ -113,17 +77,6 @@
 
 .btn-primary:hover {
   background: var(--color-primary-strong);
-}
-
-.btn-muted {
-  background: transparent;
-  color: var(--color-on-surface);
-  border-color: var(--color-page-border);
-}
-
-.btn-muted:hover {
-  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  border-color: var(--color-primary);
 }
 
 .stats-panel {
@@ -259,8 +212,9 @@
   color: var(--color-primary-strong);
 }
 
+/* Inset ring only: the group clips overflow, so the default 3px offset would
+   cut the ring off. Colour and width come from the global :focus-visible. */
 .stats-toggle:focus-visible {
-  outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }
 
@@ -269,6 +223,24 @@
 .stats-chart {
   overflow-x: auto;
   overscroll-behavior-x: contain;
+}
+
+/* Scroll affordance: fade the two edges once the chart can no longer fit, so
+   the cut-off column reads as "there is more". The svg's 40rem min-width plus
+   the card padding puts that threshold near 44rem; a static mask would
+   otherwise dim the end labels on desktop, where nothing overflows.
+   NOTE: the fade stays on at both ends, including when scrolled fully to one
+   side — a scroll-driven mask would track it exactly, at real complexity. */
+@media (max-width: 44rem) {
+  .stats-chart {
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 1.25rem,
+      black calc(100% - 1.25rem),
+      transparent 100%
+    );
+  }
 }
 
 .stats-chart svg {
@@ -280,7 +252,6 @@
 }
 
 .stats-chart svg:focus-visible {
-  outline: 2px solid var(--color-primary);
   outline-offset: 4px;
   border-radius: var(--radius-control);
 }
@@ -399,6 +370,7 @@
 
 .theme-toggle {
   appearance: none;
+  position: relative;
   border: 1px solid var(--color-page-border);
   background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
   color: var(--color-muted);
@@ -414,6 +386,19 @@
     background 160ms ease,
     border-color 160ms ease,
     color 160ms ease;
+}
+
+/* 44px pointer target (WCAG 2.5.8) without inflating the 2.1rem glyph box:
+   the overlay is invisible and sits centred over the button. Nothing else is
+   within 44px of it, so the overlay cannot swallow a neighbour's taps. */
+.theme-toggle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  translate: -50% -50%;
 }
 
 .theme-toggle:hover {
@@ -444,12 +429,10 @@
 
 @media (max-width: 760px) {
   .card,
-  .hero-panel,
   .empty-state {
     padding: 1rem;
   }
 
-  .hero-panel h1,
   .page-intro h1,
   .empty-state h1 {
     font-size: clamp(2rem, 10vw, 2.85rem);
@@ -485,11 +468,6 @@
     gap: 0.8rem;
   }
 
-  .hero-lead {
-    font-size: 0.98rem;
-    line-height: 1.62;
-  }
-
   .card h1,
   .card h2 {
     font-size: clamp(1.35rem, 8vw, 1.95rem);
@@ -497,7 +475,6 @@
 }
 
 @media (max-width: 480px) {
-  .hero-panel h1,
   .page-intro h1,
   .empty-state h1 {
     font-size: clamp(1.9rem, 10.4vw, 2.7rem);
@@ -506,12 +483,7 @@
   }
 
   .card,
-  .hero-panel,
   .empty-state {
     padding: 0.9rem;
-  }
-
-  .hero-actions {
-    gap: 0.65rem;
   }
 }

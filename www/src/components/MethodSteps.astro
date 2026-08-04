@@ -8,6 +8,9 @@
 // the no-JS hover tooltip; method-flow.ts upgrades those into a popover that
 // also works on touch and keyboard, across whichever variant is shown.
 
+// NOTE: both variants are inlined (~44KB raw, ~10KB gzip) so the diagram
+// renders without JS and themes through the page's CSS vars; shipping a single
+// variant would mean injecting the other on the client.
 import MethodFlow from '@/assets/method-flow.svg';
 import MethodFlowTb from '@/assets/method-flow-tb.svg';
 ---

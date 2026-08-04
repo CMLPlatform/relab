@@ -7,8 +7,6 @@ interface PublicSiteConfig {
   siteUrl: string;
 }
 
-const LABEL = 'public env var';
-
 let cachedConfig: PublicSiteConfig | undefined;
 
 function validateHttpUrl(value: string, key: string): string {

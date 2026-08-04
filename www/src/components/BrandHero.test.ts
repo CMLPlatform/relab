@@ -20,15 +20,17 @@ async function render(props: Record<string, unknown> = {}): Promise<string> {
 describe('BrandHero', () => {
   it('leads with the logo, the thesis, and the nutshell', async () => {
     const html = await render();
-    expect(html).toContain('/images/logo.svg');
+    // The build hashes the filename, so match the stem rather than a path.
+    expect(html).toMatch(/src="[^"]*logo[.\-\w]*\.svg"/);
     expect(html).toContain('Open product data for circular-economy research');
     expect(html).toMatch(/Relab documents how durable goods come apart/);
   });
 
-  it('links the single CTA to the dataset', async () => {
+  it('links the single CTA to the dataset, warning that it opens a new tab', async () => {
     const html = await render();
     expect(html).toContain('https://app.cml-relab.org/products');
     expect(html).toMatch(/Explore the dataset/);
+    expect(html).toContain('(opens in new tab)');
   });
 
   it('renders the totals, and omits the line when stats are unavailable', async () => {

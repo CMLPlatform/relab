@@ -2,6 +2,10 @@
 // The brand hero: the large logo, the page's thesis, a one-line nutshell, the
 // dataset CTA, and the live totals. On scroll the logo hands off to the sticky
 // header's logo (see the scroll-driven animation below and in SiteHeader).
+// `?url`: hashed URLs under /_astro/ (immutable cache headers) rather than
+// Astro's inlining SVG component — CSS paints only one of the two variants.
+import logoUrl from '@/assets/images/logo.svg?url';
+import logoDarkUrl from '@/assets/images/logo-dark.svg?url';
 import { siteMeta } from '@/copy/site-meta.ts';
 import { formatCount, type HomeStats } from '@/lib/stats.ts';
 
@@ -17,8 +21,8 @@ const appBase = appUrl.replace(/\/$/, '');
 <section class="brand-hero content-reveal">
   {/* Decorative here: the sticky header's brand link carries the "Relab" name. */}
   <div class="brand-hero-logo" aria-hidden="true">
-    <img class="brand-light" src="/images/logo.svg" alt="" width="475" height="256" />
-    <img class="brand-dark" src="/images/logo-dark.svg" alt="" width="475" height="256" />
+    <img class="brand-light" src={logoUrl} alt="" width="475" height="256" />
+    <img class="brand-dark" src={logoDarkUrl} alt="" width="475" height="256" />
   </div>
   <h1 class="brand-hero-title">{siteMeta.heroTitle}</h1>
   <p class="brand-hero-lead">{siteMeta.heroNutshell}</p>
@@ -29,7 +33,7 @@ const appBase = appUrl.replace(/\/$/, '');
       target="_blank"
       rel="noopener noreferrer"
     >
-      Explore the dataset
+      Explore the dataset<span class="visually-hidden"> (opens in new tab)</span>
     </a>
   </div>
   {
