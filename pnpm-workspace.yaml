@@ -105,3 +105,13 @@ minimumReleaseAgeExclude:
   - expo-web-browser@57.0.1
   - jest-expo@57.0.2
   - '@astrojs/mdx@7.0.3'
+  - '@expo/cli@57.0.12'
+  - '@expo/router-server@57.0.5'
+  - expo-constants@57.0.9
+  - expo-modules-core@57.0.9
+  - expo@57.0.10
+  - '@expo/ui@57.0.9'
+  - expo-auth-session@57.0.6
+  - expo-image@57.0.2
+  - expo-linking@57.0.5
+  - expo-router@57.0.10
