@@ -219,13 +219,15 @@ security: audit
 
 # Format Cloudflare OpenTofu files
 cloudflare-fmt:
-    tofu -chdir={{ cloudflare_dir }} fmt
+    tofu -chdir={{ cloudflare_dir }} fmt -recursive
 
 # Validate Cloudflare OpenTofu configuration without configuring a state backend
+# (`test` mocks the Cloudflare provider, so it needs no credentials and makes no API calls)
 cloudflare-check:
-    tofu -chdir={{ cloudflare_dir }} fmt -check
+    tofu -chdir={{ cloudflare_dir }} fmt -check -recursive
     tofu -chdir={{ cloudflare_dir }} init -backend=false
     tofu -chdir={{ cloudflare_dir }} validate
+    tofu -chdir={{ cloudflare_dir }} test
 
 # Plan Cloudflare edge changes for one environment (prod or staging)
 cloudflare-plan env:

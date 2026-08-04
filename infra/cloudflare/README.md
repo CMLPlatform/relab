@@ -84,6 +84,11 @@ just cloudflare-apply staging YES
 just cloudflare-apply prod YES
 ```
 
+`cloudflare-check` also runs `tofu test` over `tests/`, which mocks the Cloudflare
+provider: it asserts that staging never owns the shared zone rulesets, that those
+rulesets' rules match both environments' api hosts, and that the tunnel ingress ends in
+the catch-all. Add a case there when you change the shared-ruleset ownership rules.
+
 `cloudflare-check` is local/static apart from provider downloads. `plan` and
 `apply` require Cloudflare credentials and IDs. `apply` is guarded by `YES` or
 `FORCE=1`.
