@@ -4,7 +4,6 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { TextInput } from '@/components/base/TextInput';
-import { radius } from '@/constants';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
 
@@ -39,14 +38,16 @@ function EditNameDialog({
         autoFocus
         placeholder="Camera name"
         accessibilityLabel="Camera name"
-        style={[
-          styles.input,
-          {
-            borderColor: hasError ? theme.tokens.status.danger : theme.colors.outline,
-            backgroundColor: hasError ? theme.colors.errorContainer : undefined,
-            color: hasError ? theme.colors.onErrorContainer : undefined,
-          },
-        ]}
+        bordered
+        style={
+          hasError
+            ? {
+                borderColor: theme.tokens.status.danger,
+                backgroundColor: theme.colors.errorContainer,
+                color: theme.colors.onErrorContainer,
+              }
+            : undefined
+        }
       />
       <View className="mt-4 flex-row justify-end gap-1">
         <AppButton variant="ghost" onPress={onDismiss} disabled={loading}>
@@ -78,7 +79,6 @@ function EditDescriptionDialog({
   loading: boolean;
   triggerRef?: RefObject<View | null>;
 }) {
-  const theme = useAppTheme();
   const [value, setValue] = useState(initialDescription);
   const handleSave = useCallback(() => onSave(value.trim()), [onSave, value]);
 
@@ -96,7 +96,8 @@ function EditDescriptionDialog({
         autoFocus
         placeholder="Description"
         accessibilityLabel="Description"
-        style={[styles.input, styles.multilineInput, { borderColor: theme.colors.outline }]}
+        bordered
+        style={styles.multilineInput}
       />
       <View className="mt-4 flex-row justify-end gap-1">
         <AppButton variant="ghost" onPress={onDismiss} disabled={loading}>
@@ -133,7 +134,6 @@ function ManualSetupDialog({
   onConnect,
   triggerRef,
 }: ManualSetupDialogProps) {
-  const theme = useAppTheme();
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
       <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
@@ -154,7 +154,7 @@ function ManualSetupDialog({
           keyboardType="url"
           placeholder="Pi API URL (e.g. http://192.168.7.1:8018)"
           accessibilityLabel="Pi API URL"
-          style={[styles.input, { borderColor: theme.colors.outline }]}
+          bordered
         />
         <TextInput
           value={localKeyInput}
@@ -164,7 +164,7 @@ function ManualSetupDialog({
           secureTextEntry
           placeholder="Local API key"
           accessibilityLabel="Local API key"
-          style={[styles.input, { borderColor: theme.colors.outline }]}
+          bordered
         />
       </View>
       <View className="mt-4 flex-row justify-end gap-1">
@@ -325,13 +325,6 @@ const styles = StyleSheet.create({
   title: {
     // fontSize 18 has no exact Tailwind step without also changing lineHeight.
     fontSize: 18,
-  },
-  // TextInput is not cssInterop-wrapped for `className` in this app; styling stays JS-side.
-  input: {
-    borderWidth: 1,
-    borderRadius: radius.control,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
   },
   multilineInput: {
     minHeight: 80,

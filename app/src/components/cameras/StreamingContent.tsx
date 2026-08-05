@@ -15,6 +15,9 @@ import { useAppTheme } from '@/theme';
 import { LivePreview } from './LivePreview';
 import { showStreamStopFailed } from './streamingFeedback';
 
+// react-native-css drops font-variant-numeric, so `tabular-nums` compiles to nothing.
+const tabularNums = { fontVariant: ['tabular-nums' as const] };
+
 interface StreamingContentProps {
   session: StreamSession;
   /** Called after a successful stop or after navigating to the product page. */
@@ -60,7 +63,7 @@ export function StreamingContent({
       {/* Header: LIVE badge + elapsed */}
       <View className="flex-row items-center gap-2 px-4 py-1">
         <StatusPill label="LIVE" tone="live" />
-        <AppText variant="body" className="flex-1 tabular-nums opacity-60">
+        <AppText variant="body" className="flex-1 opacity-60" style={tabularNums}>
           {elapsed}
         </AppText>
       </View>

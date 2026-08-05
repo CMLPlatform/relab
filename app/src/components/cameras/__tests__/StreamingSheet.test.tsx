@@ -62,11 +62,11 @@ describe('StreamingSheet', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
-  it('carries the overlay radius and the single elevation tier', () => {
+  it('carries the overlay radius class and the single elevation tier', () => {
     renderWithProviders(<StreamingSheet visible session={session} onDismiss={jest.fn()} />);
 
     const sheet = screen.getByTestId('streaming-sheet');
-    // radius.overlay (12px) maps to Tailwind's rounded-t-xl step.
+    // radius.overlay (12px) maps to Tailwind's rounded-t-xl step (0.75rem, rem inlined at 16).
     expect(sheet.props.className as string).toContain('rounded-t-xl');
     const style = StyleSheet.flatten(sheet.props.style);
     const overlay = getAppTheme('light').tokens.elevation.overlay;

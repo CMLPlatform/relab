@@ -67,7 +67,6 @@ export function ActiveStreamBanner() {
           </AppText>
           <AppText
             variant="plain"
-            className="tabular-nums"
             style={[styles.elapsed, { color: theme.tokens.text.inverseMuted }]}
           >
             {elapsed}
@@ -99,5 +98,7 @@ const styles = StyleSheet.create({
   elapsed: {
     // text-xs would add a lineHeight the original didn't have.
     fontSize: 12,
+    // react-native-css drops font-variant-numeric, so `tabular-nums` compiles to nothing.
+    fontVariant: ['tabular-nums'],
   },
 });
