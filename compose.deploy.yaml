@@ -106,6 +106,17 @@ services:
         condition: service_healthy
         # Optional so the stack still starts when the `scanning` profile is off.
         required: false
+      migrator:
+        # Bring the stack up with the `migrations` profile and the API waits for
+        # the schema instead of racing it. Optional for the same reason as clamav:
+        # migrator sits behind that profile (compose.yaml), and without this the
+        # default profile-less `up` would refuse to start at all.
+        #
+        # This does NOT cover `just prod-migrate`, which runs the migrator on its
+        # own against an already-serving API — see deploy/CUTOVER.md for when each
+        # is appropriate.
+        condition: service_completed_successfully
+        required: false
     networks:
       - scanning
 

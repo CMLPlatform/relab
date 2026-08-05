@@ -563,6 +563,20 @@ If the migration aborts, prod is untouched at `6f2b9e4a1c3d`. Fix the data
 (almost certainly a query-A email, or a query-G quantity/amount_in_parent row),
 and re-run.
 
+This two-command order means the API serves against the *old* schema between
+`prod-up` and `prod-migrate`. That is fine here — the cutover is a full outage
+behind a closed tunnel — but it is not fine for a routine release. For those,
+start the stack with the `migrations` profile instead and the API waits for the
+migrator to exit 0 before it starts:
+
+```bash
+just prod-up YES backups scanning migrations   # migrate, then serve, in one step
+```
+
+The dependency is declared `required: false`, so a profile-less `prod-up`
+behaves exactly as it always has. If the migration fails, the migrator exits
+non-zero and the API never starts — the schema and the code stay in step.
+
 Once the migration succeeds, backfill the byte-quota ledger (see the quota
 lockout note above; wraps the same script as `just backfill-upload-sizes`,
 which only exists locally, not in the container):
