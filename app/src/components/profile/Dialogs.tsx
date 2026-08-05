@@ -1,13 +1,12 @@
 import { Link } from 'expo-router';
 import type { RefObject } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import LogoutConfirm from '@/components/auth/LogoutConfirm';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { TextInput } from '@/components/base/TextInput';
-import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { createProfileSectionStyles } from './styles';
 
@@ -79,7 +78,8 @@ export function ProfileDialogs({
           accessibilityLabel="Username"
           autoCapitalize="none"
           autoCorrect={false}
-          style={[dialogStyles.input, { borderColor: theme.colors.outline }]}
+          className="border rounded-md px-2 py-2 mt-2"
+          style={{ borderColor: theme.colors.outline }}
         />
         <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={onDismissEditUsername}>
@@ -117,7 +117,8 @@ export function ProfileDialogs({
             secureTextEntry
             autoComplete="current-password"
             textContentType="password"
-            style={[dialogStyles.input, { borderColor: theme.colors.outline }]}
+            className="border rounded-md px-2 py-2 mt-2"
+            style={{ borderColor: theme.colors.outline }}
           />
         ) : null}
         <View style={dialogActionsStyle}>
@@ -167,13 +168,3 @@ export function ProfileDialogs({
     </>
   );
 }
-
-const dialogStyles = StyleSheet.create({
-  input: {
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.sm,
-  },
-});

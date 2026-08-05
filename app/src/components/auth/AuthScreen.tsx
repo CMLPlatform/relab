@@ -14,7 +14,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 export function AuthScreen({ children }: { children: ReactNode }) {
   return (
     <KeyboardAvoidingView behavior="padding" style={styles.root}>
-      <View style={styles.column}>{children}</View>
+      <View className="w-full max-w-[420px]">{children}</View>
     </KeyboardAvoidingView>
   );
 }
@@ -25,9 +25,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-  },
-  column: {
-    width: '100%',
-    maxWidth: 420,
   },
 });

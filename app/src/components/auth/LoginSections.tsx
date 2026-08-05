@@ -9,16 +9,9 @@ import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
-import { radius } from '@/constants';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
 import { describedBy } from '@/utils/a11y';
-
-// shared frame so the auth card and the logo wash read as one family
-const cardFrame = {
-  borderRadius: radius.card,
-  borderWidth: StyleSheet.hairlineWidth,
-} as const;
 
 type LoginLayoutProps = {
   children: React.ReactNode;
@@ -28,18 +21,18 @@ type LoginLayoutProps = {
 export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
   const theme = useAppTheme();
   return (
-    <View style={styles.root}>
+    <View className="flex-1">
       <AppButton
         variant="ghost"
         onPress={onBrowse}
         className="self-start absolute top-4 left-2 z-10"
       >
         <Icon name="arrow-left" size={16} color={theme.colors.onSurface} />
-        <AppText style={{ color: theme.colors.onSurface }}>Browse</AppText>
+        <AppText className="text-foreground">Browse</AppText>
       </AppButton>
 
       <AuthScreen>
-        <View style={styles.stack}>{children}</View>
+        <View className="gap-3">{children}</View>
       </AuthScreen>
     </View>
   );
@@ -49,6 +42,7 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
   const theme = useAppTheme();
   return (
     <View
+      className="rounded-lg p-4 gap-2.5"
       style={[
         styles.card,
         { backgroundColor: theme.tokens.surface.card, borderColor: theme.tokens.border.subtle },
@@ -64,7 +58,7 @@ export function LoginBrandHero() {
   // backdrop here, and the logo is a high-contrast shape that reads without a
   // panel of its own. One less surface between the brand and the photo.
   return (
-    <View style={styles.brandWash}>
+    <View className="py-3 px-[18px] mb-1">
       <BrandWordmark style={styles.brandLogo} />
     </View>
   );
@@ -100,7 +94,7 @@ export function LoginFormSection({
     }) => {
       const { error } = fieldState;
       return (
-        <View style={styles.field}>
+        <View className="gap-1">
           <AppText variant="label">Email or username</AppText>
           <TextInput
             ref={setEmailRef}
@@ -113,10 +107,8 @@ export function LoginFormSection({
             accessibilityLabel="Email or username"
             placeholder="e.g. you@university.edu"
             {...describedBy('login-email-error', Boolean(error))}
-            style={[
-              styles.input,
-              { borderColor: error ? theme.tokens.status.danger : theme.colors.outline },
-            ]}
+            className="border px-3 py-2.5"
+            style={{ borderColor: error ? theme.tokens.status.danger : theme.colors.outline }}
           />
           <FormFieldError errorId="login-email-error" message={error?.message} />
         </View>
@@ -134,7 +126,7 @@ export function LoginFormSection({
     }) => {
       const { error } = fieldState;
       return (
-        <View style={styles.field}>
+        <View className="gap-1">
           <AppText variant="label">Password</AppText>
           <TextInput
             value={value}
@@ -146,10 +138,8 @@ export function LoginFormSection({
             accessibilityLabel="Password"
             onSubmitEditing={onSubmit}
             {...describedBy('login-password-error', Boolean(error))}
-            style={[
-              styles.input,
-              { borderColor: error ? theme.tokens.status.danger : theme.colors.outline },
-            ]}
+            className="border px-3 py-2.5"
+            style={{ borderColor: error ? theme.tokens.status.danger : theme.colors.outline }}
           />
           <FormFieldError errorId="login-password-error" message={error?.message} />
         </View>
@@ -175,10 +165,10 @@ export function LoginFormSection({
 export function LoginDivider() {
   const theme = useAppTheme();
   return (
-    <View style={styles.dividerRow}>
-      <View style={[styles.dividerLine, { backgroundColor: theme.colors.outline }]} />
-      <AppText style={styles.dividerText}>or</AppText>
-      <View style={[styles.dividerLine, { backgroundColor: theme.colors.outline }]} />
+    <View className="flex-row items-center my-1">
+      <View className="flex-1 h-px opacity-30" style={{ backgroundColor: theme.colors.outline }} />
+      <AppText className="mx-2.5 opacity-50">or</AppText>
+      <View className="flex-1 h-px opacity-30" style={{ backgroundColor: theme.colors.outline }} />
     </View>
   );
 }
@@ -194,11 +184,11 @@ export function LoginOAuthSection({ onGoogle, onGithub }: LoginOAuthSectionProps
     <>
       <AppButton variant="outline" className="w-full" onPress={onGoogle}>
         <Icon name="google" size="sm" color={theme.colors.onSurface} />
-        <AppText style={{ color: theme.colors.onSurface }}>Continue with Google</AppText>
+        <AppText className="text-foreground">Continue with Google</AppText>
       </AppButton>
       <AppButton variant="outline" className="w-full" onPress={onGithub}>
         <Icon name="github" size="sm" color={theme.colors.onSurface} />
-        <AppText style={{ color: theme.colors.onSurface }}>Continue with GitHub</AppText>
+        <AppText className="text-foreground">Continue with GitHub</AppText>
       </AppButton>
     </>
   );
@@ -213,47 +203,10 @@ export function LoginSecondaryAction({ onCreateAccount }: { onCreateAccount: () 
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  stack: {
-    gap: 12,
-  },
   card: {
-    ...cardFrame,
-    padding: 16,
-    gap: 10,
-  },
-  brandWash: {
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    marginBottom: 4,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   brandLogo: {
     width: '100%',
-  },
-  // A visible name that survives typing: the placeholder used to be the only
-  // label, and it disappears the moment the field has a value.
-  field: {
-    gap: 4,
-  },
-  input: {
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 4,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    opacity: 0.3,
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    opacity: 0.5,
   },
 });

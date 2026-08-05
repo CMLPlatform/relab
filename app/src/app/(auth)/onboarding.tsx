@@ -9,7 +9,6 @@ import { AppText } from '@/components/base/AppText';
 import { TextInput } from '@/components/base/TextInput';
 import { useOnboardingScreen } from '@/features/auth/useOnboardingScreen';
 import type { OnboardingFormValues } from '@/services/api/validation/userSchema';
-import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
 function OnboardingBody({
   control,
@@ -22,14 +21,13 @@ function OnboardingBody({
   isSubmitting: boolean;
   isValid: boolean;
 }) {
-  const styles = createStyles(useAppTheme());
   const renderUsername = useCallback(
     ({
       field: { onChange, value },
     }: {
       field: { onChange: (text: string) => void; value: string };
     }) => (
-      <View style={styles.field}>
+      <View className="gap-1">
         <AppText variant="label">Username</AppText>
         <TextInput
           value={value}
@@ -42,17 +40,21 @@ function OnboardingBody({
         />
       </View>
     ),
-    [submitUsername, styles.field],
+    [submitUsername],
   );
 
   return (
-    <View style={styles.body}>
+    <View className="gap-3">
       <LoginBrandHero />
       {/* The hero scrim is deliberately light — the card is what carries control
           legibility over the photo backdrop, so the copy and field live on it. */}
       <LoginCard>
-        <AppText style={styles.title}>Welcome!</AppText>
-        <AppText style={styles.subtitle}>Choose a username to continue.</AppText>
+        <AppText className="font-bold text-center text-foreground" style={styles.title}>
+          Welcome!
+        </AppText>
+        <AppText className="text-center mb-2.5 text-foreground" style={styles.subtitle}>
+          Choose a username to continue.
+        </AppText>
         <Controller control={control} name="username" render={renderUsername} />
         <AppButton
           variant="primary"
@@ -83,26 +85,11 @@ export default function Onboarding() {
   );
 }
 
-const createStyles = memoizeByTheme((theme: AppTheme) =>
-  StyleSheet.create({
-    // Sizing and centering come from AuthScreen; this only sets inner rhythm.
-    body: {
-      gap: 12,
-    },
-    title: {
-      fontSize: 32,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      color: theme.colors.onBackground,
-    },
-    subtitle: {
-      fontSize: 16,
-      textAlign: 'center',
-      marginBottom: 10,
-      color: theme.colors.onBackground,
-    },
-    field: {
-      gap: 4,
-    },
-  }),
-);
+const styles = StyleSheet.create({
+  title: {
+    fontSize: 32,
+  },
+  subtitle: {
+    fontSize: 16,
+  },
+});

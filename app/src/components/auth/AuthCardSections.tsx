@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
-import { useAppTheme } from '@/theme';
 
 /**
  * Shared scaffold for the auth screens that are a single Card holding a
@@ -26,8 +25,8 @@ export function AuthCard({
 }) {
   return (
     <Card>
-      <View style={[styles.content, contentStyle]}>
-        <View style={styles.titleGroup}>
+      <View className="p-4 gap-4" style={contentStyle}>
+        <View className="gap-1.5">
           <AppText variant="display">{title}</AppText>
           {subtitle}
         </View>
@@ -39,34 +38,17 @@ export function AuthCard({
 
 /** The danger-colored inline error text repeated across the auth forms. */
 export function AuthFormError({ message }: { message?: string | null }) {
-  const theme = useAppTheme();
   if (!message) return null;
-  return <AppText style={{ color: theme.tokens.status.danger }}>{message}</AppText>;
+  return <AppText className="text-destructive">{message}</AppText>;
 }
 
 /** The centered "Back to login" ghost action row repeated across the auth forms. */
 export function AuthBackToLoginAction({ onPress }: { onPress: () => void }) {
   return (
-    <View style={styles.actions}>
+    <View className="flex-row gap-4 justify-center mt-2">
       <AppButton variant="ghost" onPress={onPress}>
         Back to login
       </AppButton>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    padding: 16,
-    gap: 16,
-  },
-  titleGroup: {
-    gap: 6,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 16,
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-});

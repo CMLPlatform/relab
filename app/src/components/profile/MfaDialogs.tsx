@@ -8,7 +8,7 @@ import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { OtpInput } from '@/components/base/OtpInput';
 import { TextInput } from '@/components/base/TextInput';
-import { radius, spacing } from '@/constants';
+import { radius } from '@/constants';
 import type { MfaSetupController } from '@/features/profile/useMfaSetup';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
@@ -63,13 +63,13 @@ export function MfaDialogs({
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Set up two-step verification
         </AppText>
-        <AppText variant="plain" style={local.step}>
+        <AppText variant="plain" className="opacity-75 mb-4" style={local.step}>
           Scan this with an authenticator app, or enter the key by hand. Then type the 6-digit code
           it shows.
         </AppText>
 
         {otpauthUri ? (
-          <View style={local.qrFrame}>
+          <View className="self-center p-4 rounded-lg mb-4" style={local.qrFrame}>
             <QRCode value={otpauthUri} size={168} color="#101010" backgroundColor="#ffffff" />
           </View>
         ) : null}
@@ -101,12 +101,12 @@ export function MfaDialogs({
           textContentType="password"
           style={[local.field, { borderColor: theme.colors.outline }]}
         />
-        <AppText variant="plain" style={local.hint}>
+        <AppText variant="plain" className="mt-2 opacity-60" style={local.hint}>
           Signed up with Google or GitHub? Use your Relab account password — if you never set one,
           create it with “Forgot password” on the login screen first.
         </AppText>
 
-        <View style={local.codeField}>
+        <View className="mt-4">
           <OtpInput
             value={mfa.code}
             onChangeText={mfa.setCode}
@@ -118,7 +118,7 @@ export function MfaDialogs({
         </View>
 
         {mfa.error ? (
-          <AppText variant="plain" style={local.error}>
+          <AppText variant="plain" className="mt-3 text-destructive" style={local.error}>
             {mfa.error}
           </AppText>
         ) : null}
@@ -137,7 +137,7 @@ export function MfaDialogs({
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Enter a current code
         </AppText>
-        <AppText variant="plain" style={local.step}>
+        <AppText variant="plain" className="opacity-75 mb-4" style={local.step}>
           {mfa.useRecoveryCode
             ? 'Enter one of your saved recovery codes to confirm it’s you.'
             : 'Type a code from your authenticator app to confirm it’s you.'}
@@ -146,7 +146,7 @@ export function MfaDialogs({
         {mfa.useRecoveryCode ? (
           // Labelled like the OtpInput it swaps with, so toggling recovery mode
           // doesn't make the field's label appear and disappear.
-          <View style={[local.codeField, { gap: 4 }]}>
+          <View className="mt-4 gap-1">
             <AppText variant="label">Recovery code</AppText>
             <TextInput
               value={mfa.recoveryInput}
@@ -161,7 +161,7 @@ export function MfaDialogs({
             />
           </View>
         ) : (
-          <View style={local.codeField}>
+          <View className="mt-4">
             <OtpInput
               value={mfa.code}
               onChangeText={mfa.setCode}
@@ -175,7 +175,7 @@ export function MfaDialogs({
         )}
 
         {mfa.error ? (
-          <AppText variant="plain" style={local.error}>
+          <AppText variant="plain" className="mt-3 text-destructive" style={local.error}>
             {mfa.error}
           </AppText>
         ) : null}
@@ -209,12 +209,12 @@ export function MfaDialogs({
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Generate new recovery codes
         </AppText>
-        <AppText variant="plain" style={local.step}>
+        <AppText variant="plain" className="opacity-75 mb-4" style={local.step}>
           Enter a code from your authenticator app. This replaces your old codes — any you
           haven&apos;t used will stop working.
         </AppText>
 
-        <View style={local.codeField}>
+        <View className="mt-4">
           <OtpInput
             value={mfa.code}
             onChangeText={mfa.setCode}
@@ -227,7 +227,7 @@ export function MfaDialogs({
         </View>
 
         {mfa.error ? (
-          <AppText variant="plain" style={local.error}>
+          <AppText variant="plain" className="mt-3 text-destructive" style={local.error}>
             {mfa.error}
           </AppText>
         ) : null}
@@ -248,12 +248,12 @@ export function MfaDialogs({
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Save your recovery codes
         </AppText>
-        <AppText variant="plain" style={local.step}>
+        <AppText variant="plain" className="opacity-75 mb-4" style={local.step}>
           Keep these somewhere safe. Each code works once to sign in if you lose your authenticator.
           This is the only time they&apos;re shown.
         </AppText>
 
-        <View style={local.codesBox}>
+        <View className="rounded-lg py-3 px-4 mb-2 gap-1" style={local.codesBox}>
           {(recoveryCodes ?? []).map((recoveryCode) => (
             <AppText variant="plain" key={recoveryCode} selectable style={local.recoveryCode}>
               {recoveryCode}
@@ -279,15 +279,9 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
     step: {
       fontSize: 14,
-      opacity: 0.75,
-      marginBottom: 16,
     },
     qrFrame: {
-      alignSelf: 'center',
-      padding: 16,
-      borderRadius: radius.card,
       backgroundColor: '#ffffff',
-      marginBottom: 16,
     },
     keyRow: {
       flexDirection: 'row',
@@ -309,25 +303,15 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
     field: {
       borderWidth: 1,
       borderRadius: radius.sm,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: 8,
+      paddingVertical: 8,
       marginTop: 16,
     },
     hint: {
-      marginTop: 8,
       fontSize: 12,
-      opacity: 0.6,
-    },
-    codeField: {
-      marginTop: 16,
     },
     codesBox: {
       backgroundColor: theme.tokens.surface.sunken,
-      borderRadius: radius.card,
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      marginBottom: 8,
-      gap: 4,
     },
     recoveryCode: {
       fontSize: 16,
@@ -336,9 +320,7 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
       fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
     },
     error: {
-      marginTop: 12,
       fontSize: 13,
-      color: theme.tokens.status.danger,
     },
   }),
 );

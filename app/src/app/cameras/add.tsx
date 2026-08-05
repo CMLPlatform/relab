@@ -1,6 +1,6 @@
 import { type RefObject, useCallback, useRef } from 'react';
 import { Controller } from 'react-hook-form';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
@@ -9,7 +9,6 @@ import { MutedText } from '@/components/base/MutedText';
 import { PageContainer } from '@/components/base/PageContainer';
 import { TextInput } from '@/components/base/TextInput';
 import { Separator } from '@/components/base/ui/separator';
-import { radius } from '@/constants';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useAppTheme } from '@/theme';
 
@@ -25,16 +24,16 @@ function PairingSuccessDialog({
   const theme = useAppTheme();
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <View style={styles.successContent}>
+      <View className="items-center gap-3 pt-6">
         <Icon name="check-circle" size={56} color={theme.tokens.status.success} />
         <AppText variant="title" accessibilityRole="header">
           Camera paired
         </AppText>
-        <MutedText style={{ textAlign: 'center', opacity: 0.7 }}>
+        <MutedText className="text-center opacity-70">
           Your camera should come online within a few seconds.
         </MutedText>
       </View>
-      <View style={styles.dialogActions}>
+      <View className="flex-row justify-end mt-4">
         <AppButton variant="ghost" onPress={onDismiss}>
           Done
         </AppButton>
@@ -62,7 +61,8 @@ export default function AddCameraScreen() {
         autoCapitalize="characters"
         accessibilityLabel="Pairing code"
         bordered
-        style={[styles.field, { fontFamily: 'monospace', fontSize: 20, textAlign: 'center' }]}
+        className="mb-1 text-center"
+        style={{ fontFamily: 'monospace', fontSize: 20 }}
       />
     ),
     [],
@@ -86,14 +86,12 @@ export default function AddCameraScreen() {
           placeholder="Camera name"
           accessibilityLabel="Camera name *"
           bordered
-          style={[
-            styles.field,
-            {
-              borderColor: hasError ? theme.tokens.status.danger : theme.colors.outline,
-              backgroundColor: hasError ? theme.colors.errorContainer : undefined,
-              color: hasError ? theme.colors.onErrorContainer : undefined,
-            },
-          ]}
+          className="mb-1"
+          style={{
+            borderColor: hasError ? theme.tokens.status.danger : theme.colors.outline,
+            backgroundColor: hasError ? theme.colors.errorContainer : undefined,
+            color: hasError ? theme.colors.onErrorContainer : undefined,
+          }}
         />
       );
     },
@@ -120,7 +118,7 @@ export default function AddCameraScreen() {
         placeholder="Description (optional)"
         accessibilityLabel="Description (optional)"
         bordered
-        style={styles.field}
+        className="mb-1"
       />
     ),
     [],
@@ -129,33 +127,36 @@ export default function AddCameraScreen() {
   if (!user) return null;
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerClassName="pt-4 pb-12" keyboardShouldPersistTaps="handled">
       <PageContainer>
-        <View style={styles.form}>
-          <AppText variant="label" style={styles.sectionLabel}>
+        <View className="gap-3">
+          <AppText variant="label" className="opacity-50 mb-1">
             PAIRING CODE
           </AppText>
-          <MutedText style={styles.sectionHelp}>
+          <MutedText className="mb-2 opacity-60">
             Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed
             “PAIRING READY” banner over SSH if the device is headless.
           </MutedText>
           <Controller control={control} name="pairingCode" render={renderPairingCode} />
 
-          <Separator style={styles.divider} />
+          <Separator className="my-1" />
 
-          <AppText variant="label" style={styles.fieldLabel}>
+          <AppText variant="label" className="opacity-60 -mb-1">
             Camera name *
           </AppText>
           <Controller control={control} name="name" render={renderName} />
 
-          <AppText variant="label" style={styles.fieldLabel}>
+          <AppText variant="label" className="opacity-60 -mb-1">
             Description (optional)
           </AppText>
           <Controller control={control} name="description" render={renderDescription} />
 
-          <View style={[styles.infoBox, { backgroundColor: theme.tokens.surface.accent }]}>
+          <View
+            className="flex-row items-start gap-2 p-3 rounded-lg"
+            style={{ backgroundColor: theme.tokens.surface.accent }}
+          >
             <Icon name="information-outline" size={18} color={theme.colors.primary} />
-            <AppText variant="body" style={{ flex: 1, color: theme.colors.onSurfaceVariant }}>
+            <AppText variant="body" className="flex-1 text-muted-foreground">
               Make sure your Raspberry Pi is powered on and has{' '}
               <AppText style={{ fontFamily: 'monospace', fontSize: 11 }}>
                 PAIRING_BACKEND_URL
@@ -174,7 +175,7 @@ export default function AddCameraScreen() {
               className="mt-2"
             >
               <Icon name="link-variant" size={18} color={theme.colors.onPrimary} />
-              <AppText style={{ color: theme.colors.onPrimary }}>Pair camera</AppText>
+              <AppText className="text-primary-foreground">Pair camera</AppText>
             </AppButton>
           </View>
 
@@ -188,48 +189,3 @@ export default function AddCameraScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    paddingTop: 16,
-    paddingBottom: 48,
-  },
-  form: {
-    gap: 12,
-  },
-  sectionLabel: {
-    opacity: 0.5,
-    marginBottom: 4,
-  },
-  sectionHelp: {
-    marginBottom: 8,
-    opacity: 0.6,
-  },
-  fieldLabel: {
-    opacity: 0.6,
-    marginBottom: -4,
-  },
-  divider: {
-    marginVertical: 4,
-  },
-  field: {
-    marginBottom: 4,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    padding: 12,
-    borderRadius: radius.card,
-  },
-  successContent: {
-    alignItems: 'center',
-    gap: 12,
-    paddingTop: 24,
-  },
-  dialogActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 16,
-  },
-});

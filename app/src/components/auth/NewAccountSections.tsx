@@ -1,21 +1,13 @@
 import { type ComponentProps, type ReactNode, useCallback } from 'react';
 import type { Control, ControllerRenderProps, FieldErrors } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
-import {
-  Pressable,
-  type PressableStateCallbackType,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { WEBSITE_URL } from '@/config';
-import { radius } from '@/constants';
 import {
   type NewAccountFormValues,
   PASSWORD_MIN_LENGTH,
@@ -44,34 +36,21 @@ const CARD_HEIGHT =
   HELPER_SLOT_HEIGHT +
   ACTION_ROW_HEIGHT +
   CARD_GAP * 3;
-// The mark and the 80px name are different heights; pinning the slot keeps the
-// card from jumping between step one and the rest.
-const BRAND_SLOT_HEIGHT = 96;
 // Shared by the step card and the footer card so the two line up.
 const CARD_MAX_WIDTH = 380;
 
 const styles = StyleSheet.create({
   step: {
-    width: '100%',
     maxWidth: CARD_MAX_WIDTH,
-    alignSelf: 'center',
   },
   welcomeText: {
-    marginTop: 80,
     fontSize: 40,
-  },
-  // Fixed height: the mark and the 80px name measure differently, and without
-  // this the card sat 22px lower on step one than on the rest.
-  brandSlot: {
-    height: BRAND_SLOT_HEIGHT,
-    justifyContent: 'center',
   },
   // 64, not 80: it has to fit the card's measure now, and a username is
   // arbitrary text — the slot is a fixed height, so it truncates rather than
   // wrapping out of it.
   brandText: {
     fontSize: 64,
-    fontWeight: 'bold',
   },
   // Logo standing in for the "Relab" wordmark on the first step; sized to
   // carry the same visual weight as the brandText it replaces.
@@ -80,110 +59,37 @@ const styles = StyleSheet.create({
   },
   questionText: {
     fontSize: 31,
-    marginTop: 80,
-    marginBottom: 40,
   },
   // maxWidth: the control block is a compact instrument under a wide headline —
   // a username field has no business being 390px. Fixed height so all three
   // steps are the same size and nothing moves when the error slot fills.
   card: {
-    borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: CARD_PADDING,
-    width: '100%',
     height: CARD_HEIGHT,
-    justifyContent: 'center',
-    gap: CARD_GAP,
   },
   // A visible label that survives typing — the placeholder used to be the only
   // name for the field, and it disappears the moment you type into it.
   label: {
-    height: LABEL_ROW_HEIGHT,
     fontSize: 12,
-    opacity: 0.7,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: INPUT_ROW_HEIGHT,
-  },
-  textInput: {
-    flex: 1,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  // Back left, primary right — the wizard convention. The primary action gets
-  // its own row so "Create account" stops overflowing the card's padding.
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: ACTION_ROW_HEIGHT,
-  },
-  // Reserved, never conditional: the message fills this slot instead of growing
-  // the card. The error still stays until the field is actually fixed — it is
-  // not on a timer — it just no longer moves the layout when it appears.
-  helperSlot: {
-    height: HELPER_SLOT_HEIGHT,
-    justifyContent: 'center',
   },
   helperText: {
     fontSize: 12,
   },
-  // Holds the left half of the action row even on step one, which has no back
-  // action — otherwise the primary button would slide across between steps.
-  backSlot: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-  },
   backButtonText: {
     fontSize: 13,
-    marginLeft: 4,
   },
   scroll: {
-    flexGrow: 1,
-    padding: 20,
     paddingBottom: 120,
-    alignItems: 'center',
-  },
-  // An intrinsic cap rather than a breakpoint: the column fills narrow screens
-  // and stops growing past a readable measure, so there's no width at which the
-  // layout jumps.
-  column: {
-    width: '100%',
-    maxWidth: 480,
-  },
-  bottomContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    alignItems: 'center',
   },
   footerCard: {
-    borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    gap: 4,
-    width: '100%',
     maxWidth: CARD_MAX_WIDTH,
   },
   privacyText: {
     fontSize: 12,
-    opacity: 0.7,
-    textAlign: 'center',
   },
   privacyLink: {
     fontSize: 12,
-    textDecorationLine: 'underline',
   },
 });
 
@@ -205,9 +111,10 @@ export function PrivacyPolicy() {
   }, [url]);
 
   return (
-    <Text style={[styles.privacyText, { color: textColor }]}>
+    <Text className="opacity-70 text-center" style={[styles.privacyText, { color: textColor }]}>
       By creating an account, you agree to our{' '}
       <Text
+        className="underline"
         style={[styles.privacyLink, { color: textColor }]}
         onPress={openPrivacy}
         accessibilityRole="link"
@@ -255,13 +162,11 @@ function NewAccountStep({
         accessibilityLabel={label}
         {...inputProps}
         {...describedBy(errorId, Boolean(error))}
-        style={[
-          styles.textInput,
-          {
-            borderColor: error ? theme.tokens.status.danger : theme.colors.outline,
-            backgroundColor: error ? theme.colors.errorContainer : undefined,
-          },
-        ]}
+        className="flex-1 border px-3 py-2.5"
+        style={{
+          borderColor: error ? theme.tokens.status.danger : theme.colors.outline,
+          backgroundColor: error ? theme.colors.errorContainer : undefined,
+        }}
       />
     ),
     [error, errorId, inputProps, label, theme],
@@ -270,13 +175,16 @@ function NewAccountStep({
   return (
     // One column for the headline and the card, so the copy starts exactly at
     // the card's left edge instead of floating out to the wider measure.
-    <View style={styles.step}>
-      <Text style={[styles.welcomeText, { color: headlineColor }]}>{lines[0]}</Text>
-      <View style={styles.brandSlot}>
+    <View className="w-full self-center" style={styles.step}>
+      <Text className="mt-20" style={[styles.welcomeText, { color: headlineColor }]}>
+        {lines[0]}
+      </Text>
+      <View className="h-24 justify-center">
         {brandLogo ? (
           <BrandWordmark style={styles.brandLogo} />
         ) : (
           <Text
+            className="font-bold"
             style={[styles.brandText, { color: headlineColor }]}
             numberOfLines={1}
             ellipsizeMode="tail"
@@ -285,8 +193,11 @@ function NewAccountStep({
           </Text>
         )}
       </View>
-      <Text style={[styles.questionText, { color: headlineColor }]}>{lines[2]}</Text>
+      <Text className="mt-20 mb-10" style={[styles.questionText, { color: headlineColor }]}>
+        {lines[2]}
+      </Text>
       <View
+        className="rounded-lg p-4 w-full justify-center gap-1.5"
         style={[
           styles.card,
           {
@@ -296,29 +207,32 @@ function NewAccountStep({
         ]}
       >
         <Text
+          className="h-4 opacity-70"
           style={[styles.label, { color: headlineColor }]}
           maxFontSizeMultiplier={MAX_FONT_SCALE}
         >
           {label}
         </Text>
-        <View style={styles.inputRow}>
+        <View className="flex-row items-center h-12">
           <Controller control={control} name={field} render={renderInput} />
         </View>
-        <View style={styles.helperSlot}>
+        <View className="h-[18px] justify-center">
           <FormFieldError errorId={errorId} message={error?.message} style={styles.helperText} />
         </View>
-        <View style={styles.actionRow}>
-          <View style={styles.backSlot}>
+        <View className="flex-row items-center justify-between h-11">
+          <View className="flex-1 justify-center">
             {back ? (
               <Pressable
-                style={styles.backButton}
+                className="flex-row items-center self-start"
                 onPress={back.onPress}
                 accessibilityRole="button"
                 accessibilityLabel={back.accessibilityLabel}
                 hitSlop={12}
               >
                 <Icon name="chevron-left" size={16} color={mutedColor} />
-                <Text style={[styles.backButtonText, { color: mutedColor }]}>{back.label}</Text>
+                <Text className="ml-1" style={[styles.backButtonText, { color: mutedColor }]}>
+                  {back.label}
+                </Text>
               </Pressable>
             ) : null}
           </View>
@@ -457,15 +371,20 @@ type NewAccountLayoutProps = {
 export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayoutProps) {
   const theme = useAppTheme();
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.column}>{children}</View>
+    <View className="flex-1">
+      <ScrollView
+        contentContainerClassName="flex-grow p-5 items-center"
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="w-full max-w-[480px]">{children}</View>
       </ScrollView>
 
       {/* On a card, not bare over the photo: the hero scrim is light by design
           and the backdrop's densest area sits right behind this footer. */}
-      <View style={styles.bottomContainer}>
+      <View className="absolute bottom-5 left-5 right-5 items-center">
         <View
+          className="rounded-lg py-2 px-4 items-center gap-1 w-full"
           style={[
             styles.footerCard,
             {

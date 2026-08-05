@@ -5,7 +5,6 @@ import { Card } from '@/components/base/Card';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { PageContainer } from '@/components/base/PageContainer';
-import { radius } from '@/constants';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
@@ -28,13 +27,15 @@ function ProfileStatCard({
   styles: ProfileStyles;
 }) {
   return (
-    <Card style={styles.statCard}>
-      <View style={styles.statContent}>
+    <Card className="flex-1 min-w-[140px] max-w-[200px] items-center">
+      <View className="items-center py-4">
         <Icon name={icon} size={32} color={color} />
-        <AppText style={styles.statValue} numberOfLines={1}>
+        <AppText className="mt-3 mb-1" style={styles.statValue} numberOfLines={1}>
           {value}
         </AppText>
-        <AppText style={styles.statLabel}>{label}</AppText>
+        <AppText className="text-center opacity-70" style={styles.statLabel}>
+          {label}
+        </AppText>
       </View>
     </Card>
   );
@@ -53,10 +54,10 @@ export default function UserProfileScreen() {
           headerLeft: (props) => <HeaderBackButton {...props} onPress={goToProducts} />,
         }}
       />
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerClassName="flex-grow py-4">
         <PageContainer>
           {loading ? (
-            <View style={styles.centerContainer}>
+            <View className="flex-1 justify-center items-center mt-16">
               <ActivityIndicator
                 testID="activity-indicator"
                 size="large"
@@ -66,27 +67,34 @@ export default function UserProfileScreen() {
           ) : null}
 
           {hasError ? (
-            <View style={styles.centerContainer}>
+            <View className="flex-1 justify-center items-center mt-16">
               <Icon name="account-cancel-outline" size={48} color={theme.colors.error} />
-              <AppText variant="plain" style={styles.errorText}>
+              <AppText variant="plain" className="mt-4 text-center" style={styles.errorText}>
                 {errorMessage}
               </AppText>
             </View>
           ) : null}
 
           {!(loading || hasError) && profile ? (
-            <View style={styles.profileContainer}>
-              <View style={styles.heroSection}>
-                <View style={styles.avatarPlaceholder}>
-                  <AppText variant="plain" style={styles.avatarText}>
+            <View className="mt-8 items-center">
+              <View className="items-center mb-12">
+                <View
+                  className="w-[120px] h-[120px] rounded-full justify-center items-center mb-6"
+                  style={styles.avatarPlaceholder}
+                >
+                  <AppText variant="plain" className="font-bold" style={styles.avatarText}>
                     {profile.username.substring(0, 2).toUpperCase()}
                   </AppText>
                 </View>
-                <AppText variant="plain" style={styles.usernameText}>
+                <AppText
+                  variant="plain"
+                  className="font-extrabold mb-2"
+                  style={styles.usernameText}
+                >
                   {profile.username}
                 </AppText>
                 {profile.created_at ? (
-                  <AppText variant="plain" style={styles.joinedText}>
+                  <AppText variant="plain" className="opacity-60" style={styles.joinedText}>
                     Joined{' '}
                     {new Date(profile.created_at).toLocaleDateString(undefined, {
                       year: 'numeric',
@@ -97,7 +105,7 @@ export default function UserProfileScreen() {
                 ) : null}
               </View>
 
-              <View style={styles.statsSection}>
+              <View className="w-full flex-row justify-center gap-4 flex-wrap">
                 {(
                   [
                     {
@@ -139,79 +147,27 @@ export default function UserProfileScreen() {
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    container: {
-      flexGrow: 1,
-      paddingVertical: 16,
-    },
-    centerContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginTop: 64,
-    },
     errorText: {
-      marginTop: 16,
       fontSize: 16,
-      textAlign: 'center',
-    },
-    profileContainer: {
-      marginTop: 32,
-      alignItems: 'center',
-    },
-    heroSection: {
-      alignItems: 'center',
-      marginBottom: 48,
     },
     avatarPlaceholder: {
-      width: 120,
-      height: 120,
-      borderRadius: radius.full,
       backgroundColor: theme.colors.primaryContainer,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 24,
     },
     avatarText: {
       fontSize: 48,
-      fontWeight: 'bold',
       color: theme.colors.onPrimaryContainer,
     },
     usernameText: {
       fontSize: 32,
-      fontWeight: '800',
-      marginBottom: 8,
     },
     joinedText: {
       fontSize: 15,
-      opacity: 0.6,
-    },
-    statsSection: {
-      width: '100%',
-      flexDirection: 'row',
-      justifyContent: 'center',
-      gap: 16,
-      flexWrap: 'wrap',
-    },
-    statCard: {
-      flex: 1,
-      minWidth: 140,
-      maxWidth: 200,
-      alignItems: 'center',
-    },
-    statContent: {
-      alignItems: 'center',
-      paddingVertical: 16,
     },
     statValue: {
       fontSize: 28,
-      fontWeight: 'bold',
-      marginTop: 12,
-      marginBottom: 4,
     },
     statLabel: {
       fontSize: 13,
-      opacity: 0.7,
-      textAlign: 'center',
     },
   }),
 );

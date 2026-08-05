@@ -1,19 +1,11 @@
 import { useCallback } from 'react';
-import {
-  FlatList,
-  Pressable,
-  type PressableStateCallbackType,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { FlatList, Pressable, type PressableStateCallbackType, Text, View } from 'react-native';
 
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { Icon } from '@/components/base/Icon';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Searchbar } from '@/components/base/Searchbar';
 import CPVCard from '@/components/product/CPVCard';
-import { radius } from '@/constants';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
 import { useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
@@ -31,7 +23,6 @@ export default function CategorySelection() {
     selectType,
   } = useCategorySelection();
 
-  const { colors } = useAppTheme();
   const renderItem = useCallback(
     ({ item }: { item: CPVCategory }) => (
       <CategoryListItem item={item} onSelectType={selectType} onSelectBranch={selectBranch} />
@@ -55,25 +46,14 @@ export default function CategorySelection() {
         onChangeText={setSearchQuery}
         value={searchQuery}
       />
-      <Text
-        style={{
-          marginTop: 70,
-          marginHorizontal: 15,
-          fontSize: 12,
-          color: colors.onSurfaceVariant,
-        }}
-      >
+      <Text className="mt-[70px] mx-[15px] text-muted-foreground" style={{ fontSize: 12 }}>
         Search by name or description, or browse with the &apos;Subcategories&apos; button on each
         card. Tap or click a card to select it.
       </Text>
       {history.length > 1 && <CPVHistory history={history} onPress={moveUp} />}
       <FlatList
-        contentContainerStyle={{
-          gap: 15,
-          padding: 15,
-          paddingTop: history.length > 1 ? 152 : 85,
-          marginBottom: 20,
-        }}
+        contentContainerClassName="gap-[15px] p-[15px] mb-5"
+        contentContainerStyle={{ paddingTop: history.length > 1 ? 152 : 85 }}
         data={filtered}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
@@ -108,7 +88,6 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
   const { colors } = useAppTheme();
   const historyStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
-      styles.historyContainer,
       // Interactive surface — primary family, never the manila accent
       // (MD3 `tertiary` maps to the brand accent; DESIGN.md keeps manila to text).
       { backgroundColor: colors.primaryContainer },
@@ -118,6 +97,7 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
   );
   return (
     <Pressable
+      className="absolute flex-row gap-2.5 p-2.5 h-[60px] items-center top-20 left-[15px] right-[15px] z-[1] rounded-md"
       style={historyStyle}
       onPress={onPress}
       accessibilityRole="button"
@@ -127,7 +107,8 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
       <Text
         numberOfLines={2}
         ellipsizeMode={'tail'}
-        style={[styles.historyText, { color: colors.onTertiaryContainer }]}
+        className="shrink"
+        style={{ color: colors.onTertiaryContainer }}
       >
         {history[history.length - 1].description}
       </Text>
@@ -139,7 +120,6 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
   const { colors } = useAppTheme();
   const linkStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
-      styles.linkContainer,
       { backgroundColor: colors.secondaryContainer },
       pressed && { opacity: 0.5 },
     ],
@@ -152,46 +132,16 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
 
   return (
     <Pressable
+      className="flex-row items-center justify-end gap-[5px] h-[30px] px-3"
       style={linkStyle}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Browse ${CPV.directChildren.length} subcategories`}
     >
-      <Text style={[styles.linkText, { color: colors.onSecondaryContainer }]}>
+      <Text className="text-right" style={{ fontSize: 14, color: colors.onSecondaryContainer }}>
         {`${CPV.directChildren.length} subcategories`}
       </Text>
       <Icon size="md" name="chevron-right" color={colors.onSecondaryContainer} />
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  linkContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 5,
-    height: 30,
-    paddingHorizontal: 12,
-  },
-  linkText: {
-    fontSize: 14,
-    textAlign: 'right',
-  },
-  historyContainer: {
-    position: 'absolute',
-    flexDirection: 'row',
-    gap: 10,
-    padding: 10,
-    height: 60,
-    alignItems: 'center',
-    top: 80,
-    left: 15,
-    right: 15,
-    zIndex: 1,
-    borderRadius: radius.control,
-  },
-  historyText: {
-    flexShrink: 1,
-  },
-});
