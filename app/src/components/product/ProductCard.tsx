@@ -107,7 +107,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
 
           {/* Content */}
           <View className="flex-1">
-            <AppText variant="plain" className="text-foreground mb-0.5" style={styles.title}>
+            <AppText variant="plain" className="mb-0.5" style={styles.title}>
               {product.name || 'Unnamed Product'}
             </AppText>
             <MutedText

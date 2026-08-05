@@ -266,10 +266,7 @@ export function ProductImageLightbox({
 
         {items.length > 1 ? (
           <View className="absolute bottom-10 w-full items-center">
-            <View
-              className="flex-row items-center rounded-xl px-4 py-2"
-              style={{ backgroundColor: theme.tokens.overlay.media }}
-            >
+            <View className="flex-row items-center rounded-xl px-4 py-2" style={styles.footerBar}>
               <Pressable
                 onPress={goPrev}
                 hitSlop={15}
