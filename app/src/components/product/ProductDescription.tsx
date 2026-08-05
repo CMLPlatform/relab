@@ -48,8 +48,7 @@ export default function ProductDescription({ product, editMode, onChangeDescript
     return (
       <View style={{ paddingHorizontal: 14, paddingVertical: 8, gap: 10 }}>
         <AppText
-          variant="plain"
-          style={{ fontSize: 16, lineHeight: 26, opacity: text ? 1 : 0.7 }}
+          style={{ opacity: text ? 1 : 0.7 }}
           numberOfLines={expanded ? undefined : COLLAPSED_DESCRIPTION_LINES}
         >
           {text ? text : 'No description yet.'}

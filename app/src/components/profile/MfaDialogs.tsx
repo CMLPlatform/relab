@@ -60,10 +60,10 @@ export function MfaDialogs({
   return (
     <>
       <AppDialog visible={mfa.mode === 'enroll'} onDismiss={cancel} triggerRef={enrollTriggerRef}>
-        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
           Set up two-step verification
         </AppText>
-        <AppText variant="plain" className="opacity-75 mb-4" style={local.step}>
+        <AppText className="opacity-75 mb-4">
           Scan this with an authenticator app, or enter the key by hand. Then type the 6-digit code
           it shows.
         </AppText>
@@ -75,7 +75,7 @@ export function MfaDialogs({
         ) : null}
 
         <View style={local.keyRow}>
-          <AppText variant="plain" selectable style={local.key}>
+          <AppText variant="data" selectable style={local.key}>
             {chunkSecret(secret)}
           </AppText>
           {/* NOTE: dropped Paper's leading copy icon — AppButton has no icon slot; text-only matches Chip's precedent. */}
@@ -134,10 +134,10 @@ export function MfaDialogs({
       </AppDialog>
 
       <AppDialog visible={mfa.mode === 'disable'} onDismiss={cancel} triggerRef={disableTriggerRef}>
-        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
           Enter a current code
         </AppText>
-        <AppText variant="plain" className="opacity-75 mb-4" style={local.step}>
+        <AppText className="opacity-75 mb-4">
           {mfa.useRecoveryCode
             ? 'Enter one of your saved recovery codes to confirm it’s you.'
             : 'Type a code from your authenticator app to confirm it’s you.'}
@@ -206,10 +206,10 @@ export function MfaDialogs({
         onDismiss={cancel}
         triggerRef={regenerateTriggerRef}
       >
-        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
           Generate new recovery codes
         </AppText>
-        <AppText variant="plain" className="opacity-75 mb-4" style={local.step}>
+        <AppText className="opacity-75 mb-4">
           Enter a code from your authenticator app. This replaces your old codes — any you
           haven&apos;t used will stop working.
         </AppText>
@@ -245,17 +245,17 @@ export function MfaDialogs({
       {/* NOTE: no triggerRef — 'codes' mode is entered internally from the enroll/regenerate
           flows (useMfaSetup.ts), not from a distinct in-screen trigger. */}
       <AppDialog visible={mfa.mode === 'codes'} onDismiss={cancel} dismissable={false}>
-        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
           Save your recovery codes
         </AppText>
-        <AppText variant="plain" className="opacity-75 mb-4" style={local.step}>
+        <AppText className="opacity-75 mb-4">
           Keep these somewhere safe. Each code works once to sign in if you lose your authenticator.
           This is the only time they&apos;re shown.
         </AppText>
 
         <View className="rounded-lg py-3 px-4 mb-2 gap-1" style={local.codesBox}>
           {(recoveryCodes ?? []).map((recoveryCode) => (
-            <AppText variant="plain" key={recoveryCode} selectable style={local.recoveryCode}>
+            <AppText variant="data" key={recoveryCode} selectable style={local.recoveryCode}>
               {recoveryCode}
             </AppText>
           ))}
@@ -277,9 +277,6 @@ export function MfaDialogs({
 
 const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    step: {
-      fontSize: 14,
-    },
     qrFrame: {
       backgroundColor: '#ffffff',
     },
@@ -294,11 +291,11 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
       paddingLeft: 14,
       paddingRight: 6,
     },
+    // The `data` variant supplies the mono family and tabular figures.
     key: {
       flex: 1,
       fontSize: 15,
       letterSpacing: 1,
-      fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
     },
     field: {
       borderWidth: 1,
@@ -317,7 +314,6 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
       fontSize: 16,
       letterSpacing: 1,
       textAlign: 'center',
-      fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
     },
     error: {
       fontSize: 13,

@@ -66,7 +66,7 @@ export function ActiveStreamBanner() {
             {activeStream.productName}
           </AppText>
           <AppText
-            variant="plain"
+            variant="data"
             style={[styles.elapsed, { color: theme.tokens.text.inverseMuted }]}
           >
             {elapsed}
@@ -96,9 +96,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   elapsed: {
-    // text-xs would add a lineHeight the original didn't have.
+    // The `data` variant supplies the mono family and tabular figures; only the
+    // smaller banner size is pinned here.
     fontSize: 12,
-    // react-native-css drops font-variant-numeric, so `tabular-nums` compiles to nothing.
-    fontVariant: ['tabular-nums'],
   },
 });

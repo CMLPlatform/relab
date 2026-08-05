@@ -97,15 +97,11 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
   return (
     <AppDialog visible onDismiss={onDismiss}>
       {options.title ? (
-        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
           {options.title}
         </AppText>
       ) : null}
-      {options.message ? (
-        <AppText variant="plain" className="mb-2">
-          {options.message}
-        </AppText>
-      ) : null}
+      {options.message ? <AppText className="mb-2">{options.message}</AppText> : null}
 
       {options.input ? (
         <TextInput

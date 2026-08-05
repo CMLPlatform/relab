@@ -68,7 +68,7 @@ export function ProfileDialogs({
         onDismiss={onDismissEditUsername}
         triggerRef={editUsernameTriggerRef}
       >
-        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
           Edit username
         </AppText>
         <TextInput
@@ -96,14 +96,12 @@ export function ProfileDialogs({
         onDismiss={onDismissUnlink}
         triggerRef={unlinkTriggerRef}
       >
-        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
           Unlink account
         </AppText>
-        <AppText variant="plain">
-          Are you sure you want to disconnect this {providerToUnlink} account?
-        </AppText>
+        <AppText>Are you sure you want to disconnect this {providerToUnlink} account?</AppText>
         {isLastLinkedProvider ? (
-          <AppText variant="plain" style={styles.unlinkWarning}>
+          <AppText style={styles.unlinkWarning}>
             This is your only linked account. If you never set a password, you will have to reset it
             by email to sign in again.
           </AppText>
@@ -147,18 +145,14 @@ export function ProfileDialogs({
         onDismiss={onDismissDeleteDialog}
         triggerRef={deleteAccountTriggerRef}
       >
-        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
           Delete account
         </AppText>
-        <AppText variant="plain">To delete your account and all its data, email us at:</AppText>
+        <AppText>To delete your account and all its data, email us at:</AppText>
         <Link href="mailto:relab@cml.leidenuniv.nl">
-          <AppText variant="plain" style={styles.deleteEmail}>
-            relab@cml.leidenuniv.nl
-          </AppText>
+          <AppText style={styles.deleteEmail}>relab@cml.leidenuniv.nl</AppText>
         </Link>
-        <AppText variant="plain" style={styles.deleteMessage}>
-          We&apos;ll confirm the deletion by email.
-        </AppText>
+        <AppText style={styles.deleteMessage}>We&apos;ll confirm the deletion by email.</AppText>
         <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={onDismissDeleteDialog}>
             OK

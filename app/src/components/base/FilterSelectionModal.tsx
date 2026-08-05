@@ -88,12 +88,7 @@ function FilterModalShell({
       >
         <Pressable onPress={stopPropagation} className="w-full" style={styles.dialogWrapper}>
           <OverlaySurface className="p-4" tone="surface">
-            <AppText
-              variant="plain"
-              accessibilityRole="header"
-              className="mb-2 font-semibold"
-              style={{ fontSize: 18 }}
-            >
+            <AppText variant="title" accessibilityRole="header" className="mb-2 font-semibold">
               {title}
             </AppText>
             <TextInput
@@ -114,9 +109,7 @@ function FilterModalShell({
                 <ActivityIndicator color={theme.colors.primary} />
               </View>
             ) : visibleItems.length === 0 && !addNewChip ? (
-              <AppText variant="plain" className="pb-2 opacity-50">
-                No results
-              </AppText>
+              <AppText className="pb-2 opacity-50">No results</AppText>
             ) : (
               <ScrollView style={styles.scroll}>
                 <View className="flex-row flex-wrap gap-2 pb-2">

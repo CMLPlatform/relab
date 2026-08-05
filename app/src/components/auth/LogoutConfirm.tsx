@@ -18,10 +18,10 @@ export default function LogoutConfirm({
 }) {
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
+      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
         Sign out
       </AppText>
-      <AppText variant="plain">Are you sure you want to sign out?</AppText>
+      <AppText>Are you sure you want to sign out?</AppText>
       <View style={dialogActionsStyle}>
         <AppButton variant="ghost" onPress={onDismiss}>
           Cancel

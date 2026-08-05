@@ -118,7 +118,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
             >
               {detailList.join(' • ')}
             </MutedText>
-            <MutedText className="text-sm" numberOfLines={1} ellipsizeMode="tail">
+            <MutedText style={styles.descriptionText} numberOfLines={1} ellipsizeMode="tail">
               {product.description}
             </MutedText>
             {hasMetadata ? (
@@ -176,8 +176,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+  // MutedText rides the `body` step (16/26); the card's two secondary lines are
+  // dense list metadata, so they pin their own smaller size and lineHeight.
   detailText: {
     fontSize: 13,
+    lineHeight: 18,
+  },
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   metadataText: {
     fontSize: 11,

@@ -69,9 +69,7 @@ export default function UserProfileScreen() {
           {hasError ? (
             <View className="flex-1 justify-center items-center mt-16">
               <Icon name="account-cancel-outline" size={48} color={theme.colors.error} />
-              <AppText variant="plain" className="mt-4 text-center" style={styles.errorText}>
-                {errorMessage}
-              </AppText>
+              <AppText className="mt-4 text-center">{errorMessage}</AppText>
             </View>
           ) : null}
 
@@ -147,9 +145,6 @@ export default function UserProfileScreen() {
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    errorText: {
-      fontSize: 16,
-    },
     avatarPlaceholder: {
       backgroundColor: theme.colors.primaryContainer,
     },

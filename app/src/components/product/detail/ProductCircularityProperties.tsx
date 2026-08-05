@@ -73,9 +73,7 @@ export default function ProductCircularityProperties({
       </View>
 
       {!isSectionExpanded ? (
-        <AppText variant="plain" style={styles.sectionSummary}>
-          {getHiddenSummary(noteCount)}
-        </AppText>
+        <AppText style={styles.sectionSummary}>{getHiddenSummary(noteCount)}</AppText>
       ) : (
         <View style={styles.propertyFields}>
           {NOTE_FIELDS.map(({ key, label }) => {
@@ -97,9 +95,7 @@ export default function ProductCircularityProperties({
             );
           })}
           {!editMode && noteCount === 0 ? (
-            <AppText variant="plain" style={styles.sectionSummary}>
-              No associated circularity properties.
-            </AppText>
+            <AppText style={styles.sectionSummary}>No associated circularity properties.</AppText>
           ) : null}
         </View>
       )}
@@ -150,9 +146,7 @@ function CircularityNoteField({
           ]}
         />
       ) : (
-        <AppText variant="plain" style={[styles.sectionSummary, { color: colors.onSurface }]}>
-          {value}
-        </AppText>
+        <AppText style={[styles.sectionSummary, { color: colors.onSurface }]}>{value}</AppText>
       )}
     </View>
   );

@@ -43,7 +43,7 @@ export default function ProductComponents({ product, editMode }: Props) {
   return (
     <View>
       {components.length === 0 && (
-        <AppText variant="plain" style={{ opacity: 0.7, marginBottom: 8 }}>
+        <AppText style={{ opacity: 0.7, marginBottom: 8 }}>
           This {label} has no subcomponents.
         </AppText>
       )}

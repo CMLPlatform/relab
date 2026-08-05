@@ -15,7 +15,7 @@ export default function DetailSectionHeader({ title, tooltipTitle, rightElement,
     <View className="mb-3 flex-row items-center justify-between">
       <View className="flex-1 flex-row items-center gap-1.5">
         {/* The tooltip renders a View, so it sits beside the AppText, not inside it. */}
-        <AppText variant="plain" className="font-bold" style={[{ fontSize: 24 }, style]}>
+        <AppText variant="title" className="font-bold" style={style}>
           {title}
         </AppText>
         {tooltipTitle ? <InfoTooltip title={tooltipTitle} /> : null}

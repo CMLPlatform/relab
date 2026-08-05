@@ -17,9 +17,7 @@ export function ErrorState({ message, onRetry, icon = 'alert-circle-outline' }: 
   return (
     <View className="flex-1 items-center justify-center gap-3 p-6">
       <Icon name={icon} size={48} color={theme.colors.error} />
-      <AppText variant="plain" className="mt-3 text-center">
-        {message}
-      </AppText>
+      <AppText className="mt-3 text-center">{message}</AppText>
       <AppButton variant="primary" onPress={onRetry} className="mt-4">
         Retry
       </AppButton>
