@@ -17851,7 +17851,7 @@
     },
     "/v1/profiles/{username}": {
       "get": {
-        "description": "Get public profile statistics for a specified user by username.\n\nReturns 404 if the user is not found or if the profile is marked as private (and you are not the user).\nIncludes lazy initialization of stats if they are missing.",
+        "description": "Get public profile statistics for a specified user by username.\n\nReturns 404 if the user is not found or if the profile is marked as private (and you are not the user).\nRecomputes stats on the fly when no snapshot exists yet, without persisting the result.",
         "operationId": "get_public_profile_v1_profiles__username__get",
         "parameters": [
           {

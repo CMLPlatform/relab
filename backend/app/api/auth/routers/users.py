@@ -58,7 +58,7 @@ async def get_public_profile(
     """Get public profile statistics for a specified user by username.
 
     Returns 404 if the user is not found or if the profile is marked as private (and you are not the user).
-    Includes lazy initialization of stats if they are missing.
+    Recomputes stats on the fly when no snapshot exists yet, without persisting the result.
     """
     # Response is viewer-dependent (visibility rules change with auth state),
     # so browsers and intermediaries must revalidate on every request.

@@ -2092,7 +2092,7 @@ export interface paths {
      * @description Get public profile statistics for a specified user by username.
      *
      *     Returns 404 if the user is not found or if the profile is marked as private (and you are not the user).
-     *     Includes lazy initialization of stats if they are missing.
+     *     Recomputes stats on the fly when no snapshot exists yet, without persisting the result.
      */
     get: operations['get_public_profile_v1_profiles__username__get'];
     put?: never;
