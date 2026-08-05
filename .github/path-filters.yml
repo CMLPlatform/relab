@@ -88,6 +88,8 @@ containers:
 smoke-backend:
   - 'backend/Dockerfile*'
   - 'backend/.dockerignore'
+  - 'backend/pyproject.toml'
+  - 'backend/.python-version'
   - 'backend/uv.lock'
 
 smoke-www:
@@ -117,11 +119,15 @@ smoke-docs:
   - 'pnpm-lock.yaml'
   - 'pnpm-workspace.yaml'
 
-# Compose wiring, deploy inputs, and the two ops scripts the orchestration and
-# backup flows shell out to.
+# Compose wiring, deploy inputs, the two ops scripts the orchestration and backup
+# flows shell out to, plus the smoke harness itself: the justfile holds every
+# recipe body and the composite action holds the recipe allowlist, so a change to
+# either must still smoke something.
 smoke-orchestration:
   - 'compose*.yml'
   - 'compose*.yaml'
   - 'deploy/**'
   - 'scripts/deploy_ops.sh'
   - 'scripts/backup_restic_ops.sh'
+  - 'justfile'
+  - '.github/actions/docker-smoke/**'

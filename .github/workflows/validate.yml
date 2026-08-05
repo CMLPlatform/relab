@@ -18,10 +18,10 @@ on:
 
 concurrency:
   # Keyed by event too, so a scheduled or merge-queue run never cancels (or is
-  # cancelled by) a push run that happens to share github.ref. Only PR runs are
-  # superseded by their own newer pushes.
+  # cancelled by) a push run that happens to share github.ref. PR and push runs
+  # are still superseded by their own newer commits.
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
 permissions:
   contents: read
@@ -42,7 +42,6 @@ jobs:
       run-app: ${{ steps.decide.outputs.run-app }}
       run-docs: ${{ steps.decide.outputs.run-docs }}
       run-e2e: ${{ steps.decide.outputs.run-e2e }}
-      run-containers: ${{ steps.decide.outputs.run-containers }}
       smoke-legs: ${{ steps.decide.outputs.smoke-legs }}
       is-renovate-pr: ${{ steps.detect.outputs.is-renovate-pr }}
     steps:
@@ -68,7 +67,6 @@ jobs:
           WWW: ${{ steps.detect.outputs.www }}
           APP: ${{ steps.detect.outputs.app }}
           DOCS: ${{ steps.detect.outputs.docs }}
-          CONTAINERS: ${{ steps.detect.outputs.containers }}
           SMOKE_BACKEND: ${{ steps.detect.outputs.smoke-backend }}
           SMOKE_WWW: ${{ steps.detect.outputs.smoke-www }}
           SMOKE_APP: ${{ steps.detect.outputs.smoke-app }}
@@ -79,7 +77,7 @@ jobs:
 
           # Scheduled runs only exercise docker-smoke; skip all other jobs.
           if [[ "$IS_SCHEDULE" == "true" ]]; then
-            for k in run-policy run-backend run-www run-app run-docs run-e2e run-containers; do
+            for k in run-policy run-backend run-www run-app run-docs run-e2e; do
               echo "$k=false" >> "$GITHUB_OUTPUT"
             done
             echo "smoke-legs=$ALL_LEGS" >> "$GITHUB_OUTPUT"
@@ -89,7 +87,7 @@ jobs:
           # Manual dispatch and merge-queue runs exercise everything: a merge_group
           # event has no PR context, so path filters cannot run at all.
           if [[ "$IS_DISPATCH" == "true" || "$IS_MERGE_GROUP" == "true" ]]; then
-            for k in run-policy run-backend run-www run-app run-docs run-e2e run-containers; do
+            for k in run-policy run-backend run-www run-app run-docs run-e2e; do
               echo "$k=true" >> "$GITHUB_OUTPUT"
             done
             echo "smoke-legs=$ALL_LEGS" >> "$GITHUB_OUTPUT"
@@ -104,7 +102,6 @@ jobs:
             echo "run-app=$([[ "$SHARED" == "true" || "$APP" == "true" ]] && echo true || echo false)"
             echo "run-docs=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)"
             echo "run-e2e=$([[ "$SHARED" == "true" || "$BACKEND" == "true" || "$APP" == "true" ]] && echo true || echo false)"
-            echo "run-containers=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)"
           } >> "$GITHUB_OUTPUT"
 
           # Per-leg smoke selection: each ~30 min leg runs only when its own build
@@ -438,7 +435,7 @@ jobs:
     needs: [ changes ]
     # `changes` emits the leg list; `[]` means nothing container-relevant moved and
     # the whole job skips (an accepted result for validate-result).
-    if: needs.changes.outputs.smoke-legs != '[]'
+    if: needs.changes.outputs.smoke-legs != '' && needs.changes.outputs.smoke-legs != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:

@@ -10,12 +10,19 @@ on:
     branches: [ main ]
   push:
     branches: [ main ]
+  # NOTE: inert until the repository enables the merge queue. Wired up now so a
+  # required Security check cannot stall the queue; a merge_group run behaves like
+  # a push to main (full scan set) because the event carries no PR context for
+  # path filtering.
+  merge_group:
   workflow_dispatch:
 
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Keyed by event too, so a scheduled or merge-queue run never cancels (or is
+  # cancelled by) a push run sharing github.ref.
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
 permissions:
   contents: read
@@ -56,6 +63,7 @@ jobs:
         env:
           IS_SCHEDULE: ${{ steps.detect.outputs.is-schedule }}
           IS_DISPATCH: ${{ steps.detect.outputs.is-dispatch }}
+          IS_MERGE_GROUP: ${{ steps.detect.outputs.is-merge-group }}
           SHARED: ${{ steps.detect.outputs.shared }}
           BACKEND: ${{ steps.detect.outputs.backend }}
           DOCS: ${{ steps.detect.outputs.docs }}
@@ -63,8 +71,9 @@ jobs:
           WWW: ${{ steps.detect.outputs.www }}
           CONTAINERS: ${{ steps.detect.outputs.containers }}
         run: |
-          # Scheduled or manual runs scan every runtime image and emit SBOMs.
-          if [[ "$IS_SCHEDULE" == "true" || "$IS_DISPATCH" == "true" ]]; then
+          # Scheduled, manual, and merge-queue runs scan every runtime image and emit
+          # SBOMs. merge_group has no PR context, so no path filter can narrow it.
+          if [[ "$IS_SCHEDULE" == "true" || "$IS_DISPATCH" == "true" || "$IS_MERGE_GROUP" == "true" ]]; then
             SHARED=true
           fi
 
@@ -436,6 +445,9 @@ jobs:
 
   scorecard:
     name: Scorecard
+    # Deliberately not run on merge_group (nor pull_request): Scorecard rates the
+    # repository and its default branch, not the queued commit. `security-result`
+    # accepts the skip.
     if: github.event_name == 'branch_protection_rule' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 15
