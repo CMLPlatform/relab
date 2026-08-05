@@ -78,14 +78,24 @@ export async function finishOnboardingIfVisible(page: Page) {
   await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 30_000 });
 }
 
-export async function loginAndReachProducts(page: Page) {
+/**
+ * A seeded, verified, NON-superuser account (see backend dummy_data.json).
+ * Use it where the point is that an ordinary contributor can do something —
+ * `e2e-admin` is a superuser and so proves less.
+ */
+export const SEEDED_MEMBER = { login: 'alice@example.com', password: 'fake_password_1' };
+
+export async function loginAndReachProducts(
+  page: Page,
+  credentials: { login: string; password: string } = { login: EMAIL, password: PASSWORD },
+) {
   await suppressGuestWelcomeCard(page);
   await page.goto('/login');
   // Auth fields are addressed by their visible label, not their placeholder:
   // the redesign moved the field name out of the placeholder (now an example
   // value, e.g. "you@university.edu") into a label that survives typing.
-  await page.getByLabel('Email or username').fill(EMAIL);
-  await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
+  await page.getByLabel('Email or username').fill(credentials.login);
+  await page.getByLabel('Password', { exact: true }).fill(credentials.password);
   await page.getByRole('button', { name: 'Sign in' }).click();
 
   await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });

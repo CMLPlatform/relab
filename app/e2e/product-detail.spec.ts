@@ -295,7 +295,9 @@ test.describe('Product detail: image upload', () => {
     // them first — otherwise an assertion on "an uploaded image exists" passes
     // without this test having uploaded anything.
     const storedImages = page.locator('img[src*="/uploads/"]');
-    const before = new Set(await storedImages.evaluateAll((els) => els.map((el) => el.src)));
+    const before = new Set(
+      await storedImages.evaluateAll((els) => els.map((el) => (el as HTMLImageElement).src)),
+    );
 
     // expo-image-picker builds its <input type="file"> on click rather than
     // rendering one, so intercept the chooser instead of locating an input.
@@ -304,6 +306,11 @@ test.describe('Product detail: image upload', () => {
       page.getByRole('button', { name: 'Add photos from gallery' }).click(),
     ]);
     await chooser.setFiles('e2e/fixtures/test-image.png');
+    // setFiles returns before the app has read the file into the form. Saving
+    // first would persist a product with no images and never issue the upload.
+    await expect(page.getByRole('button', { name: `View ${productName}` })).toBeVisible({
+      timeout: 20_000,
+    });
 
     // Picking only stages the file client-side; Save is what uploads it.
     const [upload] = await Promise.all([
@@ -320,14 +327,18 @@ test.describe('Product detail: image upload', () => {
     await expect
       .poll(
         async () => {
-          const srcs = await storedImages.evaluateAll((els) => els.map((el) => el.src));
+          const srcs = await storedImages.evaluateAll((els) =>
+            els.map((el) => (el as HTMLImageElement).src),
+          );
           return srcs.filter((src) => !before.has(src));
         },
         { timeout: 30_000 },
       )
       .not.toHaveLength(0);
 
-    const srcs = await storedImages.evaluateAll((els) => els.map((el) => el.src));
+    const srcs = await storedImages.evaluateAll((els) =>
+      els.map((el) => (el as HTMLImageElement).src),
+    );
     const uploadedSrc = srcs.find((src) => !before.has(src));
 
     // Fetch the bytes back out of storage. This is what separates "the client
