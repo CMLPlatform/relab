@@ -19,6 +19,10 @@ type MenuProps = {
  * RN-core Modal (no PortalHost involved) with a full-screen dismiss backdrop;
  * position is measured from the anchor once the menu opens.
  *
+ * NOTE (2026-08-05): re-confirmed during the ui/ kit adoption pass — this stays on
+ * RN-core Modal + measureInWindow anchoring; `ui/dropdown-menu` needs a PortalHost
+ * the app doesn't mount and would not preserve this anchoring behavior.
+ *
  * NOTE: position is captured on open only, not tracked live — a menu left
  * open while its anchor scrolls out from under it (e.g. a chip in a
  * horizontally-scrolling filter bar) won't follow it. Matches how most

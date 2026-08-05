@@ -22,6 +22,9 @@ const NOOP = () => {};
  * scrim, built on React Native's core Modal — which brings its own focus trap
  * and Escape→onRequestClose on web (see DialogProvider.tsx for the rationale
  * behind not using the vendored rn-primitives ui/dialog here).
+ *
+ * NOTE (2026-08-05): re-confirmed during the ui/ kit adoption pass — this stays on
+ * RN-core Modal; `ui/dialog` would replace a working focus trap with a portal one.
  */
 export function AppDialog({
   visible,

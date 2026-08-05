@@ -56,6 +56,15 @@ they still keep is the import direction: chrome renders what it's given (e.g.
 `src/components/base/ui/` is vendored react-native-reusables output — regenerate via the RNR CLI
 rather than hand-refactoring.
 
+Adoption of that kit is deliberately partial. Call sites use a vendored primitive directly when its
+look and behavior are what they want (`ui/input` in Searchbar and capture, `ui/badge` for read-only
+tags, `ui/button`, `ui/text`). The hand-rolled `base/` components that look like counterparts —
+`TextInput`, `InfoTooltip`, `Chip`, `AppDialog`, `Menu` — each carry behavior the primitive does
+not (theme-driven error states, auto-dismiss and a mobile-web modal fallback, pressable two-segment
+pills, RN-core Modal focus traps and anchor measuring) and were assessed in August 2026 as
+net-additions if rewritten on the primitive. Each keeps a dated `NOTE:` at the top recording that;
+re-open the question only when the primitive gains the missing behavior.
+
 ## Routing
 
 `src/app/` is the Expo Router tree. Groups in parens (`(auth)`) don't affect

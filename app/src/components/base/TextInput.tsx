@@ -1,3 +1,10 @@
+// NOTE (2026-08-05): assessed against the vendored `ui/input` primitive and kept
+// hand-rolled. `Input` is styling only — it has no error/validation state, no
+// `errorContainer` color (that token exists in the theme, not in
+// brand.generated.css), and it defaults to a bordered 44px control, the opposite
+// of this component's borderless default. Wrapping it would mean class overrides
+// to undo those defaults plus the same inline error styles, i.e. net-added code.
+// `ui/input` stays the primitive for the search/capture fields that want its look.
 import type React from 'react';
 import { TextInput as NativeTextInput, type TextInputProps } from 'react-native';
 import { radius } from '@/constants';
