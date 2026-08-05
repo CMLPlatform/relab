@@ -12,11 +12,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Checkout
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      with:
-        persist-credentials: false
-
     - name: Set up runtime
       uses: ./.github/actions/setup-runtime
 
@@ -31,7 +26,7 @@ runs:
         # Name-shaped allowlist rather than an enumerated one, so adding a smoke
         # recipe needs no edit here. Anchored, and the character class refuses
         # anything but a bare recipe name, so no other just recipe can be reached.
-        if [[ ! "$RECIPE" =~ ^(docker-smoke-[a-z]+|docker-orchestration-smoke)$ ]]; then
+        if [[ ! "$RECIPE" =~ ^(docker-smoke-[a-z][a-z-]*|docker-orchestration-smoke)$ ]]; then
           echo "Unsupported docker smoke recipe: $RECIPE" >&2
           exit 1
         fi

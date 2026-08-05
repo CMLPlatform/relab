@@ -264,9 +264,8 @@ jobs:
 
       - name: Run dependency audit
         run: |
-          set -o pipefail
-          output="$(just docs/audit 2>&1)"
-          status=$?
+          status=0
+          output="$(just docs/audit 2>&1)" || status=$?
           printf '%s\n' "$output"
           if [ "$status" -ne 0 ]; then
             exit "$status"

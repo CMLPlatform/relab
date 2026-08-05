@@ -34,6 +34,7 @@ jobs:
       run-app: ${{ steps.decide.outputs.run-app }}
       run-docs: ${{ steps.decide.outputs.run-docs }}
       run-e2e: ${{ steps.decide.outputs.run-e2e }}
+      run-containers: ${{ steps.decide.outputs.run-containers }}
       is-renovate-pr: ${{ steps.detect.outputs.is-renovate-pr }}
     steps:
       - name: Checkout
@@ -57,10 +58,11 @@ jobs:
           WWW: ${{ steps.detect.outputs.www }}
           APP: ${{ steps.detect.outputs.app }}
           DOCS: ${{ steps.detect.outputs.docs }}
+          CONTAINERS: ${{ steps.detect.outputs.containers }}
         run: |
           # Scheduled runs only exercise docker-smoke; skip all other jobs.
           if [[ "$IS_SCHEDULE" == "true" ]]; then
-            for k in run-policy run-backend run-www run-app run-docs run-e2e; do
+            for k in run-policy run-backend run-www run-app run-docs run-e2e run-containers; do
               echo "$k=false" >> "$GITHUB_OUTPUT"
             done
             exit 0
@@ -68,7 +70,7 @@ jobs:
 
           # Manual dispatch runs exercise everything.
           if [[ "$IS_DISPATCH" == "true" ]]; then
-            for k in run-policy run-backend run-www run-app run-docs run-e2e; do
+            for k in run-policy run-backend run-www run-app run-docs run-e2e run-containers; do
               echo "$k=true" >> "$GITHUB_OUTPUT"
             done
             exit 0
@@ -82,6 +84,7 @@ jobs:
             echo "run-app=$([[ "$SHARED" == "true" || "$APP" == "true" ]] && echo true || echo false)"
             echo "run-docs=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)"
             echo "run-e2e=$([[ "$SHARED" == "true" || "$BACKEND" == "true" || "$APP" == "true" ]] && echo true || echo false)"
+            echo "run-containers=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)"
           } >> "$GITHUB_OUTPUT"
 
   automation:
@@ -387,7 +390,8 @@ jobs:
 
   docker-smoke:
     name: Docker Smoke (${{ matrix.recipe }})
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: [ changes ]
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || needs.changes.outputs.run-containers == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -401,6 +405,11 @@ jobs:
           - docker-smoke-docs
           - docker-smoke-backups
     steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
       - name: Run smoke recipe
         uses: ./.github/actions/docker-smoke
         with:
