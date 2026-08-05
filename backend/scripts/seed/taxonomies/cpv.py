@@ -14,7 +14,7 @@ from sqlalchemy import func, select
 
 from app.api.reference_data.models import (
     Category,
-    ProductType,  # Adjust import as needed
+    ProductType,
     TaxonomyDomain,
 )
 from app.core.logging import setup_logging

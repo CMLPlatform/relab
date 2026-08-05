@@ -1,1 +1,1 @@
-"""Background-data CRUD package."""
+"""Reference-data CRUD package."""
