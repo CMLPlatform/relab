@@ -47,7 +47,7 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         Index("ix_product_product_type_id", "product_type_id"),
         CheckConstraint(
             "(parent_id IS NULL AND amount_in_parent IS NULL) "
-            "OR (parent_id IS NOT NULL AND amount_in_parent IS NOT NULL)",
+            "OR (parent_id IS NOT NULL AND amount_in_parent IS NOT NULL AND amount_in_parent > 0)",
             name="product_role_invariants",
         ),
     )
@@ -162,9 +162,10 @@ class MaterialProductLink(MaterialProductLinkBase, TimeStampMixinBare, Base):
     """Association table to link Material with Product."""
 
     __tablename__ = "materialproductlink"
+    # The composite primary key already covers material_id as its leading column.
     __table_args__ = (
-        Index("ix_materialproductlink_material_id", "material_id"),
         Index("ix_materialproductlink_product_id", "product_id"),
+        CheckConstraint("quantity > 0", name="ck_materialproductlink_quantity_positive"),
     )
 
     material_id: Mapped[int] = mapped_column(ForeignKey("material.id"), primary_key=True)

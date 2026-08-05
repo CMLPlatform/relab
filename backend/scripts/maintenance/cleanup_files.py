@@ -9,7 +9,7 @@ from functools import partial
 
 from anyio import run
 
-from app.api.file_storage.services.cleanup import cleanup_unreferenced_files
+from app.api.file_storage.services.cleanup import cleanup_unreferenced_files, report_orphaned_media
 from app.core.config import Environment, settings
 from app.core.database import async_session_context, close_async_engine
 from app.core.logging import setup_logging
@@ -33,6 +33,7 @@ async def async_main(*, force: bool = False) -> None:
         async with async_session_context() as session:
             # Note: we use not force as the dry_run argument
             await cleanup_unreferenced_files(session, dry_run=not force)
+            await report_orphaned_media(session)
     finally:
         await close_async_engine()
 

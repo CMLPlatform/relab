@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, cast
 from sqlalchemy import text
 
 from app.api.file_storage.models import MediaParentType
+from app.api.file_storage.services.cleanup import report_orphaned_media
 from app.api.file_storage.services.manager import FileCleanupManager
 from app.core.config import settings
 from app.core.images import thumbnail_path_for
@@ -85,3 +86,46 @@ async def test_run_once_preserves_referenced_image_thumbnails(
     assert referenced_image.exists()
     assert referenced_thumbnail.exists()
     assert not orphan_thumbnail.exists()
+
+
+async def test_report_orphaned_media_warns_for_image_with_missing_parent(
+    db_session: AsyncSession,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An image row pointing at a deleted product is reported as an orphan, not deleted."""
+    missing_product_id = 999_999_999
+
+    await db_session.execute(
+        cast(
+            "Any",
+            text(
+                """
+                INSERT INTO image (id, filename, file, parent_type, parent_id)
+                VALUES (:id, :filename, :file, :parent_type, :parent_id)
+                """
+            ),
+        ),
+        params={
+            "id": uuid.UUID("22222222-2222-2222-2222-222222222222"),
+            "filename": "orphan.jpg",
+            "file": "orphan.jpg",
+            "parent_type": MediaParentType.PRODUCT.name,
+            "parent_id": missing_product_id,
+        },
+    )
+    await db_session.commit()
+
+    with caplog.at_level("WARNING"):
+        counts = await report_orphaned_media(db_session)
+
+    assert counts["image:product"] == 1
+    assert any("orphaned image" in record.message for record in caplog.records)
+
+    # Reporting must not delete anything.
+    row = (
+        await db_session.execute(
+            cast("Any", text("SELECT 1 FROM image WHERE id = :id")),
+            params={"id": uuid.UUID("22222222-2222-2222-2222-222222222222")},
+        )
+    ).first()
+    assert row is not None

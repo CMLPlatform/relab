@@ -80,6 +80,15 @@ def run_migrations_online() -> None:
     logger.info("Running migrations online on database: %s", make_url(url).render_as_string(hide_password=True))
 
     with connectable.connect() as connection:
+        # NOTE: a migration that needs an ACCESS EXCLUSIVE lock (e.g. adding a CHECK
+        # constraint without NOT VALID) must abort if it can't get the lock promptly,
+        # rather than queueing behind readers and blocking every other query on prod.
+        connection.exec_driver_sql("SET lock_timeout = '5s'")
+        connection.exec_driver_sql("SET statement_timeout = '15min'")
+        # SQLAlchemy auto-begins a transaction on the first statement above; commit it so
+        # alembic's own transaction below is the real (outer) one, not a savepoint nested
+        # inside a never-committed transaction that gets silently rolled back on close.
+        connection.commit()
         context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():

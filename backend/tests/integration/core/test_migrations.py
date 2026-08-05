@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from alembic import command
+from sqlalchemy import inspect
 
 if TYPE_CHECKING:
     from alembic.config import Config
@@ -88,6 +89,31 @@ def test_media_tables_have_upload_size_constraints(migration_helper: MigrationHe
     image_check_names = {constraint["name"] for constraint in image_constraints["checks"]}
     assert "ck_file_upload_size_bytes_non_negative" in file_check_names
     assert "ck_image_upload_size_bytes_non_negative" in image_check_names
+
+
+@pytest.mark.migration
+def test_product_role_invariants_check_requires_positive_amount(migration_helper: MigrationHelper) -> None:
+    """A component's amount_in_parent must be present and strictly positive."""
+    constraints = migration_helper.get_table_constraints("product")
+    check = next(c for c in constraints["checks"] if c["name"] == "product_role_invariants")
+    assert "amount_in_parent > 0" in check["sqltext"]
+
+
+@pytest.mark.migration
+def test_materialproductlink_quantity_check(migration_helper: MigrationHelper) -> None:
+    """Material quantities linked to a product must be strictly positive."""
+    constraints = migration_helper.get_table_constraints("materialproductlink")
+    check_names = {constraint["name"] for constraint in constraints["checks"]}
+    assert "ck_materialproductlink_quantity_positive" in check_names
+
+
+@pytest.mark.migration
+def test_materialproductlink_redundant_material_id_index_dropped(migration_helper: MigrationHelper) -> None:
+    """The PK's leading column already covers material_id; the extra index is dropped."""
+    with migration_helper.sync_engine.connect() as connection:
+        indexes = inspect(connection).get_indexes("materialproductlink")
+    index_names = {index["name"] for index in indexes}
+    assert "ix_materialproductlink_material_id" not in index_names
 
 
 @pytest.mark.migration
