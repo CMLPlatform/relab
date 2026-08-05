@@ -63,13 +63,17 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   }, [product.ownerUsername, router]);
 
   const handleImageError = useCallback(() => setHadError(true), []);
+  const pressableStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => (pressed && enabled ? styles.pressed : undefined),
+    [enabled],
+  );
 
   return (
     <Pressable
       onPress={enabled ? navigateToProduct : undefined}
       disabled={!enabled}
       accessibilityRole={enabled ? 'button' : undefined}
-      style={({ pressed }) => (pressed && enabled ? styles.pressed : undefined)}
+      style={pressableStyle}
     >
       <Card className="mx-2.5 my-[5px]">
         <View className="flex-row items-center p-3">

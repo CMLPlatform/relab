@@ -46,6 +46,15 @@ export function AppButton({
   ...rest
 }: AppButtonProps) {
   const { colors } = useAppTheme();
+  // Bare RN text nodes must live inside <Text>; wrap primitive children so a numeric or
+  // string label renders safely. Anything else (an element, null, or a boolean, which
+  // React already renders as nothing) passes through untouched.
+  const renderedChildren =
+    typeof children === 'string' || typeof children === 'number' ? (
+      <Text>{children}</Text>
+    ) : (
+      children
+    );
   return (
     <Button
       variant={VARIANT_MAP[variant]}
@@ -59,7 +68,7 @@ export function AppButton({
     >
       <View className="flex-row items-center gap-2">
         {loading ? <ActivityIndicator size="small" color={SPINNER_COLOR[variant](colors)} /> : null}
-        {typeof children === 'string' ? <Text>{children}</Text> : children}
+        {renderedChildren}
       </View>
     </Button>
   );

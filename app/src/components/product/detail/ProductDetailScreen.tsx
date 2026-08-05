@@ -45,6 +45,61 @@ function useFabPressHandler({
   }, [editMode, router, saveAndExit]);
 }
 
+/**
+ * Renders in place of the real screen while data is loading, errored, or the
+ * product id hasn't resolved yet — split out purely to keep ProductDetailScreen
+ * itself under the line-count budget. Not a hook: no hook calls inside, just a
+ * plain render helper called unconditionally from render.
+ */
+function renderScreenGuard({
+  screen,
+  formOptions,
+  theme,
+  onRetry,
+  onBack,
+}: {
+  screen: ReturnType<typeof useProductPageScreen>['screen'];
+  formOptions: UseProductFormOptions;
+  theme: ReturnType<typeof useProductPageScreen>['theme'];
+  onRetry: () => void;
+  onBack: () => void;
+}) {
+  if (screen.isLoading) {
+    return (
+      <ProductPageLoadingState
+        slowLoading={screen.slowLoading}
+        surfaceVariant={theme.colors.surfaceVariant}
+      />
+    );
+  }
+
+  if (screen.isError) {
+    return (
+      <ProductPageErrorState
+        error={screen.error}
+        entityRole={formOptions.role}
+        isNotFound={isProductNotFoundError(screen.error)}
+        onBack={onBack}
+        onRetry={onRetry}
+        themeColors={{
+          error: theme.colors.error,
+          onSurfaceVariant: theme.colors.onSurfaceVariant,
+        }}
+      />
+    );
+  }
+
+  if (!screen.product.id) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  return null;
+}
+
 export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFormOptions }) {
   const { theme, screen, editing, streaming, capabilities, actions } =
     useProductPageScreen(formOptions);
@@ -77,38 +132,14 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
     [editing, nav],
   );
 
-  if (screen.isLoading) {
-    return (
-      <ProductPageLoadingState
-        slowLoading={screen.slowLoading}
-        surfaceVariant={theme.colors.surfaceVariant}
-      />
-    );
-  }
-
-  if (screen.isError) {
-    return (
-      <ProductPageErrorState
-        error={screen.error}
-        entityRole={formOptions.role}
-        isNotFound={isProductNotFoundError(screen.error)}
-        onBack={actions.goBackWithGuards}
-        onRetry={handleRetry}
-        themeColors={{
-          error: theme.colors.error,
-          onSurfaceVariant: theme.colors.onSurfaceVariant,
-        }}
-      />
-    );
-  }
-
-  if (!screen.product.id) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+  const guard = renderScreenGuard({
+    screen,
+    formOptions,
+    theme,
+    onRetry: handleRetry,
+    onBack: actions.goBackWithGuards,
+  });
+  if (guard) return guard;
 
   // Approximates "this section can show a live-media affordance" as
   // go-live-eligible (owned + rpi camera) OR currently streaming — mirrors

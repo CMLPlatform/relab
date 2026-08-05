@@ -1,5 +1,5 @@
-import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { type LayoutChangeEvent, View } from 'react-native';
 import { cn } from '@/utils/cn';
 import { AppButton } from './AppButton';
 import { AppText } from './AppText';
@@ -67,17 +67,23 @@ export function Section({
     return () => navRef.current?.unregisterSection?.(sectionKey);
   }, [isVisible, sectionKey]);
 
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) => nav?.registerSection(sectionKey, event.nativeEvent.layout.y),
+    [nav, sectionKey],
+  );
+  const handleExpand = useCallback(() => setExpandedWhileEmpty(true), []);
+
   if (!isVisible) return null;
 
   const showAddRow = isEmpty && editMode && !expandedWhileEmpty;
 
   return (
     <View
-      onLayout={(event) => nav?.registerSection(sectionKey, event.nativeEvent.layout.y)}
+      onLayout={handleLayout}
       className={cn('rounded-lg bg-card border border-border px-4 py-3', className)}
     >
       {showAddRow ? (
-        <AppButton variant="ghost" onPress={() => setExpandedWhileEmpty(true)}>
+        <AppButton variant="ghost" onPress={handleExpand}>
           {addLabel ?? `Add ${title.toLowerCase()}`}
         </AppButton>
       ) : (

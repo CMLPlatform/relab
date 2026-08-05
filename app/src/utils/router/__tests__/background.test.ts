@@ -55,6 +55,10 @@ describe('useBackgroundOverlay', () => {
   it('darkens rather than lightens in dark mode', () => {
     const dark = getAppTheme('dark').tokens.overlay;
     for (const band of [dark.hero, dark.heroBand, dark.heroEdge]) {
+      // NOTE: rgba(...) is produced by this same theme module, so the digit groups are
+      // always present; the non-null assertion is safe and an optional chain would only
+      // trade this clear failure for a less clear one.
+      // biome-ignore lint/style/noNonNullAssertion: format is guaranteed, see note above
       const [r, g, b] = band.match(/\d+/g)!.map(Number);
       expect(Math.max(r, g, b)).toBeLessThan(60);
     }

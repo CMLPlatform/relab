@@ -1,10 +1,16 @@
 import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
 import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition } from './menuPosition';
+
+// Swallow presses so tapping an item doesn't fall through to the backdrop. Module-level
+// so it's a stable reference across renders.
+function stopPropagation(e: { stopPropagation: () => void }) {
+  e.stopPropagation();
+}
 
 type MenuProps = {
   visible: boolean;
@@ -60,9 +66,8 @@ export function Menu({ visible, onDismiss, anchor, children }: MenuProps) {
           onPress={onDismiss}
           accessibilityLabel="Dismiss menu"
         >
-          {/* Swallow presses so tapping an item doesn't fall through to the backdrop. */}
           <Pressable
-            onPress={(e) => e.stopPropagation()}
+            onPress={stopPropagation}
             accessibilityRole="menu"
             className="rounded-xl py-1"
             style={[
@@ -90,12 +95,18 @@ function MenuItem({
   onPress: () => void;
 }) {
   const theme = useAppTheme();
+  const pressableStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [
+      pressed && { backgroundColor: theme.colors.surfaceVariant },
+    ],
+    [theme.colors.surfaceVariant],
+  );
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="menuitem"
       className="min-h-11 flex-row items-center justify-between gap-2 px-4"
-      style={({ pressed }) => [pressed && { backgroundColor: theme.colors.surfaceVariant }]}
+      style={pressableStyle}
     >
       <AppText testID="menu-item-title" className="shrink">
         {title}

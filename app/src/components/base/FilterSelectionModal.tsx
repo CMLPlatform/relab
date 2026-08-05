@@ -7,6 +7,12 @@ import { Chip } from './Chip';
 import { OverlaySurface } from './OverlaySurface';
 import { TextInput } from './TextInput';
 
+// Swallow presses so tapping inside the dialog doesn't dismiss it. Module-level so it's
+// a stable reference across renders.
+function stopPropagation(e: { stopPropagation: () => void }) {
+  e.stopPropagation();
+}
+
 function SelectableChip({
   item,
   selected,
@@ -80,12 +86,7 @@ function FilterModalShell({
         style={{ backgroundColor: theme.tokens.overlay.scrim }}
         onPress={onDismiss}
       >
-        {/* Swallow presses so tapping inside the dialog doesn't dismiss it. */}
-        <Pressable
-          onPress={(e) => e.stopPropagation()}
-          className="w-full"
-          style={styles.dialogWrapper}
-        >
+        <Pressable onPress={stopPropagation} className="w-full" style={styles.dialogWrapper}>
           <OverlaySurface className="p-4" tone="surface">
             <AppText
               variant="plain"

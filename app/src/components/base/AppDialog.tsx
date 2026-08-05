@@ -16,6 +16,12 @@ type AppDialogProps = {
 
 const NOOP = () => {};
 
+// Swallow presses so tapping inside the dialog doesn't dismiss it. Module-level so it's
+// a stable reference across renders (this rule turns on for tap targets in this repo).
+function stopPropagation(e: { stopPropagation: () => void }) {
+  e.stopPropagation();
+}
+
 /**
  * Shared chrome for the app's Paper-free dialogs: a centered surface over a
  * scrim, built on React Native's core Modal — which brings its own focus trap
@@ -50,12 +56,7 @@ export function AppDialog({
         style={{ backgroundColor: theme.tokens.overlay.scrim }}
         onPress={handleDismiss}
       >
-        {/* Swallow presses so tapping inside the dialog doesn't dismiss it. */}
-        <Pressable
-          onPress={(e) => e.stopPropagation()}
-          className="w-full"
-          style={styles.dialogWrapper}
-        >
+        <Pressable onPress={stopPropagation} className="w-full" style={styles.dialogWrapper}>
           <OverlaySurface className="p-4" style={theme.tokens.elevation.overlay} tone="surface">
             {children}
           </OverlaySurface>

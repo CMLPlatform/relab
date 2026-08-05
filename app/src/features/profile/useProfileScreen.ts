@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
@@ -10,11 +10,7 @@ import { useYouTubeIntegration } from '@/features/cameras/youtube/useYouTubeInte
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import type { ThemeMode } from '@/types/User';
 import { useProfileActions } from './actions';
-import {
-  type ProfilePreferenceUpdate,
-  type ProfileVisibility,
-  updateProfilePreferenceField,
-} from './mutations';
+import { useProfilePreferences } from './mutations';
 import { useProfileAuthRedirect, useProfileDialogs, useProfileLinkedAccounts } from './state';
 import { useOAuthAssociations } from './useOAuthAssociations';
 import { useOwnProfileStats } from './useOwnProfileStats';
@@ -39,8 +35,6 @@ export function useProfileScreen() {
   const { themeMode, setThemeMode } = useThemeMode();
   const { activeStream, setActiveStream } = useStreamSession();
   const stopStreamMutation = useStopYouTubeStreamMutation(activeStream?.cameraId ?? '');
-  const [emailUpdatesSaving, setEmailUpdatesSaving] = useState(false);
-  const [visibilitySaving, setVisibilitySaving] = useState(false);
 
   useProfileAuthRedirect({ profile, router, isLoggingOut });
   const actions = useProfileActions({
@@ -65,42 +59,8 @@ export function useProfileScreen() {
     dialog,
   });
 
-  const savePreference = useCallback(
-    async (
-      update: ProfilePreferenceUpdate,
-      saving: boolean,
-      setSaving: (next: boolean) => void,
-    ) => {
-      if (!profile || saving) return;
-      setSaving(true);
-      try {
-        await updateProfilePreferenceField({ ...update, feedback, refetch });
-      } finally {
-        setSaving(false);
-      }
-    },
-    [feedback, profile, refetch],
-  );
-
-  const handleVisibilityChange = useCallback(
-    (visibility: ProfileVisibility) =>
-      savePreference(
-        { field: 'profile_visibility', value: visibility },
-        visibilitySaving,
-        setVisibilitySaving,
-      ),
-    [savePreference, visibilitySaving],
-  );
-
-  const handleEmailUpdatesChange = useCallback(
-    (enabled: boolean) =>
-      savePreference(
-        { field: 'email_updates_enabled', value: enabled },
-        emailUpdatesSaving,
-        setEmailUpdatesSaving,
-      ),
-    [savePreference, emailUpdatesSaving],
-  );
+  const { emailUpdatesSaving, visibilitySaving, handleVisibilityChange, handleEmailUpdatesChange } =
+    useProfilePreferences({ profile, feedback, refetch });
 
   const linkedAccounts = useProfileLinkedAccounts(profile);
 

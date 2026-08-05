@@ -1,4 +1,5 @@
 import type { ComponentProps } from 'react';
+import { useCallback } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -34,6 +35,7 @@ export function Searchbar({
   ...rest
 }: SearchbarProps) {
   const theme = useAppTheme();
+  const handleClear = useCallback(() => onChangeText(''), [onChangeText]);
 
   return (
     <View className="justify-center" style={style}>
@@ -60,7 +62,7 @@ export function Searchbar({
         />
       ) : value ? (
         <Pressable
-          onPress={() => onChangeText('')}
+          onPress={handleClear}
           accessibilityRole="button"
           accessibilityLabel="Clear search"
           // 20px glyph + 12px hitSlop/side = 44px tap target (a11y floor).

@@ -67,6 +67,7 @@ function CaptureTypeRow({
   }, [typeID]);
 
   const labels = typeRowLabels(entityRole);
+  const goToCategorySelection = useCallback(() => router.push('/category-selection'), [router]);
 
   return (
     <View>
@@ -78,12 +79,12 @@ function CaptureTypeRow({
           variant="outline"
           className="w-full"
           accessibilityLabel={labels.choose}
-          onPress={() => router.push('/category-selection')}
+          onPress={goToCategorySelection}
         >
           {labels.choose}
         </AppButton>
       ) : selectedType ? (
-        <CPVCard CPV={selectedType} onPress={() => router.push('/category-selection')} />
+        <CPVCard CPV={selectedType} onPress={goToCategorySelection} />
       ) : null}
     </View>
   );
@@ -111,6 +112,10 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
     handleCreateAndAddAnother,
   } = useCaptureScreen({ role, parentID, parentRole });
 
+  const submitOnEnter = useCallback(() => {
+    if (canCreate) void handleCreate();
+  }, [canCreate, handleCreate]);
+
   return (
     <KeyboardAwareScrollView
       testID="capture-scroll"
@@ -132,9 +137,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
               maxLength={PRODUCT_NAME_MAX_LENGTH}
               placeholder="e.g. Cordless drill"
               accessibilityLabel="Name"
-              onSubmitEditing={() => {
-                if (canCreate) void handleCreate();
-              }}
+              onSubmitEditing={submitOnEnter}
             />
           </View>
 

@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from 'react';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Pressable, type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
 import Animated, {
   ReduceMotion,
@@ -69,6 +69,17 @@ export function Fab({
     opacity: progress.value,
   }));
 
+  const pressableStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [
+      theme.tokens.elevation.overlay,
+      { backgroundColor: theme.colors.primaryContainer },
+      disabled && styles.disabled,
+      pressed && !disabled && styles.pressed,
+      style,
+    ],
+    [theme.tokens.elevation.overlay, theme.colors.primaryContainer, disabled, style],
+  );
+
   if (!visible) return null;
 
   return (
@@ -81,13 +92,7 @@ export function Fab({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       className="min-h-11 min-w-11 flex-row items-center rounded-xl px-4"
-      style={({ pressed }) => [
-        theme.tokens.elevation.overlay,
-        { backgroundColor: theme.colors.primaryContainer },
-        disabled && styles.disabled,
-        pressed && !disabled && styles.pressed,
-        style,
-      ]}
+      style={pressableStyle}
     >
       {typeof icon === 'function' ? (
         icon()

@@ -1,5 +1,7 @@
+import { useCallback, useState } from 'react';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import { unlinkOAuth, updateUser, verify } from '@/services/api/auth/authentication';
+import type { User } from '@/types/User';
 import { getErrorMessage } from '@/utils/errors';
 
 export type ProfileVisibility = 'public' | 'community' | 'private';
@@ -100,6 +102,62 @@ export async function updateProfilePreferenceField({
       copy.errorTitle,
     );
   }
+}
+
+/**
+ * Bundles the two profile-preference toggles (visibility, email updates) so
+ * useProfileScreen doesn't have to carry their saving-state and handlers inline.
+ */
+export function useProfilePreferences({
+  profile,
+  feedback,
+  refetch,
+}: {
+  profile: User | undefined;
+  feedback: ReturnType<typeof useAppFeedback>;
+  refetch: (forceRefresh?: boolean) => Promise<unknown>;
+}) {
+  const [emailUpdatesSaving, setEmailUpdatesSaving] = useState(false);
+  const [visibilitySaving, setVisibilitySaving] = useState(false);
+
+  const savePreference = useCallback(
+    async (
+      update: ProfilePreferenceUpdate,
+      saving: boolean,
+      setSaving: (next: boolean) => void,
+    ) => {
+      if (!profile || saving) return;
+      setSaving(true);
+      try {
+        await updateProfilePreferenceField({ ...update, feedback, refetch });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [feedback, profile, refetch],
+  );
+
+  const handleVisibilityChange = useCallback(
+    (visibility: ProfileVisibility) =>
+      savePreference(
+        { field: 'profile_visibility', value: visibility },
+        visibilitySaving,
+        setVisibilitySaving,
+      ),
+    [savePreference, visibilitySaving],
+  );
+
+  const handleEmailUpdatesChange = useCallback(
+    (enabled: boolean) =>
+      savePreference(
+        { field: 'email_updates_enabled', value: enabled },
+        emailUpdatesSaving,
+        setEmailUpdatesSaving,
+      ),
+    [savePreference, emailUpdatesSaving],
+  );
+
+  return { emailUpdatesSaving, visibilitySaving, handleVisibilityChange, handleEmailUpdatesChange };
 }
 
 export async function confirmOAuthUnlink({

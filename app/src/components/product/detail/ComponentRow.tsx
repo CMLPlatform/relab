@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { ChevronDown, ChevronRight } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
@@ -48,10 +48,12 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
   // user can still collapse it instead of the row vanishing mid-interaction).
   const canExpand = !nested && (children === undefined || childCount > 0 || fetchedEmpty);
 
-  const navigate = () => {
+  const navigate = useCallback(() => {
     if (typeof component.id !== 'number') return;
     router.push({ pathname: '/components/[id]', params: { id: component.id.toString() } });
-  };
+  }, [component.id, router]);
+  const retry = useCallback(() => void query.refetch(), [query]);
+  const toggleExpanded = useCallback(() => setExpanded((current) => !current), []);
 
   let expandedBody: ReactNode = null;
   if (expanded && canExpand) {
@@ -69,11 +71,7 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
       );
     } else if (query.isError) {
       expandedBody = (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => void query.refetch()}
-          className="min-h-11 justify-center"
-        >
+        <Pressable accessibilityRole="button" onPress={retry} className="min-h-11 justify-center">
           <AppText variant="label" className="opacity-70">
             Couldn't load components — tap to retry
           </AppText>
@@ -134,7 +132,7 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
             accessibilityRole="button"
             accessibilityLabel={`${expanded ? 'Hide' : 'Show'} components of ${displayName}`}
             accessibilityState={{ expanded }}
-            onPress={() => setExpanded((current) => !current)}
+            onPress={toggleExpanded}
             className="h-11 w-11 items-center justify-center"
           >
             <Icon as={expanded ? ChevronDown : ChevronRight} size={20} className="opacity-70" />

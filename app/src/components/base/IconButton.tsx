@@ -1,4 +1,5 @@
 import type { ComponentProps } from 'react';
+import { useCallback } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -40,6 +41,14 @@ export function IconButton({
   ...rest
 }: IconButtonProps) {
   const theme = useAppTheme();
+  const pressableStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [
+      mode === 'contained-tonal' && { backgroundColor: theme.colors.secondaryContainer },
+      pressed && !loading && styles.pressed,
+      style,
+    ],
+    [mode, theme.colors.secondaryContainer, loading, style],
+  );
 
   return (
     <Pressable
@@ -52,11 +61,7 @@ export function IconButton({
       accessibilityState={{ disabled: loading, busy: loading }}
       hitSlop={8}
       className="min-h-11 min-w-11 items-center justify-center rounded-md"
-      style={({ pressed }) => [
-        mode === 'contained-tonal' && { backgroundColor: theme.colors.secondaryContainer },
-        pressed && !loading && styles.pressed,
-        style,
-      ]}
+      style={pressableStyle}
     >
       {loading ? (
         <ActivityIndicator size="small" color={theme.colors.onSurface} />

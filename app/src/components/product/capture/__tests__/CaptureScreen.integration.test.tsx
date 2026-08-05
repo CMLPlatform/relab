@@ -8,6 +8,7 @@ import { loadCPV } from '@/services/cpv';
 import { renderWithProviders } from '@/test-utils/index';
 
 const NAME_PLACEHOLDER = /e\.g\. Cordless drill/i;
+const CHOOSE_INVITE_TEXT_PATTERN = /^Choose /;
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
@@ -93,7 +94,7 @@ async function renderCapture(props: Parameters<typeof CaptureScreen>[0]) {
   const result = renderWithProviders(<CaptureScreen {...props} />, { withDialog: true });
   // Role-agnostic: the invite's wording differs per role, and this only waits
   // for the row to render. The wording itself is pinned by its own tests.
-  await screen.findByText(/^Choose /);
+  await screen.findByText(CHOOSE_INVITE_TEXT_PATTERN);
   return result;
 }
 
