@@ -653,9 +653,43 @@ curl -fsS https://api.cml-relab.org/live
 curl -fsS https://api.cml-relab.org/health
 ```
 
+Every public origin, not just the API — a healthy API behind a broken tunnel
+route still reads as a failed launch to everyone else:
+
+```bash
+curl -fsS -o /dev/null -w '%{http_code} %{url_effective}\n' \
+  https://api.cml-relab.org/live \
+  https://api.cml-relab.org/health \
+  https://app.cml-relab.org/ \
+  https://cml-relab.org/ \
+  https://docs.cml-relab.org/
+```
+
+No container may be restarting or unhealthy — the API in particular reports
+`unhealthy` whenever Postgres or Redis is unreachable, which is the failure this
+catches before a user does:
+
+```bash
+docker compose -p relab_prod ps --format '{{.Service}}\t{{.Status}}'
+```
+
 By hand: log in with Google **and** GitHub (the GitHub client changed in this
 release), open a product with images, and **upload one image** — that last one
 confirms the quota ledger is not tripping.
+
+### Go / no-go
+
+There is no automated gate and nothing pages anyone, so this is a deliberate
+decision a human makes, once, out loud. **Go** requires all of:
+
+- `alembic_version` is `f1a2b3c4d5e6`, and every count above matches the step 3
+  baseline,
+- all five origins return 2xx and no container is restarting or unhealthy,
+- both OAuth providers, a product page, and one image upload work by hand.
+
+Anything unresolved is **no-go**: roll back with §12 and retry in a later
+window. Do not launch "mostly working" and fix forward — the pre-upgrade dump
+gets less useful the longer prod accepts writes on the new schema.
 
 ______________________________________________________________________
 
@@ -754,7 +788,16 @@ early.
 
 ## Known post-launch gaps
 
-Not blockers, but do not discover them by surprise:
+Accepted risks, not blockers — but they are accepted by a person, not by
+default. Owner: the deploy operator (currently the maintainer, Simon van
+Lierde), who is also the one making the go/no-go call in §9. Do not discover
+these by surprise:
+
+- **No scripted schema rollback.** All 40 migrations define `downgrade()`, and
+  `test_migrations_downgrade_upgrade` proves the newest one round-trips — but on
+  an empty schema, one step only. Nothing tests a multi-step downgrade or data
+  preservation, and a downgrade that re-adds a dropped column re-adds it empty.
+  The §2 dump is the only data rollback; §12 is the only rehearsed path.
 
 - **Rate-limit buckets reset once at this deploy.** The rate-limiter's HMAC
   signing key moved to `cache_signing_secret`, so every existing bucket key
@@ -777,6 +820,9 @@ Not blockers, but do not discover them by surprise:
   Richer alerting (Loki rules, external uptime monitoring, Grafana) is still future
   work; anything the watchdog does not check is still discovered by hand.
 
-- **Deploy order is start-then-migrate.** `prod-up` brings the API up against
-  the old schema before `prod-migrate` runs. Harmless here because you are
-  taking a full outage, but it is not safe for a zero-downtime deploy.
+- **This cutover is start-then-migrate.** The §8 commands bring the API up
+  against the old schema before `prod-migrate` runs. Harmless here because you
+  are taking a full outage. For routine releases, pass the `migrations` profile
+  to `prod-up` instead and the API waits for the migrator to exit 0 (see §8) —
+  that closes the window but is still not a zero-downtime deploy, since the API
+  is down for the length of the migration.
