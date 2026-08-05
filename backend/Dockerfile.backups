@@ -33,3 +33,5 @@ USER $APP_USER
 HEALTHCHECK --interval=5m --timeout=10s --retries=3 \
     CMD stamp="${BACKUP_WORK_DIR:-/tmp/relab-backups}/.last-backup-ok"; \
         [ ! -e "$stamp" ] || [ "$(date +%s)" -lt "$(( $(stat -c %Y "$stamp") + 2 * ${BACKUP_INTERVAL_SECONDS:-86400} ))" ]
+
+ENTRYPOINT ["./backup_relab_restic_entrypoint.sh"]
