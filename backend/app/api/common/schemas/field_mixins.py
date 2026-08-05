@@ -73,15 +73,6 @@ class ProductCircularityPropertiesInputFields(ProductCircularityPropertiesFields
     circularity_properties: CircularityPropertiesInputFields | None = None
 
 
-class ProductFields(BaseModel):
-    """Shared product fields for API schemas."""
-
-    name: str = Field(min_length=2, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
-    brand: str | None = Field(default=None, max_length=100)
-    model: str | None = Field(default=None, max_length=100)
-
-
 class MaterialFields(BaseModel):
     """Shared material fields for API schemas."""
 

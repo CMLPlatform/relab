@@ -2,7 +2,7 @@
 
 from uuid import uuid4
 
-from app.api.common.schemas.base import ProductRead
+from app.api.data_collection.product_schemas import ProductRead
 from tests.factories.models import MaterialProductLinkFactory, ProductFactory
 
 

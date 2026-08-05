@@ -47,7 +47,10 @@ def rate_limit_bucket_key(prefix: str, value: str) -> str:
     if not normalized_value:
         return f"{prefix}:missing"
     secret = core_settings.cache_signing_secret.get_secret_value().encode("utf-8")
-    digest = hmac.new(secret, normalized_value.encode("utf-8"), hashlib.sha256).hexdigest()
+    # The prefix is part of the signed message, so two dimensions can never
+    # produce the same digest for the same value.
+    message = f"{prefix}:{normalized_value}".encode()
+    digest = hmac.new(secret, message, hashlib.sha256).hexdigest()
     return f"{prefix}:{digest}"
 
 

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from app.api.common.schemas.base import ProductRead
+from app.api.data_collection.product_schemas import ProductRead
 from app.api.data_collection.schemas import ComponentRead, ProductReadWithRelationships
 from app.api.file_storage.models import MediaParentType
 from app.core.config import settings

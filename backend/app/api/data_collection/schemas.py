@@ -19,8 +19,6 @@ from app.api.common.schemas.base import (
     BaseCreateSchema,
     BaseUpdateSchema,
     MaterialProductLinkBase,
-    ProductRead,
-    ProductReadBase,
 )
 from app.api.common.schemas.field_mixins import (
     PhysicalPropertiesFields,
@@ -29,6 +27,7 @@ from app.api.common.schemas.field_mixins import (
 from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.data_collection.examples import PRODUCT_CREATE_EXAMPLES
 from app.api.data_collection.models.base import NormalizedBrandText
+from app.api.data_collection.product_schemas import ProductRead, ProductReadBase
 from app.api.file_storage.schemas import (
     FileRead,
     ImageRead,

@@ -2,9 +2,9 @@
 
 from datetime import UTC, datetime
 
-from app.api.common.schemas.base import ProductRead
 from app.api.data_collection.models.product import Product
 from app.api.data_collection.presentation.product_reads import render_component_tree, to_read_model
+from app.api.data_collection.product_schemas import ProductRead
 from app.api.data_collection.schemas import (
     ComponentRead,
     ComponentReadWithRecursiveComponents,

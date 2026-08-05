@@ -16,7 +16,6 @@ from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
 from app.api.common.rate_limiting import API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.schemas.base import ProductRead
 from app.api.common.validation import MAX_QUERY_TEXT_LENGTH
 from app.api.data_collection.crud.product_tree_queries import (
     PRODUCT_READ_SUMMARY_RELATIONSHIPS,
@@ -34,6 +33,7 @@ from app.api.data_collection.presentation.product_reads import (
     render_component_tree,
     to_read_model,
 )
+from app.api.data_collection.product_schemas import ProductRead
 from app.api.data_collection.schemas import (
     ComponentRead,
     ComponentReadWithRecursiveComponents,

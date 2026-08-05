@@ -18,7 +18,6 @@ from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.rate_limiting import API_UPLOAD_RATE_LIMIT_DEPENDENCY, API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.schemas.base import ProductRead
 from app.api.data_collection.crud.product_commands import create_component
 from app.api.data_collection.crud.product_commands import create_product as create_product_record
 from app.api.data_collection.crud.product_commands import delete_product as delete_product_record
@@ -32,6 +31,7 @@ from app.api.data_collection.examples import (
     PRODUCT_CREATE_OPENAPI_EXAMPLES,
 )
 from app.api.data_collection.presentation.product_reads import to_read_model
+from app.api.data_collection.product_schemas import ProductRead
 from app.api.data_collection.routers.media_handlers import (
     handle_delete_file,
     handle_delete_image,

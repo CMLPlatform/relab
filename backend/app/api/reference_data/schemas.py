@@ -9,10 +9,10 @@ from app.api.common.schemas.base import (
     IntIdReadSchema,
     IntIdReadSchemaWithTimeStamp,
     MaterialProductLinkBase,
-    ProductRead,
 )
 from app.api.common.schemas.field_mixins import MaterialFields
 from app.api.common.validation import MultilineUserText, SingleLineUserText
+from app.api.data_collection.product_schemas import ProductRead
 from app.api.file_storage.schemas import FileRead, ImageRead
 from app.api.reference_data.examples import (
     CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES,

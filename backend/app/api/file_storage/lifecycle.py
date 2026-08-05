@@ -18,6 +18,11 @@ if TYPE_CHECKING:
 CLEANUP_MANAGER_KEY = "file_storage.cleanup_manager"
 
 
+def set_cleanup_manager(services: AppServices, manager: FileCleanupManager | None) -> None:
+    """Store the shared file cleanup manager on the runtime services."""
+    services.extras[CLEANUP_MANAGER_KEY] = manager
+
+
 def cleanup_manager_from(services: AppServices) -> FileCleanupManager | None:
     """Return the shared file cleanup manager from the runtime services."""
     return cast("FileCleanupManager | None", services.extras.get(CLEANUP_MANAGER_KEY))
@@ -27,7 +32,7 @@ async def _startup(app: FastAPI, services: AppServices) -> None:  # noqa: ARG001
     validate_malware_scanner_configuration()
     await probe_malware_scanner()
     manager = FileCleanupManager(async_sessionmaker_factory)
-    services.extras[CLEANUP_MANAGER_KEY] = manager
+    set_cleanup_manager(services, manager)
     await manager.initialize()
 
 

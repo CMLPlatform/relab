@@ -17,8 +17,9 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import HTTPException, status
 
-from app.api.common.exceptions import ServiceUnavailableError
+from app.api.common.routers.exceptions import _response_parts
 from app.api.plugins.rpi_cam import device_assertion as da
+from app.core.runtime import RequiredServiceUnavailableError
 
 
 def _make_keypair() -> tuple[ec.EllipticCurvePrivateKey, dict]:
@@ -184,13 +185,16 @@ async def test_redis_unavailable_returns_503() -> None:
         patch.object(
             da,
             "require_connection_redis",
-            side_effect=ServiceUnavailableError("Required service is temporarily unavailable."),
+            side_effect=RequiredServiceUnavailableError(log_message="Redis is required for this operation."),
         ),
-        pytest.raises(ServiceUnavailableError) as exc_info,
+        pytest.raises(RequiredServiceUnavailableError) as exc_info,
     ):
         await da._authenticated_camera(request, camera.id, session)
-    assert exc_info.value.http_status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-    assert exc_info.value.message == "Required service is temporarily unavailable."
+    # common's handler maps this to the unchanged 503 contract.
+    assert _response_parts(exc_info.value, status.HTTP_500_INTERNAL_SERVER_ERROR)[:2] == (
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        "Required service is temporarily unavailable.",
+    )
 
 
 async def test_invalid_assertion_returns_401() -> None:
