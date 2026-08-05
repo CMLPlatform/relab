@@ -257,5 +257,10 @@
   # Mitigate supply chain issues
   exclude-newer = "3 days"
 
+  # fastapi-mail 1.6.5 caps cryptography<50.0.0, but never imports cryptography itself
+  # (the cap is defensive, not load-bearing); override so PYSEC-2026-3552 can be closed.
+  # Drop this once fastapi-mail relaxes its own constraint.
+  override-dependencies = ["cryptography>=50.0.0"]
+
   [tool.uv.exclude-newer-package]
     relab-rpi-cam-models = "3000-01-01T00:00:00Z" # self-managed package, exempt from the supply-chain delay
