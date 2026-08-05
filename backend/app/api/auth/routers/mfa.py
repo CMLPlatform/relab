@@ -18,8 +18,9 @@ from app.api.auth.schemas import (
     RefreshTokenResponse,
 )
 from app.api.auth.services import mfa_flow
-from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter
+from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend
+from app.api.common.rate_limiting import limiter
 from app.core.redis import RedisDep
 
 router = APIRouter(prefix="/mfa", tags=["auth"], dependencies=[limiter.dependency(LOGIN_RATE_LIMIT)])

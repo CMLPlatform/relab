@@ -8,10 +8,10 @@ from fastapi_pagination.links import Page
 from pydantic import UUID4, BeforeValidator
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
-from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
+from app.api.common.rate_limiting import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.data_collection.dependencies import ComponentDep, UserOwnedComponentDep
 from app.api.data_collection.routers.media_handlers import (

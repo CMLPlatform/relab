@@ -10,8 +10,8 @@ from sqlalchemy import func, select
 
 from app.api.auth.models import User
 from app.api.data_collection.models.product import Product
+from app.api.data_collection.queries import IS_COMPONENT, IS_TEARDOWN, product_category_counts_stmt
 from app.api.file_storage.models import Image, MediaParentType
-from app.api.reference_data.models import ProductType
 from app.api.stats.helpers import format_period
 from app.api.stats.schemas import CategoryScope, CategoryStat, SeriesPoint, Totals
 
@@ -25,9 +25,9 @@ if TYPE_CHECKING:
 async def compute_totals(session: AsyncSession) -> tuple[Totals, datetime]:
     """Return all-time scalar aggregates and the computation timestamp."""
     product_stmt = select(
-        func.count(Product.id).filter(Product.parent_id.is_(None)).label("teardowns"),
-        func.count(Product.id).filter(Product.parent_id.isnot(None)).label("parts"),
-        func.coalesce(func.sum(Product.weight_g).filter(Product.parent_id.is_(None)), 0).label("total_weight_g"),
+        func.count(Product.id).filter(IS_TEARDOWN).label("teardowns"),
+        func.count(Product.id).filter(IS_COMPONENT).label("parts"),
+        func.coalesce(func.sum(Product.weight_g).filter(IS_TEARDOWN), 0).label("total_weight_g"),
     )
     image_stmt = select(func.count(Image.id)).where(Image.parent_type == MediaParentType.PRODUCT)
     user_stmt = select(func.count(User.id))
@@ -52,8 +52,8 @@ async def compute_totals(session: AsyncSession) -> tuple[Totals, datetime]:
 # its own product_type -- a component is categorised as the component it is, not
 # as the product it came out of -- so the two populations never share a row.
 _SCOPE_FILTERS: dict[CategoryScope, ColumnElement[bool] | None] = {
-    CategoryScope.PRODUCTS: Product.parent_id.is_(None),
-    CategoryScope.COMPONENTS: Product.parent_id.isnot(None),
+    CategoryScope.PRODUCTS: IS_TEARDOWN,
+    CategoryScope.COMPONENTS: IS_COMPONENT,
     CategoryScope.ALL: None,
 }
 
@@ -65,17 +65,12 @@ async def compute_categories(
 ) -> tuple[list[CategoryStat], datetime]:
     """Return categories within `scope` ordered by count DESC, capped at limit.
 
-    The inner join means a category only appears once it has at least one
-    product in the requested scope, so zero-count rows never reach the client.
+    A category only appears once it has at least one product in the requested
+    scope, so zero-count rows never reach the client.
     """
-    count_col = func.count(Product.id).label("count")
-    stmt = select(ProductType.name, count_col).join(Product, Product.product_type_id == ProductType.id)
-
     scope_filter = _SCOPE_FILTERS[scope]
-    if scope_filter is not None:
-        stmt = stmt.where(scope_filter)
-
-    stmt = stmt.group_by(ProductType.name).order_by(count_col.desc(), ProductType.name.asc()).limit(limit)
+    where = () if scope_filter is None else (scope_filter,)
+    stmt = product_category_counts_stmt(*where, limit=limit)
 
     rows = (await session.execute(stmt)).all()
     categories = [CategoryStat(name=row.name, count=int(row.count)) for row in rows]

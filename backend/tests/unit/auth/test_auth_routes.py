@@ -17,7 +17,8 @@ from app.api.auth.routers.password_reset import (
     reset_password,
     router,
 )
-from app.api.auth.services.rate_limiter import PASSWORD_RESET_RATE_LIMIT, rate_limit_bucket_key
+from app.api.auth.services.rate_limiter import PASSWORD_RESET_RATE_LIMIT
+from app.api.common.rate_limiting import rate_limit_bucket_key
 
 
 def _router_dependency_names(api_router: APIRouter) -> set[str]:

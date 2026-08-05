@@ -4,6 +4,11 @@ import logging
 from typing import TYPE_CHECKING
 
 from app.api.auth.config import settings as auth_settings
+from app.api.auth.runtime_dependencies import (
+    email_checker_from,
+    set_common_password_checker,
+    set_email_checker,
+)
 from app.api.auth.services.common_password_checker import init_common_password_checker
 from app.api.auth.services.email_checker import init_email_checker
 from app.core.lifecycle import DomainLifecycle, ShutdownStep
@@ -19,15 +24,16 @@ logger = logging.getLogger(__name__)
 
 async def _startup(app: FastAPI, services: AppServices) -> None:  # noqa: ARG001
     warn_on_placeholder_secrets(logger, auth_settings)
-    services.email_checker = await init_email_checker(services.redis)
-    services.common_password_checker = await init_common_password_checker(services.redis)
+    set_email_checker(services, await init_email_checker(services.redis))
+    set_common_password_checker(services, await init_common_password_checker(services.redis))
 
 
 def _shutdown_steps(app: FastAPI, services: AppServices) -> tuple[ShutdownStep, ...]:  # noqa: ARG001
+    email_checker = email_checker_from(services)
     return (
         ShutdownStep(
             label="email checker",
-            close=services.email_checker.close if services.email_checker is not None else None,
+            close=email_checker.close if email_checker is not None else None,
             expected_errors=(RuntimeError, OSError),
         ),
     )

@@ -8,11 +8,23 @@ without triggering the full data_collection/models.py import chain.
 from typing import Annotated
 
 from pydantic import AfterValidator, BeforeValidator, computed_field
-from sqlalchemy import String
+from sqlalchemy import Enum, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.api.common.models.enums import Unit
 from app.api.common.validation import normalize_user_text
+
+
+class MaterialProductLinkBase:
+    """ORM mixin for Material-Product links."""
+
+    quantity: Mapped[float] = mapped_column(doc="Quantity of the material in the product")
+    unit: Mapped[Unit] = mapped_column(
+        Enum(Unit),
+        default=Unit.KILOGRAM,
+        doc=f"Unit of the quantity, e.g. {', '.join([u.value for u in Unit][:3])}",
+    )
 
 
 def _normalize_brand_text(value: object) -> object:

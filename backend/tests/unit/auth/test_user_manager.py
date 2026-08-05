@@ -12,7 +12,6 @@ from pydantic import SecretStr
 
 from app.api.auth.models import User
 from app.api.auth.schemas import UserUpdate
-from app.api.auth.services.rate_limiter import RateLimitExceededError
 from app.api.auth.services.user_manager import (
     RESET_PASSWORD_TOKEN_AUDIENCE,
     SECRET,
@@ -20,6 +19,7 @@ from app.api.auth.services.user_manager import (
     UserManager,
 )
 from app.api.common.audit import AuditAction
+from app.api.common.rate_limiting import RateLimitExceededError
 from app.core.runtime import AppServices
 
 

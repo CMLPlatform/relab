@@ -35,9 +35,10 @@ from app.api.auth.services.email import (
 from app.api.auth.services.email.service import send_oauth_welcome_notification
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
-from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter, rate_limit_bucket_key
+from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
 from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.common.audit import AuditAction, audit_event
+from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 from app.api.common.routers.dependencies import get_external_http_client
 
 if TYPE_CHECKING:

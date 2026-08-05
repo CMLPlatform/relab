@@ -1,4 +1,10 @@
-"""Postgres-backed upload quota ledger helpers."""
+"""Postgres-backed upload quota ledger helpers.
+
+NOTE: the quota columns live on ``User`` (auth) while the chargeable parent is a
+``Product`` (data_collection), so this module is an accepted cross-context
+exception: every statement here is a single UPDATE joining both tables, which no
+model registry can express without giving up type safety on the columns.
+"""
 
 from typing import TYPE_CHECKING
 

@@ -9,12 +9,12 @@ from sqlalchemy import select
 from starlette.responses import Response  # noqa: TC002 # Runtime annotation evaluation needs this.
 
 from app.api.auth.dependencies import CurrentActiveUserDep, OptionalCurrentActiveUserDep
-from app.api.auth.services.rate_limiter import API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
+from app.api.common.rate_limiting import API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.schemas.base import ProductRead
 from app.api.common.validation import MAX_QUERY_TEXT_LENGTH
@@ -41,7 +41,7 @@ from app.api.data_collection.schemas import (
     ProductFacetValue,
     ProductReadWithRelationshipsAndFlatComponents,
 )
-from app.api.reference_data.routers.public import RecursionDepthQueryParam
+from app.api.reference_data.routers.public_support import RecursionDepthQueryParam
 from app.core.cache import cache
 from app.core.responses import conditional_json_response
 

@@ -5,13 +5,13 @@ from unittest.mock import MagicMock, patch
 
 from fastapi import FastAPI, HTTPException, status
 
-from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.common.audit import AuditAction, AuditContext
 from app.api.common.exceptions import (
     APIError,
     InternalServerError,
     ServiceUnavailableError,
 )
+from app.api.common.rate_limiting import RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.common.routers.exceptions import create_exception_handler, register_exception_handlers
 
 
@@ -252,7 +252,7 @@ def test_rate_limit_response_emits_structured_event() -> None:
     mock_request.url.path = "/v1/auth/bearer/login"
     exc = RateLimitExceededError("Too many login attempts")
 
-    with patch("app.api.auth.services.rate_limiter.audit_event") as log_event:
+    with patch("app.api.common.rate_limiting.audit_event") as log_event:
         response = rate_limit_exceeded_handler(mock_request, exc)
 
     assert response.status_code == 429

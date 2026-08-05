@@ -1,33 +1,42 @@
 """Typed runtime services stored on FastAPI connection state."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
 
 from fastapi import FastAPI, Request
-
-from app.api.common.exceptions import ServiceUnavailableError
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
     from redis.asyncio import Redis
     from starlette.requests import HTTPConnection
 
-    from app.api.auth.services.common_password_checker import CommonPasswordChecker
-    from app.api.auth.services.email_checker import EmailChecker
-    from app.api.file_storage.services.manager import FileCleanupManager
-
 _REQUIRED_SERVICE_UNAVAILABLE = "Required service is temporarily unavailable."
+
+
+class RequiredServiceUnavailableError(RuntimeError):
+    """Raised when a core runtime service a request needs was never initialized.
+
+    Core owns this error; the API layer maps it to a 503 response.
+    """
+
+    def __init__(self, message: str = _REQUIRED_SERVICE_UNAVAILABLE, *, log_message: str | None = None) -> None:
+        self.message = message
+        self.log_message = log_message or message
+        super().__init__(message)
 
 
 @dataclass(slots=True)
 class AppServices:
-    """Typed container for long-lived runtime services."""
+    """Container for long-lived runtime services.
+
+    Core owns only the infrastructure services it creates itself. Domain-owned
+    services live in ``extras`` under a domain-namespaced key, with typed
+    accessors provided by the owning domain — core stays free of domain imports.
+    """
 
     redis: Redis | None = None
-    email_checker: EmailChecker | None = None
-    common_password_checker: CommonPasswordChecker | None = None
-    file_cleanup_manager: FileCleanupManager | None = None
     http_client: AsyncClient | None = None
+    extras: dict[str, object] = field(default_factory=dict)
 
 
 def get_connection_services(connection: HTTPConnection) -> AppServices:
@@ -52,8 +61,7 @@ def get_request_services(request: Request) -> AppServices:
 def require_redis(redis_client: Redis | None) -> Redis:
     """Raise an HTTP-style error if Redis is unavailable."""
     if redis_client is None:
-        raise ServiceUnavailableError(
-            _REQUIRED_SERVICE_UNAVAILABLE,
+        raise RequiredServiceUnavailableError(
             log_message="Redis is required for this operation.",
         )
     return redis_client

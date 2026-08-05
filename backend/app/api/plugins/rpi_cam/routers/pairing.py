@@ -20,8 +20,8 @@ from relab_rpi_cam_models import (
 )
 
 from app.api.auth.dependencies import CurrentActiveUserDep
-from app.api.auth.services.rate_limiter import limiter, rate_limit_bucket_key
 from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
+from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam import crud
 from app.api.plugins.rpi_cam.exceptions import (

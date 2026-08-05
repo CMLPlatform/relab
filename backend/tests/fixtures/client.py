@@ -17,8 +17,8 @@ from app.api.auth.dependencies import (
     optional_current_active_user,
 )
 from app.api.auth.models import User
-from app.api.auth.services.rate_limiter import limiter
 from app.api.auth.services.user_manager import get_auth_async_session
+from app.api.common.rate_limiting import limiter
 from app.core.cache import close_cache, init_cache
 from app.core.config import settings
 from app.core.database import get_async_session

@@ -10,7 +10,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from relab_rpi_cam_models import PairingRegisterRequest
 
-from app.api.auth.services.rate_limiter import rate_limit_bucket_key
+from app.api.common.rate_limiting import rate_limit_bucket_key
 from app.api.plugins.rpi_cam.exceptions import PairingCodeAlreadyClaimedError, PairingCodeNotFoundError
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.pairing import (

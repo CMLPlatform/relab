@@ -11,11 +11,8 @@ from fastapi_users.router.reset import RESET_PASSWORD_RESPONSES, ErrorCode
 from pydantic import EmailStr
 
 from app.api.auth.dependencies import UserManagerDep
-from app.api.auth.services.rate_limiter import (
-    PASSWORD_RESET_RATE_LIMIT,
-    limiter,
-    rate_limit_bucket_key,
-)
+from app.api.auth.services.rate_limiter import PASSWORD_RESET_RATE_LIMIT
+from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 
 FORGOT_PASSWORD_PATH = "/forgot-password"  # noqa: S105 # This value is not a secret
 RESET_PASSWORD_PATH = "/reset-password"  # noqa: S105 # This value is not a secret

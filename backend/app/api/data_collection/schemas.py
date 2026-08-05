@@ -12,9 +12,9 @@ from pydantic import (
     model_validator,
 )
 
-from app.api.common.models.associations import MAX_MATERIAL_QUANTITY
 from app.api.common.models.enums import Unit
 from app.api.common.schemas.base import (
+    MAX_MATERIAL_QUANTITY,
     AssociationModelReadSchemaWithTimeStamp,
     BaseCreateSchema,
     BaseUpdateSchema,

@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.api.common.exceptions import ServiceUnavailableError
 from app.core.redis import get_redis_value, require_redis
+from app.core.runtime import RequiredServiceUnavailableError
 
 
 async def test_get_redis_value_failure_returns_none() -> None:
@@ -19,8 +19,8 @@ async def test_get_redis_value_failure_returns_none() -> None:
 
 
 def test_require_redis_raises_when_missing() -> None:
-    """require_redis should raise a safe API error when Redis is unavailable."""
-    with pytest.raises(ServiceUnavailableError) as exc_info:
+    """require_redis should raise a safe core error when Redis is unavailable."""
+    with pytest.raises(RequiredServiceUnavailableError) as exc_info:
         require_redis(None)
 
     assert exc_info.value.message == "Required service is temporarily unavailable."

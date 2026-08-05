@@ -1,9 +1,10 @@
 """Application lifecycle orchestration for runtime services.
 
 Core owns generic infrastructure (logging, database, Redis, cache, HTTP client,
-telemetry). Domain modules contribute their own startup/shutdown via
-``DomainLifecycle`` hooks, wired together in the composition root (main.py) —
-core never imports domain code.
+telemetry, static mounts). Domain modules contribute their own startup/shutdown
+via ``DomainLifecycle`` hooks, wired together in the composition root (main.py),
+and park their own services in ``AppServices.extras`` — core never imports
+domain code.
 """
 
 import inspect
@@ -16,7 +17,6 @@ from typing import TYPE_CHECKING
 from fastapi import FastAPI
 from httpx import CloseError
 
-from app.api.common.routers.file_mounts import mount_static_directories, register_favicon_route
 from app.core.cache import close_cache, init_cache
 from app.core.clients import create_http_client
 from app.core.config import Environment, settings
@@ -25,6 +25,7 @@ from app.core.logging import cleanup_logging, setup_logging
 from app.core.redis import close_redis, init_redis
 from app.core.runtime import AppServices, get_app_services, reset_app_services
 from app.core.secrets import warn_on_placeholder_secrets
+from app.core.static import mount_static_directories, register_favicon_route
 from app.core.telemetry import init_telemetry, shutdown_telemetry
 
 if TYPE_CHECKING:

@@ -1,4 +1,4 @@
-"""File mounts and static file routes for the application."""
+"""Static file mounts and cache policy for uploaded and packaged assets."""
 
 from pathlib import Path
 from typing import TYPE_CHECKING

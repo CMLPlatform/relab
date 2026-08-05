@@ -14,7 +14,6 @@ from pydantic import (
     model_validator,
 )
 
-from app.api.common.models.associations import MAX_MATERIAL_QUANTITY
 from app.api.common.models.enums import Unit
 from app.api.common.schemas.field_mixins import (
     PhysicalPropertiesFields,
@@ -23,6 +22,8 @@ from app.api.common.schemas.field_mixins import (
 )
 from app.core.config import settings
 from app.core.images.urls import build_thumbnail_url
+
+MAX_MATERIAL_QUANTITY = 1_000_000
 
 
 ### Common Validation ###

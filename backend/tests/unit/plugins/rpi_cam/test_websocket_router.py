@@ -12,7 +12,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_bucket_key
+from app.api.common.rate_limiting import RateLimitExceededError, rate_limit_bucket_key
 from app.api.plugins.rpi_cam.device_assertion import (
     MAX_ASSERTION_TTL_SECONDS,
 )

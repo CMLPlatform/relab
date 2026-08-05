@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr
 
 from app.api.auth.runtime_dependencies import get_email_checker
 from app.api.auth.services.email_checker import EmailChecker
-from app.api.auth.services.rate_limiter import limiter
+from app.api.common.rate_limiting import limiter
 
 router = APIRouter()
 

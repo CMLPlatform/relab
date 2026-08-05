@@ -8,10 +8,10 @@ from fastapi_pagination import add_pagination
 from app.api.auth.lifecycle import AUTH_LIFECYCLE
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.api.common.routers.health import router as health_router
-from app.api.common.routers.main import router as api_router
 from app.api.common.routers.openapi import init_openapi_docs
 from app.api.file_storage.lifecycle import FILE_STORAGE_LIFECYCLE
 from app.api.plugins.rpi_cam.lifecycle import RPI_CAM_LIFECYCLE
+from app.api.router import router as api_router
 from app.core import lifecycle
 from app.core.config import settings
 from app.core.config.models import Environment

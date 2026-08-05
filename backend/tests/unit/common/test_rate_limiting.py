@@ -10,7 +10,7 @@ from fastapi import Request
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 
-from app.api.auth.services.rate_limiter import (
+from app.api.common.rate_limiting import (
     Limiter,
     RateLimitExceededError,
     rate_limit_bucket_key,
@@ -177,7 +177,7 @@ def test_limit_exceeded_log_uses_safe_bucket_key(limiter: Limiter, caplog: pytes
     raw_ip = "203.0.113.10"
     safe_key = rate_limit_bucket_key("auth:login:ip", raw_ip)
 
-    caplog.set_level(logging.INFO, logger="app.api.auth.services.rate_limiter")
+    caplog.set_level(logging.INFO, logger="app.api.common.rate_limiting")
     limiter.hit_key("1/minute", safe_key)
 
     with pytest.raises(RateLimitExceededError):
@@ -197,7 +197,7 @@ def test_hit_key_fails_open_on_redis_error(limiter: Limiter, caplog: pytest.LogC
 
     limiter._limiter = _RaisingStrategy()
 
-    caplog.set_level(logging.WARNING, logger="app.api.auth.services.rate_limiter")
+    caplog.set_level(logging.WARNING, logger="app.api.common.rate_limiting")
     limiter.hit_key("1/minute", "auth:login:account:one")  # must not raise
 
     assert "failing open" in caplog.text

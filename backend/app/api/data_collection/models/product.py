@@ -16,10 +16,10 @@ from sqlalchemy.orm import (
 )
 
 from app.api.auth.models import User
-from app.api.common.models.associations import MaterialProductLinkBase
 from app.api.common.models.base import Base, TimeStampMixinBare
-from app.api.data_collection.models.base import ProductFieldsMixin
+from app.api.data_collection.models.base import MaterialProductLinkBase, ProductFieldsMixin
 from app.api.file_storage.models import File, Image, MediaParentType, Video
+from app.api.file_storage.parents import register_media_parent
 from app.api.reference_data.models import Material, ProductType
 
 if TYPE_CHECKING:
@@ -176,3 +176,7 @@ class MaterialProductLink(MaterialProductLinkBase, TimeStampMixinBare, Base):
 
     def __str__(self) -> str:
         return f"{self.quantity} {self.unit} of {self.material.name} in {self.product.name}"
+
+
+# Media parents this context owns; registered here so file_storage never imports it.
+register_media_parent(MediaParentType.PRODUCT, Product)

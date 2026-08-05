@@ -12,8 +12,9 @@ import pyotp
 from pydantic import UUID4
 
 from app.api.auth.exceptions import MfaChallengeInvalidError
-from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter, rate_limit_bucket_key
+from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
 from app.api.auth.services.token_store import read_token_metadata, store_new_token, token_fingerprint
+from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis

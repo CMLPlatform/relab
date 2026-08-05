@@ -15,8 +15,9 @@ from app.api.auth.exceptions import (
 from app.api.auth.runtime_dependencies import get_email_checker
 from app.api.auth.schemas import UserRegister
 from app.api.auth.services.email import mask_email_for_log, send_existing_account_notification
-from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT, limiter
+from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT
 from app.api.common.exceptions import APIError
+from app.api.common.rate_limiting import limiter
 
 logger = logging.getLogger(__name__)
 

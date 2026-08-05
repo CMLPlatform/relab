@@ -2,14 +2,12 @@
 
 from app.api.auth.routers import email_validation, login, mfa, password_reset, refresh, register
 from app.api.auth.schemas import UserRead
-from app.api.auth.services.rate_limiter import (
-    VERIFY_RATE_LIMIT,
-    limiter,
-)
+from app.api.auth.services.rate_limiter import VERIFY_RATE_LIMIT
 from app.api.auth.services.user_manager import (
     fastapi_user_manager,
 )
 from app.api.common.audiences import PublicAPIRouter
+from app.api.common.rate_limiting import limiter
 
 FORGOT_PASSWORD_PATH = password_reset.FORGOT_PASSWORD_PATH
 RESET_PASSWORD_PATH = password_reset.RESET_PASSWORD_PATH

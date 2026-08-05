@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
 
 from app.api.common.models.base import Base, TimeStampMixinBare
 from app.api.file_storage.models import File, Image, MediaParentType
+from app.api.file_storage.parents import register_media_parent
 
 
 ### Enums ###
@@ -225,3 +226,8 @@ class ProductType(TimeStampMixinBare, Base):
 
     def __str__(self) -> str:
         return f"{self.name} (id: {self.id})"
+
+
+# Media parents this context owns; registered here so file_storage never imports it.
+register_media_parent(MediaParentType.PRODUCT_TYPE, ProductType)
+register_media_parent(MediaParentType.MATERIAL, Material)

@@ -7,10 +7,11 @@ from fastapi import FastAPI, Request, status
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.common.audit import AuditAction, AuditContext, audit_event
-from app.api.common.exceptions import APIError
+from app.api.common.exceptions import APIError, ServiceUnavailableError
+from app.api.common.rate_limiting import RateLimitExceededError, rate_limit_exceeded_handler
 from app.core.responses import build_problem_response
+from app.core.runtime import RequiredServiceUnavailableError
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -70,6 +71,16 @@ def _response_parts(
     default_status_code: int,
 ) -> tuple[int, str, str, str, dict[str, object]]:
     """Return status, client detail, log message, code, and extra response fields."""
+    if isinstance(exc, RequiredServiceUnavailableError):
+        # Core raises its own error type so it stays free of API imports; the
+        # response contract stays the API-level 503.
+        return (
+            ServiceUnavailableError.http_status_code,
+            exc.message,
+            exc.log_message,
+            ServiceUnavailableError.__name__,
+            {},
+        )
     if isinstance(exc, APIError):
         return _api_error_parts(exc)
     if isinstance(exc, StarletteHTTPException):
@@ -110,6 +121,9 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     # Framework HTTP exceptions
     app.add_exception_handler(StarletteHTTPException, create_exception_handler())
+
+    # Core runtime services that were never initialized
+    app.add_exception_handler(RequiredServiceUnavailableError, create_exception_handler())
 
     # Rate limiting
     app.add_exception_handler(RateLimitExceededError, rate_limit_exceeded_handler)

@@ -9,13 +9,14 @@ from fastapi_users.router.common import ErrorModel
 
 from app.api.auth.schemas import MfaPendingResponse, RefreshTokenResponse
 from app.api.auth.services import login_flow
-from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter
+from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
 from app.api.auth.services.user_manager import (
     UserManager,
     bearer_auth_backend,
     cookie_auth_backend,
     fastapi_user_manager,
 )
+from app.api.common.rate_limiting import limiter
 from app.core.redis import RedisDep
 
 AUTH_ERROR_RESPONSES: dict[int | str, dict[str, object]] = {400: {"model": ErrorModel}}

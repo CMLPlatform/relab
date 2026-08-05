@@ -11,6 +11,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import CloseError
 
+from app.api.auth.runtime_dependencies import common_password_checker_from, email_checker_from
 from app.api.plugins.rpi_cam.websocket import runtime_state
 from app.core import lifecycle
 from app.core.config import Environment, settings
@@ -191,8 +192,8 @@ async def test_startup_sets_runtime_services_on_app_state(runtime_app: FastAPI) 
             services = runtime_app.state.services
             assert isinstance(services, AppServices)
             assert services.redis is runtime.redis
-            assert services.email_checker is runtime.email_checker
-            assert services.common_password_checker is runtime.common_password_checker
+            assert email_checker_from(services) is runtime.email_checker
+            assert common_password_checker_from(services) is runtime.common_password_checker
 
     runtime.init_redis.assert_awaited_once_with()
     runtime.init_email_checker.assert_awaited_once_with(runtime.redis)

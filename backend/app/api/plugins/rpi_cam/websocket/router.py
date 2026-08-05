@@ -14,8 +14,7 @@ from jwt import InvalidTokenError
 from pydantic import UUID4, ValidationError
 from relab_rpi_cam_models import RELAY_WS_TEXT_FRAME_LIMIT_BYTES, RelayMessageType, RelayResponseEnvelope
 
-from app.api.auth.services.rate_limiter import RateLimitExceededError, limiter, rate_limit_bucket_key
-from app.api.common.exceptions import ServiceUnavailableError
+from app.api.common.rate_limiting import RateLimitExceededError, limiter, rate_limit_bucket_key
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.runtime.status import mark_camera_offline, mark_camera_online
@@ -26,7 +25,7 @@ from app.core.config import settings
 from app.core.database import async_session_context
 from app.core.logging import sanitize_log_value
 from app.core.middleware.client_ip import extract_client_ip
-from app.core.runtime import require_connection_redis
+from app.core.runtime import RequiredServiceUnavailableError, require_connection_redis
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -216,7 +215,7 @@ async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
 
     try:
         redis = require_connection_redis(websocket)
-    except ServiceUnavailableError as exc:
+    except RequiredServiceUnavailableError as exc:
         logger.warning("Redis is required for RPi camera relay assertion replay protection: %s", exc)
         await websocket.close(code=status.WS_1011_INTERNAL_ERROR, reason="Authentication service unavailable.")
         return False

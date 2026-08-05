@@ -7,7 +7,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
-from app.api.auth.services.rate_limiter import Limiter, RateLimitExceededError, rate_limit_exceeded_handler
+from app.api.common.rate_limiting import Limiter, RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.data_collection.routers.component_core_routers import component_core_router
 from app.api.data_collection.routers.component_media_routers import component_media_router
 from app.api.data_collection.routers.product_mutation_routers import product_mutation_router

@@ -6,8 +6,8 @@ from urllib.parse import quote
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.common.routers.file_mounts import mount_static_directories
 from app.core.config import settings
+from app.core.static import mount_static_directories
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -10,7 +10,7 @@ from uuid import uuid4
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from app.api.common.models.associations import MAX_MATERIAL_QUANTITY
+from app.api.common.schemas.base import MAX_MATERIAL_QUANTITY
 from app.api.data_collection.schemas import (
     MAX_BOM_ENTRIES,
     MAX_COMPONENT_AMOUNT,

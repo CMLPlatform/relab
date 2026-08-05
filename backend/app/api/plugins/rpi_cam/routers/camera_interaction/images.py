@@ -10,11 +10,11 @@ from pydantic import UUID4, PositiveInt
 from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
 
 from app.api.auth.dependencies import CurrentActiveUserDep
-from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
 from app.api.common.exceptions import APIError, InternalServerError
 from app.api.common.form_json import parse_required_json_object
 from app.api.common.ownership import get_user_owned_object
+from app.api.common.rate_limiting import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.validation import MultilineUserText
 from app.api.data_collection.models.product import Product

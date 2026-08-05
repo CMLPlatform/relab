@@ -10,8 +10,8 @@ import pytest
 
 from app.api.auth.exceptions import MfaChallengeInvalidError
 from app.api.auth.services import mfa_service
-from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_bucket_key
 from app.api.auth.services.token_store import token_key
+from app.api.common.rate_limiting import RateLimitExceededError, rate_limit_bucket_key
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture

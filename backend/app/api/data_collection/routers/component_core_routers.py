@@ -6,8 +6,8 @@ from fastapi import Body, HTTPException
 from pydantic import PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, OptionalCurrentActiveUserDep
-from app.api.auth.services.rate_limiter import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
+from app.api.common.rate_limiting import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.data_collection.crud.product_commands import create_component
 from app.api.data_collection.crud.product_commands import delete_product as delete_product_record
