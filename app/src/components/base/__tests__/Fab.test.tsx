@@ -2,7 +2,6 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { Fab } from '@/components/base/Fab';
-import { radius } from '@/constants';
 import { getAppTheme } from '@/theme';
 
 describe('Fab', () => {
@@ -58,9 +57,9 @@ describe('Fab', () => {
 
   it('meets the 44px a11y tap-target floor', () => {
     render(<Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />);
-    const style = StyleSheet.flatten(screen.getByRole('button').props.style);
-    expect(style.minWidth).toBeGreaterThanOrEqual(44);
-    expect(style.minHeight).toBeGreaterThanOrEqual(44);
+    const className = screen.getByRole('button').props.className as string;
+    expect(className).toContain('min-w-11');
+    expect(className).toContain('min-h-11');
   });
 
   // DESIGN.md "Form language — Flat & Sharp": the FAB is a floating surface, so
@@ -68,9 +67,11 @@ describe('Fab', () => {
   // for avatars/true pills) plus the single shared overlay elevation tier.
   it('uses the overlay radius and the shared elevation tier', () => {
     render(<Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />);
-    const style = StyleSheet.flatten(screen.getByRole('button').props.style);
+    const button = screen.getByRole('button');
+    // radius.overlay (12px) maps to Tailwind's rounded-xl step.
+    expect(button.props.className as string).toContain('rounded-xl');
+    const style = StyleSheet.flatten(button.props.style);
     const overlay = getAppTheme('light').tokens.elevation.overlay;
-    expect(style.borderRadius).toBe(radius.overlay);
     expect(style.shadowRadius).toBe(overlay.shadowRadius);
     expect(style.shadowOpacity).toBe(overlay.shadowOpacity);
     expect(style.elevation).toBe(overlay.elevation);

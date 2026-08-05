@@ -1,8 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
 import { IconButton } from '@/components/base/IconButton';
-import { radius } from '@/constants';
 
 describe('IconButton', () => {
   it('fires onPress', () => {
@@ -31,9 +29,9 @@ describe('IconButton', () => {
 
   it('meets the 44px a11y tap-target floor', () => {
     render(<IconButton icon="close" onPress={jest.fn()} accessibilityLabel="Close" />);
-    const style = StyleSheet.flatten(screen.getByRole('button').props.style);
-    expect(style.minWidth).toBeGreaterThanOrEqual(44);
-    expect(style.minHeight).toBeGreaterThanOrEqual(44);
+    const className = screen.getByRole('button').props.className as string;
+    expect(className).toContain('min-w-11');
+    expect(className).toContain('min-h-11');
   });
 
   it('forwards arbitrary accessibility props (accessibilityHint)', () => {
@@ -50,7 +48,8 @@ describe('IconButton', () => {
 
   it('uses the control radius, not a bespoke circle', () => {
     render(<IconButton icon="close" onPress={jest.fn()} accessibilityLabel="Close" />);
-    const style = StyleSheet.flatten(screen.getByRole('button').props.style);
-    expect(style.borderRadius).toBe(radius.control);
+    const className = screen.getByRole('button').props.className as string;
+    // radius.control (6px) maps to Tailwind's rounded-md step.
+    expect(className).toContain('rounded-md');
   });
 });

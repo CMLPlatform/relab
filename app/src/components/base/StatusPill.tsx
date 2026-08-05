@@ -1,6 +1,5 @@
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { radius } from '@/constants';
 import { getStatusTone, useAppTheme } from '@/theme';
 import type { AppTokens } from '@/theme/types';
 
@@ -26,6 +25,10 @@ export function StatusPill({ label, tone, variant = 'solid', testID }: StatusPil
   return (
     <View
       testID={testID}
+      // Inline status chip — control radius, not a pill (DESIGN.md reserves the
+      // `full` radius for avatars/true pills). Height (22) has no exact
+      // Tailwind step, so it stays inline alongside it.
+      className="justify-center rounded-md px-2"
       style={[
         styles.pill,
         solid
@@ -34,11 +37,8 @@ export function StatusPill({ label, tone, variant = 'solid', testID }: StatusPil
       ]}
     >
       <AppText
-        style={[
-          styles.label,
-          { color: solid ? theme.colors.onError : color },
-          solid && styles.bold,
-        ]}
+        className={solid ? 'font-bold' : undefined}
+        style={[styles.label, { color: solid ? theme.colors.onError : color }]}
       >
         {label}
       </AppText>
@@ -49,17 +49,9 @@ export function StatusPill({ label, tone, variant = 'solid', testID }: StatusPil
 const styles = StyleSheet.create({
   pill: {
     height: 22,
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-    // Inline status chip — control radius, not a pill (DESIGN.md reserves the
-    // `full` radius for avatars/true pills).
-    borderRadius: radius.control,
   },
   label: {
     fontSize: 11,
     lineHeight: 14,
-  },
-  bold: {
-    fontWeight: '700',
   },
 });

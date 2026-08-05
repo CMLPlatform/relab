@@ -5,7 +5,6 @@
 // full-screen modal variant for mobile web (where hover tooltips are unreachable).
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
@@ -41,7 +40,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
       <View>
         <Pressable
           onPress={show}
-          style={styles.iconContainer}
+          className="p-2"
           testID="info-pressable"
           accessibilityRole="button"
           accessibilityLabel={`Info: ${title}`}
@@ -57,10 +56,12 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
 
         <Modal visible={visible} transparent animationType="fade" onRequestClose={hide}>
           <Pressable
-            style={[styles.overlay, { backgroundColor: theme.tokens.overlay.scrim }]}
+            className="flex-1 items-center justify-center"
+            style={{ backgroundColor: theme.tokens.overlay.scrim }}
             onPress={hide}
           >
             <OverlaySurface
+              className="p-3 px-4"
               style={[
                 styles.tooltip,
                 tooltipShadowStyle,
@@ -82,12 +83,12 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   // press (native) or hover (web) — no portal needed since it's positioned
   // relative to its own wrapper rather than covering the full screen.
   return (
-    <View style={styles.anchor}>
+    <View className="self-start">
       <Pressable
         onPress={show}
         onHoverIn={Platform.OS === 'web' ? show : undefined}
         onHoverOut={Platform.OS === 'web' ? hide : undefined}
-        style={styles.iconContainer}
+        className="p-2"
         accessibilityRole="button"
         accessibilityLabel={`Info: ${title}`}
         // 20px glyph + spacing.sm padding (36px) + 4px hitSlop/side = 44px.
@@ -99,6 +100,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
       </Pressable>
       {visible ? (
         <OverlaySurface
+          className="absolute left-0 z-10 mt-1 px-2 py-1"
           style={[
             styles.floating,
             tooltipShadowStyle,
@@ -121,31 +123,12 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
 };
 
 const styles = StyleSheet.create({
-  iconContainer: {
-    padding: spacing.sm,
-  },
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   tooltip: {
-    padding: 12,
-    paddingHorizontal: spacing.md,
     maxWidth: '80%',
     minWidth: 200,
   },
-  anchor: {
-    alignSelf: 'flex-start',
-  },
   floating: {
-    position: 'absolute',
     top: '100%',
-    left: 0,
-    marginTop: spacing.xs,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
     maxWidth: 240,
-    zIndex: 10,
   },
 });

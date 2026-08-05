@@ -8,7 +8,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Input } from '@/components/base/ui/input';
-import { spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon } from './Icon';
 
@@ -37,8 +36,8 @@ export function Searchbar({
   const theme = useAppTheme();
 
   return (
-    <View style={[styles.container, style]}>
-      <View style={styles.leadingIcon}>
+    <View className="justify-center" style={style}>
+      <View className="absolute left-3" style={styles.leadingIcon}>
         <Icon name="magnify" size="md" color={theme.colors.onSurfaceVariant} />
       </View>
       <Input
@@ -57,7 +56,7 @@ export function Searchbar({
         <ActivityIndicator
           size="small"
           color={theme.colors.onSurfaceVariant}
-          style={styles.trailing}
+          className="absolute right-3"
         />
       ) : value ? (
         <Pressable
@@ -66,7 +65,7 @@ export function Searchbar({
           accessibilityLabel="Clear search"
           // 20px glyph + 12px hitSlop/side = 44px tap target (a11y floor).
           hitSlop={12}
-          style={styles.trailing}
+          className="absolute right-3"
         >
           <Icon name="close" size="md" color={theme.colors.onSurfaceVariant} />
         </Pressable>
@@ -76,16 +75,9 @@ export function Searchbar({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    justifyContent: 'center',
-  },
   leadingIcon: {
-    position: 'absolute',
-    left: spacing.sm + 4,
+    // zIndex 1 has no exact Tailwind step (the scale jumps 0 -> 10), so it
+    // stays inline alongside the absolute/left classes.
     zIndex: 1,
-  },
-  trailing: {
-    position: 'absolute',
-    right: spacing.sm + 4,
   },
 });

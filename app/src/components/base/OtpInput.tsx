@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { radius } from '@/constants';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import { AppText } from './AppText';
 
@@ -56,15 +55,16 @@ export function OtpInput({
   );
 
   return (
-    <View style={styles.wrap}>
+    <View className="relative w-full max-w-xs self-center gap-1">
       {label ? <AppText variant="label">{label}</AppText> : null}
-      <View style={styles.row}>
+      <View className="flex-row gap-2">
         {Array.from({ length }, (_, index) => index).map((index) => {
           const filled = index < value.length;
           const focused = index === value.length && !disabled;
           return (
             <View
               key={index}
+              className="flex-1 items-center justify-center rounded-md"
               style={[
                 styles.cell,
                 filled && styles.cellFilled,
@@ -72,7 +72,7 @@ export function OtpInput({
                 hasError && styles.cellError,
               ]}
             >
-              <AppText variant="plain" style={styles.digit}>
+              <AppText variant="plain" className="text-2xl font-semibold">
                 {value[index] ?? ''}
               </AppText>
             </View>
@@ -81,6 +81,7 @@ export function OtpInput({
       </View>
       <TextInput
         ref={inputRef}
+        className="absolute inset-0 opacity-0"
         style={styles.hiddenInput}
         value={value}
         onChangeText={handleChange}
@@ -101,48 +102,29 @@ export function OtpInput({
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    wrap: {
-      position: 'relative',
-      alignSelf: 'center',
-      width: '100%',
-      maxWidth: 320,
-      gap: 4,
-    },
-    row: {
-      flexDirection: 'row',
-      gap: 8,
-    },
     cell: {
-      flex: 1,
       height: 56,
-      borderRadius: radius.control,
+      // 1.5 has no exact Tailwind border-width step, and the border/fill
+      // colors are JS-only tokens — the whole cell border+fill stays inline.
       borderWidth: 1.5,
       borderColor: theme.tokens.border.subtle,
       backgroundColor: theme.tokens.surface.sunken,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     cellFilled: {
       borderColor: theme.tokens.border.strong,
     },
     cellFocused: {
+      // theme.colors.primary as a border color has no table entry (only
+      // bg-primary/text-primary are mapped), so this stays JS-side too.
       borderColor: theme.colors.primary,
       backgroundColor: theme.tokens.surface.accent,
     },
     cellError: {
       borderColor: theme.tokens.status.danger,
     },
-    digit: {
-      fontSize: 24,
-      fontWeight: '600',
-    },
     hiddenInput: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      opacity: 0,
+      // color: 'transparent' isn't a table-mapped class; kept alongside the
+      // position/inset it used to share so one declaration covers it.
       color: 'transparent',
     },
   }),

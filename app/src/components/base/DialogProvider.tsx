@@ -1,6 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
-import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { AppButton } from './AppButton';
 import { AppDialog } from './AppDialog';
@@ -103,7 +102,7 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
         </AppText>
       ) : null}
       {options.message ? (
-        <AppText variant="plain" style={styles.message}>
+        <AppText variant="plain" className="mb-2">
           {options.message}
         </AppText>
       ) : null}
@@ -115,8 +114,8 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
           onSubmitEditing={handleSubmitEditing}
           placeholder={options.placeholder}
           autoFocus
+          className="rounded-md border px-2 py-2"
           style={[
-            styles.input,
             { borderColor: theme.colors.outline },
             options.error
               ? {
@@ -131,10 +130,10 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
       {options.input && options.helperText ? (
         <AppText
           variant="plain"
-          style={[
-            styles.helperText,
-            { color: options.error ? theme.tokens.status.danger : theme.colors.onSurfaceVariant },
-          ]}
+          className="mt-1 text-xs"
+          style={{
+            color: options.error ? theme.tokens.status.danger : theme.colors.onSurfaceVariant,
+          }}
         >
           {options.helperText}
         </AppText>
@@ -193,8 +192,13 @@ function Toast({ message, onDismiss }: { message: string | null; onDismiss: () =
   if (!message) return null;
 
   return (
-    <View style={styles.toastContainer} pointerEvents="box-none">
+    <View
+      className="absolute bottom-6 left-0 right-0 items-center"
+      style={styles.toastContainer}
+      pointerEvents="box-none"
+    >
       <OverlaySurface
+        className="px-4 py-2"
         style={[styles.toast, { backgroundColor: theme.colors.inverseSurface }]}
         tone="scrim"
       >
@@ -211,30 +215,11 @@ function Toast({ message, onDismiss }: { message: string | null; onDismiss: () =
 }
 
 const styles = StyleSheet.create({
-  message: {
-    marginBottom: spacing.sm,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  helperText: {
-    fontSize: 12,
-    marginTop: spacing.xs,
-  },
   toastContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: spacing.lg,
-    alignItems: 'center',
+    // zIndex 100 has no exact Tailwind step (scale tops out at 50).
     zIndex: 100,
   },
   toast: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
     maxWidth: '90%',
   },
 });

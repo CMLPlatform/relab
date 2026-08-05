@@ -1,6 +1,5 @@
 import type { ReactNode, RefObject } from 'react';
 import { Modal, Pressable, StyleSheet, type View } from 'react-native';
-import { spacing } from '@/constants';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme';
 import { OverlaySurface } from './OverlaySurface';
@@ -47,12 +46,17 @@ export function AppDialog({
       onRequestClose={handleDismiss ?? NOOP}
     >
       <Pressable
-        style={[styles.overlay, { backgroundColor: theme.tokens.overlay.scrim }]}
+        className="flex-1 items-center justify-center p-4"
+        style={{ backgroundColor: theme.tokens.overlay.scrim }}
         onPress={handleDismiss}
       >
         {/* Swallow presses so tapping inside the dialog doesn't dismiss it. */}
-        <Pressable onPress={(e) => e.stopPropagation()} style={styles.dialogWrapper}>
-          <OverlaySurface style={[styles.dialog, theme.tokens.elevation.overlay]} tone="surface">
+        <Pressable
+          onPress={(e) => e.stopPropagation()}
+          className="w-full"
+          style={styles.dialogWrapper}
+        >
+          <OverlaySurface className="p-4" style={theme.tokens.elevation.overlay} tone="surface">
             {children}
           </OverlaySurface>
         </Pressable>
@@ -62,18 +66,8 @@ export function AppDialog({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.md,
-  },
   dialogWrapper: {
-    width: '100%',
     maxWidth: 480,
     maxHeight: '85%',
-  },
-  dialog: {
-    padding: spacing.md,
   },
 });

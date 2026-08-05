@@ -6,7 +6,6 @@ import {
   StyleSheet,
   type ViewStyle,
 } from 'react-native';
-import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon, type IconName } from './Icon';
 
@@ -52,8 +51,8 @@ export function IconButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: loading, busy: loading }}
       hitSlop={8}
+      className="min-h-11 min-w-11 items-center justify-center rounded-md"
       style={({ pressed }) => [
-        styles.button,
         mode === 'contained-tonal' && { backgroundColor: theme.colors.secondaryContainer },
         pressed && !loading && styles.pressed,
         style,
@@ -69,13 +68,6 @@ export function IconButton({
 }
 
 const styles = StyleSheet.create({
-  button: {
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.control,
-  },
   pressed: {
     opacity: 0.6,
   },

@@ -8,7 +8,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
-import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon, type IconName } from './Icon';
 
@@ -81,8 +80,8 @@ export function Fab({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
+      className="min-h-11 min-w-11 flex-row items-center rounded-xl px-4"
       style={({ pressed }) => [
-        styles.fab,
         theme.tokens.elevation.overlay,
         { backgroundColor: theme.colors.primaryContainer },
         disabled && styles.disabled,
@@ -96,10 +95,13 @@ export function Fab({
         <Icon name={icon} size="lg" color={theme.colors.onPrimaryContainer} />
       )}
       {extended ? (
+        // Animated.View isn't a NativeWind className target (see ZoomableImage.tsx), so
+        // overflow stays inline.
         <Animated.View style={[styles.labelClip, labelStyle]}>
           <AppText
             numberOfLines={1}
-            style={[styles.label, { color: theme.colors.onPrimaryContainer }]}
+            className="ml-2"
+            style={{ color: theme.colors.onPrimaryContainer }}
           >
             {label}
           </AppText>
@@ -110,17 +112,6 @@ export function Fab({
 }
 
 const styles = StyleSheet.create({
-  fab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minWidth: 44,
-    minHeight: 44,
-    // Floating surface: overlay radius, not `full` — DESIGN.md reserves the pill
-    // radius for avatars/true pills. Elevation comes from the shared overlay
-    // tier, applied inline since it is theme-dependent.
-    borderRadius: radius.overlay,
-    paddingHorizontal: spacing.md,
-  },
   disabled: {
     opacity: 0.5,
   },
@@ -129,8 +120,5 @@ const styles = StyleSheet.create({
   },
   labelClip: {
     overflow: 'hidden',
-  },
-  label: {
-    marginLeft: spacing.sm,
   },
 });

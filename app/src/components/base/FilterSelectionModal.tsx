@@ -1,6 +1,5 @@
 import { type ReactNode, useCallback } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { AppButton } from './AppButton';
 import { AppText } from './AppText';
@@ -77,13 +76,22 @@ function FilterModalShell({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable
-        style={[styles.overlay, { backgroundColor: theme.tokens.overlay.scrim }]}
+        className="flex-1 items-center justify-center p-4"
+        style={{ backgroundColor: theme.tokens.overlay.scrim }}
         onPress={onDismiss}
       >
         {/* Swallow presses so tapping inside the dialog doesn't dismiss it. */}
-        <Pressable onPress={(e) => e.stopPropagation()} style={styles.dialogWrapper}>
-          <OverlaySurface style={styles.dialog} tone="surface">
-            <AppText variant="plain" accessibilityRole="header" style={styles.title}>
+        <Pressable
+          onPress={(e) => e.stopPropagation()}
+          className="w-full"
+          style={styles.dialogWrapper}
+        >
+          <OverlaySurface className="p-4" tone="surface">
+            <AppText
+              variant="plain"
+              accessibilityRole="header"
+              className="mb-2 text-lg font-semibold"
+            >
               {title}
             </AppText>
             <TextInput
@@ -91,11 +99,12 @@ function FilterModalShell({
               value={searchQuery}
               onChangeText={onSearchChange}
               accessibilityRole="search"
-              style={[styles.search, { borderColor: theme.colors.outline }]}
+              className="mb-4 rounded-md border px-2 py-2"
+              style={{ borderColor: theme.colors.outline }}
             />
             {isLoading ? (
               <View
-                style={styles.loading}
+                className="items-center py-6"
                 accessible
                 accessibilityRole="progressbar"
                 accessibilityState={{ busy: true }}
@@ -103,12 +112,12 @@ function FilterModalShell({
                 <ActivityIndicator color={theme.colors.primary} />
               </View>
             ) : visibleItems.length === 0 && !addNewChip ? (
-              <AppText variant="plain" style={styles.empty}>
+              <AppText variant="plain" className="pb-2 opacity-50">
                 No results
               </AppText>
             ) : (
               <ScrollView style={styles.scroll}>
-                <View style={styles.chips}>
+                <View className="flex-row flex-wrap gap-2 pb-2">
                   {addNewChip ? (
                     // NOTE: dropped Paper's leading "+" icon — Chip's icon prop
                     // renders inside the same AppText node as the label, which would
@@ -132,7 +141,7 @@ function FilterModalShell({
                 </View>
               </ScrollView>
             )}
-            <View style={styles.actions}>{footer}</View>
+            <View className="mt-2 flex-row justify-end gap-1">{footer}</View>
           </OverlaySurface>
         </Pressable>
       </Pressable>
@@ -287,53 +296,12 @@ export function SingleSelectFilterModal({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.md,
-  },
   dialogWrapper: {
-    width: '100%',
     maxWidth: 480,
     maxHeight: '85%',
   },
-  dialog: {
-    padding: spacing.md,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-  },
-  search: {
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  loading: {
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-  },
-  empty: {
-    opacity: 0.5,
-    paddingBottom: spacing.sm,
-  },
   scroll: {
+    // No exact Tailwind step for 320.
     maxHeight: 320,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    paddingBottom: spacing.sm,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
   },
 });

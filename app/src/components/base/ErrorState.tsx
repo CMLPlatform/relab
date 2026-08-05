@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { useAppTheme } from '@/theme';
 import { AppButton } from './AppButton';
 import { AppText } from './AppText';
@@ -15,9 +15,9 @@ export function ErrorState({ message, onRetry, icon = 'alert-circle-outline' }: 
   const theme = useAppTheme();
 
   return (
-    <View style={styles.center}>
+    <View className="flex-1 items-center justify-center gap-3 p-6">
       <Icon name={icon} size={48} color={theme.colors.error} />
-      <AppText variant="plain" style={styles.message}>
+      <AppText variant="plain" className="mt-3 text-center">
         {message}
       </AppText>
       <AppButton variant="primary" onPress={onRetry} className="mt-4">
@@ -26,17 +26,3 @@ export function ErrorState({ message, onRetry, icon = 'alert-circle-outline' }: 
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    gap: 12,
-  },
-  message: {
-    marginTop: 12,
-    textAlign: 'center',
-  },
-});

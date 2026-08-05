@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
-import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition } from './menuPosition';
 
@@ -65,6 +64,7 @@ export function Menu({ visible, onDismiss, anchor, children }: MenuProps) {
           <Pressable
             onPress={(e) => e.stopPropagation()}
             accessibilityRole="menu"
+            className="rounded-xl py-1"
             style={[
               styles.content,
               position,
@@ -94,12 +94,10 @@ function MenuItem({
     <Pressable
       onPress={onPress}
       accessibilityRole="menuitem"
-      style={({ pressed }) => [
-        styles.item,
-        pressed && { backgroundColor: theme.colors.surfaceVariant },
-      ]}
+      className="min-h-11 flex-row items-center justify-between gap-2 px-4"
+      style={({ pressed }) => [pressed && { backgroundColor: theme.colors.surfaceVariant }]}
     >
-      <AppText testID="menu-item-title" style={styles.itemLabel}>
+      <AppText testID="menu-item-title" className="shrink">
         {title}
       </AppText>
       {trailingIcon ? <Icon name={trailingIcon} size="md" color={theme.colors.onSurface} /> : null}
@@ -114,20 +112,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     minWidth: MENU_MIN_WIDTH,
     maxWidth: '92%',
-    // Floating surface: overlay radius + the shared overlay elevation tier
-    // (applied inline below, since it is theme-dependent).
-    borderRadius: radius.overlay,
-    paddingVertical: spacing.xs,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 44,
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-  },
-  itemLabel: {
-    flexShrink: 1,
+    // Floating surface: overlay radius (rounded-xl class) + the shared
+    // overlay elevation tier (applied inline, since it is theme-dependent).
   },
 });

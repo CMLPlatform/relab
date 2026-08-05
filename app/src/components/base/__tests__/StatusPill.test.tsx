@@ -13,7 +13,7 @@ test('solid variant fills with a background and bold text, no border', () => {
   const pill = StyleSheet.flatten(screen.getByTestId('pill').props.style);
   expect(pill.backgroundColor).toBeTruthy();
   expect(pill.borderWidth).toBeFalsy();
-  expect(StyleSheet.flatten(screen.getByText('LIVE').props.style).fontWeight).toBe('700');
+  expect((screen.getByText('LIVE').props.className as string).includes('font-bold')).toBe(true);
 });
 
 test('soft variant uses a tinted fill with a border and non-bold text', () => {
@@ -21,5 +21,5 @@ test('soft variant uses a tinted fill with a border and non-bold text', () => {
   const pill = StyleSheet.flatten(screen.getByTestId('pill').props.style);
   expect(pill.backgroundColor).toBeTruthy();
   expect(pill.borderWidth).toBe(1);
-  expect(StyleSheet.flatten(screen.getByText('Warm').props.style).fontWeight).not.toBe('700');
+  expect((screen.getByText('Warm').props.className as string).includes('font-bold')).toBe(false);
 });
