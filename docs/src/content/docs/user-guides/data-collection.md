@@ -88,7 +88,7 @@ Accepted types and size limits:
 - Scientific data: `.dat`, `.h5`, `.hdr`, `.hdf5`, `.img`, `.nitf`, `.ntf`, `.raw`, `.tif`, `.tiff`
   — up to 50 MiB.
 
-Relab validates type, size, and content before storing a file, and unpacks and inspects office
+Relab validates type, size, and content before storing a file. It also unpacks and inspects office
 files before accepting them. Each account has a cap on total file count and storage used — 5000
 files and 2048 MB by default, tunable per instance by the operator through
 `MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB`. If malware scanning is enabled,
