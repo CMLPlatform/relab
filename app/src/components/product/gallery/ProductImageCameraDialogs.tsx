@@ -37,6 +37,8 @@ export function ProductImageCameraDialogs({
         onSelect={onSelectCamera}
       />
 
+      {/* NOTE: no triggerRef — opened by selecting a camera row inside
+          CameraPickerDialog, not by a trigger rendered in this file. */}
       <AppDialog visible={previewCamera !== null} onDismiss={onDismissPreview}>
         <AppText accessibilityRole="header" style={dialogStyles.title}>
           {previewCamera?.name ?? 'Camera preview'}

@@ -14,6 +14,8 @@ export default function LogoutConfirm({
   onConfirm: () => void;
 }) {
   return (
+    // NOTE: no triggerRef — opened from the "Sign out" ProfileAction in
+    // AccountSections.tsx, not in this file.
     <AppDialog visible={visible} onDismiss={onDismiss}>
       <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
         Sign out

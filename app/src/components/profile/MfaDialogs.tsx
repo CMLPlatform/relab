@@ -47,6 +47,8 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
 
   return (
     <>
+      {/* NOTE: no triggerRef on any dialog below — mode transitions are driven by
+          ProfileAction buttons in SecuritySection.tsx, not by triggers in this file. */}
       <AppDialog visible={mfa.mode === 'enroll'} onDismiss={cancel}>
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Set up two-step verification

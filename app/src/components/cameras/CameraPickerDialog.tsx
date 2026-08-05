@@ -54,6 +54,8 @@ export function CameraPickerDialog({
   );
 
   return (
+    // NOTE: no triggerRef — this reusable dialog is opened from callers (the
+    // "Go Live" button, RPi capture buttons), not from a trigger in this file.
     <AppDialog visible={visible} onDismiss={onDismiss}>
       <AppText accessibilityRole="header" style={styles.title}>
         {title}

@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet } from 'react-native';
+import type { ReactNode, RefObject } from 'react';
+import { Modal, Pressable, StyleSheet, type View } from 'react-native';
 import { spacing } from '@/constants';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme';
@@ -10,6 +10,8 @@ type AppDialogProps = {
   onDismiss: () => void;
   /** When false, tapping the backdrop or pressing Escape/back does not dismiss. Defaults to true. */
   dismissable?: boolean;
+  /** The element that opened this dialog, so native screen readers can return focus to it on close. */
+  triggerRef?: RefObject<View | null>;
   children: ReactNode;
 };
 
@@ -21,11 +23,18 @@ const NOOP = () => {};
  * and Escape→onRequestClose on web (see DialogProvider.tsx for the rationale
  * behind not using the vendored rn-primitives ui/dialog here).
  */
-export function AppDialog({ visible, onDismiss, dismissable = true, children }: AppDialogProps) {
+export function AppDialog({
+  visible,
+  onDismiss,
+  dismissable = true,
+  triggerRef,
+  children,
+}: AppDialogProps) {
   const theme = useAppTheme();
   const handleDismiss = dismissable ? onDismiss : undefined;
-  // Every dialog inherits return-focus on close; no per-caller wiring.
-  useReturnFocus(visible);
+  // Every dialog inherits return-focus on close; triggerRef is optional and
+  // only needed for native screen-reader focus restore (web works without it).
+  useReturnFocus(visible, triggerRef);
 
   return (
     <Modal

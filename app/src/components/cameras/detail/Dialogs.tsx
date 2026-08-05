@@ -26,6 +26,8 @@ function EditNameDialog({
   const handleSave = useCallback(() => onSave(value.trim()), [onSave, value]);
 
   return (
+    // NOTE: no triggerRef — opened from the pencil IconButton in detailRows.tsx,
+    // rendered on the camera detail screen, not in this file.
     <AppDialog visible onDismiss={onDismiss}>
       <AppText accessibilityRole="header" style={styles.title}>
         Edit name
@@ -79,6 +81,8 @@ function EditDescriptionDialog({
   const handleSave = useCallback(() => onSave(value.trim()), [onSave, value]);
 
   return (
+    // NOTE: no triggerRef — opened from the pencil IconButton in detailRows.tsx,
+    // rendered on the camera detail screen, not in this file.
     <AppDialog visible onDismiss={onDismiss}>
       <AppText accessibilityRole="header" style={styles.title}>
         Edit description
@@ -129,6 +133,8 @@ function ManualSetupDialog({
 }: ManualSetupDialogProps) {
   const theme = useAppTheme();
   return (
+    // NOTE: no triggerRef — opened from the "Manual setup" button in
+    // ConnectionPreview.tsx, not in this file.
     <AppDialog visible={visible} onDismiss={onDismiss}>
       <AppText accessibilityRole="header" style={styles.title}>
         Manual direct connection
@@ -194,6 +200,8 @@ function CameraDeleteDialog({
   onConfirmDelete,
 }: CameraDeleteDialogProps) {
   return (
+    // NOTE: no triggerRef — opened from the "Delete camera" ActionRow in
+    // detailRows.tsx (CameraDangerZone), not in this file.
     <AppDialog visible={visible} onDismiss={onDismiss}>
       <AppText accessibilityRole="header" style={styles.title}>
         Delete camera?

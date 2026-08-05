@@ -55,6 +55,8 @@ export function ProfileDialogs({
   const styles = createProfileSectionStyles(theme);
   return (
     <>
+      {/* NOTE: no triggerRef on any dialog below — all are opened from buttons in
+          HeroStats.tsx / AccountSections.tsx, not from triggers in this file. */}
       <AppDialog visible={editUsernameVisible} onDismiss={onDismissEditUsername}>
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Edit username

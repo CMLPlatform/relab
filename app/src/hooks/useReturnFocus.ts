@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, findNodeHandle, Platform, type View } from 'react-native';
 
 /**
@@ -13,11 +13,13 @@ import { AccessibilityInfo, findNodeHandle, Platform, type View } from 'react-na
  * `visible` (most of ours) never trigger it.
  *
  * On native there is no way to read what had accessibility focus, so the caller
- * must attach the returned ref to the trigger; without it the native branch is a
- * no-op.
+ * must attach the returned ref to the trigger — pass an existing ref via
+ * `externalRef`, or attach the returned ref directly; without either, the
+ * native branch is a no-op.
  */
-export function useReturnFocus(visible: boolean) {
-  const triggerRef = useRef<View | null>(null);
+export function useReturnFocus(visible: boolean, externalRef?: RefObject<View | null>) {
+  const internalRef = useRef<View | null>(null);
+  const triggerRef = externalRef ?? internalRef;
   const wasVisible = useRef(visible);
   const [renderedVisible, setRenderedVisible] = useState(visible);
   const [webTrigger, setWebTrigger] = useState<HTMLElement | null>(null);
@@ -44,7 +46,7 @@ export function useReturnFocus(visible: boolean) {
 
     const handle = findNodeHandle(triggerRef.current);
     if (handle !== null) AccessibilityInfo.setAccessibilityFocus(handle);
-  }, [visible, isWeb, webTrigger]);
+  }, [visible, isWeb, webTrigger, triggerRef.current]);
 
   return triggerRef;
 }

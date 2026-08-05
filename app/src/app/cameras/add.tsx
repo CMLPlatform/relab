@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { type RefObject, useCallback, useRef } from 'react';
 import { Controller } from 'react-hook-form';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
@@ -13,10 +13,18 @@ import { radius } from '@/constants';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useAppTheme } from '@/theme';
 
-function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
+function PairingSuccessDialog({
+  visible,
+  onDismiss,
+  triggerRef,
+}: {
+  visible: boolean;
+  onDismiss: () => void;
+  triggerRef: RefObject<View | null>;
+}) {
   const theme = useAppTheme();
   return (
-    <AppDialog visible={visible} onDismiss={onDismiss}>
+    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
       <View style={styles.successContent}>
         <Icon name="check-circle" size={56} color={theme.tokens.status.success} />
         <AppText variant="title" accessibilityRole="header">
@@ -38,6 +46,7 @@ function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDism
 export default function AddCameraScreen() {
   const theme = useAppTheme();
   const { user, control, submit, isPending, pairingSuccess, dismissSuccess } = useAddCameraForm();
+  const pairButtonRef = useRef<View>(null);
 
   const renderPairingCode = useCallback(
     ({
@@ -156,18 +165,24 @@ export default function AddCameraScreen() {
             </AppText>
           </View>
 
-          <AppButton
-            variant="primary"
-            onPress={submit}
-            loading={isPending}
-            disabled={isPending}
-            className="mt-2"
-          >
-            <Icon name="link-variant" size={18} color={theme.colors.onPrimary} />
-            <AppText style={{ color: theme.colors.onPrimary }}>Pair camera</AppText>
-          </AppButton>
+          <View ref={pairButtonRef} collapsable={false}>
+            <AppButton
+              variant="primary"
+              onPress={submit}
+              loading={isPending}
+              disabled={isPending}
+              className="mt-2"
+            >
+              <Icon name="link-variant" size={18} color={theme.colors.onPrimary} />
+              <AppText style={{ color: theme.colors.onPrimary }}>Pair camera</AppText>
+            </AppButton>
+          </View>
 
-          <PairingSuccessDialog visible={pairingSuccess} onDismiss={dismissSuccess} />
+          <PairingSuccessDialog
+            visible={pairingSuccess}
+            onDismiss={dismissSuccess}
+            triggerRef={pairButtonRef}
+          />
         </View>
       </PageContainer>
     </ScrollView>

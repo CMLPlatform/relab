@@ -53,6 +53,8 @@ export function GoLiveDialog({
   );
 
   return (
+    // NOTE: no triggerRef — this dialog's `visible` is driven by callers (camera grid
+    // cell / ProductVideo's "Go Live" button), not by a trigger rendered in this file.
     <AppDialog visible={visible} onDismiss={onDismiss}>
       <AppText accessibilityRole="header" style={styles.title}>
         Go Live on {cameraName}
