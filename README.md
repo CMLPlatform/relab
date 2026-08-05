@@ -5,7 +5,7 @@
 # Relab
 
 [![Version](https://img.shields.io/github/v/release/CMLPlatform/relab?include_prereleases&filter=v*)](CHANGELOG.md)
-[![License: AGPL-v3+](https://img.shields.io/badge/License-AGPL--v3+-rebeccapurple.svg)](LICENSE.md)
+[![License: AGPL-v3+](https://img.shields.io/badge/License-AGPL--v3+-rebeccapurple.svg)](LICENSE)
 [![Data License: ODbL](https://img.shields.io/badge/Data_License-ODbL-rebeccapurple.svg)](https://opendatacommons.org/licenses/odbl/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.16637742-blue.svg)](https://doi.org/10.5281/zenodo.16637742)
 [![Coverage](https://img.shields.io/codecov/c/github/CMLPlatform/relab)](https://codecov.io/gh/CMLPlatform/relab)
