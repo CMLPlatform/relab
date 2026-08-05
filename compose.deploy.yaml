@@ -85,7 +85,7 @@ services:
       #
       #                    per worker  x  workers  =  total (prod)
       # Image threads:          5      x     4     =   20  (CPU-bound)
-      # DB connections:    10 + 10     x     4     =   80  (PostgreSQL default max=100)
+      # DB connections:    10 + 10     x     4     =   80  (configured postgres max_connections=100 below)
       # Outbound HTTP:        100      x     4     =  400  (mostly idle)
       WEB_CONCURRENCY: "4"
       IMAGE_RESIZE_WORKERS: "5"
