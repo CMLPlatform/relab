@@ -2,7 +2,7 @@
 
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security
 from fastapi_pagination import Page
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
@@ -17,6 +17,8 @@ from app.api.auth.filters import UserFilter
 from app.api.auth.models import User
 from app.api.auth.schemas import UserRead, UserUpdate
 from app.api.auth.services import mfa_service
+from app.api.auth.services.account_erasure import ErasureContent, erase_user
+from app.api.auth.services.account_security import revoke_user_refresh_tokens
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.crud.query import page_models
@@ -97,16 +99,26 @@ async def update_user(
 )
 async def delete_user(
     user: UserByIDDep,
-    user_manager: UserManagerDep,
     actor: CurrentActiveSuperUserDep,
+    session: AsyncSessionDep,
     request: Request,
+    content: Annotated[
+        ErasureContent,
+        Query(
+            description=(
+                "What to do with the research data this user contributed: `anonymize` "
+                "reassigns their products to the anonymous system account, `delete` "
+                "removes the products and their media. Personal data is erased either way."
+            )
+        ),
+    ] = "anonymize",
 ) -> None:
-    """Delete a user by ID."""
-    # `request` reaches UserManager.on_before_delete, which revokes the user's refresh
-    # tokens before the row is removed. The built-in fastapi-users delete route relies
-    # on the same hook, so revocation is not duplicated here.
-    await user_manager.delete(user, request=request)
-    audit_event(actor.id, AuditAction.DELETE, User, user.id)
+    """Delete a user by ID, anonymizing or deleting the content they own."""
+    # Revoke first, exactly as UserManager.on_before_delete did: a failure here aborts
+    # the erasure instead of leaving a deleted user whose sessions are still live.
+    await revoke_user_refresh_tokens(user.id, request)
+    await erase_user(session, user, content=content)
+    audit_event(actor.id, AuditAction.DELETE, User, user.id, context=AuditContext(operation=f"erase_{content}"))
 
 
 @router.post(

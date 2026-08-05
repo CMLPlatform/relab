@@ -5,13 +5,27 @@ gate is actually exercised — the previous unit test called the handlers as pla
 coroutines and never touched it.
 """
 
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import select
 
-from app.api.auth.models import User
-from app.api.common.audit import AuditAction
+from app.api.auth.models import OAuthAccount, User
+from app.api.auth.services.account_erasure import ANONYMOUS_USER_EMAIL, get_or_create_anonymous_user
+from app.api.common.audit import AuditAction, AuditContext
+from app.api.data_collection.models.product import Product
+from app.api.plugins.rpi_cam.models import Camera
+from tests.factories.models import CameraFactory, UserFactory
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.api.reference_data.models import ProductType
 
 pytestmark = pytest.mark.api
 
@@ -89,7 +103,13 @@ class TestAdminUsersActions:
             response = await api_client_superuser.delete(f"{ADMIN_USERS}/{db_user.id}")
 
         assert response.status_code == 204
-        log_audit.assert_called_once_with(db_superuser.id, AuditAction.DELETE, User, db_user.id)
+        log_audit.assert_called_once_with(
+            db_superuser.id,
+            AuditAction.DELETE,
+            User,
+            db_user.id,
+            context=AuditContext(operation="erase_anonymize"),
+        )
 
     async def test_superuser_updates_a_user_and_audits_the_actor(
         self, api_client_superuser, db_superuser: User, db_user: User
@@ -112,3 +132,121 @@ class TestAdminUsersActions:
 
         assert response.status_code == 204
         clear_totp.assert_awaited_once()
+
+
+@dataclass(slots=True)
+class ErasureSubject:
+    """A user together with everything that used to block their deletion."""
+
+    user: User
+    product: Product
+    component: Product
+    camera: Camera
+
+
+@pytest.fixture
+async def erasure_subject(db_session: AsyncSession, db_product_type: ProductType) -> ErasureSubject:
+    """Seed a user owning a product subtree, a camera, and a linked OAuth account."""
+    user = await UserFactory.create_async(session=db_session, is_active=True, is_superuser=False)
+    product = Product(owner_id=user.id, name="Owned product", product_type=db_product_type)
+    component = Product(owner_id=user.id, name="Owned component", parent=product, amount_in_parent=1)
+    oauth_account = OAuthAccount(
+        user_id=user.id,
+        oauth_name="google",
+        access_token="access-token",  # test fixture value, not a credential
+        account_id="oauth-account-1",
+        account_email="owner@example.com",
+    )
+    db_session.add_all([product, component, oauth_account])
+    camera = await CameraFactory.create_async(session=db_session, owner_id=user.id)
+    await db_session.flush()
+    return ErasureSubject(user=user, product=product, component=component, camera=camera)
+
+
+async def _row_exists(session: AsyncSession, statement) -> bool:  # any Select works here
+    """Return whether a select matches a live row, bypassing the identity map."""
+    return (await session.execute(statement)).first() is not None
+
+
+class TestAdminUserErasure:
+    """Deleting a user erases their personal data and applies the chosen content policy."""
+
+    async def test_anonymize_reassigns_content_and_erases_the_account(
+        self,
+        api_client_superuser,
+        db_session: AsyncSession,
+        erasure_subject: ErasureSubject,
+    ) -> None:
+        """The default mode keeps the products, reassigned to the anonymous system account."""
+        subject = erasure_subject
+
+        response = await api_client_superuser.delete(f"{ADMIN_USERS}/{subject.user.id}")
+
+        assert response.status_code == 204
+        anonymous_id: UUID = (
+            await db_session.execute(select(User.id).where(User.email == ANONYMOUS_USER_EMAIL))
+        ).scalar_one()
+        owners = (
+            (
+                await db_session.execute(
+                    select(Product.owner_id).where(Product.id.in_([subject.product.id, subject.component.id]))
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert list(owners) == [anonymous_id, anonymous_id]
+        assert not await _row_exists(db_session, select(User.id).where(User.id == subject.user.id))
+        assert not await _row_exists(db_session, select(Camera.id).where(Camera.id == subject.camera.id))
+        assert not await _row_exists(db_session, select(OAuthAccount.id).where(OAuthAccount.user_id == subject.user.id))
+
+        readable = await api_client_superuser.get(f"/v1/products/{subject.product.id}")
+        assert readable.status_code == 200
+
+    async def test_delete_mode_removes_the_owned_product_subtree(
+        self,
+        api_client_superuser,
+        db_session: AsyncSession,
+        erasure_subject: ErasureSubject,
+    ) -> None:
+        """``content=delete`` erases the products as well as the account."""
+        subject = erasure_subject
+
+        response = await api_client_superuser.delete(f"{ADMIN_USERS}/{subject.user.id}?content=delete")
+
+        assert response.status_code == 204
+        assert not await _row_exists(
+            db_session, select(Product.id).where(Product.id.in_([subject.product.id, subject.component.id]))
+        )
+        assert not await _row_exists(db_session, select(User.id).where(User.id == subject.user.id))
+        assert not await _row_exists(db_session, select(Camera.id).where(Camera.id == subject.camera.id))
+
+    async def test_unknown_content_mode_is_rejected(
+        self, api_client_superuser, erasure_subject: ErasureSubject
+    ) -> None:
+        """Only the two documented content policies are accepted."""
+        response = await api_client_superuser.delete(f"{ADMIN_USERS}/{erasure_subject.user.id}?content=purge")
+
+        assert response.status_code == 422
+
+    async def test_anonymous_account_stays_listable(self, api_client_superuser, db_session: AsyncSession) -> None:
+        """The system account's address must survive UserRead's EmailStr validation."""
+        await get_or_create_anonymous_user(db_session)
+        await db_session.flush()
+
+        response = await api_client_superuser.get(ADMIN_USERS)
+
+        assert response.status_code == 200
+        assert ANONYMOUS_USER_EMAIL in [item["email"] for item in response.json()["items"]]
+
+    async def test_anonymous_system_account_cannot_be_deleted(
+        self, api_client_superuser, db_session: AsyncSession
+    ) -> None:
+        """The account that owns anonymized content is not itself deletable."""
+        anonymous = await get_or_create_anonymous_user(db_session)
+        await db_session.flush()
+
+        response = await api_client_superuser.delete(f"{ADMIN_USERS}/{anonymous.id}")
+
+        assert response.status_code == 409
+        assert await _row_exists(db_session, select(User.id).where(User.id == anonymous.id))

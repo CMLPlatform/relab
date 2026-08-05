@@ -56,6 +56,9 @@ class User(BaseUserDB, TimeStampMixinBare):
         back_populates="user",
         lazy="joined",  # Required because of FastAPI-Users OAuth implementation
         foreign_keys="[OAuthAccount.user_id]",
+        # An OAuth link cannot outlive its user: user_id is NOT NULL, so the default
+        # save-update cascade would try to null it out and fail the delete.
+        cascade="all, delete-orphan",
     )
 
     def __str__(self) -> str:
@@ -69,7 +72,7 @@ class OAuthAccount(BaseOAuthAccountDB, TimeStampMixinBare):
     __tablename__ = "oauthaccount"
 
     # Redefine user_id to ensure the ForeignKey survives mixin inheritance.
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
 
     # Many-to-one relationship with User
     user: Mapped[User] = relationship(

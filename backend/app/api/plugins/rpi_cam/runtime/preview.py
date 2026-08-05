@@ -1,5 +1,6 @@
 """Runtime preview thumbnail helpers."""
 
+import logging
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -9,6 +10,8 @@ from app.core.config import settings
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 PREVIEW_THUMBNAIL_SUBDIR = "rpi-cam-preview"
 
@@ -22,6 +25,14 @@ def get_preview_thumbnail_path(camera_id: UUID4) -> Path:
     private workspace and must go through the owner-checked preview route.
     """
     return settings.image_storage_path.parent / PREVIEW_THUMBNAIL_SUBDIR / f"{camera_id}.jpg"
+
+
+def remove_preview_thumbnail(path: Path) -> None:
+    """Best-effort cleanup of a camera's cached preview thumbnail file."""
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        logger.warning("Could not remove preview thumbnail at %s", path)
 
 
 def get_preview_thumbnail_url(camera_id: UUID4) -> str | None:

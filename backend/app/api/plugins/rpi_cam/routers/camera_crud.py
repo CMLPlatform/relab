@@ -20,15 +20,17 @@ from app.api.plugins.rpi_cam.examples import (
     CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
 )
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraStatus
-from app.api.plugins.rpi_cam.runtime.preview import get_preview_thumbnail_path, get_preview_thumbnail_urls_per_camera
+from app.api.plugins.rpi_cam.runtime.preview import (
+    get_preview_thumbnail_path,
+    get_preview_thumbnail_urls_per_camera,
+    remove_preview_thumbnail,
+)
 from app.api.plugins.rpi_cam.runtime.status import get_camera_status as fetch_camera_status
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead, CameraReadWithStatus, CameraUpdate
 from app.api.plugins.rpi_cam.websocket.message_relay import relay_via_websocket
 from app.core.redis import RedisDep
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
@@ -196,7 +198,7 @@ async def delete_user_camera(
     await db.delete(camera)
     await db.commit()
     background_tasks.add_task(_notify_camera_unpair, camera.id, redis)
-    background_tasks.add_task(_remove_preview_thumbnail, preview_thumbnail_path)
+    background_tasks.add_task(remove_preview_thumbnail, preview_thumbnail_path)
 
 
 @device_router.delete(
@@ -215,7 +217,7 @@ async def self_unpair_camera(
 ) -> None:
     """Device-initiated self-deletion. Pi calls this on local unpair."""
     logger.info("Camera %s self-unpaired via device assertion", camera.id)
-    _remove_preview_thumbnail(get_preview_thumbnail_path(camera.id))
+    remove_preview_thumbnail(get_preview_thumbnail_path(camera.id))
     await db.delete(camera)
     await db.commit()
 
@@ -265,14 +267,6 @@ async def _notify_camera_unpair(camera_id: UUID4, redis: Redis) -> None:
             camera_id,
             exc.status_code,
         )
-
-
-def _remove_preview_thumbnail(path: Path) -> None:
-    """Best-effort cleanup of a camera's cached preview thumbnail file."""
-    try:
-        path.unlink(missing_ok=True)
-    except OSError:
-        logger.warning("Could not remove preview thumbnail at %s", path)
 
 
 router.include_router(camera_router, prefix="/plugins/rpi-cam/cameras")

@@ -6,6 +6,7 @@ import pytest
 from dirty_equals import IsInt, IsPositive, IsStr
 from fastapi import status
 
+from app.api.data_collection.models.product import MaterialProductLink
 from app.api.reference_data.models import TaxonomyDomain
 from tests.factories.models import CategoryFactory, TaxonomyFactory
 
@@ -13,7 +14,8 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from app.api.reference_data.models import Category, Taxonomy
+    from app.api.data_collection.models.product import Product
+    from app.api.reference_data.models import Category, Material, ProductType, Taxonomy
 
 TAXONOMY_NAME = "Test API Taxonomy"
 TAXONOMY_VERSION = "v1.0.0"
@@ -228,6 +230,41 @@ async def test_product_type_creation_returns_created_resource(api_client_superus
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json()["name"] == "Test API Product Type"
+
+
+async def test_unreferenced_material_can_be_deleted(api_client_superuser: AsyncClient, db_material: Material) -> None:
+    """A material nothing points at is deletable."""
+    response = await api_client_superuser.delete(f"/v1/admin/materials/{db_material.id}")
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+
+async def test_material_in_a_bill_of_materials_cannot_be_deleted(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    db_material: Material,
+    setup_product: Product,
+) -> None:
+    """Deleting a referenced material is a conflict naming the blocking relation."""
+    db_session.add(MaterialProductLink(material_id=db_material.id, product_id=setup_product.id, quantity=1.5))
+    await db_session.flush()
+
+    response = await api_client_superuser.delete(f"/v1/admin/materials/{db_material.id}")
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert "bill of materials" in response.json()["detail"].lower()
+
+
+async def test_product_type_in_use_cannot_be_deleted(
+    api_client_superuser: AsyncClient, db_product_type: ProductType, setup_product: Product
+) -> None:
+    """A product type still used by a product is a conflict, not a 500."""
+    assert setup_product.product_type_id == db_product_type.id
+
+    response = await api_client_superuser.delete(f"/v1/admin/product-types/{db_product_type.id}")
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert "product" in response.json()["detail"].lower()
 
 
 async def test_units_endpoint_returns_available_units(api_client: AsyncClient) -> None:
