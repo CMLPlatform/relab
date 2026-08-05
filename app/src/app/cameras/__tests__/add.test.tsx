@@ -50,7 +50,7 @@ describe('AddCameraScreen', () => {
     renderWithProviders(<AddCameraScreen />);
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
-    const cameraNameInput = screen.getByLabelText('Camera name *');
+    const cameraNameInput = screen.getByLabelText('Camera name, required');
     const descriptionInput = screen.getByLabelText('Description (optional)');
     fireEvent.changeText(pairingCodeInput, 'ab-12cd9');
     fireEvent.changeText(cameraNameInput, 'Workbench Camera');
@@ -77,7 +77,7 @@ describe('AddCameraScreen', () => {
     renderWithProviders(<AddCameraScreen />);
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
-    const cameraNameInput = screen.getByLabelText('Camera name *');
+    const cameraNameInput = screen.getByLabelText('Camera name, required');
     fireEvent.changeText(pairingCodeInput, 'AB12CD');
     fireEvent.changeText(cameraNameInput, 'Test Camera');
     fireEvent.press(screen.getByText('Pair camera'));
@@ -94,7 +94,7 @@ describe('AddCameraScreen', () => {
     renderWithProviders(<AddCameraScreen />);
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
-    const cameraNameInput = screen.getByLabelText('Camera name *');
+    const cameraNameInput = screen.getByLabelText('Camera name, required');
     fireEvent.changeText(pairingCodeInput, 'AB12CD');
     fireEvent.changeText(cameraNameInput, 'Test Camera');
     fireEvent.press(screen.getByText('Pair camera'));

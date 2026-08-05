@@ -84,7 +84,7 @@ export default function AddCameraScreen() {
           maxLength={100}
           autoCapitalize="words"
           placeholder="Camera name"
-          accessibilityLabel="Camera name *"
+          accessibilityLabel="Camera name, required"
           bordered
           className="mb-1"
           style={{
