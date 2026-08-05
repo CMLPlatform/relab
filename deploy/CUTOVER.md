@@ -196,6 +196,11 @@ uploads fail closed:
 MALWARE_SCAN_ENABLED=false
 ```
 
+`prod-up` enforces this pairing: it refuses to start when `MALWARE_SCAN_ENABLED`
+is anything but `false` while the `scanning` profile is off. Whichever way you
+decide here, the rest of this runbook's `prod-up` commands assume it — keep the
+`scanning` profile on every one of them, or drop it from every one.
+
 Running without scanning means uploaded files are not checked for malware on a
 platform that accepts uploads from external contributors. Treat it as an
 explicit, temporary accepted risk, not a default.
@@ -620,7 +625,7 @@ ______________________________________________________________________
 ## 10. Set up backups
 
 ```bash
-just prod-up YES backups
+just prod-up YES backups scanning   # drop `scanning` only if you disabled it in 1a
 just backup-restore-smoke prod
 ```
 
@@ -684,7 +689,8 @@ If verification fails and the release cannot be trusted:
 
 1. Restore uploads from `user_uploads-pre-mvp.tar.gz` if anything wrote to them.
 
-1. `just prod-up YES` on `main`.
+1. `just prod-up YES scanning` on `main` (drop `scanning` if you disabled it in
+   1a).
 
 `just prod-build` also tags each image it builds with the commit it was built
 from (`relab-backend:prod-<sha>` alongside `relab-backend:prod-local`), so
@@ -692,7 +698,7 @@ rolling back to the previous build needs no rebuild — per image:
 
 ```bash
 docker tag relab-backend:prod-<oldsha> relab-backend:prod-local
-just prod-up YES
+just prod-up YES scanning   # drop `scanning` only if you disabled it in 1a
 ```
 
 The schema has no scripted down-migration path for the dropped data: the

@@ -116,10 +116,12 @@ compose_config() {
     for env in staging prod; do
         run_validation_deploy_compose "$env" "$validation_env" config >/dev/null
         run_validation_deploy_compose "$env" "$validation_env" --profile backups --profile migrations config >/dev/null
-        local -a host_args=()
-        mapfile -t host_args < <(host_overlay_args)
-        docker compose -p "relab_$env" --env-file "$validation_env" --env-file "$(compose_env_file "$env")" \
-            -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml "${host_args[@]}" config >/dev/null
+        # Same command as above plus the loki overlay, which compose_args only
+        # emits when the root .env sets LOKI_PUSH_URL. Built via compose_args so
+        # the shell-env scrub applies here too.
+        local -a base_args=()
+        mapfile -t base_args < <(compose_args "$env" "$validation_env")
+        "${base_args[@]}" -f compose.logging.loki.yaml config >/dev/null
     done
     local e2e_config="$tmp_root/e2e.json"
     docker compose -p relab_e2e -f compose.e2e.yaml config --format json >"$e2e_config"
