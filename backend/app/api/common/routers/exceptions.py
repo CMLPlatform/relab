@@ -32,7 +32,8 @@ def create_exception_handler(
     async def handler(request: Request, exc: Exception) -> Response:
         status_code, detail, log_message, code, extra = _response_parts(exc, default_status_code)
 
-        # Log based on status code severity. Can be made more granular if needed.
+        # Log severity scales with status code: server errors are errors, client
+        # errors (except the routine 404) are warnings, everything else is informational.
         if status_code >= 500:
             logger.error(
                 "%s: %s",

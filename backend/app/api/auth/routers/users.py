@@ -72,14 +72,13 @@ async def get_public_profile(
     if not user:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    # 2. Check privacy settings
     if not can_view_profile(user, current_user):
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    # 3. Compute stats when no snapshot exists yet. Read-only on purpose: a GET must
-    #    not write on its session (a committing read breaks read-replica routing).
-    #    The snapshot is persisted by the product create/delete write path instead,
-    #    so a viewed-before-any-write profile just recomputes until then.
+    # Compute stats when no snapshot exists yet. Read-only on purpose: a GET must
+    # not write on its session (a committing read breaks read-replica routing).
+    # The snapshot is persisted by the product create/delete write path instead,
+    # so a viewed-before-any-write profile just recomputes until then.
     if user.profile_stats_computed_at is None or not user.profile_stats:
         stats = await compute_profile_stats(session, user.id)
     else:

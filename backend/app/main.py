@@ -39,19 +39,13 @@ def create_app() -> FastAPI:
     # Include the canonical versioned API contract.
     app.include_router(api_router, prefix="/v1")
 
-    # Initialize OpenAPI documentation
     init_openapi_docs(
         app,
         include_internal_contracts=settings.environment in {Environment.DEV, Environment.TESTING},
     )
-
-    # Initialize exception handling
     register_exception_handlers(app)
-
-    # Add pagination
     add_pagination(app)
     return app
 
 
-# Initialize FastAPI application with lifespan
 app = create_app()

@@ -265,5 +265,4 @@ class AuthSettings(RelabBaseSettings):
         return self
 
 
-# Create a settings instance that can be imported throughout the app
 settings = AuthSettings()

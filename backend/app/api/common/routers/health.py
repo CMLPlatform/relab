@@ -92,7 +92,6 @@ async def readiness_probe(request: Request) -> JSONResponse:
     """
     checks = await perform_health_checks(request)
 
-    # Determine overall status
     all_healthy = all(check.get("status") == HEALTHY_STATUS for check in checks.values())
     overall_status = HEALTHY_STATUS if all_healthy else UNHEALTHY_STATUS
     status_code = 200 if all_healthy else 503
