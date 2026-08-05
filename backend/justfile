@@ -113,6 +113,10 @@ migrate-reset:
 compile-email:
     uv run python -m scripts.generate.compile_email_templates
 
+# One-time backfill of upload_size_bytes on existing File/Image rows (see CUTOVER.md)
+backfill-upload-sizes:
+    uv run python -m scripts.maintenance.backfill_upload_sizes
+
 # Export OpenAPI schemas consumed by the docs site
 openapi:
     uv run python -m scripts.generate.export_openapi
