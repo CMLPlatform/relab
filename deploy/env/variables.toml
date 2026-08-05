@@ -17,18 +17,21 @@ required_secret_files = [
   "cache_signing_secret",
   "data_encryption_key",
   "bootstrap_superuser_password",
+  # The `backups` profile is part of the default prod/staging `up`, and losing
+  # this password makes every existing snapshot unreadable.
+  "restic_password",
 ]
 
 # Secrets that may legitimately be absent or empty because their feature is opt-in:
 #   - smtp/microsoft-graph: EMAIL_PROVIDER selects exactly one; the other stays unfilled.
-#   - restic_password: only used by the profile-gated `backups` service (off by default).
 #   - google/github oauth: social login is opt-in; unset the client IDs to disable it.
+#   - rclone.conf: only read when RESTIC_OFFSITE_REPOSITORY names an `rclone:` target.
 optional_secret_files = [
   "smtp_password",
   "microsoft_graph_client_secret",
-  "restic_password",
   "google_oauth_client_secret",
   "github_oauth_client_secret",
+  "rclone.conf",
 ]
 
 infisical_path_template = "/relab/{env}/{name}"

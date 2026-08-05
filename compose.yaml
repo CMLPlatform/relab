@@ -149,7 +149,9 @@ services:
       - shared_preload_libraries=pg_stat_statements
       - -c
       - pg_stat_statements.track=all
-      # Pool is 15 per API worker; the rest covers migrator, backup and psql.
+      # Pool is 10 + 10 overflow per API worker; the rest covers migrator,
+      # backup and psql. Enough for dev and CI, which run a single worker;
+      # compose.deploy.yaml raises this to 100 for the 4-worker deploy.
       - -c
       - max_connections=50
       - -c

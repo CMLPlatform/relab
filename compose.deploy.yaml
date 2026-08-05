@@ -54,6 +54,11 @@ services:
     image: relab-backend:${ENVIRONMENT}-local
     read_only: true
     user: "1001:1001"
+    # NOTE: sized against the documented ~20 GiB host budget, alongside postgres
+    # 4g + clamav 4g + redis 1g. Image processing is the spiky consumer here;
+    # without a cap one resize burst takes the host down instead of the API.
+    # Raise it if real usage shows pressure.
+    mem_limit: 6g
     secrets: *backend-runtime-secrets
     tmpfs:
       - /tmp:mode=1777
@@ -188,13 +193,22 @@ services:
       BACKUP_WORK_DIR: /tmp/relab-backups
       BACKUP_INTERVAL_SECONDS: "86400"
       BACKUP_ON_START: "true"
-      RESTIC_KEEP_HOURLY: "24"
+      # Retention starts at daily: one run per day means keep-hourly can only
+      # hold the same snapshots keep-daily already holds, while advertising an
+      # hourly RPO the schedule does not deliver.
       RESTIC_KEEP_DAILY: "14"
       RESTIC_KEEP_WEEKLY: "8"
       RESTIC_KEEP_MONTHLY: "12"
+      # Offsite copy, run at the end of every backup cycle when set. Unset means
+      # the only copy of the backups lives on the same host disk as the data.
+      # `rclone:<remote>:<path>` targets read their remote from the mounted
+      # rclone.conf secret; the offsite repo reuses restic_password.
+      RESTIC_OFFSITE_REPOSITORY: ${RESTIC_OFFSITE_REPOSITORY:-}
+      RCLONE_CONFIG: /run/secrets/rclone.conf
     secrets:
       - database_backup_password
       - restic_password
+      - rclone.conf
     profiles:
       - backups
     tmpfs:
@@ -210,12 +224,16 @@ services:
       - cache_data:/data
     healthcheck:
       test: [ "CMD-SHELL", "REDISCLI_AUTH=\"$$(cat /run/secrets/redis_password)\" redis-cli ping | grep -q PONG" ]
+    # This command replaces the base one wholesale, so it must repeat every flag
+    # from compose.yaml's redis command — NOTE: keep the two in sync. The memory
+    # bounds are not optional here: Redis holds refresh-token blacklists, so
+    # eviction would re-admit revoked tokens (see the base command's comment).
     command:
       - sh
       - -c
       - |
         redis_password="$$(cat /run/secrets/redis_password)"
-        exec redis-server --appendonly yes --save 60 1 --requirepass "$$redis_password"
+        exec redis-server --appendonly yes --save 60 1 --maxmemory 512mb --maxmemory-policy noeviction --requirepass "$$redis_password"
 
   cloudflared:
     # Cloudflared tunnel service
@@ -224,6 +242,15 @@ services:
     depends_on:
       api:
         condition: service_healthy
+      # The tunnel fronts four hostnames; starting it before the frontends are
+      # up serves 502s on three of them for the length of every deploy. They
+      # have no healthcheck, so `service_started` is as strict as it gets.
+      docs:
+        condition: service_started
+      app:
+        condition: service_started
+      www:
+        condition: service_started
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must be set (in root .env on the deploy host)}
     command: tunnel --no-autoupdate run
@@ -232,8 +259,41 @@ services:
       - edge
 
   postgres:
+    # Compose replaces `command` instead of appending to it, so this repeats the
+    # base tuning from compose.yaml verbatim — NOTE: keep the two in sync. Only
+    # max_connections differs: the API alone needs 80 (4 workers x pool 10 +
+    # overflow 10), and 100 leaves margin for migrator, backup and operator psql.
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+      - -c
+      - max_connections=100
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - effective_cache_size=2560MB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - autovacuum_work_mem=128MB
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - track_io_timing=on
+      - -c
+      - jit=off
     environment:
-      POSTGRES_USER: postgres
+      # An existing cluster may have no `postgres` role at all (staging does
+      # not); the healthcheck runs `pg_isready -U $POSTGRES_USER`, so a mismatch
+      # here leaves the service permanently unhealthy. See deploy/CUTOVER.md.
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
       POSTGRES_DB: relab_db
       DATABASE_APP_USER: relab_app
       DATABASE_MIGRATION_USER: relab_migrator
@@ -321,6 +381,10 @@ secrets:
     file: ./secrets/${ENVIRONMENT}/redis_password
   restic_password:
     file: ./secrets/${ENVIRONMENT}/restic_password
+  # Only read when RESTIC_OFFSITE_REPOSITORY is an `rclone:` target; same path
+  # the manual `just backup-offsite-copy` helper expects.
+  rclone.conf:
+    file: ./secrets/${ENVIRONMENT}/rclone.conf
   auth_token_secret:
     file: ./secrets/${ENVIRONMENT}/auth_token_secret
   oauth_state_secret:

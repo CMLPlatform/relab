@@ -128,7 +128,7 @@ The four answers that drive the rest of this document:
 | ---------------------------------------- | ------------------------------------------------------------------------------- |
 | Alembic revision                         | `6f2b9e4a1c3d` — matches `main`, so the 17-migration plan applies unchanged     |
 | `backend/.env.prod` present?             | Yes — it is the **source** for the secret files created in step 4               |
-| `secrets/prod/` present?                 | No — step 4 creates all 15 from scratch                                         |
+| `secrets/prod/` present?                 | No — step 4 creates all 16 from scratch                                         |
 | Superuser name, `relab_*` roles present? | Custom name from `backend/.env.prod`; no `relab_*` roles, so step 5 is required |
 
 Re-confirm these on the day rather than trusting the table: it records one
@@ -333,12 +333,12 @@ pydantic-settings `secrets_dir`. `backend/.env.prod` is no longer loaded.
 Which path applies depends on what step 0 found.
 
 **If `secrets/prod/` does not exist on the host** (expected — `main` had no
-secret-file mechanism at all), you are creating all 15 from scratch, and the
+secret-file mechanism at all), you are creating all 16 from scratch, and the
 values must come out of the live `backend/.env.prod`. Generate the scaffolding
 first, then overwrite the carried-over ones by hand:
 
 ```bash
-just deploy-secrets-template prod    # creates all 15 at 0600 with fresh values
+just deploy-secrets-template prod    # creates all 16 at 0600 with fresh values
 ```
 
 Then, for each row below, replace the generated file's contents with the value
@@ -416,12 +416,13 @@ docker compose -p relab_prod exec -T postgres \
   psql -U "$PGSUPERUSER" -d relab_db -c "\du"
 ```
 
-> **If the superuser is not named `postgres`:** `compose.deploy.yaml` hardcodes
-> `POSTGRES_USER: postgres`, and the healthcheck runs `pg_isready -U postgres`.
-> A cluster whose superuser has a different name will fail its healthcheck and
-> never become ready. Resolve this before the window — either create a
-> `postgres` superuser role in the cluster, or change the hardcoded value.
-> This is a genuine mismatch, not a formality.
+> **If the superuser is not named `postgres`:** `compose.deploy.yaml` defaults
+> `POSTGRES_USER` to `postgres`, and the healthcheck runs
+> `pg_isready -U "$POSTGRES_USER"`. A cluster whose superuser has a different
+> name will fail its healthcheck and never become ready. Resolve this before the
+> window — set `POSTGRES_SUPERUSER=<role>` in the host's root `.env` (or create a
+> `postgres` superuser role in the cluster). This is a genuine mismatch, not a
+> formality.
 
 Then run the role script against the live database. It is idempotent and
 already mounted inside the container, so run it directly rather than
@@ -634,11 +635,20 @@ Backups are now an encrypted restic repository under
 `main` has no restic tooling at all, so on a prod host coming from `main` this
 is **first-time setup**: the repository is initialized on first run and there
 are no pre-existing snapshots. From that point on, do not rotate
-`restic_password` — every later snapshot depends on it. For offsite:
+`restic_password` — every later snapshot depends on it. It is a required
+secret: `up` starts the `backups` service by default.
+
+For offsite, set the repository in the host's root `.env` and the scheduled
+backup cycle copies snapshots there on every run:
 
 ```env
 RESTIC_OFFSITE_REPOSITORY=rclone:<remote>:relab/prod/restic
 ```
+
+An `rclone:` target reads its remote from `secrets/prod/rclone.conf`, which you
+write by hand — `just deploy-secrets-template` seeds every missing secret file,
+so overwrite the generated placeholder with the real rclone config. To copy on
+demand outside the cycle:
 
 ```bash
 just backup-offsite-copy prod
