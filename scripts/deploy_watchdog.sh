@@ -59,26 +59,46 @@ fi
 # Check 2: newest restic snapshot age, read through the backup image because the
 # host has no restic. The backup service sits in the `backups` profile, so pass it
 # explicitly the way `stack ... migrate` does. --no-deps keeps the watchdog from
-# starting postgres, and --no-build makes a missing image an alert instead of a
-# build kicked off by cron.
-newest_epoch="$(
-    run_deploy_compose "$env" --profile backups run --rm --no-deps --no-build --entrypoint restic backup \
-        snapshots --latest 1 --json --no-lock 2>/dev/null \
-        | python3 -c '
+# starting postgres; a missing image fails the run, which is itself an alert.
+# Compose writes progress to stderr, so keep stderr in a file instead of merging
+# it into the JSON — a swallowed error here would alert on every healthy stack.
+stderr_file="$(mktemp)"
+trap 'rm -f "$stderr_file"' EXIT
+
+newest_epoch=0
+snapshot_error=""
+if ! snapshots_json="$(
+    run_deploy_compose "$env" --profile backups run --rm --no-deps -T --entrypoint restic backup \
+        snapshots --json --no-lock 2>"$stderr_file"
+)"; then
+    snapshot_error="$(tr '\n' ' ' <"$stderr_file")"
+elif ! newest_epoch="$(printf '%s' "$snapshots_json" | python3 -c '
 import datetime, json, re, sys
 
-snapshots = json.load(sys.stdin)
-if not snapshots:
-    print(0)
-else:
+# Both backup paths must be fresh: a succeeding database backup must not mask a
+# failing upload one, so report the older of the two tags (tags per
+# backend/scripts/backup/backup_relab_restic.sh).
+newest = {}
+for snapshot in json.load(sys.stdin):
     # restic stamps nanosecond precision, which fromisoformat rejects.
-    print(int(datetime.datetime.fromisoformat(re.sub(r"\.\d+", "", snapshots[-1]["time"])).timestamp()))
-' 2>/dev/null || echo 0
-)"
+    taken = int(datetime.datetime.fromisoformat(re.sub(r"\.\d+", "", snapshot["time"])).timestamp())
+    for tag in snapshot.get("tags") or []:
+        newest[tag] = max(newest.get(tag, 0), taken)
+
+print(min(newest.get(tag, 0) for tag in ("postgres", "user-uploads")))
+' 2>"$stderr_file")"; then
+    snapshot_error="$(tr '\n' ' ' <"$stderr_file")"
+    newest_epoch=0
+fi
 [[ "$newest_epoch" =~ ^[0-9]+$ ]] || newest_epoch=0
+
 now="$(date +%s)"
 if ((newest_epoch == 0 || now - newest_epoch > max_age_hours * 3600)); then
-    echo "ALERT[$env]: newest restic snapshot is missing or older than ${max_age_hours}h" >&2
+    reason="newest postgres/user-uploads snapshot is missing or older than ${max_age_hours}h"
+    if [[ -n "$snapshot_error" ]]; then
+        reason="$reason (snapshot query failed: $snapshot_error)"
+    fi
+    echo "ALERT[$env]: $reason" >&2
     failures=$((failures + 1))
 fi
 
