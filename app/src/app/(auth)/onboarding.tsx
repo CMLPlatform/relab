@@ -44,6 +44,7 @@ function OnboardingBody({
   );
 
   return (
+    // Sizing and centering come from AuthScreen; this only sets inner rhythm.
     <View className="gap-3">
       <LoginBrandHero />
       {/* The hero scrim is deliberately light — the card is what carries control

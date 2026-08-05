@@ -30,7 +30,7 @@ function ProfileStatCard({
     <Card className="flex-1 min-w-[140px] max-w-[200px] items-center">
       <View className="items-center py-4">
         <Icon name={icon} size={32} color={color} />
-        <AppText className="mt-3 mb-1" style={styles.statValue} numberOfLines={1}>
+        <AppText className="mt-3 mb-1 font-bold" style={styles.statValue} numberOfLines={1}>
           {value}
         </AppText>
         <AppText className="text-center opacity-70" style={styles.statLabel}>

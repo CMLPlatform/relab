@@ -8,7 +8,7 @@ import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { OtpInput } from '@/components/base/OtpInput';
 import { TextInput } from '@/components/base/TextInput';
-import { radius } from '@/constants';
+import { radius, spacing } from '@/constants';
 import type { MfaSetupController } from '@/features/profile/useMfaSetup';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
@@ -303,8 +303,8 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
     field: {
       borderWidth: 1,
       borderRadius: radius.sm,
-      paddingHorizontal: 8,
-      paddingVertical: 8,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.sm,
       marginTop: 16,
     },
     hint: {

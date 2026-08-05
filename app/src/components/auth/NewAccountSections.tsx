@@ -66,14 +66,28 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     height: CARD_HEIGHT,
+    padding: CARD_PADDING,
+    gap: CARD_GAP,
   },
   // A visible label that survives typing — the placeholder used to be the only
   // name for the field, and it disappears the moment you type into it.
   label: {
+    height: LABEL_ROW_HEIGHT,
     fontSize: 12,
+  },
+  inputRow: {
+    height: INPUT_ROW_HEIGHT,
+  },
+  helperSlot: {
+    height: HELPER_SLOT_HEIGHT,
   },
   helperText: {
     fontSize: 12,
+  },
+  // Back left, primary right — the wizard convention. The primary action gets
+  // its own row so "Create account" stops overflowing the card's padding.
+  actionRow: {
+    height: ACTION_ROW_HEIGHT,
   },
   backButtonText: {
     fontSize: 13,
@@ -179,6 +193,8 @@ function NewAccountStep({
       <Text className="mt-20" style={[styles.welcomeText, { color: headlineColor }]}>
         {lines[0]}
       </Text>
+      {/* Fixed height: the mark and the 80px name measure differently, and without
+          this the card sat 22px lower on step one than on the rest. */}
       <View className="h-24 justify-center">
         {brandLogo ? (
           <BrandWordmark style={styles.brandLogo} />
@@ -197,7 +213,7 @@ function NewAccountStep({
         {lines[2]}
       </Text>
       <View
-        className="rounded-lg p-4 w-full justify-center gap-1.5"
+        className="rounded-lg w-full justify-center"
         style={[
           styles.card,
           {
@@ -207,19 +223,24 @@ function NewAccountStep({
         ]}
       >
         <Text
-          className="h-4 opacity-70"
+          className="opacity-70"
           style={[styles.label, { color: headlineColor }]}
           maxFontSizeMultiplier={MAX_FONT_SCALE}
         >
           {label}
         </Text>
-        <View className="flex-row items-center h-12">
+        <View className="flex-row items-center" style={styles.inputRow}>
           <Controller control={control} name={field} render={renderInput} />
         </View>
-        <View className="h-[18px] justify-center">
+        {/* Reserved, never conditional: the message fills this slot instead of growing
+            the card. The error still stays until the field is actually fixed — it is
+            not on a timer — it just no longer moves the layout when it appears. */}
+        <View className="justify-center" style={styles.helperSlot}>
           <FormFieldError errorId={errorId} message={error?.message} style={styles.helperText} />
         </View>
-        <View className="flex-row items-center justify-between h-11">
+        <View className="flex-row items-center justify-between" style={styles.actionRow}>
+          {/* Holds the left half of the action row even on step one, which has no back
+              action — otherwise the primary button would slide across between steps. */}
           <View className="flex-1 justify-center">
             {back ? (
               <Pressable
@@ -377,6 +398,9 @@ export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayo
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
+        {/* An intrinsic cap rather than a breakpoint: the column fills narrow screens
+            and stops growing past a readable measure, so there's no width at which the
+            layout jumps. */}
         <View className="w-full max-w-[480px]">{children}</View>
       </ScrollView>
 

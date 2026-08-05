@@ -94,6 +94,8 @@ export function LoginFormSection({
     }) => {
       const { error } = fieldState;
       return (
+        // A visible name that survives typing: the placeholder used to be the only
+        // label, and it disappears the moment the field has a value.
         <View className="gap-1">
           <AppText variant="label">Email or username</AppText>
           <TextInput
@@ -126,6 +128,8 @@ export function LoginFormSection({
     }) => {
       const { error } = fieldState;
       return (
+        // A visible name that survives typing: the placeholder used to be the only
+        // label, and it disappears the moment the field has a value.
         <View className="gap-1">
           <AppText variant="label">Password</AppText>
           <TextInput

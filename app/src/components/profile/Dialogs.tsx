@@ -78,7 +78,7 @@ export function ProfileDialogs({
           accessibilityLabel="Username"
           autoCapitalize="none"
           autoCorrect={false}
-          className="border rounded-md px-2 py-2 mt-2"
+          className="border px-2 py-2 mt-2"
           style={{ borderColor: theme.colors.outline }}
         />
         <View style={dialogActionsStyle}>
@@ -117,7 +117,7 @@ export function ProfileDialogs({
             secureTextEntry
             autoComplete="current-password"
             textContentType="password"
-            className="border rounded-md px-2 py-2 mt-2"
+            className="border px-2 py-2 mt-2"
             style={{ borderColor: theme.colors.outline }}
           />
         ) : null}
