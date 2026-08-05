@@ -1,6 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { IconButton } from '@/components/base/IconButton';
+import { MIN_TAP_TARGET } from '@/constants';
 
 describe('IconButton', () => {
   it('fires onPress', () => {
@@ -32,6 +34,11 @@ describe('IconButton', () => {
     const className = screen.getByRole('button').props.className as string;
     expect(className).toContain('min-w-11');
     expect(className).toContain('min-h-11');
+    const style = StyleSheet.flatten(screen.getByRole('button').props.style);
+    expect(style.minWidth).toBe(MIN_TAP_TARGET);
+    expect(style.minHeight).toBe(MIN_TAP_TARGET);
+    expect(style.minWidth).toBe(44);
+    expect(style.minHeight).toBe(44);
   });
 
   it('forwards arbitrary accessibility props (accessibilityHint)', () => {

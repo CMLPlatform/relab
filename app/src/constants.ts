@@ -37,6 +37,9 @@ export const AUTH_HERO_PATHS = [
  */
 export const HERO_BAND_PATHS = ['/login', '/new-account'] as const;
 
+// WCAG/Apple/Material converge on 44px as the minimum comfortable tap target.
+export const MIN_TAP_TARGET = 44;
+
 export const radius = {
   control: 6,
   card: 8,

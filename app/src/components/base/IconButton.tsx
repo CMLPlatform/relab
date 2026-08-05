@@ -7,6 +7,7 @@ import {
   StyleSheet,
   type ViewStyle,
 } from 'react-native';
+import { MIN_TAP_TARGET } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon, type IconName } from './Icon';
 
@@ -43,6 +44,11 @@ export function IconButton({
   const theme = useAppTheme();
   const pressableStyle = useCallback(
     ({ pressed }: { pressed: boolean }) => [
+      // NOTE: duplicates the min-h-11/min-w-11 classes below numerically, so
+      // the 44px a11y tap-target floor stays test-visible even if the
+      // Tailwind scale or rem basis ever drifts. Kept first so callers can
+      // still override deliberately.
+      styles.tapTarget,
       mode === 'contained-tonal' && { backgroundColor: theme.colors.secondaryContainer },
       pressed && !loading && styles.pressed,
       style,
@@ -73,6 +79,10 @@ export function IconButton({
 }
 
 const styles = StyleSheet.create({
+  tapTarget: {
+    minWidth: MIN_TAP_TARGET,
+    minHeight: MIN_TAP_TARGET,
+  },
   pressed: {
     opacity: 0.6,
   },

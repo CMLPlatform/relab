@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { Fab } from '@/components/base/Fab';
+import { MIN_TAP_TARGET } from '@/constants';
 import { getAppTheme } from '@/theme';
 
 describe('Fab', () => {
@@ -60,6 +61,11 @@ describe('Fab', () => {
     const className = screen.getByRole('button').props.className as string;
     expect(className).toContain('min-w-11');
     expect(className).toContain('min-h-11');
+    const style = StyleSheet.flatten(screen.getByRole('button').props.style);
+    expect(style.minWidth).toBe(MIN_TAP_TARGET);
+    expect(style.minHeight).toBe(MIN_TAP_TARGET);
+    expect(style.minWidth).toBe(44);
+    expect(style.minHeight).toBe(44);
   });
 
   // DESIGN.md "Form language — Flat & Sharp": the FAB is a floating surface, so
