@@ -8,12 +8,8 @@ export type AppColorScale = {
   primaryContainer: string;
   onPrimaryContainer: string;
   secondary: string;
-  onSecondary: string;
   secondaryContainer: string;
   onSecondaryContainer: string;
-  tertiary: string;
-  onTertiary: string;
-  tertiaryContainer: string;
   onTertiaryContainer: string;
   error: string;
   onError: string;
@@ -26,23 +22,15 @@ export type AppColorScale = {
   surfaceVariant: string;
   onSurfaceVariant: string;
   outline: string;
-  outlineVariant: string;
   shadow: string;
   scrim: string;
   inverseSurface: string;
   inverseOnSurface: string;
-  inversePrimary: string;
   elevation: {
-    level0: string;
     level1: string;
     level2: string;
-    level3: string;
     level4: string;
-    level5: string;
   };
-  surfaceDisabled: string;
-  onSurfaceDisabled: string;
-  backdrop: string;
 };
 
 export type AppTokens = {
