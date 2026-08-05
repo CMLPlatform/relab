@@ -399,6 +399,10 @@ staging-logs:
 staging-migrate confirm='':
     @bash scripts/deploy_ops.sh stack staging migrate {{ quote(confirm) }}
 
+# Watchdog: alert when the API is unhealthy or the newest backup snapshot is stale (cron this on the host)
+watchdog env max_age_hours='26':
+    @bash scripts/deploy_watchdog.sh {{ quote(env) }} {{ quote(max_age_hours) }}
+
 # ============================================================================
 # Docker: Test / CI
 # ============================================================================

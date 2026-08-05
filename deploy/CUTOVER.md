@@ -721,8 +721,19 @@ early.
 Not blockers, but do not discover them by surprise:
 
 - **No byte-quota accounting** until an `upload_size_bytes` backfill is written.
-- **No alerting.** Detection of a bad deploy is manual (`docker ps`, the health
-  endpoints, logs) until the Grafana stack lands.
+
+- **Minimal alerting only.** `just watchdog prod` checks the API container's health
+  and the age of the newest restic snapshot, and exits non-zero with an `ALERT[...]`
+  line per failure. Wire it to host cron so failures reach an operator:
+
+  ```cron
+  MAILTO=ops@example.org
+  17 * * * * cd /srv/relab && just watchdog prod >/dev/null
+  ```
+
+  Richer alerting (Loki rules, external uptime monitoring, Grafana) is still future
+  work; anything the watchdog does not check is still discovered by hand.
+
 - **Deploy order is start-then-migrate.** `prod-up` brings the API up against
   the old schema before `prod-migrate` runs. Harmless here because you are
   taking a full outage, but it is not safe for a zero-downtime deploy.
