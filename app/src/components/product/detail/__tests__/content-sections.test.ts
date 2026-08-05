@@ -74,3 +74,22 @@ describe('components section titleSuffix', () => {
     expect(components.titleSuffix?.({ ...bareProduct, components: undefined })).toBe('(0)');
   });
 });
+
+describe('components section tooltip', () => {
+  const components = SECTIONS.find((section) => section.key === 'components');
+  if (!components) throw new Error('components section missing from SECTIONS');
+
+  it('explains the save requirement while editing', () => {
+    expect(components.tooltip?.(bareProduct, true)).toBe(
+      'Add components after saving the product.',
+    );
+  });
+
+  it('says nothing in view mode', () => {
+    // The "Add component" button is present and working in view mode, so the
+    // hint contradicted the UI. Its accessible name also contained the
+    // button's, which made anything searching for "Add component" — a screen
+    // reader or a test — land on the tooltip instead.
+    expect(components.tooltip?.(bareProduct, false)).toBeUndefined();
+  });
+});

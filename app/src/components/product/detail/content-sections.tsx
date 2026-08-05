@@ -48,8 +48,8 @@ export type SectionConfig = {
   addLabel?: string;
   /** Muted text after the Section title, e.g. a component count like "(3)". */
   titleSuffix?: (product: Product) => string | undefined;
-  /** Info-tooltip text shown beside the Section title. */
-  tooltip?: (product: Product) => string | undefined;
+  /** Info-tooltip text shown beside the Section title. Return undefined for no tooltip. */
+  tooltip?: (product: Product, editMode: boolean) => string | undefined;
   isEmpty: (product: Product, ctx: SectionContext) => boolean;
   render: (props: SectionRenderProps) => ReactNode;
 };
@@ -114,7 +114,12 @@ export const SECTIONS: SectionConfig[] = [
     // Task 5 refines this (BOM rows); never collapsed as empty for now.
     isEmpty: () => false,
     titleSuffix: (product) => `(${(product.components ?? []).length})`,
-    tooltip: (product) => `Add components after saving the ${entityLabel(product)}.`,
+    // Edit mode only. In view mode the "Add component" button is right there and
+    // works, so the hint contradicted the UI — and because its accessible name
+    // contains the button's, anything searching for "Add component" (a screen
+    // reader, a test) matched the tooltip first.
+    tooltip: (product, editMode) =>
+      editMode ? `Add components after saving the ${entityLabel(product)}.` : undefined,
     render: (props) => <ProductComponents product={props.product} editMode={props.editMode} />,
   },
   {

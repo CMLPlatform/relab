@@ -113,7 +113,7 @@ export function ProductPageContent({
                 editMode={editMode}
                 addLabel={section.addLabel}
                 titleSuffix={section.titleSuffix?.(product)}
-                tooltip={section.tooltip?.(product)}
+                tooltip={section.tooltip?.(product, editMode)}
               >
                 {section.render(sectionProps)}
               </Section>

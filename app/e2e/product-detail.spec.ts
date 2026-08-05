@@ -249,16 +249,11 @@ test.describe('Product detail: components', () => {
     const componentName = `E2E Component ${Date.now()}`;
     await saveNewProduct(page, `E2E Parent ${Date.now()}`);
 
-    // Wait for the save to drop ?edit=1 before touching the section. Clicking
-    // during the transition loses the navigation: saveAndExit does its own
-    // router.replace to view mode, which clobbers the push to the capture screen.
-    await expect(page).toHaveURL(SAVED_PRODUCT_URL_PATTERN, { timeout: 15_000 });
-
-    // Two controls carry this accessible name — the icon-only FAB and the row
-    // inside the Components section. hasText picks the labelled one.
-    const addComponent = page
-      .getByRole('button', { name: 'Add component' })
-      .filter({ hasText: 'Add component' });
+    // "Add component" only renders once the save has dropped ?edit=1 — a
+    // component needs a persisted parent — so this also waits out the save.
+    // The name is unambiguous: the Components section's info tooltip, whose
+    // label used to contain this one, is edit-mode only.
+    const addComponent = page.getByRole('button', { name: 'Add component' });
     await expect(addComponent).toBeVisible({ timeout: 15_000 });
     await addComponent.click();
 

@@ -46,7 +46,10 @@ export function useReturnFocus(visible: boolean, externalRef?: RefObject<View | 
 
     const handle = findNodeHandle(triggerRef.current);
     if (handle !== null) AccessibilityInfo.setAccessibilityFocus(handle);
-  }, [visible, isWeb, webTrigger, triggerRef.current]);
+    // triggerRef, not triggerRef.current: reading .current here would be a
+    // render-time ref access, and mutating it never re-renders anyway, so it
+    // could not have worked as a dependency.
+  }, [visible, isWeb, webTrigger, triggerRef]);
 
   return triggerRef;
 }
