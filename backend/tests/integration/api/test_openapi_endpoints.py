@@ -6,8 +6,8 @@ import pytest
 from fastapi import APIRouter, FastAPI, status
 from httpx import ASGITransport, AsyncClient
 
-from app.api.common.audiences import AdminAPIRouter
-from app.api.common.routers.openapi import _build_admin_openapi, init_openapi_docs
+from app.api.common.audiences import AdminAPIRouter, DeviceAPIRouter, PublicAPIRouter
+from app.api.common.routers.openapi import _build_admin_openapi, build_device_openapi, init_openapi_docs
 from app.core.config import settings
 from app.core.config.models import Environment
 from app.main import create_app
@@ -264,3 +264,34 @@ def test_admin_schema_ignores_the_admin_tag_and_path_prefix() -> None:
 
     assert "/v1/admin/genuine" in paths
     assert "/v1/admin/lookalike" not in paths
+
+
+def test_device_schema_ignores_the_upload_path_suffixes() -> None:
+    """A route reaches the device schema by opting in, not by how its path ends.
+
+    The audience used to fall back to paths ending in /image-upload,
+    /preview-thumbnail-upload or /self, so any future route with one of those
+    endings was published to camera devices without a reviewer noticing. The
+    matching pairing-prefix fallback would have exposed `claim`, which is the
+    user-facing half of pairing and belongs only in the public schema.
+    """
+    app = FastAPI()
+    lookalike = PublicAPIRouter(prefix="/v1/plugins/rpi-cam/cameras/{camera_id}")
+
+    @lookalike.post("/image-upload")
+    async def _lookalike() -> dict[str, str]:
+        return {}
+
+    device = DeviceAPIRouter(prefix="/v1/plugins/rpi-cam/device/cameras/{camera_id}")
+
+    @device.post("/image-upload")
+    async def _genuine() -> dict[str, str]:
+        return {}
+
+    app.include_router(lookalike)
+    app.include_router(device)
+
+    paths = build_device_openapi(app)["paths"]
+
+    assert "/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload" in paths
+    assert "/v1/plugins/rpi-cam/cameras/{camera_id}/image-upload" not in paths

@@ -28,7 +28,6 @@ __all__ = [
 ### Constants ###
 API_CONTRACT_VERSION = "1.0.0"
 API_MAJOR = "v1"
-DEVICE_ROUTE_SUFFIXES = ("/image-upload", "/preview-thumbnail-upload", "/self")
 
 
 ### OpenAPI schema generation ###
@@ -129,14 +128,11 @@ def _is_admin_route(ctx: RouteContext) -> bool:
 
 
 def _is_device_route(ctx: RouteContext) -> bool:
-    audiences = set(route_audiences(ctx.route))
-    if RouteAudience.DEVICE.value in audiences:
-        return True
-    # NOTE: no path-prefix fallback for /plugins/rpi-cam/pairing/ — every route
-    # under that prefix now carries an explicit audience tag (register/poll via
-    # DeviceAPIRouter, claim via PublicAPIRouter), and a bare prefix match would
-    # wrongly pull the user-facing `claim` route into the device schema too.
-    return ctx.path.endswith(DEVICE_ROUTE_SUFFIXES)
+    # Explicit opt-in via DeviceAPIRouter only, matching the admin audience. The
+    # former path fallbacks published any route ending in /self or /image-upload,
+    # and would have pulled the user-facing `claim` route into the device schema
+    # purely for sitting under the pairing prefix.
+    return RouteAudience.DEVICE.value in set(route_audiences(ctx.route))
 
 
 def _register_internal_docs(router: APIRouter, app: FastAPI) -> None:
