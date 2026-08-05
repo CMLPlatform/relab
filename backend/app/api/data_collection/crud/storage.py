@@ -2,17 +2,12 @@
 
 import logging
 from collections.abc import Awaitable, Callable
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 
 from app.api.data_collection.models.product import Product
-from app.api.file_storage.crud.support_paths import (
-    delete_file_from_storage,
-    delete_image_from_storage,
-    stored_file_path,
-)
+from app.api.file_storage.crud.support_paths import delete_file_from_storage, delete_image_from_storage
 from app.api.file_storage.models import File, Image, MediaParentType
 
 if TYPE_CHECKING:
@@ -20,8 +15,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-type ProductMediaStorageDelete = Callable[[Path], Awaitable[None]]
-type ProductMediaStorageCleanup = tuple[Path, ProductMediaStorageDelete]
+type ProductMediaStorageDelete = Callable[[File | Image], Awaitable[None]]
+type ProductMediaStorageCleanup = tuple[File | Image, ProductMediaStorageDelete]
 
 
 async def delete_product_media(db: AsyncSession, product_id: int) -> list[ProductMediaStorageCleanup]:
@@ -45,16 +40,15 @@ async def delete_product_media(db: AsyncSession, product_id: int) -> list[Produc
             )
         )
         for item in result.scalars().all():
-            if file_path := stored_file_path(item):
-                cleanups.append((file_path, delete_from_storage))
+            cleanups.append((item, delete_from_storage))
             await db.delete(item)
     return cleanups
 
 
 async def cleanup_product_media_storage(cleanups: list[ProductMediaStorageCleanup]) -> None:
     """Best-effort cleanup of storage bytes after product media DB rows have committed."""
-    for file_path, delete_from_storage in cleanups:
+    for item, delete_from_storage in cleanups:
         try:
-            await delete_from_storage(file_path)
+            await delete_from_storage(item)
         except OSError:
             logger.warning("Product media storage cleanup failed after product deletion.", exc_info=True)

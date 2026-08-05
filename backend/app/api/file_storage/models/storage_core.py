@@ -57,6 +57,10 @@ class BaseStorage(ABC):
     async def write_upload(self, upload_file: UploadFile, name: str) -> str:
         """Persist an uploaded file asynchronously and return the stored name."""
 
+    @abstractmethod
+    async def delete(self, name: str) -> None:
+        """Delete a stored file, tolerating an object that is already missing."""
+
 
 class StorageFile(str):
     """String-like file wrapper returned from storage-backed columns."""

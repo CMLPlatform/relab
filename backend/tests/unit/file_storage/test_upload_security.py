@@ -2,6 +2,7 @@
 
 import logging
 from io import BytesIO
+from tempfile import SpooledTemporaryFile
 
 import anyio
 import pytest
@@ -118,6 +119,43 @@ async def test_clamav_scanner_parses_terminal_response_markers(
 
     with pytest.raises(expected_error):
         await scanner.scan(BytesIO(b"clean"))
+
+
+async def test_clamav_scanner_reads_large_spooled_upload_off_the_event_loop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Scanning a large upload must offload reads to a thread, not block the event loop.
+
+    Uploads >1MB are disk-spooled (Starlette's SpooledTemporaryFile); scanning must
+    offload those reads to a thread instead of blocking the event loop, and still
+    report the correct verdict.
+    """
+    payload = b"x" * (2 * 1024 * 1024)  # 2MB, exceeds the 1MB in-memory spool threshold
+    read_calls: list[object] = []
+    real_run_sync = anyio.to_thread.run_sync
+
+    async def _tracking_run_sync(func: object, *args: object, **kwargs: object) -> object:
+        if func == spooled.read:
+            read_calls.append(func)
+        return await real_run_sync(func, *args, **kwargs)  # type: ignore[arg-type]
+
+    async def _connect_tcp(host: str, port: int) -> _ClamAVResponseStream:
+        assert host == "clamav"
+        assert port == 3310
+        return _ClamAVResponseStream(b"stream: OK\0")
+
+    monkeypatch.setattr("app.api.file_storage.upload_security.anyio.to_thread.run_sync", _tracking_run_sync)
+    monkeypatch.setattr("app.api.file_storage.upload_security.anyio.connect_tcp", _connect_tcp)
+
+    with SpooledTemporaryFile(max_size=1024 * 1024) as spooled:
+        spooled.write(payload)
+        spooled.rollover()  # force to disk, mirroring a real large upload's spool behavior
+        assert spooled._rolled  # sanity: this file is actually disk-backed, not in-memory
+
+        scanner = ClamAVScanner(host="clamav", port=3310, timeout_seconds=5)
+        await scanner.scan(spooled)
+
+    assert read_calls, "expected fileobj.read to be offloaded via anyio.to_thread.run_sync"
 
 
 def test_get_upload_scanner_uses_configured_clamav_timeout(monkeypatch: pytest.MonkeyPatch) -> None:

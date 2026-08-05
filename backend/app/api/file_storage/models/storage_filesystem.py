@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from anyio import Path as AnyIOPath
 from anyio import open_file
 
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
@@ -75,3 +76,7 @@ class FileSystemStorage(BaseStorage):
 
         await upload_file.close()
         return filename
+
+    async def delete(self, name: str) -> None:
+        """Delete a stored file, tolerating an already-missing file."""
+        await AnyIOPath(self._path / Path(name)).unlink(missing_ok=True)

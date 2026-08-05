@@ -2,11 +2,11 @@
 
 from pathlib import Path
 
-from anyio import Path as AnyIOPath
 from anyio import to_thread
 
 from app.api.file_storage.models import File, Image
-from app.core.images import delete_thumbnails
+from app.api.file_storage.models.storage_resolver import _get_file_storage, _get_image_storage
+from app.core.images import delete_thumbnails, image_resize_limiter
 
 
 def _raw_storage_path(item: File | Image) -> str | None:
@@ -49,16 +49,23 @@ def storage_item_exists(item: File | Image) -> bool:
     return Path(path).exists()
 
 
-async def delete_file_from_storage(file_path: Path) -> None:
-    """Delete a file from the filesystem."""
-    async_path = AnyIOPath(str(file_path))
-    try:
-        await async_path.unlink()
-    except FileNotFoundError:
-        return
+async def delete_file_from_storage(item: File) -> None:
+    """Delete a file's stored bytes via its storage backend.
+
+    Routes through ``BaseStorage.delete`` (filesystem or S3) rather than a raw
+    ``Path.unlink`` so S3-backed objects — for which ``stored_file_path`` has no
+    local path to unlink — are actually removed.
+    """
+    await _get_file_storage().delete(item.file.name)
 
 
-async def delete_image_from_storage(image_path: Path) -> None:
-    """Delete an image and any generated thumbnails from the filesystem."""
-    await to_thread.run_sync(delete_thumbnails, image_path)
-    await delete_file_from_storage(image_path)
+async def delete_image_from_storage(item: Image) -> None:
+    """Delete an image's stored bytes and any locally generated thumbnails.
+
+    Thumbnails are filesystem-only (``stored_file_path`` is ``None`` for a
+    remote/S3-backed image), so they're only cleaned up when a local path exists.
+    """
+    image_path = stored_file_path(item)
+    if image_path is not None:
+        await to_thread.run_sync(delete_thumbnails, image_path, limiter=image_resize_limiter())
+    await _get_image_storage().delete(item.file.name)

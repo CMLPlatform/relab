@@ -16,12 +16,11 @@ from app.api.file_storage.exceptions import (
 from app.api.file_storage.models import Image, MediaParentType
 from app.core.logging import sanitize_log_value
 
-from .support_paths import delete_file_from_storage, delete_image_from_storage, storage_item_exists, stored_file_path
+from .support_paths import delete_file_from_storage, delete_image_from_storage, storage_item_exists
 from .support_services import get_parent_owned_storage_item, list_parent_storage_items
 from .support_types import StorageCreateSchema, StorageModel
 
 if TYPE_CHECKING:
-    from pathlib import Path
     from uuid import UUID
 
     from .support_services import StoredMediaService
@@ -143,13 +142,13 @@ async def delete_all_parent_media[StorageModelT: StorageModel](
     parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
-) -> list[tuple[StorageModelT, Path]]:
+) -> list[StorageModelT]:
     """Delete all of a parent's storage rows in one round-trip, WITHOUT committing.
 
-    Returns the ``(item, path)`` pairs whose bytes still need unlinking; pass them to
+    Returns the items whose bytes still need deleting; pass them to
     ``unlink_stored_media`` after the caller commits. The caller owns the commit so these
     row deletes can share one transaction with sibling deletes (e.g. the parent row),
-    keeping the whole delete atomic. Bytes are unlinked only after that commit is durable —
+    keeping the whole delete atomic. Bytes are removed only after that commit is durable —
     a commit that later fails then leaves the files intact rather than stranding a live row
     that points at deleted bytes.
     """
@@ -164,16 +163,16 @@ async def delete_all_parent_media[StorageModelT: StorageModel](
         return []
 
     await db.execute(delete(storage_model).where(storage_model.id.in_([item.id for item in persisted])))
-    return [(item, path) for item in persisted if (path := stored_file_path(item)) is not None]
+    return persisted
 
 
-async def unlink_stored_media[StorageModelT: StorageModel](pending: list[tuple[StorageModelT, Path]]) -> None:
-    """Unlink the physical bytes of already-deleted storage rows. Call only after commit."""
-    for item, path in pending:
+async def unlink_stored_media[StorageModelT: StorageModel](pending: list[StorageModelT]) -> None:
+    """Delete the physical bytes of already-deleted storage rows. Call only after commit."""
+    for item in pending:
         if isinstance(item, Image):
-            await delete_image_from_storage(path)
+            await delete_image_from_storage(item)
         else:
-            await delete_file_from_storage(path)
+            await delete_file_from_storage(item)
 
 
 class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
@@ -250,8 +249,8 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
             storage_service=self.storage_service,
         )
 
-    async def delete_all(self, db: AsyncSession, parent_id: int) -> list[tuple[StorageModelT, Path]]:
-        """Delete all of a parent's storage rows without committing; return bytes to unlink."""
+    async def delete_all(self, db: AsyncSession, parent_id: int) -> list[StorageModelT]:
+        """Delete all of a parent's storage rows without committing; return items to unlink."""
         return await delete_all_parent_media(
             db,
             parent_type=self.parent_type,

@@ -206,6 +206,32 @@ async def test_write_upload_uploads_to_s3(mock_boto3: MagicMock) -> None:
     mock_file.close.assert_called_once()
 
 
+async def test_delete_calls_delete_object_with_correct_bucket_and_key(mock_boto3: MagicMock) -> None:
+    """Test delete() issues delete_object for the resolved bucket/key."""
+    mock_client = MagicMock()
+    mock_boto3.client.return_value = mock_client
+
+    storage = S3Storage(bucket="my-bucket", prefix="files")
+    await storage.delete("document.txt")
+
+    mock_client.delete_object.assert_called_once_with(Bucket="my-bucket", Key="files/document.txt")
+
+
+async def test_delete_tolerates_already_missing_object(mock_boto3: MagicMock) -> None:
+    """Test delete() does not raise when S3 reports the key as already gone.
+
+    S3's delete_object is idempotent for missing keys (no NoSuchKey error), so this
+    simply asserts a normal client response doesn't propagate as a failure.
+    """
+    mock_client = MagicMock()
+    mock_boto3.client.return_value = mock_client
+
+    storage = S3Storage(bucket="my-bucket", prefix="files")
+    await storage.delete("already-gone.txt")
+
+    mock_client.delete_object.assert_called_once()
+
+
 def test_s3_backend_requires_bucket() -> None:
     """Test that storage_backend='s3' requires s3_bucket to be set."""
     with pytest.raises(ValueError, match="S3_BUCKET must be set"):

@@ -29,14 +29,13 @@ from app.api.file_storage.upload_policy import (
 from app.api.file_storage.upload_quota import release_product_upload_quota_for_media, reserve_product_upload_quota
 from app.api.file_storage.upload_security import scan_upload_or_raise
 from app.core.config import settings
-from app.core.images import generate_thumbnails, process_image_for_storage
+from app.core.images import generate_thumbnails, image_resize_limiter, process_image_for_storage
 
 from .support_paths import delete_file_from_storage, delete_image_from_storage, stored_file_path
 from .support_types import StorageCreateSchema, StorageModel
 from .support_uploads import build_storage_instance, process_uploadfile_name, validate_upload_size
 
 if TYPE_CHECKING:
-    from pathlib import Path
     from uuid import UUID
 
     from app.api.common.crud.filtering import BaseFilterSet
@@ -133,14 +132,14 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
 
     try:
         await require_model(db, Image, db_image.id)
-        await to_thread.run_sync(process_image_for_storage, image_path)
+        await to_thread.run_sync(process_image_for_storage, image_path, limiter=image_resize_limiter())
     except (ValueError, OSError) as e:
         logger.warning("Image processing failed for image %s, rolling back: %s", db_image.id, e)
         await delete_image_record(db, db_image.id)
         raise BadRequestError(str(e)) from e
 
     try:
-        await to_thread.run_sync(generate_thumbnails, image_path)
+        await to_thread.run_sync(generate_thumbnails, image_path, limiter=image_resize_limiter())
     except ValueError, OSError:
         logger.warning("Thumbnail generation failed for image %s, skipping", db_image.id, exc_info=True)
 
@@ -217,17 +216,11 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
 
     async def delete(self, db: AsyncSession, item_id: UUID4) -> None:
         """Delete a file-backed model and best-effort clean up its storage file."""
-        cleanup_path: Path | None = None
-        file_path: Path | None = None
         try:
             db_item = await require_locked_model(db, self.model, item_id)
-            file_path = stored_file_path(db_item)
-            cleanup_path = file_path
         except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
             maybe_item = await get_optional_storage_item(db, self.model, item_id)
             db_item = ensure_storage_item_found(self.model, item_id, maybe_item)
-            if self.model is Image:
-                cleanup_path = stored_file_path(db_item)
             logger.warning(
                 "%s %s not found in storage: %s. Deleting database row only.",
                 self.model.__name__,
@@ -239,10 +232,13 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         await release_product_upload_quota_for_media(db, db_item)
         await db.commit()
 
-        if self.model is Image and cleanup_path:
-            await delete_image_from_storage(cleanup_path)
-        elif file_path:
-            await delete_file_from_storage(file_path)
+        # Storage-backend deletes are idempotent for an already-missing object
+        # (filesystem: missing_ok unlink; S3: delete_object), so this always runs
+        # rather than being gated on a local path that's None for S3-backed items.
+        if self.model is Image:
+            await delete_image_from_storage(db_item)
+        else:
+            await delete_file_from_storage(db_item)
 
 
 class FileStorageService(StoredMediaService[File, FileCreate]):

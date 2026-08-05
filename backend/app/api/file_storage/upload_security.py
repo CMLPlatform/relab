@@ -69,7 +69,9 @@ class ClamAVScanner:
             with anyio.fail_after(self.timeout_seconds):
                 async with await anyio.connect_tcp(self.host, self.port) as stream:
                     await stream.send(b"zINSTREAM\0")
-                    while chunk := fileobj.read(CLAMAV_CHUNK_SIZE):
+                    # Uploads >1MB are disk-spooled (Starlette's SpooledTemporaryFile), so a
+                    # direct fileobj.read() here would block the event loop on disk I/O.
+                    while chunk := await anyio.to_thread.run_sync(fileobj.read, CLAMAV_CHUNK_SIZE):
                         await stream.send(struct.pack("!I", len(chunk)) + chunk)
                     await stream.send(struct.pack("!I", 0))
                     response = (await stream.receive(4096)).decode("utf-8", errors="replace").removesuffix("\0").strip()

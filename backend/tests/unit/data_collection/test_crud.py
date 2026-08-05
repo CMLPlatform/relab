@@ -1,6 +1,5 @@
 """Unit tests for data collection CRUD operations."""
 
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -47,8 +46,11 @@ async def test_delete_product_commits_db_changes_before_storage_cleanup(mock_ses
     async def refresh_stats(*_args: object, **_kwargs: object) -> None:
         events.append("stats")
 
-    async def delete_from_storage(file_path: Path) -> None:
-        events.append(f"cleanup:{file_path.name}")
+    async def delete_from_storage(item: MagicMock) -> None:
+        events.append(f"cleanup:{item.file.name}")
+
+    stored_item = MagicMock()
+    stored_item.file.name = "relab-file.txt"
 
     mock_session.flush.side_effect = flush
     mock_session.commit.side_effect = commit
@@ -57,7 +59,7 @@ async def test_delete_product_commits_db_changes_before_storage_cleanup(mock_ses
         patch("app.api.data_collection.crud.product_commands.require_locked_model", return_value=db_product),
         patch(
             "app.api.data_collection.crud.product_commands.delete_product_media",
-            return_value=[(Path("relab-file.txt"), delete_from_storage)],
+            return_value=[(stored_item, delete_from_storage)],
         ),
         patch(
             "app.api.data_collection.crud.product_commands.recompute_user_profile_stats",
@@ -81,15 +83,18 @@ async def test_delete_product_storage_cleanup_failure_does_not_raise(mock_sessio
     db_product = ProductFactory.build(id=product_id)
     db_product.owner_id = uuid4()
 
-    async def delete_from_storage(_file_path: Path) -> None:
+    async def delete_from_storage(_item: MagicMock) -> None:
         msg = "storage unavailable"
         raise OSError(msg)
+
+    stored_item = MagicMock()
+    stored_item.file.name = "relab-file.txt"
 
     with (
         patch("app.api.data_collection.crud.product_commands.require_locked_model", return_value=db_product),
         patch(
             "app.api.data_collection.crud.product_commands.delete_product_media",
-            return_value=[(Path("relab-file.txt"), delete_from_storage)],
+            return_value=[(stored_item, delete_from_storage)],
         ),
         patch(
             "app.api.data_collection.crud.product_commands.recompute_user_profile_stats",
@@ -110,9 +115,9 @@ async def test_delete_product_storage_cleanup_failure_does_not_raise(mock_sessio
 async def test_delete_product_media_stages_rows_without_committing(mock_session: AsyncMock) -> None:
     """Product media deletion stages DB rows and returns storage cleanup work."""
     file_item = MagicMock()
-    file_item.file.path = "relab-file.txt"
+    file_item.file.name = "relab-file.txt"
     image_item = MagicMock()
-    image_item.file.path = "relab-image.png"
+    image_item.file.name = "relab-image.png"
 
     file_result = MagicMock()
     file_result.scalars.return_value.all.return_value = [file_item]
@@ -124,7 +129,7 @@ async def test_delete_product_media_stages_rows_without_committing(mock_session:
 
     assert mock_session.delete.await_count == 2
     mock_session.commit.assert_not_called()
-    assert [file_path.name for file_path, _delete_from_storage in cleanups] == ["relab-file.txt", "relab-image.png"]
+    assert [item.file.name for item, _delete_from_storage in cleanups] == ["relab-file.txt", "relab-image.png"]
 
 
 async def test_create_product_tree_requires_owner(mock_session: AsyncMock) -> None:

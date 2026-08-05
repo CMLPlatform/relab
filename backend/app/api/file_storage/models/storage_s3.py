@@ -133,3 +133,9 @@ class S3Storage(BaseStorage):
         await to_thread.run_sync(lambda: client.upload_fileobj(file_obj, Bucket=bucket, Key=key))
         await upload_file.close()
         return filename
+
+    async def delete(self, name: str) -> None:
+        """Delete an S3 object. ``delete_object`` is idempotent for missing keys."""
+        client = self._get_client()
+        bucket, key = self._bucket, self._s3_key(name)
+        await to_thread.run_sync(lambda: client.delete_object(Bucket=bucket, Key=key))

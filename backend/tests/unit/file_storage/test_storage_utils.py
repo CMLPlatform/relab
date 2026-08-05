@@ -1,7 +1,7 @@
 """Behavior-focused tests for file-storage utility helpers."""
 
 from io import BytesIO
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
@@ -18,6 +18,11 @@ from app.api.file_storage.crud.support_paths import (
     stored_file_path,
 )
 from app.api.file_storage.crud.support_uploads import process_uploadfile_name, sanitize_filename
+from app.api.file_storage.models import File, Image
+from app.api.file_storage.models.storage_filesystem import FileSystemStorage
+
+if TYPE_CHECKING:
+    from pathlib import Path
 from app.api.file_storage.upload_policy import (
     HYPERSPECTRAL_FILE_EXTENSIONS,
     validate_generic_file_upload_content,
@@ -69,38 +74,78 @@ def test_process_uploadfile_name_empty() -> None:
         process_uploadfile_name(mock_file)
 
 
+def _storage_item(model: type, *, path: str, name: str):
+    """Build a minimal storage-model mock exposing ``item.file.path``/``.name``."""
+    item = MagicMock(spec=model)
+    item.file.path = path
+    item.file.name = name
+    return item
+
+
 async def test_delete_image_from_storage_removes_thumbnails_and_original() -> None:
-    """Image storage cleanup removes generated thumbnails before the original."""
-    image_path = Path(FAKE_IMAGE_PATH)
+    """Local-image storage cleanup removes generated thumbnails, then the original."""
+    image = _storage_item(Image, path=FAKE_IMAGE_PATH, name="test.png")
+    mock_storage = MagicMock()
+    mock_storage.delete = AsyncMock()
 
     with (
         patch("app.api.file_storage.crud.support_paths.to_thread.run_sync", new=AsyncMock()) as mock_run_sync,
-        patch(
-            "app.api.file_storage.crud.support_paths.delete_file_from_storage",
-            new=AsyncMock(),
-        ) as mock_delete_file,
+        patch("app.api.file_storage.crud.support_paths._get_image_storage", return_value=mock_storage),
     ):
-        await delete_image_from_storage(image_path)
+        await delete_image_from_storage(image)
 
     mock_run_sync.assert_awaited_once()
-    mock_delete_file.assert_awaited_once_with(image_path)
+    mock_storage.delete.assert_awaited_once_with("test.png")
 
 
-async def test_delete_file_from_storage_ignores_files_already_removed(tmp_path: Path) -> None:
-    """Deletion should tolerate a concurrent remover winning the unlink race."""
-    await delete_file_from_storage(tmp_path / "missing.txt")
+async def test_delete_image_from_storage_skips_local_thumbnail_cleanup_for_remote_image() -> None:
+    """A remote (S3) image has no local thumbnails to remove, only the backend object."""
+    image = _storage_item(Image, path="https://bucket.s3.eu-west-1.amazonaws.com/media/test.png", name="test.png")
+    mock_storage = MagicMock()
+    mock_storage.delete = AsyncMock()
 
-
-async def test_delete_file_from_storage_surfaces_unexpected_os_errors() -> None:
-    """Only a missing file is benign; other unlink errors should stay visible."""
     with (
-        patch(
-            "app.api.file_storage.crud.support_paths.AnyIOPath.unlink",
-            new=AsyncMock(side_effect=PermissionError("denied")),
-        ),
-        pytest.raises(PermissionError, match="denied"),
+        patch("app.api.file_storage.crud.support_paths.to_thread.run_sync", new=AsyncMock()) as mock_run_sync,
+        patch("app.api.file_storage.crud.support_paths._get_image_storage", return_value=mock_storage),
     ):
-        await delete_file_from_storage(Path(FAKE_IMAGE_PATH))
+        await delete_image_from_storage(image)
+
+    mock_run_sync.assert_not_called()
+    mock_storage.delete.assert_awaited_once_with("test.png")
+
+
+async def test_delete_file_from_storage_routes_through_resolved_backend() -> None:
+    """File deletion calls the resolved storage backend with the item's stored name.
+
+    Regression: deletion used to unlink a local ``Path`` directly, so an S3-backed
+    file (whose ``stored_file_path`` is ``None``) was silently never deleted.
+    """
+    file_item = _storage_item(File, path=FAKE_IMAGE_PATH, name="document.pdf")
+    mock_storage = MagicMock()
+    mock_storage.delete = AsyncMock()
+
+    with patch("app.api.file_storage.crud.support_paths._get_file_storage", return_value=mock_storage):
+        await delete_file_from_storage(file_item)
+
+    mock_storage.delete.assert_awaited_once_with("document.pdf")
+
+
+async def test_filesystem_storage_delete_removes_written_file(tmp_path: Path) -> None:
+    """The filesystem backend's delete removes a file it wrote."""
+    storage = FileSystemStorage(path=str(tmp_path), create_path=True)
+    target = tmp_path / "written.txt"
+    target.write_bytes(b"data")
+
+    await storage.delete("written.txt")
+
+    assert not target.exists()
+
+
+async def test_filesystem_storage_delete_tolerates_already_missing_file(tmp_path: Path) -> None:
+    """Deletion should tolerate a concurrent remover winning the unlink race."""
+    storage = FileSystemStorage(path=str(tmp_path), create_path=True)
+
+    await storage.delete("never-existed.txt")
 
 
 def _upload(filename: str, content_type: str, content: bytes = b"sample") -> UploadFile:

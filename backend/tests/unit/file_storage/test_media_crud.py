@@ -1,7 +1,6 @@
 """Behavior-focused tests for file and image CRUD entrypoints."""
 
 from io import BytesIO
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -165,4 +164,4 @@ async def test_delete_image_cleans_thumbnails_when_original_is_missing(mock_sess
         await image_storage_service.delete(mock_session, image_id)
 
     mock_session.delete.assert_called_once_with(mock_db_image)
-    mock_delete_image.assert_awaited_once_with(Path(FAKE_IMAGE_PATH))
+    mock_delete_image.assert_awaited_once_with(mock_db_image)
