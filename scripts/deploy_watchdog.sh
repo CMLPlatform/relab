@@ -29,11 +29,9 @@ if [[ ! "$max_age_hours" =~ ^[0-9]+$ ]]; then
 fi
 
 # deploy_ops.sh owns the compose plumbing (project name, env-file order, shell-env
-# scrub, overlays), so reuse run_deploy_compose instead of rebuilding it here. It
-# runs main "$@" on load, hence the sourcing args: `require-confirm ... YES` is its
-# only subcommand that does nothing and returns 0.
+# scrub, overlays), so reuse run_deploy_compose instead of rebuilding it here.
 # shellcheck source=scripts/deploy_ops.sh
-. scripts/deploy_ops.sh require-confirm watchdog-load watchdog-load watchdog-load YES
+. scripts/deploy_ops.sh
 
 failures=0
 
@@ -62,15 +60,24 @@ fi
 # starting postgres; a missing image fails the run, which is itself an alert.
 # Compose writes progress to stderr, so keep stderr in a file instead of merging
 # it into the JSON — a swallowed error here would alert on every healthy stack.
+# `timeout` wraps it because a hung docker or restic would otherwise park this cron
+# job forever and silently stop watching. compose_args is used directly instead of
+# run_deploy_compose so `timeout` can prefix the real command.
 stderr_file="$(mktemp)"
 trap 'rm -f "$stderr_file"' EXIT
 
+mapfile -t snapshot_command < <(compose_args "$env")
+
 newest_epoch=0
 snapshot_error=""
-if ! snapshots_json="$(
-    run_deploy_compose "$env" --profile backups run --rm --no-deps -T --entrypoint restic backup \
+snapshot_status=0
+snapshots_json="$(
+    timeout 600 "${snapshot_command[@]}" --profile backups run --rm --no-deps -T --entrypoint restic backup \
         snapshots --json --no-lock 2>"$stderr_file"
-)"; then
+)" || snapshot_status=$?
+if ((snapshot_status == 124)); then
+    snapshot_error="timed out after 600s (hung docker or restic)"
+elif ((snapshot_status != 0)); then
     snapshot_error="$(tr '\n' ' ' <"$stderr_file")"
 elif ! newest_epoch="$(printf '%s' "$snapshots_json" | python3 -c '
 import datetime, json, re, sys

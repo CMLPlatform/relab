@@ -213,10 +213,18 @@ audit: audit-root
     for d in docs www app; do just "$d/audit"; done
     echo "✅ Root and subrepo dependency audits complete"
 
-# Canonical security target: dependency audits plus secret scanning
-security: audit
-    prek run gitleaks --all-files
-    @echo "✅ Security checks complete"
+# Canonical security target: secret scanning plus dependency audits
+security:
+    #!/usr/bin/env bash
+    # NOTE: gitleaks runs first and unconditionally — a red audit (a known upstream
+    # advisory with no fix yet) must not hide a leaked secret. The recipe still exits
+    # non-zero if either step fails.
+    set -uo pipefail
+    status=0
+    prek run gitleaks --all-files || status=1
+    just audit || status=1
+    [[ $status -eq 0 ]] && echo "✅ Security checks complete"
+    exit $status
 
 # Format Cloudflare OpenTofu files
 cloudflare-fmt:
@@ -355,7 +363,7 @@ _dev-reset confirm='':
 # Docker: Production
 # ============================================================================
 
-# Start production stack (defaults to the backups profile; optional: backups, migrations, scanning)
+# Start production stack (no profiles = backups only; passing profiles replaces that default, so list `backups` too)
 prod-up *PROFILES:
     @bash scripts/deploy_ops.sh stack prod up {{ PROFILES }}
 
@@ -379,7 +387,7 @@ prod-migrate confirm='':
 # Docker: Staging
 # ============================================================================
 
-# Start staging stack (defaults to the backups profile; optional: backups, migrations, scanning)
+# Start staging stack (no profiles = backups only; passing profiles replaces that default, so list `backups` too)
 staging-up *PROFILES:
     @bash scripts/deploy_ops.sh stack staging up {{ PROFILES }}
 

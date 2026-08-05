@@ -193,9 +193,9 @@ services:
       BACKUP_WORK_DIR: /tmp/relab-backups
       BACKUP_INTERVAL_SECONDS: "86400"
       BACKUP_ON_START: "true"
-      # Retention starts at daily: one run per day means keep-hourly can only
-      # hold the same snapshots keep-daily already holds, while advertising an
-      # hourly RPO the schedule does not deliver.
+      # keep-hourly is left at the backup script's default of 24. At the 86400s
+      # interval above that holds nothing keep-daily does not already hold, so the
+      # retention that matters is the daily/weekly/monthly set below.
       RESTIC_KEEP_DAILY: "14"
       RESTIC_KEEP_WEEKLY: "8"
       RESTIC_KEEP_MONTHLY: "12"
@@ -263,6 +263,8 @@ services:
     # base tuning from compose.yaml verbatim — NOTE: keep the two in sync. Only
     # max_connections differs: the API alone needs 80 (4 workers x pool 10 +
     # overflow 10), and 100 leaves margin for migrator, backup and operator psql.
+    # NOTE: work_mem is per sort, so 100 busy connections could in theory outrun
+    # mem_limit; the real ceiling is the 80-connection app pool, mostly idle.
     command:
       - postgres
       - -c

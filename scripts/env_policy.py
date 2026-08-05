@@ -72,6 +72,9 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
     "OTEL_EXPORTER_OTLP_ENDPOINT",
     "OTEL_EXPORTER_OTLP_HEADERS",
     "BACKUP_HOST_DIR",
+    # Offsite backup copy and the operator's psql superuser role, both host-specific.
+    "RESTIC_OFFSITE_REPOSITORY",
+    "POSTGRES_SUPERUSER",
     # Upload ceilings and malware scanning, overridable per instance.
     "MAX_UPLOAD_FILES_PER_USER",
     "MAX_UPLOAD_BYTES_PER_USER_MB",

@@ -38,7 +38,9 @@ compose_env_file() {
 # so a stray `export ENVIRONMENT=staging` would run staging images under the prod
 # project name. Scrub the names the env files own before invoking compose. Keep in
 # sync with COMMITTED_DEPLOY_ENV_NAMES + REQUIRED_ROOT_OPERATOR_INPUT_NAMES in
-# scripts/env_policy.py.
+# scripts/env_policy.py. MALWARE_SCAN_ENABLED is scrubbed too: the `up` guard reads it
+# from .env, so an exported shell value must not reach the container and quietly turn
+# scanning on without the clamav profile.
 COMPOSE_SCRUBBED_ENV_NAMES=(
     ENVIRONMENT
     API_PUBLIC_URL
@@ -51,6 +53,7 @@ COMPOSE_SCRUBBED_ENV_NAMES=(
     EMAIL_FROM
     EMAIL_REPLY_TO
     BOOTSTRAP_SUPERUSER_EMAIL
+    MALWARE_SCAN_ENABLED
 )
 
 compose_args() {
@@ -186,6 +189,16 @@ deploy_secret_template_value() {
         data_encryption_key)
             python3 -c 'import base64, secrets; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip("="))'
             ;;
+        rclone.conf)
+            # An rclone remote is operator-supplied, so seed a commented placeholder: it is
+            # non-empty (later runs keep it) and carries no `replace-me-` marker, which the
+            # env policy would reject. rclone.conf is optional — the backup service only reads
+            # it when RESTIC_OFFSITE_REPOSITORY names an `rclone:` target.
+            printf '%s\n' \
+                '# Placeholder. Replace with a real rclone config (rclone config) before' \
+                '# setting RESTIC_OFFSITE_REPOSITORY to an rclone:<remote>:<path> target.' \
+                '# Offsite copies stay disabled while this file holds only comments.'
+            ;;
         *_oauth_client_secret | microsoft_graph_client_secret)
             # External identity credentials can't be auto-generated: a random
             # token just yields a silent 401 at runtime. Seed a recognizable
@@ -209,8 +222,14 @@ deploy_secrets_template() {
     esac
 
     tmp_root="$(mktemp -d)"
+    local tmp_secret=""
     cleanup() {
         rm -rf "$tmp_root"
+        # A generator that fails mid-write leaves a partial 0600 secret next to the real
+        # ones; drop it rather than let a later run mistake it for an operator file.
+        if [[ -n "${tmp_secret:-}" ]]; then
+            rm -f "$tmp_secret"
+        fi
     }
     trap cleanup EXIT
 
@@ -225,7 +244,7 @@ deploy_secrets_template() {
 
     mkdir -p "secrets/$env"
     umask 077
-    local name path tmp_secret
+    local name path
     while IFS= read -r name; do
         [[ -n "$name" ]] || continue
         path="secrets/$env/$name"
@@ -328,8 +347,18 @@ stack_command() {
                 DEPLOY_PROFILE_FLAGS=(--profile backups)
             fi
             # NOTE: MALWARE_SCAN_ENABLED=true with no clamav container fails all uploads closed.
+            # Read it the way Compose does: drop an inline ` # comment`, surrounding whitespace
+            # and one matching pair of quotes, so `MALWARE_SCAN_ENABLED="false"  # off` agrees
+            # with the value the container actually gets. The name is scrubbed from the shell
+            # env before compose runs, so .env is the only source both sides read.
             local scan_enabled
             scan_enabled="$(grep -E '^MALWARE_SCAN_ENABLED=' .env 2>/dev/null | tail -n1 | cut -d= -f2- || true)"
+            scan_enabled="${scan_enabled%%[[:space:]]#*}"
+            scan_enabled="${scan_enabled#"${scan_enabled%%[![:space:]]*}"}"
+            scan_enabled="${scan_enabled%"${scan_enabled##*[![:space:]]}"}"
+            if [[ "$scan_enabled" == \"*\" || "$scan_enabled" == \'*\' ]]; then
+                scan_enabled="${scan_enabled:1:-1}"
+            fi
             if [[ "${scan_enabled:-true}" != "false" && " ${DEPLOY_PROFILE_FLAGS[*]} " != *" scanning "* ]]; then
                 echo "error: MALWARE_SCAN_ENABLED is not 'false' but the 'scanning' profile is off." >&2
                 echo "Pass the 'scanning' profile or set MALWARE_SCAN_ENABLED=false in .env." >&2
@@ -411,4 +440,8 @@ main() {
     esac
 }
 
-main "$@"
+# Sourcing this file (scripts/deploy_watchdog.sh reuses run_deploy_compose) must not
+# run a subcommand, so only dispatch when executed directly.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

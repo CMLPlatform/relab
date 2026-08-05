@@ -138,6 +138,11 @@ export TF_VAR_state_passphrase='...'   # >= 16 chars
 - The unencrypted fallback lets the first run with a passphrase read an existing
   plaintext state file and rewrite it encrypted. Use the same passphrase afterwards; a
   lost passphrase means a lost state file.
+- After the first encrypted apply, remove both `fallback` blocks from `versions.tf` and
+  set `enforced = true`, so a missing passphrase can never silently write plaintext
+  state again. Until then every command warns
+  `Method unencrypted is present in configuration`, which is expected, not a
+  misconfiguration.
 - Keep the passphrase in the operator's password manager, not in the repo or shell
   history.
 

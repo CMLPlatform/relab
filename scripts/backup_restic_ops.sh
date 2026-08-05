@@ -30,16 +30,25 @@ require_file() {
 resolve_backup_paths() {
     local env="$1"
 
-    # NOTE: BACKUP_HOST_DIR is a root .env value; Compose loads it itself, this script must too.
-    if [[ -f "$ROOT_DIR/.env" ]]; then
-        set -a
-        # shellcheck source=/dev/null
-        . "$ROOT_DIR/.env"
-        set +a
+    # NOTE: BACKUP_HOST_DIR is a root .env value; Compose loads it itself, this script
+    # must too — but only that one name, read in a subshell. Sourcing the whole .env
+    # here would let it overwrite every other exported value, and would invert Compose's
+    # precedence, where a shell-exported value wins over the file.
+    local backup_dir="${BACKUP_HOST_DIR:-}"
+    if [[ -z "$backup_dir" && -f "$ROOT_DIR/.env" ]]; then
+        backup_dir="$(
+            set -a
+            # shellcheck source=/dev/null
+            . "$ROOT_DIR/.env" >/dev/null 2>&1
+            printf '%s' "${BACKUP_HOST_DIR:-}"
+        )"
     fi
+    backup_dir="${backup_dir:-./backups}"
+    # Paths are anchored to the repo root so the script works from any CWD.
+    [[ "$backup_dir" == /* ]] || backup_dir="$ROOT_DIR/$backup_dir"
 
-    local repo="${BACKUP_HOST_DIR:-./backups}/restic"
-    local secret="secrets/$env/restic_password"
+    local repo="$backup_dir/restic"
+    local secret="$ROOT_DIR/secrets/$env/restic_password"
 
     DEPLOY_RESTIC_REPOSITORY="$(require_dir "Restic repository" "$repo")"
     DEPLOY_RESTIC_PASSWORD_FILE="$(require_file "Restic password file" "$secret")"
@@ -202,14 +211,11 @@ docker_smoke_backups() {
 
 backup_offsite_copy() {
     local env="${1:-staging}"
-    # Capture before resolve_backup_paths sources the root .env, so a value passed on the
-    # command line wins over the host default (the precedence Compose itself applies).
     local offsite_repo="${RESTIC_OFFSITE_REPOSITORY:-}"
 
     resolve_backup_paths "$env"
-    offsite_repo="${offsite_repo:-${RESTIC_OFFSITE_REPOSITORY:-}}"
 
-    local rclone_config="secrets/$env/rclone.conf"
+    local rclone_config="$ROOT_DIR/secrets/$env/rclone.conf"
     local tmp_root
     tmp_root="$(mktemp -d)"
     # Expand tmp_root into the trap now (double quotes): a single-quoted trap would

@@ -30,7 +30,7 @@ as "on `main`" therefore applies to the host as it actually is.
 This is not a routine deploy. The deployment layout itself changed:
 
 - Backend configuration moves out of a hand-maintained `backend/.env.prod` into
-  15 files under `secrets/prod/`. **`backend/.env.prod` is no longer read at
+  16 files under `secrets/prod/`. **`backend/.env.prod` is no longer read at
   all**, and `main` had no secret-file mechanism whatsoever, so these files
   likely do not exist on prod yet and must be created from the values currently
   in `backend/.env.prod`.
@@ -186,8 +186,11 @@ free -g
 **With enough RAM** — run it, and pass the profile on every up/down:
 
 ```bash
-just prod-up YES scanning
+just prod-up YES backups scanning
 ```
+
+Passing any profile replaces the `backups` default, so list `backups` explicitly
+whenever you pass `scanning`.
 
 **Without** — omit the profile *and* disable scanning in the root `.env`, or
 uploads fail closed:
@@ -384,7 +387,7 @@ Fill any remaining gaps and verify:
 
 ```bash
 just deploy-secrets-template prod   # creates only what is missing, 0600
-just env-inventory                  # the 15 expected names
+just env-inventory                  # the 16 expected names
 just deploy-secrets-check
 ```
 
@@ -538,7 +541,7 @@ Confirm no seeding is enabled (`SEED_DUMMY_DATA`, `SEED_CPV_CATEGORIES`,
 seeds are not gated on an empty database.
 
 ```bash
-just prod-up YES scanning     # drop `scanning` if you decided against ClamAV in 1a
+just prod-up YES backups scanning   # drop `scanning` if you decided against ClamAV in 1a
 just prod-migrate YES
 ```
 
@@ -699,8 +702,8 @@ If verification fails and the release cannot be trusted:
 
 1. Restore uploads from `user_uploads-pre-mvp.tar.gz` if anything wrote to them.
 
-1. `just prod-up YES scanning` on `main` (drop `scanning` if you disabled it in
-   1a).
+1. `just prod-up YES backups scanning` on `main` (drop `scanning` if you disabled
+   it in 1a).
 
 `just prod-build` also tags each image it builds with the commit it was built
 from (`relab-backend:prod-<sha>` alongside `relab-backend:prod-local`), so
@@ -708,7 +711,7 @@ rolling back to the previous build needs no rebuild — per image:
 
 ```bash
 docker tag relab-backend:prod-<oldsha> relab-backend:prod-local
-just prod-up YES scanning   # drop `scanning` only if you disabled it in 1a
+just prod-up YES backups scanning   # drop `scanning` only if you disabled it in 1a
 ```
 
 The schema has no scripted down-migration path for the dropped data: the
@@ -728,8 +731,11 @@ Not blockers, but do not discover them by surprise:
 
   ```cron
   MAILTO=ops@example.org
-  17 * * * * cd /srv/relab && just watchdog prod >/dev/null
+  17 * * * * cd /path/to/relab && just watchdog prod >/dev/null
   ```
+
+  Cron's `PATH` usually does not include `just` — use an absolute path to it or set
+  `PATH=` in the crontab — and the cron user needs docker access (the `docker` group).
 
   Richer alerting (Loki rules, external uptime monitoring, Grafana) is still future
   work; anything the watchdog does not check is still discovered by hand.
