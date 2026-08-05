@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
@@ -29,7 +29,6 @@ export function StreamingContent({
   showProductLink = false,
 }: StreamingContentProps) {
   const theme = useAppTheme();
-  const styles = createStyles(theme);
   const router = useRouter();
   const { setActiveStream } = useStreamSession();
   const feedback = useAppFeedback();
@@ -57,22 +56,22 @@ export function StreamingContent({
   }, [router, session.productId, onStop]);
 
   return (
-    <View style={styles.root}>
+    <View className="gap-1">
       {/* Header: LIVE badge + elapsed */}
-      <View style={styles.header}>
+      <View className="flex-row items-center gap-2 px-4 py-1">
         <StatusPill label="LIVE" tone="live" />
-        <AppText variant="body" style={styles.elapsed}>
+        <AppText variant="body" className="flex-1 tabular-nums opacity-60">
           {elapsed}
         </AppText>
       </View>
 
       {/* Live camera preview (compact) */}
-      <View style={styles.previewContainer}>
+      <View className="w-full max-w-[480px] self-center">
         <LivePreview camera={{ id: session.cameraId }} />
       </View>
 
       {/* Actions */}
-      <View style={styles.actions}>
+      <View className="flex-row gap-2 px-4 pt-1">
         <AppButton variant="outline" onPress={handleWatch} className="flex-1">
           <Icon name="open-in-new" size={16} color={theme.colors.onSurface} />
           <AppText style={{ color: theme.colors.onSurface }}>Watch on YouTube</AppText>
@@ -97,35 +96,4 @@ export function StreamingContent({
       ) : null}
     </View>
   );
-}
-
-function createStyles(theme: ReturnType<typeof useAppTheme>) {
-  return StyleSheet.create({
-    root: {
-      gap: 4,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      paddingHorizontal: 16,
-      paddingVertical: 4,
-    },
-    elapsed: {
-      flex: 1,
-      opacity: 0.6,
-      fontVariant: ['tabular-nums'],
-    },
-    previewContainer: {
-      maxWidth: 480,
-      alignSelf: 'center' as const,
-      width: '100%',
-    },
-    actions: {
-      flexDirection: 'row',
-      gap: 8,
-      paddingHorizontal: 16,
-      paddingTop: 4,
-    },
-  });
 }

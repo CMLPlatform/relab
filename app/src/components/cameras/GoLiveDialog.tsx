@@ -56,19 +56,20 @@ export function GoLiveDialog({
 
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" style={styles.title}>
+      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
         Go Live on {cameraName}
       </AppText>
-      <View style={styles.content}>
+      <View className="gap-3">
         <TextInput
           value={title}
           onChangeText={onChangeTitle}
           maxLength={100}
           placeholder="Stream title (optional)"
           accessibilityLabel="Stream title (optional)"
+          // TextInput is not cssInterop-wrapped for `className` in this app; styling stays JS-side.
           style={[styles.input, { borderColor: theme.colors.outline }]}
         />
-        <AppText variant="label" style={styles.label}>
+        <AppText variant="label" className="mt-1">
           Visibility
         </AppText>
         <ToggleGroup type="single" value={privacy} onValueChange={handleValueChange}>
@@ -86,11 +87,11 @@ export function GoLiveDialog({
           </ToggleGroupItem>
         </ToggleGroup>
       </View>
-      <View style={styles.actions}>
+      <View className="mt-4 flex-row justify-end gap-1">
         <AppButton variant="ghost" onPress={onSecondary} disabled={loading}>
           {secondaryLabel}
         </AppButton>
-        {showSpacer ? <View style={styles.spacer} /> : null}
+        {showSpacer ? <View className="flex-1" /> : null}
         <AppButton variant="primary" onPress={onStart} loading={loading} disabled={loading}>
           Go Live
         </AppButton>
@@ -101,29 +102,13 @@ export function GoLiveDialog({
 
 const styles = StyleSheet.create({
   title: {
+    // fontSize 18 has no exact Tailwind step without also changing lineHeight.
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  content: {
-    gap: 12,
   },
   input: {
     borderWidth: 1,
     borderRadius: radius.control,
     paddingHorizontal: 12,
     paddingVertical: 10,
-  },
-  label: {
-    marginTop: 4,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 4,
-    marginTop: 16,
-  },
-  spacer: {
-    flex: 1,
   },
 });

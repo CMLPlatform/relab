@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { radius } from '@/constants';
 import { useStreamSession } from '@/context/streamSession';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
@@ -33,9 +32,14 @@ export function ActiveStreamBanner() {
 
   return (
     <>
-      <View style={[styles.container, { bottom: BOTTOM_INSET }]} pointerEvents="box-none">
+      <View
+        className="items-center left-4 right-4"
+        style={{ position: getFloatingPosition(), bottom: BOTTOM_INSET }}
+        pointerEvents="box-none"
+      >
         <Pressable
           ref={bannerRef}
+          className="flex-row items-center gap-2 rounded-lg px-3.5 py-2.5"
           style={[
             styles.banner,
             {
@@ -49,9 +53,13 @@ export function ActiveStreamBanner() {
           accessibilityRole="button"
           accessibilityLabel="Manage live stream"
         >
-          <View style={[styles.liveDot, { backgroundColor: theme.tokens.status.live }]} />
+          <View
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: theme.tokens.status.live }}
+          />
           <AppText
             variant="plain"
+            className="flex-1 font-semibold"
             style={[styles.label, { color: theme.colors.inverseOnSurface }]}
             numberOfLines={1}
           >
@@ -59,6 +67,7 @@ export function ActiveStreamBanner() {
           </AppText>
           <AppText
             variant="plain"
+            className="tabular-nums"
             style={[styles.elapsed, { color: theme.tokens.text.inverseMuted }]}
           >
             {elapsed}
@@ -72,20 +81,7 @@ export function ActiveStreamBanner() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: getFloatingPosition(),
-    left: 16,
-    right: 16,
-    alignItems: 'center',
-    pointerEvents: 'box-none',
-  },
   banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: radius.card,
     // subtle red glow via shadow
     ...(Platform.OS === 'web'
       ? {}
@@ -96,18 +92,12 @@ const styles = StyleSheet.create({
         }),
     elevation: 8,
   },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
   label: {
-    flex: 1,
+    // fontSize 13 has no exact Tailwind step, so it stays inline.
     fontSize: 13,
-    fontWeight: '600',
   },
   elapsed: {
+    // text-xs would add a lineHeight the original didn't have.
     fontSize: 12,
-    fontVariant: ['tabular-nums'],
   },
 });

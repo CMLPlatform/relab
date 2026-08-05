@@ -2,7 +2,6 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-
 import { AppText } from '@/components/base/AppText';
 import { IconButton } from '@/components/base/IconButton';
 import { OverlaySurface } from '@/components/base/OverlaySurface';
-import { radius } from '@/constants';
 import type { StreamSession } from '@/context/streamSession';
 import { useAppTheme } from '@/theme';
 import { getFloatingPosition } from '@/utils/platformLayout';
@@ -21,20 +20,22 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable
-        style={[styles.backdrop, { backgroundColor: theme.tokens.overlay.scrim }]}
+        className="absolute inset-0"
+        style={{ backgroundColor: theme.tokens.overlay.scrim }}
         onPress={onDismiss}
       />
 
       <View
         testID="streaming-sheet"
+        className="bottom-0 left-0 right-0 max-h-[60%] overflow-hidden rounded-t-xl pt-2"
         style={[
           styles.sheet,
           theme.tokens.elevation.overlay,
           { backgroundColor: theme.colors.elevation.level4 },
         ]}
       >
-        <View style={styles.headerRow}>
-          <OverlaySurface style={styles.handle} tone="glass" />
+        <View className="flex-row items-center justify-center">
+          <OverlaySurface className="h-1 w-10 rounded-sm" tone="glass" />
           <IconButton
             icon="close"
             size={20}
@@ -44,11 +45,11 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
           />
         </View>
 
-        <AppText variant="title" style={styles.cameraLabel}>
+        <AppText variant="title" className="mb-1 px-4 opacity-60">
           {session.cameraName}
         </AppText>
 
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerClassName="pb-2">
           <StreamingContent session={session} onStop={onDismiss} showProductLink />
         </ScrollView>
       </View>
@@ -57,42 +58,13 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-  },
   sheet: {
     position: getFloatingPosition(),
-    bottom: 0,
-    left: 0,
-    right: 0,
-    maxHeight: '60%',
-    borderTopLeftRadius: radius.overlay,
-    borderTopRightRadius: radius.overlay,
-    paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 32 : 16, // clears the iOS home indicator
-    overflow: 'hidden',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
   },
   closeButton: {
     position: 'absolute',
     right: 4,
     top: -4,
-  },
-  cameraLabel: {
-    opacity: 0.6,
-    paddingHorizontal: 16,
-    marginBottom: 4,
-  },
-  scrollContent: {
-    paddingBottom: 8,
   },
 });

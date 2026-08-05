@@ -71,13 +71,11 @@ describe('CameraCard', () => {
     expect(screen.getByText('img:https://example.com/preview.jpg')).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
 
-    // Card must NOT have the opacity:0.6 offline style
+    // Card must NOT have the opacity-60 offline class
     const card = UNSAFE_getByProps({ accessibilityLabel: 'Camera: Test Camera' });
-    const flatStyle = Array.isArray(card.props.style)
-      ? Object.assign({}, ...card.props.style)
-      : (card.props.style ?? {});
-    expect(flatStyle.opacity).not.toBe(0.6);
-    expect(flatStyle.maxWidth).toBe(420);
+    const className = card.props.className as string;
+    expect(className).not.toContain('opacity-60');
+    expect(className).toContain('max-w-[420px]');
   });
 
   it('online + no stored preview: renders placeholder icon and preview caption', () => {
@@ -127,12 +125,10 @@ describe('CameraCard', () => {
     // Telemetry badge NOT rendered when offline
     expect(screen.queryByTestId('telemetry-badge')).toBeNull();
 
-    // Card wrapper has opacity: 0.6
+    // Card wrapper has the opacity-60 offline class
     const card = UNSAFE_getByProps({ accessibilityLabel: 'Camera: Test Camera' });
-    const flatStyle = Array.isArray(card.props.style)
-      ? Object.assign({}, ...card.props.style)
-      : (card.props.style ?? {});
-    expect(flatStyle.opacity).toBe(0.6);
+    const className = card.props.className as string;
+    expect(className).toContain('opacity-60');
   });
 
   // ── formatLastSeen boundary cases ─────────────────────────────────────────

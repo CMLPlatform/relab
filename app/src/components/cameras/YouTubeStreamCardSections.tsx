@@ -5,24 +5,12 @@ import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { StatusPill } from '@/components/base/StatusPill';
-import { radius } from '@/constants';
 import type { StreamView } from '@/services/api/rpiCamera';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
-
-const styles = StyleSheet.create({
-  card: { borderRadius: radius.card },
-  content: { padding: 12, gap: 8 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitle: { flex: 1 },
-  statusText: { opacity: 0.5 },
-  elapsedText: { opacity: 0.6 },
-  stopButton: { alignSelf: 'flex-start', marginTop: 4 },
-});
 
 const createThemedStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
     liveCard: {
-      borderRadius: radius.card,
       borderLeftWidth: 3,
       borderLeftColor: theme.tokens.status.live,
     },
@@ -53,25 +41,25 @@ export function YouTubeStreamCardView({
   const themed = createThemedStyles(theme);
 
   return (
-    <Card style={isLive ? themed.liveCard : styles.card}>
-      <View style={styles.content}>
-        <View style={styles.header}>
+    <Card style={isLive ? themed.liveCard : undefined}>
+      <View className="gap-2 p-3">
+        <View className="flex-row items-center gap-2">
           <Icon
             name="youtube"
             size="md"
             color={isLive ? theme.tokens.status.live : theme.colors.onSurfaceVariant}
           />
-          <AppText variant="title" style={styles.headerTitle}>
+          <AppText variant="title" className="flex-1">
             YouTube Live
           </AppText>
           {isLive ? <StatusPill label="LIVE" tone="live" /> : null}
         </View>
 
         {isLoading && !streamStatus ? (
-          <MutedText style={styles.statusText}>Checking stream status…</MutedText>
+          <MutedText className="opacity-50">Checking stream status…</MutedText>
         ) : isLive && streamStatus ? (
           <>
-            {elapsed ? <MutedText style={styles.elapsedText}>Live for {elapsed}</MutedText> : null}
+            {elapsed ? <MutedText className="opacity-60">Live for {elapsed}</MutedText> : null}
             <AppText variant="body" style={themed.watchLink} onPress={onWatch} numberOfLines={1}>
               {streamStatus.url}
             </AppText>
@@ -86,7 +74,7 @@ export function YouTubeStreamCardView({
             </AppButton>
           </>
         ) : (
-          <MutedText style={styles.statusText}>
+          <MutedText className="opacity-50">
             Not streaming — start a live stream from a product page.
           </MutedText>
         )}

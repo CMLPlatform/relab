@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
@@ -34,12 +34,15 @@ export function SelectionBar({
   const canCapture = selectedCount > 0 && !isCapturing;
   if (!visible) return null;
   return (
-    <View style={[styles.bar, { backgroundColor: theme.tokens.surface.accent }]}>
+    <View
+      className="flex-row items-center gap-2 px-3 py-2"
+      style={{ backgroundColor: theme.tokens.surface.accent }}
+    >
       <IconButton icon="close" onPress={onClear} accessibilityLabel="Clear selection" />
-      <AppText variant="title" style={styles.label}>
+      <AppText variant="title" className="ml-1">
         {selectedCount} selected
       </AppText>
-      <View style={styles.spacer} />
+      <View className="flex-1" />
       <AppButton
         variant="ghost"
         onPress={onSelectAll}
@@ -62,19 +65,3 @@ export function SelectionBar({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  label: {
-    marginLeft: 4,
-  },
-  spacer: {
-    flex: 1,
-  },
-});

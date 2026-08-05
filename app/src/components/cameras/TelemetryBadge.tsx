@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { StatusPill, type StatusTone } from '@/components/base/StatusPill';
 import type { CameraTelemetry, ThermalState } from '@/services/api/rpiCamera';
@@ -19,10 +19,10 @@ export function TelemetryBadge({ telemetry }: { telemetry: CameraTelemetry | nul
       : STATE_LABEL[telemetry.thermal_state];
 
   return (
-    <View style={styles.row}>
+    <View className="flex-row items-center gap-1.5">
       <StatusPill label={label} tone={STATE_TONE[telemetry.thermal_state]} variant="soft" />
       {telemetry.preview_sessions > 0 && (
-        <AppText variant="label" style={styles.subtext}>
+        <AppText variant="label" className="opacity-60">
           {telemetry.preview_sessions} live
         </AppText>
       )}
@@ -43,14 +43,3 @@ const STATE_LABEL: Record<ThermalState, string> = {
   throttle: 'Throttle',
   critical: 'Critical',
 };
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  subtext: {
-    opacity: 0.6,
-  },
-});

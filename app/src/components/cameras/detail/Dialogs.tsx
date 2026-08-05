@@ -29,7 +29,7 @@ function EditNameDialog({
 
   return (
     <AppDialog visible onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" style={styles.title}>
+      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
         Edit name
       </AppText>
       <TextInput
@@ -48,7 +48,7 @@ function EditNameDialog({
           },
         ]}
       />
-      <View style={styles.actions}>
+      <View className="mt-4 flex-row justify-end gap-1">
         <AppButton variant="ghost" onPress={onDismiss} disabled={loading}>
           Cancel
         </AppButton>
@@ -84,7 +84,7 @@ function EditDescriptionDialog({
 
   return (
     <AppDialog visible onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" style={styles.title}>
+      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
         Edit description
       </AppText>
       <TextInput
@@ -98,7 +98,7 @@ function EditDescriptionDialog({
         accessibilityLabel="Description"
         style={[styles.input, styles.multilineInput, { borderColor: theme.colors.outline }]}
       />
-      <View style={styles.actions}>
+      <View className="mt-4 flex-row justify-end gap-1">
         <AppButton variant="ghost" onPress={onDismiss} disabled={loading}>
           Cancel
         </AppButton>
@@ -136,11 +136,11 @@ function ManualSetupDialog({
   const theme = useAppTheme();
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" style={styles.title}>
+      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
         Manual direct connection
       </AppText>
-      <View style={styles.dialogContent}>
-        <AppText style={styles.connectionHint}>
+      <View className="gap-3">
+        <AppText className="opacity-70" style={styles.connectionHint}>
           Direct connection bypasses the WebSocket relay, cutting preview latency from ~2 s to ~0.4
           s. Connect an Ethernet cable between the Pi and this device — the app detects it
           automatically. Use this form only if auto-detection didn&apos;t find the Pi; the local API
@@ -167,7 +167,7 @@ function ManualSetupDialog({
           style={[styles.input, { borderColor: theme.colors.outline }]}
         />
       </View>
-      <View style={styles.actions}>
+      <View className="mt-4 flex-row justify-end gap-1">
         <AppButton variant="ghost" onPress={onDismiss} disabled={saving}>
           Cancel
         </AppButton>
@@ -203,14 +203,14 @@ function CameraDeleteDialog({
 }: CameraDeleteDialogProps) {
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" style={styles.title}>
+      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
         Delete camera?
       </AppText>
       <AppText>
-        This will permanently delete <AppText style={styles.boldText}>{cameraName}</AppText> and
+        This will permanently delete <AppText className="font-bold">{cameraName}</AppText> and
         revoke its device credential. The Raspberry Pi will lose access immediately.
       </AppText>
-      <View style={styles.actions}>
+      <View className="mt-4 flex-row justify-end gap-1">
         <AppButton variant="ghost" onPress={onDismiss} disabled={loading}>
           Cancel
         </AppButton>
@@ -323,10 +323,10 @@ export function CameraDetailDialogs({
 
 const styles = StyleSheet.create({
   title: {
+    // fontSize 18 has no exact Tailwind step without also changing lineHeight.
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
   },
+  // TextInput is not cssInterop-wrapped for `className` in this app; styling stays JS-side.
   input: {
     borderWidth: 1,
     borderRadius: radius.control,
@@ -337,20 +337,8 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  dialogContent: {
-    gap: 12,
-  },
   connectionHint: {
-    opacity: 0.7,
+    // fontSize 13 has no exact Tailwind step, so it stays inline.
     fontSize: 13,
-  },
-  boldText: {
-    fontWeight: '700',
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 4,
-    marginTop: 16,
   },
 });

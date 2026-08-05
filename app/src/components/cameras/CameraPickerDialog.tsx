@@ -6,7 +6,6 @@ import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
-import { radius } from '@/constants';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
 import {
   resolveEffectiveCameraConnection,
@@ -57,27 +56,27 @@ export function CameraPickerDialog({
 
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" style={styles.title}>
+      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
         {title}
       </AppText>
-      <View style={styles.content}>
+      <View className="gap-2">
         {isLoading ? (
-          <ActivityIndicator style={styles.loading} />
+          <ActivityIndicator className="p-4" />
         ) : sorted.length === 0 ? (
-          <View style={styles.emptyState}>
+          <View className="items-center gap-2 p-4">
             <Icon name="camera-off" size={32} color={theme.tokens.text.muted} />
-            <MutedText style={styles.emptyText}>No cameras registered</MutedText>
+            <MutedText className="text-center">No cameras registered</MutedText>
           </View>
         ) : (
           sorted.map((cam) => <CameraPickerRow key={cam.id} camera={cam} onSelect={onSelect} />)
         )}
       </View>
-      <View style={styles.actions}>
+      <View className="mt-4 flex-row items-center justify-end gap-1">
         <AppButton variant="ghost" onPress={handleManage}>
           <Icon name="cog" size={16} color={theme.colors.onSurface} />
           <AppText style={{ color: theme.colors.onSurface }}>Manage</AppText>
         </AppButton>
-        <View style={styles.spacer} />
+        <View className="flex-1" />
         <AppButton variant="ghost" onPress={onDismiss}>
           Cancel
         </AppButton>
@@ -107,19 +106,17 @@ function CameraPickerRow({
     <Pressable
       onPress={handleSelect}
       accessibilityRole="button"
-      style={[
-        styles.row,
-        { borderColor: theme.colors.outlineVariant, opacity: isReachable ? 1 : 0.4 },
-      ]}
+      className="flex-row items-center gap-3 rounded-lg border border-border p-3"
+      style={{ opacity: isReachable ? 1 : 0.4 }}
     >
       <View
-        style={[
-          styles.dot,
-          { backgroundColor: isReachable ? theme.tokens.status.success : theme.tokens.text.muted },
-        ]}
+        className="h-2 w-2 rounded-full"
+        style={{
+          backgroundColor: isReachable ? theme.tokens.status.success : theme.tokens.text.muted,
+        }}
       />
       <Icon name="access-point" size="md" color={theme.colors.onSurface} />
-      <AppText style={styles.rowTitle}>{camera.name}</AppText>
+      <AppText className="flex-1">{camera.name}</AppText>
       {effectiveConnection.detailLabel ? (
         <AppText variant="label" style={{ color: theme.tokens.status.success }}>
           Direct
@@ -136,48 +133,7 @@ function CameraPickerRow({
 
 const styles = StyleSheet.create({
   title: {
+    // fontSize 18 has no exact Tailwind step without also changing lineHeight.
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  content: {
-    gap: 8,
-  },
-  loading: {
-    padding: 16,
-  },
-  emptyState: {
-    padding: 16,
-    alignItems: 'center',
-    gap: 8,
-  },
-  emptyText: {
-    textAlign: 'center',
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 16,
-  },
-  spacer: {
-    flex: 1,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    borderRadius: radius.card,
-    borderWidth: 1,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  rowTitle: {
-    flex: 1,
   },
 });
