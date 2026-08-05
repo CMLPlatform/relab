@@ -6,9 +6,10 @@
   "workspaceFolder": "/opt/relab",
   "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers-extra/features/expo-cli:1": {},
-    "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {}
+    "ghcr.io/devcontainers/features/git:1.3.8": {},
+    "ghcr.io/devcontainers-extra/features/expo-cli:1.0.11": {},
+    "ghcr.io/jsburckhardt/devcontainer-features/uv:1.0.0": {},
+    "ghcr.io/guiyomh/features/just:0.1.0": {}
   },
   "postAttachCommand": "echo 'Relab full-stack devcontainer ready.\\nPrimary workflow: run just install once, then use just dev / just ci from the repo root.\\nAPI: http://127.0.0.1:8010\\nApp: http://127.0.0.1:8011\\nDocs: http://127.0.0.1:8012\\nLanding site: http://127.0.0.1:8013'"
 }
