@@ -63,7 +63,9 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     <DetailSectionHeader
       title={labels.title}
       tooltipTitle={`Select a fitting category for the ${entityLabel(product)}.`}
-      style={{ fontSize: 15, fontWeight: '600' }}
+      // Pinned lineHeight too: the header's `title` variant would otherwise pair
+      // 15pt text with title's 30pt leading.
+      style={{ fontSize: 15, lineHeight: 20, fontWeight: '600' }}
     />
   );
 

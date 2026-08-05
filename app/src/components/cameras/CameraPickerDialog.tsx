@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { type RefObject, useCallback, useMemo } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
+import { dialogTitleStyle } from '@/components/base/dialogStyles';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
@@ -56,7 +57,7 @@ export function CameraPickerDialog({
 
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
+      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
         {title}
       </AppText>
       <View className="gap-2">
@@ -130,10 +131,3 @@ function CameraPickerRow({
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  title: {
-    // fontSize 18 has no exact Tailwind step without also changing lineHeight.
-    fontSize: 18,
-  },
-});

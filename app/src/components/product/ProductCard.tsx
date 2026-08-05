@@ -113,12 +113,18 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
             <MutedText
               className="mb-1"
               style={styles.detailText}
+              selectable={false}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
               {detailList.join(' • ')}
             </MutedText>
-            <MutedText style={styles.descriptionText} numberOfLines={1} ellipsizeMode="tail">
+            <MutedText
+              style={styles.descriptionText}
+              selectable={false}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {product.description}
             </MutedText>
             {hasMetadata ? (

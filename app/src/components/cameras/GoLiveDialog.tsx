@@ -1,8 +1,9 @@
 import { type RefObject, useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
+import { dialogTitleStyle } from '@/components/base/dialogStyles';
 import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { Text as UiText } from '@/components/base/ui/text';
@@ -55,7 +56,7 @@ export function GoLiveDialog({
 
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
+      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
         Go Live on {cameraName}
       </AppText>
       <View className="gap-3">
@@ -97,10 +98,3 @@ export function GoLiveDialog({
     </AppDialog>
   );
 }
-
-const styles = StyleSheet.create({
-  title: {
-    // fontSize 18 has no exact Tailwind step without also changing lineHeight.
-    fontSize: 18,
-  },
-});

@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
+import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
@@ -47,13 +48,13 @@ export function ProductImageCameraDialogs({
         onDismiss={onDismissPreview}
         triggerRef={triggerRef}
       >
-        <AppText accessibilityRole="header" style={dialogStyles.title}>
+        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
           {previewCamera?.name ?? 'Camera preview'}
         </AppText>
         <View style={styles.previewDialogContent}>
           <LivePreview camera={previewCamera} enabled={previewCamera !== null} />
         </View>
-        <View style={dialogStyles.actions}>
+        <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={onDismissPreview}>
             Cancel
           </AppButton>
@@ -70,13 +71,3 @@ export function ProductImageCameraDialogs({
     </>
   );
 }
-
-const dialogStyles = {
-  title: { fontSize: 18, fontWeight: '600' as const, marginBottom: 8 },
-  actions: {
-    flexDirection: 'row' as const,
-    justifyContent: 'flex-end' as const,
-    gap: 4,
-    marginTop: 16,
-  },
-};

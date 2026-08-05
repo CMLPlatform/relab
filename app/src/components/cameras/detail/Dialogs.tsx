@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
+import { dialogTitleStyle } from '@/components/base/dialogStyles';
 import { TextInput } from '@/components/base/TextInput';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
@@ -28,7 +29,7 @@ function EditNameDialog({
 
   return (
     <AppDialog visible onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
+      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
         Edit name
       </AppText>
       <TextInput
@@ -84,7 +85,7 @@ function EditDescriptionDialog({
 
   return (
     <AppDialog visible onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
+      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
         Edit description
       </AppText>
       <TextInput
@@ -136,7 +137,7 @@ function ManualSetupDialog({
 }: ManualSetupDialogProps) {
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
+      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
         Manual direct connection
       </AppText>
       <View className="gap-3">
@@ -203,7 +204,7 @@ function CameraDeleteDialog({
 }: CameraDeleteDialogProps) {
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText accessibilityRole="header" className="mb-2 font-semibold" style={styles.title}>
+      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
         Delete camera?
       </AppText>
       <AppText>
@@ -322,10 +323,6 @@ export function CameraDetailDialogs({
 }
 
 const styles = StyleSheet.create({
-  title: {
-    // fontSize 18 has no exact Tailwind step without also changing lineHeight.
-    fontSize: 18,
-  },
   multilineInput: {
     minHeight: 80,
     textAlignVertical: 'top',
