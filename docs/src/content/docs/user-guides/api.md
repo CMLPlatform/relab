@@ -3,9 +3,12 @@ title: API interaction guide
 description: Use the Relab API safely for scripts, notebooks, and external tooling.
 ---
 
-For the authoritative schemas, request models, and endpoint lists, start from the [API reference overview](/api-reference/). For how the API is designed internally, see [API structure](../../architecture/api/).
+For the authoritative schemas, request models, and endpoint lists, start from the
+[API reference overview](/api-reference/). For how the API is designed internally, see
+[API structure](../../architecture/api/).
 
-The public API is versioned under `/v1`. Client configuration should keep the API origin separate from the versioned path, then build requests such as `https://api.cml-relab.org/v1/products`.
+The public API is versioned under `/v1`. Keep the API origin separate from the versioned path in
+your client configuration, then build requests such as `https://api.cml-relab.org/v1/products`.
 
 ## When to use the API directly
 
@@ -18,10 +21,13 @@ The public API is versioned under `/v1`. Client configuration should keep the AP
 
 - **Browsers** use cookies (`POST /v1/auth/session/login`)
 - **Apps and scripts** use bearer tokens (`POST /v1/auth/bearer/login`)
-- Refresh-token handling depends on the Redis-backed auth path (see [Authentication](../../architecture/auth/))
+- Refresh-token handling depends on the Redis-backed auth path (see
+  [Authentication](../../architecture/auth/))
 
 :::note[Public vs. authenticated routes]
-Public reference data (taxonomies, materials, product types), product records, and uploaded media are accessible without authentication. Creating or changing records, account management, private user details, and owner-scoped workflows require a valid token.
+Public reference data (taxonomies, materials, product types), product records, and uploaded media
+are accessible without authentication. Creating or changing records, account management, private
+user details, and owner-scoped workflows require a valid token.
 :::
 
 ## Suggested first steps
@@ -34,13 +40,20 @@ Public reference data (taxonomies, materials, product types), product records, a
 
 ## Interactive tooling and admin tasks
 
-Point a client at the API and authenticate with a bearer token from `POST /v1/auth/bearer/login` — the same path covers superuser tasks like `POST /v1/admin/cache/clear/{namespace}`.
+Point a client at the API and authenticate with a bearer token from `POST /v1/auth/bearer/login`.
+The same path covers superuser tasks like `POST /v1/admin/cache/clear/{namespace}`.
 
-- **Postman, Bruno, Insomnia**: import the OpenAPI schema (`app/src/types/openapi.json`) for the full endpoint collection, then set auth to *Bearer*.
-- **VS Code REST Client / JetBrains HTTP Client**: use `scripts/admin.http` from a repo checkout — send `login` once and the token flows into the calls below it.
+- **Postman, Bruno, Insomnia**: import the OpenAPI schema (`app/src/types/openapi.json`) for the
+  full endpoint collection, then set auth to *Bearer*.
+- **VS Code REST Client / JetBrains HTTP Client**: use `scripts/admin.http` from a repo checkout —
+  send `login` once and the token flows into the calls below it.
 
 ## Integration advice
 
-- Build against the generated OpenAPI schema rather than copied examples, which can drift out of date.
-- For product circularity notes, use `circularity_properties` as either `null` or an object with optional `recyclability`, `disassemblability`, and `remanufacturability` strings. Empty objects and empty note strings are normalized to `null`.
-- If you need a stable exported dataset rather than live application access, check the [dataset page](../../project/dataset/) first.
+- Build against the generated OpenAPI schema rather than copied examples, which can drift out of
+  date.
+- For product circularity notes, use `circularity_properties` as either `null` or an object with
+  optional `recyclability`, `disassemblability`, and `remanufacturability` strings. Empty objects
+  and empty note strings are normalized to `null`.
+- If you need a stable exported dataset rather than live application access, check the
+  [dataset page](../../project/dataset/) first.
