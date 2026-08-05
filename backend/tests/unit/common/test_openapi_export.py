@@ -47,6 +47,7 @@ def test_public_schema_covers_routes_added_through_sub_routers(tmp_path: Path, m
         "/v1/auth/validate-email",
         "/v1/oauth/google/session/authorize",
         "/v1/users/me",
+        "/v1/plugins/rpi-cam/pairing/claim",
     } <= public_paths.keys()
     # A device sub-router mounted under a public prefix keeps its own audience.
     assert "/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload" not in public_paths
@@ -54,6 +55,23 @@ def test_public_schema_covers_routes_added_through_sub_routers(tmp_path: Path, m
     # fastapi-users' superuser-by-id routes are dropped from /users entirely;
     # by-id management lives on the audited /admin/users surface.
     assert "/v1/users/{id}" not in public_paths
+    # register/poll are Pi-only; they must not leak into the app-facing public schema,
+    # even though they share a path prefix with the user-facing claim endpoint.
+    assert "/v1/plugins/rpi-cam/pairing/register" not in public_paths
+    assert "/v1/plugins/rpi-cam/pairing/poll" not in public_paths
+
+
+def test_device_schema_covers_pairing_register_and_poll_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pairing register/poll are device-only; claim (user-initiated) must not be there."""
+    _redirect_output_paths(tmp_path, monkeypatch)
+
+    export_openapi.export_openapi_schemas()
+
+    device_paths = json.loads((tmp_path / "openapi.device.json").read_text(encoding="utf-8"))["paths"]
+
+    assert "/v1/plugins/rpi-cam/pairing/register" in device_paths
+    assert "/v1/plugins/rpi-cam/pairing/poll" in device_paths
+    assert "/v1/plugins/rpi-cam/pairing/claim" not in device_paths
 
 
 def test_schemas_are_current_detects_stale_schema(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

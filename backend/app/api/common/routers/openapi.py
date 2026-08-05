@@ -132,7 +132,11 @@ def _is_device_route(ctx: RouteContext) -> bool:
     audiences = set(route_audiences(ctx.route))
     if RouteAudience.DEVICE.value in audiences:
         return True
-    return ctx.path.startswith(f"/{API_MAJOR}/plugins/rpi-cam/pairing/") or ctx.path.endswith(DEVICE_ROUTE_SUFFIXES)
+    # NOTE: no path-prefix fallback for /plugins/rpi-cam/pairing/ — every route
+    # under that prefix now carries an explicit audience tag (register/poll via
+    # DeviceAPIRouter, claim via PublicAPIRouter), and a bare prefix match would
+    # wrongly pull the user-facing `claim` route into the device schema too.
+    return ctx.path.endswith(DEVICE_ROUTE_SUFFIXES)
 
 
 def _register_internal_docs(router: APIRouter, app: FastAPI) -> None:

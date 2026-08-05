@@ -10,7 +10,7 @@ Flow:
 import hmac
 import logging
 
-from fastapi import status
+from fastapi import HTTPException, status
 from relab_rpi_cam_models import (
     PairingClaimedRecord,
     PairingPendingRecord,
@@ -32,7 +32,7 @@ from app.api.plugins.rpi_cam.exceptions import (
 )
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead
-from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest, PairingPollRequest
+from app.api.plugins.rpi_cam.schemas.pairing import FINGERPRINT_PATTERN, PairingClaimRequest, PairingPollRequest
 from app.api.plugins.rpi_cam.utils.device_contracts import (
     build_claimed_bootstrap,
     build_claimed_record,
@@ -102,6 +102,12 @@ async def register_pairing_code(
     redis: RedisDep,
 ) -> PairingRegisterResponse:
     """Register a short-lived pairing code and the camera's public device key."""
+    # PairingRegisterRequest is an external model (relab_rpi_cam_models); it doesn't
+    # enforce the same charset as PairingPollRequest.fingerprint. Re-check here so a
+    # fingerprint that would 422 on every subsequent poll is rejected up front instead.
+    if not FINGERPRINT_PATTERN.fullmatch(body.rpi_fingerprint):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid fingerprint format.")
+
     key = _pairing_key(body.code)
     payload = dump_pairing_record(
         build_waiting_record(
@@ -139,6 +145,10 @@ async def claim_pairing_code(
     """
     await limiter.ahit_key(CLAIM_CODE_RATE_LIMIT, rate_limit_bucket_key("rpi-cam:pairing:claim:code", body.code))
     key = _pairing_key(body.code)
+    # Read the remaining pending-record TTL before GETDEL destroys it, so a failed
+    # camera creation below can restore the record for its actual remaining window
+    # instead of resetting the clock to a fresh, possibly-longer TTL.
+    remaining_ttl = int(await redis.ttl(key))
     raw = await getdel_redis_value(redis, key)
     if raw is None:
         raise PairingCodeNotFoundError
@@ -152,16 +162,30 @@ async def claim_pairing_code(
         await set_redis_value(redis, key, raw, ex=PAIRING_CREDENTIAL_TTL_SECONDS)
         raise PairingCodeAlreadyClaimedError
 
-    db_camera = await crud.create_camera(
-        session,
-        CameraCreate(
-            name=body.camera_name,
-            description=body.description,
-            relay_public_key_jwk=record.public_key_jwk.model_dump(exclude_none=True),
-            relay_key_id=record.key_id,
-        ),
-        current_user.id,
-    )
+    try:
+        db_camera = await crud.create_camera(
+            session,
+            CameraCreate(
+                name=body.camera_name,
+                description=body.description,
+                relay_public_key_jwk=record.public_key_jwk.model_dump(exclude_none=True),
+                relay_key_id=record.key_id,
+            ),
+            current_user.id,
+        )
+    except Exception:
+        # Camera creation failed (DB down, conflict, etc.) after GETDEL already
+        # consumed the pending record — restore it so the code isn't permanently
+        # dead and the Pi's next poll doesn't 404 into a forced re-pair.
+        restored = await set_redis_value(
+            redis, key, raw, ex=remaining_ttl if remaining_ttl > 0 else PAIRING_TTL_SECONDS
+        )
+        if not restored:
+            logger.warning(
+                "Failed to restore pairing record %s after camera creation error; code is now dead.",
+                _pairing_log_id(body.code),
+            )
+        raise
     paired_payload = dump_pairing_record(
         build_claimed_record(
             build_claimed_bootstrap(

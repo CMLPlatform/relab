@@ -1,9 +1,22 @@
 """Pydantic models for the RPi camera pairing flow."""
 
+import re
+
 from pydantic import BaseModel, Field
 from relab_rpi_cam_models import PairingCode
 
 from app.api.common.validation import MultilineUserText, SingleLineUserText
+
+# ASCII-safe: a non-ASCII fingerprint would otherwise reach hmac.compare_digest and
+# raise TypeError -> unauthenticated 500. Confirmed against the actual Pi generator
+# (relab-rpi-cam-plugin's `secrets.token_urlsafe(16)`, ~22 chars of [A-Za-z0-9_-]),
+# which comfortably fits inside this pattern.
+# NOTE: this constraint should live on `rpi_fingerprint`/`fingerprint` in the
+# relab-rpi-cam-models package itself (both PairingRegisterRequest and
+# PairingPollRequest), not duplicated per-endpoint here — until it moves upstream,
+# the register route below re-checks it manually since PairingRegisterRequest is
+# an external model we can't edit.
+FINGERPRINT_PATTERN = re.compile(r"^[A-Za-z0-9._~-]{8,64}$")
 
 
 class PairingClaimRequest(BaseModel):
@@ -25,8 +38,6 @@ class PairingPollRequest(BaseModel):
     fingerprint: str = Field(
         min_length=8,
         max_length=64,
-        # ASCII-safe: a non-ASCII fingerprint would otherwise reach
-        # hmac.compare_digest and raise TypeError -> unauthenticated 500.
-        pattern=r"^[A-Za-z0-9._~-]{8,64}$",
+        pattern=FINGERPRINT_PATTERN.pattern,
         description="Random device fingerprint nonce chosen at registration.",
     )

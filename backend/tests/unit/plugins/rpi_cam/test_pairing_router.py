@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 from fakeredis.aioredis import FakeRedis
+from fastapi import HTTPException
 from pydantic import ValidationError
 from relab_rpi_cam_models import PairingRegisterRequest
 
@@ -14,6 +15,7 @@ from app.api.plugins.rpi_cam.exceptions import PairingCodeAlreadyClaimedError, P
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.pairing import (
     CLAIM_CODE_RATE_LIMIT,
+    PAIRING_TTL_SECONDS,
     _build_ws_url,
     claim_pairing_code,
     poll_pairing_status,
@@ -79,6 +81,28 @@ async def test_register_pairing_code_logs_digest_not_raw_code() -> None:
     payload = json.loads(stored)
     assert payload["public_key_jwk"] == PUBLIC_JWK
     assert payload["key_id"] == KEY_ID
+
+
+async def test_register_pairing_code_rejects_fingerprint_outside_charset() -> None:
+    """A register-time fingerprint outside the poll-side charset must 422 up front.
+
+    PairingRegisterRequest is an external model that only enforces length, so a
+    fingerprint like this would otherwise be stored, then fail every subsequent
+    poll (PairingPollRequest.fingerprint pattern), stranding the Pi.
+    """
+    body = PairingRegisterRequest(
+        code=PAIRING_CODE,
+        rpi_fingerprint="bad fingerprint!",
+        public_key_jwk=PUBLIC_JWK,
+        key_id=KEY_ID,
+    )
+    redis_client = await _make_fake_redis()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await register_pairing_code(body=body, redis=redis_client)
+
+    assert exc_info.value.status_code == 422
+    assert await redis_client.get(f"rpi_cam:pairing:{PAIRING_CODE}") is None
 
 
 async def test_claim_pairing_code_logs_digest_not_raw_code() -> None:
@@ -220,6 +244,101 @@ async def test_claim_pairing_code_concurrent_race_creates_exactly_one_camera() -
 
     assert isinstance(winner, Camera)
     assert isinstance(loser_result.get("error"), PairingCodeNotFoundError)
+
+
+async def test_claim_pairing_code_restores_pending_record_on_create_camera_failure() -> None:
+    """A DB failure after GETDEL must restore the pending record, not strand the code.
+
+    Without the restore, GETDEL has already consumed the only copy of the pending
+    record, so the code becomes permanently unclaimable and the Pi's next poll
+    404s into a forced re-pair.
+    """
+    session = AsyncMock()
+    current_user = UserFactory.build(
+        id=uuid4(),
+        email="owner@example.com",
+        hashed_password="hashed",
+        is_active=True,
+        is_superuser=False,
+        is_verified=True,
+    )
+    body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description=None)
+    redis_client = await _make_fake_redis()
+    pending_payload = json.dumps(
+        {
+            "status": "waiting",
+            "rpi_fingerprint": "fingerprint",
+            "public_key_jwk": PUBLIC_JWK,
+            "key_id": KEY_ID,
+        }
+    )
+    await redis_client.set(f"rpi_cam:pairing:{PAIRING_CODE}", pending_payload, ex=PAIRING_TTL_SECONDS)
+
+    with (
+        patch(
+            "app.api.plugins.rpi_cam.routers.pairing.crud.create_camera",
+            new=AsyncMock(side_effect=RuntimeError("db down")),
+        ),
+        patch("app.api.plugins.rpi_cam.routers.pairing.limiter.ahit_key", new_callable=AsyncMock),
+        pytest.raises(RuntimeError, match="db down"),
+    ):
+        await claim_pairing_code(
+            body=body,
+            session=session,
+            current_user=current_user,
+            redis=redis_client,
+        )
+
+    restored = await redis_client.get(f"rpi_cam:pairing:{PAIRING_CODE}")
+    assert restored == pending_payload
+    ttl = await redis_client.ttl(f"rpi_cam:pairing:{PAIRING_CODE}")
+    assert 0 < ttl <= PAIRING_TTL_SECONDS
+
+
+async def test_claim_pairing_code_logs_warning_when_restore_itself_fails() -> None:
+    """If the compensating restore write also fails, that must be logged, not silent."""
+    session = AsyncMock()
+    current_user = UserFactory.build(
+        id=uuid4(),
+        email="owner@example.com",
+        hashed_password="hashed",
+        is_active=True,
+        is_superuser=False,
+        is_verified=True,
+    )
+    body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description=None)
+    redis_client = await _make_fake_redis()
+    await redis_client.set(
+        f"rpi_cam:pairing:{PAIRING_CODE}",
+        json.dumps(
+            {
+                "status": "waiting",
+                "rpi_fingerprint": "fingerprint",
+                "public_key_jwk": PUBLIC_JWK,
+                "key_id": KEY_ID,
+            }
+        ),
+    )
+
+    with (
+        patch(
+            "app.api.plugins.rpi_cam.routers.pairing.crud.create_camera",
+            new=AsyncMock(side_effect=RuntimeError("db down")),
+        ),
+        patch("app.api.plugins.rpi_cam.routers.pairing.limiter.ahit_key", new_callable=AsyncMock),
+        patch("app.api.plugins.rpi_cam.routers.pairing.set_redis_value", new=AsyncMock(return_value=False)),
+        patch("app.api.plugins.rpi_cam.routers.pairing.logger") as mock_logger,
+        pytest.raises(RuntimeError, match="db down"),
+    ):
+        await claim_pairing_code(
+            body=body,
+            session=session,
+            current_user=current_user,
+            redis=redis_client,
+        )
+
+    mock_logger.warning.assert_called_once()
+    assert "restore" in mock_logger.warning.call_args.args[0].lower()
 
 
 def test_poll_request_rejects_non_ascii_fingerprint() -> None:
