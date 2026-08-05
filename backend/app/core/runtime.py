@@ -8,7 +8,6 @@ from fastapi import FastAPI, Request
 from app.api.common.exceptions import ServiceUnavailableError
 
 if TYPE_CHECKING:
-    import anyio
     from httpx import AsyncClient
     from redis.asyncio import Redis
     from starlette.requests import HTTPConnection
@@ -29,7 +28,6 @@ class AppServices:
     common_password_checker: CommonPasswordChecker | None = None
     file_cleanup_manager: FileCleanupManager | None = None
     http_client: AsyncClient | None = None
-    image_resize_limiter: anyio.CapacityLimiter | None = None
 
 
 def get_connection_services(connection: HTTPConnection) -> AppServices:

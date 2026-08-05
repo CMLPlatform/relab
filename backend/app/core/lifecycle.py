@@ -13,7 +13,6 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import anyio
 from fastapi import FastAPI
 from httpx import CloseError
 
@@ -102,7 +101,6 @@ def _initialize_storage_mounts(app: FastAPI) -> None:
 def _initialize_http_and_observability(app: FastAPI, services: AppServices) -> None:
     """Initialize shared HTTP and observability services."""
     services.http_client = create_http_client()
-    services.image_resize_limiter = anyio.CapacityLimiter(settings.image_resize_workers)
     init_telemetry(app, async_engine)
 
 

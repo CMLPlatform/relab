@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from anyio import to_thread
 
-from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
+from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, StorageBackendError
 from app.api.file_storage.models.storage_core import BaseStorage, secure_filename
 from app.core.config import settings
 
@@ -34,6 +34,15 @@ def _client_error_type() -> type[Exception]:
             """Fallback exception used when botocore is not installed."""
 
         return ClientError
+
+
+def _s3_delete_error_types() -> tuple[type[Exception], ...]:
+    """Return botocore's ClientError/BotoCoreError, or a local fallback when unavailable."""
+    try:
+        botocore_exceptions = import_module("botocore.exceptions")
+    except ImportError:
+        return (_client_error_type(),)
+    return (botocore_exceptions.ClientError, botocore_exceptions.BotoCoreError)
 
 
 class S3Storage(BaseStorage):
@@ -135,7 +144,16 @@ class S3Storage(BaseStorage):
         return filename
 
     async def delete(self, name: str) -> None:
-        """Delete an S3 object. ``delete_object`` is idempotent for missing keys."""
+        """Delete an S3 object. ``delete_object`` is idempotent for missing keys.
+
+        A real failure (auth, network, throttling) surfaces as botocore's
+        ``ClientError``/``BotoCoreError``, translated to ``StorageBackendError`` so
+        best-effort cleanup callers don't need a botocore-specific except clause.
+        """
         client = self._get_client()
         bucket, key = self._bucket, self._s3_key(name)
-        await to_thread.run_sync(lambda: client.delete_object(Bucket=bucket, Key=key))
+        try:
+            await to_thread.run_sync(lambda: client.delete_object(Bucket=bucket, Key=key))
+        except _s3_delete_error_types() as e:
+            msg = f"Failed to delete S3 object {key!r}: {e}"
+            raise StorageBackendError(msg) from e

@@ -167,12 +167,20 @@ async def delete_all_parent_media[StorageModelT: StorageModel](
 
 
 async def unlink_stored_media[StorageModelT: StorageModel](pending: list[StorageModelT]) -> None:
-    """Delete the physical bytes of already-deleted storage rows. Call only after commit."""
+    """Delete the physical bytes of already-deleted storage rows. Call only after commit.
+
+    Best-effort: the DB rows are already gone by the time this runs, so a storage
+    failure for one item is logged and skipped rather than raised, matching the
+    documented missing-file fallback semantics elsewhere in this module.
+    """
     for item in pending:
-        if isinstance(item, Image):
-            await delete_image_from_storage(item)
-        else:
-            await delete_file_from_storage(item)
+        try:
+            if isinstance(item, Image):
+                await delete_image_from_storage(item)
+            else:
+                await delete_file_from_storage(item)
+        except OSError:
+            logger.warning("Storage cleanup failed for an already-deleted %s row.", type(item).__name__, exc_info=True)
 
 
 class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:

@@ -9,8 +9,9 @@ from fastapi import UploadFile
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.exceptions import BadRequestError
 from app.api.data_collection.models.product import Product
-from app.api.file_storage.crud.parent_media import ParentMediaCrud
-from app.api.file_storage.models import Image, MediaParentType
+from app.api.file_storage.crud.parent_media import ParentMediaCrud, unlink_stored_media
+from app.api.file_storage.exceptions import StorageBackendError
+from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal
 from app.api.reference_data.models import Material
 
@@ -117,3 +118,25 @@ async def test_get_by_id_uses_configured_parent_type(mock_session: AsyncMock) ->
         item_id=item_id,
         parent_type=MediaParentType.MATERIAL,
     )
+
+
+async def test_unlink_stored_media_survives_storage_backend_error_and_continues() -> None:
+    """A backend delete failure for one item is logged and skipped, not raised.
+
+    Regression coverage for the botocore-shaped failure mode: ``StorageBackendError``
+    (raised by S3Storage.delete, not a plain OSError from a local unlink) must still be
+    tolerated here, since the parent row is already committed gone by the time this runs.
+    """
+    failing_file = MagicMock(spec=File)
+    ok_image = MagicMock(spec=Image)
+
+    with (
+        patch(
+            "app.api.file_storage.crud.parent_media.delete_file_from_storage",
+            new=AsyncMock(side_effect=StorageBackendError("throttled")),
+        ),
+        patch("app.api.file_storage.crud.parent_media.delete_image_from_storage", new=AsyncMock()) as mock_delete_image,
+    ):
+        await unlink_stored_media([failing_file, ok_image])
+
+    mock_delete_image.assert_awaited_once_with(ok_image)

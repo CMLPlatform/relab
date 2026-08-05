@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
+from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, StorageBackendError
 from app.api.file_storage.models.storage_s3 import S3Storage
 from app.core.config import CoreSettings, StorageBackend
 
@@ -24,6 +24,10 @@ class MockClientError(Exception):
         super().__init__()
 
 
+class MockBotoCoreError(Exception):
+    """Mock BotoCoreError that behaves like botocore.exceptions.BotoCoreError."""
+
+
 @pytest.fixture
 def mock_boto3(mocker: MockerFixture) -> MagicMock:
     """Fixture that provides mocked boto3 and botocore modules in sys.modules for lazy imports."""
@@ -31,6 +35,7 @@ def mock_boto3(mocker: MockerFixture) -> MagicMock:
     mock_botocore = MagicMock()
     mock_exceptions = MagicMock()
     mock_exceptions.ClientError = MockClientError
+    mock_exceptions.BotoCoreError = MockBotoCoreError
     mock_botocore.exceptions = mock_exceptions
     mocker.patch.dict(
         sys.modules,
@@ -215,6 +220,24 @@ async def test_delete_calls_delete_object_with_correct_bucket_and_key(mock_boto3
     await storage.delete("document.txt")
 
     mock_client.delete_object.assert_called_once_with(Bucket="my-bucket", Key="files/document.txt")
+
+
+async def test_delete_translates_client_error_to_storage_backend_error(mock_boto3: MagicMock) -> None:
+    """A real delete failure (throttling, auth, network) surfaces as StorageBackendError.
+
+    Regression coverage for the botocore-shaped failure mode: this is NOT a plain
+    OSError raised by a local unlink, so callers that only caught OSError before this
+    translation existed would have let it propagate uncaught after a DB commit.
+    """
+    mock_client = MagicMock()
+    mock_client.delete_object.side_effect = _make_client_error("ThrottlingException", "DeleteObject")
+    mock_boto3.client.return_value = mock_client
+
+    storage = S3Storage(bucket="my-bucket", prefix="files")
+
+    with pytest.raises(StorageBackendError, match=r"files/document\.txt") as exc_info:
+        await storage.delete("document.txt")
+    assert isinstance(exc_info.value, OSError)
 
 
 async def test_delete_tolerates_already_missing_object(mock_boto3: MagicMock) -> None:

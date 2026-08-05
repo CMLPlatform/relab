@@ -79,4 +79,4 @@ class FileSystemStorage(BaseStorage):
 
     async def delete(self, name: str) -> None:
         """Delete a stored file, tolerating an already-missing file."""
-        await AnyIOPath(self._path / Path(name)).unlink(missing_ok=True)
+        await AnyIOPath(self._path / name).unlink(missing_ok=True)
