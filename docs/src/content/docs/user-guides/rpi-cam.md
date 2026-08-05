@@ -31,7 +31,7 @@ This is the quickest way to add a camera. No manual credential exchange is neede
 1. **Start the RPi in pairing mode.** When the RPi plugin boots without relay credentials but has
    `PAIRING_BACKEND_URL` set, it enters pairing mode. It displays a 6-character code on its setup
    page (`/setup`). For headless setups, the plugin also prints the same code in a boxed
-   `PAIRING READY` banner — read it over SSH, `docker compose logs`, or `journalctl`.
+   `PAIRING READY` banner, so you can read it over SSH, `docker compose logs`, or `journalctl`.
 
 1. **Add a camera in the app.** Go to Cameras > Add Camera. Enter the pairing code shown on the RPi.
 
