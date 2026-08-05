@@ -8,6 +8,18 @@ variable "environment" {
   }
 }
 
+variable "state_passphrase" {
+  description = <<-EOT
+    Passphrase encrypting local state and plan files (>= 16 characters). Export
+    TF_VAR_state_passphrase before any plan or apply that touches real Cloudflare
+    credentials. Empty (the default) leaves state unencrypted, which keeps
+    `just cloudflare-check` runnable without secrets.
+  EOT
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "cloudflare_account_id" {
   description = "Cloudflare account ID that owns the Relab tunnels."
   type        = string

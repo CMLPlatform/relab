@@ -121,6 +121,26 @@ Import existing Cloudflare resources before applying from a fresh state:
 Keep rule `ref` values stable. Cloudflare uses them to track rules across
 reordering.
 
-OpenTofu state can contain sensitive provider data. Keep prod and staging state
-separate, and use a remote encrypted backend with locking before multiple people
-or CI apply changes.
+## State Encryption
+
+State and plan files hold the Cloudflare tunnel secret, so `versions.tf` configures
+OpenTofu state encryption (PBKDF2 + AES-GCM) with an unencrypted fallback. Export a
+passphrase of **at least 16 characters** before any command that reads or writes state:
+
+```bash
+export TF_VAR_state_passphrase='...'   # >= 16 chars
+```
+
+- `just cloudflare-check` never opens state, so it still runs with no passphrase set.
+- `just cloudflare-plan`, `just cloudflare-apply`, and `tofu state`/`workspace` commands
+  fail closed without one, reporting `no passphrase provided`. That is deliberate — it
+  beats silently writing the tunnel secret in plaintext.
+- The unencrypted fallback lets the first run with a passphrase read an existing
+  plaintext state file and rewrite it encrypted. Use the same passphrase afterwards; a
+  lost passphrase means a lost state file.
+- Keep the passphrase in the operator's password manager, not in the repo or shell
+  history.
+
+Keep prod and staging state separate. A remote encrypted backend with locking is still
+required before a second operator or CI applies changes — encryption at rest does not
+give concurrent applies a lock.
