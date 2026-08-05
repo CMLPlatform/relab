@@ -162,6 +162,52 @@ async def test_cross_worker_relay_fast_fails_when_camera_not_marked_online() -> 
     relay_cross_worker.assert_not_awaited()
 
 
+async def test_cross_worker_allowlist_rejection_surfaces_as_403() -> None:
+    """A ``RelayCommandRejectedError`` from the owning worker must surface as 403, not 503."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.side_effect = RuntimeError("camera disconnected")
+    redis = _FakeRedis()
+    redis.mark_online(camera_id)
+
+    with (
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
+        patch(
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
+            AsyncMock(
+                side_effect=relay_mod.RelayCommandRejectedError(403, RELAY_COMMAND_FORBIDDEN_DETAIL),
+            ),
+        ),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == RELAY_COMMAND_FORBIDDEN_DETAIL
+
+
+async def test_cross_worker_generic_error_still_surfaces_as_503() -> None:
+    """A generic cross-worker RuntimeError (not an explicit 4xx) keeps the 503 behavior."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.side_effect = RuntimeError("camera disconnected")
+    redis = _FakeRedis()
+    redis.mark_online(camera_id)
+
+    with (
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
+        patch(
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
+            AsyncMock(side_effect=RuntimeError("camera offline in all workers")),
+        ),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Camera is not connected via WebSocket."
+
+
 async def test_cross_worker_relay_forwards_trace_headers() -> None:
     """The cross-worker bridge should carry trace headers through Redis."""
     camera_id = uuid4()

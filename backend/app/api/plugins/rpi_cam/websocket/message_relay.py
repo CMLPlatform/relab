@@ -15,7 +15,7 @@ from app.api.plugins.rpi_cam.websocket.connection_manager import (
     DEFAULT_COMMAND_TIMEOUT,
     CameraDisconnectedDuringCommandError,
 )
-from app.api.plugins.rpi_cam.websocket.cross_worker_relay import relay_cross_worker
+from app.api.plugins.rpi_cam.websocket.cross_worker_relay import RelayCommandRejectedError, relay_cross_worker
 from app.api.plugins.rpi_cam.websocket.runtime_state import get_connection_manager
 from app.core.logging import sanitize_log_value
 from app.core.redis import get_redis_value
@@ -87,6 +87,39 @@ def _build_relay_trace_headers() -> dict[str, str]:
     return extract_safe_relay_headers(carrier)
 
 
+async def _fall_back_to_cross_worker_relay(
+    redis: Redis,
+    camera_id: UUID4,
+    method: str,
+    path: str,
+    params: dict | None,
+    body: dict | None,
+    headers: dict[str, str] | None,
+    *,
+    timeout_s: float,
+) -> tuple[dict, bytes | None]:
+    """Try the cross-worker bridge, translating its failures to the right HTTP status."""
+    try:
+        return await _attempt_cross_worker_relay(
+            redis,
+            camera_id,
+            method,
+            path,
+            params,
+            body,
+            headers,
+            timeout_s=timeout_s,
+        )
+    except HTTPException:
+        raise
+    except RelayCommandRejectedError as cross_exc:
+        # The owning worker's allowlist re-check rejected the command — surface the
+        # original 4xx status rather than masking it as a generic 503.
+        raise HTTPException(status_code=cross_exc.status_code, detail=cross_exc.detail) from cross_exc
+    except (RuntimeError, TimeoutError) as cross_exc:
+        raise _camera_not_connected() from cross_exc
+
+
 async def relay_via_websocket(
     camera_id: UUID4,
     method: str,
@@ -136,21 +169,16 @@ async def relay_via_websocket(
         raise _camera_not_connected() from exc
     except RuntimeError:
         # Camera not connected in this worker — try the cross-worker bridge.
-        try:
-            json_resp, binary = await _attempt_cross_worker_relay(
-                redis,
-                camera_id,
-                normalized_method,
-                path,
-                params,
-                body,
-                relay_headers or None,
-                timeout_s=timeout,
-            )
-        except HTTPException:
-            raise
-        except (RuntimeError, TimeoutError) as cross_exc:
-            raise _camera_not_connected() from cross_exc
+        json_resp, binary = await _fall_back_to_cross_worker_relay(
+            redis,
+            camera_id,
+            normalized_method,
+            path,
+            params,
+            body,
+            relay_headers or None,
+            timeout_s=timeout,
+        )
     except TimeoutError as exc:
         raise HTTPException(
             status_code=503,

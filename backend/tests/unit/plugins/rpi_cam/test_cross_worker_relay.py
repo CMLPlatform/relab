@@ -213,6 +213,51 @@ async def test_error_field_propagates() -> None:
         )
 
 
+async def test_explicit_4xx_status_raises_rejected_error() -> None:
+    """An ``error`` response with an explicit 4xx status must raise ``RelayCommandRejectedError``.
+
+    Not a generic ``RuntimeError`` — so the requesting side can surface the real
+    status instead of a blanket 503.
+    """
+    redis = _mock_redis()
+    redis.blpop.return_value = ("key", json.dumps({"error": "Command not allowed.", "status": 403}))
+
+    with pytest.raises(cwr.RelayCommandRejectedError) as exc_info:
+        await cwr.relay_cross_worker(
+            redis,
+            uuid4(),
+            "DELETE",
+            "/camera",
+            None,
+            None,
+            None,
+            timeout_s=1,
+        )
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "Command not allowed."
+
+
+async def test_generic_error_without_4xx_status_stays_runtime_error() -> None:
+    """An ``error`` field with no status (or a non-4xx status) keeps the 503 behavior."""
+    redis = _mock_redis()
+    redis.blpop.return_value = ("key", json.dumps({"error": "camera gone"}))
+
+    with pytest.raises(RuntimeError, match="camera gone") as exc_info:
+        await cwr.relay_cross_worker(
+            redis,
+            uuid4(),
+            "GET",
+            "/x",
+            None,
+            None,
+            None,
+            timeout_s=1,
+        )
+
+    assert not isinstance(exc_info.value, cwr.RelayCommandRejectedError)
+
+
 async def test_bad_base64_raises() -> None:
     """Binary payloads with invalid base64 are rejected (don't silently corrupt data)."""
     redis = _mock_redis()
@@ -459,6 +504,65 @@ async def test_redis_error_backs_off_and_keeps_listening(monkeypatch: pytest.Mon
     await cwr.run_relay_listener(redis, uuid4(), manager)
 
     assert sleeps == [1]
+    manager.send_command.assert_awaited_once()
+
+
+async def test_redis_error_logs_once_until_recovery(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A sustained outage warns once, demotes repeats to debug, then logs recovery.
+
+    Two consecutive BLPOP failures must produce exactly one warning (not one per
+    failure); once the loop next succeeds it logs recovery at info and re-arms the
+    warning for a subsequent outage.
+    """
+    redis = _mock_redis()
+    manager = MagicMock()
+    manager.send_command = AsyncMock(return_value=({"status": 200, "data": {}}, None))
+    cmd = {
+        "msg_id": "m1",
+        "method": "GET",
+        "path": "/camera",
+        "params": None,
+        "body": None,
+        "headers": {},
+        "deadline": 0,
+        "timeout_s": 30,
+    }
+    responses: list[object] = [("k", json.dumps(cmd))]
+
+    async def _blpop(*_a: object, **_kw: object) -> object:
+        if responses:
+            return responses.pop(0)
+        raise asyncio.CancelledError
+
+    call_count = 0
+
+    async def _blpop_with_two_failures(*args: object, **kwargs: object) -> object:
+        nonlocal call_count
+        call_count += 1
+        if call_count <= 2:
+            msg = "redis unreachable"
+            raise RedisConnectionError(msg)
+        return await _blpop(*args, **kwargs)
+
+    redis.blpop.side_effect = _blpop_with_two_failures
+
+    async def _fake_sleep(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(cwr.anyio, "sleep", _fake_sleep)
+
+    with caplog.at_level("DEBUG", logger=cwr.logger.name):
+        await cwr.run_relay_listener(redis, uuid4(), manager)
+
+    warnings = [r for r in caplog.records if r.levelname == "WARNING" and "lost Redis connectivity" in r.message]
+    debugs = [r for r in caplog.records if r.levelname == "DEBUG" and "still lost Redis connectivity" in r.message]
+    infos = [r for r in caplog.records if r.levelname == "INFO" and "regained Redis connectivity" in r.message]
+
+    assert len(warnings) == 1
+    assert len(debugs) == 1
+    assert len(infos) == 1
     manager.send_command.assert_awaited_once()
 
 

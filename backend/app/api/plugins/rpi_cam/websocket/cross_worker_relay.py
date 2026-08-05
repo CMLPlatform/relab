@@ -103,6 +103,20 @@ def _encode_command(
     )
 
 
+class RelayCommandRejectedError(RuntimeError):
+    """Raised when the owning worker's response carries an explicit 4xx status.
+
+    Distinguishes an allowlist rejection (or other client-error response) from
+    a generic relay failure, so the requesting side can surface the original
+    status code instead of a blanket 503.
+    """
+
+    def __init__(self, status_code: int, detail: str) -> None:
+        self.status_code = status_code
+        self.detail = detail
+        super().__init__(detail)
+
+
 def _decode_response(raw: str) -> tuple[dict, bytes | None]:
     try:
         resp = json.loads(raw)
@@ -111,6 +125,9 @@ def _decode_response(raw: str) -> tuple[dict, bytes | None]:
         raise RuntimeError(msg) from exc
 
     if error := resp.get("error"):
+        status = resp.get("status")
+        if isinstance(status, int) and 400 <= status < 500:
+            raise RelayCommandRejectedError(status, error)
         raise RuntimeError(error)
 
     json_resp: dict = {"status": resp.get("status", 500), "data": resp.get("data") or {}}
@@ -160,6 +177,9 @@ async def relay_cross_worker(
     Raises:
         RuntimeError: Camera did not respond (timeout or listener reported an
             error).  Callers convert this to HTTP 503.
+        RelayCommandRejectedError: The owning worker's response carried an
+            explicit 4xx status (e.g. an allowlist rejection).  Callers should
+            surface that status code instead of 503.
     """
     msg_id = str(uuid.uuid4())
     deadline = time.monotonic() + timeout_s
@@ -194,6 +214,22 @@ async def relay_cross_worker(
 # ── Camera-owning-worker side ──────────────────────────────────────────────────
 
 
+def _log_redis_blip(*, redis_down: bool, camera_log_id: str) -> bool:
+    """Log a Redis-outage BLPOP failure, warning only on the first one until recovery."""
+    if redis_down:
+        logger.debug("Relay listener for camera %s still lost Redis connectivity; retrying.", camera_log_id)
+        return redis_down
+    logger.warning("Relay listener for camera %s lost Redis connectivity; retrying.", camera_log_id)
+    return True
+
+
+def _log_redis_recovery(*, redis_down: bool, camera_log_id: str) -> bool:
+    """Log recovery once, after a Redis outage, and re-arm the warning for next time."""
+    if redis_down:
+        logger.info("Relay listener for camera %s regained Redis connectivity.", camera_log_id)
+    return False
+
+
 async def run_relay_listener(
     redis: Redis,
     camera_id: UUID4,
@@ -213,6 +249,11 @@ async def run_relay_listener(
     camera_log_id = sanitize_log_value(camera_id)
     logger.debug("Cross-worker relay listener started for camera %s", camera_log_id)
 
+    # Log-once-until-recovery: a sustained Redis outage would otherwise warn once per
+    # second per camera. Warn on the first failure, demote repeats to debug, and note
+    # recovery at info the next time a poll succeeds.
+    redis_down = False
+
     try:
         while True:
             # Block until a command arrives or the task is cancelled.
@@ -224,9 +265,11 @@ async def run_relay_listener(
                 # A Redis blip must not kill this camera's listener task — that would
                 # silently stop relaying every subsequent command until reconnect.
                 # Back off briefly and keep polling.
-                logger.warning("Relay listener for camera %s lost Redis connectivity; retrying.", camera_log_id)
+                redis_down = _log_redis_blip(redis_down=redis_down, camera_log_id=camera_log_id)
                 await anyio.sleep(1)
                 continue
+
+            redis_down = _log_redis_recovery(redis_down=redis_down, camera_log_id=camera_log_id)
 
             if result is None:
                 continue
