@@ -149,13 +149,13 @@ just deploy-secrets-template prod
 # Replace every placeholder under secrets/prod/.
 just compose-config
 just deploy-secrets-check
-just prod-up YES
+just prod-up YES backups scanning
 just prod-migrate YES
 ```
 
 Staging follows the same pattern with the staging env files and `staging-*` recipes. Upgrades are intentionally boring: pull a known-good revision, bring the stack up again, run migrations, and verify `/live` and `/health`. The `/live` endpoint is the shallow backend process check used by Compose, while `/health` is the operator-facing readiness check that verifies PostgreSQL and Redis.
 
-ClamAV malware scanning is opt-in, not enabled by default. Turning it on for prod or staging takes two agreeing settings: `MALWARE_SCAN_ENABLED=true` in the root `.env`, and starting the stack with the `scanning` Compose profile (`just prod-up YES scanning` or `just staging-up YES scanning`). Leaving the flag `true` without the profile fails all uploads closed. The default, unscanned mode — `MALWARE_SCAN_ENABLED=false` and no `scanning` profile — is an explicit accepted risk: uploaded files are stored without a malware scan. When scanning is enabled, the `clamav` service keeps its signature database in the persisted `clamav_db` volume; first boot with an empty volume can wait several minutes while signatures download. Budget roughly 3-4 GiB of RAM for ClamAV so default signature reload and database testing behavior can stay enabled.
+ClamAV malware scanning is enabled by default: `MALWARE_SCAN_ENABLED=true` ships in `.env.example`, and `deploy_ops.sh` refuses to bring the stack `up` when that flag is anything but `false` unless the `scanning` Compose profile is also passed. Passing any profile on `prod-up`/`staging-up` replaces the `backups` default, so list `backups` explicitly whenever you pass `scanning`: `just prod-up YES backups scanning` or `just staging-up YES backups scanning`. To opt out, set `MALWARE_SCAN_ENABLED=false` in the root `.env` and omit the `scanning` profile — uploaded files are then stored without a malware scan; treat that as an explicit, temporary accepted risk, not a default. When scanning is enabled, the `clamav` service keeps its signature database in the persisted `clamav_db` volume; first boot with an empty volume can wait several minutes while signatures download. Budget roughly 3-4 GiB of RAM for ClamAV so default signature reload and database testing behavior can stay enabled.
 
 The database role hardening is a breaking fresh-volume change. For an existing host, take a verified dump first, stop the stack, recreate the Postgres volume, start Postgres so `/docker-entrypoint-initdb.d` creates the least-privilege roles, run migrations, then restore the dump through the migration/admin path.
 For local rehearsal, use staging plus the backups profile instead of production: `just staging-up YES backups`, `just staging-migrate YES`, then `just backup-restore-smoke staging`.
@@ -165,7 +165,7 @@ For local rehearsal, use staging plus the backups profile instead of production:
 - PostgreSQL stores the primary application state.
 - Uploaded files and images are stored on disk and served by the backend.
 - Database dumps and user-uploaded files are backed up into an encrypted local restic repository under `BACKUP_HOST_DIR`.
-- Optional offsite copies use `restic copy`; WebDAV is supported through restic's rclone backend. Export `RESTIC_OFFSITE_REPOSITORY=rclone:<remote>:relab/<env>/restic` before running the manual offsite-copy helper.
+- Optional offsite copies use `restic copy`; WebDAV is supported through restic's rclone backend. When `RESTIC_OFFSITE_REPOSITORY` is set in the root `.env`, the scheduled backup service copies snapshots offsite at the end of every backup cycle automatically. `just backup-offsite-copy <env>` remains available as an ad-hoc, on-demand copy outside that cycle.
 - Alembic migrations move schema state forward in a controlled way.
 - `just backup-restore-smoke staging` or `just backup-restore-smoke prod` restores the latest database dump into a disposable Postgres container and verifies that it can be read.
 
@@ -218,3 +218,4 @@ Hosts without those variables keep the simpler local-only behavior. Keep monitor
 - Production secrets and origin/host configuration matter; the backend enforces stricter checks outside development.
 - Telemetry is optional. When enabled, the backend exports OTLP traces and metrics to an external collector, while Docker ships container logs to Loki through the optional overlay.
 - The Compose-based setup is easy to reason about, but scaling and secret rotation are less automated than in a larger platform setup. That trade-off is deliberate.
+- A minimal watchdog exists: `just watchdog <env>` checks the API container's health and the age of the newest restic snapshot, exiting non-zero with an `ALERT[...]` line per failure. It has no built-in scheduler — run it from host cron so failures reach an operator. Richer alerting (Loki alert rules, external uptime monitoring, Grafana) is still future work.

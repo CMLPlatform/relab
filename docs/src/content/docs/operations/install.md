@@ -187,21 +187,24 @@ migrations, verify health.
 
 1. Start the stack.
 
-   ClamAV upload scanning is an optional Compose profile, off by default:
+   ClamAV upload scanning is enabled by default: `.env.example` ships `MALWARE_SCAN_ENABLED=true`,
+   and `deploy_ops.sh` refuses to bring the stack `up` when that flag is anything but `false` unless
+   the `scanning` profile is also passed. Passing any profile replaces the `backups` default, so
+   list `backups` explicitly whenever you pass `scanning`.
 
-   - **Default (no scanning)** — set `MALWARE_SCAN_ENABLED=false` in the root `.env` and start
-     without the `scanning` profile. Uploads are accepted unscanned; treat this as an explicit,
-     temporary accepted risk, not a default to keep long-term.
-
-     ```bash
-     just prod-up YES
-     ```
-
-   - **With scanning** — keep `MALWARE_SCAN_ENABLED=true` in the root `.env` and pass the
+   - **With scanning (default)** — keep `MALWARE_SCAN_ENABLED=true` in the root `.env` and pass the
      `scanning` profile on every up/down. Budget roughly 3-4 GiB of extra RAM for ClamAV.
 
      ```bash
-     just prod-up YES scanning
+     just prod-up YES backups scanning
+     ```
+
+   - **Without scanning** — set `MALWARE_SCAN_ENABLED=false` in the root `.env` and start without
+     the `scanning` profile. Uploads are accepted unscanned; treat this as an explicit, temporary
+     accepted risk, not a default to keep long-term.
+
+     ```bash
+     just prod-up YES
      ```
 
    Leaving `MALWARE_SCAN_ENABLED=true` without the `scanning` profile fails all uploads closed.
@@ -276,15 +279,23 @@ WebDAV is handled through restic's rclone backend.
 
 1. Create `secrets/<env>/rclone.conf` with a WebDAV remote.
 
-1. Export the offsite repository in the shell that runs the manual copy.
+1. Set `RESTIC_OFFSITE_REPOSITORY` in the host's root `.env`:
+
+   ```env
+   RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/staging/restic
+   ```
+
+   Once set, the scheduled `backups` service copies snapshots offsite automatically at the end of
+   every backup cycle — no further action needed for ongoing offsite copies.
+
+1. To copy snapshots on demand outside the scheduled cycle (for example, right after a one-off
+   local backup), export the same variable in the shell that runs the manual helper. The helper
+   reads exported variables; Docker Compose continues to read root `.env` through its normal
+   `--env-file` path.
 
    ```sh
    export RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/staging/restic
    ```
-
-1. Copy snapshots offsite after a local backup exists. The helper reads
-   exported variables; Docker Compose continues to read root `.env` through
-   its normal `--env-file` path.
 
    ```bash
    just backup-offsite-copy staging
