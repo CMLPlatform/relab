@@ -1,8 +1,9 @@
 <!--
   Source: previously vendored in www/src/components/SiteFooter.astro
   (Simple Icons-derived "YouTube" glyph, https://simpleicons.org/icons/youtube).
+  Release: upstream Simple Icons release unknown.
   License: CC0-1.0.
-  Canonical copy of this brand mark — edit here, then run `just assets-sync`;
-  do not hand-edit the synced consumer copies.
+  Canonical source: assets/icons/brand/youtube.svg — edit there and run
+  `just assets-sync`; synced copies in www/ and docs/ must not be hand-edited.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8ZM9.6 15.6V8.4L15.9 12l-6.3 3.6Z"/></svg>

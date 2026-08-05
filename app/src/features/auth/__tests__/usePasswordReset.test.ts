@@ -21,6 +21,10 @@ jest.mock('@hookform/resolvers/zod', () => ({
   zodResolver: () => async (values: Record<string, unknown>) => ({ values, errors: {} }),
 }));
 
+const INVALID_LINK_PATTERN = /invalid/i;
+const RESET_FAILED_PATTERN = /couldn't reset your password/i;
+const GENERIC_ERROR_PATTERN = /an error occurred/i;
+
 beforeEach(() => {
   mockRequestPasswordReset.mockReset();
   mockResetPassword.mockReset();
@@ -36,7 +40,7 @@ describe('useResetPassword', () => {
       await result.current.submit();
     });
 
-    await waitFor(() => expect(result.current.error).toMatch(/invalid/i));
+    await waitFor(() => expect(result.current.error).toMatch(INVALID_LINK_PATTERN));
     expect(mockResetPassword).not.toHaveBeenCalled();
     expect(result.current.success).toBe(false);
   });
@@ -65,7 +69,7 @@ describe('useResetPassword', () => {
       await result.current.submit();
     });
 
-    await waitFor(() => expect(result.current.error).toMatch(/couldn't reset your password/i));
+    await waitFor(() => expect(result.current.error).toMatch(RESET_FAILED_PATTERN));
     expect(result.current.success).toBe(false);
   });
 });
@@ -79,7 +83,7 @@ describe('useForgotPassword', () => {
       await result.current.submit();
     });
 
-    await waitFor(() => expect(result.current.error).toMatch(/an error occurred/i));
+    await waitFor(() => expect(result.current.error).toMatch(GENERIC_ERROR_PATTERN));
     expect(result.current.success).toBe(false);
   });
 

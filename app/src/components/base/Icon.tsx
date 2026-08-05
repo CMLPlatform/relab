@@ -76,11 +76,11 @@ const github = createBrandGlyph(GITHUB_PATH);
 const google = createBrandGlyph(GOOGLE_PATH);
 const youtube = createBrandGlyph(YOUTUBE_PATH);
 
-// Curated MaterialCommunityIcons -> Lucide name map. Keys match the existing
-// MCI `name` strings used across the app so call sites migrate 1:1. Brand
-// marks (google, github, youtube) render vendored paths from
-// assets/icons/brand/ via createBrandGlyph() above — filled, not stroked,
-// unlike the Lucide glyphs (see assets/DESIGN.md).
+// Curated MaterialCommunityIcons -> Lucide name map. Keys keep the legacy
+// MCI-shaped `name` strings for historical call-site continuity, not
+// because MCI is still in use. Brand marks (google, github, youtube) render
+// vendored paths from assets/icons/brand/ via createBrandGlyph() above —
+// filled, not stroked, unlike the Lucide glyphs (see assets/DESIGN.md).
 const iconMap = {
   'access-point': RadioTower,
   account: User,
