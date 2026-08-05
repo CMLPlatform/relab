@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
@@ -12,6 +13,7 @@ type Props = {
   onTakePhoto: () => void;
   onPickImage: () => void;
   onRpiCapture: () => void;
+  rpiTriggerRef?: RefObject<View | null>;
 };
 
 export function ProductImageEmptyEditState({
@@ -23,6 +25,7 @@ export function ProductImageEmptyEditState({
   onTakePhoto,
   onPickImage,
   onRpiCapture,
+  rpiTriggerRef,
 }: Props) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
@@ -46,6 +49,7 @@ export function ProductImageEmptyEditState({
 
       {showRpiButton ? (
         <Pressable
+          ref={rpiTriggerRef}
           onPress={onRpiCapture}
           disabled={isCapturing || rpiCamerasLoading}
           accessibilityRole="button"

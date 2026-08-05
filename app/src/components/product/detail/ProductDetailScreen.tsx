@@ -51,6 +51,9 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
   const { isLg } = useBreakpoint();
   const scrollRef = useRef<ScrollView>(null);
   const nav = useSectionNav((y) => scrollRef.current?.scrollTo({ y, animated: true }));
+  // One trigger serves both the CameraPickerDialog and GoLiveDialog steps the
+  // "Go Live" button leads to (via CameraStreamPicker) — see AppDialog's `triggerRef`.
+  const goLiveTriggerRef = useRef<View>(null);
 
   const onPrimaryFabPress = useFabPressHandler({
     saveAndExit: actions.saveAndExit,
@@ -139,6 +142,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
       onVideoChange={actions.onVideoChange}
       onProductDelete={actions.onProductDelete}
       onGoLivePress={streaming.openStreamPicker}
+      goLiveTriggerRef={goLiveTriggerRef}
     />
   );
 
@@ -169,6 +173,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
         streamPickerVisible={streaming.streamPickerVisible}
         onDismissStreamPicker={streaming.closeStreamPicker}
         primaryFabIcon={editing.primaryFabIcon}
+        streamTriggerRef={goLiveTriggerRef}
       />
     </SectionNavContext.Provider>
   );

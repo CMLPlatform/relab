@@ -1,7 +1,8 @@
 // Canonical home of ACCOUNT_SECTIONS — do not re-export a component from this
 // file (react-refresh/only-export-components forbids mixing non-component
 // exports into a file that also exports a component).
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
+import type { View } from 'react-native';
 import {
   ProfileAccountSection,
   ProfileDangerZoneSection,
@@ -21,6 +22,11 @@ export type AccountSectionKey = 'preferences' | 'integrations' | 'security' | 'd
 export type AccountSectionContext = ReturnType<typeof useProfileScreen> & {
   onManageCameras: () => void;
   onRefetchAuth: () => void;
+  /** Return-focus targets for the corresponding dialogs; see AppDialog's `triggerRef`. */
+  editUsernameTriggerRef: RefObject<View | null>;
+  logoutTriggerRef: RefObject<View | null>;
+  deleteAccountTriggerRef: RefObject<View | null>;
+  unlinkTriggerRef: RefObject<View | null>;
 };
 
 export type AccountSectionDef = {
@@ -82,7 +88,15 @@ export const ACCOUNT_SECTIONS: AccountSectionDef[] = [
     key: 'security',
     label: 'Security & sessions',
     title: 'Security & sessions',
-    render: ({ profile, integrations, dialogs, actions, onRefetchAuth }) => {
+    render: ({
+      profile,
+      integrations,
+      dialogs,
+      actions,
+      onRefetchAuth,
+      logoutTriggerRef,
+      unlinkTriggerRef,
+    }) => {
       if (!profile.profile) return null;
       return (
         <>
@@ -91,6 +105,7 @@ export const ACCOUNT_SECTIONS: AccountSectionDef[] = [
             onLogout={actions.onLogout}
             onRevokeAllSessions={actions.onRevokeAllSessions}
             onVerifyAccount={actions.onVerifyAccount}
+            logoutTriggerRef={logoutTriggerRef}
           />
           <ProfileSecuritySection
             mfaEnabled={profile.profile.mfaEnabled}
@@ -103,6 +118,7 @@ export const ACCOUNT_SECTIONS: AccountSectionDef[] = [
             githubAccount={integrations.githubAccount}
             onLinkOAuth={integrations.handleLinkOAuth}
             onRequestUnlink={dialogs.unlinkDialog.request}
+            unlinkTriggerRef={unlinkTriggerRef}
           />
         </>
       );
@@ -112,8 +128,11 @@ export const ACCOUNT_SECTIONS: AccountSectionDef[] = [
     key: 'danger',
     label: 'Danger zone',
     title: 'Danger zone',
-    render: ({ dialogs }) => (
-      <ProfileDangerZoneSection onDeleteAccount={dialogs.deleteDialog.open} />
+    render: ({ dialogs, deleteAccountTriggerRef }) => (
+      <ProfileDangerZoneSection
+        onDeleteAccount={dialogs.deleteDialog.open}
+        triggerRef={deleteAccountTriggerRef}
+      />
     ),
   },
 ];

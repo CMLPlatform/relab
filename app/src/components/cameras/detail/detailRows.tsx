@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { ScrollView, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
@@ -27,11 +27,14 @@ export function DetailRow({
   value,
   onEdit,
   mono = false,
+  editTriggerRef,
 }: {
   label: string;
   value: string;
   onEdit?: () => void;
   mono?: boolean;
+  /** Return-focus target for the dialog `onEdit` opens; see AppDialog's `triggerRef`. */
+  editTriggerRef?: RefObject<View | null>;
 }) {
   const theme = useAppTheme();
 
@@ -52,12 +55,14 @@ export function DetailRow({
         {value}
       </AppText>
       {onEdit ? (
-        <IconButton
-          icon="pencil"
-          size={16}
-          onPress={onEdit}
-          accessibilityLabel={`Edit ${label.toLowerCase()}`}
-        />
+        <View ref={editTriggerRef} collapsable={false}>
+          <IconButton
+            icon="pencil"
+            size={16}
+            onPress={onEdit}
+            accessibilityLabel={`Edit ${label.toLowerCase()}`}
+          />
+        </View>
       ) : null}
     </View>
   );
@@ -69,28 +74,33 @@ export function ActionRow({
   icon,
   onPress,
   danger = false,
+  triggerRef,
 }: {
   label: string;
   subtitle?: string;
   icon: IconName;
   onPress: () => void;
   danger?: boolean;
+  /** Return-focus target for the dialog `onPress` opens; see AppDialog's `triggerRef`. */
+  triggerRef?: RefObject<View | null>;
 }) {
   const theme = useAppTheme();
   const color = danger ? theme.colors.error : theme.colors.onSurface;
 
   return (
-    <AppButton variant="ghost" onPress={onPress} className="w-full justify-start">
-      <Icon name={icon} size={18} color={color} />
-      <View>
-        <AppText style={[styles.actionLabel, { color }]}>{label}</AppText>
-        {subtitle ? (
-          <AppText variant="body" style={styles.actionSubtitle}>
-            {subtitle}
-          </AppText>
-        ) : null}
-      </View>
-    </AppButton>
+    <View ref={triggerRef} collapsable={false}>
+      <AppButton variant="ghost" onPress={onPress} className="w-full justify-start">
+        <Icon name={icon} size={18} color={color} />
+        <View>
+          <AppText style={[styles.actionLabel, { color }]}>{label}</AppText>
+          {subtitle ? (
+            <AppText variant="body" style={styles.actionSubtitle}>
+              {subtitle}
+            </AppText>
+          ) : null}
+        </View>
+      </AppButton>
+    </View>
   );
 }
 

@@ -1,4 +1,5 @@
-import { useCallback } from 'react';
+import { type RefObject, useCallback } from 'react';
+import type { View } from 'react-native';
 import { useCameraStreamPicker } from '@/features/cameras/youtube/useCameraStreamPicker';
 import { CameraPickerDialog } from './CameraPickerDialog';
 import { GoLiveDialog } from './GoLiveDialog';
@@ -8,6 +9,7 @@ interface CameraStreamPickerProps {
   productName: string;
   visible: boolean;
   onDismiss: () => void;
+  triggerRef?: RefObject<View | null>;
 }
 
 export function CameraStreamPicker({
@@ -15,6 +17,7 @@ export function CameraStreamPicker({
   productName,
   visible,
   onDismiss,
+  triggerRef,
 }: CameraStreamPickerProps) {
   const { state, actions } = useCameraStreamPicker({
     productId,
@@ -31,6 +34,7 @@ export function CameraStreamPicker({
         onDismiss={actions.handleDismiss}
         onSelect={actions.handleCameraSelect}
         title="Select camera to stream"
+        triggerRef={triggerRef}
       />
       <GoLiveDialog
         visible={state.config !== null}
@@ -45,6 +49,7 @@ export function CameraStreamPicker({
         secondaryLabel="Back"
         onSecondary={actions.handleBack}
         showSpacer
+        triggerRef={triggerRef}
       />
     </>
   );

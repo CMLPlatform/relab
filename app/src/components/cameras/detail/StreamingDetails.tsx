@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
@@ -21,22 +22,32 @@ type CameraDetailsCardProps = {
   camera: CameraReadWithStatus;
   onEditName: () => void;
   onEditDescription: () => void;
+  editNameTriggerRef?: RefObject<View | null>;
+  editDescriptionTriggerRef?: RefObject<View | null>;
 };
 
 export function CameraDetailsCard({
   camera,
   onEditName,
   onEditDescription,
+  editNameTriggerRef,
+  editDescriptionTriggerRef,
 }: CameraDetailsCardProps) {
   return (
     <Card style={styles.card}>
       <View style={styles.detailsContent}>
-        <DetailRow label="Name" value={camera.name} onEdit={onEditName} />
+        <DetailRow
+          label="Name"
+          value={camera.name}
+          onEdit={onEditName}
+          editTriggerRef={editNameTriggerRef}
+        />
         <Separator />
         <DetailRow
           label="Description"
           value={camera.description ?? '—'}
           onEdit={onEditDescription}
+          editTriggerRef={editDescriptionTriggerRef}
         />
         <Separator />
         <DetailRow label="Key ID" value={camera.relay_key_id} mono />
@@ -49,9 +60,10 @@ export function CameraDetailsCard({
 
 type CameraDangerZoneProps = {
   onDelete: () => void;
+  deleteTriggerRef?: RefObject<View | null>;
 };
 
-export function CameraDangerZone({ onDelete }: CameraDangerZoneProps) {
+export function CameraDangerZone({ onDelete, deleteTriggerRef }: CameraDangerZoneProps) {
   return (
     <>
       <AppText variant="label" style={styles.sectionLabel}>
@@ -65,6 +77,7 @@ export function CameraDangerZone({ onDelete }: CameraDangerZoneProps) {
             icon="delete"
             onPress={onDelete}
             danger
+            triggerRef={deleteTriggerRef}
           />
         </View>
       </Card>

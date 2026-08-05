@@ -1,7 +1,8 @@
 // Canonical home of SECTIONS/visibleSections — do not re-export from
 // Content.tsx (react-refresh/only-export-components forbids mixing
 // non-component exports into a file that also exports a component).
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps, ReactNode, RefObject } from 'react';
+import type { View } from 'react-native';
 import type { SectionKey } from '@/components/base/SectionNavContext';
 import ProductDescription from '@/components/product/ProductDescription';
 import ProductVideo from '@/components/product/ProductVideo';
@@ -30,6 +31,7 @@ export type SectionRenderProps = {
   >['onChangeCircularityProperties'];
   onVideoChange: ComponentProps<typeof ProductVideo>['onVideoChange'];
   onGoLivePress: () => void;
+  goLiveTriggerRef?: RefObject<View | null>;
 };
 
 // Emptiness context that can't be derived from `product` alone.
@@ -157,6 +159,7 @@ export const SECTIONS: SectionConfig[] = [
         editMode={props.editMode}
         onVideoChange={props.onVideoChange}
         onGoLivePress={props.onGoLivePress}
+        goLiveTriggerRef={props.goLiveTriggerRef}
       />
     ),
   },

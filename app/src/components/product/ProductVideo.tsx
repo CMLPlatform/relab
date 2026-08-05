@@ -1,4 +1,4 @@
-import { useCallback, useId, useState } from 'react';
+import { type RefObject, useCallback, useId, useState } from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
@@ -28,9 +28,16 @@ interface Props {
   editMode: boolean;
   onVideoChange?: (videos: Video[]) => void;
   onGoLivePress: () => void;
+  goLiveTriggerRef?: RefObject<View | null>;
 }
 
-export default function ProductVideo({ product, editMode, onVideoChange, onGoLivePress }: Props) {
+export default function ProductVideo({
+  product,
+  editMode,
+  onVideoChange,
+  onGoLivePress,
+  goLiveTriggerRef,
+}: Props) {
   const {
     rpiEnabled,
     youtubeEnabled,
@@ -134,6 +141,7 @@ export default function ProductVideo({ product, editMode, onVideoChange, onGoLiv
           isGoogleLinked={isGoogleLinked}
           onGoLivePress={handleGoLivePress}
           onNavigateToProfile={goToProfile}
+          triggerRef={goLiveTriggerRef}
         />
       ) : null}
 
@@ -320,11 +328,13 @@ function GoLiveCTA({
   isGoogleLinked,
   onGoLivePress,
   onNavigateToProfile,
+  triggerRef,
 }: {
   youtubeEnabled: boolean;
   isGoogleLinked: boolean;
   onGoLivePress: () => void;
   onNavigateToProfile: () => void;
+  triggerRef?: RefObject<View | null>;
 }) {
   const dialog = useDialog();
   const theme = useAppTheme();
@@ -346,14 +356,16 @@ function GoLiveCTA({
   }, [ready, isGoogleLinked, dialog, onNavigateToProfile, onGoLivePress]);
 
   return (
-    <AppButton
-      variant="outline"
-      onPress={handlePress}
-      className={`mx-3.5 mb-2 ${ready ? '' : 'opacity-50'}`}
-    >
-      <Icon name="youtube" size={18} color={theme.colors.onSurface} />
-      <AppText style={{ color: theme.colors.onSurface }}>Go Live</AppText>
-    </AppButton>
+    <View ref={triggerRef} collapsable={false}>
+      <AppButton
+        variant="outline"
+        onPress={handlePress}
+        className={`mx-3.5 mb-2 ${ready ? '' : 'opacity-50'}`}
+      >
+        <Icon name="youtube" size={18} color={theme.colors.onSurface} />
+        <AppText style={{ color: theme.colors.onSurface }}>Go Live</AppText>
+      </AppButton>
+    </View>
   );
 }
 

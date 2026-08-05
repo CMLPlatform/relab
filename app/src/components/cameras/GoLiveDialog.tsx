@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { type RefObject, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
@@ -25,6 +25,7 @@ type GoLiveDialogProps = {
   onSecondary: () => void;
   /** Pushes the secondary action to the far left, e.g. a "Back" step in a picker flow. */
   showSpacer?: boolean;
+  triggerRef?: RefObject<View | null>;
 };
 
 export function GoLiveDialog({
@@ -40,6 +41,7 @@ export function GoLiveDialog({
   secondaryLabel,
   onSecondary,
   showSpacer = false,
+  triggerRef,
 }: GoLiveDialogProps) {
   const theme = useAppTheme();
   const handleValueChange = useCallback(
@@ -53,9 +55,7 @@ export function GoLiveDialog({
   );
 
   return (
-    // NOTE: no triggerRef — this dialog's `visible` is driven by callers (camera grid
-    // cell / ProductVideo's "Go Live" button), not by a trigger rendered in this file.
-    <AppDialog visible={visible} onDismiss={onDismiss}>
+    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
       <AppText accessibilityRole="header" style={styles.title}>
         Go Live on {cameraName}
       </AppText>

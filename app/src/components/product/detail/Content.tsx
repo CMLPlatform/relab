@@ -35,6 +35,7 @@ type ProductPageContentProps = {
   onVideoChange: SectionRenderProps['onVideoChange'];
   onProductDelete: () => void;
   onGoLivePress: () => void;
+  goLiveTriggerRef?: RefObject<View | null>;
 };
 
 export function ProductPageContent({
@@ -55,6 +56,7 @@ export function ProductPageContent({
   onVideoChange,
   onProductDelete,
   onGoLivePress,
+  goLiveTriggerRef,
 }: ProductPageContentProps) {
   const outerNav = useContext(SectionNavContext);
   const {
@@ -77,6 +79,7 @@ export function ProductPageContent({
     onChangeCircularityProperties,
     onVideoChange,
     onGoLivePress,
+    goLiveTriggerRef,
   };
 
   return (

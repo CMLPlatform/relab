@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
@@ -16,6 +17,8 @@ type Props = {
   onSelectCamera: (camera: CameraReadWithStatus) => void;
   onDismissPreview: () => void;
   onCapturePreview: () => void;
+  /** The RPi-capture button that starts this flow; both dialogs below share it. */
+  triggerRef?: RefObject<View | null>;
 };
 
 export function ProductImageCameraDialogs({
@@ -26,6 +29,7 @@ export function ProductImageCameraDialogs({
   onSelectCamera,
   onDismissPreview,
   onCapturePreview,
+  triggerRef,
 }: Props) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
@@ -35,11 +39,14 @@ export function ProductImageCameraDialogs({
         visible={cameraPickerVisible}
         onDismiss={onDismissCameraPicker}
         onSelect={onSelectCamera}
+        triggerRef={triggerRef}
       />
 
-      {/* NOTE: no triggerRef — opened by selecting a camera row inside
-          CameraPickerDialog, not by a trigger rendered in this file. */}
-      <AppDialog visible={previewCamera !== null} onDismiss={onDismissPreview}>
+      <AppDialog
+        visible={previewCamera !== null}
+        onDismiss={onDismissPreview}
+        triggerRef={triggerRef}
+      >
         <AppText accessibilityRole="header" style={dialogStyles.title}>
           {previewCamera?.name ?? 'Camera preview'}
         </AppText>

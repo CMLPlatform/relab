@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+import type { View } from 'react-native';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
 import {
@@ -20,6 +22,10 @@ function CameraDetailContent({
   actions,
 }: ReturnType<typeof useCameraDetailScreen>) {
   const camera = screen.camera;
+  const editNameTriggerRef = useRef<View>(null);
+  const editDescriptionTriggerRef = useRef<View>(null);
+  const deleteTriggerRef = useRef<View>(null);
+  const manualSetupTriggerRef = useRef<View>(null);
   if (!camera) return null;
 
   return (
@@ -32,6 +38,7 @@ function CameraDetailContent({
           onRefresh={actions.refresh}
           onOpenManualSetup={actions.openManualSetup}
           onDisconnectLocal={actions.disconnectLocal}
+          manualSetupTriggerRef={manualSetupTriggerRef}
         />
 
         <CameraPreviewSection
@@ -48,9 +55,11 @@ function CameraDetailContent({
           camera={camera}
           onEditName={actions.openEditName}
           onEditDescription={actions.openEditDescription}
+          editNameTriggerRef={editNameTriggerRef}
+          editDescriptionTriggerRef={editDescriptionTriggerRef}
         />
 
-        <CameraDangerZone onDelete={actions.requestDelete} />
+        <CameraDangerZone onDelete={actions.requestDelete} deleteTriggerRef={deleteTriggerRef} />
       </CameraDetailLayout>
 
       <CameraDetailDialogs
@@ -74,6 +83,10 @@ function CameraDetailContent({
         onChangeLocalUrl={actions.setLocalUrl}
         onChangeLocalKey={actions.setLocalKey}
         onConnectLocal={actions.connectLocal}
+        editNameTriggerRef={editNameTriggerRef}
+        editDescriptionTriggerRef={editDescriptionTriggerRef}
+        deleteTriggerRef={deleteTriggerRef}
+        manualSetupTriggerRef={manualSetupTriggerRef}
       />
     </>
   );

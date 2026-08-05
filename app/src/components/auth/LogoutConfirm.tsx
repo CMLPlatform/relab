@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
@@ -8,15 +9,15 @@ export default function LogoutConfirm({
   visible,
   onDismiss,
   onConfirm,
+  triggerRef,
 }: {
   visible: boolean;
   onDismiss: () => void;
   onConfirm: () => void;
+  triggerRef?: RefObject<View | null>;
 }) {
   return (
-    // NOTE: no triggerRef — opened from the "Sign out" ProfileAction in
-    // AccountSections.tsx, not in this file.
-    <AppDialog visible={visible} onDismiss={onDismiss}>
+    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
       <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
         Sign out
       </AppText>

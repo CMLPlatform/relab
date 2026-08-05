@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ProductImageCameraDialogs } from '@/components/product/gallery/ProductImageCameraDialogs';
 import { ProductImageEmptyEditState } from '@/components/product/gallery/ProductImageEmptyEditState';
@@ -27,6 +27,10 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     () => actions.deleteImage(viewer.selectedIndex),
     [actions, viewer.selectedIndex],
   );
+  // Only one of ProductImageGalleryContent's / ProductImageEmptyEditState's RPi
+  // buttons renders at a time, so one shared ref covers both — see AppDialog's
+  // `triggerRef`.
+  const rpiTriggerRef = useRef<View>(null);
 
   if (media.imageCount === 0 && !editMode) {
     return <ProductImagePlaceholder width={media.width} label={product.name} />;
@@ -57,6 +61,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
           onRpiCapture={actions.requestRpiCapture}
           onDeleteImage={handleDeleteImage}
           fallbackLabel={product.name}
+          rpiTriggerRef={rpiTriggerRef}
         />
       ) : editMode ? (
         <ProductImageEmptyEditState
@@ -68,6 +73,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
           onTakePhoto={handleTakePhoto}
           onPickImage={handlePickImage}
           onRpiCapture={actions.requestRpiCapture}
+          rpiTriggerRef={rpiTriggerRef}
         />
       ) : null}
 
@@ -79,6 +85,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
         onDismissPreview={actions.dismissPreview}
         isCapturing={capture.isCapturing}
         onCapturePreview={actions.capturePreview}
+        triggerRef={rpiTriggerRef}
       />
 
       <ProductImageThumbnails

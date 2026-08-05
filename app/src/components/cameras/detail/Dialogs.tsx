@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { type RefObject, useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
@@ -13,11 +13,13 @@ function EditNameDialog({
   onSave,
   onDismiss,
   loading,
+  triggerRef,
 }: {
   initialName: string;
   onSave: (name: string) => void;
   onDismiss: () => void;
   loading: boolean;
+  triggerRef?: RefObject<View | null>;
 }) {
   const theme = useAppTheme();
   const [value, setValue] = useState(initialName);
@@ -26,9 +28,7 @@ function EditNameDialog({
   const handleSave = useCallback(() => onSave(value.trim()), [onSave, value]);
 
   return (
-    // NOTE: no triggerRef — opened from the pencil IconButton in detailRows.tsx,
-    // rendered on the camera detail screen, not in this file.
-    <AppDialog visible onDismiss={onDismiss}>
+    <AppDialog visible onDismiss={onDismiss} triggerRef={triggerRef}>
       <AppText accessibilityRole="header" style={styles.title}>
         Edit name
       </AppText>
@@ -70,20 +70,20 @@ function EditDescriptionDialog({
   onSave,
   onDismiss,
   loading,
+  triggerRef,
 }: {
   initialDescription: string;
   onSave: (description: string) => void;
   onDismiss: () => void;
   loading: boolean;
+  triggerRef?: RefObject<View | null>;
 }) {
   const theme = useAppTheme();
   const [value, setValue] = useState(initialDescription);
   const handleSave = useCallback(() => onSave(value.trim()), [onSave, value]);
 
   return (
-    // NOTE: no triggerRef — opened from the pencil IconButton in detailRows.tsx,
-    // rendered on the camera detail screen, not in this file.
-    <AppDialog visible onDismiss={onDismiss}>
+    <AppDialog visible onDismiss={onDismiss} triggerRef={triggerRef}>
       <AppText accessibilityRole="header" style={styles.title}>
         Edit description
       </AppText>
@@ -119,6 +119,7 @@ type ManualSetupDialogProps = {
   onChangeUrl: (value: string) => void;
   onChangeKey: (value: string) => void;
   onConnect: () => void;
+  triggerRef?: RefObject<View | null>;
 };
 
 function ManualSetupDialog({
@@ -130,12 +131,11 @@ function ManualSetupDialog({
   onChangeUrl,
   onChangeKey,
   onConnect,
+  triggerRef,
 }: ManualSetupDialogProps) {
   const theme = useAppTheme();
   return (
-    // NOTE: no triggerRef — opened from the "Manual setup" button in
-    // ConnectionPreview.tsx, not in this file.
-    <AppDialog visible={visible} onDismiss={onDismiss}>
+    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
       <AppText accessibilityRole="header" style={styles.title}>
         Manual direct connection
       </AppText>
@@ -190,6 +190,7 @@ type CameraDeleteDialogProps = {
   loading: boolean;
   onDismiss: () => void;
   onConfirmDelete: () => void;
+  triggerRef?: RefObject<View | null>;
 };
 
 function CameraDeleteDialog({
@@ -198,11 +199,10 @@ function CameraDeleteDialog({
   loading,
   onDismiss,
   onConfirmDelete,
+  triggerRef,
 }: CameraDeleteDialogProps) {
   return (
-    // NOTE: no triggerRef — opened from the "Delete camera" ActionRow in
-    // detailRows.tsx (CameraDangerZone), not in this file.
-    <AppDialog visible={visible} onDismiss={onDismiss}>
+    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
       <AppText accessibilityRole="header" style={styles.title}>
         Delete camera?
       </AppText>
@@ -243,6 +243,10 @@ type CameraDetailDialogsProps = {
   onChangeLocalUrl: (value: string) => void;
   onChangeLocalKey: (value: string) => void;
   onConnectLocal: () => void;
+  editNameTriggerRef?: RefObject<View | null>;
+  editDescriptionTriggerRef?: RefObject<View | null>;
+  deleteTriggerRef?: RefObject<View | null>;
+  manualSetupTriggerRef?: RefObject<View | null>;
 };
 
 export function CameraDetailDialogs({
@@ -266,6 +270,10 @@ export function CameraDetailDialogs({
   onChangeLocalUrl,
   onChangeLocalKey,
   onConnectLocal,
+  editNameTriggerRef,
+  editDescriptionTriggerRef,
+  deleteTriggerRef,
+  manualSetupTriggerRef,
 }: CameraDetailDialogsProps) {
   return (
     <>
@@ -275,6 +283,7 @@ export function CameraDetailDialogs({
           onSave={onSaveName}
           onDismiss={onDismissEditName}
           loading={updateLoading}
+          triggerRef={editNameTriggerRef}
         />
       ) : null}
 
@@ -284,6 +293,7 @@ export function CameraDetailDialogs({
           onSave={onSaveDescription}
           onDismiss={onDismissEditDescription}
           loading={updateLoading}
+          triggerRef={editDescriptionTriggerRef}
         />
       ) : null}
 
@@ -293,6 +303,7 @@ export function CameraDetailDialogs({
         loading={deleteLoading}
         onDismiss={onDismissDelete}
         onConfirmDelete={onDeleteCamera}
+        triggerRef={deleteTriggerRef}
       />
 
       <ManualSetupDialog
@@ -304,6 +315,7 @@ export function CameraDetailDialogs({
         onChangeUrl={onChangeLocalUrl}
         onChangeKey={onChangeLocalKey}
         onConnect={onConnectLocal}
+        triggerRef={manualSetupTriggerRef}
       />
     </>
   );

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { type RefObject, useCallback, useRef } from 'react';
 import { View } from 'react-native';
 import { useAppTheme } from '@/theme';
 import { type OAuthAccount, ProfileAction } from './shared';
@@ -9,6 +9,7 @@ type ProfileAccountSectionProps = {
   onLogout: () => void;
   onRevokeAllSessions: () => void;
   onVerifyAccount: () => void;
+  logoutTriggerRef?: RefObject<View | null>;
 };
 
 export function ProfileAccountSection({
@@ -16,6 +17,7 @@ export function ProfileAccountSection({
   onLogout,
   onRevokeAllSessions,
   onVerifyAccount,
+  logoutTriggerRef,
 }: ProfileAccountSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
@@ -25,6 +27,7 @@ export function ProfileAccountSection({
         subtitle="Switch to another account"
         onPress={onLogout}
         titleStyle={styles.danger}
+        triggerRef={logoutTriggerRef}
       />
       <ProfileAction
         title="Sign out everywhere"
@@ -50,6 +53,8 @@ type ProfileLinkedAccountsSectionProps = {
   githubAccount?: OAuthAccount | null;
   onLinkOAuth: (provider: 'google' | 'github') => void;
   onRequestUnlink: (provider: 'google' | 'github') => void;
+  /** Both "Unlink X" buttons open the same dialog — this tracks whichever was pressed last. */
+  unlinkTriggerRef?: RefObject<View | null>;
 };
 
 export function ProfileLinkedAccountsSection({
@@ -59,11 +64,20 @@ export function ProfileLinkedAccountsSection({
   githubAccount,
   onLinkOAuth,
   onRequestUnlink,
+  unlinkTriggerRef,
 }: ProfileLinkedAccountsSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
-  const unlinkGoogle = useCallback(() => onRequestUnlink('google'), [onRequestUnlink]);
+  const unlinkGoogleNodeRef = useRef<View>(null);
+  const unlinkGithubNodeRef = useRef<View>(null);
+  const unlinkGoogle = useCallback(() => {
+    if (unlinkTriggerRef) unlinkTriggerRef.current = unlinkGoogleNodeRef.current;
+    onRequestUnlink('google');
+  }, [onRequestUnlink, unlinkTriggerRef]);
   const linkGoogle = useCallback(() => onLinkOAuth('google'), [onLinkOAuth]);
-  const unlinkGithub = useCallback(() => onRequestUnlink('github'), [onRequestUnlink]);
+  const unlinkGithub = useCallback(() => {
+    if (unlinkTriggerRef) unlinkTriggerRef.current = unlinkGithubNodeRef.current;
+    onRequestUnlink('github');
+  }, [onRequestUnlink, unlinkTriggerRef]);
   const linkGithub = useCallback(() => onLinkOAuth('github'), [onLinkOAuth]);
   return (
     <View style={styles.section}>
@@ -73,6 +87,7 @@ export function ProfileLinkedAccountsSection({
           subtitle={`Connected as ${googleAccount?.account_email ?? ''}`}
           onPress={unlinkGoogle}
           titleStyle={styles.danger}
+          triggerRef={unlinkGoogleNodeRef}
         />
       ) : (
         <ProfileAction
@@ -88,6 +103,7 @@ export function ProfileLinkedAccountsSection({
           subtitle={`Connected as ${githubAccount?.account_email ?? ''}`}
           onPress={unlinkGithub}
           titleStyle={styles.danger}
+          triggerRef={unlinkGithubNodeRef}
         />
       ) : (
         <ProfileAction
@@ -102,9 +118,13 @@ export function ProfileLinkedAccountsSection({
 
 type ProfileDangerZoneSectionProps = {
   onDeleteAccount: () => void;
+  triggerRef?: RefObject<View | null>;
 };
 
-export function ProfileDangerZoneSection({ onDeleteAccount }: ProfileDangerZoneSectionProps) {
+export function ProfileDangerZoneSection({
+  onDeleteAccount,
+  triggerRef,
+}: ProfileDangerZoneSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
     <View style={[styles.section, styles.dangerSection]}>
@@ -113,6 +133,7 @@ export function ProfileDangerZoneSection({ onDeleteAccount }: ProfileDangerZoneS
         onPress={onDeleteAccount}
         titleStyle={{ ...styles.danger, fontSize: 15 }}
         hideChevron
+        triggerRef={triggerRef}
       />
     </View>
   );

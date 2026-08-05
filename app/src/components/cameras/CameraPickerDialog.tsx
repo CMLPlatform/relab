@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { type RefObject, useCallback, useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
@@ -21,6 +21,7 @@ interface CameraPickerDialogProps {
   /** Called with the selected camera (only online cameras are selectable). */
   onSelect: (camera: CameraReadWithStatus) => void;
   title?: string;
+  triggerRef?: RefObject<View | null>;
 }
 
 /**
@@ -33,6 +34,7 @@ export function CameraPickerDialog({
   onDismiss,
   onSelect,
   title = 'Select camera',
+  triggerRef,
 }: CameraPickerDialogProps) {
   const theme = useAppTheme();
   const router = useRouter();
@@ -54,9 +56,7 @@ export function CameraPickerDialog({
   );
 
   return (
-    // NOTE: no triggerRef — this reusable dialog is opened from callers (the
-    // "Go Live" button, RPi capture buttons), not from a trigger in this file.
-    <AppDialog visible={visible} onDismiss={onDismiss}>
+    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
       <AppText accessibilityRole="header" style={styles.title}>
         {title}
       </AppText>

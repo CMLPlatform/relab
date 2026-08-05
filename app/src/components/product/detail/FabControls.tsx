@@ -1,4 +1,11 @@
-import { type ComponentProps, type ReactNode, useCallback, useEffect, useState } from 'react';
+import {
+  type ComponentProps,
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import { Platform, Pressable, View, type ViewStyle } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Fab } from '@/components/base/Fab';
@@ -25,6 +32,7 @@ type ProductFabControlsProps = {
   streamPickerVisible: boolean;
   onDismissStreamPicker: () => void;
   primaryFabIcon: ComponentProps<typeof Fab>['icon'];
+  streamTriggerRef?: RefObject<View | null>;
 };
 
 export function ProductFabControls({
@@ -44,6 +52,7 @@ export function ProductFabControls({
   streamPickerVisible,
   onDismissStreamPicker,
   primaryFabIcon,
+  streamTriggerRef,
 }: ProductFabControlsProps) {
   return (
     <>
@@ -67,6 +76,7 @@ export function ProductFabControls({
           productName={productName}
           visible={streamPickerVisible}
           onDismiss={onDismissStreamPicker}
+          triggerRef={streamTriggerRef}
         />
       ) : null}
     </>

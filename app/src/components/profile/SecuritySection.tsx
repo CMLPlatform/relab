@@ -1,5 +1,5 @@
 import { CheckCircle2 } from 'lucide-react-native';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/ui/icon';
@@ -20,8 +20,21 @@ export function ProfileSecuritySection({ mfaEnabled, onEnrolled }: ProfileSecuri
   const mfa = useMfaSetup(onEnrolled);
 
   const { start, beginDisable, beginRegenerate } = mfa;
-  const beginReset = useCallback(() => beginDisable(true), [beginDisable]);
-  const beginTurnOff = useCallback(() => beginDisable(false), [beginDisable]);
+  const enrollTriggerRef = useRef<View>(null);
+  const regenerateTriggerRef = useRef<View>(null);
+  const resetTriggerRef = useRef<View>(null);
+  const turnOffTriggerRef = useRef<View>(null);
+  // 'disable' mode has two entry points (reset vs turn-off); this tracks whichever
+  // was pressed most recently, since useReturnFocus needs one settled ref per dialog.
+  const disableTriggerRef = useRef<View>(null);
+  const beginReset = useCallback(() => {
+    disableTriggerRef.current = resetTriggerRef.current;
+    beginDisable(true);
+  }, [beginDisable]);
+  const beginTurnOff = useCallback(() => {
+    disableTriggerRef.current = turnOffTriggerRef.current;
+    beginDisable(false);
+  }, [beginDisable]);
 
   return (
     <>
@@ -39,17 +52,20 @@ export function ProfileSecuritySection({ mfaEnabled, onEnrolled }: ProfileSecuri
               title="Generate new recovery codes"
               subtitle="Replace your saved backup codes"
               onPress={beginRegenerate}
+              triggerRef={regenerateTriggerRef}
             />
             <ProfileAction
               title="Reset authenticator key"
               subtitle="Swap to a new authenticator app"
               onPress={beginReset}
+              triggerRef={resetTriggerRef}
             />
             <ProfileAction
               title="Turn off two-step verification"
               subtitle="Sign in with just your password"
               onPress={beginTurnOff}
               titleStyle={styles.danger}
+              triggerRef={turnOffTriggerRef}
             />
           </>
         ) : (
@@ -57,11 +73,17 @@ export function ProfileSecuritySection({ mfaEnabled, onEnrolled }: ProfileSecuri
             title="Two-step verification"
             subtitle={mfa.starting ? 'Preparing…' : 'Protect logins with an authenticator app'}
             onPress={start}
+            triggerRef={enrollTriggerRef}
           />
         )}
       </View>
 
-      <MfaDialogs mfa={mfa} />
+      <MfaDialogs
+        mfa={mfa}
+        enrollTriggerRef={enrollTriggerRef}
+        disableTriggerRef={disableTriggerRef}
+        regenerateTriggerRef={regenerateTriggerRef}
+      />
     </>
   );
 }

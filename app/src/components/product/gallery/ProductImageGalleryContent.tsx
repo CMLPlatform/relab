@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, type RefObject, useCallback, useMemo } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Icon, type IconName } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
@@ -39,6 +39,7 @@ type Props = {
   onDeleteImage: () => void;
   /** Product/component name — the alt-text fallback when an image has no description. */
   fallbackLabel: string;
+  rpiTriggerRef?: RefObject<View | null>;
 };
 
 export function ProductImageGalleryContent({
@@ -63,6 +64,7 @@ export function ProductImageGalleryContent({
   onRpiCapture,
   onDeleteImage,
   fallbackLabel,
+  rpiTriggerRef,
 }: Props) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
@@ -140,6 +142,7 @@ export function ProductImageGalleryContent({
             />
             {showRpiButton ? (
               <Pressable
+                ref={rpiTriggerRef}
                 onPress={onRpiCapture}
                 disabled={isCapturing || rpiCamerasLoading}
                 accessibilityLabel={

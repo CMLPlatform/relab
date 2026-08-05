@@ -1,4 +1,5 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
+import type { View } from 'react-native';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
 import { PageContainer } from '@/components/base/PageContainer';
@@ -13,6 +14,7 @@ export default function CamerasScreen() {
   const { refetch } = screen;
   const handleStartStream = async () => streaming.handleStartStream();
   const handleRetry = useCallback(() => refetch(), [refetch]);
+  const streamTriggerRef = useRef<View>(null);
 
   if (!screen.user) return null;
   if (screen.isLoading) return <CenteredSpinner />;
@@ -47,6 +49,7 @@ export default function CamerasScreen() {
           onCardPress={actions.handleCardTap}
           onCardLongPress={actions.handleCardLongPress}
           onEffectiveConnectionChange={actions.handleEffectiveConnectionChange}
+          streamTriggerRef={streamTriggerRef}
         />
       </PageContainer>
 
@@ -66,6 +69,7 @@ export default function CamerasScreen() {
         onStart={handleStartStream}
         secondaryLabel="Cancel"
         onSecondary={streaming.closeStreamDialog}
+        triggerRef={streamTriggerRef}
       />
     </>
   );

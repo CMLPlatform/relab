@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
@@ -17,6 +18,7 @@ type CameraConnectionCardProps = {
   onRefresh: () => void;
   onOpenManualSetup: () => void;
   onDisconnectLocal: () => void;
+  manualSetupTriggerRef?: RefObject<View | null>;
 };
 
 export function CameraConnectionCard({
@@ -26,6 +28,7 @@ export function CameraConnectionCard({
   onRefresh,
   onOpenManualSetup,
   onDisconnectLocal,
+  manualSetupTriggerRef,
 }: CameraConnectionCardProps) {
   const theme = useAppTheme();
   const { localConnection, relayStatus } = effectiveConnection;
@@ -92,9 +95,11 @@ export function CameraConnectionCard({
           ) : null}
 
           {localConnection.mode === 'relay' ? (
-            <AppButton variant="ghost" onPress={onOpenManualSetup}>
-              Manual setup…
-            </AppButton>
+            <View ref={manualSetupTriggerRef} collapsable={false}>
+              <AppButton variant="ghost" onPress={onOpenManualSetup}>
+                Manual setup…
+              </AppButton>
+            </View>
           ) : null}
         </View>
 

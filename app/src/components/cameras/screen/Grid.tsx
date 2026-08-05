@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect } from 'react';
+import { memo, type RefObject, useCallback, useEffect, useRef } from 'react';
 import {
   FlatList,
   Pressable,
@@ -27,6 +27,11 @@ type CamerasGridProps = {
   onCardPress: (camera: CameraReadWithStatus) => void;
   onCardLongPress: (camera: CameraReadWithStatus) => void;
   onEffectiveConnectionChange: (cameraId: string, connection: EffectiveConnectionSnapshot) => void;
+  /**
+   * Return-focus target for the stream (GoLiveDialog) flow — whichever cell was
+   * tapped becomes the "current" trigger; see AppDialog's `triggerRef`.
+   */
+  streamTriggerRef?: RefObject<View | null>;
 };
 
 export function CamerasGrid({
@@ -38,6 +43,7 @@ export function CamerasGrid({
   onCardPress,
   onCardLongPress,
   onEffectiveConnectionChange,
+  streamTriggerRef,
 }: CamerasGridProps) {
   const theme = useAppTheme();
   const styles = createCameraScreenStyles(theme);
@@ -50,9 +56,10 @@ export function CamerasGrid({
         onPress={onCardPress}
         onLongPress={onCardLongPress}
         onEffectiveConnectionChange={onEffectiveConnectionChange}
+        streamTriggerRef={streamTriggerRef}
       />
     ),
-    [onCardLongPress, onCardPress, onEffectiveConnectionChange, selectedIds],
+    [onCardLongPress, onCardPress, onEffectiveConnectionChange, selectedIds, streamTriggerRef],
   );
 
   return (
@@ -89,18 +96,24 @@ const CameraGridCell = memo(function CameraGridCell({
   onPress,
   onLongPress,
   onEffectiveConnectionChange,
+  streamTriggerRef,
 }: {
   camera: CameraReadWithStatus;
   selected: boolean;
   onPress: (camera: CameraReadWithStatus) => void;
   onLongPress: (camera: CameraReadWithStatus) => void;
   onEffectiveConnectionChange: (cameraId: string, connection: EffectiveConnectionSnapshot) => void;
+  streamTriggerRef?: RefObject<View | null>;
 }) {
   const theme = useAppTheme();
   const styles = createCameraScreenStyles(theme);
   const effectiveConnection = useEffectiveCameraConnection(camera);
+  const cellRef = useRef<View>(null);
 
-  const handlePress = useCallback(() => onPress(camera), [onPress, camera]);
+  const handlePress = useCallback(() => {
+    if (streamTriggerRef) streamTriggerRef.current = cellRef.current;
+    onPress(camera);
+  }, [onPress, camera, streamTriggerRef]);
   const handleLongPress = useCallback(() => onLongPress(camera), [onLongPress, camera]);
   const cellStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
@@ -128,6 +141,7 @@ const CameraGridCell = memo(function CameraGridCell({
   return (
     <View style={styles.cell}>
       <Pressable
+        ref={cellRef}
         onPress={handlePress}
         onLongPress={handleLongPress}
         delayLongPress={350}

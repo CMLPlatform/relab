@@ -1,4 +1,5 @@
 import { Link } from 'expo-router';
+import type { RefObject } from 'react';
 import { StyleSheet, View } from 'react-native';
 import LogoutConfirm from '@/components/auth/LogoutConfirm';
 import { AppButton } from '@/components/base/AppButton';
@@ -29,6 +30,10 @@ type ProfileDialogsProps = {
   onConfirmLogout: () => void;
   deleteDialogVisible: boolean;
   onDismissDeleteDialog: () => void;
+  editUsernameTriggerRef?: RefObject<View | null>;
+  unlinkTriggerRef?: RefObject<View | null>;
+  logoutTriggerRef?: RefObject<View | null>;
+  deleteAccountTriggerRef?: RefObject<View | null>;
 };
 
 export function ProfileDialogs({
@@ -50,14 +55,20 @@ export function ProfileDialogs({
   onConfirmLogout,
   deleteDialogVisible,
   onDismissDeleteDialog,
+  editUsernameTriggerRef,
+  unlinkTriggerRef,
+  logoutTriggerRef,
+  deleteAccountTriggerRef,
 }: ProfileDialogsProps) {
   const theme = useAppTheme();
   const styles = createProfileSectionStyles(theme);
   return (
     <>
-      {/* NOTE: no triggerRef on any dialog below — all are opened from buttons in
-          HeroStats.tsx / AccountSections.tsx, not from triggers in this file. */}
-      <AppDialog visible={editUsernameVisible} onDismiss={onDismissEditUsername}>
+      <AppDialog
+        visible={editUsernameVisible}
+        onDismiss={onDismissEditUsername}
+        triggerRef={editUsernameTriggerRef}
+      >
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Edit username
         </AppText>
@@ -80,7 +91,11 @@ export function ProfileDialogs({
         </View>
       </AppDialog>
 
-      <AppDialog visible={unlinkDialogVisible} onDismiss={onDismissUnlink}>
+      <AppDialog
+        visible={unlinkDialogVisible}
+        onDismiss={onDismissUnlink}
+        triggerRef={unlinkTriggerRef}
+      >
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Unlink account
         </AppText>
@@ -123,9 +138,14 @@ export function ProfileDialogs({
         visible={logoutDialogVisible}
         onDismiss={onDismissLogout}
         onConfirm={onConfirmLogout}
+        triggerRef={logoutTriggerRef}
       />
 
-      <AppDialog visible={deleteDialogVisible} onDismiss={onDismissDeleteDialog}>
+      <AppDialog
+        visible={deleteDialogVisible}
+        onDismiss={onDismissDeleteDialog}
+        triggerRef={deleteAccountTriggerRef}
+      >
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Delete account
         </AppText>

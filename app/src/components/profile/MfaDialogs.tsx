@@ -1,5 +1,5 @@
 import { setStringAsync } from 'expo-clipboard';
-import { useCallback } from 'react';
+import { type RefObject, useCallback } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { AppButton } from '@/components/base/AppButton';
@@ -20,8 +20,20 @@ function chunkSecret(secret: string): string {
   return (secret.match(SECRET_CHUNK_PATTERN) ?? []).join(' ');
 }
 
+type MfaDialogsProps = {
+  mfa: MfaSetupController;
+  enrollTriggerRef?: RefObject<View | null>;
+  disableTriggerRef?: RefObject<View | null>;
+  regenerateTriggerRef?: RefObject<View | null>;
+};
+
 /** The four TOTP dialogs: enroll, turn off, regenerate codes, and show codes. */
-export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
+export function MfaDialogs({
+  mfa,
+  enrollTriggerRef,
+  disableTriggerRef,
+  regenerateTriggerRef,
+}: MfaDialogsProps) {
   const theme = useAppTheme();
   const local = createMfaDialogStyles(theme);
   const feedback = useAppFeedback();
@@ -47,9 +59,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
 
   return (
     <>
-      {/* NOTE: no triggerRef on any dialog below — mode transitions are driven by
-          ProfileAction buttons in SecuritySection.tsx, not by triggers in this file. */}
-      <AppDialog visible={mfa.mode === 'enroll'} onDismiss={cancel}>
+      <AppDialog visible={mfa.mode === 'enroll'} onDismiss={cancel} triggerRef={enrollTriggerRef}>
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Set up two-step verification
         </AppText>
@@ -123,7 +133,7 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
         </View>
       </AppDialog>
 
-      <AppDialog visible={mfa.mode === 'disable'} onDismiss={cancel}>
+      <AppDialog visible={mfa.mode === 'disable'} onDismiss={cancel} triggerRef={disableTriggerRef}>
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Enter a current code
         </AppText>
@@ -191,7 +201,11 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
         </View>
       </AppDialog>
 
-      <AppDialog visible={mfa.mode === 'regenerate'} onDismiss={cancel}>
+      <AppDialog
+        visible={mfa.mode === 'regenerate'}
+        onDismiss={cancel}
+        triggerRef={regenerateTriggerRef}
+      >
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Generate new recovery codes
         </AppText>
@@ -228,6 +242,8 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
         </View>
       </AppDialog>
 
+      {/* NOTE: no triggerRef — 'codes' mode is entered internally from the enroll/regenerate
+          flows (useMfaSetup.ts), not from a distinct in-screen trigger. */}
       <AppDialog visible={mfa.mode === 'codes'} onDismiss={cancel} dismissable={false}>
         <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Save your recovery codes

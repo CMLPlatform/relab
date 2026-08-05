@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react-native';
+import type { RefObject } from 'react';
 import { Pressable, type TextStyle, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/ui/icon';
@@ -15,6 +16,8 @@ type ProfileActionProps = {
   subtitle?: string;
   titleStyle?: TextStyle;
   hideChevron?: boolean;
+  /** Return-focus target for the dialog `onPress` opens; see AppDialog's `triggerRef`. */
+  triggerRef?: RefObject<View | null>;
 };
 
 /** A tappable settings row: title, optional subtitle, chevron. Rows within one Section. */
@@ -24,10 +27,12 @@ export function ProfileAction({
   subtitle,
   titleStyle,
   hideChevron = false,
+  triggerRef,
 }: ProfileActionProps) {
   const styles = useStyles();
   return (
     <Pressable
+      ref={triggerRef}
       style={styles.action}
       className="min-h-11"
       onPress={onPress}
