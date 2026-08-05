@@ -4,8 +4,8 @@
  * Scoped to the guest-accessible core screens so it needs no login/seeding
  * beyond the running full-stack (see e2e-full-stack in validate.yml).
  *
- * We gate on serious + critical violations only. RN-Web / react-native-paper
- * emit minor/moderate axe noise (and theme-token color-contrast) that the app
+ * We gate on serious + critical violations only. RN-Web rendering emits
+ * minor/moderate axe noise (and theme-token color-contrast) that the app
  * can't meaningfully fix, so gating on those would make CI red on library
  * internals rather than real regressions. color-contrast is disabled for the
  * same reason (mirrors docs/e2e/accessibility.spec.ts).
