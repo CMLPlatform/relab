@@ -31,3 +31,8 @@ def request_has_auth_material(request: Request | None) -> bool:
     if request.headers.get("authorization"):
         return True
     return any(cookie_name in request.cookies for cookie_name in AUTH_COOKIE_NAMES)
+
+
+def path_matches_prefix(path: str, prefix: str) -> bool:
+    """Return whether path is exactly prefix or a child path."""
+    return path == prefix or path.startswith(f"{prefix}/")

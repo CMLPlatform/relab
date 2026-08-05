@@ -1878,7 +1878,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "python-json-logger", specifier = ">=4.1.0" },
     { name = "redis", specifier = ">=5.2.1" },
-    { name = "relab-rpi-cam-models", specifier = ">=0.5.0" },
+    { name = "relab-rpi-cam-models", specifier = ">=0.5.0,<0.6" },
     { name = "sqlalchemy", specifier = ">=2.0.41" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.42.0" },
 ]

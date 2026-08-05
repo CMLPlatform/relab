@@ -8,6 +8,7 @@ from app.core.http_headers import (
     NO_STORE,
     SENSITIVE_CACHE_CONTROL,
     SENSITIVE_CACHE_HEADERS,
+    path_matches_prefix,
     request_has_auth_material,
 )
 
@@ -42,14 +43,9 @@ BASE_SECURITY_HEADERS = {
 }
 
 
-def _path_matches_prefix(path: str, prefix: str) -> bool:
-    """Return whether path is exactly prefix or a child path."""
-    return path == prefix or path.startswith(f"{prefix}/")
-
-
 def _is_sensitive_path(path: str) -> bool:
     """Return whether the path commonly carries sensitive API data."""
-    return any(_path_matches_prefix(path, prefix) for prefix in SENSITIVE_PATH_PREFIXES)
+    return any(path_matches_prefix(path, prefix) for prefix in SENSITIVE_PATH_PREFIXES)
 
 
 def _is_problem_details(response: Response) -> bool:

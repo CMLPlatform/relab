@@ -1,6 +1,7 @@
 """Shared constants for image validation and processing."""
 
 from PIL import Image as PILImage
+from PIL.Image import Resampling
 
 __all__ = [
     "ALLOWED_IMAGE_MIME_TYPES",
@@ -50,9 +51,4 @@ _SENSITIVE_EXIF_TAGS: frozenset[int] = frozenset(
 )
 _EXIF_ORIENTATION_TAG = 0x0112
 
-try:
-    from PIL.Image import Resampling
-
-    RESAMPLE_FILTER = Resampling.LANCZOS
-except ImportError, AttributeError:
-    RESAMPLE_FILTER = getattr(PILImage, "LANCZOS", getattr(PILImage, "ANTIALIAS", 1))
+RESAMPLE_FILTER = Resampling.LANCZOS

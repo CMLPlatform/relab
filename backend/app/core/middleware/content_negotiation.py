@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, Response
 
+from app.core.http_headers import path_matches_prefix
 from app.core.responses import build_problem_response
 
 if TYPE_CHECKING:
@@ -27,19 +28,14 @@ ACCEPT_QUALITY_PARAMETER = "q"
 JSON_STRUCTURED_SUFFIX = "+json"
 
 
-def _path_matches_prefix(path: str, prefix: str) -> bool:
-    """Return whether path is exactly prefix or a child path."""
-    return path == prefix or path.startswith(f"{prefix}/")
-
-
 def _is_skipped_path(path: str) -> bool:
     """Return whether middleware should ignore this path."""
-    return any(_path_matches_prefix(path, prefix) for prefix in SKIPPED_PATH_PREFIXES)
+    return any(path_matches_prefix(path, prefix) for prefix in SKIPPED_PATH_PREFIXES)
 
 
 def _is_api_path(path: str) -> bool:
     """Return whether this path is a JSON API/document contract path."""
-    return _path_matches_prefix(path, API_PATH_PREFIX) or (
+    return path_matches_prefix(path, API_PATH_PREFIX) or (
         path.startswith("/openapi") and path.endswith(OPENAPI_JSON_SUFFIX)
     )
 

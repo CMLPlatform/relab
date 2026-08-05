@@ -198,9 +198,6 @@ def test_dos_hardening_defaults_are_conservative() -> None:
     assert settings.api_upload_rate_limit == "30/minute"
     assert settings.rpi_cam_ws_auth_rate_limit == "10/minute"
     assert settings.rpi_cam_ws_binary_frame_limit_bytes == 10_485_760
-    assert settings.uvicorn_limit_concurrency == 100
-    assert settings.uvicorn_timeout_keep_alive == 5
-    assert settings.uvicorn_h11_max_incomplete_event_size == 16_384
     assert settings.trusted_proxy_cidrs == ("127.0.0.0/8", "::1/128")
 
 

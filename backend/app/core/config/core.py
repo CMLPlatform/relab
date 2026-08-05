@@ -188,9 +188,6 @@ class CoreSettings(RelabBaseSettings):
     api_upload_rate_limit: str = "30/minute"
     rpi_cam_ws_auth_rate_limit: str = "10/minute"
     rpi_cam_ws_binary_frame_limit_bytes: int = Field(default=10 * 1024 * 1024, ge=1024, le=50 * 1024 * 1024)
-    uvicorn_limit_concurrency: int = Field(default=100, ge=1, le=10_000)
-    uvicorn_timeout_keep_alive: int = Field(default=5, ge=1, le=120)
-    uvicorn_h11_max_incomplete_event_size: int = Field(default=16 * 1024, ge=1024, le=1024 * 1024)
     trusted_proxy_cidrs: tuple[str, ...] = ("127.0.0.0/8", "::1/128")
     # OTEL on/off is derived from the endpoint; service.name is read by the
     # OTEL SDK directly from the OTEL_SERVICE_NAME env var (set in compose).
