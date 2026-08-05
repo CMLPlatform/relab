@@ -262,6 +262,40 @@ describe('useProductQueries', () => {
     );
   });
 
+  it('useSaveProductMutation does not touch the cache when saving fails', async () => {
+    // Every mutation here was happy-path only. A save that fails must leave the
+    // cache alone, or the UI reports a change the server never accepted.
+    mockedSaveProduct.mockRejectedValue(new Error('save failed'));
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    invalidateSpy.mockClear();
+
+    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+
+    result.current.mutate({
+      product: { ...newProductDraft, name: 'New' },
+      originalImages: [],
+      originalVideos: [],
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it('useDeleteProductMutation does not evict the cache when deletion fails', async () => {
+    // A failed delete must not remove the entity locally: the record still
+    // exists on the server, and evicting it hides that from the user.
+    mockedDeleteProduct.mockRejectedValue(new Error('delete failed'));
+    const removeSpy = jest.spyOn(queryClient, 'removeQueries');
+    removeSpy.mockClear();
+
+    const { result } = renderHook(() => useDeleteProductMutation(), { wrapper });
+
+    result.current.mutate(existingProduct);
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(removeSpy).not.toHaveBeenCalled();
+  });
+
   it('useDeleteProductMutation removes both role caches for an existing entity', async () => {
     mockedDeleteProduct.mockResolvedValue(undefined);
     const removeSpy = jest.spyOn(queryClient, 'removeQueries');
