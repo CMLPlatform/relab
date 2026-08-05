@@ -40,44 +40,6 @@ afterAll(() => {
   server.close();
 });
 
-// Mock vector icons as static functional components to avoid act() warnings
-// from any internal effects or async font loading.
-jest.mock('@expo/vector-icons', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  const MockIcon = ({
-    name,
-    testID,
-    ...props
-  }: {
-    name: string;
-    testID?: string;
-    [key: string]: unknown;
-  }) => React.createElement(Text, { testID: testID ?? `icon-${name}`, ...props }, name);
-
-  return {
-    MaterialCommunityIcons: MockIcon,
-    MaterialIcons: MockIcon,
-    Ionicons: MockIcon,
-    FontAwesome: MockIcon,
-    Feather: MockIcon,
-    // Mock the factory functions
-    createIconSet: () => MockIcon,
-    createIconSetFromIcoMoon: () => MockIcon,
-  };
-});
-
-// Also mock common subpaths that libraries might import from directly
-jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => ({
-  default:
-    jest.requireMock<typeof import('@expo/vector-icons')>('@expo/vector-icons')
-      .MaterialCommunityIcons,
-}));
-jest.mock('@expo/vector-icons/MaterialIcons', () => ({
-  default:
-    jest.requireMock<typeof import('@expo/vector-icons')>('@expo/vector-icons').MaterialIcons,
-}));
-
 // Mock expo-secure-store (replaces AsyncStorage for token persistence on native)
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),

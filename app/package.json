@@ -33,7 +33,6 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.8",
-    "@expo/vector-icons": "^15.1.1",
     "@hookform/resolvers": "^5.2.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@rn-primitives/dialog": "^1.5.2",
