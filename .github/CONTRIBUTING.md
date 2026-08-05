@@ -111,10 +111,15 @@ Use this when you want the full stack without configuring each subrepo manually.
    just setup
    ```
 
-1. Start the containerized database/cache and run migrations.
+1. Start the containerized database and cache.
 
    ```bash
    just dev-db
+   ```
+
+1. Run migrations.
+
+   ```bash
    just dev-migrate
    ```
 
@@ -377,7 +382,9 @@ If you are new to the repo, start with the architecture docs before making struc
    just ci
    ```
 
-1. Push your branch and open a PR.
+1. Push your branch.
+
+1. Open a pull request.
 
 1. Address review feedback.
 
