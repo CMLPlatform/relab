@@ -8,6 +8,7 @@ import pytest
 from fastapi import status
 from PIL import Image as PILImage
 
+from app.core.config import settings
 from tests.factories.models import ProductFactory, ProductTypeFactory, UserFactory
 
 if TYPE_CHECKING:
@@ -437,3 +438,52 @@ async def test_non_owner_cannot_delete_media(
         response = await api_client.delete(f"/v1/{resource}/{target_id}/{endpoint}/{media_id}")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+async def test_upload_rejected_at_quota_then_succeeds_after_release(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    db_superuser: User,
+    setup_product_for_files: Product,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Hitting the per-user upload-count quota rejects the next upload with 413.
+
+    Deleting the counted media item must release the ledger so a further upload succeeds —
+    this exercises reserve/release against the real ledger columns, not a mocked session.
+    """
+    monkeypatch.setattr(settings, "max_upload_files_per_user", 1)
+
+    first = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/files",
+        files={"file": ("first.txt", b"hello", "text/plain")},
+        data={"description": FILE_DESC},
+    )
+    assert first.status_code == status.HTTP_201_CREATED, first.text
+    media_id = first.json()["id"]
+    await db_session.refresh(db_superuser)
+    assert db_superuser.upload_file_count == 1
+
+    rejected = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/files",
+        files={"file": ("second.txt", b"world", "text/plain")},
+        data={"description": FILE_DESC},
+    )
+    assert rejected.status_code == status.HTTP_413_CONTENT_TOO_LARGE, rejected.text
+    assert "quota" in rejected.json()["detail"].lower()
+    await db_session.refresh(db_superuser)
+    assert db_superuser.upload_file_count == 1  # rejected upload must not touch the ledger
+
+    delete_response = await api_client_superuser.delete(f"/v1/products/{setup_product_for_files.id}/files/{media_id}")
+    assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+    await db_session.refresh(db_superuser)
+    assert db_superuser.upload_file_count == 0
+
+    retried = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/files",
+        files={"file": ("third.txt", b"again", "text/plain")},
+        data={"description": FILE_DESC},
+    )
+    assert retried.status_code == status.HTTP_201_CREATED, retried.text
+    await db_session.refresh(db_superuser)
+    assert db_superuser.upload_file_count == 1

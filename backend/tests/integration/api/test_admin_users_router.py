@@ -6,6 +6,7 @@ coroutines and never touched it.
 """
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 from uuid import uuid4
@@ -125,13 +126,24 @@ class TestAdminUsersActions:
         assert response.json()["username"] == "renamed_by_admin"
         log_audit.assert_called_once_with(db_superuser.id, AuditAction.UPDATE, User, db_user.id)
 
-    async def test_superuser_resets_user_mfa(self, api_client_superuser, db_user: User) -> None:
-        """MFA reset returns 204 and clears the target's TOTP enrolment."""
-        with patch("app.api.auth.routers.admin.users.mfa_service.clear_totp") as clear_totp:
-            response = await api_client_superuser.post(f"{ADMIN_USERS}/{db_user.id}/mfa/reset")
+    async def test_superuser_resets_user_mfa(
+        self, api_client_superuser, db_session: AsyncSession, db_user: User
+    ) -> None:
+        """MFA reset returns 204 and clears the target's TOTP enrolment against the real row."""
+        db_user.mfa_enabled = True
+        db_user.mfa_totp_secret = "totp-secret"  # test fixture value, not a real secret
+        db_user.mfa_confirmed_at = datetime.now(UTC)
+        db_user.mfa_recovery_codes = ["hash-of-a-recovery-code"]
+        await db_session.commit()
+
+        response = await api_client_superuser.post(f"{ADMIN_USERS}/{db_user.id}/mfa/reset")
 
         assert response.status_code == 204
-        clear_totp.assert_awaited_once()
+        await db_session.refresh(db_user)
+        assert db_user.mfa_enabled is False
+        assert db_user.mfa_totp_secret is None
+        assert db_user.mfa_confirmed_at is None
+        assert db_user.mfa_recovery_codes == []
 
 
 @dataclass(slots=True)

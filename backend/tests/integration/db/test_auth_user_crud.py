@@ -4,6 +4,7 @@ Tests validate_user_create and get_user_by_username directly against a real
 database session so we exercise the actual SQL queries, not mocked DB calls.
 """
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
@@ -13,7 +14,9 @@ from app.api.auth.crud import get_user_by_username, validate_user_create
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.schemas import UserCreate
+from app.api.auth.services import mfa_service
 from app.api.auth.services.user_database import UserDatabaseAsync
+from app.api.auth.services.user_manager import UserManager
 from app.api.common.exceptions import NotFoundError
 from tests.factories.models import UserFactory
 
@@ -132,3 +135,29 @@ async def test_raises_when_username_not_found(db_session: AsyncSession) -> None:
     """Non-existent username → raises NotFoundError with descriptive message."""
     with pytest.raises(NotFoundError, match="not found"):
         await get_user_by_username(db_session, "ghost_user")
+
+
+async def test_clear_totp_wipes_mfa_enrolment_on_a_real_row(db_session: AsyncSession) -> None:
+    """clear_totp must persist the reset, not just mutate the in-memory instance.
+
+    Every call site (admin reset, self-service disable) mocks this function out in its own
+    tests, so its actual body — the commit that makes the reset stick — is otherwise never
+    exercised against a real row.
+    """
+    user = await UserFactory.create_async(
+        db_session,
+        mfa_enabled=True,
+        mfa_totp_secret="totp-secret",  # test fixture value, not a real secret
+        mfa_confirmed_at=datetime.now(UTC),
+        mfa_recovery_codes=["hash-of-a-recovery-code"],
+        refresh_instance=True,
+    )
+    user_manager = UserManager(UserDatabaseAsync(db_session, User, OAuthAccount), http_client=None)
+
+    await mfa_service.clear_totp(user_manager, user)
+    await db_session.refresh(user)  # reload from the DB rather than trusting the in-memory mutation
+
+    assert user.mfa_enabled is False
+    assert user.mfa_totp_secret is None
+    assert user.mfa_confirmed_at is None
+    assert user.mfa_recovery_codes == []
