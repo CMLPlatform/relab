@@ -279,3 +279,65 @@ test.describe('Product detail: components', () => {
     });
   });
 });
+
+// ─── Image upload ──────────────────────────────────────────────────────────────
+// The gallery spec mocks /products and the image URLs outright, so a broken
+// upload, storage write, or thumbnail pipeline could not fail the suite. This
+// drives the real multipart upload and then fetches the stored bytes back.
+
+test.describe('Product detail: image upload', () => {
+  test('uploads an image and serves it back from storage', async ({ page }) => {
+    await loginAndReachProducts(page);
+    const productName = `E2E Upload ${Date.now()}`;
+    await createProduct(page, productName);
+
+    // Seeded products already put /uploads/ thumbnails in the DOM, so record
+    // them first — otherwise an assertion on "an uploaded image exists" passes
+    // without this test having uploaded anything.
+    const storedImages = page.locator('img[src*="/uploads/"]');
+    const before = new Set(await storedImages.evaluateAll((els) => els.map((el) => el.src)));
+
+    // expo-image-picker builds its <input type="file"> on click rather than
+    // rendering one, so intercept the chooser instead of locating an input.
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.getByRole('button', { name: 'Add photos from gallery' }).click(),
+    ]);
+    await chooser.setFiles('e2e/fixtures/test-image.png');
+
+    // Picking only stages the file client-side; Save is what uploads it.
+    const [upload] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.request().method() === 'POST' && /\/v1\/products\/\d+\/images$/.test(r.url()),
+        { timeout: 30_000 },
+      ),
+      page.getByRole('button', { name: 'Save Product' }).click(),
+    ]);
+    expect(upload.status()).toBeLessThan(300);
+
+    // A URL that was not on the page before: proof this product's own image was
+    // stored, rather than a seeded one being re-read.
+    await expect
+      .poll(
+        async () => {
+          const srcs = await storedImages.evaluateAll((els) => els.map((el) => el.src));
+          return srcs.filter((src) => !before.has(src));
+        },
+        { timeout: 30_000 },
+      )
+      .not.toHaveLength(0);
+
+    const srcs = await storedImages.evaluateAll((els) => els.map((el) => el.src));
+    const uploadedSrc = srcs.find((src) => !before.has(src));
+
+    // Fetch the bytes back out of storage. This is what separates "the client
+    // rendered something" from "the pipeline actually stored it".
+    const response = await page.request.get(uploadedSrc as string);
+    expect(response.status()).toBe(200);
+    expect((await response.body()).byteLength).toBeGreaterThan(0);
+
+    await expect(page.getByRole('button', { name: `View ${productName}` })).toBeVisible({
+      timeout: 15_000,
+    });
+  });
+});
