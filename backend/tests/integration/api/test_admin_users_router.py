@@ -218,13 +218,15 @@ class TestAdminUserErasure:
     async def test_delete_mode_removes_the_owned_product_subtree(
         self,
         api_client_superuser,
+        db_superuser: User,
         db_session: AsyncSession,
         erasure_subject: ErasureSubject,
     ) -> None:
         """``content=delete`` erases the products as well as the account."""
         subject = erasure_subject
 
-        response = await api_client_superuser.delete(f"{ADMIN_USERS}/{subject.user.id}?content=delete")
+        with patch("app.api.auth.services.account_erasure.audit_event") as log_audit:
+            response = await api_client_superuser.delete(f"{ADMIN_USERS}/{subject.user.id}?content=delete")
 
         assert response.status_code == 204
         assert not await _row_exists(
@@ -232,6 +234,15 @@ class TestAdminUserErasure:
         )
         assert not await _row_exists(db_session, select(User.id).where(User.id == subject.user.id))
         assert not await _row_exists(db_session, select(Camera.id).where(Camera.id == subject.camera.id))
+        # Regression: product-deletion audit rows must name the acting admin, not
+        # the erased user whose data is being removed. Only base products are
+        # audited individually — components are removed as part of the subtree.
+        audited_ids = {call.args[3] for call in log_audit.call_args_list}
+        assert audited_ids == {subject.product.id}
+        for call in log_audit.call_args_list:
+            assert call.args[0] == db_superuser.id
+            assert call.args[1] == AuditAction.DELETE
+            assert call.args[2] is Product
 
     async def test_unknown_content_mode_is_rejected(
         self, api_client_superuser, erasure_subject: ErasureSubject

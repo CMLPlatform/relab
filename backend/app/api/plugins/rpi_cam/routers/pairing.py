@@ -158,8 +158,12 @@ async def claim_pairing_code(
         # Not a pending code — most likely a re-claim attempt on a code this same
         # request already claimed. GETDEL above unconditionally removed it, so put
         # the still-valid claimed record back before reporting the conflict; the
-        # Pi may not have polled it yet.
-        await set_redis_value(redis, key, raw, ex=PAIRING_CREDENTIAL_TTL_SECONDS)
+        # Pi may not have polled it yet. Restore its actual remaining TTL rather
+        # than resetting the clock to a fresh, possibly-longer one, mirroring the
+        # failure-path restore below.
+        await set_redis_value(
+            redis, key, raw, ex=remaining_ttl if remaining_ttl > 0 else PAIRING_CREDENTIAL_TTL_SECONDS
+        )
         raise PairingCodeAlreadyClaimedError
 
     try:

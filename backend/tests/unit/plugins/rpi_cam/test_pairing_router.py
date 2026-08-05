@@ -341,6 +341,54 @@ async def test_claim_pairing_code_logs_warning_when_restore_itself_fails() -> No
     assert "restore" in mock_logger.warning.call_args.args[0].lower()
 
 
+async def test_claim_pairing_code_restores_claimed_record_with_remaining_ttl() -> None:
+    """A re-claim attempt on an already-claimed code restores it with its actual remaining TTL.
+
+    Regression: the restore used a fresh PAIRING_CREDENTIAL_TTL_SECONDS instead of the
+    TTL read before GETDEL, resetting the clock to a possibly-longer window than the
+    record actually had left — asymmetric with the create_camera-failure restore path.
+    """
+    session = AsyncMock()
+    current_user = UserFactory.build(
+        id=uuid4(),
+        email="owner@example.com",
+        hashed_password="hashed",
+        is_active=True,
+        is_superuser=False,
+        is_verified=True,
+    )
+    body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description=None)
+    redis_client = await _make_fake_redis()
+    claimed_payload = dump_pairing_record(
+        build_claimed_record(
+            build_claimed_bootstrap(
+                camera_id=str(uuid4()),
+                ws_url="ws://testserver/v1/plugins/rpi-cam/ws/connect",
+                key_id=KEY_ID,
+            ),
+            rpi_fingerprint="fingerprint",
+        )
+    )
+    short_ttl = 30
+    await redis_client.set(f"rpi_cam:pairing:{PAIRING_CODE}", claimed_payload, ex=short_ttl)
+
+    with (
+        patch("app.api.plugins.rpi_cam.routers.pairing.limiter.ahit_key", new_callable=AsyncMock),
+        pytest.raises(PairingCodeAlreadyClaimedError),
+    ):
+        await claim_pairing_code(
+            body=body,
+            session=session,
+            current_user=current_user,
+            redis=redis_client,
+        )
+
+    restored = await redis_client.get(f"rpi_cam:pairing:{PAIRING_CODE}")
+    assert restored == claimed_payload
+    ttl = await redis_client.ttl(f"rpi_cam:pairing:{PAIRING_CODE}")
+    assert 0 < ttl <= short_ttl
+
+
 def test_poll_request_rejects_non_ascii_fingerprint() -> None:
     """A non-ASCII fingerprint must be rejected by validation, not reach hmac.compare_digest."""
     with pytest.raises(ValidationError):

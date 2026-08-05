@@ -80,8 +80,13 @@ async def get_or_create_anonymous_user(session: AsyncSession) -> User:
     return anonymous
 
 
-async def erase_user(session: AsyncSession, user: User, *, content: ErasureContent = ANONYMIZE) -> None:
+async def erase_user(
+    session: AsyncSession, user: User, *, actor_id: UUID4, content: ErasureContent = ANONYMIZE
+) -> None:
     """Erase a user account, applying the chosen policy to the content they own.
+
+    ``actor_id`` is the admin performing the erasure, not the erased user — it is
+    the audit subject for the product deletions this triggers.
 
     Raises:
         ConflictError: when the target is the anonymous system account or the last
@@ -115,7 +120,7 @@ async def erase_user(session: AsyncSession, user: User, *, content: ErasureConte
     await session.commit()
 
     for product_id in deleted_product_ids:
-        audit_event(user_id, AuditAction.DELETE, Product, product_id)
+        audit_event(actor_id, AuditAction.DELETE, Product, product_id)
 
     # Bytes only after the rows are durably gone, mirroring product deletion.
     await cleanup_product_media_storage(pending_media)

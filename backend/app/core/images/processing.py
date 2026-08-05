@@ -26,13 +26,18 @@ def process_image_for_storage(image_path: PathLike[str]) -> None:
             with contextlib.suppress(AttributeError, ValueError, OSError, TypeError):
                 has_exif = bool(img.getexif())
 
+        is_multiframe = getattr(img, "n_frames", 1) > 1
         orientation = get_exif_orientation(img) if has_exif else None
         needs_rotation = orientation not in (None, 1)
         # Re-save only to apply rotation or strip EXIF. The old code also re-saved
         # every non-JPEG unconditionally, which flattened animated GIFs to one frame
         # and re-encoded lossless WebP lossily even when the file carried no EXIF and
         # needed no rotation — destroying the original in place for nothing.
-        if has_exif or needs_rotation:
+        # ponytail: animated originals are never re-saved, even when they carry EXIF —
+        # exif_transpose only has a first-frame view, so "fixing" one frame would
+        # flatten the rest. Animations with EXIF orientation/PII are rare; skip
+        # rotation/stripping for them rather than destroying the animation to apply it.
+        if (has_exif or needs_rotation) and not is_multiframe:
             try:
                 processed: PILImage.Image | None = ImageOps.exif_transpose(img)
             except AttributeError, ValueError, OSError, TypeError:
@@ -41,10 +46,8 @@ def process_image_for_storage(image_path: PathLike[str]) -> None:
             # Explicit strip, not just reliance on omitting `exif=` from save_kwargs below —
             # that omission is incidental to the current save path, not a documented guarantee.
             strip_sensitive_exif(processed)
-            is_multiframe = getattr(img, "n_frames", 1) > 1
         else:
             processed = None
-            is_multiframe = False
 
     if processed is None:
         return
@@ -56,8 +59,5 @@ def process_image_for_storage(image_path: PathLike[str]) -> None:
         # Avoid a second lossy generation on a WebP we are only re-saving to strip
         # metadata; lossless keeps the pixels exact.
         save_kwargs["lossless"] = True
-    # Preserve every frame of an animated original instead of collapsing to the first.
-    if is_multiframe:
-        save_kwargs["save_all"] = True
 
     processed.save(image_path, **save_kwargs)

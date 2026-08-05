@@ -120,7 +120,7 @@ async def delete_user(
     # erasure rather than leaving a deleted user whose sessions are still live.
     await require_erasable_account(session, user)
     await revoke_user_refresh_tokens(user.id, request)
-    await erase_user(session, user, content=content)
+    await erase_user(session, user, actor_id=actor.id, content=content)
     audit_event(actor.id, AuditAction.DELETE, User, user.id, context=AuditContext(operation=f"erase_{content}"))
 
 

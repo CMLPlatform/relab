@@ -368,6 +368,26 @@ def test_multiframe_gif_without_exif_is_left_untouched(tmp_path: Path) -> None:
     assert PILImage.open(path).n_frames == 3
 
 
+def test_multiframe_gif_with_exif_is_left_untouched(tmp_path: Path) -> None:
+    """An animated original carrying EXIF is skipped rather than flattened.
+
+    exif_transpose only sees the first frame, so applying rotation/stripping to an
+    animation would mean re-saving it as a single still. Preserving every frame is
+    worth more than stripping EXIF from the rare animated upload that has any.
+    """
+    path = tmp_path / "animated.gif"
+    frames = [PILImage.new("RGB", (48, 48), color).convert("P") for color in ((200, 0, 0), (0, 200, 0), (0, 0, 200))]
+    exif = PILImage.Exif()
+    exif[0x010F] = "Test Camera"
+    frames[0].save(path, save_all=True, append_images=frames[1:], duration=100, loop=0, exif=exif)
+
+    before = path.read_bytes()
+    process_image_for_storage(path)
+
+    assert path.read_bytes() == before, "animated original was re-encoded despite carrying EXIF"
+    assert PILImage.open(path).n_frames == 3
+
+
 def test_lossless_webp_without_exif_is_left_untouched(tmp_path: Path) -> None:
     """A lossless WebP with no EXIF must be preserved byte-for-byte, not re-encoded."""
     path = tmp_path / "image.webp"

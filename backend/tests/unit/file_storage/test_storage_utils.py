@@ -148,6 +148,23 @@ async def test_filesystem_storage_delete_tolerates_already_missing_file(tmp_path
     await storage.delete("never-existed.txt")
 
 
+async def test_filesystem_storage_delete_surfaces_unexpected_os_errors(tmp_path: Path) -> None:
+    """Non-missing OSErrors from unlink must propagate, not be swallowed.
+
+    Deletion tolerates a missing file via unlink's ``missing_ok``, but any other
+    OSError — a permission failure, for instance — needs to reach the caller.
+    """
+    storage = FileSystemStorage(path=str(tmp_path), create_path=True)
+    target = tmp_path / "locked.txt"
+    target.write_bytes(b"data")
+
+    with (
+        patch("anyio.Path.unlink", new=AsyncMock(side_effect=PermissionError("denied"))),
+        pytest.raises(PermissionError),
+    ):
+        await storage.delete("locked.txt")
+
+
 def _upload(filename: str, content_type: str, content: bytes = b"sample") -> UploadFile:
     return UploadFile(file=BytesIO(content), filename=filename, headers=Headers({"content-type": content_type}))
 
