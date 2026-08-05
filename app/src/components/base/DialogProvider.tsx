@@ -114,7 +114,7 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
           onSubmitEditing={handleSubmitEditing}
           placeholder={options.placeholder}
           autoFocus
-          className="rounded-md border px-2 py-2"
+          className="border px-2 py-2"
           style={[
             { borderColor: theme.colors.outline },
             options.error
@@ -130,8 +130,9 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
       {options.input && options.helperText ? (
         <AppText
           variant="plain"
-          className="mt-1 text-xs"
+          className="mt-1"
           style={{
+            fontSize: 12,
             color: options.error ? theme.tokens.status.danger : theme.colors.onSurfaceVariant,
           }}
         >

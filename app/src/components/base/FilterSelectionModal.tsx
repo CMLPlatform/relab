@@ -90,7 +90,8 @@ function FilterModalShell({
             <AppText
               variant="plain"
               accessibilityRole="header"
-              className="mb-2 text-lg font-semibold"
+              className="mb-2 font-semibold"
+              style={{ fontSize: 18 }}
             >
               {title}
             </AppText>
@@ -99,7 +100,7 @@ function FilterModalShell({
               value={searchQuery}
               onChangeText={onSearchChange}
               accessibilityRole="search"
-              className="mb-4 rounded-md border px-2 py-2"
+              className="mb-4 border px-2 py-2"
               style={{ borderColor: theme.colors.outline }}
             />
             {isLoading ? (

@@ -72,7 +72,7 @@ export function OtpInput({
                 hasError && styles.cellError,
               ]}
             >
-              <AppText variant="plain" className="text-2xl font-semibold">
+              <AppText variant="plain" className="font-semibold" style={{ fontSize: 24 }}>
                 {value[index] ?? ''}
               </AppText>
             </View>

@@ -61,7 +61,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
             onPress={hide}
           >
             <OverlaySurface
-              className="p-3 px-4"
+              className="py-3 px-4"
               style={[
                 styles.tooltip,
                 tooltipShadowStyle,
