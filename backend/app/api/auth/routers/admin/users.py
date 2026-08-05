@@ -2,7 +2,7 @@
 
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security
+from fastapi import Depends, HTTPException, Query, Request, Security
 from fastapi_pagination import Page
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
@@ -19,12 +19,13 @@ from app.api.auth.schemas import UserRead, UserUpdate
 from app.api.auth.services import mfa_service
 from app.api.auth.services.account_erasure import ANONYMIZE, ErasureContent, erase_user, require_erasable_account
 from app.api.auth.services.account_security import revoke_user_refresh_tokens
+from app.api.common.audiences import AdminAPIRouter
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.crud.query import page_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 
-router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
+router = AdminAPIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
 
 
 ## GET ##
@@ -53,7 +54,7 @@ async def get_users(
 
 
 @router.get(
-    "/{user_id}",  # noqa: FAST003 # user_id is bound by the get_user_or_404 dependency
+    "/{user_id}",  # user_id is bound by the get_user_or_404 dependency
     summary="View a single user by ID",
     response_model=UserRead,
 )
@@ -64,7 +65,7 @@ async def get_user(user: UserByIDDep) -> User:
 
 ## PATCH ##
 @router.patch(
-    "/{user_id}",  # noqa: FAST003 # user_id is bound by the get_user_or_404 dependency
+    "/{user_id}",  # user_id is bound by the get_user_or_404 dependency
     summary="Update a user by ID",
     response_model=UserRead,
 )
@@ -93,7 +94,7 @@ async def update_user(
 
 ## DELETE ##
 @router.delete(
-    "/{user_id}",  # noqa: FAST003 # user_id is bound by the get_user_or_404 dependency
+    "/{user_id}",  # user_id is bound by the get_user_or_404 dependency
     summary="Delete a user by ID",
     status_code=204,
 )
@@ -124,7 +125,7 @@ async def delete_user(
 
 
 @router.post(
-    "/{user_id}/mfa/reset",  # noqa: FAST003 # user_id is bound by the get_user_or_404 dependency
+    "/{user_id}/mfa/reset",  # user_id is bound by the get_user_or_404 dependency
     summary="Reset a user's MFA enrollment",
     status_code=204,
 )

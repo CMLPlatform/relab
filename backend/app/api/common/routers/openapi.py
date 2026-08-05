@@ -28,7 +28,6 @@ __all__ = [
 ### Constants ###
 API_CONTRACT_VERSION = "1.0.0"
 API_MAJOR = "v1"
-ADMIN_TAG = "admin"
 DEVICE_ROUTE_SUFFIXES = ("/image-upload", "/preview-thumbnail-upload", "/self")
 
 
@@ -117,22 +116,16 @@ def _filter_openapi_routes(
     return [ctx for ctx in contexts if not isinstance(ctx.route, APIRoute) or include_route(ctx)]
 
 
-def _route_tags(route: APIRoute) -> set[str]:
-    tags = route.tags
-    if isinstance(tags, list):
-        return {tag for tag in tags if isinstance(tag, str)}
-    return set()
-
-
 def _is_public_route(ctx: RouteContext) -> bool:
     audiences = set(route_audiences(ctx.route))
     return RouteAudience.PUBLIC.value in audiences or RouteAudience.APP.value in audiences
 
 
 def _is_admin_route(ctx: RouteContext) -> bool:
-    audiences = set(route_audiences(ctx.route))
-    tags = _route_tags(ctx.route)
-    return RouteAudience.ADMIN.value in audiences or ADMIN_TAG in tags or ctx.path.startswith(f"/{API_MAJOR}/admin/")
+    # Explicit opt-in via AdminAPIRouter only. The former tag and path fallbacks
+    # published any route merely tagged "admin" or sitting under /admin/ into the
+    # admin schema, with no reviewer signal when a new one appeared.
+    return RouteAudience.ADMIN.value in set(route_audiences(ctx.route))
 
 
 def _is_device_route(ctx: RouteContext) -> bool:

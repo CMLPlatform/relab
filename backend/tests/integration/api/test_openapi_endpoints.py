@@ -3,10 +3,11 @@
 from typing import TYPE_CHECKING
 
 import pytest
-from fastapi import FastAPI, status
+from fastapi import APIRouter, FastAPI, status
 from httpx import ASGITransport, AsyncClient
 
-from app.api.common.routers.openapi import init_openapi_docs
+from app.api.common.audiences import AdminAPIRouter
+from app.api.common.routers.openapi import _build_admin_openapi, init_openapi_docs
 from app.core.config import settings
 from app.core.config.models import Environment
 from app.main import create_app
@@ -234,3 +235,32 @@ async def test_backend_does_not_host_openapi_html_docs(openapi_client: AsyncClie
     response = await openapi_client.get(path)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_admin_schema_ignores_the_admin_tag_and_path_prefix() -> None:
+    """A route reaches the admin schema by opting in, not by its tag or its path.
+
+    The audience used to fall back to the "admin" tag and the /v1/admin/ prefix, so a
+    route picked up the admin audience by naming alone. Only the marker that
+    ``AdminAPIRouter`` stamps on an operation counts.
+    """
+    app = FastAPI()
+    lookalike = APIRouter(prefix="/v1/admin", tags=["admin"])
+
+    @lookalike.get("/lookalike")
+    async def _lookalike() -> dict[str, str]:
+        return {}
+
+    admin = AdminAPIRouter(prefix="/v1/admin")
+
+    @admin.get("/genuine")
+    async def _genuine() -> dict[str, str]:
+        return {}
+
+    app.include_router(lookalike)
+    app.include_router(admin)
+
+    paths = _build_admin_openapi(app)["paths"]
+
+    assert "/v1/admin/genuine" in paths
+    assert "/v1/admin/lookalike" not in paths

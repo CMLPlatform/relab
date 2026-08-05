@@ -2,9 +2,10 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Path, Security
+from fastapi import Path, Security
 
 from app.api.auth.dependencies import current_active_superuser
+from app.api.common.audiences import AdminAPIRouter
 from app.api.reference_data.routers.admin_categories import router as category_router
 from app.api.reference_data.routers.admin_materials import router as material_router
 from app.api.reference_data.routers.admin_product_types import router as product_type_router
@@ -12,7 +13,7 @@ from app.api.reference_data.routers.admin_taxonomies import router as taxonomy_r
 from app.core.cache import clear_cache_namespace
 from app.core.config import CacheNamespace
 
-router = APIRouter(
+router = AdminAPIRouter(
     prefix="/admin",
     tags=["admin"],
     dependencies=[Security(current_active_superuser)],

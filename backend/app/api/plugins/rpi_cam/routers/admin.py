@@ -3,11 +3,12 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Path
+from fastapi import BackgroundTasks, Depends, Path
 from fastapi_pagination import Page
 from pydantic import UUID4
 
 from app.api.auth.dependencies import current_active_superuser
+from app.api.common.audiences import AdminAPIRouter
 from app.api.common.crud.query import page_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.dependencies import CameraByIDDep, CameraFilterWithOwnerDep
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 ### Camera admin router ###
 
 
-router = APIRouter(
+router = AdminAPIRouter(
     prefix="/admin/plugins/rpi-cam/cameras",
     tags=["admin"],
     dependencies=[Depends(current_active_superuser)],
