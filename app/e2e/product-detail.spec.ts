@@ -232,3 +232,55 @@ test.describe('Product detail: edit mode', () => {
     await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN);
   });
 });
+
+// ─── Adding a child component ──────────────────────────────────────────────────
+// Composing a product out of parts is the whole point of the data model, and no
+// spec drove it end to end: the add affordance, the child capture screen, the
+// parent-child link, and the parent's rendering of it were all only unit-tested
+// against mocks.
+
+const COMPONENT_DETAIL_URL_PATTERN = /components\/\d+/;
+// No ?edit=1: the product detail page after the save round-trip has completed.
+const SAVED_PRODUCT_URL_PATTERN = /\/products\/\d+$/;
+
+test.describe('Product detail: components', () => {
+  test('adding a component links it to the parent product', async ({ page }) => {
+    await loginAndReachProducts(page);
+    const componentName = `E2E Component ${Date.now()}`;
+    await saveNewProduct(page, `E2E Parent ${Date.now()}`);
+
+    // Wait for the save to drop ?edit=1 before touching the section. Clicking
+    // during the transition loses the navigation: saveAndExit does its own
+    // router.replace to view mode, which clobbers the push to the capture screen.
+    await expect(page).toHaveURL(SAVED_PRODUCT_URL_PATTERN, { timeout: 15_000 });
+
+    // Two controls carry this accessible name — the icon-only FAB and the row
+    // inside the Components section. hasText picks the labelled one.
+    const addComponent = page
+      .getByRole('button', { name: 'Add component' })
+      .filter({ hasText: 'Add component' });
+    await expect(addComponent).toBeVisible({ timeout: 15_000 });
+    await addComponent.click();
+
+    // The child capture screen is the same CaptureScreen as product creation,
+    // with entityRole="component" — hence "Create component" rather than
+    // "Create product".
+    await page.getByRole('textbox', { name: 'Name' }).fill(componentName);
+    await page.getByRole('button', { name: 'Create component' }).click();
+    await expect(page).toHaveURL(COMPONENT_DETAIL_URL_PATTERN, { timeout: 15_000 });
+
+    // Back to the parent: the component must now show up in its Components
+    // section. This is the assertion that proves the parent link persisted
+    // server-side rather than just the child record being created.
+    await page.getByRole('button', { name: BACK_CONTROL_NAME_PATTERN }).click();
+    await expect(page).toHaveURL(SAVED_PRODUCT_URL_PATTERN, { timeout: 15_000 });
+    // The row itself, not just the text: it is the pressable that navigates
+    // back down into the child, so its presence proves the parent actually
+    // holds the link rather than the name merely appearing somewhere.
+    // exact: the row sits beside a "Show components of <name>" expander, whose
+    // accessible name also contains the component's.
+    await expect(page.getByRole('button', { name: componentName, exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
+  });
+});
