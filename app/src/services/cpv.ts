@@ -11,6 +11,10 @@ type CPVMap = Record<string, CPVCategory>;
 // the factory once. `await import(...)` was tried first but Jest's CJS
 // runtime rejects real dynamic import without --experimental-vm-modules,
 // and wiring that flag/plugin needs changes outside this file's ownership.
+//
+// NOTE: web builds use cpv.web.ts instead (Metro's platform resolution),
+// which code-splits the dataset out of the main bundle via a real
+// `import()`. Native and Jest resolve this file.
 let cpvPromise: Promise<CPVMap> | null = null;
 
 export function loadCPV(): Promise<CPVMap> {
