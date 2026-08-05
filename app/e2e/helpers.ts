@@ -6,9 +6,14 @@ const PRODUCTS_URL_PATTERN = /products/;
 const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
 const PROFILE_URL_PATTERN = /account/;
 const NEW_PRODUCT_URL_PATTERN = /\/products\/new$/;
-const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
+// One specific seeded product rather than "either of two": the lookup searches
+// for it by name, which needs an exact term.
+const SEEDED_PRODUCT_NAME = 'Dell XPS 13';
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
-const VIEW_IMAGE_LABEL_PATTERN = /^View image \d+$/;
+// The gallery trigger is labelled `View ${altText}` (ProductImageGalleryContent),
+// where altText is the image's description or the product name — never the
+// literal "image N" this used to match, so the lightbox tests could not find it.
+const VIEW_IMAGE_LABEL_PATTERN = /^View .+/;
 // ProductsWelcomeCard's dismiss affordance: "Maybe later" for guests, "Got it"
 // once signed in. "Continue" covers the onboarding variant.
 const WELCOME_CARD_DISMISS_PATTERN = /^(Got it|Maybe later|Continue)$/;
@@ -203,16 +208,34 @@ export async function selectMenuItem(page: Page, anchor: Locator, label: string)
   );
 }
 
+/**
+ * Narrow the products list to one name before picking a row.
+ *
+ * Nothing clears the database between tests in a run — only teardown does
+ * (`down -v`) — so every test that creates a product leaves it behind. Reading a
+ * row straight off the rendered list therefore works until enough products
+ * accumulate to push the target off the first page, at which point unrelated
+ * tests start failing. Searching keeps the lookup independent of how much ran
+ * before it.
+ */
+async function searchProducts(page: Page, name: string) {
+  const search = page.getByPlaceholder('Search products');
+  await expect(search).toBeVisible({ timeout: 15_000 });
+  await search.fill(name);
+  // The query is debounced and refetched, so the row is the settle signal.
+  await expect(page.getByText(name, { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+}
+
 export async function openSeededProductFromProductsPage(page: Page) {
-  const seededProduct = page.getByText(SEEDED_PRODUCT_NAME_PATTERN).first();
-  await expect(seededProduct).toBeVisible({ timeout: 10_000 });
+  await searchProducts(page, SEEDED_PRODUCT_NAME);
+  const seededProduct = page.getByText(SEEDED_PRODUCT_NAME, { exact: true }).first();
   await seededProduct.click();
   await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN, { timeout: 10_000 });
 }
 
 export async function openProductByNameFromProductsPage(page: Page, name: string) {
+  await searchProducts(page, name);
   const product = page.getByText(name, { exact: true }).first();
-  await expect(product).toBeVisible({ timeout: 15_000 });
   await product.click();
   await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
   // Wait for the product detail page to fully load
@@ -222,7 +245,7 @@ export async function openProductByNameFromProductsPage(page: Page, name: string
 }
 
 export async function openGalleryLightbox(page: Page) {
-  const productImageTrigger = page.getByLabel(VIEW_IMAGE_LABEL_PATTERN).first();
+  const productImageTrigger = page.getByRole('button', { name: VIEW_IMAGE_LABEL_PATTERN }).first();
   await expect(productImageTrigger).toBeVisible({ timeout: 10_000 });
   await productImageTrigger.click({ force: true });
   await expect(page.getByLabel('Close lightbox')).toBeVisible({

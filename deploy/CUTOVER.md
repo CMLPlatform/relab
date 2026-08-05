@@ -137,6 +137,61 @@ observation, and anything could change in between.
 `$PGSUPERUSER` throughout this document is whatever that `\du` reports — on
 `main` it came from `backend/.env.prod`, so it is **not** necessarily `postgres`.
 
+## 0a. Rehearse, and confirm the release gates — before the window
+
+Three checks that are easy to skip because none of them touch the prod host, and
+all three are cheaper to fix now than mid-outage.
+
+### Rehearse the whole thing on staging
+
+The running staging stack was deployed from an older, structurally different
+compose file, so it has **never exercised this release's deploy path** — not the
+secret-file layout, not the least-privilege roles, not restic. Staging shares
+`compose.deploy.yaml` with prod, driven by the host's root `.env`, so a full
+`staging-*` pass is a genuine rehearsal of steps 4 through 10:
+
+```bash
+just staging-build
+just staging-up YES backups scanning
+just staging-migrate YES
+just backup-restore-smoke staging
+```
+
+Every step below that surprises you on staging would have surprised you on prod.
+Do this even if staging's data is uninteresting — what is being rehearsed is the
+*procedure*, not the data.
+
+### Confirm the CI gate actually blocks merges
+
+`just ci` runs in `.github/workflows/validate.yml`, whose terminal job is
+`validate-result`. Branch protection is **not** stored in the repository, so
+whether that job is a required check cannot be verified from the code:
+
+```bash
+gh api repos/:owner/:repo/branches/main/protection \
+  --jq '.required_status_checks.contexts'
+```
+
+`validate-result` must appear. If the call 404s, there is no protection at all
+and every gate in this release is advisory. Record the answer as launch
+evidence.
+
+### Read what release-please proposes
+
+`CHANGELOG.md` is frozen at `v0.2.0` (2026-04) while `release-please` owns
+versioning from conventional commits on push to `main`. With
+`bump-minor-pre-major: true` and several months of commits, the proposed bump is
+worth reading rather than trusting after the fact — it also rewrites version
+strings into nine `extra-files`, including `CITATION.cff`, `app/app.json`, and
+every `package.json`:
+
+```bash
+gh pr list --label 'autorelease: pending' --state open
+```
+
+Confirm the version and changelog match this release's actual scope **before**
+merging that PR.
+
 ## 0b. Abort rule
 
 Do not remove the old volume, the old backup directory, or `backend/.env.prod`

@@ -18,6 +18,14 @@ export default function ProductComponents({ product, editMode }: Props) {
   const label = entityLabel(product);
   const toggleExpanded = useCallback(() => setExpanded((current) => !current), []);
 
+  // NOTE: this push is occasionally swallowed right after a save, leaving the
+  // button visibly dead — reproduced ~2 in 8 under 4-way parallel E2E load
+  // (app/e2e/product-detail.spec.ts). Not the guard below: `Product ID: N` is
+  // rendered from this same object at the time of the lost click, so `id` is a
+  // number. It recovers on a second press every time, which points at the
+  // `router.setParams({ edit: undefined })` that EntityDetailPage fires on save
+  // landing after this push. Fixing it means reworking how edit mode leaves the
+  // URL; left alone for now because the user-visible cost is one extra click.
   const newComponent = () => {
     if (typeof product.id !== 'number') return;
     router.push({

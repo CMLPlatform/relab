@@ -31,7 +31,10 @@ test.setTimeout(120_000);
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const SAVED_PRODUCT_URL_PATTERN = /\/products\/\d+$/;
 const COMPONENT_DETAIL_URL_PATTERN = /components\/\d+/;
+const NEW_COMPONENT_URL_PATTERN = /\/products\/\d+\/components\/new$/;
 const BACK_CONTROL_NAME_PATTERN = /back/i;
+const URL_QUERY_STRING_PATTERN = /\?.*$/;
+const PRODUCT_IMAGE_UPLOAD_PATH_PATTERN = /\/v1\/products\/\d+\/images$/;
 
 test('an ordinary member can create, populate and publish a product', async ({ page, browser }) => {
   const stamp = Date.now();
@@ -45,7 +48,7 @@ test('an ordinary member can create, populate and publish a product', async ({ p
   await page.getByRole('textbox', { name: 'Name' }).fill(productName);
   await page.getByRole('button', { name: 'Create product' }).click();
   await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
-  const productUrl = page.url().replace(/\?.*$/, '');
+  const productUrl = page.url().replace(URL_QUERY_STRING_PATTERN, '');
 
   // ── Populate: a required dimension and a real image ──────────────────────
   await page.getByRole('button', { name: 'Add physical properties' }).click();
@@ -72,7 +75,7 @@ test('an ordinary member can create, populate and publish a product', async ({ p
   // Picking stages the file; Save is what uploads it.
   const [upload] = await Promise.all([
     page.waitForResponse(
-      (r) => r.request().method() === 'POST' && /\/v1\/products\/\d+\/images$/.test(r.url()),
+      (r) => r.request().method() === 'POST' && PRODUCT_IMAGE_UPLOAD_PATH_PATTERN.test(r.url()),
       { timeout: 30_000 },
     ),
     page.getByRole('button', { name: 'Save Product' }).click(),
@@ -82,6 +85,11 @@ test('an ordinary member can create, populate and publish a product', async ({ p
   // ── Compose: a child component ──────────────────────────────────────────
   await expect(page).toHaveURL(SAVED_PRODUCT_URL_PATTERN, { timeout: 15_000 });
   await page.getByRole('button', { name: 'Add component' }).click();
+  // Wait for the capture screen rather than assuming it. The press is
+  // occasionally swallowed at the navigation layer under parallel load — see
+  // product-detail.spec.ts — and without this the failure surfaces much later
+  // against a button that only exists on the screen we never reached.
+  await expect(page).toHaveURL(NEW_COMPONENT_URL_PATTERN, { timeout: 15_000 });
   await page.getByRole('textbox', { name: 'Name' }).fill(componentName);
   await page.getByRole('button', { name: 'Create component' }).click();
   await expect(page).toHaveURL(COMPONENT_DETAIL_URL_PATTERN, { timeout: 15_000 });

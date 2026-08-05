@@ -25,6 +25,8 @@ const PRODUCTS_LIST_URL_PATTERN = /\/products$|\/products\?/;
 // The header back affordance is a Pressable (accessibilityRole="button", label "Go back"),
 // not a link — see HeaderBackButton.
 const BACK_CONTROL_NAME_PATTERN = /back/i;
+const PRODUCT_ID_TEXT_PATTERN = /Product ID: \d+/;
+const PRODUCT_IMAGE_UPLOAD_PATH_PATTERN = /\/v1\/products\/\d+\/images$/;
 // Empty optional sections collapse to a single "Add …" row in edit mode
 // (Section.tsx showAddRow); pressing it reveals the real fields.
 const ADD_DESCRIPTION_LABEL = 'Add a description';
@@ -203,7 +205,7 @@ test.describe('Product detail: edit mode', () => {
     // renders in full rather than collapsing to an "Add …" row. Its always-
     // present "Product ID: N" line proves it rendered (the section no longer
     // carries a redundant inner "Metadata" header — the Section title labels it).
-    await expect(page.getByText(/Product ID: \d+/)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(PRODUCT_ID_TEXT_PATTERN)).toBeVisible({ timeout: 5_000 });
   });
 
   test('unsaved-changes guard blocks navigation mid-edit', async ({ page }) => {
@@ -240,6 +242,7 @@ test.describe('Product detail: edit mode', () => {
 // against mocks.
 
 const COMPONENT_DETAIL_URL_PATTERN = /components\/\d+/;
+const NEW_COMPONENT_URL_PATTERN = /\/products\/\d+\/components\/new$/;
 // No ?edit=1: the product detail page after the save round-trip has completed.
 const SAVED_PRODUCT_URL_PATTERN = /\/products\/\d+$/;
 
@@ -256,6 +259,11 @@ test.describe('Product detail: components', () => {
     const addComponent = page.getByRole('button', { name: 'Add component' });
     await expect(addComponent).toBeVisible({ timeout: 15_000 });
     await addComponent.click();
+
+    // Wait for the capture screen before touching it. Without this a lost
+    // navigation surfaces 60s later as "Create component not found", pointing at
+    // the wrong step entirely — the parent page has no such button.
+    await expect(page).toHaveURL(NEW_COMPONENT_URL_PATTERN, { timeout: 15_000 });
 
     // The child capture screen is the same CaptureScreen as product creation,
     // with entityRole="component" — hence "Create component" rather than
@@ -315,7 +323,7 @@ test.describe('Product detail: image upload', () => {
     // Picking only stages the file client-side; Save is what uploads it.
     const [upload] = await Promise.all([
       page.waitForResponse(
-        (r) => r.request().method() === 'POST' && /\/v1\/products\/\d+\/images$/.test(r.url()),
+        (r) => r.request().method() === 'POST' && PRODUCT_IMAGE_UPLOAD_PATH_PATTERN.test(r.url()),
         { timeout: 30_000 },
       ),
       page.getByRole('button', { name: 'Save Product' }).click(),
