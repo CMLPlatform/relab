@@ -1767,13 +1767,16 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
+    get?: never;
+    put?: never;
     /**
      * Validate Email
      * @description Validate email address for registration.
+     *
+     *     Takes the email in a POST body (not a query param) so it doesn't land in
+     *     proxy/uvicorn access logs, matching the pairing endpoints' approach.
      */
-    get: operations['validate_email_v1_auth_validate_email_get'];
-    put?: never;
-    post?: never;
+    post: operations['validate_email_v1_auth_validate_email_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2136,7 +2139,7 @@ export interface paths {
     post?: never;
     /**
      * Delete a user by ID
-     * @description Delete a user by ID.
+     * @description Delete a user by ID, anonymizing or deleting the content they own.
      */
     delete: operations['delete_user_v1_admin_users__user_id__delete'];
     options?: never;
@@ -2460,6 +2463,31 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/v1/plugins/rpi-cam/pairing/claim': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Claim a pairing code and create a camera (called by user)
+     * @description Claim a pairing code and create a WebSocket-relayed camera.
+     *
+     *     The pending record is consumed atomically (GETDEL) so two concurrent claims
+     *     of the same code cannot both succeed: only the winner observes the pending
+     *     record and goes on to create the camera. The loser sees a missing key and
+     *     gets the same invalid-code error as an unknown code.
+     */
+    post: operations['claim_pairing_code_v1_plugins_rpi_cam_pairing_claim_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/v1/plugins/rpi-cam/pairing/register': {
     parameters: {
       query?: never;
@@ -2474,26 +2502,6 @@ export interface paths {
      * @description Register a short-lived pairing code and the camera's public device key.
      */
     post: operations['register_pairing_code_v1_plugins_rpi_cam_pairing_register_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/v1/plugins/rpi-cam/pairing/claim': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Claim a pairing code and create a camera (called by user)
-     * @description Claim a pairing code and create a WebSocket-relayed camera.
-     */
-    post: operations['claim_pairing_code_v1_plugins_rpi_cam_pairing_claim_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -3688,6 +3696,19 @@ export interface components {
       /** Kid */
       kid?: string | null;
     };
+    /**
+     * EmailValidationRequest
+     * @description Body for the pre-registration email validation check.
+     */
+    EmailValidationRequest: {
+      /**
+       * Email
+       * Format: email
+       */
+      email: string;
+    };
+    /** @enum {string} */
+    ErasureContent: 'anonymize' | 'delete';
     /** ErrorModel */
     ErrorModel: {
       /** Detail */
@@ -6758,15 +6779,12 @@ export interface operations {
           | '+name'
           | '+density_kg_m3'
           | '+source'
-          | '+category_name'
           | 'name'
           | 'density_kg_m3'
           | 'source'
-          | 'category_name'
           | '-name'
           | '-density_kg_m3'
           | '-source'
-          | '-category_name'
         )[];
       };
       header?: never;
@@ -6981,14 +6999,7 @@ export interface operations {
         'category_description[ilike]'?: string | null;
         category_external_id?: string | null;
         'category_external_id[ilike]'?: string | null;
-        order_by?: (
-          | '+name'
-          | '+category_name'
-          | 'name'
-          | 'category_name'
-          | '-name'
-          | '-category_name'
-        )[];
+        order_by?: ('+name' | 'name' | '-name')[];
       };
       header?: never;
       path?: never;
@@ -9816,16 +9827,18 @@ export interface operations {
       };
     };
   };
-  validate_email_v1_auth_validate_email_get: {
+  validate_email_v1_auth_validate_email_post: {
     parameters: {
-      query: {
-        email: string;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EmailValidationRequest'];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
@@ -10486,7 +10499,10 @@ export interface operations {
   };
   delete_user_v1_admin_users__user_id__delete: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description What to do with the research data this user contributed: `anonymize` reassigns their products to the anonymous system account, `delete` removes the products and their media. Personal data is erased either way. */
+        content?: components['schemas']['ErasureContent'];
+      };
       header?: never;
       path: {
         /** @description The user's ID */
@@ -11182,39 +11198,6 @@ export interface operations {
       };
     };
   };
-  register_pairing_code_v1_plugins_rpi_cam_pairing_register_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PairingRegisterRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['PairingRegisterResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
   claim_pairing_code_v1_plugins_rpi_cam_pairing_claim_post: {
     parameters: {
       query?: never;
@@ -11235,6 +11218,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['CameraRead'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  register_pairing_code_v1_plugins_rpi_cam_pairing_register_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PairingRegisterRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PairingRegisterResponse'];
         };
       };
       /** @description Validation Error */

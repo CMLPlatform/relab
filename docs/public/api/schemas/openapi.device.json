@@ -43,81 +43,6 @@
         "title": "Body_receive_preview_thumbnail_upload_v1_plugins_rpi_cam_device_cameras__camera_id__preview_thumbnail_upload_post",
         "type": "object"
       },
-      "CameraCredentialStatus": {
-        "description": "Status of the camera's relay device credential.",
-        "enum": [
-          "active",
-          "revoked"
-        ],
-        "title": "CameraCredentialStatus",
-        "type": "string"
-      },
-      "CameraRead": {
-        "description": "Basic Camera Read schema.",
-        "examples": [
-          {
-            "created_at": "2026-04-28T10:00:00Z",
-            "description": "Ceiling-mounted camera above the teardown bench",
-            "id": "12345678-cc4e-405c-8553-7806424de2a1",
-            "name": "Workbench Camera",
-            "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
-            "relay_credential_status": "active",
-            "relay_key_id": "cam-key-1",
-            "updated_at": "2026-04-28T10:00:00Z"
-          }
-        ],
-        "properties": {
-          "created_at": {
-            "title": "Created At",
-            "type": "string"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "id": {
-            "format": "uuid4",
-            "title": "Id",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "owner_id": {
-            "format": "uuid4",
-            "title": "Owner Id",
-            "type": "string"
-          },
-          "relay_credential_status": {
-            "$ref": "#/components/schemas/CameraCredentialStatus"
-          },
-          "relay_key_id": {
-            "title": "Relay Key Id",
-            "type": "string"
-          },
-          "updated_at": {
-            "title": "Updated At",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "id",
-          "owner_id",
-          "relay_key_id",
-          "relay_credential_status"
-        ],
-        "title": "CameraRead",
-        "type": "object"
-      },
       "DeviceImageUploadAck": {
         "description": "Backend -> Pi acknowledgement of a direct image upload.",
         "properties": {
@@ -232,44 +157,6 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
-      "PairingClaimRequest": {
-        "description": "User -> backend: claim a pairing code and create a camera.",
-        "properties": {
-          "camera_name": {
-            "description": "Name for the new camera.",
-            "maxLength": 100,
-            "minLength": 2,
-            "title": "Camera Name",
-            "type": "string"
-          },
-          "code": {
-            "description": "Pairing code displayed on the RPi's setup page.",
-            "maxLength": 6,
-            "minLength": 6,
-            "pattern": "^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$",
-            "title": "Code",
-            "type": "string"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "maxLength": 500,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          }
-        },
-        "required": [
-          "code",
-          "camera_name"
-        ],
-        "title": "PairingClaimRequest",
-        "type": "object"
-      },
       "PairingPollRequest": {
         "description": "Pi -> backend: poll pairing status.\n\nSent as a POST body (not query params) so the pairing code and device\nfingerprint never land in reverse-proxy or uvicorn access logs.",
         "properties": {
@@ -285,6 +172,7 @@
             "description": "Random device fingerprint nonce chosen at registration.",
             "maxLength": 64,
             "minLength": 8,
+            "pattern": "^[A-Za-z0-9._~-]{8,64}$",
             "title": "Fingerprint",
             "type": "string"
           }
@@ -479,22 +367,6 @@
         "title": "ValidationError",
         "type": "object"
       }
-    },
-    "securitySchemes": {
-      "APIKeyCookie": {
-        "in": "cookie",
-        "name": "__Host-relab-auth",
-        "type": "apiKey"
-      },
-      "OAuth2PasswordBearer": {
-        "flows": {
-          "password": {
-            "scopes": {},
-            "tokenUrl": "/v1/auth/bearer/login"
-          }
-        },
-        "type": "oauth2"
-      }
     }
   },
   "info": {
@@ -668,60 +540,6 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/pairing/claim": {
-      "post": {
-        "description": "Claim a pairing code and create a WebSocket-relayed camera.",
-        "operationId": "claim_pairing_code_v1_plugins_rpi_cam_pairing_claim_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PairingClaimRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CameraRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          },
-          {
-            "APIKeyCookie": []
-          }
-        ],
-        "summary": "Claim a pairing code and create a camera (called by user)",
-        "tags": [
-          "RPi Camera Pairing"
-        ],
-        "x-audience": [
-          "public",
-          "app"
-        ]
-      }
-    },
     "/v1/plugins/rpi-cam/pairing/poll": {
       "post": {
         "description": "Poll for pairing completion. Returns non-secret relay metadata once claimed.\n\nTakes the code and fingerprint in a POST body (not query params) so the\nclaim credential never reaches proxy/uvicorn access logs.",
@@ -763,8 +581,7 @@
           "RPi Camera Pairing"
         ],
         "x-audience": [
-          "public",
-          "app"
+          "device"
         ]
       }
     },
@@ -809,8 +626,7 @@
           "RPi Camera Pairing"
         ],
         "x-audience": [
-          "public",
-          "app"
+          "device"
         ]
       }
     }
