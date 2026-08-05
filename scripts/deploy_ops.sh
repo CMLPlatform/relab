@@ -34,6 +34,25 @@ compose_env_file() {
     esac
 }
 
+# Docker Compose gives exported shell variables precedence over every --env-file,
+# so a stray `export ENVIRONMENT=staging` would run staging images under the prod
+# project name. Scrub the names the env files own before invoking compose. Keep in
+# sync with COMMITTED_DEPLOY_ENV_NAMES + REQUIRED_ROOT_OPERATOR_INPUT_NAMES in
+# scripts/env_policy.py.
+COMPOSE_SCRUBBED_ENV_NAMES=(
+    ENVIRONMENT
+    API_PUBLIC_URL
+    APP_PUBLIC_URL
+    SITE_PUBLIC_URL
+    DOCS_PUBLIC_URL
+    FEATURED_PRODUCT_ID
+    CLOUDFLARE_TUNNEL_TOKEN
+    EMAIL_PROVIDER
+    EMAIL_FROM
+    EMAIL_REPLY_TO
+    BOOTSTRAP_SUPERUSER_EMAIL
+)
+
 compose_args() {
     local env="$1"
     local root_env_file="${2:-.env}"
@@ -41,7 +60,13 @@ compose_args() {
 
     compose_env="$(compose_env_file "$env")"
 
-    printf '%s\n' docker compose -p "relab_$env" --env-file "$root_env_file" --env-file "$compose_env" -f compose.yaml -f compose.deploy.yaml
+    local -a unset_flags=()
+    local name
+    for name in "${COMPOSE_SCRUBBED_ENV_NAMES[@]}"; do
+        unset_flags+=(-u "$name")
+    done
+
+    printf '%s\n' env "${unset_flags[@]}" docker compose -p "relab_$env" --env-file "$root_env_file" --env-file "$compose_env" -f compose.yaml -f compose.deploy.yaml
     loki_overlay_args "$root_env_file"
     host_overlay_args
 }
@@ -119,7 +144,33 @@ validate_deploy_secret_paths() {
         dev="$tmp_root/dev.json" \
         prod="$tmp_root/prod.json" \
         staging="$tmp_root/staging.json"
+    assert_secret_file_modes prod "$tmp_root/prod.json"
+    assert_secret_file_modes staging "$tmp_root/staging.json"
     echo "✅ Deploy secret file paths match Compose"
+}
+
+# Prod/staging secrets must stay owner-only. Dev is deliberately 644 (see
+# deploy_secrets_template) because dev containers read them as a non-owner uid.
+# Only the names Compose actually mounts are checked, so operator notes kept
+# beside them are left alone.
+assert_secret_file_modes() {
+    local env="$1"
+    local config_json="$2"
+    local name path mode failed=false
+
+    while IFS= read -r name; do
+        [[ -n "$name" ]] || continue
+        path="secrets/$env/$name"
+        [[ -f "$path" ]] || continue
+        mode="$(stat -c '%a' "$path")"
+        if [[ "$mode" != "600" ]]; then
+            echo "error: $path has mode $mode, expected 600" >&2
+            echo "Fix with: chmod 600 $path" >&2
+            failed=true
+        fi
+    done < <(uv run python scripts/env_policy.py secrets-list "$config_json")
+
+    [[ "$failed" == "false" ]] || exit 2
 }
 
 deploy_secret_template_value() {
@@ -172,12 +223,17 @@ deploy_secrets_template() {
 
     mkdir -p "secrets/$env"
     umask 077
-    local name path
+    local name path tmp_secret
     while IFS= read -r name; do
         [[ -n "$name" ]] || continue
         path="secrets/$env/$name"
-        if [[ ! -f "$path" ]]; then
-            deploy_secret_template_value "$env" "$name" >"$path"
+        # NOTE: generate into a sibling temp file and rename, so an interrupted run
+        # never leaves a 0-byte secret that later runs would keep. Empty files from
+        # older runs count as absent.
+        if [[ ! -s "$path" ]]; then
+            tmp_secret="$(mktemp "$path.XXXXXX")"
+            deploy_secret_template_value "$env" "$name" >"$tmp_secret"
+            mv "$tmp_secret" "$path"
             echo "created $path"
         else
             echo "kept $path"
@@ -251,16 +307,39 @@ stack_command() {
     local action="$2"
     shift 2
 
+    # compose_env_file's exit 2 fires inside a process substitution, where it only
+    # prints and lets the caller continue, so validate the env up front instead.
+    case "$env" in
+        prod | staging) ;;
+        *)
+            echo "error: env must be 'prod' or 'staging', got '$env'" >&2
+            exit 2
+            ;;
+    esac
+
     case "$action" in
         up)
             parse_profiles "$env" "migrations backups scanning" "$@"
+            # Backups are part of a healthy stack, so `up` defaults to them the way
+            # `build` does; explicit profiles still win.
+            if [[ "${#DEPLOY_PROFILE_FLAGS[@]}" -eq 0 ]]; then
+                DEPLOY_PROFILE_FLAGS=(--profile backups)
+            fi
+            # NOTE: MALWARE_SCAN_ENABLED=true with no clamav container fails all uploads closed.
+            local scan_enabled
+            scan_enabled="$(grep -E '^MALWARE_SCAN_ENABLED=' .env 2>/dev/null | tail -n1 | cut -d= -f2- || true)"
+            if [[ "${scan_enabled:-true}" != "false" && " ${DEPLOY_PROFILE_FLAGS[*]} " != *" scanning "* ]]; then
+                echo "error: MALWARE_SCAN_ENABLED is not 'false' but the 'scanning' profile is off." >&2
+                echo "Pass the 'scanning' profile or set MALWARE_SCAN_ENABLED=false in .env." >&2
+                exit 2
+            fi
             require_confirmation "start the $env stack" "just $env-up YES [profiles...]" "FORCE=1 just $env-up [profiles...]"
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" up -d
             ;;
         down)
             parse_profiles "$env" "migrations backups scanning" "$@"
             require_confirmation "stop the $env stack" "just $env-down YES [profiles...]" "FORCE=1 just $env-down [profiles...]"
-            run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" down
+            run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" down --remove-orphans
             ;;
         build)
             parse_profiles "$env" "migrations backups scanning" "$@"
@@ -272,6 +351,18 @@ stack_command() {
                 no_cache=(--no-cache)
             fi
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" build "${no_cache[@]}"
+            # Every build overwrites the single :$env-local tag, so also tag the result
+            # with the current commit. Rollback is then a `docker tag` away instead of a
+            # full rebuild (see deploy/CUTOVER.md §12).
+            local sha image
+            sha="$(git rev-parse --short HEAD 2>/dev/null || true)"
+            if [[ -n "$sha" ]]; then
+                while IFS= read -r image; do
+                    [[ "$image" == relab-*:"$env-local" ]] || continue
+                    docker tag "$image" "${image%-local}-$sha"
+                done < <(run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" config --images | sort -u)
+                echo "tagged built images with $env-$sha"
+            fi
             ;;
         logs)
             run_deploy_compose "$env" logs -f
@@ -282,7 +373,9 @@ stack_command() {
                 DEPLOY_CONFIRMED=true
             fi
             require_confirmation "run $env database migrations" "just $env-migrate YES" "FORCE=1 just $env-migrate"
-            run_deploy_compose "$env" --profile migrations up migrator
+            # `up migrator` exits 0 even when the migration fails; `run --rm` propagates
+            # the migrator's exit code.
+            run_deploy_compose "$env" --profile migrations run --rm migrator
             ;;
         *)
             echo "Unknown stack action '$action'" >&2

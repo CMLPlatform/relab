@@ -354,7 +354,7 @@ _dev-reset confirm='':
 # Docker: Production
 # ============================================================================
 
-# Start production stack (optional profiles: backups, migrations)
+# Start production stack (defaults to the backups profile; optional: backups, migrations, scanning)
 prod-up *PROFILES:
     @bash scripts/deploy_ops.sh stack prod up {{ PROFILES }}
 
@@ -378,7 +378,7 @@ prod-migrate confirm='':
 # Docker: Staging
 # ============================================================================
 
-# Start staging stack (optional profiles: backups, migrations)
+# Start staging stack (defaults to the backups profile; optional: backups, migrations, scanning)
 staging-up *PROFILES:
     @bash scripts/deploy_ops.sh stack staging up {{ PROFILES }}
 
@@ -543,4 +543,4 @@ clean:
 # Print a static-output size budget for a built directory (e.g. docs/dist, www/dist)
 size DIR:
     du -sh {{ quote(DIR) }}
-    find {{ quote(DIR) }} -type f | sort | xargs du -h
+    find {{ quote(DIR) }} -type f -print0 | sort -z | xargs -0 du -h

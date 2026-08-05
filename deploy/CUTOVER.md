@@ -496,9 +496,8 @@ ______________________________________________________________________
 
 Five services were renamed (`docs-site`→`docs`, `app-site`→`app`,
 `web-site`→`www`, and `uploads-backup`+`postgres-backup`→`backup`). The new
-compose files do not know the old names, and `just prod-down` does not pass
-`--remove-orphans`, so bringing the stack down *after* switching branches leaves
-the old containers running and still serving traffic.
+compose files do not know the old names, so stopping the stack from the old
+checkout is still the clean path.
 
 **Stop first, then switch:**
 
@@ -513,12 +512,9 @@ Only then:
 git checkout <release-branch> && git pull --ff-only
 ```
 
-If you switched too early, remove the orphans by name:
-
-```bash
-docker rm -f relab_prod-docs-site-1 relab_prod-app-site-1 relab_prod-web-site-1 \
-             relab_prod-uploads-backup-1 relab_prod-postgres-backup-1
-```
+If you switched too early, `just prod-down YES` now passes `--remove-orphans`
+and clears the renamed containers for you; verify with
+`docker ps -a | grep relab_prod`.
 
 ______________________________________________________________________
 
@@ -689,6 +685,15 @@ If verification fails and the release cannot be trusted:
 1. Restore uploads from `user_uploads-pre-mvp.tar.gz` if anything wrote to them.
 
 1. `just prod-up YES` on `main`.
+
+`just prod-build` also tags each image it builds with the commit it was built
+from (`relab-backend:prod-<sha>` alongside `relab-backend:prod-local`), so
+rolling back to the previous build needs no rebuild — per image:
+
+```bash
+docker tag relab-backend:prod-<oldsha> relab-backend:prod-local
+just prod-up YES
+```
 
 The schema has no scripted down-migration path for the dropped data: the
 `downgrade()` functions restore column *shape* but not content. The dump from
