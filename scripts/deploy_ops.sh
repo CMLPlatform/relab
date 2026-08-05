@@ -222,7 +222,9 @@ deploy_secrets_template() {
     esac
 
     tmp_root="$(mktemp -d)"
-    local tmp_secret=""
+    # Global, like tmp_root: bash pops the function frame before the EXIT trap runs,
+    # so a `local` here would be invisible to cleanup.
+    tmp_secret=""
     cleanup() {
         rm -rf "$tmp_root"
         # A generator that fails mid-write leaves a partial 0600 secret next to the real
