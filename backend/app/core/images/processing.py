@@ -7,7 +7,7 @@ from PIL import Image as PILImage
 from PIL import ImageOps
 
 from .constants import FORMAT_JPEG, FORMAT_WEBP
-from .exif import get_exif_orientation
+from .exif import get_exif_orientation, strip_sensitive_exif
 from .validation import validate_image_dimensions
 
 if TYPE_CHECKING:
@@ -38,6 +38,9 @@ def process_image_for_storage(image_path: PathLike[str]) -> None:
             except AttributeError, ValueError, OSError, TypeError:
                 processed = img
             processed = processed.copy()
+            # Explicit strip, not just reliance on omitting `exif=` from save_kwargs below —
+            # that omission is incidental to the current save path, not a documented guarantee.
+            strip_sensitive_exif(processed)
             is_multiframe = getattr(img, "n_frames", 1) > 1
         else:
             processed = None

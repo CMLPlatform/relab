@@ -132,6 +132,48 @@ def test_staging_rejects_cors_regex() -> None:
         )
 
 
+def test_staging_rejects_unanchored_cors_regex() -> None:
+    """A non-default but unanchored CORS regex must still be rejected in staging/production."""
+    with pytest.raises(ValidationError, match="CORS_ORIGIN_REGEX must be anchored"):
+        CoreSettings(
+            **_production_core_settings_kwargs(
+                environment=Environment.STAGING,
+                api_public_url=HttpUrl("https://api-test.cml-relab.org"),
+                site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
+                app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
+                cors_origin_regex=r".*",
+            )
+        )
+
+
+def test_staging_rejects_partially_anchored_cors_regex() -> None:
+    """A regex anchored on only one side must still be rejected."""
+    with pytest.raises(ValidationError, match="CORS_ORIGIN_REGEX must be anchored"):
+        CoreSettings(
+            **_production_core_settings_kwargs(
+                environment=Environment.STAGING,
+                api_public_url=HttpUrl("https://api-test.cml-relab.org"),
+                site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
+                app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
+                cors_origin_regex=r"^https://.*\.cml-relab\.org",
+            )
+        )
+
+
+def test_staging_accepts_anchored_cors_regex() -> None:
+    """A fully anchored, non-default CORS regex is accepted in staging/production."""
+    settings = CoreSettings(
+        **_production_core_settings_kwargs(
+            environment=Environment.STAGING,
+            api_public_url=HttpUrl("https://api-test.cml-relab.org"),
+            site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
+            app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
+            cors_origin_regex=r"^https://.*\.cml-relab\.org$",
+        )
+    )
+    assert settings.cors_origin_regex == r"^https://.*\.cml-relab\.org$"
+
+
 def test_production_requires_non_default_secrets() -> None:
     """Production config should fail fast when required secrets are missing."""
     with pytest.raises(ValidationError, match="Production security check failed"):

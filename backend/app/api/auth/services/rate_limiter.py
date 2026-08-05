@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from limits import parse
 from limits.storage import storage_from_string
 from limits.strategies import STRATEGIES
+from redis.exceptions import RedisError
 
 from app.api.auth.config import settings as auth_settings
 from app.api.common.audit import AuditAction, AuditContext, audit_event
@@ -74,12 +75,24 @@ class Limiter:
             self._limiter = None
 
     def hit_key(self, rate_string: str, key: str) -> None:
-        """Enforce *rate_string* for an explicit bucket key."""
+        """Enforce *rate_string* for an explicit bucket key.
+
+        Fails open on a Redis backend outage: an unreachable rate limiter must not
+        turn into a hard outage for login/register/pairing. The narrower risk (a
+        few extra attempts during a Redis blip) is preferable to locking every
+        user out of auth-adjacent endpoints.
+        """
         if not self.enabled or self._limiter is None:
             return
 
         parsed = parse(rate_string)
-        if not self._limiter.hit(parsed, key):
+        try:
+            allowed = self._limiter.hit(parsed, key)
+        except RedisError, ConnectionError, TimeoutError, OSError:
+            logger.warning("Rate limiter backend unavailable; failing open for bucket %s", key)
+            return
+
+        if not allowed:
             # Safe to log: every caller builds keys via rate_limit_bucket_key, so
             # sensitive dimensions arrive as `prefix:<hmac-digest>`, never raw.
             logger.info("Rate limit exceeded for bucket %s", key)  # codeql[py/clear-text-logging-sensitive-data]

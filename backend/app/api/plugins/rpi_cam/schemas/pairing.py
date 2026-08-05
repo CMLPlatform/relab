@@ -25,5 +25,8 @@ class PairingPollRequest(BaseModel):
     fingerprint: str = Field(
         min_length=8,
         max_length=64,
+        # ASCII-safe: a non-ASCII fingerprint would otherwise reach
+        # hmac.compare_digest and raise TypeError -> unauthenticated 500.
+        pattern=r"^[A-Za-z0-9._~-]{8,64}$",
         description="Random device fingerprint nonce chosen at registration.",
     )

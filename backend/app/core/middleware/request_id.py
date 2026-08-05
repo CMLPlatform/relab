@@ -1,6 +1,7 @@
 """Request ID middleware and request-scoped logging helpers."""
 
 import logging
+import re
 from time import perf_counter
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -16,7 +17,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_MAX_REQUEST_ID_LENGTH = 255
+# A client-supplied request ID is logged on every line for the request and echoed back
+# verbatim in the response header. Restrict it to the same safe charset our own
+# generated IDs use, rather than merely stripping CR/LF: an unrestricted value could
+# still smuggle other log-formatting or header-injection-adjacent characters through.
+_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 
 
 def _normalize_request_id(header_value: str | None) -> str:
@@ -25,10 +30,10 @@ def _normalize_request_id(header_value: str | None) -> str:
         return str(uuid4())
 
     normalized_value = header_value.strip()
-    if not normalized_value:
+    if not _REQUEST_ID_PATTERN.fullmatch(normalized_value):
         return str(uuid4())
 
-    return normalized_value[:_MAX_REQUEST_ID_LENGTH]
+    return normalized_value
 
 
 def register_request_id_middleware(app: FastAPI) -> None:

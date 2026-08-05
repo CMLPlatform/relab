@@ -50,6 +50,38 @@ async def test_request_id_middleware_generates_response_header(caplog: pytest.Lo
     assert latency_ms >= 0
 
 
+async def test_request_id_middleware_rejects_unsafe_incoming_header(caplog: pytest.LogCaptureFixture) -> None:
+    """A header value outside the safe charset must not be echoed or logged verbatim."""
+    app = _create_test_app()
+    malicious = "abc\r\ninjected: header"
+
+    with caplog.at_level("INFO", logger="app.core.middleware.request_id"):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/ping", headers={REQUEST_ID_HEADER: malicious})
+
+    assert response.status_code == 200
+    returned_id = response.headers[REQUEST_ID_HEADER]
+    assert returned_id != malicious
+    assert "\r" not in returned_id
+    assert "\n" not in returned_id
+    record = next(record for record in caplog.records if record.message == "HTTP request completed")
+    assert _record_value(record, "request_id") == returned_id
+
+
+async def test_request_id_middleware_rejects_oversized_incoming_header(caplog: pytest.LogCaptureFixture) -> None:
+    """An overlong header value must be replaced, not silently truncated."""
+    app = _create_test_app()
+    too_long = "a" * 300
+
+    with caplog.at_level("INFO", logger="app.core.middleware.request_id"):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/ping", headers={REQUEST_ID_HEADER: too_long})
+
+    assert response.status_code == 200
+    assert response.headers[REQUEST_ID_HEADER] != too_long
+    assert len(response.headers[REQUEST_ID_HEADER]) < 300
+
+
 async def test_request_id_middleware_preserves_incoming_header(caplog: pytest.LogCaptureFixture) -> None:
     """Requests with an ID should echo the same request ID back to callers."""
     app = _create_test_app()

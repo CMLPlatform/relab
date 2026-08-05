@@ -280,6 +280,10 @@ class CoreSettings(RelabBaseSettings):
 
         if self.cors_origin_regex == DEFAULT_CORS_ORIGIN_REGEX:
             errors.append("CORS_ORIGIN_REGEX must not be set in production/staging")
+        elif self.cors_origin_regex is not None and not (
+            self.cors_origin_regex.startswith("^") and self.cors_origin_regex.endswith("$")
+        ):
+            errors.append("CORS_ORIGIN_REGEX must be anchored with ^ and $ in production/staging")
 
         errors.extend(self.database.role_security_errors())
 

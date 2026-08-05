@@ -1,5 +1,6 @@
 """Unit tests for the RPi camera WebSocket router."""
 
+import asyncio
 import base64
 import secrets
 import time
@@ -45,6 +46,58 @@ async def test_connect_rejects_browser_origin_before_auth_lookup() -> None:
     )
     websocket.accept.assert_not_awaited()
     authenticate.assert_not_awaited()
+
+
+async def test_connect_logs_unexpected_background_task_failure() -> None:
+    """A background task (relay listener/heartbeat) that fails unexpectedly must be logged.
+
+    ``asyncio.gather(..., return_exceptions=True)`` swallows exceptions unless the
+    caller inspects the results; a silent failure here would hide a broken relay
+    listener until someone noticed cameras stopped responding.
+    """
+    websocket = MagicMock()
+    websocket.headers = {}
+    websocket.client = SimpleNamespace(host="203.0.113.10")
+    websocket.accept = AsyncMock()
+    camera_id = uuid4()
+
+    manager = MagicMock()
+    manager.register = AsyncMock()
+    manager.unregister = MagicMock(return_value=False)
+    redis = AsyncMock()
+
+    async def _failing_relay_listener(*_args: object, **_kwargs: object) -> None:
+        msg = "boom"
+        raise ValueError(msg)
+
+    async def _hang_forever(*_args: object, **_kwargs: object) -> None:
+        await asyncio.Event().wait()
+
+    async def _noop_receive_loop(*_args: object, **_kwargs: object) -> None:
+        # Yield control so the scheduled relay-listener/heartbeat tasks actually get
+        # to run (and the fake listener gets to raise) before this returns and the
+        # cleanup path cancels them.
+        await asyncio.sleep(0)
+
+    with (
+        patch("app.api.plugins.rpi_cam.websocket.router._authenticate", new=AsyncMock(return_value=True)),
+        patch("app.api.plugins.rpi_cam.websocket.router.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.router.require_connection_redis", return_value=redis),
+        patch("app.api.plugins.rpi_cam.websocket.router._receive_loop", new=_noop_receive_loop),
+        patch("app.api.plugins.rpi_cam.websocket.router.run_relay_listener", new=_failing_relay_listener),
+        patch("app.api.plugins.rpi_cam.websocket.router._heartbeat_loop", new=_hang_forever),
+        patch("app.api.plugins.rpi_cam.websocket.router.mark_camera_offline", new=AsyncMock()),
+        patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger,
+    ):
+        await camera_websocket_connect(websocket, camera_id)
+
+    logged_unexpected = [
+        call
+        for call in mock_logger.exception.call_args_list
+        if call.kwargs.get("exc_info") is not None and isinstance(call.kwargs["exc_info"], ValueError)
+    ]
+    assert len(logged_unexpected) == 1
+    assert str(camera_id) in logged_unexpected[0].args
 
 
 async def test_session_text_frame_sanitizes_camera_id_in_log() -> None:

@@ -162,7 +162,15 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
         tasks_to_cancel: list[asyncio.Task[object]] = [heartbeat, relay_listener]
         for task in tasks_to_cancel:
             task.cancel()
-        await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
+        results = await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
+        for task, result in zip(tasks_to_cancel, results, strict=True):
+            if isinstance(result, BaseException) and not isinstance(result, asyncio.CancelledError):
+                logger.exception(
+                    "Background task %s for camera %s exited with an unexpected error",
+                    task.get_name(),
+                    sanitize_log_value(camera_id),
+                    exc_info=result,
+                )
         # Only mark offline if this socket was still the registered one; a stale
         # connection's cleanup must not flap a freshly reconnected camera offline.
         if manager.unregister(camera_id, websocket):

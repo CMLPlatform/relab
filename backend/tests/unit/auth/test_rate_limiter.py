@@ -4,8 +4,11 @@ import json
 import logging
 from unittest.mock import MagicMock
 
+import anyio
 import pytest
 from fastapi import Request
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from app.api.auth.services.rate_limiter import (
     Limiter,
@@ -182,6 +185,36 @@ def test_limit_exceeded_log_uses_safe_bucket_key(limiter: Limiter, caplog: pytes
 
     assert "auth:login:ip:" in caplog.text
     assert raw_ip not in caplog.text
+
+
+def test_hit_key_fails_open_on_redis_error(limiter: Limiter, caplog: pytest.LogCaptureFixture) -> None:
+    """A Redis outage must fail open, not lock every caller out of auth endpoints."""
+
+    class _RaisingStrategy:
+        def hit(self, *_args: object, **_kwargs: object) -> bool:
+            msg = "redis unreachable"
+            raise RedisConnectionError(msg)
+
+    limiter._limiter = _RaisingStrategy()
+
+    caplog.set_level(logging.WARNING, logger="app.api.auth.services.rate_limiter")
+    limiter.hit_key("1/minute", "auth:login:account:one")  # must not raise
+
+    assert "failing open" in caplog.text
+    assert "auth:login:account:one" in caplog.text
+
+
+def test_ahit_key_fails_open_on_redis_error(limiter: Limiter) -> None:
+    """The async entrypoint must fail open too, since it delegates to hit_key."""
+
+    class _RaisingStrategy:
+        def hit(self, *_args: object, **_kwargs: object) -> bool:
+            msg = "redis timed out"
+            raise RedisTimeoutError(msg)
+
+    limiter._limiter = _RaisingStrategy()
+
+    anyio.run(limiter.ahit_key, "1/minute", "auth:login:account:two")  # must not raise
 
 
 def test_dependency_limits_request_buckets(limiter: Limiter) -> None:

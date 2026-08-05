@@ -21,7 +21,7 @@ from relab_rpi_cam_models import (
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.services.rate_limiter import limiter, rate_limit_bucket_key
-from app.api.common.audiences import PublicAPIRouter
+from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam import crud
 from app.api.plugins.rpi_cam.exceptions import (
@@ -42,11 +42,22 @@ from app.api.plugins.rpi_cam.utils.device_contracts import (
 )
 from app.core.config import settings as core_settings
 from app.core.logging import sanitize_log_value
-from app.core.redis import RedisDep, delete_redis_key, get_redis_value, set_redis_value, set_redis_value_nx
+from app.core.redis import (
+    RedisDep,
+    delete_redis_key,
+    get_redis_value,
+    getdel_redis_value,
+    set_redis_value,
+    set_redis_value_nx,
+)
 
 logger = logging.getLogger(__name__)
 
 router = PublicAPIRouter(prefix="/plugins/rpi-cam/pairing", tags=["RPi Camera Pairing"])
+# register/poll are called by the Pi itself, never the app; keep them out of the
+# app-facing public schema and tag them with the device audience explicitly instead
+# of relying on the path-prefix fallback in common/routers/openapi.py.
+device_router = DeviceAPIRouter(prefix="/plugins/rpi-cam/pairing", tags=["RPi Camera Pairing"])
 
 PAIRING_KEY_PREFIX = "rpi_cam:pairing"
 PAIRING_TTL_SECONDS = 10 * 60
@@ -79,7 +90,7 @@ def _build_ws_url() -> str:
     return f"{ws_base}/v1/plugins/rpi-cam/ws/connect"
 
 
-@router.post(
+@device_router.post(
     "/register",
     response_model=PairingRegisterResponse,
     status_code=status.HTTP_201_CREATED,
@@ -119,15 +130,26 @@ async def claim_pairing_code(
     current_user: CurrentActiveUserDep,
     redis: RedisDep,
 ) -> Camera:
-    """Claim a pairing code and create a WebSocket-relayed camera."""
+    """Claim a pairing code and create a WebSocket-relayed camera.
+
+    The pending record is consumed atomically (GETDEL) so two concurrent claims
+    of the same code cannot both succeed: only the winner observes the pending
+    record and goes on to create the camera. The loser sees a missing key and
+    gets the same invalid-code error as an unknown code.
+    """
     await limiter.ahit_key(CLAIM_CODE_RATE_LIMIT, rate_limit_bucket_key("rpi-cam:pairing:claim:code", body.code))
     key = _pairing_key(body.code)
-    raw = await get_redis_value(redis, key)
+    raw = await getdel_redis_value(redis, key)
     if raw is None:
         raise PairingCodeNotFoundError
 
     record = parse_pairing_record(raw)
     if not isinstance(record, PairingPendingRecord):
+        # Not a pending code — most likely a re-claim attempt on a code this same
+        # request already claimed. GETDEL above unconditionally removed it, so put
+        # the still-valid claimed record back before reporting the conflict; the
+        # Pi may not have polled it yet.
+        await set_redis_value(redis, key, raw, ex=PAIRING_CREDENTIAL_TTL_SECONDS)
         raise PairingCodeAlreadyClaimedError
 
     db_camera = await crud.create_camera(
@@ -161,7 +183,7 @@ async def claim_pairing_code(
     return db_camera
 
 
-@router.post(
+@device_router.post(
     "/poll",
     response_model=PairingPollResponse,
     summary="Poll pairing status (called by RPi)",

@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from pydantic import UUID4, ValidationError
+from redis.exceptions import RedisError
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 
 from app.api.common.schemas.base import serialize_datetime_with_z
@@ -51,11 +52,21 @@ async def mark_camera_offline(redis_client: Redis, camera_id: UUID4) -> None:
 
 
 async def get_camera_status(redis_client: Redis, camera_id: UUID4) -> CameraStatus:
-    """Fetch connection status globally from Redis cache."""
+    """Fetch connection status globally from Redis cache.
+
+    Degrades to OFFLINE with no last-seen timestamp on a Redis outage, rather
+    than raising and turning every camera-status read into a 500.
+    """
     pipeline = redis_client.pipeline()
     pipeline.get(get_camera_online_cache_key(camera_id))
     pipeline.get(get_camera_last_seen_cache_key(camera_id))
-    online, last_seen_str = await pipeline.execute()
+    try:
+        online, last_seen_str = await pipeline.execute()
+    except RedisError, OSError, TimeoutError:
+        logger.warning(
+            "Redis unavailable fetching status for camera %s; reporting offline.", sanitize_log_value(camera_id)
+        )
+        return CameraStatus(connection=CameraConnectionStatus.OFFLINE, last_seen_at=None)
 
     conn = CameraConnectionStatus.ONLINE if online else CameraConnectionStatus.OFFLINE
     last_seen = datetime.fromisoformat(last_seen_str) if last_seen_str else None

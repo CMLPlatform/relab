@@ -7,6 +7,7 @@ import pytest
 from anyio import Path as AnyIOPath
 from fastapi import UploadFile
 from PIL import Image as PILImage
+from PIL.ExifTags import GPS, IFD
 from starlette.datastructures import Headers
 
 from app.core.images import (
@@ -387,6 +388,25 @@ def test_validate_image_dimensions_rejects_pixel_flood() -> None:
     img = PILImage.new("L", (7000, 7000))
     with pytest.raises(ValueError, match="pixels"):
         validate_image_dimensions(img)
+
+
+def test_process_image_strips_gps_tags(tmp_path: Path) -> None:
+    """A GPS-bearing upload must not retain location data after storage processing."""
+    path = tmp_path / "gps.jpg"
+    img = PILImage.new("RGB", (50, 50), (1, 2, 3))
+    exif = img.getexif()
+    exif.get_ifd(IFD.GPSInfo)[GPS.GPSLatitudeRef] = "N"
+    img.save(path, format="JPEG", exif=exif)
+
+    # has_exif fast path must actually detect the GPS-only EXIF payload; if it
+    # didn't, the file would be left untouched below with GPS data intact.
+    with PILImage.open(path) as before:
+        assert bool(before.info.get("exif"))
+
+    process_image_for_storage(path)
+
+    with PILImage.open(path) as result:
+        assert not result.getexif().get_ifd(IFD.GPSInfo)
 
 
 def test_jpeg_with_exif_orientation_is_still_rotated_and_stripped(tmp_path: Path) -> None:

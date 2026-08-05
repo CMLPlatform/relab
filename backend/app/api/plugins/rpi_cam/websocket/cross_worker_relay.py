@@ -31,6 +31,10 @@ import time
 import uuid
 from typing import TYPE_CHECKING, cast
 
+import anyio
+from redis.exceptions import RedisError
+from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL, relay_command_is_allowed
+
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
@@ -216,6 +220,13 @@ async def run_relay_listener(
                 result = await _blpop_once(redis, cmd_key)
             except asyncio.CancelledError:
                 break
+            except RedisError, OSError, TimeoutError:
+                # A Redis blip must not kill this camera's listener task — that would
+                # silently stop relaying every subsequent command until reconnect.
+                # Back off briefly and keep polling.
+                logger.warning("Relay listener for camera %s lost Redis connectivity; retrying.", camera_log_id)
+                await anyio.sleep(1)
+                continue
 
             if result is None:
                 continue
@@ -271,6 +282,23 @@ async def _execute_and_respond(
     params: dict | None = cmd.get("params")
     body: dict | None = cmd.get("body")
     headers: dict[str, str] | None = cmd.get("headers")
+
+    # The requesting worker already checked the allowlist before pushing this command,
+    # but this worker is the one that actually forwards it to the Pi — re-check here too
+    # rather than trust an unauthenticated payload that crossed a process boundary via
+    # Redis. A rolling deploy could also see the two workers running different allowlists.
+    if not relay_command_is_allowed(method, path):
+        logger.warning(
+            "Relay listener blocked disallowed command %s %s for camera %s.",
+            sanitize_log_value(method),
+            sanitize_log_value(path),
+            camera_log_id,
+        )
+        error_payload = json.dumps({"error": RELAY_COMMAND_FORBIDDEN_DETAIL, "status": 403})
+        with contextlib.suppress(Exception):
+            await redis.rpush(resp_key, error_payload)
+            await redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0)))
+        return
 
     timeout_s = float(cmd.get("timeout_s", 30.0))
     try:

@@ -6,10 +6,11 @@ from uuid import uuid4
 
 import pytest
 from fakeredis.aioredis import FakeRedis
+from pydantic import ValidationError
 from relab_rpi_cam_models import PairingRegisterRequest
 
 from app.api.auth.services.rate_limiter import rate_limit_bucket_key
-from app.api.plugins.rpi_cam.exceptions import PairingCodeNotFoundError
+from app.api.plugins.rpi_cam.exceptions import PairingCodeAlreadyClaimedError, PairingCodeNotFoundError
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.pairing import (
     CLAIM_CODE_RATE_LIMIT,
@@ -158,6 +159,73 @@ async def test_claim_pairing_code_rate_limits_code_before_redis_lookup() -> None
         CLAIM_CODE_RATE_LIMIT,
         rate_limit_bucket_key("rpi-cam:pairing:claim:code", PAIRING_CODE),
     )
+
+
+async def test_claim_pairing_code_concurrent_race_creates_exactly_one_camera() -> None:
+    """Two concurrent claims of the same code must not both succeed (GETDEL race).
+
+    Simulates the interleaving deterministically: the second claim attempt runs
+    from inside the first attempt's ``create_camera`` call, i.e. exactly between
+    the winner's GETDEL and its claimed-record write-back. That second attempt
+    must observe the key as already consumed.
+    """
+    session = AsyncMock()
+    current_user = UserFactory.build(
+        id=uuid4(),
+        email="owner@example.com",
+        hashed_password="hashed",
+        is_active=True,
+        is_superuser=False,
+        is_verified=True,
+    )
+    body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description=None)
+    redis_client = await _make_fake_redis()
+    await redis_client.set(
+        f"rpi_cam:pairing:{PAIRING_CODE}",
+        json.dumps(
+            {
+                "status": "waiting",
+                "rpi_fingerprint": "fingerprint",
+                "public_key_jwk": PUBLIC_JWK,
+                "key_id": KEY_ID,
+            }
+        ),
+    )
+
+    loser_result: dict[str, BaseException] = {}
+
+    async def racing_create_camera(*_args: object, **_kwargs: object) -> Camera:
+        with patch("app.api.plugins.rpi_cam.routers.pairing.limiter.ahit_key", new_callable=AsyncMock):
+            try:
+                await claim_pairing_code(
+                    body=body,
+                    session=session,
+                    current_user=current_user,
+                    redis=redis_client,
+                )
+            except (PairingCodeNotFoundError, PairingCodeAlreadyClaimedError) as exc:
+                loser_result["error"] = exc
+        return build_camera()
+
+    with (
+        patch("app.api.plugins.rpi_cam.routers.pairing.crud.create_camera", new=racing_create_camera),
+        patch("app.api.plugins.rpi_cam.routers.pairing.limiter.ahit_key", new_callable=AsyncMock),
+    ):
+        winner = await claim_pairing_code(
+            body=body,
+            session=session,
+            current_user=current_user,
+            redis=redis_client,
+        )
+
+    assert isinstance(winner, Camera)
+    assert isinstance(loser_result.get("error"), PairingCodeNotFoundError)
+
+
+def test_poll_request_rejects_non_ascii_fingerprint() -> None:
+    """A non-ASCII fingerprint must be rejected by validation, not reach hmac.compare_digest."""
+    with pytest.raises(ValidationError):
+        PairingPollRequest(code=PAIRING_CODE, fingerprint="ünïcodeee")
 
 
 async def test_poll_pairing_status_reads_body_and_logs_digest() -> None:

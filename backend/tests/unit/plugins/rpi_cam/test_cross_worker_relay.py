@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+from redis.exceptions import ConnectionError as RedisConnectionError
 
 from app.api.plugins.rpi_cam.websocket import cross_worker_relay as cwr
 
@@ -241,7 +242,7 @@ async def test_success_pushes_response_and_expire() -> None:
     manager = MagicMock()
     binary = b"payload"
     manager.send_command = AsyncMock(return_value=({"status": 200, "data": {"k": 1}}, binary))
-    cmd = {"msg_id": "m1", "method": "GET", "path": "/p", "timeout_s": 30}
+    cmd = {"msg_id": "m1", "method": "GET", "path": "/camera", "timeout_s": 30}
 
     await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m1")
 
@@ -261,7 +262,7 @@ async def test_camera_disconnected_writes_error() -> None:
     redis = _mock_redis()
     manager = MagicMock()
     manager.send_command = AsyncMock(side_effect=RuntimeError("socket closed"))
-    cmd = {"msg_id": "m2", "method": "GET", "path": "/p", "timeout_s": 5}
+    cmd = {"msg_id": "m2", "method": "GET", "path": "/camera", "timeout_s": 5}
 
     await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m2")
 
@@ -274,7 +275,7 @@ async def test_unexpected_exception_writes_internal_error() -> None:
     redis = _mock_redis()
     manager = MagicMock()
     manager.send_command = AsyncMock(side_effect=ValueError("boom"))
-    cmd = {"msg_id": "m3", "method": "GET", "path": "/p", "timeout_s": 5}
+    cmd = {"msg_id": "m3", "method": "GET", "path": "/camera", "timeout_s": 5}
 
     await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m3")
 
@@ -292,12 +293,33 @@ async def test_unresponsive_camera_times_out_and_writes_error() -> None:
         return {}, None  # unreachable
 
     manager.send_command = AsyncMock(side_effect=_never_responds)
-    cmd = {"msg_id": "m4", "method": "GET", "path": "/p", "timeout_s": 0.01}
+    cmd = {"msg_id": "m4", "method": "GET", "path": "/camera", "timeout_s": 0.01}
 
     await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m4")
 
     raw = redis.rpush.await_args.args[1]
     assert json.loads(raw) == {"error": "Camera did not respond in time."}
+
+
+async def test_disallowed_command_is_blocked_before_dispatch() -> None:
+    """A command whose method/path isn't allowlisted must never reach send_command.
+
+    The requesting worker already checks the allowlist, but this worker (which
+    actually forwards to the Pi) must re-check the payload it read from Redis
+    rather than trust it blindly.
+    """
+    redis = _mock_redis()
+    manager = MagicMock()
+    manager.send_command = AsyncMock()
+    cmd = {"msg_id": "m5", "method": "DELETE", "path": "/camera", "timeout_s": 5}
+
+    await cwr._execute_and_respond(redis, uuid4(), manager, cmd, "m5")
+
+    manager.send_command.assert_not_called()
+    raw = redis.rpush.await_args.args[1]
+    payload = json.loads(raw)
+    assert payload.get("status") == 403
+    assert "error" in payload
 
 
 # ── run_relay_listener ───────────────────────────────────────────────────────
@@ -367,7 +389,7 @@ async def test_dispatches_valid_command() -> None:
     cmd = {
         "msg_id": "m1",
         "method": "GET",
-        "path": "/hls",
+        "path": "/preview/hls/segment.ts",
         "params": None,
         "body": None,
         "headers": {},
@@ -389,6 +411,57 @@ async def test_dispatches_valid_command() -> None:
     assert any(call.args[0] == "rpi_cam:relay_resp:m1" for call in redis.rpush.await_args_list)
 
 
+async def test_redis_error_backs_off_and_keeps_listening(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A transient Redis failure during BLPOP must not kill the listener task.
+
+    It should log, back off briefly, and keep polling — the next command that
+    arrives once Redis recovers must still be processed.
+    """
+    redis = _mock_redis()
+    manager = MagicMock()
+    manager.send_command = AsyncMock(return_value=({"status": 200, "data": {}}, None))
+    cmd = {
+        "msg_id": "m1",
+        "method": "GET",
+        "path": "/camera",
+        "params": None,
+        "body": None,
+        "headers": {},
+        "deadline": 0,
+        "timeout_s": 30,
+    }
+    responses: list[object] = [("k", json.dumps(cmd))]
+
+    async def _blpop(*_a: object, **_kw: object) -> object:
+        if responses:
+            return responses.pop(0)
+        raise asyncio.CancelledError
+
+    call_count = 0
+
+    async def _blpop_with_one_failure(*args: object, **kwargs: object) -> object:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            msg = "redis unreachable"
+            raise RedisConnectionError(msg)
+        return await _blpop(*args, **kwargs)
+
+    redis.blpop.side_effect = _blpop_with_one_failure
+
+    sleeps: list[float] = []
+
+    async def _fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    monkeypatch.setattr(cwr.anyio, "sleep", _fake_sleep)
+
+    await cwr.run_relay_listener(redis, uuid4(), manager)
+
+    assert sleeps == [1]
+    manager.send_command.assert_awaited_once()
+
+
 async def test_empty_blpop_result_keeps_polling() -> None:
     """A finite BLPOP timeout should keep the listener alive until a command arrives."""
     redis = _mock_redis()
@@ -397,7 +470,7 @@ async def test_empty_blpop_result_keeps_polling() -> None:
     cmd = {
         "msg_id": "m1",
         "method": "GET",
-        "path": "/hls",
+        "path": "/preview/hls/segment.ts",
         "params": None,
         "body": None,
         "headers": {},

@@ -117,6 +117,16 @@ async def get_redis_value(redis_client: Redis, key: str) -> str | None:
     return await _execute_redis_operation("get", lambda: redis_client.get(key), None, log_key=key)
 
 
+async def getdel_redis_value(redis_client: Redis, key: str) -> str | None:
+    """Atomically read and delete a key (Redis GETDEL), or None if missing.
+
+    Use this to arbitrate a single-winner race on a key: whichever caller
+    observes the value also removes it, so no second caller can read the
+    same value again.
+    """
+    return await _execute_redis_operation("getdel", lambda: redis_client.getdel(key), None, log_key=key)
+
+
 async def set_redis_value(redis_client: Redis, key: str, value: EncodableT, ex: int | None = None) -> bool:
     """Store a value in Redis. Returns True on success, False on failure."""
     return await _execute_redis_operation(
