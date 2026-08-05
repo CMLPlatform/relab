@@ -23,7 +23,7 @@ services:
     ports:
       - "127.0.0.1:${E2E_BACKEND_PORT:-18010}:8000"
     volumes:
-      # To ensure that the backend has access to user uploads (for testing upload functionality with real files)
+      # Ensure the backend has access to user uploads (for testing upload functionality with real files)
       - user_uploads:/opt/relab/backend/data/uploads
     environment:
       DATABASE_HOST: postgres
@@ -55,7 +55,7 @@ services:
     environment:
       DATABASE_HOST: postgres
       REDIS_HOST: redis
-      # SEED_DUMMY_DATA is enabled for the migrations service in the E2E environment, to ensure that the database is seeded with realistic test data (including example images) before running tests.
+      # Seeds realistic test data, including example images, so E2E tests run against real data.
       SEED_DUMMY_DATA: True
     env_file: ./backend/.env.test
 
