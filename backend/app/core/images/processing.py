@@ -33,7 +33,7 @@ def process_image_for_storage(image_path: PathLike[str]) -> None:
         # every non-JPEG unconditionally, which flattened animated GIFs to one frame
         # and re-encoded lossless WebP lossily even when the file carried no EXIF and
         # needed no rotation — destroying the original in place for nothing.
-        # ponytail: animated originals are never re-saved, even when they carry EXIF —
+        # NOTE: animated originals are never re-saved, even when they carry EXIF —
         # exif_transpose only has a first-frame view, so "fixing" one frame would
         # flatten the rest. Animations with EXIF orientation/PII are rare; skip
         # rotation/stripping for them rather than destroying the animation to apply it.
