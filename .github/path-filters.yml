@@ -72,3 +72,56 @@ containers:
   - 'backend/uv.lock'
   - 'pnpm-lock.yaml'
   - 'pnpm-workspace.yaml'
+
+# --- docker smoke legs -------------------------------------------------------
+# Per-leg splits of `containers`, so a PR only pays for the ~30 min smoke legs it
+# can actually break. Each leg gates on what changes its *image build inputs or
+# service wiring*, not on subrepo source.
+#
+# The frontend images do compile subrepo source (`COPY www/src/` + astro build in
+# a root-context build), so strictly speaking the subrepo is part of the build
+# context. It is still left out on purpose: a source-level build break is already
+# caught by the www/app/docs jobs (check + build) and the e2e jobs, so rebuilding
+# a full image on every source PR buys no extra signal for ~30 min a leg. The
+# weekly scheduled run smokes all six legs regardless.
+
+smoke-backend:
+  - 'backend/Dockerfile*'
+  - 'backend/.dockerignore'
+  - 'backend/uv.lock'
+
+smoke-www:
+  - 'www/Dockerfile*'
+  - 'www/Caddyfile'
+  - 'www/package.json'
+  - '.dockerignore'
+  - 'package.json'
+  - 'pnpm-lock.yaml'
+  - 'pnpm-workspace.yaml'
+
+smoke-app:
+  - 'app/Dockerfile*'
+  - 'app/Caddyfile'
+  - 'app/package.json'
+  - '.dockerignore'
+  - 'package.json'
+  - 'pnpm-lock.yaml'
+  - 'pnpm-workspace.yaml'
+
+smoke-docs:
+  - 'docs/Dockerfile*'
+  - 'docs/Caddyfile'
+  - 'docs/package.json'
+  - '.dockerignore'
+  - 'package.json'
+  - 'pnpm-lock.yaml'
+  - 'pnpm-workspace.yaml'
+
+# Compose wiring, deploy inputs, and the two ops scripts the orchestration and
+# backup flows shell out to.
+smoke-orchestration:
+  - 'compose*.yml'
+  - 'compose*.yaml'
+  - 'deploy/**'
+  - 'scripts/deploy_ops.sh'
+  - 'scripts/backup_restic_ops.sh'

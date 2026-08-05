@@ -29,6 +29,21 @@ outputs:
   containers:
     description: Dockerfile / lockfile changes relevant to container images.
     value: ${{ steps.filter.outputs.containers }}
+  smoke-backend:
+    description: Backend image build inputs (Dockerfiles, uv.lock).
+    value: ${{ steps.filter.outputs.smoke-backend }}
+  smoke-www:
+    description: www image build inputs (Dockerfile, Caddyfile, workspace manifests).
+    value: ${{ steps.filter.outputs.smoke-www }}
+  smoke-app:
+    description: app image build inputs (Dockerfile, Caddyfile, workspace manifests).
+    value: ${{ steps.filter.outputs.smoke-app }}
+  smoke-docs:
+    description: docs image build inputs (Dockerfile, Caddyfile, workspace manifests).
+    value: ${{ steps.filter.outputs.smoke-docs }}
+  smoke-orchestration:
+    description: Compose wiring, deploy inputs, and the deploy/backup ops scripts.
+    value: ${{ steps.filter.outputs.smoke-orchestration }}
 
   # --- event metadata (for schedule/dispatch/renovate routing) ---
   is-schedule:
@@ -37,6 +52,9 @@ outputs:
   is-dispatch:
     description: "'true' if the workflow was triggered via workflow_dispatch."
     value: ${{ steps.event.outputs.is-dispatch }}
+  is-merge-group:
+    description: "'true' if the workflow was triggered by a merge queue group."
+    value: ${{ steps.event.outputs.is-merge-group }}
   is-renovate-pr:
     description: "'true' if the current PR was opened by renovate[bot]."
     value: ${{ steps.event.outputs.is-renovate-pr }}
@@ -46,7 +64,9 @@ runs:
   steps:
     - name: Detect changed paths
       id: filter
-      if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+      # merge_group events carry no base/head PR context, so there is nothing to
+      # diff against — callers treat that event as "run everything".
+      if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group'
       uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
       with:
         filters: .github/path-filters.yml
@@ -60,4 +80,5 @@ runs:
       run: |
         echo "is-schedule=$([[ "$EVENT_NAME" == "schedule" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         echo "is-dispatch=$([[ "$EVENT_NAME" == "workflow_dispatch" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "is-merge-group=$([[ "$EVENT_NAME" == "merge_group" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         echo "is-renovate-pr=$([[ "$EVENT_NAME" == "pull_request" && "$PR_AUTHOR" == "renovate[bot]" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"

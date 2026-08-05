@@ -7,13 +7,21 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # NOTE: inert until the repository enables the merge queue. Wired up now so the
+  # queue can be switched on without another workflow change; a merge_group run
+  # behaves exactly like a push to main (full checks, all smoke legs) because the
+  # event carries no PR context for path filtering.
+  merge_group:
   workflow_dispatch:
   schedule:
     - cron: "0 3 * * 1"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Keyed by event too, so a scheduled or merge-queue run never cancels (or is
+  # cancelled by) a push run that happens to share github.ref. Only PR runs are
+  # superseded by their own newer pushes.
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -35,6 +43,7 @@ jobs:
       run-docs: ${{ steps.decide.outputs.run-docs }}
       run-e2e: ${{ steps.decide.outputs.run-e2e }}
       run-containers: ${{ steps.decide.outputs.run-containers }}
+      smoke-legs: ${{ steps.decide.outputs.smoke-legs }}
       is-renovate-pr: ${{ steps.detect.outputs.is-renovate-pr }}
     steps:
       - name: Checkout
@@ -52,6 +61,7 @@ jobs:
         env:
           IS_SCHEDULE: ${{ steps.detect.outputs.is-schedule }}
           IS_DISPATCH: ${{ steps.detect.outputs.is-dispatch }}
+          IS_MERGE_GROUP: ${{ steps.detect.outputs.is-merge-group }}
           SHARED: ${{ steps.detect.outputs.shared }}
           POLICY: ${{ steps.detect.outputs.policy }}
           BACKEND: ${{ steps.detect.outputs.backend }}
@@ -59,20 +69,30 @@ jobs:
           APP: ${{ steps.detect.outputs.app }}
           DOCS: ${{ steps.detect.outputs.docs }}
           CONTAINERS: ${{ steps.detect.outputs.containers }}
+          SMOKE_BACKEND: ${{ steps.detect.outputs.smoke-backend }}
+          SMOKE_WWW: ${{ steps.detect.outputs.smoke-www }}
+          SMOKE_APP: ${{ steps.detect.outputs.smoke-app }}
+          SMOKE_DOCS: ${{ steps.detect.outputs.smoke-docs }}
+          SMOKE_ORCHESTRATION: ${{ steps.detect.outputs.smoke-orchestration }}
         run: |
+          ALL_LEGS='["docker-smoke-backend","docker-orchestration-smoke","docker-smoke-www","docker-smoke-app","docker-smoke-docs","docker-smoke-backups"]'
+
           # Scheduled runs only exercise docker-smoke; skip all other jobs.
           if [[ "$IS_SCHEDULE" == "true" ]]; then
             for k in run-policy run-backend run-www run-app run-docs run-e2e run-containers; do
               echo "$k=false" >> "$GITHUB_OUTPUT"
             done
+            echo "smoke-legs=$ALL_LEGS" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Manual dispatch runs exercise everything.
-          if [[ "$IS_DISPATCH" == "true" ]]; then
+          # Manual dispatch and merge-queue runs exercise everything: a merge_group
+          # event has no PR context, so path filters cannot run at all.
+          if [[ "$IS_DISPATCH" == "true" || "$IS_MERGE_GROUP" == "true" ]]; then
             for k in run-policy run-backend run-www run-app run-docs run-e2e run-containers; do
               echo "$k=true" >> "$GITHUB_OUTPUT"
             done
+            echo "smoke-legs=$ALL_LEGS" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -86,6 +106,30 @@ jobs:
             echo "run-e2e=$([[ "$SHARED" == "true" || "$BACKEND" == "true" || "$APP" == "true" ]] && echo true || echo false)"
             echo "run-containers=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)"
           } >> "$GITHUB_OUTPUT"
+
+          # Per-leg smoke selection: each ~30 min leg runs only when its own build
+          # inputs moved. backend Dockerfiles feed api/migrator/backups alike, and
+          # compose+deploy+ops-script changes drive both orchestration and backups.
+          # NOTE: steps run under `set -e`, so use `if` rather than `[[ ... ]] && ...`,
+          # whose false branch would fail the step.
+          legs=()
+          if [[ "$SMOKE_BACKEND" == "true" ]]; then
+            legs+=(docker-smoke-backend)
+          fi
+          if [[ "$SMOKE_BACKEND" == "true" || "$SMOKE_ORCHESTRATION" == "true" ]]; then
+            legs+=(docker-orchestration-smoke docker-smoke-backups)
+          fi
+          if [[ "$SMOKE_WWW" == "true" ]]; then
+            legs+=(docker-smoke-www)
+          fi
+          if [[ "$SMOKE_APP" == "true" ]]; then
+            legs+=(docker-smoke-app)
+          fi
+          if [[ "$SMOKE_DOCS" == "true" ]]; then
+            legs+=(docker-smoke-docs)
+          fi
+          # Empty array renders as `[]`, which skips the docker-smoke job entirely.
+          echo "smoke-legs=$(printf '%s\n' ${legs[@]+"${legs[@]}"} | jq -Rnc '[inputs | select(. != "")]')" >> "$GITHUB_OUTPUT"
 
   automation:
     name: Automation, IaC, and Compose Policy
@@ -346,7 +390,8 @@ jobs:
   e2e-full-stack:
     name: App Full-Stack E2E
     needs: [ changes ]
-    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-e2e == 'true' && github.event_name == 'push')
+    # merge_group is treated like a push to main: the queued commit gets the full pass.
+    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-e2e == 'true' && (github.event_name == 'push' || github.event_name == 'merge_group'))
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -391,19 +436,15 @@ jobs:
   docker-smoke:
     name: Docker Smoke (${{ matrix.recipe }})
     needs: [ changes ]
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || needs.changes.outputs.run-containers == 'true'
+    # `changes` emits the leg list; `[]` means nothing container-relevant moved and
+    # the whole job skips (an accepted result for validate-result).
+    if: needs.changes.outputs.smoke-legs != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        recipe:
-          - docker-smoke-backend
-          - docker-orchestration-smoke
-          - docker-smoke-www
-          - docker-smoke-app
-          - docker-smoke-docs
-          - docker-smoke-backups
+        recipe: ${{ fromJSON(needs.changes.outputs.smoke-legs) }}
     steps:
       - name: Check out repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
