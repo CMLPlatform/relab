@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { Pressable, type PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { Icon } from '@/components/base/Icon';
-import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
 
@@ -19,26 +18,36 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
   const textColor = error ? colors.onErrorContainer : colors.onPrimaryContainer;
 
   const pressableStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.pressableContent,
-      pressed && onPress && { opacity: 0.5 },
-    ],
+    ({ pressed }: PressableStateCallbackType) => pressed && onPress && { opacity: 0.5 },
     [onPress],
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
+    <View
+      className="rounded-lg overflow-hidden h-[100px] justify-between"
+      style={{ backgroundColor: bgColor }}
+    >
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={CPV.description}
+        className="flex-1"
         style={pressableStyle}
       >
-        <Text style={[styles.text, { color: textColor }]} numberOfLines={3} ellipsizeMode="tail">
+        <Text
+          className="p-3"
+          style={[styles.text, { color: textColor }]}
+          numberOfLines={3}
+          ellipsizeMode="tail"
+        >
           {CPV.description}
         </Text>
       </Pressable>
-      {actionElement ?? <Text style={[styles.subText, { color: textColor }]}>{CPV.name}</Text>}
+      {actionElement ?? (
+        <Text className="p-3 text-right opacity-70" style={{ color: textColor }}>
+          {CPV.name}
+        </Text>
+      )}
       <View style={styles.shapes}>
         <Icon name="shape" size={150} color={textColor} />
       </View>
@@ -47,25 +56,14 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    borderRadius: radius.card,
-    overflow: 'hidden',
-    height: 100,
-    justifyContent: 'space-between',
-  },
-  pressableContent: {
-    flex: 1,
-  },
+  // fontSize-only (no matching lineHeight) — stays style-driven.
   text: {
-    padding: 12,
     fontSize: 15,
     fontWeight: '500',
   },
-  subText: {
-    padding: 12,
-    opacity: 0.7,
-    textAlign: 'right',
-  },
+  // Decorative rotated glyph — no precedent for the react-native-css
+  // transform/rotate utilities elsewhere in the app; keep it inline rather
+  // than risk a silently-dropped style.
   shapes: {
     position: 'absolute',
     right: 10,

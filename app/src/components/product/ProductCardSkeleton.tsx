@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { Card } from '@/components/base/Card';
 import { Skeleton } from '@/components/base/Skeleton';
-import { radius, spacing } from '@/constants';
+import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 
 export default function ProductCardSkeleton() {
@@ -9,10 +9,10 @@ export default function ProductCardSkeleton() {
   const bg = theme.colors.surfaceVariant;
 
   return (
-    <Card style={{ marginHorizontal: 10, marginVertical: 5 }}>
-      <View style={styles.row}>
+    <Card className="mx-2.5 my-[5px]">
+      <View className="flex-row items-center p-3">
         <Skeleton style={[styles.thumbnail, { backgroundColor: bg }]} />
-        <View style={styles.content}>
+        <View className="flex-1 gap-2">
           <Skeleton style={[styles.titleLine, { backgroundColor: bg }]} />
           <Skeleton style={[styles.subtitleLine, { backgroundColor: bg }]} />
           <Skeleton style={[styles.descLine, { backgroundColor: bg }]} />
@@ -22,21 +22,14 @@ export default function ProductCardSkeleton() {
   );
 }
 
+// Skeleton wraps reanimated's Animated.View, which takes className as a
+// silent no-op — these stay style-driven.
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-  },
   thumbnail: {
     width: 80,
     height: 80,
     borderRadius: radius.card,
     marginRight: 16,
-  },
-  content: {
-    flex: 1,
-    gap: spacing.sm,
   },
   titleLine: {
     height: 18,

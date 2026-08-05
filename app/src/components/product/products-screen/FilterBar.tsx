@@ -4,7 +4,6 @@ import { AppText } from '@/components/base/AppText';
 import FilterSelectionModal from '@/components/base/FilterSelectionModal';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { Menu } from '@/components/base/Menu';
-import { radius } from '@/constants';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { useAppTheme } from '@/theme';
 import { PRODUCTS_DATE_PRESETS, productsScreenStyles as styles } from './shared';
@@ -38,20 +37,18 @@ function FilterChip({
 
   return (
     <View
-      style={[
-        filterChipStyles.container,
-        {
-          backgroundColor: selected ? colors.primaryContainer : 'transparent',
-          borderColor: selected ? colors.primaryContainer : colors.outline,
-        },
-      ]}
+      className="flex-row items-center rounded-md border pl-3 pr-2"
+      style={{
+        backgroundColor: selected ? colors.primaryContainer : 'transparent',
+        borderColor: selected ? colors.primaryContainer : colors.outline,
+      }}
     >
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? children}
         accessibilityState={{ selected }}
-        style={filterChipStyles.pressable}
+        className="flex-row items-center gap-1.5 py-[7px]"
       >
         <Icon name={icon} size="sm" color={foreground} />
         <AppText style={[filterChipStyles.label, { color: foreground }]}>{children}</AppText>
@@ -62,7 +59,7 @@ function FilterChip({
           accessibilityRole="button"
           accessibilityLabel={`Clear ${children} filter`}
           hitSlop={8}
-          style={filterChipStyles.closeButton}
+          className="ml-1 p-1"
         >
           <Icon name="close" size={14} color={foreground} />
         </Pressable>
@@ -72,26 +69,10 @@ function FilterChip({
 }
 
 const filterChipStyles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: radius.control,
-    paddingLeft: 12,
-    paddingRight: 8,
-  },
-  pressable: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 7,
-  },
+  // AppText's own inline typography scale always wins over a className, so a
+  // text-sm class here would be a silent no-op — fontSize stays style-driven.
   label: {
     fontSize: 14,
-  },
-  closeButton: {
-    marginLeft: 4,
-    padding: 4,
   },
 });
 

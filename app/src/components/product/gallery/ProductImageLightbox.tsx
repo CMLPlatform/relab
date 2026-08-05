@@ -23,8 +23,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import ZoomableImage from '@/components/base/ZoomableImage';
-import { radius } from '@/constants';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+import { cn } from '@/utils/cn';
 import {
   clampIndex as clampIndexIn,
   GalleryFlatList,
@@ -208,7 +208,6 @@ export function ProductImageLightbox({
       <LightboxSlide
         uri={item.largeUrl}
         altText={galleryItemAltText(item, index, items.length, fallbackLabel)}
-        styles={styles}
         screenWidth={screenWidth}
         screenHeight={screenHeight}
         onTouchStart={handleTouchStart}
@@ -217,16 +216,7 @@ export function ProductImageLightbox({
         navigateBy={navigateBy}
       />
     ),
-    [
-      items,
-      fallbackLabel,
-      styles,
-      screenWidth,
-      screenHeight,
-      handleTouchStart,
-      handleTouchEnd,
-      navigateBy,
-    ],
+    [items, fallbackLabel, screenWidth, screenHeight, handleTouchStart, handleTouchEnd, navigateBy],
   );
   const goPrev = useCallback(() => navigateBy(-1), [navigateBy]);
   const goNext = useCallback(() => navigateBy(1), [navigateBy]);
@@ -246,6 +236,7 @@ export function ProductImageLightbox({
           onPress={handleClose}
           hitSlop={20}
           accessibilityLabel="Close lightbox"
+          className="absolute top-10 right-5 z-10 rounded-full w-11 h-11 justify-center items-center"
           style={styles.closeButton}
         >
           <Icon name="close" size={28} color={theme.tokens.text.onMedia} />
@@ -274,12 +265,15 @@ export function ProductImageLightbox({
         />
 
         {items.length > 1 ? (
-          <View style={styles.footerWrap}>
-            <View style={styles.footerBar}>
+          <View className="absolute bottom-10 w-full items-center">
+            <View
+              className="flex-row items-center rounded-xl px-4 py-2"
+              style={{ backgroundColor: theme.tokens.overlay.media }}
+            >
               <Pressable
                 onPress={goPrev}
                 hitSlop={15}
-                style={[styles.navButton, index === 0 && styles.navButtonDisabled]}
+                className={cn('p-2', index === 0 && 'opacity-30')}
                 disabled={index === 0}
                 accessibilityRole="button"
                 accessibilityLabel="Previous image"
@@ -287,14 +281,17 @@ export function ProductImageLightbox({
                 <Icon name="chevron-left" size={32} color={theme.tokens.text.onMedia} />
               </Pressable>
 
-              <Text style={[styles.counterText, { color: theme.tokens.text.onMedia }]}>
+              <Text
+                className="mx-5 min-w-[60px] text-center"
+                style={[styles.counterText, { color: theme.tokens.text.onMedia }]}
+              >
                 {index + 1} / {items.length}
               </Text>
 
               <Pressable
                 onPress={goNext}
                 hitSlop={15}
-                style={[styles.navButton, index === items.length - 1 && styles.navButtonDisabled]}
+                className={cn('p-2', index === items.length - 1 && 'opacity-30')}
                 disabled={index === items.length - 1}
                 accessibilityRole="button"
                 accessibilityLabel="Next image"
@@ -312,7 +309,6 @@ export function ProductImageLightbox({
 const LightboxSlide = memo(function LightboxSlide({
   uri,
   altText,
-  styles,
   screenWidth,
   screenHeight,
   onTouchStart,
@@ -322,7 +318,6 @@ const LightboxSlide = memo(function LightboxSlide({
 }: {
   uri: string | null;
   altText: string;
-  styles: ReturnType<typeof createStyles>;
   screenWidth: number;
   screenHeight: number;
   onTouchStart: (event: GestureResponderEvent) => void;
@@ -342,7 +337,8 @@ const LightboxSlide = memo(function LightboxSlide({
     <View
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
-      style={[styles.slide, { width: screenWidth, height: screenHeight }]}
+      className="justify-center items-center"
+      style={{ width: screenWidth, height: screenHeight }}
     >
       {uri ? (
         <ZoomableImage
@@ -360,54 +356,28 @@ const LightboxSlide = memo(function LightboxSlide({
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
+    // GestureHandlerRootView (react-native-gesture-handler) isn't a
+    // react-native-css-rewritten core component, so className is a silent
+    // no-op here — stays fully style-driven.
     root: {
       flex: 1,
       backgroundColor: theme.tokens.overlay.media,
     },
+    // Only the dynamic background color; static layout moved to className.
     closeButton: {
-      position: 'absolute',
-      top: 40,
-      right: 20,
-      zIndex: 10,
       backgroundColor: theme.tokens.overlay.media,
-      borderRadius: radius.full,
-      width: 44,
-      height: 44,
-      justifyContent: 'center',
-      alignItems: 'center',
     },
+    // GalleryFlatList wraps react-native-gesture-handler's FlatList (not the
+    // confirmed-safe core list), so it stays fully style-driven.
     list: {
       flex: 1,
     },
-    slide: {
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    footerWrap: {
-      position: 'absolute',
-      bottom: 40,
-      width: '100%',
-      alignItems: 'center',
-    },
     footerBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
       backgroundColor: theme.tokens.overlay.media,
-      borderRadius: radius.overlay,
-      paddingHorizontal: 16,
-      paddingVertical: 8,
     },
-    navButton: {
-      padding: 8,
-    },
-    navButtonDisabled: {
-      opacity: 0.3,
-    },
+    // fontSize-only (no matching lineHeight) — stays style-driven.
     counterText: {
       fontSize: 16,
-      marginHorizontal: 20,
-      minWidth: 60,
-      textAlign: 'center',
     },
   }),
 );

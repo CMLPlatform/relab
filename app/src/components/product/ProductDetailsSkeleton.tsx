@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card } from '@/components/base/Card';
 import { Skeleton } from '@/components/base/Skeleton';
-import { radius, spacing } from '@/constants';
+import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 
 /**
@@ -14,12 +14,12 @@ export default function ProductDetailsSkeleton() {
   const bg = theme.colors.surfaceVariant;
 
   return (
-    <ScrollView contentContainerStyle={styles.container} scrollEnabled={false}>
+    <ScrollView contentContainerClassName="gap-[15px] pb-5" scrollEnabled={false}>
       {/* Full-bleed image gallery */}
       <Skeleton style={[styles.gallery, { backgroundColor: bg }]} />
 
       {/* SpecHeader: name + a couple of fact lines */}
-      <View style={styles.specHeader}>
+      <View className="px-4 py-3 gap-2">
         <Skeleton style={[styles.name, { backgroundColor: bg }]} />
         <Skeleton style={[styles.fact, { backgroundColor: bg }]} />
         <Skeleton style={[styles.fact, { backgroundColor: bg, width: '40%' }]} />
@@ -27,10 +27,10 @@ export default function ProductDetailsSkeleton() {
 
       {/* A few titled section cards */}
       {[1, 2, 3].map((n) => (
-        <View key={n} style={styles.section}>
+        <View key={n} className="px-4 gap-2.5">
           <Skeleton style={[styles.sectionTitle, { backgroundColor: bg }]} />
           <Card className="mx-3.5 px-3 pt-1.5 pb-1.5">
-            <View style={styles.cardContent}>
+            <View className="gap-3">
               <Skeleton style={[styles.line, { backgroundColor: bg }]} />
               <Skeleton style={[styles.line, { backgroundColor: bg, width: '90%' }]} />
             </View>
@@ -41,19 +41,12 @@ export default function ProductDetailsSkeleton() {
   );
 }
 
+// Skeleton wraps reanimated's Animated.View, which takes className as a
+// silent no-op — these stay style-driven.
 const styles = StyleSheet.create({
-  container: {
-    gap: 15,
-    paddingBottom: 20,
-  },
   gallery: {
     width: '100%',
     aspectRatio: 16 / 9,
-  },
-  specHeader: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    gap: 8,
   },
   name: {
     height: 28,
@@ -65,17 +58,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     width: '55%',
   },
-  section: {
-    paddingHorizontal: spacing.md,
-    gap: 10,
-  },
   sectionTitle: {
     height: 18,
     borderRadius: radius.sm,
     width: '35%',
-  },
-  cardContent: {
-    gap: 12,
   },
   line: {
     height: 16,

@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { ProductImageCameraDialogs } from '@/components/product/gallery/ProductImageCameraDialogs';
 import { ProductImageEmptyEditState } from '@/components/product/gallery/ProductImageEmptyEditState';
 import { ProductImageGalleryContent } from '@/components/product/gallery/ProductImageGalleryContent';
@@ -37,7 +37,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
   }
 
   return (
-    <View style={styles.container}>
+    <View className="mb-4">
       {media.imageCount > 0 ? (
         <ProductImageGalleryContent
           width={media.width}
@@ -109,7 +109,3 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { marginBottom: 16 },
-});

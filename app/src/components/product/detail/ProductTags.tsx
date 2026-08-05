@@ -1,18 +1,11 @@
 import { type JSX, useCallback, useState } from 'react';
-import {
-  Pressable,
-  type PressableStateCallbackType,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, type PressableStateCallbackType, TextInput, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Chip } from '@/components/base/Chip';
 import { useDialog } from '@/components/base/dialogContext';
 import { SingleSelectFilterModal } from '@/components/base/FilterSelectionModal';
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
-import { radius } from '@/constants';
 import { useSearchBrandsQuery } from '@/features/products/queries';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
@@ -75,15 +68,7 @@ export default function ProductTags({
   };
 
   return (
-    <View
-      style={{
-        marginVertical: 12,
-        paddingHorizontal: 16,
-        gap: 10,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-      }}
-    >
+    <View className="my-3 px-4 gap-2.5 flex-row flex-wrap">
       <Chip
         title={'Brand'}
         onPress={onEditBrand}
@@ -166,10 +151,14 @@ function AmountChip({
   const increase = useCallback(() => commit(amount + 1), [commit, amount]);
 
   return (
-    <View style={[amountStyles.container, { backgroundColor: colors.primaryContainer }]}>
-      <View style={amountStyles.titleRow}>
+    <View
+      className="rounded-md flex-row items-center"
+      style={{ backgroundColor: colors.primaryContainer }}
+    >
+      <View className="flex-row items-center">
         <AppText
           variant="plain"
+          className="py-2 pl-3"
           style={[amountStyles.titleText, { color: colors.onPrimaryContainer }]}
         >
           Amount
@@ -177,7 +166,7 @@ function AmountChip({
         <InfoTooltip title="How many times this component occurs in its parent" />
       </View>
       {editMode ? (
-        <View style={[amountStyles.editorRow, { backgroundColor: colors.primary }]}>
+        <View className="bg-primary flex-row items-center rounded-md overflow-hidden">
           <StepButton
             icon="minus"
             color={colors.onPrimary}
@@ -190,7 +179,8 @@ function AmountChip({
             onChangeText={handleTextChange}
             onBlur={handleBlur}
             keyboardType="numeric"
-            style={[amountStyles.input, { color: colors.onPrimary }]}
+            className="text-primary-foreground w-9 text-center py-2 px-0"
+            style={amountStyles.input}
             accessibilityLabel="Amount"
           />
           <StepButton
@@ -204,10 +194,8 @@ function AmountChip({
       ) : (
         <AppText
           variant="plain"
-          style={[
-            amountStyles.valueText,
-            { backgroundColor: colors.primary, color: colors.onPrimary },
-          ]}
+          className="bg-primary text-primary-foreground rounded-md py-2 px-3"
+          style={amountStyles.valueText}
         >
           {String(amount)}
         </AppText>
@@ -230,10 +218,7 @@ function StepButton({
   label: string;
 }) {
   const style = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      amountStyles.stepBtn,
-      (pressed || disabled) && { opacity: 0.4 },
-    ],
+    ({ pressed }: PressableStateCallbackType) => (pressed || disabled) && { opacity: 0.4 },
     [disabled],
   );
 
@@ -241,6 +226,7 @@ function StepButton({
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      className="w-[30px] h-[38px] items-center justify-center"
       style={style}
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -250,47 +236,7 @@ function StepButton({
   );
 }
 
-const amountStyles = StyleSheet.create({
-  container: {
-    borderRadius: radius.control,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  titleText: {
-    paddingVertical: 8,
-    paddingLeft: 12,
-    fontWeight: '500',
-    fontSize: 15,
-  },
-  valueText: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: radius.control,
-    fontWeight: '500',
-    fontSize: 15,
-  },
-  editorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: radius.control,
-    overflow: 'hidden',
-  },
-  stepBtn: {
-    width: 30,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  input: {
-    width: 36,
-    textAlign: 'center',
-    fontWeight: '500',
-    fontSize: 15,
-    paddingVertical: 8,
-    paddingHorizontal: 0,
-  },
-});
+// fontSize 15/fontWeight 500 has no matching lineHeight, so it stays
+// style-driven for all three call sites.
+const amountText = { fontWeight: '500', fontSize: 15 } as const;
+const amountStyles = { titleText: amountText, valueText: amountText, input: amountText };

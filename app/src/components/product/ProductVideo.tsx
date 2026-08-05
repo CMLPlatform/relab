@@ -180,7 +180,7 @@ function VideoHeaderAction({
 }) {
   if (editMode) {
     return (
-      <TouchableOpacity onPress={onAdd} style={styles.headerAction}>
+      <TouchableOpacity onPress={onAdd} className="mt-1">
         <Text style={{ color: linkColor }}>Add video</Text>
       </TouchableOpacity>
     );
@@ -191,7 +191,7 @@ function VideoHeaderAction({
   }
 
   return (
-    <Pressable onPress={onToggleExpanded} style={styles.headerAction}>
+    <Pressable onPress={onToggleExpanded} className="mt-1">
       <Text style={{ color: linkColor }}>{isExpanded ? 'Hide' : `Show (${videoCount})`}</Text>
     </Pressable>
   );
@@ -271,9 +271,10 @@ function VideoRow({
   const deleteLabel = video.title.trim() ? `Remove video "${video.title}"` : 'Remove video';
 
   return (
-    <View style={styles.videoRow}>
-      <View style={styles.videoFields}>
+    <View className="mb-4 flex-row items-center">
+      <View className="flex-1">
         <TextInput
+          className="px-3.5"
           style={[styles.titleInput, { color: textColor }]}
           placeholder="Title"
           value={video.title}
@@ -286,6 +287,7 @@ function VideoRow({
         {editMode ? (
           <>
             <TextInput
+              className="px-3.5"
               style={[styles.bodyInput, { color: textColor }]}
               placeholder="Video URL"
               value={video.url}
@@ -302,6 +304,7 @@ function VideoRow({
         )}
         {editMode || video.description ? (
           <TextInput
+            className="px-3.5"
             style={[styles.descriptionInput, { color: textColor }]}
             placeholder="Add description (optional)"
             value={video.description}
@@ -371,37 +374,28 @@ function GoLiveCTA({
 
 function EmptyVideoState({ mutedColor }: { mutedColor: string }) {
   return (
-    <Text style={[styles.emptyState, { color: mutedColor }]}>
+    <Text className="opacity-70 mb-2" style={{ color: mutedColor }}>
       This product has no associated videos.
     </Text>
   );
 }
 
+// fontSize/lineHeight combos below don't match any text-* class (e.g.
+// bodyInput's 16/26 vs. text-base's 16/24) — stay style-driven. deleteButton
+// stays on IconButton's `style` prop: IconButton spreads `...rest` (which
+// would carry a caller className) before its own fixed className, so a
+// caller className would be silently clobbered.
 const styles = StyleSheet.create({
-  headerAction: {
-    marginTop: 4,
-  },
-  videoRow: {
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  videoFields: {
-    flex: 1,
-  },
   titleInput: {
-    paddingHorizontal: 14,
     fontSize: 20,
     fontWeight: 'bold',
     lineHeight: 16,
   },
   bodyInput: {
-    paddingHorizontal: 14,
     fontSize: 16,
     lineHeight: 26,
   },
   descriptionInput: {
-    paddingHorizontal: 14,
     fontSize: 16,
     lineHeight: 16,
   },
@@ -409,9 +403,5 @@ const styles = StyleSheet.create({
     padding: 14,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  emptyState: {
-    opacity: 0.7,
-    marginBottom: 8,
   },
 });

@@ -23,19 +23,25 @@ export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string 
   if (!videoId) {
     return (
       <TouchableOpacity onPress={handleOpenUrl}>
-        <Text style={[styles.videoLink, { color: linkColor }]}>{url}</Text>
+        <Text className="px-3.5 underline" style={[styles.videoLink, { color: linkColor }]}>
+          {url}
+        </Text>
       </TouchableOpacity>
     );
   }
   const embedUri = `https://www.youtube-nocookie.com/embed/${videoId}`;
   if (!loaded) {
     return (
-      <View style={styles.videoActions}>
+      <View className="flex-row gap-4 my-1">
         <TouchableOpacity onPress={handleLoad}>
-          <Text style={[styles.videoLink, { color: linkColor }]}>Load video</Text>
+          <Text className="px-3.5 underline" style={[styles.videoLink, { color: linkColor }]}>
+            Load video
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleOpenUrl}>
-          <Text style={[styles.videoLink, { color: linkColor }]}>Open video</Text>
+          <Text className="px-3.5 underline" style={[styles.videoLink, { color: linkColor }]}>
+            Open video
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -73,17 +79,14 @@ export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string 
 }
 
 const styles = StyleSheet.create({
-  videoActions: {
-    flexDirection: 'row',
-    gap: 16,
-    marginVertical: 4,
-  },
+  // fontSize 16/lineHeight 26 has no matching text-* class (text-base is
+  // 16/24) — stays style-driven.
   videoLink: {
-    paddingHorizontal: 14,
     fontSize: 16,
     lineHeight: 26,
-    textDecorationLine: 'underline',
   },
+  // Raw web <iframe>, not a react-native-css-managed element — stays
+  // style-driven.
   webEmbed: {
     width: '100%',
     height: '100%',

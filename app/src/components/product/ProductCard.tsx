@@ -7,7 +7,6 @@ import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
-import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { getProfileHref } from '@/utils/router/profiles';
@@ -72,12 +71,13 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
       accessibilityRole={enabled ? 'button' : undefined}
       style={({ pressed }) => (pressed && enabled ? styles.pressed : undefined)}
     >
-      <Card style={styles.card}>
-        <View style={styles.row}>
-          <View style={styles.thumbnailWrap}>
+      <Card className="mx-2.5 my-[5px]">
+        <View className="flex-row items-center p-3">
+          <View className="mr-4">
             {hasThumbnail ? (
               <View
-                style={[styles.thumbnailFrame, { backgroundColor: theme.colors.surfaceVariant }]}
+                className="w-20 h-20 rounded-lg overflow-hidden"
+                style={{ backgroundColor: theme.colors.surfaceVariant }}
               >
                 <Image
                   source={{ uri: product.thumbnailUrl }}
@@ -102,20 +102,25 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
           </View>
 
           {/* Content */}
-          <View style={styles.content}>
-            <AppText variant="plain" style={[styles.title, { color: theme.colors.onSurface }]}>
+          <View className="flex-1">
+            <AppText variant="plain" className="text-foreground mb-0.5" style={styles.title}>
               {product.name || 'Unnamed Product'}
             </AppText>
-            <MutedText style={styles.detailText} numberOfLines={1} ellipsizeMode="tail">
+            <MutedText
+              className="mb-1"
+              style={styles.detailText}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {detailList.join(' • ')}
             </MutedText>
-            <MutedText style={styles.description} numberOfLines={1} ellipsizeMode="tail">
+            <MutedText className="text-sm" numberOfLines={1} ellipsizeMode="tail">
               {product.description}
             </MutedText>
             {hasMetadata ? (
-              <View style={styles.metadataRow}>
+              <View className="flex-row items-center gap-2.5 mt-1.5">
                 {createdAgo ? (
-                  <View style={styles.metadataItem}>
+                  <View className="flex-row items-center gap-[3px]">
                     <Icon name="clock-outline" size={12} color={theme.colors.outline} />
                     <AppText
                       variant="plain"
@@ -126,11 +131,12 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                   </View>
                 ) : null}
                 {ownerLabel ? (
-                  <View style={styles.metadataItem}>
+                  <View className="flex-row items-center gap-[3px]">
                     <Icon name="account-outline" size={12} color={theme.colors.outline} />
                     <AppText
                       variant="plain"
-                      style={[styles.metadataText, { color: theme.colors.primary }]}
+                      className="text-primary"
+                      style={styles.metadataText}
                       numberOfLines={1}
                       onPress={navigateToOwner}
                     >
@@ -155,54 +161,19 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.7,
   },
-  card: {
-    marginHorizontal: 10,
-    marginVertical: 5,
-  },
-  row: {
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  thumbnailWrap: {
-    marginRight: 16,
-  },
-  thumbnailFrame: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.card,
-    overflow: 'hidden',
-  },
+  // expo-image's Image ignores className, so its sizing stays style-driven.
   thumbnailImage: {
     width: '100%',
     height: '100%',
   },
-  content: {
-    flex: 1,
-  },
+  // fontSize-only (no matching lineHeight) — text-* classes would add one
+  // the original styles never had.
   title: {
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 2,
   },
   detailText: {
     fontSize: 13,
-    marginBottom: 4,
-  },
-  description: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  metadataRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 6,
-  },
-  metadataItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
   },
   metadataText: {
     fontSize: 11,
