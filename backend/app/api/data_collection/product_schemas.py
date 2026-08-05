@@ -24,12 +24,9 @@ class ProductFields(BaseModel):
     model: str | None = Field(default=None, max_length=100)
 
 
-class ProductReadBase(
-    IntIdReadSchemaWithTimeStamp, ProductFields, PhysicalPropertiesFields, ProductCircularityPropertiesFields
-):
-    """Shared read fields for base products and components."""
+class ThumbnailFields(BaseModel):
+    """Shared thumbnail-derivation fields for any read schema that shows a product image."""
 
-    product_type_id: PositiveInt | None = None
     thumbnail_url: str | None = None
     # Sourced from the Product.first_image_file column property so summary reads
     # carry a thumbnail without loading the images relationship.
@@ -43,8 +40,31 @@ class ProductReadBase(
         return self
 
 
+class ProductReadBase(
+    IntIdReadSchemaWithTimeStamp,
+    ProductFields,
+    PhysicalPropertiesFields,
+    ProductCircularityPropertiesFields,
+    ThumbnailFields,
+):
+    """Shared read fields for base products and components."""
+
+    product_type_id: PositiveInt | None = None
+
+
 class ProductRead(ProductReadBase):
     """Read schema for base products (top of a product tree)."""
 
     owner_id: UUID4 | None = None
     owner_username: str | None = None
+
+
+class ProductSummary(IntIdReadSchemaWithTimeStamp, ThumbnailFields):
+    """Minimal product summary for embedding in unrelated contexts (e.g. material links).
+
+    Deliberately narrower than ``ProductRead`` — no owner, physical/circularity
+    properties, or other detail-view fields since no consumer needs them here.
+    Extend with more fields only when an actual caller needs them.
+    """
+
+    name: str

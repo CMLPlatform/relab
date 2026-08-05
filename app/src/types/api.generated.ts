@@ -3492,6 +3492,8 @@ export interface components {
      * @description Read schema for components (nested inside a base product tree).
      */
     ComponentRead: {
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
@@ -3519,8 +3521,6 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3538,6 +3538,8 @@ export interface components {
      * @description Component read schema with recursive sub-components.
      */
     ComponentReadWithRecursiveComponents: {
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
@@ -3565,8 +3567,6 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3589,6 +3589,8 @@ export interface components {
      * @description Component detail schema with one level of child components.
      */
     ComponentReadWithRelationshipsAndFlatComponents: {
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
@@ -3616,8 +3618,6 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3985,7 +3985,7 @@ export interface components {
       updated_at?: string;
       /** Product Id */
       product_id: number;
-      product: components['schemas']['ProductRead'];
+      product: components['schemas']['ProductSummary'];
     };
     /**
      * MaterialProductLinkReadWithinProduct
@@ -4603,6 +4603,8 @@ export interface components {
      * @description Read schema for base products (top of a product tree).
      */
     ProductRead: {
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
@@ -4630,8 +4632,6 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
       /** Owner Id */
       owner_id?: string | null;
       /** Owner Username */
@@ -4642,6 +4642,8 @@ export interface components {
      * @description Base-product detail schema with one level of child components.
      */
     ProductReadWithRelationshipsAndFlatComponents: {
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
@@ -4669,8 +4671,6 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
       /** Owner Id */
       owner_id?: string | null;
       /** Owner Username */
@@ -4701,6 +4701,26 @@ export interface components {
        * @description List of component products
        */
       components?: components['schemas']['ComponentRead'][];
+    };
+    /**
+     * ProductSummary
+     * @description Minimal product summary for embedding in unrelated contexts (e.g. material links).
+     *
+     *     Deliberately narrower than ``ProductRead`` — no owner, physical/circularity
+     *     properties, or other detail-view fields since no consumer needs them here.
+     *     Extend with more fields only when an actual caller needs them.
+     */
+    ProductSummary: {
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
+      /** Created At */
+      created_at?: string;
+      /** Updated At */
+      updated_at?: string;
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
     };
     /**
      * ProductTypeCreateWithCategories

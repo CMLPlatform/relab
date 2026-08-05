@@ -12,7 +12,7 @@ from app.api.common.schemas.base import (
 )
 from app.api.common.schemas.field_mixins import MaterialFields
 from app.api.common.validation import MultilineUserText, SingleLineUserText
-from app.api.data_collection.product_schemas import ProductRead
+from app.api.data_collection.product_schemas import ProductSummary
 from app.api.file_storage.schemas import FileRead, ImageRead
 from app.api.reference_data.examples import (
     CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES,
@@ -105,7 +105,7 @@ class MaterialProductLinkReadWithinMaterial(AssociationModelReadSchemaWithTimeSt
     """Schema for reading material-product links from the material side."""
 
     product_id: PositiveInt
-    product: ProductRead
+    product: ProductSummary
 
 
 ### Category Schemas ###

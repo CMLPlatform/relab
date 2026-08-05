@@ -2787,7 +2787,7 @@
             "type": "string"
           },
           "product": {
-            "$ref": "#/components/schemas/ProductRead"
+            "$ref": "#/components/schemas/ProductSummary"
           },
           "product_id": {
             "exclusiveMinimum": 0.0,
@@ -4389,6 +4389,45 @@
           "id"
         ],
         "title": "ProductReadWithRelationshipsAndFlatComponents",
+        "type": "object"
+      },
+      "ProductSummary": {
+        "description": "Minimal product summary for embedding in unrelated contexts (e.g. material links).\n\nDeliberately narrower than ``ProductRead`` \u2014 no owner, physical/circularity\nproperties, or other detail-view fields since no consumer needs them here.\nExtend with more fields only when an actual caller needs them.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "ProductSummary",
         "type": "object"
       },
       "ProductTypeRead": {
