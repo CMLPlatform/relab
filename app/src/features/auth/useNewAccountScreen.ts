@@ -1,9 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
+import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { register } from '@/services/api/auth/authentication';
 import { type NewAccountFormValues, newAccountSchema } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
@@ -44,8 +45,6 @@ export function useNewAccountScreen() {
     if (isValid) setSection('password');
   };
 
-  const inFlight = useRef(false);
-
   const validatedCreateAccount = form.handleSubmit(async (data: NewAccountFormValues) => {
     const result = await register(data.username, data.email, data.password);
 
@@ -70,17 +69,9 @@ export function useNewAccountScreen() {
 
   // The "Create Account" button only shows a spinner while submitting — it stays
   // pressable — so a double-tap would fire register twice and stack two dialogs.
-  // Single-flight at this boundary (not inside the validated handler, which the
-  // compiler's ref rule forbids).
-  const createAccount = useCallback(async () => {
-    if (inFlight.current) return;
-    inFlight.current = true;
-    try {
-      await validatedCreateAccount();
-    } finally {
-      inFlight.current = false;
-    }
-  }, [validatedCreateAccount]);
+  // Guarded at this boundary, not inside the validated handler, which the
+  // compiler's ref rule forbids.
+  const createAccount = useSingleFlight(validatedCreateAccount);
 
   return {
     ui: {

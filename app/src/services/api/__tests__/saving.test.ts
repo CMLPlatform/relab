@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetchWithAuth } from '@/services/api/auth/authentication';
 import { getBaseProduct } from '@/services/api/products';
-import { deleteProduct, saveProduct } from '@/services/api/saving';
+import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
 
 // Mock dependencies
@@ -399,7 +399,35 @@ describe('Saving API Service', () => {
         json: async () => ({ detail: 'File too large' }),
       } as Response);
 
-      await expect(saveProduct(product, [], [])).rejects.toThrow('File too large');
+      // The PATCH already landed, so this surfaces as a partial failure carrying
+      // the original upload error as its cause.
+      const error = await saveProduct(product, [], []).catch((err: unknown) => err);
+      expect(error).toBeInstanceOf(MediaSyncError);
+      expect((error as MediaSyncError).productId).toBe(42);
+      expect((error as MediaSyncError).cause).toMatchObject({ message: 'File too large' });
+    });
+
+    it('reports a failed upload on a new product as a partial save, not a failed create', async () => {
+      mockFetch.mockResolvedValueOnce({
+        blob: async () => new Blob(['data'], { type: 'image/png' }),
+      } as Response);
+      global.fetch = mockFetch;
+
+      mockFetchOk({ id: 77 }); // POST /products
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        status: 413,
+        statusText: 'Payload Too Large',
+        json: async () => ({ detail: 'Too large' }),
+      } as Response);
+
+      const error = await saveProduct({
+        ...baseProduct,
+        images: [{ url: 'https://example.com/new.jpg', description: '' }],
+      }).catch((err: unknown) => err);
+
+      expect(error).toBeInstanceOf(MediaSyncError);
+      expect((error as MediaSyncError).productId).toBe(77);
     });
 
     it('mutates image with server-assigned id and url after successful upload', async () => {

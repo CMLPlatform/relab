@@ -1,9 +1,10 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
 import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { AppButton } from './AppButton';
 import { AppDialog } from './AppDialog';
+import { AppText } from './AppText';
 import {
   type DialogButton,
   DialogContext,
@@ -12,7 +13,6 @@ import {
 } from './dialogContext';
 import { dialogActionsStyle, dialogTitleStyle } from './dialogStyles';
 import { OverlaySurface } from './OverlaySurface';
-import { Text } from './Text';
 import { TextInput } from './TextInput';
 
 // Within WCAG's 3-5s auto-dismiss guidance for transient toasts.
@@ -98,11 +98,15 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
   return (
     <AppDialog visible onDismiss={onDismiss}>
       {options.title ? (
-        <Text accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           {options.title}
-        </Text>
+        </AppText>
       ) : null}
-      {options.message ? <Text style={styles.message}>{options.message}</Text> : null}
+      {options.message ? (
+        <AppText variant="plain" style={styles.message}>
+          {options.message}
+        </AppText>
+      ) : null}
 
       {options.input ? (
         <TextInput
@@ -125,14 +129,15 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
       ) : null}
 
       {options.input && options.helperText ? (
-        <Text
+        <AppText
+          variant="plain"
           style={[
             styles.helperText,
             { color: options.error ? theme.tokens.status.danger : theme.colors.onSurfaceVariant },
           ]}
         >
           {options.helperText}
-        </Text>
+        </AppText>
       ) : null}
 
       <View style={dialogActionsStyle}>
@@ -179,6 +184,8 @@ function Toast({ message, onDismiss }: { message: string | null; onDismiss: () =
 
   useEffect(() => {
     if (!message) return;
+    // accessibilityLiveRegion is Android-only; VoiceOver needs an explicit announcement.
+    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
     const timer = setTimeout(onDismiss, TOAST_DURATION_MS);
     return () => clearTimeout(timer);
   }, [message, onDismiss]);
@@ -191,9 +198,13 @@ function Toast({ message, onDismiss }: { message: string | null; onDismiss: () =
         style={[styles.toast, { backgroundColor: theme.colors.inverseSurface }]}
         tone="scrim"
       >
-        <Text accessibilityLiveRegion="polite" style={{ color: theme.colors.inverseOnSurface }}>
+        <AppText
+          variant="plain"
+          accessibilityLiveRegion="polite"
+          style={{ color: theme.colors.inverseOnSurface }}
+        >
           {message}
-        </Text>
+        </AppText>
       </OverlaySurface>
     </View>
   );

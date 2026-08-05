@@ -337,4 +337,38 @@ describe('rpiCamera API service', () => {
 
     fetchSpy.mockRestore();
   });
+
+  it('rejects a local capture with no image id instead of returning an empty one', async () => {
+    // An empty id reaches the gallery, and the next save DELETEs it as unmatched.
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ image_url: 'https://cdn.example/image.jpg' }),
+    } as Response);
+
+    await expect(captureImageLocally('http://192.168.7.1:8018', 'local-key', 42)).rejects.toThrow(
+      'no image id',
+    );
+
+    fetchSpy.mockRestore();
+  });
+
+  it('reports a queued local capture rather than adding an image with no URL', async () => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        image_id: 'a'.repeat(32),
+        status: 'queued',
+        image_url: null,
+        expires_at: null,
+      }),
+    } as Response);
+
+    await expect(captureImageLocally('http://192.168.7.1:8018', 'local-key', 42)).rejects.toThrow(
+      'could not upload it yet',
+    );
+
+    fetchSpy.mockRestore();
+  });
 });

@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform } from 'react-native';
+import { clampIndex } from '@/components/product/gallery/shared';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
 import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
@@ -118,6 +119,8 @@ export function useProductGalleryImageActions({
   viewerState: ReturnType<typeof useProductGalleryViewer>;
   onImagesChange?: (images: { url: string; description: string; id?: string }[]) => void;
 }) {
+  const feedback = useAppFeedback();
+
   const handlePickImage = useCallback(async () => {
     const result = await launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -126,10 +129,10 @@ export function useProductGalleryImageActions({
     });
 
     if (!result.canceled) {
-      const newImages = await buildImportedImages(result.assets);
-      onImagesChange?.([...media.images, ...newImages]);
+      const newImages = await buildImportedImages(result.assets, feedback.error);
+      if (newImages.length > 0) onImagesChange?.([...media.images, ...newImages]);
     }
-  }, [media.images, onImagesChange]);
+  }, [feedback.error, media.images, onImagesChange]);
 
   const handleTakePhoto = useCallback(async () => {
     if (Platform.OS !== 'web') {
@@ -138,17 +141,17 @@ export function useProductGalleryImageActions({
     }
     const result = await launchCameraAsync({ quality: 0.8 });
     if (!result.canceled) {
-      const [newImage] = await buildImportedImages([result.assets[0]]);
-      onImagesChange?.([...media.images, newImage]);
+      const [newImage] = await buildImportedImages([result.assets[0]], feedback.error);
+      if (newImage) onImagesChange?.([...media.images, newImage]);
     }
-  }, [media.images, onImagesChange]);
+  }, [feedback.error, media.images, onImagesChange]);
 
   const handleDeleteImage = useCallback(
     (index: number) => {
       const newImages = [...media.images];
       newImages.splice(index, 1);
       onImagesChange?.(newImages);
-      void viewerState.updateCurrentIndex(Math.max(0, Math.min(index, newImages.length - 1)));
+      void viewerState.updateCurrentIndex(clampIndex(index, newImages.length));
     },
     [media.images, onImagesChange, viewerState],
   );

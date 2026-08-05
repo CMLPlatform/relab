@@ -56,58 +56,48 @@ export async function updateProfileUsername({
   }
 }
 
-export async function updateProfileVisibility({
-  profile,
-  visibility,
-  feedback,
-  refetch,
-}: {
-  profile: { preferences?: Record<string, unknown> | null };
-  visibility: ProfileVisibility;
-  feedback: ReturnType<typeof useAppFeedback>;
-  refetch: (forceRefresh?: boolean) => Promise<unknown>;
-}) {
-  try {
-    await updateUser({
-      preferences: {
-        ...(profile.preferences ?? {}),
-        profile_visibility: visibility,
-      },
-    });
-    await refetch(false);
-    feedback.toast('Profile visibility updated.');
-  } catch (error) {
-    feedback.error(
-      `Failed to update visibility: ${getErrorMessage(error, 'Unknown error')}`,
-      'Visibility update failed',
-    );
-  }
-}
+export type ProfilePreferenceUpdate =
+  | { field: 'profile_visibility'; value: ProfileVisibility }
+  | { field: 'email_updates_enabled'; value: boolean };
 
-export async function updateProfileEmailUpdates({
-  profile,
-  enabled,
+const PREFERENCE_COPY = {
+  profile_visibility: {
+    success: () => 'Profile visibility updated.',
+    errorPrefix: 'Failed to update visibility',
+    errorTitle: 'Visibility update failed',
+  },
+  email_updates_enabled: {
+    success: (value: unknown) => (value ? 'Email updates enabled.' : 'Email updates disabled.'),
+    errorPrefix: 'Failed to update email preferences',
+    errorTitle: 'Email preference update failed',
+  },
+} as const;
+
+/**
+ * Write a single preference field.
+ *
+ * Only the changed key is sent: the server merges with `exclude_unset`, so replaying a
+ * stale local snapshot of the whole preferences object would revert whatever another
+ * in-flight toggle just wrote.
+ */
+export async function updateProfilePreferenceField({
+  field,
+  value,
   feedback,
   refetch,
-}: {
-  profile: { preferences?: Record<string, unknown> | null };
-  enabled: boolean;
+}: ProfilePreferenceUpdate & {
   feedback: ReturnType<typeof useAppFeedback>;
   refetch: (forceRefresh?: boolean) => Promise<unknown>;
 }) {
+  const copy = PREFERENCE_COPY[field];
   try {
-    await updateUser({
-      preferences: {
-        ...(profile.preferences ?? {}),
-        email_updates_enabled: enabled,
-      },
-    });
+    await updateUser({ preferences: { [field]: value } });
     await refetch(false);
-    feedback.toast(enabled ? 'Email updates enabled.' : 'Email updates disabled.');
+    feedback.toast(copy.success(value));
   } catch (error) {
     feedback.error(
-      `Failed to update email preferences: ${getErrorMessage(error, 'Unknown error')}`,
-      'Email preference update failed',
+      `${copy.errorPrefix}: ${getErrorMessage(error, 'Unknown error')}`,
+      copy.errorTitle,
     );
   }
 }

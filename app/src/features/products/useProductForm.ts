@@ -10,7 +10,9 @@ import {
 } from 'react-hook-form';
 import { useDialog } from '@/components/base/dialogContext';
 import type { SectionKey } from '@/components/base/SectionNavContext';
+import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { newProduct } from '@/services/api/products';
+import { MediaSyncError } from '@/services/api/saving';
 import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';
 import { getErrorMessage } from '@/utils/errors';
@@ -137,7 +139,7 @@ function useProductFormActions({
   saveMutation: ReturnType<typeof useSaveProductMutation>;
   serverProduct: Product | undefined;
 }) {
-  const saveAndExit = () => {
+  const saveAndExit = useSingleFlight(async () => {
     // Clean form: treat as "close without writing", leaving edit mode via the
     // caller's onSaveSuccess.
     if (!isDirty) {
@@ -145,57 +147,53 @@ function useProductFormActions({
       return;
     }
 
-    saveMutation.mutate(
-      {
+    try {
+      const savedId = await saveMutation.mutateAsync({
         product,
         originalImages: serverProduct?.images ?? [],
         originalVideos: serverProduct?.videos ?? [],
-      },
-      {
-        onSuccess: (savedId) => {
-          // Clear the form's dirty state with the just-persisted values so any
-          // navigation guard (beforeRemove) downstream doesn't read stale
-          // "unsaved changes" and block the exit the caller is about to trigger.
-          reset({ ...product, id: savedId });
-          onSaveSuccess?.(savedId);
-        },
-        onError: (err) => {
-          dialog.alert({
-            title: 'Save failed',
-            message: getErrorMessage(err, 'Could not save. Please try again.'),
-            buttons: [{ text: 'OK' }],
-          });
-        },
-      },
-    );
-  };
+      });
+      // Clear the form's dirty state with the just-persisted values so any
+      // navigation guard (beforeRemove) downstream doesn't read stale
+      // "unsaved changes" and block the exit the caller is about to trigger.
+      reset({ ...product, id: savedId });
+      onSaveSuccess?.(savedId);
+    } catch (err) {
+      // A media-sync failure means the entity itself saved — say so, and stay
+      // put so the photos that didn't upload are still there to retry.
+      const partial = err instanceof MediaSyncError;
+      dialog.alert({
+        title: partial ? 'Photos not uploaded' : 'Save failed',
+        message: getErrorMessage(err, 'Could not save. Please try again.'),
+        buttons: [{ text: 'OK' }],
+      });
+    }
+  });
 
-  const onProductDelete = () => {
-    deleteMutation.mutate(product, {
-      onSuccess: () => {
-        // Same rationale as save: clear the form so the unsaved-changes guard
-        // on /products/[id] doesn't fire during the redirect.
-        reset(product);
-        // Let the screen own where a delete lands (a component returns to its
-        // parent, not the root list) and skip the beforeRemove guard, mirroring
-        // onSaveSuccess. Fall back to the root list for callers without a wrapper.
-        if (onDeleteSuccess) {
-          onDeleteSuccess();
-        } else {
-          replace('/products');
-        }
-      },
-      onError: (err) => {
-        // Without this a failed delete is swallowed by react-query — the entity
-        // stays on screen with no feedback, so the tap looks like it did nothing.
-        dialog.alert({
-          title: 'Delete failed',
-          message: getErrorMessage(err, 'Could not delete. Please try again.'),
-          buttons: [{ text: 'OK' }],
-        });
-      },
-    });
-  };
+  const onProductDelete = useSingleFlight(async () => {
+    try {
+      await deleteMutation.mutateAsync(product);
+      // Same rationale as save: clear the form so the unsaved-changes guard
+      // on /products/[id] doesn't fire during the redirect.
+      reset(product);
+      // Let the screen own where a delete lands (a component returns to its
+      // parent, not the root list) and skip the beforeRemove guard, mirroring
+      // onSaveSuccess. Fall back to the root list for callers without a wrapper.
+      if (onDeleteSuccess) {
+        onDeleteSuccess();
+      } else {
+        replace('/products');
+      }
+    } catch (err) {
+      // Without this a failed delete is swallowed by react-query — the entity
+      // stays on screen with no feedback, so the tap looks like it did nothing.
+      dialog.alert({
+        title: 'Delete failed',
+        message: getErrorMessage(err, 'Could not delete. Please try again.'),
+        buttons: [{ text: 'OK' }],
+      });
+    }
+  });
 
   return { saveAndExit, onProductDelete };
 }

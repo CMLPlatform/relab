@@ -1,8 +1,8 @@
 import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
+import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
-import { Text } from '@/components/base/Text';
 
 export default function LogoutConfirm({
   visible,
@@ -15,10 +15,10 @@ export default function LogoutConfirm({
 }) {
   return (
     <AppDialog visible={visible} onDismiss={onDismiss}>
-      <Text accessibilityRole="header" style={dialogTitleStyle}>
+      <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
         Sign out
-      </Text>
-      <Text>Are you sure you want to sign out?</Text>
+      </AppText>
+      <AppText variant="plain">Are you sure you want to sign out?</AppText>
       <View style={dialogActionsStyle}>
         <AppButton variant="ghost" onPress={onDismiss}>
           Cancel

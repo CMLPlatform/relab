@@ -50,6 +50,30 @@ export function makeHorizontalItemLayout(width: number) {
   });
 }
 
+/** Clamps `index` into the valid `[0, length - 1]` range (0 when `length` is 0). */
+export function clampIndex(index: number, length: number): number {
+  return Math.max(0, Math.min(index, length - 1));
+}
+
+/**
+ * Scrolls a paged horizontal list to `index`. `scrollToIndex` fails on some
+ * platforms/list implementations when the target hasn't been measured yet
+ * (e.g. it hasn't rendered), so this falls back to an offset-based scroll
+ * computed from the fixed item `width`.
+ */
+export function scrollListToIndex(
+  ref: ScrollableListHandle | null,
+  index: number,
+  width: number,
+  animated: boolean,
+): void {
+  try {
+    ref?.scrollToIndex({ index, animated });
+  } catch {
+    ref?.scrollToOffset({ offset: index * width, animated });
+  }
+}
+
 /** Keys rows by image identity so deleting one does not re-key its neighbours. */
 export const galleryItemKeyExtractor = (item: GalleryItem) => item.key;
 

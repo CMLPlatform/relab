@@ -46,37 +46,32 @@ describe('authMfa pending login storage', () => {
     Object.defineProperty(globalThis, 'sessionStorage', { value: undefined, configurable: true });
   });
 
-  it('round-trips pending MFA state through session storage', () => {
+  it('round-trips pending MFA state in memory and clears it', () => {
     setPendingMfaLogin({
       status: 'mfa_required',
       mfaToken: 'mfa-token',
       redirectTo: '/account',
     });
 
-    clearPendingMfaLogin();
-    const storage = globalThis.sessionStorage as unknown as StorageStub;
-    storage.setItem(
-      'relab.pendingMfaLogin',
-      JSON.stringify({
-        status: 'mfa_required',
-        mfaToken: 'stored-token',
-        redirectTo: '/account',
-      }),
-    );
-
     expect(getPendingMfaLogin()).toEqual({
       status: 'mfa_required',
-      mfaToken: 'stored-token',
+      mfaToken: 'mfa-token',
       redirectTo: '/account',
     });
+
+    clearPendingMfaLogin();
+    expect(getPendingMfaLogin()).toBeUndefined();
   });
 
-  it('clears stale pending MFA state when stored JSON has the wrong shape', () => {
+  // The MFA token is a credential: web storage is XSS-readable, so it must never
+  // be mirrored there — a reload drops the challenge instead.
+  it('never writes the pending MFA token to web session storage', () => {
     const storage = globalThis.sessionStorage as unknown as StorageStub;
-    storage.setItem('relab.pendingMfaLogin', JSON.stringify({ status: 'authenticated' }));
 
-    expect(getPendingMfaLogin()).toBeUndefined();
-    expect(storage.removeItem).toHaveBeenCalledWith('relab.pendingMfaLogin');
+    setPendingMfaLogin({ status: 'mfa_required', mfaToken: 'mfa-token' });
+
+    expect(storage.setItem).not.toHaveBeenCalled();
+    expect(storage.getItem('relab.pendingMfaLogin')).toBeNull();
   });
 
   it('claims OAuth MFA handoff without exposing MFA tokens in callback URLs', async () => {

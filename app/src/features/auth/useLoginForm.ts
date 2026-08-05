@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useRef } from 'react';
+import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import type { useDialog } from '@/components/base/dialogContext';
+import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { getUser, login } from '@/services/api/auth/authentication';
 import type { MfaLoginPending } from '@/services/api/auth/authMfa';
 import { type LoginFormValues, loginSchema } from '@/services/api/validation/userSchema';
@@ -78,7 +79,6 @@ export function useLoginForm({
     defaultValues: { email: '', password: '' },
   });
   const emailRef = useRef<{ focus(): void } | null>(null);
-  const inFlight = useRef(false);
 
   const validatedSubmit = handleSubmit(async (data: LoginFormValues) => {
     await attemptPasswordLogin({
@@ -90,20 +90,11 @@ export function useLoginForm({
     });
   });
 
-  // The button stays pressable and the password field's onSubmitEditing fires the
-  // same handler, so two submits can race before any re-render. Single-flight at
-  // this boundary (not inside the validated handler, which the compiler's ref rule
-  // forbids) so an mfa_required response doesn't stack two /mfa screens and a
-  // success doesn't navigate twice.
-  const submit = useCallback(async () => {
-    if (inFlight.current) return;
-    inFlight.current = true;
-    try {
-      await validatedSubmit();
-    } finally {
-      inFlight.current = false;
-    }
-  }, [validatedSubmit]);
+  // The password field's onSubmitEditing fires the same handler as the button, so
+  // two submits can race — an mfa_required response would stack two /mfa screens
+  // and a success would navigate twice. Guarded at this boundary, not inside the
+  // validated handler, which the compiler's ref rule forbids.
+  const submit = useSingleFlight(validatedSubmit);
 
   return { control, emailRef, submit };
 }

@@ -11,9 +11,9 @@ import { useAppFeedback } from '@/hooks/useAppFeedback';
 import type { ThemeMode } from '@/types/User';
 import { useProfileActions } from './actions';
 import {
+  type ProfilePreferenceUpdate,
   type ProfileVisibility,
-  updateProfileEmailUpdates,
-  updateProfileVisibility,
+  updateProfilePreferenceField,
 } from './mutations';
 import { useProfileAuthRedirect, useProfileDialogs, useProfileLinkedAccounts } from './state';
 import { useOAuthAssociations } from './useOAuthAssociations';
@@ -65,30 +65,41 @@ export function useProfileScreen() {
     dialog,
   });
 
-  const handleVisibilityChange = useCallback(
-    async (visibility: ProfileVisibility) => {
-      if (!profile || visibilitySaving) return;
-      setVisibilitySaving(true);
+  const savePreference = useCallback(
+    async (
+      update: ProfilePreferenceUpdate,
+      saving: boolean,
+      setSaving: (next: boolean) => void,
+    ) => {
+      if (!profile || saving) return;
+      setSaving(true);
       try {
-        await updateProfileVisibility({ profile, visibility, feedback, refetch });
+        await updateProfilePreferenceField({ ...update, feedback, refetch });
       } finally {
-        setVisibilitySaving(false);
+        setSaving(false);
       }
     },
-    [feedback, profile, refetch, visibilitySaving],
+    [feedback, profile, refetch],
+  );
+
+  const handleVisibilityChange = useCallback(
+    (visibility: ProfileVisibility) =>
+      savePreference(
+        { field: 'profile_visibility', value: visibility },
+        visibilitySaving,
+        setVisibilitySaving,
+      ),
+    [savePreference, visibilitySaving],
   );
 
   const handleEmailUpdatesChange = useCallback(
-    async (enabled: boolean) => {
-      if (!profile || emailUpdatesSaving) return;
-      setEmailUpdatesSaving(true);
-      try {
-        await updateProfileEmailUpdates({ profile, enabled, feedback, refetch });
-      } finally {
-        setEmailUpdatesSaving(false);
-      }
-    },
-    [emailUpdatesSaving, feedback, profile, refetch],
+    (enabled: boolean) =>
+      savePreference(
+        { field: 'email_updates_enabled', value: enabled },
+        emailUpdatesSaving,
+        setEmailUpdatesSaving,
+      ),
+    [savePreference, emailUpdatesSaving],
   );
 
   const linkedAccounts = useProfileLinkedAccounts(profile);

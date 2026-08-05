@@ -47,10 +47,6 @@ export default function RootLayout() {
   );
 }
 
-export function HeaderRight() {
-  return <HeaderRightPill />;
-}
-
 function AppBackground({ overlay }: { overlay: BackgroundOverlay }) {
   return (
     <>

@@ -101,20 +101,20 @@ export function useProductImageGallery({
     prefetchUrls: media.prefetchUrls,
     productId,
   });
-  useProductGalleryKeyboardShortcuts({
-    isWeb: captureState.isWeb,
-    lightboxOpen: viewerState.lightboxOpen,
-    imageCount: media.imageCount,
-    selectedIndex: viewerState.selectedIndex,
-    updateCurrentIndex: viewerState.updateCurrentIndex,
-    scrollToIndex: viewerState.scrollToIndex,
-  });
   const actions = useProductGalleryActions({
     media,
     captureState,
     viewerState,
     productId,
     onImagesChange,
+  });
+  useProductGalleryKeyboardShortcuts({
+    isWeb: captureState.isWeb,
+    lightboxOpen: viewerState.lightboxOpen,
+    imageCount: media.imageCount,
+    selectedIndex: viewerState.selectedIndex,
+    onPrevious: actions.showPreviousImage,
+    onNext: actions.showNextImage,
   });
 
   return useMemo(

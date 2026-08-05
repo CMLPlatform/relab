@@ -41,6 +41,9 @@ jest.mock('@/context/auth', () => ({
 
 jest.mock('@/features/products/queries', () => ({
   useSaveProductMutation: () => ({ mutateAsync: mockMutateAsync, isPending: false }),
+}));
+
+jest.mock('@/features/product-entity/queries', () => ({
   baseProductQueryOptions: (id: number | undefined) => ({
     queryKey: ['baseProduct', id ?? null],
     queryFn: () => Promise.resolve({ name: 'Drill press' }),

@@ -1,15 +1,18 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { useDialog } from '@/components/base/dialogContext';
+import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
+import { IconButton } from '@/components/base/IconButton';
 import { TextInput } from '@/components/base/TextInput';
 import { StreamingContent } from '@/components/cameras/StreamingContent';
 import { useProductVideo } from '@/features/products/useProductVideo';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
+import { describedBy } from '@/utils/a11y';
 import { isHttpUrl } from '@/utils/urlSafety';
 import { VideoEmbed } from './ProductVideoEmbed';
 
@@ -248,6 +251,17 @@ function VideoRow({
   );
   const handleRemove = useCallback(() => onRemove(idx), [onRemove, idx]);
 
+  const titleErrorId = useId();
+  const urlErrorId = useId();
+  const titleError = video.title.trim() === '' ? 'Title is required' : undefined;
+  const urlError =
+    video.url.trim() === ''
+      ? 'Video URL is required'
+      : !isHttpUrl(video.url)
+        ? 'Video URL must use http or https'
+        : undefined;
+  const deleteLabel = video.title.trim() ? `Remove video "${video.title}"` : 'Remove video';
+
   return (
     <View style={styles.videoRow}>
       <View style={styles.videoFields}>
@@ -258,17 +272,23 @@ function VideoRow({
           onChangeText={handleTitleChange}
           editable={editMode}
           errorOnEmpty
+          {...describedBy(titleErrorId, Boolean(titleError))}
         />
+        <FormFieldError errorId={titleErrorId} message={titleError} />
         {editMode ? (
-          <TextInput
-            style={[styles.bodyInput, { color: textColor }]}
-            placeholder="Video URL"
-            value={video.url}
-            onChangeText={handleUrlChange}
-            errorOnEmpty
-            customValidation={isHttpUrl}
-            editable={editMode}
-          />
+          <>
+            <TextInput
+              style={[styles.bodyInput, { color: textColor }]}
+              placeholder="Video URL"
+              value={video.url}
+              onChangeText={handleUrlChange}
+              errorOnEmpty
+              customValidation={isHttpUrl}
+              editable={editMode}
+              {...describedBy(urlErrorId, Boolean(urlError))}
+            />
+            <FormFieldError errorId={urlErrorId} message={urlError} />
+          </>
         ) : (
           <VideoEmbed url={video.url} linkColor={linkColor} />
         )}
@@ -283,13 +303,13 @@ function VideoRow({
         ) : null}
       </View>
       {editMode ? (
-        <TouchableOpacity
+        <IconButton
           testID={`delete-video-${idx}`}
+          icon="delete"
+          accessibilityLabel={deleteLabel}
           onPress={handleRemove}
           style={styles.deleteButton}
-        >
-          <Icon name="delete" size="lg" color="red" />
-        </TouchableOpacity>
+        />
       ) : null}
     </View>
   );

@@ -111,13 +111,6 @@ export const cameraDetailStyles = StyleSheet.create({
     textTransform: 'uppercase',
     paddingHorizontal: 4,
   },
-  stretchButton: {
-    alignSelf: 'stretch',
-  },
-  actionButtonContent: {
-    justifyContent: 'flex-start',
-    paddingVertical: 6,
-  },
   actionLabel: {
     fontWeight: '600',
   },

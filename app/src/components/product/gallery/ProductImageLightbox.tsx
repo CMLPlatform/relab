@@ -26,6 +26,7 @@ import ZoomableImage from '@/components/base/ZoomableImage';
 import { radius } from '@/constants';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import {
+  clampIndex as clampIndexIn,
   GalleryFlatList,
   type GalleryItem,
   galleryItemAltText,
@@ -34,6 +35,7 @@ import {
   makeHorizontalItemLayout,
   type ScrollableListHandle,
   type ScrollEvent,
+  scrollListToIndex,
 } from './shared';
 
 type Props = {
@@ -69,17 +71,13 @@ export function ProductImageLightbox({
   const index = startIndex;
 
   const clampIndex = useCallback(
-    (nextIndex: number) => Math.max(0, Math.min(nextIndex, items.length - 1)),
+    (nextIndex: number) => clampIndexIn(nextIndex, items.length),
     [items.length],
   );
 
   const scrollToIndex = useCallback(
     (nextIndex: number, animated: boolean) => {
-      try {
-        scrollRef.current?.scrollToIndex({ index: nextIndex, animated });
-      } catch {
-        scrollRef.current?.scrollToOffset({ offset: nextIndex * screenWidth, animated });
-      }
+      scrollListToIndex(scrollRef.current, nextIndex, screenWidth, animated);
     },
     [screenWidth],
   );

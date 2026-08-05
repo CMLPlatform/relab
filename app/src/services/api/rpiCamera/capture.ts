@@ -12,6 +12,22 @@ const LOCAL_CAPTURE_TIMEOUT_MS = 20_000;
 const safeImageUrl = (value: unknown): string =>
   typeof value === 'string' && isSafeImageUrl(value) ? value : '';
 
+// An empty id used to flow all the way into the gallery, where the next save
+// treats the entry as unmatched and DELETEs the freshly captured image. Fail the
+// capture instead — both transports promise an id on success.
+const requireImageId = (value: unknown): string => {
+  const id = typeof value === 'number' ? String(value) : typeof value === 'string' ? value : '';
+  if (!id.trim()) throw new Error('Capture succeeded but the camera returned no image id.');
+  return id.trim();
+};
+
+// Same for the url: a gallery entry with no url renders as a broken image.
+const requireImageUrl = (value: unknown): string => {
+  const url = safeImageUrl(value);
+  if (!url) throw new Error('Capture succeeded but the camera returned no image URL.');
+  return url;
+};
+
 export async function captureImageFromCamera(
   cameraId: string,
   productId: number,
@@ -24,8 +40,8 @@ export async function captureImageFromCamera(
   if (!resp.ok) await throwFromResponse(resp, 'Failed to capture image');
   const data = await resp.json();
   return {
-    id: String(data.id),
-    url: safeImageUrl(data.image_url ?? data.url),
+    id: requireImageId(data.id),
+    url: requireImageUrl(data.image_url ?? data.url),
     thumbnailUrl: safeImageUrl(data.thumbnail_url) || null,
     description: data.description ?? '',
   };
@@ -53,9 +69,16 @@ export async function captureImageLocally(
   });
   if (!resp.ok) await throwFromResponse(resp, 'Local capture failed');
   const data = await resp.json();
+  // status 'queued' means the Pi stored the frame but hasn't uploaded it yet, so
+  // image_url is null. There is nothing to show in the gallery until it syncs.
+  if (data.status === 'queued') {
+    throw new Error(
+      'The camera saved the image but could not upload it yet. It will appear once the camera is back online.',
+    );
+  }
   return {
-    id: String(data.image_id ?? data.id ?? ''),
-    url: safeImageUrl(data.image_url ?? data.url),
+    id: requireImageId(data.image_id),
+    url: requireImageUrl(data.image_url),
     thumbnailUrl: safeImageUrl(data.thumbnail_url) || null,
     description: data.description ?? '',
   };

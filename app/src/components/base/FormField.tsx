@@ -23,6 +23,9 @@ export function FormFieldError({
     <Text
       nativeID={errorId}
       accessibilityRole="alert"
+      // Capped so error text stays legible instead of clipping inside
+      // fixed-height helper slots at large OS text-scale settings.
+      maxFontSizeMultiplier={1.5}
       style={[{ color: theme.tokens.status.danger, fontSize: 12 }, style]}
     >
       {message}

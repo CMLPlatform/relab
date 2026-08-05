@@ -102,6 +102,21 @@ async function throwOnError(response: Response, label: string): Promise<void> {
 }
 
 /**
+ * The entity write landed but syncing its media did not. The record exists (and
+ * differs from what any cache holds), so callers must still refresh — they just
+ * can't claim the photos made it.
+ */
+export class MediaSyncError extends Error {
+  readonly productId: number;
+
+  constructor(productId: number, cause: unknown) {
+    super('Saved, but some photos failed to upload.', { cause });
+    this.name = 'MediaSyncError';
+    this.productId = productId;
+  }
+}
+
+/**
  * Save a product. For updates, pass the server-state images/videos so we can
  * diff without an extra network round-trip to re-fetch them.
  */
@@ -132,7 +147,11 @@ async function saveNewProduct(product: Product): Promise<number> {
   product.id = data.id;
 
   // New product has no existing media on the server yet — uploads can run in parallel
-  await Promise.all([updateProductImages(product, []), updateProductVideos(product, [])]);
+  try {
+    await Promise.all([updateProductImages(product, []), updateProductVideos(product, [])]);
+  } catch (err) {
+    throw new MediaSyncError(data.id, err);
+  }
 
   return data.id;
 }
@@ -151,13 +170,19 @@ async function updateProduct(
 
   await throwOnError(productRes, 'update product');
 
-  // Image and video updates can run in parallel
-  await Promise.all([
-    updateProductImages(product, originalImages),
-    updateProductVideos(product, originalVideos),
-  ]);
-
   const data = await productRes.json();
+
+  // Image and video updates can run in parallel. The PATCH already landed, so a
+  // failure here is partial: report it as such instead of as a failed save.
+  try {
+    await Promise.all([
+      updateProductImages(product, originalImages),
+      updateProductVideos(product, originalVideos),
+    ]);
+  } catch (err) {
+    throw new MediaSyncError(data.id, err);
+  }
+
   return data.id;
 }
 
@@ -231,6 +256,9 @@ async function addImage(
     }
     body.append('file', fileBlob, imageFilename(fileBlob.type));
   } else if (image.url.startsWith('file:')) {
+    // No size check here: the file is never read into JS (React Native streams it
+    // from disk) and no filesystem module is installed to stat it. The size guard
+    // that matters runs at pick time, in processImage.
     // React Native extends FormData to accept { uri, name, type } for native file uploads.
     // Derive the MIME type from the picked file's extension so name and type agree.
     const extension = image.url.split('?')[0].split('.').pop()?.toLowerCase() ?? '';

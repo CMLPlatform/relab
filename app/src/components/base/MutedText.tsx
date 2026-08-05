@@ -1,10 +1,10 @@
 import type { ComponentProps } from 'react';
 import { useAppTheme } from '@/theme';
-import { Text } from './Text';
+import { AppText } from './AppText';
 
-type MutedTextProps = ComponentProps<typeof Text>;
+type MutedTextProps = Omit<ComponentProps<typeof AppText>, 'variant'>;
 
 export function MutedText({ style, ...props }: MutedTextProps) {
   const theme = useAppTheme();
-  return <Text {...props} style={[{ color: theme.tokens.text.muted }, style]} />;
+  return <AppText variant="plain" {...props} style={[{ color: theme.tokens.text.muted }, style]} />;
 }

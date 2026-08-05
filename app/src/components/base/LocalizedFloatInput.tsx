@@ -3,8 +3,8 @@ import type RN from 'react-native';
 import { Platform, Pressable, View } from 'react-native';
 import { radius } from '@/constants';
 import { describedBy } from '@/utils/a11y';
+import { AppText } from './AppText';
 import { FormFieldError } from './FormField';
-import { Text } from './Text';
 import { TextInput } from './TextInput';
 
 interface LocalizedFloatInputProps {
@@ -132,14 +132,15 @@ export default function LocalizedFloatInput({
         {...describedBy(errorId, Boolean(error))}
       />
       {unit ? (
-        <Text
+        <AppText
+          variant="plain"
           style={{
             fontWeight: 'bold',
             width: 30,
           }}
         >
           {unit}
-        </Text>
+        </AppText>
       ) : null}
     </>
   );
@@ -158,13 +159,14 @@ export default function LocalizedFloatInput({
           }}
           onPress={onPress}
         >
-          <Text
+          <AppText
+            variant="plain"
             style={{
               flexGrow: 2,
             }}
           >
             {label}
-          </Text>
+          </AppText>
           {inputContent}
         </Pressable>
         <FormFieldError errorId={errorId} message={error} style={{ paddingHorizontal: 15 }} />

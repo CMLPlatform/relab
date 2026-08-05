@@ -8,7 +8,6 @@ import {
   useCameraLivePreview,
   useCameraQuery,
   useCamerasQuery,
-  useCameraTelemetryQuery,
   useCaptureImageMutation,
   useClaimPairingMutation,
   useDeleteCameraMutation,
@@ -26,7 +25,6 @@ import {
 jest.mock('@/services/api/rpiCamera', () => ({
   fetchCameras: jest.fn(),
   fetchCamera: jest.fn(),
-  fetchCameraTelemetry: jest.fn(),
   updateCamera: jest.fn(),
   deleteCamera: jest.fn(),
   claimPairingCode: jest.fn(),
@@ -261,15 +259,6 @@ describe('RPi camera mutation hooks', () => {
       camera_name: 'Paired Camera',
     });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rpiCameras'] });
-  });
-
-  it('stays idle and never fetches when cameraId is null', () => {
-    const { result, unmount } = renderHook(() => useCameraTelemetryQuery(null), { wrapper });
-
-    expect(result.current.fetchStatus).toBe('idle');
-    act(() => {
-      unmount();
-    });
   });
 
   it('invalidates the owning product after capturing a camera image', async () => {

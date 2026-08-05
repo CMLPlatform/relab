@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { Pressable, Text } from 'react-native';
+import { AccessibilityInfo, Pressable, Text } from 'react-native';
 import { useDialog } from '@/components/base/dialogContext';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
 
@@ -308,5 +308,21 @@ describe('DialogProvider', () => {
     await waitFor(() => {
       expect(screen.queryByText('Saved')).toBeNull();
     });
+  });
+
+  it('toast() announces on iOS, where accessibilityLiveRegion does nothing', async () => {
+    const announce = jest
+      .spyOn(AccessibilityInfo, 'announceForAccessibility')
+      .mockImplementation(() => {});
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => dialog.toast('Saved'));
+    }
+
+    renderWithProviders(<ToastTest />, { withDialog: true });
+    await user.press(screen.getByTestId('trigger'));
+
+    expect(announce).toHaveBeenCalledWith('Saved');
+    announce.mockRestore();
   });
 });

@@ -11,7 +11,7 @@ import { Badge } from '@/components/base/ui/badge';
 import { Icon } from '@/components/base/ui/icon';
 import { Text } from '@/components/base/ui/text';
 import { radius } from '@/constants';
-import { componentQueryOptions } from '@/features/products/queries';
+import { componentQueryOptions } from '@/features/product-entity/queries';
 import type { Product } from '@/types/Product';
 
 interface Props {

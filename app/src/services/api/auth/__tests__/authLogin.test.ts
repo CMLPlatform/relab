@@ -209,20 +209,37 @@ describe('authLogin', () => {
     ).rejects.toThrow('Too many login attempts.');
   });
 
-  it('clears cached auth state before calling logout endpoint', async () => {
+  it('revokes the session server-side before clearing cached auth state', async () => {
     const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
-    const clearCachedAuthState = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 200 } as never);
+    const order: string[] = [];
+    const clearCachedAuthState = jest.fn<() => Promise<void>>().mockImplementation(async () => {
+      order.push('clear');
+    });
+    fetchWithTimeout.mockImplementationOnce(async () => {
+      order.push('revoke');
+      return { ok: true, status: 200 } as never;
+    });
 
     await logout('http://127.0.0.1:18010', clearCachedAuthState);
 
-    expect(clearCachedAuthState).toHaveBeenCalled();
+    expect(order).toEqual(['revoke', 'clear']);
     expect(fetchWithTimeout).toHaveBeenCalledWith(
       expect.objectContaining({ href: expect.stringContaining('/auth/bearer/logout') }),
       expect.objectContaining({ method: 'POST' }),
     );
+  });
+
+  it('still clears cached auth state when the logout request fails', async () => {
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
+      fetchWithTimeout: jest.Mock;
+    };
+    const clearCachedAuthState = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    fetchWithTimeout.mockRejectedValueOnce(new TimeoutError(15_000) as never);
+
+    await expect(logout('http://127.0.0.1:18010', clearCachedAuthState)).resolves.toBeUndefined();
+    expect(clearCachedAuthState).toHaveBeenCalled();
   });
 
   it('uses stored native access and refresh tokens on logout after runtime cache is empty', async () => {

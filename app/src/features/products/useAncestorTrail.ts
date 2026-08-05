@@ -1,7 +1,7 @@
 import { type QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
+import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
 import { isProductNotFoundError } from '@/services/api/products';
 import type { Product } from '@/types/Product';
-import { baseProductQueryOptions, componentQueryOptions } from './queries';
 
 export type AncestorCrumb = {
   id: number;

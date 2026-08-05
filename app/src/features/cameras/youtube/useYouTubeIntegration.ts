@@ -1,6 +1,4 @@
-import { useCallback } from 'react';
-import { useAuth } from '@/context/auth';
-import { updateUser } from '@/services/api/auth/authentication';
+import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
 
 /**
  * YouTube Live streaming integration toggle, backed by the user's server-side
@@ -12,18 +10,5 @@ import { updateUser } from '@/services/api/auth/authentication';
  * oauth_accounts list alone.
  */
 export function useYouTubeIntegration() {
-  const { user, isLoading, refetch } = useAuth();
-
-  const enabled = user?.preferences?.youtube_streaming_enabled === true;
-  const loading = isLoading;
-
-  const setEnabled = useCallback(
-    async (next: boolean) => {
-      await updateUser({ preferences: { youtube_streaming_enabled: next } });
-      await refetch(false);
-    },
-    [refetch],
-  );
-
-  return { enabled, loading, setEnabled };
+  return useServerPreferenceToggle('youtube_streaming_enabled');
 }

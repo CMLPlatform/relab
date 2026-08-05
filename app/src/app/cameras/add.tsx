@@ -52,18 +52,11 @@ export default function AddCameraScreen() {
         maxLength={6}
         autoCapitalize="characters"
         accessibilityLabel="Pairing code"
-        style={[
-          styles.input,
-          {
-            fontFamily: 'monospace',
-            fontSize: 20,
-            textAlign: 'center',
-            borderColor: theme.colors.outline,
-          },
-        ]}
+        bordered
+        style={[styles.field, { fontFamily: 'monospace', fontSize: 20, textAlign: 'center' }]}
       />
     ),
-    [theme.colors.outline],
+    [],
   );
 
   const renderName = useCallback(
@@ -83,8 +76,9 @@ export default function AddCameraScreen() {
           autoCapitalize="words"
           placeholder="Camera name"
           accessibilityLabel="Camera name *"
+          bordered
           style={[
-            styles.input,
+            styles.field,
             {
               borderColor: hasError ? theme.tokens.status.danger : theme.colors.outline,
               backgroundColor: hasError ? theme.colors.errorContainer : undefined,
@@ -116,10 +110,11 @@ export default function AddCameraScreen() {
         numberOfLines={2}
         placeholder="Description (optional)"
         accessibilityLabel="Description (optional)"
-        style={[styles.input, { borderColor: theme.colors.outline }]}
+        bordered
+        style={styles.field}
       />
     ),
-    [theme.colors.outline],
+    [],
   );
 
   if (!user) return null;
@@ -202,10 +197,7 @@ const styles = StyleSheet.create({
   divider: {
     marginVertical: 4,
   },
-  input: {
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  field: {
     marginBottom: 4,
   },
   infoBox: {

@@ -24,13 +24,29 @@ export function appendCapturedImage(
   ];
 }
 
-export async function buildImportedImages(assets: readonly ImagePicker.ImagePickerAsset[]) {
-  return Promise.all(
+/**
+ * Processes picked assets into image entries, dropping any the processor
+ * rejects for size. Falling back to the raw asset there would only defer the
+ * failure to save time, where it surfaces as an opaque 413.
+ */
+export async function buildImportedImages(
+  assets: readonly ImagePicker.ImagePickerAsset[],
+  onReject?: (message: string) => void,
+) {
+  const results = await Promise.all(
     assets.map(async (asset) => {
-      const processedUri = await processImage(asset);
-      return { url: processedUri ?? asset.uri, description: '' };
+      let tooLarge = false;
+      const processedUri = await processImage(asset, {
+        onError: (error) => {
+          if (error.type !== 'size') return;
+          tooLarge = true;
+          onReject?.(error.message);
+        },
+      });
+      return tooLarge ? [] : [{ url: processedUri ?? asset.uri, description: '' }];
     }),
   );
+  return results.flat();
 }
 
 export function hasRpiCamerasConfigured(cameraCount: number | undefined) {

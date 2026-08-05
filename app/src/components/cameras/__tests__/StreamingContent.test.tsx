@@ -14,7 +14,7 @@ const mockFeedback = {
   input: jest.fn(),
 };
 const mockStopMutate = jest.fn();
-const mockInvalidateProductQuery = jest.fn();
+const mockUseStopYouTubeStreamMutation = jest.fn();
 
 jest.mock('@/services/externalLinks', () => ({
   __esModule: true,
@@ -45,14 +45,13 @@ jest.mock('@/hooks/useElapsed', () => ({
 }));
 
 jest.mock('@/features/cameras/rpi/hooks', () => ({
-  useStopYouTubeStreamMutation: () => ({
-    mutate: (...args: unknown[]) => mockStopMutate(...args),
-    isPending: false,
-  }),
-}));
-
-jest.mock('@/features/products/queries', () => ({
-  invalidateProductQuery: (...args: unknown[]) => mockInvalidateProductQuery(...args),
+  useStopYouTubeStreamMutation: (...args: unknown[]) => {
+    mockUseStopYouTubeStreamMutation(...args);
+    return {
+      mutate: (...mutateArgs: unknown[]) => mockStopMutate(...mutateArgs),
+      isPending: false,
+    };
+  },
 }));
 
 describe('StreamingContent', () => {
@@ -110,7 +109,9 @@ describe('StreamingContent', () => {
     fireEvent.press(screen.getByText('Stop stream'));
 
     expect(mockSetActiveStream).toHaveBeenCalledWith(null);
-    expect(mockInvalidateProductQuery).toHaveBeenCalled();
+    // The stream's product is invalidated by the mutation hook, not here — the
+    // component only has to name the product it was streaming.
+    expect(mockUseStopYouTubeStreamMutation).toHaveBeenCalledWith('cam-1', 42);
     expect(onStop).toHaveBeenCalled();
   });
 

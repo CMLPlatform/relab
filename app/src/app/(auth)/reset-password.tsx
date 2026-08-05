@@ -2,10 +2,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import { Pressable, View } from 'react-native';
+import { AuthBackToLoginAction, AuthCard, AuthFormError } from '@/components/auth/AuthCardSections';
 import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
-import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { useResetPassword } from '@/features/auth/usePasswordReset';
@@ -43,13 +43,8 @@ export default function ResetPasswordScreen() {
             editable={!isSubmitting}
             placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
             accessibilityLabel="New password"
-            style={{
-              borderWidth: 1,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              paddingRight: 40,
-              borderColor: theme.colors.outline,
-            }}
+            bordered
+            style={{ paddingRight: 40 }}
           />
           <Pressable
             onPress={toggleShowPassword}
@@ -68,13 +63,7 @@ export default function ResetPasswordScreen() {
         </View>
       </View>
     ),
-    [
-      showPassword,
-      isSubmitting,
-      toggleShowPassword,
-      theme.colors.outline,
-      theme.colors.onSurfaceVariant,
-    ],
+    [showPassword, isSubmitting, toggleShowPassword, theme.colors.onSurfaceVariant],
   );
   const renderConfirmPassword = useCallback(
     ({
@@ -95,63 +84,44 @@ export default function ResetPasswordScreen() {
           editable={!isSubmitting}
           placeholder="Re-enter the password"
           accessibilityLabel="Confirm new password"
-          style={{
-            borderWidth: 1,
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-            borderColor: theme.colors.outline,
-          }}
+          bordered
         />
       </View>
     ),
-    [showPassword, isSubmitting, theme.colors.outline],
+    [showPassword, isSubmitting],
   );
 
   return (
     <AuthScreen>
-      <Card>
-        <View style={{ padding: 16, gap: 16 }}>
-          <AppText variant="display">Reset password</AppText>
+      <AuthCard title="Reset password">
+        {success ? (
+          <View style={{ gap: 12, alignItems: 'center', paddingVertical: 16 }}>
+            <AppText variant="body" style={{ textAlign: 'center' }}>
+              Password reset. You can now sign in.
+            </AppText>
+            <AppText variant="body">Redirecting to login…</AppText>
+          </View>
+        ) : (
+          <>
+            <Controller control={control} name="password" render={renderPassword} />
 
-          {success ? (
-            <View style={{ gap: 12, alignItems: 'center', paddingVertical: 16 }}>
-              <AppText variant="body" style={{ textAlign: 'center' }}>
-                Password reset. You can now sign in.
-              </AppText>
-              <AppText variant="body">Redirecting to login…</AppText>
-            </View>
-          ) : (
-            <>
-              <Controller control={control} name="password" render={renderPassword} />
+            <Controller control={control} name="confirmPassword" render={renderConfirmPassword} />
 
-              <Controller control={control} name="confirmPassword" render={renderConfirmPassword} />
+            <AuthFormError message={error ?? fieldError} />
 
-              {error || fieldError ? (
-                <AppText style={{ color: theme.tokens.status.danger }}>
-                  {error ?? fieldError}
-                </AppText>
-              ) : null}
+            <AppButton
+              variant="primary"
+              onPress={submit}
+              loading={isSubmitting}
+              disabled={isSubmitting || !isValid}
+            >
+              Reset password
+            </AppButton>
 
-              <AppButton
-                variant="primary"
-                onPress={submit}
-                loading={isSubmitting}
-                disabled={isSubmitting || !isValid}
-              >
-                Reset password
-              </AppButton>
-
-              <View
-                style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}
-              >
-                <AppButton variant="ghost" onPress={goToLogin}>
-                  Back to login
-                </AppButton>
-              </View>
-            </>
-          )}
-        </View>
-      </Card>
+            <AuthBackToLoginAction onPress={goToLogin} />
+          </>
+        )}
+      </AuthCard>
     </AuthScreen>
   );
 }

@@ -6,6 +6,11 @@ import { useAppTheme } from '@/theme';
 interface Props extends TextInputProps {
   errorOnEmpty?: boolean;
   customValidation?: (value: string) => boolean;
+  // Opt-in to the primitive's default bordered look (1px outline, 12/10
+  // padding) instead of every call site hand-copying that literal. Defaults
+  // to false so existing borderless call sites (inline editable text etc.)
+  // are unaffected.
+  bordered?: boolean;
   ref?: React.Ref<NativeTextInput>;
 }
 
@@ -14,6 +19,7 @@ export function TextInput({
   children,
   errorOnEmpty = false,
   customValidation,
+  bordered = false,
   ref,
   ...props
 }: Props) {
@@ -29,6 +35,12 @@ export function TextInput({
         // The primitive owns the control radius so call sites don't hardcode one
         // (DESIGN.md form language); a caller style can still override it.
         { color: theme.colors.onSurface, borderRadius: radius.control },
+        bordered && {
+          borderWidth: 1,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          borderColor: theme.colors.outline,
+        },
         error && {
           backgroundColor: theme.colors.errorContainer,
           color: theme.colors.onErrorContainer,

@@ -81,20 +81,25 @@ describe('useLocalConnection', () => {
     unmount();
   });
 
-  it('falls back to relay mode when no stored URL or USB gadget probe succeeds', async () => {
+  it('falls back to relay mode when nothing is stored for the camera', async () => {
     const { result, unmount } = renderHook(() => useLocalConnection('cam-1'));
 
     await settleConnectionHook();
 
-    // Probing is keyless: the app has no device key before it has found a camera.
-    expect(probeLocalUrl).toHaveBeenCalledWith(USB_GADGET_DEFAULT);
+    // No key yet, so there is nothing to gain from probing the shared USB gadget
+    // address — and nothing that may be bound to this camera.
+    expect(probeLocalUrl).not.toHaveBeenCalled();
     expect(result.current.mode).toBe('relay');
     expect(result.current.localBaseUrl).toBeNull();
 
     unmount();
   });
 
-  it('engages local mode as soon as the USB gadget probe succeeds', async () => {
+  it('engages local mode when the USB gadget probe succeeds and a key is bound', async () => {
+    jest.mocked(loadLocalConnection).mockImplementation(async () => ({
+      url: null,
+      apiKey: 'usb-key',
+    }));
     jest.mocked(probeLocalUrl).mockImplementation(async () => true);
 
     const { result, unmount } = renderHook(() => useLocalConnection('cam-usb'));
@@ -103,8 +108,28 @@ describe('useLocalConnection', () => {
 
     // Not 'probing' — a successful probe means the direct link is usable now,
     // rather than 30s later when the re-probe interval next fires.
+    expect(probeLocalUrl).toHaveBeenCalledWith(USB_GADGET_DEFAULT);
     expect(result.current.mode).toBe('local');
     expect(result.current.localBaseUrl).toBe(USB_GADGET_DEFAULT);
+
+    unmount();
+  });
+
+  it('stays on the relay when a reachable URL has no key bound to it', async () => {
+    // Regression: mode 'local' with a null key made the UI claim "direct
+    // connection · online" while every capture silently used the relay.
+    jest.mocked(loadLocalConnection).mockImplementation(async () => ({
+      url: 'http://10.0.0.5:8018',
+      apiKey: null,
+    }));
+    jest.mocked(probeLocalUrl).mockImplementation(async () => true);
+
+    const { result, unmount } = renderHook(() => useLocalConnection('cam-nokey'));
+
+    await settleConnectionHook();
+
+    expect(result.current.mode).toBe('relay');
+    expect(result.current.localApiKey).toBeNull();
 
     unmount();
   });
@@ -125,6 +150,31 @@ describe('useLocalConnection', () => {
     expect(storeLocalConnection).toHaveBeenCalledWith('cam-1', 'http://10.0.0.8:8018', 'relay-key');
     expect(result.current.localBaseUrl).toBe('http://10.0.0.8:8018');
     expect(result.current.localApiKey).toBe('relay-key');
+
+    unmount();
+  });
+
+  it('does not bind a probed URL whose device key is rejected', async () => {
+    // `/healthz` carries no camera identity, so the reachable host may be another
+    // Pi. Only the per-camera key can tell them apart.
+    jest.mocked(fetchLocalAccessInfo).mockImplementation(async () => ({
+      local_api_key: 'relay-key',
+      candidate_urls: ['http://10.0.0.8:8018'],
+      mdns_name: null,
+    }));
+    jest.mocked(probeAll).mockImplementation(async () => 'http://10.0.0.8:8018');
+    jest.mocked(verifyLocalCredentials).mockImplementation(async () => false);
+
+    const { result, unmount } = renderHook(() =>
+      useLocalConnection('cam-wrong-pi', { isOnline: true }),
+    );
+
+    await settleConnectionHook();
+
+    expect(verifyLocalCredentials).toHaveBeenCalledWith('http://10.0.0.8:8018', 'relay-key');
+    expect(storeLocalConnection).not.toHaveBeenCalled();
+    expect(result.current.mode).not.toBe('local');
+    expect(result.current.localBaseUrl).toBeNull();
 
     unmount();
   });

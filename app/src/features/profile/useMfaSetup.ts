@@ -7,6 +7,7 @@ import {
   type TotpSetup,
 } from '@/services/api/auth/authMfa';
 import { getErrorMessage } from '@/utils/errors';
+import { normalizeTotpCode } from '@/utils/totp';
 
 type Mode = 'idle' | 'enroll' | 'disable' | 'regenerate' | 'codes';
 
@@ -56,9 +57,10 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const reenrollAfter = useRef(false);
-  // `busy` is state, so two submits in the same tick both read the stale `false`
-  // from their closure. A ref is the only guard that actually single-flights a
-  // double tap — and a TOTP code is single-use, so a second submit burns it.
+  // Same single-flight rationale as useSingleFlight (see that hook), but split
+  // into claim/release: these flows hand the release to the action they run
+  // (disable re-enrolls before releasing, confirm releases before its refetch),
+  // so they can't be expressed as one wrapped call.
   const inFlight = useRef(false);
 
   const beginRequest = useCallback(() => {
@@ -236,7 +238,7 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
     busy,
     starting: busy && mode === 'idle',
     canSubmit,
-    setCode: useCallback((value: string) => setCode(value.replace(/\D/g, '').slice(0, 6)), []),
+    setCode: useCallback((value: string) => setCode(normalizeTotpCode(value)), []),
     setPassword,
     setRecoveryInput,
     toggleRecoveryInput,

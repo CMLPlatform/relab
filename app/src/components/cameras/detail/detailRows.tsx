@@ -69,26 +69,18 @@ export function ActionRow({
   icon,
   onPress,
   danger = false,
-  loading = false,
 }: {
   label: string;
   subtitle?: string;
   icon: IconName;
   onPress: () => void;
   danger?: boolean;
-  loading?: boolean;
 }) {
   const theme = useAppTheme();
   const color = danger ? theme.colors.error : theme.colors.onSurface;
 
   return (
-    <AppButton
-      variant="ghost"
-      onPress={onPress}
-      loading={loading}
-      disabled={loading}
-      className="w-full justify-start"
-    >
+    <AppButton variant="ghost" onPress={onPress} className="w-full justify-start">
       <Icon name={icon} size={18} color={color} />
       <View>
         <AppText style={[styles.actionLabel, { color }]}>{label}</AppText>

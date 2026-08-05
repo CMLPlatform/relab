@@ -54,4 +54,22 @@ describe('productImageGalleryHelpers', () => {
       { url: 'file://two.jpg', description: '' },
     ]);
   });
+
+  // Keeping the raw asset after a size rejection only defers the failure to
+  // save time, where the server answers with an opaque 413.
+  it('drops an oversized pick and reports it instead of falling back to the raw asset', async () => {
+    mockProcessImage.mockImplementation(async (_asset: unknown, options: unknown) => {
+      (options as { onError: (e: unknown) => void }).onError({
+        type: 'size',
+        message: 'Max size is 10 MB. Selected image size: 24.00 MB.',
+      });
+      return null;
+    });
+    const onReject = jest.fn();
+
+    const assets = [{ uri: 'file://huge.jpg' }] as ImagePicker.ImagePickerAsset[];
+
+    await expect(buildImportedImages(assets, onReject)).resolves.toEqual([]);
+    expect(onReject).toHaveBeenCalledWith('Max size is 10 MB. Selected image size: 24.00 MB.');
+  });
 });

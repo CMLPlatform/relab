@@ -3,8 +3,8 @@ import { StyleSheet, View } from 'react-native';
 import LogoutConfirm from '@/components/auth/LogoutConfirm';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
+import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
-import { Text } from '@/components/base/Text';
 import { TextInput } from '@/components/base/TextInput';
 import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
@@ -56,9 +56,9 @@ export function ProfileDialogs({
   return (
     <>
       <AppDialog visible={editUsernameVisible} onDismiss={onDismissEditUsername}>
-        <Text accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Edit username
-        </Text>
+        </AppText>
         <TextInput
           value={newUsername}
           onChangeText={onChangeUsername}
@@ -79,15 +79,17 @@ export function ProfileDialogs({
       </AppDialog>
 
       <AppDialog visible={unlinkDialogVisible} onDismiss={onDismissUnlink}>
-        <Text accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Unlink account
-        </Text>
-        <Text>Are you sure you want to disconnect this {providerToUnlink} account?</Text>
+        </AppText>
+        <AppText variant="plain">
+          Are you sure you want to disconnect this {providerToUnlink} account?
+        </AppText>
         {isLastLinkedProvider ? (
-          <Text style={styles.unlinkWarning}>
+          <AppText variant="plain" style={styles.unlinkWarning}>
             This is your only linked account. If you never set a password, you will have to reset it
             by email to sign in again.
-          </Text>
+          </AppText>
         ) : null}
         {unlinkRequiresPassword ? (
           <TextInput
@@ -122,14 +124,18 @@ export function ProfileDialogs({
       />
 
       <AppDialog visible={deleteDialogVisible} onDismiss={onDismissDeleteDialog}>
-        <Text accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Delete account
-        </Text>
-        <Text>To delete your account and all its data, email us at:</Text>
+        </AppText>
+        <AppText variant="plain">To delete your account and all its data, email us at:</AppText>
         <Link href="mailto:relab@cml.leidenuniv.nl">
-          <Text style={styles.deleteEmail}>relab@cml.leidenuniv.nl</Text>
+          <AppText variant="plain" style={styles.deleteEmail}>
+            relab@cml.leidenuniv.nl
+          </AppText>
         </Link>
-        <Text style={styles.deleteMessage}>We&apos;ll confirm the deletion by email.</Text>
+        <AppText variant="plain" style={styles.deleteMessage}>
+          We&apos;ll confirm the deletion by email.
+        </AppText>
         <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={onDismissDeleteDialog}>
             OK

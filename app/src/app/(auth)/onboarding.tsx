@@ -1,20 +1,15 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, type useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 
 import { AuthScreen } from '@/components/auth/AuthScreen';
 import { LoginBrandHero, LoginCard } from '@/components/auth/LoginSections';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
-import { useDialog } from '@/components/base/dialogContext';
 import { TextInput } from '@/components/base/TextInput';
-import { useAuth } from '@/context/auth';
-import { updateUser } from '@/services/api/auth/authentication';
-import { type OnboardingFormValues, onboardingSchema } from '@/services/api/validation/userSchema';
+import { useOnboardingScreen } from '@/features/auth/useOnboardingScreen';
+import type { OnboardingFormValues } from '@/services/api/validation/userSchema';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
-import { getErrorMessage } from '@/utils/errors';
 
 function OnboardingBody({
   control,
@@ -27,8 +22,7 @@ function OnboardingBody({
   isSubmitting: boolean;
   isValid: boolean;
 }) {
-  const theme = useAppTheme();
-  const styles = createStyles(theme);
+  const styles = createStyles(useAppTheme());
   const renderUsername = useCallback(
     ({
       field: { onChange, value },
@@ -45,14 +39,10 @@ function OnboardingBody({
           placeholder="e.g. awesome_user"
           accessibilityLabel="Username"
           onSubmitEditing={submitUsername}
-          style={[
-            styles.input,
-            { borderColor: theme.colors.outline, backgroundColor: theme.tokens.surface.card },
-          ]}
         />
       </View>
     ),
-    [submitUsername, theme.colors.outline, theme.tokens.surface.card, styles.input, styles.field],
+    [submitUsername, styles.field],
   );
 
   return (
@@ -79,32 +69,7 @@ function OnboardingBody({
 }
 
 export default function Onboarding() {
-  const router = useRouter();
-  const dialog = useDialog();
-  const { refetch } = useAuth();
-
-  const {
-    control,
-    handleSubmit,
-    formState: { isValid, isSubmitting },
-  } = useForm<OnboardingFormValues>({
-    resolver: zodResolver(onboardingSchema),
-    mode: 'onChange',
-    defaultValues: { username: '' },
-  });
-
-  const submitUsername = handleSubmit(async (data: OnboardingFormValues) => {
-    try {
-      await updateUser({ username: data.username });
-      await refetch(false);
-      router.replace({ pathname: '/products', params: { authenticated: 'true' } });
-    } catch (error: unknown) {
-      dialog.alert({
-        title: "Couldn't save username",
-        message: getErrorMessage(error, 'It might already be taken.'),
-      });
-    }
-  });
+  const { control, submitUsername, isValid, isSubmitting } = useOnboardingScreen();
 
   return (
     <AuthScreen>
@@ -138,11 +103,6 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
     },
     field: {
       gap: 4,
-    },
-    input: {
-      borderWidth: 1,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
     },
   }),
 );

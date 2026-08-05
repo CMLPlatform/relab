@@ -1,7 +1,6 @@
 import { API_URL } from '@/config';
 import { throwFromResponse } from '@/services/api/errors';
 import { fetchWithTimeout } from '@/services/api/request';
-import { getSessionItem, removeSessionItem, setSessionItem } from '@/services/storage';
 import { persistAccessToken, persistRefreshToken } from './authRefresh';
 import { isWeb, markWebSessionActive } from './authSession';
 
@@ -17,34 +16,21 @@ export type MfaLoginPending = {
   redirectTo?: string;
 };
 
-const MFA_PENDING_STORAGE_KEY = 'relab.pendingMfaLogin';
-
+// In memory only: the intermediate MFA token is a credential, and web storage is
+// XSS-readable (see the doctrine in services/storage.ts). A browser reload during
+// the challenge drops it, and the MFA screen then asks the user to sign in again.
 let pendingMfaLogin: MfaLoginPending | undefined;
 
 export function setPendingMfaLogin(pending: MfaLoginPending): void {
   pendingMfaLogin = pending;
-  setSessionItem(MFA_PENDING_STORAGE_KEY, JSON.stringify(pending));
 }
 
 export function getPendingMfaLogin(): MfaLoginPending | undefined {
-  if (pendingMfaLogin) return pendingMfaLogin;
-  const raw = getSessionItem(MFA_PENDING_STORAGE_KEY);
-  if (!raw) return;
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    pendingMfaLogin = parseMfaPendingPayload(parsed);
-    if (!pendingMfaLogin) {
-      clearPendingMfaLogin();
-    }
-  } catch {
-    clearPendingMfaLogin();
-  }
   return pendingMfaLogin;
 }
 
 export function clearPendingMfaLogin(): void {
   pendingMfaLogin = undefined;
-  removeSessionItem(MFA_PENDING_STORAGE_KEY);
 }
 
 function parseSafeRedirect(value: unknown): string | undefined {

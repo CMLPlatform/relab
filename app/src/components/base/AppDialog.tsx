@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet } from 'react-native';
 import { spacing } from '@/constants';
+import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme';
 import { OverlaySurface } from './OverlaySurface';
 
@@ -23,6 +24,8 @@ const NOOP = () => {};
 export function AppDialog({ visible, onDismiss, dismissable = true, children }: AppDialogProps) {
   const theme = useAppTheme();
   const handleDismiss = dismissable ? onDismiss : undefined;
+  // Every dialog inherits return-focus on close; no per-caller wiring.
+  useReturnFocus(visible);
 
   return (
     <Modal

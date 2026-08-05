@@ -1,9 +1,8 @@
 import { usePathname, useRouter } from 'expo-router';
 import { Platform, Pressable, View } from 'react-native';
 import { AUTH_HERO_PATHS } from '@/constants';
-import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { PRIMARY_DESTINATIONS } from '@/navigation/destinations';
+import { useVisibleDestinations } from '@/navigation/destinations';
 import { useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
@@ -32,13 +31,9 @@ export function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
   const theme = useAppTheme();
-  const { enabled: rpiEnabled } = useRpiIntegration();
+  const destinations = useVisibleDestinations();
 
   if (!(Platform.OS === 'web' && isLg) || NO_CHROME_PATHS.has(pathname)) return null;
-
-  const destinations = PRIMARY_DESTINATIONS.filter(
-    (destination) => destination.key !== 'cameras' || rpiEnabled,
-  );
 
   return (
     <View className="border-border bg-background flex-row items-center gap-1 border-b px-4 py-2">

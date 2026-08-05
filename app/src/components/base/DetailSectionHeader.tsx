@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import { type StyleProp, StyleSheet, type TextStyle, View } from 'react-native';
-
+import { AppText } from './AppText';
 import { InfoTooltip } from './InfoTooltip';
-import { Text } from './Text';
 
 interface Props {
   title: string;
@@ -15,8 +14,10 @@ export default function DetailSectionHeader({ title, tooltipTitle, rightElement,
   return (
     <View style={styles.container}>
       <View style={styles.left}>
-        {/* The tooltip renders a View, so it sits beside the Text, not inside it. */}
-        <Text style={[styles.title, style]}>{title}</Text>
+        {/* The tooltip renders a View, so it sits beside the AppText, not inside it. */}
+        <AppText variant="plain" style={[styles.title, style]}>
+          {title}
+        </AppText>
         {tooltipTitle ? <InfoTooltip title={tooltipTitle} /> : null}
       </View>
       {rightElement ? <View style={styles.right}>{rightElement}</View> : null}

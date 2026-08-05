@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { radius, spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
-import { Text } from './Text';
+import { AppText } from './AppText';
 
 interface Props extends PressableProps {
   children?: string;
@@ -36,9 +36,15 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
   return (
     <Pressable style={resolveStyle} {...props}>
       {title ? (
-        <Text style={[styles.titleText, { color: theme.colors.onPrimaryContainer }]}>{title}</Text>
+        <AppText
+          variant="plain"
+          style={[styles.titleText, { color: theme.colors.onPrimaryContainer }]}
+        >
+          {title}
+        </AppText>
       ) : null}
-      <Text
+      <AppText
+        variant="plain"
         style={[
           styles.text,
           {
@@ -50,7 +56,7 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
         {children}
         {icon ? '   ' : null}
         {icon}
-      </Text>
+      </AppText>
     </Pressable>
   );
 };

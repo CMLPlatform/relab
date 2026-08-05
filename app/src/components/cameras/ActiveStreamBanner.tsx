@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Text } from '@/components/base/Text';
+import { AppText } from '@/components/base/AppText';
 import { radius } from '@/constants';
 import { useStreamSession } from '@/context/streamSession';
 import { useElapsed } from '@/hooks/useElapsed';
@@ -50,10 +50,19 @@ export function ActiveStreamBanner() {
           accessibilityLabel="Manage live stream"
         >
           <View style={[styles.liveDot, { backgroundColor: theme.tokens.status.live }]} />
-          <Text style={[styles.label, { color: theme.colors.inverseOnSurface }]} numberOfLines={1}>
+          <AppText
+            variant="plain"
+            style={[styles.label, { color: theme.colors.inverseOnSurface }]}
+            numberOfLines={1}
+          >
             {activeStream.productName}
-          </Text>
-          <Text style={[styles.elapsed, { color: theme.tokens.text.inverseMuted }]}>{elapsed}</Text>
+          </AppText>
+          <AppText
+            variant="plain"
+            style={[styles.elapsed, { color: theme.tokens.text.inverseMuted }]}
+          >
+            {elapsed}
+          </AppText>
         </Pressable>
       </View>
 

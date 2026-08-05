@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/auth';
@@ -7,7 +8,7 @@ import {
 } from '@/features/cameras/rpi/captureActions';
 import { useCamerasQuery, useCaptureAllMutation } from '@/features/cameras/rpi/hooks';
 import { useCameraStreamActions } from '@/features/cameras/youtube/streamActions';
-import { useBaseProductQuery } from '@/features/products/queries';
+import { baseProductQueryOptions } from '@/features/product-entity/queries';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -35,7 +36,7 @@ export function useCamerasScreen() {
     handleEffectiveConnectionChange,
   } = useCameraConnectionSnapshots();
   const selection = useCameraSelectionController();
-  const { data: streamProduct } = useBaseProductQuery(streamProductId ?? undefined);
+  const { data: streamProduct } = useQuery(baseProductQueryOptions(streamProductId ?? undefined));
   const {
     data: cameras,
     isLoading,

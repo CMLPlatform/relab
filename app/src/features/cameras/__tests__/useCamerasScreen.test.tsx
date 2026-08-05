@@ -46,8 +46,8 @@ jest.mock('@/hooks/useBreakpoint', () => ({
   useBreakpoint: () => ({ isMd: false, isLg: false }),
 }));
 
-jest.mock('@/features/products/queries', () => ({
-  useBaseProductQuery: () => ({ data: null }),
+jest.mock('@/features/product-entity/queries', () => ({
+  baseProductQueryOptions: () => ({ queryKey: ['baseProduct', null], enabled: false }),
 }));
 
 const mockCamerasQueryData = [
@@ -76,6 +76,9 @@ jest.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({
     invalidateQueries: jest.fn(),
   }),
+  // Only the streamed product's lookup goes through useQuery here; the camera
+  // queries are mocked at the hook level below.
+  useQuery: () => ({ data: null }),
 }));
 
 describe('useCamerasScreen', () => {

@@ -116,16 +116,22 @@ export async function logout(
     headers['Content-Type'] = 'application/json';
   }
 
-  await clearCachedAuthState();
+  // Revoke server-side first: clearing local state first leaves the refresh token
+  // valid on the server whenever the request fails. The local clear still runs
+  // unconditionally — the user asked to sign out. Callers (profile
+  // `exitSession`) have no failure branch, so the log is the only signal.
   try {
-    await fetchWithTimeout(new URL(`${apiUrl}${logoutPath}`), {
+    const response = await fetchWithTimeout(new URL(`${apiUrl}${logoutPath}`), {
       method: 'POST',
       headers,
       body,
       credentials: 'include',
     });
+    if (!response.ok) logError('[Logout Failed]: server responded', response.status);
   } catch (err) {
     logError('[Logout Fetch Error]:', err);
+  } finally {
+    await clearCachedAuthState();
   }
 }
 
@@ -135,15 +141,18 @@ export async function revokeAllSessions(
 ): Promise<void> {
   const headers = await getNativeAuthorizationHeaders();
 
-  await clearCachedAuthState();
+  // Same ordering as logout(): revoke while the credentials are still cached.
   try {
-    await fetchWithTimeout(new URL(`${apiUrl}/auth/sessions/revoke-all`), {
+    const response = await fetchWithTimeout(new URL(`${apiUrl}/auth/sessions/revoke-all`), {
       method: 'POST',
       headers,
       credentials: 'include',
     });
+    if (!response.ok) logError('[Revoke All Sessions Failed]: server responded', response.status);
   } catch (err) {
     logError('[Revoke All Sessions Fetch Error]:', err);
+  } finally {
+    await clearCachedAuthState();
   }
 }
 

@@ -5,8 +5,8 @@ import { useAuth } from '@/context/auth';
 import { useAppTheme } from '@/theme';
 import { needsUsernameOnboarding } from '@/utils/router/onboarding';
 import { createHeaderRightPillStyles } from '@/utils/router/styles';
+import { AppText } from './AppText';
 import { Icon } from './Icon';
-import { Text } from './Text';
 
 function truncateUsername(username: string) {
   return username.length > 16 ? `${username.slice(0, 14)}…` : username;
@@ -36,9 +36,9 @@ export function HeaderRightPill() {
         accessibilityLabel={needsOnboarding ? 'Complete profile' : `Account: ${username}`}
       >
         <Icon name="account-circle" size={18} color={theme.colors.onPrimaryContainer} />
-        <Text style={primaryText} numberOfLines={1}>
+        <AppText variant="plain" style={primaryText} numberOfLines={1}>
           {username}
-        </Text>
+        </AppText>
       </Pressable>
     );
   }
@@ -51,7 +51,9 @@ export function HeaderRightPill() {
       accessibilityRole="button"
       accessibilityLabel="Sign in"
     >
-      <Text style={primaryText}>Sign in</Text>
+      <AppText variant="plain" style={primaryText}>
+        Sign in
+      </AppText>
     </Pressable>
   );
 }

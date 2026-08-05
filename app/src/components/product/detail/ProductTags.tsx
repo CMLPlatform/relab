@@ -6,12 +6,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { AppText } from '@/components/base/AppText';
 import { Chip } from '@/components/base/Chip';
 import { useDialog } from '@/components/base/dialogContext';
-import FilterSelectionModal from '@/components/base/FilterSelectionModal';
+import { SingleSelectFilterModal } from '@/components/base/FilterSelectionModal';
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
-import { Text } from '@/components/base/Text';
 import { radius } from '@/constants';
 import { useSearchBrandsQuery } from '@/features/products/queries';
 import { useAppTheme } from '@/theme';
@@ -47,9 +47,7 @@ export default function ProductTags({
 
   const closeBrandModal = useCallback(() => setBrandModalVisible(false), []);
   const handleBrandSelection = useCallback(
-    (vals: string[]) => {
-      onBrandChange?.(vals.length > 0 ? vals[0] : '');
-    },
+    (value: string) => onBrandChange?.(value),
     [onBrandChange],
   );
 
@@ -106,18 +104,17 @@ export default function ProductTags({
         <AmountChip product={product} editMode={editMode} onAmountChange={onAmountChange} />
       ) : null}
 
-      <FilterSelectionModal
+      <SingleSelectFilterModal
         visible={brandModalVisible}
         onDismiss={closeBrandModal}
         title="Select brand"
         items={brandResults ?? []}
         isLoading={brandsLoading}
-        selectedValues={product.brand ? [product.brand] : []}
-        onSelectionChange={handleBrandSelection}
+        value={product.brand ?? ''}
+        onValueChange={handleBrandSelection}
         searchQuery={brandSearch}
         onSearchChange={setBrandSearch}
         searchPlaceholder="Search or type a brand…"
-        singleSelect
       />
     </View>
   );
@@ -171,7 +168,12 @@ function AmountChip({
   return (
     <View style={[amountStyles.container, { backgroundColor: colors.primaryContainer }]}>
       <View style={amountStyles.titleRow}>
-        <Text style={[amountStyles.titleText, { color: colors.onPrimaryContainer }]}>Amount</Text>
+        <AppText
+          variant="plain"
+          style={[amountStyles.titleText, { color: colors.onPrimaryContainer }]}
+        >
+          Amount
+        </AppText>
         <InfoTooltip title="How many times this component occurs in its parent" />
       </View>
       {editMode ? (
@@ -200,14 +202,15 @@ function AmountChip({
           />
         </View>
       ) : (
-        <Text
+        <AppText
+          variant="plain"
           style={[
             amountStyles.valueText,
             { backgroundColor: colors.primary, color: colors.onPrimary },
           ]}
         >
           {String(amount)}
-        </Text>
+        </AppText>
       )}
     </View>
   );

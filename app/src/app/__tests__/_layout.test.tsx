@@ -2,7 +2,8 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { Text, View } from 'react-native';
-import { AppStack, HeaderRight, Providers } from '@/app/_layout';
+import { AppStack, Providers } from '@/app/_layout';
+import { HeaderRightPill } from '@/components/base/HeaderRightPill';
 import { useAuth } from '@/context/auth';
 import { renderWithProviders } from '@/test-utils/index';
 
@@ -62,7 +63,9 @@ jest.mock('react-native-keyboard-controller', () => {
   };
 });
 
-describe('HeaderRight', () => {
+// The stack's headerRight renderer (see AppStack's products/index screen) is
+// literally `() => <HeaderRightPill />`, so exercise the pill itself.
+describe('HeaderRightPill', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -70,7 +73,7 @@ describe('HeaderRight', () => {
   it('renders "Sign in" for guests', async () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null });
 
-    renderWithProviders(<HeaderRight />, { withAuth: true });
+    renderWithProviders(<HeaderRightPill />, { withAuth: true });
 
     await waitFor(
       () => {
@@ -85,7 +88,7 @@ describe('HeaderRight', () => {
       user: { id: 1, username: 'testuser', email: 'test@test.com' },
     });
 
-    renderWithProviders(<HeaderRight />, { withAuth: true });
+    renderWithProviders(<HeaderRightPill />, { withAuth: true });
 
     await waitFor(
       () => {

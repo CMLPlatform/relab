@@ -35,16 +35,24 @@ type OAuthAssociationResult = { type: string; url?: string };
 /**
  * Run *action*; if the API asks for step-up re-auth, collect the account password and
  * retry once with it. The 400 is an ask, not a failure, so it must not surface as an error.
+ *
+ * Never throws: the retry runs detached from the dialog's onPress, so both attempts route
+ * their failures through *onError* — otherwise a wrong password rejects unhandled and the
+ * user is told nothing.
  */
 async function withStepUp(
   dialog: Pick<DialogContextType, 'input'>,
   action: (currentPassword?: string) => Promise<void>,
   message: string,
+  onError: (error: unknown) => void,
 ): Promise<void> {
   try {
     await action();
   } catch (error: unknown) {
-    if (!(error instanceof OAuthStepUpRequiredError)) throw error;
+    if (!(error instanceof OAuthStepUpRequiredError)) {
+      onError(error);
+      return;
+    }
     dialog.input({
       title: 'Confirm your password',
       message,
@@ -56,7 +64,7 @@ async function withStepUp(
           disabled: (value) => !value?.trim(),
           onPress: (currentPassword) => {
             if (!currentPassword?.trim()) return;
-            void action(currentPassword);
+            void action(currentPassword).catch(onError);
           },
         },
       ],
@@ -134,11 +142,11 @@ export function useOAuthAssociations({
           }
         },
         'Linking a YouTube account changes how you can sign in, so confirm your password.',
-      );
-    } catch (error: unknown) {
-      feedback.error(
-        `Failed to start YouTube authorization: ${getErrorMessage(error, 'Unknown error')}`,
-        'Authorization failed',
+        (error) =>
+          feedback.error(
+            `Failed to start YouTube authorization: ${getErrorMessage(error, 'Unknown error')}`,
+            'Authorization failed',
+          ),
       );
     } finally {
       setYoutubeAuthPending(false);
@@ -146,35 +154,33 @@ export function useOAuthAssociations({
   };
 
   const linkOAuth = async (provider: OAuthProvider) => {
-    try {
-      await withStepUp(
-        dialog,
-        async (currentPassword) => {
-          const result = await startAssociationFlow(
-            `/oauth/${provider}/associate/authorize`,
-            currentPassword,
-          );
-          if (result.type !== 'success') return;
+    await withStepUp(
+      dialog,
+      async (currentPassword) => {
+        const result = await startAssociationFlow(
+          `/oauth/${provider}/associate/authorize`,
+          currentPassword,
+        );
+        if (result.type !== 'success') return;
 
-          // The browser session completing says nothing about the outcome — the status
-          // lives in the callback fragment. Without this, a denied consent screen
-          // silently refetches and tells the user nothing.
-          const callback = result.url ? parseOAuthCallbackUrl(result.url) : undefined;
-          if (callback && callback.status !== 'success') {
-            feedback.error(callback.error ?? 'Access was denied.', 'Link failed');
-            return;
-          }
+        // The browser session completing says nothing about the outcome — the status
+        // lives in the callback fragment. Without this, a denied consent screen
+        // silently refetches and tells the user nothing.
+        const callback = result.url ? parseOAuthCallbackUrl(result.url) : undefined;
+        if (callback && callback.status !== 'success') {
+          feedback.error(callback.error ?? 'Access was denied.', 'Link failed');
+          return;
+        }
 
-          await refetch();
-        },
-        'Linking a social login changes how you can sign in, so confirm your password.',
-      );
-    } catch (error: unknown) {
-      feedback.error(
-        `Failed to start link flow: ${getErrorMessage(error, 'Unknown error')}`,
-        'Link failed',
-      );
-    }
+        await refetch();
+      },
+      'Linking a social login changes how you can sign in, so confirm your password.',
+      (error) =>
+        feedback.error(
+          `Failed to start link flow: ${getErrorMessage(error, 'Unknown error')}`,
+          'Link failed',
+        ),
+    );
   };
 
   return {

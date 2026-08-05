@@ -7,7 +7,7 @@ import {
   showStreamVideoSaveFailed,
 } from '@/components/cameras/streamingFeedback';
 import type { useStreamSession } from '@/context/streamSession';
-import { invalidateProductQuery } from '@/features/products/queries';
+import { invalidateProductQuery } from '@/features/product-entity/queries';
 import { ApiError } from '@/services/api/errors';
 import { addProductVideo } from '@/services/api/products';
 import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera';

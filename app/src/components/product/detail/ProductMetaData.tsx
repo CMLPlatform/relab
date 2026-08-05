@@ -1,6 +1,6 @@
 import { Link } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { Text } from '@/components/base/Text';
+import { AppText } from '@/components/base/AppText';
 import { useAppTheme } from '@/theme';
 import { entityLabelTitle, type Product } from '@/types/Product';
 import { getProfileHref } from '@/utils/router/profiles';
@@ -14,14 +14,16 @@ export default function ProductMetaData({ product }: Props) {
   return (
     <View style={styles.list}>
       {product.createdAt ? (
-        <Text style={styles.meta}>Created: {new Date(product.createdAt).toLocaleDateString()}</Text>
+        <AppText variant="plain" style={styles.meta}>
+          Created: {new Date(product.createdAt).toLocaleDateString()}
+        </AppText>
       ) : null}
       {product.updatedAt ? (
-        <Text style={styles.meta}>
+        <AppText variant="plain" style={styles.meta}>
           Last Updated: {new Date(product.updatedAt).toLocaleDateString()}
-        </Text>
+        </AppText>
       ) : null}
-      <Text style={styles.meta}>
+      <AppText variant="plain" style={styles.meta}>
         Owner:{' '}
         {product.ownerUsername ? (
           <Link
@@ -33,10 +35,10 @@ export default function ProductMetaData({ product }: Props) {
         ) : (
           'Anonymous'
         )}
-      </Text>
-      <Text style={styles.meta}>
+      </AppText>
+      <AppText variant="plain" style={styles.meta}>
         {entityLabelTitle(product)} ID: {product.id}
-      </Text>
+      </AppText>
     </View>
   );
 }

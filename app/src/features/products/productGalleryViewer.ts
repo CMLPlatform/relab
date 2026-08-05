@@ -1,7 +1,12 @@
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions } from 'react-native';
-import { buildGalleryMedia, type ScrollableListHandle } from '@/components/product/gallery/shared';
+import {
+  buildGalleryMedia,
+  clampIndex,
+  type ScrollableListHandle,
+  scrollListToIndex,
+} from '@/components/product/gallery/shared';
 import { useGalleryIndexPersistence } from '@/features/gallery/useGalleryIndexPersistence';
 import { useGalleryKeyboardNavigation } from '@/features/gallery/useGalleryKeyboardNavigation';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
@@ -43,12 +48,7 @@ export function useProductGalleryViewer({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const scrollToIndex = useCallback(
     (index: number) => {
-      const clamped = Math.max(0, Math.min(index, imageCount - 1));
-      try {
-        galleryRef.current?.scrollToIndex({ index: clamped, animated: true });
-      } catch {
-        galleryRef.current?.scrollToOffset({ offset: clamped * width, animated: true });
-      }
+      scrollListToIndex(galleryRef.current, clampIndex(index, imageCount), width, true);
     },
     [imageCount, width],
   );
@@ -70,7 +70,7 @@ export function useProductGalleryViewer({
 
   const updateCurrentIndex = useCallback(
     async (index: number) => {
-      const clampedIndex = imageCount > 0 ? Math.max(0, Math.min(index, imageCount - 1)) : 0;
+      const clampedIndex = imageCount > 0 ? clampIndex(index, imageCount) : 0;
       setSelectedIndex(clampedIndex);
       await persistIndex(clampedIndex);
     },
@@ -108,30 +108,22 @@ export function useProductGalleryKeyboardShortcuts({
   lightboxOpen,
   imageCount,
   selectedIndex,
-  updateCurrentIndex,
-  scrollToIndex,
+  onPrevious,
+  onNext,
 }: {
   isWeb: boolean;
   lightboxOpen: boolean;
   imageCount: number;
   selectedIndex: number;
-  updateCurrentIndex: (index: number) => Promise<void>;
-  scrollToIndex: (index: number) => void;
+  onPrevious: () => void;
+  onNext: () => void;
 }) {
   useGalleryKeyboardNavigation({
     enabled: isWeb && !lightboxOpen,
     imageCount,
     selectedIndex,
-    onPrevious: () => {
-      const next = Math.max(0, selectedIndex - 1);
-      void updateCurrentIndex(next);
-      scrollToIndex(next);
-    },
-    onNext: () => {
-      const next = Math.min(imageCount - 1, selectedIndex + 1);
-      void updateCurrentIndex(next);
-      scrollToIndex(next);
-    },
+    onPrevious,
+    onNext,
   });
 }
 
@@ -157,12 +149,12 @@ export function useProductGalleryViewerActions({
     viewerState.setLightboxOpen(false);
   }, [viewerState]);
   const showPreviousImage = useCallback(() => {
-    const next = Math.max(0, viewerState.selectedIndex - 1);
+    const next = clampIndex(viewerState.selectedIndex - 1, media.imageCount);
     void viewerState.updateCurrentIndex(next);
     viewerState.scrollToIndex(next);
-  }, [viewerState]);
+  }, [media.imageCount, viewerState]);
   const showNextImage = useCallback(() => {
-    const next = Math.min(media.imageCount - 1, viewerState.selectedIndex + 1);
+    const next = clampIndex(viewerState.selectedIndex + 1, media.imageCount);
     void viewerState.updateCurrentIndex(next);
     viewerState.scrollToIndex(next);
   }, [media.imageCount, viewerState]);

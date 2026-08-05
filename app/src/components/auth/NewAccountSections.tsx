@@ -25,8 +25,13 @@ import { useAppTheme } from '@/theme';
 import { describedBy } from '@/utils/a11y';
 
 // Every row is a fixed slot, so the three steps are identical and nothing moves
-// as the error message comes and goes.
+// as the error message comes and goes. The slots stay fixed-height even under
+// OS font scaling; MAX_FONT_SCALE caps the label text so it stays legible
+// instead of clipping against the slot at large accessibility sizes. (The
+// helper/error text renders via the shared FormFieldError component, which
+// carries the same cap itself.)
 const LABEL_ROW_HEIGHT = 16;
+const MAX_FONT_SCALE = 1.5;
 const INPUT_ROW_HEIGHT = 48;
 const HELPER_SLOT_HEIGHT = 18;
 const ACTION_ROW_HEIGHT = 44;
@@ -290,7 +295,12 @@ function NewAccountStep({
           },
         ]}
       >
-        <Text style={[styles.label, { color: headlineColor }]}>{label}</Text>
+        <Text
+          style={[styles.label, { color: headlineColor }]}
+          maxFontSizeMultiplier={MAX_FONT_SCALE}
+        >
+          {label}
+        </Text>
         <View style={styles.inputRow}>
           <Controller control={control} name={field} render={renderInput} />
         </View>

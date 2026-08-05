@@ -6,7 +6,6 @@ jest.mock('@/services/api/rpiCamera', () => ({
   __esModule: true,
   fetchCameras: jest.fn(),
   fetchCamera: jest.fn(),
-  fetchCameraTelemetry: jest.fn(),
   getStreamStatus: jest.fn(async () => null),
 }));
 

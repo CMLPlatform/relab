@@ -20,8 +20,10 @@
  * relay (GET /cameras/{id}/local-access → Pi's /system/local-access). The Pi
  * returns its API key and all its LAN IP addresses. The hook probes each
  * candidate URL in parallel against the Pi's unauthenticated `/healthz`; the
- * first that identifies itself as an RPi cam activates local mode automatically
- * — no manual key copying required, and the key is never sent to a candidate.
+ * first that answers as an RPi cam is then checked once with the device key,
+ * which is what proves it is *this* camera (`/healthz` carries no identity).
+ * Only after that is the URL/key pair persisted and local mode activated — no
+ * manual key copying required, and the key reaches at most one candidate.
  *
  * If the camera is offline or the relay call fails, the hook falls back to
  * any previously-stored URL/key or the USB gadget default address. Users can
@@ -119,14 +121,17 @@ export function useLocalConnection(
     };
   }, [cameraId]);
 
-  const runProbe = useCallback(async (url: string) => {
+  // `apiKey` is passed in rather than read from state: reachability alone is not
+  // enough to promote to direct mode. Without a key bound to this URL every
+  // capture silently falls back to the relay while the UI claims "direct".
+  const runProbe = useCallback(async (url: string, apiKey: string | null) => {
     const generation = generationRef.current;
     const ok = await probeLocalUrl(url);
     if (generation !== generationRef.current) return;
 
     if (ok) {
       consecutiveFailuresRef.current = 0;
-      dispatch({ type: 'setMode', payload: 'local' });
+      dispatch({ type: 'setMode', payload: apiKey ? 'local' : 'relay' });
       return;
     }
     consecutiveFailuresRef.current += 1;
@@ -154,8 +159,12 @@ export function useLocalConnection(
       });
 
       if (restoredUrl) {
-        await runProbe(restoredUrl);
-      } else {
+        await runProbe(restoredUrl, restoredApiKey);
+      } else if (restoredApiKey) {
+        // The USB gadget address is identical for every camera, so binding it
+        // without a key would also let a later key restore trust a URL that was
+        // never verified to be *this* camera. Relay bootstrap or manual
+        // configure — both of which verify the key — are the only ways in.
         const ok = await probeLocalUrl(USB_GADGET_DEFAULT);
         if (!cancelled) {
           if (ok) {
@@ -168,6 +177,8 @@ export function useLocalConnection(
             dispatch({ type: 'setMode', payload: 'relay' });
           }
         }
+      } else if (!cancelled) {
+        dispatch({ type: 'setMode', payload: 'relay' });
       }
 
       if (!cancelled) {
@@ -205,6 +216,15 @@ export function useLocalConnection(
 
       const generation = generationRef.current;
       const normalised = normalizeLocalConnectionUrl(reachableUrl);
+      // `/healthz` is service-level and deliberately carries no camera identity, so
+      // a reachable host may well be a *different* Pi (every camera also probes the
+      // shared USB gadget address). The device key is per-camera, so an accepted
+      // authenticated request is the only proof this URL is the right camera —
+      // without it, camera B could persist camera A's URL and send B's key to A.
+      // NOTE: only the probe winner is verified; a wrong Pi winning the race
+      // just means no direct mode this round, not a wrong binding.
+      if (!(await verifyLocalCredentials(normalised, info.local_api_key))) return;
+      if (cancelled || disconnectedCameras.has(cameraId)) return;
       await storeLocalConnection(cameraId, normalised, info.local_api_key);
       // The other mounted instance of this camera may have disconnected while we
       // were writing; undo rather than resurrect what it cleared.
@@ -244,7 +264,7 @@ export function useLocalConnection(
     let interval: ReturnType<typeof setInterval> | null = null;
     const start = () => {
       interval ??= setInterval(() => {
-        void runProbe(localBaseUrl);
+        void runProbe(localBaseUrl, localApiKey);
       }, PROBE_INTERVAL_ACTIVE_MS);
     };
     const stop = () => {
@@ -258,7 +278,7 @@ export function useLocalConnection(
         stop();
         return;
       }
-      void runProbe(localBaseUrl); // catch up on the LAN state we missed
+      void runProbe(localBaseUrl, localApiKey); // catch up on the LAN state we missed
       start();
     });
 
@@ -266,7 +286,7 @@ export function useLocalConnection(
       stop();
       subscription.remove();
     };
-  }, [localBaseUrl, runProbe, isScreenFocused]);
+  }, [localBaseUrl, localApiKey, runProbe, isScreenFocused]);
 
   // ── Manual configuration ──
   const configure = useCallback(

@@ -40,6 +40,19 @@ under `base/ui/`); other component folders are domain-scoped. Feature logic
 lives in `src/features/`. Keep imports flowing inward (features may use `base`,
 not the reverse).
 
+Where two features share cache state, the contract gets its own neutral module
+rather than a mutual import: `features/product-entity/` holds the single-product
+query options and invalidation that `features/cameras` writes and
+`features/products` reads, so the products→cameras dependency stays one-way.
+
+`base/` holds two kinds of component. Most are generic primitives. A few are app
+chrome — `TopNav`, `HeaderRightPill`, `StaticBackground` — which read app
+context (auth session, theme mode) and are not reusable outside this app. They
+live in `base/` because `_layout.tsx` composes them into the shell; the rule
+they still keep is the import direction: chrome renders what it's given (e.g.
+`useVisibleDestinations()` from `src/navigation/`) rather than importing from
+`src/features/`.
+
 `src/components/base/ui/` is vendored react-native-reusables output — regenerate via the RNR CLI
 rather than hand-refactoring.
 

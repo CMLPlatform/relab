@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
-import { Text } from '@/components/base/Text';
+import { AppText } from '@/components/base/AppText';
 import { entityLabel, type Product } from '@/types/Product';
 import { ComponentRow } from './ComponentRow';
 
@@ -35,7 +35,9 @@ export default function ProductComponents({ product, editMode }: Props) {
   return (
     <View>
       {components.length === 0 && (
-        <Text style={{ opacity: 0.7, marginBottom: 8 }}>This {label} has no subcomponents.</Text>
+        <AppText variant="plain" style={{ opacity: 0.7, marginBottom: 8 }}>
+          This {label} has no subcomponents.
+        </AppText>
       )}
       {visibleComponents.map((component) => (
         <ComponentRow key={component.id} component={component} enabled={!editMode} />

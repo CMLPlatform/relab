@@ -7,10 +7,6 @@ import type { AppTheme } from './types';
 // context/themeMode.ts for the same pattern next to ThemeModeProvider.tsx).
 export const AppThemeContext = createContext<AppTheme>(lightTheme);
 
-export function useAppThemeContext(): AppTheme {
-  return useContext(AppThemeContext);
-}
-
 export function useAppTheme(): AppTheme {
-  return useAppThemeContext();
+  return useContext(AppThemeContext);
 }

@@ -217,6 +217,52 @@ describe('useOAuthAssociations', () => {
     });
   });
 
+  // Regression: the step-up retry runs detached from the dialog's onPress, so a wrong
+  // password rejected unhandled — the dialog closed and the user was told nothing.
+  it('reports a wrong password entered at the step-up prompt', async () => {
+    jest
+      .mocked(fetchOAuthAuthorizationUrl)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        detail: 'Current password is required to link a social login.',
+        authorizationUrl: undefined,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        detail: 'Incorrect password.',
+        authorizationUrl: undefined,
+      });
+
+    const { result } = renderHook(() =>
+      useOAuthAssociations({
+        feedback: mockFeedback,
+        refetch: mockRefetch,
+        setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.actions.linkOAuth('google');
+    });
+
+    const options = mockDialog.input.mock.calls[0]?.[0] as {
+      buttons?: { text: string; onPress?: (value?: string) => void }[];
+    };
+    const confirm = options.buttons?.find((button) => button.text === 'Continue');
+    await act(async () => {
+      confirm?.onPress?.('wrong-password');
+      await Promise.resolve();
+    });
+
+    expect(mockFeedback.error).toHaveBeenCalledWith(
+      'Failed to start link flow: Incorrect password.',
+      'Link failed',
+    );
+  });
+
   it('shows an error when starting a link flow fails', async () => {
     jest.mocked(fetchOAuthAuthorizationUrl).mockImplementation(async () => ({
       ok: false,

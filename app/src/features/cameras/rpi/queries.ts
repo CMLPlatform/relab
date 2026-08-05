@@ -1,10 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
-import {
-  fetchCamera,
-  fetchCameras,
-  fetchCameraTelemetry,
-  getStreamStatus,
-} from '@/services/api/rpiCamera';
+import { fetchCamera, fetchCameras, getStreamStatus } from '@/services/api/rpiCamera';
 
 export const cameraListStaleTime = (includeStatus: boolean, includeTelemetry: boolean) => {
   if (includeTelemetry) {
@@ -35,21 +30,6 @@ export const cameraQueryOptions = (
     enabled: !!id,
     staleTime: cameraListStaleTime(includeStatus, includeTelemetry),
     refetchInterval: includeTelemetry ? 5_000 : false,
-  });
-
-export const cameraTelemetryQueryOptions = (
-  cameraId: string | null,
-  { enabled = true, refetchInterval = 5_000 }: { enabled?: boolean; refetchInterval?: number } = {},
-) =>
-  queryOptions({
-    queryKey: ['rpiCameraTelemetry', cameraId] as const,
-    queryFn: () => {
-      if (!cameraId) throw new Error('cameraId is required');
-      return fetchCameraTelemetry(cameraId);
-    },
-    enabled: enabled && !!cameraId,
-    refetchInterval: enabled ? refetchInterval : false,
-    staleTime: refetchInterval,
   });
 
 export const streamStatusQueryOptions = (

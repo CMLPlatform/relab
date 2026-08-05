@@ -38,6 +38,7 @@ export default function CategorySelection() {
     ),
     [selectType, selectBranch],
   );
+  const keyExtractor = useCallback((item: CPVCategory) => String(item.id), []);
 
   if (!user) return null;
   if (!cpvClass) {
@@ -75,6 +76,7 @@ export default function CategorySelection() {
         }}
         data={filtered}
         renderItem={renderItem}
+        keyExtractor={keyExtractor}
       />
     </PageContainer>
   );

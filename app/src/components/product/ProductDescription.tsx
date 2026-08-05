@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Text } from '@/components/base/Text';
+import { AppText } from '@/components/base/AppText';
 import { TextInput } from '@/components/base/TextInput';
 
 import { entityLabel, type Product } from '@/types/Product';
@@ -47,19 +47,22 @@ export default function ProductDescription({ product, editMode, onChangeDescript
   if (!editMode) {
     return (
       <View style={{ paddingHorizontal: 14, paddingVertical: 8, gap: 10 }}>
-        <Text
+        <AppText
+          variant="plain"
           style={{ fontSize: 16, lineHeight: 26, opacity: text ? 1 : 0.7 }}
           numberOfLines={expanded ? undefined : COLLAPSED_DESCRIPTION_LINES}
         >
           {text ? text : 'No description yet.'}
-        </Text>
+        </AppText>
         {isLongDescription && (
           <Pressable
             onPress={toggleExpanded}
             accessibilityRole="button"
             accessibilityLabel={expanded ? 'Show less of description' : 'Show more of description'}
           >
-            <Text style={{ fontWeight: '600' }}>{expanded ? 'Show less' : 'Show more'}</Text>
+            <AppText variant="plain" style={{ fontWeight: '600' }}>
+              {expanded ? 'Show less' : 'Show more'}
+            </AppText>
           </Pressable>
         )}
       </View>

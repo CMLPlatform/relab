@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useIsFocused } from 'expo-router';
 import { useMemo } from 'react';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
-import { invalidateProductQuery } from '@/features/products/queries';
+import { invalidateProductQuery } from '@/features/product-entity/queries';
 import type { CameraUpdate, PairingClaimRequest } from '@/services/api/rpiCamera';
 import {
   claimPairingCode,
@@ -21,12 +21,7 @@ import {
   restoreOptimisticStreamStatus,
 } from './mutations';
 import { type CameraLivePreviewResult, resolveCameraLivePreview } from './previews';
-import {
-  cameraQueryOptions,
-  camerasQueryOptions,
-  cameraTelemetryQueryOptions,
-  streamStatusQueryOptions,
-} from './queries';
+import { cameraQueryOptions, camerasQueryOptions, streamStatusQueryOptions } from './queries';
 
 // Shared by useDeleteCameraMutation and useClaimPairingMutation, which both
 // just need the camera list invalidated on success.
@@ -79,17 +74,6 @@ export function useCameraQuery(
   return useQuery({ ...cameraQueryOptions(id, includeStatus, { includeTelemetry }), subscribed });
 }
 
-export function useCameraTelemetryQuery(
-  cameraId: string | null,
-  { enabled = true, refetchInterval = 5_000 }: { enabled?: boolean; refetchInterval?: number } = {},
-) {
-  const subscribed = useIsFocused();
-  return useQuery({
-    ...cameraTelemetryQueryOptions(cameraId, { enabled, refetchInterval }),
-    subscribed,
-  });
-}
-
 export function useUpdateCameraMutation(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -139,7 +123,12 @@ export function useStreamStatusQuery(
   return useQuery({ ...streamStatusQueryOptions(cameraId, { enabled }), subscribed });
 }
 
-export function useStopYouTubeStreamMutation(cameraId: string) {
+/**
+ * `productId` is the product the stream was recording: stopping ends its live
+ * video, so its cached copy is stale. Callers that only stop a camera (the
+ * camera card, the profile screen) leave it out.
+ */
+export function useStopYouTubeStreamMutation(cameraId: string, productId?: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => stopYouTubeStream(cameraId),
@@ -147,7 +136,10 @@ export function useStopYouTubeStreamMutation(cameraId: string) {
     onError: (_err, _vars, context) => {
       restoreOptimisticStreamStatus(queryClient, cameraId, context?.previous);
     },
-    onSuccess: () => invalidateCameraStreamStatusQuery(queryClient, cameraId),
+    onSuccess: () => {
+      invalidateCameraStreamStatusQuery(queryClient, cameraId);
+      if (productId !== undefined) invalidateProductQuery(queryClient, productId);
+    },
   });
 }
 

@@ -9,6 +9,7 @@ import {
   useSaveProductMutation,
 } from '@/features/products/queries';
 import { useProductForm } from '@/features/products/useProductForm';
+import { MediaSyncError } from '@/services/api/saving';
 import { baseProduct } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
@@ -77,8 +78,12 @@ describe('useProductForm', () => {
 
   it('initializes with existing product data', async () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
-    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => 123),
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
 
     const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
 
@@ -91,8 +96,12 @@ describe('useProductForm', () => {
 
   it('handles field changes', async () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
-    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => 123),
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
 
     const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
 
@@ -108,10 +117,12 @@ describe('useProductForm', () => {
   });
 
   it('triggers save mutation when saveAndExit is called with a dirty form', async () => {
-    const mockMutate = jest.fn();
+    const mockMutate = jest.fn(async () => 123);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
-    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
@@ -133,15 +144,51 @@ describe('useProductForm', () => {
       expect.objectContaining({
         product: expect.objectContaining({ name: 'Edited Name' }),
       }),
-      expect.any(Object),
     );
+  });
+
+  // Regression: the button stays pressable while the save is in flight, so a
+  // double tap issued a second PATCH and re-uploaded every pending photo.
+  it('ignores a second saveAndExit while the first is still in flight', async () => {
+    let release: (id: number) => void = () => {};
+    const mockMutate = jest.fn(() => new Promise<number>((resolve) => (release = resolve)));
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
+
+    const { result } = renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onProductNameChange('Edited Name');
+    });
+
+    await act(async () => {
+      void result.current.saveAndExit();
+      void result.current.saveAndExit();
+    });
+
+    expect(mockMutate).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      release(123);
+    });
   });
 
   it('calls onSaveSuccess with the current id when saveAndExit is called on a clean existing entity', async () => {
     const onSaveSuccess = jest.fn();
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
-    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => 123),
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true, onSaveSuccess }),
@@ -157,15 +204,18 @@ describe('useProductForm', () => {
   });
 
   it('shows a dialog when saving fails', async () => {
-    const mockMutate = jest.fn(
-      (
-        _payload: unknown,
-        options: { onSuccess?: (id: number) => void; onError?: (err: Error) => void },
-      ) => options.onError?.(new Error('Network failure')),
-    );
+    const mockAlert = jest.fn();
+    jest
+      .mocked(useDialog)
+      .mockReturnValue({ alert: mockAlert, input: jest.fn(), toast: jest.fn() });
+    const mockMutate = jest.fn(async () => {
+      throw new Error('Network failure');
+    });
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
-    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
@@ -181,19 +231,59 @@ describe('useProductForm', () => {
       result.current.saveAndExit();
     });
 
-    expect(mockMutate).toHaveBeenCalledWith(
-      expect.any(Object),
-      expect.objectContaining({ onError: expect.any(Function) }),
+    expect(mockAlert).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Save failed', message: 'Network failure' }),
     );
   });
 
-  it('calls delete mutation and navigates to /products on success', async () => {
-    const mockDeleteMutate = jest.fn((_payload: unknown, options: { onSuccess?: () => void }) =>
-      options.onSuccess?.(),
-    );
+  // A media-sync failure means the entity itself saved: the caller must hear
+  // "photos didn't upload", not "save failed", and must not be exited out of
+  // the form while those photos are still only local.
+  it('reports a partial save honestly and stays in the form', async () => {
+    const mockAlert = jest.fn();
+    jest
+      .mocked(useDialog)
+      .mockReturnValue({ alert: mockAlert, input: jest.fn(), toast: jest.fn() });
+    const onSaveSuccess = jest.fn();
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
-    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: mockDeleteMutate });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => {
+        throw new MediaSyncError(123, new Error('413'));
+      }),
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
+
+    const { result } = renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true, onSaveSuccess }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onProductNameChange('Edited Name');
+    });
+    await act(async () => {
+      result.current.saveAndExit();
+    });
+
+    expect(mockAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Photos not uploaded',
+        message: 'Saved, but some photos failed to upload.',
+      }),
+    );
+    expect(onSaveSuccess).not.toHaveBeenCalled();
+  });
+
+  it('calls delete mutation and navigates to /products on success', async () => {
+    const mockDeleteMutate = jest.fn(async () => undefined);
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => 123),
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockDeleteMutate });
 
     const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
     await waitFor(() => expect(result.current.product.id).toBe(123));
@@ -202,21 +292,18 @@ describe('useProductForm', () => {
       result.current.onProductDelete();
     });
 
-    expect(mockDeleteMutate).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 123 }),
-      expect.objectContaining({ onSuccess: expect.any(Function) }),
-    );
+    expect(mockDeleteMutate).toHaveBeenCalledWith(expect.objectContaining({ id: 123 }));
     expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 
   it('routes delete through onDeleteSuccess when provided instead of the root list', async () => {
-    const mockDeleteMutate = jest.fn((_payload: unknown, options: { onSuccess?: () => void }) =>
-      options.onSuccess?.(),
-    );
+    const mockDeleteMutate = jest.fn(async () => undefined);
     const onDeleteSuccess = jest.fn();
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
-    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: mockDeleteMutate });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => 123),
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockDeleteMutate });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', onDeleteSuccess }),
@@ -241,8 +328,12 @@ describe('useProductForm', () => {
       physicalProperties: { weight: 850, width: 30, height: 12, depth: 25 },
     };
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: validProduct, isLoading: false });
-    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => 123),
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
@@ -280,8 +371,12 @@ describe('useProductForm', () => {
       physicalProperties: { weight: 850, width: 30, height: 12, depth: 25 },
     };
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: validProduct, isLoading: false });
-    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => 123),
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
@@ -317,12 +412,14 @@ describe('useProductForm', () => {
     jest
       .mocked(useDialog)
       .mockReturnValue({ alert: mockAlert, input: jest.fn(), toast: jest.fn() });
-    const deleteMutate = jest.fn((_product, opts: { onError?: (err: unknown) => void }) =>
-      opts.onError?.(new Error('server exploded')),
-    );
+    const deleteMutate = jest.fn(async () => {
+      throw new Error('server exploded');
+    });
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
-    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: deleteMutate });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => 123),
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutateAsync: deleteMutate });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),

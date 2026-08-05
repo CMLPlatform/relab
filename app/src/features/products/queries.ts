@@ -5,15 +5,11 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
 import { searchProductBrands } from '@/services/api/productSuggestions';
-import {
-  getBaseProduct,
-  getComponent,
-  isProductNotFoundError,
-  products,
-} from '@/services/api/products';
+import { products } from '@/services/api/products';
 import { searchProductTypes } from '@/services/api/productTypes';
-import { deleteProduct, saveProduct } from '@/services/api/saving';
+import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
 
 export type ProductRole = 'product' | 'component';
@@ -72,27 +68,6 @@ export const productsQueryOptions = (
     placeholderData: (previousData) => previousData,
   });
 
-const shouldRetry = (failureCount: number, error: unknown) => {
-  if (isProductNotFoundError(error)) return false;
-  return failureCount < 1;
-};
-
-export const baseProductQueryOptions = (id: number | undefined) =>
-  queryOptions({
-    queryKey: ['baseProduct', id ?? null] as const,
-    queryFn: () => getBaseProduct(id as number),
-    enabled: typeof id === 'number',
-    retry: shouldRetry,
-  });
-
-export const componentQueryOptions = (id: number | undefined) =>
-  queryOptions({
-    queryKey: ['component', id ?? null] as const,
-    queryFn: () => getComponent(id as number),
-    enabled: typeof id === 'number',
-    retry: shouldRetry,
-  });
-
 export const brandsSearchQueryOptions = (search: string) =>
   queryOptions({
     queryKey: ['brands', 'search', search] as const,
@@ -126,15 +101,30 @@ export function useSearchProductTypesQuery(search: string) {
   return useQuery(productTypesSearchQueryOptions(search));
 }
 
-// ─── Cache invalidation helpers ───────────────────────────────────────────────
-
-export function invalidateProductQuery(queryClient: QueryClient, productId: number) {
-  // Camera modules don't know the product's role, so invalidate both keys.
-  void queryClient.invalidateQueries({ queryKey: ['baseProduct', productId] });
-  void queryClient.invalidateQueries({ queryKey: ['component', productId] });
-}
-
 // ─── Save / delete mutations ───────────────────────────────────────────────────
+
+function invalidateAfterSave(queryClient: QueryClient, product: Product, savedId: number) {
+  const isComponent = product.role === 'component';
+  const savedKey = isComponent
+    ? componentQueryOptions(savedId).queryKey
+    : baseProductQueryOptions(savedId).queryKey;
+  // Invalidate the saved entity so any subsequent view loads fresh data.
+  queryClient.invalidateQueries({ queryKey: savedKey });
+  // Invalidate all product lists so the list reflects name/brand changes.
+  queryClient.invalidateQueries({ queryKey: ['products'] });
+
+  // For components, also refresh the parent so its components list picks up
+  // the new child immediately when navigating back. Parent's role is
+  // unknown at this point, so invalidate both cache entries.
+  if (isComponent && typeof product.parentID === 'number') {
+    queryClient.invalidateQueries({
+      queryKey: baseProductQueryOptions(product.parentID).queryKey,
+    });
+    queryClient.invalidateQueries({
+      queryKey: componentQueryOptions(product.parentID).queryKey,
+    });
+  }
+}
 
 export function useSaveProductMutation() {
   const queryClient = useQueryClient();
@@ -150,26 +140,14 @@ export function useSaveProductMutation() {
       originalVideos: Product['videos'];
     }) => saveProduct(product, originalImages, originalVideos),
 
-    onSuccess: (savedId, { product }) => {
-      const isComponent = product.role === 'component';
-      const savedKey = isComponent
-        ? componentQueryOptions(savedId).queryKey
-        : baseProductQueryOptions(savedId).queryKey;
-      // Invalidate the saved entity so any subsequent view loads fresh data.
-      queryClient.invalidateQueries({ queryKey: savedKey });
-      // Invalidate all product lists so the list reflects name/brand changes.
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+    onSuccess: (savedId, { product }) => invalidateAfterSave(queryClient, product, savedId),
 
-      // For components, also refresh the parent so its components list picks up
-      // the new child immediately when navigating back. Parent's role is
-      // unknown at this point, so invalidate both cache entries.
-      if (isComponent && typeof product.parentID === 'number') {
-        queryClient.invalidateQueries({
-          queryKey: baseProductQueryOptions(product.parentID).queryKey,
-        });
-        queryClient.invalidateQueries({
-          queryKey: componentQueryOptions(product.parentID).queryKey,
-        });
+    onError: (error, { product }) => {
+      // A media-sync failure still wrote the entity, so the caches are stale
+      // even though the mutation rejected. Without this the screen keeps showing
+      // pre-save data the server no longer has.
+      if (error instanceof MediaSyncError) {
+        invalidateAfterSave(queryClient, product, error.productId);
       }
     },
   });

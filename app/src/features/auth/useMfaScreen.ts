@@ -1,17 +1,15 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useAuth } from '@/context/auth';
+import { useSingleFlight } from '@/hooks/useSingleFlight';
 import {
   clearPendingMfaLogin,
   completeMfaChallenge,
   getPendingMfaLogin,
 } from '@/services/api/auth/authMfa';
 import { getErrorMessage } from '@/utils/errors';
+import { normalizeTotpCode } from '@/utils/totp';
 import { getSafeRedirectTarget, routeAuthenticatedUser } from './useLoginRedirect';
-
-function normalizeTotpCode(value: string): string {
-  return value.replace(/\D/g, '').slice(0, 6);
-}
 
 export function useMfaScreen() {
   const router = useRouter();
@@ -23,11 +21,6 @@ export function useMfaScreen() {
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
-  // `isSubmitting` is state, so two submits in the same tick both read the stale
-  // `false` from their closure — and OtpInput auto-submits on its sixth digit while
-  // the button stays pressable. A ref is the only guard that single-flights this.
-  // A TOTP code and a recovery code are both single-use: a second submit burns it.
-  const inFlight = useRef(false);
 
   const activeCode = useRecoveryCode ? recoveryCode.trim() : code;
   const canSubmit =
@@ -40,14 +33,15 @@ export function useMfaScreen() {
     setError(null);
   }, []);
 
-  const submit = useCallback(
+  // OtpInput auto-submits on its sixth digit while the button stays pressable, and
+  // both a TOTP code and a recovery code are single-use — a second submit burns it.
+  const runSubmit = useCallback(
     async (submitCode: string = activeCode) => {
       if (!token) {
         setError('MFA session expired. Please sign in again.');
         return;
       }
-      if (submitCode.length < 6 || inFlight.current) return;
-      inFlight.current = true;
+      if (submitCode.length < 6) return;
       setSubmitting(true);
       setError(null);
       try {
@@ -69,12 +63,13 @@ export function useMfaScreen() {
       } catch (err) {
         setError(getErrorMessage(err, 'Invalid MFA code.'));
       } finally {
-        inFlight.current = false;
         setSubmitting(false);
       }
     },
     [activeCode, pending?.redirectTo, refetch, router, token],
   );
+
+  const submit = useSingleFlight(runSubmit);
 
   // Abandon the half-finished challenge so the pending token doesn't linger,
   // then send the user back to re-enter credentials.

@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -9,7 +8,6 @@ import { StatusPill } from '@/components/base/StatusPill';
 import type { StreamSession } from '@/context/streamSession';
 import { useStreamSession } from '@/context/streamSession';
 import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
-import { invalidateProductQuery } from '@/features/products/queries';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
 import { openExternalUrl } from '@/services/externalLinks';
@@ -33,11 +31,10 @@ export function StreamingContent({
   const theme = useAppTheme();
   const styles = createStyles(theme);
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { setActiveStream } = useStreamSession();
   const feedback = useAppFeedback();
   const elapsed = useElapsed(session.startedAt);
-  const stopMutation = useStopYouTubeStreamMutation(session.cameraId);
+  const stopMutation = useStopYouTubeStreamMutation(session.cameraId, session.productId);
 
   const handleWatch = useCallback(
     async () => openExternalUrl(session.youtubeUrl),
@@ -48,12 +45,11 @@ export function StreamingContent({
     stopMutation.mutate(undefined, {
       onSuccess: () => {
         setActiveStream(null);
-        invalidateProductQuery(queryClient, session.productId);
         onStop?.();
       },
       onError: (err) => showStreamStopFailed(feedback, err),
     });
-  }, [stopMutation, setActiveStream, queryClient, session.productId, onStop, feedback]);
+  }, [stopMutation, setActiveStream, onStop, feedback]);
 
   const handleGoToProduct = useCallback(() => {
     router.push({ pathname: '/products/[id]', params: { id: String(session.productId) } });

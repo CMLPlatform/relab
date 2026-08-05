@@ -7,7 +7,6 @@ import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { OtpInput } from '@/components/base/OtpInput';
-import { Text } from '@/components/base/Text';
 import { TextInput } from '@/components/base/TextInput';
 import { radius, spacing } from '@/constants';
 import type { MfaSetupController } from '@/features/profile/useMfaSetup';
@@ -49,13 +48,13 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
   return (
     <>
       <AppDialog visible={mfa.mode === 'enroll'} onDismiss={cancel}>
-        <Text accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Set up two-step verification
-        </Text>
-        <Text style={local.step}>
+        </AppText>
+        <AppText variant="plain" style={local.step}>
           Scan this with an authenticator app, or enter the key by hand. Then type the 6-digit code
           it shows.
-        </Text>
+        </AppText>
 
         {otpauthUri ? (
           <View style={local.qrFrame}>
@@ -64,9 +63,9 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
         ) : null}
 
         <View style={local.keyRow}>
-          <Text selectable style={local.key}>
+          <AppText variant="plain" selectable style={local.key}>
             {chunkSecret(secret)}
-          </Text>
+          </AppText>
           {/* NOTE: dropped Paper's leading copy icon — AppButton has no icon slot; text-only matches Chip's precedent. */}
           <AppButton variant="ghost" onPress={copyKey}>
             Copy
@@ -90,10 +89,10 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
           textContentType="password"
           style={[local.field, { borderColor: theme.colors.outline }]}
         />
-        <Text style={local.hint}>
+        <AppText variant="plain" style={local.hint}>
           Signed up with Google or GitHub? Use your Relab account password — if you never set one,
           create it with “Forgot password” on the login screen first.
-        </Text>
+        </AppText>
 
         <View style={local.codeField}>
           <OtpInput
@@ -106,7 +105,11 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
           />
         </View>
 
-        {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
+        {mfa.error ? (
+          <AppText variant="plain" style={local.error}>
+            {mfa.error}
+          </AppText>
+        ) : null}
 
         <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={cancel}>
@@ -119,14 +122,14 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
       </AppDialog>
 
       <AppDialog visible={mfa.mode === 'disable'} onDismiss={cancel}>
-        <Text accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Enter a current code
-        </Text>
-        <Text style={local.step}>
+        </AppText>
+        <AppText variant="plain" style={local.step}>
           {mfa.useRecoveryCode
             ? 'Enter one of your saved recovery codes to confirm it’s you.'
             : 'Type a code from your authenticator app to confirm it’s you.'}
-        </Text>
+        </AppText>
 
         {mfa.useRecoveryCode ? (
           // Labelled like the OtpInput it swaps with, so toggling recovery mode
@@ -159,7 +162,11 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
           </View>
         )}
 
-        {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
+        {mfa.error ? (
+          <AppText variant="plain" style={local.error}>
+            {mfa.error}
+          </AppText>
+        ) : null}
 
         <AppButton variant="ghost" onPress={mfa.toggleRecoveryInput} className="mt-3 self-start">
           {mfa.useRecoveryCode
@@ -183,13 +190,13 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
       </AppDialog>
 
       <AppDialog visible={mfa.mode === 'regenerate'} onDismiss={cancel}>
-        <Text accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Generate new recovery codes
-        </Text>
-        <Text style={local.step}>
+        </AppText>
+        <AppText variant="plain" style={local.step}>
           Enter a code from your authenticator app. This replaces your old codes — any you
           haven&apos;t used will stop working.
-        </Text>
+        </AppText>
 
         <View style={local.codeField}>
           <OtpInput
@@ -203,7 +210,11 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
           />
         </View>
 
-        {mfa.error ? <Text style={local.error}>{mfa.error}</Text> : null}
+        {mfa.error ? (
+          <AppText variant="plain" style={local.error}>
+            {mfa.error}
+          </AppText>
+        ) : null}
 
         <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={cancel}>
@@ -216,19 +227,19 @@ export function MfaDialogs({ mfa }: { mfa: MfaSetupController }) {
       </AppDialog>
 
       <AppDialog visible={mfa.mode === 'codes'} onDismiss={cancel} dismissable={false}>
-        <Text accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="plain" accessibilityRole="header" style={dialogTitleStyle}>
           Save your recovery codes
-        </Text>
-        <Text style={local.step}>
+        </AppText>
+        <AppText variant="plain" style={local.step}>
           Keep these somewhere safe. Each code works once to sign in if you lose your authenticator.
           This is the only time they&apos;re shown.
-        </Text>
+        </AppText>
 
         <View style={local.codesBox}>
           {(recoveryCodes ?? []).map((recoveryCode) => (
-            <Text key={recoveryCode} selectable style={local.recoveryCode}>
+            <AppText variant="plain" key={recoveryCode} selectable style={local.recoveryCode}>
               {recoveryCode}
-            </Text>
+            </AppText>
           ))}
         </View>
 

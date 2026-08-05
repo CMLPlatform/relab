@@ -234,6 +234,36 @@ describe('ProductVideo', () => {
     expect(onVideoChange).toHaveBeenCalledWith([]);
   });
 
+  it('names the video in the delete button label', () => {
+    const productWithVideo: Product = {
+      ...baseProduct,
+      videos: [{ id: 1, url: 'https://youtube.com/watch?v=abc', title: 'Demo', description: '' }],
+    };
+
+    renderProductVideo({ product: productWithVideo, editMode: true });
+    expect(screen.getByLabelText('Remove video "Demo"')).toBeOnTheScreen();
+  });
+
+  it('shows an associated error message for an empty title', () => {
+    const productWithVideo: Product = {
+      ...baseProduct,
+      videos: [{ id: 1, url: 'https://youtube.com/watch?v=abc', title: '', description: '' }],
+    };
+
+    renderProductVideo({ product: productWithVideo, editMode: true });
+    expect(screen.getByText('Title is required')).toBeOnTheScreen();
+  });
+
+  it('shows an associated error message for an invalid video URL', () => {
+    const productWithVideo: Product = {
+      ...baseProduct,
+      videos: [{ id: 1, url: 'not-a-url', title: 'Demo', description: '' }],
+    };
+
+    renderProductVideo({ product: productWithVideo, editMode: true });
+    expect(screen.getByText('Video URL must use http or https')).toBeOnTheScreen();
+  });
+
   it('shows the go live CTA when the product is eligible to stream', () => {
     const onGoLivePress = jest.fn();
     mockUseProductVideo.mockReturnValue(

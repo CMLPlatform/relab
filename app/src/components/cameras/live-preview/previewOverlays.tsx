@@ -50,7 +50,7 @@ export function PreviewErrorOverlay({
     <View style={styles.overlay}>
       <Icon name="video-off" size={32} color={theme.tokens.text.muted} />
       <AppText style={styles.overlayText}>{message}</AppText>
-      <Pressable onPress={onRetry}>
+      <Pressable onPress={onRetry} accessibilityRole="button">
         <AppText style={styles.retryText}>Tap to retry</AppText>
       </Pressable>
     </View>

@@ -2,11 +2,11 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
-import { Text } from '@/components/base/Text';
 import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
@@ -103,9 +103,9 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
 
           {/* Content */}
           <View style={styles.content}>
-            <Text style={[styles.title, { color: theme.colors.onSurface }]}>
+            <AppText variant="plain" style={[styles.title, { color: theme.colors.onSurface }]}>
               {product.name || 'Unnamed Product'}
-            </Text>
+            </AppText>
             <MutedText style={styles.detailText} numberOfLines={1} ellipsizeMode="tail">
               {detailList.join(' • ')}
             </MutedText>
@@ -117,21 +117,25 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                 {createdAgo ? (
                   <View style={styles.metadataItem}>
                     <Icon name="clock-outline" size={12} color={theme.colors.outline} />
-                    <Text style={[styles.metadataText, { color: theme.colors.outline }]}>
+                    <AppText
+                      variant="plain"
+                      style={[styles.metadataText, { color: theme.colors.outline }]}
+                    >
                       {createdAgo}
-                    </Text>
+                    </AppText>
                   </View>
                 ) : null}
                 {ownerLabel ? (
                   <View style={styles.metadataItem}>
                     <Icon name="account-outline" size={12} color={theme.colors.outline} />
-                    <Text
+                    <AppText
+                      variant="plain"
                       style={[styles.metadataText, { color: theme.colors.primary }]}
                       numberOfLines={1}
                       onPress={navigateToOwner}
                     >
                       {ownerLabel}
-                    </Text>
+                    </AppText>
                   </View>
                 ) : null}
               </View>

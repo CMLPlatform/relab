@@ -1,15 +1,44 @@
 import { Stack } from 'expo-router';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
-
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
-import { Icon } from '@/components/base/Icon';
+import { Icon, type IconName } from '@/components/base/Icon';
 import { PageContainer } from '@/components/base/PageContainer';
-import { Text } from '@/components/base/Text';
 import { radius } from '@/constants';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+
+type ProfileStyles = ReturnType<typeof createStyles>;
+
+// Four stat blocks differ only in icon/color/value/label — mapped from data
+// instead of hand-copied per stat. Local to this screen: unrelated to the
+// HeroStats StatCard in components/profile.
+function ProfileStatCard({
+  icon,
+  color,
+  value,
+  label,
+  styles,
+}: {
+  icon: IconName;
+  color: string;
+  value: string | number;
+  label: string;
+  styles: ProfileStyles;
+}) {
+  return (
+    <Card style={styles.statCard}>
+      <View style={styles.statContent}>
+        <Icon name={icon} size={32} color={color} />
+        <AppText style={styles.statValue} numberOfLines={1}>
+          {value}
+        </AppText>
+        <AppText style={styles.statLabel}>{label}</AppText>
+      </View>
+    </Card>
+  );
+}
 
 export default function UserProfileScreen() {
   const theme = useAppTheme();
@@ -39,7 +68,9 @@ export default function UserProfileScreen() {
           {hasError ? (
             <View style={styles.centerContainer}>
               <Icon name="account-cancel-outline" size={48} color={theme.colors.error} />
-              <Text style={styles.errorText}>{errorMessage}</Text>
+              <AppText variant="plain" style={styles.errorText}>
+                {errorMessage}
+              </AppText>
             </View>
           ) : null}
 
@@ -47,57 +78,56 @@ export default function UserProfileScreen() {
             <View style={styles.profileContainer}>
               <View style={styles.heroSection}>
                 <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>
+                  <AppText variant="plain" style={styles.avatarText}>
                     {profile.username.substring(0, 2).toUpperCase()}
-                  </Text>
+                  </AppText>
                 </View>
-                <Text style={styles.usernameText}>{profile.username}</Text>
+                <AppText variant="plain" style={styles.usernameText}>
+                  {profile.username}
+                </AppText>
                 {profile.created_at ? (
-                  <Text style={styles.joinedText}>
+                  <AppText variant="plain" style={styles.joinedText}>
                     Joined{' '}
                     {new Date(profile.created_at).toLocaleDateString(undefined, {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
                     })}
-                  </Text>
+                  </AppText>
                 ) : null}
               </View>
 
               <View style={styles.statsSection}>
-                <Card style={styles.statCard}>
-                  <View style={styles.statContent}>
-                    <Icon name="package-variant-closed" size={32} color={theme.colors.primary} />
-                    <AppText style={styles.statValue}>{profile.product_count}</AppText>
-                    <AppText style={styles.statLabel}>Products</AppText>
-                  </View>
-                </Card>
-
-                <Card style={styles.statCard}>
-                  <View style={styles.statContent}>
-                    <Icon name="weight-kilogram" size={32} color={theme.colors.secondary} />
-                    <AppText style={styles.statValue}>{profile.total_weight_kg}</AppText>
-                    <AppText style={styles.statLabel}>Total kg</AppText>
-                  </View>
-                </Card>
-
-                <Card style={styles.statCard}>
-                  <View style={styles.statContent}>
-                    <Icon name="image-multiple" size={32} color={theme.tokens.status.success} />
-                    <AppText style={styles.statValue}>{profile.image_count}</AppText>
-                    <AppText style={styles.statLabel}>Photos</AppText>
-                  </View>
-                </Card>
-
-                <Card style={styles.statCard}>
-                  <View style={styles.statContent}>
-                    <Icon name="tag-outline" size={32} color={theme.tokens.status.warning} />
-                    <AppText style={styles.statValue} numberOfLines={1}>
-                      {profile.top_category || 'None'}
-                    </AppText>
-                    <AppText style={styles.statLabel}>Top category</AppText>
-                  </View>
-                </Card>
+                {(
+                  [
+                    {
+                      icon: 'package-variant-closed',
+                      color: theme.colors.primary,
+                      value: profile.product_count,
+                      label: 'Products',
+                    },
+                    {
+                      icon: 'weight-kilogram',
+                      color: theme.colors.secondary,
+                      value: profile.total_weight_kg,
+                      label: 'Total kg',
+                    },
+                    {
+                      icon: 'image-multiple',
+                      color: theme.tokens.status.success,
+                      value: profile.image_count,
+                      label: 'Photos',
+                    },
+                    {
+                      icon: 'tag-outline',
+                      color: theme.tokens.status.warning,
+                      value: profile.top_category || 'None',
+                      label: 'Top category',
+                    },
+                  ] as const
+                ).map((stat) => (
+                  <ProfileStatCard key={stat.label} styles={styles} {...stat} />
+                ))}
               </View>
             </View>
           ) : null}

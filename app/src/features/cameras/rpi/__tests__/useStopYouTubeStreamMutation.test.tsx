@@ -52,6 +52,30 @@ describe('useStopYouTubeStreamMutation', () => {
     expect(queryClient.getQueryData(STREAM_STATUS_KEY)).toBeNull();
   });
 
+  it('invalidates the streamed product when one was given', async () => {
+    mockedStopYouTubeStream.mockResolvedValue(undefined);
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+
+    const { result } = renderHook(() => useStopYouTubeStreamMutation(CAMERA_ID, 42), { wrapper });
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // The stream's recording lands on the product, so its cached copy is stale.
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['baseProduct', 42] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['component', 42] });
+  });
+
+  it('leaves the product cache alone when no product was streamed', async () => {
+    mockedStopYouTubeStream.mockResolvedValue(undefined);
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+
+    const { result } = renderHook(() => useStopYouTubeStreamMutation(CAMERA_ID), { wrapper });
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['baseProduct', 42] });
+  });
+
   it('restores the previous stream status when stopping fails', async () => {
     queryClient.setQueryData(STREAM_STATUS_KEY, LIVE_STREAM);
     mockedStopYouTubeStream.mockRejectedValue(new Error('relay unreachable'));

@@ -11,6 +11,12 @@
       "supportsTablet": true,
       "config": {
         "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        },
+        "NSLocalNetworkUsageDescription": "Relab connects directly to your Raspberry Pi camera on this network."
       }
     },
     "android": {
@@ -68,7 +74,8 @@
       "expo-video",
       "expo-font",
       "expo-asset",
-      "expo-status-bar"
+      "expo-status-bar",
+      "./plugins/withLocalNetworkSecurity"
     ],
     "experiments": {
       "typedRoutes": true

@@ -19,7 +19,7 @@ import {
   products,
 } from '@/services/api/products';
 import { searchProductTypes } from '@/services/api/productTypes';
-import { deleteProduct, saveProduct } from '@/services/api/saving';
+import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
 
 jest.mock('@/services/api/productSuggestions', () => ({
@@ -43,6 +43,7 @@ jest.mock('@/services/api/productTypes', () => ({
 }));
 
 jest.mock('@/services/api/saving', () => ({
+  ...jest.requireActual<typeof import('@/services/api/saving')>('@/services/api/saving'),
   saveProduct: jest.fn(),
   deleteProduct: jest.fn(),
 }));
@@ -279,6 +280,26 @@ describe('useProductQueries', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it('useSaveProductMutation refreshes the cache when only the media sync failed', async () => {
+    // The entity write landed, so leaving the cache alone would keep showing
+    // pre-save data the server no longer has.
+    mockedSaveProduct.mockRejectedValue(new MediaSyncError(7, new Error('413')));
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    invalidateSpy.mockClear();
+
+    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+
+    result.current.mutate({
+      product: { ...newProductDraft, name: 'New' },
+      originalImages: [],
+      originalVideos: [],
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['baseProduct', 7] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['products'] });
   });
 
   it('useDeleteProductMutation does not evict the cache when deletion fails', async () => {

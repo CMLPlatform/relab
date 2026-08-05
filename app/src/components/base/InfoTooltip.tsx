@@ -2,9 +2,9 @@ import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { spacing } from '@/constants';
 import { useAppTheme } from '@/theme';
+import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { OverlaySurface } from './OverlaySurface';
-import { Text } from './Text';
 
 const MOBILE_USER_AGENT_PATTERN = /iPhone|iPad|iPod|Android/i;
 
@@ -63,7 +63,9 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
               ]}
               tone="scrim"
             >
-              <Text style={{ color: theme.colors.inverseOnSurface }}>{title}</Text>
+              <AppText variant="plain" style={{ color: theme.colors.inverseOnSurface }}>
+                {title}
+              </AppText>
             </OverlaySurface>
           </Pressable>
         </Modal>
@@ -99,13 +101,14 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           ]}
           tone="scrim"
         >
-          <Text
+          <AppText
+            variant="plain"
             accessibilityLiveRegion="polite"
             numberOfLines={1}
             style={{ color: theme.colors.inverseOnSurface }}
           >
             {title}
-          </Text>
+          </AppText>
         </OverlaySurface>
       ) : null}
     </View>

@@ -3,7 +3,6 @@ import { StyleSheet, TextInput, View } from 'react-native';
 import { radius } from '@/constants';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import { AppText } from './AppText';
-import { Text } from './Text';
 
 type OtpInputProps = {
   value: string;
@@ -73,7 +72,9 @@ export function OtpInput({
                 hasError && styles.cellError,
               ]}
             >
-              <Text style={styles.digit}>{value[index] ?? ''}</Text>
+              <AppText variant="plain" style={styles.digit}>
+                {value[index] ?? ''}
+              </AppText>
             </View>
           );
         })}

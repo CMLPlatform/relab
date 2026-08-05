@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { useAppTheme } from '@/theme';
+import { AppText } from './AppText';
 import { Icon } from './Icon';
-import { Text } from './Text';
 
 interface Props {
   width: number;
@@ -38,7 +38,8 @@ export default function ImagePlaceholder({
         <Icon name="image-outline" size={iconSize} color={theme.colors.outline} />
       </View>
       {label ? (
-        <Text
+        <AppText
+          variant="plain"
           numberOfLines={2}
           style={{
             marginTop: 4,
@@ -49,7 +50,7 @@ export default function ImagePlaceholder({
           }}
         >
           {label}
-        </Text>
+        </AppText>
       ) : null}
     </View>
   );
