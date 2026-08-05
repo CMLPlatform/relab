@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import LocalizedFloatInput from '@/components/base/LocalizedFloatInput';
 import Cube from '@/components/base/SVGCube';
 import { Separator } from '@/components/base/ui/separator';
+import { productSchema } from '@/services/api/validation/productSchema';
 import type { PhysicalProperties, Product } from '@/types/Product';
 
 interface Props {
@@ -24,6 +25,22 @@ const nameMap = {
   width: 'Width',
   depth: 'Depth',
 };
+
+const physicalPropertyShape = productSchema.shape.physicalProperties.shape;
+
+/**
+ * Validation message for one dimension, read straight off the shared schema so
+ * the wording can't drift from what the save actually rejects. Every field is
+ * optional, and the input's own pattern refuses a minus sign, so in practice
+ * this only ever fires on a literal 0 — which is otherwise indistinguishable
+ * from a valid entry until the save FAB silently refuses to submit.
+ */
+function propertyError(
+  propKey: keyof PhysicalProperties,
+  value: number | undefined,
+): string | undefined {
+  return physicalPropertyShape[propKey].safeParse(value).error?.issues[0]?.message;
+}
 
 export default function ProductPhysicalProperties({
   product,
@@ -76,17 +93,20 @@ function PhysicalPropertyRow({
     [onChangeProperty, propKey],
   );
 
+  const value = product.physicalProperties[propKey];
+
   return (
     <View>
       <Separator />
       <LocalizedFloatInput
         label={nameMap[propKey]}
-        value={product.physicalProperties[propKey]}
+        value={value}
         unit={unitMap[propKey]}
         editable={editMode}
         onChange={handleChange}
         min={0}
         placeholder="> 0"
+        error={editMode ? propertyError(propKey, value) : undefined}
       />
     </View>
   );

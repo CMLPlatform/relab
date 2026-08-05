@@ -60,3 +60,25 @@ describe('ProductNameHeader', () => {
     expect(screen.queryByDisplayValue('Initial product name')).not.toBeOnTheScreen();
   });
 });
+
+describe('ProductNameHeader validation', () => {
+  // The invalid state used to be an error-coloured background and nothing else,
+  // which reaches neither a screen reader nor a user who can't tell the two
+  // backgrounds apart (WCAG 1.4.1, 3.3.1).
+  it('names the problem in text and links it to the input', () => {
+    render(<ProductNameHeader name="" editMode={true} theme={theme} />);
+
+    const input = screen.getByLabelText('Product name');
+    const message = screen.getByRole('alert');
+
+    expect(input.props.accessibilityDescribedBy).toBe(message.props.nativeID);
+    expect(message).toBeOnTheScreen();
+  });
+
+  it('says nothing while the name is valid', () => {
+    render(<ProductNameHeader name={initialName} editMode={true} theme={theme} />);
+
+    expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
+    expect(screen.getByLabelText('Product name').props.accessibilityDescribedBy).toBeUndefined();
+  });
+});

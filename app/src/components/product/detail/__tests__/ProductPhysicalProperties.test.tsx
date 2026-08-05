@@ -77,3 +77,39 @@ describe('ProductPhysicalProperties', () => {
     expect(weightInput.props.editable).toBe(false);
   });
 });
+
+describe('ProductPhysicalProperties validation messages', () => {
+  // A zero is the one invalid value the input will actually hand to the form:
+  // the field pattern rejects a minus sign, and blank is allowed. Before this,
+  // a zero looked identical to a valid entry and the only feedback was the save
+  // FAB refusing to submit, with nothing naming the offending field.
+  const zeroWeight: Product = {
+    ..._base,
+    physicalProperties: { width: 10, height: 5, depth: 3, weight: 0 },
+  };
+
+  it('links the weight error to its input for assistive technology', () => {
+    renderWithProviders(<ProductPhysicalProperties product={zeroWeight} editMode={true} />);
+
+    const message = screen.getByText('Weight must be a positive number');
+    const input = screen.getByLabelText('Weight');
+
+    expect(input.props.accessibilityDescribedBy).toBe(message.props.nativeID);
+    expect(message.props.accessibilityRole).toBe('alert');
+  });
+
+  it('leaves the valid dimensions unflagged', () => {
+    renderWithProviders(<ProductPhysicalProperties product={zeroWeight} editMode={true} />);
+
+    expect(screen.queryByText('Height must be a positive number')).not.toBeOnTheScreen();
+    expect(screen.getByLabelText('Height').props.accessibilityDescribedBy).toBeUndefined();
+  });
+
+  it('stays silent outside edit mode', () => {
+    // In read-only mode there is nothing for the user to correct, so an error
+    // message would be noise on a product someone else has to fix.
+    renderWithProviders(<ProductPhysicalProperties product={zeroWeight} editMode={false} />);
+
+    expect(screen.queryByText('Weight must be a positive number')).not.toBeOnTheScreen();
+  });
+});

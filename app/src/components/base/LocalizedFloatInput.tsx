@@ -1,7 +1,9 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import type RN from 'react-native';
-import { Platform, Pressable } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { radius } from '@/constants';
+import { describedBy } from '@/utils/a11y';
+import { FormFieldError } from './FormField';
 import { Text } from './Text';
 import { TextInput } from './TextInput';
 
@@ -14,6 +16,8 @@ interface LocalizedFloatInputProps {
   label?: string;
   min?: number;
   style?: object;
+  /** Validation message for the current value; rendered and linked to the input. */
+  error?: string;
 }
 
 /**
@@ -55,8 +59,10 @@ export default function LocalizedFloatInput({
   label,
   min = 0,
   style,
+  error,
 }: LocalizedFloatInputProps) {
   const textInput = useRef<RN.TextInput>(null);
+  const errorId = useId();
   const normalizedValue = value == null || Number.isNaN(value) ? undefined : value;
   const [text, setText] = useState(() => toLocalizedString(normalizedValue, DECIMAL_SEPARATOR));
 
@@ -123,6 +129,7 @@ export default function LocalizedFloatInput({
         editable={editable}
         ref={textInput}
         accessibilityLabel={label}
+        {...describedBy(errorId, Boolean(error))}
       />
       {unit ? (
         <Text
@@ -137,28 +144,38 @@ export default function LocalizedFloatInput({
     </>
   );
 
+  // FormFieldError renders nothing without a message, so the wrapper is harmless
+  // when the field is valid and keeps the message directly under its own row.
   if (label) {
     return (
-      <Pressable
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 15,
-          gap: 2,
-        }}
-        onPress={onPress}
-      >
-        <Text
+      <View>
+        <Pressable
           style={{
-            flexGrow: 2,
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 15,
+            gap: 2,
           }}
+          onPress={onPress}
         >
-          {label}
-        </Text>
-        {inputContent}
-      </Pressable>
+          <Text
+            style={{
+              flexGrow: 2,
+            }}
+          >
+            {label}
+          </Text>
+          {inputContent}
+        </Pressable>
+        <FormFieldError errorId={errorId} message={error} style={{ paddingHorizontal: 15 }} />
+      </View>
     );
   }
 
-  return <Pressable onPress={onPress}>{inputContent}</Pressable>;
+  return (
+    <View>
+      <Pressable onPress={onPress}>{inputContent}</Pressable>
+      <FormFieldError errorId={errorId} message={error} />
+    </View>
+  );
 }
