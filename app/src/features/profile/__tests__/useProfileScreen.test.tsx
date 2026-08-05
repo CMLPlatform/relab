@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react-native';
-import { DialogProvider } from '@/components/base/DialogProvider';
 import type React from 'react';
+import { DialogProvider } from '@/components/base/DialogProvider';
 import { useProfileScreen } from '@/features/profile/useProfileScreen';
 
 const mockReplace: jest.Mock = jest.fn();

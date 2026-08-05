@@ -4,6 +4,7 @@ import { Text } from '@/components/base/Text';
 import { radius } from '@/constants';
 import { useStreamSession } from '@/context/streamSession';
 import { useElapsed } from '@/hooks/useElapsed';
+import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme';
 import { getFloatingPosition } from '@/utils/platformLayout';
 import { StreamingSheet } from './StreamingSheet';
@@ -18,6 +19,7 @@ export function ActiveStreamBanner() {
   const [sheetVisible, setSheetVisible] = useState(false);
   const openSheet = useCallback(() => setSheetVisible(true), []);
   const closeSheet = useCallback(() => setSheetVisible(false), []);
+  const bannerRef = useReturnFocus(sheetVisible);
 
   // Reset the sheet whenever the active stream changes (ends elsewhere, or a new
   // one starts) so it never auto-reopens for a stream the user didn't tap into.
@@ -33,6 +35,7 @@ export function ActiveStreamBanner() {
     <>
       <View style={[styles.container, { bottom: BOTTOM_INSET }]} pointerEvents="box-none">
         <Pressable
+          ref={bannerRef}
           style={[
             styles.banner,
             {
