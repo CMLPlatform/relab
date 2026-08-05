@@ -33,7 +33,6 @@ export async function processImage(
     const { width, height, uri } = asset;
     const fileSize = 'fileSize' in asset ? asset.fileSize : undefined;
 
-    // Validate file size
     if (fileSize !== undefined && fileSize > maxImageSizeBytes) {
       const mb = (fileSize / (1024 * 1024)).toFixed(2);
       const error: ImageProcessingError = {
@@ -45,7 +44,6 @@ export async function processImage(
       return null;
     }
 
-    // Check if resizing is needed
     const needsResize = width && height && (width > opts.maxWidth || height > opts.maxHeight);
 
     const manipulator = ImageManipulator.manipulate(uri);

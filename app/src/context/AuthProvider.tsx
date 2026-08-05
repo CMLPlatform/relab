@@ -25,7 +25,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryClient.invalidateQueries({ queryKey: ['component'] });
   }, [user?.id, isLoading, queryClient]);
 
-  // Check token and load user if valid
   useEffect(() => {
     const initializeAuth = async () => {
       try {
@@ -45,12 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } else {
           const token = await getToken();
-          // If no token, skip API call—user is a guest
+          // No token means the visitor is a guest — skip the API call rather
+          // than issue a request that would just 401.
           if (!token) {
             setUser(undefined);
             return;
           }
-          // Token exists; validate it by fetching user
           const userData = await getUser(true);
           setUser(userData);
         }

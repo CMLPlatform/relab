@@ -269,10 +269,9 @@ jest.mock('react-native-gesture-handler', () => {
   };
 });
 
-// Re-enable native animated helper to avoid file-not-found errors, but we might
-// Mock Animated from react-native to handle shadowOffset errors.
-// Some libraries (like react-native-paper) use native driver for shadows,
-// which triggers warnings in Jest. We allow these properties globally.
+// Allow shadow style props through react-native's Animated allowlist: some
+// libraries use the native driver for shadows, which otherwise logs warnings
+// under Jest.
 try {
   const allowlistModuleId = [
     'react-native',
