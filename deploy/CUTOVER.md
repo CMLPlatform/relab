@@ -12,8 +12,8 @@ This file is committed deliberately: it contains no secrets, and the previous
 playbook lived under `secrets/`, which is gitignored and therefore never reached
 the deploy host.
 
-Prod's Alembic revision is `6f2b9e4a1c3d` and the release is `5bfb8deb5fa6`
-(17 migrations).
+Prod's Alembic revision is `6f2b9e4a1c3d` and the release is `f1a2b3c4d5e6`
+(20 migrations).
 
 Prod's *code* is not literally at `main` — it sits on a pre-rewrite lineage of
 the working branch from April (step 0). For deployment purposes the two are
@@ -118,15 +118,15 @@ git checkout <release-branch> && git pull --ff-only
 
 Prod's Alembic revision is `6f2b9e4a1c3d`, and the migration surface at prod's
 April tip is **identical to `main`** — 20 files, no extras. So despite the code
-drift, the database is exactly where this runbook assumes, and the 17-migration
-path to `5bfb8deb5fa6` applies unchanged. That path was verified by replaying it
+drift, the database is exactly where this runbook assumes, and the 20-migration
+path to `f1a2b3c4d5e6` applies unchanged. That path was verified by replaying it
 against a seeded scratch database at `6f2b9e4a1c3d`.
 
 The four answers that drive the rest of this document:
 
 | Question                                 | Answer as of 2026-08-03                                                         |
 | ---------------------------------------- | ------------------------------------------------------------------------------- |
-| Alembic revision                         | `6f2b9e4a1c3d` — matches `main`, so the 17-migration plan applies unchanged     |
+| Alembic revision                         | `6f2b9e4a1c3d` — matches `main`, so the 20-migration plan applies unchanged     |
 | `backend/.env.prod` present?             | Yes — it is the **source** for the secret files created in step 4               |
 | `secrets/prod/` present?                 | No — step 4 creates all 16 from scratch                                         |
 | Superuser name, `relab_*` roles present? | Custom name from `backend/.env.prod`; no `relab_*` roles, so step 5 is required |
@@ -299,6 +299,12 @@ SELECT (SELECT count(*) FROM product WHERE parent_id IS NULL)     AS base_produc
        (SELECT count(*) FROM file)                                AS files,
        (SELECT count(*) FROM "user")                              AS users,
        (SELECT count(*) FROM oauthaccount)                        AS oauth_links;
+
+-- G. New CHECK constraints (the material-quantity and amount_in_parent
+--    tightening). Both MUST return 0 — the migration aborts on any offending
+--    row rather than skipping it; fix the data first.
+SELECT count(*) FROM materialproductlink WHERE quantity <= 0;
+SELECT count(*) FROM product WHERE amount_in_parent IS NOT NULL AND amount_in_parent <= 0;
 ```
 
 ### The quota lockout (query E) — expect this to bite
@@ -319,12 +325,13 @@ row in query E is at or near that, raise it before bringing the app up:
 MAX_UPLOAD_FILES_PER_USER=20000
 ```
 
-Related, and worth knowing rather than acting on: `upload_size_bytes` is added
-with a default of `0` and **no backfill script exists anywhere in the repo**, so
-every pre-existing file counts as zero bytes and `upload_total_bytes` will read
-0 for every user. Byte-based quota is therefore meaningless after this upgrade —
-leave `MAX_UPLOAD_BYTES_PER_USER_MB` high enough that it cannot bite until
-someone writes a backfill.
+Related: `upload_size_bytes` is added with a default of `0`, so every
+pre-existing file counts as zero bytes until backfilled. Step 8 now runs
+`just backfill-upload-sizes` right after the migration to populate it from the
+real files on disk/storage — until that runs, `upload_total_bytes` reads 0 for
+every user and byte-based quota is meaningless. Leave
+`MAX_UPLOAD_BYTES_PER_USER_MB` high enough that it cannot bite in the gap
+between migrate and backfill.
 
 ______________________________________________________________________
 
@@ -548,12 +555,24 @@ just prod-migrate YES
 `prod-up` starts the database, cache, and (with the profile) ClamAV; expect the
 API to stay unhealthy for a few minutes on first boot while virus signatures
 download.
-`prod-migrate` runs the 17 migrations in one transaction, then always runs
+`prod-migrate` runs the 20 migrations in one transaction, then always runs
 `create_superuser` (which only creates when absent — it will not reset your
 existing superuser's password).
 
 If the migration aborts, prod is untouched at `6f2b9e4a1c3d`. Fix the data
-(almost certainly a query-A email), and re-run.
+(almost certainly a query-A email, or a query-G quantity/amount_in_parent row),
+and re-run.
+
+Once the migration succeeds, backfill the byte-quota ledger (see the quota
+lockout note above; wraps the same script as `just backfill-upload-sizes`,
+which only exists locally, not in the container):
+
+```bash
+docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
+  -f compose.yaml -f compose.deploy.yaml \
+  --profile migrations run --rm --entrypoint python \
+  migrator -m scripts.maintenance.backfill_upload_sizes
+```
 
 ______________________________________________________________________
 
@@ -583,7 +602,7 @@ ______________________________________________________________________
 ## 9. Verify before declaring success
 
 ```sql
-SELECT version_num FROM alembic_version;      -- 5bfb8deb5fa6
+SELECT version_num FROM alembic_version;      -- f1a2b3c4d5e6
 
 -- Compare against the step 3 baseline (query F).
 SELECT (SELECT count(*) FROM product WHERE parent_id IS NULL)     AS base_products,
@@ -723,7 +742,11 @@ early.
 
 Not blockers, but do not discover them by surprise:
 
-- **No byte-quota accounting** until an `upload_size_bytes` backfill is written.
+- **Rate-limit buckets reset once at this deploy.** The rate-limiter's HMAC
+  signing key moved to `cache_signing_secret`, so every existing bucket key
+  changes and in-flight windows restart from zero. Harmless (limits are
+  short-lived), but do not read a post-deploy lull in 429s as a real change in
+  traffic.
 
 - **Minimal alerting only.** `just watchdog prod` checks the API container's health
   and the age of the newest restic snapshot, and exits non-zero with an `ALERT[...]`
