@@ -123,8 +123,6 @@ async def test_delete_categorized_reference_is_atomic_and_unlinks_bytes_after_co
     """
     session = mock_session
     db_material = MaterialFactory.build(id=1)
-    # Nothing references the material, so the in-use guard lets the delete through.
-    session.execute.return_value = MagicMock(first=MagicMock(return_value=None))
     pending_files = [(object(), "file-path")]
     pending_images = [(object(), "image-path")]
     calls: list[object] = []
@@ -153,6 +151,8 @@ async def test_delete_categorized_reference_is_atomic_and_unlinks_bytes_after_co
             "app.api.reference_data.crud.categorized_resources.unlink_stored_media",
             new=AsyncMock(side_effect=_unlink),
         ),
+        # Nothing references the material; the guard has its own integration coverage.
+        patch("app.api.reference_data.crud.categorized_resources._require_not_in_use", new=AsyncMock()),
     ):
         session.delete = AsyncMock(side_effect=lambda *_a: calls.append("parent-row"))
         session.commit = AsyncMock(side_effect=lambda: calls.append("commit"))

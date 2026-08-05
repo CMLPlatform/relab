@@ -17,7 +17,7 @@ from app.api.auth.filters import UserFilter
 from app.api.auth.models import User
 from app.api.auth.schemas import UserRead, UserUpdate
 from app.api.auth.services import mfa_service
-from app.api.auth.services.account_erasure import ErasureContent, erase_user
+from app.api.auth.services.account_erasure import ANONYMIZE, ErasureContent, erase_user, require_erasable_account
 from app.api.auth.services.account_security import revoke_user_refresh_tokens
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.crud.filtering import create_filter_dependency
@@ -111,11 +111,13 @@ async def delete_user(
                 "removes the products and their media. Personal data is erased either way."
             )
         ),
-    ] = "anonymize",
+    ] = ANONYMIZE,
 ) -> None:
     """Delete a user by ID, anonymizing or deleting the content they own."""
-    # Revoke first, exactly as UserManager.on_before_delete did: a failure here aborts
-    # the erasure instead of leaving a deleted user whose sessions are still live.
+    # Guard before revoking, so a refused erasure has no side effects at all. Then revoke
+    # before erasing, as UserManager.on_before_delete did: a Redis failure aborts the
+    # erasure rather than leaving a deleted user whose sessions are still live.
+    await require_erasable_account(session, user)
     await revoke_user_refresh_tokens(user.id, request)
     await erase_user(session, user, content=content)
     audit_event(actor.id, AuditAction.DELETE, User, user.id, context=AuditContext(operation=f"erase_{content}"))

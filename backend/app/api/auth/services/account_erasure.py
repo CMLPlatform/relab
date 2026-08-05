@@ -14,16 +14,18 @@ import logging
 import secrets
 from typing import TYPE_CHECKING, Literal
 
-from sqlalchemy import func, select, update
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.api.auth.models import User
 from app.api.auth.services.email_identity import canonicalize_email
 from app.api.auth.services.password_hashing import build_password_helper
+from app.api.common.audit import AuditAction, audit_event
 from app.api.common.crud.query import require_model
 from app.api.common.exceptions import ConflictError
 from app.api.data_collection.crud.product_commands import delete_product
 from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
+from app.api.data_collection.crud.storage import cleanup_product_media_storage
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.upload_quota import recompute_user_upload_quota
 from app.api.plugins.rpi_cam.models import Camera
@@ -34,6 +36,8 @@ if TYPE_CHECKING:
 
     from pydantic import UUID4
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.api.data_collection.crud.storage import ProductMediaStorageCleanup
 
 logger = logging.getLogger(__name__)
 
@@ -83,21 +87,22 @@ async def erase_user(session: AsyncSession, user: User, *, content: ErasureConte
         ConflictError: when the target is the anonymous system account or the last
             active superuser.
     """
-    # The caller's instance may belong to another session (the auth dependency chain
-    # opens its own), so re-resolve it against the session doing the writes.
-    db_user = await require_model(session, User, user.id)
-    await _reject_protected_account(session, db_user)
+    db_user = await require_erasable_account(session, user)
+    user_id = db_user.id
+
+    pending_media: list[ProductMediaStorageCleanup] = []
+    deleted_product_ids: list[int] = []
 
     if content == ANONYMIZE:
         anonymous = await get_or_create_anonymous_user(session)
         # owner_id is denormalized onto every row of a product subtree, so a flat
         # update by owner covers base products and their components alike.
-        await session.execute(update(Product).where(Product.owner_id == db_user.id).values(owner_id=anonymous.id))
+        await session.execute(update(Product).where(Product.owner_id == user_id).values(owner_id=anonymous.id))
     else:
         anonymous = None
-        await _delete_owned_products(session, db_user.id)
+        pending_media, deleted_product_ids = await _delete_owned_products(session, user_id)
 
-    thumbnails = await _delete_owned_cameras(session, db_user.id)
+    thumbnails = await _delete_owned_cameras(session, user_id)
 
     # OAuth links follow the user row through the delete-orphan cascade.
     await session.delete(db_user)
@@ -109,41 +114,66 @@ async def erase_user(session: AsyncSession, user: User, *, content: ErasureConte
 
     await session.commit()
 
+    for product_id in deleted_product_ids:
+        audit_event(user_id, AuditAction.DELETE, Product, product_id)
+
     # Bytes only after the rows are durably gone, mirroring product deletion.
+    await cleanup_product_media_storage(pending_media)
     for path in thumbnails:
         remove_preview_thumbnail(path)
 
 
-async def _reject_protected_account(session: AsyncSession, user: User) -> None:
-    """Refuse to erase accounts the platform cannot function without."""
+async def require_erasable_account(session: AsyncSession, user: User) -> User:
+    """Return the session-bound user, refusing accounts the platform cannot function without.
+
+    Callers with side effects of their own (session revocation) run this first, so a
+    rejected erasure leaves nothing behind.
+
+    Raises:
+        ConflictError: when the target is the anonymous system account or the last
+            active superuser.
+    """
+    # The caller's instance may belong to another session (the auth dependency chain
+    # opens its own), so re-resolve it against the session doing the writes.
+    user = await require_model(session, User, user.id)
+
     if user.email_canonical == canonicalize_email(ANONYMOUS_USER_EMAIL):
         msg = "The anonymous system account cannot be deleted."
         raise ConflictError(msg)
 
     if not (user.is_superuser and user.is_active):
-        return
+        return user
 
-    remaining = await session.execute(
-        select(func.count(User.id)).where(
-            User.is_superuser.is_(True),
-            User.is_active.is_(True),
-            User.id != user.id,
-        )
+    # Locked, so two concurrent deletions cannot each see the other as "remaining".
+    other_superuser = await session.execute(
+        select(User.id)
+        .where(User.is_superuser.is_(True), User.is_active.is_(True), User.id != user.id)
+        .with_for_update()
+        .limit(1)
     )
-    if not remaining.scalar_one():
+    if other_superuser.first() is None:
         msg = "The last active superuser cannot be deleted."
         raise ConflictError(msg)
+    return user
 
 
-async def _delete_owned_products(session: AsyncSession, user_id: UUID4) -> None:
-    """Delete every base product the user owns, subtrees and media included."""
+async def _delete_owned_products(
+    session: AsyncSession, user_id: UUID4
+) -> tuple[list[ProductMediaStorageCleanup], list[int]]:
+    """Delete every base product the user owns, subtrees and media included.
+
+    Returns the storage cleanups to run after the caller's commit, and the deleted
+    product ids to audit once that commit is durable.
+    """
     base_product_ids = (
         (await session.execute(select(Product.id).where(Product.owner_id == user_id, Product.parent_id.is_(None))))
         .scalars()
         .all()
     )
+    pending_media: list[ProductMediaStorageCleanup] = []
     for product_id in base_product_ids:
-        await delete_product(session, product_id)
+        pending_media += await delete_product(session, product_id, commit=False)
+    return pending_media, list(base_product_ids)
 
 
 async def _delete_owned_cameras(session: AsyncSession, user_id: UUID4) -> list[Path]:

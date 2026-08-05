@@ -6,12 +6,12 @@ coroutines and never touched it.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import Select, select
 
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services.account_erasure import ANONYMOUS_USER_EMAIL, get_or_create_anonymous_user
@@ -163,7 +163,7 @@ async def erasure_subject(db_session: AsyncSession, db_product_type: ProductType
     return ErasureSubject(user=user, product=product, component=component, camera=camera)
 
 
-async def _row_exists(session: AsyncSession, statement) -> bool:  # any Select works here
+async def _row_exists(session: AsyncSession, statement: Select[tuple[Any]]) -> bool:
     """Return whether a select matches a live row, bypassing the identity map."""
     return (await session.execute(statement)).first() is not None
 
@@ -238,6 +238,30 @@ class TestAdminUserErasure:
 
         assert response.status_code == 200
         assert ANONYMOUS_USER_EMAIL in [item["email"] for item in response.json()["items"]]
+
+    async def test_last_active_superuser_cannot_be_deleted(
+        self, api_client_superuser, db_session: AsyncSession, db_superuser: User
+    ) -> None:
+        """The only remaining admin keeps both their account and their sessions."""
+        with patch("app.api.auth.routers.admin.users.revoke_user_refresh_tokens") as revoke:
+            response = await api_client_superuser.delete(f"{ADMIN_USERS}/{db_superuser.id}")
+
+        assert response.status_code == 409
+        assert await _row_exists(db_session, select(User.id).where(User.id == db_superuser.id))
+        # A refused erasure must have no side effects — the admin is not logged out.
+        revoke.assert_not_called()
+
+    async def test_superuser_can_be_deleted_while_another_one_is_active(
+        self, api_client_superuser, db_session: AsyncSession, db_superuser: User
+    ) -> None:
+        """The guard blocks only the last admin, not admins in general."""
+        await UserFactory.create_async(session=db_session, is_active=True, is_superuser=True)
+        await db_session.flush()
+
+        response = await api_client_superuser.delete(f"{ADMIN_USERS}/{db_superuser.id}")
+
+        assert response.status_code == 204
+        assert not await _row_exists(db_session, select(User.id).where(User.id == db_superuser.id))
 
     async def test_anonymous_system_account_cannot_be_deleted(
         self, api_client_superuser, db_session: AsyncSession
