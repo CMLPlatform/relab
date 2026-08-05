@@ -7,13 +7,13 @@ default_install_hook_types: [ commit-msg, pre-commit, pre-push ]
 
 repos:
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.0
+    rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e  # v8.30.1
     hooks:
       - id: gitleaks
         args: [ "--config", ".github/gitleaks.toml" ]
 
   - repo: https://github.com/executablebooks/mdformat
-    rev: 1.0.0
+    rev: 82912cdaea4fb830f751504486a7879c70526547  # 1.0.0
     hooks:
       - id: mdformat
         additional_dependencies:
@@ -22,7 +22,7 @@ repos:
           - mdformat-ruff
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # v6.0.0
     hooks:
       - id: check-added-large-files
         exclude: ^backend/app/api/auth/resources/disposable_email_domains\.txt$
@@ -40,46 +40,46 @@ repos:
         exclude: ^.*/build/.*\.html$
 
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.12
+    rev: 914e7df21a07ef503a81201c76d2b11c789d3fca  # v1.7.12
     hooks:
       - id: actionlint
         files: ^\.github/workflows/.*\.ya?ml$
 
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.26.1
+    rev: e3eebf65325ccc992422292cb7a4baee967cf815  # v1.26.1
     hooks:
       - id: zizmor
         args: [ "--min-confidence=high" ]
         files: ^\.github/(?:workflows|actions)/.*\.ya?ml$
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.11.0.1
+    rev: 745eface02aef23e168a8afb6b5737818efbea95  # v0.11.0.1
     hooks:
       - id: shellcheck
         args: [ "--external-sources", "--source-path=SCRIPTDIR:." ]
         exclude: (^|/)(node_modules|\.venv)/
 
   - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.13.1-1
+    rev: 05c1426671b9237fb5e1444dd63aa5731bec0dfb  # v3.13.1-1
     hooks:
       - id: shfmt
         args: [ "-w", "-i", "4", "-ci", "-bn" ]
         exclude: (^|/)(node_modules|\.venv)/
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.16.4
+    rev: 205e71c26d6dd6a802ca674c9ae4d12f1103a9bb  # v4.16.4
     hooks:
       - id: commitizen
         stages: [ commit-msg ]
 
   - repo: https://github.com/simonvanlierde/check-json5
-    rev: v1.2.0
+    rev: c70883b5be6d9fb87deac8d75395031372d54e83  # v1.2.0
     hooks:
       - id: check-json5
         exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
 
   - repo: https://github.com/semgrep/pre-commit
-    rev: v1.169.0
+    rev: ce0f4a080d77d0593b6419111837eadf4a9aca27  # v1.169.0
     hooks:
       - id: semgrep
         name: semgrep-browser-js-policy
@@ -98,13 +98,13 @@ repos:
       - id: semgrep-rule-tests
         name: semgrep-rule-tests
         language: system
-        entry: bash -c 'cd .semgrep && exec uvx --quiet semgrep --test .'
+        entry: bash -c 'cd .semgrep && exec uvx --quiet --from semgrep==1.169.0 semgrep --test .'
         pass_filenames: false
         files: ^\.semgrep/
         stages: [ pre-push ]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.28
+    rev: d9fca3320346514799461a80b0753eb45d707d46  # 0.11.28
     hooks:
       - id: uv-lock
         name: uv-lock-root
@@ -116,7 +116,7 @@ repos:
         entry: uv lock --project backend
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.21
+    rev: 01a675ea018f2fb714478a5ffb83fcea8374bb06  # v0.15.21
     hooks:
       - id: ruff-check
         args: [ "--config=pyproject.toml" ]
@@ -135,7 +135,12 @@ repos:
         name: brand-assets-check
         entry: just assets-check
         language: system
-        files: ^(?:assets/.*|scripts/sync_brand_assets\.py|justfile|docs/src/styles/brand\.css|www/src/styles/brand\.css|app/src/assets/images/(?:bg-(?:light|dark)\.jpg|favicon\.png)|docs/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|favicon\.(?:ico|svg)))|docs/src/assets/images/bg-(?:light|dark)\.jpg|www/public/(?:fonts/ibm-plex-sans-latin(?:-ext)?\.woff2|images/(?:apple-touch-icon\.png|favicon\.(?:ico|svg)))|www/src/assets/images/(?:bg-(?:light|dark)\.jpg|logo\.svg)|docs/src/assets/icons/brand/(?:github|google|youtube|linkedin)\.svg|www/src/assets/icons/brand/(?:github|google|youtube|linkedin)\.svg|backend/app/static/favicon\.ico)$
+        # NOTE: the target set (scripts/sync_brand_assets.py COPY_ASSETS /
+        # GENERATED_ASSETS / PROCESSED_ASSETS) spans too many disparate paths across
+        # app/, www/, docs/, backend/ for a maintainable regex; the check runs
+        # `--check` only (no rewrites) and completes in a few seconds, so run it
+        # unconditionally on every push instead.
+        always_run: true
         pass_filenames: false
         stages: [ pre-push ]
       - id: backend-openapi-check
