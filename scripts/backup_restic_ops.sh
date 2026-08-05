@@ -2,8 +2,10 @@
 # Operator and smoke-test helpers for Relab restic backups.
 set -euo pipefail
 
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 DEPLOY_BACKUP_IMAGE="${DEPLOY_BACKUP_IMAGE:-relab-backups-smoke}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4}"
+RESTORE_CONTAINER=""
 
 require_dir() {
     local description="$1"
@@ -27,6 +29,15 @@ require_file() {
 
 resolve_backup_paths() {
     local env="$1"
+
+    # NOTE: BACKUP_HOST_DIR is a root .env value; Compose loads it itself, this script must too.
+    if [[ -f "$ROOT_DIR/.env" ]]; then
+        set -a
+        # shellcheck source=/dev/null
+        . "$ROOT_DIR/.env"
+        set +a
+    fi
+
     local repo="${BACKUP_HOST_DIR:-./backups}/restic"
     local secret="secrets/$env/restic_password"
 
@@ -39,6 +50,66 @@ build_backup_image() {
     docker build -f backend/Dockerfile.backups -t "$DEPLOY_BACKUP_IMAGE" backend
 }
 
+# Restore the latest `postgres`-tagged snapshot from a restic repository into a
+# throwaway Postgres container and assert the dump loads.
+# Args: <repo dir> <restic password file> <scratch dir>.
+# Sets RESTORE_CONTAINER so the caller's EXIT trap can remove the container.
+verify_postgres_restore() {
+    local repo_dir="$1"
+    local password_file="$2"
+    local work_dir="$3"
+
+    mkdir -p "$work_dir/restore"
+    # The backup image runs as uid 1001, so the restore bind mount must be writable by it.
+    docker run --rm -v "$work_dir/restore:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
+    RESTORE_CONTAINER="relab_restore_smoke_$(date +%s)_$$"
+
+    docker run --rm \
+        -v "$repo_dir:/restic:ro" \
+        -v "$password_file:/run/secrets/restic_password:ro" \
+        -v "$work_dir/restore:/restore" \
+        -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password \
+        --entrypoint restic \
+        "$DEPLOY_BACKUP_IMAGE" \
+        restore --no-lock latest --repo /restic --tag postgres --target /restore
+
+    local dump_file
+    dump_file="$(find "$work_dir/restore" -type f -name '*.dump' | sort | tail -n1)"
+    if [[ -z "$dump_file" ]]; then
+        echo "No PostgreSQL .dump file found in restored restic snapshot" >&2
+        exit 1
+    fi
+
+    docker run -d --name "$RESTORE_CONTAINER" \
+        -e POSTGRES_PASSWORD=restore-password \
+        -e POSTGRES_DB=relab_restore \
+        "$POSTGRES_IMAGE" >/dev/null
+
+    local restore_ready=false
+    for _ in {1..60}; do
+        if docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 -c 'SELECT 1;' \
+            >/dev/null 2>&1; then
+            restore_ready=true
+            break
+        fi
+        sleep 1
+    done
+    if [[ "$restore_ready" != true ]]; then
+        echo "Restore smoke Postgres container did not become query-ready" >&2
+        exit 1
+    fi
+
+    docker cp "$dump_file" "$RESTORE_CONTAINER:/tmp/relab.dump"
+    # The dump is taken with --schema=public and so recreates the schema itself;
+    # pre-creating it here makes pg_restore fail on "schema public already exists".
+    docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 \
+        -c 'DROP SCHEMA IF EXISTS public CASCADE;'
+    docker exec "$RESTORE_CONTAINER" pg_restore --no-owner -U postgres -d relab_restore /tmp/relab.dump
+    # NOTE: pg_restore can exit 0 on an empty archive, so assert tables actually landed.
+    docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 -c \
+        "DO \$\$ BEGIN IF (SELECT count(*) FROM pg_tables WHERE schemaname = 'public') = 0 THEN RAISE EXCEPTION 'restored dump has no tables in schema public'; END IF; END \$\$;"
+}
+
 docker_smoke_backups() {
     tmp_root="$(mktemp -d)"
     network="relab_backup_smoke_$(date +%s)"
@@ -48,6 +119,7 @@ docker_smoke_backups() {
 
     cleanup() {
         docker rm -f "$postgres_container" >/dev/null 2>&1 || true
+        docker rm -f "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
         docker network rm "$network" >/dev/null 2>&1 || true
         docker run --rm -v "$tmp_root:/work" --entrypoint chown alpine:3.22 -R "$host_uid:$host_gid" /work \
             >/dev/null 2>&1 || true
@@ -120,13 +192,22 @@ docker_smoke_backups() {
         "$DEPLOY_BACKUP_IMAGE" \
         snapshots --no-lock --repo rclone:offsite:/offsite --tag postgres --json >/dev/null
 
+    # Snapshots existing is not proof they restore; replay the dump into scratch Postgres.
+    printf 'smoke-password\n' >"$tmp_root/restic_password"
+    chmod 0444 "$tmp_root/restic_password"
+    verify_postgres_restore "$tmp_root/restic" "$tmp_root/restic_password" "$tmp_root"
+
     echo "✅ Restic backups smoke test passed"
 }
 
 backup_offsite_copy() {
     local env="${1:-staging}"
+    # Capture before resolve_backup_paths sources the root .env, so a value passed on the
+    # command line wins over the host default (the precedence Compose itself applies).
+    local offsite_repo="${RESTIC_OFFSITE_REPOSITORY:-}"
 
     resolve_backup_paths "$env"
+    offsite_repo="${offsite_repo:-${RESTIC_OFFSITE_REPOSITORY:-}}"
 
     local rclone_config="secrets/$env/rclone.conf"
     local tmp_root
@@ -137,7 +218,7 @@ backup_offsite_copy() {
     # shellcheck disable=SC2064  # eager expansion is intentional here (see above)
     trap "rm -rf '$tmp_root'" EXIT
     install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
-    if [[ -z "${RESTIC_OFFSITE_REPOSITORY:-}" ]]; then
+    if [[ -z "$offsite_repo" ]]; then
         echo "RESTIC_OFFSITE_REPOSITORY must be set, for example: rclone:<remote>:relab/$env/restic"
         exit 1
     fi
@@ -148,13 +229,13 @@ backup_offsite_copy() {
         -v "$DEPLOY_RESTIC_REPOSITORY:/restic"
         -v "$tmp_root/restic_password:/run/secrets/restic_password:ro"
         -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password
-        -e RESTIC_OFFSITE_REPOSITORY="$RESTIC_OFFSITE_REPOSITORY"
+        -e RESTIC_OFFSITE_REPOSITORY="$offsite_repo"
         -e SKIP_DATABASE_BACKUP=true
         -e SKIP_UPLOAD_BACKUP=true
         -e BACKUP_RUN_ONCE=true
     )
 
-    if [[ "$RESTIC_OFFSITE_REPOSITORY" == rclone:* ]]; then
+    if [[ "$offsite_repo" == rclone:* ]]; then
         if [[ ! -f "$rclone_config" ]]; then
             echo "rclone config file not found: $rclone_config"
             exit 1
@@ -175,64 +256,21 @@ backup_restore_smoke() {
     resolve_backup_paths "$env"
 
     tmp_root="$(mktemp -d)"
-    container="relab_restore_smoke_$(date +%s)"
     host_uid="$(id -u)"
     host_gid="$(id -g)"
 
     cleanup() {
-        docker rm -f "$container" >/dev/null 2>&1 || true
+        docker rm -f "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
         docker run --rm -v "$tmp_root:/work" --entrypoint chown alpine:3.22 -R "$host_uid:$host_gid" /work \
             >/dev/null 2>&1 || true
         rm -rf "$tmp_root"
     }
     trap cleanup EXIT
 
-    mkdir -p "$tmp_root/restore"
     install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
     build_backup_image
 
-    docker run --rm \
-        -v "$DEPLOY_RESTIC_REPOSITORY:/restic:ro" \
-        -v "$tmp_root/restic_password:/run/secrets/restic_password:ro" \
-        -v "$tmp_root/restore:/restore" \
-        -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password \
-        --entrypoint restic \
-        "$DEPLOY_BACKUP_IMAGE" \
-        restore --no-lock latest --repo /restic --tag postgres --target /restore
-
-    dump_file="$(find "$tmp_root/restore" -type f -name '*.dump' | sort | tail -n1)"
-    if [[ -z "$dump_file" ]]; then
-        echo "No PostgreSQL .dump file found in restored restic snapshot"
-        exit 1
-    fi
-
-    docker run -d --name "$container" \
-        -e POSTGRES_PASSWORD=restore-password \
-        -e POSTGRES_DB=relab_restore \
-        "$POSTGRES_IMAGE" >/dev/null
-
-    restore_ready=false
-    for _ in {1..60}; do
-        if docker exec "$container" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 -c 'SELECT 1;' \
-            >/dev/null 2>&1; then
-            restore_ready=true
-            break
-        fi
-        sleep 1
-    done
-    if [[ "$restore_ready" != true ]]; then
-        echo "Restore smoke Postgres container did not become query-ready"
-        exit 1
-    fi
-
-    docker cp "$dump_file" "$container:/tmp/relab.dump"
-    docker exec "$container" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 \
-        -c 'DROP SCHEMA IF EXISTS public CASCADE;' \
-        -c 'CREATE SCHEMA public;'
-    docker exec "$container" pg_restore --no-owner -U postgres -d relab_restore /tmp/relab.dump
-    docker exec "$container" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 \
-        -c 'SELECT 1;' \
-        -c "SELECT to_regclass('public.alembic_version');"
+    verify_postgres_restore "$DEPLOY_RESTIC_REPOSITORY" "$tmp_root/restic_password" "$tmp_root"
 
     echo "✅ Backup restore smoke test passed"
 }

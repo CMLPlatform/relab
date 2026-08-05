@@ -57,7 +57,7 @@ Supply-chain and code-security checks:
 - GitHub Actions workflows: actionlint and Zizmor.
 - Repository hygiene: OpenSSF Scorecard.
 
-Use `just security` for local maintainer diagnosis.
+Use `just security` for local maintainer diagnosis: it runs the dependency audits and the Gitleaks secret scan. Trivy, CodeQL, actionlint, Zizmor, and Scorecard run in CI.
 
 Release SBOM assets are attested as files and uploaded with GitHub releases.
 

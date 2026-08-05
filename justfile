@@ -213,8 +213,9 @@ audit: audit-root
     for d in docs www app; do just "$d/audit"; done
     echo "✅ Root and subrepo dependency audits complete"
 
-# Canonical security target
+# Canonical security target: dependency audits plus secret scanning
 security: audit
+    prek run gitleaks --all-files
     @echo "✅ Security checks complete"
 
 # Format Cloudflare OpenTofu files

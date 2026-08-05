@@ -219,7 +219,7 @@ def compose_secret_names(config: dict[str, Any]) -> list[str]:
 def assert_secret_files(label: str, config: dict[str, Any]) -> None:
     """Assert rendered Compose secrets point at root secret files."""
     for name, secret_config in (config.get("secrets") or {}).items():
-        configured_file = Path(str(secret_config.get("file", "")))
+        configured_file = Path(str(secret_config.get("file", ""))).resolve()
         expected_file = (ROOT / "secrets" / label / name).resolve()
         if configured_file != expected_file:
             msg = f"{label}: secret '{name}' must use {expected_file}, got {configured_file}"
