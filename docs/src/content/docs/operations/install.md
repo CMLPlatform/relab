@@ -144,11 +144,11 @@ migrations, verify health.
 
    Also review the per-user upload ceiling and scanning inputs: `MAX_UPLOAD_FILES_PER_USER` and
    `MAX_UPLOAD_BYTES_PER_USER_MB` cap how many files and how much storage each account can use. The
-   quota ledger counts existing rows, so raise these before first start on a host with a large
-   existing dataset, or an owner whose existing uploads already exceed the new limit is blocked from
-   uploading entirely. `MALWARE_SCAN_ENABLED` controls ClamAV upload scanning and must agree with
-   whether the stack starts with the `scanning` Compose profile — see the two modes in the "Start
-   the stack" step below.
+   quota ledger counts existing rows, so raise these limits before the first start on a host with
+   a large existing dataset. Otherwise, an owner whose existing uploads already exceed the new limit
+   is blocked from uploading entirely. `MALWARE_SCAN_ENABLED` controls ClamAV upload scanning and must
+   agree with whether the stack starts with the `scanning` Compose profile — see the two modes in the
+   "Start the stack" step below.
 
    Environment identity and public origins live in `deploy/env/prod.compose.env` and
    `deploy/env/staging.compose.env`. Each deploy env file defines the environment plus the four
