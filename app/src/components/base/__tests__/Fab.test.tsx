@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { Fab } from '@/components/base/Fab';
-import { MIN_TAP_TARGET } from '@/constants';
+import { MIN_TAP_TARGET, radius } from '@/constants';
 import { getAppTheme } from '@/theme';
 
 describe('Fab', () => {
@@ -58,9 +58,8 @@ describe('Fab', () => {
 
   it('meets the 44px a11y tap-target floor', () => {
     render(<Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />);
-    const className = screen.getByRole('button').props.className as string;
-    expect(className).toContain('min-w-11');
-    expect(className).toContain('min-h-11');
+    // Resolved through the state callback — the floor lives in the style
+    // function, never in a className (mixing the two drops the function).
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
     expect(style.minWidth).toBe(MIN_TAP_TARGET);
     expect(style.minHeight).toBe(MIN_TAP_TARGET);
@@ -74,9 +73,8 @@ describe('Fab', () => {
   it('uses the overlay radius and the shared elevation tier', () => {
     render(<Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />);
     const button = screen.getByRole('button');
-    // radius.overlay (12px) maps to Tailwind's rounded-xl step.
-    expect(button.props.className as string).toContain('rounded-xl');
     const style = StyleSheet.flatten(button.props.style);
+    expect(style.borderRadius).toBe(radius.overlay);
     const overlay = getAppTheme('light').tokens.elevation.overlay;
     expect(style.shadowRadius).toBe(overlay.shadowRadius);
     expect(style.shadowOpacity).toBe(overlay.shadowOpacity);

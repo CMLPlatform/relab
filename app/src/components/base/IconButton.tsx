@@ -7,7 +7,7 @@ import {
   StyleSheet,
   type ViewStyle,
 } from 'react-native';
-import { MIN_TAP_TARGET } from '@/constants';
+import { MIN_TAP_TARGET, radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon, type IconName } from './Icon';
 
@@ -44,11 +44,8 @@ export function IconButton({
   const theme = useAppTheme();
   const pressableStyle = useCallback(
     ({ pressed }: { pressed: boolean }) => [
-      // NOTE: duplicates the min-h-11/min-w-11 classes below numerically, so
-      // the 44px a11y tap-target floor stays test-visible even if the
-      // Tailwind scale or rem basis ever drifts. Kept first so callers can
-      // still override deliberately.
-      styles.tapTarget,
+      // First so callers can still override deliberately.
+      styles.base,
       mode === 'contained-tonal' && { backgroundColor: theme.colors.secondaryContainer },
       pressed && !loading && styles.pressed,
       style,
@@ -66,7 +63,12 @@ export function IconButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: loading, busy: loading }}
       hitSlop={8}
-      className="min-h-11 min-w-11 items-center justify-center rounded-md"
+      // NOTE: never give a Pressable BOTH a className and a function `style`.
+      // react-native-css merges them into [classStyle, fn], and RN's Pressable
+      // only calls `style` when it is literally a function — so the function is
+      // silently dropped and every state it encodes (pressed, selected, caller
+      // overrides) never renders. Static styling for such a Pressable belongs in
+      // the function's first entry, as below.
       style={pressableStyle}
     >
       {loading ? (
@@ -79,9 +81,12 @@ export function IconButton({
 }
 
 const styles = StyleSheet.create({
-  tapTarget: {
+  base: {
     minWidth: MIN_TAP_TARGET,
     minHeight: MIN_TAP_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.control,
   },
   pressed: {
     opacity: 0.6,

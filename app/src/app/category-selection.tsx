@@ -1,11 +1,18 @@
 import { useCallback } from 'react';
-import { FlatList, Pressable, type PressableStateCallbackType, Text, View } from 'react-native';
-
+import {
+  FlatList,
+  Pressable,
+  type PressableStateCallbackType,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { Icon } from '@/components/base/Icon';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Searchbar } from '@/components/base/Searchbar';
 import CPVCard from '@/components/product/CPVCard';
+import { radius } from '@/constants';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
 import { useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
@@ -88,6 +95,8 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
   const { colors } = useAppTheme();
   const historyStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
+      // No className on this Pressable: it would drop this function (see IconButton.tsx).
+      styles.history,
       // Interactive surface — primary family, never the manila accent
       // (MD3 `tertiary` maps to the brand accent; DESIGN.md keeps manila to text).
       { backgroundColor: colors.primaryContainer },
@@ -97,7 +106,6 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
   );
   return (
     <Pressable
-      className="absolute flex-row gap-2.5 p-2.5 h-[60px] items-center top-20 left-[15px] right-[15px] z-[1] rounded-md"
       style={historyStyle}
       onPress={onPress}
       accessibilityRole="button"
@@ -120,6 +128,7 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
   const { colors } = useAppTheme();
   const linkStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
+      styles.link,
       { backgroundColor: colors.secondaryContainer },
       pressed && { opacity: 0.5 },
     ],
@@ -132,7 +141,6 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
 
   return (
     <Pressable
-      className="flex-row items-center justify-end gap-[5px] h-[30px] px-3"
       style={linkStyle}
       onPress={onPress}
       accessibilityRole="button"
@@ -145,3 +153,27 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  history: {
+    position: 'absolute',
+    top: 80,
+    left: 15,
+    right: 15,
+    zIndex: 1,
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 10,
+    borderRadius: radius.control,
+  },
+  link: {
+    height: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 5,
+    paddingHorizontal: 12,
+  },
+});

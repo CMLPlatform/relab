@@ -18,7 +18,11 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
   const textColor = error ? colors.onErrorContainer : colors.onPrimaryContainer;
 
   const pressableStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => pressed && onPress && { opacity: 0.5 },
+    ({ pressed }: PressableStateCallbackType) => [
+      // No className on this Pressable: it would drop this function (see IconButton.tsx).
+      styles.pressable,
+      pressed && onPress && { opacity: 0.5 },
+    ],
     [onPress],
   );
 
@@ -31,7 +35,6 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={CPV.description}
-        className="flex-1"
         style={pressableStyle}
       >
         <Text
@@ -56,6 +59,9 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
 }
 
 const styles = StyleSheet.create({
+  pressable: {
+    flex: 1,
+  },
   // fontSize-only (no matching lineHeight) — stays style-driven.
   text: {
     fontSize: 15,

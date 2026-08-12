@@ -218,7 +218,11 @@ function StepButton({
   label: string;
 }) {
   const style = useCallback(
-    ({ pressed }: PressableStateCallbackType) => (pressed || disabled) && { opacity: 0.4 },
+    ({ pressed }: PressableStateCallbackType) => [
+      // No className on this Pressable: it would drop this function (see IconButton.tsx).
+      styles.iconSlot,
+      (pressed || disabled) && { opacity: 0.4 },
+    ],
     [disabled],
   );
 
@@ -226,7 +230,6 @@ function StepButton({
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      className="w-[30px] h-[38px] items-center justify-center"
       style={style}
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -240,3 +243,12 @@ function StepButton({
 // style-driven for all three call sites.
 const amountText = { fontWeight: '500', fontSize: 15 } as const;
 const amountStyles = { titleText: amountText, valueText: amountText, input: amountText };
+
+const styles = {
+  iconSlot: {
+    width: 30,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+} as const;

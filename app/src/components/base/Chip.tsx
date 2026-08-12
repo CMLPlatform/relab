@@ -12,6 +12,7 @@ import {
   type PressableStateCallbackType,
   StyleSheet,
 } from 'react-native';
+import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { AppText } from './AppText';
 
@@ -29,6 +30,8 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
     (state: PressableStateCallbackType) => {
       const resolvedStyle = typeof style === 'function' ? style(state) : style;
       return [
+        // No className on this Pressable: it would drop this function (see IconButton.tsx).
+        styles.base,
         { backgroundColor: error ? theme.colors.surfaceVariant : theme.colors.primaryContainer },
         state.pressed && { opacity: 0.5 },
         resolvedStyle,
@@ -38,7 +41,7 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
   );
 
   return (
-    <Pressable className="flex-row rounded-md" style={resolveStyle} {...props}>
+    <Pressable style={resolveStyle} {...props}>
       {title ? (
         <AppText
           variant="plain"
@@ -68,6 +71,10 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
 };
 
 const styles = StyleSheet.create({
+  base: {
+    flexDirection: 'row',
+    borderRadius: radius.control,
+  },
   label: {
     // fontSize 15 has no exact Tailwind step, so it stays inline.
     fontSize: 15,

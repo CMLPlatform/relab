@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
+import { MIN_TAP_TARGET } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition } from './menuPosition';
 
@@ -97,17 +98,14 @@ function MenuItem({
   const theme = useAppTheme();
   const pressableStyle = useCallback(
     ({ pressed }: { pressed: boolean }) => [
+      // No className on this Pressable: it would drop this function (see IconButton.tsx).
+      styles.item,
       pressed && { backgroundColor: theme.colors.surfaceVariant },
     ],
     [theme.colors.surfaceVariant],
   );
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="menuitem"
-      className="min-h-11 flex-row items-center justify-between gap-2 px-4"
-      style={pressableStyle}
-    >
+    <Pressable onPress={onPress} accessibilityRole="menuitem" style={pressableStyle}>
       <AppText testID="menu-item-title" className="shrink">
         {title}
       </AppText>
@@ -125,5 +123,13 @@ const styles = StyleSheet.create({
     maxWidth: '92%',
     // Floating surface: overlay radius (rounded-xl class) + the shared
     // overlay elevation tier (applied inline, since it is theme-dependent).
+  },
+  item: {
+    minHeight: MIN_TAP_TARGET,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 16,
   },
 });

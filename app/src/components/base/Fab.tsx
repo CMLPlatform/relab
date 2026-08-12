@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
-import { MIN_TAP_TARGET } from '@/constants';
+import { MIN_TAP_TARGET, radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon, type IconName } from './Icon';
 
@@ -72,11 +72,9 @@ export function Fab({
 
   const pressableStyle = useCallback(
     ({ pressed }: { pressed: boolean }) => [
-      // NOTE: duplicates the min-h-11/min-w-11 classes below numerically, so
-      // the 44px a11y tap-target floor stays test-visible even if the
-      // Tailwind scale or rem basis ever drifts. Kept first so callers can
-      // still override deliberately.
-      styles.tapTarget,
+      // First so callers can still override deliberately. No className here:
+      // it would drop this whole function (see IconButton.tsx).
+      styles.base,
       theme.tokens.elevation.overlay,
       { backgroundColor: theme.colors.primaryContainer },
       disabled && styles.disabled,
@@ -97,7 +95,6 @@ export function Fab({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
-      className="min-h-11 min-w-11 flex-row items-center rounded-xl px-4"
       style={pressableStyle}
     >
       {typeof icon === 'function' ? (
@@ -123,9 +120,13 @@ export function Fab({
 }
 
 const styles = StyleSheet.create({
-  tapTarget: {
+  base: {
     minWidth: MIN_TAP_TARGET,
     minHeight: MIN_TAP_TARGET,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    borderRadius: radius.overlay,
   },
   disabled: {
     opacity: 0.5,
