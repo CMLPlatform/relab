@@ -72,8 +72,14 @@ newest_epoch=0
 snapshot_error=""
 snapshot_status=0
 snapshots_json="$(
-    timeout 600 "${snapshot_command[@]}" --profile backups run --rm --no-deps -T --entrypoint restic backup \
-        snapshots --json --no-lock 2>"$stderr_file"
+    # --foreground keeps the child in our process group so a tty (interactive
+    # cron test, manual run) doesn't SIGTTIN it on stdin access; the tradeoff is
+    # timeout only kills the direct child on expiry, not the whole group — fine
+    # here since `compose run --rm` cleans up its own container regardless.
+    # < /dev/null makes this hang-proof independent of process-group games and
+    # matches cron reality, where there is no tty to attach to.
+    timeout --foreground 600 "${snapshot_command[@]}" --profile backups run --rm --no-deps -T --entrypoint restic backup \
+        snapshots --json --no-lock 2>"$stderr_file" </dev/null
 )" || snapshot_status=$?
 if ((snapshot_status == 124)); then
     snapshot_error="timed out after 600s (hung docker or restic)"
