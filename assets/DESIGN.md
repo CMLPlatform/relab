@@ -34,16 +34,19 @@ delivery; italic is browser-synthesized.
 
 All pairings below meet WCAG 4.5:1 against their background in both schemes.
 
-| Token          | Light     | Dark      | Role                                                |
-| -------------- | --------- | --------- | --------------------------------------------------- |
-| primary        | `#1F4C96` | `#8FB8FF` | Brand anchor, actions, links on web                 |
-| primary-strong | `#143567` | `#BAD3FF` | Hover/pressed, emphasis                             |
-| accent         | `#8F6212` | `#E3B95C` | Manila — highlights, live indicators, strategy tags |
-| text           | `#16202E` | `#E9EFF8` | Body text                                           |
-| muted          | `#5A6675` | `#8C99AD` | Secondary text                                      |
-| background     | `#F5F7FA` | `#0C1220` | Page ground                                         |
-| surface        | `#FFFFFF` | `#141D30` | Cards, panels                                       |
-| border         | `#D9DFE8` | `#24314A` | Hairlines, dividers                                 |
+| Token          | Light     | Dark      | Role                                                                                    |
+| -------------- | --------- | --------- | --------------------------------------------------------------------------------------- |
+| primary        | `#1F4C96` | `#8FB8FF` | Brand anchor, actions, links on web                                                     |
+| primary-strong | `#143567` | `#BAD3FF` | Hover/pressed, emphasis                                                                 |
+| accent         | `#8F6212` | `#E3B95C` | Manila — highlights, live indicators, strategy tags                                     |
+| text           | `#16202E` | `#E2E6EE` | Body text                                                                               |
+| muted          | `#44474F` | `#C4C6D0` | Secondary text (www's `--color-muted` in tokens.css is a distinct page-chrome override) |
+| background     | `#FAFBFE` | `#11141D` | Page ground                                                                             |
+| surface        | `#F0F3FA` | `#1A2030` | Cards, panels                                                                           |
+| border         | `#C4C6D0` | `#44474F` | Hairlines, dividers                                                                     |
+
+The machine sources are `brand.css` (web) and `palette.json` (app); this table documents them and is
+checked by `app/src/theme/__tests__/palette-sync.test.ts`.
 
 Web consumes these as `--relab-brand-*` custom properties (see brand.css).
 The app derives its MD3 colour roles from the same anchors: `primary` maps to
