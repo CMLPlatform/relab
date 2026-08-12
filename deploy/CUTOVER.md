@@ -757,6 +757,16 @@ ______________________________________________________________________
 
 ## 10. Set up backups
 
+On a first-time host, create the bind-mount directory yourself before
+starting the stack. If Docker creates it instead, it comes up root-owned and
+the backup container (which runs as uid 1001) cannot initialize the restic
+repository:
+
+```bash
+mkdir -p "${BACKUP_HOST_DIR:-./backups}/restic"
+sudo chown -R 1001:1001 "${BACKUP_HOST_DIR:-./backups}"
+```
+
 ```bash
 just prod-up YES backups scanning   # drop `scanning` only if you disabled it in 1a
 just backup-restore-smoke prod
