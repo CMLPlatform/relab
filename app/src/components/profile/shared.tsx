@@ -3,6 +3,7 @@ import { Pressable, type TextStyle, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
+import { palette } from '@/theme/palette.generated';
 
 export type OAuthAccount = {
   account_email?: string | null;
@@ -45,7 +46,7 @@ export function ProfileAction({
         ) : null}
       </View>
       {!hideChevron ? (
-        <Icon name="chevron-right" size={26} color={theme.tokens.text.muted} />
+        <Icon name="chevron-right" size={26} color={palette[theme.scheme].mutedForeground} />
       ) : null}
     </Pressable>
   );

@@ -14,6 +14,7 @@ import {
 } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
+import { palette } from '@/theme/palette.generated';
 
 interface CameraPickerDialogProps {
   visible: boolean;
@@ -65,7 +66,7 @@ export function CameraPickerDialog({
           <ActivityIndicator className="p-4" />
         ) : sorted.length === 0 ? (
           <View className="items-center gap-2 p-4">
-            <Icon name="camera-off" size={32} color={theme.tokens.text.muted} />
+            <Icon name="camera-off" size={32} color={palette[theme.scheme].mutedForeground} />
             <MutedText className="text-center">No cameras registered</MutedText>
           </View>
         ) : (
@@ -113,7 +114,9 @@ function CameraPickerRow({
       <View
         className="h-2 w-2 rounded-full"
         style={{
-          backgroundColor: isReachable ? theme.tokens.status.success : theme.tokens.text.muted,
+          backgroundColor: isReachable
+            ? theme.tokens.status.success
+            : palette[theme.scheme].mutedForeground,
         }}
       />
       <Icon name="radio-tower" size="md" color={theme.colors.onSurface} />
@@ -124,7 +127,7 @@ function CameraPickerRow({
         </AppText>
       ) : null}
       {!isReachable && (
-        <AppText variant="label" style={{ color: theme.tokens.text.muted }}>
+        <AppText variant="label" className="text-muted-foreground">
           Offline
         </AppText>
       )}

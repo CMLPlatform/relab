@@ -49,7 +49,6 @@ jest.mock('@/theme', () => ({
     },
     tokens: {
       overlay: { glass: 'rgba(0,0,0,0.07)' },
-      text: { muted: '#999999' },
     },
   }),
 }));

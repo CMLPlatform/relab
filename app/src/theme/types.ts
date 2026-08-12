@@ -41,6 +41,7 @@ export type AppTokens = {
     info: string;
     offline: string;
     live: string;
+    onStatus: string;
   };
   overlay: {
     page: string;
@@ -64,7 +65,6 @@ export type AppTokens = {
   };
   text: {
     link: string;
-    muted: string;
     inverseMuted: string;
     onMedia: string;
   };

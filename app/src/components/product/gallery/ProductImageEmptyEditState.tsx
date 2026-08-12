@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
+import { palette } from '@/theme/palette.generated';
 import { createGalleryStyles } from './styles';
 
 type Props = {
@@ -62,9 +63,9 @@ export function ProductImageEmptyEditState({
           {isCapturing || rpiCamerasLoading ? (
             <ActivityIndicator size={32} />
           ) : (
-            <Icon name="camera" size={48} color={theme.tokens.text.muted} />
+            <Icon name="camera" size={48} color={palette[theme.scheme].mutedForeground} />
           )}
-          <Text className="mt-2" style={styles.emptyActionText}>
+          <Text className="mt-2 text-muted-foreground">
             {hasCamerasConfigured ? 'RPi Camera' : 'Connect camera'}
           </Text>
         </Pressable>
@@ -94,10 +95,8 @@ function EmptyActionCard({
       className="flex-1 items-center justify-center rounded-lg border-2 border-dashed"
       style={styles.emptyActionCard}
     >
-      <Icon name={icon} size={48} color={theme.tokens.text.muted} />
-      <Text className="mt-2" style={styles.emptyActionText}>
-        {label}
-      </Text>
+      <Icon name={icon} size={48} color={palette[theme.scheme].mutedForeground} />
+      <Text className="mt-2 text-muted-foreground">{label}</Text>
     </Pressable>
   );
 }

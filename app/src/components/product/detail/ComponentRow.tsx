@@ -12,6 +12,7 @@ import { Text } from '@/components/base/ui/text';
 import { radius } from '@/constants';
 import { componentQueryOptions } from '@/features/product-entity/queries';
 import { useAppTheme } from '@/theme';
+import { palette } from '@/theme/palette.generated';
 import type { Product } from '@/types/Product';
 
 interface Props {
@@ -139,7 +140,7 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
             <Icon
               name={expanded ? 'chevron-down' : 'chevron-right'}
               size={20}
-              color={theme.tokens.text.muted}
+              color={palette[theme.scheme].mutedForeground}
             />
           </Pressable>
         ) : null}

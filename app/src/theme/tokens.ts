@@ -4,25 +4,39 @@ import { designTokens } from './tokens.generated';
 import type { AppColorScale, AppScheme, AppTokens } from './types';
 
 const SEMANTIC_COLORS = {
-  live: '#e53935',
-  success: '#2e7d32',
-  warning: '#f57c00',
-  info: '#1976d2',
-  offline: '#757575',
-  link: '#1565C0',
+  light: {
+    live: '#8F6212', // manila — DESIGN.md assigns live indicators to the accent
+    success: '#2E7D32',
+    warning: '#A05A00',
+    info: '#1565C0',
+    offline: '#5A6675',
+    link: '#1565C0',
+    onStatus: '#FFFFFF',
+  },
+  dark: {
+    live: '#E3B95C',
+    success: '#7BC67E',
+    warning: '#FFB74D',
+    info: '#90CAF9',
+    offline: '#9E9E9E',
+    link: '#8FB8FF', // = dark primary; blue-primary apps read links as primary actions
+    onStatus: '#11141D',
+  },
 } as const;
 
 export function createTokens(scheme: AppScheme, colors: AppColorScale): AppTokens {
   const isDark = scheme === 'dark';
+  const semantic = SEMANTIC_COLORS[scheme];
 
   return {
     status: {
-      success: SEMANTIC_COLORS.success,
-      warning: SEMANTIC_COLORS.warning,
+      success: semantic.success,
+      warning: semantic.warning,
       danger: colors.error,
-      info: SEMANTIC_COLORS.info,
-      offline: SEMANTIC_COLORS.offline,
-      live: SEMANTIC_COLORS.live,
+      info: semantic.info,
+      offline: semantic.offline,
+      live: semantic.live,
+      onStatus: semantic.onStatus,
     },
     overlay: {
       page: isDark ? 'rgba(10,10,10,0.90)' : 'rgba(242,242,242,0.95)',
@@ -60,11 +74,10 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
     border: {
       subtle: 'rgba(128,128,128,0.2)',
       strong: 'rgba(128,128,128,0.5)',
-      selected: SEMANTIC_COLORS.info,
+      selected: semantic.info,
     },
     text: {
-      link: SEMANTIC_COLORS.link,
-      muted: isDark ? '#B7B7B7' : '#999999',
+      link: semantic.link,
       inverseMuted: 'rgba(255,255,255,0.6)',
       // Always-light content for elements placed on overlay.media (a dark scrim),
       // regardless of app theme — the scrim is dark in both schemes.

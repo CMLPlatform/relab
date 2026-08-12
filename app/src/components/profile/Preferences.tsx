@@ -4,6 +4,7 @@ import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { Switch } from '@/components/base/ui/switch';
 import { useAppTheme } from '@/theme';
+import { palette } from '@/theme/palette.generated';
 import type { ThemeMode, User } from '@/types/User';
 import { createProfileSectionStyles } from './styles';
 
@@ -201,7 +202,7 @@ function VisibilityOption({
         <Icon
           name={option.icon}
           size={24}
-          color={isActive ? theme.colors.primary : theme.tokens.text.muted}
+          color={isActive ? theme.colors.primary : palette[theme.scheme].mutedForeground}
         />
       </View>
       <View className="flex-1">

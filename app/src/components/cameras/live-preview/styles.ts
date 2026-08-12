@@ -20,10 +20,6 @@ export const createLivePreviewStyles = memoizeByTheme((theme: AppTheme) => {
     overlay: {
       backgroundColor: theme.tokens.overlay.scrim,
     },
-    // tokens.text.muted has no CSS var — JS-only.
-    caption: {
-      color: theme.tokens.text.muted,
-    },
   });
 });
 

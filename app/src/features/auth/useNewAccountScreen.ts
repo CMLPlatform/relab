@@ -8,6 +8,7 @@ import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { register } from '@/services/api/auth/authentication';
 import { type NewAccountFormValues, newAccountSchema } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme';
+import { palette } from '@/theme/palette.generated';
 
 export type NewAccountSection = 'username' | 'email' | 'password';
 
@@ -77,7 +78,7 @@ export function useNewAccountScreen() {
     ui: {
       colorScheme: theme.scheme,
       headlineColor: theme.colors.onBackground,
-      mutedColor: theme.tokens.text.muted,
+      mutedColor: palette[theme.scheme].mutedForeground,
     },
     flow: {
       section,

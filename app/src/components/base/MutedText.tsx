@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react';
-import { useAppTheme } from '@/theme';
+import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 
 type MutedTextProps = Omit<ComponentProps<typeof AppText>, 'variant'>;
@@ -9,7 +9,6 @@ type MutedTextProps = Omit<ComponentProps<typeof AppText>, 'variant'>;
  * states, so it rides the `body` step; the two dense card lines in ProductCard
  * pin their own smaller size/lineHeight via `style`.
  */
-export function MutedText({ style, ...props }: MutedTextProps) {
-  const theme = useAppTheme();
-  return <AppText variant="body" {...props} style={[{ color: theme.tokens.text.muted }, style]} />;
+export function MutedText({ className, ...props }: MutedTextProps) {
+  return <AppText variant="body" {...props} className={cn('text-muted-foreground', className)} />;
 }

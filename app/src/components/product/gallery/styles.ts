@@ -24,8 +24,5 @@ export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {
       backgroundColor: theme.tokens.surface.sunken,
       borderColor: theme.tokens.border.subtle,
     },
-    emptyActionText: {
-      color: theme.tokens.text.muted,
-    },
   });
 });

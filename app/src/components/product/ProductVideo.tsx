@@ -156,7 +156,7 @@ export default function ProductVideo({
         />
       ) : null}
 
-      {showEmptyState ? <EmptyVideoState mutedColor={theme.tokens.text.muted} /> : null}
+      {showEmptyState ? <EmptyVideoState /> : null}
     </View>
   );
 }
@@ -372,9 +372,9 @@ function GoLiveCTA({
   );
 }
 
-function EmptyVideoState({ mutedColor }: { mutedColor: string }) {
+function EmptyVideoState() {
   return (
-    <Text className="opacity-70 mb-2" style={{ color: mutedColor }}>
+    <Text className="opacity-70 mb-2 text-muted-foreground">
       This product has no associated videos.
     </Text>
   );

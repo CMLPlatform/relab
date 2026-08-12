@@ -3,6 +3,7 @@ import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
+import { palette } from '@/theme/palette.generated';
 import { createLivePreviewStyles } from './styles';
 
 export function PreviewShell({
@@ -12,13 +13,11 @@ export function PreviewShell({
   children: React.ReactNode;
   caption: string;
 }) {
-  const theme = useAppTheme();
-  const styles = createLivePreviewStyles(theme);
   return (
     <Card className="mx-4 mt-3">
       <View className="items-center gap-2 p-4">
         {children}
-        <AppText variant="body" style={styles.caption}>
+        <AppText variant="body" className="text-muted-foreground">
           {caption}
         </AppText>
       </View>
@@ -48,7 +47,7 @@ export function PreviewErrorOverlay({
   const styles = createLivePreviewStyles(theme);
   return (
     <View className="absolute inset-0 items-center justify-center gap-2" style={styles.overlay}>
-      <Icon name="video-off" size={32} color={theme.tokens.text.muted} />
+      <Icon name="video-off" size={32} color={palette[theme.scheme].mutedForeground} />
       <AppText className="text-center text-primary-foreground">{message}</AppText>
       <Pressable onPress={onRetry} accessibilityRole="button">
         <AppText className="mt-1 text-primary-foreground underline">Tap to retry</AppText>
