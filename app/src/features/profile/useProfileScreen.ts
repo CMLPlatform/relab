@@ -21,7 +21,7 @@ export function useProfileScreen() {
   const feedback = useAppFeedback();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const dialog = useDialog();
-  const dialogs = useProfileDialogs(profile);
+  const dialogs = useProfileDialogs();
   const {
     enabled: rpiEnabled,
     loading: rpiLoading,
@@ -74,7 +74,7 @@ export function useProfileScreen() {
       emailUpdatesEnabled: profile?.preferences?.email_updates_enabled === true,
       emailUpdatesSaving,
       visibilitySaving,
-      openEditUsername: dialogs.editUsername.open,
+      openEditUsername: actions.promptEditUsername,
       handleEmailUpdatesChange,
       handleVisibilityChange,
     },

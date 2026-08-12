@@ -114,7 +114,7 @@ describe('Camera detail screen', () => {
   });
 
   it('does not auto-load the live preview for an online camera and sets the screen title', async () => {
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     // Preview is opt-in: nothing streams until the user taps "Load preview".
     expect(screen.queryByText('live-preview-stub')).toBeNull();
@@ -123,7 +123,7 @@ describe('Camera detail screen', () => {
   });
 
   it('can load and stop the live preview without leaving the detail screen', async () => {
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     expect(screen.queryByText('live-preview-stub')).toBeNull();
 
@@ -162,7 +162,7 @@ describe('Camera detail screen', () => {
         canUseRelay: false,
       }),
     );
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     expect(screen.getByText('Waiting for camera to connect via WebSocket relay')).toBeOnTheScreen();
 
@@ -172,7 +172,7 @@ describe('Camera detail screen', () => {
   });
 
   it('opens the edit-name dialog and saves the trimmed camera name', async () => {
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     fireEvent.press(screen.getByLabelText('Edit name'));
 
@@ -185,7 +185,7 @@ describe('Camera detail screen', () => {
     expect(mockUpdateMutate).toHaveBeenCalledWith(
       { name: 'Studio Camera' },
       expect.objectContaining({
-        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
       }),
     );
   });
@@ -209,7 +209,7 @@ describe('Camera detail screen', () => {
       }),
     );
 
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     expect(screen.queryByText('Workbench Camera')).toBeNull();
     expect(screen.queryByText('Delete camera')).toBeNull();
@@ -234,7 +234,7 @@ describe('Camera detail screen', () => {
       }),
     );
 
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     expect(screen.getByText(FAILED_TO_LOAD_CAMERA_PATTERN)).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Retry'));
@@ -242,7 +242,7 @@ describe('Camera detail screen', () => {
   });
 
   it('opens the edit-description dialog and saves the trimmed description', async () => {
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     fireEvent.press(screen.getByLabelText('Edit description'));
 
@@ -254,7 +254,7 @@ describe('Camera detail screen', () => {
 
     expect(mockUpdateMutate).toHaveBeenCalledWith(
       { description: 'Updated description' },
-      expect.objectContaining({ onSuccess: expect.any(Function) }),
+      expect.objectContaining({ onError: expect.any(Function) }),
     );
   });
 
@@ -277,7 +277,7 @@ describe('Camera detail screen', () => {
       }),
     );
 
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     // String(null) = 'null' so the fallback text never shows, but the error
     // view branch (isError || !camera) is still entered — confirm via Retry.
@@ -312,13 +312,13 @@ describe('Camera detail screen', () => {
       }),
     );
 
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     expect(screen.getAllByText('Offline').length).toBeGreaterThan(0);
   });
 
   it('dismisses the edit-name dialog when Cancel is pressed', async () => {
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     fireEvent.press(screen.getByLabelText('Edit name'));
     expect(screen.getByText('Edit name')).toBeOnTheScreen();
@@ -329,7 +329,7 @@ describe('Camera detail screen', () => {
   });
 
   it('dismisses the edit-description dialog when Cancel is pressed', async () => {
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     fireEvent.press(screen.getByLabelText('Edit description'));
     expect(screen.getByText('Edit description')).toBeOnTheScreen();
@@ -340,7 +340,7 @@ describe('Camera detail screen', () => {
   });
 
   it('dismisses the delete dialog when Cancel is pressed', async () => {
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     fireEvent.press(screen.getByText('Delete camera'));
     expect(screen.getByText('Delete camera?')).toBeOnTheScreen();
@@ -365,7 +365,7 @@ describe('Camera detail screen', () => {
       options?.onSuccess?.();
     });
 
-    renderWithProviders(<CameraDetailScreen />);
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     fireEvent.press(screen.getByText('Delete camera'));
     expect(screen.getByText('Delete camera?')).toBeOnTheScreen();

@@ -1,5 +1,17 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import type { DialogButton, DialogOptions } from '@/components/base/dialogContext';
 import { createCameraDetailActions } from '@/features/cameras/detailActions';
+
+/** The Save button (index 1) of the most recent feedback.input() call. */
+function lastInputSaveButton(input: jest.Mock<(options: DialogOptions) => void>): DialogButton {
+  const button = input.mock.calls.at(-1)?.[0]?.buttons?.[1];
+  if (!button) throw new Error('No Save button on the last input dialog');
+  return button;
+}
+
+function isDisabled(button: DialogButton, value: string): boolean {
+  return typeof button.disabled === 'function' ? button.disabled(value) : Boolean(button.disabled);
+}
 
 describe('camera detail actions', () => {
   const refetch = jest.fn();
@@ -7,8 +19,7 @@ describe('camera detail actions', () => {
   const alert = jest.fn();
   const configure = jest.fn<() => Promise<void>>();
   const clearLocalConnection = jest.fn<() => Promise<void> | undefined>();
-  const closeEditName = jest.fn();
-  const closeEditDescription = jest.fn();
+  const input = jest.fn<(options: DialogOptions) => void>();
   const closeManualSetup = jest.fn();
   const setLocalSetupSaving = jest.fn();
   const updateMutate =
@@ -29,18 +40,16 @@ describe('camera detail actions', () => {
 
   function makeActions(overrides: Partial<Parameters<typeof createCameraDetailActions>[0]> = {}) {
     return createCameraDetailActions({
-      camera: { id: 'camera-1' },
+      camera: { id: 'camera-1', name: 'Workbench Camera', description: 'Bench setup' },
       refetch,
       router: { replace },
-      feedback: { alert },
+      feedback: { alert, input },
       localConnection: { configure, clearLocalConnection },
       dialogs: {
         localUrlInput: ' https://camera.local ',
         localKeyInput: ' secret-key ',
       },
       dialogActions: {
-        closeEditName,
-        closeEditDescription,
         closeManualSetup,
         setLocalSetupSaving,
       },
@@ -50,25 +59,54 @@ describe('camera detail actions', () => {
     });
   }
 
-  it('wires save actions to the update mutation and save-failed feedback', () => {
+  it('opens the rename prompt seeded with the current name and gates Save on length', () => {
     const actions = makeActions();
 
-    actions.saveName('Studio Camera');
-    actions.saveDescription('');
+    actions.promptRename();
 
-    expect(updateMutate).toHaveBeenNthCalledWith(
-      1,
+    expect(input.mock.calls[0]?.[0]).toMatchObject({
+      title: 'Edit name',
+      defaultValue: 'Workbench Camera',
+    });
+    const saveButton = lastInputSaveButton(input);
+    expect(isDisabled(saveButton, 'a')).toBe(true); // below the 2-char floor
+    expect(isDisabled(saveButton, 'a'.repeat(101))).toBe(true); // above the 100-char ceiling
+    expect(isDisabled(saveButton, 'Studio Camera')).toBe(false);
+
+    saveButton.onPress?.('  Studio Camera  ');
+
+    expect(updateMutate).toHaveBeenCalledWith(
       { name: 'Studio Camera' },
-      expect.objectContaining({ onSuccess: closeEditName, onError: expect.any(Function) }),
+      expect.objectContaining({ onError: expect.any(Function) }),
     );
-    expect(updateMutate).toHaveBeenNthCalledWith(
-      2,
+  });
+
+  it('opens the description prompt seeded with the current description and gates Save at 500 chars', () => {
+    const actions = makeActions();
+
+    actions.promptEditDescription();
+
+    expect(input.mock.calls[0]?.[0]).toMatchObject({
+      title: 'Edit description',
+      defaultValue: 'Bench setup',
+    });
+    const saveButton = lastInputSaveButton(input);
+    expect(isDisabled(saveButton, 'a'.repeat(501))).toBe(true);
+    expect(isDisabled(saveButton, 'a'.repeat(500))).toBe(false);
+
+    saveButton.onPress?.('  ');
+
+    expect(updateMutate).toHaveBeenCalledWith(
       { description: null },
-      expect.objectContaining({
-        onSuccess: closeEditDescription,
-        onError: expect.any(Function),
-      }),
+      expect.objectContaining({ onError: expect.any(Function) }),
     );
+  });
+
+  it('surfaces mutation failures via feedback.alert', () => {
+    const actions = makeActions();
+
+    actions.promptRename();
+    lastInputSaveButton(input).onPress?.('Studio Camera');
 
     const saveErrorHandler = updateMutate.mock.calls[0]?.[1]?.onError as (error: unknown) => void;
     saveErrorHandler(new Error('save broke'));

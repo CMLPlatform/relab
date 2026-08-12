@@ -11,11 +11,6 @@ import { useAppTheme } from '@/theme';
 import { createProfileSectionStyles } from './styles';
 
 type ProfileDialogsProps = {
-  editUsernameVisible: boolean;
-  onDismissEditUsername: () => void;
-  newUsername: string;
-  onChangeUsername: (value: string) => void;
-  onSaveUsername: () => void;
   unlinkDialogVisible: boolean;
   onDismissUnlink: () => void;
   providerToUnlink: string;
@@ -29,18 +24,12 @@ type ProfileDialogsProps = {
   onConfirmLogout: () => void;
   deleteDialogVisible: boolean;
   onDismissDeleteDialog: () => void;
-  editUsernameTriggerRef?: RefObject<View | null>;
   unlinkTriggerRef?: RefObject<View | null>;
   logoutTriggerRef?: RefObject<View | null>;
   deleteAccountTriggerRef?: RefObject<View | null>;
 };
 
 export function ProfileDialogs({
-  editUsernameVisible,
-  onDismissEditUsername,
-  newUsername,
-  onChangeUsername,
-  onSaveUsername,
   unlinkDialogVisible,
   onDismissUnlink,
   providerToUnlink,
@@ -54,7 +43,6 @@ export function ProfileDialogs({
   onConfirmLogout,
   deleteDialogVisible,
   onDismissDeleteDialog,
-  editUsernameTriggerRef,
   unlinkTriggerRef,
   logoutTriggerRef,
   deleteAccountTriggerRef,
@@ -63,34 +51,6 @@ export function ProfileDialogs({
   const styles = createProfileSectionStyles(theme);
   return (
     <>
-      <AppDialog
-        visible={editUsernameVisible}
-        onDismiss={onDismissEditUsername}
-        triggerRef={editUsernameTriggerRef}
-      >
-        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
-          Edit username
-        </AppText>
-        <TextInput
-          value={newUsername}
-          onChangeText={onChangeUsername}
-          placeholder="Username"
-          accessibilityLabel="Username"
-          autoCapitalize="none"
-          autoCorrect={false}
-          className="border px-2 py-2 mt-2"
-          style={{ borderColor: theme.colors.outline }}
-        />
-        <View style={dialogActionsStyle}>
-          <AppButton variant="ghost" onPress={onDismissEditUsername}>
-            Cancel
-          </AppButton>
-          <AppButton variant="ghost" onPress={onSaveUsername}>
-            Save
-          </AppButton>
-        </View>
-      </AppDialog>
-
       <AppDialog
         visible={unlinkDialogVisible}
         onDismiss={onDismissUnlink}

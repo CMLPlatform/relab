@@ -22,8 +22,6 @@ function CameraDetailContent({
   actions,
 }: ReturnType<typeof useCameraDetailScreen>) {
   const camera = screen.camera;
-  const editNameTriggerRef = useRef<View>(null);
-  const editDescriptionTriggerRef = useRef<View>(null);
   const deleteTriggerRef = useRef<View>(null);
   const manualSetupTriggerRef = useRef<View>(null);
   if (!camera) return null;
@@ -53,10 +51,8 @@ function CameraDetailContent({
 
         <CameraDetailsCard
           camera={camera}
-          onEditName={actions.openEditName}
-          onEditDescription={actions.openEditDescription}
-          editNameTriggerRef={editNameTriggerRef}
-          editDescriptionTriggerRef={editDescriptionTriggerRef}
+          onEditName={actions.promptRename}
+          onEditDescription={actions.promptEditDescription}
         />
 
         <CameraDangerZone onDelete={actions.requestDelete} deleteTriggerRef={deleteTriggerRef} />
@@ -64,27 +60,18 @@ function CameraDetailContent({
 
       <CameraDetailDialogs
         camera={camera}
-        editNameVisible={dialogs.editNameVisible}
-        editDescriptionVisible={dialogs.editDescriptionVisible}
         deleteVisible={dialogs.deleteVisible}
         localSetupVisible={dialogs.localSetupVisible}
         localUrlInput={dialogs.localUrlInput}
         localKeyInput={dialogs.localKeyInput}
-        updateLoading={dialogs.updateLoading}
         deleteLoading={dialogs.deleteLoading}
         localSetupSaving={dialogs.localSetupSaving}
-        onDismissEditName={actions.closeEditName}
-        onDismissEditDescription={actions.closeEditDescription}
         onDismissDelete={actions.closeDelete}
         onDismissLocalSetup={actions.closeManualSetup}
-        onSaveName={actions.saveName}
-        onSaveDescription={actions.saveDescription}
         onDeleteCamera={actions.deleteCamera}
         onChangeLocalUrl={actions.setLocalUrl}
         onChangeLocalKey={actions.setLocalKey}
         onConnectLocal={actions.connectLocal}
-        editNameTriggerRef={editNameTriggerRef}
-        editDescriptionTriggerRef={editDescriptionTriggerRef}
         deleteTriggerRef={deleteTriggerRef}
         manualSetupTriggerRef={manualSetupTriggerRef}
       />

@@ -1,7 +1,7 @@
 import type { ImperativeRouter } from 'expo-router';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 
-type CameraDetailFeedback = Pick<ReturnType<typeof useAppFeedback>, 'alert'>;
+type CameraDetailFeedback = Pick<ReturnType<typeof useAppFeedback>, 'alert' | 'input'>;
 
 type UpdateMutation = {
   isPending: boolean;
@@ -31,8 +31,6 @@ type CameraDetailDialogsState = {
 };
 
 type CameraDetailDialogActions = {
-  closeEditName: () => void;
-  closeEditDescription: () => void;
   closeManualSetup: () => void;
   setLocalSetupSaving: (saving: boolean) => void;
 };
@@ -65,7 +63,7 @@ export function createCameraDetailActions({
   updateMutation,
   deleteMutation,
 }: {
-  camera: { id: string } | null | undefined;
+  camera: { id: string; name: string; description?: string | null } | null | undefined;
   refetch: () => unknown;
   router: Pick<ImperativeRouter, 'replace'>;
   feedback: CameraDetailFeedback;
@@ -80,23 +78,55 @@ export function createCameraDetailActions({
   return {
     refresh: () => refetch(),
     disconnectLocal,
-    saveName: (name: string) => {
-      updateMutation.mutate(
-        { name },
-        {
-          onSuccess: dialogActions.closeEditName,
-          onError: (error) => showActionError(feedback, 'Save failed', error),
-        },
-      );
+    promptRename: () => {
+      if (!camera) return;
+      feedback.input({
+        title: 'Edit name',
+        defaultValue: camera.name,
+        placeholder: 'Camera name',
+        helperText: '2-100 characters',
+        buttons: [
+          { text: 'Cancel' },
+          {
+            text: 'Save',
+            // maxLength isn't part of DialogOptions, so the 2-100 bound (previously
+            // enforced live via the TextInput) is gated here instead.
+            disabled: (value) => {
+              const trimmed = (value ?? '').trim();
+              return trimmed.length < 2 || trimmed.length > 100;
+            },
+            onPress: (value) => {
+              updateMutation.mutate(
+                { name: (value ?? '').trim() },
+                { onError: (error) => showActionError(feedback, 'Save failed', error) },
+              );
+            },
+          },
+        ],
+      });
     },
-    saveDescription: (description: string) => {
-      updateMutation.mutate(
-        { description: description || null },
-        {
-          onSuccess: dialogActions.closeEditDescription,
-          onError: (error) => showActionError(feedback, 'Save failed', error),
-        },
-      );
+    promptEditDescription: () => {
+      if (!camera) return;
+      feedback.input({
+        title: 'Edit description',
+        defaultValue: camera.description ?? '',
+        placeholder: 'Description',
+        helperText: 'Up to 500 characters',
+        buttons: [
+          { text: 'Cancel' },
+          {
+            text: 'Save',
+            disabled: (value) => (value ?? '').trim().length > 500,
+            onPress: (value) => {
+              const description = (value ?? '').trim();
+              updateMutation.mutate(
+                { description: description || null },
+                { onError: (error) => showActionError(feedback, 'Save failed', error) },
+              );
+            },
+          },
+        ],
+      });
     },
     deleteCamera: () => {
       if (!camera) return;

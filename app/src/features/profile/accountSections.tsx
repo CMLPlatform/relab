@@ -23,7 +23,6 @@ export type AccountSectionContext = ReturnType<typeof useProfileScreen> & {
   onManageCameras: () => void;
   onRefetchAuth: () => void;
   /** Return-focus targets for the corresponding dialogs; see AppDialog's `triggerRef`. */
-  editUsernameTriggerRef: RefObject<View | null>;
   logoutTriggerRef: RefObject<View | null>;
   deleteAccountTriggerRef: RefObject<View | null>;
   unlinkTriggerRef: RefObject<View | null>;

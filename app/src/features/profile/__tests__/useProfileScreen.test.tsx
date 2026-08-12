@@ -10,6 +10,7 @@ const mockRefetch: jest.Mock = jest.fn();
 const mockSetActiveStream: jest.Mock = jest.fn();
 const mockFeedback = {
   alert: jest.fn(),
+  input: jest.fn(),
   error: jest.fn(),
   toast: jest.fn(),
 };
@@ -111,6 +112,7 @@ jest.mock('@/services/api/profiles', () => ({
 }));
 
 type AlertButton = { text: string; onPress?: () => void };
+type InputButton = { text: string; onPress?: (value?: string) => void };
 
 /** Presses the destructive button of the most recent feedback.alert(). */
 function pressAlertButton(text: string) {
@@ -119,6 +121,15 @@ function pressAlertButton(text: string) {
   const button = options?.buttons?.find((candidate) => candidate.text === text);
   if (!button?.onPress) throw new Error(`No "${text}" button on the last alert`);
   button.onPress();
+}
+
+/** Presses a named button of the most recent feedback.input() with the given value. */
+function pressInputButton(text: string, value?: string) {
+  const calls = mockFeedback.input.mock.calls as unknown as [{ buttons?: InputButton[] }][];
+  const options = calls.at(-1)?.[0];
+  const button = options?.buttons?.find((candidate) => candidate.text === text);
+  if (!button?.onPress) throw new Error(`No "${text}" button on the last input dialog`);
+  button.onPress(value);
 }
 
 describe('useProfileScreen', () => {
@@ -182,11 +193,11 @@ describe('useProfileScreen', () => {
     const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
-      result.current.dialogs.editUsername.setValue('a');
+      result.current.profile.openEditUsername();
     });
 
     await act(async () => {
-      await result.current.actions.handleUpdateUsername();
+      pressInputButton('Save', 'a');
     });
 
     expect(mockUpdateUser).not.toHaveBeenCalled();

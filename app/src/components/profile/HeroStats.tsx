@@ -1,4 +1,3 @@
-import type { RefObject } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Chip } from '@/components/base/Chip';
@@ -10,11 +9,10 @@ import { createProfileSectionStyles } from './styles';
 type ProfileHeroProps = {
   profile: User;
   onEditUsername: () => void;
-  editUsernameTriggerRef?: RefObject<View | null>;
 };
 
 /** Account page header: identity block in the same spec-sheet voice as the product SpecHeader. */
-export function ProfileHero({ profile, onEditUsername, editUsernameTriggerRef }: ProfileHeroProps) {
+export function ProfileHero({ profile, onEditUsername }: ProfileHeroProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
     <View className="gap-2 px-4 py-3">
@@ -22,7 +20,6 @@ export function ProfileHero({ profile, onEditUsername, editUsernameTriggerRef }:
         Hi,
       </AppText>
       <Pressable
-        ref={editUsernameTriggerRef}
         onPress={onEditUsername}
         accessibilityRole="button"
         accessibilityLabel="Edit username"

@@ -33,12 +33,10 @@ export async function updateProfileUsername({
   username,
   feedback,
   refetch,
-  closeEditUsername,
 }: {
   username: string;
   feedback: ReturnType<typeof useAppFeedback>;
   refetch: (forceRefresh?: boolean) => Promise<unknown>;
-  closeEditUsername: () => void;
 }) {
   if (username.length < 2) {
     feedback.error('Username must be at least 2 characters.', 'Invalid username');
@@ -48,7 +46,6 @@ export async function updateProfileUsername({
   try {
     await updateUser({ username });
     await refetch(false);
-    closeEditUsername();
     feedback.toast('Username updated.');
   } catch (error: unknown) {
     feedback.error(
@@ -56,6 +53,32 @@ export async function updateProfileUsername({
       'Update failed',
     );
   }
+}
+
+export function promptUsernameEdit({
+  profile,
+  feedback,
+  refetch,
+}: {
+  profile: { username: string | null } | null | undefined;
+  feedback: ReturnType<typeof useAppFeedback>;
+  refetch: (forceRefresh?: boolean) => Promise<unknown>;
+}) {
+  if (!profile) return;
+  feedback.input({
+    title: 'Edit username',
+    defaultValue: profile.username ?? '',
+    placeholder: 'Username',
+    buttons: [
+      { text: 'Cancel' },
+      {
+        text: 'Save',
+        onPress: (value) => {
+          void updateProfileUsername({ username: (value ?? '').trim(), feedback, refetch });
+        },
+      },
+    ],
+  });
 }
 
 export type ProfilePreferenceUpdate =

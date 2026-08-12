@@ -1,4 +1,4 @@
-import { type RefObject, useCallback, useState } from 'react';
+import type { RefObject } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
@@ -6,111 +6,6 @@ import { AppText } from '@/components/base/AppText';
 import { dialogTitleStyle } from '@/components/base/dialogStyles';
 import { TextInput } from '@/components/base/TextInput';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
-import { useAppTheme } from '@/theme';
-
-function EditNameDialog({
-  initialName,
-  onSave,
-  onDismiss,
-  loading,
-  triggerRef,
-}: {
-  initialName: string;
-  onSave: (name: string) => void;
-  onDismiss: () => void;
-  loading: boolean;
-  triggerRef?: RefObject<View | null>;
-}) {
-  const theme = useAppTheme();
-  const [value, setValue] = useState(initialName);
-  const valid = value.trim().length >= 2 && value.trim().length <= 100;
-  const hasError = value.trim().length > 0 && !valid;
-  const handleSave = useCallback(() => onSave(value.trim()), [onSave, value]);
-
-  return (
-    <AppDialog visible onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
-        Edit name
-      </AppText>
-      <TextInput
-        value={value}
-        onChangeText={setValue}
-        maxLength={100}
-        autoFocus
-        placeholder="Camera name"
-        accessibilityLabel="Camera name"
-        bordered
-        style={
-          hasError
-            ? {
-                borderColor: theme.tokens.status.danger,
-                backgroundColor: theme.colors.errorContainer,
-                color: theme.colors.onErrorContainer,
-              }
-            : undefined
-        }
-      />
-      <View className="mt-4 flex-row justify-end gap-1">
-        <AppButton variant="ghost" onPress={onDismiss} disabled={loading}>
-          Cancel
-        </AppButton>
-        <AppButton
-          variant="primary"
-          onPress={handleSave}
-          disabled={!valid || loading}
-          loading={loading}
-        >
-          Save
-        </AppButton>
-      </View>
-    </AppDialog>
-  );
-}
-
-function EditDescriptionDialog({
-  initialDescription,
-  onSave,
-  onDismiss,
-  loading,
-  triggerRef,
-}: {
-  initialDescription: string;
-  onSave: (description: string) => void;
-  onDismiss: () => void;
-  loading: boolean;
-  triggerRef?: RefObject<View | null>;
-}) {
-  const [value, setValue] = useState(initialDescription);
-  const handleSave = useCallback(() => onSave(value.trim()), [onSave, value]);
-
-  return (
-    <AppDialog visible onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
-        Edit description
-      </AppText>
-      <TextInput
-        value={value}
-        onChangeText={setValue}
-        maxLength={500}
-        multiline
-        numberOfLines={3}
-        autoFocus
-        placeholder="Description"
-        accessibilityLabel="Description"
-        bordered
-        style={styles.multilineInput}
-      />
-      <View className="mt-4 flex-row justify-end gap-1">
-        <AppButton variant="ghost" onPress={onDismiss} disabled={loading}>
-          Cancel
-        </AppButton>
-        <AppButton variant="primary" onPress={handleSave} disabled={loading} loading={loading}>
-          Save
-        </AppButton>
-      </View>
-    </AppDialog>
-  );
-}
 
 type ManualSetupDialogProps = {
   visible: boolean;
@@ -225,79 +120,41 @@ function CameraDeleteDialog({
 
 type CameraDetailDialogsProps = {
   camera: CameraReadWithStatus;
-  editNameVisible: boolean;
-  editDescriptionVisible: boolean;
   deleteVisible: boolean;
   localSetupVisible: boolean;
   localUrlInput: string;
   localKeyInput: string;
-  updateLoading: boolean;
   deleteLoading: boolean;
   localSetupSaving: boolean;
-  onDismissEditName: () => void;
-  onDismissEditDescription: () => void;
   onDismissDelete: () => void;
   onDismissLocalSetup: () => void;
-  onSaveName: (name: string) => void;
-  onSaveDescription: (description: string) => void;
   onDeleteCamera: () => void;
   onChangeLocalUrl: (value: string) => void;
   onChangeLocalKey: (value: string) => void;
   onConnectLocal: () => void;
-  editNameTriggerRef?: RefObject<View | null>;
-  editDescriptionTriggerRef?: RefObject<View | null>;
   deleteTriggerRef?: RefObject<View | null>;
   manualSetupTriggerRef?: RefObject<View | null>;
 };
 
 export function CameraDetailDialogs({
   camera,
-  editNameVisible,
-  editDescriptionVisible,
   deleteVisible,
   localSetupVisible,
   localUrlInput,
   localKeyInput,
-  updateLoading,
   deleteLoading,
   localSetupSaving,
-  onDismissEditName,
-  onDismissEditDescription,
   onDismissDelete,
   onDismissLocalSetup,
-  onSaveName,
-  onSaveDescription,
   onDeleteCamera,
   onChangeLocalUrl,
   onChangeLocalKey,
   onConnectLocal,
-  editNameTriggerRef,
-  editDescriptionTriggerRef,
   deleteTriggerRef,
   manualSetupTriggerRef,
 }: CameraDetailDialogsProps) {
   return (
     <>
-      {editNameVisible ? (
-        <EditNameDialog
-          initialName={camera.name}
-          onSave={onSaveName}
-          onDismiss={onDismissEditName}
-          loading={updateLoading}
-          triggerRef={editNameTriggerRef}
-        />
-      ) : null}
-
-      {editDescriptionVisible ? (
-        <EditDescriptionDialog
-          initialDescription={camera.description ?? ''}
-          onSave={onSaveDescription}
-          onDismiss={onDismissEditDescription}
-          loading={updateLoading}
-          triggerRef={editDescriptionTriggerRef}
-        />
-      ) : null}
-
       <CameraDeleteDialog
         visible={deleteVisible}
         cameraName={camera.name}
@@ -323,10 +180,6 @@ export function CameraDetailDialogs({
 }
 
 const styles = StyleSheet.create({
-  multilineInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
   connectionHint: {
     // fontSize 13 has no exact Tailwind step, so it stays inline.
     fontSize: 13,

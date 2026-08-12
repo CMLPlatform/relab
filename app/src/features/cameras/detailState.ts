@@ -2,8 +2,6 @@ import { useState } from 'react';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 
 export function useCameraDetailDialogs(localConnection: CameraConnectionInfo) {
-  const [editNameVisible, setEditNameVisible] = useState(false);
-  const [editDescriptionVisible, setEditDescriptionVisible] = useState(false);
   const [deleteVisible, setDeleteVisible] = useState(false);
   const [localSetupVisible, setLocalSetupVisible] = useState(false);
   const [localUrlInput, setLocalUrlInput] = useState('');
@@ -16,8 +14,6 @@ export function useCameraDetailDialogs(localConnection: CameraConnectionInfo) {
       enabled: previewEnabled,
     },
     dialogs: {
-      editNameVisible,
-      editDescriptionVisible,
       deleteVisible,
       localSetupVisible,
       localUrlInput,
@@ -25,10 +21,6 @@ export function useCameraDetailDialogs(localConnection: CameraConnectionInfo) {
       localSetupSaving,
     },
     actions: {
-      openEditName: () => setEditNameVisible(true),
-      closeEditName: () => setEditNameVisible(false),
-      openEditDescription: () => setEditDescriptionVisible(true),
-      closeEditDescription: () => setEditDescriptionVisible(false),
       requestDelete: () => setDeleteVisible(true),
       closeDelete: () => setDeleteVisible(false),
       openManualSetup: () => {

@@ -22,32 +22,22 @@ type CameraDetailsCardProps = {
   camera: CameraReadWithStatus;
   onEditName: () => void;
   onEditDescription: () => void;
-  editNameTriggerRef?: RefObject<View | null>;
-  editDescriptionTriggerRef?: RefObject<View | null>;
 };
 
 export function CameraDetailsCard({
   camera,
   onEditName,
   onEditDescription,
-  editNameTriggerRef,
-  editDescriptionTriggerRef,
 }: CameraDetailsCardProps) {
   return (
     <Card>
       <View className="p-4">
-        <DetailRow
-          label="Name"
-          value={camera.name}
-          onEdit={onEditName}
-          editTriggerRef={editNameTriggerRef}
-        />
+        <DetailRow label="Name" value={camera.name} onEdit={onEditName} />
         <Separator />
         <DetailRow
           label="Description"
           value={camera.description ?? '—'}
           onEdit={onEditDescription}
-          editTriggerRef={editDescriptionTriggerRef}
         />
         <Separator />
         <DetailRow label="Key ID" value={camera.relay_key_id} mono />

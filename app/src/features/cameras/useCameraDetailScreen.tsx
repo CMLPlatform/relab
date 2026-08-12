@@ -67,7 +67,6 @@ export function useCameraDetailScreen() {
     preview,
     dialogs: {
       ...dialogs,
-      updateLoading: updateMutation.isPending,
       deleteLoading: deleteMutation.isPending,
     },
     actions: {

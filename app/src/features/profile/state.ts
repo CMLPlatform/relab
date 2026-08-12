@@ -2,11 +2,9 @@ import type { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import type { useAuth } from '@/context/auth';
 
-export function useProfileDialogs(profile: { username: string | null } | null | undefined) {
+export function useProfileDialogs() {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
-  const [editUsernameVisible, setEditUsernameVisible] = useState(false);
-  const [newUsername, setNewUsername] = useState('');
   const [unlinkDialogVisible, setUnlinkDialogVisible] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState('');
   const [unlinkPassword, setUnlinkPassword] = useState('');
@@ -15,7 +13,6 @@ export function useProfileDialogs(profile: { username: string | null } | null | 
   const closeDeleteDialog = useCallback(() => setDeleteDialogVisible(false), []);
   const openLogoutDialog = useCallback(() => setLogoutDialogVisible(true), []);
   const closeLogoutDialog = useCallback(() => setLogoutDialogVisible(false), []);
-  const closeEditUsername = useCallback(() => setEditUsernameVisible(false), []);
   const closeUnlinkDialog = useCallback(() => {
     setUnlinkDialogVisible(false);
     setUnlinkPassword('');
@@ -25,11 +22,6 @@ export function useProfileDialogs(profile: { username: string | null } | null | 
     setUnlinkPassword('');
     setUnlinkDialogVisible(true);
   }, []);
-  const openEditUsername = useCallback(() => {
-    if (!profile) return;
-    setNewUsername(profile.username ?? '');
-    setEditUsernameVisible(true);
-  }, [profile]);
 
   return {
     deleteDialog: {
@@ -41,13 +33,6 @@ export function useProfileDialogs(profile: { username: string | null } | null | 
       visible: logoutDialogVisible,
       open: openLogoutDialog,
       close: closeLogoutDialog,
-    },
-    editUsername: {
-      visible: editUsernameVisible,
-      open: openEditUsername,
-      close: closeEditUsername,
-      value: newUsername,
-      setValue: setNewUsername,
     },
     unlinkDialog: {
       visible: unlinkDialogVisible,

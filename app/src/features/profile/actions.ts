@@ -5,7 +5,7 @@ import type { useStreamSession } from '@/context/streamSession';
 import type { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import { logout, revokeAllSessions } from '@/services/api/auth/authentication';
-import { confirmOAuthUnlink, sendVerificationEmail, updateProfileUsername } from './mutations';
+import { confirmOAuthUnlink, promptUsernameEdit, sendVerificationEmail } from './mutations';
 import type { useProfileDialogs } from './state';
 
 export function useProfileActions({
@@ -120,14 +120,10 @@ export function useProfileActions({
     });
   }, [exitSession, feedback]);
 
-  const handleUpdateUsername = useCallback(async () => {
-    await updateProfileUsername({
-      username: dialogs.editUsername.value,
-      feedback,
-      refetch,
-      closeEditUsername: dialogs.editUsername.close,
-    });
-  }, [dialogs.editUsername.close, dialogs.editUsername.value, feedback, refetch]);
+  const promptEditUsername = useCallback(
+    () => promptUsernameEdit({ profile, feedback, refetch }),
+    [feedback, profile, refetch],
+  );
 
   const handleUnlinkOAuthConfirm = useCallback(async () => {
     await confirmOAuthUnlink({
@@ -154,7 +150,7 @@ export function useProfileActions({
     confirmLogout,
     onRevokeAllSessions,
     onVerifyAccount,
-    handleUpdateUsername,
+    promptEditUsername,
     handleUnlinkOAuthConfirm,
   };
 }

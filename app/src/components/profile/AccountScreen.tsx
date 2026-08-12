@@ -38,11 +38,7 @@ function AccountBody({ ctx, profile }: { ctx: AccountSectionContext; profile: Us
   return (
     <PageContainer onLayout={onPageContainerLayout}>
       <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
-        <ProfileHero
-          profile={profile}
-          onEditUsername={ctx.profile.openEditUsername}
-          editUsernameTriggerRef={ctx.editUsernameTriggerRef}
-        />
+        <ProfileHero profile={profile} onEditUsername={ctx.profile.openEditUsername} />
         <ProfileStatsSection
           ownStats={ctx.profile.ownStats}
           statsLoading={ctx.profile.statsLoading}
@@ -77,7 +73,6 @@ export function AccountScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const nav = useSectionNav((y) => scrollRef.current?.scrollTo({ y, animated: true }));
   const goToCameras = useCallback(() => router.push('/cameras'), [router]);
-  const editUsernameTriggerRef = useRef<View>(null);
   const logoutTriggerRef = useRef<View>(null);
   const deleteAccountTriggerRef = useRef<View>(null);
   const unlinkTriggerRef = useRef<View>(null);
@@ -99,7 +94,6 @@ export function AccountScreen() {
     ...profileScreen,
     onManageCameras: goToCameras,
     onRefetchAuth: refetch,
-    editUsernameTriggerRef,
     logoutTriggerRef,
     deleteAccountTriggerRef,
     unlinkTriggerRef,
@@ -127,11 +121,6 @@ export function AccountScreen() {
       </SectionNavLayout>
 
       <ProfileDialogs
-        editUsernameVisible={dialogs.editUsername.visible}
-        onDismissEditUsername={dialogs.editUsername.close}
-        newUsername={dialogs.editUsername.value}
-        onChangeUsername={dialogs.editUsername.setValue}
-        onSaveUsername={actions.handleUpdateUsername}
         unlinkDialogVisible={dialogs.unlinkDialog.visible}
         onDismissUnlink={dialogs.unlinkDialog.close}
         providerToUnlink={dialogs.unlinkDialog.provider}
@@ -145,7 +134,6 @@ export function AccountScreen() {
         onConfirmLogout={actions.confirmLogout}
         deleteDialogVisible={dialogs.deleteDialog.visible}
         onDismissDeleteDialog={dialogs.deleteDialog.close}
-        editUsernameTriggerRef={editUsernameTriggerRef}
         unlinkTriggerRef={unlinkTriggerRef}
         logoutTriggerRef={logoutTriggerRef}
         deleteAccountTriggerRef={deleteAccountTriggerRef}
