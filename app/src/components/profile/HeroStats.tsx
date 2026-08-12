@@ -1,6 +1,7 @@
 import { Platform, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { Chip } from '@/components/base/Chip';
+import { Badge } from '@/components/base/ui/badge';
+import { Text } from '@/components/base/ui/text';
 import type { PublicProfileView } from '@/services/api/profiles';
 import { useAppTheme } from '@/theme';
 import type { User } from '@/types/User';
@@ -13,7 +14,6 @@ type ProfileHeroProps = {
 
 /** Account page header: identity block in the same spec-sheet voice as the product SpecHeader. */
 export function ProfileHero({ profile, onEditUsername }: ProfileHeroProps) {
-  const styles = createProfileSectionStyles(useAppTheme());
   return (
     <View className="gap-2 px-4 py-3">
       <AppText variant="eyebrow">Hi,</AppText>
@@ -36,12 +36,28 @@ export function ProfileHero({ profile, onEditUsername }: ProfileHeroProps) {
       </AppText>
 
       <View className="flex-row flex-wrap gap-2 mt-1">
-        {profile.isActive ? <Chip>Active</Chip> : <Chip style={styles.greyChip}>Inactive</Chip>}
-        {profile.isSuperuser ? <Chip>Superuser</Chip> : null}
-        {profile.isVerified ? (
-          <Chip>Verified</Chip>
+        {profile.isActive ? (
+          <Badge variant="outline">
+            <Text className="text-accent font-medium">Active</Text>
+          </Badge>
         ) : (
-          <Chip style={styles.greyChip}>Unverified</Chip>
+          <Badge variant="outline">
+            <Text className="text-muted-foreground">Inactive</Text>
+          </Badge>
+        )}
+        {profile.isSuperuser ? (
+          <Badge variant="outline">
+            <Text className="text-accent font-medium">Superuser</Text>
+          </Badge>
+        ) : null}
+        {profile.isVerified ? (
+          <Badge variant="outline">
+            <Text className="text-accent font-medium">Verified</Text>
+          </Badge>
+        ) : (
+          <Badge variant="outline">
+            <Text className="text-muted-foreground">Unverified</Text>
+          </Badge>
         )}
       </View>
     </View>

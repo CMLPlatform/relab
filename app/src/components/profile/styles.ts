@@ -8,9 +8,6 @@ import { memoizeByTheme } from '@/theme';
 // surfaceVariant) — that residue is deliberate.
 export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
-    greyChip: {
-      backgroundColor: theme.colors.surfaceVariant,
-    },
     docsLink: {
       color: theme.tokens.text.link,
     },

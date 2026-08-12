@@ -39,7 +39,7 @@ export function StatusPill({ label, tone, variant = 'solid', testID }: StatusPil
       <AppText
         variant="caption"
         className={solid ? 'font-bold' : undefined}
-        style={{ color: solid ? theme.colors.onError : color }}
+        style={{ color: solid ? theme.tokens.status.onStatus : color }}
       >
         {label}
       </AppText>
