@@ -1,6 +1,12 @@
 import { usePathname, useRouter } from 'expo-router';
 import { BottomNav } from '@/components/base/BottomNav';
-import { fireEvent, renderWithProviders, screen } from '@/test-utils';
+import {
+  fireEvent,
+  mockPlatform,
+  renderWithProviders,
+  restorePlatform,
+  screen,
+} from '@/test-utils';
 
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(),
@@ -77,4 +83,18 @@ test('pressing a tab routes via replace', () => {
   renderWithProviders(<BottomNav />);
   fireEvent.press(screen.getByLabelText('Cameras'));
   expect(replace).toHaveBeenCalledWith('/cameras');
+});
+
+test('tabs carry active-state opacity feedback', () => {
+  renderWithProviders(<BottomNav />);
+  const className = screen.getByLabelText('Products').props.className as string;
+  expect(className).toEqual(expect.stringContaining('active:opacity-60'));
+});
+
+test('tabs carry a web focus-visible ring', () => {
+  mockPlatform('web');
+  renderWithProviders(<BottomNav />);
+  const className = screen.getByLabelText('Products').props.className as string;
+  expect(className).toEqual(expect.stringContaining('focus-visible:ring'));
+  restorePlatform();
 });

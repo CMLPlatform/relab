@@ -1,9 +1,10 @@
 import { usePathname, useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MIN_TAP_TARGET } from '@/constants';
 import { useAppTheme } from '@/theme';
+import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { type Tab, type TabHref, useBottomNavTabs, useBottomNavVisible } from './useBottomNav';
@@ -26,7 +27,12 @@ function BottomNavTab({
       accessibilityState={{ selected: active }}
       onPress={handlePress}
       style={{ minHeight: MIN_TAP_TARGET }}
-      className="flex-1 items-center justify-center gap-0.5 py-2"
+      className={cn(
+        'flex-1 items-center justify-center gap-0.5 py-2 active:opacity-60',
+        Platform.select({
+          web: 'cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        }),
+      )}
     >
       <Icon
         name={tab.icon}

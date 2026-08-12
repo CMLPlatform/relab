@@ -1,6 +1,6 @@
 import Head from 'expo-router/head';
-import { useCallback } from 'react';
-import { type LayoutChangeEvent, useWindowDimensions, View } from 'react-native';
+import { useCallback, useRef } from 'react';
+import { type LayoutChangeEvent, type TextInput, useWindowDimensions, View } from 'react-native';
 import { PageContainer } from '@/components/base/PageContainer';
 import {
   ProductsErrorBanner,
@@ -16,6 +16,7 @@ import { ProductsWelcomeCard } from '@/components/product/products-screen/Welcom
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { productGridColumns } from '@/features/products/productGridColumns';
 import { PRODUCT_SORT_OPTIONS } from '@/features/products/queries';
+import { useProductSearchShortcut } from '@/features/products/useProductSearchShortcut';
 import { useProductsScreen } from '@/features/products/useProductsScreen';
 import { getAppTheme } from '@/theme';
 
@@ -28,6 +29,8 @@ export default function Products() {
   const numColumns = productGridColumns(width);
 
   const { screen, search, filters, list, actions } = useProductsScreen(numColumns);
+  const searchRef = useRef<TextInput>(null);
+  useProductSearchShortcut(searchRef);
   const handleGoToLogin = async () => {
     await actions.dismissWelcomeCard();
     actions.goToLogin();
@@ -60,6 +63,7 @@ export default function Products() {
           />
 
           <ProductsSearchToolbar
+            searchRef={searchRef}
             searchQuery={search.query}
             debouncedSearchQuery={search.debouncedQuery}
             isFetching={list.isFetching}

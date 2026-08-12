@@ -30,6 +30,7 @@ export function Searchbar({
   placeholder,
   loading = false,
   style,
+  ref,
   // Forwarded to the Input, the element that takes focus, so callers can supply
   // accessibilityHint and friends instead of having them silently dropped.
   ...rest
@@ -43,6 +44,7 @@ export function Searchbar({
         <Icon name="search" size="md" color={theme.colors.onSurfaceVariant} />
       </View>
       <Input
+        ref={ref}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}

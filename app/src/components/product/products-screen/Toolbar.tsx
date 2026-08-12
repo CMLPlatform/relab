@@ -1,5 +1,6 @@
+import type { RefObject } from 'react';
 import { useCallback } from 'react';
-import { View } from 'react-native';
+import { type TextInput, View } from 'react-native';
 import { IconButton } from '@/components/base/IconButton';
 import { Menu } from '@/components/base/Menu';
 import { Searchbar } from '@/components/base/Searchbar';
@@ -10,6 +11,7 @@ type SortOption = {
 };
 
 type ProductsSearchToolbarProps = {
+  searchRef?: RefObject<TextInput | null>;
   searchQuery: string;
   debouncedSearchQuery: string;
   isFetching: boolean;
@@ -24,6 +26,7 @@ type ProductsSearchToolbarProps = {
 };
 
 export function ProductsSearchToolbar({
+  searchRef,
   searchQuery,
   debouncedSearchQuery,
   isFetching,
@@ -51,6 +54,7 @@ export function ProductsSearchToolbar({
   return (
     <View className="flex-row items-center gap-1">
       <Searchbar
+        ref={searchRef}
         placeholder="Search products"
         onChangeText={handleSearchChange}
         value={searchQuery}
