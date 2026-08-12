@@ -522,6 +522,24 @@ No downtime is needed: `ALTER ROLE ... SET` applies to new sessions, so restart
 the API afterwards (or wait out the 30-minute connection recycle) for the
 timeouts to take effect on the pool.
 
+**Then grant the migrator ownership rights — the grants above are not enough.**
+On an adopted cluster every existing table (including `alembic_version`) is
+owned by `$PGSUPERUSER`, and Postgres requires *ownership*, not grants, for the
+DDL the migrations run. The role script cannot know this (on a fresh cluster
+the migrator owns everything it creates), so do it by hand:
+
+```bash
+docker compose -p relab_prod exec -T postgres \
+  psql -U "$PGSUPERUSER" -d relab_db -c "GRANT \"$PGSUPERUSER\" TO relab_migrator;"
+```
+
+Role *membership* confers ownership rights on the superuser's objects without
+conferring the SUPERUSER attribute (attributes are never inherited). Without
+this, step 8's migration fails immediately with
+`permission denied for table alembic_version` — found live in the staging
+rehearsal on 2026-08-12; the §0 scratch replay never caught it because a
+scratch database is created fresh, where the migrator owns what it makes.
+
 Verify all three roles exist and can log in before continuing.
 
 ______________________________________________________________________
