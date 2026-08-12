@@ -8,7 +8,7 @@
     color="#ffffff"
     font-size="15px"
     font-weight="500"
-    border-radius="14px"
+    border-radius="12px"
     inner-padding="12px 28px"
   />
 </mj-attributes>

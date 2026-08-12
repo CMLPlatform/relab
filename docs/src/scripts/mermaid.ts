@@ -14,6 +14,7 @@ const reportMermaidError = (error: unknown) => {
   }
 };
 
+/* NOTE: hand-tuned surfaces; if brand.css primary changes, retune these (no machine link). */
 const mermaidThemeVariables = {
   light: {
     background: '#f7fbff',
