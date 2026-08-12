@@ -3,6 +3,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Fab } from '@/components/base/Fab';
 import { Icon } from '@/components/base/Icon';
+import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { useAppTheme } from '@/theme';
 import { getErrorMessage } from '@/utils/errors';
 import { productsScreenStyles as styles } from './shared';
@@ -47,6 +48,11 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
  */
 export function ProductsFab({ extended, highlight, onPress }: ProductsFabProps) {
   const theme = useAppTheme();
+  const bottomNavVisible = useBottomNavVisible();
+  // Web-only: BottomNav is viewport-fixed there and escapes the container the
+  // fab is laid out in, so the fab needs the clearance bump itself. On native
+  // BottomNav is in normal flow, so the container already shrinks — no bump.
+  const bottomOffset = Platform.OS === 'web' && bottomNavVisible ? BOTTOM_NAV_CLEARANCE : 0;
 
   return (
     <Fab
@@ -56,6 +62,7 @@ export function ProductsFab({ extended, highlight, onPress }: ProductsFabProps) 
       onPress={onPress}
       style={[
         styles.fab,
+        { bottom: 16 + bottomOffset },
         {
           borderWidth: highlight ? 1 : 0,
           borderColor: highlight ? theme.colors.primaryContainer : 'transparent',

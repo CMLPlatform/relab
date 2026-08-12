@@ -27,6 +27,10 @@ jest.mock('expo-router', () => {
     useIsFocused: jest.fn().mockReturnValue(true),
     useLocalSearchParams: jest.fn().mockReturnValue({}),
     useGlobalSearchParams: jest.fn().mockReturnValue({}),
+    // Defaults to a path matching none of BottomNav's tabs, so
+    // useBottomNavVisible() reads false unless a test opts in with its own
+    // expo-router mock (as BottomNav.test.tsx and ActiveStreamBanner's do).
+    usePathname: jest.fn().mockReturnValue('/'),
     useNavigation: jest.fn().mockReturnValue({
       setOptions: jest.fn(),
       canGoBack: jest.fn().mockReturnValue(false),

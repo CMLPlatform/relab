@@ -165,7 +165,7 @@ export function getPrimaryFabIcon({
     // Icon doesn't forward testID (Lucide maps it to a data-testid attribute
     // RNTL can't query), so the "saved" integration test targets this wrapper.
     return (
-      <View testID="icon-check-bold">
+      <View testID="icon-check">
         <Icon name="check" color={theme.colors.onBackground} />
       </View>
     );

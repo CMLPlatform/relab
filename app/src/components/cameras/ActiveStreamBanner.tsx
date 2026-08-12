@@ -13,6 +13,8 @@ import { StreamingSheet } from './StreamingSheet';
 // banner floats just above the viewport edge. Bumped by BOTTOM_NAV_CLEARANCE
 // below whenever BottomNav is actually rendering (useBottomNavVisible), since
 // on a phone-width web viewport there was previously no bar to account for.
+// Web-only: on native BottomNav renders in normal flow and already shrinks
+// the container the banner sits in, so adding clearance there would double it.
 const BASE_BOTTOM_INSET = Platform.OS === 'web' ? 16 : 88;
 
 export function ActiveStreamBanner() {
@@ -24,9 +26,10 @@ export function ActiveStreamBanner() {
   const closeSheet = useCallback(() => setSheetVisible(false), []);
   const bannerRef = useReturnFocus(sheetVisible);
   const bottomNavVisible = useBottomNavVisible();
-  const bottomInset = bottomNavVisible
-    ? BASE_BOTTOM_INSET + BOTTOM_NAV_CLEARANCE
-    : BASE_BOTTOM_INSET;
+  const bottomInset =
+    Platform.OS === 'web' && bottomNavVisible
+      ? BASE_BOTTOM_INSET + BOTTOM_NAV_CLEARANCE
+      : BASE_BOTTOM_INSET;
 
   // Reset the sheet whenever the active stream changes (ends elsewhere, or a new
   // one starts) so it never auto-reopens for a stream the user didn't tap into.

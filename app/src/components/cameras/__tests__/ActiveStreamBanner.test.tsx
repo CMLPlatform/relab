@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { BOTTOM_NAV_CLEARANCE } from '@/components/base/useBottomNav';
 import { ActiveStreamBanner } from '@/components/cameras/ActiveStreamBanner';
-import { renderWithProviders } from '@/test-utils/index';
+import { mockPlatform, renderWithProviders, restorePlatform } from '@/test-utils/index';
 
 const mockStreamingSheet = jest.fn();
 const mockUseStreamSession = jest.fn();
@@ -49,6 +49,10 @@ describe('ActiveStreamBanner', () => {
     mockUseBottomNavVisible.mockReturnValue(false);
   });
 
+  afterEach(() => {
+    restorePlatform();
+  });
+
   it('renders nothing when there is no active stream', () => {
     mockUseStreamSession.mockReturnValue({ activeStream: null });
 
@@ -82,7 +86,8 @@ describe('ActiveStreamBanner', () => {
     );
   });
 
-  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE when BottomNav is visible (top-level route)', () => {
+  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE on web when BottomNav is visible (top-level route)', () => {
+    mockPlatform('web');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     mockUseBottomNavVisible.mockReturnValue(false);
     const { rerender } = renderWithProviders(<ActiveStreamBanner />);
@@ -93,5 +98,22 @@ describe('ActiveStreamBanner', () => {
     const visibleBottom = screen.getByTestId('active-stream-banner-float').props.style.bottom;
 
     expect(visibleBottom - hiddenBottom).toBe(BOTTOM_NAV_CLEARANCE);
+  });
+
+  // On native, BottomNav renders in normal flow and already shrinks the
+  // container the banner sits in — bumping here too would double-clear it
+  // (88 + 60 of dead space on tab routes).
+  it('does not add clearance on native even when BottomNav is visible', () => {
+    mockPlatform('ios');
+    mockUseStreamSession.mockReturnValue({ activeStream: session });
+    mockUseBottomNavVisible.mockReturnValue(false);
+    const { rerender } = renderWithProviders(<ActiveStreamBanner />);
+    const hiddenBottom = screen.getByTestId('active-stream-banner-float').props.style.bottom;
+
+    mockUseBottomNavVisible.mockReturnValue(true);
+    rerender(<ActiveStreamBanner />);
+    const visibleBottom = screen.getByTestId('active-stream-banner-float').props.style.bottom;
+
+    expect(visibleBottom).toBe(hiddenBottom);
   });
 });

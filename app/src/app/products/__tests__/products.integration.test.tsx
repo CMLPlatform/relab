@@ -21,6 +21,10 @@ const mockUseDialog = jest.fn(() => ({
 jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(),
   useRouter: jest.fn(),
+  // ProductsFab reads useBottomNavVisible() (BOTTOM_NAV_CLEARANCE on web),
+  // which calls usePathname() — default it to a non-tab path so the fab's
+  // bottom offset stays at its base value unless a test opts in.
+  usePathname: jest.fn().mockReturnValue('/'),
 }));
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────

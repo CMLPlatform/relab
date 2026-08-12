@@ -229,7 +229,7 @@ describe('ProductPage state handling', () => {
     const { unmount } = renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByTestId('icon-check-bold')).toBeOnTheScreen();
+      expect(screen.getByTestId('icon-check')).toBeOnTheScreen();
     });
 
     unmount();
