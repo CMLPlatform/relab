@@ -7,7 +7,7 @@
       "!.expo",
       "!coverage",
       "!dist",
-      "!node_modules",
+      "!!node_modules",
 
       // Generated fixtures are intentionally machine-managed.
       "!src/assets/data/*.json",

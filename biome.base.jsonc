@@ -45,6 +45,14 @@
       }
     }
   },
+  "overrides": [
+    {
+      // Standalone .svg assets are decorative icon sources; the component that
+      // renders one supplies the accessible name (title/aria-label), not the file.
+      "includes": ["**/*.svg"],
+      "linter": { "rules": { "a11y": { "noSvgWithoutTitle": "off" } } }
+    }
+  ],
   "vcs": {
     "enabled": true,
     "clientKind": "git",

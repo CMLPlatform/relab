@@ -7,6 +7,9 @@
       // Each subrepo owns its own Biome surface through its local biome.jsonc.
       // Semgrep fixture files intentionally contain invalid examples.
       "**",
+      // Force-ignore (!!) keeps dependencies out of the `project` domain's
+      // module-graph scan; indexing them costs ~1 GB of RSS per LSP daemon.
+      "!!**/node_modules",
       "!.semgrep",
       "!backend",
       "!app",
