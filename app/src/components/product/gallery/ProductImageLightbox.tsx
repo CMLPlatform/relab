@@ -22,7 +22,7 @@ import {
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
-import ZoomableImage from '@/components/base/ZoomableImage';
+import ZoomableImage from '@/components/product/ZoomableImage';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 import {

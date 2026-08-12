@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
-import LocalizedFloatInput from '@/components/base/LocalizedFloatInput';
-import Cube from '@/components/base/SVGCube';
 import { Separator } from '@/components/base/ui/separator';
+import LocalizedFloatInput from '@/components/product/LocalizedFloatInput';
+import Cube from '@/components/product/SVGCube';
 import { productSchema } from '@/services/api/validation/productSchema';
 import type { PhysicalProperties, Product } from '@/types/Product';
 

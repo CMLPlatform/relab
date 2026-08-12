@@ -44,7 +44,7 @@ jest.mock('@/services/imageProcessing', () => ({
   processImage: jest.fn(),
 }));
 
-jest.mock('@/components/base/ZoomableImage', () => {
+jest.mock('@/components/product/ZoomableImage', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return function ZoomableImageStub({ uri }: { uri: string }) {

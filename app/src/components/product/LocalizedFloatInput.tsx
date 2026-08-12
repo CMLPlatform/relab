@@ -1,11 +1,11 @@
 import { useId, useRef, useState } from 'react';
 import type RN from 'react-native';
 import { Platform, Pressable, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
+import { FormFieldError } from '@/components/base/FormField';
+import { TextInput } from '@/components/base/TextInput';
 import { radius } from '@/constants';
 import { describedBy } from '@/utils/a11y';
-import { AppText } from './AppText';
-import { FormFieldError } from './FormField';
-import { TextInput } from './TextInput';
 
 interface LocalizedFloatInputProps {
   value: number | undefined;

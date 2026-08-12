@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { type SpecFact, SpecFacts } from '@/components/base/SpecFacts';
 import type { Product } from '@/types/Product';
+import { type SpecFact, SpecFacts } from './SpecFacts';
 import { formatWeight } from './spec-utils';
 
 function buildFacts(product: Product): SpecFact[] {

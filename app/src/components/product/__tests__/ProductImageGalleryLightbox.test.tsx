@@ -73,7 +73,7 @@ jest.mock('@/services/imageProcessing', () => ({
   processImage: jest.fn(),
 }));
 
-jest.mock('@/components/base/ZoomableImage', () => {
+jest.mock('@/components/product/ZoomableImage', () => {
   return function ZoomableImageMock(props: ZoomableImageMockProps) {
     mockZoomableImageCalls.push(props);
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');

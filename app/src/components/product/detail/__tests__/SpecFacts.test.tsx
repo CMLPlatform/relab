@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import { SpecFacts } from '@/components/base/SpecFacts';
+import { SpecFacts } from '@/components/product/detail/SpecFacts';
 
 test('renders label/value pairs', () => {
   render(

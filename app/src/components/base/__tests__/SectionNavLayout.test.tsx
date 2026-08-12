@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { SectionNav } from '@/components/base/SectionNav';
+import { SectionNavLayout } from '@/components/base/SectionNavLayout';
 import { mockPlatform, restorePlatform } from '@/test-utils/index';
 
 const sections = [
@@ -11,28 +11,32 @@ afterEach(() => {
   restorePlatform();
 });
 
-test('fires onPress with the section key', () => {
-  const onPress = jest.fn();
+test('fires onPressSection with the section key', () => {
+  const onPressSection = jest.fn();
   render(
-    <SectionNav
-      sections={[...sections]}
+    <SectionNavLayout
+      isLg={false}
+      navSections={[...sections]}
       activeKey="overview"
-      onPress={onPress}
-      orientation="chips"
-    />,
+      onPressSection={onPressSection}
+    >
+      {null}
+    </SectionNavLayout>,
   );
   fireEvent.press(screen.getByText('Components'));
-  expect(onPress).toHaveBeenCalledWith('components');
+  expect(onPressSection).toHaveBeenCalledWith('components');
 });
 
 test('marks the active item for accessibility', () => {
   render(
-    <SectionNav
-      sections={[...sections]}
+    <SectionNavLayout
+      isLg={true}
+      navSections={[...sections]}
       activeKey="components"
-      onPress={jest.fn()}
-      orientation="outline"
-    />,
+      onPressSection={jest.fn()}
+    >
+      {null}
+    </SectionNavLayout>,
   );
   expect(screen.getByText('Components').parent).toBeTruthy();
   expect(screen.getByLabelText('Components, current section')).toBeOnTheScreen();
@@ -41,12 +45,14 @@ test('marks the active item for accessibility', () => {
 test('has web hover, cursor, and focus-visible affordances', () => {
   mockPlatform('web');
   render(
-    <SectionNav
-      sections={[...sections]}
+    <SectionNavLayout
+      isLg={false}
+      navSections={[...sections]}
       activeKey="overview"
-      onPress={jest.fn()}
-      orientation="chips"
-    />,
+      onPressSection={jest.fn()}
+    >
+      {null}
+    </SectionNavLayout>,
   );
   const className = screen.getByLabelText('Overview, current section').props.className;
   expect(className).toEqual(expect.stringContaining('cursor-pointer'));

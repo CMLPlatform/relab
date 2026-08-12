@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { AppText } from './AppText';
+import { AppText } from '@/components/base/AppText';
 
 export type SpecFact = { label: string; value: string };
 

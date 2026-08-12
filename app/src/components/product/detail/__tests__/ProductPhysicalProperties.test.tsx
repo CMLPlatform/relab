@@ -5,7 +5,7 @@ import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 // Mock SVGCube to avoid react-native-svg in tests
-jest.mock('@/components/base/SVGCube', () => 'SVGCube');
+jest.mock('@/components/product/SVGCube', () => 'SVGCube');
 
 const baseProduct: Product = {
   ..._base,
