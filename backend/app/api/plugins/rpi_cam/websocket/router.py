@@ -164,7 +164,7 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
         results = await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
         for task, result in zip(tasks_to_cancel, results, strict=True):
             if isinstance(result, BaseException) and not isinstance(result, asyncio.CancelledError):
-                logger.exception(
+                logger.error(
                     "Background task %s for camera %s exited with an unexpected error",
                     task.get_name(),
                     sanitize_log_value(camera_id),
