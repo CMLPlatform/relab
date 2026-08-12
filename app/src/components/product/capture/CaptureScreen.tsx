@@ -1,4 +1,4 @@
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -123,7 +123,6 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
       contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
     >
       <PageContainer>
-        <Stack.Screen options={{ title: role === 'component' ? 'New component' : 'New product' }} />
         <ProductImageGallery product={draftProduct} editMode onImagesChange={setImages} />
         <View className="gap-4">
           <View>

@@ -1,4 +1,4 @@
-import { useGlobalSearchParams, useRouter } from 'expo-router';
+import { useGlobalSearchParams } from 'expo-router';
 import { useCallback } from 'react';
 import { ApiError } from '@/services/api/errors';
 import { getErrorMessage } from '@/utils/errors';
@@ -6,7 +6,6 @@ import { usePublicProfileQuery } from './publicProfileQuery';
 
 export function usePublicProfileScreen() {
   const { username } = useGlobalSearchParams();
-  const router = useRouter();
   const usernameValue = typeof username === 'string' ? username : null;
 
   const { profile, loading, error: queryError, refetch } = usePublicProfileQuery(usernameValue);
@@ -16,10 +15,9 @@ export function usePublicProfileScreen() {
       ? 'This profile is private or does not exist.'
       : getErrorMessage(queryError, String(queryError))
     : null;
-  const goToProducts = useCallback(() => router.replace('/products'), [router]);
   const onRetry = useCallback(() => {
     void refetch();
   }, [refetch]);
 
-  return { profile, loading, hasError: Boolean(queryError), errorMessage, goToProducts, onRetry };
+  return { profile, loading, hasError: Boolean(queryError), errorMessage, onRetry };
 }

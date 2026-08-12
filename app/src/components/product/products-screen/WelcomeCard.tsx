@@ -66,15 +66,21 @@ export function ProductsWelcomeCard({
               Browse products freely. Sign in when you are ready to add your own.
             </AppText>
           ) : currentUser?.isVerified ? (
-            <View className="flex-row flex-wrap items-center">
-              <AppText style={styles.welcomeBodyText}>Use the </AppText>
-              <NewProductPill />
-              <AppText style={styles.welcomeBodyText}>
-                {' button to add products, and manage your '}
+            <>
+              <View className="flex-row flex-wrap items-center">
+                <AppText style={styles.welcomeBodyText}>Use the </AppText>
+                <NewProductPill />
+                <AppText style={styles.welcomeBodyText}>
+                  {' button to add products, and manage your '}
+                </AppText>
+                <ProfilePill />
+                <AppText style={styles.welcomeBodyText}> anytime.</AppText>
+              </View>
+              <AppText className="mt-1" style={styles.welcomeBodyText}>
+                Document a product, break it into components, and tag their materials — that's one
+                full teardown.
               </AppText>
-              <ProfilePill />
-              <AppText style={styles.welcomeBodyText}> anytime.</AppText>
-            </View>
+            </>
           ) : (
             <View className="flex-row flex-wrap items-center">
               <AppText style={styles.welcomeBodyText}>

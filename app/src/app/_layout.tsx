@@ -117,6 +117,16 @@ export const AppStack = memo(function AppStack({
           headerShown: !hideForTopNav,
         }}
       />
+      <Stack.Screen
+        name="users/[username]"
+        options={{
+          title: '',
+          headerLeft: (props) => <HeaderBackButton {...props} onPress={goToProducts} />,
+        }}
+      />
+      <Stack.Screen name="products/new" options={{ title: 'New product' }} />
+      <Stack.Screen name="products/[id]/components/new" options={{ title: 'New component' }} />
+      <Stack.Screen name="components/[id]/components/new" options={{ title: 'New component' }} />
       <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/new-account" options={{ headerShown: false }} />

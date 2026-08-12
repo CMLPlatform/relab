@@ -12,6 +12,7 @@ export function setPendingTypeSelection(typeId: number): void {
 }
 
 /** Return the pending type id (if any) and clear it. */
+// NOTE: module-global handoff; convert to route params if a second picker route ever appears.
 export function takePendingTypeSelection(): number | null {
   const value = pendingTypeId;
   pendingTypeId = null;
