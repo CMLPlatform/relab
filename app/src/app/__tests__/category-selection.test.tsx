@@ -159,4 +159,15 @@ describe('CategorySelection', () => {
       expect(screen.queryByText('Agricultural products')).toBeNull();
     });
   });
+
+  it('shows an empty state when the search query matches nothing', async () => {
+    renderWithProviders(<CategorySelection />);
+    await screen.findByPlaceholderText('Search');
+    fireEvent.changeText(screen.getByPlaceholderText('Search'), 'nonexistent-widget');
+    await waitFor(() => {
+      expect(
+        screen.getByText('No categories match “nonexistent-widget”. Try a broader term.'),
+      ).toBeOnTheScreen();
+    });
+  });
 });

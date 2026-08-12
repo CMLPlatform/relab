@@ -279,8 +279,10 @@ describe('Camera detail screen', () => {
 
     renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
-    // String(null) = 'null' so the fallback text never shows, but the error
-    // view branch (isError || !camera) is still entered — confirm via Retry.
+    // error is null (not an Error), so getErrorMessage falls back to
+    // 'Camera not found.' — confirm the error view branch (isError || !camera)
+    // is entered via Retry.
+    expect(screen.getByText('Camera not found.')).toBeOnTheScreen();
     expect(screen.getByText('Retry')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Retry'));
     expect(mockRefetch).toHaveBeenCalled();

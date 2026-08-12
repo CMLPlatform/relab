@@ -15,11 +15,17 @@ export function usePublicProfileQuery(username: string | null | undefined) {
     data = null,
     isPending,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['publicProfile', username ?? null, viewer?.id ?? null],
     queryFn: () => getPublicProfile(username as string),
     enabled: Boolean(username),
   });
 
-  return { profile: username ? data : null, loading: Boolean(username) && isPending, error };
+  return {
+    profile: username ? data : null,
+    loading: Boolean(username) && isPending,
+    error,
+    refetch,
+  };
 }

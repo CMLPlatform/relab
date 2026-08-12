@@ -187,7 +187,7 @@ describe('CamerasScreen', () => {
 
     renderWithProviders(<CamerasScreen />, { withDialog: true });
 
-    expect(screen.getByText('Error: Broken camera list')).toBeOnTheScreen();
+    expect(screen.getByText('Broken camera list')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Retry'));
 
     await waitFor(() => expect(mockRefetch).toHaveBeenCalled());

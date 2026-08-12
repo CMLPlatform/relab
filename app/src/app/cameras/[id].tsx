@@ -14,6 +14,7 @@ import {
   CameraStreamingSection,
 } from '@/components/cameras/detail/StreamingDetails';
 import { useCameraDetailScreen } from '@/features/cameras/useCameraDetailScreen';
+import { getErrorMessage } from '@/utils/errors';
 
 function CameraDetailContent({
   screen,
@@ -82,12 +83,18 @@ function CameraDetailContent({
 export default function CameraDetailScreen() {
   const { screen, preview, dialogs, actions } = useCameraDetailScreen();
 
-  if (!screen.user) return null;
+  // useCameraDetailScreen's useRequireAuth('/cameras') fires the redirect; AuthProvider
+  // already blocks rendering until the initial auth check resolves, so this can
+  // only be hit for the one-render window before that redirect completes.
+  if (!screen.user) return <CenteredSpinner />;
   if (screen.isLoading) return <CenteredSpinner />;
 
   if (screen.isError || !screen.camera) {
     return (
-      <ErrorState message={String(screen.error) || 'Camera not found.'} onRetry={actions.refresh} />
+      <ErrorState
+        message={getErrorMessage(screen.error, 'Camera not found.')}
+        onRetry={actions.refresh}
+      />
     );
   }
 

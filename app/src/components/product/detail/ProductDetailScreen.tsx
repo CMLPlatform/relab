@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useRef } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
-import { ActivityIndicator, View } from 'react-native';
+import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView, View } from 'react-native';
 import type { SectionKey } from '@/components/base/SectionNavContext';
 import { SectionNavContext } from '@/components/base/SectionNavContext';
 import { SectionNavLayout } from '@/components/base/SectionNavLayout';
+import ProductDetailsSkeleton from '@/components/product/ProductDetailsSkeleton';
 import type { UseProductFormOptions } from '@/features/products/useProductForm';
 import { useProductPageScreen } from '@/features/products/useProductPageScreen';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -86,11 +86,7 @@ function renderScreenGuard({
   }
 
   if (!screen.product.id) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <ProductDetailsSkeleton />;
   }
 
   return null;

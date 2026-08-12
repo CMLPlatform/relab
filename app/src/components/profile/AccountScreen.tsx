@@ -3,6 +3,7 @@ import { useCallback, useContext, useRef } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
 import { View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Section } from '@/components/base/Section';
 import { SectionNavContext } from '@/components/base/SectionNavContext';
@@ -84,7 +85,10 @@ export function AccountScreen() {
     [nav],
   );
 
-  if (!profile.profile) return null;
+  // useProfileAuthRedirect (called inside useProfileScreen) fires the redirect;
+  // AuthProvider already blocks rendering until the initial auth check resolves,
+  // so this can only be hit for the one-render window before that redirect completes.
+  if (!profile.profile) return <CenteredSpinner />;
 
   const navSections = ACCOUNT_SECTIONS.map((section) => ({
     key: section.key,

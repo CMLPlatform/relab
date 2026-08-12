@@ -9,7 +9,7 @@ export function usePublicProfileScreen() {
   const router = useRouter();
   const usernameValue = typeof username === 'string' ? username : null;
 
-  const { profile, loading, error: queryError } = usePublicProfileQuery(usernameValue);
+  const { profile, loading, error: queryError, refetch } = usePublicProfileQuery(usernameValue);
 
   const errorMessage = queryError
     ? queryError instanceof ApiError && queryError.status === 404
@@ -17,6 +17,9 @@ export function usePublicProfileScreen() {
       : getErrorMessage(queryError, String(queryError))
     : null;
   const goToProducts = useCallback(() => router.replace('/products'), [router]);
+  const onRetry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
 
-  return { profile, loading, hasError: Boolean(queryError), errorMessage, goToProducts };
+  return { profile, loading, hasError: Boolean(queryError), errorMessage, goToProducts, onRetry };
 }

@@ -8,6 +8,7 @@ import { SelectionBar } from '@/components/cameras/SelectionBar';
 import { CamerasFab } from '@/components/cameras/screen/Chrome';
 import { CamerasGrid } from '@/components/cameras/screen/Grid';
 import { useCamerasScreen } from '@/features/cameras/useCamerasScreen';
+import { getErrorMessage } from '@/utils/errors';
 
 export default function CamerasScreen() {
   const { screen, selection, streaming, actions } = useCamerasScreen();
@@ -16,12 +17,15 @@ export default function CamerasScreen() {
   const handleRetry = useCallback(() => refetch(), [refetch]);
   const streamTriggerRef = useRef<View>(null);
 
-  if (!screen.user) return null;
+  // useCamerasScreen's useRequireAuth('/cameras') fires the redirect; AuthProvider
+  // already blocks rendering until the initial auth check resolves, so this can
+  // only be hit for the one-render window before that redirect completes.
+  if (!screen.user) return <CenteredSpinner />;
   if (screen.isLoading) return <CenteredSpinner />;
   if (screen.isError) {
     return (
       <ErrorState
-        message={String(screen.error) || 'Failed to load cameras.'}
+        message={getErrorMessage(screen.error, "Couldn't load cameras.")}
         onRetry={handleRetry}
       />
     );

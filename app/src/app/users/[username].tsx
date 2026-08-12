@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { ErrorState } from '@/components/base/ErrorState';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { PageContainer } from '@/components/base/PageContainer';
@@ -44,7 +45,8 @@ function ProfileStatCard({
 export default function UserProfileScreen() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
-  const { profile, loading, hasError, errorMessage, goToProducts } = usePublicProfileScreen();
+  const { profile, loading, hasError, errorMessage, goToProducts, onRetry } =
+    usePublicProfileScreen();
 
   return (
     <>
@@ -67,10 +69,12 @@ export default function UserProfileScreen() {
           ) : null}
 
           {hasError ? (
-            <View className="flex-1 justify-center items-center mt-16">
-              <Icon name="user-x" size={48} color={theme.colors.error} />
-              <AppText className="mt-4 text-center">{errorMessage}</AppText>
-            </View>
+            <ErrorState
+              icon="user-x"
+              title="Couldn't load profile"
+              message={errorMessage ?? "Couldn't load profile."}
+              onRetry={onRetry}
+            />
           ) : null}
 
           {!(loading || hasError) && profile ? (

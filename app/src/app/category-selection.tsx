@@ -7,10 +7,12 @@ import {
   Text,
   View,
 } from 'react-native';
+import { AppText } from '@/components/base/AppText';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { Icon } from '@/components/base/Icon';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Searchbar } from '@/components/base/Searchbar';
+import { SignedOutState } from '@/components/base/SignedOutState';
 import CPVCard from '@/components/product/CPVCard';
 import { radius } from '@/constants';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
@@ -38,7 +40,11 @@ export default function CategorySelection() {
   );
   const keyExtractor = useCallback((item: CPVCategory) => String(item.id), []);
 
-  if (!user) return null;
+  // useCategorySelection's useRequireAuth('/products') fires the redirect, but
+  // this screen is pushed on top of an already-mounted edit screen — a session
+  // that expires while the picker is open can leave it visible for longer than
+  // a single render, so a real explanation (not a loading flicker) belongs here.
+  if (!user) return <SignedOutState />;
   if (!cpvClass) {
     return <CenteredSpinner />;
   }
@@ -64,6 +70,15 @@ export default function CategorySelection() {
         data={filtered}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
+        ListEmptyComponent={
+          searchQuery ? (
+            <View className="items-center gap-2 p-8">
+              <AppText className="text-center text-muted-foreground">
+                No categories match &ldquo;{searchQuery}&rdquo;. Try a broader term.
+              </AppText>
+            </View>
+          ) : null
+        }
       />
     </PageContainer>
   );
