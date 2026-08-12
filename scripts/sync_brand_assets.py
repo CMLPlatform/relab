@@ -303,6 +303,90 @@ def sync_app_palette(*, check: bool) -> list[str]:
     return stale
 
 
+TOKENS_SOURCE = root_path("assets/tokens.json")
+APP_TOKENS_TS_TARGET = root_path("app/src/theme/tokens.generated.ts")
+WEB_TOKENS_CSS_TARGETS = (
+    root_path("www/src/styles/tokens.generated.css"),
+    root_path("docs/src/styles/tokens.generated.css"),
+)
+
+
+def render_design_tokens_ts(tokens: dict) -> str:
+    """Generate the TypeScript design-tokens export from tokens dict."""
+    body = json.dumps(tokens, indent=2)
+    return (
+        f"// {GENERATED_HEADER.replace('palette.json', 'tokens.json')}\nexport const designTokens = {body} as const;\n"
+    )
+
+
+def render_design_tokens_css(tokens: dict) -> str:
+    """Generate CSS custom properties for radius/shadow/scrim/chart tokens."""
+    lines = [f"/* {GENERATED_HEADER.replace('palette.json', 'tokens.json')} */", "", ":root {"]
+    for tier, px in tokens["radius"].items():
+        if tier == "full":
+            continue  # true pills use border-radius: 9999px inline; no web consumer
+        lines.append(f"  --relab-radius-{tier}: {px}px;")
+    shadow = tokens["shadowOverlay"]
+    lines.append(f"  --relab-shadow-overlay: light-dark({shadow['light']}, {shadow['dark']});")
+    scrim = tokens["scrim"]
+    lines.append(f"  --relab-scrim: light-dark({scrim['light']}, {scrim['dark']});")
+    for hue, values in tokens["chart"].items():
+        for part, color in values.items():
+            lines.append(f"  --relab-chart-{hue}-{part}: {color.lower()};")
+    lines.append("}")
+    return "\n".join(lines) + "\n"
+
+
+def sync_design_tokens(*, check: bool) -> list[str]:
+    """Generate (or verify) the design-token artifacts from assets/tokens.json."""
+    tokens = json.loads(TOKENS_SOURCE.read_text())
+    stale: list[str] = []
+    outputs = [
+        (APP_TOKENS_TS_TARGET, render_design_tokens_ts(tokens)),
+        *((target, render_design_tokens_css(tokens)) for target in WEB_TOKENS_CSS_TARGETS),
+    ]
+    for target, content in outputs:
+        if check:
+            try:
+                if target.read_text() != content:
+                    stale.append(relative(target))
+            except FileNotFoundError:
+                stale.append(relative(target))
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
+    return stale
+
+
+BRAND_PARITY = (
+    # (--relab-brand-* name, palette.json token, schemes-to-check). Divider is
+    # deliberately absent: brand divider (#d9dfe8) and palette border (#C4C6D0)
+    # are different ramps. Text checks LIGHT only: dark text intentionally
+    # diverges (web #e9eff8 vs app #e2e6ee — documented in DESIGN.md).
+    ("--relab-brand-primary", "primary", ("light", "dark")),
+    ("--relab-brand-accent", "accent", ("light", "dark")),
+    ("--relab-brand-text", "foreground", ("light",)),
+    ("--relab-brand-surface", "background", ("light", "dark")),
+)
+
+
+def check_brand_parity() -> list[str]:
+    """Fail --check when brand.css light-dark() pairs drift from palette.json."""
+    css = root_path("assets/brand.css").read_text()
+    palette = json.loads(PALETTE_SOURCE.read_text())
+    mismatches: list[str] = []
+    for var_name, token, schemes in BRAND_PARITY:
+        marker = f"{var_name}: light-dark("
+        start = css.index(marker) + len(marker)
+        pair = css[start : css.index(")", start)].split(",")
+        for scheme in schemes:
+            expected = palette[scheme][token].lower()
+            scheme_index = 0 if scheme == "light" else 1
+            if pair[scheme_index].strip().lower() != expected:
+                mismatches.append(f"{var_name} ({scheme}) != palette.json {token} ({expected})")
+    return mismatches
+
+
 def relative(path: Path) -> str:
     """Return a repository-relative display path."""
     return path.relative_to(ROOT).as_posix()
@@ -377,6 +461,9 @@ def main() -> int:
         for source, targets in COPY_ASSETS:
             out_of_sync.extend(copy_asset(source, targets, check=args.check))
         out_of_sync.extend(sync_app_palette(check=args.check))
+        out_of_sync.extend(sync_design_tokens(check=args.check))
+        if args.check:
+            out_of_sync.extend(check_brand_parity())
         # Each render spawns a serial ImageMagick process (~0.6s); fan them out
         # across cores since they're subprocess-bound and independent.
         with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
