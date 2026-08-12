@@ -10,8 +10,8 @@
 :root {
   /* The flat & sharp radius scale (assets/DESIGN.md). Only the two tiers docs
      actually uses — it has no floating surface of its own, so no overlay. */
-  --radius-control: 6px;
-  --radius-card: 8px;
+  --radius-control: var(--relab-radius-control);
+  --radius-card: var(--relab-radius-card);
 }
 
 :root {

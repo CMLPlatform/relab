@@ -12,6 +12,7 @@ const MODE_SITES = {
 const MODE_FLAG = '--mode';
 const CUSTOM_CSS = [
   './src/styles/brand.css',
+  './src/styles/tokens.generated.css',
   './src/styles/base.css',
   './src/styles/components.css',
 ];

@@ -34,9 +34,11 @@
      card surfaces, well under the 3:1 WCAG 1.4.11 needs for focus indicators.
      The brand primary clears it comfortably (7.5:1 light, 9.3:1 dark). */
   --color-ring: var(--relab-brand-primary);
-  /* Chart marks: the cyanotype primary brightened into the data-viz band —
+  /* Chart mark: the cyanotype primary brightened into the data-viz band —
      the brand tokens above are tuned for text/links, not large fills. The
-     pair is documented in assets/DESIGN.md (diagram & chart palette). */
+     categorical chart ramp itself now lives in tokens.generated.css
+     (--relab-chart-*-*); this one stays hand-authored per assets/DESIGN.md
+     (diagram & chart palette), deliberately distinct from that ramp. */
   --color-chart-mark: light-dark(#2f6bc7, #6fa8ff);
   --frame-width: 1280px;
   --content-width: 1248px;
