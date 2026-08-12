@@ -43,8 +43,8 @@
   --frame-width: 1280px;
   --content-width: 1248px;
   --font-size-body: 1rem;
-  --font-size-body-compact: 0.95rem;
-  --line-height-body: 1.72;
-  --line-height-body-compact: 1.62;
+  --font-size-body-compact: 0.95rem; /* NOTE: deliberate density tier, not drift */
+  --line-height-body: 1.625;
+  --line-height-body-compact: 1.62; /* NOTE: deliberate density tier, not drift */
   --font-size-meta: 0.94rem;
 }

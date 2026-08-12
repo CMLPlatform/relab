@@ -94,9 +94,9 @@
 .stats-subhead {
   margin: 0;
   font-family: var(--relab-brand-font-mono), monospace;
-  font-size: 0.74rem;
+  font-size: 0.8125rem;
   font-weight: 400;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-muted);
 }
