@@ -114,9 +114,9 @@ function FilterModalShell({
               <ScrollView style={styles.scroll}>
                 <View className="flex-row flex-wrap gap-2 pb-2">
                   {addNewChip ? (
-                    // NOTE: dropped Paper's leading "+" icon — Chip's icon prop
-                    // renders inside the same AppText node as the label, which would
-                    // break exact getByText(searchQuery) matches in callers/tests.
+                    // NOTE: Chip's icon prop renders inside the same AppText node
+                    // as the label, which breaks exact getByText(searchQuery) matches
+                    // in callers/tests.
                     <Chip
                       key="__new__"
                       onPress={addNewChip.onPress}

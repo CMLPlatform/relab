@@ -21,9 +21,8 @@ type MenuProps = {
 };
 
 /**
- * Anchored dropdown menu, replacing react-native-paper's Menu. Renders in an
- * RN-core Modal (no PortalHost involved) with a full-screen dismiss backdrop;
- * position is measured from the anchor once the menu opens.
+ * Anchored dropdown menu rendered in RN-core Modal (no PortalHost) with
+ * full-screen dismiss backdrop; position measured from anchor once menu opens.
  *
  * NOTE: hand-rolled on purpose — uses RN-core Modal + measureInWindow anchoring for portal-free positioning.
  *

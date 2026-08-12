@@ -29,7 +29,7 @@ type IconButtonProps = Omit<
   testID?: string;
 };
 
-/** Icon-only pressable, replacing react-native-paper's IconButton. Touch target stays >=44px regardless of the glyph's visual `size`. */
+/** Icon-only pressable with >=44px touch target regardless of glyph visual size. */
 export function IconButton({
   icon,
   onPress,

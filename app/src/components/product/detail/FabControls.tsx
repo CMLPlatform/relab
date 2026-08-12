@@ -163,10 +163,9 @@ function PrimaryProductFab({
 }
 
 /**
- * Wraps the FAB so hovering (web) or pressing-in (touch) surfaces why the
- * save action is blocked — press-and-hold parity with react-native-paper's
- * Tooltip (enterTouchDelay=0, leaveTouchDelay=1500), without a portal: the
- * bubble is positioned relative to this same wrapper, right above the FAB.
+ * Wraps the FAB so hovering (web) or pressing-in (touch) surfaces why the save
+ * action is blocked. Press-and-hold surfaces a tooltip (enterTouchDelay=0,
+ * leaveTouchDelay=1500) positioned above the FAB, without a portal.
  */
 function SaveBlockedTooltip({
   title,

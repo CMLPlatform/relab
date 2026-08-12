@@ -11,11 +11,10 @@ import { PRODUCTS_DATE_PRESETS } from './shared';
 type FilterChipIcon = IconName;
 
 /**
- * Filter pill combining a leading icon, label, selected state, and an
- * optional trailing clear (x) — react-native-paper's Chip had all four built
- * in; the base Chip primitive only supports a single trailing icon slot, so
- * this composes Pressable/AppText/Icon directly, matching the base Chip's
- * own internal building blocks.
+ * Filter pill combining a leading icon, label, selected state, and optional
+ * trailing clear (x). The base Chip primitive only supports single trailing
+ * icon, so this composes Pressable/AppText/Icon directly, matching the base
+ * Chip's own internal building blocks.
  */
 function FilterChip({
   icon,

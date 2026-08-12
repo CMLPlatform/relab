@@ -23,7 +23,7 @@ type SearchbarProps = Omit<
   style?: StyleProp<ViewStyle>;
 };
 
-/** Search field with a leading magnifier and a trailing clear/loading affordance, replacing react-native-paper's Searchbar. */
+/** Search field with a leading magnifier and a trailing clear/loading affordance. */
 export function Searchbar({
   value,
   onChangeText,

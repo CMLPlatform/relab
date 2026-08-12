@@ -78,7 +78,7 @@ export function MfaDialogs({
           <AppText variant="data" selectable style={local.key}>
             {chunkSecret(secret)}
           </AppText>
-          {/* NOTE: dropped Paper's leading copy icon — AppButton has no icon slot; text-only matches Chip's precedent. */}
+          {/* NOTE: AppButton has no icon slot; text-only variant matches Chip's design precedent. */}
           <AppButton variant="ghost" onPress={copyKey}>
             Copy
           </AppButton>

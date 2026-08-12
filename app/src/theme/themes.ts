@@ -65,9 +65,8 @@ export function getAppTheme(scheme: AppScheme) {
 }
 
 /**
- * Hand-built react-navigation theme, replacing Paper's `adaptNavigationTheme`.
- * Only the fields react-navigation's `Theme` type requires are meaningful here
- * (`dark` + the six `colors` keys) — expo-router's base theme already supplies
+ * Hand-built react-navigation theme providing only the fields `Theme` requires
+ * (`dark` + the six `colors` keys); expo-router's base theme already supplies
  * a valid `fonts` shape, so it's kept as-is rather than remapped from our type
  * scale (nothing in the app reads react-navigation's theme fonts).
  */

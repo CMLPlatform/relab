@@ -39,9 +39,8 @@ const ANIMATION_DURATION = 200;
 const LABEL_MAX_WIDTH = 240;
 
 /**
- * Floating action button with an extend/collapse label, replacing
- * react-native-paper's AnimatedFAB. Extending animates the label's width and
- * opacity in via Reanimated (honoring the OS reduce-motion setting);
+ * Floating action button with extend/collapse label. Extending animates the
+ * label's width and opacity via Reanimated (honoring OS reduce-motion);
  * collapsing un-mounts it immediately — the icon stays put either way.
  */
 export function Fab({
