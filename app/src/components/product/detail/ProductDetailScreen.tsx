@@ -81,10 +81,6 @@ function renderScreenGuard({
         isNotFound={isProductNotFoundError(screen.error)}
         onBack={onBack}
         onRetry={onRetry}
-        themeColors={{
-          error: theme.colors.error,
-          onSurfaceVariant: theme.colors.onSurfaceVariant,
-        }}
       />
     );
   }

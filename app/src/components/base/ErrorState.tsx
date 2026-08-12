@@ -8,18 +8,32 @@ type Props = {
   message: string;
   onRetry: () => void;
   icon?: IconName;
+  title?: string;
+  actionLabel?: string;
+  iconColor?: string;
 };
 
-/** Full-height centered error state with an icon, message, and retry button. */
-export function ErrorState({ message, onRetry, icon = 'circle-alert' }: Props) {
+/** Full-height centered error state: icon, optional title, message, one action. */
+export function ErrorState({
+  message,
+  onRetry,
+  icon = 'circle-alert',
+  title,
+  actionLabel = 'Retry',
+  iconColor,
+}: Props) {
   const theme = useAppTheme();
-
   return (
     <View className="flex-1 items-center justify-center gap-3 p-6">
-      <Icon name={icon} size={48} color={theme.colors.error} />
-      <AppText className="mt-3 text-center">{message}</AppText>
-      <AppButton variant="primary" onPress={onRetry} className="mt-4">
-        Retry
+      <Icon name={icon} size={48} color={iconColor ?? theme.colors.error} />
+      {title ? (
+        <AppText variant="title" className="text-center">
+          {title}
+        </AppText>
+      ) : null}
+      <AppText className="text-center opacity-70">{message}</AppText>
+      <AppButton variant="primary" onPress={onRetry} className="mt-2">
+        {actionLabel}
       </AppButton>
     </View>
   );
