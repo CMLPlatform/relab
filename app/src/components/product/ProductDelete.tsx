@@ -41,5 +41,5 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
 }
 
 const styles = {
-  button: 'mt-2.5 mx-3.5 h-[54px] rounded-2xl',
+  button: 'mt-2.5 mx-3.5',
 };

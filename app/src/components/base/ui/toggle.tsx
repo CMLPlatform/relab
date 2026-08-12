@@ -17,7 +17,8 @@ const toggleVariants = cva(
       variant: {
         default: 'bg-transparent',
         outline: cn(
-          'border-input active:bg-accent border bg-transparent shadow-sm shadow-black/5',
+          'border-input active:bg-accent border bg-transparent',
+          // NOTE: shadow removed per DESIGN.md flat elevation; upstream RNR ships one
           Platform.select({
             web: 'hover:bg-accent hover:text-accent-foreground',
           }),
