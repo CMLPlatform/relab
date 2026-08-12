@@ -297,6 +297,14 @@ deploy-secrets-check:
 deploy-secrets-template env:
     @bash scripts/deploy_ops.sh deploy-secrets-template {{ quote(env) }}
 
+# Print a paste-ready secrets/<env> export for a password-manager note (pipe to your clipboard)
+secrets-export env:
+    @bash scripts/deploy_ops.sh secrets-export {{ quote(env) }}
+
+# Rebuild secrets/<env> from a saved secrets-export block
+secrets-restore env file:
+    @bash scripts/deploy_ops.sh secrets-restore {{ quote(env) }} {{ quote(file) }}
+
 # ============================================================================
 # Docker: Targeted Development (subset of services with hot reload)
 # ============================================================================

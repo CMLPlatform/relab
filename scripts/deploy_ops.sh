@@ -302,6 +302,109 @@ deploy_secrets_template() {
     echo "✅ Secret files are present under secrets/$env"
 }
 
+deploy_secrets_export() {
+    local env="${1:?env is required}"
+    case "$env" in
+        dev | prod | staging) ;;
+        *)
+            echo "env must be 'dev', 'prod', or 'staging'" >&2
+            exit 1
+            ;;
+    esac
+
+    local dir="secrets/$env"
+    [[ -d "$dir" ]] || {
+        echo "error: $dir does not exist" >&2
+        exit 1
+    }
+
+    echo "# relab $env secrets — exported $(date -I)"
+    echo "# Restore with: just secrets-restore $env <file>"
+    echo "# This recreates secrets/$env/ (dir mode 700, files mode 644) from this block."
+    echo "# Treat this note as a live credential; store it only in the password manager."
+
+    local path name value
+    while IFS= read -r -d '' path; do
+        name="$(basename "$path")"
+        [[ "$name" == "rclone.conf" ]] && continue
+        [[ "$name" == *.md ]] && continue
+        value="$(cat "$path")"
+        if [[ "$value" == *$'\n'* ]]; then
+            echo "error: $path has a multi-line value; only rclone.conf may span multiple lines" >&2
+            exit 1
+        fi
+        echo "$name=$value"
+    done < <(find "$dir" -maxdepth 1 -type f -print0 | sort -z)
+
+    local rclone_path="$dir/rclone.conf"
+    if [[ -s "$rclone_path" ]]; then
+        echo "# ---- rclone.conf (verbatim) ----"
+        cat "$rclone_path"
+    fi
+}
+
+deploy_secrets_restore() {
+    local env="${1:?env is required}"
+    local file="${2:?file is required}"
+    case "$env" in
+        dev | prod | staging) ;;
+        *)
+            echo "env must be 'dev', 'prod', or 'staging'" >&2
+            exit 1
+            ;;
+    esac
+    [[ -f "$file" ]] || {
+        echo "error: $file does not exist" >&2
+        exit 1
+    }
+
+    local dir="secrets/$env"
+    mkdir -p "$dir"
+    chmod 700 "$dir"
+
+    local marker_line
+    marker_line="$(grep -n -F -x -- '# ---- rclone.conf (verbatim) ----' "$file" | head -1 | cut -d: -f1 || true)"
+
+    local kv_source
+    if [[ -n "$marker_line" ]]; then
+        kv_source="$(head -n "$((marker_line - 1))" "$file")"
+    else
+        kv_source="$(cat "$file")"
+    fi
+
+    local line k v path
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        [[ "$line" == \#* ]] && continue
+        IFS='=' read -r k v <<<"$line"
+        path="$dir/$k"
+        if [[ -e "$path" ]]; then
+            echo "overwrote $path"
+        else
+            echo "created $path"
+        fi
+        if [[ -z "$v" ]]; then
+            : >"$path"
+        else
+            printf '%s\n' "$v" >"$path"
+        fi
+        chmod 644 "$path"
+    done <<<"$kv_source"
+
+    if [[ -n "$marker_line" ]]; then
+        path="$dir/rclone.conf"
+        if [[ -e "$path" ]]; then
+            echo "overwrote $path"
+        else
+            echo "created $path"
+        fi
+        tail -n +"$((marker_line + 1))" "$file" >"$path"
+        chmod 644 "$path"
+    fi
+
+    echo "Run 'just deploy-secrets-check' to verify."
+}
+
 parse_profiles() {
     local stack="$1"
     local allowed_profiles="$2"
@@ -457,6 +560,12 @@ main() {
         deploy-secrets-template)
             deploy_secrets_template "${2:-}"
             ;;
+        secrets-export)
+            deploy_secrets_export "${2:-}"
+            ;;
+        secrets-restore)
+            deploy_secrets_restore "${2:-}" "${3:-}"
+            ;;
         stack)
             stack_command "${2:-}" "${3:-}" "${@:4}"
             ;;
@@ -464,8 +573,8 @@ main() {
             require_confirmation_command "${2:-}" "${3:-}" "${4:-}" "${5:-}"
             ;;
         *)
-            echo "Usage: $0 {compose-config|deploy-secrets-check|deploy-secrets-template ENV|stack ENV ACTION [ARGS...]|require-confirm ACTION EXAMPLE FORCE_EXAMPLE [YES]}" >&2
-            echo "ENV for deploy-secrets-template must be dev, prod, or staging" >&2
+            echo "Usage: $0 {compose-config|deploy-secrets-check|deploy-secrets-template ENV|secrets-export ENV|secrets-restore ENV FILE|stack ENV ACTION [ARGS...]|require-confirm ACTION EXAMPLE FORCE_EXAMPLE [YES]}" >&2
+            echo "ENV for deploy-secrets-template/secrets-export/secrets-restore must be dev, prod, or staging" >&2
             exit 2
             ;;
     esac
