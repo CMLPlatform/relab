@@ -33,17 +33,17 @@ const styles = StyleSheet.create({
   },
   titleLine: {
     height: 18,
-    borderRadius: radius.sm,
+    borderRadius: radius.control,
     width: '60%',
   },
   subtitleLine: {
     height: 13,
-    borderRadius: radius.sm,
+    borderRadius: radius.control,
     width: '40%',
   },
   descLine: {
     height: 13,
-    borderRadius: radius.sm,
+    borderRadius: radius.control,
     width: '85%',
   },
 });

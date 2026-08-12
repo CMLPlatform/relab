@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { alpha } from './color';
 import type { AppColorScale, AppScheme, AppTokens } from './types';
 
-export const SEMANTIC_COLORS = {
+const SEMANTIC_COLORS = {
   live: '#e53935',
   success: '#2e7d32',
   warning: '#f57c00',
@@ -77,7 +77,6 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       // legible over a photo while a hint of the image still shows through.
       card: alpha(colors.surface, 0.8),
     },
-    spacing: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 },
     type: {
       display: { fontSize: 38, lineHeight: 44 },
       title: { fontSize: 24, lineHeight: 30 },

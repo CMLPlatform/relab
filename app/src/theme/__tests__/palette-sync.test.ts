@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { lightTheme } from '@/theme';
 import { palette } from '@/theme/palette.generated';
+import { lightTheme } from '@/theme/themes';
 
 test('generated artifacts carry the canonical palette values verbatim (exact case)', () => {
   const canonical = JSON.parse(

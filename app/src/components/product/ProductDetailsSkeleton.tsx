@@ -50,22 +50,22 @@ const styles = StyleSheet.create({
   },
   name: {
     height: 28,
-    borderRadius: radius.sm,
+    borderRadius: radius.control,
     width: '70%',
   },
   fact: {
     height: 14,
-    borderRadius: radius.sm,
+    borderRadius: radius.control,
     width: '55%',
   },
   sectionTitle: {
     height: 18,
-    borderRadius: radius.sm,
+    borderRadius: radius.control,
     width: '35%',
   },
   line: {
     height: 16,
-    borderRadius: radius.sm,
+    borderRadius: radius.control,
     width: '100%',
   },
 });

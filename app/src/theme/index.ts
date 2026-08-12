@@ -3,5 +3,5 @@
 export { useAppTheme } from './appThemeContext';
 export { alpha, getStatusColor, getStatusTone } from './color';
 export { memoizeByTheme } from './memoizeByTheme';
-export { createNavigationThemes, darkTheme, getAppTheme, lightTheme } from './themes';
+export { createNavigationThemes, getAppTheme } from './themes';
 export type { AppColors, AppScheme, AppTheme, AppTokens } from './types';

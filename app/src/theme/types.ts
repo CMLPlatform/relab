@@ -74,7 +74,6 @@ export type AppTokens = {
     accent: string;
     card: string;
   };
-  spacing: { xs: number; sm: number; md: number; lg: number; xl: number };
   type: {
     display: { fontSize: number; lineHeight: number };
     title: { fontSize: number; lineHeight: number };

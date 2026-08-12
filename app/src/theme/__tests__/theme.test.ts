@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
-import { darkTheme, getAppTheme, getStatusColor, lightTheme } from '@/theme';
+import { getAppTheme, getStatusColor } from '@/theme';
+import { darkTheme, lightTheme } from '@/theme/themes';
 
 describe('theme', () => {
   it('returns stable light and dark app themes', () => {

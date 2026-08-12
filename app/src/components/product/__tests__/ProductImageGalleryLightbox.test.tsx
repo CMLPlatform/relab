@@ -11,7 +11,7 @@ import { StyleSheet, View, type ViewProps } from 'react-native';
 import ProductImages from '@/components/product/ProductImageGallery';
 import { processImage } from '@/services/imageProcessing';
 import { baseProduct, mockPlatform, renderWithProviders } from '@/test-utils/index';
-import { lightTheme } from '@/theme';
+import { lightTheme } from '@/theme/themes';
 import type { Product } from '@/types/Product';
 
 type FlatListCallProps = {

@@ -299,7 +299,7 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
     },
     field: {
       borderWidth: 1,
-      borderRadius: radius.sm,
+      borderRadius: radius.control,
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.sm,
       marginTop: 16,
