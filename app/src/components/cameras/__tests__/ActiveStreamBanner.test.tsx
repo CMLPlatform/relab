@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
+import { BOTTOM_NAV_CLEARANCE } from '@/components/base/useBottomNav';
 import { ActiveStreamBanner } from '@/components/cameras/ActiveStreamBanner';
 import { renderWithProviders } from '@/test-utils/index';
 
 const mockStreamingSheet = jest.fn();
 const mockUseStreamSession = jest.fn();
+const mockUseBottomNavVisible = jest.fn();
 
 jest.mock('@/components/cameras/StreamingSheet', () => ({
   StreamingSheet: (props: unknown) => {
@@ -22,6 +24,16 @@ jest.mock('@/hooks/useElapsed', () => ({
   useElapsed: () => '1:23',
 }));
 
+// Real BOTTOM_NAV_CLEARANCE constant stays live (imported above); only the
+// hook's own routing/breakpoint/auth reads are stubbed so this suite doesn't
+// have to mock expo-router/useBreakpoint/useAuth/useVisibleDestinations too.
+jest.mock('@/components/base/useBottomNav', () => ({
+  ...jest.requireActual<typeof import('@/components/base/useBottomNav')>(
+    '@/components/base/useBottomNav',
+  ),
+  useBottomNavVisible: () => mockUseBottomNavVisible(),
+}));
+
 describe('ActiveStreamBanner', () => {
   const session = {
     cameraId: 'cam-1',
@@ -34,6 +46,7 @@ describe('ActiveStreamBanner', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseBottomNavVisible.mockReturnValue(false);
   });
 
   it('renders nothing when there is no active stream', () => {
@@ -67,5 +80,18 @@ describe('ActiveStreamBanner', () => {
         session,
       }),
     );
+  });
+
+  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE when BottomNav is visible (top-level route)', () => {
+    mockUseStreamSession.mockReturnValue({ activeStream: session });
+    mockUseBottomNavVisible.mockReturnValue(false);
+    const { rerender } = renderWithProviders(<ActiveStreamBanner />);
+    const hiddenBottom = screen.getByTestId('active-stream-banner-float').props.style.bottom;
+
+    mockUseBottomNavVisible.mockReturnValue(true);
+    rerender(<ActiveStreamBanner />);
+    const visibleBottom = screen.getByTestId('active-stream-banner-float').props.style.bottom;
+
+    expect(visibleBottom - hiddenBottom).toBe(BOTTOM_NAV_CLEARANCE);
   });
 });

@@ -3,26 +3,10 @@ import { useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MIN_TAP_TARGET } from '@/constants';
-import { useAuth } from '@/context/auth';
-import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { useVisibleDestinations } from '@/navigation/destinations';
 import { useAppTheme } from '@/theme';
 import { AppText } from './AppText';
-import { Icon, type IconName } from './Icon';
-
-const DESTINATION_ICONS: Record<string, IconName> = {
-  products: 'package',
-  cameras: 'camera',
-};
-
-type TabHref = '/products' | '/cameras' | '/account';
-
-type Tab = {
-  key: string;
-  label: string;
-  href: TabHref;
-  icon: IconName;
-};
+import { Icon } from './Icon';
+import { type Tab, type TabHref, useBottomNavTabs, useBottomNavVisible } from './useBottomNav';
 
 function BottomNavTab({
   tab,
@@ -63,22 +47,14 @@ function BottomNavTab({
  * height. Flat & sharp: hairline top border, no elevation.
  */
 export function BottomNav() {
-  const { isLg } = useBreakpoint();
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
-  const destinations = useVisibleDestinations();
+  const tabs = useBottomNavTabs();
+  const visible = useBottomNavVisible();
   const insets = useSafeAreaInsets();
   const goTo = useCallback((href: TabHref) => router.replace(href), [router]);
 
-  const tabs: Tab[] = [
-    ...destinations.map((d) => ({ ...d, icon: DESTINATION_ICONS[d.key] ?? 'package' })),
-    ...(user
-      ? [{ key: 'account', label: 'Account', href: '/account' as const, icon: 'user' as IconName }]
-      : []),
-  ];
-  const isTopLevel = tabs.some((tab) => tab.href === pathname);
-  if (isLg || !isTopLevel) return null;
+  if (!visible) return null;
 
   return (
     <View
