@@ -5,7 +5,7 @@ import { ErrorState } from '@/components/base/ErrorState';
 import { PageContainer } from '@/components/base/PageContainer';
 import { GoLiveDialog } from '@/components/cameras/GoLiveDialog';
 import { SelectionBar } from '@/components/cameras/SelectionBar';
-import { CamerasFab, CamerasSnackbar } from '@/components/cameras/screen/Chrome';
+import { CamerasFab } from '@/components/cameras/screen/Chrome';
 import { CamerasGrid } from '@/components/cameras/screen/Grid';
 import { useCamerasScreen } from '@/features/cameras/useCamerasScreen';
 
@@ -54,8 +54,6 @@ export default function CamerasScreen() {
       </PageContainer>
 
       <CamerasFab visible={!screen.streamModeEnabled} onPress={actions.openAddCamera} />
-
-      <CamerasSnackbar message={streaming.snackbarMessage} onDismiss={streaming.dismissSnackbar} />
 
       <GoLiveDialog
         visible={streaming.streamDialog.cameraId !== null}

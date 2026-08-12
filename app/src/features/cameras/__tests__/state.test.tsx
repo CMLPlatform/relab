@@ -29,14 +29,13 @@ describe('camera controllers', () => {
     expect(result.current.streamModeEnabled).toBe(true);
   });
 
-  it('manages stream dialog and snackbar state', () => {
+  it('manages stream dialog state', () => {
     const { result } = renderHook(() => useCameraStreamingController());
 
     act(() => {
       result.current.openStreamDialog('camera-1', 'Bench Cam', 'Default Title');
       result.current.setStreamTitle('Custom Title');
       result.current.setStreamPrivacy('public');
-      result.current.setSnackbarMessage('Camera offline');
     });
 
     expect(result.current.streamDialog).toEqual({
@@ -45,15 +44,12 @@ describe('camera controllers', () => {
       title: 'Custom Title',
       privacy: 'public',
     });
-    expect(result.current.snackbarMessage).toBe('Camera offline');
 
     act(() => {
       result.current.closeStreamDialog();
-      result.current.dismissSnackbar();
     });
 
     expect(result.current.streamDialog.cameraId).toBeNull();
-    expect(result.current.snackbarMessage).toBeNull();
   });
 
   it('manages selection state and select-all action', () => {

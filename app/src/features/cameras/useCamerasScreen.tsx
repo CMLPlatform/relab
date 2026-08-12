@@ -93,7 +93,7 @@ export function useCamerasScreen() {
     enterSelectionMode: selection.enterSelectionMode,
     toggleSelected: selection.toggleSelected,
     isCameraReachable,
-    setSnackbar: streaming.setSnackbarMessage,
+    toast: feedback.toast,
   });
   const { handleCardTap, handleStartStream } = useCameraStreamActions({
     streamModeEnabled,
@@ -102,7 +102,6 @@ export function useCamerasScreen() {
     openStreamDialog: streaming.openStreamDialog,
     streamProductName: streamProduct?.name ?? '',
     toggleSelected: selection.toggleSelected,
-    setSnackbar: streaming.setSnackbarMessage,
     streamDialog: streaming.streamDialog,
     streamProductId,
     streamProductNameForSession: streamProduct?.name,
@@ -140,8 +139,6 @@ export function useCamerasScreen() {
     streaming: {
       streamDialog: streaming.streamDialog,
       isStartingStream: streaming.isStartingStream,
-      snackbarMessage: streaming.snackbarMessage,
-      dismissSnackbar: streaming.dismissSnackbar,
       closeStreamDialog: streaming.closeStreamDialog,
       setStreamTitle: streaming.setStreamTitle,
       setStreamPrivacy: streaming.setStreamPrivacy,

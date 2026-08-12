@@ -92,7 +92,6 @@ describe('useCamerasScreen', () => {
     expect(result.current.screen.rows).toEqual(mockCamerasQueryData);
     expect(result.current.selection.selectedCount).toBe(0);
     expect(result.current.streaming.streamDialog.cameraId).toBeNull();
-    expect(typeof result.current.streaming.dismissSnackbar).toBe('function');
     expect(typeof result.current.actions.openAddCamera).toBe('function');
   });
 

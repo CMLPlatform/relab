@@ -52,7 +52,7 @@ export function useCameraCaptureActions({
   enterSelectionMode,
   toggleSelected,
   isCameraReachable,
-  setSnackbar,
+  toast,
 }: {
   captureAll: {
     mutate: (
@@ -71,7 +71,7 @@ export function useCameraCaptureActions({
   enterSelectionMode: (initialId?: string) => void;
   toggleSelected: (cameraId: string) => void;
   isCameraReachable: (camera: CameraReadWithStatus) => boolean;
-  setSnackbar: (message: string | null) => void;
+  toast: (message: string) => void;
 }) {
   const runCapture = useCallback(
     (cameraIds: string[]) => {
@@ -80,18 +80,18 @@ export function useCameraCaptureActions({
         { cameraIds, productId: captureAllProductId },
         {
           onSuccess: ({ total, succeeded, failed }) => {
-            setSnackbar(
+            toast(
               failed === 0
                 ? `Captured ${succeeded}/${total} cameras`
                 : `Captured ${succeeded}/${total} · ${failed} failed`,
             );
             clearSelection();
           },
-          onError: (err) => setSnackbar(`Capture failed: ${String(err)}`),
+          onError: (err) => toast(`Capture failed: ${String(err)}`),
         },
       );
     },
-    [captureAll, captureAllProductId, clearSelection, setSnackbar],
+    [captureAll, captureAllProductId, clearSelection, toast],
   );
 
   const handleCaptureSelected = useCallback(() => {
@@ -102,7 +102,7 @@ export function useCameraCaptureActions({
     (camera: CameraReadWithStatus) => {
       if (!captureModeEnabled) return;
       if (!isCameraReachable(camera)) {
-        setSnackbar(`${camera.name} is offline — can't capture.`);
+        toast(`${camera.name} is offline — can't capture.`);
         return;
       }
       if (!selectionMode) {
@@ -116,7 +116,7 @@ export function useCameraCaptureActions({
       enterSelectionMode,
       isCameraReachable,
       selectionMode,
-      setSnackbar,
+      toast,
       toggleSelected,
     ],
   );

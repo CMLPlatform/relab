@@ -40,7 +40,7 @@ describe('camera capture action hooks', () => {
       };
       options.onSuccess({ total: 2, succeeded: 1, failed: 1 });
     });
-    const setSnackbar = jest.fn();
+    const toast = jest.fn();
     const clearSelection = jest.fn();
     const enterSelectionMode = jest.fn();
     const toggleSelected = jest.fn();
@@ -57,7 +57,7 @@ describe('camera capture action hooks', () => {
         enterSelectionMode,
         toggleSelected,
         isCameraReachable: (camera) => camera.id !== 'cam-offline',
-        setSnackbar,
+        toast,
       }),
     );
 
@@ -67,13 +67,13 @@ describe('camera capture action hooks', () => {
       result.current.handleCaptureSelected();
     });
 
-    expect(setSnackbar).toHaveBeenCalledWith("Offline Cam is offline — can't capture.");
+    expect(toast).toHaveBeenCalledWith("Offline Cam is offline — can't capture.");
     expect(enterSelectionMode).toHaveBeenCalledWith('cam-1');
     expect(mutate).toHaveBeenCalledWith(
       { cameraIds: ['cam-1', 'cam-2'], productId: 42 },
       expect.any(Object),
     );
-    expect(setSnackbar).toHaveBeenCalledWith('Captured 1/2 · 1 failed');
+    expect(toast).toHaveBeenCalledWith('Captured 1/2 · 1 failed');
     expect(clearSelection).toHaveBeenCalled();
   });
 });

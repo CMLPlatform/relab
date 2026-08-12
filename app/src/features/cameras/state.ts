@@ -48,7 +48,6 @@ export function useCameraStreamingController() {
     STREAM_DIALOG_INITIAL,
   );
   const [isStartingStream, setIsStartingStream] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
 
   return {
     streamDialog,
@@ -60,9 +59,6 @@ export function useCameraStreamingController() {
     setStreamTitle: (value: string) => dispatchStreamDialog({ type: 'set_title', value }),
     setStreamPrivacy: (value: YouTubePrivacyStatus) =>
       dispatchStreamDialog({ type: 'set_privacy', value }),
-    snackbarMessage,
-    setSnackbarMessage,
-    dismissSnackbar: useCallback(() => setSnackbarMessage(null), []),
   };
 }
 

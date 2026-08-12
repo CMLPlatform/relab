@@ -14,7 +14,6 @@ export function useCameraStreamActions({
   openStreamDialog,
   streamProductName,
   toggleSelected,
-  setSnackbar,
   streamDialog,
   streamProductId,
   streamProductNameForSession,
@@ -28,7 +27,6 @@ export function useCameraStreamActions({
   openStreamDialog: (cameraId: string, cameraName: string, defaultTitle: string) => void;
   streamProductName: string;
   toggleSelected: (cameraId: string) => void;
-  setSnackbar: (message: string | null) => void;
   streamDialog: StreamDialogState;
   streamProductId: number | null;
   streamProductNameForSession?: string;
@@ -44,7 +42,7 @@ export function useCameraStreamActions({
     (camera: CameraReadWithStatus) => {
       if (streamModeEnabled) {
         if (!isCameraReachable(camera)) {
-          setSnackbar(`${camera.name} is offline — can't stream.`);
+          feedback.toast(`${camera.name} is offline — can't stream.`);
           return;
         }
         openStreamDialog(camera.id, camera.name, streamProductName);
@@ -55,7 +53,7 @@ export function useCameraStreamActions({
         if (isCameraReachable(camera)) {
           toggleSelected(camera.id);
         } else {
-          setSnackbar(`${camera.name} is offline — can't capture.`);
+          feedback.toast(`${camera.name} is offline — can't capture.`);
         }
         return;
       }
@@ -63,11 +61,11 @@ export function useCameraStreamActions({
       router.push({ pathname: '/cameras/[id]', params: { id: camera.id } });
     },
     [
+      feedback,
       isCameraReachable,
       openStreamDialog,
       router,
       selectionMode,
-      setSnackbar,
       streamModeEnabled,
       streamProductName,
       toggleSelected,

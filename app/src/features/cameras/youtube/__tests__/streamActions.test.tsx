@@ -50,7 +50,6 @@ describe('camera stream action hooks', () => {
   it('routes stream-mode taps, detail navigation, and offline warnings correctly', () => {
     const openStreamDialog = jest.fn();
     const toggleSelected = jest.fn();
-    const setSnackbar = jest.fn();
     const feedback = { alert: jest.fn(), error: jest.fn(), toast: jest.fn() };
 
     const { result, rerender } = renderHook(
@@ -68,7 +67,6 @@ describe('camera stream action hooks', () => {
           openStreamDialog,
           streamProductName: 'Desk Radio',
           toggleSelected,
-          setSnackbar,
           streamDialog: {
             cameraId: 'cam-1',
             cameraName: 'Camera 1',
@@ -89,7 +87,7 @@ describe('camera stream action hooks', () => {
       result.current.handleCardTap({ id: 'cam-1', name: 'Camera 1' } as never);
     });
 
-    expect(setSnackbar).toHaveBeenCalledWith("Offline Cam is offline — can't stream.");
+    expect(feedback.toast).toHaveBeenCalledWith("Offline Cam is offline — can't stream.");
     expect(openStreamDialog).toHaveBeenCalledWith('cam-1', 'Camera 1', 'Desk Radio');
 
     rerender({ streamModeEnabled: false, selectionMode: false });
@@ -104,7 +102,6 @@ describe('camera stream action hooks', () => {
   function renderStartStream() {
     const closeStreamDialog = jest.fn();
     const setIsStartingStream = jest.fn();
-    const setSnackbar = jest.fn();
     const feedback = { alert: jest.fn(), error: jest.fn(), toast: jest.fn() };
 
     const { result } = renderHook(() =>
@@ -115,7 +112,6 @@ describe('camera stream action hooks', () => {
         openStreamDialog: jest.fn(),
         streamProductName: 'Desk Radio',
         toggleSelected: jest.fn(),
-        setSnackbar,
         streamDialog: {
           cameraId: 'cam-1',
           cameraName: 'Camera 1',
@@ -130,7 +126,7 @@ describe('camera stream action hooks', () => {
       }),
     );
 
-    return { result, closeStreamDialog, setIsStartingStream, setSnackbar, feedback };
+    return { result, closeStreamDialog, setIsStartingStream, feedback };
   }
 
   it('starts a stream successfully and handles start failures', async () => {
@@ -235,7 +231,6 @@ describe('camera stream action hooks', () => {
         openStreamDialog: jest.fn(),
         streamProductName: 'Desk Radio',
         toggleSelected: jest.fn(),
-        setSnackbar: jest.fn(),
         streamDialog: {
           cameraId: 'cam-1',
           cameraName: 'Camera 1',
