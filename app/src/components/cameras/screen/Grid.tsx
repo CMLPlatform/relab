@@ -71,17 +71,17 @@ export function CamerasGrid({
       numColumns={numColumns}
       key={`grid-${numColumns}`}
       refreshControl={<RefreshControl refreshing={isFetching} onRefresh={onRefresh} />}
-      contentContainerStyle={[styles.list, rows.length === 0 && styles.emptyList]}
+      contentContainerClassName={`gap-2.5 p-3 pb-[88px]${rows.length === 0 ? ' flex-1' : ''}`}
       columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
       ListEmptyComponent={
-        <View style={styles.empty}>
-          <View style={styles.emptyIcon}>
+        <View className="flex-1 items-center justify-center p-8">
+          <View className="opacity-40">
             <Icon name="camera-off" size={64} color={theme.colors.onSurfaceVariant} />
           </View>
-          <AppText variant="title" style={styles.emptyTitle}>
+          <AppText variant="title" className="mt-4 opacity-60">
             No cameras yet
           </AppText>
-          <MutedText style={styles.emptyBody}>
+          <MutedText className="mt-2 text-center opacity-50">
             Tap the + button to register your first RPi camera.
           </MutedText>
         </View>
@@ -139,7 +139,7 @@ const CameraGridCell = memo(function CameraGridCell({
   ]);
 
   return (
-    <View style={styles.cell}>
+    <View className="flex-1">
       <Pressable
         ref={cellRef}
         onPress={handlePress}

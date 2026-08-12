@@ -6,11 +6,9 @@ import {
   PreviewErrorOverlay,
   PreviewShell,
 } from '@/components/cameras/live-preview/previewOverlays';
-import { createLivePreviewStyles } from '@/components/cameras/live-preview/styles';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import { useCameraLivePreview } from '@/features/cameras/rpi/hooks';
 import type { CameraRead } from '@/services/api/rpiCamera';
-import { useAppTheme } from '@/theme';
 
 /**
  * LL-HLS live preview for a single camera.
@@ -78,11 +76,8 @@ export class PreviewErrorBoundary extends Component<
 }
 
 export function PreviewErrorState({ onRetry }: { onRetry: () => void }) {
-  const theme = useAppTheme();
-  const styles = createLivePreviewStyles(theme);
-
   return (
-    <View style={styles.videoFrame}>
+    <View className="relative aspect-[4/3] w-full">
       <PreviewErrorOverlay message="Live preview unavailable" onRetry={onRetry} />
     </View>
   );

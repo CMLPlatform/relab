@@ -15,8 +15,8 @@ export function PreviewShell({
   const theme = useAppTheme();
   const styles = createLivePreviewStyles(theme);
   return (
-    <Card style={styles.card}>
-      <View style={styles.content}>
+    <Card className="mx-4 mt-3">
+      <View className="items-center gap-2 p-4">
         {children}
         <AppText variant="body" style={styles.caption}>
           {caption}
@@ -30,9 +30,9 @@ export function PreviewLoadingOverlay() {
   const theme = useAppTheme();
   const styles = createLivePreviewStyles(theme);
   return (
-    <View style={styles.overlay}>
+    <View className="absolute inset-0 items-center justify-center gap-2" style={styles.overlay}>
       <ActivityIndicator size={24} />
-      <AppText style={styles.overlayText}>Loading preview…</AppText>
+      <AppText className="text-center text-primary-foreground">Loading preview…</AppText>
     </View>
   );
 }
@@ -47,11 +47,11 @@ export function PreviewErrorOverlay({
   const theme = useAppTheme();
   const styles = createLivePreviewStyles(theme);
   return (
-    <View style={styles.overlay}>
+    <View className="absolute inset-0 items-center justify-center gap-2" style={styles.overlay}>
       <Icon name="video-off" size={32} color={theme.tokens.text.muted} />
-      <AppText style={styles.overlayText}>{message}</AppText>
+      <AppText className="text-center text-primary-foreground">{message}</AppText>
       <Pressable onPress={onRetry} accessibilityRole="button">
-        <AppText style={styles.retryText}>Tap to retry</AppText>
+        <AppText className="mt-1 text-primary-foreground underline">Tap to retry</AppText>
       </Pressable>
     </View>
   );

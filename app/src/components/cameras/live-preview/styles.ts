@@ -3,48 +3,26 @@ import { radius } from '@/constants';
 import type { AppTheme } from '@/theme';
 import { memoizeByTheme } from '@/theme';
 
+// Residue after the NativeWind convergence: layout moved to className at the
+// call site; what's left is JS-only theme values (no CSS var) or targets a
+// component that isn't className-wrapped.
 export const createLivePreviewStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
-    card: {
-      marginHorizontal: 16,
-      marginTop: 12,
-    },
-    // Base Card has no built-in content padding (unlike Paper's Card.Content,
-    // which defaulted to padding: 16) — added explicitly here.
-    content: {
-      padding: 16,
-      alignItems: 'center',
-      gap: 8,
-    },
-    videoFrame: {
-      width: '100%',
-      aspectRatio: 4 / 3,
-      position: 'relative',
-    },
+    // expo-video's VideoView isn't a NativeWind className target, so
+    // sizing stays inline too (its parent View owns the aspect-ratio box).
     nativeVideo: {
       width: '100%',
       height: '100%',
       borderRadius: radius.card,
       backgroundColor: theme.colors.scrim,
     },
+    // tokens.overlay.scrim has no CSS var — JS-only.
     overlay: {
-      ...StyleSheet.absoluteFill,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
       backgroundColor: theme.tokens.overlay.scrim,
     },
-    overlayText: {
-      color: theme.colors.onPrimary,
-      textAlign: 'center',
-    },
+    // tokens.text.muted has no CSS var — JS-only.
     caption: {
       color: theme.tokens.text.muted,
-    },
-    retryText: {
-      color: theme.colors.onPrimary,
-      textDecorationLine: 'underline',
-      marginTop: 4,
     },
   });
 });

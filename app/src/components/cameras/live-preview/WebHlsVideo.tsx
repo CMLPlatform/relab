@@ -2,7 +2,7 @@ import { createElement, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { useAppTheme } from '@/theme';
 import { PreviewErrorOverlay, PreviewLoadingOverlay } from './previewOverlays';
-import { createLivePreviewStyles, createWebVideoStyle } from './styles';
+import { createWebVideoStyle } from './styles';
 import { useWebHlsPlayback } from './useWebHlsPlayback';
 import { setupWebHlsVideo } from './webHlsVideoHelpers';
 
@@ -14,7 +14,6 @@ export function WebHlsVideo({
   withCredentials?: boolean;
 }) {
   const theme = useAppTheme();
-  const styles = createLivePreviewStyles(theme);
   const videoStyle = createWebVideoStyle(theme);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const { state, errorMessage, retryKey, retryNow, markLive, markError } = useWebHlsPlayback(src);
@@ -50,7 +49,7 @@ export function WebHlsVideo({
   }, [markError, markLive, retryKey, src, withCredentials]);
 
   return (
-    <View style={styles.videoFrame}>
+    <View className="relative aspect-[4/3] w-full">
       {createElement('video', {
         ref: videoRef,
         autoPlay: true,

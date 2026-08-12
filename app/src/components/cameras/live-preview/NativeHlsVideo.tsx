@@ -27,7 +27,7 @@ export function NativeHlsVideo({
   });
 
   return (
-    <View style={styles.videoFrame}>
+    <View className="relative aspect-[4/3] w-full">
       <VideoView
         player={player}
         style={styles.nativeVideo}

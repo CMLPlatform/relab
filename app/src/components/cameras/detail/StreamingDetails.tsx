@@ -34,8 +34,8 @@ export function CameraDetailsCard({
   editDescriptionTriggerRef,
 }: CameraDetailsCardProps) {
   return (
-    <Card style={styles.card}>
-      <View style={styles.detailsContent}>
+    <Card>
+      <View className="p-4">
         <DetailRow
           label="Name"
           value={camera.name}
@@ -66,11 +66,11 @@ type CameraDangerZoneProps = {
 export function CameraDangerZone({ onDelete, deleteTriggerRef }: CameraDangerZoneProps) {
   return (
     <>
-      <AppText variant="label" style={styles.sectionLabel}>
+      <AppText variant="label" style={styles.sectionLabel} className="px-1 uppercase opacity-45">
         DANGER ZONE
       </AppText>
-      <Card style={styles.card}>
-        <View style={styles.cardContent}>
+      <Card>
+        <View className="p-4">
           <ActionRow
             label="Delete camera"
             subtitle="Permanently removes this camera and all its settings"

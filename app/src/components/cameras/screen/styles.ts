@@ -4,22 +4,19 @@ import type { AppTheme } from '@/theme';
 import { memoizeByTheme } from '@/theme';
 import { getFloatingPosition } from '@/utils/platformLayout';
 
+// Residue after the NativeWind convergence: layout, spacing and radius moved
+// to className at the call site. What's left needs JS: conditional
+// pressed/selected states with no confirmed NativeWind variant support here,
+// a JS-only theme token, and the Fab position (Fab has no className prop —
+// see Fab.tsx).
 export const createCameraScreenStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
-    list: {
-      padding: 12,
-      paddingBottom: 88,
-      gap: 10,
-    },
-    emptyList: {
-      flex: 1,
-    },
     row: {
       gap: 10,
     },
-    cell: {
-      flex: 1,
-    },
+    // Static base for the cell's state-callback style. Can't move to a
+    // className: mixing one with a function style drops the function
+    // (see IconButton.tsx).
     cellPressable: {
       borderRadius: radius.card,
     },
@@ -29,24 +26,6 @@ export const createCameraScreenStyles = memoizeByTheme((theme: AppTheme) => {
     cellSelected: {
       borderWidth: 3,
       borderColor: theme.tokens.border.selected,
-    },
-    empty: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 32,
-    },
-    emptyIcon: {
-      opacity: 0.4,
-    },
-    emptyTitle: {
-      marginTop: 16,
-      opacity: 0.6,
-    },
-    emptyBody: {
-      marginTop: 8,
-      opacity: 0.5,
-      textAlign: 'center',
     },
     fab: {
       position: getFloatingPosition(),

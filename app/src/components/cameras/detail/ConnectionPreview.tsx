@@ -37,24 +37,25 @@ export function CameraConnectionCard({
   const statusLabel = camera.status ? STATUS_LABEL[camera.status.connection] : STATUS_LABEL.offline;
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.connectionContent}>
-        <View style={styles.statusRow}>
+    <Card>
+      <View className="gap-1.5 p-4">
+        <View className="flex-row items-center gap-2">
           {localConnection.mode === 'probing' ? (
             <>
-              <ActivityIndicator size={14} style={styles.inlineSpinner} />
-              <AppText variant="title" style={styles.statusTextMuted}>
+              <ActivityIndicator size={14} className="mr-1" />
+              <AppText variant="title" className="flex-1 opacity-60">
                 {isOnline ? 'Searching for direct connection…' : 'Checking connection…'}
               </AppText>
             </>
           ) : localConnection.mode === 'local' ? (
             <>
-              <View style={styles.inlineIcon}>
+              <View className="mr-1">
                 <Icon name="ethernet" size={18} color={theme.tokens.status.success} />
               </View>
               <AppText
                 variant="title"
-                style={[styles.statusTextLocal, { color: theme.tokens.status.success }]}
+                className="flex-1"
+                style={{ color: theme.tokens.status.success }}
               >
                 Connected - Direct · &lt;1 s
               </AppText>
@@ -62,18 +63,20 @@ export function CameraConnectionCard({
           ) : isOnline ? (
             <>
               <View
-                style={[styles.statusDot, { backgroundColor: statusColor }, styles.inlineDot]}
+                className="mr-1 h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: statusColor }}
               />
-              <AppText variant="title" style={[styles.statusText, { color: statusColor }]}>
+              <AppText variant="title" className="flex-1" style={{ color: statusColor }}>
                 Connected - Remote · ~2 s
               </AppText>
             </>
           ) : (
             <>
               <View
-                style={[styles.statusDot, { backgroundColor: statusColor }, styles.inlineDot]}
+                className="mr-1 h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: statusColor }}
               />
-              <AppText variant="title" style={[styles.statusText, { color: statusColor }]}>
+              <AppText variant="title" className="flex-1" style={{ color: statusColor }}>
                 {statusLabel}
               </AppText>
             </>
@@ -103,7 +106,7 @@ export function CameraConnectionCard({
           ) : null}
         </View>
 
-        <AppText variant="body" style={styles.connectionHint}>
+        <AppText variant="body" className="opacity-55">
           {localConnection.mode === 'local'
             ? `Via Ethernet · ${localConnection.localBaseUrl ?? ''}`
             : localConnection.mode === 'probing' && isOnline
@@ -138,11 +141,11 @@ export function CameraPreviewSection({
 
   return (
     <>
-      <Card style={styles.card}>
-        <View style={styles.previewControlContent}>
-          <View style={styles.previewCopy}>
+      <Card>
+        <View className="flex-row items-center gap-3 p-4">
+          <View className="flex-1">
             <AppText variant="title">Camera preview</AppText>
-            <AppText variant="body" style={styles.connectionHint}>
+            <AppText variant="body" className="opacity-55">
               {previewEnabled
                 ? 'Preview is running. Stop it when you no longer need the live feed.'
                 : 'Load the live feed when you want to check framing or focus.'}

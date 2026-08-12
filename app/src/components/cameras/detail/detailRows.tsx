@@ -14,9 +14,9 @@ type CameraDetailLayoutProps = {
 
 export function CameraDetailLayout({ children }: CameraDetailLayoutProps) {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerClassName="pt-3 pb-12">
       <PageContainer>
-        <View style={styles.stack}>{children}</View>
+        <View className="gap-3">{children}</View>
       </PageContainer>
     </ScrollView>
   );
@@ -39,18 +39,15 @@ export function DetailRow({
   const theme = useAppTheme();
 
   return (
-    <View style={styles.detailRow}>
-      <AppText variant="label" style={styles.detailLabel}>
+    <View className="flex-row items-center gap-2 py-2.5">
+      <AppText variant="label" className="w-[100px] opacity-55">
         {label}
       </AppText>
       <AppText
         selectable
         numberOfLines={1}
-        style={[
-          styles.detailValue,
-          { color: theme.colors.onSurface },
-          mono ? styles.monoDetail : null,
-        ]}
+        className="flex-1"
+        style={[{ color: theme.colors.onSurface }, mono ? styles.monoDetail : null]}
       >
         {value}
       </AppText>
@@ -92,9 +89,11 @@ export function ActionRow({
       <AppButton variant="ghost" onPress={onPress} className="w-full justify-start">
         <Icon name={icon} size={18} color={color} />
         <View>
-          <AppText style={[styles.actionLabel, { color }]}>{label}</AppText>
+          <AppText className="font-semibold" style={{ color }}>
+            {label}
+          </AppText>
           {subtitle ? (
-            <AppText variant="body" style={styles.actionSubtitle}>
+            <AppText variant="body" className="mt-px opacity-60">
               {subtitle}
             </AppText>
           ) : null}
