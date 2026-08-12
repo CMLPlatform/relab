@@ -17,9 +17,7 @@ export function AmountStepper({ value, onChange, min = 1, label = 'Amount' }: Am
 
   return (
     <View className="flex-row items-center gap-3">
-      <AppText variant="label" className="uppercase opacity-60">
-        {label}
-      </AppText>
+      <AppText variant="eyebrow">{label}</AppText>
       <AppButton
         variant="outline"
         disabled={value <= min}

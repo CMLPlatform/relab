@@ -16,9 +16,7 @@ export function ProfileHero({ profile, onEditUsername }: ProfileHeroProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
     <View className="gap-2 px-4 py-3">
-      <AppText variant="label" className="opacity-60 uppercase">
-        Hi,
-      </AppText>
+      <AppText variant="eyebrow">Hi,</AppText>
       <Pressable
         onPress={onEditUsername}
         accessibilityRole="button"
@@ -67,10 +65,12 @@ function StatCard({
   const styles = createProfileSectionStyles(useAppTheme());
   return (
     <View className="flex-1 items-center rounded-lg p-2.5" style={styles.statItem}>
-      <AppText className="text-[20px] font-bold" numberOfLines={singleLine ? 1 : undefined}>
+      <AppText variant="heading" className="font-bold" numberOfLines={singleLine ? 1 : undefined}>
         {value}
       </AppText>
-      <AppText className="mt-0.5 text-[10px] font-semibold uppercase opacity-50">{label}</AppText>
+      <AppText variant="eyebrow" className="mt-0.5">
+        {label}
+      </AppText>
     </View>
   );
 }

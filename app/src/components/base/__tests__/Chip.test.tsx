@@ -38,16 +38,21 @@ describe('Chip', () => {
 
   it('applies error container style when error prop is set', () => {
     renderWithProviders(<Chip error>Error Chip</Chip>);
-    expect(screen.getByText('Error Chip')).toHaveStyle({
+    // The icon-wrapping View, two composite levels above the Text's raw string node.
+    expect(screen.getByText('Error Chip').parent?.parent?.parent).toHaveStyle({
       backgroundColor: getAppTheme('light').colors.errorContainer,
+    });
+    expect(screen.getByText('Error Chip')).toHaveStyle({
       color: getAppTheme('light').colors.onErrorContainer,
     });
   });
 
   it('applies primary style when error prop is not set', () => {
     renderWithProviders(<Chip>Normal Chip</Chip>);
-    expect(screen.getByText('Normal Chip')).toHaveStyle({
+    expect(screen.getByText('Normal Chip').parent?.parent?.parent).toHaveStyle({
       backgroundColor: getAppTheme('light').colors.primary,
+    });
+    expect(screen.getByText('Normal Chip')).toHaveStyle({
       color: getAppTheme('light').colors.onPrimary,
     });
   });
@@ -57,8 +62,10 @@ describe('Chip', () => {
 
     renderWithProviders(<Chip>Dark Chip</Chip>);
 
-    expect(screen.getByText('Dark Chip')).toHaveStyle({
+    expect(screen.getByText('Dark Chip').parent?.parent?.parent).toHaveStyle({
       backgroundColor: getAppTheme('dark').colors.primary,
+    });
+    expect(screen.getByText('Dark Chip')).toHaveStyle({
       color: getAppTheme('dark').colors.onPrimary,
     });
 

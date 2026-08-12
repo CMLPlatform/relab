@@ -6,6 +6,7 @@ import {
   type PressableProps,
   type PressableStateCallbackType,
   StyleSheet,
+  View,
 } from 'react-native';
 import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
@@ -41,26 +42,26 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
         <AppText
           variant="label"
           className="px-3 py-2 text-center font-medium"
-          style={[styles.label, { color: theme.colors.onPrimaryContainer }]}
+          style={{ color: theme.colors.onPrimaryContainer }}
         >
           {title}
         </AppText>
       ) : null}
-      <AppText
-        variant="label"
-        className="rounded-md px-3 py-2 text-center font-medium"
-        style={[
-          styles.label,
-          {
-            backgroundColor: error ? theme.colors.errorContainer : theme.colors.primary,
-            color: error ? theme.colors.onErrorContainer : theme.colors.onPrimary,
-          },
-        ]}
+      <View
+        className="flex-row items-center gap-1.5 rounded-md px-3 py-2"
+        style={{
+          backgroundColor: error ? theme.colors.errorContainer : theme.colors.primary,
+        }}
       >
-        {children}
-        {icon ? '   ' : null}
+        <AppText
+          variant="label"
+          className="text-center font-medium"
+          style={{ color: error ? theme.colors.onErrorContainer : theme.colors.onPrimary }}
+        >
+          {children}
+        </AppText>
         {icon}
-      </AppText>
+      </View>
     </Pressable>
   );
 };
@@ -69,9 +70,5 @@ const styles = StyleSheet.create({
   base: {
     flexDirection: 'row',
     borderRadius: radius.control,
-  },
-  label: {
-    // fontSize 15 has no exact Tailwind step, so it stays inline.
-    fontSize: 15,
   },
 });

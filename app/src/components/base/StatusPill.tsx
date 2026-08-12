@@ -26,7 +26,7 @@ export function StatusPill({ label, tone, variant = 'solid', testID }: StatusPil
     <View
       testID={testID}
       // Inline status chip — control radius, not a pill (DESIGN.md reserves the
-      // `full` radius for avatars/true pills). Height (22) has no exact
+      // `full` radius for avatars/true pills). Height (24) has no exact
       // Tailwind step, so it stays inline alongside it.
       className="justify-center rounded-md px-2"
       style={[
@@ -37,8 +37,9 @@ export function StatusPill({ label, tone, variant = 'solid', testID }: StatusPil
       ]}
     >
       <AppText
+        variant="caption"
         className={solid ? 'font-bold' : undefined}
-        style={[styles.label, { color: solid ? theme.colors.onError : color }]}
+        style={{ color: solid ? theme.colors.onError : color }}
       >
         {label}
       </AppText>
@@ -48,10 +49,7 @@ export function StatusPill({ label, tone, variant = 'solid', testID }: StatusPil
 
 const styles = StyleSheet.create({
   pill: {
-    height: 22,
-  },
-  label: {
-    fontSize: 11,
-    lineHeight: 14,
+    // Bumped from 22 to fit the caption step's 13px cap.
+    height: 24,
   },
 });

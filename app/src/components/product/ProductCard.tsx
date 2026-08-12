@@ -107,24 +107,20 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
 
           {/* Content */}
           <View className="flex-1">
-            <AppText variant="body" className="mb-0.5" style={styles.title}>
+            <AppText variant="heading" className="mb-0.5 font-bold">
               {product.name || 'Unnamed Product'}
             </AppText>
             <MutedText
+              variant="caption"
               className="mb-1"
-              style={styles.detailText}
               selectable={false}
               numberOfLines={1}
               ellipsizeMode="tail"
+              accessibilityLabel={detailList.join(', ')}
             >
               {detailList.join(' • ')}
             </MutedText>
-            <MutedText
-              style={styles.descriptionText}
-              selectable={false}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
+            <MutedText variant="caption" selectable={false} numberOfLines={1} ellipsizeMode="tail">
               {product.description}
             </MutedText>
             {hasMetadata ? (
@@ -132,10 +128,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                 {createdAgo ? (
                   <View className="flex-row items-center gap-[3px]">
                     <Icon name="clock" size={12} color={theme.colors.outline} />
-                    <AppText
-                      variant="data"
-                      style={[styles.metadataText, { color: theme.colors.outline }]}
-                    >
+                    <AppText variant="caption" style={{ color: theme.colors.outline }}>
                       {createdAgo}
                     </AppText>
                   </View>
@@ -144,9 +137,8 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                   <View className="flex-row items-center gap-[3px]">
                     <Icon name="user" size={12} color={theme.colors.outline} />
                     <AppText
-                      variant="label"
+                      variant="caption"
                       className="text-primary"
-                      style={styles.metadataText}
                       numberOfLines={1}
                       onPress={navigateToOwner}
                     >
@@ -175,24 +167,5 @@ const styles = StyleSheet.create({
   thumbnailImage: {
     width: '100%',
     height: '100%',
-  },
-  // fontSize-only (no matching lineHeight) — text-* classes would add one
-  // the original styles never had.
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  // MutedText rides the `body` step (16/26); the card's two secondary lines are
-  // dense list metadata, so they pin their own smaller size and lineHeight.
-  detailText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  descriptionText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  metadataText: {
-    fontSize: 11,
   },
 });

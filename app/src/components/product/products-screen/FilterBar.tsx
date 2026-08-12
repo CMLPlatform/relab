@@ -1,5 +1,5 @@
 import { type ComponentProps, useCallback } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import FilterSelectionModal from '@/components/base/FilterSelectionModal';
 import { Icon, type IconName } from '@/components/base/Icon';
@@ -50,7 +50,9 @@ function FilterChip({
         className="flex-row items-center gap-1.5 py-[7px]"
       >
         <Icon name={icon} size="sm" color={foreground} />
-        <AppText style={[filterChipStyles.label, { color: foreground }]}>{children}</AppText>
+        <AppText variant="caption" style={{ color: foreground }}>
+          {children}
+        </AppText>
       </Pressable>
       {onClose ? (
         <Pressable
@@ -66,14 +68,6 @@ function FilterChip({
     </View>
   );
 }
-
-const filterChipStyles = StyleSheet.create({
-  // AppText's own inline typography scale always wins over a className, so a
-  // text-sm class here would be a silent no-op — fontSize stays style-driven.
-  label: {
-    fontSize: 14,
-  },
-});
 
 type DatePreset = (typeof PRODUCTS_DATE_PRESETS)[number];
 
