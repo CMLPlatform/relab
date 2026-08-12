@@ -113,7 +113,24 @@ verify_postgres_restore() {
     # pre-creating it here makes pg_restore fail on "schema public already exists".
     docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 \
         -c 'DROP SCHEMA IF EXISTS public CASCADE;'
-    docker exec "$RESTORE_CONTAINER" pg_restore --no-owner -U postgres -d relab_restore /tmp/relab.dump
+    # --no-acl: the dump carries GRANTs/ALTER DEFAULT PRIVILEGES for roles
+    # (relab_app, relab_migrator, relab_backup) that don't exist on a scratch
+    # cluster; ACLs are irrelevant to a restorability check.
+    local -a restore_args=(--no-owner --no-acl -U postgres -d relab_restore /tmp/relab.dump)
+    # NOTE: --schema=public dumps omit CREATE EXTENSION, so the scratch cluster is
+    # missing pg_trgm when trigram GIN indexes (gin_trgm_ops) are rebuilt. Real
+    # clusters get it from the alembic migrations (f3a8c2d1e5b7, a1b2c3d4e5f6)
+    # that own trigram search, not from initdb; mirror that list here and keep
+    # it in sync if a migration ever adds another extension. The index
+    # definitions schema-qualify the opclass as "public.gin_trgm_ops", so the
+    # extension has to exist in "public" specifically — restore pre-data (which
+    # recreates the "public" schema) first, create the extension, then restore
+    # the rest so the later post-data section can build the trigram indexes.
+    docker exec "$RESTORE_CONTAINER" pg_restore --section=pre-data "${restore_args[@]}"
+    docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 \
+        -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;'
+    docker exec "$RESTORE_CONTAINER" pg_restore --section=data "${restore_args[@]}"
+    docker exec "$RESTORE_CONTAINER" pg_restore --section=post-data "${restore_args[@]}"
     # NOTE: pg_restore can exit 0 on an empty archive, so assert tables actually landed.
     docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 -c \
         "DO \$\$ BEGIN IF (SELECT count(*) FROM pg_tables WHERE schemaname = 'public') = 0 THEN RAISE EXCEPTION 'restored dump has no tables in schema public'; END IF; END \$\$;"
