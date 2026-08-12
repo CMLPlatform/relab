@@ -4,7 +4,6 @@ import { Pressable } from 'react-native';
 import { useAuth } from '@/context/auth';
 import { useAppTheme } from '@/theme';
 import { needsUsernameOnboarding } from '@/utils/router/onboarding';
-import { createHeaderRightPillStyles } from '@/utils/router/styles';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 
@@ -12,12 +11,23 @@ function truncateUsername(username: string) {
   return username.length > 16 ? `${username.slice(0, 14)}…` : username;
 }
 
+// Pill classes: layout/spacing/radius moved to className (exact Tailwind
+// steps with inlineRem: 16 — rounded-[6px] matches radius.control).
+// backgroundColor/color stay inline: theme.colors.primaryContainer /
+// onPrimaryContainer are theme-dependent with no CSS var (deliberate
+// residue, same pattern as profile/styles.ts).
+const PILL_CLASS_NAME = 'mr-4 flex-row items-center gap-1.5 rounded-[6px] px-3 py-1.5';
+const PILL_TEXT_CLASS_NAME = 'text-[14px] font-semibold';
+
 export function HeaderRightPill() {
   const { user } = useAuth();
   const router = useRouter();
   const theme = useAppTheme();
-  const { pill, primaryText } = createHeaderRightPillStyles(theme);
   const needsOnboarding = user ? needsUsernameOnboarding(user) : false;
+  // Interactive header control — primary family, never the neutral glass
+  // (DESIGN.md: primary blue carries all interaction).
+  const pillStyle = { backgroundColor: theme.colors.primaryContainer };
+  const primaryTextStyle = { color: theme.colors.onPrimaryContainer };
 
   const goToAccount = useCallback(() => {
     router.push(needsOnboarding ? '/onboarding' : '/account');
@@ -29,14 +39,20 @@ export function HeaderRightPill() {
     return (
       <Pressable
         onPress={goToAccount}
-        style={pill}
+        className={PILL_CLASS_NAME}
+        style={pillStyle}
         // ~32px pill + 6px hitSlop/side = 44px tap target (a11y floor).
         hitSlop={6}
         accessibilityRole="button"
         accessibilityLabel={needsOnboarding ? 'Complete profile' : `Account: ${username}`}
       >
         <Icon name="circle-user-round" size={18} color={theme.colors.onPrimaryContainer} />
-        <AppText variant="plain" style={primaryText} numberOfLines={1}>
+        <AppText
+          variant="plain"
+          className={PILL_TEXT_CLASS_NAME}
+          style={primaryTextStyle}
+          numberOfLines={1}
+        >
           {username}
         </AppText>
       </Pressable>
@@ -46,12 +62,13 @@ export function HeaderRightPill() {
   return (
     <Pressable
       onPress={goToLogin}
-      style={pill}
+      className={PILL_CLASS_NAME}
+      style={pillStyle}
       hitSlop={6}
       accessibilityRole="button"
       accessibilityLabel="Sign in"
     >
-      <AppText variant="plain" style={primaryText}>
+      <AppText variant="plain" className={PILL_TEXT_CLASS_NAME} style={primaryTextStyle}>
         Sign in
       </AppText>
     </Pressable>

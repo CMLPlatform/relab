@@ -43,7 +43,7 @@ export function ProfileSecuritySection({ mfaEnabled, onEnrolled }: ProfileSecuri
             <View className="flex-row items-center justify-between px-4 py-2.5">
               <View className="flex-1">
                 <AppText className="font-semibold">Two-step verification</AppText>
-                <AppText className="mt-px opacity-[0.55]" style={styles.actionSubtitle}>
+                <AppText className="mt-px text-[13px] opacity-[0.55]">
                   On — you enter a code at login
                 </AppText>
               </View>

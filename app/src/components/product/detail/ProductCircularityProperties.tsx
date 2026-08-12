@@ -4,7 +4,6 @@ import { AppText } from '@/components/base/AppText';
 import { TextInput } from '@/components/base/TextInput';
 import { type AppColors, useAppTheme } from '@/theme';
 import type { CircularityProperties, Product } from '@/types/Product';
-import { styles } from './styles';
 
 type CircularityNoteKey = keyof CircularityProperties;
 
@@ -125,7 +124,7 @@ function CircularityNoteField({
 
   return (
     <View className="py-[14px]">
-      <AppText variant="plain" className="font-semibold" style={styles.propertyTitle}>
+      <AppText variant="plain" className="text-[18px] font-semibold">
         {label}
       </AppText>
       {editMode ? (
@@ -135,16 +134,13 @@ function CircularityNoteField({
           multiline
           numberOfLines={3}
           maxLength={500}
-          className="min-h-20 rounded-md border p-3"
-          style={[
-            styles.input,
-            styles.multilineInput,
-            {
-              borderColor: colors.outline,
-              backgroundColor: colors.surface,
-              color: colors.onSurface,
-            },
-          ]}
+          className="min-h-20 rounded-md border p-3 text-[16px]"
+          style={{
+            textAlignVertical: 'top',
+            borderColor: colors.outline,
+            backgroundColor: colors.surface,
+            color: colors.onSurface,
+          }}
         />
       ) : (
         <AppText className="mb-2 opacity-70" style={{ color: colors.onSurface }}>

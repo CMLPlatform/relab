@@ -111,18 +111,15 @@ export function ProfileEmailUpdatesSection({
   saving,
   onSetEnabled,
 }: ProfileEmailUpdatesSectionProps) {
-  const theme = useAppTheme();
-  const styles = createProfileSectionStyles(theme);
-
   return (
     <View className="mx-1">
       <View className="flex-row items-start justify-between gap-3 px-4 py-2.5">
         <View className="flex-1">
           <AppText className="font-semibold">Receive Relab account updates</AppText>
-          <AppText className="mt-px opacity-[0.55]" style={styles.actionSubtitle}>
+          <AppText className="mt-px text-[13px] opacity-[0.55]">
             Opt in to occasional product and project updates tied to your account.
           </AppText>
-          <AppText className="mt-1.5 font-semibold" style={styles.newsletterState}>
+          <AppText className="mt-1.5 text-[13px] font-semibold">
             {enabled ? 'Currently enabled.' : 'Currently disabled.'}
           </AppText>
         </View>
@@ -166,9 +163,7 @@ function ThemeModeOption({
       accessibilityLabel={`${label} theme`}
     >
       <Icon name={icon} size={22} color={color} />
-      <AppText className="font-semibold" style={styles.themeModeLabel}>
-        {label}
-      </AppText>
+      <AppText className="text-[12px] font-semibold">{label}</AppText>
     </Pressable>
   );
 }
@@ -216,9 +211,7 @@ function VisibilityOption({
         >
           {option.title}
         </AppText>
-        <AppText className="mt-px opacity-[0.55]" style={styles.actionSubtitle}>
-          {option.subtitle}
-        </AppText>
+        <AppText className="mt-px text-[13px] opacity-[0.55]">{option.subtitle}</AppText>
       </View>
       {isActive ? <Icon name="check" size={20} color={theme.colors.primary} /> : null}
     </Pressable>

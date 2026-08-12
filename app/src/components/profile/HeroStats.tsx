@@ -70,16 +70,10 @@ function StatCard({
   const styles = createProfileSectionStyles(useAppTheme());
   return (
     <View className="flex-1 items-center rounded-lg p-2.5" style={styles.statItem}>
-      <AppText
-        className="font-bold"
-        style={styles.statValue}
-        numberOfLines={singleLine ? 1 : undefined}
-      >
+      <AppText className="text-[20px] font-bold" numberOfLines={singleLine ? 1 : undefined}>
         {value}
       </AppText>
-      <AppText className="mt-0.5 font-semibold uppercase opacity-50" style={styles.statLabel}>
-        {label}
-      </AppText>
+      <AppText className="mt-0.5 text-[10px] font-semibold uppercase opacity-50">{label}</AppText>
     </View>
   );
 }

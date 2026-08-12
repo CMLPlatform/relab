@@ -3,7 +3,6 @@ import { Pressable, type TextStyle, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
-import { createProfileSectionStyles } from './styles';
 
 export type OAuthAccount = {
   account_email?: string | null;
@@ -29,7 +28,6 @@ export function ProfileAction({
   triggerRef,
 }: ProfileActionProps) {
   const theme = useAppTheme();
-  const styles = createProfileSectionStyles(theme);
   return (
     <Pressable
       ref={triggerRef}
@@ -43,9 +41,7 @@ export function ProfileAction({
           {title}
         </AppText>
         {subtitle ? (
-          <AppText className="mt-px opacity-[0.55]" style={styles.actionSubtitle}>
-            {subtitle}
-          </AppText>
+          <AppText className="mt-px text-[13px] opacity-[0.55]">{subtitle}</AppText>
         ) : null}
       </View>
       {!hideChevron ? (
