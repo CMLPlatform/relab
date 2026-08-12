@@ -907,20 +907,24 @@ these by surprise:
   short-lived), but do not read a post-deploy lull in 429s as a real change in
   traffic.
 
-- **Minimal alerting only.** `just watchdog prod` checks the API container's health
-  and the age of the newest restic snapshot, and exits non-zero with an `ALERT[...]`
-  line per failure. Wire it to host cron so failures reach an operator:
+- **Minimal alerting only.** `just watchdog prod` checks the API container's health and the age of
+  the newest restic snapshot, and exits non-zero with an `ALERT[...]` line per failure. Wire it to
+  host cron **as the deploy user** (docker-group membership is the only privilege it needs — not
+  root), paired with a dead-man's switch (e.g. healthchecks.io: create a check with period 1 hour,
+  grace 10 minutes):
 
   ```cron
-  MAILTO=ops@example.org
-  17 * * * * cd /path/to/relab && just watchdog prod >/dev/null
+  17 * * * * cd /path/to/relab && out=$(just watchdog prod 2>&1) && curl -fsS -m 10 --retry 3 https://hc-ping.com/YOUR-UUID >/dev/null || curl -fsS -m 10 --retry 3 --data-raw "$out" https://hc-ping.com/YOUR-UUID/fail >/dev/null
   ```
 
-  Cron's `PATH` usually does not include `just` — use an absolute path to it or set
-  `PATH=` in the crontab — and the cron user needs docker access (the `docker` group).
+  Success pings the check; failure pings `/fail` with the alert text as the message body; and a dead
+  cron job alerts by *silence* — the failure mode plain `MAILTO` can never report. (`MAILTO` only
+  works if a sendmail-compatible MTA such as `msmtp-mta` is installed; without one, cron drops the
+  mail silently.) Cron's `PATH` usually does not include `just` — use an absolute path to it or set
+  `PATH=` in the crontab.
 
-  Richer alerting (Loki rules, external uptime monitoring, Grafana) is still future
-  work; anything the watchdog does not check is still discovered by hand.
+  Richer alerting (Loki rules, Grafana) is still future work; anything the watchdog does not check
+  is still discovered by hand.
 
 - **This cutover is start-then-migrate.** The §8 commands bring the API up
   against the old schema before `prod-migrate` runs. Harmless here because you
