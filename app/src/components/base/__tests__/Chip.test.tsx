@@ -11,6 +11,31 @@ jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: jest.fn(() => 'light'),
 }));
 
+// react-test-renderer's ReactTestInstance tree interleaves composite and host
+// nodes with identical displayNames (RN's `View` forwardRef vs. the host
+// primitive both read as "View"), so walking `.parent`/`.children` can't
+// reliably tell "inside the Text node" from "next to it". `toJSON()` returns
+// only the host tree, so sibling-ness there is unambiguous: find the
+// `children` array that directly contains a node matching `matches`.
+type JsonNode = { type: string; props?: Record<string, unknown>; children?: unknown[] | null };
+
+function findContainingChildren(
+  node: JsonNode | null,
+  matches: (n: JsonNode) => boolean,
+): unknown[] | null {
+  const children = (node?.children ?? []) as unknown[];
+  if (children.some((c) => typeof c === 'object' && c && matches(c as JsonNode))) {
+    return children;
+  }
+  for (const child of children) {
+    if (typeof child === 'object' && child) {
+      const found = findContainingChildren(child as JsonNode, matches);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 describe('Chip', () => {
   const user = setupUser();
 
@@ -80,5 +105,37 @@ describe('Chip', () => {
     );
 
     expect(screen.getByTestId('chip-icon')).toBeOnTheScreen();
+  });
+
+  it('renders the icon as a sibling of the value text, not nested inside it', () => {
+    const { toJSON } = renderWithProviders(
+      <Chip icon={<View testID="chip-icon" />}>Chip Content</Chip>,
+    );
+    const json = toJSON() as unknown as JsonNode;
+
+    const isIcon = (n: JsonNode) => n.props?.testID === 'chip-icon';
+    const isValueText = (n: JsonNode) =>
+      n.type === 'Text' && !!n.children?.includes('Chip Content');
+
+    const iconSiblings = findContainingChildren(json, isIcon);
+    // Same children array as the icon, and it contains the value Text too —
+    // proves they're siblings in one flex row, not the icon nested inside
+    // the Text (ProductCard's old `{children}{icon}` pattern).
+    expect(iconSiblings).not.toBeNull();
+    expect(
+      iconSiblings?.some((c) => typeof c === 'object' && c && isValueText(c as JsonNode)),
+    ).toBe(true);
+  });
+
+  it('renders no icon node when icon is false (ProductTags gates it on editMode)', () => {
+    const { toJSON } = renderWithProviders(<Chip icon={false}>No Icon</Chip>);
+    const json = toJSON() as unknown as JsonNode;
+
+    expect(JSON.stringify(json)).not.toContain('chip-icon');
+    // The value segment's children array holds only the Text — `false`
+    // renders nothing, so no stray empty node sits where the icon would go.
+    const isValueText = (n: JsonNode) => n.type === 'Text' && !!n.children?.includes('No Icon');
+    const valueSiblings = findContainingChildren(json, isValueText);
+    expect(valueSiblings).toHaveLength(1);
   });
 });

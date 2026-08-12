@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
+import { Svg } from 'react-native-svg';
 import ProductTags from '@/components/product/detail/ProductTags';
 import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
@@ -127,6 +128,25 @@ describe('ProductTags', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Model name'), 'NewModel');
     fireEvent.press(screen.getByText('OK'));
     expect(onModelChange).toHaveBeenCalledWith('NewModel');
+  });
+
+  it('renders no edit-pencil icon on brand/model chips outside editMode', () => {
+    const { UNSAFE_root } = renderWithProviders(
+      <ProductTags product={baseProduct} editMode={false} />,
+      { withDialog: true },
+    );
+    // Chip's icon prop is `editMode && <Icon .../>`, i.e. `false` when not
+    // editing — regression check that Chip renders nothing for it (no crash,
+    // no stray icon) rather than the string "false" or an empty slot.
+    expect(UNSAFE_root.findAllByType(Svg)).toHaveLength(0);
+  });
+
+  it('renders an edit-pencil icon on both brand and model chips in editMode', () => {
+    const { UNSAFE_root } = renderWithProviders(
+      <ProductTags product={baseProduct} editMode={true} />,
+      { withDialog: true },
+    );
+    expect(UNSAFE_root.findAllByType(Svg)).toHaveLength(2);
   });
 
   it('renders Brand/Model/Amount chips when product is a component (isComponent=true)', () => {
