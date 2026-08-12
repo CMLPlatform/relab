@@ -83,6 +83,9 @@ compose.host.yaml
 # Local Docker Compose secret files
 secrets/
 
+# Local restic backup repository (root-owned, created by the backup service)
+backups/
+
 # Local OpenTofu/Terraform working files
 **/.terraform/
 *.tfstate
