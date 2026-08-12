@@ -12,8 +12,10 @@ import { Fab } from '@/components/base/Fab';
 import { OverlaySurface } from '@/components/base/OverlaySurface';
 import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
 import { spacing } from '@/constants';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useAppTheme } from '@/theme';
 import { getFloatingPosition } from '@/utils/platformLayout';
+import { SaveBar } from './SaveBar';
 
 type ProductFabControlsProps = {
   entityRole: 'product' | 'component';
@@ -54,22 +56,38 @@ export function ProductFabControls({
   primaryFabIcon,
   streamTriggerRef,
 }: ProductFabControlsProps) {
+  const { isMd } = useBreakpoint();
   return (
     <>
-      <PrimaryProductFab
-        entityRole={entityRole}
-        icon={primaryFabIcon}
-        onPrimaryPress={onPrimaryFabPress}
-        fabExtended={fabExtended}
-        validationError={validationError}
-        validationValid={validationValid}
-        errorCount={errorCount}
-        onErrorSummaryPress={onErrorSummaryPress}
-        isSaving={isSaving}
-        isDirty={isDirty}
-        ownedByMe={ownedByMe}
-        editMode={editMode}
-      />
+      {isMd ? (
+        <SaveBar
+          entityRole={entityRole}
+          editMode={editMode}
+          isDirty={isDirty}
+          isSaving={isSaving}
+          validationValid={validationValid}
+          validationError={validationError}
+          errorCount={errorCount}
+          onErrorSummaryPress={onErrorSummaryPress}
+          onPrimaryPress={onPrimaryFabPress}
+          ownedByMe={ownedByMe}
+        />
+      ) : (
+        <PrimaryProductFab
+          entityRole={entityRole}
+          icon={primaryFabIcon}
+          onPrimaryPress={onPrimaryFabPress}
+          fabExtended={fabExtended}
+          validationError={validationError}
+          validationValid={validationValid}
+          errorCount={errorCount}
+          onErrorSummaryPress={onErrorSummaryPress}
+          isSaving={isSaving}
+          isDirty={isDirty}
+          ownedByMe={ownedByMe}
+          editMode={editMode}
+        />
+      )}
       {productId ? (
         <CameraStreamPicker
           productId={productId}
