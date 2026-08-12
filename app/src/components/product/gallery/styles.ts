@@ -1,91 +1,31 @@
 import { StyleSheet } from 'react-native';
-import { radius } from '@/constants';
 import type { AppTheme } from '@/theme';
 import { alpha, memoizeByTheme } from '@/theme';
 
+// Residue after the NativeWind convergence: everything with an exact class
+// (layout, spacing, radius) moved to className at the call site. What's left
+// is theme-dependent color (tokens.* / alpha() have no CSS var) that must
+// stay in `style`.
 export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
-    galleryContainer: {
-      position: 'relative',
-    },
-    overlayActionRow: {
-      position: 'absolute',
-      top: 12,
-      left: 12,
-      flexDirection: 'row',
-      gap: 8,
-    },
     overlayIconButton: {
       backgroundColor: theme.tokens.overlay.media,
-      width: 36,
-      height: 36,
-      borderRadius: radius.full,
-      justifyContent: 'center',
-      alignItems: 'center',
     },
     navButton: {
-      position: 'absolute',
-      top: '50%',
-      marginTop: -22,
-      width: 44,
-      height: 44,
-      borderRadius: radius.full,
-      justifyContent: 'center',
-      alignItems: 'center',
       backgroundColor: alpha(theme.colors.scrim, 0.35),
     },
     counterBadge: {
-      position: 'absolute',
-      bottom: 12,
-      right: 12,
       backgroundColor: alpha(theme.colors.scrim, 0.6),
-      paddingHorizontal: 12,
-      paddingVertical: 4,
-      borderRadius: radius.full,
     },
     deleteButton: {
-      position: 'absolute',
-      top: 12,
-      right: 12,
       backgroundColor: alpha(theme.tokens.status.danger, 0.8),
-      width: 36,
-      height: 36,
-      borderRadius: radius.full,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    emptyStateRow: {
-      flexDirection: 'row',
-      gap: 12,
-      height: 300,
     },
     emptyActionCard: {
-      flex: 1,
       backgroundColor: theme.tokens.surface.sunken,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderRadius: radius.card,
-      borderWidth: 2,
       borderColor: theme.tokens.border.subtle,
-      borderStyle: 'dashed',
     },
     emptyActionText: {
       color: theme.tokens.text.muted,
-      marginTop: 8,
-    },
-    thumbnailContainer: {
-      marginTop: 12,
-      paddingHorizontal: 16,
-    },
-    thumbnailItem: {
-      marginRight: 8,
-      borderRadius: radius.control,
-      overflow: 'hidden',
-      borderWidth: 2,
-    },
-    previewDialogContent: {
-      alignItems: 'center',
-      gap: 12,
     },
   });
 });

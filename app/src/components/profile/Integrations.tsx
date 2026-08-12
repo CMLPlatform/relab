@@ -39,16 +39,16 @@ export function ProfileIntegrationsSection({
     }
   }, []);
   return (
-    <View style={styles.section}>
-      <View style={styles.integrationRow}>
-        <View style={styles.integrationIcon}>
+    <View className="mx-1">
+      <View className="flex-row items-center gap-3 px-4 py-2.5">
+        <View className="w-8 items-center">
           <Icon as={Webcam} size={22} color={theme.colors.onSurfaceVariant} />
         </View>
-        <View style={styles.integrationCopy}>
-          <AppText style={styles.actionTitle}>RPi Camera</AppText>
-          <AppText style={styles.actionSubtitle}>
+        <View className="flex-1">
+          <AppText className="font-semibold">RPi Camera</AppText>
+          <AppText className="mt-px opacity-[0.55]" style={styles.actionSubtitle}>
             Capture images with a Raspberry Pi camera during disassembly.{' '}
-            <AppText style={styles.docsLink} onPress={openDocs}>
+            <AppText className="underline" style={styles.docsLink} onPress={openDocs}>
               Learn more
             </AppText>
           </AppText>
@@ -70,13 +70,13 @@ export function ProfileIntegrationsSection({
       ) : null}
 
       {rpiEnabled ? (
-        <View style={styles.integrationRow}>
-          <View style={styles.integrationIcon}>
+        <View className="flex-row items-center gap-3 px-4 py-2.5">
+          <View className="w-8 items-center">
             <Icon as={Radio} size={22} color={theme.colors.onSurfaceVariant} />
           </View>
-          <View style={styles.integrationCopy}>
-            <AppText style={styles.actionTitle}>YouTube Live</AppText>
-            <AppText style={styles.actionSubtitle}>
+          <View className="flex-1">
+            <AppText className="font-semibold">YouTube Live</AppText>
+            <AppText className="mt-px opacity-[0.55]" style={styles.actionSubtitle}>
               {youtubeAuthPending
                 ? 'Connecting to Google…'
                 : 'Stream product sessions live to YouTube.'}

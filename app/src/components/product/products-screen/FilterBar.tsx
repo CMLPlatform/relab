@@ -6,7 +6,7 @@ import { Icon, type IconName } from '@/components/base/Icon';
 import { Menu } from '@/components/base/Menu';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { useAppTheme } from '@/theme';
-import { PRODUCTS_DATE_PRESETS, productsScreenStyles as styles } from './shared';
+import { PRODUCTS_DATE_PRESETS } from './shared';
 
 type FilterChipIcon = IconName;
 
@@ -178,7 +178,7 @@ export function ProductsFilterBar({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterScrollContent}
+        contentContainerClassName="gap-2 py-0.5"
       >
         {isAuthenticated ? (
           <FilterChip

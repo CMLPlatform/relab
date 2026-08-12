@@ -21,7 +21,7 @@ export function ProfileAccountSection({
 }: ProfileAccountSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
-    <View style={styles.section}>
+    <View className="mx-1">
       <ProfileAction
         title="Sign out"
         subtitle="Switch to another account"
@@ -80,7 +80,7 @@ export function ProfileLinkedAccountsSection({
   }, [onRequestUnlink, unlinkTriggerRef]);
   const linkGithub = useCallback(() => onLinkOAuth('github'), [onLinkOAuth]);
   return (
-    <View style={styles.section}>
+    <View className="mx-1">
       {isGoogleLinked ? (
         <ProfileAction
           title="Unlink Google"
@@ -127,7 +127,7 @@ export function ProfileDangerZoneSection({
 }: ProfileDangerZoneSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
-    <View style={[styles.section, styles.dangerSection]}>
+    <View className="mx-1 mb-10">
       <ProfileAction
         title="Delete account?"
         onPress={onDeleteAccount}

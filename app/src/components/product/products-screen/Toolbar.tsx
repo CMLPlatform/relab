@@ -3,7 +3,6 @@ import { View } from 'react-native';
 import { IconButton } from '@/components/base/IconButton';
 import { Menu } from '@/components/base/Menu';
 import { Searchbar } from '@/components/base/Searchbar';
-import { productsScreenStyles as styles } from './shared';
 
 type SortOption = {
   label: string;
@@ -50,13 +49,13 @@ export function ProductsSearchToolbar({
   const openSortMenu = useCallback(() => onSetSortMenuVisible(true), [onSetSortMenuVisible]);
 
   return (
-    <View style={styles.searchToolbar}>
+    <View className="flex-row items-center gap-1">
       <Searchbar
         placeholder="Search products"
         onChangeText={handleSearchChange}
         value={searchQuery}
         loading={isFetching && !!debouncedSearchQuery}
-        style={styles.searchbar}
+        style={{ flex: 1 }}
       />
       <Menu
         visible={sortMenuVisible}

@@ -101,7 +101,7 @@ export function ProfileDialogs({
         </AppText>
         <AppText>Are you sure you want to disconnect this {providerToUnlink} account?</AppText>
         {isLastLinkedProvider ? (
-          <AppText style={styles.unlinkWarning}>
+          <AppText className="mt-2.5" style={styles.unlinkWarning}>
             This is your only linked account. If you never set a password, you will have to reset it
             by email to sign in again.
           </AppText>
@@ -150,9 +150,9 @@ export function ProfileDialogs({
         </AppText>
         <AppText>To delete your account and all its data, email us at:</AppText>
         <Link href="mailto:relab@cml.leidenuniv.nl">
-          <AppText style={styles.deleteEmail}>relab@cml.leidenuniv.nl</AppText>
+          <AppText className="mt-2.5 font-bold">relab@cml.leidenuniv.nl</AppText>
         </Link>
-        <AppText style={styles.deleteMessage}>We&apos;ll confirm the deletion by email.</AppText>
+        <AppText className="mt-2.5">We&apos;ll confirm the deletion by email.</AppText>
         <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={onDismissDeleteDialog}>
             OK

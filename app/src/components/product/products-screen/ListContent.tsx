@@ -86,12 +86,12 @@ function PaginationControls({
   const end = Math.min(page * PAGE_SIZE, total);
 
   return (
-    <View style={styles.paginationContainer}>
-      <AppText style={styles.paginationSummary}>
+    <View className="items-center gap-2 p-4">
+      <AppText className="opacity-70" style={styles.paginationSummary}>
         Page {page} of {totalPages}; Showing {start.toLocaleString()}-{end.toLocaleString()} of{' '}
         {total.toLocaleString()} products
       </AppText>
-      <View style={styles.paginationActions}>
+      <View className="flex-row flex-wrap items-center justify-center gap-1">
         <AppButton
           variant="outline"
           onPress={goPrev}
@@ -102,7 +102,7 @@ function PaginationControls({
         </AppButton>
         {getPageNumbers().map((pageValue) =>
           pageValue === 'ellipsis-start' || pageValue === 'ellipsis-end' ? (
-            <AppText key={pageValue} style={styles.paginationEllipsis}>
+            <AppText key={pageValue} className="px-1">
               …
             </AppText>
           ) : (
@@ -188,10 +188,8 @@ function ProductsListFooter({
 
   if (!hasMore && productCount > 0) {
     return (
-      <View style={styles.footerSummary}>
-        <AppText style={styles.footerSummaryText}>
-          All {total.toLocaleString()} products shown
-        </AppText>
+      <View className="items-center py-5">
+        <AppText className="opacity-60">All {total.toLocaleString()} products shown</AppText>
       </View>
     );
   }
@@ -199,8 +197,8 @@ function ProductsListFooter({
   if (!hasMore) return null;
 
   return (
-    <View style={styles.loadMoreContainer}>
-      <AppText style={styles.loadMoreSummary}>
+    <View className="items-center py-4">
+      <AppText className="mb-2 opacity-70">
         Showing {productCount.toLocaleString()} of {total.toLocaleString()}
       </AppText>
       {isFetching ? (
@@ -278,7 +276,7 @@ export function ProductsListContent({
 
   if (isLoading && productList.length === 0) {
     return (
-      <View style={styles.listContainer}>
+      <View className="flex-1">
         <FlatList
           data={Array.from({ length: 8 })}
           keyExtractor={skeletonKeyExtractor}
@@ -286,10 +284,8 @@ export function ProductsListContent({
           scrollEnabled={false}
         />
         {slowLoading ? (
-          <View style={styles.slowLoadingOverlay}>
-            <Card
-              style={[styles.slowLoadingCard, { backgroundColor: theme.colors.surfaceVariant }]}
-            >
+          <View className="absolute right-0 bottom-[100px] left-0 items-center">
+            <Card className="px-4 py-2" style={{ backgroundColor: theme.colors.surfaceVariant }}>
               <AppText style={{ fontSize: 12 }}>
                 This is taking longer than usual. Please wait…
               </AppText>
@@ -313,7 +309,7 @@ export function ProductsListContent({
       renderItem={renderProduct}
       ListFooterComponent={listFooter}
       ListEmptyComponent={
-        <View style={styles.emptyStateContainer}>
+        <View className="items-center p-5">
           <Image
             source={
               theme.dark
@@ -329,7 +325,7 @@ export function ProductsListContent({
           ) : !isAuthenticated ? (
             <AppText>No products available yet. Sign in to add your own.</AppText>
           ) : filterMode === 'mine' ? (
-            <View style={styles.emptyStateBody}>
+            <View className="flex-row flex-wrap items-center justify-center">
               <AppText style={styles.emptyStateText}>
                 You haven&apos;t created any products yet. Tap the{' '}
               </AppText>
@@ -337,7 +333,7 @@ export function ProductsListContent({
               <AppText style={styles.emptyStateText}> button to add your first one.</AppText>
             </View>
           ) : (
-            <View style={styles.emptyStateBody}>
+            <View className="flex-row flex-wrap items-center justify-center">
               <AppText style={styles.emptyStateText}>No products yet. Tap the </AppText>
               <NewProductPill />
               <AppText style={styles.emptyStateText}> button to add the first one.</AppText>

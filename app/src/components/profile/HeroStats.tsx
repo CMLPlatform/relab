@@ -69,19 +69,24 @@ function StatCard({
 }) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
-    <View style={styles.statItem}>
-      <AppText style={styles.statValue} numberOfLines={singleLine ? 1 : undefined}>
+    <View className="flex-1 items-center rounded-lg p-2.5" style={styles.statItem}>
+      <AppText
+        className="font-bold"
+        style={styles.statValue}
+        numberOfLines={singleLine ? 1 : undefined}
+      >
         {value}
       </AppText>
-      <AppText style={styles.statLabel}>{label}</AppText>
+      <AppText className="mt-0.5 font-semibold uppercase opacity-50" style={styles.statLabel}>
+        {label}
+      </AppText>
     </View>
   );
 }
 
 export function ProfileStatsSection({ ownStats, statsLoading }: ProfileStatsSectionProps) {
-  const styles = createProfileSectionStyles(useAppTheme());
   return (
-    <View style={styles.statsRow}>
+    <View className="flex-row gap-2 px-3 py-4">
       <StatCard label="Products" value={statsLoading ? '...' : (ownStats?.product_count ?? 0)} />
       <StatCard label="Photos" value={statsLoading ? '...' : (ownStats?.image_count ?? 0)} />
       <StatCard

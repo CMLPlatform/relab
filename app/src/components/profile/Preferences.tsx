@@ -23,8 +23,8 @@ export function ProfileAppearanceSection({
 }: ProfileAppearanceSectionProps) {
   const styles = createProfileSectionStyles(useAppTheme());
   return (
-    <View style={styles.section}>
-      <View style={styles.themeModeRow}>
+    <View className="mx-1">
+      <View className="flex-row gap-2 px-4 py-2.5">
         {(
           [
             { mode: 'auto', icon: SunMoon, label: 'Auto' },
@@ -63,7 +63,7 @@ export function ProfileVisibilitySection({
   const activeVisibility = profile.preferences.profile_visibility || 'public';
 
   return (
-    <View style={styles.section}>
+    <View className="mx-1">
       {(
         [
           {
@@ -115,14 +115,14 @@ export function ProfileEmailUpdatesSection({
   const styles = createProfileSectionStyles(theme);
 
   return (
-    <View style={styles.section}>
-      <View style={styles.newsletterRow}>
-        <View style={styles.newsletterCopy}>
-          <AppText style={styles.actionTitle}>Receive Relab account updates</AppText>
-          <AppText style={styles.actionSubtitle}>
+    <View className="mx-1">
+      <View className="flex-row items-start justify-between gap-3 px-4 py-2.5">
+        <View className="flex-1">
+          <AppText className="font-semibold">Receive Relab account updates</AppText>
+          <AppText className="mt-px opacity-[0.55]" style={styles.actionSubtitle}>
             Opt in to occasional product and project updates tied to your account.
           </AppText>
-          <AppText style={styles.newsletterState}>
+          <AppText className="mt-1.5 font-semibold" style={styles.newsletterState}>
             {enabled ? 'Currently enabled.' : 'Currently disabled.'}
           </AppText>
         </View>
@@ -156,6 +156,7 @@ function ThemeModeOption({
 
   return (
     <Pressable
+      className="flex-1 items-center gap-1.5 rounded-lg border py-3"
       style={[styles.themeModeOption, active && styles.themeModeOptionActive]}
       onPress={handlePress}
       accessibilityRole="radio"
@@ -163,7 +164,9 @@ function ThemeModeOption({
       accessibilityLabel={`${label} theme`}
     >
       <Icon as={icon} size={22} />
-      <AppText style={styles.themeModeLabel}>{label}</AppText>
+      <AppText className="font-semibold" style={styles.themeModeLabel}>
+        {label}
+      </AppText>
     </Pressable>
   );
 }
@@ -190,24 +193,30 @@ function VisibilityOption({
 
   return (
     <Pressable
-      style={[styles.visibilityOption, isActive && styles.visibilityOptionActive]}
+      className="my-0.5 flex-row items-center gap-3 rounded-lg px-4 py-3"
+      style={isActive ? styles.visibilityOptionActive : undefined}
       onPress={handlePress}
       disabled={saving}
       accessibilityRole="radio"
       accessibilityState={{ selected: isActive }}
     >
-      <View style={styles.visibilityIcon}>
+      <View className="w-8 items-center">
         <Icon
           as={option.icon}
           size={24}
           color={isActive ? theme.colors.primary : theme.tokens.text.muted}
         />
       </View>
-      <View style={styles.actionCopy}>
-        <AppText style={[styles.actionTitle, isActive && { color: theme.colors.primary }]}>
+      <View className="flex-1">
+        <AppText
+          className="font-semibold"
+          style={isActive ? { color: theme.colors.primary } : undefined}
+        >
           {option.title}
         </AppText>
-        <AppText style={styles.actionSubtitle}>{option.subtitle}</AppText>
+        <AppText className="mt-px opacity-[0.55]" style={styles.actionSubtitle}>
+          {option.subtitle}
+        </AppText>
       </View>
       {isActive ? <Icon as={Check} size={20} color={theme.colors.primary} /> : null}
     </Pressable>

@@ -34,10 +34,13 @@ export function ProductsWelcomeCard({
   if (visible !== true) return null;
 
   return (
-    <Card style={[styles.welcomeCard, { backgroundColor: theme.colors.surfaceVariant }]}>
-      <View style={styles.welcomeCardContent}>
-        <View style={styles.welcomeHeaderRow}>
-          <View style={[styles.welcomeIcon, { backgroundColor: theme.colors.primaryContainer }]}>
+    <Card className="mx-0 rounded-lg" style={{ backgroundColor: theme.colors.surfaceVariant }}>
+      <View className="gap-3">
+        <View className="flex-row items-center gap-3">
+          <View
+            className="h-11 w-11 items-center justify-center rounded-lg"
+            style={{ backgroundColor: theme.colors.primaryContainer }}
+          >
             <Image
               source={
                 theme.dark
@@ -49,8 +52,8 @@ export function ProductsWelcomeCard({
               accessibilityLabel=""
             />
           </View>
-          <View style={styles.welcomeTextBlock}>
-            <AppText style={styles.welcomeTitle}>
+          <View className="flex-1">
+            <AppText className="font-extrabold" style={styles.welcomeTitle}>
               {!isAuthenticated
                 ? 'Welcome to Relab'
                 : currentUser?.isVerified
@@ -60,13 +63,13 @@ export function ProductsWelcomeCard({
           </View>
         </View>
 
-        <View style={styles.welcomeBody}>
+        <View className="gap-0">
           {!isAuthenticated ? (
             <AppText style={styles.welcomeBodyText}>
               Browse products freely. Sign in when you are ready to add your own.
             </AppText>
           ) : currentUser?.isVerified ? (
-            <View style={styles.welcomeSentence}>
+            <View className="flex-row flex-wrap items-center">
               <AppText style={styles.welcomeBodyText}>Use the </AppText>
               <NewProductPill />
               <AppText style={styles.welcomeBodyText}>
@@ -76,7 +79,7 @@ export function ProductsWelcomeCard({
               <AppText style={styles.welcomeBodyText}> anytime.</AppText>
             </View>
           ) : (
-            <View style={styles.welcomeSentence}>
+            <View className="flex-row flex-wrap items-center">
               <AppText style={styles.welcomeBodyText}>
                 You can browse products and manage your
               </AppText>
@@ -90,7 +93,7 @@ export function ProductsWelcomeCard({
           )}
         </View>
 
-        <View style={styles.welcomeActions}>
+        <View className="flex-row flex-wrap justify-end gap-2">
           {!isAuthenticated ? (
             <AppButton variant="tonal" onPress={onSignIn}>
               Sign in

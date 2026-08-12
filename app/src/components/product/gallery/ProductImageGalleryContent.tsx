@@ -91,7 +91,7 @@ export function ProductImageGalleryContent({
   );
 
   return (
-    <View style={styles.galleryContainer}>
+    <View className="relative">
       <GalleryFlatList
         ref={setGalleryRef}
         data={items}
@@ -121,7 +121,10 @@ export function ProductImageGalleryContent({
             disabled={selectedIndex === imageCount - 1}
             style={{ right: 8 }}
           />
-          <View style={styles.counterBadge}>
+          <View
+            className="absolute right-3 bottom-3 rounded-full px-3 py-1"
+            style={styles.counterBadge}
+          >
             <Text style={{ color: theme.tokens.text.onMedia, fontSize: 12, fontWeight: 'bold' }}>
               {selectedIndex + 1} / {imageCount}
             </Text>
@@ -131,7 +134,7 @@ export function ProductImageGalleryContent({
 
       {editMode ? (
         <>
-          <View style={styles.overlayActionRow}>
+          <View className="absolute top-3 left-3 flex-row gap-2">
             {showCameraOption ? (
               <OverlayActionButton onPress={onTakePhoto} label="Take photo" icon="camera" />
             ) : null}
@@ -148,6 +151,7 @@ export function ProductImageGalleryContent({
                 accessibilityLabel={
                   hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
                 }
+                className="h-9 w-9 items-center justify-center rounded-full"
                 style={[
                   styles.overlayIconButton,
                   { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
@@ -165,6 +169,7 @@ export function ProductImageGalleryContent({
           <Pressable
             onPress={onDeleteImage}
             accessibilityLabel="Delete photo"
+            className="absolute top-3 right-3 h-9 w-9 items-center justify-center rounded-full"
             style={styles.deleteButton}
           >
             <Icon name="delete" size="md" color={theme.tokens.text.onMedia} />
@@ -228,7 +233,12 @@ function OverlayActionButton({
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
   return (
-    <Pressable onPress={onPress} accessibilityLabel={label} style={styles.overlayIconButton}>
+    <Pressable
+      onPress={onPress}
+      accessibilityLabel={label}
+      className="h-9 w-9 items-center justify-center rounded-full"
+      style={styles.overlayIconButton}
+    >
       <Icon name={icon} size="md" color={theme.tokens.text.onMedia} />
     </Pressable>
   );
@@ -255,6 +265,7 @@ function GalleryNavButton({
       accessibilityLabel={label}
       disabled={disabled}
       hitSlop={15}
+      className="absolute top-1/2 mt-[-22px] h-11 w-11 items-center justify-center rounded-full"
       style={[styles.navButton, style, { opacity: disabled ? 0.3 : 1 }]}
     >
       <Icon

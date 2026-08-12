@@ -1,29 +1,20 @@
 import { StyleSheet } from 'react-native';
-import { radius } from '@/constants';
 
+// Residue after the NativeWind convergence: everything with an exact class
+// (layout, spacing, radius, border) moved to className at the call site.
 export const styles = StyleSheet.create({
-  sectionSummary: {
-    opacity: 0.7,
-    marginBottom: 8,
-  },
-  propertySection: {
-    paddingVertical: 14,
-  },
+  // fontSize-only (no matching lineHeight) — text-lg carries lineHeight 28
+  // the original never had, so it stays inline.
   propertyTitle: {
     fontSize: 18,
-    fontWeight: '600',
   },
-  propertyFields: {
-    gap: 12,
-  },
+  // fontSize-only (no matching lineHeight) — text-base carries lineHeight 24
+  // the original never had, so it stays inline.
   input: {
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    padding: 12,
     fontSize: 16,
   },
+  // textAlignVertical has no Tailwind/NativeWind class — RN-only prop.
   multilineInput: {
-    minHeight: 80,
     textAlignVertical: 'top',
   },
 });

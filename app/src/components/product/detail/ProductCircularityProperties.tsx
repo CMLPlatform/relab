@@ -73,9 +73,9 @@ export default function ProductCircularityProperties({
       </View>
 
       {!isSectionExpanded ? (
-        <AppText style={styles.sectionSummary}>{getHiddenSummary(noteCount)}</AppText>
+        <AppText className="mb-2 opacity-70">{getHiddenSummary(noteCount)}</AppText>
       ) : (
-        <View style={styles.propertyFields}>
+        <View className="gap-3">
           {NOTE_FIELDS.map(({ key, label }) => {
             const value = circularityProperties[key] ?? '';
             if (!editMode && !hasContent(value)) {
@@ -95,7 +95,7 @@ export default function ProductCircularityProperties({
             );
           })}
           {!editMode && noteCount === 0 ? (
-            <AppText style={styles.sectionSummary}>No associated circularity properties.</AppText>
+            <AppText className="mb-2 opacity-70">No associated circularity properties.</AppText>
           ) : null}
         </View>
       )}
@@ -124,8 +124,8 @@ function CircularityNoteField({
   );
 
   return (
-    <View style={styles.propertySection}>
-      <AppText variant="plain" style={styles.propertyTitle}>
+    <View className="py-[14px]">
+      <AppText variant="plain" className="font-semibold" style={styles.propertyTitle}>
         {label}
       </AppText>
       {editMode ? (
@@ -135,6 +135,7 @@ function CircularityNoteField({
           multiline
           numberOfLines={3}
           maxLength={500}
+          className="min-h-20 rounded-md border p-3"
           style={[
             styles.input,
             styles.multilineInput,
@@ -146,7 +147,9 @@ function CircularityNoteField({
           ]}
         />
       ) : (
-        <AppText style={[styles.sectionSummary, { color: colors.onSurface }]}>{value}</AppText>
+        <AppText className="mb-2 opacity-70" style={{ color: colors.onSurface }}>
+          {value}
+        </AppText>
       )}
     </View>
   );

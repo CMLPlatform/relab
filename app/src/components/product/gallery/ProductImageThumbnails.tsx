@@ -10,9 +10,6 @@ import {
   galleryItemKeyExtractor,
   type ScrollableListHandle,
 } from './shared';
-import { createGalleryStyles } from './styles';
-
-type GalleryStyles = ReturnType<typeof createGalleryStyles>;
 
 type Props = {
   imageCount: number;
@@ -35,7 +32,6 @@ export function ProductImageThumbnails({
   fallbackLabel,
 }: Props) {
   const theme = useAppTheme();
-  const styles = createGalleryStyles(theme);
   const selectedBorderColor = theme.tokens.border.selected;
 
   const setThumbsRef = useCallback(
@@ -52,26 +48,17 @@ export function ProductImageThumbnails({
         altText={galleryItemAltText(item, index, items.length, fallbackLabel)}
         selected={selectedIndex === index}
         selectedBorderColor={selectedBorderColor}
-        styles={styles}
         onSelectIndex={onSelectIndex}
         onScrollToIndex={onScrollToIndex}
       />
     ),
-    [
-      items,
-      fallbackLabel,
-      selectedIndex,
-      selectedBorderColor,
-      styles,
-      onSelectIndex,
-      onScrollToIndex,
-    ],
+    [items, fallbackLabel, selectedIndex, selectedBorderColor, onSelectIndex, onScrollToIndex],
   );
 
   if (imageCount <= 1) return null;
 
   return (
-    <View style={styles.thumbnailContainer}>
+    <View className="mt-3 px-4">
       <GalleryFlatList
         ref={setThumbsRef}
         data={items}
@@ -90,7 +77,6 @@ const ThumbnailItem = memo(function ThumbnailItem({
   altText,
   selected,
   selectedBorderColor,
-  styles,
   onSelectIndex,
   onScrollToIndex,
 }: {
@@ -99,7 +85,6 @@ const ThumbnailItem = memo(function ThumbnailItem({
   altText: string;
   selected: boolean;
   selectedBorderColor: string;
-  styles: GalleryStyles;
   onSelectIndex: (index: number) => void;
   onScrollToIndex: (index: number) => void;
 }) {
@@ -113,10 +98,8 @@ const ThumbnailItem = memo(function ThumbnailItem({
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`Select ${altText}`}
-      style={[
-        styles.thumbnailItem,
-        { borderColor: selected ? selectedBorderColor : 'transparent' },
-      ]}
+      className="mr-2 overflow-hidden rounded-md border-2"
+      style={{ borderColor: selected ? selectedBorderColor : 'transparent' }}
     >
       {uri ? (
         // Decorative: the wrapping Pressable already carries the descriptive label.

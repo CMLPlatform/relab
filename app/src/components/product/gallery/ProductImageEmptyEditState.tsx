@@ -30,7 +30,7 @@ export function ProductImageEmptyEditState({
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
   return (
-    <View style={styles.emptyStateRow}>
+    <View className="h-[300px] flex-row gap-3">
       {showCameraOption ? (
         <EmptyActionCard
           onPress={onTakePhoto}
@@ -56,6 +56,7 @@ export function ProductImageEmptyEditState({
           accessibilityLabel={
             hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
           }
+          className="flex-1 items-center justify-center rounded-lg border-2 border-dashed"
           style={[styles.emptyActionCard, { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 }]}
         >
           {isCapturing || rpiCamerasLoading ? (
@@ -63,7 +64,7 @@ export function ProductImageEmptyEditState({
           ) : (
             <Icon name="camera-wireless" size={48} color={theme.tokens.text.muted} />
           )}
-          <Text style={styles.emptyActionText}>
+          <Text className="mt-2" style={styles.emptyActionText}>
             {hasCamerasConfigured ? 'RPi Camera' : 'Connect camera'}
           </Text>
         </Pressable>
@@ -90,10 +91,13 @@ function EmptyActionCard({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      className="flex-1 items-center justify-center rounded-lg border-2 border-dashed"
       style={styles.emptyActionCard}
     >
       <Icon name={icon} size={48} color={theme.tokens.text.muted} />
-      <Text style={styles.emptyActionText}>{label}</Text>
+      <Text className="mt-2" style={styles.emptyActionText}>
+        {label}
+      </Text>
     </Pressable>
   );
 }

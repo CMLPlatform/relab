@@ -33,15 +33,20 @@ export function ProfileAction({
   return (
     <Pressable
       ref={triggerRef}
-      style={styles.action}
-      className="min-h-11"
+      className="min-h-11 flex-row items-center justify-between px-4 py-2.5"
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
     >
-      <View style={styles.actionCopy}>
-        <AppText style={[styles.actionTitle, titleStyle]}>{title}</AppText>
-        {subtitle ? <AppText style={styles.actionSubtitle}>{subtitle}</AppText> : null}
+      <View className="flex-1">
+        <AppText className="font-semibold" style={titleStyle}>
+          {title}
+        </AppText>
+        {subtitle ? (
+          <AppText className="mt-px opacity-[0.55]" style={styles.actionSubtitle}>
+            {subtitle}
+          </AppText>
+        ) : null}
       </View>
       {!hideChevron ? <Icon as={ChevronRight} size={26} className="opacity-70" /> : null}
     </Pressable>

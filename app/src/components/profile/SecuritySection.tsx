@@ -38,13 +38,15 @@ export function ProfileSecuritySection({ mfaEnabled, onEnrolled }: ProfileSecuri
 
   return (
     <>
-      <View style={styles.section}>
+      <View className="mx-1">
         {mfaEnabled ? (
           <>
-            <View style={styles.action}>
-              <View style={styles.actionCopy}>
-                <AppText style={styles.actionTitle}>Two-step verification</AppText>
-                <AppText style={styles.actionSubtitle}>On — you enter a code at login</AppText>
+            <View className="flex-row items-center justify-between px-4 py-2.5">
+              <View className="flex-1">
+                <AppText className="font-semibold">Two-step verification</AppText>
+                <AppText className="mt-px opacity-[0.55]" style={styles.actionSubtitle}>
+                  On — you enter a code at login
+                </AppText>
               </View>
               <Icon as={CheckCircle2} size={22} color={theme.tokens.status.success} />
             </View>
