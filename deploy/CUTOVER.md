@@ -461,11 +461,14 @@ just deploy-secrets-check
 `deploy-secrets-template` now generates real random values rather than
 `replace-me-*` placeholders, except for external identity credentials
 (`*_oauth_client_secret`, `microsoft_graph_client_secret`) which it cannot
-invent. **Fill those in by hand** — production now *refuses to start* on a
-placeholder rather than warning. `deploy-secrets-check` rejects both
-placeholder generations: the current `replace-me-*` marker and the May-era
-`placeholder-<env>-<name>` scaffolding (a dozen of the latter were found
-lurking on the staging host on 2026-08-12 — old trees can carry them).
+invent — those are created **empty** instead. Empty is valid for a provider
+you aren't using: an empty *optional* input passes `env-inventory`/env-policy,
+an empty *required* one still fails loudly, and the runtime accepts empty for
+unused providers. **Fill in by hand** whichever providers you actually use.
+`deploy-secrets-check` still rejects carried-over legacy placeholder values:
+the current `replace-me-*` marker and the May-era `placeholder-<env>-<name>`
+scaffolding (a dozen of the latter were found lurking on the staging host on
+2026-08-12 — old trees can carry them).
 
 Leave the two old files (`fastapi_users_secret`, `superuser_password`) in place
 until the cutover is verified, then delete them.
@@ -559,7 +562,14 @@ EMAIL_PROVIDER=smtp         # or microsoft_graph
 EMAIL_FROM=…
 EMAIL_REPLY_TO=…
 BOOTSTRAP_SUPERUSER_EMAIL=…
+GOOGLE_OAUTH_CLIENT_ID=…    # carry from backend/.env.prod — the app refuses to
+GITHUB_OAUTH_CLIENT_ID=…    # boot in prod/staging when either is empty
 ```
+
+The OAuth client *IDs* are non-secret and live here; the client *secrets* went
+to `secrets/prod/` in step 4. Found live in the staging rehearsal: with the IDs
+absent, `prod-migrate`'s `create_superuser` (and the API itself) fail at
+settings validation after the migrations have already applied.
 
 **Carry across from `backend/.env.prod`,** noting the renames:
 

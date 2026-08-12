@@ -219,9 +219,13 @@ deploy_secret_template_value() {
             ;;
         *_oauth_client_secret | microsoft_graph_client_secret)
             # External identity credentials can't be auto-generated: a random
-            # token just yields a silent 401 at runtime. Seed a recognizable
-            # placeholder so the app warns loudly at startup until it's filled.
-            printf 'replace-me-%s-%s\n' "$env" "$name"
+            # token just yields a silent 401 at runtime, and warn_on_placeholder_secrets
+            # (backend/app/core/secrets.py) hard-crashes staging/prod on ANY
+            # replace-me value, even for providers nobody configured. Empty is the
+            # correct "not configured" value: optional-and-empty passes env_policy,
+            # required-and-empty fails loudly, and the runtime accepts empty for
+            # unused providers. Fill in by hand when the provider is actually used.
+            printf ''
             ;;
         *)
             python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
@@ -281,7 +285,14 @@ deploy_secrets_template() {
             deploy_secret_template_value "$env" "$name" >"$tmp_secret"
             mv "$tmp_secret" "$path"
             chmod 644 "$path"
-            echo "created $path"
+            if [[ -s "$path" ]]; then
+                echo "created $path"
+            else
+                # External identity credentials template empty (see deploy_secret_template_value):
+                # a 0-byte file reads as "not configured" everywhere, so re-templating on every
+                # run recreates it empty again rather than "keeping" it — expected, not a bug.
+                echo "created $path (empty — fill in when using this provider)"
+            fi
         else
             # Existing operator files keep their mode; deploy-secrets-check reports
             # any that containers cannot read.
