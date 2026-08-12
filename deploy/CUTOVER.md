@@ -446,8 +446,6 @@ renames — copy, do not regenerate:
 ```bash
 cp secrets/prod/fastapi_users_secret secrets/prod/auth_token_secret
 cp secrets/prod/superuser_password   secrets/prod/bootstrap_superuser_password
-chmod 700 secrets/prod
-chmod 644 secrets/prod/auth_token_secret secrets/prod/bootstrap_superuser_password
 ```
 
 Fill any remaining gaps and verify:

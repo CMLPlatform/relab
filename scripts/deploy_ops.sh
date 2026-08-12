@@ -186,7 +186,7 @@ assert_secret_file_modes() {
             echo "error: $path is mode $mode — group/other-writable secrets are rejected" >&2
             echo "Fix with: chmod 644 $path" >&2
             failed=true
-        elif ((("8#$mode" & 8#004) == 0)); then
+        elif ((8#$mode & 8#004 == 0)); then
             echo "error: $path is mode $mode — containers run as uid 1001 and cannot read it;" >&2
             echo "run: chmod 700 $dir && chmod 644 $dir/*" >&2
             failed=true
