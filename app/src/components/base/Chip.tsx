@@ -1,9 +1,4 @@
-// NOTE (2026-08-05): assessed against the vendored `ui/badge` primitive and kept
-// hand-rolled. `Badge` is a non-pressable rounded-full View whose text styling
-// rides `TextClassContext` (consumed by `ui/text`, not `AppText`); this chip is a
-// Pressable two-segment pill on the control radius with an `errorContainer`
-// state. Nothing of the badge's behavior would be reused, so the swap adds code
-// and changes the shape. `ui/badge` stays in use for the read-only tags.
+// NOTE: hand-rolled on purpose — Pressable two-segment pill with control radius and errorContainer state.
 import type React from 'react';
 import { useCallback } from 'react';
 import {

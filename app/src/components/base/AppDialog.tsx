@@ -28,8 +28,7 @@ function stopPropagation(e: { stopPropagation: () => void }) {
  * and Escape→onRequestClose on web (see DialogProvider.tsx for the rationale
  * behind not using the vendored rn-primitives ui/dialog here).
  *
- * NOTE (2026-08-05): re-confirmed during the ui/ kit adoption pass — this stays on
- * RN-core Modal; `ui/dialog` would replace a working focus trap with a portal one.
+ * NOTE: hand-rolled on purpose — uses RN-core Modal for native focus trap and Escape→onRequestClose.
  */
 export function AppDialog({
   visible,

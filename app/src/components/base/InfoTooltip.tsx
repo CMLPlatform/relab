@@ -1,8 +1,4 @@
-// NOTE (2026-08-05): assessed against the vendored `ui/tooltip` primitive and kept
-// hand-rolled. That primitive portals through `@rn-primitives/tooltip`, and the app
-// mounts no `PortalHost` — adopting it means new app-shell infrastructure — while
-// still not covering the deliberate bits here: the 1.5s auto-dismiss and the
-// full-screen modal variant for mobile web (where hover tooltips are unreachable).
+// NOTE: hand-rolled on purpose — carries 1.5s auto-dismiss and mobile-web full-screen modal variant.
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useAppTheme } from '@/theme';
