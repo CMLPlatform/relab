@@ -40,7 +40,7 @@ DOCKER_SECRETS_DIR = Path("/run/secrets")
 
 TARGETS = (
     ("oauthaccount", "id", ("access_token", "refresh_token")),
-    ("recording_session", "id", ("broadcast_key",)),
+    ("recording_session", "camera_id", ("broadcast_key",)),
 )
 
 

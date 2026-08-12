@@ -39,11 +39,11 @@ All pairings below meet WCAG 4.5:1 against their background in both schemes.
 | primary        | `#1F4C96` | `#8FB8FF` | Brand anchor, actions, links on web                                                     |
 | primary-strong | `#143567` | `#BAD3FF` | Hover/pressed, emphasis                                                                 |
 | accent         | `#8F6212` | `#E3B95C` | Manila — highlights, live indicators, strategy tags                                     |
-| text           | `#16202E` | `#E2E6EE` | Body text                                                                               |
+| text           | `#16202E` | `#E2E6EE` | Body text (app; web uses `#E9EFF8` via --relab-brand-text)                              |
 | muted          | `#44474F` | `#C4C6D0` | Secondary text (www's `--color-muted` in tokens.css is a distinct page-chrome override) |
 | background     | `#FAFBFE` | `#11141D` | Page ground                                                                             |
 | surface        | `#F0F3FA` | `#1A2030` | Cards, panels                                                                           |
-| border         | `#C4C6D0` | `#44474F` | Hairlines, dividers                                                                     |
+| border         | `#C4C6D0` | `#44474F` | Hairlines, dividers (web uses `#D9DFE8`/`#24314A` via --relab-brand-divider)            |
 
 The machine sources are `brand.css` (web) and `palette.json` (app); this table documents them and is
 checked by `app/src/theme/__tests__/palette-sync.test.ts`.

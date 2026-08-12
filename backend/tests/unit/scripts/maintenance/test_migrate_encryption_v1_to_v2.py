@@ -7,6 +7,8 @@ import pytest
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from psycopg import sql
 
+from app.api.common.models.base import Base
+from app.core.model_registry import load_models
 from scripts.maintenance import migrate_encryption_v1_to_v2 as migration
 
 if TYPE_CHECKING:
@@ -121,6 +123,20 @@ def test_target_select_queries_use_psycopg_identifiers() -> None:
         assert f'"{pk_col}"' in rendered
         for col in enc_cols:
             assert f'"{col}"' in rendered
+
+
+def test_targets_match_the_orm_schema() -> None:
+    """Every migration target should name a real table, primary key, and encrypted columns."""
+    load_models()
+    tables = Base.metadata.tables
+
+    for table, pk_col, enc_cols in migration.TARGETS:
+        assert table in tables, f"unknown table {table}"
+        columns = tables[table].columns
+        assert pk_col in columns, f"{table}.{pk_col} does not exist"
+        assert columns[pk_col].primary_key, f"{table}.{pk_col} is not a primary key"
+        for col in enc_cols:
+            assert col in columns, f"{table}.{col} does not exist"
 
 
 def test_update_query_keeps_values_as_placeholders() -> None:
