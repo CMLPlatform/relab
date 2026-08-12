@@ -287,8 +287,8 @@ _require-cloudflare-vars:
 compose-config:
     @bash scripts/deploy_ops.sh compose-config
 
-# Validate root-owned environment variable policy
 # Depends on test-scripts because CI's automation job runs this recipe, not `just check`.
+# Validate root-owned environment variable policy
 env-policy-check: test-scripts
     @uv run python scripts/env_policy.py check
 
