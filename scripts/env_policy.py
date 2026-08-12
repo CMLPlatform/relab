@@ -26,6 +26,15 @@ SECRET_INVENTORY_FILE = ROOT / "deploy" / "env" / "variables.toml"
 # SECRET_PLACEHOLDER_PREFIX and the value deploy_ops.sh writes (replace-me-<env>-<name>).
 SECRET_PLACEHOLDER_PREFIX = "replace-me-"  # noqa: S105  # placeholder marker, not a credential
 
+# Every placeholder prefix this check has ever written, current and legacy. The runtime
+# (backend/app/core/secrets.py) only recognizes SECRET_PLACEHOLDER_PREFIX; this check also
+# rejects prefixes from earlier scaffold generations so stale placeholders fail here instead
+# of crashing the app at runtime.
+KNOWN_SECRET_PLACEHOLDER_PREFIXES = (
+    SECRET_PLACEHOLDER_PREFIX,  # current: deploy_ops.sh writes replace-me-<env>-<name>
+    "placeholder-",  # legacy scaffold generation: placeholder-<env>-<name>
+)
+
 # Placeholder operator inputs for rendering deploy Compose during validation. Single
 # source of truth: deploy_ops.sh calls `validation-env` to materialize this same set.
 VALIDATION_ENV_VALUES = {
@@ -242,8 +251,11 @@ def assert_secret_value_is_usable(label: str, name: str, value: str) -> None:
     ``SECRET_PLACEHOLDER_PREFIX``), not the per-env ``replace-me-{label}-`` form,
     so a placeholder carried over from another env (e.g. ``secrets/staging/*``
     copied into ``secrets/prod/``) is still caught here rather than only at runtime.
+    Also rejects legacy placeholder prefixes (see ``KNOWN_SECRET_PLACEHOLDER_PREFIXES``)
+    that the runtime itself does not recognize, since those have shipped to hosts too.
     """
-    if label in {"prod", "staging"} and value.strip().startswith(SECRET_PLACEHOLDER_PREFIX):
+    stripped = value.strip()
+    if label in {"prod", "staging"} and stripped.startswith(KNOWN_SECRET_PLACEHOLDER_PREFIXES):
         msg = f"{label}: placeholder secret remains in secrets/{label}/{name}"
         raise AssertionError(msg)
 
