@@ -403,8 +403,12 @@ values must come out of the live `backend/.env.prod`. Generate the scaffolding
 first, then overwrite the carried-over ones by hand:
 
 ```bash
-just deploy-secrets-template prod    # creates all 16 at 0600 with fresh values
+just deploy-secrets-template prod    # creates all 16 at 0644 with fresh values
 ```
+
+The directory is `0700` and the files are `0644`: the containers run as uid 1001
+and must be able to read the mounted files, while the directory keeps them
+private from other users on the host.
 
 Then, for each row below, replace the generated file's contents with the value
 already in `backend/.env.prod`. **Carrying these across matters** — a fresh
@@ -426,7 +430,7 @@ value is not equivalent:
 Write them without leaving values in shell history:
 
 ```bash
-install -m 600 /dev/null secrets/prod/auth_token_secret
+install -m 644 /dev/null secrets/prod/auth_token_secret
 printf '%s\n' 'VALUE_FROM_ENV_PROD' > secrets/prod/auth_token_secret   # repeat per row
 ```
 
@@ -442,13 +446,16 @@ renames — copy, do not regenerate:
 ```bash
 cp secrets/prod/fastapi_users_secret secrets/prod/auth_token_secret
 cp secrets/prod/superuser_password   secrets/prod/bootstrap_superuser_password
-chmod 600 secrets/prod/auth_token_secret secrets/prod/bootstrap_superuser_password
+chmod 700 secrets/prod
+chmod 644 secrets/prod/auth_token_secret secrets/prod/bootstrap_superuser_password
 ```
 
 Fill any remaining gaps and verify:
 
 ```bash
-just deploy-secrets-template prod   # creates only what is missing, 0600
+chmod 700 secrets/prod              # one-time: the directory carries the privacy
+chmod 644 secrets/prod/*            # one-time: uid 1001 in the containers must read these
+just deploy-secrets-template prod   # creates only what is missing, 0644
 just env-inventory                  # the 16 expected names
 just deploy-secrets-check
 ```

@@ -151,26 +151,44 @@ validate_deploy_secret_paths() {
         staging="$tmp_root/staging.json"
     assert_secret_file_modes prod "$tmp_root/prod.json"
     assert_secret_file_modes staging "$tmp_root/staging.json"
+    uv run python scripts/env_policy.py secrets-placeholder-check
     echo "✅ Deploy secret file paths match Compose"
 }
 
-# Prod/staging secrets must stay owner-only. Dev is deliberately 644 (see
-# deploy_secrets_template) because dev containers read them as a non-owner uid.
+# Privacy lives on the directory (0700), readability on the files (0644).
+# Compose file-secrets are plain bind mounts that keep host permissions — the
+# uid/gid/mode attributes are ignored — and deploy services run as uid 1001, so
+# an operator-owned 0600 file is unreadable inside the container. A 0644 file in
+# a 0700 directory is still unreachable to other host users.
 # Only the names Compose actually mounts are checked, so operator notes kept
 # beside them are left alone.
 assert_secret_file_modes() {
     local env="$1"
     local config_json="$2"
-    local name path mode failed=false
+    local dir="secrets/$env"
+    local name path mode dir_mode failed=false
+
+    [[ -d "$dir" ]] || return 0
+
+    dir_mode="$(stat -c '%a' "$dir")"
+    if [[ "$dir_mode" != "700" ]]; then
+        echo "error: $dir has mode $dir_mode, expected 700" >&2
+        echo "Fix with: chmod 700 $dir" >&2
+        failed=true
+    fi
 
     while IFS= read -r name; do
         [[ -n "$name" ]] || continue
-        path="secrets/$env/$name"
+        path="$dir/$name"
         [[ -f "$path" ]] || continue
         mode="$(stat -c '%a' "$path")"
-        if [[ "$mode" != "600" ]]; then
-            echo "error: $path has mode $mode, expected 600" >&2
-            echo "Fix with: chmod 600 $path" >&2
+        if ((8#$mode & 8#022)); then
+            echo "error: $path is mode $mode — group/other-writable secrets are rejected" >&2
+            echo "Fix with: chmod 644 $path" >&2
+            failed=true
+        elif ((("8#$mode" & 8#004) == 0)); then
+            echo "error: $path is mode $mode — containers run as uid 1001 and cannot read it;" >&2
+            echo "run: chmod 700 $dir && chmod 644 $dir/*" >&2
             failed=true
         fi
     done < <(uv run python scripts/env_policy.py secrets-list "$config_json")
@@ -244,7 +262,12 @@ deploy_secrets_template() {
         render_compose_json "$env" "$validation_env" "$tmp_root/$env.json" backups migrations
     fi
 
+    # Privacy is the directory's job (0700); the files themselves stay 0644 in
+    # every env because containers read them as a non-owner uid (deploy services
+    # run as 1001, dev's api/migrator as root-without-CAP_DAC_OVERRIDE/appuser)
+    # and Compose file-secrets are bind mounts that keep host permissions.
     mkdir -p "secrets/$env"
+    chmod 700 "secrets/$env"
     umask 077
     local name path
     while IFS= read -r name; do
@@ -257,17 +280,12 @@ deploy_secrets_template() {
             tmp_secret="$(mktemp "$path.XXXXXX")"
             deploy_secret_template_value "$env" "$name" >"$tmp_secret"
             mv "$tmp_secret" "$path"
+            chmod 644 "$path"
             echo "created $path"
         else
+            # Existing operator files keep their mode; deploy-secrets-check reports
+            # any that containers cannot read.
             echo "kept $path"
-        fi
-        # Dev secrets are bind-mounted into containers that run as non-owner
-        # uids (root without CAP_DAC_OVERRIDE for api, appuser for migrator), so
-        # they must be world-readable. Prod/staging keep owner-only 0600.
-        if [[ "$env" == "dev" ]]; then
-            chmod 644 "$path"
-        else
-            chmod 600 "$path"
         fi
     done < <(uv run python scripts/env_policy.py secrets-list "$tmp_root/$env.json")
     echo "✅ Secret files are present under secrets/$env"

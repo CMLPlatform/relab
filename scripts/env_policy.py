@@ -491,6 +491,10 @@ def main(argv: list[str] | None = None) -> int:
     secrets_check_parser = subparsers.add_parser("secrets-check", help="validate rendered Compose secret file paths")
     secrets_check_parser.add_argument("configs", nargs="+", help="Compose config JSON files as LABEL=PATH")
 
+    subparsers.add_parser(
+        "secrets-placeholder-check", help="check existing secret files for placeholder or empty values"
+    )
+
     e2e_compose_check_parser = subparsers.add_parser("e2e-compose-check", help="validate rendered E2E Compose")
     e2e_compose_check_parser.add_argument("config", type=Path, help="rendered E2E Compose config JSON")
 
@@ -510,6 +514,8 @@ def main(argv: list[str] | None = None) -> int:
                 sys.stdout.write(f"{name}\n")  # codeql[py/clear-text-logging-sensitive-data]
         elif args.command == "secrets-check":
             run_secrets_check(args.configs)
+        elif args.command == "secrets-placeholder-check":
+            assert_existing_secret_files_do_not_use_placeholders(load_secret_inventory())
         elif args.command == "e2e-compose-check":
             run_e2e_compose_check(args.config)
     except (AssertionError, FileNotFoundError, TypeError) as exc:
