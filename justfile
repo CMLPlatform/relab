@@ -98,6 +98,7 @@ check:
     uv run ruff check --config pyproject.toml .
     uv run ruff format --check --config pyproject.toml .
     uv run ty check
+    just test-scripts
     pnpm run check
     for d in {{ subrepos }}; do just "$d/check"; done
     echo "✅ Root and subrepo checks passed"
@@ -126,6 +127,11 @@ fix:
 # ============================================================================
 # Testing
 # ============================================================================
+
+# Unit-test the root ops scripts (env policy + deploy/watchdog decisions; no Docker)
+test-scripts:
+    uv run pytest tests -q
+    @bash scripts/test_ops.sh
 
 # Full local test suite across all subrepos (unit + integration, no e2e)
 test:
@@ -282,7 +288,8 @@ compose-config:
     @bash scripts/deploy_ops.sh compose-config
 
 # Validate root-owned environment variable policy
-env-policy-check:
+# Depends on test-scripts because CI's automation job runs this recipe, not `just check`.
+env-policy-check: test-scripts
     @uv run python scripts/env_policy.py check
 
 # Print the root-owned runtime secret inventory

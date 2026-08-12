@@ -23,7 +23,7 @@
   version = "0.2.0"
 
 [dependency-groups]
-  dev = ["commitizen>=4.8.3", "pre-commit>=4.2.0", "ruff>=0.12.1", "ty>=0.0.15"]
+  dev = ["commitizen>=4.8.3", "pre-commit>=4.2.0", "pytest>=9.1.1", "ruff>=0.12.1", "ty>=0.0.15"]
 
 [tool.commitizen]
   annotated_tag      = true
@@ -32,10 +32,16 @@
   tag_format         = "v$version"
   version_scheme     = "semver2"
 
+[tool.pytest.ini_options]
+  # Unit tests for the root ops scripts (scripts/env_policy.py); the shell side
+  # lives in scripts/test_ops.sh. Subrepos own their own test config.
+  pythonpath = ["scripts"]
+  testpaths  = ["tests"]
+
 [tool.ruff]
   extend-exclude = ["app", "backend", "docs", "www"]
   force-exclude  = true
-  include        = ["scripts/*.py", "assets/logo-src/*.py"]
+  include        = ["scripts/*.py", "assets/logo-src/*.py", "tests/*.py"]
   line-length    = 120
 
   [tool.ruff.lint]
@@ -57,6 +63,9 @@
       # Standalone CLI generators, not an importable package (the dir name isn't a
       # valid module), so INP001 has no in-code fix.
       "assets/logo-src/*" = ["INP001"]
+      # Test names carry the documentation, asserts are the point, and pytest
+      # collects tests/ by path rather than importing it as a package.
+      "tests/*" = ["D103", "INP001", "S101"]
 
     [tool.ruff.lint.pydocstyle]
       convention = "google"

@@ -4,6 +4,27 @@
 # Intended to run from host cron; cron's MAILTO (or any wrapper) delivers alerts.
 set -euo pipefail
 
+# Reducer for check 2, in a variable so scripts/test_ops.sh can drive the real code
+# instead of a copy. Both backup paths must be fresh: a succeeding database backup
+# must not mask a failing upload one, so report the older of the two tags (tags per
+# backend/scripts/backup/backup_relab_restic.sh).
+SNAPSHOT_AGE_PY='
+import datetime, json, re, sys
+
+newest = {}
+for snapshot in json.load(sys.stdin):
+    # restic stamps nanosecond precision, which fromisoformat rejects.
+    taken = int(datetime.datetime.fromisoformat(re.sub(r"\.\d+", "", snapshot["time"])).timestamp())
+    for tag in snapshot.get("tags") or []:
+        newest[tag] = max(newest.get(tag, 0), taken)
+
+print(min(newest.get(tag, 0) for tag in ("postgres", "user-uploads")))
+'
+
+# Sourcing this script (scripts/test_ops.sh) only wants SNAPSHOT_AGE_PY; the live
+# checks below must not run.
+[[ "${BASH_SOURCE[0]}" == "$0" ]] || return 0
+
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
@@ -85,21 +106,7 @@ if ((snapshot_status == 124)); then
     snapshot_error="timed out after 600s (hung docker or restic)"
 elif ((snapshot_status != 0)); then
     snapshot_error="$(tr '\n' ' ' <"$stderr_file")"
-elif ! newest_epoch="$(printf '%s' "$snapshots_json" | python3 -c '
-import datetime, json, re, sys
-
-# Both backup paths must be fresh: a succeeding database backup must not mask a
-# failing upload one, so report the older of the two tags (tags per
-# backend/scripts/backup/backup_relab_restic.sh).
-newest = {}
-for snapshot in json.load(sys.stdin):
-    # restic stamps nanosecond precision, which fromisoformat rejects.
-    taken = int(datetime.datetime.fromisoformat(re.sub(r"\.\d+", "", snapshot["time"])).timestamp())
-    for tag in snapshot.get("tags") or []:
-        newest[tag] = max(newest.get(tag, 0), taken)
-
-print(min(newest.get(tag, 0) for tag in ("postgres", "user-uploads")))
-' 2>"$stderr_file")"; then
+elif ! newest_epoch="$(printf '%s' "$snapshots_json" | python3 -c "$SNAPSHOT_AGE_PY" 2>"$stderr_file")"; then
     snapshot_error="$(tr '\n' ' ' <"$stderr_file")"
     newest_epoch=0
 fi
