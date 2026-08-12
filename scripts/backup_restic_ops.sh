@@ -27,22 +27,27 @@ require_file() {
     realpath "$path"
 }
 
+# Read a single var from the root .env in a subshell, without letting it
+# overwrite any other exported value in this process.
+# NOTE: Compose loads .env itself; this script must mirror that for the few
+# values it also needs — but a shell-exported value still wins over the
+# file, matching Compose's own precedence.
+read_dotenv_var() {
+    local var_name="$1"
+    [[ -f "$ROOT_DIR/.env" ]] || return 0
+    (
+        set -a
+        # shellcheck source=/dev/null
+        . "$ROOT_DIR/.env" >/dev/null 2>&1
+        printf '%s' "${!var_name:-}"
+    )
+}
+
 resolve_backup_paths() {
     local env="$1"
 
-    # NOTE: BACKUP_HOST_DIR is a root .env value; Compose loads it itself, this script
-    # must too — but only that one name, read in a subshell. Sourcing the whole .env
-    # here would let it overwrite every other exported value, and would invert Compose's
-    # precedence, where a shell-exported value wins over the file.
     local backup_dir="${BACKUP_HOST_DIR:-}"
-    if [[ -z "$backup_dir" && -f "$ROOT_DIR/.env" ]]; then
-        backup_dir="$(
-            set -a
-            # shellcheck source=/dev/null
-            . "$ROOT_DIR/.env" >/dev/null 2>&1
-            printf '%s' "${BACKUP_HOST_DIR:-}"
-        )"
-    fi
+    [[ -z "$backup_dir" ]] && backup_dir="$(read_dotenv_var BACKUP_HOST_DIR)"
     backup_dir="${backup_dir:-./backups}"
     # Paths are anchored to the repo root so the script works from any CWD.
     [[ "$backup_dir" == /* ]] || backup_dir="$ROOT_DIR/$backup_dir"
@@ -229,6 +234,7 @@ docker_smoke_backups() {
 backup_offsite_copy() {
     local env="${1:-staging}"
     local offsite_repo="${RESTIC_OFFSITE_REPOSITORY:-}"
+    [[ -z "$offsite_repo" ]] && offsite_repo="$(read_dotenv_var RESTIC_OFFSITE_REPOSITORY)"
 
     resolve_backup_paths "$env"
 
