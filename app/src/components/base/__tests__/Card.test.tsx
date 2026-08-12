@@ -28,7 +28,8 @@ test('merges caller className with the base surface classes', () => {
 
 // DESIGN.md "Form language — Flat & Sharp": inline surfaces are flat — a hairline
 // border + surface fill, no shadow. Only floating surfaces get the overlay tier.
-// (Tailwind's rounded-lg === 8px === DESIGN.md radius-card.)
+// (Tailwind's rounded-lg === 8px === DESIGN.md radius-card, generated from
+// assets/tokens.json into --radius-lg in brand.generated.css.)
 test('Card is a flat hairline surface at the card radius', () => {
   render(
     <Card testID="card">

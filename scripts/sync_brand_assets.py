@@ -269,6 +269,10 @@ def render_app_palette_css(palette: dict) -> str:
     for key in palette["light"]:
         prop = _css_var(key)
         lines.append(f"  --color{prop[1:]}: var({prop});")
+    tokens = json.loads(TOKENS_SOURCE.read_text())
+    lines.append(f"  --radius-md: {tokens['radius']['control']}px;")
+    lines.append(f"  --radius-lg: {tokens['radius']['card']}px;")
+    lines.append(f"  --radius-xl: {tokens['radius']['overlay']}px;")
     lines.append("}")
     return "\n".join(lines) + "\n"
 

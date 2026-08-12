@@ -61,7 +61,8 @@ const SHADOW_CLASS_PATTERN = /\bshadow-(sm|md|lg|xl)\b/;
 const ACCENT_CLASS_PATTERN = /\baccent\b/;
 
 // DESIGN.md "Form language — Flat & Sharp": inline surfaces carry no elevation,
-// and controls sit at the 6px control radius (Tailwind's rounded-md === 6px).
+// and controls sit at the 6px control radius (Tailwind's rounded-md === 6px,
+// generated from assets/tokens.json into --radius-md in brand.generated.css).
 test.each(['primary', 'tonal', 'outline', 'ghost', 'destructive'] as const)(
   '%s variant is flat and uses the control radius',
   (variant) => {
