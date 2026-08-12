@@ -28,7 +28,7 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
       return [
         // No className on this Pressable: it would drop this function (see IconButton.tsx).
         styles.base,
-        { backgroundColor: error ? theme.colors.surfaceVariant : theme.colors.primaryContainer },
+        { backgroundColor: error ? theme.colors.surfaceVariant : theme.tokens.surface.accent },
         state.pressed && { opacity: 0.5 },
         resolvedStyle,
       ];
@@ -42,7 +42,7 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
         <AppText
           variant="label"
           className="px-3 py-2 text-center font-medium"
-          style={{ color: theme.colors.onPrimaryContainer }}
+          style={{ color: theme.colors.primary }}
         >
           {title}
         </AppText>

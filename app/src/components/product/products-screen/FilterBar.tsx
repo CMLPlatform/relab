@@ -31,15 +31,15 @@ function FilterChip({
   accessibilityLabel?: string;
   children: string;
 }) {
-  const { colors } = useAppTheme();
-  const foreground = selected ? colors.onPrimaryContainer : colors.onSurface;
+  const { colors, tokens } = useAppTheme();
+  const foreground = selected ? colors.primary : colors.onSurface;
 
   return (
     <View
       className="flex-row items-center rounded-md border pl-3 pr-2"
       style={{
-        backgroundColor: selected ? colors.primaryContainer : 'transparent',
-        borderColor: selected ? colors.primaryContainer : colors.outline,
+        backgroundColor: selected ? tokens.surface.accent : 'transparent',
+        borderColor: selected ? colors.primary : colors.outline,
       }}
     >
       <Pressable

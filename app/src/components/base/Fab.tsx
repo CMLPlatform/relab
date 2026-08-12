@@ -75,12 +75,12 @@ export function Fab({
       // it would drop this whole function (see IconButton.tsx).
       styles.base,
       theme.tokens.elevation.overlay,
-      { backgroundColor: theme.colors.primaryContainer },
+      { backgroundColor: theme.colors.primary },
       disabled && styles.disabled,
       pressed && !disabled && styles.pressed,
       style,
     ],
-    [theme.tokens.elevation.overlay, theme.colors.primaryContainer, disabled, style],
+    [theme.tokens.elevation.overlay, theme.colors.primary, disabled, style],
   );
 
   if (!visible) return null;
@@ -99,17 +99,13 @@ export function Fab({
       {typeof icon === 'function' ? (
         icon()
       ) : (
-        <Icon name={icon} size="lg" color={theme.colors.onPrimaryContainer} />
+        <Icon name={icon} size="lg" color={theme.colors.onPrimary} />
       )}
       {extended ? (
         // Animated.View isn't a NativeWind className target (see ZoomableImage.tsx), so
         // overflow stays inline.
         <Animated.View style={[styles.labelClip, labelStyle]}>
-          <AppText
-            numberOfLines={1}
-            className="ml-2"
-            style={{ color: theme.colors.onPrimaryContainer }}
-          >
+          <AppText numberOfLines={1} className="ml-2" style={{ color: theme.colors.onPrimary }}>
             {label}
           </AppText>
         </Animated.View>
