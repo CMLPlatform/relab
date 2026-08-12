@@ -185,6 +185,9 @@
       "Q",      # flake8-quotes
       "W191",   # tab-indentation
 
+      # This repo doesn't use per-file copyright headers (license lives in LICENSE)
+      "CPY", # flake8-copyright
+
       # Overly strict rules
       "D105", # undocumented-magic-method (magic methods are often self-explanatory)
       "D107", # undocumented-public-init (__init__ methods are often self-explanatory)

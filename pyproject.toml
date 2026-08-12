@@ -57,6 +57,9 @@
       "E117",   # over-indented
       "Q",      # flake8-quotes
       "W191",   # tab-indentation
+
+      # This repo doesn't use per-file copyright headers (license lives in LICENSE)
+      "CPY", # flake8-copyright
     ]
 
     [tool.ruff.lint.per-file-ignores]
