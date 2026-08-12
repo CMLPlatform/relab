@@ -1,12 +1,11 @@
-import { useCallback } from 'react';
-import { Controller, type useForm } from 'react-hook-form';
+import type { useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 
 import { AuthScreen } from '@/components/auth/AuthScreen';
 import { LoginBrandHero, LoginCard } from '@/components/auth/LoginSections';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
-import { TextInput } from '@/components/base/TextInput';
+import { ControlledTextField } from '@/components/base/ControlledTextField';
 import { useOnboardingScreen } from '@/features/auth/useOnboardingScreen';
 import type { OnboardingFormValues } from '@/services/api/validation/userSchema';
 
@@ -21,28 +20,6 @@ function OnboardingBody({
   isSubmitting: boolean;
   isValid: boolean;
 }) {
-  const renderUsername = useCallback(
-    ({
-      field: { onChange, value },
-    }: {
-      field: { onChange: (text: string) => void; value: string };
-    }) => (
-      <View className="gap-1">
-        <AppText variant="label">Username</AppText>
-        <TextInput
-          value={value}
-          onChangeText={onChange}
-          autoCapitalize="none"
-          autoCorrect={false}
-          placeholder="e.g. awesome_user"
-          accessibilityLabel="Username"
-          onSubmitEditing={submitUsername}
-        />
-      </View>
-    ),
-    [submitUsername],
-  );
-
   return (
     // Sizing and centering come from AuthScreen; this only sets inner rhythm.
     <View className="gap-3">
@@ -56,7 +33,16 @@ function OnboardingBody({
         <AppText className="text-center mb-2.5 text-foreground" style={styles.subtitle}>
           Choose a username to continue.
         </AppText>
-        <Controller control={control} name="username" render={renderUsername} />
+        <ControlledTextField
+          control={control}
+          name="username"
+          label="Username"
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder="e.g. awesome_user"
+          accessibilityLabel="Username"
+          onSubmitEditing={submitUsername}
+        />
         <AppButton
           variant="primary"
           loading={isSubmitting}
