@@ -77,8 +77,10 @@ export type AppTokens = {
   type: {
     display: { fontSize: number; lineHeight: number };
     title: { fontSize: number; lineHeight: number };
+    heading: { fontSize: number; lineHeight: number };
     body: { fontSize: number; lineHeight: number };
     label: { fontSize: number; lineHeight: number; letterSpacing: number };
+    caption: { fontSize: number; lineHeight: number };
     data: {
       fontSize: number;
       lineHeight: number;

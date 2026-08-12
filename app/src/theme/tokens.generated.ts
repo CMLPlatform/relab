@@ -23,6 +23,10 @@ export const designTokens = {
       "size": 24,
       "line": 30
     },
+    "heading": {
+      "size": 19,
+      "line": 24
+    },
     "body": {
       "size": 16,
       "line": 26
@@ -31,6 +35,10 @@ export const designTokens = {
       "size": 13,
       "line": 18,
       "trackingEm": 0.1
+    },
+    "caption": {
+      "size": 13,
+      "line": 18
     },
     "data": {
       "size": 14,

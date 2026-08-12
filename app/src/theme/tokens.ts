@@ -97,11 +97,19 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
         lineHeight: designTokens.type.display.line,
       },
       title: { fontSize: designTokens.type.title.size, lineHeight: designTokens.type.title.line },
+      heading: {
+        fontSize: designTokens.type.heading.size,
+        lineHeight: designTokens.type.heading.line,
+      },
       body: { fontSize: designTokens.type.body.size, lineHeight: designTokens.type.body.line },
       label: {
         fontSize: designTokens.type.label.size,
         lineHeight: designTokens.type.label.line,
         letterSpacing: designTokens.type.label.size * designTokens.type.label.trackingEm,
+      },
+      caption: {
+        fontSize: designTokens.type.caption.size,
+        lineHeight: designTokens.type.caption.line,
       },
       data: {
         fontSize: designTokens.type.data.size,

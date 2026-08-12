@@ -24,6 +24,13 @@ describe('theme', () => {
     expect(getStatusColor(lightTheme, 'error')).toBe(lightTheme.tokens.status.danger);
   });
 
+  it('adds the heading and caption type-scale steps (shared across schemes)', () => {
+    for (const tokens of [lightTheme.tokens, darkTheme.tokens]) {
+      expect(tokens.type.heading).toEqual({ fontSize: 19, lineHeight: 24 });
+      expect(tokens.type.caption).toEqual({ fontSize: 13, lineHeight: 18 });
+    }
+  });
+
   it('degrades to a neutral colour for a status the client does not know yet', () => {
     // A backend adding a status before the client's types catch up must not return
     // undefined — getStatusTone/alpha would then throw on `undefined.startsWith`.

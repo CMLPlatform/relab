@@ -3,7 +3,7 @@ import { Text } from 'react-native';
 import { useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 
-type Variant = 'display' | 'title' | 'body' | 'label' | 'data';
+type Variant = 'display' | 'title' | 'heading' | 'body' | 'label' | 'caption' | 'data' | 'eyebrow';
 
 // Record content (body copy, data readouts) is documentation — make it
 // selectable so it can be copied. Headings and labels aren't content, so they
@@ -19,15 +19,29 @@ type AppTextProps = ComponentProps<typeof Text> & { variant?: Variant };
  * The default color is a className (not inline style) so caller `text-*`
  * classes can override it — inline styles always beat classNames in
  * react-native-css, so a style-based default would silently eat them.
+ *
+ * `maxFontSizeMultiplier` defaults to the app-wide Dynamic Type cap (2x); a
+ * no-op on web, it keeps native OS text scaling from blowing out fixed
+ * layouts. Callers can still override it per instance.
  */
-export function AppText({ variant = 'body', style, className, ...rest }: AppTextProps) {
+export function AppText({
+  variant = 'body',
+  style,
+  className,
+  maxFontSizeMultiplier = 2,
+  ...rest
+}: AppTextProps) {
   const { tokens } = useAppTheme();
-  const scale = tokens.type[variant];
+  const scale =
+    variant === 'eyebrow'
+      ? { ...tokens.type.label, textTransform: 'uppercase' as const }
+      : tokens.type[variant];
   return (
     <Text
       selectable={SELECTABLE_VARIANTS.has(variant)}
+      maxFontSizeMultiplier={maxFontSizeMultiplier}
       {...rest}
-      className={cn('text-foreground', className)}
+      className={cn(variant === 'eyebrow' ? 'text-muted-foreground' : 'text-foreground', className)}
       style={[scale, style]}
     />
   );

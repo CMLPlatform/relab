@@ -50,3 +50,35 @@ test('label variant is not selectable', () => {
   render(<AppText variant="label">Field label</AppText>);
   expect(screen.getByText('Field label').props.selectable).not.toBe(true);
 });
+
+test('eyebrow variant uses label metrics, uppercase transform, and muted color', () => {
+  render(<AppText variant="eyebrow">Section</AppText>);
+  const el = screen.getByText('Section');
+  expect(el.props.style).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ fontSize: 13, lineHeight: 18, textTransform: 'uppercase' }),
+    ]),
+  );
+  expect(el.props.className).toContain('text-muted-foreground');
+});
+
+test('eyebrow color is overridable via className (tailwind-merge)', () => {
+  render(
+    <AppText variant="eyebrow" className="text-primary">
+      Section
+    </AppText>,
+  );
+  const className = screen.getByText('Section').props.className;
+  expect(className).toContain('text-primary');
+  expect(className).not.toContain('text-muted-foreground');
+});
+
+test('defaults maxFontSizeMultiplier to the app-wide Dynamic Type cap', () => {
+  render(<AppText>hello</AppText>);
+  expect(screen.getByText('hello').props.maxFontSizeMultiplier).toBe(2);
+});
+
+test('maxFontSizeMultiplier is overridable per call', () => {
+  render(<AppText maxFontSizeMultiplier={1.5}>hello</AppText>);
+  expect(screen.getByText('hello').props.maxFontSizeMultiplier).toBe(1.5);
+});
