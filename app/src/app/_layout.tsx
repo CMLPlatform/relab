@@ -10,6 +10,7 @@ import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react
 import { colorScheme as nativewindColorScheme } from 'react-native-css';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { BottomNav } from '@/components/base/BottomNav';
 import { BrandHeaderTitle } from '@/components/base/BrandHeaderTitle';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
@@ -198,6 +199,7 @@ function AppShell() {
       <AppBackground overlay={overlay} />
       <TopNav />
       <AppStack isDark={isDark} isLg={isLg} />
+      <BottomNav />
       <ActiveStreamBanner />
     </View>
   );
