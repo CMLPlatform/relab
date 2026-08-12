@@ -28,7 +28,7 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
       className="flex-row items-center gap-3 rounded-lg p-4"
       style={{ backgroundColor: theme.colors.errorContainer }}
     >
-      <Icon name="alert-circle-outline" size="lg" color={theme.colors.error} />
+      <Icon name="circle-alert" size="lg" color={theme.colors.error} />
       <View className="flex-1">
         <AppText className="font-bold" style={{ color: theme.colors.onErrorContainer }}>
           Load Failed

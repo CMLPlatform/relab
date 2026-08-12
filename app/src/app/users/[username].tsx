@@ -68,7 +68,7 @@ export default function UserProfileScreen() {
 
           {hasError ? (
             <View className="flex-1 justify-center items-center mt-16">
-              <Icon name="account-cancel-outline" size={48} color={theme.colors.error} />
+              <Icon name="user-x" size={48} color={theme.colors.error} />
               <AppText className="mt-4 text-center">{errorMessage}</AppText>
             </View>
           ) : null}
@@ -107,25 +107,25 @@ export default function UserProfileScreen() {
                 {(
                   [
                     {
-                      icon: 'package-variant-closed',
+                      icon: 'package',
                       color: theme.colors.primary,
                       value: profile.product_count,
                       label: 'Products',
                     },
                     {
-                      icon: 'weight-kilogram',
+                      icon: 'weight',
                       color: theme.colors.secondary,
                       value: profile.total_weight_kg,
                       label: 'Total kg',
                     },
                     {
-                      icon: 'image-multiple',
+                      icon: 'images',
                       color: theme.tokens.status.success,
                       value: profile.image_count,
                       label: 'Photos',
                     },
                     {
-                      icon: 'tag-outline',
+                      icon: 'tag',
                       color: theme.tokens.status.warning,
                       value: profile.top_category || 'None',
                       label: 'Top category',

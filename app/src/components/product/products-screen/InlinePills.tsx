@@ -34,7 +34,7 @@ export function ProfilePill() {
       className="flex-row items-center gap-1 self-center rounded-full px-2 py-0.5"
       style={{ backgroundColor: theme.colors.primaryContainer }}
     >
-      <Icon name="account-circle" size={14} color={theme.colors.onPrimaryContainer} />
+      <Icon name="circle-user-round" size={14} color={theme.colors.onPrimaryContainer} />
       <AppText
         testID="profile-pill-label"
         className="font-bold"

@@ -147,8 +147,7 @@ export default function ZoomableImage({
 
 // Neither host here is a NativeWind className target: Animated.View (from
 // react-native-reanimated) and expo-image's Image aren't cssInterop-wrapped
-// in this app (see src/components/base/ui/icon.tsx for what that wrapping
-// takes), unlike the core RN View/Text/Pressable. Layout stays inline.
+// in this app, unlike the core RN View/Text/Pressable. Layout stays inline.
 const styles = StyleSheet.create({
   container: {
     width: SCREEN_WIDTH,

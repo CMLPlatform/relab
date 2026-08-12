@@ -76,7 +76,7 @@ export function StreamingContent({
       {/* Actions */}
       <View className="flex-row gap-2 px-4 pt-1">
         <AppButton variant="outline" onPress={handleWatch} className="flex-1">
-          <Icon name="open-in-new" size={16} color={theme.colors.onSurface} />
+          <Icon name="external-link" size={16} color={theme.colors.onSurface} />
           <AppText style={{ color: theme.colors.onSurface }}>Watch on YouTube</AppText>
         </AppButton>
         <AppButton

@@ -35,7 +35,7 @@ export function HeaderRightPill() {
         accessibilityRole="button"
         accessibilityLabel={needsOnboarding ? 'Complete profile' : `Account: ${username}`}
       >
-        <Icon name="account-circle" size={18} color={theme.colors.onPrimaryContainer} />
+        <Icon name="circle-user-round" size={18} color={theme.colors.onPrimaryContainer} />
         <AppText variant="plain" style={primaryText} numberOfLines={1}>
           {username}
         </AppText>

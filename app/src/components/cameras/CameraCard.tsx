@@ -88,7 +88,7 @@ function CameraCardComponent({
             {isOnline ? (
               <>
                 <View className="opacity-40">
-                  <Icon name="image-outline" size={40} color={theme.colors.onSurfaceVariant} />
+                  <Icon name="image" size={40} color={theme.colors.onSurfaceVariant} />
                 </View>
                 <AppText variant="body" style={{ color: theme.tokens.text.muted }}>
                   No preview available

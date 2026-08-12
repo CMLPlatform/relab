@@ -35,7 +35,7 @@ export default function ImagePlaceholder({
     >
       {/* Decorative — hidden from the accessibility tree, matching StaticBackground's aria-hidden treatment. */}
       <View aria-hidden>
-        <Icon name="image-outline" size={iconSize} color={theme.colors.outline} />
+        <Icon name="image" size={iconSize} color={theme.colors.outline} />
       </View>
       {label ? (
         <AppText

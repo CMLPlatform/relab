@@ -131,7 +131,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               <View className="flex-row items-center gap-2.5 mt-1.5">
                 {createdAgo ? (
                   <View className="flex-row items-center gap-[3px]">
-                    <Icon name="clock-outline" size={12} color={theme.colors.outline} />
+                    <Icon name="clock" size={12} color={theme.colors.outline} />
                     <AppText
                       variant="plain"
                       style={[styles.metadataText, { color: theme.colors.outline }]}
@@ -142,7 +142,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                 ) : null}
                 {ownerLabel ? (
                   <View className="flex-row items-center gap-[3px]">
-                    <Icon name="account-outline" size={12} color={theme.colors.outline} />
+                    <Icon name="user" size={12} color={theme.colors.outline} />
                     <AppText
                       variant="plain"
                       className="text-primary"

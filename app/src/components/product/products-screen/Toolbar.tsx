@@ -62,7 +62,7 @@ export function ProductsSearchToolbar({
         onDismiss={closeSortMenu}
         anchor={
           <IconButton
-            icon="sort"
+            icon="arrow-down-up"
             mode="contained-tonal"
             onPress={openSortMenu}
             accessibilityLabel="Sort products"

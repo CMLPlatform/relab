@@ -52,7 +52,7 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
         </Text>
       )}
       <View style={styles.shapes}>
-        <Icon name="shape" size={150} color={textColor} />
+        <Icon name="shapes" size={150} color={textColor} />
       </View>
     </View>
   );

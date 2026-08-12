@@ -1,8 +1,7 @@
-import { ChevronRight } from 'lucide-react-native';
 import type { RefObject } from 'react';
 import { Pressable, type TextStyle, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { Icon } from '@/components/base/ui/icon';
+import { Icon } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
 import { createProfileSectionStyles } from './styles';
 
@@ -29,7 +28,8 @@ export function ProfileAction({
   hideChevron = false,
   triggerRef,
 }: ProfileActionProps) {
-  const styles = useStyles();
+  const theme = useAppTheme();
+  const styles = createProfileSectionStyles(theme);
   return (
     <Pressable
       ref={triggerRef}
@@ -48,11 +48,9 @@ export function ProfileAction({
           </AppText>
         ) : null}
       </View>
-      {!hideChevron ? <Icon as={ChevronRight} size={26} className="opacity-70" /> : null}
+      {!hideChevron ? (
+        <Icon name="chevron-right" size={26} color={theme.tokens.text.muted} />
+      ) : null}
     </Pressable>
   );
-}
-
-function useStyles() {
-  return createProfileSectionStyles(useAppTheme());
 }

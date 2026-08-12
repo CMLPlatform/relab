@@ -100,7 +100,7 @@ export function ProductsWelcomeCard({
             </AppButton>
           ) : !currentUser?.isVerified ? (
             <AppButton variant="tonal" onPress={onGoToProfile}>
-              <Icon name="email-check-outline" size={18} color={theme.colors.primary} />
+              <Icon name="mail-check" size={18} color={theme.colors.primary} />
               <AppText>Verify email</AppText>
             </AppButton>
           ) : null}

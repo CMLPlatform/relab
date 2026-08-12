@@ -74,7 +74,7 @@ export function CameraPickerDialog({
       </View>
       <View className="mt-4 flex-row items-center justify-end gap-1">
         <AppButton variant="ghost" onPress={handleManage}>
-          <Icon name="cog" size={16} color={theme.colors.onSurface} />
+          <Icon name="settings" size={16} color={theme.colors.onSurface} />
           <AppText style={{ color: theme.colors.onSurface }}>Manage</AppText>
         </AppButton>
         <View className="flex-1" />
@@ -116,7 +116,7 @@ function CameraPickerRow({
           backgroundColor: isReachable ? theme.tokens.status.success : theme.tokens.text.muted,
         }}
       />
-      <Icon name="access-point" size="md" color={theme.colors.onSurface} />
+      <Icon name="radio-tower" size="md" color={theme.colors.onSurface} />
       <AppText className="flex-1">{camera.name}</AppText>
       {effectiveConnection.detailLabel ? (
         <AppText variant="label" style={{ color: theme.tokens.status.success }}>

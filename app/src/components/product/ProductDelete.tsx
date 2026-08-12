@@ -34,7 +34,7 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
 
   return (
     <AppButton variant="destructive" onPress={onPressDelete} className={styles.button}>
-      <Icon name="delete" size={18} color={theme.colors.onError} />
+      <Icon name="trash-2" size={18} color={theme.colors.onError} />
       <AppText style={{ color: theme.colors.onError }}>Delete {label}</AppText>
     </AppButton>
   );

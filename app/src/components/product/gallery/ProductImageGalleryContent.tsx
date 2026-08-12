@@ -160,7 +160,7 @@ export function ProductImageGalleryContent({
                 {isCapturing || rpiCamerasLoading ? (
                   <ActivityIndicator size={18} color={theme.tokens.text.onMedia} />
                 ) : (
-                  <Icon name="camera-wireless" size="md" color={theme.tokens.text.onMedia} />
+                  <Icon name="camera" size="md" color={theme.tokens.text.onMedia} />
                 )}
               </Pressable>
             ) : null}
@@ -172,7 +172,7 @@ export function ProductImageGalleryContent({
             className="absolute top-3 right-3 h-9 w-9 items-center justify-center rounded-full"
             style={styles.deleteButton}
           >
-            <Icon name="delete" size="md" color={theme.tokens.text.onMedia} />
+            <Icon name="trash-2" size="md" color={theme.tokens.text.onMedia} />
           </Pressable>
         </>
       ) : null}

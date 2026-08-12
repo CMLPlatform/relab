@@ -81,7 +81,7 @@ export function GoLiveDialog({
             <UiText>Unlisted</UiText>
           </ToggleGroupItem>
           <ToggleGroupItem value="public" isLast>
-            <Icon name="earth" size={16} color={theme.colors.onSurface} />
+            <Icon name="globe" size={16} color={theme.colors.onSurface} />
             <UiText>Public</UiText>
           </ToggleGroupItem>
         </ToggleGroup>

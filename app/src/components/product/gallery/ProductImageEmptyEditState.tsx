@@ -62,7 +62,7 @@ export function ProductImageEmptyEditState({
           {isCapturing || rpiCamerasLoading ? (
             <ActivityIndicator size={32} />
           ) : (
-            <Icon name="camera-wireless" size={48} color={theme.tokens.text.muted} />
+            <Icon name="camera" size={48} color={theme.tokens.text.muted} />
           )}
           <Text className="mt-2" style={styles.emptyActionText}>
             {hasCamerasConfigured ? 'RPi Camera' : 'Connect camera'}

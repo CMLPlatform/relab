@@ -239,7 +239,7 @@ export function ProductImageLightbox({
           className="absolute top-10 right-5 z-10 rounded-full w-11 h-11 justify-center items-center"
           style={styles.closeButton}
         >
-          <Icon name="close" size={28} color={theme.tokens.text.onMedia} />
+          <Icon name="x" size={28} color={theme.tokens.text.onMedia} />
         </Pressable>
 
         <GalleryFlatList

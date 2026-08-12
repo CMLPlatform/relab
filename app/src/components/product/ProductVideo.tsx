@@ -316,7 +316,7 @@ function VideoRow({
       {editMode ? (
         <IconButton
           testID={`delete-video-${idx}`}
-          icon="delete"
+          icon="trash-2"
           accessibilityLabel={deleteLabel}
           onPress={handleRemove}
           style={styles.deleteButton}

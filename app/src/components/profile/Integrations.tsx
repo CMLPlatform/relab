@@ -1,8 +1,7 @@
-import { Radio, Webcam } from 'lucide-react-native';
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { Icon } from '@/components/base/ui/icon';
+import { Icon } from '@/components/base/Icon';
 import { Switch } from '@/components/base/ui/switch';
 import { DOCS_URL } from '@/config';
 import { openExternalUrl } from '@/services/externalLinks';
@@ -42,7 +41,7 @@ export function ProfileIntegrationsSection({
     <View className="mx-1">
       <View className="flex-row items-center gap-3 px-4 py-2.5">
         <View className="w-8 items-center">
-          <Icon as={Webcam} size={22} color={theme.colors.onSurfaceVariant} />
+          <Icon name="webcam" size={22} color={theme.colors.onSurfaceVariant} />
         </View>
         <View className="flex-1">
           <AppText className="font-semibold">RPi Camera</AppText>
@@ -72,7 +71,7 @@ export function ProfileIntegrationsSection({
       {rpiEnabled ? (
         <View className="flex-row items-center gap-3 px-4 py-2.5">
           <View className="w-8 items-center">
-            <Icon as={Radio} size={22} color={theme.colors.onSurfaceVariant} />
+            <Icon name="radio" size={22} color={theme.colors.onSurfaceVariant} />
           </View>
           <View className="flex-1">
             <AppText className="font-semibold">YouTube Live</AppText>

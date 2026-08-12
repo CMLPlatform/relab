@@ -7,20 +7,22 @@ import { MIN_TAP_TARGET, radius } from '@/constants';
 describe('IconButton', () => {
   it('fires onPress', () => {
     const onPress = jest.fn();
-    render(<IconButton icon="close" onPress={onPress} accessibilityLabel="Close" />);
+    render(<IconButton icon="x" onPress={onPress} accessibilityLabel="Close" />);
     fireEvent.press(screen.getByRole('button'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
   it('blocks onPress while loading', () => {
     const onPress = jest.fn();
-    render(<IconButton icon="refresh" onPress={onPress} accessibilityLabel="Refresh" loading />);
+    render(<IconButton icon="refresh-cw" onPress={onPress} accessibilityLabel="Refresh" loading />);
     fireEvent.press(screen.getByRole('button'));
     expect(onPress).not.toHaveBeenCalled();
   });
 
   it('shows a spinner instead of the icon while loading', () => {
-    render(<IconButton icon="refresh" onPress={jest.fn()} accessibilityLabel="Refresh" loading />);
+    render(
+      <IconButton icon="refresh-cw" onPress={jest.fn()} accessibilityLabel="Refresh" loading />,
+    );
     expect(screen.queryByTestId('icon-refresh')).toBeNull();
   });
 
@@ -30,7 +32,7 @@ describe('IconButton', () => {
   });
 
   it('meets the 44px a11y tap-target floor', () => {
-    render(<IconButton icon="close" onPress={jest.fn()} accessibilityLabel="Close" />);
+    render(<IconButton icon="x" onPress={jest.fn()} accessibilityLabel="Close" />);
     // Resolved through the state callback — the floor lives in the style
     // function, never in a className (mixing the two drops the function).
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
@@ -53,7 +55,7 @@ describe('IconButton', () => {
   });
 
   it('uses the control radius, not a bespoke circle', () => {
-    render(<IconButton icon="close" onPress={jest.fn()} accessibilityLabel="Close" />);
+    render(<IconButton icon="x" onPress={jest.fn()} accessibilityLabel="Close" />);
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
     expect(style.borderRadius).toBe(radius.control);
   });

@@ -74,7 +74,7 @@ export function CameraDangerZone({ onDelete, deleteTriggerRef }: CameraDangerZon
           <ActionRow
             label="Delete camera"
             subtitle="Permanently removes this camera and all its settings"
-            icon="delete"
+            icon="trash-2"
             onPress={onDelete}
             danger
             triggerRef={deleteTriggerRef}

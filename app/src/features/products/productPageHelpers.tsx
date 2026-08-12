@@ -166,12 +166,12 @@ export function getPrimaryFabIcon({
     // RNTL can't query), so the "saved" integration test targets this wrapper.
     return (
       <View testID="icon-check-bold">
-        <Icon name="check-bold" color={theme.colors.onBackground} />
+        <Icon name="check" color={theme.colors.onBackground} />
       </View>
     );
   }
   if (editMode) {
-    return <Icon name="content-save" color={theme.colors.onBackground} />;
+    return <Icon name="save" color={theme.colors.onBackground} />;
   }
   return <Icon name="pencil" color={theme.colors.onBackground} />;
 }

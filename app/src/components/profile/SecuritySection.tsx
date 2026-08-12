@@ -1,8 +1,7 @@
-import { CheckCircle2 } from 'lucide-react-native';
 import { useCallback, useRef } from 'react';
 import { View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { Icon } from '@/components/base/ui/icon';
+import { Icon } from '@/components/base/Icon';
 import { useMfaSetup } from '@/features/profile/useMfaSetup';
 import { useAppTheme } from '@/theme';
 import { MfaDialogs } from './MfaDialogs';
@@ -48,7 +47,7 @@ export function ProfileSecuritySection({ mfaEnabled, onEnrolled }: ProfileSecuri
                   On — you enter a code at login
                 </AppText>
               </View>
-              <Icon as={CheckCircle2} size={22} color={theme.tokens.status.success} />
+              <Icon name="circle-check-big" size={22} color={theme.tokens.status.success} />
             </View>
             <ProfileAction
               title="Generate new recovery codes"

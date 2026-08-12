@@ -25,7 +25,7 @@ function PairingSuccessDialog({
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
       <View className="items-center gap-3 pt-6">
-        <Icon name="check-circle" size={56} color={theme.tokens.status.success} />
+        <Icon name="circle-check-big" size={56} color={theme.tokens.status.success} />
         <AppText variant="title" accessibilityRole="header">
           Camera paired
         </AppText>
@@ -155,7 +155,7 @@ export default function AddCameraScreen() {
             className="flex-row items-start gap-2 p-3 rounded-lg"
             style={{ backgroundColor: theme.tokens.surface.accent }}
           >
-            <Icon name="information-outline" size={18} color={theme.colors.primary} />
+            <Icon name="info" size={18} color={theme.colors.primary} />
             <AppText variant="body" className="flex-1 text-muted-foreground">
               Make sure your Raspberry Pi is powered on and has{' '}
               <AppText style={{ fontFamily: 'monospace', fontSize: 11 }}>
@@ -174,7 +174,7 @@ export default function AddCameraScreen() {
               disabled={isPending}
               className="mt-2"
             >
-              <Icon name="link-variant" size={18} color={theme.colors.onPrimary} />
+              <Icon name="link" size={18} color={theme.colors.onPrimary} />
               <AppText className="text-primary-foreground">Pair camera</AppText>
             </AppButton>
           </View>

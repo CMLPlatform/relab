@@ -38,7 +38,7 @@ export function SelectionBar({
       className="flex-row items-center gap-2 px-3 py-2"
       style={{ backgroundColor: theme.tokens.surface.accent }}
     >
-      <IconButton icon="close" onPress={onClear} accessibilityLabel="Clear selection" />
+      <IconButton icon="x" onPress={onClear} accessibilityLabel="Clear selection" />
       <AppText variant="title" className="ml-1">
         {selectedCount} selected
       </AppText>
@@ -57,7 +57,7 @@ export function SelectionBar({
         loading={isCapturing}
         disabled={!canCapture}
       >
-        <Icon name="camera-burst" size={16} color={theme.colors.onPrimary} />
+        <Icon name="images" size={16} color={theme.colors.onPrimary} />
         <AppText style={{ color: theme.colors.onPrimary }}>
           {isCapturing ? 'Capturing…' : `Capture ${selectedCount}`}
         </AppText>

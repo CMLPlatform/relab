@@ -61,7 +61,7 @@ function FilterChip({
           hitSlop={8}
           className="ml-1 p-1"
         >
-          <Icon name="close" size={14} color={foreground} />
+          <Icon name="x" size={14} color={foreground} />
         </Pressable>
       ) : null}
     </View>
@@ -182,7 +182,7 @@ export function ProductsFilterBar({
       >
         {isAuthenticated ? (
           <FilterChip
-            icon="account"
+            icon="user"
             selected={filterMode === 'mine'}
             onPress={onToggleMine}
             onClose={filterMode === 'mine' ? onClearMine : undefined}
@@ -234,7 +234,7 @@ export function ProductsFilterBar({
         </FilterChip>
 
         <FilterChip
-          icon="shape"
+          icon="shapes"
           selected={activeProductTypes.length > 0}
           onPress={openTypeModal}
           onClose={activeProductTypes.length > 0 ? onClearTypes : undefined}

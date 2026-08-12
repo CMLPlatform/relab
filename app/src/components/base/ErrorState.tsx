@@ -11,7 +11,7 @@ type Props = {
 };
 
 /** Full-height centered error state with an icon, message, and retry button. */
-export function ErrorState({ message, onRetry, icon = 'alert-circle-outline' }: Props) {
+export function ErrorState({ message, onRetry, icon = 'circle-alert' }: Props) {
   const theme = useAppTheme();
 
   return (

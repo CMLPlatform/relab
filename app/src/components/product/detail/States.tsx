@@ -33,7 +33,7 @@ export function ProductPageErrorState({
   if (isNotFound) {
     return (
       <View style={styles.centerState}>
-        <Icon name="package-variant-closed-remove" size={64} color={themeColors.onSurfaceVariant} />
+        <Icon name="package-x" size={64} color={themeColors.onSurfaceVariant} />
         <AppText variant="title" style={styles.centerText}>
           {entityTitle} not found
         </AppText>
@@ -49,7 +49,7 @@ export function ProductPageErrorState({
 
   return (
     <View style={styles.centerState}>
-      <Icon name="alert-circle-outline" size={64} color={themeColors.error} />
+      <Icon name="circle-alert" size={64} color={themeColors.error} />
       <AppText variant="title" style={styles.centerText}>
         Something went wrong
       </AppText>

@@ -1,8 +1,7 @@
 import * as TogglePrimitive from '@rn-primitives/toggle';
 import { cva, type VariantProps } from 'class-variance-authority';
-import * as React from 'react';
+import type * as React from 'react';
 import { Platform } from 'react-native';
-import { Icon } from '@/components/base/ui/icon';
 import { TextClassContext } from '@/components/base/ui/text';
 import { cn } from '@/utils/cn';
 
@@ -66,9 +65,4 @@ function Toggle({
   );
 }
 
-function ToggleIcon({ className, ...props }: React.ComponentProps<typeof Icon>) {
-  const textClass = React.useContext(TextClassContext);
-  return <Icon className={cn('size-4 shrink-0', textClass, className)} {...props} />;
-}
-
-export { Toggle, ToggleIcon, toggleVariants };
+export { Toggle, toggleVariants };

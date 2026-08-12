@@ -1,17 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { ChevronDown, ChevronRight } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { Badge } from '@/components/base/ui/badge';
-import { Icon } from '@/components/base/ui/icon';
 import { Text } from '@/components/base/ui/text';
 import { radius } from '@/constants';
 import { componentQueryOptions } from '@/features/product-entity/queries';
+import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 
 interface Props {
@@ -30,6 +30,7 @@ const THUMBNAIL_SIZE = 44;
  */
 export function ComponentRow({ component, enabled, nested = false }: Props) {
   const router = useRouter();
+  const theme = useAppTheme();
   const [expanded, setExpanded] = useState(false);
   const displayName = component.name || 'Unnamed component';
 
@@ -135,7 +136,11 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
             onPress={toggleExpanded}
             className="h-11 w-11 items-center justify-center"
           >
-            <Icon as={expanded ? ChevronDown : ChevronRight} size={20} className="opacity-70" />
+            <Icon
+              name={expanded ? 'chevron-down' : 'chevron-right'}
+              size={20}
+              color={theme.tokens.text.muted}
+            />
           </Pressable>
         ) : null}
       </View>

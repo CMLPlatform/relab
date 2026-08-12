@@ -40,7 +40,7 @@ export function Searchbar({
   return (
     <View className="justify-center" style={style}>
       <View className="absolute left-3" style={styles.leadingIcon}>
-        <Icon name="magnify" size="md" color={theme.colors.onSurfaceVariant} />
+        <Icon name="search" size="md" color={theme.colors.onSurfaceVariant} />
       </View>
       <Input
         value={value}
@@ -69,7 +69,7 @@ export function Searchbar({
           hitSlop={12}
           className="absolute right-3"
         >
-          <Icon name="close" size="md" color={theme.colors.onSurfaceVariant} />
+          <Icon name="x" size="md" color={theme.colors.onSurfaceVariant} />
         </Pressable>
       ) : null}
     </View>

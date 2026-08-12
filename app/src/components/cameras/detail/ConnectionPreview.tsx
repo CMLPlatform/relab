@@ -50,7 +50,7 @@ export function CameraConnectionCard({
           ) : localConnection.mode === 'local' ? (
             <>
               <View className="mr-1">
-                <Icon name="ethernet" size={18} color={theme.tokens.status.success} />
+                <Icon name="ethernet-port" size={18} color={theme.tokens.status.success} />
               </View>
               <AppText
                 variant="title"
@@ -83,7 +83,7 @@ export function CameraConnectionCard({
           )}
 
           <IconButton
-            icon="refresh"
+            icon="refresh-cw"
             size={18}
             loading={isFetching}
             onPress={onRefresh}

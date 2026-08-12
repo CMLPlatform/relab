@@ -37,7 +37,7 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
         <View className="flex-row items-center justify-center">
           <OverlaySurface className="h-1 w-10 rounded-xs" tone="glass" />
           <IconButton
-            icon="close"
+            icon="x"
             size={20}
             onPress={onDismiss}
             style={styles.closeButton}

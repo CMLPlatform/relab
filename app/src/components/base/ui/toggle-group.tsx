@@ -2,7 +2,6 @@ import * as ToggleGroupPrimitive from '@rn-primitives/toggle-group';
 import type { VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 import { Platform } from 'react-native';
-import { Icon } from '@/components/base/ui/icon';
 import { TextClassContext } from '@/components/base/ui/text';
 import { toggleVariants } from '@/components/base/ui/toggle';
 import { cn } from '@/utils/cn';
@@ -94,9 +93,4 @@ function ToggleGroupItem({
   );
 }
 
-function ToggleGroupIcon({ className, ...props }: React.ComponentProps<typeof Icon>) {
-  const textClass = React.useContext(TextClassContext);
-  return <Icon className={cn('size-4 shrink-0', textClass, className)} {...props} />;
-}
-
-export { ToggleGroup, ToggleGroupIcon, ToggleGroupItem };
+export { ToggleGroup, ToggleGroupItem };

@@ -1,9 +1,7 @@
-import type { LucideIcon } from 'lucide-react-native';
-import { Check, EyeOff, Globe, Moon, Sun, SunMoon, Users } from 'lucide-react-native';
 import { useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { Icon } from '@/components/base/ui/icon';
+import { Icon, type IconName } from '@/components/base/Icon';
 import { Switch } from '@/components/base/ui/switch';
 import { useAppTheme } from '@/theme';
 import type { ThemeMode, User } from '@/types/User';
@@ -21,15 +19,16 @@ export function ProfileAppearanceSection({
   themeMode,
   onSetThemeMode,
 }: ProfileAppearanceSectionProps) {
-  const styles = createProfileSectionStyles(useAppTheme());
+  const theme = useAppTheme();
+  const styles = createProfileSectionStyles(theme);
   return (
     <View className="mx-1">
       <View className="flex-row gap-2 px-4 py-2.5">
         {(
           [
-            { mode: 'auto', icon: SunMoon, label: 'Auto' },
-            { mode: 'light', icon: Sun, label: 'Light' },
-            { mode: 'dark', icon: Moon, label: 'Dark' },
+            { mode: 'auto', icon: 'sun-moon', label: 'Auto' },
+            { mode: 'light', icon: 'sun', label: 'Light' },
+            { mode: 'dark', icon: 'moon', label: 'Dark' },
           ] as const
         ).map(({ mode, icon, label }) => (
           <ThemeModeOption
@@ -39,6 +38,7 @@ export function ProfileAppearanceSection({
             label={label}
             active={themeMode === mode}
             styles={styles}
+            color={theme.colors.onSurface}
             onSetThemeMode={onSetThemeMode}
           />
         ))}
@@ -70,19 +70,19 @@ export function ProfileVisibilitySection({
             id: 'public',
             title: 'Public',
             subtitle: 'Visible to everyone. Best for sharing your work.',
-            icon: Globe,
+            icon: 'globe',
           },
           {
             id: 'community',
             title: 'Community',
             subtitle: 'Only signed-in users can see your profile.',
-            icon: Users,
+            icon: 'users',
           },
           {
             id: 'private',
             title: 'Private',
             subtitle: 'Only you can see your profile. Uploads are anonymous.',
-            icon: EyeOff,
+            icon: 'eye-off',
           },
         ] as const
       ).map((option) => (
@@ -143,13 +143,15 @@ function ThemeModeOption({
   label,
   active,
   styles,
+  color,
   onSetThemeMode,
 }: {
   mode: ThemeMode;
-  icon: LucideIcon;
+  icon: IconName;
   label: string;
   active: boolean;
   styles: ProfileSectionStyles;
+  color: string;
   onSetThemeMode: (mode: ThemeMode) => void;
 }) {
   const handlePress = useCallback(() => onSetThemeMode(mode), [onSetThemeMode, mode]);
@@ -163,7 +165,7 @@ function ThemeModeOption({
       accessibilityState={{ selected: active }}
       accessibilityLabel={`${label} theme`}
     >
-      <Icon as={icon} size={22} />
+      <Icon name={icon} size={22} color={color} />
       <AppText className="font-semibold" style={styles.themeModeLabel}>
         {label}
       </AppText>
@@ -179,7 +181,7 @@ function VisibilityOption({
   styles,
   onChangeVisibility,
 }: {
-  option: { id: VisibilityId; title: string; subtitle: string; icon: LucideIcon };
+  option: { id: VisibilityId; title: string; subtitle: string; icon: IconName };
   isActive: boolean;
   saving: boolean;
   theme: ReturnType<typeof useAppTheme>;
@@ -202,7 +204,7 @@ function VisibilityOption({
     >
       <View className="w-8 items-center">
         <Icon
-          as={option.icon}
+          name={option.icon}
           size={24}
           color={isActive ? theme.colors.primary : theme.tokens.text.muted}
         />
@@ -218,7 +220,7 @@ function VisibilityOption({
           {option.subtitle}
         </AppText>
       </View>
-      {isActive ? <Icon as={Check} size={20} color={theme.colors.primary} /> : null}
+      {isActive ? <Icon name="check" size={20} color={theme.colors.primary} /> : null}
     </Pressable>
   );
 }
