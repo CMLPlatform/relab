@@ -462,7 +462,10 @@ just deploy-secrets-check
 `replace-me-*` placeholders, except for external identity credentials
 (`*_oauth_client_secret`, `microsoft_graph_client_secret`) which it cannot
 invent. **Fill those in by hand** — production now *refuses to start* on a
-placeholder rather than warning.
+placeholder rather than warning. `deploy-secrets-check` rejects both
+placeholder generations: the current `replace-me-*` marker and the May-era
+`placeholder-<env>-<name>` scaffolding (a dozen of the latter were found
+lurking on the staging host on 2026-08-12 — old trees can carry them).
 
 Leave the two old files (`fastapi_users_secret`, `superuser_password`) in place
 until the cutover is verified, then delete them.
@@ -487,12 +490,13 @@ docker compose -p relab_prod exec -T postgres \
 ```
 
 > **If the superuser is not named `postgres`:** `compose.deploy.yaml` defaults
-> `POSTGRES_USER` to `postgres`, and the healthcheck runs
-> `pg_isready -U "$POSTGRES_USER"`. A cluster whose superuser has a different
-> name will fail its healthcheck and never become ready. Resolve this before the
-> window — set `POSTGRES_SUPERUSER=<role>` in the host's root `.env` (or create a
-> `postgres` superuser role in the cluster). This is a genuine mismatch, not a
-> formality.
+> `POSTGRES_USER` to `postgres`. Do not expect the healthcheck to catch the
+> mismatch — `pg_isready` treats a `FATAL: role does not exist` response as
+> "server accepting connections", so the container reports **healthy** while
+> the role script and every real client fail (observed on staging 2026-08-12).
+> Resolve it before the window — set `POSTGRES_SUPERUSER=<role>` in the host's
+> root `.env` (or create a `postgres` superuser role in the cluster). This is a
+> genuine mismatch that the stack will not surface on its own.
 
 Then run the role script against the live database. It is idempotent and
 already mounted inside the container, so run it directly rather than
