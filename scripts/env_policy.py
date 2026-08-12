@@ -244,7 +244,7 @@ def assert_rendered_secrets_are_in_inventory(config: dict[str, Any], secret_inve
     require(not unexpected, f"Compose renders secrets not declared in secret inventory: {', '.join(unexpected)}")
 
 
-def assert_secret_value_is_usable(label: str, name: str, value: str) -> None:
+def assert_secret_value_is_usable(label: str, name: str, value: str, *, is_optional: bool) -> None:
     """Reject generated placeholder secrets in production-like environments.
 
     Matches the runtime placeholder marker (``backend/app/core/secrets.py``
@@ -253,9 +253,16 @@ def assert_secret_value_is_usable(label: str, name: str, value: str) -> None:
     copied into ``secrets/prod/``) is still caught here rather than only at runtime.
     Also rejects legacy placeholder prefixes (see ``KNOWN_SECRET_PLACEHOLDER_PREFIXES``)
     that the runtime itself does not recognize, since those have shipped to hosts too.
+
+    Optional secrets (an unused external-identity provider, say) legitimately stay an
+    unfilled placeholder when the operator does not use that provider: warn instead of
+    failing, since the template generator has no way to invent real provider credentials.
     """
     stripped = value.strip()
     if label in {"prod", "staging"} and stripped.startswith(KNOWN_SECRET_PLACEHOLDER_PREFIXES):
+        if is_optional:
+            sys.stdout.write(f"{label}: optional secret {name} is an unfilled placeholder (provider not configured?)\n")
+            return
         msg = f"{label}: placeholder secret remains in secrets/{label}/{name}"
         raise AssertionError(msg)
 
@@ -275,7 +282,7 @@ def assert_existing_secret_files_do_not_use_placeholders(secret_inventory: dict[
             if not path.exists():
                 continue
             value = path.read_text(encoding="utf-8")
-            assert_secret_value_is_usable(label, name, value)
+            assert_secret_value_is_usable(label, name, value, is_optional=name in optional)
             if name not in optional and not value.strip():
                 msg = f"{label}: required secret secrets/{label}/{name} is empty"
                 raise AssertionError(msg)
