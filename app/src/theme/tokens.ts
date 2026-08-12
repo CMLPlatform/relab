@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { alpha } from './color';
+import { designTokens } from './tokens.generated';
 import type { AppColorScale, AppScheme, AppTokens } from './types';
 
 const SEMANTIC_COLORS = {
@@ -78,13 +79,20 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       card: alpha(colors.surface, 0.8),
     },
     type: {
-      display: { fontSize: 38, lineHeight: 44 },
-      title: { fontSize: 24, lineHeight: 30 },
-      body: { fontSize: 16, lineHeight: 26 },
-      label: { fontSize: 13, lineHeight: 18, letterSpacing: 1.3 },
+      display: {
+        fontSize: designTokens.type.display.size,
+        lineHeight: designTokens.type.display.line,
+      },
+      title: { fontSize: designTokens.type.title.size, lineHeight: designTokens.type.title.line },
+      body: { fontSize: designTokens.type.body.size, lineHeight: designTokens.type.body.line },
+      label: {
+        fontSize: designTokens.type.label.size,
+        lineHeight: designTokens.type.label.line,
+        letterSpacing: designTokens.type.label.size * designTokens.type.label.trackingEm,
+      },
       data: {
-        fontSize: 14,
-        lineHeight: 20,
+        fontSize: designTokens.type.data.size,
+        lineHeight: designTokens.type.data.line,
         fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
         fontVariant: ['tabular-nums'] as const,
       },

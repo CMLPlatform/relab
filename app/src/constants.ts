@@ -1,3 +1,5 @@
+import { designTokens } from '@/theme/tokens.generated';
+
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -36,9 +38,4 @@ export const HERO_BAND_PATHS = ['/login', '/new-account'] as const;
 // WCAG/Apple/Material converge on 44px as the minimum comfortable tap target.
 export const MIN_TAP_TARGET = 44;
 
-export const radius = {
-  control: 6,
-  card: 8,
-  overlay: 12,
-  full: 9999,
-} as const;
+export const radius = designTokens.radius;

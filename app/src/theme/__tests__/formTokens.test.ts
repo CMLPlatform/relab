@@ -1,5 +1,6 @@
 import { radius } from '@/constants';
 import { getAppTheme } from '@/theme';
+import { designTokens } from '@/theme/tokens.generated';
 
 const RGBA_COLOR_PATTERN = /^rgba\(\d{1,3},\d{1,3},\d{1,3},[0-9.]+\)$/;
 
@@ -32,4 +33,14 @@ test('overlay elevation + scrim tokens match the flat & sharp scale in both sche
   });
   expect(dark.tokens.overlay.scrim).toBe('rgba(0,0,0,0.55)');
   expect(dark.tokens.overlay.scrim).toMatch(RGBA_COLOR_PATTERN);
+});
+
+// RN shadow/scrim props are structured, not CSS strings, so tokens.ts keeps
+// its own RN-shaped literals rather than parsing designTokens.shadowOverlay
+// apart. This pins those literals against the generated source of truth.
+test('RN overlay shadow matches tokens.json shadow-overlay', () => {
+  expect(designTokens.shadowOverlay.light).toBe('0 8px 24px rgba(20, 40, 80, 0.16)');
+  expect(designTokens.shadowOverlay.dark).toBe('0 8px 24px rgba(0, 0, 0, 0.55)');
+  expect(designTokens.scrim.light).toBe('rgba(12, 18, 32, 0.50)');
+  expect(designTokens.scrim.dark).toBe('rgba(0, 0, 0, 0.55)');
 });

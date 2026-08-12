@@ -19,7 +19,8 @@
       // Generated palette artifacts are emitted by scripts/sync_brand_assets.py;
       // keep biome from reformatting them so `--check` stays byte-stable.
       "!src/theme/brand.generated.css",
-      "!src/theme/palette.generated.ts"
+      "!src/theme/palette.generated.ts",
+      "!src/theme/tokens.generated.ts"
     ]
   },
   "linter": {
