@@ -34,13 +34,10 @@ export function ProductsWelcomeCard({
   if (visible !== true) return null;
 
   return (
-    <Card className="mx-0 rounded-lg" style={{ backgroundColor: theme.colors.surfaceVariant }}>
+    <Card className="mx-0 rounded-lg bg-muted">
       <View className="gap-3">
         <View className="flex-row items-center gap-3">
-          <View
-            className="h-11 w-11 items-center justify-center rounded-lg"
-            style={{ backgroundColor: theme.colors.primaryContainer }}
-          >
+          <View className="h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
             <Image
               source={
                 theme.dark

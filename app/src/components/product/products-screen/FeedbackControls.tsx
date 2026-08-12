@@ -24,19 +24,11 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
   if (!error) return null;
 
   return (
-    <View
-      className="flex-row items-center gap-3 rounded-lg p-4"
-      style={{ backgroundColor: theme.colors.errorContainer }}
-    >
+    <View className="flex-row items-center gap-3 rounded-lg p-4 bg-destructive/10">
       <Icon name="circle-alert" size="lg" color={theme.colors.error} />
       <View className="flex-1">
-        <AppText className="font-bold" style={{ color: theme.colors.onErrorContainer }}>
-          Load Failed
-        </AppText>
-        <AppText
-          className="opacity-80"
-          style={[styles.errorMessage, { color: theme.colors.onErrorContainer }]}
-        >
+        <AppText className="font-bold text-destructive">Load Failed</AppText>
+        <AppText className="opacity-80 text-destructive" style={styles.errorMessage}>
           {getErrorMessage(error, 'Something went wrong loading products.')}
         </AppText>
       </View>
