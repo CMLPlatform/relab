@@ -1,6 +1,7 @@
-import { View } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { getFloatingPosition } from '@/utils/platformLayout';
 
 type SaveBarProps = {
   entityRole: 'product' | 'component';
@@ -35,8 +36,16 @@ export function SaveBar({
   const wouldSave = editMode && isDirty;
   const needsAttention = wouldSave && !validationValid && (errorCount ?? 0) > 0;
   const blockedByValidation = wouldSave && !validationValid && !needsAttention;
+  // Mirrors PrimaryProductFab: in the needsAttention state the entire press
+  // routes to the error summary instead of saving invalid data.
+  const onPrimaryButtonPress = needsAttention
+    ? (onErrorSummaryPress ?? onPrimaryPress)
+    : onPrimaryPress;
   return (
-    <View className="absolute right-6 bottom-6 flex-row items-center gap-3 rounded-lg border border-border bg-background px-4 py-2">
+    <View
+      style={dockStyle}
+      className="flex-row items-center gap-3 rounded-lg border border-border bg-background px-4 py-2"
+    >
       {needsAttention ? (
         <AppButton variant="ghost" onPress={onErrorSummaryPress ?? onPrimaryPress}>
           {`${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`}
@@ -49,7 +58,7 @@ export function SaveBar({
       ) : null}
       <AppButton
         variant="primary"
-        onPress={onPrimaryPress}
+        onPress={onPrimaryButtonPress}
         loading={isSaving}
         disabled={isSaving || blockedByValidation}
       >
@@ -58,3 +67,12 @@ export function SaveBar({
     </View>
   );
 }
+
+// 24px matches the visual right-6/bottom-6 offset; position comes from
+// getFloatingPosition() (like Fab.tsx's baseFabStyle) so the bar docks to the
+// viewport ('fixed' on web) instead of the nearest positioned ancestor.
+const dockStyle: ViewStyle = {
+  position: getFloatingPosition(),
+  right: 24,
+  bottom: 24,
+};

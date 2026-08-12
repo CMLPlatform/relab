@@ -71,6 +71,27 @@ test('dirty edits with invalid validation and no error count block the save pres
   expect(onPrimaryPress).not.toHaveBeenCalled();
 });
 
+test('needsAttention state routes the primary button press to the error summary, not save', () => {
+  const onPrimaryPress = jest.fn();
+  const onErrorSummaryPress = jest.fn();
+  renderWithProviders(
+    <SaveBar
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving={false}
+      validationValid={false}
+      errorCount={2}
+      onPrimaryPress={onPrimaryPress}
+      onErrorSummaryPress={onErrorSummaryPress}
+      ownedByMe
+    />,
+  );
+  fireEvent.press(screen.getByText('Save Product'));
+  expect(onPrimaryPress).not.toHaveBeenCalled();
+  expect(onErrorSummaryPress).toHaveBeenCalledTimes(1);
+});
+
 test('uses component labels for component pages', () => {
   renderWithProviders(
     <SaveBar
