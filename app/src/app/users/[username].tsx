@@ -80,19 +80,15 @@ export default function UserProfileScreen() {
                   className="w-[120px] h-[120px] rounded-full justify-center items-center mb-6"
                   style={styles.avatarPlaceholder}
                 >
-                  <AppText variant="plain" className="font-bold" style={styles.avatarText}>
+                  <AppText variant="body" className="font-bold" style={styles.avatarText}>
                     {profile.username.substring(0, 2).toUpperCase()}
                   </AppText>
                 </View>
-                <AppText
-                  variant="plain"
-                  className="font-extrabold mb-2"
-                  style={styles.usernameText}
-                >
+                <AppText variant="body" className="font-extrabold mb-2" style={styles.usernameText}>
                   {profile.username}
                 </AppText>
                 {profile.created_at ? (
-                  <AppText variant="plain" className="opacity-60" style={styles.joinedText}>
+                  <AppText variant="body" className="opacity-60" style={styles.joinedText}>
                     Joined{' '}
                     {new Date(profile.created_at).toLocaleDateString(undefined, {
                       year: 'numeric',

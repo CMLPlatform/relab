@@ -48,7 +48,7 @@ export function HeaderRightPill() {
       >
         <Icon name="circle-user-round" size={18} color={theme.colors.onPrimaryContainer} />
         <AppText
-          variant="plain"
+          variant="label"
           className={PILL_TEXT_CLASS_NAME}
           style={primaryTextStyle}
           numberOfLines={1}
@@ -68,7 +68,7 @@ export function HeaderRightPill() {
       accessibilityRole="button"
       accessibilityLabel="Sign in"
     >
-      <AppText variant="plain" className={PILL_TEXT_CLASS_NAME} style={primaryTextStyle}>
+      <AppText variant="label" className={PILL_TEXT_CLASS_NAME} style={primaryTextStyle}>
         Sign in
       </AppText>
     </Pressable>

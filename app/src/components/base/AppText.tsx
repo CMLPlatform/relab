@@ -3,11 +3,7 @@ import { Text } from 'react-native';
 import { useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 
-// `plain` opts out of the type scale entirely: RN's default size, no
-// lineHeight, not selectable. It exists for text migrated off the old `Text`
-// primitive whose call sites set their own numbers (or relied on the RN
-// default); grep for it to find text that still needs a real scale step.
-type Variant = 'display' | 'title' | 'body' | 'label' | 'data' | 'plain';
+type Variant = 'display' | 'title' | 'body' | 'label' | 'data';
 
 // Record content (body copy, data readouts) is documentation — make it
 // selectable so it can be copied. Headings and labels aren't content, so they
@@ -26,7 +22,7 @@ type AppTextProps = ComponentProps<typeof Text> & { variant?: Variant };
  */
 export function AppText({ variant = 'body', style, className, ...rest }: AppTextProps) {
   const { tokens } = useAppTheme();
-  const scale = variant === 'plain' ? undefined : tokens.type[variant];
+  const scale = tokens.type[variant];
   return (
     <Text
       selectable={SELECTABLE_VARIANTS.has(variant)}

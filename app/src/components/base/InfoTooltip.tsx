@@ -65,7 +65,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
               ]}
               tone="scrim"
             >
-              <AppText variant="plain" style={{ color: theme.colors.inverseOnSurface }}>
+              <AppText variant="body" style={{ color: theme.colors.inverseOnSurface }}>
                 {title}
               </AppText>
             </OverlaySurface>
@@ -105,7 +105,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           tone="scrim"
         >
           <AppText
-            variant="plain"
+            variant="label"
             accessibilityLiveRegion="polite"
             numberOfLines={1}
             style={{ color: theme.colors.inverseOnSurface }}

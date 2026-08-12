@@ -39,7 +39,7 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
     <Pressable style={resolveStyle} {...props}>
       {title ? (
         <AppText
-          variant="plain"
+          variant="label"
           className="px-3 py-2 text-center font-medium"
           style={[styles.label, { color: theme.colors.onPrimaryContainer }]}
         >
@@ -47,7 +47,7 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
         </AppText>
       ) : null}
       <AppText
-        variant="plain"
+        variant="label"
         className="rounded-md px-3 py-2 text-center font-medium"
         style={[
           styles.label,

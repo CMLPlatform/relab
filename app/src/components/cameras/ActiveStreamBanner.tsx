@@ -58,7 +58,7 @@ export function ActiveStreamBanner() {
             style={{ backgroundColor: theme.tokens.status.live }}
           />
           <AppText
-            variant="plain"
+            variant="label"
             className="flex-1 font-semibold"
             style={[styles.label, { color: theme.colors.inverseOnSurface }]}
             numberOfLines={1}

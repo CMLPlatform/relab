@@ -59,7 +59,7 @@ export default function ProductDescription({ product, editMode, onChangeDescript
             accessibilityRole="button"
             accessibilityLabel={expanded ? 'Show less of description' : 'Show more of description'}
           >
-            <AppText variant="plain" style={{ fontWeight: '600' }}>
+            <AppText variant="body" style={{ fontWeight: '600' }}>
               {expanded ? 'Show less' : 'Show more'}
             </AppText>
           </Pressable>

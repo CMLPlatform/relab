@@ -133,7 +133,7 @@ export default function LocalizedFloatInput({
       />
       {unit ? (
         <AppText
-          variant="plain"
+          variant="label"
           style={{
             fontWeight: 'bold',
             width: 30,
@@ -160,7 +160,7 @@ export default function LocalizedFloatInput({
           onPress={onPress}
         >
           <AppText
-            variant="plain"
+            variant="body"
             style={{
               flexGrow: 2,
             }}

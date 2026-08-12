@@ -46,19 +46,6 @@ test('title variant is not selectable', () => {
   expect(screen.getByText('Section title').props.selectable).not.toBe(true);
 });
 
-test('plain variant applies no type scale and is not selectable', () => {
-  render(
-    <AppText variant="plain" style={{ fontWeight: 'bold' }}>
-      legacy
-    </AppText>,
-  );
-  const el = screen.getByText('legacy');
-  expect(el.props.selectable).not.toBe(true);
-  expect(el.props.className).toContain('text-foreground');
-  // No fontSize/lineHeight from the scale — only the caller's own style.
-  expect(el.props.style.flat().filter(Boolean)).toEqual([{ fontWeight: 'bold' }]);
-});
-
 test('label variant is not selectable', () => {
   render(<AppText variant="label">Field label</AppText>);
   expect(screen.getByText('Field label').props.selectable).not.toBe(true);

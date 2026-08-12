@@ -107,7 +107,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
 
           {/* Content */}
           <View className="flex-1">
-            <AppText variant="plain" className="mb-0.5" style={styles.title}>
+            <AppText variant="body" className="mb-0.5" style={styles.title}>
               {product.name || 'Unnamed Product'}
             </AppText>
             <MutedText
@@ -133,7 +133,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                   <View className="flex-row items-center gap-[3px]">
                     <Icon name="clock" size={12} color={theme.colors.outline} />
                     <AppText
-                      variant="plain"
+                      variant="data"
                       style={[styles.metadataText, { color: theme.colors.outline }]}
                     >
                       {createdAgo}
@@ -144,7 +144,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                   <View className="flex-row items-center gap-[3px]">
                     <Icon name="user" size={12} color={theme.colors.outline} />
                     <AppText
-                      variant="plain"
+                      variant="label"
                       className="text-primary"
                       style={styles.metadataText}
                       numberOfLines={1}

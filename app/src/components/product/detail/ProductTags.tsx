@@ -157,7 +157,7 @@ function AmountChip({
     >
       <View className="flex-row items-center">
         <AppText
-          variant="plain"
+          variant="label"
           className="py-2 pl-3"
           style={[amountStyles.titleText, { color: colors.onPrimaryContainer }]}
         >
@@ -193,7 +193,7 @@ function AmountChip({
         </View>
       ) : (
         <AppText
-          variant="plain"
+          variant="data"
           className="bg-primary text-primary-foreground rounded-md py-2 px-3"
           style={amountStyles.valueText}
         >

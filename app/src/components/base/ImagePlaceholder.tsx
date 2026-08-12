@@ -39,7 +39,7 @@ export default function ImagePlaceholder({
       </View>
       {label ? (
         <AppText
-          variant="plain"
+          variant="label"
           numberOfLines={2}
           style={{
             marginTop: 4,

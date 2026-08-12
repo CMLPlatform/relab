@@ -125,7 +125,7 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
 
       {options.input && options.helperText ? (
         <AppText
-          variant="plain"
+          variant="body"
           className="mt-1"
           style={{
             fontSize: 12,
@@ -200,7 +200,7 @@ function Toast({ message, onDismiss }: { message: string | null; onDismiss: () =
         tone="scrim"
       >
         <AppText
-          variant="plain"
+          variant="body"
           accessibilityLiveRegion="polite"
           style={{ color: theme.colors.inverseOnSurface }}
         >

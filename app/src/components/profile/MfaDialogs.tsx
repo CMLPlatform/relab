@@ -101,7 +101,7 @@ export function MfaDialogs({
           textContentType="password"
           style={[local.field, { borderColor: theme.colors.outline }]}
         />
-        <AppText variant="plain" className="mt-2 opacity-60" style={local.hint}>
+        <AppText variant="body" className="mt-2 opacity-60" style={local.hint}>
           Signed up with Google or GitHub? Use your Relab account password — if you never set one,
           create it with “Forgot password” on the login screen first.
         </AppText>
@@ -118,7 +118,7 @@ export function MfaDialogs({
         </View>
 
         {mfa.error ? (
-          <AppText variant="plain" className="mt-3 text-destructive" style={local.error}>
+          <AppText variant="body" className="mt-3 text-destructive" style={local.error}>
             {mfa.error}
           </AppText>
         ) : null}
@@ -175,7 +175,7 @@ export function MfaDialogs({
         )}
 
         {mfa.error ? (
-          <AppText variant="plain" className="mt-3 text-destructive" style={local.error}>
+          <AppText variant="body" className="mt-3 text-destructive" style={local.error}>
             {mfa.error}
           </AppText>
         ) : null}
@@ -227,7 +227,7 @@ export function MfaDialogs({
         </View>
 
         {mfa.error ? (
-          <AppText variant="plain" className="mt-3 text-destructive" style={local.error}>
+          <AppText variant="body" className="mt-3 text-destructive" style={local.error}>
             {mfa.error}
           </AppText>
         ) : null}

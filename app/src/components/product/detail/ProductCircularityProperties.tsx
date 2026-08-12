@@ -65,7 +65,7 @@ export default function ProductCircularityProperties({
           accessibilityRole="button"
           accessibilityLabel={`${toggleSectionLabel.toLowerCase()} circularity properties`}
         >
-          <AppText variant="plain" style={{ fontWeight: '600', color: colors.primary }}>
+          <AppText variant="body" style={{ fontWeight: '600', color: colors.primary }}>
             {toggleSectionLabel}
           </AppText>
         </Pressable>
@@ -124,7 +124,7 @@ function CircularityNoteField({
 
   return (
     <View className="py-[14px]">
-      <AppText variant="plain" className="text-[18px] font-semibold">
+      <AppText variant="body" className="text-[18px] font-semibold">
         {label}
       </AppText>
       {editMode ? (
