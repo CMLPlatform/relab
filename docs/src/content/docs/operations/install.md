@@ -144,11 +144,11 @@ migrations, verify health.
 
    Also review the per-user upload ceiling and scanning inputs: `MAX_UPLOAD_FILES_PER_USER` and
    `MAX_UPLOAD_BYTES_PER_USER_MB` cap how many files and how much storage each account can use. The
-   quota ledger counts existing rows, so raise these limits before the first start on a host with
-   a large existing dataset. Otherwise, an owner whose existing uploads already exceed the new limit
-   is blocked from uploading entirely. `MALWARE_SCAN_ENABLED` controls ClamAV upload scanning and must
-   agree with whether the stack starts with the `scanning` Compose profile — see the two modes in the
-   "Start the stack" step below.
+   quota ledger counts existing rows, so raise these limits before the first start on a host with a
+   large existing dataset. Otherwise, an owner whose existing uploads already exceed the new limit
+   is blocked from uploading entirely. `MALWARE_SCAN_ENABLED` controls ClamAV upload scanning and
+   must agree with whether the stack starts with the `scanning` Compose profile — see the two modes
+   in the "Start the stack" step below.
 
    Environment identity and public origins live in `deploy/env/prod.compose.env` and
    `deploy/env/staging.compose.env`. Each deploy env file defines the environment plus the four
@@ -175,8 +175,10 @@ migrations, verify health.
    for staging or `just deploy-secrets-template dev` for local development. Required secret
    filenames are declared by the rendered Compose overlays and the runtime secret inventory in
    `deploy/env/variables.toml`; `just deploy-secrets-check` verifies that every rendered secret
-   points at the expected `secrets/<env>/` file. Existing database volumes must be dumped and
-   recreated before the database role layout can take effect.
+   points at the expected `secrets/<env>/` file, that the directory and file modes are correct
+   (directory `0700`, files `0644`, with remediation printed on mismatch), and that no secret is
+   left at a placeholder value. Existing database volumes must be dumped and recreated before the
+   database role layout can take effect.
 
 1. Validate the deployment configuration.
 

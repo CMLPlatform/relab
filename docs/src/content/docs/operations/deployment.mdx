@@ -105,7 +105,7 @@ The deploy stack keeps segmentation intentionally small: public-facing services 
 | `clamav` (`scanning` profile only) | `scanning` only | none |
 
 `just compose-config` validates that the supported Compose overlays render for dev, prod, and staging.
-`just deploy-secrets-check` validates that rendered Compose secrets point at the expected `secrets/<env>/` files.
+`just deploy-secrets-check` validates that rendered Compose secrets point at the expected `secrets/<env>/` files, that the directory and file modes are correct (directory `0700`, files `0644`, with remediation printed on mismatch), and that no secret is left at a placeholder value.
 
 ## Backend egress
 
@@ -169,7 +169,13 @@ For local rehearsal, use staging plus the backups profile instead of production:
 - Alembic migrations move schema state forward in a controlled way.
 - `just backup-restore-smoke staging` or `just backup-restore-smoke prod` restores the latest database dump into a disposable Postgres container and verifies that it can be read.
 
-The deploy stack runs app-owned services with dropped Linux capabilities, `no-new-privileges`, PID/file descriptor limits, and read-only root filesystems where supported. The backup container runs as UID/GID `1001`; make sure the host restic directory under `BACKUP_HOST_DIR` is writable by that ID.
+The deploy stack runs app-owned services with dropped Linux capabilities, `no-new-privileges`, PID/file descriptor limits, and read-only root filesystems where supported. The backup container runs as UID/GID `1001`; make sure the host restic directory under `BACKUP_HOST_DIR` is writable by that ID. On a first-time host, create it yourself before starting the stack — Docker creates missing bind-mount directories root-owned, and the backup container cannot then initialize the restic repository:
+
+```bash
+mkdir -p "${BACKUP_HOST_DIR:-./backups}/restic"
+sudo chown -R 1001:1001 "${BACKUP_HOST_DIR:-./backups}"
+```
+
 CI checks Dockerfile misconfigurations with Trivy and validates Cloudflare edge IaC with `just cloudflare-check`.
 Root deployment validation renders the supported Compose overlays with `just compose-config` and checks rendered secret file paths with `just deploy-secrets-check`.
 
