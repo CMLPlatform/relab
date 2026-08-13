@@ -14,6 +14,9 @@ interface Props {
 const { docsUrl } = Astro.props;
 const frameworkUrl = `${docsUrl.replace(/\/$/, '')}/project/9r-framework/`;
 
+/** Rank 0-9 across every tier, read straight off the strategy's own number. */
+const stepOf = (r: string): number => Number(r.slice(1));
+
 const tiers = [
   {
     label: 'Smarter product use and manufacture',
@@ -83,28 +86,35 @@ const tiers = [
     record shows what a product is made of and how it comes apart, which is what deciding between
     these strategies takes.
   </p>
-  {
-    tiers.map((tier) => (
-      <div class="tier">
-        <h3 class="tier-label">{tier.label}</h3>
-        {/* Explicit role: WebKit drops list semantics under list-style: none. */}
-        <ol class="rungs" role="list">
-          {tier.rungs.map((rung) => (
-            <li class="rung">
-              {/* The <span> carries the hint, not the <li>: it is the focusable
-                  trigger, and a focusable list item would be announced twice.
-                  `title` is the no-JS fallback; the script lifts it into the
-                  popover and removes it so the two never double up. */}
-              <span class="rung-body" data-rung-hint={rung.hint} title={rung.hint}>
-                <span class="rung-num">{rung.r}</span>
-                <span class="rung-name">{rung.name}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      </div>
-    ))
-  }
+  <div class="ladder">
+    <p class="ladder-end ladder-end-top">Most circular</p>
+    {
+      tiers.map((tier) => (
+        <div class="tier">
+          <h3 class="tier-label">{tier.label}</h3>
+          {/* Explicit role: WebKit drops list semantics under list-style: none. */}
+          <ol class="rungs" role="list">
+            {tier.rungs.map((rung) => (
+              /* --step is the rung's rank across all three tiers, not within
+                 this one: it drives the indent that draws the staircase, so it
+                 has to keep descending across a tier boundary. */
+              <li class="rung" style={`--step: ${stepOf(rung.r)}`}>
+                {/* The <span> carries the hint, not the <li>: it is the focusable
+                    trigger, and a focusable list item would be announced twice.
+                    `title` is the no-JS fallback; the script lifts it into the
+                    popover and removes it so the two never double up. */}
+                <span class="rung-body" data-rung-hint={rung.hint} title={rung.hint}>
+                  <span class="rung-num">{rung.r}</span>
+                  <span class="rung-name">{rung.name}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))
+    }
+    <p class="ladder-end ladder-end-bottom">Last resort</p>
+  </div>
   <p class="nine-r-source">
     {/* Explicit space: Astro strips the inter-node newline before the <a>. */}
     After Potting et al. (2017):{' '}
@@ -148,17 +158,35 @@ const tiers = [
     color: var(--color-muted);
   }
 
-  .tier {
+  /* An actual staircase, because the framework is an ordinal ladder and the
+     old wrapping row of identical chips encoded none of that: every strategy
+     looked equally good, and the only clue to the order was reading the
+     numbers. Each rung steps one notch further right than the one above, and
+     the drawing falls out of two borders per row: `border-left` is the riser,
+     `border-bottom` is the tread. Because a tread runs from its own indent to
+     the right edge, the next rung's riser always lands on it, so the steps
+     connect into one continuous flight without any extra elements.
+     Deliberately no bar or width encoding the "value retained": the 9R order
+     is ordinal, and a bar would invent a magnitude Potting et al. never
+     measured. */
+  .ladder {
+    --stair: 1.15rem;
+
     display: grid;
-    grid-template-columns: 16rem 1fr;
+    grid-template-columns: 16rem minmax(0, 1fr);
     column-gap: 1.2rem;
-    align-items: baseline;
-    border-top: 1px solid var(--color-page-border);
-    padding: 0.7rem 0;
+  }
+
+  /* `display: contents` so each tier's label and rungs join the ladder grid
+     directly: the label column stays aligned across all three tiers, and the
+     staircase in the right column runs unbroken through them. */
+  .tier {
+    display: contents;
   }
 
   .tier-label {
     margin: 0;
+    padding-top: 0.55rem;
     font-family: var(--relab-brand-font-mono), monospace;
     font-size: 0.8125rem;
     font-weight: 500;
@@ -171,35 +199,64 @@ const tiers = [
     margin: 0;
     padding: 0;
     list-style: none;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
   }
 
+  /* A fixed step width, so the right edge steps down in parallel with the left
+     and the flight reads as stairs. Let the treads run to the column edge
+     instead and the whole thing flattens into a ruled table. */
   .rung {
-    display: inline-flex;
-    font-size: 0.88rem;
+    width: 20rem;
+    margin-left: calc(var(--step) * var(--stair));
+    border-left: 1px solid var(--color-page-border);
+    border-bottom: 1px solid var(--color-page-border);
   }
 
-  /* The chip chrome sits on the trigger, so the focus ring outlines exactly
-     what is focusable. `cursor: help` matches the flowchart nodes. */
+  /* The trigger fills its step, so the focus ring outlines exactly what is
+     focusable and the whole tread is hoverable. `cursor: help` matches the
+     flowchart nodes. */
   .rung-body {
-    display: inline-flex;
+    display: flex;
     align-items: baseline;
-    gap: 0.4rem;
-    padding: 0.25rem 0.6rem;
-    border: 1px solid var(--color-page-border);
-    border-radius: var(--radius-control);
+    gap: 0.6rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.92rem;
     cursor: help;
   }
 
   .rung-body:hover {
-    border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-page-border));
+    background: var(--color-primary-soft);
   }
 
-  .rung-num {
+  /* Which end of the ladder is which, stated rather than implied. Aligned to
+     the stair's left edge, in the label register. */
+  .ladder-end {
+    grid-column: 2;
+    margin: 0;
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.74rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .ladder-end-top {
+    padding-bottom: 0.35rem;
+  }
+
+  /* Indented to meet the foot of the last step. */
+  .ladder-end-bottom {
+    margin-left: calc(9 * var(--stair));
+    padding: 0.35rem 0 0 0.6rem;
+  }
+
+  /* Fixed width so the numbers form a column inside each step rather than
+     shifting with the name beside them. */
+  .rung-num {
+    flex: none;
+    width: 1.6rem;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
     letter-spacing: 0.08em;
     color: var(--color-accent);
   }
@@ -215,9 +272,32 @@ const tiers = [
   }
 
   @media (max-width: 860px) {
-    .tier {
-      grid-template-columns: 1fr;
-      row-gap: 0.4rem;
+    /* One column, and a shallower stair: ten steps at the desktop notch would
+       push the last rung most of the way across a phone. The steps still
+       descend, just less far. */
+    .ladder {
+      --stair: 0.5rem;
+
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 0;
+    }
+
+    .tier-label {
+      padding-top: 1rem;
+    }
+
+    .ladder-end {
+      grid-column: 1;
+    }
+
+    .ladder-end-bottom {
+      margin-left: calc(9 * var(--stair));
+    }
+
+    /* The step can no longer be a fixed width once the column is a phone. */
+    .rung {
+      width: auto;
+      margin-right: calc((9 - var(--step)) * var(--stair));
     }
   }
 </style>

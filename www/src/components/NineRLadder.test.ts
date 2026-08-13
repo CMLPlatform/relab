@@ -71,6 +71,22 @@ describe('NineRLadder', () => {
     expect(html).toContain('Restore an old product and bring it up to date.');
   });
 
+  it('steps each rung one notch further down the stair, R0 to R9', async () => {
+    const html = await render();
+    // --step is what indents each rung, so it is the whole encoding of rank:
+    // it must run 0-9 in order and keep descending across a tier boundary
+    // (R2 -> R3 and R7 -> R8), not restart per tier.
+    const steps = [...html.matchAll(/--step:\s*(\d+)/g)].map((m) => Number(m[1]));
+    expect(steps).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  it('labels which end of the ladder is which', async () => {
+    const html = await render();
+    // The staircase shows the order; these say what the order means.
+    expect(html).toContain('Most circular');
+    expect(html).toContain('Last resort');
+  });
+
   it('gives every rung a hint, with a no-JS title fallback', async () => {
     const html = await render();
     expect(html.match(/data-rung-hint=/g)).toHaveLength(10);

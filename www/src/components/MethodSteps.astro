@@ -49,28 +49,66 @@ import MethodFlowTb from '@/assets/method-flow-tb.svg';
     margin: 0;
   }
 
-  /* Horizontal flow scales to fit its container (no fixed min-width, so it
-     never forces a sideways scroll); the vertical flow takes over on narrow
-     screens where the horizontal labels would be too small to read. */
+  /* The horizontal flow's viewBox is 1555 units wide and the page column caps
+     at 1248, so fitting it to the column scaled everything to 0.80 and set its
+     15px labels at 12px (9.6px at a 1024 viewport). Two changes fix that:
+
+     1. It breaks out of the page column to the viewport, capped at its own
+        natural width, so a wide screen renders it at or near 1:1.
+     2. Below that it scrolls rather than shrinking further, with a floor that
+        keeps the labels at 13px -- the same trade the stats chart makes, and
+        the reason that one carries an edge fade too.
+
+     The vertical variant still takes over before the scroll gets long. */
   .flow-narrow {
     display: none;
+  }
+
+  .flow-wide {
+    width: min(calc(100vw - 3rem), 1555px);
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
   }
 
   .flow-wide :global(svg) {
     display: block;
     width: 100%;
+    /* 1555 x 0.867 -- the scale at which the 15px labels land at 13px. */
+    min-width: 1348px;
     height: auto;
+  }
+
+  /* Scroll affordance, mirroring .stats-chart: fade both edges once the
+     diagram can no longer fit, so a cut-off node reads as "there is more". */
+  @media (max-width: 1400px) {
+    .flow-wide {
+      mask-image: linear-gradient(
+        to right,
+        transparent 0,
+        black 1.25rem,
+        black calc(100% - 1.25rem),
+        transparent 100%
+      );
+    }
   }
 
   .flow-narrow :global(svg) {
     display: block;
     width: 100%;
+    /* Natural width is 239 units, so 18rem already renders it above 1:1; more
+       would set the labels larger than the body text around them. */
     max-width: 18rem;
     height: auto;
     margin: 0 auto;
   }
 
-  @media (max-width: 899px) {
+  /* Raised from 899px: at that width the horizontal flow needed ~470px of
+     sideways scroll, which is further than a diagram should ask anyone to
+     drag. The vertical variant is legible at its natural size. */
+  @media (max-width: 1100px) {
     .flow-wide {
       display: none;
     }

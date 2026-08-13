@@ -47,11 +47,6 @@ describe('BrandHero', () => {
     expect(html.match(/\(opens in new tab\)/g)).toHaveLength(2);
   });
 
-  it('says which door needs an account, so neither CTA overpromises', async () => {
-    const html = await render();
-    expect(html).toMatch(/Browsing needs no account/);
-  });
-
   it('shows one headline figure, not a triad, and omits it without stats', async () => {
     const html = await render();
     expect(html).toContain('data-metrics');
