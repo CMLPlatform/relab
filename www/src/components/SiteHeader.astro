@@ -134,9 +134,12 @@ const { appUrl, docsUrl, heroBrand = false } = Astro.props;
 
   /* The other half of the handoff: the hero's mark melts over the first 140px
      of scroll (BrandHero) and this one arrives just behind it. Only on pages
-     that have a hero mark to hand off from. Without scroll-timeline support
-     the rule never applies and the mark is simply always visible, which is the
-     same fallback reduced motion gets. */
+     that have a hero mark to hand off from.
+
+     Without scroll-timeline support the rule never applies and this mark is
+     always visible — alongside the hero's, which also never melts. That is
+     Firefox specifically, not a long-tail browser: see the note in BrandHero.
+     Reduced motion gets the same fallback. */
   @supports (animation-timeline: scroll()) {
     @media (prefers-reduced-motion: no-preference) {
       /* Longhands, never the `animation` shorthand; see BrandHero. */

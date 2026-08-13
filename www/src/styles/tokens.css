@@ -18,6 +18,14 @@
   --color-text: var(--relab-brand-text);
   --color-muted: light-dark(rgb(83, 102, 122), rgb(179, 200, 216));
   --color-page-border: light-dark(rgba(23, 38, 45, 0.12), rgba(222, 239, 252, 0.12));
+  /* The boundary of an interactive control, which WCAG 1.4.11 holds to 3:1 --
+     unlike the hairline above, which is decorative and measures ~1.3:1 against
+     the page. Any border that is the *only* thing identifying a control uses
+     this: outline buttons, the measure toggle group, the theme toggle. Borders
+     that merely separate or frame content keep --color-page-border.
+     Mixed toward the page ground rather than set solid, so it reads as chrome
+     rather than as a second primary action: 3.7:1 light, 5.1:1 dark. */
+  --color-control-border: color-mix(in srgb, var(--color-primary) 70%, var(--color-page-surface));
   /* Solid, not a tint: a translucent ring lands around 1.4:1 on both page and
      card surfaces, well under the 3:1 WCAG 1.4.11 needs for focus indicators.
      The brand primary clears it comfortably (7.5:1 light, 9.3:1 dark). */

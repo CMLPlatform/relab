@@ -123,12 +123,11 @@
 
 /* The second door (contributing) beside the primary one (browsing): outlined,
    so the pair reads as two choices rather than two competing pitches. The
-   border is 70% primary rather than the page hairline, because this one is the
-   boundary of an interactive control and WCAG 1.4.11 wants 3:1 for that
-   (3.7:1 light, 5.1:1 dark; the decorative hairline manages ~1.3:1). Hover
-   deepens to full primary, never the accent (assets/DESIGN.md). */
+   border is the shared 3:1 control boundary (see --color-control-border) rather
+   than the decorative hairline. Hover deepens to full primary, never the
+   accent (assets/DESIGN.md). */
 .btn-outline {
-  border-color: color-mix(in srgb, var(--color-primary) 70%, var(--color-page-surface));
+  border-color: var(--color-control-border);
   background: transparent;
   color: var(--color-primary-strong);
 }
@@ -234,11 +233,13 @@
   gap: 0.6rem 1rem;
 }
 
-/* One control row, above everything it scopes. */
+/* One control row, above everything it scopes. The group border is the only
+   thing marking these toggles as controls rather than as labels, so it takes
+   the 3:1 control boundary rather than the decorative hairline. */
 .stats-controls {
   display: inline-flex;
   flex-wrap: wrap;
-  border: 1px solid var(--color-page-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-control);
   overflow: hidden;
 }
@@ -424,10 +425,12 @@
   }
 }
 
+/* Same reasoning as .stats-controls: a bordered icon button whose border is its
+   only outline, so it takes the 3:1 control boundary. */
 .theme-toggle {
   appearance: none;
   position: relative;
-  border: 1px solid var(--color-page-border);
+  border: 1px solid var(--color-control-border);
   background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
   color: var(--color-muted);
   width: 2.1rem;
@@ -457,8 +460,13 @@
   translate: -50% -50%;
 }
 
+/* Deepens to full primary, matching .btn-outline. It used to mix 22% primary
+   into the hairline, which read as "stronger than the resting border" only
+   while that border was the faint decorative one; against the 3:1 control
+   boundary the same value would now be *weaker* than resting, inverting the
+   affordance. */
 .theme-toggle:hover {
-  border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-page-border));
+  border-color: var(--color-primary);
 }
 
 .theme-control[data-theme-current="light"] .theme-toggle,

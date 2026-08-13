@@ -127,9 +127,17 @@ const appBase = appUrl.replace(/\/$/, '');
 
   /* The handoff: as the page scrolls this mark dissolves upward while the
      header's fades in to take its place (SiteHeader). The two are never both
-     on screen, which is what keeps the brand from appearing twice. Scroll-
-     driven and reduced-motion-gated, so browsers without support simply keep
-     this one visible and the header's alongside it. */
+     on screen, which is what keeps the brand from appearing twice.
+
+     Read the @supports literally: `animation-timeline: scroll()` is Chromium
+     and WebKit only. Measured 2026-08-13 via CSS.supports() in all three
+     engines, Firefox returns false. So on Firefox the handoff never runs and
+     BOTH marks stay visible for the whole page. That is the accepted fallback,
+     not a bug, but it is a mainstream browser rather than an edge case, so do
+     not treat the two-marks state as unreachable. Making it work there needs an
+     IntersectionObserver or scroll listener, which is real JavaScript for a
+     decorative effect; the recommendation is to leave it. Reduced motion gets
+     the same fallback. */
   @supports (animation-timeline: scroll()) {
     @media (prefers-reduced-motion: no-preference) {
       /* Longhands, never the `animation` shorthand: the CSS minifier folds a
