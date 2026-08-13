@@ -159,6 +159,20 @@ describe('ActiveStreamBanner', () => {
     );
   });
 
+  // Regression: '/products/new' (CaptureScreen, no SaveBar) satisfies
+  // '/products/:id' too, since the literal 'new' segment matches [^/]+ just
+  // like a real id would — the route predicate must exclude it explicitly.
+  it('does not reserve space on the /products/new creation route', () => {
+    mockPlatform('web');
+    mockUseStreamSession.mockReturnValue({ activeStream: session });
+    (usePathname as jest.Mock).mockReturnValue('/products/new');
+    (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+
+    renderWithProviders(<ActiveStreamBanner />);
+
+    expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(16);
+  });
+
   it('does not reserve space on a product list route even at >=md web', () => {
     mockPlatform('web');
     mockUseStreamSession.mockReturnValue({ activeStream: session });

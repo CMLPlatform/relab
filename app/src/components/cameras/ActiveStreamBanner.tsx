@@ -35,15 +35,27 @@ const BASE_BOTTOM_INSET = Platform.OS === 'web' ? 16 : 88;
 // SaveBar (FabControls.tsx) docks fixed at right:24/bottom:24 on >=md web
 // product/component detail routes ('/products/:id' and '/components/:id'
 // exactly — not '/products/new' or '.../components/new', which use a
-// different screen with no SaveBar). The banner can't cheaply read SaveBar's
-// own edit/dirty/validation state, so it reserves the zone whenever the
-// route+breakpoint combination *could* render it — the same isMd gate
-// ProductFabControls itself uses. The reserve width is a conservative
-// estimate of SaveBar's widest realistic content (an error-summary button
-// plus the primary Save/Edit button, with the dock's own padding and gaps),
-// not a measured value — it only needs to be comfortably wider than SaveBar
-// ever gets, not pixel-exact.
-const SAVE_BAR_DOCK_ROUTE = /^\/(products|components)\/[^/]+$/;
+// different screen with no SaveBar). The (?!new$) exclusion matters: '/products/new'
+// would otherwise match '/products/:id' too, since 'new' satisfies [^/]+. The
+// banner can't cheaply read SaveBar's own edit/dirty/validation state, so it
+// reserves the zone whenever the route+breakpoint combination *could* render
+// it — the same isMd gate ProductFabControls itself uses. The reserve width
+// is a conservative estimate of SaveBar's widest realistic content (an
+// error-summary button plus the primary Save/Edit button, with the dock's
+// own padding and gaps), not a measured value — it only needs to be
+// comfortably wider than SaveBar ever gets, not pixel-exact.
+// Known over-reservation: SaveBar itself also hides for a non-owner viewer
+// (SaveBar.tsx: `if (!ownedByMe) return null`), which this route+breakpoint
+// check can't see — read-only visitors on a detail route get the 400px
+// reservation with nothing behind it to protect. Accepted trade-off, not
+// wired: threading ownership into this globally-mounted banner is real
+// architectural cost (fetching/propagating per-product ownership into chrome
+// that doesn't otherwise know about products) for a purely cosmetic gain
+// (an empty gap, not an overlap) on a visitor-viewing-someone-else's-product
+// path. Revisit only if that path gets materially more common.
+// SaveBar.tsx / FabControls.tsx carry a back-reference comment — keep both
+// in sync if the route pattern or SaveBar's render condition changes.
+const SAVE_BAR_DOCK_ROUTE = /^\/(products|components)\/(?!new$)[^/]+$/;
 // Not exported: this file is component-only for Fast Refresh
 // (react-refresh/only-export-components), unlike useBottomNav.ts's
 // intentionally-non-.tsx module. The test below duplicates this value.

@@ -16,7 +16,14 @@ type SaveBarProps = {
   ownedByMe: boolean;
 };
 
-/** Docked action bar for >=md web: Edit / Save plus an inline error summary. */
+/**
+ * Docked action bar for >=md web: Edit / Save plus an inline error summary.
+ *
+ * ActiveStreamBanner reserves right-side dock space for this bar via its own
+ * route-pattern + isMd check (SAVE_BAR_DOCK_ROUTE) rather than reading this
+ * component's state — if the route pattern here or the `ownedByMe` render
+ * condition below changes, update ActiveStreamBanner.tsx too.
+ */
 export function SaveBar({
   entityRole,
   editMode,
