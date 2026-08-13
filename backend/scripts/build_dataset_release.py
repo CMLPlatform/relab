@@ -27,6 +27,8 @@ reproducibility failure the frozen reference tables exist to prevent.
 The verification pass at the end is not optional and fails the build rather than warning.
 
 Run with: python -m scripts.build_dataset_release --owner <username> --out <dir>
+Or, to see what a release would contain without writing one:
+    python -m scripts.build_dataset_release --inventory
 """
 
 from __future__ import annotations
@@ -37,11 +39,14 @@ import contextlib
 import csv
 import hashlib
 import hmac
+import io
 import json
 import logging
 import re
 import shutil
 import statistics
+import sys
+from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from enum import Enum
@@ -280,6 +285,29 @@ class BuildStats:
         if self.collection_start is None or self.collection_end is None:
             return "unknown"
         return f"{self.collection_start:%Y-%m-%d} to {self.collection_end:%Y-%m-%d}"
+
+
+# Logins used by many different people. A shared login cannot carry a licence grant: the
+# person who took a photograph owns it whichever account uploaded it, so records here belong
+# to individuals who can no longer be identified, and one click-through of the terms on a
+# shared account cannot bind everyone who used that login afterwards. Never releasable — and
+# deliberately still shown by --inventory, because aggregate counts about records are facts
+# about them, not republication of them, and the paper wants those counts.
+SHARED_ACCOUNTS: frozenset[str] = frozenset({"demo"})
+
+
+def reject_shared_accounts(usernames: Iterable[str]) -> None:
+    """Abort a real build that names a shared account."""
+    shared = sorted(name for name in usernames if name in SHARED_ACCOUNTS)
+    if shared:
+        msg = (
+            f"Refusing to build a release from shared account(s): {', '.join(shared)}. "
+            "A shared workshop login was used by many different people, so records under it "
+            "belong to individuals who can no longer be identified, and no terms acceptance "
+            "on a shared login can bind them. Use --inventory to count these records without "
+            "publishing them."
+        )
+        raise SystemExit(msg)
 
 
 ### Pseudonymisation ###
@@ -1176,9 +1204,156 @@ def _border_stddev(img: PILImage.Image) -> float | None:
     return statistics.pstdev(border) if border else None
 
 
+### Inventory (read-only dry run) ###
+INVENTORY_HEADER = (
+    "username",
+    "shared",
+    "terms_version",
+    "base_products",
+    "components",
+    "records",
+    "images",
+    "brand_pct",
+    "model_pct",
+    "description_pct",
+    "component_type_pct",
+    "component_mass_pct",
+    "component_geometry_pct",
+    "component_image_pct",
+)
+
+
+def _pct(count: int, total: int) -> str:
+    """Return a one-decimal completeness percentage, or blank when there is nothing to divide."""
+    return "" if total == 0 else f"{100 * count / total:.1f}"
+
+
+def summarise_owner(
+    username: str,
+    terms_version: object,
+    products: Sequence[dict[str, Any]],
+    imaged_product_ids: set[int],
+) -> dict[str, Any]:
+    """Summarise one account's records: counts, and the completeness columns the paper uses."""
+    base = [row for row in products if row["parent_id"] is None]
+    components = [row for row in products if row["parent_id"] is not None]
+    geometry = ("height_cm", "width_cm", "depth_cm")
+    return {
+        "username": username,
+        "shared": "yes" if username in SHARED_ACCOUNTS else "no",
+        "terms_version": "" if terms_version is None else terms_version,
+        "base_products": len(base),
+        "components": len(components),
+        "records": len(products),
+        "images": sum(1 for row in products if row["id"] in imaged_product_ids),
+        "brand_pct": _pct(sum(1 for row in base if row["brand"]), len(base)),
+        "model_pct": _pct(sum(1 for row in base if row["model"]), len(base)),
+        "description_pct": _pct(sum(1 for row in base if row["description"]), len(base)),
+        "component_type_pct": _pct(sum(1 for row in components if row["product_type_id"] is not None), len(components)),
+        "component_mass_pct": _pct(sum(1 for row in components if row["weight_g"] is not None), len(components)),
+        "component_geometry_pct": _pct(
+            sum(1 for row in components if all(row[name] is not None for name in geometry)), len(components)
+        ),
+        "component_image_pct": _pct(sum(1 for row in components if row["id"] in imaged_product_ids), len(components)),
+    }
+
+
+def render_inventory_csv(rows: Sequence[dict[str, Any]]) -> str:
+    """Render inventory rows as CSV text, so one command feeds both scoping and the paper."""
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=INVENTORY_HEADER, lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(rows)
+    return buffer.getvalue()
+
+
+async def collect_inventory(session: AsyncSession) -> list[dict[str, Any]]:
+    """Return one summary row per account holding records, sorted by username.
+
+    Every account is reported, not only the ones a build would select: the point is to show
+    what is being left out as well as what is going in.
+    """
+    # NOTE: aggregates in Python over every product row. n is a few thousand; push the
+    # counting into SQL if this dataset ever outgrows a single process.
+    columns = (
+        Product.id,
+        Product.owner_id,
+        Product.parent_id,
+        Product.brand,
+        Product.model,
+        Product.description,
+        Product.product_type_id,
+        Product.weight_g,
+        Product.height_cm,
+        Product.width_cm,
+        Product.depth_cm,
+    )
+    products: dict[Any, list[dict[str, Any]]] = defaultdict(list)
+    for row in (await session.execute(select(*columns))).all():
+        values = dict(row._mapping)  # noqa: SLF001  # documented SQLAlchemy Row accessor
+        products[values.pop("owner_id")].append(values)
+
+    imaged_product_ids = {
+        parent_id
+        for (parent_id,) in (
+            await session.execute(
+                select(Image.parent_id).where(Image.parent_type == MediaParentType.PRODUCT).distinct()
+            )
+        ).all()
+    }
+
+    accounts = (await session.execute(select(User.id, User.username, User.terms_accepted_version))).all()
+    rows = [
+        summarise_owner(username or f"<no username: {user_id}>", terms_version, products[user_id], imaged_product_ids)
+        for user_id, username, terms_version in accounts
+        if products[user_id]
+    ]
+    rows.sort(key=lambda row: row["username"])
+    return [*rows, _inventory_total(rows)]
+
+
+def _inventory_total(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Return the TOTAL row: counts summed, percentages recomputed over the pooled rows."""
+    counted = ("base_products", "components", "records", "images")
+    total = {"username": "TOTAL", "shared": "", "terms_version": ""} | {
+        name: sum(row[name] for row in rows) for name in counted
+    }
+    for name in INVENTORY_HEADER:
+        if name.endswith("_pct"):
+            base = "components" if name.startswith("component_") else "base_products"
+            weighted = sum(float(row[name]) * row[base] for row in rows if row[name] != "")
+            total[name] = _pct(0, 0) if total[base] == 0 else f"{weighted / total[base]:.1f}"
+    return total
+
+
+async def _read_inventory() -> list[dict[str, Any]]:
+    """Open a session, collect the inventory, and always dispose the engine."""
+    try:
+        async with async_session_context() as session:
+            return await collect_inventory(session)
+    finally:
+        await close_async_engine()
+
+
+def inventory(destination: Path | None) -> None:
+    """Report what a release would contain and exit without writing an archive.
+
+    Read-only by construction: it needs no pseudonymisation salt, takes no owner selection,
+    and writes nothing but the summary it is asked for.
+    """
+    report = render_inventory_csv(asyncio.run(_read_inventory()))
+    if destination is None:
+        sys.stdout.write(report)
+        return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(report, encoding="utf-8")
+    logger.info("Wrote inventory to %s.", destination)
+
+
 ### Build ###
 async def build(out: Path, owner_usernames: Sequence[str], salt: str, meta: ReleaseMetadata) -> None:
     """Build the release directory, then verify it."""
+    reject_shared_accounts(owner_usernames)
     out.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
     try:
         await _build(out, owner_usernames, salt, meta)
@@ -1233,9 +1408,20 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--owner",
         action="append",
-        required=True,
         metavar="USERNAME",
         help="account whose records are in scope; repeat for several. Release 1 is lab accounts only.",
+    )
+    parser.add_argument(
+        "--inventory",
+        action="store_true",
+        help="report what a release would contain, for every account, and exit without writing one",
+    )
+    parser.add_argument(
+        "--inventory-out",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="write the --inventory report here instead of to stdout",
     )
     parser.add_argument("--out", type=Path, default=Path("dist/dataset-release"), help="output directory")
     parser.add_argument("--version", default=ReleaseMetadata.version, help="dataset version")
@@ -1251,6 +1437,13 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main() -> None:
     """Build a dataset release from the command line."""
     args = parse_args()
+    if args.inventory:
+        # No owner selection and no salt: this path reads and reports, it never publishes.
+        inventory(args.inventory_out)
+        return
+    if not args.owner:
+        msg = "--owner is required to build a release. Use --inventory to see what is available."
+        raise SystemExit(msg)
     meta = ReleaseMetadata(version=args.version, doi=args.doi)
     salt = read_pseudonym_salt(args.pseudonym_salt)
     meta = replace(meta, pseudonym_salt_fingerprint=check_salt_fingerprint(salt))

@@ -1,5 +1,6 @@
 """Unit tests for the pure logic of the dataset release builder."""
 
+import asyncio
 import json
 import logging
 import re
@@ -14,30 +15,38 @@ from PIL import Image as PILImage
 
 from scripts.build_dataset_release import (
     CATEGORIES_SCHEMA,
+    INVENTORY_HEADER,
     MATERIALS_SCHEMA,
     PRODUCT_TYPES_SCHEMA,
     RECORD_MATERIALS_SCHEMA,
     RECORDS_SCHEMA,
     REVIEW_DIR,
+    SHARED_ACCOUNTS,
     TAXONOMIES_SCHEMA,
     UNITS_SCHEMA,
     BuildStats,
     ReleaseMetadata,
+    build,
     check_salt_fingerprint,
     checksum_violations,
     exif_violations,
     file_sha256,
     forbidden_column_names,
     forbidden_values,
+    inventory,
     iter_archive_files,
     missing_references,
+    parse_args,
     parse_checksums,
     provenance_flags,
     pseudonymise,
     read_parquet,
+    reject_shared_accounts,
     render_croissant,
+    render_inventory_csv,
     render_readme,
     salt_fingerprint,
+    summarise_owner,
     verify,
     write_artefacts,
     write_checksums,
@@ -579,3 +588,145 @@ def test_croissant_usage_info_mirrors_both_notes() -> None:
     assert "2(b)(2)" in usage_info
     assert "no account identifiers" in usage_info
     assert "GDPR basis" in usage_info
+
+
+### Shared accounts ###
+def test_demo_is_a_known_shared_account() -> None:
+    """The workshop login is named as a constant, not left as a bare string in a condition."""
+    assert "demo" in SHARED_ACCOUNTS
+
+
+def test_reject_shared_accounts_aborts_on_the_shared_login() -> None:
+    """Records under a shared login cannot carry a licence grant, so a build must refuse."""
+    with pytest.raises(SystemExit, match="shared account"):
+        reject_shared_accounts(["lab", "demo"])
+
+
+def test_shared_account_error_explains_why() -> None:
+    """The error has to say what a shared login means for the grant, not just refuse."""
+    with pytest.raises(SystemExit) as caught:
+        reject_shared_accounts(["demo"])
+    message = str(caught.value)
+    assert "can no longer be identified" in message
+    assert "bind them" in message
+    assert "--inventory" in message
+
+
+def test_reject_shared_accounts_allows_ordinary_accounts() -> None:
+    """An individually held account is unaffected."""
+    assert reject_shared_accounts(["lab", "oskar"]) is None
+
+
+def test_build_refuses_a_shared_owner_before_touching_the_filesystem(tmp_path) -> None:
+    """The guard sits at the build entry point, so no output directory is created either."""
+    out = tmp_path / "release"
+    with pytest.raises(SystemExit, match="shared account"):
+        asyncio.run(build(out, ["demo"], "a-salt", ReleaseMetadata()))
+    assert not out.exists()
+
+
+### Inventory ###
+def _product(**overrides: Any) -> dict[str, Any]:
+    """Return one product row as collect_inventory reads it."""
+    return {
+        "id": 1,
+        "parent_id": None,
+        "brand": "Makita",
+        "model": "HR2470",
+        "description": "a rotary hammer",
+        "product_type_id": 5,
+        "weight_g": 900.0,
+        "height_cm": 20.0,
+        "width_cm": 8.0,
+        "depth_cm": 6.0,
+    } | overrides
+
+
+def test_summarise_owner_splits_base_products_from_components() -> None:
+    """Record counts are reported split, because the two carry different completeness."""
+    row = summarise_owner("lab", 2, [_product(id=1), _product(id=2, parent_id=1)], set())
+    assert row["base_products"] == 1
+    assert row["components"] == 1
+    assert row["records"] == 2
+
+
+def test_summarise_owner_reports_product_completeness() -> None:
+    """Product-level brand, model and description presence is what the paper cites."""
+    products = [_product(id=1), _product(id=2, brand=None, model=None, description=None)]
+    row = summarise_owner("lab", 2, products, set())
+    assert row["brand_pct"] == "50.0"
+    assert row["model_pct"] == "50.0"
+    assert row["description_pct"] == "50.0"
+
+
+def test_summarise_owner_reports_component_completeness() -> None:
+    """Component-level type, mass, geometry and direct image linkage, likewise."""
+    components = [
+        _product(id=2, parent_id=1),
+        _product(id=3, parent_id=1, product_type_id=None, weight_g=None, depth_cm=None),
+    ]
+    row = summarise_owner("lab", 2, components, {2})
+    assert row["component_type_pct"] == "50.0"
+    assert row["component_mass_pct"] == "50.0"
+    assert row["component_geometry_pct"] == "50.0"
+    assert row["component_image_pct"] == "50.0"
+
+
+def test_summarise_owner_marks_a_shared_account() -> None:
+    """The inventory still lists demo, clearly marked, because the paper counts its records."""
+    assert summarise_owner("demo", None, [_product()], set())["shared"] == "yes"
+    assert summarise_owner("lab", 2, [_product()], set())["shared"] == "no"
+
+
+def test_summarise_owner_reports_terms_acceptance() -> None:
+    """Whether an account accepted the terms, and at which version, is part of the picture."""
+    assert summarise_owner("lab", 3, [_product()], set())["terms_version"] == 3
+    assert summarise_owner("demo", None, [_product()], set())["terms_version"] == ""
+
+
+def test_completeness_is_blank_rather_than_zero_when_there_is_nothing_to_divide() -> None:
+    """An account with no components has no component completeness, which is not 0%."""
+    row = summarise_owner("lab", 2, [_product()], set())
+    assert row["component_type_pct"] == ""
+
+
+def test_inventory_csv_lists_a_shared_account_alongside_the_others() -> None:
+    """Excluding demo from the report would defeat the point of having one."""
+    rows = [summarise_owner("demo", None, [_product()], set()), summarise_owner("lab", 2, [_product(id=9)], set())]
+    report = render_inventory_csv(rows)
+    assert report.splitlines()[0] == ",".join(INVENTORY_HEADER)
+    assert "demo,yes," in report
+    assert "lab,no," in report
+
+
+def test_inventory_flag_needs_no_owner_and_no_salt() -> None:
+    """The report is read-only scoping: requiring a selection or a salt would defeat it."""
+    args = parse_args(["--inventory"])
+    assert args.inventory is True
+    assert args.owner is None
+    assert args.pseudonym_salt is None
+
+
+def test_building_still_requires_an_owner() -> None:
+    """Dropping --owner from the required set must not make a real build owner-less."""
+    assert parse_args(["--out", "x"]).owner is None
+
+
+def test_inventory_writes_no_archive(tmp_path, monkeypatch) -> None:
+    """--inventory must produce a report and nothing else — no records, no images."""
+    out = tmp_path / "release"
+    destination = tmp_path / "inventory.csv"
+    monkeypatch.setattr(
+        "scripts.build_dataset_release._read_inventory",
+        _fake_read_inventory,
+    )
+    inventory(destination)
+    assert destination.is_file()
+    assert "demo,yes," in destination.read_text(encoding="utf-8")
+    assert not out.exists()
+    assert list(tmp_path.iterdir()) == [destination]
+
+
+async def _fake_read_inventory() -> list[dict[str, Any]]:
+    """Stand in for the database read so the inventory path can be exercised offline."""
+    return [summarise_owner("demo", None, [_product()], set())]

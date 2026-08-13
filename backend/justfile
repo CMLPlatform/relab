@@ -129,6 +129,7 @@ openapi-check:
 
 # Build a publishable dataset release directory (verification failures abort the build)
 # Usage: just release-build --owner <username> [--out DIR] [--doi 10.5281/zenodo.NNNNNNN]
+# Dry run, every account, writes nothing: just release-build --inventory
 release-build *ARGS:
     uv run python -m scripts.build_dataset_release {{ ARGS }}
 
