@@ -128,7 +128,9 @@ openapi-check:
     ENVIRONMENT=testing uv run python -m scripts.generate.export_openapi --check
 
 # Build a publishable dataset release directory (verification failures abort the build)
-# Usage: just release-build --owner <username> [--out DIR] [--doi 10.5281/zenodo.NNNNNNN]
+# Scope is decided by contributor consent; --owner only narrows within it.
+# Usage: just release-build [--out DIR] [--owner USERNAME] [--doi 10.5281/zenodo.NNNNNNN]
+#        exclusions: --exclude-owner USERNAME | --exclude-product ID | --exclude-name-word WORD | --no-name-filter
 # Dry run, every account, writes nothing: just release-build --inventory
 release-build *ARGS:
     uv run python -m scripts.build_dataset_release {{ ARGS }}

@@ -9,7 +9,8 @@ Output layout (``--out``)::
     reference/               frozen taxonomy, categories, materials, product types, units
     README.md LICENSE.txt CITATION.cff CONTRIBUTORS.md CHANGELOG.md croissant.json
     SHA256SUMS
-    review/                  human-review extracts; NOT part of the published archive
+    review/                  human-review extracts, including every excluded record and the
+                             rule that excluded it; NOT part of the published archive
 
 Two deliberate departures from the April 2026 pipeline, which emitted a PostgreSQL dump:
 tabular data plus an image tree (a ``.sql.zst`` forces a reuser to stand up Postgres
@@ -26,7 +27,11 @@ reproducibility failure the frozen reference tables exist to prevent.
 
 The verification pass at the end is not optional and fails the build rather than warning.
 
-Run with: python -m scripts.build_dataset_release --owner <username> --out <dir>
+Scope is decided by consent: a record is in scope when its owner accepted the contributor
+terms. ``--owner`` narrows within that set, never past it, and every exclusion is counted,
+logged and listed in ``review/excluded-records.csv``.
+
+Run with: python -m scripts.build_dataset_release --out <dir>
 Or, to see what a release would contain without writing one:
     python -m scripts.build_dataset_release --inventory
 """
@@ -46,7 +51,7 @@ import re
 import shutil
 import statistics
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict, deque
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from enum import Enum
@@ -77,7 +82,7 @@ from app.core.images.constants import _PRESERVED_EXIF_TAGS
 from app.core.logging import setup_logging
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Iterable, Iterator, Mapping, Sequence
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -245,7 +250,10 @@ class ReleaseMetadata:
         "Institute of Environmental Sciences (CML), Leiden University, to support computer "
         "vision and life cycle assessment research on circular-economy strategies."
     )
-    named_contributors: tuple[str, ...] = ("Oskar Zemiolek",)
+    # Editorial: who the release is cut with, decided when it is cut. Not a platform
+    # feature and not derived from any database flag — contributors at large are credited
+    # collectively, as CC BY intends, and appear only as pseudonymous codes.
+    named_lab_contributors: tuple[str, ...] = ("Oskar Zemiolek",)
     keywords: tuple[str, ...] = (
         "circular economy",
         "computer vision",
@@ -287,12 +295,136 @@ class BuildStats:
         return f"{self.collection_start:%Y-%m-%d} to {self.collection_end:%Y-%m-%d}"
 
 
+# Consent, not identity, decides what a release contains: a record is in scope when its
+# owner accepted the contributor terms at this version or later.
+#
+# NOT CURRENT_TERMS_VERSION, and the difference is invisible until it bites: pinning to the
+# current version would make every future revision of the terms silently drop every record
+# until each contributor re-accepted. This number means "the terms version that first
+# granted a publication licence", so it moves only if a revision changes the grant itself.
+MINIMUM_RELEASE_TERMS_VERSION = 1
+
+# Names that mark a record as scratch work rather than a real teardown.
+DEFAULT_EXCLUDED_NAME_WORDS: frozenset[str] = frozenset(
+    {"delete", "dummy", "example", "ignore", "sample", "temp", "test", "tmp"}
+)
+
+
+@dataclass(frozen=True)
+class SelectionRules:
+    """What a build includes, and everything it deliberately leaves out."""
+
+    # Optional narrowing *within* the consenting set. Empty means every consenting account.
+    owner_usernames: frozenset[str] = frozenset()
+    excluded_owner_usernames: frozenset[str] = frozenset()
+    excluded_product_ids: frozenset[int] = frozenset()
+    # Empty switches the name filter off for the run.
+    excluded_name_words: frozenset[str] = DEFAULT_EXCLUDED_NAME_WORDS
+
+
+def has_release_consent(terms_version: object) -> bool:
+    """Return whether an account's terms acceptance covers publication in a release."""
+    return isinstance(terms_version, int) and terms_version >= MINIMUM_RELEASE_TERMS_VERSION
+
+
+def matched_name_word(name: str, words: Iterable[str]) -> str | None:
+    """Return the excluded word *name* starts or ends with, or None.
+
+    Whole words only, at either end, case-insensitively. A substring match on "test" would
+    also hit "Contest", "Testa" and "Detest", quietly dropping plausible product names from
+    a published dataset.
+    """
+    for word in sorted(words):
+        if re.search(rf"^{re.escape(word)}\b|\b{re.escape(word)}$", name, re.IGNORECASE):
+            return word
+    return None
+
+
+def _direct_exclusion(
+    record: Mapping[str, Any], owner: Mapping[str, Any], rules: SelectionRules
+) -> tuple[str, str] | None:
+    """Return the (rule, detail) excluding *record* on its own merits, or None to keep it."""
+    username = owner.get("username") or ""
+    if not has_release_consent(owner.get("terms_version")):
+        return ("no-terms-acceptance", f"owner {username or record['owner_id']} has not accepted the terms")
+    if username in rules.excluded_owner_usernames:
+        return ("excluded-owner", username)
+    if rules.owner_usernames and username not in rules.owner_usernames:
+        return ("not-in-owner-selection", username)
+    if record["id"] in rules.excluded_product_ids:
+        return ("excluded-product", str(record["id"]))
+    if word := matched_name_word(record["name"] or "", rules.excluded_name_words):
+        return ("excluded-name-word", word)
+    return None
+
+
+def select_records(
+    records: Sequence[Mapping[str, Any]], owners: Mapping[Any, Mapping[str, Any]], rules: SelectionRules
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Split *records* into what a release keeps and what it drops, with a reason each.
+
+    Exclusion runs down the tree, never up: dropping a component drops its descendants, and
+    dropping a base product drops the whole tree. Keeping a component whose parent is gone
+    would leave a dangling ``parent_id`` — the verification pass would catch it, but it
+    should never get that far.
+    """
+    by_id = {record["id"]: record for record in records}
+    excluded: dict[int, dict[str, Any]] = {}
+    for record in records:
+        owner = owners.get(record["owner_id"], {})
+        if found := _direct_exclusion(record, owner, rules):
+            rule, detail = found
+            excluded[record["id"]] = {
+                "id": record["id"],
+                "name": record["name"],
+                "owner": owner.get("username") or "",
+                "rule": rule,
+                "detail": detail,
+            }
+
+    children: dict[int, list[int]] = defaultdict(list)
+    for record in records:
+        if record["parent_id"] is not None:
+            children[record["parent_id"]].append(record["id"])
+    queue = deque(excluded)
+    while queue:
+        parent_id = queue.popleft()
+        for child_id in children[parent_id]:
+            if child_id in excluded:
+                continue
+            child = by_id[child_id]
+            excluded[child_id] = {
+                "id": child_id,
+                "name": child["name"],
+                "owner": owners.get(child["owner_id"], {}).get("username") or "",
+                "rule": "ancestor-excluded",
+                "detail": f"parent {parent_id}",
+            }
+            queue.append(child_id)
+
+    kept = [dict(record) for record in records if record["id"] not in excluded]
+    return kept, sorted(excluded.values(), key=lambda entry: entry["id"])
+
+
+def log_exclusion_tally(exclusions: Sequence[Mapping[str, Any]]) -> None:
+    """Log how many records each rule removed. Nothing is allowed to disappear quietly."""
+    if not exclusions:
+        logger.info("No records were excluded.")
+        return
+    tally = Counter(entry["rule"] for entry in exclusions)
+    logger.info("Excluded %d record(s):", len(exclusions))
+    for rule, count in sorted(tally.items()):
+        logger.info("  %-24s %d", rule, count)
+
+
 # Logins used by many different people. A shared login cannot carry a licence grant: the
 # person who took a photograph owns it whichever account uploaded it, so records here belong
 # to individuals who can no longer be identified, and one click-through of the terms on a
 # shared account cannot bind everyone who used that login afterwards. Never releasable — and
 # deliberately still shown by --inventory, because aggregate counts about records are facts
-# about them, not republication of them, and the paper wants those counts.
+# about them, not republication of them, and the paper wants those counts. Kept as a cheap
+# backstop rather than as the load-bearing rule: a shared login that never accepted the
+# terms is already excluded by the consent check.
 SHARED_ACCOUNTS: frozenset[str] = frozenset({"demo"})
 
 
@@ -438,19 +570,42 @@ def _key(value: object) -> str:
 
 
 ### Database export ###
-async def resolve_owner_ids(session: AsyncSession, usernames: Sequence[str]) -> dict[Any, str]:
-    """Map the user id of each named account to its username, failing on unknown names."""
-    rows = (await session.execute(select(User.id, User.username).where(User.username.in_(usernames)))).all()
-    found = {user_id: username for user_id, username in rows if username is not None}
-    missing = set(usernames) - set(found.values())
-    if missing:
-        msg = f"No such account(s): {', '.join(sorted(missing))}"
+async def load_owners(session: AsyncSession) -> dict[Any, dict[str, Any]]:
+    """Map every account id to its username and terms acceptance.
+
+    Only these three columns are read. The rest of the ``User`` row — email, auth state,
+    OAuth links, the quota ledger — is never fetched into the process.
+    """
+    rows = (await session.execute(select(User.id, User.username, User.terms_accepted_version))).all()
+    return {
+        user_id: {"username": username, "terms_version": terms_version} for user_id, username, terms_version in rows
+    }
+
+
+def check_owner_selection(rules: SelectionRules, owners: Mapping[Any, Mapping[str, Any]]) -> None:
+    """Fail loudly on a ``--owner`` that does not exist or has not accepted the terms.
+
+    Silently returning nothing would look like a working build of an empty release.
+    """
+    by_username = {owner["username"]: owner for owner in owners.values() if owner["username"]}
+    unknown = sorted(name for name in rules.owner_usernames if name not in by_username)
+    if unknown:
+        msg = f"No such account(s): {', '.join(unknown)}"
         raise SystemExit(msg)
-    return found
+    without_consent = sorted(
+        name for name in rules.owner_usernames if not has_release_consent(by_username[name]["terms_version"])
+    )
+    if without_consent:
+        msg = (
+            f"Account(s) named with --owner have not accepted the contributor terms at "
+            f"version {MINIMUM_RELEASE_TERMS_VERSION} or later: {', '.join(without_consent)}. "
+            "Their records carry no publication licence and cannot be released."
+        )
+        raise SystemExit(msg)
 
 
-async def export_records(session: AsyncSession, owner_ids: Iterable[Any], salt: str) -> list[dict[str, Any]]:
-    """Return in-scope product rows with owner identity replaced by a pseudonym.
+async def load_records(session: AsyncSession) -> list[dict[str, Any]]:
+    """Return every product row, owner id included, for the selection pass to filter.
 
     Columns are selected explicitly rather than loading ``Product`` instances, so the
     owner ``User`` row — which holds email, auth state and the quota ledger — is never
@@ -474,16 +629,23 @@ async def export_records(session: AsyncSession, owner_ids: Iterable[Any], salt: 
         Product.created_at,
         Product.updated_at,
     )
-    statement = select(*columns).where(Product.owner_id.in_(list(owner_ids))).order_by(Product.id)
     records = []
-    for row in (await session.execute(statement)).all():
+    for row in (await session.execute(select(*columns).order_by(Product.id))).all():
         values = dict(row._mapping)  # noqa: SLF001  # documented SQLAlchemy Row accessor
-        owner_id = values.pop("owner_id")
         dimensions = (values["height_cm"], values["width_cm"], values["depth_cm"])
         values["volume_cm3"] = None if None in dimensions else dimensions[0] * dimensions[1] * dimensions[2]
-        values["owner_pseudonym"] = pseudonymise(owner_id, salt)
         records.append(values)
     return records
+
+
+def pseudonymise_owners(records: Iterable[dict[str, Any]], salt: str) -> list[dict[str, Any]]:
+    """Replace each record's owner id with its stable pseudonym, dropping the id itself."""
+    pseudonymised = []
+    for record in records:
+        values = dict(record)
+        values["owner_pseudonym"] = pseudonymise(values.pop("owner_id"), salt)
+        pseudonymised.append(values)
+    return pseudonymised
 
 
 async def export_record_materials(session: AsyncSession, record_ids: set[int]) -> list[dict[str, Any]]:
@@ -702,9 +864,9 @@ protection. What makes this release publishable is the sanitisation and pseudony
 step, not {meta.licence_name}.
 
 The release carries no account identifiers. Contributor identity appears only as a stable
-pseudonymous code, and named credit appears only where a contributor opted in. Re-identifying
-contributors, or combining this release with other sources in order to do so, falls outside
-both the licence and the GDPR basis on which the release was published.
+pseudonymous code, and contributors are credited collectively rather than individually.
+Re-identifying contributors, or combining this release with other sources in order to do so,
+falls outside both the licence and the GDPR basis on which the release was published.
 
 ## Attribution
 
@@ -715,6 +877,22 @@ both the licence and the GDPR basis on which the release was published.
 See `CITATION.cff`. This dataset record is distinct from the Relab software record
 ({meta.software_concept_doi}), which is licensed separately.
 """
+
+
+def _cff_author(name: str, affiliation: str) -> list[str]:
+    """Return CFF author lines for a plainly written personal name.
+
+    Everything before the last space is treated as given names. Good enough for the handful
+    of names a release is cut with; write the name differently if that ever gets it wrong.
+    """
+    given, _, family = name.rpartition(" ")
+    if not given:
+        return [f'  - name: "{name}"', f'    affiliation: "{affiliation}"']
+    return [
+        f'  - family-names: "{family}"',
+        f'    given-names: "{given}"',
+        f'    affiliation: "{affiliation}"',
+    ]
 
 
 def render_citation_cff(meta: ReleaseMetadata, stats: BuildStats) -> str:
@@ -732,6 +910,8 @@ def render_citation_cff(meta: ReleaseMetadata, stats: BuildStats) -> str:
             f'    orcid: "{creator.orcid}"',
             f'    affiliation: "{meta.affiliation}"',
         ]
+    for name in meta.named_lab_contributors:
+        lines += _cff_author(name, meta.affiliation)
     released = stats.collection_end or datetime.now(tz=UTC)
     lines += [
         f'title: "{meta.title}"',
@@ -759,29 +939,29 @@ def render_citation_cff(meta: ReleaseMetadata, stats: BuildStats) -> str:
     return "\n".join(lines)
 
 
-def render_contributors(meta: ReleaseMetadata, pseudonyms: Sequence[str]) -> str:
-    """Render CONTRIBUTORS.md: named contributors by agreement, everyone else pseudonymous."""
-    named = "\n".join(f"- {name}" for name in meta.named_contributors)
+def render_contributors(meta: ReleaseMetadata, record_counts: Mapping[str, int]) -> str:
+    """Render CONTRIBUTORS.md: collective credit, plus the pseudonymous codes and counts."""
     creators = "\n".join(f"- {c.given_names} {c.family_names} ({c.orcid})" for c in meta.creators)
-    others = "\n".join(f"- `{pseudonym}`" for pseudonym in sorted(pseudonyms))
+    codes = "\n".join(f"| `{pseudonym}` | {record_counts[pseudonym]} |" for pseudonym in sorted(record_counts))
     return f"""# Contributors
+
+Contributors to this dataset are credited collectively, as {meta.licence_name} intends: a
+reuser credits the release, not each person who worked on it. The attribution string in
+`README.md` is the whole of what attribution requires.
 
 ## Dataset creators
 
 {creators}
 
-## Named lab contributors
+## Contributor codes
 
-Named with their written agreement.
+Every record carries the pseudonymous code of the account that authored it. The codes are
+stable across releases, so records can be grouped by contributor — which is what a
+contributor-level train/test split needs. No code resolves to a person in the released data.
 
-{named}
-
-## Pseudonymous contributors
-
-Every record carries the pseudonym of the account that authored it. These identifiers are
-stable across releases and are not resolvable to a person from this release.
-
-{others}
+| Code | Records |
+| --- | --- |
+{codes}
 """
 
 
@@ -870,7 +1050,8 @@ def render_croissant(meta: ReleaseMetadata, stats: BuildStats) -> str:
             "(CC BY 4.0 section 2(b)(2)); using the images to suggest brand endorsement or "
             "affiliation is a trademark question separate from this licence. The licence also does "
             "not govern personal data: the release carries no account identifiers, contributor "
-            "identity appears only as a stable pseudonymous code, and re-identifying contributors "
+            "identity appears only as a stable pseudonymous code, contributors are credited "
+            "collectively rather than individually, and re-identifying contributors "
             "falls outside both the licence and the GDPR basis on which the release was published."
         ),
         "keywords": list(meta.keywords),
@@ -919,11 +1100,11 @@ def render_croissant(meta: ReleaseMetadata, stats: BuildStats) -> str:
     return json.dumps(document, indent=2) + "\n"
 
 
-def write_artefacts(out: Path, meta: ReleaseMetadata, stats: BuildStats, pseudonyms: Sequence[str]) -> None:
+def write_artefacts(out: Path, meta: ReleaseMetadata, stats: BuildStats, record_counts: Mapping[str, int]) -> None:
     """Write every archive artefact from the one metadata object."""
     (out / "README.md").write_text(render_readme(meta, stats), encoding="utf-8")
     (out / "CITATION.cff").write_text(render_citation_cff(meta, stats), encoding="utf-8")
-    (out / "CONTRIBUTORS.md").write_text(render_contributors(meta, pseudonyms), encoding="utf-8")
+    (out / "CONTRIBUTORS.md").write_text(render_contributors(meta, record_counts), encoding="utf-8")
     (out / "CHANGELOG.md").write_text(render_changelog(meta, stats), encoding="utf-8")
     (out / "croissant.json").write_text(render_croissant(meta, stats), encoding="utf-8")
     shutil.copyfile(ASSETS_DIR / "cc-by-4.0.txt", out / "LICENSE.txt")
@@ -1137,8 +1318,21 @@ def parquet_cell_text(table: pa.Table) -> str:
 
 
 ### Human-review extracts (written to the build directory, excluded from the archive) ###
-def write_review_extracts(root: Path, records: Sequence[dict[str, Any]], manifest: Sequence[dict[str, Any]]) -> None:
-    """Write the two extracts a human has to read before the release is published."""
+EXCLUSION_HEADER = ("id", "name", "owner", "rule", "detail")
+
+
+def write_review_extracts(
+    root: Path,
+    records: Sequence[dict[str, Any]],
+    manifest: Sequence[dict[str, Any]],
+    exclusions: Sequence[Mapping[str, Any]] = (),
+) -> None:
+    """Write the extracts a human has to read before the release is published.
+
+    The exclusion list is here rather than in the archive on purpose: a record dropped from
+    a release is not part of it, but a maintainer still has to be able to see what went and
+    why. A silently dropped record reads as "we never collected it".
+    """
     review = root / REVIEW_DIR
     review.mkdir(parents=True, exist_ok=True)
 
@@ -1162,6 +1356,11 @@ def write_review_extracts(root: Path, records: Sequence[dict[str, Any]], manifes
         if reasons:
             rows.append((entry["file"], entry["record_id"], "; ".join(reasons)))
     write_csv(review / "provenance-candidates.csv", ("file", "record_id", "reasons"), rows)
+    write_csv(
+        review / "excluded-records.csv",
+        EXCLUSION_HEADER,
+        ([entry[name] for name in EXCLUSION_HEADER] for entry in exclusions),
+    )
 
 
 # Aspect ratios a hand-held or bench camera actually produces, either orientation.
@@ -1209,6 +1408,9 @@ INVENTORY_HEADER = (
     "username",
     "shared",
     "terms_version",
+    "consenting",
+    "in_scope",
+    "excluded",
     "base_products",
     "components",
     "records",
@@ -1233,15 +1435,25 @@ def summarise_owner(
     terms_version: object,
     products: Sequence[dict[str, Any]],
     imaged_product_ids: set[int],
+    in_scope_ids: set[int] = frozenset(),  # ty: ignore[invalid-parameter-default]
 ) -> dict[str, Any]:
-    """Summarise one account's records: counts, and the completeness columns the paper uses."""
+    """Summarise one account's records: counts, what a build would take, and completeness.
+
+    Completeness is reported over *all* the account's records, not just the releasable ones:
+    aggregate counts are facts about the records rather than republication of them, so the
+    paper can cite them whether or not the records themselves can be published.
+    """
     base = [row for row in products if row["parent_id"] is None]
     components = [row for row in products if row["parent_id"] is not None]
     geometry = ("height_cm", "width_cm", "depth_cm")
+    in_scope = sum(1 for row in products if row["id"] in in_scope_ids)
     return {
         "username": username,
         "shared": "yes" if username in SHARED_ACCOUNTS else "no",
         "terms_version": "" if terms_version is None else terms_version,
+        "consenting": "yes" if has_release_consent(terms_version) else "no",
+        "in_scope": in_scope,
+        "excluded": len(products) - in_scope,
         "base_products": len(base),
         "components": len(components),
         "records": len(products),
@@ -1267,11 +1479,12 @@ def render_inventory_csv(rows: Sequence[dict[str, Any]]) -> str:
     return buffer.getvalue()
 
 
-async def collect_inventory(session: AsyncSession) -> list[dict[str, Any]]:
+async def collect_inventory(session: AsyncSession, rules: SelectionRules) -> list[dict[str, Any]]:
     """Return one summary row per account holding records, sorted by username.
 
     Every account is reported, not only the ones a build would select: the point is to show
-    what is being left out as well as what is going in.
+    what is being left out as well as what is going in. The same ``select_records`` a build
+    uses decides the in-scope counts, so the report cannot disagree with the build.
     """
     # NOTE: aggregates in Python over every product row. n is a few thousand; push the
     # counting into SQL if this dataset ever outgrows a single process.
@@ -1279,6 +1492,7 @@ async def collect_inventory(session: AsyncSession) -> list[dict[str, Any]]:
         Product.id,
         Product.owner_id,
         Product.parent_id,
+        Product.name,
         Product.brand,
         Product.model,
         Product.description,
@@ -1302,10 +1516,21 @@ async def collect_inventory(session: AsyncSession) -> list[dict[str, Any]]:
         ).all()
     }
 
-    accounts = (await session.execute(select(User.id, User.username, User.terms_accepted_version))).all()
+    owners = await load_owners(session)
+    selected, exclusions = select_records(
+        [record for owner_records in products.values() for record in owner_records], owners, rules
+    )
+    log_exclusion_tally(exclusions)
+    in_scope_ids = {record["id"] for record in selected}
     rows = [
-        summarise_owner(username or f"<no username: {user_id}>", terms_version, products[user_id], imaged_product_ids)
-        for user_id, username, terms_version in accounts
+        summarise_owner(
+            owner["username"] or f"<no username: {user_id}>",
+            owner["terms_version"],
+            products[user_id],
+            imaged_product_ids,
+            in_scope_ids,
+        )
+        for user_id, owner in owners.items()
         if products[user_id]
     ]
     rows.sort(key=lambda row: row["username"])
@@ -1314,8 +1539,8 @@ async def collect_inventory(session: AsyncSession) -> list[dict[str, Any]]:
 
 def _inventory_total(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
     """Return the TOTAL row: counts summed, percentages recomputed over the pooled rows."""
-    counted = ("base_products", "components", "records", "images")
-    total = {"username": "TOTAL", "shared": "", "terms_version": ""} | {
+    counted = ("in_scope", "excluded", "base_products", "components", "records", "images")
+    total = {"username": "TOTAL", "shared": "", "terms_version": "", "consenting": ""} | {
         name: sum(row[name] for row in rows) for name in counted
     }
     for name in INVENTORY_HEADER:
@@ -1326,22 +1551,22 @@ def _inventory_total(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
     return total
 
 
-async def _read_inventory() -> list[dict[str, Any]]:
+async def _read_inventory(rules: SelectionRules) -> list[dict[str, Any]]:
     """Open a session, collect the inventory, and always dispose the engine."""
     try:
         async with async_session_context() as session:
-            return await collect_inventory(session)
+            return await collect_inventory(session, rules)
     finally:
         await close_async_engine()
 
 
-def inventory(destination: Path | None) -> None:
+def inventory(destination: Path | None, rules: SelectionRules = SelectionRules()) -> None:  # noqa: B008
     """Report what a release would contain and exit without writing an archive.
 
     Read-only by construction: it needs no pseudonymisation salt, takes no owner selection,
     and writes nothing but the summary it is asked for.
     """
-    report = render_inventory_csv(asyncio.run(_read_inventory()))
+    report = render_inventory_csv(asyncio.run(_read_inventory(rules)))
     if destination is None:
         sys.stdout.write(report)
         return
@@ -1351,28 +1576,31 @@ def inventory(destination: Path | None) -> None:
 
 
 ### Build ###
-async def build(out: Path, owner_usernames: Sequence[str], salt: str, meta: ReleaseMetadata) -> None:
+async def build(out: Path, rules: SelectionRules, salt: str, meta: ReleaseMetadata) -> None:
     """Build the release directory, then verify it."""
-    reject_shared_accounts(owner_usernames)
+    reject_shared_accounts(rules.owner_usernames)
     out.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
     try:
-        await _build(out, owner_usernames, salt, meta)
+        await _build(out, rules, salt, meta)
     finally:
         await close_async_engine()
 
 
-async def _build(out: Path, owner_usernames: Sequence[str], salt: str, meta: ReleaseMetadata) -> None:
+async def _build(out: Path, rules: SelectionRules, salt: str, meta: ReleaseMetadata) -> None:
     """Export, render and verify; ``build`` owns the engine lifecycle around it."""
     async with async_session_context() as session:
-        owners = await resolve_owner_ids(session, owner_usernames)
-        records = await export_records(session, owners.keys(), salt)
+        owners = await load_owners(session)
+        check_owner_selection(rules, owners)
+        selected, exclusions = select_records(await load_records(session), owners, rules)
+        records = pseudonymise_owners(selected, salt)
         record_ids = {row["id"] for row in records}
         record_materials = await export_record_materials(session, record_ids)
         manifest = await export_images(session, record_ids, out / "images")
         await export_reference_data(session, out / "reference")
 
+    log_exclusion_tally(exclusions)
     if not records:
-        msg = f"No records owned by {', '.join(owner_usernames)}; nothing to publish."
+        msg = "Every record was excluded; nothing to publish. Run --inventory to see why."
         raise SystemExit(msg)
 
     write_parquet(out / "records.parquet", RECORDS_SCHEMA, records)
@@ -1387,8 +1615,8 @@ async def _build(out: Path, owner_usernames: Sequence[str], salt: str, meta: Rel
         collection_start=min(created, default=None),
         collection_end=max(created, default=None),
     )
-    write_artefacts(out, meta, stats, sorted({row["owner_pseudonym"] for row in records}))
-    write_review_extracts(out, records, manifest)
+    write_artefacts(out, meta, stats, Counter(row["owner_pseudonym"] for row in records))
+    write_review_extracts(out, records, manifest, exclusions)
     write_checksums(out)
 
     violations = verify(out)
@@ -1409,8 +1637,33 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--owner",
         action="append",
         metavar="USERNAME",
-        help="account whose records are in scope; repeat for several. Release 1 is lab accounts only.",
+        help=(
+            "narrow the release to these accounts, within the consenting set; repeat for several. "
+            "Omitted, every account that accepted the contributor terms is in scope."
+        ),
     )
+    parser.add_argument(
+        "--exclude-owner", action="append", metavar="USERNAME", default=None, help="drop this account's records"
+    )
+    parser.add_argument(
+        "--exclude-product",
+        action="append",
+        type=int,
+        metavar="ID",
+        default=None,
+        help="drop this product and everything under it",
+    )
+    parser.add_argument(
+        "--exclude-name-word",
+        action="append",
+        metavar="WORD",
+        default=None,
+        help=(
+            "also drop records whose name starts or ends with this word; repeat for several. "
+            f"Defaults: {', '.join(sorted(DEFAULT_EXCLUDED_NAME_WORDS))}"
+        ),
+    )
+    parser.add_argument("--no-name-filter", action="store_true", help="keep records whose names look like scratch work")
     parser.add_argument(
         "--inventory",
         action="store_true",
@@ -1424,6 +1677,17 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="write the --inventory report here instead of to stdout",
     )
     parser.add_argument("--out", type=Path, default=Path("dist/dataset-release"), help="output directory")
+    parser.add_argument(
+        "--credit",
+        action="append",
+        metavar="NAME",
+        default=None,
+        help=(
+            "name a lab contributor in the dataset CITATION.cff; repeat for several. Editorial, "
+            f"decided per release; replaces the default ({', '.join(ReleaseMetadata.named_lab_contributors)}). "
+            'Pass --credit "" to name nobody.'
+        ),
+    )
     parser.add_argument("--version", default=ReleaseMetadata.version, help="dataset version")
     parser.add_argument("--doi", default=ReleaseMetadata.doi, help="DOI once the Zenodo record exists")
     parser.add_argument(
@@ -1434,20 +1698,33 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def selection_rules(args: argparse.Namespace) -> SelectionRules:
+    """Build the selection rules from parsed arguments."""
+    words = (
+        frozenset() if args.no_name_filter else DEFAULT_EXCLUDED_NAME_WORDS | frozenset(args.exclude_name_word or ())
+    )
+    return SelectionRules(
+        owner_usernames=frozenset(args.owner or ()),
+        excluded_owner_usernames=frozenset(args.exclude_owner or ()),
+        excluded_product_ids=frozenset(args.exclude_product or ()),
+        excluded_name_words=words,
+    )
+
+
 def main() -> None:
     """Build a dataset release from the command line."""
     args = parse_args()
+    rules = selection_rules(args)
     if args.inventory:
-        # No owner selection and no salt: this path reads and reports, it never publishes.
-        inventory(args.inventory_out)
+        # No salt and no owner requirement: this path reads and reports, it never publishes.
+        inventory(args.inventory_out, rules)
         return
-    if not args.owner:
-        msg = "--owner is required to build a release. Use --inventory to see what is available."
-        raise SystemExit(msg)
     meta = ReleaseMetadata(version=args.version, doi=args.doi)
+    if args.credit is not None:
+        meta = replace(meta, named_lab_contributors=tuple(name for name in args.credit if name))
     salt = read_pseudonym_salt(args.pseudonym_salt)
     meta = replace(meta, pseudonym_salt_fingerprint=check_salt_fingerprint(salt))
-    asyncio.run(build(args.out, args.owner, salt, meta))
+    asyncio.run(build(args.out, rules, salt, meta))
 
 
 if __name__ == "__main__":

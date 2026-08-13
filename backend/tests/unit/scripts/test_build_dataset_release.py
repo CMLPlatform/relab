@@ -13,10 +13,14 @@ import pyarrow.parquet as pq
 import pytest
 from PIL import Image as PILImage
 
+import scripts.build_dataset_release as release
 from scripts.build_dataset_release import (
     CATEGORIES_SCHEMA,
+    DEFAULT_EXCLUDED_NAME_WORDS,
+    EXCLUSION_HEADER,
     INVENTORY_HEADER,
     MATERIALS_SCHEMA,
+    MINIMUM_RELEASE_TERMS_VERSION,
     PRODUCT_TYPES_SCHEMA,
     RECORD_MATERIALS_SCHEMA,
     RECORDS_SCHEMA,
@@ -26,15 +30,20 @@ from scripts.build_dataset_release import (
     UNITS_SCHEMA,
     BuildStats,
     ReleaseMetadata,
+    SelectionRules,
     build,
+    check_owner_selection,
     check_salt_fingerprint,
     checksum_violations,
     exif_violations,
     file_sha256,
     forbidden_column_names,
     forbidden_values,
+    has_release_consent,
     inventory,
     iter_archive_files,
+    log_exclusion_tally,
+    matched_name_word,
     missing_references,
     parse_args,
     parse_checksums,
@@ -42,16 +51,21 @@ from scripts.build_dataset_release import (
     pseudonymise,
     read_parquet,
     reject_shared_accounts,
+    render_citation_cff,
+    render_contributors,
     render_croissant,
     render_inventory_csv,
     render_readme,
     salt_fingerprint,
+    select_records,
+    selection_rules,
     summarise_owner,
     verify,
     write_artefacts,
     write_checksums,
     write_csv,
     write_parquet,
+    write_review_extracts,
 )
 
 if TYPE_CHECKING:
@@ -361,7 +375,7 @@ def _minimal_release(tmp_path: Path) -> Path:
     write_parquet(reference / "materials.parquet", MATERIALS_SCHEMA, [{"id": 3, "name": "Steel"}])
     write_parquet(reference / "product_types.parquet", PRODUCT_TYPES_SCHEMA, [{"id": 5, "name": "Drill"}])
     write_parquet(reference / "units.parquet", UNITS_SCHEMA, [{"name": "kilogram", "symbol": "kg"}])
-    write_artefacts(root, ReleaseMetadata(), BuildStats(records=2, images=1, owners=1), ["owner-abc123"])
+    write_artefacts(root, ReleaseMetadata(), BuildStats(records=2, images=1, owners=1), {"owner-abc123": 2})
     write_checksums(root)
     return root
 
@@ -570,7 +584,8 @@ def test_readme_says_the_licence_does_not_govern_personal_data() -> None:
     assert "Personal data is not governed by the licence" in readme
     assert "no account identifiers" in readme
     assert "stable pseudonymous code" in readme
-    assert "named credit appears only where a contributor opted in" in readme
+    assert "contributors are credited collectively rather than individually" in readme
+    assert "opted in" not in readme
     assert "GDPR basis" in readme
 
 
@@ -621,7 +636,7 @@ def test_build_refuses_a_shared_owner_before_touching_the_filesystem(tmp_path) -
     """The guard sits at the build entry point, so no output directory is created either."""
     out = tmp_path / "release"
     with pytest.raises(SystemExit, match="shared account"):
-        asyncio.run(build(out, ["demo"], "a-salt", ReleaseMetadata()))
+        asyncio.run(build(out, SelectionRules(owner_usernames=frozenset({"demo"})), "a-salt", ReleaseMetadata()))
     assert not out.exists()
 
 
@@ -707,8 +722,8 @@ def test_inventory_flag_needs_no_owner_and_no_salt() -> None:
     assert args.pseudonym_salt is None
 
 
-def test_building_still_requires_an_owner() -> None:
-    """Dropping --owner from the required set must not make a real build owner-less."""
+def test_owner_is_optional_because_consent_decides_scope() -> None:
+    """Scope comes from terms acceptance; --owner only narrows within it."""
     assert parse_args(["--out", "x"]).owner is None
 
 
@@ -727,6 +742,300 @@ def test_inventory_writes_no_archive(tmp_path, monkeypatch) -> None:
     assert list(tmp_path.iterdir()) == [destination]
 
 
-async def _fake_read_inventory() -> list[dict[str, Any]]:
+async def _fake_read_inventory(_rules: SelectionRules = SelectionRules()) -> list[dict[str, Any]]:  # noqa: B008
     """Stand in for the database read so the inventory path can be exercised offline."""
     return [summarise_owner("demo", None, [_product()], set())]
+
+
+### Collective contributor attribution ###
+def _contributors(**overrides: Any) -> str:
+    """Render CONTRIBUTORS.md with two contributor codes."""
+    return render_contributors(ReleaseMetadata(**overrides), {"owner-aaa": 12, "owner-bbb": 3})
+
+
+def test_contributors_states_credit_is_collective() -> None:
+    """Under CC BY the reuser credits the release, not each person who worked on it."""
+    contributors = " ".join(_contributors().split())
+    assert "credited collectively" in contributors
+    assert "a reuser credits the release, not each person who worked on it" in contributors
+
+
+def test_contributors_names_no_individual_contributor() -> None:
+    """A release that pseudonymises everyone must not then name one of them."""
+    assert "Zemiolek" not in _contributors()
+
+
+def test_contributors_promises_no_opt_in_naming() -> None:
+    """The opt-in is gone from the platform; no generated text may still offer it."""
+    contributors = _contributors().lower()
+    assert "opt" not in contributors
+    assert "on request" not in contributors
+
+
+def test_contributors_lists_codes_with_record_counts() -> None:
+    """The codes and counts are what a contributor-level split needs, so they stay."""
+    contributors = _contributors()
+    assert "| `owner-aaa` | 12 |" in contributors
+    assert "| `owner-bbb` | 3 |" in contributors
+
+
+def test_contributors_explains_the_codes_are_stable_and_unresolvable() -> None:
+    """Both properties matter: stable enough to group by, not enough to identify."""
+    contributors = " ".join(_contributors().split())
+    assert "stable across releases" in contributors
+    assert "No code resolves to a person in the released data." in contributors
+
+
+def test_named_credit_appears_in_the_dataset_citation_file() -> None:
+    """Named credit is editorial release metadata, and CITATION.cff is where it lives."""
+    cff = render_citation_cff(ReleaseMetadata(), BuildStats(records=1, images=1, owners=1))
+    assert 'family-names: "Zemiolek"' in cff
+    assert 'given-names: "Oskar"' in cff
+
+
+def test_named_credit_is_a_build_parameter_not_a_database_flag() -> None:
+    """Who is named is decided when the release is cut, so it has to be overridable."""
+    cff = render_citation_cff(
+        ReleaseMetadata(named_lab_contributors=("Ada Lovelace",)),
+        BuildStats(records=1, images=1, owners=1),
+    )
+    assert 'family-names: "Lovelace"' in cff
+    assert "Zemiolek" not in cff
+
+
+def test_naming_nobody_is_allowed() -> None:
+    """A release may credit no lab contributor at all; only the dataset authors remain."""
+    cff = render_citation_cff(ReleaseMetadata(named_lab_contributors=()), BuildStats(records=1, images=1, owners=1))
+    assert "Zemiolek" not in cff
+    assert 'family-names: "Donati"' in cff
+
+
+def test_croissant_usage_info_states_collective_credit() -> None:
+    """Machine consumers should read the same attribution model as human ones."""
+    assert "credited collectively rather than individually" in _croissant()["usageInfo"]
+
+
+### Consent decides scope ###
+def _owner(username: str, terms_version: int | None = MINIMUM_RELEASE_TERMS_VERSION) -> dict[str, Any]:
+    """Return one account as the selection pass reads it."""
+    return {"username": username, "terms_version": terms_version}
+
+
+def _rec(
+    record_id: int, owner_id: str = "u1", parent_id: int | None = None, name: str = "Cordless drill"
+) -> dict[str, Any]:
+    """Return one product row as the selection pass reads it."""
+    return {"id": record_id, "owner_id": owner_id, "parent_id": parent_id, "name": name}
+
+
+def test_release_scope_never_reads_the_platforms_current_terms_version() -> None:
+    """The threshold must not be derived from CURRENT_TERMS_VERSION.
+
+    A source-level check on purpose: the two constants are equal today, so no behavioural
+    test can tell them apart. The damage only appears the day the terms are revised, when a
+    threshold tied to the current version would drop every record whose owner had not yet
+    re-accepted — an empty release that looks like a working one.
+    """
+    # Comments stripped: the script explains the distinction in prose, and that mention is
+    # documentation, not a dependency.
+    code = re.sub(r"#.*", "", Path(release.__file__).read_text(encoding="utf-8"))
+    assert "CURRENT_TERMS_VERSION" not in code
+    assert "MINIMUM_RELEASE_TERMS_VERSION = 1" in code
+
+
+def test_a_later_terms_acceptance_stays_in_scope() -> None:
+    """The behavioural half: a contributor who accepted a revision is still included."""
+    owners = {"u1": _owner("lab", MINIMUM_RELEASE_TERMS_VERSION + 3)}
+    kept, excluded = select_records([_rec(1)], owners, SelectionRules())
+    assert [row["id"] for row in kept] == [1]
+    assert excluded == []
+
+
+def test_consent_requires_the_minimum_version_or_later() -> None:
+    """Acceptance of a later revision still grants the release licence."""
+    assert has_release_consent(MINIMUM_RELEASE_TERMS_VERSION) is True
+    assert has_release_consent(MINIMUM_RELEASE_TERMS_VERSION + 5) is True
+    assert has_release_consent(MINIMUM_RELEASE_TERMS_VERSION - 1) is False
+    assert has_release_consent(None) is False
+
+
+def test_records_of_a_consenting_owner_are_in_scope_by_default() -> None:
+    """No --owner list needed: consent is the selector."""
+    kept, excluded = select_records([_rec(1)], {"u1": _owner("lab")}, SelectionRules())
+    assert [row["id"] for row in kept] == [1]
+    assert excluded == []
+
+
+def test_records_of_a_non_consenting_owner_are_excluded() -> None:
+    """A record whose owner never accepted the terms carries no publication licence."""
+    kept, excluded = select_records([_rec(1)], {"u1": _owner("lab", None)}, SelectionRules())
+    assert kept == []
+    assert excluded[0]["rule"] == "no-terms-acceptance"
+
+
+def test_owner_narrows_within_the_consenting_set() -> None:
+    """--owner restricts; it never widens scope past consent."""
+    owners = {"u1": _owner("lab"), "u2": _owner("other")}
+    records = [_rec(1, "u1"), _rec(2, "u2")]
+    kept, excluded = select_records(records, owners, SelectionRules(owner_usernames=frozenset({"lab"})))
+    assert [row["id"] for row in kept] == [1]
+    assert excluded[0]["rule"] == "not-in-owner-selection"
+
+
+def test_check_owner_selection_rejects_a_non_consenting_account() -> None:
+    """Naming an account that never accepted must fail, not build an empty release."""
+    owners = {"u1": _owner("nope", None)}
+    with pytest.raises(SystemExit, match="have not accepted the contributor terms"):
+        check_owner_selection(SelectionRules(owner_usernames=frozenset({"nope"})), owners)
+
+
+def test_check_owner_selection_names_the_offending_account() -> None:
+    """The error has to say which account, or it is not actionable."""
+    with pytest.raises(SystemExit, match="nope"):
+        check_owner_selection(SelectionRules(owner_usernames=frozenset({"nope"})), {"u1": _owner("nope", None)})
+
+
+def test_check_owner_selection_rejects_an_unknown_account() -> None:
+    """A typo in --owner must not silently select nothing."""
+    with pytest.raises(SystemExit, match="No such account"):
+        check_owner_selection(SelectionRules(owner_usernames=frozenset({"ghost"})), {"u1": _owner("lab")})
+
+
+def test_check_owner_selection_accepts_a_consenting_account() -> None:
+    """The normal case stays quiet."""
+    assert check_owner_selection(SelectionRules(owner_usernames=frozenset({"lab"})), {"u1": _owner("lab")}) is None
+
+
+### Exclusion overrides ###
+def test_exclude_owner_drops_that_accounts_records() -> None:
+    """An explicit owner exclusion beats consent."""
+    owners = {"u1": _owner("lab"), "u2": _owner("other")}
+    kept, excluded = select_records(
+        [_rec(1, "u1"), _rec(2, "u2")], owners, SelectionRules(excluded_owner_usernames=frozenset({"other"}))
+    )
+    assert [row["id"] for row in kept] == [1]
+    assert excluded[0]["rule"] == "excluded-owner"
+
+
+def test_exclude_product_drops_the_whole_subtree() -> None:
+    """Keeping a component whose parent is gone would leave a dangling parent_id."""
+    records = [_rec(1), _rec(2, parent_id=1), _rec(3, parent_id=2)]
+    kept, excluded = select_records(records, {"u1": _owner("lab")}, SelectionRules(excluded_product_ids=frozenset({1})))
+    assert kept == []
+    assert {entry["id"]: entry["rule"] for entry in excluded} == {
+        1: "excluded-product",
+        2: "ancestor-excluded",
+        3: "ancestor-excluded",
+    }
+
+
+def test_excluding_a_component_keeps_its_ancestors() -> None:
+    """Exclusion runs down the tree, never up."""
+    records = [_rec(1), _rec(2, parent_id=1), _rec(3, parent_id=2)]
+    kept, excluded = select_records(records, {"u1": _owner("lab")}, SelectionRules(excluded_product_ids=frozenset({2})))
+    assert [row["id"] for row in kept] == [1]
+    assert {entry["id"] for entry in excluded} == {2, 3}
+
+
+### Name filtering ###
+@pytest.mark.parametrize("name", ["Test drill", "test drill", "Drill test", "TEST", "test-rig", "Dummy product"])
+def test_scratch_names_are_excluded(name) -> None:
+    """A configured word at either end of the name marks the record as scratch work."""
+    assert matched_name_word(name, DEFAULT_EXCLUDED_NAME_WORDS) is not None
+
+
+@pytest.mark.parametrize(
+    "name", ["Contest winner", "Testa saw", "Detest", "Attest", "Protest banner", "Temperature probe"]
+)
+def test_near_miss_names_are_kept(name) -> None:
+    """A substring match here would silently delete plausible products from the release."""
+    assert matched_name_word(name, DEFAULT_EXCLUDED_NAME_WORDS) is None
+
+
+def test_name_filter_excludes_descendants_of_a_matched_record() -> None:
+    """A scratch base product takes its components with it."""
+    records = [_rec(1, name="Test rig"), _rec(2, parent_id=1)]
+    kept, excluded = select_records(records, {"u1": _owner("lab")}, SelectionRules())
+    assert kept == []
+    assert [entry["rule"] for entry in excluded] == ["excluded-name-word", "ancestor-excluded"]
+
+
+def test_name_filter_can_be_switched_off() -> None:
+    """A run may keep scratch-looking names deliberately."""
+    kept, _ = select_records(
+        [_rec(1, name="Test drill")], {"u1": _owner("lab")}, SelectionRules(excluded_name_words=frozenset())
+    )
+    assert [row["id"] for row in kept] == [1]
+
+
+def test_extra_name_words_add_to_the_defaults() -> None:
+    """--exclude-name-word extends the list rather than replacing it."""
+    rules = selection_rules(parse_args(["--exclude-name-word", "prototype"]))
+    assert "prototype" in rules.excluded_name_words
+    assert "test" in rules.excluded_name_words
+
+
+def test_no_name_filter_flag_empties_the_word_list() -> None:
+    """The off switch has to actually clear the words, not just skip one of them."""
+    assert selection_rules(parse_args(["--no-name-filter"])).excluded_name_words == frozenset()
+
+
+def test_selection_rules_carry_every_exclusion_flag() -> None:
+    """Each CLI exclusion reaches the rules object it is supposed to populate."""
+    rules = selection_rules(
+        parse_args(["--owner", "lab", "--exclude-owner", "bob", "--exclude-product", "7", "--exclude-product", "9"])
+    )
+    assert rules.owner_usernames == frozenset({"lab"})
+    assert rules.excluded_owner_usernames == frozenset({"bob"})
+    assert rules.excluded_product_ids == frozenset({7, 9})
+
+
+### Nothing disappears silently ###
+def test_every_exclusion_carries_its_rule_and_name() -> None:
+    """A maintainer has to be able to see what went and why."""
+    kept, excluded = select_records([_rec(1, name="Test rig")], {"u1": _owner("lab")}, SelectionRules())
+    assert kept == []
+    assert set(EXCLUSION_HEADER) <= set(excluded[0])
+    assert excluded[0]["name"] == "Test rig"
+    assert excluded[0]["detail"] == "test"
+
+
+def test_exclusion_tally_is_logged_per_rule(caplog) -> None:
+    """The build reports how many records each rule removed."""
+    _, excluded = select_records(
+        [_rec(1, name="Test rig"), _rec(2, "u2")], {"u1": _owner("lab"), "u2": _owner("other", None)}, SelectionRules()
+    )
+    with caplog.at_level(logging.INFO):
+        log_exclusion_tally(excluded)
+    assert "Excluded 2 record(s)" in caplog.text
+    assert "excluded-name-word" in caplog.text
+    assert "no-terms-acceptance" in caplog.text
+
+
+def test_review_extract_lists_every_excluded_record(tmp_path) -> None:
+    """The exclusion list lands in review/, outside the published archive."""
+    root = tmp_path / "release"
+    root.mkdir()
+    _, excluded = select_records([_rec(1, name="Test rig")], {"u1": _owner("lab")}, SelectionRules())
+    write_review_extracts(root, [], [], excluded)
+    extract = root / REVIEW_DIR / "excluded-records.csv"
+    assert extract.is_file()
+    assert "excluded-name-word" in extract.read_text(encoding="utf-8")
+    assert extract not in list(iter_archive_files(root))
+
+
+def test_inventory_reports_scope_and_exclusions() -> None:
+    """A filter is checkable before a build, not discoverable afterwards."""
+    assert "in_scope" in INVENTORY_HEADER
+    assert "excluded" in INVENTORY_HEADER
+    assert "consenting" in INVENTORY_HEADER
+
+
+def test_inventory_counts_match_the_selection() -> None:
+    """The inventory's in-scope count is the same decision the build makes."""
+    products = [_product(id=1), _product(id=2, name="Test rig")]
+    row = summarise_owner("lab", 1, products, set(), in_scope_ids={1})
+    assert row["records"] == 2
+    assert row["in_scope"] == 1
+    assert row["excluded"] == 1
+    assert row["consenting"] == "yes"
