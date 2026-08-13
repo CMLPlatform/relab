@@ -2,10 +2,11 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
 import { View } from 'react-native';
 import { Chip } from '@/components/base/Chip';
+import { MIN_TAP_TARGET } from '@/constants';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { setupUser } from '@/test-utils/index';
 import { renderWithProviders } from '@/test-utils/render';
-import { getAppTheme } from '@/theme';
+import { getAppTheme, getStatusTone } from '@/theme';
 
 jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: jest.fn(() => 'light'),
@@ -61,15 +62,30 @@ describe('Chip', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('applies error container style when error prop is set', () => {
+  it('applies a tinted danger style when error prop is set', () => {
     renderWithProviders(<Chip error>Error Chip</Chip>);
+    const danger = getAppTheme('light').tokens.status.danger;
     // The icon-wrapping View, two composite levels above the Text's raw string node.
     expect(screen.getByText('Error Chip').parent?.parent?.parent).toHaveStyle({
-      backgroundColor: getAppTheme('light').colors.errorContainer,
+      backgroundColor: getStatusTone(danger),
+      borderColor: danger,
+      borderWidth: 1,
     });
     expect(screen.getByText('Error Chip')).toHaveStyle({
-      color: getAppTheme('light').colors.onErrorContainer,
+      color: danger,
     });
+  });
+
+  it('renders a compact alert icon alongside the value text when error is set (WCAG 1.4.1)', () => {
+    const { UNSAFE_root } = renderWithProviders(<Chip error>Error Chip</Chip>);
+    const { Svg } = jest.requireActual<typeof import('react-native-svg')>('react-native-svg');
+    expect(UNSAFE_root.findAllByType(Svg).length).toBeGreaterThan(0);
+  });
+
+  it('renders no alert icon when error is not set', () => {
+    const { UNSAFE_root } = renderWithProviders(<Chip>Normal Chip</Chip>);
+    const { Svg } = jest.requireActual<typeof import('react-native-svg')>('react-native-svg');
+    expect(UNSAFE_root.findAllByType(Svg)).toHaveLength(0);
   });
 
   it('applies primary style when error prop is not set', () => {
@@ -137,5 +153,48 @@ describe('Chip', () => {
     const isValueText = (n: JsonNode) => n.type === 'Text' && !!n.children?.includes('No Icon');
     const valueSiblings = findContainingChildren(json, isValueText);
     expect(valueSiblings).toHaveLength(1);
+  });
+
+  it('defaults accessibilityRole to button', () => {
+    renderWithProviders(<Chip>Role Chip</Chip>);
+    expect(screen.getByRole('button')).toBeOnTheScreen();
+  });
+
+  it('lets a caller override accessibilityRole', () => {
+    renderWithProviders(<Chip accessibilityRole="link">Link Chip</Chip>);
+    expect(screen.getByRole('link')).toBeOnTheScreen();
+  });
+
+  it('composes an accessibilityLabel from title and value', () => {
+    renderWithProviders(<Chip title="Brand">CircularTech</Chip>);
+    expect(screen.getByLabelText('Brand: CircularTech')).toBeOnTheScreen();
+  });
+
+  it('appends ", required" to the composed label when error is set', () => {
+    renderWithProviders(
+      <Chip title="Brand" error>
+        Unknown
+      </Chip>,
+    );
+    expect(screen.getByLabelText('Brand: Unknown, required')).toBeOnTheScreen();
+  });
+
+  it('lets a caller override the composed accessibilityLabel', () => {
+    renderWithProviders(
+      <Chip title="Brand" accessibilityLabel="Add a new brand">
+        Unknown
+      </Chip>,
+    );
+    expect(screen.getByLabelText('Add a new brand')).toBeOnTheScreen();
+  });
+
+  it('sets accessibilityState.disabled when disabled', () => {
+    renderWithProviders(<Chip disabled>Disabled Chip</Chip>);
+    expect(screen.getByRole('button').props.accessibilityState).toEqual({ disabled: true });
+  });
+
+  it('meets the MIN_TAP_TARGET floor', () => {
+    renderWithProviders(<Chip>Tap Target</Chip>);
+    expect(screen.getByRole('button')).toHaveStyle({ minHeight: MIN_TAP_TARGET });
   });
 });

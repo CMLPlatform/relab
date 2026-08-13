@@ -132,15 +132,11 @@ function DialogBody({
           placeholder={options.placeholder}
           autoFocus
           className="border px-2 py-2"
-          style={[
-            { borderColor: theme.colors.outline },
-            options.error
-              ? {
-                  backgroundColor: theme.colors.errorContainer,
-                  color: theme.colors.onErrorContainer,
-                }
-              : null,
-          ]}
+          // Danger border, not a full errorContainer recolor (MD3 *Container
+          // roles are retired) — the helperText caption below carries the message.
+          style={{
+            borderColor: options.error ? theme.tokens.status.danger : theme.colors.outline,
+          }}
         />
       ) : null}
 

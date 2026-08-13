@@ -42,9 +42,11 @@ export function TextInput({
           paddingVertical: 10,
           borderColor: theme.colors.outline,
         },
+        // Danger border, not a full errorContainer recolor (MD3 *Container
+        // roles are retired) — the field-level caller renders the caption.
         error && {
-          backgroundColor: theme.colors.errorContainer,
-          color: theme.colors.onErrorContainer,
+          borderWidth: 1,
+          borderColor: theme.tokens.status.danger,
         },
         style,
       ]}

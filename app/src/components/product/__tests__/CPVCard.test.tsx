@@ -32,11 +32,11 @@ describe('CPVCard', () => {
     expect(screen.getByText('03000000-1')).toBeOnTheScreen();
   });
 
-  it("applies the error text color when CPV.name is 'undefined'", () => {
+  it("applies the danger text color when CPV.name is 'undefined'", () => {
     const errorCPV = { ...mockCPV, name: 'undefined' };
     renderWithProviders(<CPVCard CPV={errorCPV} />);
     expect(screen.getByText('Agricultural products')).toHaveStyle({
-      color: getAppTheme('light').colors.onErrorContainer,
+      color: getAppTheme('light').tokens.status.danger,
     });
   });
 

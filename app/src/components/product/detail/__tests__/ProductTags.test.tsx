@@ -8,6 +8,7 @@ import type { Product } from '@/types/Product';
 
 const BRAND_PATTERN = /CircularTech/;
 const MODEL_PATTERN = /X100/;
+const AMOUNT_RANGE_HINT_PATTERN = /1 to 10000/;
 
 jest.mock('@/features/products/queries', () => ({
   useSearchBrandsQuery: jest.fn(() => ({
@@ -210,7 +211,7 @@ describe('AmountChip (isComponent=true)', () => {
     expect(screen.getByDisplayValue('3')).toBeOnTheScreen();
   });
 
-  it('calls onAmountChange instantly when text changes', () => {
+  it('commits once on blur with the final typed value, not once per keystroke', () => {
     const onAmountChange = jest.fn();
     renderWithProviders(
       <ProductTags
@@ -221,11 +222,16 @@ describe('AmountChip (isComponent=true)', () => {
       />,
       { withDialog: true },
     );
-    fireEvent.changeText(screen.getByDisplayValue('3'), '7');
-    expect(onAmountChange).toHaveBeenCalledWith(7);
+    const input = screen.getByDisplayValue('3');
+    fireEvent.changeText(input, '2');
+    fireEvent.changeText(input, '25');
+    expect(onAmountChange).not.toHaveBeenCalled();
+    fireEvent(input, 'blur');
+    expect(onAmountChange).toHaveBeenCalledTimes(1);
+    expect(onAmountChange).toHaveBeenCalledWith(25);
   });
 
-  it('strips non-numeric characters from text input', () => {
+  it('commits on submitEditing (keyboard return) as well as blur', () => {
     const onAmountChange = jest.fn();
     renderWithProviders(
       <ProductTags
@@ -236,11 +242,31 @@ describe('AmountChip (isComponent=true)', () => {
       />,
       { withDialog: true },
     );
-    fireEvent.changeText(screen.getByDisplayValue('3'), '5abc');
+    const input = screen.getByDisplayValue('3');
+    fireEvent.changeText(input, '9');
+    fireEvent(input, 'submitEditing');
+    expect(onAmountChange).toHaveBeenCalledTimes(1);
+    expect(onAmountChange).toHaveBeenCalledWith(9);
+  });
+
+  it('strips non-numeric characters from text input, committed on blur', () => {
+    const onAmountChange = jest.fn();
+    renderWithProviders(
+      <ProductTags
+        product={componentProduct}
+        editMode={true}
+        isComponent={true}
+        onAmountChange={onAmountChange}
+      />,
+      { withDialog: true },
+    );
+    const input = screen.getByDisplayValue('3');
+    fireEvent.changeText(input, '5abc');
+    fireEvent(input, 'blur');
     expect(onAmountChange).toHaveBeenCalledWith(5);
   });
 
-  it('clamps value to 10000 on text input', () => {
+  it('clamps value to 10000 on blur and exposes the valid range via accessibilityHint', () => {
     const onAmountChange = jest.fn();
     renderWithProviders(
       <ProductTags
@@ -251,7 +277,10 @@ describe('AmountChip (isComponent=true)', () => {
       />,
       { withDialog: true },
     );
-    fireEvent.changeText(screen.getByDisplayValue('3'), '99999');
+    const input = screen.getByDisplayValue('3');
+    expect(input.props.accessibilityHint).toMatch(AMOUNT_RANGE_HINT_PATTERN);
+    fireEvent.changeText(input, '99999');
+    fireEvent(input, 'blur');
     expect(onAmountChange).toHaveBeenCalledWith(10000);
   });
 

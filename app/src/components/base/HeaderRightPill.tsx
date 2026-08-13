@@ -13,9 +13,7 @@ function truncateUsername(username: string) {
 
 // Pill classes: layout/spacing/radius moved to className (exact Tailwind
 // steps with inlineRem: 16 — rounded-[6px] matches radius.control).
-// backgroundColor/color stay inline: theme.colors.primaryContainer /
-// onPrimaryContainer are theme-dependent with no CSS var (deliberate
-// residue, same pattern as profile/styles.ts).
+// backgroundColor/color stay inline: theme-dependent values with no CSS var.
 const PILL_CLASS_NAME = 'mr-4 flex-row items-center gap-1.5 rounded-[6px] px-3 py-1.5';
 const PILL_TEXT_CLASS_NAME = 'text-[14px] font-semibold';
 
@@ -50,7 +48,9 @@ export function HeaderRightPill() {
         accessibilityRole="button"
         accessibilityLabel={needsOnboarding ? 'Complete profile' : `Account: ${username}`}
       >
-        <Icon name="circle-user-round" size={18} color={theme.colors.onPrimaryContainer} />
+        {/* tokens.surface.accent is a light primary tint, not a solid
+         *Container fill — onPrimaryContainer here was a contrast bug. */}
+        <Icon name="circle-user-round" size={18} color={theme.colors.primary} />
         <AppText
           variant="label"
           className={PILL_TEXT_CLASS_NAME}

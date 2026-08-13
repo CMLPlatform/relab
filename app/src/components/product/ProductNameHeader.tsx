@@ -65,9 +65,12 @@ export function ProductNameHeader({
           paddingVertical: 4,
           paddingHorizontal: 8,
           borderRadius: radius.control,
-          backgroundColor: isInvalid
-            ? theme.colors.errorContainer
-            : (theme.colors.surfaceVariant as ColorValue),
+          backgroundColor: theme.colors.surfaceVariant as ColorValue,
+          // Danger border, not a full errorContainer recolor (MD3 *Container
+          // roles are retired); FormFieldError below carries the caption.
+          // borderWidth stays constant so toggling isInvalid doesn't shift layout.
+          borderWidth: 1,
+          borderColor: isInvalid ? theme.tokens.status.danger : 'transparent',
         }}
         accessibilityLabel="Product name"
         {...describedBy(errorId, isInvalid)}

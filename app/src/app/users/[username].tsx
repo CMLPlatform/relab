@@ -131,9 +131,11 @@ export default function UserProfileScreen() {
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
+    // bg-primary/10 (a light primary tint) backs this text, not a solid
+    // *Container fill — onPrimaryContainer here was a contrast bug.
     avatarText: {
       fontSize: 48,
-      color: theme.colors.onPrimaryContainer,
+      color: theme.colors.primary,
     },
     usernameText: {
       fontSize: 32,

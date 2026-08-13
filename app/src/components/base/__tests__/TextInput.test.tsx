@@ -16,21 +16,25 @@ describe('<TextInput />', () => {
     expect(screen.getByPlaceholderText('Enter text')).toBeOnTheScreen();
   });
 
-  it('applies error style (background + text color) when errorOnEmpty is set and value is empty', () => {
+  it('applies a danger border when errorOnEmpty is set and value is empty', () => {
     renderWithProviders(<TextInput testID="test-input" errorOnEmpty={true} value="" />);
     const input = screen.getByTestId('test-input');
-    expect(input).toHaveStyle({ backgroundColor: getAppTheme('light').colors.errorContainer });
-    expect(input).toHaveStyle({ color: getAppTheme('light').colors.onErrorContainer });
+    expect(input).toHaveStyle({
+      borderWidth: 1,
+      borderColor: getAppTheme('light').tokens.status.danger,
+    });
   });
 
-  it('applies error style when customValidation returns false', () => {
+  it('applies a danger border when customValidation returns false', () => {
     const failValidation = (val: string) => val.includes('valid');
     renderWithProviders(
       <TextInput testID="validation-input" value="bad" customValidation={failValidation} />,
     );
     const input = screen.getByTestId('validation-input');
-    expect(input).toHaveStyle({ backgroundColor: getAppTheme('light').colors.errorContainer });
-    expect(input).toHaveStyle({ color: getAppTheme('light').colors.onErrorContainer });
+    expect(input).toHaveStyle({
+      borderWidth: 1,
+      borderColor: getAppTheme('light').tokens.status.danger,
+    });
   });
 
   it('applies default text color when there is no error', () => {
@@ -72,7 +76,7 @@ describe('<TextInput />', () => {
     );
     const input = screen.getByTestId('passing-validation');
     expect(input).not.toHaveStyle({
-      backgroundColor: getAppTheme('light').colors.errorContainer,
+      borderColor: getAppTheme('light').tokens.status.danger,
     });
     expect(input).toHaveStyle({ color: getAppTheme('light').colors.onSurface });
   });

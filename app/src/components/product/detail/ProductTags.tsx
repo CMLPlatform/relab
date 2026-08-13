@@ -6,6 +6,7 @@ import { useDialog } from '@/components/base/dialogContext';
 import { SingleSelectFilterModal } from '@/components/base/FilterSelectionModal';
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
+import { MIN_TAP_TARGET } from '@/constants';
 import { useSearchBrandsQuery } from '@/features/products/queries';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
@@ -72,7 +73,7 @@ export default function ProductTags({
       <Chip
         title={'Brand'}
         onPress={onEditBrand}
-        icon={editMode && <Icon name="pencil" color={theme.colors.onPrimaryContainer} />}
+        icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
         error={isBrandRequired && !product.brand}
       >
         {product.brand ?? 'Unknown'}
@@ -80,7 +81,7 @@ export default function ProductTags({
       <Chip
         title={'Model'}
         onPress={onEditModel}
-        icon={editMode && <Icon name="pencil" color={theme.colors.onPrimaryContainer} />}
+        icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
         error={isModelRequired && !product.model}
       >
         {product.model ?? 'Unknown'}
@@ -128,24 +129,17 @@ function AmountChip({
     [onAmountChange],
   );
 
-  const handleTextChange = useCallback(
-    (text: string) => {
-      const numeric = text.replace(/[^0-9]/g, '');
-      setDraftValue(numeric);
-      if (numeric !== '') {
-        commit(parseInt(numeric, 10));
-      }
-    },
-    [commit],
-  );
+  // Draft-only on keystroke — commit happens on blur/submit so a typed "25"
+  // doesn't briefly commit "2" then "25" (each keystroke used to fire
+  // onAmountChange, which the parent form treats as a dirty edit).
+  const handleTextChange = useCallback((text: string) => {
+    setDraftValue(text.replace(/[^0-9]/g, ''));
+  }, []);
 
-  const handleBlur = useCallback(() => {
-    if (inputValue === '' || inputValue === '0') {
-      commit(1);
-      return;
-    }
-    setDraftValue(null);
-  }, [inputValue, commit]);
+  const commitDraft = useCallback(() => {
+    if (draftValue === null) return;
+    commit(draftValue === '' ? 1 : parseInt(draftValue, 10));
+  }, [draftValue, commit]);
 
   const decrease = useCallback(() => commit(amount - 1), [commit, amount]);
   const increase = useCallback(() => commit(amount + 1), [commit, amount]);
@@ -177,11 +171,13 @@ function AmountChip({
           <TextInput
             value={inputValue}
             onChangeText={handleTextChange}
-            onBlur={handleBlur}
+            onBlur={commitDraft}
+            onSubmitEditing={commitDraft}
             keyboardType="numeric"
             className="text-primary-foreground w-9 text-center py-2 px-0"
             style={amountStyles.input}
             accessibilityLabel="Amount"
+            accessibilityHint="Enter a whole number from 1 to 10000; out-of-range values are adjusted to fit"
           />
           <StepButton
             icon="plus"
@@ -246,8 +242,8 @@ const amountStyles = { titleText: amountText, valueText: amountText, input: amou
 
 const styles = {
   iconSlot: {
-    width: 30,
-    height: 38,
+    minWidth: MIN_TAP_TARGET,
+    minHeight: MIN_TAP_TARGET,
     alignItems: 'center',
     justifyContent: 'center',
   },

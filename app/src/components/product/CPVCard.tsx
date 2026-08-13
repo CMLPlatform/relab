@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { Pressable, type PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { Icon } from '@/components/base/Icon';
-import { useAppTheme } from '@/theme';
+import { getStatusTone, useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 interface Props {
@@ -14,8 +14,10 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
   const { colors, tokens } = useAppTheme();
   const error = CPV.name === 'undefined';
 
-  const bgColor = error ? colors.errorContainer : tokens.surface.accent;
-  const textColor = error ? colors.onErrorContainer : colors.primary;
+  // Tinted danger fill, not a full errorContainer recolor (MD3 *Container
+  // roles are retired) — same pattern as Chip's error state.
+  const bgColor = error ? getStatusTone(tokens.status.danger) : tokens.surface.accent;
+  const textColor = error ? tokens.status.danger : colors.primary;
 
   const pressableStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [

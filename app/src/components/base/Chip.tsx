@@ -1,4 +1,4 @@
-// NOTE: hand-rolled on purpose — Pressable two-segment pill with control radius and errorContainer state.
+// NOTE: hand-rolled on purpose — Pressable two-segment pill with control radius and danger-tint state.
 import type React from 'react';
 import { useCallback } from 'react';
 import {
@@ -8,9 +8,10 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { radius } from '@/constants';
-import { useAppTheme } from '@/theme';
+import { MIN_TAP_TARGET, radius } from '@/constants';
+import { getStatusTone, useAppTheme } from '@/theme';
 import { AppText } from './AppText';
+import { Icon } from './Icon';
 
 interface Props extends PressableProps {
   children?: string;
@@ -19,8 +20,20 @@ interface Props extends PressableProps {
   error?: boolean;
 }
 
-export const Chip = ({ style, children, title, icon, error, ...props }: Props) => {
+export const Chip = ({
+  style,
+  children,
+  title,
+  icon,
+  error,
+  disabled,
+  accessibilityLabel,
+  accessibilityRole = 'button',
+  accessibilityState,
+  ...props
+}: Props) => {
   const theme = useAppTheme();
+  const danger = theme.tokens.status.danger;
 
   const resolveStyle = useCallback(
     (state: PressableStateCallbackType) => {
@@ -28,16 +41,30 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
       return [
         // No className on this Pressable: it would drop this function (see IconButton.tsx).
         styles.base,
-        { backgroundColor: error ? theme.colors.surfaceVariant : theme.tokens.surface.accent },
+        { backgroundColor: theme.tokens.surface.accent },
         state.pressed && { opacity: 0.5 },
         resolvedStyle,
       ];
     },
-    [style, error, theme],
+    [style, theme],
   );
 
+  // Composed so a screen reader gets one coherent name ("Brand: Unknown,
+  // required") instead of reading the title and value segments separately;
+  // an explicit accessibilityLabel from the caller always wins.
+  const composedLabel =
+    accessibilityLabel ??
+    (title ? `${title}: ${children ?? ''}${error ? ', required' : ''}` : undefined);
+
   return (
-    <Pressable style={resolveStyle} {...props}>
+    <Pressable
+      style={resolveStyle}
+      disabled={disabled}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={composedLabel}
+      accessibilityState={accessibilityState ?? (disabled ? { disabled } : undefined)}
+      {...props}
+    >
       {title ? (
         <AppText
           variant="label"
@@ -50,13 +77,18 @@ export const Chip = ({ style, children, title, icon, error, ...props }: Props) =
       <View
         className="flex-row items-center gap-1.5 rounded-md px-3 py-2"
         style={{
-          backgroundColor: error ? theme.colors.errorContainer : theme.colors.primary,
+          backgroundColor: error ? getStatusTone(danger) : theme.colors.primary,
+          borderColor: error ? danger : undefined,
+          borderWidth: error ? 1 : 0,
         }}
       >
+        {/* Error state must not be color-only (WCAG 1.4.1): a compact alert icon
+            carries the signal alongside the danger tint/border/text. */}
+        {error ? <Icon name="circle-alert" size={14} color={danger} /> : null}
         <AppText
           variant="label"
           className="text-center font-medium"
-          style={{ color: error ? theme.colors.onErrorContainer : theme.colors.onPrimary }}
+          style={{ color: error ? danger : theme.colors.onPrimary }}
         >
           {children}
         </AppText>
@@ -70,5 +102,6 @@ const styles = StyleSheet.create({
   base: {
     flexDirection: 'row',
     borderRadius: radius.control,
+    minHeight: MIN_TAP_TARGET,
   },
 });
