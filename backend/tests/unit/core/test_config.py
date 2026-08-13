@@ -589,6 +589,16 @@ def test_otel_enabled_tracks_endpoint() -> None:
     assert settings.otel_enabled is True
 
 
+def test_construction_fails_without_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Settings construction must fail closed when ENVIRONMENT is not set anywhere."""
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    settings_config: Any = {**CoreSettings.model_config, "env_file": None}
+    monkeypatch.setattr(CoreSettings, "model_config", settings_config)
+
+    with pytest.raises(ValidationError, match="ENVIRONMENT must be set explicitly"):
+        CoreSettings()
+
+
 def test_dev_maps_to_development_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """DEV environment should map to .env.dev."""
     monkeypatch.setenv("ENVIRONMENT", "dev")

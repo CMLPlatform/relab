@@ -92,6 +92,8 @@ services:
       - database_backup_password
 
   migrator:
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
     secrets: *backend-runtime-secrets
 
   docs:

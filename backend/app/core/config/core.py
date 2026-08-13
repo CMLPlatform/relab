@@ -56,7 +56,9 @@ class CoreSettings(RelabBaseSettings):
     """Settings class to store all the configurations for the app."""
 
     # ── Environment ──────────────────────────────────────────────────────────────
-    environment: Environment = Environment.DEV
+    # No default: a missing ENVIRONMENT must never silently fall back to development
+    # settings (rate limiting off, insecure cookies, permissive CORS/CORP).
+    environment: Environment
 
     # ── Database & Redis ─────────────────────────────────────────────────────────
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
@@ -74,6 +76,21 @@ class CoreSettings(RelabBaseSettings):
     site_public_url: HttpUrl = HttpUrl("http://127.0.0.1:8013")
     cors_origin_regex: str | None = Field(default=None)
     outbound_http_allowed_urls: tuple[OutboundHttpsUrl, ...] = DEFAULT_OUTBOUND_HTTP_ALLOWED_URLS
+
+    @model_validator(mode="before")
+    @classmethod
+    def require_environment(cls, data: object) -> object:
+        """Fail fast with a clear message when ENVIRONMENT is unset.
+
+        Without this, pydantic's default "field required" error doesn't explain
+        which values are valid, and a missing field is easy to mistake for a
+        typo elsewhere in the traceback.
+        """
+        if isinstance(data, dict) and not data.get("environment"):
+            valid = ", ".join(member.value for member in Environment)
+            msg = f"ENVIRONMENT must be set explicitly (one of: {valid}). No default is applied."
+            raise ValueError(msg)
+        return data
 
     @field_validator("bootstrap_superuser_name")
     @classmethod
