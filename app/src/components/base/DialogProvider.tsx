@@ -21,16 +21,23 @@ const TOAST_DURATION_MS = 4000;
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [options, setOptions] = useState<DialogOptions | null>(null);
+  // Separate from `options` (which is kept around, not nulled, on close) so AppDialog's
+  // `visible` prop actually transitions true→false instead of the whole tree unmounting —
+  // useReturnFocus's return-focus-on-close logic (web and native, incl. triggerRef) only
+  // fires on that transition, never on unmount.
+  const [visible, setVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [dialogVersion, setDialogVersion] = useState(0);
 
   const alert = useCallback<DialogContextType['alert']>((opts: DialogOptions) => {
     setOptions({ ...opts, input: false });
+    setVisible(true);
     setDialogVersion((version) => version + 1);
   }, []);
 
   const input = useCallback<DialogContextType['input']>((opts: DialogOptions) => {
     setOptions({ ...opts, input: true });
+    setVisible(true);
     setDialogVersion((version) => version + 1);
   }, []);
 
@@ -39,7 +46,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clear = useCallback(() => {
-    setOptions(null);
+    setVisible(false);
   }, []);
 
   const dismissToast = useCallback(() => {
@@ -53,13 +60,23 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       {children}
 
       {/* key remounts the body per dialog so the input resets to its defaultValue. */}
-      {options ? <DialogBody key={dialogVersion} options={options} onDismiss={clear} /> : null}
+      {options ? (
+        <DialogBody key={dialogVersion} options={options} visible={visible} onDismiss={clear} />
+      ) : null}
       <Toast message={toastMessage} onDismiss={dismissToast} />
     </DialogContext.Provider>
   );
 }
 
-function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss: () => void }) {
+function DialogBody({
+  options,
+  visible,
+  onDismiss,
+}: {
+  options: DialogOptions;
+  visible: boolean;
+  onDismiss: () => void;
+}) {
   const theme = useAppTheme();
   const [inputValue, setInputValue] = useState(options.defaultValue || '');
 
@@ -99,7 +116,7 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
   }, [handleClose, submitButton]);
 
   return (
-    <AppDialog visible onDismiss={onDismiss}>
+    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={options.triggerRef}>
       {options.title ? (
         <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
           {options.title}

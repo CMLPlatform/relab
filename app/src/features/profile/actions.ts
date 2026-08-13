@@ -1,5 +1,6 @@
 import type { useRouter } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
+import type { View } from 'react-native';
 import type { useAuth } from '@/context/auth';
 import type { useStreamSession } from '@/context/streamSession';
 import type { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
@@ -121,8 +122,9 @@ export function useProfileActions({
     });
   }, [exitSession, feedback]);
 
+  const usernameEditTriggerRef = useRef<View>(null);
   const promptEditUsername = useCallback(
-    () => promptUsernameEdit({ profile, feedback, refetch }),
+    () => promptUsernameEdit({ profile, feedback, refetch, triggerRef: usernameEditTriggerRef }),
     [feedback, profile, refetch],
   );
 
@@ -152,6 +154,7 @@ export function useProfileActions({
     onRevokeAllSessions,
     onVerifyAccount,
     promptEditUsername,
+    usernameEditTriggerRef,
     handleUnlinkOAuthConfirm,
   };
 }

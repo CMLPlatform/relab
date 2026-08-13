@@ -22,22 +22,33 @@ type CameraDetailsCardProps = {
   camera: CameraReadWithStatus;
   onEditName: () => void;
   onEditDescription: () => void;
+  /** Return-focus targets for the corresponding edit dialogs; see AppDialog's `triggerRef`. */
+  nameTriggerRef?: RefObject<View | null>;
+  descriptionTriggerRef?: RefObject<View | null>;
 };
 
 export function CameraDetailsCard({
   camera,
   onEditName,
   onEditDescription,
+  nameTriggerRef,
+  descriptionTriggerRef,
 }: CameraDetailsCardProps) {
   return (
     <Card>
       <View className="p-4">
-        <DetailRow label="Name" value={camera.name} onEdit={onEditName} />
+        <DetailRow
+          label="Name"
+          value={camera.name}
+          onEdit={onEditName}
+          triggerRef={nameTriggerRef}
+        />
         <Separator />
         <DetailRow
           label="Description"
           value={camera.description ?? '—'}
           onEdit={onEditDescription}
+          triggerRef={descriptionTriggerRef}
         />
         <Separator />
         <DetailRow label="Key ID" value={camera.relay_key_id} mono />

@@ -1,8 +1,15 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { AccessibilityInfo, Pressable, Text } from 'react-native';
+import { createRef } from 'react';
+import { AccessibilityInfo, findNodeHandle, Pressable, Text, View } from 'react-native';
 import { useDialog } from '@/components/base/dialogContext';
-import { renderWithProviders, setupUser } from '@/test-utils/index';
+import { mockPlatform, renderWithProviders, restorePlatform, setupUser } from '@/test-utils/index';
+
+jest.mock('react-native/Libraries/ReactNative/RendererProxy', () => ({
+  findNodeHandle: jest.fn(() => 7),
+}));
+
+const mockedFindNodeHandle = jest.mocked(findNodeHandle);
 
 function renderAlertTrigger(onPress: () => void) {
   return (
@@ -19,6 +26,10 @@ function renderAlertTrigger(onPress: () => void) {
 
 describe('DialogProvider', () => {
   const user = setupUser();
+
+  afterEach(() => {
+    restorePlatform();
+  });
 
   it('renders children without showing a dialog by default', () => {
     renderWithProviders(<Text>Hello World</Text>, { withDialog: true });
@@ -109,6 +120,45 @@ describe('DialogProvider', () => {
     await user.press(screen.getByText('Submit'));
 
     expect(onSubmit).toHaveBeenCalledWith('hello world');
+  });
+
+  it('threads options.triggerRef through to AppDialog for native focus restore', async () => {
+    mockPlatform('ios');
+    const setFocus = jest
+      .spyOn(AccessibilityInfo, 'setAccessibilityFocus')
+      .mockImplementation(() => {});
+    const triggerRef = createRef<View>();
+    // Only resolves a handle for the externally-supplied ref, so a stray internal
+    // (unattached) ref inside AppDialog can't make this pass by accident.
+    mockedFindNodeHandle.mockImplementation((component) =>
+      component === triggerRef.current ? 7 : null,
+    );
+
+    function TriggerRefTest() {
+      const dialog = useDialog();
+      return (
+        <>
+          <View ref={triggerRef} />
+          {renderAlertTrigger(() =>
+            dialog.input({
+              title: 'Edit name',
+              placeholder: 'Name',
+              triggerRef,
+              buttons: [{ text: 'Cancel', style: 'cancel' }],
+            }),
+          )}
+        </>
+      );
+    }
+
+    renderWithProviders(<TriggerRefTest />, { withDialog: true });
+
+    await user.press(screen.getByTestId('trigger'));
+    expect(screen.getByText('Edit name')).toBeOnTheScreen();
+
+    await user.press(screen.getByText('Cancel'));
+
+    expect(setFocus).toHaveBeenCalledWith(7);
   });
 
   it('dialog button onPress callback is called with value for alert', async () => {

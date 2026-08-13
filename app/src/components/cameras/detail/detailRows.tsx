@@ -27,11 +27,14 @@ export function DetailRow({
   value,
   onEdit,
   mono = false,
+  triggerRef,
 }: {
   label: string;
   value: string;
   onEdit?: () => void;
   mono?: boolean;
+  /** Return-focus target for the dialog `onEdit` opens; see AppDialog's `triggerRef`. */
+  triggerRef?: RefObject<View | null>;
 }) {
   const theme = useAppTheme();
 
@@ -49,12 +52,14 @@ export function DetailRow({
         {value}
       </AppText>
       {onEdit ? (
-        <IconButton
-          icon="pencil"
-          size={16}
-          onPress={onEdit}
-          accessibilityLabel={`Edit ${label.toLowerCase()}`}
-        />
+        <View ref={triggerRef} collapsable={false}>
+          <IconButton
+            icon="pencil"
+            size={16}
+            onPress={onEdit}
+            accessibilityLabel={`Edit ${label.toLowerCase()}`}
+          />
+        </View>
       ) : null}
     </View>
   );

@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import type { View } from 'react-native';
 import {
   useCameraQuery,
   useDeleteCameraMutation,
@@ -33,6 +34,8 @@ export function useCameraDetailScreen() {
   const isOnline = effectiveConnection.relayStatus === 'online';
   const canPreview = effectiveConnection.isReachable;
   const { preview, dialogs, actions: dialogActions } = useCameraDetailDialogs(localConnection);
+  const renameTriggerRef = useRef<View>(null);
+  const descriptionTriggerRef = useRef<View>(null);
 
   useEffect(() => {
     navigation.setOptions({ title: camera?.name ?? 'Camera' });
@@ -63,6 +66,8 @@ export function useCameraDetailScreen() {
       effectiveConnection,
       localConnection,
       refetch,
+      renameTriggerRef,
+      descriptionTriggerRef,
     },
     preview,
     dialogs: {

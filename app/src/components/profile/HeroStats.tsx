@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Badge } from '@/components/base/ui/badge';
@@ -10,14 +11,17 @@ import { createProfileSectionStyles } from './styles';
 type ProfileHeroProps = {
   profile: User;
   onEditUsername: () => void;
+  /** Return-focus target for the edit-username dialog; see AppDialog's `triggerRef`. */
+  usernameEditTriggerRef?: RefObject<View | null>;
 };
 
 /** Account page header: identity block in the same spec-sheet voice as the product SpecHeader. */
-export function ProfileHero({ profile, onEditUsername }: ProfileHeroProps) {
+export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }: ProfileHeroProps) {
   return (
     <View className="gap-2 px-4 py-3">
       <AppText variant="eyebrow">Hi,</AppText>
       <Pressable
+        ref={usernameEditTriggerRef}
         onPress={onEditUsername}
         accessibilityRole="button"
         accessibilityLabel="Edit username"

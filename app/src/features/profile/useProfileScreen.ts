@@ -75,6 +75,7 @@ export function useProfileScreen() {
       emailUpdatesSaving,
       visibilitySaving,
       openEditUsername: actions.promptEditUsername,
+      usernameEditTriggerRef: actions.usernameEditTriggerRef,
       handleEmailUpdatesChange,
       handleVisibilityChange,
     },

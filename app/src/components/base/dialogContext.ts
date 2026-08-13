@@ -1,4 +1,5 @@
-import { createContext, useContext } from 'react';
+import { createContext, type RefObject, useContext } from 'react';
+import type { View } from 'react-native';
 
 export type DialogButton = {
   text: string;
@@ -17,6 +18,8 @@ export type DialogOptions = {
   placeholder?: string;
   helperText?: string;
   error?: boolean;
+  /** Return-focus target for native screen readers on close; see AppDialog's `triggerRef`. */
+  triggerRef?: RefObject<View | null>;
 };
 
 export type DialogContextType = {

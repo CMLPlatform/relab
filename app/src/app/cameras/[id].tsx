@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import type { View } from 'react-native';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
@@ -25,6 +25,14 @@ function CameraDetailContent({
   const camera = screen.camera;
   const deleteTriggerRef = useRef<View>(null);
   const manualSetupTriggerRef = useRef<View>(null);
+  const onEditName = useCallback(
+    () => actions.promptRename(screen.renameTriggerRef),
+    [actions, screen.renameTriggerRef],
+  );
+  const onEditDescription = useCallback(
+    () => actions.promptEditDescription(screen.descriptionTriggerRef),
+    [actions, screen.descriptionTriggerRef],
+  );
   if (!camera) return null;
 
   return (
@@ -52,8 +60,10 @@ function CameraDetailContent({
 
         <CameraDetailsCard
           camera={camera}
-          onEditName={actions.promptRename}
-          onEditDescription={actions.promptEditDescription}
+          onEditName={onEditName}
+          onEditDescription={onEditDescription}
+          nameTriggerRef={screen.renameTriggerRef}
+          descriptionTriggerRef={screen.descriptionTriggerRef}
         />
 
         <CameraDangerZone onDelete={actions.requestDelete} deleteTriggerRef={deleteTriggerRef} />

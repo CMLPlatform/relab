@@ -39,7 +39,11 @@ function AccountBody({ ctx, profile }: { ctx: AccountSectionContext; profile: Us
   return (
     <PageContainer onLayout={onPageContainerLayout}>
       <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
-        <ProfileHero profile={profile} onEditUsername={ctx.profile.openEditUsername} />
+        <ProfileHero
+          profile={profile}
+          onEditUsername={ctx.profile.openEditUsername}
+          usernameEditTriggerRef={ctx.profile.usernameEditTriggerRef}
+        />
         <ProfileStatsSection
           ownStats={ctx.profile.ownStats}
           statsLoading={ctx.profile.statsLoading}

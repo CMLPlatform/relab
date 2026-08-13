@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { type RefObject, useCallback, useState } from 'react';
+import type { View } from 'react-native';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import { unlinkOAuth, updateUser, verify } from '@/services/api/auth/authentication';
 import type { User } from '@/types/User';
@@ -59,16 +60,20 @@ export function promptUsernameEdit({
   profile,
   feedback,
   refetch,
+  triggerRef,
 }: {
   profile: { username: string | null } | null | undefined;
   feedback: ReturnType<typeof useAppFeedback>;
   refetch: (forceRefresh?: boolean) => Promise<unknown>;
+  /** Return-focus target for the edit dialog; see AppDialog's `triggerRef`. */
+  triggerRef?: RefObject<View | null>;
 }) {
   if (!profile) return;
   feedback.input({
     title: 'Edit username',
     defaultValue: profile.username ?? '',
     placeholder: 'Username',
+    triggerRef,
     buttons: [
       { text: 'Cancel', style: 'cancel' },
       {
