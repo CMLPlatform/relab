@@ -194,6 +194,9 @@ function Toast({ message, onDismiss }: { message: string | null; onDismiss: () =
       className="absolute bottom-6 left-0 right-0 items-center"
       style={styles.toastContainer}
       pointerEvents="box-none"
+      // NOTE: exiting Animated.View must outlive this non-animated wrapper — without
+      // collapsable={false} view flattening can drop the wrapper before the exit plays.
+      collapsable={false}
     >
       <Animated.View
         entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
