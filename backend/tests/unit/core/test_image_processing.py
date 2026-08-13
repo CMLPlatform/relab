@@ -16,9 +16,9 @@ from app.core.images import (
     THUMBNAIL_WIDTHS,
     apply_exif_orientation,
     delete_thumbnails,
+    filter_exif,
     generate_thumbnails,
     process_image_for_storage,
-    strip_sensitive_exif,
     thumbnail_path_for,
     validate_image_dimensions,
     validate_image_file,
@@ -54,6 +54,25 @@ def _make_jpeg_with_exif(
         exif[0x0112] = orientation
     if camera_make:
         exif[0x010F] = "Test Camera"
+    img.save(path, format="JPEG", exif=exif)
+    return path
+
+
+def _make_jpeg_with_rich_exif(path: Path, width: int = 40, height: int = 60, orientation: int | None = None) -> Path:
+    """Save a JPEG carrying both preserved capture parameters and identifying metadata."""
+    img = PILImage.new("RGB", (width, height), color=(1, 2, 3))
+    exif = img.getexif()
+    exif[0x010F] = "Test Camera"  # Make (preserved)
+    exif[0x0110] = "Model X"  # Model (preserved)
+    exif[0x0131] = "SecretSoftware"  # Software (dropped)
+    if orientation is not None:
+        exif[0x0112] = orientation
+    sub_ifd = exif.get_ifd(IFD.Exif)
+    sub_ifd[0x920A] = 35.0  # FocalLength (preserved)
+    sub_ifd[0x8827] = 400  # ISOSpeedRatings (preserved)
+    sub_ifd[0x927C] = b"MAKERNOTE-SECRET"  # MakerNote (dropped)
+    sub_ifd[0xA431] = "SERIAL123"  # BodySerialNumber (dropped)
+    exif.get_ifd(IFD.GPSInfo)[GPS.GPSLatitudeRef] = "N"
     img.save(path, format="JPEG", exif=exif)
     return path
 
@@ -174,18 +193,33 @@ def test_apply_exif_orientation_3_preserves_dimensions(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# strip_sensitive_exif
+# filter_exif
 # ---------------------------------------------------------------------------
 
 
-def test_strip_sensitive_exif_removes_orientation(tmp_path: Path) -> None:
-    """Orientation tag should be stripped (callers must apply it first)."""
-    path = _make_jpeg_with_exif(tmp_path / "oriented.jpg", 100, 100, orientation=6)
+def test_filter_exif_keeps_only_allowlisted_tags(tmp_path: Path) -> None:
+    """Capture parameters survive; identifying tags are never copied across."""
+    path = _make_jpeg_with_rich_exif(tmp_path / "rich.jpg", orientation=6)
 
     with PILImage.open(path) as img:
-        assert img.getexif().get(0x0112) is not None
-        strip_sensitive_exif(img)
-        assert img.getexif().get(0x0112) is None
+        filtered = filter_exif(img)
+
+    assert filtered[0x010F] == "Test Camera"
+    assert filtered[0x0110] == "Model X"
+    assert filtered[IFD.Exif] == {0x920A: 35.0, 0x8827: 400}
+    assert 0x0131 not in filtered  # Software
+    assert IFD.GPSInfo not in filtered
+    # Orientation is baked into the pixels by the caller; re-writing it double-rotates.
+    assert 0x0112 not in filtered
+
+
+def test_filter_exif_leaves_source_image_untouched(tmp_path: Path) -> None:
+    """Filtering builds a new Exif rather than mutating the opened image."""
+    path = _make_jpeg_with_rich_exif(tmp_path / "rich.jpg")
+
+    with PILImage.open(path) as img:
+        filter_exif(img)
+        assert img.getexif().get_ifd(IFD.GPSInfo)
 
 
 # ---------------------------------------------------------------------------
@@ -220,15 +254,23 @@ def test_process_image_dimension_guard(tmp_path: Path) -> None:
         process_image_for_storage(path)
 
 
-def test_process_image_strips_all_exif(tmp_path: Path) -> None:
-    """Stored images should not retain EXIF metadata."""
-    path = _make_jpeg_with_exif(tmp_path / "metadata.jpg", 100, 100, camera_make=True)
+def test_process_image_keeps_capture_parameters_and_drops_the_rest(tmp_path: Path) -> None:
+    """Stored images keep the capture parameters CV research needs, nothing else."""
+    path = _make_jpeg_with_rich_exif(tmp_path / "metadata.jpg")
 
     process_image_for_storage(path)
 
     with PILImage.open(path) as result:
-        assert not result.info.get("exif")
-        assert not result.getexif()
+        exif = result.getexif()
+        assert exif[0x0110] == "Model X"
+        assert exif.get_ifd(IFD.Exif) == {0x920A: 35.0, 0x8827: 400}
+        assert not exif.get_ifd(IFD.GPSInfo)
+        assert 0x0131 not in exif  # Software
+    # Sub-IFD tags can survive as raw bytes even when Pillow stops reporting them.
+    stored = path.read_bytes()
+    assert b"MAKERNOTE-SECRET" not in stored
+    assert b"SERIAL123" not in stored
+    assert b"SecretSoftware" not in stored
 
 
 def test_process_image_applies_orientation_and_strips_tag(tmp_path: Path) -> None:
@@ -242,6 +284,21 @@ def test_process_image_applies_orientation_and_strips_tag(tmp_path: Path) -> Non
         assert result.width == 200
         assert result.height == 100
         assert result.getexif().get(0x0112) is None
+
+
+def test_process_image_orientation_survives_preserved_exif(tmp_path: Path) -> None:
+    """Writing preserved tags back must not smuggle the orientation tag along with them.
+
+    A re-written orientation tag would double-rotate the image on the next open.
+    """
+    path = _make_jpeg_with_rich_exif(tmp_path / "oriented_rich.jpg", 40, 60, orientation=6)
+
+    process_image_for_storage(path)
+
+    with PILImage.open(path) as result:
+        assert result.size == (60, 40)
+        assert 0x0112 not in result.getexif()
+        assert result.getexif()[0x0110] == "Model X"
 
 
 def test_process_image_normal_orientation_unchanged(tmp_path: Path) -> None:

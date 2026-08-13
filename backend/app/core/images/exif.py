@@ -2,8 +2,9 @@
 
 from PIL import Image as PILImage
 from PIL import ImageOps
+from PIL.ExifTags import IFD
 
-from .constants import _EXIF_ORIENTATION_TAG, _SENSITIVE_EXIF_TAGS
+from .constants import _EXIF_ORIENTATION_TAG, _PRESERVED_EXIF_TAGS
 
 
 def get_exif_orientation(img: PILImage.Image) -> int | None:
@@ -23,13 +24,25 @@ def apply_exif_orientation(img: PILImage.Image) -> PILImage.Image:
         return img
 
 
-def strip_sensitive_exif(img: PILImage.Image) -> None:
-    """Remove privacy-sensitive EXIF tags in-place from a Pillow image object."""
-    img.info.pop("exif", None)
-    try:
-        exif = img.getexif()
-    except AttributeError, ValueError, OSError, TypeError:
-        return
+def filter_exif(img: PILImage.Image) -> PILImage.Exif:
+    """Build a new Exif holding only the allowlisted capture parameters of ``img``.
 
-    for tag_id in _SENSITIVE_EXIF_TAGS | {_EXIF_ORIENTATION_TAG}:
-        exif.pop(tag_id, None)
+    Nothing is copied across wholesale: GPS, MakerNote and every other unlisted tag is
+    absent because it was never carried over, and the source image is left untouched.
+    """
+    filtered = PILImage.Exif()
+    try:
+        source = img.getexif()
+        base_tags = source.items()
+        exif_ifd_tags = source.get_ifd(IFD.Exif).items()
+    except AttributeError, ValueError, OSError, TypeError:
+        return filtered
+
+    for tag_id, value in base_tags:
+        if tag_id in _PRESERVED_EXIF_TAGS:
+            filtered[tag_id] = value
+    # Most capture parameters live in the Exif sub-IFD rather than IFD0.
+    preserved_sub_ifd = {tag_id: value for tag_id, value in exif_ifd_tags if tag_id in _PRESERVED_EXIF_TAGS}
+    if preserved_sub_ifd:
+        filtered[IFD.Exif] = preserved_sub_ifd
+    return filtered

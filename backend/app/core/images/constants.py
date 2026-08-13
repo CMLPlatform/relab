@@ -12,7 +12,7 @@ __all__ = [
     "RESAMPLE_FILTER",
     "THUMBNAIL_WIDTHS",
     "_EXIF_ORIENTATION_TAG",
-    "_SENSITIVE_EXIF_TAGS",
+    "_PRESERVED_EXIF_TAGS",
 ]
 
 
@@ -38,17 +38,27 @@ ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
 )
 THUMBNAIL_WIDTHS: tuple[int, ...] = (200, 800, 1600)
 
-_SENSITIVE_EXIF_TAGS: frozenset[int] = frozenset(
+# Capture parameters worth keeping for computer-vision research. This is an allowlist,
+# not a denylist: vendor MakerNote blocks are undocumented and carry serial numbers and
+# face-detection data, so anything not named here is dropped.
+_PRESERVED_EXIF_TAGS: frozenset[int] = frozenset(
     {
-        0x8825,
-        0x927C,
-        0xA430,
-        0xA431,
-        0xA435,
-        0x013B,
-        0xA420,
+        0x010F,  # Make
+        0x0110,  # Model
+        0xA434,  # LensModel
+        0x920A,  # FocalLength
+        0xA405,  # FocalLengthIn35mmFilm
+        0x829D,  # FNumber
+        0x829A,  # ExposureTime
+        0x8827,  # ISOSpeedRatings
+        0xA403,  # WhiteBalance
+        0x9209,  # Flash
+        0xA001,  # ColorSpace
+        0x9003,  # DateTimeOriginal
     }
 )
+# Deliberately absent from the allowlist: callers bake orientation into the pixels with
+# exif_transpose, so writing the tag back would double-rotate on the next open.
 _EXIF_ORIENTATION_TAG = 0x0112
 
 RESAMPLE_FILTER = Resampling.LANCZOS
