@@ -101,7 +101,7 @@ export function MfaDialogs({
           textContentType="password"
           style={[local.field, { borderColor: theme.colors.outline }]}
         />
-        <AppText variant="body" className="mt-2 opacity-60" style={local.hint}>
+        <AppText variant="caption" className="mt-2 opacity-60">
           Signed up with Google or GitHub? Use your Relab account password — if you never set one,
           create it with “Forgot password” on the login screen first.
         </AppText>
@@ -291,10 +291,9 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
       paddingLeft: 14,
       paddingRight: 6,
     },
-    // The `data` variant supplies the mono family and tabular figures.
+    // The `data` variant supplies the size, mono family, and tabular figures.
     key: {
       flex: 1,
-      fontSize: 15,
       letterSpacing: 1,
     },
     field: {
@@ -303,9 +302,6 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.sm,
       marginTop: 16,
-    },
-    hint: {
-      fontSize: 12,
     },
     codesBox: {
       backgroundColor: theme.tokens.surface.sunken,

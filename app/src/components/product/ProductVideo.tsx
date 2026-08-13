@@ -1,5 +1,5 @@
 import { type RefObject, useCallback, useId, useState } from 'react';
-import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
@@ -181,7 +181,7 @@ function VideoHeaderAction({
   if (editMode) {
     return (
       <TouchableOpacity onPress={onAdd} className="mt-1">
-        <Text style={{ color: linkColor }}>Add video</Text>
+        <AppText style={{ color: linkColor }}>Add video</AppText>
       </TouchableOpacity>
     );
   }
@@ -192,7 +192,7 @@ function VideoHeaderAction({
 
   return (
     <Pressable onPress={onToggleExpanded} className="mt-1">
-      <Text style={{ color: linkColor }}>{isExpanded ? 'Hide' : `Show (${videoCount})`}</Text>
+      <AppText style={{ color: linkColor }}>{isExpanded ? 'Hide' : `Show (${videoCount})`}</AppText>
     </Pressable>
   );
 }
@@ -374,9 +374,9 @@ function GoLiveCTA({
 
 function EmptyVideoState() {
   return (
-    <Text className="opacity-70 mb-2 text-muted-foreground">
+    <AppText className="opacity-70 mb-2 text-muted-foreground">
       This product has no associated videos.
-    </Text>
+    </AppText>
   );
 }
 

@@ -28,16 +28,17 @@ export const cameraDetailStyles = StyleSheet.create({
   },
   // fontFamily: 'monospace' has no NativeWind equivalent that preserves RN's
   // platform-resolved monospace font (font-mono pulls a web font stack);
-  // fontSize 12 travels with it rather than splitting one property out.
+  // fontSize/lineHeight travel with it rather than splitting one property
+  // out. Stepped to the caption size (13/18) instead of the stray 12/unset.
   monoDetail: {
     fontFamily: 'monospace',
-    fontSize: 12,
+    fontSize: 13,
+    lineHeight: 18,
   },
-  // fontSize 11 has no matching text-* step, and the named t-shirt classes
-  // (text-xs, etc.) carry a lineHeight this style never set — kept inline
-  // rather than force a class that would change line height.
+  // Sits on an AppText variant="label" (13/18) — dropping the stray 11px
+  // override lets it inherit the label step's size/lineHeight; only the
+  // weight bump is still needed here.
   sectionLabel: {
-    fontSize: 11,
     fontWeight: '600',
   },
 });

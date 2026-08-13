@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { Pressable, type PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
+import { Pressable, type PressableStateCallbackType, StyleSheet, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import { getStatusTone, useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
@@ -30,7 +31,7 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
 
   return (
     <View
-      className="rounded-lg overflow-hidden h-[100px] justify-between"
+      className="rounded-lg overflow-hidden min-h-[100px] justify-between"
       style={{ backgroundColor: bgColor }}
     >
       <Pressable
@@ -39,19 +40,24 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
         accessibilityLabel={CPV.description}
         style={pressableStyle}
       >
-        <Text
+        <AppText
+          variant="caption"
           className="p-3"
-          style={[styles.text, { color: textColor }]}
+          style={{ color: textColor, fontWeight: '500' }}
           numberOfLines={3}
           ellipsizeMode="tail"
         >
           {CPV.description}
-        </Text>
+        </AppText>
       </Pressable>
       {actionElement ?? (
-        <Text className="p-3 text-right opacity-70" style={{ color: textColor }}>
+        <AppText
+          variant="caption"
+          className="p-3 text-right opacity-70"
+          style={{ color: textColor }}
+        >
           {CPV.name}
-        </Text>
+        </AppText>
       )}
       <View style={styles.shapes}>
         <Icon name="shapes" size={150} color={textColor} />
@@ -63,11 +69,6 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
 const styles = StyleSheet.create({
   pressable: {
     flex: 1,
-  },
-  // fontSize-only (no matching lineHeight) — stays style-driven.
-  text: {
-    fontSize: 15,
-    fontWeight: '500',
   },
   // Decorative rotated glyph — no precedent for the react-native-css
   // transform/rotate utilities elsewhere in the app; keep it inline rather

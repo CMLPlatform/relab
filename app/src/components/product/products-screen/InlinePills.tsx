@@ -11,18 +11,16 @@ type NewProductPillProps = {
 export function NewProductPill({ label = 'New product' }: NewProductPillProps) {
   const theme = useAppTheme();
 
+  // ponytail: renders as plain emphasized text, not a pill shape — it names the
+  // real "New product" control elsewhere on screen rather than acting as one,
+  // so it shouldn't look tappable (design critique P3 #1).
   return (
-    <View
-      className="self-center rounded-full px-2 py-0.5"
-      style={{ backgroundColor: theme.tokens.surface.accent }}
+    <AppText
+      className="font-bold"
+      style={[styles.inlineButtonText, { color: theme.colors.primary }]}
     >
-      <AppText
-        className="font-bold"
-        style={[styles.inlineButtonText, { color: theme.colors.primary }]}
-      >
-        {label}
-      </AppText>
-    </View>
+      {label}
+    </AppText>
   );
 }
 

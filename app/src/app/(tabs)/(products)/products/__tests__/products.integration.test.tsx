@@ -310,7 +310,7 @@ describe('Products screen', () => {
     renderProducts();
 
     // Open sort menu and pick a different option
-    fireEvent.press(screen.getByLabelText('Sort products'));
+    fireEvent.press(screen.getByLabelText('Sort: Newest first'));
     fireEvent.press(screen.getByText('Oldest first'));
 
     expect(mockSetParams).toHaveBeenCalledWith({ sort: 'created_at' });
@@ -660,21 +660,21 @@ describe('Sort — Relevance default when searching', () => {
   it('shows Relevance option in the sort menu when a search is active', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
     renderProducts();
-    fireEvent.press(screen.getByLabelText('Sort products'));
+    fireEvent.press(screen.getByLabelText('Sort: Relevance'));
     expect(screen.getByText('Relevance')).toBeOnTheScreen();
   });
 
   it('hides Relevance option in the sort menu when there is no search', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
     renderProducts();
-    fireEvent.press(screen.getByLabelText('Sort products'));
+    fireEvent.press(screen.getByLabelText('Sort: Newest first'));
     expect(screen.queryByText('Relevance')).toBeNull();
   });
 
   it('clears explicit sort when Relevance is selected from the sort menu', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
     renderProducts();
-    fireEvent.press(screen.getByLabelText('Sort products'));
+    fireEvent.press(screen.getByLabelText('Sort: Relevance'));
     fireEvent.press(screen.getByText('Relevance'));
     expect(mockSetParams).toHaveBeenCalledWith({ sort: undefined });
   }, 15_000);

@@ -1,7 +1,8 @@
 import { AppButton } from '@/components/base/AppButton';
-import { AppText } from '@/components/base/AppText';
+import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { useDialog } from '@/components/base/dialogContext';
 import { Icon } from '@/components/base/Icon';
+import { Text } from '@/components/base/ui/text';
 import { useAppTheme } from '@/theme';
 import { entityLabel, entityLabelTitle, type Product } from '@/types/Product';
 
@@ -13,7 +14,7 @@ interface Props {
 
 export default function ProductDelete({ product, editMode, onDelete }: Props) {
   const dialog = useDialog();
-  const theme = useAppTheme();
+  const { colors } = useAppTheme();
   const label = entityLabel(product);
   const titleLabel = entityLabelTitle(product);
 
@@ -34,8 +35,11 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
 
   return (
     <AppButton variant="destructive" onPress={onPressDelete} className={styles.button}>
-      <Icon name="trash-2" size={18} color={theme.colors.onError} />
-      <AppText style={{ color: theme.colors.onError }}>Delete {label}</AppText>
+      {/* Icon needs an explicit color (no CSS-var bridging for RN SVG icons), so it
+          reads the destructive variant's own foreground instead of a hand-picked
+          token — same source AppButton's loading spinner uses for this variant. */}
+      <Icon name="trash-2" size={18} color={VARIANT_FOREGROUND_COLOR.destructive(colors)} />
+      <Text>Delete {label}</Text>
     </AppButton>
   );
 }

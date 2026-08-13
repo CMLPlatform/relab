@@ -79,7 +79,7 @@ export default function UserProfileScreen() {
                 {profile.username}
               </AppText>
               {profile.created_at ? (
-                <AppText variant="body" className="opacity-60" style={styles.joinedText}>
+                <AppText variant="caption" className="opacity-60">
                   Joined{' '}
                   {new Date(profile.created_at).toLocaleDateString(undefined, {
                     year: 'numeric',
@@ -139,9 +139,6 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
     },
     usernameText: {
       fontSize: 32,
-    },
-    joinedText: {
-      fontSize: 15,
     },
     statValue: {
       fontSize: 28,

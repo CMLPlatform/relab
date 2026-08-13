@@ -35,7 +35,7 @@ async function goToProducts(page: import('@playwright/test').Page) {
 test.describe('Sort menu', () => {
   test('sort button is visible on the products page', async ({ page }) => {
     await goToProducts(page);
-    await expect(page.getByLabel('Sort products')).toBeVisible();
+    await expect(page.getByLabel('Sort: Newest first')).toBeVisible();
   });
 
   test('sort button opens a menu with all expected options', async ({ page }) => {
@@ -57,7 +57,7 @@ test.describe('Sort menu', () => {
         async () => {
           const snapshot = await titles.allInnerTexts();
           if (snapshot.length === expected.length) return snapshot.map((t) => t.trim());
-          await openMenu(page, page.getByLabel('Sort products')).catch(() => {});
+          await openMenu(page, page.getByLabel('Sort: Newest first')).catch(() => {});
           return (await titles.allInnerTexts()).map((t) => t.trim());
         },
         { timeout: 15_000, intervals: [500, 1_000, 2_000] },
@@ -67,19 +67,19 @@ test.describe('Sort menu', () => {
 
   test('selecting "Oldest first" updates the URL sort param', async ({ page }) => {
     await goToProducts(page);
-    await selectMenuItem(page, page.getByLabel('Sort products'), 'Oldest first');
+    await selectMenuItem(page, page.getByLabel('Sort: Newest first'), 'Oldest first');
     await expect(page).toHaveURL(SORT_CREATED_AT_URL_PATTERN, { timeout: 3_000 });
   });
 
   test('selecting "Name A→Z" updates the URL sort param', async ({ page }) => {
     await goToProducts(page);
-    await selectMenuItem(page, page.getByLabel('Sort products'), 'Name A→Z');
+    await selectMenuItem(page, page.getByLabel('Sort: Newest first'), 'Name A→Z');
     await expect(page).toHaveURL(SORT_NAME_URL_PATTERN, { timeout: 3_000 });
   });
 
   test('sort menu closes after selecting an option', async ({ page }) => {
     await goToProducts(page);
-    await selectMenuItem(page, page.getByLabel('Sort products'), 'Newest first');
+    await selectMenuItem(page, page.getByLabel('Sort: Newest first'), 'Newest first');
     // After selection the menu dismisses; items leave the DOM
     await expect(page.locator('[data-testid="menu-item-title"]').first()).not.toBeAttached({
       timeout: 3_000,

@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { memo, type RefObject, useCallback, useMemo } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { useAppTheme } from '@/theme';
@@ -125,9 +126,12 @@ export function ProductImageGalleryContent({
             className="absolute right-3 bottom-3 rounded-full px-3 py-1"
             style={styles.counterBadge}
           >
-            <Text style={{ color: theme.tokens.text.onMedia, fontSize: 12, fontWeight: 'bold' }}>
+            <AppText
+              variant="caption"
+              style={{ color: theme.tokens.text.onMedia, fontWeight: 'bold' }}
+            >
               {selectedIndex + 1} / {imageCount}
-            </Text>
+            </AppText>
           </View>
         </>
       ) : null}

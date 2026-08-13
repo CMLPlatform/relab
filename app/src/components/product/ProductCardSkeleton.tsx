@@ -9,7 +9,7 @@ export default function ProductCardSkeleton() {
   const bg = theme.colors.surfaceVariant;
 
   return (
-    <Card className="mx-2.5 my-[5px]">
+    <Card className="mx-2.5 my-1.5">
       <View className="flex-row items-center p-3">
         <Skeleton style={[styles.thumbnail, { backgroundColor: bg }]} />
         <View className="flex-1 gap-2">

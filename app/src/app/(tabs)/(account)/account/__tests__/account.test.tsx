@@ -207,14 +207,14 @@ describe('ProfileTab', () => {
       expect(await findByText('3')).toBeTruthy();
     });
 
-    it('shows loading dots while stats are fetching', async () => {
+    it('shows a skeleton placeholder while stats are fetching', async () => {
       const { getPublicProfile } = require('@/services/api/profiles.ts');
       // Stall getPublicProfile so the loading state stays visible
       (getPublicProfile as jest.Mock).mockReturnValue(new Promise(() => {}));
 
-      const { getAllByText } = renderProfileTab();
-      // statsLoading=true renders '...' for each of the four stat values
-      expect(getAllByText('...')).toHaveLength(4);
+      const { getAllByTestId } = renderProfileTab();
+      // statsLoading=true renders a Skeleton for each of the four stat values
+      expect(getAllByTestId('stat-value-skeleton')).toHaveLength(4);
       // Settle the stats effect to avoid act() warnings
       await act(async () => {});
     });

@@ -48,7 +48,7 @@ function FilterChip({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? children}
         accessibilityState={{ selected }}
-        className="flex-row items-center gap-1.5 py-[7px]"
+        className="flex-row items-center gap-1.5 py-2"
         style={{ minHeight: MIN_TAP_TARGET }}
       >
         <Icon name={icon} size="sm" color={foreground} />

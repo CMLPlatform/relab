@@ -131,7 +131,7 @@ export function ProfileDangerZoneSection({
       <ProfileAction
         title="Delete account?"
         onPress={onDeleteAccount}
-        titleStyle={{ ...styles.danger, fontSize: 15 }}
+        titleStyle={styles.danger}
         hideChevron
         triggerRef={triggerRef}
       />

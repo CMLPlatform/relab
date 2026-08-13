@@ -1,28 +1,22 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import {
+  type AppButtonVariant,
+  VARIANT_FOREGROUND_COLOR,
+} from '@/components/base/appButtonVariants';
 import { Button } from '@/components/base/ui/button';
 import { Text } from '@/components/base/ui/text';
-import { type AppColors, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 
 type RnrVariant = ComponentProps<typeof Button>['variant'];
 
-const VARIANT_MAP = {
+const VARIANT_MAP: Record<AppButtonVariant, RnrVariant> = {
   primary: 'default',
   tonal: 'tonal',
   outline: 'outline',
   ghost: 'ghost',
   destructive: 'destructive',
-} as const satisfies Record<string, RnrVariant>;
-
-// Mirrors buttonTextVariants' per-variant text color (ui/button.tsx) so the
-// loading spinner matches the label instead of a hard-coded default.
-const SPINNER_COLOR: Record<keyof typeof VARIANT_MAP, (colors: AppColors) => string> = {
-  primary: (colors) => colors.onPrimary,
-  tonal: (colors) => colors.primary,
-  outline: (colors) => colors.onSurface,
-  ghost: (colors) => colors.onSurface,
-  destructive: () => '#FFFFFF', // buttonTextVariants hard-codes text-white for destructive
 };
 
 // Omit 'variant' from the vendored button's props: AppButton remaps its own
@@ -31,7 +25,7 @@ const SPINNER_COLOR: Record<keyof typeof VARIANT_MAP, (colors: AppColors) => str
 // through via `...rest` so callers aren't limited to the props this file
 // happened to name explicitly.
 type AppButtonProps = Omit<ComponentProps<typeof Button>, 'variant'> & {
-  variant?: keyof typeof VARIANT_MAP;
+  variant?: AppButtonVariant;
   loading?: boolean;
   children: ReactNode;
 };
@@ -67,7 +61,9 @@ export function AppButton({
       {...rest}
     >
       <View className="flex-row items-center gap-2">
-        {loading ? <ActivityIndicator size="small" color={SPINNER_COLOR[variant](colors)} /> : null}
+        {loading ? (
+          <ActivityIndicator size="small" color={VARIANT_FOREGROUND_COLOR[variant](colors)} />
+        ) : null}
         {renderedChildren}
       </View>
     </Button>

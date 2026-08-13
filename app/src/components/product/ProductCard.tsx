@@ -11,7 +11,8 @@ import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { getProfileHref } from '@/utils/router/profiles';
 
-const rtf = new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' });
+// undefined locale defers to the device's own locale instead of hard-coding en-US.
+const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
 
 function relativeTime(isoString?: string): string | null {
   if (!isoString) return null;
@@ -75,7 +76,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
       accessibilityRole={enabled ? 'button' : undefined}
       style={pressableStyle}
     >
-      <Card className="mx-2.5 my-[5px]">
+      <Card className="mx-2.5 my-1.5">
         <View className="flex-row items-center p-3">
           <View className="mr-4">
             {hasThumbnail ? (
@@ -99,7 +100,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               <ImagePlaceholder
                 width={80}
                 height={80}
-                borderRadius={12}
+                borderRadius={8}
                 testID="product-thumbnail"
               />
             )}
@@ -126,7 +127,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
             {hasMetadata ? (
               <View className="flex-row items-center gap-2.5 mt-1.5">
                 {createdAgo ? (
-                  <View className="flex-row items-center gap-[3px]">
+                  <View className="flex-row items-center gap-1">
                     <Icon name="clock" size={12} color={theme.colors.outline} />
                     <AppText variant="caption" style={{ color: theme.colors.outline }}>
                       {createdAgo}
@@ -134,13 +135,15 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                   </View>
                 ) : null}
                 {ownerLabel ? (
-                  <View className="flex-row items-center gap-[3px]">
+                  <View className="flex-row items-center gap-1">
                     <Icon name="user" size={12} color={theme.colors.outline} />
                     <AppText
                       variant="caption"
                       className="text-primary"
                       numberOfLines={1}
                       onPress={navigateToOwner}
+                      accessibilityRole="link"
+                      accessibilityLabel={`View ${ownerLabel}'s profile`}
                     >
                       {ownerLabel}
                     </AppText>

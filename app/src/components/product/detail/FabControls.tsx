@@ -260,7 +260,9 @@ function SaveBlockedTooltip({
 const baseFabStyle: ViewStyle = {
   position: getFloatingPosition(),
   bottom: 0,
-  margin: 19,
+  // Matches the list screens' Fab bottom offset (spacing.md) instead of a
+  // stray 19 — see ActiveStreamBanner's clearance comment for the shared math.
+  margin: spacing.md,
 };
 
 const styles = {

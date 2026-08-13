@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme';
 import { palette } from '@/theme/palette.generated';
@@ -65,9 +66,9 @@ export function ProductImageEmptyEditState({
           ) : (
             <Icon name="camera" size={48} color={palette[theme.scheme].mutedForeground} />
           )}
-          <Text className="mt-2 text-muted-foreground">
+          <AppText className="mt-2 text-muted-foreground">
             {hasCamerasConfigured ? 'RPi Camera' : 'Connect camera'}
-          </Text>
+          </AppText>
         </Pressable>
       ) : null}
     </View>
@@ -96,7 +97,7 @@ function EmptyActionCard({
       style={styles.emptyActionCard}
     >
       <Icon name={icon} size={48} color={palette[theme.scheme].mutedForeground} />
-      <Text className="mt-2 text-muted-foreground">{label}</Text>
+      <AppText className="mt-2 text-muted-foreground">{label}</AppText>
     </Pressable>
   );
 }

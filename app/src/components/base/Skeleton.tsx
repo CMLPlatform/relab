@@ -12,6 +12,7 @@ import Animated, {
 interface SkeletonProps {
   style?: StyleProp<ViewStyle>;
   duration?: number;
+  testID?: string;
 }
 
 /**
@@ -20,7 +21,7 @@ interface SkeletonProps {
  * Fab's extend/collapse animation uses — instead of pulsing indefinitely
  * regardless of the user's accessibility preference.
  */
-export function Skeleton({ style, duration = 750 }: SkeletonProps) {
+export function Skeleton({ style, duration = 750, testID }: SkeletonProps) {
   const opacity = useSharedValue(0.4);
 
   useEffect(() => {
@@ -35,5 +36,5 @@ export function Skeleton({ style, duration = 750 }: SkeletonProps) {
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
-  return <Animated.View style={[animatedStyle, style]} />;
+  return <Animated.View testID={testID} style={[animatedStyle, style]} />;
 }

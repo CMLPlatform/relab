@@ -4,7 +4,6 @@ import {
   Pressable,
   type PressableStateCallbackType,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { AppText } from '@/components/base/AppText';
@@ -157,14 +156,14 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
       accessibilityLabel="Go back to parent category"
     >
       <Icon size="md" name="chevron-left" color={colors.primary} />
-      <Text
+      <AppText
         numberOfLines={2}
         ellipsizeMode={'tail'}
         className="shrink"
         style={{ color: colors.primary }}
       >
         {history[history.length - 1].description}
-      </Text>
+      </AppText>
     </Pressable>
   );
 }
@@ -187,9 +186,9 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
       accessibilityRole="button"
       accessibilityLabel={`Browse ${CPV.directChildren.length} subcategories`}
     >
-      <Text className="text-right" style={{ fontSize: 14, color: colors.primary }}>
+      <AppText className="text-right" style={{ fontSize: 14, color: colors.primary }}>
         {`${CPV.directChildren.length} subcategories`}
-      </Text>
+      </AppText>
       <Icon size="md" name="chevron-right" color={colors.primary} />
     </Pressable>
   );

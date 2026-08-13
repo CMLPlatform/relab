@@ -17,9 +17,9 @@ import { StreamingSheet } from './StreamingSheet';
 // NOTE (native trace, kept 88): the only floating chrome the banner ever needs
 // to clear on native is a Fab (list screens' "New product"/"New camera" FABs
 // and the detail screens' PrimaryProductFab — SaveBar only renders on web).
-// Every Fab is MIN_TAP_TARGET (44) tall and docks at bottom:16 (list) or
-// margin:19 (detail), so its top edge sits ~60-63px above the bottom of the
-// screen the Fab lives in; 88 clears that with a ~25-28px visual gap. Routes
+// Every Fab is MIN_TAP_TARGET (44) tall and docks 16px from the bottom of the
+// screen it lives in (list and detail now share the same offset), so its top
+// edge sits ~60px above that edge; 88 clears that with a ~28px visual gap. Routes
 // with no Fab (cameras detail/add, account, users/[username],
 // category-selection, the *_/new creation screens) render the banner ~72px
 // higher than strictly necessary there, but that's a cosmetic gap, not an
@@ -163,7 +163,8 @@ const styles = StyleSheet.create({
   },
   elapsed: {
     // The `data` variant supplies the mono family and tabular figures; only the
-    // smaller banner size is pinned here.
-    fontSize: 12,
+    // smaller banner size is pinned here — stepped to the caption size (13)
+    // rather than an arbitrary 12.
+    fontSize: 13,
   },
 });

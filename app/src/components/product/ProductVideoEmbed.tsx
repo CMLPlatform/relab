@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
 import { radius } from '@/constants';
 import { extractYouTubeVideoId } from '@/services/api/validation/productSchema';
 import { openExternalUrl } from '@/services/externalLinks';
@@ -23,9 +24,9 @@ export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string 
   if (!videoId) {
     return (
       <TouchableOpacity onPress={handleOpenUrl}>
-        <Text className="px-3.5 underline" style={[styles.videoLink, { color: linkColor }]}>
+        <AppText className="px-3.5 underline" style={{ color: linkColor }}>
           {url}
-        </Text>
+        </AppText>
       </TouchableOpacity>
     );
   }
@@ -34,14 +35,14 @@ export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string 
     return (
       <View className="flex-row gap-4 my-1">
         <TouchableOpacity onPress={handleLoad}>
-          <Text className="px-3.5 underline" style={[styles.videoLink, { color: linkColor }]}>
+          <AppText className="px-3.5 underline" style={{ color: linkColor }}>
             Load video
-          </Text>
+          </AppText>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleOpenUrl}>
-          <Text className="px-3.5 underline" style={[styles.videoLink, { color: linkColor }]}>
+          <AppText className="px-3.5 underline" style={{ color: linkColor }}>
             Open video
-          </Text>
+          </AppText>
         </TouchableOpacity>
       </View>
     );
@@ -79,12 +80,6 @@ export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string 
 }
 
 const styles = StyleSheet.create({
-  // fontSize 16/lineHeight 26 has no matching text-* class (text-base is
-  // 16/24) — stays style-driven.
-  videoLink: {
-    fontSize: 16,
-    lineHeight: 26,
-  },
   // Raw web <iframe>, not a react-native-css-managed element — stays
   // style-driven.
   webEmbed: {

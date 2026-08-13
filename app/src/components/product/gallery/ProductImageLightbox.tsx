@@ -16,10 +16,10 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import ZoomableImage from '@/components/product/ZoomableImage';
@@ -278,12 +278,12 @@ export function ProductImageLightbox({
                 <Icon name="chevron-left" size={32} color={theme.tokens.text.onMedia} />
               </Pressable>
 
-              <Text
+              <AppText
                 className="mx-5 min-w-[60px] text-center"
-                style={[styles.counterText, { color: theme.tokens.text.onMedia }]}
+                style={{ color: theme.tokens.text.onMedia }}
               >
                 {index + 1} / {items.length}
-              </Text>
+              </AppText>
 
               <Pressable
                 onPress={goNext}
@@ -371,10 +371,6 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
     },
     footerBar: {
       backgroundColor: theme.tokens.overlay.media,
-    },
-    // fontSize-only (no matching lineHeight) — stays style-driven.
-    counterText: {
-      fontSize: 16,
     },
   }),
 );
