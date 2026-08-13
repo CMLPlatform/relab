@@ -71,9 +71,7 @@ function CaptureTypeRow({
 
   return (
     <View>
-      <AppText variant="label" className="uppercase opacity-60">
-        {labels.title}
-      </AppText>
+      <AppText variant="eyebrow">{labels.title}</AppText>
       {typeID === undefined ? (
         <AppButton
           variant="outline"
@@ -126,9 +124,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
         <ProductImageGallery product={draftProduct} editMode onImagesChange={setImages} />
         <View className="gap-4">
           <View>
-            <AppText variant="label" className="uppercase opacity-60">
-              Name
-            </AppText>
+            <AppText variant="eyebrow">Name</AppText>
             <Input
               value={name}
               onChangeText={setName}
@@ -150,35 +146,22 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
           ) : null}
 
           <View className="flex-row gap-3">
-            {role === 'component' ? (
-              <>
-                <AppButton
-                  variant="primary"
-                  disabled={!canCreate}
-                  loading={isCreating}
-                  onPress={handleCreate}
-                >
-                  Create component
-                </AppButton>
-                <AppButton
-                  variant="outline"
-                  disabled={!canCreate}
-                  loading={isCreating}
-                  onPress={handleCreateAndAddAnother}
-                >
-                  Create & add another
-                </AppButton>
-              </>
-            ) : (
-              <AppButton
-                variant="primary"
-                disabled={!canCreate}
-                loading={isCreating}
-                onPress={handleCreate}
-              >
-                Create product
-              </AppButton>
-            )}
+            <AppButton
+              variant="primary"
+              disabled={!canCreate}
+              loading={isCreating}
+              onPress={handleCreate}
+            >
+              {role === 'component' ? 'Create component' : 'Create product'}
+            </AppButton>
+            <AppButton
+              variant="outline"
+              disabled={!canCreate}
+              loading={isCreating}
+              onPress={handleCreateAndAddAnother}
+            >
+              Create & add another
+            </AppButton>
           </View>
         </View>
       </PageContainer>

@@ -122,6 +122,7 @@ describe('CaptureScreen', () => {
 
     expect(screen.getByPlaceholderText(NAME_PLACEHOLDER)).toBeOnTheScreen();
     expect(screen.getByText('Create product')).toBeOnTheScreen();
+    expect(screen.getByText('Create & add another')).toBeOnTheScreen();
     expect(screen.queryByText('Physical properties')).toBeNull();
     expect(screen.queryByText('Component of:', { exact: false })).toBeNull();
   });

@@ -26,6 +26,7 @@ export default function CategorySelection() {
     cpvClass,
     history,
     filtered,
+    recents,
     searchQuery,
     debouncedSearchQuery,
     setSearchQuery,
@@ -41,6 +42,19 @@ export default function CategorySelection() {
     [selectType, selectBranch],
   );
   const keyExtractor = useCallback((item: CPVCategory) => String(item.id), []);
+
+  // Recents only make sense as a browsing shortcut: at the taxonomy root
+  // (history has nothing to go "up" from) and with no active search, which
+  // would otherwise compete with the filtered results for attention.
+  const showRecents = history.length <= 1 && !searchQuery && recents.length > 0;
+  const listHeader = showRecents ? (
+    <View className="gap-3">
+      <AppText variant="eyebrow">Recent</AppText>
+      {recents.map((item) => (
+        <RecentCategoryCard key={item.id} item={item} onSelectType={selectType} />
+      ))}
+    </View>
+  ) : null;
 
   // useCategorySelection's useRequireAuth('/products') fires the redirect, but
   // this screen is pushed on top of an already-mounted edit screen — a session
@@ -72,6 +86,7 @@ export default function CategorySelection() {
         data={filtered}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
+        ListHeaderComponent={listHeader}
         ListEmptyComponent={
           // Quote debouncedSearchQuery (what `filtered` was actually computed
           // from), not the immediate searchQuery — otherwise the message can
@@ -110,6 +125,17 @@ function CategoryListItem({
       />
     </View>
   );
+}
+
+function RecentCategoryCard({
+  item,
+  onSelectType,
+}: {
+  item: CPVCategory;
+  onSelectType: (id: CPVCategory['id']) => void;
+}) {
+  const handleSelect = useCallback(() => onSelectType(item.id), [onSelectType, item.id]);
+  return <CPVCard CPV={item} onPress={handleSelect} />;
 }
 
 function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: () => void }) {

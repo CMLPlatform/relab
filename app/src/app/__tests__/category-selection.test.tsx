@@ -6,6 +6,7 @@ import CategorySelection from '@/app/category-selection';
 import { MIN_TAP_TARGET } from '@/constants';
 import { setPendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
+import { useRecentCategories } from '@/features/products/useRecentCategories';
 import { loadCPV } from '@/services/cpv';
 import { renderWithProviders } from '@/test-utils/index';
 import type { User } from '@/types/User';
@@ -48,9 +49,23 @@ jest.mock('@/features/products/useCategorySelection', () => ({
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
 
+const PETROLEUM_RECENT = {
+  id: 2,
+  name: '09000000-3',
+  description: 'Petroleum products',
+  allChildren: [],
+  directChildren: [],
+  updatedAt: '',
+  createdAt: '',
+};
+
 describe('CategorySelection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // The recents store is a module-level singleton (zustand), so it outlives
+    // any single test's render — reset it here rather than letting one test's
+    // recordRecent leak a duplicate "Petroleum products" node into the next.
+    useRecentCategories.setState({ recents: [] });
     mockedLoadCPV.mockResolvedValue({
       root: {
         id: 0,
@@ -170,6 +185,71 @@ describe('CategorySelection', () => {
     });
   });
 
+  it('shows a Recent section above the list at the root when there are recent picks', async () => {
+    useRecentCategories.setState({ recents: [PETROLEUM_RECENT] });
+    renderWithProviders(<CategorySelection />);
+    await screen.findByText('Agricultural products');
+
+    expect(screen.getByText('Recent')).toBeOnTheScreen();
+    // Once for the recents card, once for the same item in the root list.
+    expect(screen.getAllByText('Petroleum products')).toHaveLength(2);
+  });
+
+  it('omits the Recent section when there are no recent picks', async () => {
+    renderWithProviders(<CategorySelection />);
+    await screen.findByText('Agricultural products');
+
+    expect(screen.queryByText('Recent')).toBeNull();
+  });
+
+  it('hides the Recent section once a search is active', async () => {
+    useRecentCategories.setState({ recents: [PETROLEUM_RECENT] });
+    renderWithProviders(<CategorySelection />);
+    await screen.findByText('Recent');
+
+    fireEvent.changeText(screen.getByPlaceholderText('Search'), 'agri');
+
+    await waitFor(() => {
+      expect(screen.queryByText('Recent')).toBeNull();
+    });
+  });
+
+  it('hides the Recent section once browsed into a subcategory', async () => {
+    useRecentCategories.setState({ recents: [PETROLEUM_RECENT] });
+    renderWithProviders(<CategorySelection />);
+    await screen.findByText('1 subcategories');
+
+    fireEvent.press(screen.getByText('1 subcategories'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Recent')).toBeNull();
+    });
+  });
+
+  it('selecting a recent category hands it to the pending slot like a normal pick', async () => {
+    useRecentCategories.setState({ recents: [PETROLEUM_RECENT] });
+    renderWithProviders(<CategorySelection />);
+    await screen.findByText('Recent');
+
+    fireEvent.press(screen.getAllByText('Petroleum products')[0]);
+
+    await waitFor(() => {
+      expect(mockedSetPending).toHaveBeenCalledWith(2);
+      expect(mockBack).toHaveBeenCalled();
+    });
+  });
+
+  it('records the picked category as a recent when a leaf is selected', async () => {
+    renderWithProviders(<CategorySelection />);
+    await screen.findByText('Petroleum products');
+
+    fireEvent.press(screen.getByText('Petroleum products'));
+
+    await waitFor(() => {
+      expect(useRecentCategories.getState().recents.map((c) => c.id)).toEqual([2]);
+    });
+  });
+
   it('shows the plain-language blurb and contextual CPV help tooltip', async () => {
     renderWithProviders(<CategorySelection />);
     await screen.findByPlaceholderText('Search');
@@ -221,6 +301,7 @@ describe('CategorySelection', () => {
       cpvClass: { id: 0, name: 'root', description: 'root', directChildren: [], allChildren: [] },
       history: [],
       filtered: [],
+      recents: [],
       searchQuery: 'typing-now',
       debouncedSearchQuery: 'typing',
       setSearchQuery: jest.fn(),

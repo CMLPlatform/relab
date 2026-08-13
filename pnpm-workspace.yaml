@@ -65,3 +65,4 @@ minimumReleaseAgeExclude:
   - '@biomejs/cli-linux-x64@2.5.8'
   - '@biomejs/cli-win32-arm64@2.5.8'
   - '@biomejs/cli-win32-x64@2.5.8'
+  - zustand@5.0.15

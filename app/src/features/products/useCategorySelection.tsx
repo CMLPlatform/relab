@@ -5,6 +5,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
 import { setPendingTypeSelection } from './pendingTypeSelection';
+import { useRecentCategories } from './useRecentCategories';
 
 export function useCategorySelection() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export function useCategorySelection() {
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
   const [cpvClass, setCpvClass] = useState<CPVCategory | null>(null);
   const [history, setHistory] = useState<CPVCategory[]>([]);
+  const { recents, recordRecent } = useRecentCategories();
 
   useEffect(() => {
     let isMounted = true;
@@ -49,13 +51,15 @@ export function useCategorySelection() {
 
   const selectType = useCallback(
     (typeId: number) => {
+      const category = cpv?.[String(typeId)];
+      if (category) recordRecent(category);
       // Hand the pick back through the module slot and pop to the detail screen
       // that pushed us — which is still mounted in edit mode, so it just reads
       // the selection on focus. Works for existing entities and unsaved drafts.
       setPendingTypeSelection(typeId);
       router.back();
     },
-    [router],
+    [cpv, recordRecent, router],
   );
 
   const filtered = useMemo((): CPVCategory[] => {
@@ -75,6 +79,7 @@ export function useCategorySelection() {
     cpvClass,
     history,
     filtered,
+    recents,
     searchQuery,
     debouncedSearchQuery,
     setSearchQuery,
