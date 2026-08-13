@@ -145,6 +145,11 @@ export type SaveProductVariables = {
   product: Product;
   originalImages: Product['images'];
   originalVideos: Product['videos'];
+  // Set by the caller when it initiates a create (see useProductForm /
+  // useCaptureEntity) — carried in variables rather than generated here so it
+  // survives both react-query's automatic retry and a paused-mutation
+  // dehydrate/rehydrate cycle. Never read on the update (PATCH) path.
+  idempotencyKey?: string;
 };
 
 // Exported (not just inlined in the hook below) so _layout.tsx can register it
@@ -156,7 +161,8 @@ export const saveProductMutationFn = ({
   product,
   originalImages,
   originalVideos,
-}: SaveProductVariables) => saveProduct(product, originalImages, originalVideos);
+  idempotencyKey,
+}: SaveProductVariables) => saveProduct(product, originalImages, originalVideos, idempotencyKey);
 
 // Retries only failures where the request never reached the server (network
 // drop, timeout — anything that isn't ApiError). ApiError means we got a real

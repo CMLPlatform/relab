@@ -143,7 +143,39 @@ describe('useProductForm', () => {
     expect(mockMutate).toHaveBeenCalledWith(
       expect.objectContaining({
         product: expect.objectContaining({ name: 'Edited Name' }),
+        // Updates PATCH — naturally idempotent, no key needed.
+        idempotencyKey: undefined,
       }),
+    );
+  });
+
+  // The key must be generated where the user initiates the save (here), not
+  // inside saveProductMutationFn — that function also drives resumed,
+  // rehydrated mutations, where minting a fresh key would rotate it and defeat
+  // dedup against the request the app already sent before it was interrupted.
+  it('generates an idempotencyKey for a new (id-less) product create', async () => {
+    const mockMutate = jest.fn(async () => 55);
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
+
+    const { result } = renderHook(
+      () => useProductForm(undefined, { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      result.current.onProductNameChange('Brand New');
+    });
+
+    await act(async () => {
+      result.current.saveAndExit();
+    });
+
+    expect(mockMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotencyKey: expect.any(String) }),
     );
   });
 

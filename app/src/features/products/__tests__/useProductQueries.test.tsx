@@ -449,6 +449,31 @@ describe('useProductQueries', () => {
     expect(mockedSaveProduct).toHaveBeenCalledTimes(4);
   });
 
+  it('retries a network-fail-then-succeed save with the same idempotencyKey on every attempt', async () => {
+    // The key must come from the mutation variables, not be minted fresh
+    // inside the mutationFn on each retry — otherwise a retried create would
+    // carry a different key per attempt and the server would see them as
+    // unrelated requests instead of a replay.
+    mockedSaveProduct
+      .mockRejectedValueOnce(new TypeError('Network request failed'))
+      .mockResolvedValueOnce(321);
+
+    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+
+    result.current.mutate({
+      product: { ...newProductDraft, name: 'New' },
+      originalImages: [],
+      originalVideos: [],
+      idempotencyKey: 'fixed-key-123',
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockedSaveProduct).toHaveBeenCalledTimes(2);
+    const keysUsed = mockedSaveProduct.mock.calls.map((call) => call[3]);
+    expect(keysUsed).toEqual(['fixed-key-123', 'fixed-key-123']);
+  });
+
   it('pauses offline instead of failing or firing, then sends the POST on reconnect', async () => {
     act(() => onlineManager.setOnline(false));
     mockedSaveProduct.mockResolvedValue(999);

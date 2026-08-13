@@ -55,7 +55,7 @@ describe('paused mutations survive the query allowlist', () => {
         { mutationKey: ['saveProduct'], mutationFn: () => new Promise(() => {}) },
         undefined,
       )
-      .execute({});
+      .execute({ idempotencyKey: 'test-idempotency-key' });
 
     await waitFor(() => {
       expect(queryClient.getMutationCache().getAll()[0]?.state.isPaused).toBe(true);
@@ -65,6 +65,13 @@ describe('paused mutations survive the query allowlist', () => {
 
     expect(dehydrated.mutations).toHaveLength(1);
     expect(dehydrated.mutations[0]?.mutationKey).toEqual(['saveProduct']);
+    // The key must survive dehydration in the variables themselves — a
+    // rehydrated mutation re-attaches its mutationFn by mutationKey (functions
+    // aren't serializable) but replays these same variables, so a key minted
+    // inside the mutationFn instead of carried here would rotate on rehydrate.
+    expect(dehydrated.mutations[0]?.state.variables).toMatchObject({
+      idempotencyKey: 'test-idempotency-key',
+    });
 
     act(() => onlineManager.setOnline(true));
   });

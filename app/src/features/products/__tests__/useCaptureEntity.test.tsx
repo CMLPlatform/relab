@@ -74,6 +74,7 @@ describe('useCaptureEntity', () => {
       product: expect.objectContaining({ name: 'Widget', amountInParent: undefined }),
       originalImages: [],
       originalVideos: [],
+      idempotencyKey: expect.any(String),
     });
   });
 
@@ -96,6 +97,7 @@ describe('useCaptureEntity', () => {
       }),
       originalImages: [],
       originalVideos: [],
+      idempotencyKey: expect.any(String),
     });
   });
 
@@ -118,6 +120,7 @@ describe('useCaptureEntity', () => {
       product: expect.objectContaining({ name: 'Bolt', amountInParent: 3 }),
       originalImages: [],
       originalVideos: [],
+      idempotencyKey: expect.any(String),
     });
   });
 
@@ -204,6 +207,7 @@ describe('useCaptureEntity', () => {
       product: expect.objectContaining({ role: 'component' }),
       originalImages: [],
       originalVideos: [],
+      idempotencyKey: expect.any(String),
     });
   });
 

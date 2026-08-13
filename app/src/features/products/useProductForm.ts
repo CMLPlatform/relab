@@ -12,6 +12,7 @@ import { useDialog } from '@/components/base/dialogContext';
 import type { SectionKey } from '@/components/base/SectionNavContext';
 import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { newProduct } from '@/services/api/products';
+import { createRequestId } from '@/services/api/request';
 import { MediaSyncError } from '@/services/api/saving';
 import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';
@@ -148,10 +149,17 @@ function useProductFormActions({
     }
 
     try {
+      // Generated here, once per user-initiated save, and carried in the
+      // mutation variables — not inside saveProductMutationFn, which also
+      // runs on a rehydrated paused mutation and would mint a new key (and
+      // thus a duplicate record) on every app restart. Only creates get one;
+      // PATCH updates are naturally idempotent.
+      const idempotencyKey = typeof product.id !== 'number' ? createRequestId() : undefined;
       const savedId = await saveMutation.mutateAsync({
         product,
         originalImages: serverProduct?.images ?? [],
         originalVideos: serverProduct?.videos ?? [],
+        idempotencyKey,
       });
       // Clear the form's dirty state with the just-persisted values so any
       // navigation guard (beforeRemove) downstream doesn't read stale

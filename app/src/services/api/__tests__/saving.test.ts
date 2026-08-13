@@ -171,6 +171,29 @@ describe('Saving API Service', () => {
       ).rejects.toThrow('Parent not found');
     });
 
+    it('sends the Idempotency-Key header when a key is given', async () => {
+      mockFetchOk({ id: 99 });
+
+      await saveProduct({ ...baseProduct }, [], [], 'idem-key-abc');
+
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({ 'Idempotency-Key': 'idem-key-abc' }),
+        }),
+      );
+    });
+
+    it('omits the Idempotency-Key header when no key is given', async () => {
+      mockFetchOk({ id: 99 });
+
+      await saveProduct({ ...baseProduct });
+
+      const createCall = mockFetchWithAuth.mock.calls.find((c) => c[1]?.method === 'POST');
+      expect(createCall?.[1]?.headers).not.toHaveProperty('Idempotency-Key');
+    });
+
     it('creates each new video exactly once (via the videos endpoint, not the create body)', async () => {
       const newVideo = { url: 'https://youtube.com/watch?v=1', description: '', title: 'New' };
       mockFetchOk({ id: 99 }); // POST /products
@@ -191,6 +214,18 @@ describe('Saving API Service', () => {
 
   describe('saveProduct (existing product)', () => {
     const existingProduct = { ...baseProduct, id: 42 };
+
+    it('never sends an Idempotency-Key on the update PATCH, even if a key is passed', async () => {
+      mockFetchOk({ id: 42 });
+
+      // Updates are naturally idempotent (PATCH); saveProduct's 4th argument
+      // is only consulted on the create branch, so this must be ignored here.
+      await saveProduct(existingProduct, [], [], 'should-be-ignored');
+
+      const patchCall = mockFetchWithAuth.mock.calls.find((c) => c[1]?.method === 'PATCH');
+      expect(patchCall).toBeDefined();
+      expect(patchCall?.[1]?.headers).not.toHaveProperty('Idempotency-Key');
+    });
 
     it('PATCHes product with properties in a single request', async () => {
       mockFetchOk({ id: 42 }); // PATCH /products/42

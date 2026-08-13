@@ -124,21 +124,24 @@ export async function saveProduct(
   product: Product,
   originalImages: Product['images'] = [],
   originalVideos: Product['videos'] = [],
+  // Only meaningful for creates — PATCH updates are naturally idempotent, so
+  // this is never read on the update path below.
+  idempotencyKey?: string,
 ): Promise<number> {
   if (typeof product.id !== 'number') {
-    return await saveNewProduct(product);
+    return await saveNewProduct(product, idempotencyKey);
   }
   return await updateProduct(product, originalImages, originalVideos);
 }
 
-async function saveNewProduct(product: Product): Promise<number> {
+async function saveNewProduct(product: Product, idempotencyKey?: string): Promise<number> {
   // Creation scope: components are created under their parent (can be base or component);
   // base products are created flat under /products.
   const url = isComponent(product) ? componentCreateUrl(product) : new URL(`${baseUrl}/products`);
 
   const response = await fetchWithAuth(url, {
     method: 'POST',
-    headers: JSON_HEADERS,
+    headers: idempotencyKey ? { ...JSON_HEADERS, 'Idempotency-Key': idempotencyKey } : JSON_HEADERS,
     body: JSON.stringify(toProductPayload(product)),
   });
   await throwOnError(response, 'save product');

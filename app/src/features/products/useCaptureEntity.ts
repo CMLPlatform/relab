@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { newProduct } from '@/services/api/products';
+import { createRequestId } from '@/services/api/request';
 import { PRODUCT_NAME_MIN_LENGTH } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';
 import { getErrorMessage } from '@/utils/errors';
@@ -55,10 +56,15 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
       draft.amountInParent = role === 'component' ? amount : undefined;
 
       try {
+        // Every call here is a create (draft is always a fresh, id-less
+        // product), so a key is always generated — once per Create tap,
+        // reused across react-query's automatic retries and any
+        // paused-mutation rehydration for this same save attempt.
         const id = await saveMutation.mutateAsync({
           product: draft,
           originalImages: [],
           originalVideos: [],
+          idempotencyKey: createRequestId(),
         });
         return { id, partial: false };
       } catch (err) {
