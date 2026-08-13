@@ -22,8 +22,11 @@ Three voices, one family:
 | UI / body       | IBM Plex Sans 400–600 | Everything else on web and email              |
 | Data / labels   | IBM Plex Mono 400     | Measurements, IDs, eyebrow labels, code       |
 
-Type scale (web): display 38/44, h2 24/30, body 16/26, label 13 caps
-(+0.1em tracking, weight 500), data 14 mono with `tabular-nums`.
+Type scale (web): display 38/44, h2 24/30, heading 19/24, body 16/26, label 13 caps
+(+0.1em tracking, weight 500), caption 13/18, data 14 mono with `tabular-nums`. The app
+adds an `eyebrow` variant — label metrics, rendered uppercase, muted (or accent) ink for
+compact tags — and caps Dynamic Type scaling app-wide at 2x so fixed layouts survive
+large accessibility text sizes.
 
 The **Expo app intentionally stays on platform system fonts** (native feel,
 Dynamic Type, zero load cost). The app adopts the *scale and palette*, not the
@@ -54,8 +57,12 @@ the MD3 primary pair, `accent` to tertiary, neutrals to the blue-biased
 surface/outline ramp in `app/src/theme/themes.ts`.
 
 Status colours (success/warning/danger/info/live) are app-semantic, not brand,
-and stay as defined in `app/src/theme/tokens.ts`. `info` and `link` blues sit
-near the new primary by design — blue-primary apps read links as primary
+and stay as defined in `app/src/theme/tokens.ts` as scheme-aware light/dark
+pairs, contrast-tested at 4.5:1 against the page background and (for solid
+fills) against their own `onStatus` text — see `semantic-contrast.test.ts`.
+`live` wears the manila accent rather than a semantic hue: the small
+live/status pill is the one sanctioned manila fill. `info` and `link` blues
+sit near the new primary by design — blue-primary apps read links as primary
 actions.
 
 ### Diagram & chart palette
@@ -145,7 +152,10 @@ into its own brand palette.
 Primary blue carries **all interaction** — actions, links, and every
 hover/pressed/selected state. Interaction states use a subtler shade of the
 primary (`primary-strong` for filled controls; a primary tint / state-layer for
-ghost/tonal/outline buttons) — **never the accent.**
+ghost/tonal/outline buttons) — **never the accent.** `tokens.surface.accent`
+(primary at 12% opacity) is the canonical selected/tinted fill — chips, history
+rows, toggles. MD3's `*Container` roles are retired from app call sites in
+favour of it.
 
 The **manila accent is a text colour** — mono eyebrow labels, small data
 highlights, live/status pills, and strategy tags. It never fills a button or
@@ -159,6 +169,9 @@ stat numbers. Manila reads as a highlight because it is scarce and small; at
 size it competes instead of accenting. When in doubt on something large, use
 ink. (In the categorical diagram ramp above, manila encodes a category rather
 than emphasis, so these size rules do not apply there.)
+
+Dialogs: destructive actions render filled-destructive; keyboard submit never
+targets a destructive or cancel action.
 
 ## Logo
 
