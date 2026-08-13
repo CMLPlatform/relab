@@ -26,6 +26,7 @@ export default function CategorySelection() {
     history,
     filtered,
     searchQuery,
+    debouncedSearchQuery,
     setSearchQuery,
     selectBranch,
     moveUp,
@@ -71,10 +72,14 @@ export default function CategorySelection() {
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListEmptyComponent={
-          searchQuery ? (
+          // Quote debouncedSearchQuery (what `filtered` was actually computed
+          // from), not the immediate searchQuery — otherwise the message can
+          // name a query newer than the results it's describing while the
+          // 300ms debounce is still catching up.
+          debouncedSearchQuery ? (
             <View className="items-center gap-2 p-8">
               <AppText className="text-center text-muted-foreground">
-                No categories match &ldquo;{searchQuery}&rdquo;. Try a broader term.
+                No categories match &ldquo;{debouncedSearchQuery}&rdquo;. Try a broader term.
               </AppText>
             </View>
           ) : null

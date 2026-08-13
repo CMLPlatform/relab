@@ -1,12 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
+import { usePathname } from 'expo-router';
 import { BOTTOM_NAV_CLEARANCE } from '@/components/base/useBottomNav';
 import { ActiveStreamBanner } from '@/components/cameras/ActiveStreamBanner';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { mockPlatform, renderWithProviders, restorePlatform } from '@/test-utils/index';
 
 const mockStreamingSheet = jest.fn();
 const mockUseStreamSession = jest.fn();
 const mockUseBottomNavVisible = jest.fn();
+
+// Kept in sync by hand with ActiveStreamBanner.tsx's own SAVE_BAR_DOCK_RESERVE,
+// which isn't exported (component-only file, react-refresh/only-export-components).
+const SAVE_BAR_DOCK_RESERVE = 400;
 
 jest.mock('@/components/cameras/StreamingSheet', () => ({
   StreamingSheet: (props: unknown) => {
@@ -22,6 +28,10 @@ jest.mock('@/context/streamSession', () => ({
 
 jest.mock('@/hooks/useElapsed', () => ({
   useElapsed: () => '1:23',
+}));
+
+jest.mock('@/hooks/useBreakpoint', () => ({
+  useBreakpoint: jest.fn(),
 }));
 
 // Real BOTTOM_NAV_CLEARANCE constant stays live (imported above); only the
@@ -47,6 +57,8 @@ describe('ActiveStreamBanner', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseBottomNavVisible.mockReturnValue(false);
+    (usePathname as jest.Mock).mockReturnValue('/products');
+    (useBreakpoint as jest.Mock).mockReturnValue({ isMd: false, isLg: false });
   });
 
   afterEach(() => {
@@ -115,5 +127,79 @@ describe('ActiveStreamBanner', () => {
     const visibleBottom = screen.getByTestId('active-stream-banner-float').props.style.bottom;
 
     expect(visibleBottom).toBe(hiddenBottom);
+  });
+
+  // SaveBar (product/component detail, >=md web) docks fixed at right:24 and
+  // can be wide enough to sit under the banner's default right:16 — the
+  // banner reserves SAVE_BAR_DOCK_RESERVE instead whenever the route+
+  // breakpoint combination could render SaveBar (see ActiveStreamBanner.tsx).
+  it('reserves space for SaveBar on a >=md web product detail route', () => {
+    mockPlatform('web');
+    mockUseStreamSession.mockReturnValue({ activeStream: session });
+    (usePathname as jest.Mock).mockReturnValue('/products/42');
+    (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+
+    renderWithProviders(<ActiveStreamBanner />);
+
+    expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(
+      SAVE_BAR_DOCK_RESERVE,
+    );
+  });
+
+  it('reserves space for SaveBar on a >=md web component detail route', () => {
+    mockPlatform('web');
+    mockUseStreamSession.mockReturnValue({ activeStream: session });
+    (usePathname as jest.Mock).mockReturnValue('/components/7');
+    (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+
+    renderWithProviders(<ActiveStreamBanner />);
+
+    expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(
+      SAVE_BAR_DOCK_RESERVE,
+    );
+  });
+
+  it('does not reserve space on a product list route even at >=md web', () => {
+    mockPlatform('web');
+    mockUseStreamSession.mockReturnValue({ activeStream: session });
+    (usePathname as jest.Mock).mockReturnValue('/products');
+    (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+
+    renderWithProviders(<ActiveStreamBanner />);
+
+    expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(16);
+  });
+
+  it('does not reserve space on a detail route below md web width', () => {
+    mockPlatform('web');
+    mockUseStreamSession.mockReturnValue({ activeStream: session });
+    (usePathname as jest.Mock).mockReturnValue('/products/42');
+    (useBreakpoint as jest.Mock).mockReturnValue({ isMd: false, isLg: false });
+
+    renderWithProviders(<ActiveStreamBanner />);
+
+    expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(16);
+  });
+
+  it('does not reserve space on a nested detail sub-route (no SaveBar there)', () => {
+    mockPlatform('web');
+    mockUseStreamSession.mockReturnValue({ activeStream: session });
+    (usePathname as jest.Mock).mockReturnValue('/products/42/components/new');
+    (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+
+    renderWithProviders(<ActiveStreamBanner />);
+
+    expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(16);
+  });
+
+  it('does not reserve space on native even on a detail route (SaveBar is web-only)', () => {
+    mockPlatform('ios');
+    mockUseStreamSession.mockReturnValue({ activeStream: session });
+    (usePathname as jest.Mock).mockReturnValue('/products/42');
+    (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+
+    renderWithProviders(<ActiveStreamBanner />);
+
+    expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(16);
   });
 });

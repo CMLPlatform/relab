@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import CategorySelection from '@/app/category-selection';
 import { setPendingTypeSelection } from '@/features/products/pendingTypeSelection';
+import { useCategorySelection } from '@/features/products/useCategorySelection';
 import { loadCPV } from '@/services/cpv';
 import { renderWithProviders } from '@/test-utils/index';
 import type { User } from '@/types/User';
@@ -11,6 +12,7 @@ const mockUseAuth = jest.fn();
 const mockedLoadCPV = jest.mocked(loadCPV);
 const mockedSetPending = jest.mocked(setPendingTypeSelection);
 const SUBCATEGORY_COUNT_PATTERN = /1 subcategor/;
+const TYPING_NOW_PATTERN = /typing-now/;
 
 jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
@@ -23,6 +25,20 @@ jest.mock('@/services/cpv', () => ({
 jest.mock('@/features/products/pendingTypeSelection', () => ({
   setPendingTypeSelection: jest.fn(),
   takePendingTypeSelection: jest.fn(),
+}));
+
+// Every other test in this file exercises the real hook (loadCPV mocked below
+// it) end to end, so wrap — don't replace — it: jest.fn() defaults to calling
+// straight through to the real implementation, and only the one test below
+// overrides it (mockReturnValueOnce, self-restoring) to force a searchQuery
+// vs debouncedSearchQuery mismatch that the real 300ms debounce makes
+// impractical to hit deterministically in a DOM test.
+jest.mock('@/features/products/useCategorySelection', () => ({
+  useCategorySelection: jest.fn(
+    jest.requireActual<typeof import('@/features/products/useCategorySelection')>(
+      '@/features/products/useCategorySelection',
+    ).useCategorySelection,
+  ),
 }));
 
 const mockBack = jest.fn();
@@ -169,5 +185,30 @@ describe('CategorySelection', () => {
         screen.getByText('No categories match “nonexistent-widget”. Try a broader term.'),
       ).toBeOnTheScreen();
     });
+  });
+
+  // While the 300ms debounce is still catching up to a keystroke, `filtered`
+  // (computed from debouncedSearchQuery) can legitimately lag behind the
+  // input's immediate searchQuery. Force that mismatch directly rather than
+  // timing the real debounce, and assert the empty-state message quotes the
+  // query `filtered` was actually computed from.
+  it('quotes the debounced query, not the in-flight keystroke, in the empty state', () => {
+    (useCategorySelection as jest.Mock).mockReturnValueOnce({
+      user: { id: '1', username: 'testuser' },
+      cpvClass: { id: 0, name: 'root', description: 'root', directChildren: [], allChildren: [] },
+      history: [],
+      filtered: [],
+      searchQuery: 'typing-now',
+      debouncedSearchQuery: 'typing',
+      setSearchQuery: jest.fn(),
+      selectBranch: jest.fn(),
+      moveUp: jest.fn(),
+      selectType: jest.fn(),
+    });
+
+    renderWithProviders(<CategorySelection />);
+
+    expect(screen.getByText('No categories match “typing”. Try a broader term.')).toBeOnTheScreen();
+    expect(screen.queryByText(TYPING_NOW_PATTERN)).toBeNull();
   });
 });

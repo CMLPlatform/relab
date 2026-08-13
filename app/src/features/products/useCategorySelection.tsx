@@ -76,6 +76,7 @@ export function useCategorySelection() {
     history,
     filtered,
     searchQuery,
+    debouncedSearchQuery,
     setSearchQuery,
     selectBranch,
     moveUp,

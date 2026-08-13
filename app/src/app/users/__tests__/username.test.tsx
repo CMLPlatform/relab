@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useGlobalSearchParams } from 'expo-router';
 import type { ReactNode } from 'react';
 import UserProfileScreen from '@/app/users/[username]';
@@ -103,5 +103,24 @@ describe('UserProfileScreen', () => {
 
     await waitFor(() => expect(mockGetPublicProfile).not.toHaveBeenCalled());
     expect(screen.queryByText('Products')).toBeNull();
+  });
+
+  it('re-fetches the profile when the error state’s Retry action is pressed', async () => {
+    // A prior test in this suite leaves useGlobalSearchParams mocked to an array
+    // username (jest.clearAllMocks() doesn't undo mockReturnValue) — restore the
+    // normal single-username case explicitly instead of relying on file order.
+    (useGlobalSearchParams as jest.Mock).mockReturnValue({ username: 'alice' });
+    mockGetPublicProfile
+      .mockRejectedValueOnce(new Error('Network error'))
+      .mockResolvedValueOnce(profileFixture);
+    renderWithProviders(<UserProfileScreen />, { withAuth: true });
+
+    await waitFor(() => expect(screen.getByText('Network error')).toBeOnTheScreen());
+    expect(mockGetPublicProfile).toHaveBeenCalledTimes(1);
+
+    fireEvent.press(screen.getByText('Retry'));
+
+    await waitFor(() => expect(screen.getByText('alice')).toBeOnTheScreen());
+    expect(mockGetPublicProfile).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,8 +1,10 @@
+import { usePathname } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { useStreamSession } from '@/context/streamSession';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme';
@@ -15,7 +17,37 @@ import { StreamingSheet } from './StreamingSheet';
 // on a phone-width web viewport there was previously no bar to account for.
 // Web-only: on native BottomNav renders in normal flow and already shrinks
 // the container the banner sits in, so adding clearance there would double it.
+//
+// NOTE (native trace, kept 88): the only floating chrome the banner ever needs
+// to clear on native is a Fab (list screens' "New product"/"New camera" FABs
+// and the detail screens' PrimaryProductFab — SaveBar only renders on web).
+// Every Fab is MIN_TAP_TARGET (44) tall and docks at bottom:16 (list) or
+// margin:19 (detail), so its top edge sits ~60-63px up from the screen edge;
+// 88 clears that with a ~25-28px visual gap. Routes with no Fab (cameras
+// detail/add, account, users/[username], category-selection, the *_/new
+// creation screens) render the banner ~72px higher than strictly necessary
+// there, but that's a cosmetic gap, not an overlap — splitting the inset by
+// route would need the same route-detection machinery as
+// SAVE_BAR_DOCK_RESERVE below for a purely visual gain. Left as one constant;
+// revisit only if a route grows a Fab-adjacent element the 88 stops clearing.
 const BASE_BOTTOM_INSET = Platform.OS === 'web' ? 16 : 88;
+
+// SaveBar (FabControls.tsx) docks fixed at right:24/bottom:24 on >=md web
+// product/component detail routes ('/products/:id' and '/components/:id'
+// exactly — not '/products/new' or '.../components/new', which use a
+// different screen with no SaveBar). The banner can't cheaply read SaveBar's
+// own edit/dirty/validation state, so it reserves the zone whenever the
+// route+breakpoint combination *could* render it — the same isMd gate
+// ProductFabControls itself uses. The reserve width is a conservative
+// estimate of SaveBar's widest realistic content (an error-summary button
+// plus the primary Save/Edit button, with the dock's own padding and gaps),
+// not a measured value — it only needs to be comfortably wider than SaveBar
+// ever gets, not pixel-exact.
+const SAVE_BAR_DOCK_ROUTE = /^\/(products|components)\/[^/]+$/;
+// Not exported: this file is component-only for Fast Refresh
+// (react-refresh/only-export-components), unlike useBottomNav.ts's
+// intentionally-non-.tsx module. The test below duplicates this value.
+const SAVE_BAR_DOCK_RESERVE = 400;
 
 export function ActiveStreamBanner() {
   const theme = useAppTheme();
@@ -30,6 +62,10 @@ export function ActiveStreamBanner() {
     Platform.OS === 'web' && bottomNavVisible
       ? BASE_BOTTOM_INSET + BOTTOM_NAV_CLEARANCE
       : BASE_BOTTOM_INSET;
+  const pathname = usePathname();
+  const { isMd } = useBreakpoint();
+  const saveBarDockActive = Platform.OS === 'web' && isMd && SAVE_BAR_DOCK_ROUTE.test(pathname);
+  const rightInset = saveBarDockActive ? SAVE_BAR_DOCK_RESERVE : 16;
 
   // Reset the sheet whenever the active stream changes (ends elsewhere, or a new
   // one starts) so it never auto-reopens for a stream the user didn't tap into.
@@ -45,8 +81,8 @@ export function ActiveStreamBanner() {
     <>
       <View
         testID="active-stream-banner-float"
-        className="items-center left-4 right-4"
-        style={{ position: getFloatingPosition(), bottom: bottomInset }}
+        className="items-center left-4"
+        style={{ position: getFloatingPosition(), bottom: bottomInset, right: rightInset }}
         pointerEvents="box-none"
       >
         <Pressable
