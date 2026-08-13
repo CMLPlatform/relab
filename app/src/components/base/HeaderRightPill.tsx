@@ -30,7 +30,9 @@ export function HeaderRightPill() {
   const primaryTextStyle = { color: theme.colors.onPrimaryContainer };
 
   const goToAccount = useCallback(() => {
-    router.push(needsOnboarding ? '/onboarding' : '/account');
+    // navigate(): /account is a tab, and this pill also renders on the public
+    // profile screen outside the tabs, where a push would stack a second (tabs).
+    router.navigate(needsOnboarding ? '/onboarding' : '/account');
   }, [router, needsOnboarding]);
   const goToLogin = useCallback(() => router.push('/login'), [router]);
 

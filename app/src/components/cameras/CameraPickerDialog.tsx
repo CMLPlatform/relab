@@ -43,7 +43,7 @@ export function CameraPickerDialog({
 
   const handleManage = useCallback(() => {
     onDismiss();
-    router.push('/cameras');
+    router.navigate('/cameras');
   }, [onDismiss, router]);
 
   const sorted = useMemo(

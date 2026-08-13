@@ -167,6 +167,7 @@ const mockUseBrandsQuery = jest.fn();
 const mockUseProductTypesQuery = jest.fn();
 const mockSetParams = jest.fn();
 const mockPush = jest.fn();
+const mockNavigate = jest.fn();
 
 jest.mock('@/features/products/queries', () => {
   const actual = jest.requireActual<typeof import('@/features/products/queries')>(
@@ -210,6 +211,7 @@ beforeEach(async () => {
   mockUseAuth.mockReturnValue({ user: null });
   (useRouter as jest.Mock).mockReturnValue({
     push: mockPush,
+    navigate: mockNavigate,
     replace: jest.fn(),
     back: jest.fn(),
     setParams: mockSetParams,
@@ -349,7 +351,7 @@ describe('Products screen', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Verify email' }));
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/account');
+      expect(mockNavigate).toHaveBeenCalledWith('/account');
     });
   });
 

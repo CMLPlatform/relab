@@ -4,9 +4,10 @@ import { useProductVideo } from '@/features/products/useProductVideo';
 import type { Product } from '@/types/Product';
 
 const mockPush = jest.fn();
+const mockNavigate = jest.fn();
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, navigate: mockNavigate }),
 }));
 
 jest.mock('@/context/auth', () => ({
@@ -64,6 +65,6 @@ describe('useProductVideo', () => {
       pathname: '/products/[id]',
       params: { id: '99' },
     });
-    expect(mockPush).toHaveBeenCalledWith('/account');
+    expect(mockNavigate).toHaveBeenCalledWith('/account');
   });
 });

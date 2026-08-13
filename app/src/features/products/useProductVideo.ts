@@ -27,7 +27,7 @@ export function useProductVideo(product: Product) {
     activeStream,
     ...getStreamingState(product, activeStream),
     ownedByMe: product.ownedBy === 'me',
-    goToProfile: () => router.push('/account'),
+    goToProfile: () => router.navigate('/account'),
     goToActiveStreamProduct: () => {
       if (!activeStream) return;
       router.push({

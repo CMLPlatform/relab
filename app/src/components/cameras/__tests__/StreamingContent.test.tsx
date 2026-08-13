@@ -4,7 +4,7 @@ import { StreamingContent } from '@/components/cameras/StreamingContent';
 import { openExternalUrl } from '@/services/externalLinks';
 import { renderWithProviders } from '@/test-utils/index';
 
-const mockPush = jest.fn();
+const mockNavigate = jest.fn();
 const mockSetActiveStream = jest.fn();
 const mockFeedback = {
   alert: jest.fn(),
@@ -24,7 +24,7 @@ jest.mock('@/services/externalLinks', () => ({
 const openExternalUrlMock = openExternalUrl as jest.MockedFunction<typeof openExternalUrl>;
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ navigate: mockNavigate }),
 }));
 
 jest.mock('@/components/cameras/LivePreview', () => ({
@@ -93,7 +93,7 @@ describe('StreamingContent', () => {
     fireEvent.press(screen.getByText('Go to Desk Radio'));
 
     expect(openExternalUrlMock).toHaveBeenCalledWith(session.youtubeUrl);
-    expect(mockPush).toHaveBeenCalledWith({
+    expect(mockNavigate).toHaveBeenCalledWith({
       pathname: '/products/[id]',
       params: { id: '42' },
     });

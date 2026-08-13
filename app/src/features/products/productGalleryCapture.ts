@@ -69,7 +69,7 @@ export function useProductGalleryCaptureActions({
     }
     if (captureState.rpiCamerasLoading) return;
     if (!captureState.hasCamerasConfigured) {
-      captureState.router.push('/cameras');
+      captureState.router.navigate('/cameras');
       return;
     }
     setCameraPickerVisible(true);

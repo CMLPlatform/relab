@@ -63,8 +63,15 @@ export function TopNav() {
   const pathname = usePathname();
   const theme = useAppTheme();
   const destinations = useVisibleDestinations();
-  const goToProducts = useCallback(() => router.push('/products'), [router]);
-  const goToDestination = useCallback((href: Destination['href']) => router.push(href), [router]);
+  // navigate(), not push(): from a screen outside the tabs (a public profile,
+  // where this bar still shows) a push would stack a *second* (tabs) navigator
+  // on the root stack instead of returning to the live one. From inside the
+  // tabs a push is downgraded to the same tab jump anyway.
+  const goToProducts = useCallback(() => router.navigate('/products'), [router]);
+  const goToDestination = useCallback(
+    (href: Destination['href']) => router.navigate(href),
+    [router],
+  );
 
   if (!(Platform.OS === 'web' && isLg) || NO_CHROME_PATHS.has(pathname)) return null;
 

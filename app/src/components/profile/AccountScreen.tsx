@@ -77,7 +77,7 @@ export function AccountScreen() {
   const { isLg } = useBreakpoint();
   const scrollRef = useRef<ScrollView>(null);
   const nav = useSectionNav((y) => scrollRef.current?.scrollTo({ y, animated: true }));
-  const goToCameras = useCallback(() => router.push('/cameras'), [router]);
+  const goToCameras = useCallback(() => router.navigate('/cameras'), [router]);
   const logoutTriggerRef = useRef<View>(null);
   const deleteAccountTriggerRef = useRef<View>(null);
   const unlinkTriggerRef = useRef<View>(null);

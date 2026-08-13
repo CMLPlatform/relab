@@ -6,6 +6,7 @@ import { baseProduct as _base } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 const mockPush = jest.fn();
+const mockNavigate = jest.fn();
 const mockFeedbackAlert = jest.fn();
 const mockUseRpiIntegration: jest.Mock = jest.fn();
 const mockUseCamerasQuery: jest.Mock = jest.fn();
@@ -24,6 +25,7 @@ jest.mock('expo-image-picker', () => ({
 jest.mock('expo-router', () => ({
   useRouter: () => ({
     push: mockPush,
+    navigate: mockNavigate,
   }),
 }));
 
@@ -99,7 +101,7 @@ describe('useProductImageGallery', () => {
     expect(mockFeedbackAlert).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Save required' }),
     );
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('routes to camera setup when no RPi cameras are configured', () => {
@@ -115,7 +117,7 @@ describe('useProductImageGallery', () => {
       result.current.actions.requestRpiCapture();
     });
 
-    expect(mockPush).toHaveBeenCalledWith('/cameras');
+    expect(mockNavigate).toHaveBeenCalledWith('/cameras');
   });
 
   it('opens and closes the lightbox through named actions', () => {

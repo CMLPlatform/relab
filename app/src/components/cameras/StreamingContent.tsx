@@ -54,7 +54,10 @@ export function StreamingContent({
   }, [stopMutation, setActiveStream, onStop, feedback]);
 
   const handleGoToProduct = useCallback(() => {
-    router.push({ pathname: '/products/[id]', params: { id: String(session.productId) } });
+    // navigate(): this sheet opens from the globally-mounted stream banner, so
+    // the current screen can be outside the tabs, where a push would stack a
+    // second (tabs) navigator rather than returning to the live one.
+    router.navigate({ pathname: '/products/[id]', params: { id: String(session.productId) } });
     onStop?.();
   }, [router, session.productId, onStop]);
 

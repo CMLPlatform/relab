@@ -8,6 +8,12 @@ import { mockPlatform, renderWithProviders, restorePlatform } from '@/test-utils
 
 const mockStreamingSheet = jest.fn();
 const mockUseStreamSession = jest.fn();
+const mockInsets = { top: 0, bottom: 0, left: 0, right: 0 };
+jest.mock('react-native-safe-area-context', () => ({
+  ...(jest.requireActual('react-native-safe-area-context') as object),
+  useSafeAreaInsets: () => mockInsets,
+}));
+
 const mockUseBottomNavVisible = jest.fn();
 
 // Kept in sync by hand with ActiveStreamBanner.tsx's own SAVE_BAR_DOCK_RESERVE,
@@ -57,6 +63,7 @@ describe('ActiveStreamBanner', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseBottomNavVisible.mockReturnValue(false);
+    mockInsets.bottom = 0;
     (usePathname as jest.Mock).mockReturnValue('/products');
     (useBreakpoint as jest.Mock).mockReturnValue({ isMd: false, isLg: false });
   });
@@ -112,10 +119,11 @@ describe('ActiveStreamBanner', () => {
     expect(visibleBottom - hiddenBottom).toBe(BOTTOM_NAV_CLEARANCE);
   });
 
-  // On native, BottomNav renders in normal flow and already shrinks the
-  // container the banner sits in — bumping here too would double-clear it
-  // (88 + 60 of dead space on tab routes).
-  it('does not add clearance on native even when BottomNav is visible', () => {
+  // The banner is mounted at the app root, outside the tab navigator, so the
+  // bar overlaps it on native exactly as it does on web — nothing shrinks the
+  // box it positions against. Without this bump the banner would sit straight
+  // through a detail screen's Fab once the bar lifts that Fab.
+  it('bumps its floating offset on native too when BottomNav is visible', () => {
     mockPlatform('ios');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     mockUseBottomNavVisible.mockReturnValue(false);
@@ -126,7 +134,25 @@ describe('ActiveStreamBanner', () => {
     rerender(<ActiveStreamBanner />);
     const visibleBottom = screen.getByTestId('active-stream-banner-float').props.style.bottom;
 
-    expect(visibleBottom).toBe(hiddenBottom);
+    // Safe-area insets are 0 in the test provider, so this is the bar's height
+    // without its bottom padding; the padding term is asserted below.
+    expect(visibleBottom - hiddenBottom).toBe(BOTTOM_NAV_CLEARANCE);
+  });
+
+  // A notched device pads the bar by the safe-area inset on top of its own
+  // height; leaving that term out is what re-introduces the Fab overlap.
+  it('adds the safe-area inset the bar pads itself with', () => {
+    mockPlatform('ios');
+    mockUseStreamSession.mockReturnValue({ activeStream: session });
+    mockUseBottomNavVisible.mockReturnValue(true);
+    const { rerender } = renderWithProviders(<ActiveStreamBanner />);
+    const flat = screen.getByTestId('active-stream-banner-float').props.style.bottom;
+
+    mockInsets.bottom = 34;
+    rerender(<ActiveStreamBanner />);
+    const notched = screen.getByTestId('active-stream-banner-float').props.style.bottom;
+
+    expect(notched - flat).toBe(34);
   });
 
   // SaveBar (product/component detail, >=md web) docks fixed at right:24 and

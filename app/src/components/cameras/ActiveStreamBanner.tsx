@@ -1,6 +1,7 @@
 import { usePathname } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/base/AppText';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { useStreamSession } from '@/context/streamSession';
@@ -11,25 +12,30 @@ import { useAppTheme } from '@/theme';
 import { getFloatingPosition } from '@/utils/platformLayout';
 import { StreamingSheet } from './StreamingSheet';
 
-// Clears the tab bar on native; on web the banner floats just above the
-// viewport edge. Bumped by BOTTOM_NAV_CLEARANCE below whenever BottomNav is
-// actually rendering (useBottomNavVisible): the banner docks with
-// position:fixed on web, so it sits against the viewport and would otherwise
-// overlap the bar. On native it docks absolutely and 88 already clears a tab
-// bar, so a bump there would double the gap.
+// Baseline float above the bottom edge, before any tab-bar clearance.
 //
 // NOTE (native trace, kept 88): the only floating chrome the banner ever needs
 // to clear on native is a Fab (list screens' "New product"/"New camera" FABs
 // and the detail screens' PrimaryProductFab — SaveBar only renders on web).
 // Every Fab is MIN_TAP_TARGET (44) tall and docks at bottom:16 (list) or
-// margin:19 (detail), so its top edge sits ~60-63px up from the screen edge;
-// 88 clears that with a ~25-28px visual gap. Routes with no Fab (cameras
-// detail/add, account, users/[username], category-selection, the *_/new
-// creation screens) render the banner ~72px higher than strictly necessary
-// there, but that's a cosmetic gap, not an overlap — splitting the inset by
-// route would need the same route-detection machinery as
-// SAVE_BAR_DOCK_RESERVE below for a purely visual gain. Left as one constant;
-// revisit only if a route grows a Fab-adjacent element the 88 stops clearing.
+// margin:19 (detail), so its top edge sits ~60-63px above the bottom of the
+// screen the Fab lives in; 88 clears that with a ~25-28px visual gap. Routes
+// with no Fab (cameras detail/add, account, users/[username],
+// category-selection, the *_/new creation screens) render the banner ~72px
+// higher than strictly necessary there, but that's a cosmetic gap, not an
+// overlap — splitting the inset by route would need the same route-detection
+// machinery as SAVE_BAR_DOCK_RESERVE below for a purely visual gain. Left as
+// one constant; revisit only if a route grows a Fab-adjacent element the 88
+// stops clearing.
+//
+// That 88 measures from the *tab scene's* bottom, but this banner is mounted at
+// the app root, OUTSIDE the tab navigator — the bar never shrinks the box it
+// positions against, on native any more than on web. So whenever the bar is
+// rendering (useBottomNavVisible below) the banner has to add the bar's full
+// height back: BOTTOM_NAV_CLEARANCE plus the safe-area padding the bar puts
+// under it (0 on web). Without the safe-area term a notched device would put
+// the banner (88+60) straight through a detail screen's Fab, whose top edge is
+// then at 63 + 60 + inset.
 const BASE_BOTTOM_INSET = Platform.OS === 'web' ? 16 : 88;
 
 // SaveBar (FabControls.tsx) docks fixed at right:24/bottom:24 on >=md web
@@ -70,10 +76,10 @@ export function ActiveStreamBanner() {
   const closeSheet = useCallback(() => setSheetVisible(false), []);
   const bannerRef = useReturnFocus(sheetVisible);
   const bottomNavVisible = useBottomNavVisible();
-  const bottomInset =
-    Platform.OS === 'web' && bottomNavVisible
-      ? BASE_BOTTOM_INSET + BOTTOM_NAV_CLEARANCE
-      : BASE_BOTTOM_INSET;
+  const insets = useSafeAreaInsets();
+  const bottomInset = bottomNavVisible
+    ? BASE_BOTTOM_INSET + BOTTOM_NAV_CLEARANCE + insets.bottom
+    : BASE_BOTTOM_INSET;
   const pathname = usePathname();
   const { isMd } = useBreakpoint();
   const saveBarDockActive = Platform.OS === 'web' && isMd && SAVE_BAR_DOCK_ROUTE.test(pathname);

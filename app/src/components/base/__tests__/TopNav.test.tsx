@@ -23,11 +23,12 @@ jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
 }));
 
 const push = jest.fn();
+const navigate = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockPlatform('web');
-  (useRouter as jest.Mock).mockReturnValue({ push });
+  (useRouter as jest.Mock).mockReturnValue({ push, navigate });
   (usePathname as jest.Mock).mockReturnValue('/products');
   mockUseRpiIntegration.mockReturnValue({ enabled: true });
 });
@@ -69,7 +70,7 @@ test('pressing a destination routes', () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
   render(<TopNav />);
   fireEvent.press(screen.getByText('Cameras'));
-  expect(push).toHaveBeenCalledWith('/cameras');
+  expect(navigate).toHaveBeenCalledWith('/cameras');
 });
 
 test('destinations have a web hover affordance', () => {

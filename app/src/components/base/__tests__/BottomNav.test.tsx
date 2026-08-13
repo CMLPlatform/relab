@@ -28,6 +28,7 @@ jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
 }));
 
 const navigate = jest.fn();
+const emit = jest.fn(() => ({ defaultPrevented: false }));
 const TAB_ROUTES = ['(products)', '(cameras)', '(account)'];
 
 /** The slice of BottomTabBarProps this bar actually reads. */
@@ -37,7 +38,7 @@ function renderBar(activeIndex = 0) {
       index: activeIndex,
       routes: TAB_ROUTES.map((name) => ({ key: `${name}-key`, name })),
     },
-    navigation: { navigate },
+    navigation: { navigate, emit },
   } as unknown as BottomTabBarProps;
   return renderWithProviders(<BottomNav {...props} />);
 }
@@ -47,6 +48,7 @@ beforeEach(() => {
   const { useBreakpoint } = jest.requireMock('@/hooks/useBreakpoint');
   (useSegments as jest.Mock).mockReturnValue(['(tabs)', '(products)', 'products', 'index']);
   (useBreakpoint as jest.Mock).mockReturnValue({ isLg: false });
+  emit.mockReturnValue({ defaultPrevented: false });
   mockUseAuth.mockReturnValue({ user: { id: '1' } });
   mockUseRpiIntegration.mockReturnValue({ enabled: true });
 });
@@ -101,10 +103,31 @@ test('marks the navigator’s focused tab as selected', () => {
 
 // Navigating by route name (not href) is what returns the user to that tab's
 // preserved trail instead of resetting it to the tab's root screen.
-test('pressing a tab navigates to its route name', () => {
+test('pressing an unfocused tab navigates to its route name', () => {
   renderBar();
   fireEvent.press(screen.getByLabelText('Cameras'));
   expect(navigate).toHaveBeenCalledWith('(cameras)');
+});
+
+// tabPress is the event the focused tab's own listeners (the nested stack's
+// pop-to-top) hang off; re-navigating on top of it would be a no-op at best.
+test('pressing the focused tab emits tabPress instead of navigating', () => {
+  renderBar();
+  fireEvent.press(screen.getByLabelText('Products'));
+  expect(emit).toHaveBeenCalledWith({
+    type: 'tabPress',
+    target: '(products)-key',
+    canPreventDefault: true,
+  });
+  expect(navigate).not.toHaveBeenCalled();
+});
+
+test('a listener that prevents the default press blocks the navigation', () => {
+  emit.mockReturnValue({ defaultPrevented: true });
+  renderBar();
+  fireEvent.press(screen.getByLabelText('Cameras'));
+  expect(emit).toHaveBeenCalled();
+  expect(navigate).not.toHaveBeenCalled();
 });
 
 test('tabs carry active-state opacity feedback', () => {

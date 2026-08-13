@@ -34,7 +34,10 @@ export function createProductAction({
     dialog.alert({
       title: 'Verify your email first',
       message: 'Check your inbox for the verification link, or resend it from your Account.',
-      buttons: [{ text: 'OK' }, { text: 'Go to Account', onPress: () => router.push('/account') }],
+      buttons: [
+        { text: 'OK' },
+        { text: 'Go to Account', onPress: () => router.navigate('/account') },
+      ],
     });
     return;
   }
@@ -96,7 +99,7 @@ export function useProductsActions({
     router.push('/login');
   }, [router]);
   const goToProfile = useCallback(() => {
-    router.push('/account');
+    router.navigate('/account');
   }, [router]);
 
   return {

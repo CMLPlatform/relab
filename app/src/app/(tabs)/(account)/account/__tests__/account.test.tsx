@@ -7,6 +7,7 @@ const mockRefetch = jest.fn();
 const mockSetThemeMode = jest.fn();
 const mockRouterReplace = jest.fn();
 const mockRouterPush = jest.fn();
+const mockRouterNavigate = jest.fn();
 const mockLogout = jest.fn();
 const mockUpdateUser = jest.fn();
 const mockVerify = jest.fn();
@@ -20,6 +21,7 @@ jest.mock('expo-router', () => {
   return {
     useRouter: () => ({
       push: mockRouterPush,
+      navigate: mockRouterNavigate,
       replace: mockRouterReplace,
       back: jest.fn(),
       setParams: jest.fn(),
@@ -363,7 +365,7 @@ describe('ProfileTab', () => {
 
       expect(await findByText('YouTube Live')).toBeTruthy();
       fireEvent.press(await findByLabelText('Manage cameras'));
-      expect(mockRouterPush).toHaveBeenCalledWith('/cameras');
+      expect(mockRouterNavigate).toHaveBeenCalledWith('/cameras');
     });
   });
 

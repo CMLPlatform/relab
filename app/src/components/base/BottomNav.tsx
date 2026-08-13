@@ -59,8 +59,26 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
   const tabs = useBottomNavTabs();
   const visible = useBottomNavVisible();
   const insets = useSafeAreaInsets();
-  const activeRoute = state.routes[state.index]?.name;
-  const goTo = useCallback((key: string) => navigation.navigate(tabRouteName(key)), [navigation]);
+  const { routes } = state;
+  const activeRoute = routes[state.index]?.name;
+  const goTo = useCallback(
+    (key: string) => {
+      const name = tabRouteName(key);
+      const route = routes.find((candidate) => candidate.name === name);
+      if (!route) return;
+      // Same contract as the stock tab bar: tabPress is what the focused tab's
+      // own listeners hang off (the nested stack's pop-to-top), and it can
+      // preventDefault. Without it, tapping the tab you're already on is a dead
+      // control instead of scrolling/popping back to that tab's root.
+      const event = navigation.emit({
+        type: 'tabPress',
+        target: route.key,
+        canPreventDefault: true,
+      });
+      if (route.name !== activeRoute && !event.defaultPrevented) navigation.navigate(name);
+    },
+    [navigation, routes, activeRoute],
+  );
 
   if (!visible) return null;
 
