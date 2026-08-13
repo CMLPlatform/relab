@@ -94,8 +94,8 @@ function toSubpart(node: Record<string, unknown>): TeardownSubpart {
 /**
  * Add each part's fraction of the summed recorded direct-part mass.
  *
- * Deliberately per-unit: the bar mirrors the printed `weight_g`, so
- * `amount_in_parent` is ignored — a row's bar and its number never disagree.
+ * Per-unit: the bar mirrors the printed `weight_g` and ignores
+ * `amount_in_parent`, so a row's bar and its number never disagree.
  * No recorded mass anywhere -> every share is null and no bars render.
  */
 function withShares<T extends { weightG: number | null }>(
@@ -195,10 +195,10 @@ export async function loadLandingData(): Promise<LandingData> {
       // Fall through to the fixture below.
     }
     // biome-ignore lint/suspicious/noConsole: diagnostic when the API is unreachable at build time
-    console.warn('[landing] API unavailable at build time — using the committed fixture.');
+    console.warn('[landing] API unavailable at build time; using the committed fixture.');
   } else {
     // biome-ignore lint/suspicious/noConsole: expected on builds without a featured product
-    console.info('[landing] no featured product configured — using the committed fixture.');
+    console.info('[landing] no featured product configured; using the committed fixture.');
   }
 
   return {

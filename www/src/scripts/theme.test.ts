@@ -147,6 +147,83 @@ describe('initThemeControl', () => {
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
+  /**
+   * Answers both queries the toggle path asks about, independently; the shared
+   * mockMatchMedia above returns one result for every query, which would tie
+   * "prefers dark" and "prefers reduced motion" together.
+   */
+  function mockQueries({ prefersReducedMotion }: { prefersReducedMotion: boolean }) {
+    // These tests never fire a change event, so the listeners are inert stubs.
+    const ignoreListener = vi.fn();
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes('reduced-motion') ? prefersReducedMotion : false,
+      media: query,
+      addEventListener: ignoreListener,
+      removeEventListener: ignoreListener,
+    })) as unknown as typeof window.matchMedia;
+  }
+
+  /** Stubs the View Transition API, capturing the swap without running it yet. */
+  function stubViewTransition() {
+    const startViewTransition = vi.fn((swap: () => void) => {
+      swap();
+      return { finished: Promise.resolve(), ready: Promise.resolve() };
+    });
+    (document as unknown as { startViewTransition: unknown }).startViewTransition =
+      startViewTransition;
+    return startViewTransition;
+  }
+
+  afterEach(() => {
+    (document as unknown as { startViewTransition?: unknown }).startViewTransition = undefined;
+  });
+
+  it('crossfades the theme swap through a View Transition', () => {
+    mockQueries({ prefersReducedMotion: false });
+    const startViewTransition = stubViewTransition();
+    const { button } = buildControl();
+    initThemeControl();
+
+    button.click();
+
+    expect(startViewTransition).toHaveBeenCalledTimes(1);
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+
+  it('applies the theme without a transition under reduced motion', () => {
+    mockQueries({ prefersReducedMotion: true });
+    const startViewTransition = stubViewTransition();
+    const { button } = buildControl();
+    initThemeControl();
+
+    button.click();
+
+    expect(startViewTransition).not.toHaveBeenCalled();
+    // The swap still has to happen; reduced motion drops the bridge, not the change.
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+
+  it('applies the theme where the View Transition API is missing', () => {
+    mockQueries({ prefersReducedMotion: false });
+    const { button } = buildControl();
+    initThemeControl();
+
+    button.click();
+
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+
+  it('does not transition the initial sync, only a deliberate toggle', () => {
+    mockQueries({ prefersReducedMotion: false });
+    const startViewTransition = stubViewTransition();
+    buildControl();
+
+    // Crossfading here would animate from a state the visitor never saw.
+    initThemeControl();
+
+    expect(startViewTransition).not.toHaveBeenCalled();
+  });
+
   it('ignores an OS theme change once an explicit theme is stored', () => {
     const mql = mockMatchMedia(false);
     window.localStorage.setItem(STORAGE_KEY, 'light');

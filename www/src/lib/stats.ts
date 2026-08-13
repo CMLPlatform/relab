@@ -152,7 +152,7 @@ export function formatMass(massKg: number): { value: string; unit: string } {
 /**
  * Build a y-axis with a round step (1/2/5 x 10^n) so ticks never collide once
  * formatted. `integer` forces a whole-number step, so a max of 2 yields 0,1,2
- * rather than 0,0.5,1,1.5,2 — which would round to a duplicated "0,1,1,2,2".
+ * rather than 0,0.5,1,1.5,2, which would round to a duplicated "0,1,1,2,2".
  */
 export function buildScale(max: number, integer: boolean): { yMax: number; ticks: number[] } {
   const rawStep = max / 4 || 1;

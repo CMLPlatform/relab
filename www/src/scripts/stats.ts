@@ -387,7 +387,7 @@ function mountActivity(panel: HTMLElement, series: SeriesPoint[]): void {
     chartSlot.replaceChildren(buildChart(series, measure));
     // The bar entrance is a first-impression device. Replacing the bars re-runs
     // it, so a measure toggle would make you wait out the stagger before the
-    // comparison you clicked for is readable — gate it to the first draw.
+    // comparison you clicked for is readable, so gate it to the first draw.
     chartSlot.classList.toggle('stats-chart-enter', !drawn);
     drawn = true;
     tableSlot.replaceChildren(buildTable(series, measure, formatValue, unit));

@@ -68,11 +68,11 @@ values.
 
 Public variables are read through `import.meta.env` and used by
 [src/config/public.ts](src/config/public.ts). Staging and production are built via Docker Compose
-(`compose.deploy.yaml`), which passes `PUBLIC_*` values as build args itself — `just build` and
+(`compose.deploy.yaml`), which passes `PUBLIC_*` values as build args itself; `just build` and
 `just dev` are not part of that path. `just dev` falls back to hardcoded `127.0.0.1` dev-port
 defaults (matching `compose.dev.yaml`), overridable via the root `.env`; there is no
 `dev.compose.env`. `just build` is a local, non-Compose way to produce a production-mode build and
-sources `../deploy/env/prod.compose.env` directly — it has no staging equivalent.
+sources `../deploy/env/prod.compose.env` directly; it has no staging equivalent.
 
 | Name                         | Required | Purpose                                                                                                                           |
 | ---------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -99,7 +99,7 @@ pnpm vitest run src/scripts/theme.test.ts
 pnpm vitest
 ```
 
-CI runs `just test-ci` (Vitest with coverage, gated at 80% statements) — plain `just test` does not
+CI runs `just test-ci` (Vitest with coverage, gated at 80% statements); plain `just test` does not
 evaluate that gate. `just ci` runs the full local CI pipeline (checks + `test-ci`), mirroring what
 CI does.
 

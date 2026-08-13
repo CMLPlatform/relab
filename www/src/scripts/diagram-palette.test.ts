@@ -8,8 +8,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // assets/tokens.json lives above the www package, out of reach of the '@/'
-// alias (which only covers www/src) — read it by path like the diagram
-// sources below rather than adding a parent-relative import specifier.
+// alias (which only covers www/src), so read it by path like the diagram
+// sources below, not via a parent-relative import specifier.
 const tokens = JSON.parse(readFileSync(join(__dirname, '../../../assets/tokens.json'), 'utf8')) as {
   chart: Record<string, Record<string, string>>;
 };
@@ -24,7 +24,7 @@ const CHART_HEXES = new Set(
 // - the brightened chart-mark pair from assets/DESIGN.md's data-viz band.
 const ALLOWED = new Set(['#1f4c96', '#172637', '#98adc7', '#fefefe', '#2f6bc7', '#6fa8ff']);
 
-// Only mermaid config/classDef lines carry colour — scoping to those avoids
+// Only mermaid config/classDef lines carry colour; scoping to those avoids
 // false positives from unrelated hexes that might land elsewhere in a doc.
 const DIAGRAM_COLOUR_LINE =
   /^\s*(?:classDef|primaryColor|primaryBorderColor|primaryTextColor|lineColor|edgeLabelBackground|clusterBkg|clusterBorder|style)\b.*$/gm;
@@ -39,7 +39,7 @@ function hexesIn(source: string): string[] {
 function offendersIn(sources: string[]): string[] {
   const offenders = sources
     .flatMap(hexesIn)
-    .filter((hex) => !CHART_HEXES.has(hex) && !ALLOWED.has(hex));
+    .filter((hex) => !(CHART_HEXES.has(hex) || ALLOWED.has(hex)));
   return [...new Set(offenders)];
 }
 

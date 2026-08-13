@@ -30,14 +30,14 @@
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$CADDY_API_ORIGIN}; connect-src 'self' {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
 	}
 
-	# Astro content-hashed static assets — immutable, cache forever
+	# Astro content-hashed static assets: immutable, cache forever
 	@static_assets path /_astro/* /assets/*
 	handle @static_assets {
 		header Cache-Control "public, max-age=31536000, immutable"
 		file_server
 	}
 
-	# Fonts — synced brand assets with stable (unhashed) filenames, so long
+	# Fonts: synced brand assets with stable (unhashed) filenames, so long
 	# cache without immutable: a week keeps navigations cheap and a font swap
 	# propagates within days
 	@fonts path /fonts/*
@@ -46,7 +46,7 @@
 		file_server
 	}
 
-	# HTML pages — always revalidate to pick up latest deploy
+	# HTML pages: always revalidate to pick up latest deploy
 	handle {
 		header Cache-Control "no-cache"
 		file_server
