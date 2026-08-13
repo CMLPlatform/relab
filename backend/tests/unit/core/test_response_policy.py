@@ -53,6 +53,10 @@ def _create_policy_app(*, enable_hsts: bool = False, allow_dev_cross_origin: boo
     async def error_probe() -> None:
         raise HTTPException(status_code=404, detail="Missing")
 
+    @app.get("/uploads/images/product.jpg")
+    async def uploaded_image() -> dict[str, str]:
+        return {"status": "uploaded"}
+
     register_exception_handlers(app)
     return app
 
@@ -73,13 +77,15 @@ async def test_response_policy_sets_browser_baseline_headers() -> None:
 
 
 async def test_response_policy_relaxes_cross_origin_resource_policy_in_dev() -> None:
-    """Dev-only opt-in should allow cross-port loopback image loads without weakening staging/prod."""
+    """Dev-only opt-in should allow cross-port loopback image loads without weakening other responses."""
     app = _create_policy_app(allow_dev_cross_origin=True)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
-        response = await client.get("/health")
+        uploads_response = await client.get("/uploads/images/product.jpg")
+        health_response = await client.get("/health")
 
-    assert response.headers["cross-origin-resource-policy"] == "cross-origin"
+    assert uploads_response.headers["cross-origin-resource-policy"] == "cross-origin"
+    assert health_response.headers["cross-origin-resource-policy"] == "same-site"
 
 
 async def test_response_policy_sets_self_hosted_csp() -> None:

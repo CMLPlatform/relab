@@ -16,6 +16,10 @@ SENSITIVE_CACHE_HEADERS = {
 }
 REQUEST_ID_HEADER = "X-Request-ID"
 
+# Mount prefix for uploaded-media StaticFiles routes (app/core/static.py mounts
+# "/uploads/files" and "/uploads/images" under this shared parent).
+UPLOADS_PATH_PREFIX = "/uploads"
+
 # Session cookie names — single source of truth, consumed by the auth backend
 # (api/auth/services/auth_backends.py). Host-only (`__Host-` prefix) so credentials
 # never leak to sibling subdomains.

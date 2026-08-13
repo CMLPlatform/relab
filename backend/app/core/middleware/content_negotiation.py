@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, Response
 
-from app.core.http_headers import path_matches_prefix
+from app.core.http_headers import UPLOADS_PATH_PREFIX, path_matches_prefix
 from app.core.responses import build_problem_response
 
 if TYPE_CHECKING:
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 API_PATH_PREFIX = "/v1"
 OPENAPI_JSON_SUFFIX = ".json"
-SKIPPED_PATH_PREFIXES = ("/static", "/uploads")
+SKIPPED_PATH_PREFIXES = ("/static", UPLOADS_PATH_PREFIX)
 SUPPORTED_REQUEST_MEDIA_TYPES = frozenset(
     {
         "application/json",

@@ -27,6 +27,10 @@ def _create_composed_middleware_app() -> FastAPI:
     async def json_probe(request: Request) -> dict[str, object]:
         return {"payload": await request.json()}
 
+    @app.get("/uploads/images/product.jpg")
+    async def uploaded_image() -> dict[str, str]:
+        return {"status": "uploaded"}
+
     return app
 
 
@@ -50,7 +54,10 @@ async def test_composed_middleware_wraps_trusted_host_failures(monkeypatch: pyte
 async def test_composed_middleware_relaxes_cross_origin_resource_policy_in_dev(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Dev environment should allow cross-port loopback image loads (app :8011 <-> api :8010)."""
+    """Dev should allow cross-port loopback image loads, scoped to the uploads mount only.
+
+    App :8011 <-> api :8010; other responses keep the strict policy even in dev.
+    """
     monkeypatch.setattr(settings, "allowed_hosts", ["*"])
     monkeypatch.setattr(settings, "allowed_origins", ["https://app.example.test"])
     monkeypatch.setattr(settings, "cors_origin_regex", None)
@@ -59,9 +66,11 @@ async def test_composed_middleware_relaxes_cross_origin_resource_policy_in_dev(
     app = _create_composed_middleware_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
-        response = await client.get("/health")
+        uploads_response = await client.get("/uploads/images/product.jpg")
+        health_response = await client.get("/health")
 
-    assert response.headers["cross-origin-resource-policy"] == "cross-origin"
+    assert uploads_response.headers["cross-origin-resource-policy"] == "cross-origin"
+    assert health_response.headers["cross-origin-resource-policy"] == "same-site"
 
 
 async def test_composed_middleware_keeps_cross_origin_resource_policy_strict_in_prod(
