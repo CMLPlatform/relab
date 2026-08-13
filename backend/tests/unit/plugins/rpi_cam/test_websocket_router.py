@@ -92,9 +92,7 @@ async def test_connect_logs_unexpected_background_task_failure() -> None:
         await camera_websocket_connect(websocket, camera_id)
 
     logged_unexpected = [
-        call
-        for call in mock_logger.exception.call_args_list
-        if call.kwargs.get("exc_info") is not None and isinstance(call.kwargs["exc_info"], ValueError)
+        call for call in mock_logger.error.call_args_list if isinstance(call.kwargs.get("exc_info"), ValueError)
     ]
     assert len(logged_unexpected) == 1
     assert str(camera_id) in logged_unexpected[0].args
