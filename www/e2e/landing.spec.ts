@@ -85,7 +85,7 @@ test.describe('Landing page content', () => {
 
     const colophon = page.locator('.colophon');
     await expect(colophon).toContainText('Leiden University');
-    await expect(colophon).toContainText('10.5281/zenodo.19703316');
+    await expect(colophon).toContainText('10.5281/zenodo.16637742');
     await expect(colophon).toContainText('AGPL-3.0-or-later');
     // The dataset licence is planned, not published; the page must not claim
     // otherwise, and links the docs rather than restating the terms.

@@ -99,6 +99,7 @@ check:
     uv run ruff format --check --config pyproject.toml .
     uv run ty check
     just test-scripts
+    just assets-check
     pnpm run check
     for d in {{ subrepos }}; do just "$d/check"; done
     echo "✅ Root and subrepo checks passed"

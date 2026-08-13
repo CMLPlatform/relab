@@ -24,6 +24,8 @@ describe('SiteFooter', () => {
     expect(html).toContain('href="https://github.test"');
     expect(html).toContain('href="https://linkedin.test"');
     expect(html).toContain('href="https://youtube.test"');
+    expect(html).toContain('href="/privacy"');
+    expect(html).toContain('href="/terms"');
     expect(html).toContain('aria-label="GitHub (opens in new tab)"');
     // The footer nests ThemeControl, so its markup renders too.
     expect(html).toContain('data-theme-control');
@@ -47,8 +49,8 @@ describe('SiteFooter', () => {
 
   it('gives a citable DOI, resolved through doi.org', async () => {
     const html = await render();
-    expect(html).toContain('https://doi.org/10.5281/zenodo.19703316');
-    expect(html).toContain('doi:10.5281/zenodo.19703316');
+    expect(html).toContain('https://doi.org/10.5281/zenodo.16637742');
+    expect(html).toContain('doi:10.5281/zenodo.16637742');
   });
 
   it('licenses the software and links the docs for the dataset terms', async () => {
@@ -59,11 +61,13 @@ describe('SiteFooter', () => {
 
   it('never claims a dataset release that does not exist yet', async () => {
     const html = await render();
-    // ODbL is planned for curated releases; saying "the data is ODbL" would
-    // promise terms nothing has been published under.
-    expect(html).toContain('planned under ODbL 1.0');
+    // CC BY 4.0 is planned for curated releases; saying "the data is CC BY"
+    // would promise terms nothing has been published under.
+    expect(html).toContain('planned under CC BY 4.0');
     expect(html).toContain('no release has been published yet');
-    expect(html).not.toMatch(/published under ODbL/);
+    // Guards the "planned" hedge itself: any copy that drops it and states the
+    // licence flat ("licensed/published/available under CC BY 4.0") fails here.
+    expect(html).not.toMatch(/(licensed|published|available) under CC BY/);
   });
 
   it('warns on every link that leaves the site', async () => {

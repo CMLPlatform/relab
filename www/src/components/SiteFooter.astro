@@ -3,7 +3,7 @@
 import GithubIcon from '@/assets/icons/brand/github.svg';
 import LinkedinIcon from '@/assets/icons/brand/linkedin.svg';
 import YoutubeIcon from '@/assets/icons/brand/youtube.svg';
-import { research } from '@/copy/site-meta.ts';
+import { research } from '@/copy/research.generated.ts';
 
 import ThemeControl from './ThemeControl.astro';
 
@@ -37,7 +37,7 @@ const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
         citation file cannot drift apart.
 
         The dataset's own terms are deliberately a link, not a restatement:
-        ODbL 1.0 is planned for curated releases that do not exist yet, and the
+        CC BY 4.0 is planned for curated releases that do not exist yet, and the
         docs hold the one canonical statement of that. Two copies would drift. */}
     {/* aria-label rather than a visually-hidden <h2>: this repeats on every
         page, and a heading here would insert itself into each page's outline
@@ -69,7 +69,7 @@ const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
               >{research.licence}<span class="visually-hidden"> (opens in new tab)</span></a
             >. Curated dataset releases are{' '}
             <a href={datasetUrl} target="_blank" rel="noopener noreferrer"
-              >planned under ODbL 1.0<span class="visually-hidden"> (opens in new tab)</span></a
+              >planned under CC BY 4.0<span class="visually-hidden"> (opens in new tab)</span></a
             >; no release has been published yet.
           </dd>
         </div>
@@ -85,6 +85,9 @@ const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
         <p class="footer-copy">© {currentYear} CML, Leiden University</p>
         <a href="/privacy" class="footer-link" aria-label="Read the Relab privacy policy">
           Privacy policy
+        </a>
+        <a href="/terms" class="footer-link" aria-label="Read the Relab terms of use">
+          Terms of use
         </a>
       </div>
 
