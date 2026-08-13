@@ -4,6 +4,8 @@ export type DialogButton = {
   text: string;
   onPress?: (value?: string) => void;
   disabled?: boolean | ((value: string) => boolean);
+  /** Visual role: destructive gets the filled destructive variant; Enter never triggers it. */
+  style?: 'default' | 'cancel' | 'destructive';
 };
 
 export type DialogOptions = {

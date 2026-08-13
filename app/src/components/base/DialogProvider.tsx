@@ -90,10 +90,15 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
 
   const buttons = useMemo(() => options.buttons ?? [{ text: 'OK' }], [options.buttons]);
 
-  // Enter submits the primary (last) action.
+  // Enter submits the last non-destructive, non-cancel action; a dialog whose only
+  // action is destructive gets no keyboard default at all.
+  const submitButton = useMemo(
+    () => [...buttons].reverse().find((b) => b.style !== 'destructive' && b.style !== 'cancel'),
+    [buttons],
+  );
   const handleSubmitEditing = useCallback(() => {
-    handleClose(buttons[buttons.length - 1]);
-  }, [handleClose, buttons]);
+    if (submitButton) handleClose(submitButton);
+  }, [handleClose, submitButton]);
 
   return (
     <AppDialog visible onDismiss={onDismiss}>
@@ -126,10 +131,9 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
 
       {options.input && options.helperText ? (
         <AppText
-          variant="body"
+          variant="caption"
           className="mt-1"
           style={{
-            fontSize: 12,
             color: options.error ? theme.tokens.status.danger : theme.colors.onSurfaceVariant,
           }}
         >
@@ -165,7 +169,11 @@ function DialogActionButton({
   }, [onSelect, button]);
 
   return (
-    <AppButton variant="ghost" onPress={handlePress} disabled={disabled}>
+    <AppButton
+      variant={button.style === 'destructive' ? 'destructive' : 'ghost'}
+      onPress={handlePress}
+      disabled={disabled}
+    >
       {button.text}
     </AppButton>
   );

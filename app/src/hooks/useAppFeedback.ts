@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useOptionalDialog } from '@/components/base/dialogContext';
+import { type DialogButton, useOptionalDialog } from '@/components/base/dialogContext';
 
 function fallbackAlert(message: string) {
   if (typeof globalThis.alert === 'function') {
@@ -16,11 +16,7 @@ export function useAppFeedback() {
   return useMemo(() => {
     const toast = (message: string) => (dialog ? dialog.toast(message) : fallbackAlert(message));
     return {
-      alert: (options: {
-        message?: string;
-        title?: string;
-        buttons?: { text: string; onPress?: () => void }[];
-      }) => {
+      alert: (options: { message?: string; title?: string; buttons?: DialogButton[] }) => {
         if (dialog) {
           dialog.alert(options);
           return;

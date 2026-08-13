@@ -22,8 +22,8 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
       title: `Delete ${titleLabel}`,
       message: `Are you sure you want to delete this ${label}? This action cannot be undone.`,
       buttons: [
-        { text: 'Cancel', onPress: () => {} },
-        { text: 'Delete', onPress: onDelete },
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: onDelete },
       ],
     });
   };

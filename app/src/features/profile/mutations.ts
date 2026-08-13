@@ -70,7 +70,7 @@ export function promptUsernameEdit({
     defaultValue: profile.username ?? '',
     placeholder: 'Username',
     buttons: [
-      { text: 'Cancel' },
+      { text: 'Cancel', style: 'cancel' },
       {
         text: 'Save',
         onPress: (value) => {

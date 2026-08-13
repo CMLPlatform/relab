@@ -58,7 +58,7 @@ async function withStepUp(
       message,
       placeholder: 'Current password',
       buttons: [
-        { text: 'Cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Continue',
           disabled: (value) => !value?.trim(),

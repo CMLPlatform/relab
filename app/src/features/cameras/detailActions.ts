@@ -86,7 +86,7 @@ export function createCameraDetailActions({
         placeholder: 'Camera name',
         helperText: '2-100 characters',
         buttons: [
-          { text: 'Cancel' },
+          { text: 'Cancel', style: 'cancel' },
           {
             text: 'Save',
             // maxLength isn't part of DialogOptions, so the 2-100 bound (previously
@@ -113,7 +113,7 @@ export function createCameraDetailActions({
         placeholder: 'Description',
         helperText: 'Up to 500 characters',
         buttons: [
-          { text: 'Cancel' },
+          { text: 'Cancel', style: 'cancel' },
           {
             text: 'Save',
             disabled: (value) => (value ?? '').trim().length > 500,

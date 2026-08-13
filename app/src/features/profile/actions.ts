@@ -81,8 +81,8 @@ export function useProfileActions({
         title: 'Stream still active',
         message: `You're live for "${activeStream.productName}". Signing out will stop the stream and save the recording.`,
         buttons: [
-          { text: 'Cancel' },
-          { text: 'Stop & sign out', onPress: dialogs.logoutDialog.open },
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Stop & sign out', style: 'destructive', onPress: dialogs.logoutDialog.open },
         ],
       });
       return;
@@ -111,9 +111,10 @@ export function useProfileActions({
       message:
         'This ends your session on every device, including this one. You’ll need to sign in again.',
       buttons: [
-        { text: 'Cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Sign out everywhere',
+          style: 'destructive',
           onPress: () => exitSession({ endSession: revokeAllSessions, redirectTo: '/login' }),
         },
       ],
