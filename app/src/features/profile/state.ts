@@ -1,6 +1,7 @@
 import type { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import type { useAuth } from '@/context/auth';
+import { useScreenFocusedSafe } from '@/hooks/useScreenFocused';
 
 export function useProfileDialogs() {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
@@ -54,11 +55,18 @@ export function useProfileAuthRedirect({
   router: ReturnType<typeof useRouter>;
   isLoggingOut: boolean;
 }) {
+  // The account tab stays mounted (tab groups preserve per-tab state), so a
+  // logout's `refetch(false)` can clear `profile` after `isLoggingOut` has
+  // already flipped back to false and after logout's own navigate to
+  // /products has landed. Gating on focus stops that stale effect from
+  // clobbering the /products navigation with a /login redirect; a session
+  // that actually expires while the tab is focused still redirects.
+  const isFocused = useScreenFocusedSafe();
+
   useEffect(() => {
-    if (!(profile || isLoggingOut)) {
-      router.replace({ pathname: '/login', params: { redirectTo: '/account' } });
-    }
-  }, [profile, router, isLoggingOut]);
+    if (!isFocused || profile || isLoggingOut) return;
+    router.replace({ pathname: '/login', params: { redirectTo: '/account' } });
+  }, [profile, router, isLoggingOut, isFocused]);
 }
 
 export function useProfileLinkedAccounts(profile: ReturnType<typeof useAuth>['user']) {
