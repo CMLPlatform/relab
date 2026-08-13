@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import { Svg } from 'react-native-svg';
+import { AmountDraftFlushContext } from '@/components/product/detail/amountDraftFlush';
 import ProductTags from '@/components/product/detail/ProductTags';
 import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
@@ -345,5 +346,98 @@ describe('AmountChip (isComponent=true)', () => {
       withDialog: true,
     });
     expect(screen.getByLabelText('Increase amount')).toBeDisabled();
+  });
+
+  // Fix round 1 (item 2, Minor): typing then tapping +/- used to discard the
+  // typed digits because the steppers stepped off the last *committed*
+  // amount, not what's currently on screen.
+  it('increments from the typed draft, not the last committed amount, when pressed before blur', () => {
+    const onAmountChange = jest.fn();
+    renderWithProviders(
+      <ProductTags
+        product={componentProduct}
+        editMode={true}
+        isComponent={true}
+        onAmountChange={onAmountChange}
+      />,
+      { withDialog: true },
+    );
+    fireEvent.changeText(screen.getByDisplayValue('3'), '50');
+    fireEvent.press(screen.getByLabelText('Increase amount'));
+    expect(onAmountChange).toHaveBeenCalledWith(51);
+  });
+
+  it('decrements from the typed draft, not the last committed amount, when pressed before blur', () => {
+    const onAmountChange = jest.fn();
+    renderWithProviders(
+      <ProductTags
+        product={componentProduct}
+        editMode={true}
+        isComponent={true}
+        onAmountChange={onAmountChange}
+      />,
+      { withDialog: true },
+    );
+    fireEvent.changeText(screen.getByDisplayValue('3'), '50');
+    fireEvent.press(screen.getByLabelText('Decrease amount'));
+    expect(onAmountChange).toHaveBeenCalledWith(49);
+  });
+});
+
+// Fix round 1 (item 1, Important): AmountChip's uncommitted draft used to be
+// silently dropped by Save, because nothing in the save path flushed it —
+// blur-before-press ordering is convention, not a contract, in RN. These
+// exercise the flush contract directly (the channel saveAndExit uses — see
+// useProductForm.test.tsx for the saveAndExit side of the same fix) by
+// invoking the registered flush WITHOUT ever firing a blur/submitEditing
+// event on the input, simulating Save being pressed first.
+describe('AmountChip draft flush (Save without blur)', () => {
+  const componentProduct: Product = { ...baseProduct, amountInParent: 3 };
+
+  it('flushes a typed-but-unblurred amount when Save invokes the registered flush, with no blur event', () => {
+    const onAmountChange = jest.fn();
+    const flushRef: { current: (() => number | undefined) | null } = { current: null };
+    renderWithProviders(
+      <AmountDraftFlushContext.Provider value={flushRef}>
+        <ProductTags
+          product={componentProduct}
+          editMode={true}
+          isComponent={true}
+          onAmountChange={onAmountChange}
+        />
+      </AmountDraftFlushContext.Provider>,
+      { withDialog: true },
+    );
+    fireEvent.changeText(screen.getByDisplayValue('3'), '50');
+    // No blur/submitEditing fired on the input — Save reaches the flush ref first.
+    expect(onAmountChange).not.toHaveBeenCalled();
+
+    let flushed: number | undefined;
+    act(() => {
+      flushed = flushRef.current?.();
+    });
+
+    expect(flushed).toBe(50);
+    expect(onAmountChange).toHaveBeenCalledTimes(1);
+    expect(onAmountChange).toHaveBeenCalledWith(50);
+  });
+
+  it('flush is a no-op when there is no pending draft (already blurred, or untouched)', () => {
+    const onAmountChange = jest.fn();
+    const flushRef: { current: (() => number | undefined) | null } = { current: null };
+    renderWithProviders(
+      <AmountDraftFlushContext.Provider value={flushRef}>
+        <ProductTags
+          product={componentProduct}
+          editMode={true}
+          isComponent={true}
+          onAmountChange={onAmountChange}
+        />
+      </AmountDraftFlushContext.Provider>,
+      { withDialog: true },
+    );
+
+    expect(flushRef.current?.()).toBeUndefined();
+    expect(onAmountChange).not.toHaveBeenCalled();
   });
 });

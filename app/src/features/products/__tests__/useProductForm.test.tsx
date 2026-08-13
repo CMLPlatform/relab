@@ -180,6 +180,60 @@ describe('useProductForm', () => {
     );
   });
 
+  // Fix round 1 (item 1, Important): AmountChip's typed-but-unblurred amount
+  // used to be silently dropped by Save — nothing in the save path flushed
+  // it, and blur-before-press ordering is convention, not a contract, in RN.
+  // amountFlushRef is the channel: AmountChip registers a flush there (see
+  // ProductTags.test.tsx's "AmountChip draft flush" tests for that side),
+  // and saveAndExit must read it before serializing — even though isDirty is
+  // still a stale react-hook-form snapshot from before the flush happened.
+  it('flushes a pending amount draft before serializing, even though isDirty is still stale', async () => {
+    const mockMutate = jest.fn(async () => 123);
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
+
+    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    // Simulate AmountChip having a pending, unblurred draft registered when
+    // Save is pressed — no other field was touched, so isDirty is false.
+    result.current.amountFlushRef.current = () => 7;
+    expect(result.current.isDirty).toBe(false);
+
+    await act(async () => {
+      result.current.saveAndExit();
+    });
+
+    expect(mockMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        product: expect.objectContaining({ amountInParent: 7 }),
+      }),
+    );
+  });
+
+  it('does not treat a clean form as dirty when the flush ref has no pending draft', async () => {
+    const mockMutate = jest.fn(async () => 123);
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
+
+    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    // amountFlushRef.current is null (nothing registered/pending) — same as
+    // every screen without a mounted AmountChip.
+    await act(async () => {
+      result.current.saveAndExit();
+    });
+
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
   // Regression: the button stays pressable while the save is in flight, so a
   // double tap issued a second PATCH and re-uploaded every pending photo.
   it('ignores a second saveAndExit while the first is still in flight', async () => {

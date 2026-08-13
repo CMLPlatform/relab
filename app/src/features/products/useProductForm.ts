@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { type RefObject, useEffect, useRef } from 'react';
 import {
   type FieldErrors,
   type FieldPath,
@@ -10,6 +10,7 @@ import {
 } from 'react-hook-form';
 import { useDialog } from '@/components/base/dialogContext';
 import type { SectionKey } from '@/components/base/SectionNavContext';
+import type { AmountDraftFlush } from '@/components/product/detail/amountDraftFlush';
 import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { newProduct } from '@/services/api/products';
 import { createRequestId } from '@/services/api/request';
@@ -119,6 +120,7 @@ function useProductFormHydration({
 }
 
 function useProductFormActions({
+  amountFlushRef,
   deleteMutation,
   dialog,
   isDirty,
@@ -130,6 +132,7 @@ function useProductFormActions({
   saveMutation,
   serverProduct,
 }: {
+  amountFlushRef: RefObject<AmountDraftFlush | null>;
   deleteMutation: ReturnType<typeof useDeleteProductMutation>;
   dialog: ReturnType<typeof useDialog>;
   isDirty: boolean;
@@ -142,10 +145,21 @@ function useProductFormActions({
   serverProduct: Product | undefined;
 }) {
   const saveAndExit = useSingleFlight(async () => {
+    // Flush any typed-but-unblurred amount before reading `product` — Save
+    // can fire before AmountChip's input blurs (see amountDraftFlush.ts), so
+    // this can't rely on blur having already committed it.
+    const flushedAmount = amountFlushRef.current?.();
+    const currentProduct =
+      flushedAmount !== undefined ? { ...product, amountInParent: flushedAmount } : product;
+    // `isDirty` is a react-hook-form state snapshot from the last render —
+    // a flush that just happened synchronously hasn't reached it yet, so a
+    // flushed amount counts as dirty on its own regardless of what isDirty says.
+    const effectiveIsDirty = isDirty || flushedAmount !== undefined;
+
     // Clean form: treat as "close without writing", leaving edit mode via the
     // caller's onSaveSuccess.
-    if (!isDirty) {
-      if (typeof product.id === 'number') onSaveSuccess?.(product.id);
+    if (!effectiveIsDirty) {
+      if (typeof currentProduct.id === 'number') onSaveSuccess?.(currentProduct.id);
       return;
     }
 
@@ -155,9 +169,9 @@ function useProductFormActions({
       // runs on a rehydrated paused mutation and would mint a new key (and
       // thus a duplicate record) on every app restart. Only creates get one;
       // PATCH updates are naturally idempotent.
-      const idempotencyKey = typeof product.id !== 'number' ? createRequestId() : undefined;
+      const idempotencyKey = typeof currentProduct.id !== 'number' ? createRequestId() : undefined;
       const savedId = await saveMutation.mutateAsync({
-        product,
+        product: currentProduct,
         originalImages: serverProduct?.images ?? [],
         originalVideos: serverProduct?.videos ?? [],
         idempotencyKey,
@@ -165,7 +179,7 @@ function useProductFormActions({
       // Clear the form's dirty state with the just-persisted values so any
       // navigation guard (beforeRemove) downstream doesn't read stale
       // "unsaved changes" and block the exit the caller is about to trigger.
-      reset({ ...product, id: savedId });
+      reset({ ...currentProduct, id: savedId });
       onSaveSuccess?.(savedId);
     } catch (err) {
       // A media-sync failure means the entity itself saved — say so, and stay
@@ -274,8 +288,14 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
     if (saveMutation.isPaused) dialog.toast(QUEUED_OFFLINE_LABEL);
   }, [saveMutation.isPaused, dialog]);
 
+  // AmountChip (ProductTags) registers its pending-draft flush here — see
+  // amountDraftFlush.ts — so saveAndExit can read a typed-but-unblurred
+  // amount deterministically instead of depending on blur firing first.
+  const amountFlushRef = useRef<AmountDraftFlush | null>(null);
+
   const fieldHandlers = useProductFieldHandlers(setValue);
   const { saveAndExit, onProductDelete } = useProductFormActions({
+    amountFlushRef,
     deleteMutation,
     dialog,
     isDirty,
@@ -308,5 +328,6 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
     ...fieldHandlers,
     saveAndExit,
     onProductDelete,
+    amountFlushRef,
   };
 }

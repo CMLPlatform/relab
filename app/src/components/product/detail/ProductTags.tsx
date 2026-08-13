@@ -1,4 +1,4 @@
-import { type JSX, useCallback, useState } from 'react';
+import { type JSX, useCallback, useContext, useEffect, useState } from 'react';
 import { Pressable, type PressableStateCallbackType, TextInput, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Chip } from '@/components/base/Chip';
@@ -10,6 +10,7 @@ import { MIN_TAP_TARGET } from '@/constants';
 import { useSearchBrandsQuery } from '@/features/products/queries';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
+import { AmountDraftFlushContext } from './amountDraftFlush';
 
 interface Props {
   product: Product;
@@ -119,12 +120,20 @@ function AmountChip({
   const amount = product.amountInParent ?? 1;
   const [draftValue, setDraftValue] = useState<string | null>(null);
   const inputValue = draftValue ?? String(amount);
+  // What +/- should step from: the typed-but-uncommitted digits when present
+  // (so typing then tapping a stepper doesn't discard what was just typed),
+  // the last committed amount otherwise.
+  const effectiveAmount =
+    draftValue === null
+      ? amount
+      : Math.min(Math.max(draftValue === '' ? 1 : parseInt(draftValue, 10), 1), 10000);
 
   const commit = useCallback(
-    (n: number) => {
+    (n: number): number => {
       const clamped = Math.min(Math.max(n, 1), 10000);
       onAmountChange?.(clamped);
       setDraftValue(null);
+      return clamped;
     },
     [onAmountChange],
   );
@@ -136,13 +145,25 @@ function AmountChip({
     setDraftValue(text.replace(/[^0-9]/g, ''));
   }, []);
 
-  const commitDraft = useCallback(() => {
-    if (draftValue === null) return;
-    commit(draftValue === '' ? 1 : parseInt(draftValue, 10));
+  const commitDraft = useCallback((): number | undefined => {
+    if (draftValue === null) return undefined;
+    return commit(draftValue === '' ? 1 : parseInt(draftValue, 10));
   }, [draftValue, commit]);
 
-  const decrease = useCallback(() => commit(amount - 1), [commit, amount]);
-  const increase = useCallback(() => commit(amount + 1), [commit, amount]);
+  // Save can fire before this input blurs (blur-before-press is convention,
+  // not a contract, in RN) — register the flush so saveAndExit can pull any
+  // pending draft deterministically instead of losing it. See amountDraftFlush.ts.
+  const flushRef = useContext(AmountDraftFlushContext);
+  useEffect(() => {
+    if (!flushRef) return;
+    flushRef.current = commitDraft;
+    return () => {
+      if (flushRef.current === commitDraft) flushRef.current = null;
+    };
+  }, [flushRef, commitDraft]);
+
+  const decrease = useCallback(() => commit(effectiveAmount - 1), [commit, effectiveAmount]);
+  const increase = useCallback(() => commit(effectiveAmount + 1), [commit, effectiveAmount]);
 
   return (
     <View
@@ -165,7 +186,7 @@ function AmountChip({
             icon="minus"
             color={colors.onPrimary}
             onPress={decrease}
-            disabled={amount <= 1}
+            disabled={effectiveAmount <= 1}
             label="Decrease amount"
           />
           <TextInput
@@ -183,7 +204,7 @@ function AmountChip({
             icon="plus"
             color={colors.onPrimary}
             onPress={increase}
-            disabled={amount >= 10000}
+            disabled={effectiveAmount >= 10000}
             label="Increase amount"
           />
         </View>

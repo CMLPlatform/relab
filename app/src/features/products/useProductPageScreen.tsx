@@ -87,6 +87,7 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     onVideoChange,
     saveAndExit,
     onProductDelete,
+    amountFlushRef,
   } = useProductForm(id, wrappedFormOptions);
 
   const parentProductId = product.role === 'component' ? product.parentID : undefined;
@@ -246,5 +247,6 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
       saveAndExit,
       goBackWithGuards,
     },
+    amountFlushRef,
   };
 }

@@ -10,6 +10,7 @@ import { useProductPageScreen } from '@/features/products/useProductPageScreen';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useSectionNav } from '@/hooks/useSectionNav';
 import { isProductNotFoundError } from '@/services/api/products';
+import { AmountDraftFlushContext } from './amountDraftFlush';
 import { ProductPageContent } from './Content';
 import { visibleSections } from './content-sections';
 import { ProductFabControls } from './FabControls';
@@ -93,7 +94,7 @@ function renderScreenGuard({
 }
 
 export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFormOptions }) {
-  const { theme, screen, editing, streaming, capabilities, actions } =
+  const { theme, screen, editing, streaming, capabilities, actions, amountFlushRef } =
     useProductPageScreen(formOptions);
   const { isLg } = useBreakpoint();
   const scrollRef = useRef<ScrollView>(null);
@@ -170,35 +171,37 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
   );
 
   return (
-    <SectionNavContext.Provider value={nav}>
-      <SectionNavLayout
-        isLg={isLg}
-        navSections={navSections}
-        activeKey={nav.activeKey}
-        onPressSection={nav.scrollTo}
-      >
-        {content}
-      </SectionNavLayout>
-      <ProductFabControls
-        entityRole={screen.product.role}
-        editMode={editing.editMode}
-        ownedByMe={capabilities.ownedByMe}
-        productId={typeof screen.product.id === 'number' ? screen.product.id : undefined}
-        productName={screen.product.name ?? ''}
-        fabExtended={editing.fabExtended}
-        validationError={editing.validationResult.error}
-        validationValid={editing.validationResult.isValid}
-        errorCount={editing.validationResult.errorCount}
-        onErrorSummaryPress={onErrorSummaryPress}
-        isSaving={editing.isSaving}
-        isPaused={editing.isPaused}
-        isDirty={editing.isDirty}
-        onPrimaryFabPress={onPrimaryFabPress}
-        streamPickerVisible={streaming.streamPickerVisible}
-        onDismissStreamPicker={streaming.closeStreamPicker}
-        primaryFabIcon={editing.primaryFabIcon}
-        streamTriggerRef={goLiveTriggerRef}
-      />
-    </SectionNavContext.Provider>
+    <AmountDraftFlushContext.Provider value={amountFlushRef}>
+      <SectionNavContext.Provider value={nav}>
+        <SectionNavLayout
+          isLg={isLg}
+          navSections={navSections}
+          activeKey={nav.activeKey}
+          onPressSection={nav.scrollTo}
+        >
+          {content}
+        </SectionNavLayout>
+        <ProductFabControls
+          entityRole={screen.product.role}
+          editMode={editing.editMode}
+          ownedByMe={capabilities.ownedByMe}
+          productId={typeof screen.product.id === 'number' ? screen.product.id : undefined}
+          productName={screen.product.name ?? ''}
+          fabExtended={editing.fabExtended}
+          validationError={editing.validationResult.error}
+          validationValid={editing.validationResult.isValid}
+          errorCount={editing.validationResult.errorCount}
+          onErrorSummaryPress={onErrorSummaryPress}
+          isSaving={editing.isSaving}
+          isPaused={editing.isPaused}
+          isDirty={editing.isDirty}
+          onPrimaryFabPress={onPrimaryFabPress}
+          streamPickerVisible={streaming.streamPickerVisible}
+          onDismissStreamPicker={streaming.closeStreamPicker}
+          primaryFabIcon={editing.primaryFabIcon}
+          streamTriggerRef={goLiveTriggerRef}
+        />
+      </SectionNavContext.Provider>
+    </AmountDraftFlushContext.Provider>
   );
 }
