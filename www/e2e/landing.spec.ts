@@ -89,59 +89,33 @@ test.describe('Landing page content', () => {
     await expect(colophon).toContainText('AGPL-3.0-or-later');
     // The dataset licence is planned, not published; the page must not claim
     // otherwise, and links the docs rather than restating the terms.
+    await expect(colophon).toContainText('planned under CC BY 4.0');
     await expect(colophon).toContainText('no release has been published yet');
   });
 
-  test('the 9R ladder runs from Refuse down to Recover', async ({ page }) => {
-    await page.goto('/');
-
-    const ladder = page.locator('.nine-r');
-    await expect(ladder.getByRole('heading', { name: 'The 9R framework' })).toBeVisible();
-    const rungs = ladder.locator('.rung');
-    await expect(rungs).toHaveCount(10);
-    await expect(rungs.first()).toContainText('Refuse');
-    await expect(rungs.last()).toContainText('Recover');
-  });
-
-  test('the method section walks from teardown to data', async ({ page }) => {
+  test('the method section shows the workflow as three grouped passes', async ({ page }) => {
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'From teardown to data' })).toBeVisible();
-    const flow = page.locator('#method-flow');
-    await expect(flow).toBeVisible();
-    await expect(flow.locator('g.node')).toHaveCount(8);
+    const flow = page.locator('.flow');
+    await expect(flow.locator('.flow-phase')).toHaveCount(3);
+    await expect(flow.locator('.flow-step')).toHaveCount(8);
 
-    // The script lifts each node's <title> into a popover shown on interaction.
-    const popover = page.locator('#method-flow-popover');
-    await expect(popover).toBeHidden();
-    await flow.locator('g.node').first().click();
-    await expect(popover).toBeVisible();
-    await expect(popover).not.toBeEmpty();
+    // Descriptions are plain text now, not a hover-only tooltip on an SVG node.
+    await expect(flow.getByText('Record mass and dimensions for every component.')).toBeVisible();
+    // The loop is marked, since a column layout cannot draw the arrow back.
+    await expect(flow.getByText('repeats per part')).toBeVisible();
   });
 
-  test('Escape dismisses the method-flow popover', async ({ page }) => {
+  test('the 9R framework is named and linked, not taught, on the landing page', async ({
+    page,
+  }) => {
     await page.goto('/');
 
-    const flow = page.locator('#method-flow');
-    const popover = page.locator('#method-flow-popover');
-    await flow.locator('g.node').first().click();
-    await expect(popover).toBeVisible();
-
-    await page.keyboard.press('Escape');
-    await expect(popover).toBeHidden();
-  });
-
-  test('scrolling re-places the popover instead of dismissing it', async ({ page }) => {
-    await page.goto('/');
-
-    // Regression: scroll used to call hide(), so tabbing to an off-screen node
-    // closed the popover that the same keypress had just opened.
-    const popover = page.locator('#method-flow-popover');
-    await page.locator('#method-flow').locator('g.node').first().click();
-    await expect(popover).toBeVisible();
-
-    await page.mouse.wheel(0, 120);
-    await expect(popover).toBeVisible();
+    // The ladder itself lives in the docs beside its definition tables.
+    await expect(page.locator('.nine-r')).toHaveCount(0);
+    const link = page.getByRole('link', { name: /see the ladder in the docs/i });
+    expect(await link.getAttribute('href')).toMatch(/\/project\/9r-framework\/$/);
   });
 
   test('the stats panel shell ships with the page', async ({ page }) => {
@@ -152,31 +126,6 @@ test.describe('Landing page content', () => {
     const panel = page.locator('#stats-panel');
     await expect(panel).toBeAttached();
     await expect(panel.locator('#stats-heading')).toHaveText('What has been recorded so far');
-  });
-});
-
-test.describe('Method flow touch interaction', () => {
-  test.use({ hasTouch: true });
-
-  test('tapping a flow node toggles the popover: first tap opens, second tap closes', async ({
-    page,
-  }) => {
-    // Reduced motion keeps the two taps deterministic: Playwright scrolls each
-    // node into view before tapping it, and the popover's own opacity
-    // transition would otherwise still be running when the assertion reads it.
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/');
-
-    const flow = page.locator('#method-flow');
-    const node = flow.locator("g.node[tabindex='0']").first();
-    const popover = page.locator('#method-flow-popover');
-    await expect(popover).toBeHidden();
-
-    await node.tap();
-    await expect(popover).toBeVisible();
-
-    await node.tap();
-    await expect(popover).toBeHidden();
   });
 });
 

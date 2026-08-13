@@ -3,7 +3,6 @@
 import BrandHero from '@/components/BrandHero.astro';
 import HeroTeardown from '@/components/HeroTeardown.astro';
 import MethodSteps from '@/components/MethodSteps.astro';
-import NineRLadder from '@/components/NineRLadder.astro';
 import StatsPanel from '@/components/StatsPanel.astro';
 import WhyRelab from '@/components/WhyRelab.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
@@ -33,8 +32,7 @@ const landing = await loadLandingData();
     <HeroTeardown teardown={landing.teardown} fromFixture={landing.fromFixture} />
   </div>
   <WhyRelab />
-  <MethodSteps />
-  <NineRLadder docsUrl={publicSiteConfig.docsUrl} />
+  <MethodSteps docsUrl={publicSiteConfig.docsUrl} />
   <StatsPanel />
 </Layout>
 

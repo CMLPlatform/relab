@@ -47,6 +47,15 @@ describe('BrandHero', () => {
     expect(html.match(/\(opens in new tab\)/g)).toHaveLength(2);
   });
 
+  it('states each door’s precondition on the button itself', async () => {
+    const html = await render();
+    // The sign-up requirement is only relevant at the moment of choosing, so it
+    // rides on the control rather than as a sentence the reader has to carry
+    // back to it. Inside the <a>, so it is part of the accessible name.
+    expect(html).toMatch(/Contribute a teardown<\/span><span[^>]*>Free account/);
+    expect(html).toMatch(/Browse the records<\/span><span[^>]*>No account needed/);
+  });
+
   it('shows one headline figure, not a triad, and omits it without stats', async () => {
     const html = await render();
     expect(html).toContain('data-metrics');

@@ -35,23 +35,34 @@ const appBase = appUrl.replace(/\/$/, '');
   <h1 class="brand-hero-title">{siteMeta.heroTitle}</h1>
   <p class="brand-hero-lead">{siteMeta.heroNutshell}</p>
   {/* Two doors, because they need different things of the visitor: reading the
-      records takes no account, adding one does. A single CTA conflated them. */}
+      records takes no account, adding one does. A single CTA conflated them.
+
+      Each button says its own cost on a second line rather than the pair
+      sharing a sentence underneath. The fact only matters at the moment of
+      choosing, so it belongs on the control being chosen; a separate line of
+      page copy makes the reader carry it back to the buttons themselves. The
+      sublabels sit inside the <a>, so each one is part of the link's
+      accessible name and is announced with it. */}
   <div class="brand-hero-actions">
     <a
       href={`${appBase}/products`}
-      class="btn btn-primary btn-large"
+      class="btn btn-primary btn-large btn-stacked"
       target="_blank"
       rel="noopener noreferrer"
     >
-      Browse the records<span class="visually-hidden"> (opens in new tab)</span>
+      <span class="btn-label">Browse the records</span>
+      <span class="btn-sublabel">No account needed</span>
+      <span class="visually-hidden"> (opens in new tab)</span>
     </a>
     <a
       href={`${appBase}/new-account`}
-      class="btn btn-outline btn-large"
+      class="btn btn-outline btn-large btn-stacked"
       target="_blank"
       rel="noopener noreferrer"
     >
-      Contribute a teardown<span class="visually-hidden"> (opens in new tab)</span>
+      <span class="btn-label">Contribute a teardown</span>
+      <span class="btn-sublabel">Free account, takes a minute</span>
+      <span class="visually-hidden"> (opens in new tab)</span>
     </a>
   </div>
   {

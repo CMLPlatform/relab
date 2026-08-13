@@ -1,0 +1,193 @@
+---
+// The 9R framework drawn as a descending staircase.
+//
+// This lives in docs rather than on the landing page: it is reference material,
+// and the canonical definitions sit directly beneath it on this page. The
+// landing page links here instead of teaching the taxonomy itself.
+//
+// Names only. The definitions are in the table below the figure, which is the
+// source of record (Potting et al. 2017, approved verbatim) -- the staircase
+// shows the *order*, the table says what each strategy means, and neither
+// restates the other.
+const tiers = [
+  {
+    label: 'Smarter product use and manufacture',
+    rungs: [
+      { r: 'R0', name: 'Refuse' },
+      { r: 'R1', name: 'Rethink' },
+      { r: 'R2', name: 'Reduce' },
+    ],
+  },
+  {
+    label: 'Extend lifespan of product and its parts',
+    rungs: [
+      { r: 'R3', name: 'Re-use' },
+      { r: 'R4', name: 'Repair' },
+      { r: 'R5', name: 'Refurbish' },
+      { r: 'R6', name: 'Remanufacture' },
+      { r: 'R7', name: 'Repurpose' },
+    ],
+  },
+  {
+    label: 'Useful application of materials',
+    rungs: [
+      { r: 'R8', name: 'Recycle' },
+      { r: 'R9', name: 'Recover' },
+    ],
+  },
+];
+
+/** Rank 0-9 across every tier, read straight off the strategy's own number. */
+const stepOf = (r: string): number => Number(r.slice(1));
+---
+
+<figure class="ladder-figure">
+  <p class="ladder-end ladder-end-top">Most circular</p>
+  <div class="ladder">
+    {
+      tiers.map((tier) => (
+        <section class="tier" aria-label={tier.label}>
+          <h3 class="tier-label">{tier.label}</h3>
+          {/* Explicit role: WebKit drops list semantics under list-style: none. */}
+          <ol class="rungs" role="list">
+            {tier.rungs.map((rung) => (
+              /* --step is the rung's rank across all three tiers, not within
+                 this one: it drives the indent that draws the staircase, so it
+                 has to keep descending across a tier boundary. */
+              <li class="rung" style={`--step: ${stepOf(rung.r)}`}>
+                <span class="rung-num">{rung.r}</span>
+                <span class="rung-name">{rung.name}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))
+    }
+  </div>
+  <p class="ladder-end ladder-end-bottom">Last resort</p>
+  <figcaption>
+    The ten strategies as a ladder. Each step down keeps less of the product intact, and the three
+    groups mark where the loss changes in kind: the product is not made, then the product is kept,
+    then only its materials are.
+  </figcaption>
+</figure>
+
+<style>
+  /* An actual staircase, because the framework is an ordinal ladder: each rung
+     steps one notch further right than the one above, and the drawing falls out
+     of two borders per row -- `border-left` is the riser, `border-bottom` the
+     tread. Because a tread runs from its own indent to the step's right edge,
+     the next rung's riser always lands on it, so the steps connect into one
+     continuous flight without any extra elements.
+
+     Deliberately no bar or width encoding the "value retained": the 9R order is
+     ordinal, and a bar would invent a magnitude Potting et al. never measured. */
+  .ladder-figure {
+    --stair: 1.15rem;
+
+    margin: 1.5rem 0 2rem;
+  }
+
+  .ladder {
+    display: grid;
+    gap: 1.4rem;
+  }
+
+  /* Each tier is its own flight, set off by a landing: the gap above plus a
+     rule and a label make the three groups read as distinct stages rather than
+     as one run of ten. */
+  .tier {
+    display: grid;
+    gap: 0.35rem;
+    border-top: 1px solid var(--sl-color-hairline, var(--relab-brand-divider));
+    padding-top: 0.6rem;
+  }
+
+  .tier-label {
+    margin: 0;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-3);
+    /* Starlight styles content headings heavily; this one is a figure label. */
+    border: 0;
+    padding: 0;
+  }
+
+  .rungs {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* A fixed step width, so the right edge steps down in parallel with the left
+     and the flight reads as stairs rather than as a ruled table. */
+  .rung {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    width: min(22rem, 100%);
+    margin-left: calc(var(--step) * var(--stair));
+    padding: 0.35rem 0.6rem;
+    border-left: 1px solid var(--sl-color-hairline, var(--relab-brand-divider));
+    border-bottom: 1px solid var(--sl-color-hairline, var(--relab-brand-divider));
+    font-size: 0.95rem;
+  }
+
+  .rung-num {
+    flex: none;
+    width: 1.7rem;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+    color: var(--relab-brand-accent);
+  }
+
+  .rung-name {
+    font-weight: 600;
+  }
+
+  /* Which end of the ladder is which, stated rather than implied. */
+  .ladder-end {
+    margin: 0;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-3);
+  }
+
+  .ladder-end-top {
+    padding-bottom: 0.5rem;
+  }
+
+  /* Indented to meet the foot of the last step. */
+  .ladder-end-bottom {
+    margin-left: calc(9 * var(--stair));
+    padding: 0.5rem 0 0 0.6rem;
+  }
+
+  .ladder-figure figcaption {
+    margin-top: 1.2rem;
+    max-width: 68ch;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--sl-color-gray-3);
+  }
+
+  @media (max-width: 50rem) {
+    /* A shallower stair: ten steps at the wide notch would push the last rung
+       most of the way across a phone. They still descend, just less far. */
+    .ladder-figure {
+      --stair: 0.5rem;
+    }
+
+    .rung {
+      width: auto;
+      margin-right: calc((9 - var(--step)) * var(--stair));
+    }
+  }
+</style>

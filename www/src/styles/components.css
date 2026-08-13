@@ -51,34 +51,10 @@
   font-size: 1.08rem;
 }
 
-/* Hint popover, shared by the method flowchart and the 9R ladder (see
-   src/scripts/popover-hint.ts). These are the only floating surfaces on the
-   site, so they earn the single overlay-shadow tier assets/DESIGN.md reserves:
-   subtle and tinted, over a hairline drafting box. JS positions it. */
-.hint-popover {
-  position: fixed;
-  inset: auto;
-  margin: 0;
-  max-width: 22rem;
-  padding: 0.6rem 0.8rem;
-  border: 1px solid var(--color-page-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface-strong);
-  color: var(--color-on-surface);
-  font-size: 0.86rem;
-  line-height: 1.5;
-  box-shadow: var(--relab-shadow-overlay);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .hint-popover {
-    transition: opacity 140ms var(--ease-out);
-  }
-
-  .hint-popover:not(:popover-open) {
-    opacity: 0;
-  }
-}
+/* NOTE: the hint popover that used to live here is gone with its two callers.
+   The flowchart's step descriptions are plain text now, and the 9R ladder moved
+   to the docs beside its definition tables. Nothing on the site floats, so the
+   overlay-shadow tier assets/DESIGN.md reserves is currently unused here. */
 
 .btn {
   display: inline-flex;
@@ -114,6 +90,25 @@
 .btn-large {
   min-height: 3.35rem;
   padding-inline: 1.35rem;
+}
+
+/* A button that carries its own precondition on a second line: the label, then
+   what it costs the visitor. Baseline-aligned rows rather than a centred stack,
+   so the two buttons' primary labels sit on one line across the pair. */
+.btn-stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding-block: 0.6rem;
+  line-height: 1.25;
+}
+
+.btn-sublabel {
+  font-size: 0.78rem;
+  font-weight: 500;
+  /* Subordinate, but never below the 4.5:1 the label itself clears: it is real
+     information about what the button will ask for, not decoration. */
+  opacity: 0.78;
 }
 
 .btn-primary {
