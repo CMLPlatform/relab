@@ -33,13 +33,18 @@ CONTENT_SECURITY_POLICY_HEADER_VALUE = "default-src 'none'; frame-ancestors 'non
 X_XSS_PROTECTION_HEADER_VALUE = "0"
 CROSS_ORIGIN_OPENER_POLICY_HEADER_VALUE = "same-origin"
 CROSS_ORIGIN_RESOURCE_POLICY_HEADER_VALUE = "same-site"
+# Dev-only relaxation: the local web stack serves the app and API on different
+# loopback ports (127.0.0.1:8011 / :8010), which browsers treat as cross-site,
+# so "same-site" blocks gallery images with ERR_BLOCKED_BY_RESPONSE. Loopback
+# origins carry no cross-origin confidentiality risk, so relax to "cross-origin"
+# only when settings.debug (dev environment); staging/prod keep "same-site".
+CROSS_ORIGIN_RESOURCE_POLICY_DEV_HEADER_VALUE = "cross-origin"
 BASE_SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": REFERRER_POLICY_HEADER_VALUE,
     "Content-Security-Policy": CONTENT_SECURITY_POLICY_HEADER_VALUE,
     "X-XSS-Protection": X_XSS_PROTECTION_HEADER_VALUE,
     "Cross-Origin-Opener-Policy": CROSS_ORIGIN_OPENER_POLICY_HEADER_VALUE,
-    "Cross-Origin-Resource-Policy": CROSS_ORIGIN_RESOURCE_POLICY_HEADER_VALUE,
 }
 
 
@@ -67,8 +72,15 @@ def _set_sensitive_cache_headers(response: Response) -> None:
             response.headers.setdefault(name, value)
 
 
-def register_response_policy_middleware(app: FastAPI, *, enable_hsts: bool) -> None:
+def register_response_policy_middleware(
+    app: FastAPI, *, enable_hsts: bool, allow_dev_cross_origin: bool = False
+) -> None:
     """Register response-only cache and browser security policy."""
+    cross_origin_resource_policy = (
+        CROSS_ORIGIN_RESOURCE_POLICY_DEV_HEADER_VALUE
+        if allow_dev_cross_origin
+        else CROSS_ORIGIN_RESOURCE_POLICY_HEADER_VALUE
+    )
 
     @app.middleware("http")
     async def response_policy_middleware(request: Request, call_next: RequestResponseEndpoint) -> Response:
@@ -77,6 +89,7 @@ def register_response_policy_middleware(app: FastAPI, *, enable_hsts: bool) -> N
             _set_sensitive_cache_headers(response)
         for name, value in BASE_SECURITY_HEADERS.items():
             response.headers.setdefault(name, value)
+        response.headers.setdefault("Cross-Origin-Resource-Policy", cross_origin_resource_policy)
         if enable_hsts:
             response.headers["Strict-Transport-Security"] = HSTS_HEADER_VALUE
         return response

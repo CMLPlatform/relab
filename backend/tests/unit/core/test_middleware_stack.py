@@ -47,6 +47,40 @@ async def test_composed_middleware_wraps_trusted_host_failures(monkeypatch: pyte
     assert response.headers["strict-transport-security"] == HSTS_HEADER_VALUE
 
 
+async def test_composed_middleware_relaxes_cross_origin_resource_policy_in_dev(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dev environment should allow cross-port loopback image loads (app :8011 <-> api :8010)."""
+    monkeypatch.setattr(settings, "allowed_hosts", ["*"])
+    monkeypatch.setattr(settings, "allowed_origins", ["https://app.example.test"])
+    monkeypatch.setattr(settings, "cors_origin_regex", None)
+    monkeypatch.setattr(settings, "environment", Environment.DEV)
+
+    app = _create_composed_middleware_app()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
+        response = await client.get("/health")
+
+    assert response.headers["cross-origin-resource-policy"] == "cross-origin"
+
+
+async def test_composed_middleware_keeps_cross_origin_resource_policy_strict_in_prod(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Production must keep the fail-closed same-site policy regardless of dev relaxation."""
+    monkeypatch.setattr(settings, "allowed_hosts", ["*"])
+    monkeypatch.setattr(settings, "allowed_origins", ["https://app.example.test"])
+    monkeypatch.setattr(settings, "cors_origin_regex", None)
+    monkeypatch.setattr(settings, "environment", Environment.PROD)
+
+    app = _create_composed_middleware_app()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
+        response = await client.get("/health")
+
+    assert response.headers["cross-origin-resource-policy"] == "same-site"
+
+
 async def test_composed_middleware_exposes_request_id_through_cors(monkeypatch: pytest.MonkeyPatch) -> None:
     """CORS should allow clients to read the request ID produced by the request middleware."""
     monkeypatch.setattr(settings, "allowed_hosts", ["*"])
