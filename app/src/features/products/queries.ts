@@ -35,47 +35,19 @@ export const PRODUCT_SORT_OPTIONS = [
 
 export const DEFAULT_PRODUCT_SORT = PRODUCT_SORT_OPTIONS[1].value; // Newest first when not searching
 
-// Page size for both the single-page and infinite product list queries.
+// Page size for the infinite product list query.
 const PAGE_SIZE = 24;
 
 // ─── Query options factories ───────────────────────────────────────────────────
 
-export const productsQueryOptions = (
-  filter: 'all' | 'mine',
-  page: number,
-  search: string,
-  sortBy: string[] = ['-created_at'],
-  extra: ProductExtraFilters = {},
-) =>
-  queryOptions({
-    queryKey: [
-      'products',
-      filter,
-      page,
-      search,
-      sortBy,
-      extra.brands,
-      extra.createdAfter?.toISOString(),
-      extra.productTypeNames,
-    ] as const,
-    queryFn: () =>
-      products({
-        page,
-        size: PAGE_SIZE,
-        search: search || undefined,
-        orderBy: sortBy,
-        brands: extra.brands?.length ? extra.brands : undefined,
-        createdAfter: extra.createdAfter,
-        productTypeNames: extra.productTypeNames?.length ? extra.productTypeNames : undefined,
-        ...(filter === 'mine' ? { owner: 'me' } : {}),
-      }),
-    placeholderData: (previousData) => previousData,
-  });
-
-// Cursor-style variant of productsQueryOptions for the infinite-scroll catalogue.
 // The queryKey deliberately omits page — page position lives in react-query's own
 // pages array, keyed off the filters, so a filter change starts a fresh cache
 // entry at page 1 for free instead of needing an explicit reset.
+//
+// No placeholderData: carrying the previous filter's *entire* accumulated pages
+// array forward while the new filter's page 1 loads would show a stale,
+// multi-page-deep product list (and stale total/hasNextPage) under the new
+// filter instead of resetting to a loading state.
 export const productsInfiniteQueryOptions = (
   filter: 'all' | 'mine',
   search: string,
@@ -107,7 +79,6 @@ export const productsInfiniteQueryOptions = (
     initialPageParam: 1,
     getNextPageParam: (lastPage, _pages, lastPageParam) =>
       lastPageParam * PAGE_SIZE < lastPage.total ? lastPageParam + 1 : undefined,
-    placeholderData: (previousData) => previousData,
   });
 
 export const brandsSearchQueryOptions = (search: string) =>

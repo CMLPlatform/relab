@@ -1,15 +1,9 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import {
-  QueryClient,
-  QueryClientProvider,
-  useInfiniteQuery,
-  useQuery,
-} from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useInfiniteQuery } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import {
   productsInfiniteQueryOptions,
-  productsQueryOptions,
   useBaseProductQuery,
   useComponentQuery,
   useDeleteProductMutation,
@@ -109,60 +103,65 @@ describe('useProductQueries', () => {
     queryClient.clear();
   });
 
-  it('useProductsQuery calls products without owner scope by default', async () => {
-    const mockData = { items: [], total: 0, page: 1, pages: 1, size: 24 };
-    mockedProducts.mockResolvedValue(mockData);
-
-    const { result } = renderHook(() => useQuery(productsQueryOptions('all', 1, '')), { wrapper });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(products).toHaveBeenCalledWith(expect.objectContaining({ page: 1, size: 24 }));
-    expect(mockedProducts.mock.calls[0][0]).not.toHaveProperty('owner');
-    expect(result.current.data).toEqual(mockData);
-  });
-
-  it('useProductsQuery scopes to owner: "me" for the "mine" filter', async () => {
-    const mockData = { items: [], total: 0, page: 1, pages: 1, size: 24 };
-    mockedProducts.mockResolvedValue(mockData);
-
-    const { result } = renderHook(() => useQuery(productsQueryOptions('mine', 1, '')), { wrapper });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(products).toHaveBeenCalledWith(expect.objectContaining({ owner: 'me' }));
-  });
-
-  it('useProductsQuery forwards extra filters and search params', async () => {
-    const mockData = { items: [], total: 0, page: 2, pages: 3, size: 24 };
-    const createdAfter = new Date('2026-01-02T03:04:05.000Z');
-    mockedProducts.mockResolvedValue(mockData);
-
-    renderHook(
-      () =>
-        useQuery(
-          productsQueryOptions('all', 2, 'lamp', ['+name'], {
-            brands: ['ikea', 'philips'],
-            createdAfter,
-            productTypeNames: ['Furniture'],
-          }),
-        ),
-      { wrapper },
-    );
-
-    await waitFor(() => expect(products).toHaveBeenCalled());
-    expect(products).toHaveBeenCalledWith(
-      expect.objectContaining({
-        page: 2,
-        size: 24,
-        search: 'lamp',
-        orderBy: ['+name'],
-        brands: ['ikea', 'philips'],
-        createdAfter,
-        productTypeNames: ['Furniture'],
-      }),
-    );
-  });
-
   describe('productsInfiniteQueryOptions', () => {
+    it('calls products without owner scope by default, starting at page 1', async () => {
+      const mockData = { items: [], total: 0, page: 1, pages: 1, size: 24 };
+      mockedProducts.mockResolvedValue(mockData);
+
+      const { result } = renderHook(
+        () => useInfiniteQuery(productsInfiniteQueryOptions('all', '')),
+        { wrapper },
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(products).toHaveBeenCalledWith(expect.objectContaining({ page: 1, size: 24 }));
+      expect(mockedProducts.mock.calls[0][0]).not.toHaveProperty('owner');
+    });
+
+    it('scopes to owner: "me" for the "mine" filter', async () => {
+      const mockData = { items: [], total: 0, page: 1, pages: 1, size: 24 };
+      mockedProducts.mockResolvedValue(mockData);
+
+      const { result } = renderHook(
+        () => useInfiniteQuery(productsInfiniteQueryOptions('mine', '')),
+        { wrapper },
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(products).toHaveBeenCalledWith(expect.objectContaining({ owner: 'me' }));
+    });
+
+    it('forwards extra filters and search params', async () => {
+      const mockData = { items: [], total: 0, page: 1, pages: 1, size: 24 };
+      const createdAfter = new Date('2026-01-02T03:04:05.000Z');
+      mockedProducts.mockResolvedValue(mockData);
+
+      renderHook(
+        () =>
+          useInfiniteQuery(
+            productsInfiniteQueryOptions('all', 'lamp', ['+name'], {
+              brands: ['ikea', 'philips'],
+              createdAfter,
+              productTypeNames: ['Furniture'],
+            }),
+          ),
+        { wrapper },
+      );
+
+      await waitFor(() => expect(products).toHaveBeenCalled());
+      expect(products).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page: 1,
+          size: 24,
+          search: 'lamp',
+          orderBy: ['+name'],
+          brands: ['ikea', 'philips'],
+          createdAfter,
+          productTypeNames: ['Furniture'],
+        }),
+      );
+    });
+
     it('fetches page 1 first and flags a next page when more results remain', async () => {
       mockedProducts.mockResolvedValue({
         items: [{ ...baseProduct, id: 1, name: 'Product A' }],
