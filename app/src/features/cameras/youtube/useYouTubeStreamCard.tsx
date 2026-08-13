@@ -26,9 +26,10 @@ export function useYouTubeStreamCard(cameraId: string, isOnline: boolean) {
       title: 'End live stream?',
       message: 'This will stop the broadcast and save the recording.',
       buttons: [
-        { text: 'Cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'End stream',
+          style: 'destructive',
           onPress: () =>
             stopMutation.mutate(undefined, {
               onSuccess: () => setActiveStream(null),

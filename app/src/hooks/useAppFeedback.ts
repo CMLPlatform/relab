@@ -1,5 +1,9 @@
 import { useMemo } from 'react';
-import { type DialogButton, useOptionalDialog } from '@/components/base/dialogContext';
+import {
+  type DialogButton,
+  pickSubmitButton,
+  useOptionalDialog,
+} from '@/components/base/dialogContext';
 
 function fallbackAlert(message: string) {
   if (typeof globalThis.alert === 'function') {
@@ -22,10 +26,9 @@ export function useAppFeedback() {
           return;
         }
         fallbackAlert(options.message ?? options.title ?? '');
-        // Last button is the primary action, same convention DialogProvider's Enter key uses.
-        // Matching on the label 'Cancel' instead would auto-fire a dismiss spelled 'No'.
-        const primary = options.buttons?.at(-1);
-        primary?.onPress?.();
+        // Same button DialogProvider's Enter key would submit: the last non-destructive,
+        // non-cancel action. A destructive-only button set must not auto-fire here either.
+        pickSubmitButton(options.buttons ?? [])?.onPress?.();
       },
       input: dialog?.input ?? (() => {}),
       toast,

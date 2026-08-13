@@ -71,6 +71,27 @@ describe('useAppFeedback', () => {
     expect(primaryAction).toHaveBeenCalled();
   });
 
+  it('falls back to global alert but never auto-fires a destructive-tagged action', () => {
+    const cancelAction = jest.fn();
+    const destructiveAction = jest.fn();
+    mockUseOptionalDialog.mockReturnValue(undefined);
+
+    const { result } = renderHook(() => useAppFeedback());
+
+    result.current.alert({
+      title: 'Delete item?',
+      message: 'This cannot be undone.',
+      buttons: [
+        { text: 'Cancel', style: 'cancel', onPress: cancelAction },
+        { text: 'Delete', style: 'destructive', onPress: destructiveAction },
+      ],
+    });
+
+    expect(alertSpy).toHaveBeenCalledWith('This cannot be undone.');
+    expect(destructiveAction).not.toHaveBeenCalled();
+    expect(cancelAction).not.toHaveBeenCalled();
+  });
+
   it('falls back to title when message is omitted and exposes no-op input', () => {
     mockUseOptionalDialog.mockReturnValue(undefined);
 

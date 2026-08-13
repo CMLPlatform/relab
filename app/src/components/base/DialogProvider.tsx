@@ -10,6 +10,7 @@ import {
   DialogContext,
   type DialogContextType,
   type DialogOptions,
+  pickSubmitButton,
 } from './dialogContext';
 import { dialogActionsStyle, dialogTitleStyle } from './dialogStyles';
 import { OverlaySurface } from './OverlaySurface';
@@ -92,10 +93,7 @@ function DialogBody({ options, onDismiss }: { options: DialogOptions; onDismiss:
 
   // Enter submits the last non-destructive, non-cancel action; a dialog whose only
   // action is destructive gets no keyboard default at all.
-  const submitButton = useMemo(
-    () => [...buttons].reverse().find((b) => b.style !== 'destructive' && b.style !== 'cancel'),
-    [buttons],
-  );
+  const submitButton = useMemo(() => pickSubmitButton(buttons), [buttons]);
   const handleSubmitEditing = useCallback(() => {
     if (submitButton) handleClose(submitButton);
   }, [handleClose, submitButton]);
