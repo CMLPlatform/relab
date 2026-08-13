@@ -1,13 +1,12 @@
 ---
 // The 9R framework as a compact tier strip.
 //
-// The `hint` strings are deliberately short paraphrases, NOT the canonical
-// definitions: those are Potting et al. 2017, approved verbatim, and live in
-// the docs at project/9r-framework, which stays the single source for them.
-// A hint here is an orientation aid so a reader can tell Remanufacture from
-// Repurpose without leaving the page; anything longer belongs in the docs, and
-// NineRLadder.test.ts guards the boundary by asserting the canonical wording
-// never appears on the landing page.
+// The `hint` strings are the canonical definitions, Potting et al. 2017, exactly
+// as the docs carry them at project/9r-framework. They are one line each and
+// live in a popover rather than in body copy, so quoting them here costs no
+// page weight and avoids the drift a paraphrase invites. Keep the two copies in
+// step: docs/src/content/docs/project/9r-framework.md is the source of record,
+// and NineRLadder.test.ts pins the wording on this side.
 interface Props {
   docsUrl: string;
 }
@@ -19,16 +18,20 @@ const tiers = [
   {
     label: 'Smarter product use and manufacture',
     rungs: [
-      { r: 'R0', name: 'Refuse', hint: 'Do without the product, or meet the need another way.' },
+      {
+        r: 'R0',
+        name: 'Refuse',
+        hint: 'Make product redundant by abandoning its function or offering the same function with a radically different product.',
+      },
       {
         r: 'R1',
         name: 'Rethink',
-        hint: 'Use the product more intensively, through sharing or multi-purpose designs.',
+        hint: 'Make product use more intensive (e.g. sharing, or multi-functional products).',
       },
       {
         r: 'R2',
         name: 'Reduce',
-        hint: 'Make or use the product with fewer resources and materials.',
+        hint: 'Increase efficiency in manufacture or use by consuming fewer resources and materials.',
       },
     ],
   },
@@ -38,27 +41,35 @@ const tiers = [
       {
         r: 'R3',
         name: 'Re-use',
-        hint: 'Another owner uses the discarded product as it is, for its original purpose.',
+        hint: 'Re-use by another consumer of a discarded product still in good condition and fulfilling its original function.',
       },
-      { r: 'R4', name: 'Repair', hint: 'Fix a faulty product so it works in its original role.' },
-      { r: 'R5', name: 'Refurbish', hint: 'Restore an older product and bring it up to date.' },
+      {
+        r: 'R4',
+        name: 'Repair',
+        hint: 'Repair and maintenance of a defective product so it can be used with its original function.',
+      },
+      { r: 'R5', name: 'Refurbish', hint: 'Restore an old product and bring it up to date.' },
       {
         r: 'R6',
         name: 'Remanufacture',
-        hint: 'Build a new product from parts of discarded ones, keeping the same function.',
+        hint: 'Use parts of a discarded product in a new product with the same function.',
       },
       {
         r: 'R7',
         name: 'Repurpose',
-        hint: 'Use a discarded product or its parts for a different function.',
+        hint: 'Use a discarded product or its parts in a new product with a different function.',
       },
     ],
   },
   {
     label: 'Useful application of materials',
     rungs: [
-      { r: 'R8', name: 'Recycle', hint: 'Process the materials back into usable feedstock.' },
-      { r: 'R9', name: 'Recover', hint: 'Burn the materials to recover the energy in them.' },
+      {
+        r: 'R8',
+        name: 'Recycle',
+        hint: 'Process materials to obtain the same (high-grade) or lower (low-grade) quality.',
+      },
+      { r: 'R9', name: 'Recover', hint: 'Incineration of materials with energy recovery.' },
     ],
   },
 ];

@@ -30,7 +30,7 @@ describe('BrandHero', () => {
     // variants ship as hashed, cacheable URLs with their box reserved.
     expect(html).not.toContain('<svg');
     expect(html.match(/<img[^>]*class="brand-(light|dark)"/g)).toHaveLength(2);
-    expect(html.match(/width="126" height="68"/g)).toHaveLength(2);
+    expect(html.match(/width="156" height="84"/g)).toHaveLength(2);
     // The header's brand link carries the name; this one is decoration, and
     // hands off to it on scroll.
     expect(html).toContain('aria-hidden="true"');

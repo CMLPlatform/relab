@@ -22,8 +22,8 @@
 .site-footer-inner {
   width: min(calc(100% - 2rem), var(--content-width));
   display: grid;
-  gap: 1.6rem;
-  padding: 2.5rem 0 1rem;
+  gap: 1.1rem;
+  padding: 1.8rem 0 0.9rem;
 }
 
 .footer-chrome {

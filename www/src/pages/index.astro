@@ -5,7 +5,6 @@ import HeroTeardown from '@/components/HeroTeardown.astro';
 import MethodSteps from '@/components/MethodSteps.astro';
 import NineRLadder from '@/components/NineRLadder.astro';
 import StatsPanel from '@/components/StatsPanel.astro';
-import TeardownPhoto from '@/components/TeardownPhoto.astro';
 import WhyRelab from '@/components/WhyRelab.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
 import { siteMeta } from '@/copy/site-meta.ts';
@@ -24,18 +23,15 @@ const landing = await loadLandingData();
   heroBrand={true}
 >
   {/* Narrative order: what Relab is and one real record, side by side (hero)
-      -> what that looks like physically (photo) -> why it matters (motivation)
-      -> how records are made (method) -> what they are for (9R) -> how many
-      exist (stats). Who made it, how to cite it and what it is licensed under
-      live in the footer colophon.
+      -> why it matters (motivation) -> how records are made (method) -> what
+      they are for (9R) -> how many exist (stats). Who made it, how to cite it
+      and what it is licensed under live in the footer colophon.
       The claim and its evidence share the first viewport rather than the pitch
-      taking a screen to itself, and the photograph lands between the abstract
-      schedule and the argument, as the object both are about. */}
+      taking a screen to itself. */}
   <div class="hero-split">
     <BrandHero stats={landing.stats} appUrl={publicSiteConfig.appUrl} />
     <HeroTeardown teardown={landing.teardown} fromFixture={landing.fromFixture} />
   </div>
-  <TeardownPhoto />
   <WhyRelab />
   <MethodSteps />
   <NineRLadder docsUrl={publicSiteConfig.docsUrl} />
@@ -43,12 +39,13 @@ const landing = await loadLandingData();
 </Layout>
 
 <style>
-  /* The pitch and the artifact, side by side. The record column is given the
-     larger share: it is the thing worth looking at. Collapses to one column
-     well before tablet width, where two columns would starve both. */
+  /* The pitch and the artifact, side by side, at close to even width: the
+     record column is the thing worth looking at, but the headline needs room
+     to break after "for" rather than run to three lines. Collapses to one
+     column well before tablet width, where two would starve both. */
   .hero-split {
     display: grid;
-    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 2.5rem;
     align-items: start;
     padding-bottom: 3rem;

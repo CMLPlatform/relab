@@ -183,48 +183,15 @@ GENERATED_ASSETS = (
 )
 
 
-def content_photo_args() -> tuple[str, ...]:
-    """ImageMagick args for a sharp, web-sized JPEG shown as content.
-
-    www used to receive these downscaled and pre-blurred, because both sites
-    painted the photograph as a full-viewport backdrop behind the text. Neither
-    does any more: the page ground is flat, and www shows this one sharp, at a
-    readable size, as the artifact it is. So the derivative keeps its detail --
-    the whole point is that you can pick out individual components -- and is
-    sized for a full-width figure in the page column rather than for a viewport
-    it was only ever going to be blurred across.
-    """
-    return (
-        "-resize",
-        "1600x",
-        "-sampling-factor",
-        "4:2:0",
-        "-strip",
-        "-interlace",
-        "JPEG",
-        "-quality",
-        "72",
-    )
-
-
 # (source, target, ImageMagick args) — derived from a raster source, not the logo.
-PROCESSED_ASSETS = (
-    (
-        root_path("assets/images/bg-light.jpg"),
-        root_path("www/src/assets/images/teardown-knolled.jpg"),
-        content_photo_args(),
-        DENSITY,
-    ),
-    # NOTE: neither site receives a backdrop any more. Their page grounds are
-    # flat tokens (www/src/styles/tokens.css, docs/src/styles/base.css), and
-    # syncing the JPEGs back in would resurrect the wallpaper on the next run.
-    #
-    # bg-dark.jpg is not synced to www at all: it is a close-up of loose screws,
-    # which works as texture behind a dark page but says nothing as a picture.
-    # The knolled teardown above carries meaning at any size, so it is the only
-    # one that survives the move from wallpaper to content. Both still sync to
-    # app, which renders them sharp as real backgrounds.
-)
+#
+# NOTE: empty on purpose. The bg-*.jpg pair are backdrop images, and neither www
+# nor docs paints a backdrop any more: both page grounds are flat tokens
+# (www/src/styles/tokens.css, docs/src/styles/base.css). Syncing the JPEGs back
+# in would resurrect the wallpaper on the next run, so the entries are gone
+# rather than merely unreferenced. They still sync to app (see COPY_ASSETS),
+# which renders them full-resolution as real backgrounds.
+PROCESSED_ASSETS: tuple[tuple[Path, Path, tuple[str, ...], int], ...] = ()
 
 
 PALETTE_SOURCE = root_path("assets/palette.json")

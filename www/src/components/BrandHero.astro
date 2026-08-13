@@ -26,11 +26,11 @@ const appBase = appUrl.replace(/\/$/, '');
 
 <section class="brand-hero">
   {/* Decorative: the sticky header's brand link carries the "Relab" name, and
-      this melts away as that one arrives. The artwork is 475x256, so 68px tall
-      is 126px wide; CSS still sizes it. */}
+      this melts away as that one arrives. The artwork is 475x256, so 84px tall
+      is 156px wide; CSS still sizes it. */}
   <div class="brand-hero-logo" aria-hidden="true">
-    <img class="brand-light" src={logoUrl} alt="" width="126" height="68" />
-    <img class="brand-dark" src={logoDarkUrl} alt="" width="126" height="68" />
+    <img class="brand-light" src={logoUrl} alt="" width="156" height="84" />
+    <img class="brand-dark" src={logoDarkUrl} alt="" width="156" height="84" />
   </div>
   <h1 class="brand-hero-title">{siteMeta.heroTitle}</h1>
   <p class="brand-hero-lead">{siteMeta.heroNutshell}</p>
@@ -88,7 +88,7 @@ const appBase = appUrl.replace(/\/$/, '');
 
   .brand-hero-logo img {
     display: block;
-    height: clamp(52px, 5vw, 68px);
+    height: clamp(60px, 6vw, 84px);
     width: auto;
   }
 
@@ -144,13 +144,22 @@ const appBase = appUrl.replace(/\/$/, '');
   }
 
   /* Display size from assets/DESIGN.md's web scale (38/44), floored so it still
-     fits a phone. Capped at 18ch so the headline breaks where its sense does
-     rather than wherever the column happens to end. */
+     fits a phone.
+
+     `text-wrap: balance` rather than a hand-tuned measure: the headline should
+     take two lines on a wide viewport and break after "for", but `ch` is the
+     width of a "0", which in a serif is a poor proxy for mixed-case text, so
+     tuning the cap by character count kept letting "circular-" onto the first
+     line and splitting the compound at its own hyphen. Balancing asks the
+     browser to minimise the longest line, which picks that break on its own
+     and keeps doing so if the copy changes. The cap is only a ceiling now.
+     Without support the headline simply wraps on the cap, as it did before. */
   .brand-hero-title {
     margin: 0;
-    max-width: 18ch;
+    max-width: 30ch;
     font-size: clamp(2rem, 3.2vw, 2.375rem);
     line-height: 1.16;
+    text-wrap: balance;
   }
 
   .brand-hero-lead {

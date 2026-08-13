@@ -44,28 +44,40 @@ describe('NineRLadder', () => {
     expect(html).toMatch(/\(2017\):\s+<a/);
   });
 
-  it('keeps the definitions in the docs, not on the landing page', async () => {
+  it('keeps the definitions out of the page body, in the hint popover only', async () => {
     const html = await render();
-    expect(html).not.toContain('Incineration');
-    expect(html).not.toContain('radically different product');
+    // Each definition appears exactly twice, and both are attribute values:
+    // `data-rung-hint` (read by the popover script) and `title` (the no-JS
+    // fallback it replaces). Never as a text node, which would put a paragraph
+    // of definition into a strip whose visible copy is names and tiers only.
+    for (const definition of ['Incineration of materials', 'radically different product']) {
+      // Twice, because each rung carries the text in both attributes.
+      expect(html.split(definition)).toHaveLength(3);
+      // Never after a `>`, which is where a text node would put it.
+      expect(html).not.toMatch(new RegExp(`>[^<]*${definition}`));
+    }
   });
 
-  it('gives every rung a short hint, with a no-JS title fallback', async () => {
+  it('quotes the canonical definitions verbatim, matching the docs', async () => {
+    const html = await render();
+    // Source of record: docs/src/content/docs/project/9r-framework.md. The pair
+    // readers actually confuse is Remanufacture/Repurpose, so both are pinned.
+    expect(html).toContain(
+      'Use parts of a discarded product in a new product with the same function.',
+    );
+    expect(html).toContain(
+      'Use a discarded product or its parts in a new product with a different function.',
+    );
+    expect(html).toContain('Restore an old product and bring it up to date.');
+  });
+
+  it('gives every rung a hint, with a no-JS title fallback', async () => {
     const html = await render();
     expect(html.match(/data-rung-hint=/g)).toHaveLength(10);
     // The `title` is what a visitor gets if the popover script never runs; the
     // script removes it once the popover is live so the two never double up.
     expect(html.match(/title="[^"]+"/g)?.length).toBeGreaterThanOrEqual(10);
     expect(html).toContain('id="nine-r-popover"');
-  });
-
-  it('paraphrases in the hints rather than restating the canonical wording', async () => {
-    const html = await render();
-    // Remanufacture and Repurpose are the pair readers actually confuse, so
-    // the hints have to separate them without importing the docs' definitions.
-    expect(html).toContain('keeping the same function');
-    expect(html).toContain('for a different function');
-    expect(html).not.toContain('Use parts of a discarded product in a new product');
   });
 
   it('does not claim there are nine strategies', async () => {
