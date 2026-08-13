@@ -151,15 +151,21 @@ export function getProductCapabilities({
 
 export function getPrimaryFabIcon({
   isSaving,
+  isPaused,
   showSavedIcon,
   editMode,
   theme,
 }: {
   isSaving: boolean;
+  isPaused: boolean;
   showSavedIcon: boolean;
   editMode: boolean;
   theme: AppTheme;
 }) {
+  // Paused (offline, queued) isn't "loading" — an eternal spinner has no
+  // end state to indicate. The queued clock replaces it; FabControls swaps
+  // the label to match.
+  if (isSaving && isPaused) return <Icon name="clock" color={theme.colors.onBackground} />;
   if (isSaving) return <ActivityIndicator color={theme.colors.onBackground} />;
   if (showSavedIcon) {
     // Icon doesn't forward testID (Lucide maps it to a data-testid attribute

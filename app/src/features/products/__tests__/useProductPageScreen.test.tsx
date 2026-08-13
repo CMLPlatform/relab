@@ -102,6 +102,7 @@ const baseFormReturn = {
   error: null,
   refetch: jest.fn(),
   isSaving: false,
+  isPaused: false,
   justSaved: false,
   onProductNameChange: jest.fn(),
   onChangeDescription: jest.fn(),

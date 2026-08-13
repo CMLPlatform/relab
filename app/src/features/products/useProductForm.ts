@@ -19,6 +19,7 @@ import type { Product } from '@/types/Product';
 import { getErrorMessage } from '@/utils/errors';
 import {
   type ProductRole,
+  QUEUED_OFFLINE_LABEL,
   useBaseProductQuery,
   useComponentQuery,
   useDeleteProductMutation,
@@ -265,6 +266,14 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
 
   const saveMutation = useSaveProductMutation();
   const deleteMutation = useDeleteProductMutation();
+
+  // Announce the queued-offline state once per pause — not on every render —
+  // so going offline mid-save doesn't leave the save-FAB spinning forever
+  // with no explanation (the button label handles the ongoing state).
+  useEffect(() => {
+    if (saveMutation.isPaused) dialog.toast(QUEUED_OFFLINE_LABEL);
+  }, [saveMutation.isPaused, dialog]);
+
   const fieldHandlers = useProductFieldHandlers(setValue);
   const { saveAndExit, onProductDelete } = useProductFormActions({
     deleteMutation,
@@ -294,6 +303,7 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
     error,
     refetch,
     isSaving: saveMutation.isPending,
+    isPaused: saveMutation.isPaused,
     justSaved: saveMutation.isSuccess,
     ...fieldHandlers,
     saveAndExit,

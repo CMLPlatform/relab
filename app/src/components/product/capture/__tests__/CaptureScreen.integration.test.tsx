@@ -35,13 +35,22 @@ jest.mock('expo-router', () => ({
 
 const mockMutateAsync = jest.fn<(args: { product: { id?: number } }) => Promise<number>>();
 const mockUseAuth = jest.fn();
+// Plain mutable flags (not jest.fn().mockReturnValue) so the mocked hook
+// below re-reads them fresh on every render without extra setup per test.
+let mockIsPending = false;
+let mockIsPaused = false;
 
 jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
 jest.mock('@/features/products/queries', () => ({
-  useSaveProductMutation: () => ({ mutateAsync: mockMutateAsync, isPending: false }),
+  QUEUED_OFFLINE_LABEL: 'Queued — sends when online',
+  useSaveProductMutation: () => ({
+    mutateAsync: mockMutateAsync,
+    isPending: mockIsPending,
+    isPaused: mockIsPaused,
+  }),
 }));
 
 jest.mock('@/features/product-entity/queries', () => ({
@@ -101,6 +110,8 @@ async function renderCapture(props: Parameters<typeof CaptureScreen>[0]) {
 describe('CaptureScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsPending = false;
+    mockIsPaused = false;
     mockAddListenerImpl = () => jest.fn();
     mockUseAuth.mockReturnValue({ user: { id: '1', username: 'owner' } });
     mockedLoadCPV.mockResolvedValue({
@@ -125,6 +136,24 @@ describe('CaptureScreen', () => {
     expect(screen.getByText('Create & add another')).toBeOnTheScreen();
     expect(screen.queryByText('Physical properties')).toBeNull();
     expect(screen.queryByText('Component of:', { exact: false })).toBeNull();
+  });
+
+  // TDD for the offline-queued acknowledgment: a paused save mutation shows a
+  // short "queued" label on both Create buttons and drops the spinner —
+  // "paused" isn't "loading", there's nothing to spin for until the device
+  // comes back online.
+  it('shows a queued label and no spinner on both Create buttons while paused offline', async () => {
+    mockIsPending = true;
+    mockIsPaused = true;
+    const { UNSAFE_root } = await renderCapture({ entityRole: 'product' });
+
+    // Both Create buttons, plus the one-time toast useCaptureEntity fires on
+    // the isPaused transition (see useCaptureEntity.test.tsx for that in isolation).
+    expect(screen.getAllByText('Queued — sends when online')).toHaveLength(3);
+    expect(screen.queryByText('Create product')).toBeNull();
+    expect(screen.queryByText('Create & add another')).toBeNull();
+    const { ActivityIndicator } = jest.requireActual<typeof import('react-native')>('react-native');
+    expect(UNSAFE_root.findAllByType(ActivityIndicator)).toHaveLength(0);
   });
 
   // Only a component can be a material; a product is always a type.

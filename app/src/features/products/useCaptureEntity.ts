@@ -1,11 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { newProduct } from '@/services/api/products';
 import { createRequestId } from '@/services/api/request';
 import { PRODUCT_NAME_MIN_LENGTH } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';
 import { getErrorMessage } from '@/utils/errors';
-import { useSaveProductMutation } from './queries';
+import { QUEUED_OFFLINE_LABEL, useSaveProductMutation } from './queries';
 
 const DEFAULT_AMOUNT = 1;
 
@@ -23,6 +23,13 @@ export type UseCaptureEntityOptions = {
 export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntityOptions) {
   const feedback = useAppFeedback();
   const saveMutation = useSaveProductMutation();
+
+  // Announce the queued-offline state once per pause — not on every render —
+  // so going offline mid-create doesn't leave the Create button spinning
+  // forever with no explanation (the button label handles the ongoing state).
+  useEffect(() => {
+    if (saveMutation.isPaused) feedback.toast(QUEUED_OFFLINE_LABEL);
+  }, [saveMutation.isPaused, feedback]);
 
   const [name, setName] = useState('');
   const [typeID, setTypeID] = useState<number | undefined>(undefined);
@@ -116,6 +123,7 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
     setImages,
     canCreate,
     isCreating: saveMutation.isPending,
+    isPaused: saveMutation.isPaused,
     isDirty,
     create,
     createAndAddAnother,

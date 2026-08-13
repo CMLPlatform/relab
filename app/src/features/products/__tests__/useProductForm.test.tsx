@@ -28,6 +28,7 @@ jest.mock('@/components/base/dialogContext', () => {
 });
 
 jest.mock('@/features/products/queries', () => ({
+  QUEUED_OFFLINE_LABEL: 'Queued — sends when online',
   useBaseProductQuery: jest.fn(() => ({ data: undefined, isLoading: false })),
   useComponentQuery: jest.fn(() => ({ data: undefined, isLoading: false })),
   useSaveProductMutation: jest.fn(),
@@ -307,6 +308,52 @@ describe('useProductForm', () => {
       }),
     );
     expect(onSaveSuccess).not.toHaveBeenCalled();
+  });
+
+  // TDD for the offline-queued acknowledgment: a paused mutation must not
+  // just spin forever — the screen surfaces it (a toast, fired once) and
+  // exposes isPaused so the save button can swap its label.
+  it('toasts once when the save mutation pauses (offline) and exposes isPaused', async () => {
+    const mockToast = jest.fn();
+    jest
+      .mocked(useDialog)
+      .mockReturnValue({ alert: jest.fn(), input: jest.fn(), toast: mockToast });
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => 123),
+      isPaused: true,
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
+
+    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    expect(result.current.isPaused).toBe(true);
+    expect(mockToast).toHaveBeenCalledTimes(1);
+    expect(mockToast).toHaveBeenCalledWith('Queued — sends when online');
+  });
+
+  it('does not toast when the save mutation is not paused', async () => {
+    const mockToast = jest.fn();
+    jest
+      .mocked(useDialog)
+      .mockReturnValue({ alert: jest.fn(), input: jest.fn(), toast: mockToast });
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => 123),
+      isPaused: false,
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
+
+    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    expect(result.current.isPaused).toBe(false);
+    expect(mockToast).not.toHaveBeenCalled();
   });
 
   it('calls delete mutation and navigates to /products on success', async () => {

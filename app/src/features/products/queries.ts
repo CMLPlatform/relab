@@ -181,13 +181,18 @@ function isRetryableSaveError(failureCount: number, error: unknown): boolean {
   return !(error instanceof ApiError);
 }
 
+// Shown on the save/create button (kept short — see FabControls/SaveBar/
+// CaptureScreen) and in the one-time toast when the mutation pauses below.
+export const QUEUED_OFFLINE_LABEL = 'Queued — sends when online';
+
 export function useSaveProductMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
     // Default networkMode: 'online' — the mutation pauses while onlineManager
     // reports offline (button stays in its loading state, nothing errors or
-    // drops) and fires automatically on reconnect.
+    // drops) and fires automatically on reconnect. Callers read `isPaused` to
+    // swap the eternal spinner for QUEUED_OFFLINE_LABEL.
     mutationKey: SAVE_PRODUCT_MUTATION_KEY,
     mutationFn: saveProductMutationFn,
     retry: isRetryableSaveError,

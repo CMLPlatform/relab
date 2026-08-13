@@ -191,6 +191,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
         errorCount={editing.validationResult.errorCount}
         onErrorSummaryPress={onErrorSummaryPress}
         isSaving={editing.isSaving}
+        isPaused={editing.isPaused}
         isDirty={editing.isDirty}
         onPrimaryFabPress={onPrimaryFabPress}
         streamPickerVisible={streaming.streamPickerVisible}

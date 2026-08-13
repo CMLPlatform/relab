@@ -5,11 +5,16 @@ import { useCaptureEntity } from '@/features/products/useCaptureEntity';
 const mockMutateAsync = jest.fn<(args: { product: { id?: number } }) => Promise<number>>();
 const mockToast = jest.fn();
 const mockError = jest.fn();
+// Plain mutable flag (not jest.fn().mockReturnValue) so the mocked hook below
+// re-reads it fresh on every render without extra setup per test.
+let mockIsPaused = false;
 
 jest.mock('@/features/products/queries', () => ({
+  QUEUED_OFFLINE_LABEL: 'Queued — sends when online',
   useSaveProductMutation: () => ({
     mutateAsync: mockMutateAsync,
     isPending: false,
+    isPaused: mockIsPaused,
   }),
 }));
 
@@ -44,6 +49,7 @@ jest.mock('@/services/api/products', () => ({
 describe('useCaptureEntity', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsPaused = false;
   });
 
   it('disallows creation below the name minimum and allows it at the minimum', () => {
@@ -280,6 +286,25 @@ describe('useCaptureEntity', () => {
     expect(outcome).toBeUndefined();
     expect(mockToast).not.toHaveBeenCalled();
     expect(result.current.name).toBe('Widget');
+  });
+
+  // TDD for the offline-queued acknowledgment: a paused mutation must not
+  // just leave the Create button spinning — the screen surfaces it (a toast,
+  // fired once) and exposes isPaused so the button can swap its label.
+  it('exposes isPaused and toasts once when the save mutation pauses offline', () => {
+    mockIsPaused = true;
+    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+
+    expect(result.current.isPaused).toBe(true);
+    expect(mockToast).toHaveBeenCalledTimes(1);
+    expect(mockToast).toHaveBeenCalledWith('Queued — sends when online');
+  });
+
+  it('does not toast when the save mutation is not paused', () => {
+    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+
+    expect(result.current.isPaused).toBe(false);
+    expect(mockToast).not.toHaveBeenCalled();
   });
 
   it('isDirty reflects any field set beyond defaults', () => {

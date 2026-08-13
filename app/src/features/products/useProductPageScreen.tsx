@@ -73,6 +73,7 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     error,
     refetch,
     isSaving,
+    isPaused,
     justSaved,
     onProductNameChange,
     onChangeDescription,
@@ -209,10 +210,12 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
       editMode,
       isDirty,
       isSaving,
+      isPaused,
       validationResult,
       primaryFabIcon: () =>
         getPrimaryFabIcon({
           isSaving,
+          isPaused,
           showSavedIcon,
           editMode,
           theme,

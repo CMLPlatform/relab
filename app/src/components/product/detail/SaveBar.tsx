@@ -1,6 +1,7 @@
 import { View, type ViewStyle } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { getFloatingPosition } from '@/utils/platformLayout';
 
 type SaveBarProps = {
@@ -10,6 +11,8 @@ type SaveBarProps = {
   editMode: boolean;
   isDirty: boolean;
   isSaving: boolean;
+  /** Mutation is paused offline (TanStack's `isPaused`) — swaps the label, drops the spinner. */
+  isPaused: boolean;
   validationValid: boolean;
   validationError?: string;
   errorCount?: number;
@@ -32,6 +35,7 @@ export function SaveBar({
   editMode,
   isDirty,
   isSaving,
+  isPaused,
   validationValid,
   validationError,
   errorCount,
@@ -46,6 +50,9 @@ export function SaveBar({
   const wouldSave = editMode && isDirty;
   const needsAttention = wouldSave && !validationValid && (errorCount ?? 0) > 0;
   const blockedByValidation = wouldSave && !validationValid && !needsAttention;
+  // Offline: the mutation is paused, not "loading" — no spinner to show
+  // until connectivity returns.
+  const isQueued = isSaving && isPaused;
   // Mirrors PrimaryProductFab: in the needsAttention state the entire press
   // routes to the error summary instead of saving invalid data.
   const onPrimaryButtonPress = needsAttention
@@ -70,10 +77,10 @@ export function SaveBar({
       <AppButton
         variant="primary"
         onPress={onPrimaryButtonPress}
-        loading={isSaving}
+        loading={isSaving && !isPaused}
         disabled={isSaving || blockedByValidation}
       >
-        {editMode ? `Save ${titleLabel}` : `Edit ${titleLabel}`}
+        {isQueued ? QUEUED_OFFLINE_LABEL : editMode ? `Save ${titleLabel}` : `Edit ${titleLabel}`}
       </AppButton>
     </View>
   );

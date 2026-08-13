@@ -10,6 +10,7 @@ import { Input } from '@/components/base/ui/input';
 import CPVCard from '@/components/product/CPVCard';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
+import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { useCaptureScreen } from '@/features/products/useCaptureScreen';
 import { PRODUCT_NAME_MAX_LENGTH } from '@/services/api/validation/productSchema';
 import { loadCPV } from '@/services/cpv';
@@ -104,6 +105,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
     setImages,
     canCreate,
     isCreating,
+    isPaused,
     draftProduct,
     parentName,
     handleCreate,
@@ -113,6 +115,10 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
   const submitOnEnter = useCallback(() => {
     if (canCreate) void handleCreate();
   }, [canCreate, handleCreate]);
+
+  // Offline: the mutation is paused, not "loading" — no spinner to show
+  // until connectivity returns (see useCaptureEntity's isPaused wiring).
+  const isQueued = isCreating && isPaused;
 
   const nameInputRef = useRef<TextInput>(null);
   const onCreateAndAddAnother = useCallback(async () => {
@@ -158,18 +164,22 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
             <AppButton
               variant="primary"
               disabled={!canCreate}
-              loading={isCreating}
+              loading={isCreating && !isPaused}
               onPress={handleCreate}
             >
-              {role === 'component' ? 'Create component' : 'Create product'}
+              {isQueued
+                ? QUEUED_OFFLINE_LABEL
+                : role === 'component'
+                  ? 'Create component'
+                  : 'Create product'}
             </AppButton>
             <AppButton
               variant="outline"
               disabled={!canCreate}
-              loading={isCreating}
+              loading={isCreating && !isPaused}
               onPress={onCreateAndAddAnother}
             >
-              Create & add another
+              {isQueued ? QUEUED_OFFLINE_LABEL : 'Create & add another'}
             </AppButton>
           </View>
         </View>

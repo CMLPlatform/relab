@@ -35,6 +35,7 @@ const baseProps = {
   fabExtended: true,
   validationValid: true,
   isSaving: false,
+  isPaused: false,
   isDirty: false,
   onPrimaryFabPress: jest.fn(),
   streamPickerVisible: false,
@@ -109,6 +110,22 @@ describe('ProductFabControls — primary FAB enabled state', () => {
   it('uses component labels for component pages', () => {
     render(<ProductFabControls {...baseProps} entityRole="component" editMode={false} />);
     expect(screen.getByText('Edit Component')).toBeOnTheScreen();
+  });
+
+  // TDD for the offline-queued acknowledgment: a paused save mutation labels
+  // the FAB "Queued — sends when online" instead of the usual Save/Edit copy.
+  it('shows a queued label while the save mutation is paused offline', () => {
+    render(
+      <ProductFabControls
+        {...baseProps}
+        editMode={true}
+        isDirty={true}
+        validationValid={true}
+        isSaving={true}
+        isPaused={true}
+      />,
+    );
+    expect(screen.getByText('Queued — sends when online')).toBeOnTheScreen();
   });
 });
 

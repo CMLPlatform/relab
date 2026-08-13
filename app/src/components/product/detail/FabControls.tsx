@@ -13,6 +13,7 @@ import { OverlaySurface } from '@/components/base/OverlaySurface';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
 import { spacing } from '@/constants';
+import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useAppTheme } from '@/theme';
 import { getFloatingPosition } from '@/utils/platformLayout';
@@ -30,6 +31,8 @@ type ProductFabControlsProps = {
   errorCount?: number;
   onErrorSummaryPress?: () => void;
   isSaving: boolean;
+  /** Mutation is paused offline (TanStack's `isPaused`) — see SaveBar/PrimaryProductFab. */
+  isPaused: boolean;
   isDirty: boolean;
   onPrimaryFabPress: () => void;
   streamPickerVisible: boolean;
@@ -50,6 +53,7 @@ export function ProductFabControls({
   errorCount,
   onErrorSummaryPress,
   isSaving,
+  isPaused,
   isDirty,
   onPrimaryFabPress,
   streamPickerVisible,
@@ -74,6 +78,7 @@ export function ProductFabControls({
           editMode={editMode}
           isDirty={isDirty}
           isSaving={isSaving}
+          isPaused={isPaused}
           validationValid={validationValid}
           validationError={validationError}
           errorCount={errorCount}
@@ -93,6 +98,7 @@ export function ProductFabControls({
           errorCount={errorCount}
           onErrorSummaryPress={onErrorSummaryPress}
           isSaving={isSaving}
+          isPaused={isPaused}
           isDirty={isDirty}
           ownedByMe={ownedByMe}
           editMode={editMode}
@@ -122,6 +128,7 @@ function PrimaryProductFab({
   errorCount,
   onErrorSummaryPress,
   isSaving,
+  isPaused,
   isDirty,
   ownedByMe,
   editMode,
@@ -136,6 +143,7 @@ function PrimaryProductFab({
   errorCount?: number;
   onErrorSummaryPress?: () => void;
   isSaving: boolean;
+  isPaused: boolean;
   isDirty: boolean;
   ownedByMe: boolean;
   editMode: boolean;
@@ -146,11 +154,16 @@ function PrimaryProductFab({
   // Invalid + errors to show: swap the FAB from "save" to "go to the first
   // problem" instead of blocking the press behind a disabled button.
   const needsAttention = wouldSave && !validationValid && (errorCount ?? 0) > 0;
+  // Offline: the mutation is paused, not "loading" — nothing to spin for
+  // until connectivity returns (getPrimaryFabIcon swaps the FAB's icon too).
+  const isQueued = isSaving && isPaused;
   const label = needsAttention
     ? `${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`
-    : editMode
-      ? `Save ${titleLabel}`
-      : `Edit ${titleLabel}`;
+    : isQueued
+      ? QUEUED_OFFLINE_LABEL
+      : editMode
+        ? `Save ${titleLabel}`
+        : `Edit ${titleLabel}`;
   // Invalid with no known error count (errorCount undefined/0) has no error
   // summary to route to, so — unlike the needsAttention case — the only safe
   // move is to block the press outright instead of saving invalid data.
