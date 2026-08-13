@@ -12,6 +12,7 @@ import { searchProductBrands } from '@/services/api/productSuggestions';
 import { products } from '@/services/api/products';
 import { searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
+import { SAVE_PRODUCT_MUTATION_KEY } from '@/services/storage';
 import type { Product } from '@/types/Product';
 
 export type ProductRole = 'product' | 'component';
@@ -147,11 +148,10 @@ export type SaveProductVariables = {
 };
 
 // Exported (not just inlined in the hook below) so _layout.tsx can register it
-// via queryClient.setMutationDefaults(['saveProduct'], { mutationFn: ... }) —
-// a mutation restored from the persisted cache after a reload has no function
-// attached (functions aren't serializable), so TanStack's persist-mutations
-// pattern re-attaches one by mutationKey. Keep this in sync with the
-// mutationKey below if either ever changes.
+// via queryClient.setMutationDefaults(SAVE_PRODUCT_MUTATION_KEY, { mutationFn:
+// ... }) — a mutation restored from the persisted cache after a reload has no
+// function attached (functions aren't serializable), so TanStack's
+// persist-mutations pattern re-attaches one by mutationKey.
 export const saveProductMutationFn = ({
   product,
   originalImages,
@@ -182,7 +182,7 @@ export function useSaveProductMutation() {
     // Default networkMode: 'online' — the mutation pauses while onlineManager
     // reports offline (button stays in its loading state, nothing errors or
     // drops) and fires automatically on reconnect.
-    mutationKey: ['saveProduct'],
+    mutationKey: SAVE_PRODUCT_MUTATION_KEY,
     mutationFn: saveProductMutationFn,
     retry: isRetryableSaveError,
 

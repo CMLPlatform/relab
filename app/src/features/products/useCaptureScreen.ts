@@ -90,13 +90,20 @@ export function useCaptureScreen({ role, parentID, parentRole }: UseCaptureEntit
     goToSaved(savedId);
   };
 
-  const handleCreateAndAddAnother = async () => {
+  // Returns whether the screen stayed put with a freshly reset form (a plain
+  // create failure also stays put, but leaves the fields as the researcher
+  // typed them — only a successful reset should steal focus back to Name).
+  const handleCreateAndAddAnother = async (): Promise<boolean> => {
     const result = await createAndAddAnother();
+    if (result === undefined) return false;
     // Batch mode has nothing left to batch on a partial success: the record
     // exists and its photos need attention, so route to the detail screen
     // exactly like a plain Create instead of staying on the capture form.
-    if (!result?.partial) return;
-    goToSaved(result.id);
+    if (result.partial) {
+      goToSaved(result.id);
+      return false;
+    }
+    return true;
   };
 
   return { ...entity, draftProduct, parentName, handleCreate, handleCreateAndAddAnother };

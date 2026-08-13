@@ -53,48 +53,36 @@ export function useProductsActions({
   router: ReturnType<typeof useRouter>;
   updateParams: (newParams: RouterSetParams) => void;
 }) {
-  const clearQuery = useCallback(() => updateParams({ q: undefined, page: '1' }), [updateParams]);
+  const clearQuery = useCallback(() => updateParams({ q: undefined }), [updateParams]);
   const applySort = useCallback(
-    (sort: readonly string[]) =>
-      updateParams({ sort: sort.length ? sort.join(',') : undefined, page: '1' }),
+    (sort: readonly string[]) => updateParams({ sort: sort.length ? sort.join(',') : undefined }),
     [updateParams],
   );
   const toggleMine = useCallback(
-    () => updateParams({ filterMode: filterMode === 'mine' ? 'all' : 'mine', page: '1' }),
+    () => updateParams({ filterMode: filterMode === 'mine' ? 'all' : 'mine' }),
     [filterMode, updateParams],
   );
-  const clearMine = useCallback(
-    () => updateParams({ filterMode: 'all', page: '1' }),
-    [updateParams],
-  );
+  const clearMine = useCallback(() => updateParams({ filterMode: 'all' }), [updateParams]);
   const applyDatePreset = useCallback(
-    (days: string | undefined) => updateParams({ days, page: '1' }),
+    (days: string | undefined) => updateParams({ days }),
     [updateParams],
   );
   const applyBrandSelection = useCallback(
     (values: string[]) =>
       updateParams({
         brands: values.length ? values.join(FILTER_CSV_SEPARATOR) : undefined,
-        page: '1',
       }),
     [updateParams],
   );
-  const clearBrands = useCallback(
-    () => updateParams({ brands: undefined, page: '1' }),
-    [updateParams],
-  );
+  const clearBrands = useCallback(() => updateParams({ brands: undefined }), [updateParams]);
   const applyTypeSelection = useCallback(
     (values: string[]) =>
       updateParams({
         types: values.length ? values.join(FILTER_CSV_SEPARATOR) : undefined,
-        page: '1',
       }),
     [updateParams],
   );
-  const clearTypes = useCallback(
-    () => updateParams({ types: undefined, page: '1' }),
-    [updateParams],
-  );
+  const clearTypes = useCallback(() => updateParams({ types: undefined }), [updateParams]);
   const goToLogin = useCallback(() => {
     router.push('/login');
   }, [router]);

@@ -65,4 +65,5 @@ minimumReleaseAgeExclude:
   - '@biomejs/cli-linux-x64@2.5.8'
   - '@biomejs/cli-win32-arm64@2.5.8'
   - '@biomejs/cli-win32-x64@2.5.8'
+  # NOTE: zustand 5.0.15 published 2026-08-13; this pin expires (delete after 2026-08-16).
   - zustand@5.0.15

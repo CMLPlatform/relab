@@ -16,7 +16,6 @@ const FALLBACK_DEFAULT_SORT = Array.from(PRODUCT_SORT_OPTIONS[1].value);
 export type ProductsSearchParams = {
   filterMode?: string;
   q?: string;
-  page?: string;
   sort?: string;
   brands?: string;
   types?: string;
@@ -30,7 +29,6 @@ export function normalizeProductsParams(params: ProductsSearchParams) {
   return {
     filterMode: (params.filterMode as ProductFilter) || 'all',
     searchQueryURL,
-    page: Number(params.page) || 1,
     sortBy: params.sort
       ? params.sort.split(',')
       : searchQueryURL
@@ -107,13 +105,13 @@ export function useProductsParamsSync({
     // write the lagging value straight back, re-clobbering the intended ?q=.
     if (debouncedSearchQuery !== searchQuery) return;
     if (debouncedSearchQuery !== searchQueryURL) {
-      updateParams({ q: debouncedSearchQuery || undefined, page: '1' });
+      updateParams({ q: debouncedSearchQuery || undefined });
     }
   }, [debouncedSearchQuery, searchQuery, searchQueryURL, updateParams]);
 
   useEffect(() => {
     if (!currentUser && filterMode === 'mine') {
-      updateParams({ filterMode: 'all', page: '1' });
+      updateParams({ filterMode: 'all' });
     }
   }, [currentUser, filterMode, updateParams]);
 }

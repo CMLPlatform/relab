@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { type TextInput, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { AmountStepper } from '@/components/base/AmountStepper';
 import { AppButton } from '@/components/base/AppButton';
@@ -114,6 +114,14 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
     if (canCreate) void handleCreate();
   }, [canCreate, handleCreate]);
 
+  const nameInputRef = useRef<TextInput>(null);
+  const onCreateAndAddAnother = useCallback(async () => {
+    // Only steal focus back to Name when the form was actually reset (a
+    // create failure leaves the fields as typed — nothing to refocus for).
+    const didReset = await handleCreateAndAddAnother();
+    if (didReset) nameInputRef.current?.focus();
+  }, [handleCreateAndAddAnother]);
+
   return (
     <KeyboardAwareScrollView
       testID="capture-scroll"
@@ -126,6 +134,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
           <View>
             <AppText variant="eyebrow">Name</AppText>
             <Input
+              ref={nameInputRef}
               value={name}
               onChangeText={setName}
               autoFocus
@@ -158,7 +167,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
               variant="outline"
               disabled={!canCreate}
               loading={isCreating}
-              onPress={handleCreateAndAddAnother}
+              onPress={onCreateAndAddAnother}
             >
               Create & add another
             </AppButton>

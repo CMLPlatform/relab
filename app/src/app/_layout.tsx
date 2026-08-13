@@ -4,7 +4,10 @@ import '../../global.css';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { focusManager, QueryClient } from '@tanstack/react-query';
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import {
+  PersistQueryClientProvider,
+  removeOldestQuery,
+} from '@tanstack/react-query-persist-client';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
@@ -26,6 +29,7 @@ import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMode';
 import { saveProductMutationFn } from '@/features/products/queries';
+import { QUERY_CACHE_STORAGE_KEY, SAVE_PRODUCT_MUTATION_KEY } from '@/services/storage';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
 import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
@@ -46,16 +50,15 @@ const queryClient = new QueryClient({
 // (de)serialization. Registering it here by mutationKey is how TanStack's
 // persist-mutations pattern re-attaches a working function before
 // resumePausedMutations() (see Providers' onSuccess below) runs it.
-queryClient.setMutationDefaults(['saveProduct'], { mutationFn: saveProductMutationFn });
-
-// This file can only export components (Fast Refresh), so the key isn't
-// exported — AuthProvider duplicates the literal to clear it on sign-out.
-// Keep the two in sync if this ever changes.
-const QUERY_CACHE_STORAGE_KEY = 'relab-query-cache';
+queryClient.setMutationDefaults(SAVE_PRODUCT_MUTATION_KEY, { mutationFn: saveProductMutationFn });
 
 const persister = createAsyncStoragePersister({
   storage: AsyncStorage,
   key: QUERY_CACHE_STORAGE_KEY,
+  // Cap unbounded growth: drop the oldest cached query first if a persisted
+  // write ever fails (e.g. storage quota), and coalesce rapid cache writes.
+  retry: removeOldestQuery,
+  throttleTime: 5000,
 });
 
 function resumePausedMutations() {

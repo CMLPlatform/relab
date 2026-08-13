@@ -64,6 +64,7 @@ describe('AuthProvider — sign-out cache clearing', () => {
     await waitFor(() => expect(result.current.user).toBeUndefined());
     expect(clearSpy).toHaveBeenCalledTimes(1);
     expect(removeItemSpy).toHaveBeenCalledWith('relab-query-cache');
+    expect(removeItemSpy).toHaveBeenCalledWith('relab-recent-categories');
   });
 
   it('does not clear the cache on sign-in (only on sign-out)', async () => {

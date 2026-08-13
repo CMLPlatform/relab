@@ -2,6 +2,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteItemAsync, getItemAsync, setItemAsync } from 'expo-secure-store';
 import { Platform } from 'react-native';
 
+// Single source of truth for both the query-cache persister's storage key
+// (_layout.tsx) and its sign-out clear (AuthProvider.tsx), and for the
+// saveProduct mutation's registration key (_layout.tsx's setMutationDefaults
+// and queries.ts's useSaveProductMutation) — a mutation restored from the
+// persisted cache after a reload has no function attached (functions aren't
+// serializable), so TanStack's persist-mutations pattern re-attaches one by
+// this key.
+export const QUERY_CACHE_STORAGE_KEY = 'relab-query-cache';
+export const SAVE_PRODUCT_MUTATION_KEY = ['saveProduct'] as const;
+
 export const isWeb = () => Platform.OS === 'web';
 const getWebLocalStorage = () => globalThis.localStorage;
 const getWebSessionStorage = () => globalThis.sessionStorage;

@@ -1,9 +1,28 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { render } from '@testing-library/react-native';
 import type React from 'react';
+import TabsLayout from '@/app/(tabs)/_layout';
 import AccountTabLayout from '@/app/(tabs)/(account)/_layout';
 import CamerasTabLayout from '@/app/(tabs)/(cameras)/_layout';
 import ProductsTabLayout from '@/app/(tabs)/(products)/_layout';
+import { tabRouteName } from '@/components/base/useBottomNav';
+
+// Populated by the Tabs.Screen mock below with every screen `name` it saw, in
+// declaration order — the order fixes tab order (and therefore the initial tab).
+const mockTabScreenNames: string[] = [];
+
+jest.mock('expo-router/js-tabs', () => {
+  const ReactActual = require('react');
+  function TabsScreenMock({ name }: { name: string }) {
+    mockTabScreenNames.push(name);
+    return null;
+  }
+  function TabsMock({ children }: { children?: React.ReactNode }) {
+    return ReactActual.createElement(ReactActual.Fragment, null, children);
+  }
+  TabsMock.Screen = TabsScreenMock;
+  return { Tabs: TabsMock };
+});
 
 // Populated by the Stack.Screen mock with each screen's `name` -> `options`,
 // keyed fresh on every render. 'mock'-prefixed names are exempt from
@@ -39,6 +58,7 @@ jest.mock('@/context/themeMode', () => ({
 
 beforeEach(() => {
   for (const key of Object.keys(mockScreenOptions)) delete mockScreenOptions[key];
+  mockTabScreenNames.length = 0;
   jest.clearAllMocks();
   mockUseBreakpoint.mockReturnValue({ isLg: false });
 });
@@ -112,5 +132,18 @@ describe('tab stack layouts', () => {
     headerLeft({}).props.onPress();
 
     expect(mockReplace).toHaveBeenCalledWith('/cameras');
+  });
+
+  // Each Tabs.Screen name is a group segment, and BottomNav resolves the
+  // active tab by comparing `tabRouteName(key)` against the current route —
+  // a typo here would silently break tab-active-state matching.
+  it('names each tab group after tabRouteName(key)', () => {
+    render(<TabsLayout />);
+
+    expect(mockTabScreenNames).toEqual([
+      tabRouteName('products'),
+      tabRouteName('cameras'),
+      tabRouteName('account'),
+    ]);
   });
 });

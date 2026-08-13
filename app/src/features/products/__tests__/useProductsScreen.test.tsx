@@ -97,7 +97,7 @@ describe('useProductsScreen', () => {
     return hook;
   }
 
-  it('syncs debounced search text back to the URL and resets pagination', async () => {
+  it('syncs debounced search text back to the URL', async () => {
     const { result } = await renderUseProductsScreen();
 
     act(() => {
@@ -106,7 +106,7 @@ describe('useProductsScreen', () => {
     });
 
     await waitFor(() => {
-      expect(mockSetParams).toHaveBeenCalledWith({ q: 'laptop', page: '1' });
+      expect(mockSetParams).toHaveBeenCalledWith({ q: 'laptop' });
     });
   });
 
@@ -119,7 +119,7 @@ describe('useProductsScreen', () => {
       jest.advanceTimersByTime(500);
     });
     await waitFor(() => {
-      expect(mockSetParams).toHaveBeenCalledWith({ q: 'laptop', page: '1' });
+      expect(mockSetParams).toHaveBeenCalledWith({ q: 'laptop' });
     });
     mockSearchParams = { q: 'laptop' };
     rerender({});
@@ -204,10 +204,9 @@ describe('useProductsScreen', () => {
       result.current.filters.applyBrandSelection(['Apple', 'Dell']);
     });
 
-    expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine', page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine' });
     expect(mockSetParams).toHaveBeenCalledWith({
       brands: `Apple${FILTER_CSV_SEPARATOR}Dell`,
-      page: '1',
     });
   });
 
