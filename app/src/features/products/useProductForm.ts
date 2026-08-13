@@ -131,6 +131,7 @@ function useProductFormActions({
   reset,
   saveMutation,
   serverProduct,
+  setValue,
 }: {
   amountFlushRef: RefObject<AmountDraftFlush | null>;
   deleteMutation: ReturnType<typeof useDeleteProductMutation>;
@@ -143,6 +144,7 @@ function useProductFormActions({
   reset: ReturnType<typeof useForm<ProductFormValues>>['reset'];
   saveMutation: ReturnType<typeof useSaveProductMutation>;
   serverProduct: Product | undefined;
+  setValue: ReturnType<typeof useForm<ProductFormValues>>['setValue'];
 }) {
   const saveAndExit = useSingleFlight(async () => {
     // Flush any typed-but-unblurred amount before reading `product` — Save
@@ -185,6 +187,13 @@ function useProductFormActions({
       // A media-sync failure means the entity itself saved — say so, and stay
       // put so the photos that didn't upload are still there to retry.
       const partial = err instanceof MediaSyncError;
+      // saveNewProduct() already POSTed and got an id back; thread it into the
+      // live form now, not just onto the (discarded) `currentProduct` object.
+      // Without this, a manual retry re-reads `product.id` as still unset,
+      // mints a fresh idempotency key, and POSTs a duplicate record — the
+      // automatic react-query retry avoids this only because it reuses the
+      // same mutated object, which a manual re-press does not.
+      if (err instanceof MediaSyncError) setValue('id', err.productId, { shouldDirty: false });
       dialog.alert({
         title: partial ? 'Photos not uploaded' : 'Save failed',
         message: getErrorMessage(err, 'Could not save. Please try again.'),
@@ -306,6 +315,7 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
     reset,
     saveMutation,
     serverProduct,
+    setValue,
   });
 
   const isProductComponent = product.role === 'component';

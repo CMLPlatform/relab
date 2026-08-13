@@ -364,6 +364,57 @@ describe('useProductForm', () => {
     expect(onSaveSuccess).not.toHaveBeenCalled();
   });
 
+  // saveNewProduct() mutates `product.id` in place after the create response,
+  // so react-query's automatic retry safely re-enters as a PATCH — it reuses
+  // that same mutated object. A manual second Save instead rebuilds its
+  // payload from the live form snapshot, so if the created id never reaches
+  // that snapshot the retry looks like a fresh create and duplicates the
+  // record. One create call total, second call an update, proves the id made
+  // it back into the form.
+  it('threads the created id into the form after a MediaSyncError so a manual retry updates instead of duplicating', async () => {
+    const mockMutate = jest
+      .fn()
+      .mockImplementationOnce(async () => {
+        throw new MediaSyncError(55, new Error('413'));
+      })
+      .mockImplementationOnce(async () => 55);
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
+
+    const { result } = renderHook(
+      () => useProductForm(undefined, { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      result.current.onProductNameChange('Brand New');
+    });
+    await act(async () => {
+      result.current.saveAndExit();
+    });
+
+    expect(mockMutate).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ idempotencyKey: expect.any(String) }),
+    );
+
+    await act(async () => {
+      result.current.saveAndExit();
+    });
+
+    expect(mockMutate).toHaveBeenCalledTimes(2);
+    expect(mockMutate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        idempotencyKey: undefined,
+        product: expect.objectContaining({ id: 55 }),
+      }),
+    );
+  });
+
   // TDD for the offline-queued acknowledgment: a paused mutation must not
   // just spin forever — the screen surfaces it (a toast, fired once) and
   // exposes isPaused so the save button can swap its label.
