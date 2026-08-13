@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
+import { StyleSheet } from 'react-native';
 import CategorySelection from '@/app/category-selection';
+import { MIN_TAP_TARGET } from '@/constants';
 import { setPendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
 import { loadCPV } from '@/services/cpv';
@@ -13,6 +15,8 @@ const mockedLoadCPV = jest.mocked(loadCPV);
 const mockedSetPending = jest.mocked(setPendingTypeSelection);
 const SUBCATEGORY_COUNT_PATTERN = /1 subcategor/;
 const TYPING_NOW_PATTERN = /typing-now/;
+const BLURB_PATTERN = /Search by name or description, or browse into a category/;
+const INFO_TOOLTIP_LABEL_PATTERN = /Info: Product types come from/;
 
 jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
@@ -164,6 +168,25 @@ describe('CategorySelection', () => {
     await waitFor(() => {
       expect(screen.getByText('Petroleum products')).toBeOnTheScreen();
     });
+  });
+
+  it('shows the plain-language blurb and contextual CPV help tooltip', async () => {
+    renderWithProviders(<CategorySelection />);
+    await screen.findByPlaceholderText('Search');
+    expect(screen.getByText(BLURB_PATTERN)).toBeOnTheScreen();
+    expect(screen.getByLabelText(INFO_TOOLTIP_LABEL_PATTERN)).toBeOnTheScreen();
+  });
+
+  it('meets the 44px tap-target floor on the subcategories link and history breadcrumb', async () => {
+    renderWithProviders(<CategorySelection />);
+    const linkButton = await screen.findByRole('button', { name: 'Browse 1 subcategories' });
+    expect(StyleSheet.flatten(linkButton.props.style).minHeight).toBe(MIN_TAP_TARGET);
+
+    fireEvent.press(linkButton);
+    const historyButton = await screen.findByRole('button', {
+      name: 'Go back to parent category',
+    });
+    expect(StyleSheet.flatten(historyButton.props.style).minHeight).toBe(MIN_TAP_TARGET);
   });
 
   it('filters categories by search query', async () => {

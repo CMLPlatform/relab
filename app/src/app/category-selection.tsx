@@ -10,11 +10,12 @@ import {
 import { AppText } from '@/components/base/AppText';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { Icon } from '@/components/base/Icon';
+import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Searchbar } from '@/components/base/Searchbar';
 import { SignedOutState } from '@/components/base/SignedOutState';
 import CPVCard from '@/components/product/CPVCard';
-import { radius } from '@/constants';
+import { MIN_TAP_TARGET, radius } from '@/constants';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
 import { useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
@@ -51,23 +52,23 @@ export default function CategorySelection() {
   }
 
   return (
-    // phoneFullBleed: the search bar, blurb, and list already own their 15px
-    // phone insets, so only the desktop centering/cap is wanted here.
+    // phoneFullBleed: the search bar, blurb, and list own their own px-4/gap-3
+    // flow spacing on the 4/8 grid, so only the desktop centering/cap is
+    // wanted here.
     <PageContainer phoneFullBleed>
-      <Searchbar
-        style={{ position: 'absolute', top: 15, left: 15, right: 15, zIndex: 1 }}
-        placeholder="Search"
-        onChangeText={setSearchQuery}
-        value={searchQuery}
-      />
-      <Text className="mt-[70px] mx-[15px] text-muted-foreground" style={{ fontSize: 12 }}>
-        Search by name or description, or browse with the &apos;Subcategories&apos; button on each
-        card. Tap or click a card to select it.
-      </Text>
-      {history.length > 1 && <CPVHistory history={history} onPress={moveUp} />}
+      <View className="gap-3 px-4 pt-4">
+        <Searchbar placeholder="Search" onChangeText={setSearchQuery} value={searchQuery} />
+        <View className="flex-row items-start gap-1">
+          <AppText variant="caption" className="text-muted-foreground flex-1">
+            Search by name or description, or browse into a category. Tap a category to select it as
+            the product type.
+          </AppText>
+          <InfoTooltip title="Product types come from a standard procurement taxonomy (CPV). Pick the closest match — it powers filtering and the research statistics." />
+        </View>
+        {history.length > 1 && <CPVHistory history={history} onPress={moveUp} />}
+      </View>
       <FlatList
-        contentContainerClassName="gap-[15px] p-[15px] mb-5"
-        contentContainerStyle={{ paddingTop: history.length > 1 ? 152 : 85 }}
+        contentContainerClassName="gap-4 p-4"
         data={filtered}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
@@ -112,17 +113,15 @@ function CategoryListItem({
 }
 
 function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: () => void }) {
-  const { colors } = useAppTheme();
+  const { colors, tokens } = useAppTheme();
   const historyStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
       // No className on this Pressable: it would drop this function (see IconButton.tsx).
       styles.history,
-      // Interactive surface — primary family, never the manila accent
-      // (MD3 `tertiary` maps to the brand accent; DESIGN.md keeps manila to text).
-      { backgroundColor: colors.primaryContainer },
+      { backgroundColor: tokens.surface.accent },
       pressed && { opacity: 0.5 },
     ],
-    [colors],
+    [tokens],
   );
   return (
     <Pressable
@@ -131,12 +130,12 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
       accessibilityRole="button"
       accessibilityLabel="Go back to parent category"
     >
-      <Icon size="md" name="chevron-left" color={colors.onTertiaryContainer} />
+      <Icon size="md" name="chevron-left" color={colors.primary} />
       <Text
         numberOfLines={2}
         ellipsizeMode={'tail'}
         className="shrink"
-        style={{ color: colors.onTertiaryContainer }}
+        style={{ color: colors.primary }}
       >
         {history[history.length - 1].description}
       </Text>
@@ -147,16 +146,12 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
 function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
   const { colors } = useAppTheme();
   const linkStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.link,
-      { backgroundColor: colors.secondaryContainer },
-      pressed && { opacity: 0.5 },
-    ],
-    [colors],
+    ({ pressed }: PressableStateCallbackType) => [styles.link, pressed && { opacity: 0.5 }],
+    [],
   );
 
   if (CPV.directChildren.length <= 0) {
-    return <View style={{ height: 50 }} />;
+    return <View style={{ height: MIN_TAP_TARGET }} />;
   }
 
   return (
@@ -166,34 +161,30 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
       accessibilityRole="button"
       accessibilityLabel={`Browse ${CPV.directChildren.length} subcategories`}
     >
-      <Text className="text-right" style={{ fontSize: 14, color: colors.onSecondaryContainer }}>
+      <Text className="text-right" style={{ fontSize: 14, color: colors.primary }}>
         {`${CPV.directChildren.length} subcategories`}
       </Text>
-      <Icon size="md" name="chevron-right" color={colors.onSecondaryContainer} />
+      <Icon size="md" name="chevron-right" color={colors.primary} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   history: {
-    position: 'absolute',
-    top: 80,
-    left: 15,
-    right: 15,
-    zIndex: 1,
-    height: 60,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 10,
+    gap: 8,
+    padding: 12,
+    minHeight: MIN_TAP_TARGET,
     borderRadius: radius.control,
   },
   link: {
-    height: 30,
+    minHeight: MIN_TAP_TARGET,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 5,
     paddingHorizontal: 12,
+    backgroundColor: 'transparent',
   },
 });

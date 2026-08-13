@@ -4,6 +4,7 @@ import { AppText } from '@/components/base/AppText';
 import FilterSelectionModal from '@/components/base/FilterSelectionModal';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { Menu } from '@/components/base/Menu';
+import { MIN_TAP_TARGET } from '@/constants';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { useAppTheme } from '@/theme';
 import { PRODUCTS_DATE_PRESETS } from './shared';
@@ -48,6 +49,7 @@ function FilterChip({
         accessibilityLabel={accessibilityLabel ?? children}
         accessibilityState={{ selected }}
         className="flex-row items-center gap-1.5 py-[7px]"
+        style={{ minHeight: MIN_TAP_TARGET }}
       >
         <Icon name={icon} size="sm" color={foreground} />
         <AppText variant="caption" style={{ color: foreground }}>
@@ -59,8 +61,9 @@ function FilterChip({
           onPress={onClose}
           accessibilityRole="button"
           accessibilityLabel={`Clear ${children} filter`}
-          hitSlop={8}
+          hitSlop={12}
           className="ml-1 p-1"
+          style={{ minHeight: MIN_TAP_TARGET }}
         >
           <Icon name="x" size={14} color={foreground} />
         </Pressable>
