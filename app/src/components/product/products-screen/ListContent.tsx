@@ -18,15 +18,7 @@ import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { NewProductPill } from './InlinePills';
-import { PAGE_SIZE, productsScreenStyles as styles } from './shared';
-
-type PaginationControlsProps = {
-  page: number;
-  totalPages: number;
-  total: number;
-  isFetching: boolean;
-  setPage: (page: number) => void;
-};
+import { productsScreenStyles as styles } from './shared';
 
 type ProductsHeaderFadeProps = {
   headerBottom: number;
@@ -35,204 +27,65 @@ type ProductsHeaderFadeProps = {
 
 type ProductsListContentProps = {
   numColumns: number;
-  productList: Product[];
+  products: Product[];
   filterMode: ProductFilter;
-  isFetching: boolean;
   isLoading: boolean;
+  isFetchingNextPage: boolean;
   slowLoading: boolean;
   total: number;
-  totalPages: number;
-  hasMore: boolean;
-  effectivePage: number;
+  hasNextPage: boolean;
   searchQuery: string;
   isAuthenticated: boolean;
   onScroll: FlatListProps<Product>['onScroll'];
   onRefresh: () => Promise<unknown>;
-  onSetPage: (page: number) => void;
+  onFetchNextPage: () => void;
 };
 
-function PaginationControls({
-  page,
-  totalPages,
-  total,
-  isFetching,
-  setPage,
-}: PaginationControlsProps) {
-  const goPrev = useCallback(() => setPage(page - 1), [setPage, page]);
-  const goNext = useCallback(() => setPage(page + 1), [setPage, page]);
-
-  if (totalPages <= 1) return null;
-
-  const getPageNumbers = (): (number | 'ellipsis-start' | 'ellipsis-end')[] => {
-    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1);
-
-    const pages: (number | 'ellipsis-start' | 'ellipsis-end')[] = [1];
-    if (page > 3) pages.push('ellipsis-start');
-
-    for (
-      let currentPage = Math.max(2, page - 1);
-      currentPage <= Math.min(totalPages - 1, page + 1);
-      currentPage += 1
-    ) {
-      pages.push(currentPage);
-    }
-
-    if (page < totalPages - 2) pages.push('ellipsis-end');
-    pages.push(totalPages);
-    return pages;
-  };
-
-  const start = (page - 1) * PAGE_SIZE + 1;
-  const end = Math.min(page * PAGE_SIZE, total);
-
-  return (
-    <View className="items-center gap-2 p-4">
-      <AppText className="opacity-70" style={styles.paginationSummary}>
-        Page {page} of {totalPages}; Showing {start.toLocaleString()}-{end.toLocaleString()} of{' '}
-        {total.toLocaleString()} products
-      </AppText>
-      <View className="flex-row flex-wrap items-center justify-center gap-1">
-        <AppButton
-          variant="outline"
-          onPress={goPrev}
-          disabled={page <= 1 || isFetching}
-          accessibilityLabel="Previous page"
-        >
-          Previous
-        </AppButton>
-        {getPageNumbers().map((pageValue) =>
-          pageValue === 'ellipsis-start' || pageValue === 'ellipsis-end' ? (
-            <AppText key={pageValue} className="px-1">
-              …
-            </AppText>
-          ) : (
-            <PageButton
-              key={pageValue}
-              pageValue={pageValue}
-              currentPage={page}
-              isFetching={isFetching}
-              setPage={setPage}
-            />
-          ),
-        )}
-        <AppButton
-          variant="outline"
-          onPress={goNext}
-          disabled={page >= totalPages || isFetching}
-          accessibilityLabel="Next page"
-        >
-          Next
-        </AppButton>
-      </View>
-    </View>
-  );
-}
-
-function PageButton({
-  pageValue,
-  currentPage,
-  isFetching,
-  setPage,
-}: {
-  pageValue: number;
-  currentPage: number;
-  isFetching: boolean;
-  setPage: (page: number) => void;
-}) {
-  const handlePress = useCallback(() => setPage(pageValue), [setPage, pageValue]);
-
-  return (
-    <AppButton
-      variant={pageValue === currentPage ? 'primary' : 'outline'}
-      onPress={handlePress}
-      disabled={isFetching}
-      accessibilityLabel={`Page ${pageValue}`}
-    >
-      {String(pageValue)}
-    </AppButton>
-  );
-}
-
 function ProductsListFooter({
-  isDesktopWeb,
-  hasMore,
+  hasNextPage,
+  isFetchingNextPage,
   productCount,
   total,
-  isFetching,
-  page,
-  totalPages,
-  setPage,
+  onLoadMore,
 }: {
-  isDesktopWeb: boolean;
-  hasMore: boolean;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
   productCount: number;
   total: number;
-  isFetching: boolean;
-  page: number;
-  totalPages: number;
-  setPage: (page: number) => void;
+  onLoadMore: () => void;
 }) {
-  const loadMore = useCallback(() => setPage(page + 1), [setPage, page]);
-
-  if (isDesktopWeb) {
-    return (
-      <PaginationControls
-        page={page}
-        totalPages={totalPages}
-        total={total}
-        isFetching={isFetching}
-        setPage={setPage}
-      />
-    );
-  }
-
-  if (!hasMore && productCount > 0) {
-    return (
-      <View className="items-center py-5">
-        <AppText className="opacity-60">All {total.toLocaleString()} products shown</AppText>
-      </View>
-    );
-  }
-
-  if (!hasMore) return null;
+  if (productCount === 0) return null;
 
   return (
-    <View className="items-center py-4">
-      <AppText className="mb-2 opacity-70">
-        Showing {productCount.toLocaleString()} of {total.toLocaleString()}
-      </AppText>
-      {isFetching ? (
-        <ActivityIndicator size="small" />
-      ) : (
-        <AppButton
-          variant="outline"
-          onPress={loadMore}
-          disabled={isFetching}
-          accessibilityLabel="Load more products"
-        >
+    <View className="items-center gap-2 py-4">
+      {isFetchingNextPage ? (
+        <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
+      ) : hasNextPage ? (
+        <AppButton variant="outline" onPress={onLoadMore} accessibilityLabel="Load more products">
           Load more
         </AppButton>
-      )}
+      ) : null}
+      <AppText className="opacity-60">
+        {productCount} of {total} products
+      </AppText>
     </View>
   );
 }
 
 export function ProductsListContent({
   numColumns,
-  productList,
+  products,
   filterMode,
-  isFetching,
   isLoading,
+  isFetchingNextPage,
   slowLoading,
   total,
-  totalPages,
-  hasMore,
-  effectivePage,
+  hasNextPage,
   searchQuery,
   isAuthenticated,
   onScroll,
   onRefresh,
-  onSetPage,
+  onFetchNextPage,
 }: ProductsListContentProps) {
   const theme = useAppTheme();
   const showOwner = filterMode === 'all';
@@ -249,9 +102,13 @@ export function ProductsListContent({
     }
   }, [onRefresh]);
 
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage) onFetchNextPage();
+  }, [hasNextPage, onFetchNextPage]);
+
   const renderSkeleton = useCallback(() => <ProductCardSkeleton />, []);
   const renderProduct = useCallback(
-    ({ item }: { item: (typeof productList)[number] }) => (
+    ({ item }: { item: (typeof products)[number] }) => (
       <View style={{ width: `${100 / numColumns}%` as DimensionValue }}>
         <ProductCard product={item} showOwner={showOwner} />
       </View>
@@ -264,29 +121,17 @@ export function ProductsListContent({
   const listFooter = useMemo(
     () => (
       <ProductsListFooter
-        isDesktopWeb={numColumns > 1}
-        hasMore={hasMore}
-        productCount={productList.length}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        productCount={products.length}
         total={total}
-        isFetching={isFetching}
-        page={effectivePage}
-        totalPages={totalPages}
-        setPage={onSetPage}
+        onLoadMore={onFetchNextPage}
       />
     ),
-    [
-      effectivePage,
-      hasMore,
-      isFetching,
-      numColumns,
-      onSetPage,
-      productList.length,
-      total,
-      totalPages,
-    ],
+    [hasNextPage, isFetchingNextPage, onFetchNextPage, products.length, total],
   );
 
-  if (isLoading && productList.length === 0) {
+  if (isLoading && products.length === 0) {
     return (
       <View className="flex-1">
         <FlatList
@@ -315,10 +160,12 @@ export function ProductsListContent({
       onScroll={onScroll}
       scrollEventThrottle={16}
       refreshControl={<RefreshControl refreshing={userRefreshing} onRefresh={handleRefresh} />}
-      data={productList}
+      data={products}
       extraData={showOwner}
       keyExtractor={productKeyExtractor}
       renderItem={renderProduct}
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.5}
       ListFooterComponent={listFooter}
       ListEmptyComponent={
         <View className="items-center p-5">

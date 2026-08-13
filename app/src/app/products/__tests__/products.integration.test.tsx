@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { HttpResponse, http } from 'msw';
+import { FlatList } from 'react-native';
 import Products from '@/app/products';
-import { mockUser, renderWithProviders } from '@/test-utils/index';
+import { API_URL } from '@/config';
+import { productsInfiniteQueryOptions } from '@/features/products/queries';
+import { mockUser, renderWithProviders, server } from '@/test-utils/index';
 
 const NETWORK_FAILURE_PATTERN = /Network failure/;
-const PAGE_ONE_OF_THREE_PATTERN = /Page 1 of 3/;
 
 const mockUseAuth = jest.fn();
 const mockDismissWelcomeCard = jest.fn();
@@ -157,81 +160,47 @@ jest.mock('@/components/product/ProductCardSkeleton', () => {
   };
 });
 
-// Controlled query state
-const mockRefetch = jest.fn();
-const mockUseProductsQuery = jest.fn();
+// Controlled query state. Brand/type search stay mocked (they're irrelevant to
+// this file's scope); the products list itself now flows through the real
+// useInfiniteQuery + productsInfiniteQueryOptions, hitting MSW like the app does.
 const mockUseBrandsQuery = jest.fn();
 const mockUseProductTypesQuery = jest.fn();
 const mockSetParams = jest.fn();
 const mockPush = jest.fn();
 
-jest.mock('@tanstack/react-query', () => {
-  const actual =
-    jest.requireActual<typeof import('@tanstack/react-query')>('@tanstack/react-query');
+jest.mock('@/features/products/queries', () => {
+  const actual = jest.requireActual<typeof import('@/features/products/queries')>(
+    '@/features/products/queries',
+  );
 
   return {
     ...actual,
-    useQueries: ({ queries }: { queries: Array<{ __mockResult?: unknown }> }) =>
-      queries.map((query) => query.__mockResult),
+    // Wrapped in jest.fn so tests can inspect call args (e.g. the sort/search
+    // params sent through) while still exercising the real fetch pipeline.
+    productsInfiniteQueryOptions: jest.fn(actual.productsInfiniteQueryOptions),
+    useSearchBrandsQuery: (...args: unknown[]) => mockUseBrandsQuery(...args),
+    useSearchProductTypesQuery: (...args: unknown[]) => mockUseProductTypesQuery(...args),
+    DEFAULT_PRODUCT_SORT: ['-created_at'],
+    PRODUCT_SORT_OPTIONS: [
+      { label: 'Relevance', value: [] },
+      { label: 'Newest first', value: ['-created_at'] },
+      { label: 'Oldest first', value: ['created_at'] },
+      { label: 'Name A→Z', value: ['name'] },
+      { label: 'Name Z→A', value: ['-name'] },
+      { label: 'Brand A→Z', value: ['brand'] },
+      { label: 'Brand Z→A', value: ['-brand'] },
+    ],
   };
 });
 
-jest.mock('@/features/products/queries', () => ({
-  DEFAULT_PRODUCT_SORT: ['-created_at'],
-  productsQueryOptions: (...args: unknown[]) => ({
-    __mockResult: mockUseProductsQuery(...args),
-  }),
-  useSearchBrandsQuery: (...args: unknown[]) => mockUseBrandsQuery(...args),
-  useSearchProductTypesQuery: (...args: unknown[]) => mockUseProductTypesQuery(...args),
-  PRODUCT_SORT_OPTIONS: [
-    { label: 'Relevance', value: [] },
-    { label: 'Newest first', value: ['-created_at'] },
-    { label: 'Oldest first', value: ['created_at'] },
-    { label: 'Name A→Z', value: ['name'] },
-    { label: 'Name Z→A', value: ['-name'] },
-    { label: 'Brand A→Z', value: ['brand'] },
-    { label: 'Brand Z→A', value: ['-brand'] },
-  ],
-}));
-
-const emptyQueryResult = {
-  data: { items: [], pages: 1, page: 1, total: 0, size: 20 },
-  isFetching: false,
-  isLoading: false,
-  error: null,
-  refetch: mockRefetch,
-};
-
-const loadingQueryResult = {
-  data: undefined,
-  isFetching: false,
-  isLoading: true,
-  error: null,
-  refetch: mockRefetch,
-};
-
-const pagedQueryResult = {
-  data: {
-    items: [
-      { id: 1, name: 'Product A', ownedBy: 'alice', images: [], videos: [] },
-      { id: 2, name: 'Product B', ownedBy: 'bob', images: [], videos: [] },
-    ],
-    pages: 3,
-    page: 1,
-    total: 55,
-    size: 20,
-  },
-  isFetching: false,
-  isLoading: false,
-  error: null,
-  refetch: mockRefetch,
-};
+const mockProductsInfiniteQueryOptions = jest.mocked(productsInfiniteQueryOptions);
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(async () => {
   jest.clearAllMocks();
-  // Default to wide viewport (numColumns=3) so most tests get pagination mode
+  // Wide viewport by default; numColumns only affects grid layout now, not
+  // which pagination UI renders (infinite scroll is the same on every width).
   jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
     width: 1280,
     height: 768,
@@ -246,7 +215,6 @@ beforeEach(async () => {
     setParams: mockSetParams,
   });
   (useLocalSearchParams as jest.Mock).mockReturnValue({});
-  mockUseProductsQuery.mockReturnValue(emptyQueryResult);
   mockUseBrandsQuery.mockReturnValue({ data: [], isLoading: false });
   mockUseProductTypesQuery.mockReturnValue({ data: [], isLoading: false });
   mockDialogApi.alert.mockReset();
@@ -254,6 +222,37 @@ beforeEach(async () => {
   mockDialogApi.toast.mockReset();
   mockDismissWelcomeCard.mockClear();
 });
+
+/**
+ * MSW handler returning a fixed 3-page catalogue, 2 items/page. `total` (50)
+ * must exceed the hook's hardcoded page size (24) twice over so
+ * getNextPageParam actually reports a next page after page 1 and page 2 —
+ * the real fetched item counts per page don't matter to that check.
+ */
+function threePageProductsHandler() {
+  const itemsByPage: Record<number, { id: number; name: string }[]> = {
+    1: [
+      { id: 1, name: 'Product A' },
+      { id: 2, name: 'Product B' },
+    ],
+    2: [
+      { id: 3, name: 'Product C' },
+      { id: 4, name: 'Product D' },
+    ],
+    3: [{ id: 5, name: 'Product E' }],
+  };
+
+  return http.get(`${API_URL}/products`, ({ request }) => {
+    const page = Number(new URL(request.url).searchParams.get('page')) || 1;
+    return HttpResponse.json({
+      items: itemsByPage[page] ?? [],
+      total: 50,
+      page,
+      size: 24,
+      pages: 3,
+    });
+  });
+}
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -272,45 +271,25 @@ describe('Products screen', () => {
   });
 
   it('shows skeleton rows while loading', async () => {
-    mockUseProductsQuery.mockReturnValue(loadingQueryResult);
     renderProducts();
     expect(screen.getAllByTestId('product-card-skeleton').length).toBeGreaterThan(0);
   });
 
   it('shows empty state when no products match', async () => {
     renderProducts();
-    expect(
-      screen.getByText('No products available yet. Sign in to add your own.'),
-    ).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(
+        screen.getByText('No products available yet. Sign in to add your own.'),
+      ).toBeOnTheScreen(),
+    );
   });
 
   it('shows search-specific empty state when searching', async () => {
     renderProducts();
+    await waitFor(() => expect(screen.queryByTestId('product-card-skeleton')).toBeNull());
+
     fireEvent.changeText(screen.getByPlaceholderText('Search products'), 'xyz');
     expect(screen.getByText('No products match your search.')).toBeOnTheScreen();
-  });
-
-  it('resets page to 1 when search text changes (colocated in onChangeText)', async () => {
-    // Start on page 2 by making the query return multi-page data and simulating
-    // a page advance; then type in search and verify page arg resets to 1
-    mockUseProductsQuery.mockReturnValue(pagedQueryResult);
-    renderProducts();
-
-    // Verify initial call uses page 1
-    expect(mockUseProductsQuery).toHaveBeenLastCalledWith(
-      expect.any(String), // filterMode
-      1, // page
-      expect.any(String), // debouncedSearch
-      expect.any(Array), // sortBy
-      expect.any(Object), // extra filters
-    );
-
-    // Typing resets page to 1 synchronously in the handler
-    fireEvent.changeText(screen.getByPlaceholderText('Search products'), 'hello');
-
-    const calls = mockUseProductsQuery.mock.calls;
-    const lastCall = calls[calls.length - 1] as unknown[];
-    expect(lastCall[1]).toBe(1); // page arg stays 1
   });
 
   it('clears the search query from the URL when the search box is emptied', async () => {
@@ -322,7 +301,6 @@ describe('Products screen', () => {
   });
 
   it('resets page to 1 when sort changes (colocated in onPress)', async () => {
-    mockUseProductsQuery.mockReturnValue(pagedQueryResult);
     renderProducts();
 
     // Open sort menu and pick a different option
@@ -458,12 +436,13 @@ describe('Filter chips and modals', () => {
 
 describe('Error state', () => {
   it('shows error message and retry button on query error', async () => {
-    mockUseProductsQuery.mockReturnValue({
-      ...emptyQueryResult,
-      error: new Error('Network failure'),
-    });
+    server.use(
+      http.get(`${API_URL}/products`, () =>
+        HttpResponse.json({ detail: 'Network failure' }, { status: 500 }),
+      ),
+    );
     renderProducts();
-    expect(screen.getByText(NETWORK_FAILURE_PATTERN)).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getByText(NETWORK_FAILURE_PATTERN)).toBeOnTheScreen());
     expect(screen.getByLabelText('Retry loading products')).toBeOnTheScreen();
   });
 });
@@ -471,7 +450,6 @@ describe('Error state', () => {
 describe('Empty-state messages', () => {
   it('shows mine-specific empty state when authenticated and filterMode=mine', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
-    mockUseProductsQuery.mockReturnValue(emptyQueryResult);
     renderProducts();
 
     // Switch to mine filter via the Mine chip
@@ -481,177 +459,102 @@ describe('Empty-state messages', () => {
 
   it('shows a mine-specific empty state with a New product CTA', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
-    mockUseProductsQuery.mockReturnValue(emptyQueryResult);
     (useLocalSearchParams as jest.Mock).mockReturnValue({ filterMode: 'mine' });
 
     renderProducts();
 
-    expect(screen.getByText("You haven't created any products yet. Tap the")).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(screen.getByText("You haven't created any products yet. Tap the")).toBeOnTheScreen(),
+    );
     expect(screen.getAllByText('New product').length).toBeGreaterThan(0);
   });
 
   it('shows creation prompt when authenticated user has no products', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
-    mockUseProductsQuery.mockReturnValue(emptyQueryResult);
     renderProducts();
 
-    expect(screen.getByText('No products yet. Tap the')).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getByText('No products yet. Tap the')).toBeOnTheScreen());
     expect(screen.getAllByText('New product').length).toBeGreaterThan(0);
   });
 });
 
-describe('PaginationControls (multi-column)', () => {
-  beforeEach(() => {
-    // Wide viewport already set globally; confirm numColumns=3 → pagination
-    jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
-      width: 1280,
-      height: 768,
-      scale: 1,
-      fontScale: 1,
-    });
-    mockUseProductsQuery.mockReturnValue(pagedQueryResult);
-  });
-
-  it('renders pagination buttons on desktop when totalPages > 1', async () => {
-    renderProducts();
-    expect(screen.getByLabelText('Previous page')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Next page')).toBeOnTheScreen();
-  });
-
-  it('shows correct page count text', async () => {
-    renderProducts();
-    expect(screen.getByText(PAGE_ONE_OF_THREE_PATTERN)).toBeOnTheScreen();
-  });
-
-  it('Previous button is disabled on first page', async () => {
-    renderProducts();
-    const prev = screen.getByLabelText('Previous page');
-    expect(prev.props.accessibilityState?.disabled).toBe(true);
-  });
-
-  it('does not render pagination when only 1 page', async () => {
-    mockUseProductsQuery.mockReturnValue(emptyQueryResult);
-    renderProducts();
-    expect(screen.queryByLabelText('Previous page')).toBeNull();
-  });
-
-  it('renders ellipsis for large page counts and allows jumping to a page', async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ page: '5' });
-    mockUseProductsQuery.mockReturnValue({
-      data: {
-        items: [
-          { id: 1, name: 'Product A', ownedBy: 'alice', images: [], videos: [] },
-          { id: 2, name: 'Product B', ownedBy: 'bob', images: [], videos: [] },
-        ],
-        pages: 10,
-        page: 5,
-        total: 200,
-        size: 20,
-      },
-      isFetching: false,
-      isLoading: false,
-      error: null,
-      refetch: mockRefetch,
-    });
-
+describe('Infinite scroll', () => {
+  it('shows a Load more button when more results exist', async () => {
+    server.use(threePageProductsHandler());
     renderProducts();
 
-    expect(screen.getAllByText('…').length).toBeGreaterThan(0);
-    expect(screen.getByLabelText('Page 6')).toBeOnTheScreen();
-
-    fireEvent.press(screen.getByLabelText('Page 6'));
-    expect(mockSetParams).toHaveBeenCalledWith({ page: '6' });
-  });
-});
-
-describe('Mobile footer (single-column)', () => {
-  beforeEach(() => {
-    jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
-      width: 390, // numColumns=1 → load-more mode
-      height: 844,
-      scale: 2,
-      fontScale: 1,
-    });
+    await waitFor(() => expect(screen.getByLabelText('Load more products')).toBeOnTheScreen());
+    expect(screen.getByText('Product A')).toBeOnTheScreen();
+    expect(screen.getByText('Product B')).toBeOnTheScreen();
   });
 
-  it('shows a load more button when more results exist', async () => {
-    mockUseProductsQuery.mockReturnValue({
-      data: {
-        items: [
-          { id: 1, name: 'Product A', ownedBy: 'alice', images: [], videos: [] },
-          { id: 2, name: 'Product B', ownedBy: 'bob', images: [], videos: [] },
-        ],
-        pages: 3,
-        page: 1,
-        total: 55,
-        size: 24,
-      },
-      isFetching: false,
-      isLoading: false,
-      error: null,
-      refetch: mockRefetch,
-    });
-
+  // The core regression this task fixes: pressing "Load more" must APPEND the
+  // next page's items below the ones already rendered, never replace them.
+  it('appends page-2 items below page-1 items when Load more is pressed', async () => {
+    server.use(threePageProductsHandler());
     renderProducts();
 
-    expect(screen.getByLabelText('Load more products')).toBeOnTheScreen();
-  });
-
-  it('advances the local page (not URL) when load more is pressed', async () => {
-    mockUseProductsQuery.mockReturnValue({
-      data: {
-        items: [
-          { id: 1, name: 'Product A', ownedBy: 'alice', images: [], videos: [] },
-          { id: 2, name: 'Product B', ownedBy: 'bob', images: [], videos: [] },
-        ],
-        pages: 3,
-        page: 1,
-        total: 55,
-        size: 24,
-      },
-      isFetching: false,
-      isLoading: false,
-      error: null,
-      refetch: mockRefetch,
-    });
-
-    renderProducts();
-    expect(screen.getByLabelText('Load more products')).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getByLabelText('Load more products')).toBeOnTheScreen());
+    expect(screen.queryByText('Product C')).toBeNull();
 
     fireEvent.press(screen.getByLabelText('Load more products'));
 
-    const pages = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[1] as number);
-    expect(pages).toContain(2);
-    // URL page param must NOT be updated — load-more uses local state only
-    expect(mockSetParams).not.toHaveBeenCalledWith({ page: '2' });
+    await waitFor(() => expect(screen.getByText('Product C')).toBeOnTheScreen());
+    // Page-1 items are still there — the new page was appended, not swapped in.
+    expect(screen.getByText('Product A')).toBeOnTheScreen();
+    expect(screen.getByText('Product B')).toBeOnTheScreen();
+    expect(screen.getByText('Product D')).toBeOnTheScreen();
   });
 
-  it('shows server total in end-of-results footer', async () => {
-    mockUseProductsQuery.mockReturnValue({
-      data: {
-        items: [{ id: 1, name: 'Product A', ownedBy: 'alice', images: [], videos: [] }],
-        pages: 1,
-        page: 1,
-        total: 57,
-        size: 24,
-      },
-      isFetching: false,
-      isLoading: false,
-      error: null,
-      refetch: mockRefetch,
+  it('fires onEndReached (scroll-triggered append) instead of only responding to the button', async () => {
+    server.use(threePageProductsHandler());
+    const { UNSAFE_getByType } = renderProducts();
+
+    await waitFor(() => expect(screen.getByText('Product B')).toBeOnTheScreen());
+
+    const list = UNSAFE_getByType(FlatList);
+    expect(list.props.onEndReachedThreshold).toBe(0.5);
+    await act(async () => {
+      list.props.onEndReached();
     });
 
+    await waitFor(() => expect(screen.getByText('Product C')).toBeOnTheScreen());
+    expect(screen.getByText('Product A')).toBeOnTheScreen();
+  });
+
+  it('does not touch URL params when loading more — pagination is local to the query', async () => {
+    server.use(threePageProductsHandler());
     renderProducts();
 
-    expect(screen.getByText('All 57 products shown')).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getByLabelText('Load more products')).toBeOnTheScreen());
+    mockSetParams.mockClear();
+
+    fireEvent.press(screen.getByLabelText('Load more products'));
+    await waitFor(() => expect(screen.getByText('Product C')).toBeOnTheScreen());
+
+    expect(mockSetParams).not.toHaveBeenCalled();
+  });
+
+  it('shows the muted product-count footer and hides Load more once every page loads', async () => {
+    server.use(
+      http.get(`${API_URL}/products`, () =>
+        HttpResponse.json({
+          items: [{ id: 1, name: 'Product A' }],
+          total: 1,
+          page: 1,
+          size: 24,
+          pages: 1,
+        }),
+      ),
+    );
+    renderProducts();
+
+    await waitFor(() => expect(screen.getByText('1 of 1 products')).toBeOnTheScreen());
+    expect(screen.queryByLabelText('Load more products')).toBeNull();
   });
 });
 
 describe('Mine filter chip', () => {
-  beforeEach(() => {
-    mockUseProductsQuery.mockReturnValue(emptyQueryResult);
-  });
-
   it('is not shown for guest users', async () => {
     mockUseAuth.mockReturnValue({ user: null });
     renderProducts();
@@ -725,7 +628,8 @@ describe('Sort — Relevance default when searching', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
     renderProducts();
 
-    const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[3] as string[]);
+    await waitFor(() => expect(mockProductsInfiniteQueryOptions).toHaveBeenCalled());
+    const sortArgs = mockProductsInfiniteQueryOptions.mock.calls.map((c) => c[2] as string[]);
     expect(sortArgs.some((s) => s.length === 0)).toBe(true);
   });
 
@@ -733,7 +637,8 @@ describe('Sort — Relevance default when searching', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
     renderProducts();
 
-    const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[3] as string[]);
+    await waitFor(() => expect(mockProductsInfiniteQueryOptions).toHaveBeenCalled());
+    const sortArgs = mockProductsInfiniteQueryOptions.mock.calls.map((c) => c[2] as string[]);
     expect(sortArgs.some((s) => s[0] === '-created_at')).toBe(true);
   });
 
@@ -741,7 +646,8 @@ describe('Sort — Relevance default when searching', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum', sort: 'name' });
     renderProducts();
 
-    const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[3] as string[]);
+    await waitFor(() => expect(mockProductsInfiniteQueryOptions).toHaveBeenCalled());
+    const sortArgs = mockProductsInfiniteQueryOptions.mock.calls.map((c) => c[2] as string[]);
     expect(sortArgs.some((s) => s[0] === 'name')).toBe(true);
   });
 

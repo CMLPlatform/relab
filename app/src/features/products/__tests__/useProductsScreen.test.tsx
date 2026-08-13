@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { productsQueryOptions } from '@/features/products/queries';
+import { productsInfiniteQueryOptions } from '@/features/products/queries';
 import { useProductsScreen } from '@/features/products/useProductsScreen';
 import { FILTER_CSV_SEPARATOR } from '@/services/api/products';
 
@@ -12,14 +12,18 @@ const mockInput: jest.Mock = jest.fn();
 const mockSetLocalItem: jest.Mock = jest.fn();
 const mockGetLocalItem: jest.Mock = jest.fn();
 const mockRefetchUser: jest.Mock = jest.fn();
+const mockFetchNextPage: jest.Mock = jest.fn();
 const mockRouter = {
   setParams: mockSetParams,
   push: mockPush,
 };
 const mockProductsQueryResult = {
-  data: { items: [], page: 1, pages: 1, total: 0 },
+  data: { pages: [{ items: [], page: 1, pages: 1, total: 0, size: 24 }], pageParams: [1] },
   isFetching: false,
   isLoading: false,
+  isFetchingNextPage: false,
+  hasNextPage: false,
+  fetchNextPage: mockFetchNextPage,
   error: null,
   refetch: jest.fn(async () => undefined),
 };
@@ -29,7 +33,7 @@ const mockAuthState = {
 };
 
 jest.mock('@tanstack/react-query', () => ({
-  useQueries: () => [mockProductsQueryResult],
+  useInfiniteQuery: () => mockProductsQueryResult,
 }));
 
 jest.mock('expo-router', () => ({
@@ -61,7 +65,7 @@ jest.mock('@/features/products/queries', () => ({
     { label: 'Newest first', value: ['-created_at'] },
     { label: 'Oldest first', value: ['created_at'] },
   ],
-  productsQueryOptions: jest.fn(() => ({})),
+  productsInfiniteQueryOptions: jest.fn(() => ({})),
   useSearchBrandsQuery: () => ({ data: [], isLoading: false }),
   useSearchProductTypesQuery: () => ({ data: [], isLoading: false }),
 }));
@@ -84,7 +88,7 @@ describe('useProductsScreen', () => {
   });
 
   async function renderUseProductsScreen() {
-    const hook = renderHook(() => useProductsScreen(3));
+    const hook = renderHook(() => useProductsScreen());
 
     await act(async () => {
       await Promise.resolve();
@@ -174,37 +178,30 @@ describe('useProductsScreen', () => {
     expect(result.current.screen.filterMode).toBe('all');
     expect(result.current.search.query).toBe('');
     expect(result.current.filters.brandResults).toEqual([]);
-    expect(result.current.list.productList).toEqual([]);
+    expect(result.current.list.products).toEqual([]);
     expect(typeof result.current.actions.createProduct).toBe('function');
   });
 
-  it('re-queries products for the new page after setPage updates URL params (desktop)', async () => {
-    const { result, rerender } = await renderUseProductsScreen();
-    jest.mocked(productsQueryOptions).mockClear();
+  it('exposes the flattened pages and infinite-query controls on list', async () => {
+    const { result } = await renderUseProductsScreen();
+
+    expect(result.current.list.total).toBe(0);
+    expect(result.current.list.hasNextPage).toBe(false);
+    expect(result.current.list.isFetchingNextPage).toBe(false);
+    expect(typeof result.current.list.fetchNextPage).toBe('function');
 
     act(() => {
-      result.current.list.setPage(3);
+      result.current.list.fetchNextPage();
     });
-    expect(mockSetParams).toHaveBeenCalledWith({ page: '3' });
-
-    // Simulate URL params updating in response to setParams
-    mockSearchParams = { page: '3' };
-    rerender({});
-
-    const calls = jest.mocked(productsQueryOptions).mock.calls;
-    const lastPage = calls[calls.length - 1][1];
-    expect(lastPage).toBe(3);
-
-    mockSearchParams = {};
+    expect(mockFetchNextPage).toHaveBeenCalledTimes(1);
   });
 
-  it('applies filter and pagination actions through named handlers', async () => {
+  it('applies filter actions through named handlers', async () => {
     const { result } = await renderUseProductsScreen();
 
     act(() => {
       result.current.filters.toggleMine();
       result.current.filters.applyBrandSelection(['Apple', 'Dell']);
-      result.current.list.setPage(3);
     });
 
     expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine', page: '1' });
@@ -212,7 +209,6 @@ describe('useProductsScreen', () => {
       brands: `Apple${FILTER_CSV_SEPARATOR}Dell`,
       page: '1',
     });
-    expect(mockSetParams).toHaveBeenCalledWith({ page: '3' });
   });
 
   describe('date preset filter', () => {
@@ -224,9 +220,9 @@ describe('useProductsScreen', () => {
       mockSearchParams = { days: '30' };
       await renderUseProductsScreen();
 
-      const calls = jest.mocked(productsQueryOptions).mock.calls;
+      const calls = jest.mocked(productsInfiniteQueryOptions).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      const { createdAfter } = calls[0][4] as { createdAfter: Date };
+      const { createdAfter } = calls[0][3] as { createdAfter: Date };
       expect(createdAfter).toBeInstanceOf(Date);
       expect(createdAfter.toISOString()).toBe('2026-03-24T00:00:00.000Z');
     });
@@ -234,25 +230,25 @@ describe('useProductsScreen', () => {
     it('omits createdAfter when no days preset is active', async () => {
       await renderUseProductsScreen();
 
-      const calls = jest.mocked(productsQueryOptions).mock.calls;
+      const calls = jest.mocked(productsInfiniteQueryOptions).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      expect((calls[0][4] as { createdAfter?: Date }).createdAfter).toBeUndefined();
+      expect((calls[0][3] as { createdAfter?: Date }).createdAfter).toBeUndefined();
     });
 
     it('passes the same createdAfter ISO string on re-renders without a preset change', async () => {
       mockSearchParams = { days: '7' };
       const { rerender } = await renderUseProductsScreen();
 
-      const mockedFn = jest.mocked(productsQueryOptions);
+      const mockedFn = jest.mocked(productsInfiniteQueryOptions);
       const firstIso = (
-        mockedFn.mock.calls[0][4] as { createdAfter: Date }
+        mockedFn.mock.calls[0][3] as { createdAfter: Date }
       ).createdAfter.toISOString();
 
       jest.advanceTimersByTime(500);
       rerender({});
 
       const lastIso = (
-        mockedFn.mock.calls[mockedFn.mock.calls.length - 1][4] as { createdAfter: Date }
+        mockedFn.mock.calls[mockedFn.mock.calls.length - 1][3] as { createdAfter: Date }
       ).createdAfter.toISOString();
       expect(lastIso).toBe(firstIso);
     });

@@ -1,8 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { getFloatingPosition } from '@/utils/platformLayout';
 
-export const PAGE_SIZE = 24;
-
 export const PRODUCTS_DATE_PRESETS = [
   { label: 'Last 7d', days: 7 },
   { label: 'Last 30d', days: 30 },
@@ -19,11 +17,6 @@ export const productsScreenStyles = StyleSheet.create({
   // rather than force a class that would change line height.
   errorMessage: {
     fontSize: 13,
-  },
-  // fontSize 14 with no lineHeight set — text-sm carries lineHeight 20 the
-  // original never had, so it stays inline.
-  paginationSummary: {
-    fontSize: 14,
   },
   inlineButtonText: {
     fontSize: 14,

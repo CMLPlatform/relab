@@ -9,8 +9,7 @@ import {
   normalizeProductsParams,
   type ProductsSearchParams,
   type RouterSetParams,
-  useProductsListQuery,
-  useProductsPaging,
+  useProductsInfiniteListQuery,
   useProductsParamsSync,
 } from './screenData';
 import { useProductsFilterUiState, useProductsHeaderState, useSlowLoading } from './state';
@@ -19,20 +18,13 @@ import { useProductsWelcomeCard } from './useProductsWelcomeCard';
 export type { ProductFilter } from './screenData';
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: products-screen orchestration is intentionally exposed through one screen hook.
-export function useProductsScreen(numColumns: number) {
+export function useProductsScreen() {
   const dialog = useDialog();
   const router = useRouter();
   const { user: currentUser, refetch: refetchUser } = useAuth();
   const params = useLocalSearchParams<ProductsSearchParams>();
-  const {
-    filterMode,
-    searchQueryURL,
-    page,
-    sortBy,
-    activeDatePreset,
-    activeBrands,
-    activeProductTypes,
-  } = useMemo(() => normalizeProductsParams(params), [params]);
+  const { filterMode, searchQueryURL, sortBy, activeDatePreset, activeBrands, activeProductTypes } =
+    useMemo(() => normalizeProductsParams(params), [params]);
   const createdAfter = useMemo(() => {
     if (!activeDatePreset) return undefined;
     const d = new Date();
@@ -47,7 +39,8 @@ export function useProductsScreen(numColumns: number) {
   // caught up to our own debounced write. Guard by the debounced value — the
   // exact string we push out — so an external change resets the buffer while
   // in-flight typing (already past `debouncedSearchQuery`) is left alone.
-  // Render-phase reset, matching useProductsPaging.
+  // Render-phase reset (React's "adjust state while rendering" pattern), so
+  // there's no stale-buffer flash.
   const [lastSearchQueryURL, setLastSearchQueryURL] = useState(searchQueryURL);
   if (searchQueryURL !== lastSearchQueryURL) {
     setLastSearchQueryURL(searchQueryURL);
@@ -76,34 +69,24 @@ export function useProductsScreen(numColumns: number) {
     updateParams,
   });
 
-  const pagingResetKey = useMemo(
-    () =>
-      JSON.stringify([
-        searchQueryURL,
-        filterMode,
-        sortBy,
-        activeBrands,
-        activeProductTypes,
-        activeDatePreset,
-      ]),
-    [searchQueryURL, filterMode, sortBy, activeBrands, activeProductTypes, activeDatePreset],
-  );
-  const { effectivePage, setPage } = useProductsPaging({
-    numColumns,
-    page,
-    updateParams,
-    resetKey: pagingResetKey,
-  });
   const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(
     filterUi.brandSearch,
   );
   const { data: typeResults, isLoading: typesLoading } = useSearchProductTypesQuery(
     filterUi.typeSearch,
   );
-  const { data, isFetching, isLoading, error, refetch, productList } = useProductsListQuery({
-    numColumns,
+  const {
+    products,
+    total,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    isFetching,
+    isLoading,
+    error,
+    refetch,
+  } = useProductsInfiniteListQuery({
     filterMode,
-    effectivePage,
     searchQueryURL,
     sortBy,
     activeBrands,
@@ -117,9 +100,6 @@ export function useProductsScreen(numColumns: number) {
     refetchUser,
   });
   const actions = useProductsActions({ filterMode, router, updateParams });
-  const totalPages = data?.pages ?? 0;
-  const total = data?.total ?? 0;
-  const hasMore = (data?.page ?? 0) < (data?.pages ?? 0);
 
   return {
     screen: {
@@ -170,19 +150,17 @@ export function useProductsScreen(numColumns: number) {
       clearTypes: actions.clearTypes,
     },
     list: {
-      data,
-      productList,
-      effectivePage,
-      totalPages,
+      products,
       total,
-      hasMore,
+      hasNextPage,
+      isFetchingNextPage,
+      fetchNextPage,
       isFetching,
       isLoading,
       error,
       refetch,
       onScroll: header.onScroll,
       setHeaderBottom: header.setHeaderBottom,
-      setPage,
     },
     actions: {
       dismissWelcomeCard: dismissInfoCard,

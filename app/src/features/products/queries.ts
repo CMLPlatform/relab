@@ -1,4 +1,5 @@
 import {
+  infiniteQueryOptions,
   type QueryClient,
   queryOptions,
   useMutation,
@@ -34,6 +35,9 @@ export const PRODUCT_SORT_OPTIONS = [
 
 export const DEFAULT_PRODUCT_SORT = PRODUCT_SORT_OPTIONS[1].value; // Newest first when not searching
 
+// Page size for both the single-page and infinite product list queries.
+const PAGE_SIZE = 24;
+
 // ─── Query options factories ───────────────────────────────────────────────────
 
 export const productsQueryOptions = (
@@ -57,7 +61,7 @@ export const productsQueryOptions = (
     queryFn: () =>
       products({
         page,
-        size: 24,
+        size: PAGE_SIZE,
         search: search || undefined,
         orderBy: sortBy,
         brands: extra.brands?.length ? extra.brands : undefined,
@@ -65,6 +69,44 @@ export const productsQueryOptions = (
         productTypeNames: extra.productTypeNames?.length ? extra.productTypeNames : undefined,
         ...(filter === 'mine' ? { owner: 'me' } : {}),
       }),
+    placeholderData: (previousData) => previousData,
+  });
+
+// Cursor-style variant of productsQueryOptions for the infinite-scroll catalogue.
+// The queryKey deliberately omits page — page position lives in react-query's own
+// pages array, keyed off the filters, so a filter change starts a fresh cache
+// entry at page 1 for free instead of needing an explicit reset.
+export const productsInfiniteQueryOptions = (
+  filter: 'all' | 'mine',
+  search: string,
+  sortBy: string[] = ['-created_at'],
+  extra: ProductExtraFilters = {},
+) =>
+  infiniteQueryOptions({
+    queryKey: [
+      'products',
+      'infinite',
+      filter,
+      search,
+      sortBy,
+      extra.brands,
+      extra.createdAfter?.toISOString(),
+      extra.productTypeNames,
+    ] as const,
+    queryFn: ({ pageParam }) =>
+      products({
+        page: pageParam,
+        size: PAGE_SIZE,
+        search: search || undefined,
+        orderBy: sortBy,
+        brands: extra.brands?.length ? extra.brands : undefined,
+        createdAfter: extra.createdAfter,
+        productTypeNames: extra.productTypeNames?.length ? extra.productTypeNames : undefined,
+        ...(filter === 'mine' ? { owner: 'me' } : {}),
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPageParam * PAGE_SIZE < lastPage.total ? lastPageParam + 1 : undefined,
     placeholderData: (previousData) => previousData,
   });
 

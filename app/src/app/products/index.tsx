@@ -28,7 +28,7 @@ export default function Products() {
   const { width } = useWindowDimensions();
   const numColumns = productGridColumns(width);
 
-  const { screen, search, filters, list, actions } = useProductsScreen(numColumns);
+  const { screen, search, filters, list, actions } = useProductsScreen();
   const searchRef = useRef<TextInput>(null);
   useProductSearchShortcut(searchRef);
   const handleGoToLogin = async () => {
@@ -112,20 +112,18 @@ export default function Products() {
         <View style={{ flex: 1 }}>
           <ProductsListContent
             numColumns={numColumns}
-            productList={list.productList}
+            products={list.products}
             filterMode={screen.filterMode}
-            isFetching={list.isFetching}
             isLoading={list.isLoading}
+            isFetchingNextPage={list.isFetchingNextPage}
             slowLoading={screen.slowLoading}
             total={list.total}
-            totalPages={list.totalPages}
-            hasMore={list.hasMore}
-            effectivePage={list.effectivePage}
+            hasNextPage={list.hasNextPage}
             searchQuery={search.query}
             isAuthenticated={screen.isAuthenticated}
             onScroll={list.onScroll}
             onRefresh={handleRetry}
-            onSetPage={list.setPage}
+            onFetchNextPage={list.fetchNextPage}
           />
         </View>
       </PageContainer>

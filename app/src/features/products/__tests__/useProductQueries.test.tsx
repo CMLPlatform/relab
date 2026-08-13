@@ -1,8 +1,14 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useInfiniteQuery,
+  useQuery,
+} from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import {
+  productsInfiniteQueryOptions,
   productsQueryOptions,
   useBaseProductQuery,
   useComponentQuery,
@@ -20,6 +26,7 @@ import {
 } from '@/services/api/products';
 import { searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
+import { baseProduct } from '@/test-utils/fixtures';
 import type { Product } from '@/types/Product';
 
 jest.mock('@/services/api/productSuggestions', () => ({
@@ -153,6 +160,98 @@ describe('useProductQueries', () => {
         productTypeNames: ['Furniture'],
       }),
     );
+  });
+
+  describe('productsInfiniteQueryOptions', () => {
+    it('fetches page 1 first and flags a next page when more results remain', async () => {
+      mockedProducts.mockResolvedValue({
+        items: [{ ...baseProduct, id: 1, name: 'Product A' }],
+        total: 30,
+        page: 1,
+        pages: 2,
+        size: 24,
+      });
+
+      const { result } = renderHook(
+        () => useInfiniteQuery(productsInfiniteQueryOptions('all', '')),
+        {
+          wrapper,
+        },
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(products).toHaveBeenCalledWith(expect.objectContaining({ page: 1, size: 24 }));
+      expect(result.current.hasNextPage).toBe(true);
+    });
+
+    it('flags no next page once the loaded pages cover the total', async () => {
+      mockedProducts.mockResolvedValue({
+        items: [{ ...baseProduct, id: 1, name: 'Product A' }],
+        total: 1,
+        page: 1,
+        pages: 1,
+        size: 24,
+      });
+
+      const { result } = renderHook(
+        () => useInfiniteQuery(productsInfiniteQueryOptions('all', '')),
+        {
+          wrapper,
+        },
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.hasNextPage).toBe(false);
+    });
+
+    // Regression: infinite scroll must APPEND the next page's items below the
+    // ones already on screen, never replace them — this is the load-bearing
+    // behaviour the products catalogue's onEndReached/"Load more" wiring relies on.
+    it('appends the next page below the first instead of replacing it', async () => {
+      // total (30) must exceed the hardcoded page size (24) or getNextPageParam
+      // never reports a next page and fetchNextPage below would no-op.
+      mockedProducts
+        .mockResolvedValueOnce({
+          items: [
+            { ...baseProduct, id: 1, name: 'Product A' },
+            { ...baseProduct, id: 2, name: 'Product B' },
+          ],
+          total: 30,
+          page: 1,
+          pages: 2,
+          size: 24,
+        })
+        .mockResolvedValueOnce({
+          items: [
+            { ...baseProduct, id: 3, name: 'Product C' },
+            { ...baseProduct, id: 4, name: 'Product D' },
+          ],
+          total: 30,
+          page: 2,
+          pages: 2,
+          size: 24,
+        });
+
+      const { result } = renderHook(
+        () => useInfiniteQuery(productsInfiniteQueryOptions('all', '')),
+        {
+          wrapper,
+        },
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(
+        result.current.data?.pages.flatMap((page) => page.items.map((item) => item.name)),
+      ).toEqual(['Product A', 'Product B']);
+
+      result.current.fetchNextPage();
+
+      await waitFor(() => expect(result.current.data?.pages).toHaveLength(2));
+      expect(
+        result.current.data?.pages.flatMap((page) => page.items.map((item) => item.name)),
+      ).toEqual(['Product A', 'Product B', 'Product C', 'Product D']);
+      expect(products).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2, size: 24 }));
+    });
   });
 
   it('search queries pass undefined for empty searches', async () => {
