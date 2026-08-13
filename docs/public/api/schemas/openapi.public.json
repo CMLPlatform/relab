@@ -8374,6 +8374,9 @@
             },
             "description": "Successful Response"
           },
+          "409": {
+            "description": "A request with this Idempotency-Key is already being processed."
+          },
           "422": {
             "content": {
               "application/json": {
@@ -14459,6 +14462,9 @@
             },
             "description": "Successful Response"
           },
+          "409": {
+            "description": "A request with this Idempotency-Key is already being processed."
+          },
           "422": {
             "content": {
               "application/json": {
@@ -15523,6 +15529,9 @@
               }
             },
             "description": "Successful Response"
+          },
+          "409": {
+            "description": "A request with this Idempotency-Key is already being processed."
           },
           "422": {
             "content": {

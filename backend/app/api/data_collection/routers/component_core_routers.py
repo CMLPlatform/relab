@@ -16,7 +16,13 @@ from app.api.data_collection.crud.product_commands import update_product as upda
 from app.api.data_collection.crud.product_tree_queries import require_product_detail
 from app.api.data_collection.dependencies import UserOwnedComponentDep
 from app.api.data_collection.examples import COMPONENT_CREATE_OPENAPI_EXAMPLES
-from app.api.data_collection.idempotency import IdempotencyKeyDep, begin_idempotent_request, finish_idempotent_request
+from app.api.data_collection.idempotency import (
+    IDEMPOTENCY_CONFLICT_RESPONSE,
+    IdempotencyKeyDep,
+    begin_idempotent_request,
+    finish_idempotent_request,
+    idempotency_guard,
+)
 from app.api.data_collection.presentation.product_reads import to_read_model
 from app.api.data_collection.schemas import (
     ComponentCreateWithComponents,
@@ -56,6 +62,7 @@ async def get_component(
     status_code=201,
     summary="Create a nested component",
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+    responses=IDEMPOTENCY_CONFLICT_RESPONSE,
 )
 async def add_component_to_component(
     db_component: UserOwnedComponentDep,
@@ -80,21 +87,22 @@ async def add_component_to_component(
     if replay is not None:
         return replay
 
-    created = await create_component(
-        db=session,
-        component=component,
-        parent_product=db_component,
-    )
-    await session.refresh(created, attribute_names=["owner", "components"])
-    result = to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
-    await finish_idempotent_request(
-        redis,
-        user_id=current_user.id,
-        endpoint=endpoint,
-        idempotency_key=idempotency_key,
-        status_code=201,
-        body=result.model_dump(mode="json"),
-    )
+    async with idempotency_guard(redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key):
+        created = await create_component(
+            db=session,
+            component=component,
+            parent_product=db_component,
+        )
+        await session.refresh(created, attribute_names=["owner", "components"])
+        result = to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
+        await finish_idempotent_request(
+            redis,
+            user_id=current_user.id,
+            endpoint=endpoint,
+            idempotency_key=idempotency_key,
+            status_code=201,
+            body=result.model_dump(mode="json"),
+        )
     return result
 
 

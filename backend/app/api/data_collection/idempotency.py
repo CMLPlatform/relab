@@ -14,21 +14,34 @@ header value alone), so one user can never observe or replay another user's cach
 import json
 import logging
 import re
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.responses import JSONResponse
 
-from app.core.redis import get_redis_value, set_redis_value, set_redis_value_nx
+from app.core.redis import delete_redis_key, get_redis_value, set_redis_value, set_redis_value_nx
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
     from uuid import UUID
 
     from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
 
+# Shared OpenAPI documentation for the 409 an idempotency-guarded route can return; pass as
+# ``responses=IDEMPOTENCY_CONFLICT_RESPONSE`` on each guarded route decorator.
+IDEMPOTENCY_CONFLICT_RESPONSE: dict[int | str, dict[str, str]] = {
+    status.HTTP_409_CONFLICT: {"description": "A request with this Idempotency-Key is already being processed."}
+}
+
 _TTL_SECONDS = 24 * 60 * 60
+# The in-flight marker gets its own short TTL, separate from the 24h response cache: it only
+# needs to outlive a normal create call. Keeping it short means a request that crashes (or
+# whose final store silently fails, see finish_idempotent_request) self-heals — the marker
+# expires and the key becomes retryable again — instead of locking the key for a full day.
+_MARKER_TTL_SECONDS = 60
 _IN_FLIGHT = "in-flight"
 # Visible ASCII, no whitespace/control characters — matches how clients typically mint these
 # (UUIDs, ULIDs, nanoids) and keeps the raw value safe to fold directly into a Redis key.
@@ -73,15 +86,20 @@ async def begin_idempotent_request(
 
     Returns ``None`` when the caller should process the request normally: either no key was
     given, or this is the first time it's been seen (the in-flight marker is now claimed, and
-    the caller must call :func:`finish_idempotent_request` after it commits). Returns a
-    ``JSONResponse`` to send back verbatim when a request with the same key already completed.
-    Raises ``HTTPException(409)`` when another request with the same key is still in flight.
+    the caller must wrap its create-and-store sequence in :func:`idempotency_guard` and call
+    :func:`finish_idempotent_request` after it commits). Returns a ``JSONResponse`` to send
+    back verbatim when a request with the same key already completed. Raises
+    ``HTTPException(409)`` when another request with the same key is still in flight.
+
+    Deliberate tradeoff: ``set_redis_value_nx`` fails closed (returns ``False``) when Redis is
+    unreachable, so a Redis outage makes every keyed request 409 rather than risk silently
+    processing a duplicate create. Only requests carrying the optional header are affected.
     """
     if idempotency_key is None:
         return None
 
     cache_key = _cache_key(user_id, endpoint, idempotency_key)
-    claimed = await set_redis_value_nx(redis, cache_key, _IN_FLIGHT, ex=_TTL_SECONDS)
+    claimed = await set_redis_value_nx(redis, cache_key, _IN_FLIGHT, ex=_MARKER_TTL_SECONDS)
     if claimed:
         return None
 
@@ -94,6 +112,46 @@ async def begin_idempotent_request(
 
     payload = json.loads(stored)
     return JSONResponse(status_code=payload["status"], content=payload["body"])
+
+
+async def abort_idempotent_request(
+    redis: Redis,
+    *,
+    user_id: UUID,
+    endpoint: str,
+    idempotency_key: str | None,
+) -> None:
+    """Release the in-flight marker so a failed create is retryable immediately.
+
+    Call on any exception raised after :func:`begin_idempotent_request` claimed the marker
+    (see :func:`idempotency_guard`); without this, a create that raises would otherwise leave
+    the key 409-ing every retry until the marker's own (short) TTL expires.
+    """
+    if idempotency_key is None:
+        return
+    cache_key = _cache_key(user_id, endpoint, idempotency_key)
+    await delete_redis_key(redis, cache_key)
+
+
+@asynccontextmanager
+async def idempotency_guard(
+    redis: Redis,
+    *,
+    user_id: UUID,
+    endpoint: str,
+    idempotency_key: str | None,
+) -> AsyncIterator[None]:
+    """Wrap a route's create-and-store sequence; releases the marker if it raises.
+
+    Use after :func:`begin_idempotent_request` returns ``None`` (first use). A clean exit
+    leaves the marker for :func:`finish_idempotent_request` to overwrite with the final
+    response; an exception calls :func:`abort_idempotent_request` and re-raises.
+    """
+    try:
+        yield
+    except Exception:
+        await abort_idempotent_request(redis, user_id=user_id, endpoint=endpoint, idempotency_key=idempotency_key)
+        raise
 
 
 async def finish_idempotent_request(

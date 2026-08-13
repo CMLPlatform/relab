@@ -1,17 +1,23 @@
 """Unit tests for server-side idempotency keys on create endpoints."""
 
+import json
 from uuid import uuid4
 
 import pytest
 from fakeredis.aioredis import FakeRedis
 from fastapi import HTTPException
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 from app.api.data_collection.idempotency import (
+    abort_idempotent_request,
     begin_idempotent_request,
     finish_idempotent_request,
+    idempotency_guard,
     validate_idempotency_key,
 )
+from app.api.data_collection.product_schemas import ProductRead
+from tests.factories.models import MaterialProductLinkFactory, ProductFactory
 
 ENDPOINT = "POST /products"
 
@@ -54,6 +60,68 @@ async def test_first_use_claims_and_stores_response() -> None:
     cache_key = f"idempotency:{user_id}:{ENDPOINT}:{key}"
     ttl = await redis.ttl(cache_key)
     assert 0 < ttl <= 24 * 60 * 60
+
+
+async def test_in_flight_marker_uses_a_short_ttl_not_the_full_24h() -> None:
+    """The in-flight marker must self-heal quickly, not lock the key for the full response TTL.
+
+    Regression guard: the marker used to be claimed with the 24h response TTL, so a create
+    that crashed (or whose final store silently failed) left the key 409-ing every retry for
+    a full day even though nothing was ever created.
+    """
+    redis = await _make_fake_redis()
+    user_id = uuid4()
+    key = "marker-ttl-key"
+
+    assert await begin_idempotent_request(redis, user_id=user_id, endpoint=ENDPOINT, idempotency_key=key) is None
+
+    cache_key = f"idempotency:{user_id}:{ENDPOINT}:{key}"
+    ttl = await redis.ttl(cache_key)
+    assert 0 < ttl <= 60
+
+
+async def test_abort_deletes_the_marker_so_the_key_is_immediately_retryable() -> None:
+    """A failed create must release the marker, not make the client wait out its TTL."""
+    redis = await _make_fake_redis()
+    user_id = uuid4()
+    key = "abort-key"
+
+    assert await begin_idempotent_request(redis, user_id=user_id, endpoint=ENDPOINT, idempotency_key=key) is None
+    await abort_idempotent_request(redis, user_id=user_id, endpoint=ENDPOINT, idempotency_key=key)
+
+    # Retryable immediately: begin claims the marker again instead of hitting the 409 path.
+    assert await begin_idempotent_request(redis, user_id=user_id, endpoint=ENDPOINT, idempotency_key=key) is None
+
+
+async def test_idempotency_guard_releases_marker_when_create_raises() -> None:
+    """A route wrapping its create-and-store sequence in the guard must be retryable after a failure."""
+    redis = await _make_fake_redis()
+    user_id = uuid4()
+    key = "guard-raises-key"
+
+    assert await begin_idempotent_request(redis, user_id=user_id, endpoint=ENDPOINT, idempotency_key=key) is None
+
+    async def _create_that_fails() -> None:
+        msg = "create failed"
+        raise ValueError(msg)
+
+    with pytest.raises(ValueError, match="create failed"):
+        async with idempotency_guard(redis, user_id=user_id, endpoint=ENDPOINT, idempotency_key=key):
+            await _create_that_fails()
+
+    # The exception must propagate (guard re-raises) *and* clear the marker.
+    assert await begin_idempotent_request(redis, user_id=user_id, endpoint=ENDPOINT, idempotency_key=key) is None
+
+
+async def test_idempotency_guard_is_a_no_op_without_a_key() -> None:
+    """No header means the guard must never touch Redis, matching every other no-key path."""
+    redis = await _make_fake_redis()
+    user_id = uuid4()
+
+    async with idempotency_guard(redis, user_id=user_id, endpoint=ENDPOINT, idempotency_key=None):
+        pass
+
+    assert await redis.dbsize() == 0
 
 
 async def test_replay_returns_stored_response_without_reprocessing() -> None:
@@ -144,3 +212,21 @@ async def test_well_formed_key_passes_validation() -> None:
 async def test_none_passes_validation() -> None:
     """No header at all is valid — it just means idempotency is opted out of."""
     assert validate_idempotency_key(None) is None
+
+
+async def test_stored_body_matches_fastapis_own_response_encoding() -> None:
+    """Confirm a replayed body is indistinguishable from the original response.
+
+    Routes call ``result.model_dump(mode="json")`` and round-trip it through ``json.dumps``/
+    ``json.loads`` before handing it to ``JSONResponse``; FastAPI's own response path instead
+    runs the model through ``jsonable_encoder``. This test pins the assumption that the two
+    encoders agree — it would catch a future field (e.g. a new alias or computed property)
+    that one encodes differently than the other.
+    """
+    product = ProductFactory.build(id=1, owner_id=uuid4(), bill_of_materials=[MaterialProductLinkFactory.build()])
+    read_model = ProductRead.model_validate(product)
+
+    stored_then_replayed = json.loads(json.dumps(read_model.model_dump(mode="json")))
+    fastapis_own_encoding = jsonable_encoder(read_model)
+
+    assert stored_then_replayed == fastapis_own_encoding

@@ -31,7 +31,13 @@ from app.api.data_collection.examples import (
     COMPONENT_CREATE_OPENAPI_EXAMPLES,
     PRODUCT_CREATE_OPENAPI_EXAMPLES,
 )
-from app.api.data_collection.idempotency import IdempotencyKeyDep, begin_idempotent_request, finish_idempotent_request
+from app.api.data_collection.idempotency import (
+    IDEMPOTENCY_CONFLICT_RESPONSE,
+    IdempotencyKeyDep,
+    begin_idempotent_request,
+    finish_idempotent_request,
+    idempotency_guard,
+)
 from app.api.data_collection.presentation.product_reads import to_read_model
 from app.api.data_collection.product_schemas import ProductRead
 from app.api.data_collection.routers.media_handlers import (
@@ -69,6 +75,7 @@ _IMAGE_FILTER_DEPENDENCY = create_filter_dependency(ImageFilter)
     summary="Create a new product, optionally with components",
     status_code=201,
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+    responses=IDEMPOTENCY_CONFLICT_RESPONSE,
 )
 async def create_product(
     product: Annotated[
@@ -95,17 +102,18 @@ async def create_product(
     if replay is not None:
         return replay
 
-    created = await create_product_record(session, product, current_user.id)
-    await session.refresh(created, attribute_names=["owner"])
-    result = to_read_model(created, ProductRead, current_user)
-    await finish_idempotent_request(
-        redis,
-        user_id=current_user.id,
-        endpoint=endpoint,
-        idempotency_key=idempotency_key,
-        status_code=201,
-        body=result.model_dump(mode="json"),
-    )
+    async with idempotency_guard(redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key):
+        created = await create_product_record(session, product, current_user.id)
+        await session.refresh(created, attribute_names=["owner"])
+        result = to_read_model(created, ProductRead, current_user)
+        await finish_idempotent_request(
+            redis,
+            user_id=current_user.id,
+            endpoint=endpoint,
+            idempotency_key=idempotency_key,
+            status_code=201,
+            body=result.model_dump(mode="json"),
+        )
     return result
 
 
@@ -144,6 +152,7 @@ async def delete_product(db_product: UserOwnedBaseProductDep, session: AsyncSess
     status_code=201,
     summary="Create a new component under a base product",
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+    responses=IDEMPOTENCY_CONFLICT_RESPONSE,
 )
 async def add_component_to_product(
     db_product: UserOwnedBaseProductDep,
@@ -168,21 +177,22 @@ async def add_component_to_product(
     if replay is not None:
         return replay
 
-    created = await create_component(
-        db=session,
-        component=component,
-        parent_product=db_product,
-    )
-    await session.refresh(created, attribute_names=["owner", "components"])
-    result = to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
-    await finish_idempotent_request(
-        redis,
-        user_id=current_user.id,
-        endpoint=endpoint,
-        idempotency_key=idempotency_key,
-        status_code=201,
-        body=result.model_dump(mode="json"),
-    )
+    async with idempotency_guard(redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key):
+        created = await create_component(
+            db=session,
+            component=component,
+            parent_product=db_product,
+        )
+        await session.refresh(created, attribute_names=["owner", "components"])
+        result = to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
+        await finish_idempotent_request(
+            redis,
+            user_id=current_user.id,
+            endpoint=endpoint,
+            idempotency_key=idempotency_key,
+            status_code=201,
+            body=result.model_dump(mode="json"),
+        )
     return result
 
 
