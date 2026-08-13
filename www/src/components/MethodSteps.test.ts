@@ -72,8 +72,10 @@ describe('MethodSteps', () => {
     // platform has never performed.
     expect(html).not.toMatch(/read through the 9R/i);
     expect(html).not.toMatch(/records are (scored|ranked|classified|assessed)/i);
-    // The framing is context the project sits in, stated as such.
-    expect(html).toMatch(/circular-economy thinking behind the project/i);
+    // Neither paper uses the framework as an analytical frame, so the page
+    // marks it as background rather than as part of the method.
+    expect(html).toMatch(/Background:/);
+    expect(html).toMatch(/takes its cue from/i);
   });
 
   it('carries no inlined SVG', async () => {

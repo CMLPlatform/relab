@@ -106,29 +106,31 @@ const phases = [
     }
   </ol>
 
-  {/* What the records are for. The earlier version of this line claimed
-      finished records are "read through the 9R framework", which describes an
-      analysis step the platform does not perform: Relab collects data, and the
-      research that uses it does the interpreting. The gap named here is the
-      project's own argument (docs/project/index.md) and matches the literature:
-      manufacturers rarely disclose composition, published disassembly-derived
-      bills of materials exist only as small case-study sets, and life-cycle
-      inventory work has no uniform source for it. */}
+  {/* What the records are for, in the framing the project's own papers use
+      (docs/superpowers/references/paper-1.md and paper-2.md): industrial
+      ecology depends on primary product-level data; the middle and end of life,
+      where most of it is observable, is where it is least documented. An
+      earlier version of this line said records "are read through the 9R
+      framework", which described an analysis step the platform does not
+      perform. Relab collects the data; the research using it interprets. */}
   <p class="method-lens">
-    A finished record says what one product is made of and how it comes apart. Interpreting that is
-    the research's job: life-cycle assessment and material-flow studies still lean on generic
-    composition figures, and recovery targets are seldom checked against a real product.
+    A finished record says what one product is made of, how it comes apart, and how it has fared.
+    That is the primary data life-cycle assessment and material-flow analysis are built on, and it
+    is scarcest exactly where it is most observable: products are documented as designed, rarely as
+    they are found at the end of their life.
   </p>
-  {/* The 9R framework had a full section here teaching all ten strategies. It
-      is the circular-economy framing the project sits in rather than anything
-      the platform applies, so it is an aside with a link, and the ladder itself
-      lives in the docs beside its canonical definitions. */}
+  {/* Background, not method. The 9R framework appears nowhere in either paper,
+      so it is not part of how records are made or read: it is the model the
+      project takes its cue from, and the reason the mark is drawn the way it
+      is. Naming the nine is what makes the reference mean something; the
+      wordmark itself stays artwork and is never spelled out as text
+      (.claude/CLAUDE.md). The ladder lives in the docs with its definitions. */}
   <p class="method-aside">
     {/* Explicit spaces: Astro strips the inter-node newline around an <a>. */}
-    The circular-economy thinking behind the project is the 9R framework, ten strategies from Refuse
-    to Recover:{' '}
+    Background: the nine in the mark is a nod to the 9R framework, the ten circular-economy
+    strategies from Refuse to Recover that the project takes its cue from.{' '}
     <a href={frameworkUrl} target="_blank" rel="noopener noreferrer"
-      >see the ladder in the docs<span class="visually-hidden"> (opens in new tab)</span></a
+      >See the ladder in the docs<span class="visually-hidden"> (opens in new tab)</span></a
     >.
   </p>
 </section>

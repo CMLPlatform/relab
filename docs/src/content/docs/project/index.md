@@ -20,17 +20,20 @@ dismantlers, recyclers. They meet products at the point of failure, which shows 
 composition, wear, and recoverability that as-designed specifications never record. Low-barrier
 tools turn that routine work into structured, openly licensed observations.
 
-The exchange runs both ways, which is what makes it a circular data economy rather than one-way data
-entry. Middle- and end-of-life observations feed back into the data infrastructure that research and
-design rely on, alongside the top-down flow of producer specifications. Contributors get something
-back: composition insight, sustainability metrics, and guidance on the most circular R-strategy for
-the product in front of them.
+The exchange is meant to run both ways, which is what makes it a circular data economy rather than
+one-way data entry. Middle- and end-of-life observations feed back into the data infrastructure that
+research and design rely on, alongside the top-down flow of producer specifications. Closing the
+loop means returning value to contributors, and the architecture is built for it: composition
+insight and sustainability metrics delivered back to the people who record the products. That return
+is a design goal rather than a shipped feature, and whether it is enough to sustain contribution is
+untested.
 
 ## Where to go next
 
 [Use cases](use-cases/) is the most useful page if you are deciding whether Relab fits your work,
 since it is explicit about what the platform deliberately does not try to be. [The 9R
-framework](9r-framework/) explains the ten circularity strategies, R0 to R9, that frame what gets
-recorded, and [Dataset](dataset/) covers how to browse current records and how curated releases will
+framework](9r-framework/) is background: the ten circularity strategies, R0 to R9, that the project
+takes its cue from and that the mark's nine nods to, rather than anything the platform applies to a
+record. [Dataset](dataset/) covers how to browse current records and how curated releases will
 differ from the live app. [Roadmap](roadmap/) tracks current priorities, with GitHub issues as the
 live work list.
