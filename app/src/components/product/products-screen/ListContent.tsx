@@ -9,6 +9,7 @@ import {
   RefreshControl,
   View,
 } from 'react-native';
+import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
@@ -142,10 +143,8 @@ export function ProductsListContent({
         />
         {slowLoading ? (
           <View className="absolute right-0 bottom-[100px] left-0 items-center">
-            <Card className="px-4 py-2" style={{ backgroundColor: theme.colors.surfaceVariant }}>
-              <AppText style={{ fontSize: 12 }}>
-                This is taking longer than usual. Please wait…
-              </AppText>
+            <Card className="px-4 py-2" style={{ backgroundColor: theme.tokens.surface.sunken }}>
+              <AppText variant="caption">This is taking longer than usual. Please wait…</AppText>
             </Card>
           </View>
         ) : null}
@@ -154,53 +153,67 @@ export function ProductsListContent({
   }
 
   return (
-    <FlatList
+    // The fade bridges the swap out of the skeleton branch above, which
+    // otherwise hard-cuts eight grey cards into eight real ones, and replays
+    // when `key={numColumns}` remounts the subtree on rotation. The animation
+    // lives on a flex-1 wrapper, NOT on Animated.FlatList: reanimated's web
+    // layout-animation path crashes on FlatList hosts (element.style is
+    // undefined in startWebLayoutAnimation -> maybeReportOverwrittenProperties,
+    // blanking the whole page in the web export). flex-1 keeps the wrapper
+    // layout-neutral between the list and its flex parent.
+    <Animated.View
+      testID="products-list-fade"
+      style={styles.listFadeWrapper}
+      entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
       key={numColumns}
-      numColumns={numColumns}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      refreshControl={<RefreshControl refreshing={userRefreshing} onRefresh={handleRefresh} />}
-      data={products}
-      extraData={showOwner}
-      keyExtractor={productKeyExtractor}
-      renderItem={renderProduct}
-      onEndReached={handleEndReached}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={listFooter}
-      ListEmptyComponent={
-        <View className="items-center p-5">
-          <Image
-            source={
-              theme.dark
-                ? require('@/assets/images/mark-dark.png')
-                : require('@/assets/images/mark.png')
-            }
-            style={styles.emptyStateMark}
-            contentFit="contain"
-            accessibilityLabel=""
-          />
-          {searchQuery ? (
-            <AppText>No products match your search.</AppText>
-          ) : !isAuthenticated ? (
-            <AppText>No products available yet. Sign in to add your own.</AppText>
-          ) : filterMode === 'mine' ? (
-            <View className="flex-row flex-wrap items-center justify-center">
-              <AppText style={styles.emptyStateText}>
-                You haven&apos;t created any products yet. Tap the{' '}
-              </AppText>
-              <NewProductPill />
-              <AppText style={styles.emptyStateText}> button to add your first one.</AppText>
-            </View>
-          ) : (
-            <View className="flex-row flex-wrap items-center justify-center">
-              <AppText style={styles.emptyStateText}>No products yet. Tap the </AppText>
-              <NewProductPill />
-              <AppText style={styles.emptyStateText}> button to add the first one.</AppText>
-            </View>
-          )}
-        </View>
-      }
-    />
+    >
+      <FlatList
+        numColumns={numColumns}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        refreshControl={<RefreshControl refreshing={userRefreshing} onRefresh={handleRefresh} />}
+        data={products}
+        extraData={showOwner}
+        keyExtractor={productKeyExtractor}
+        renderItem={renderProduct}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={listFooter}
+        ListEmptyComponent={
+          <View className="items-center p-5">
+            <Image
+              source={
+                theme.dark
+                  ? require('@/assets/images/mark-dark.png')
+                  : require('@/assets/images/mark.png')
+              }
+              style={styles.emptyStateMark}
+              contentFit="contain"
+              accessibilityLabel=""
+            />
+            {searchQuery ? (
+              <AppText>No products match your search.</AppText>
+            ) : !isAuthenticated ? (
+              <AppText>No products available yet. Sign in to add your own.</AppText>
+            ) : filterMode === 'mine' ? (
+              <View className="flex-row flex-wrap items-center justify-center">
+                <AppText style={styles.emptyStateText}>
+                  You haven&apos;t created any products yet. Tap the{' '}
+                </AppText>
+                <NewProductPill />
+                <AppText style={styles.emptyStateText}> button to add your first one.</AppText>
+              </View>
+            ) : (
+              <View className="flex-row flex-wrap items-center justify-center">
+                <AppText style={styles.emptyStateText}>No products yet. Tap the </AppText>
+                <NewProductPill />
+                <AppText style={styles.emptyStateText}> button to add the first one.</AppText>
+              </View>
+            )}
+          </View>
+        }
+      />
+    </Animated.View>
   );
 }
 

@@ -38,6 +38,30 @@ function renderList({
   );
 }
 
+describe('ProductsListContent skeleton handoff', () => {
+  it('fades the product list in rather than hard-cutting from the skeletons', () => {
+    const { getByTestId, UNSAFE_getByType } = renderList();
+    // The skeleton branch renders a different tree entirely, so without this the
+    // swap is eight grey cards replaced by eight real ones in a single frame.
+    // The fade lives on a flex-1 wrapper, not on Animated.FlatList — reanimated's
+    // web layout-animation path crashes on FlatList hosts in the web export
+    // (its own source warns "wrap your component with an animated view and
+    // apply the layout animation on the wrapper" for exactly this reason).
+    expect(getByTestId('products-list-fade').props.entering).toBeDefined();
+    expect(UNSAFE_getByType(FlatList)).toBeTruthy();
+  });
+
+  // Regression guard for the crash above: `entering`/`layout` must never land
+  // directly on the virtualized FlatList itself, only on the wrapper.
+  it('never applies a layout animation to the FlatList itself', () => {
+    const { UNSAFE_getByType } = renderList();
+
+    const list = UNSAFE_getByType(FlatList);
+    expect(list.props.entering).toBeUndefined();
+    expect(list.props.layout).toBeUndefined();
+  });
+});
+
 describe('ProductsListContent pull-to-refresh', () => {
   it('does not spin the pull-to-refresh control for a background refetch', () => {
     // isFetchingNextPage must never drive the pull-to-refresh spinner — only a
