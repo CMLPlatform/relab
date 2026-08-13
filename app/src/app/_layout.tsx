@@ -1,7 +1,10 @@
 // biome-ignore lint/style/noRestrictedImports: global.css lives at the app root (outside src/), so it has no '@/' alias path.
 import '../../global.css';
 
-import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { focusManager, QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
@@ -15,6 +18,7 @@ import { BrandHeaderTitle } from '@/components/base/BrandHeaderTitle';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { HeaderRightPill } from '@/components/base/HeaderRightPill';
+import { OfflineBanner } from '@/components/base/OfflineBanner';
 import { StaticBackground } from '@/components/base/StaticBackground';
 import { TopNav } from '@/components/base/TopNav';
 import { ActiveStreamBanner } from '@/components/cameras/ActiveStreamBanner';
@@ -31,6 +35,7 @@ import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/bac
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
 
+// TODO: wire onlineManager to NetInfo for the native phase
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -39,6 +44,8 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+const persister = createAsyncStoragePersister({ storage: AsyncStorage, key: 'relab-query-cache' });
 
 export default function RootLayout() {
   return (
@@ -208,6 +215,7 @@ function AppShell() {
     <View style={{ flex: 1 }}>
       <AppBackground overlay={overlay} />
       <TopNav />
+      <OfflineBanner />
       <AppStack isDark={isDark} isLg={isLg} />
       <BottomNav />
       <ActiveStreamBanner />
@@ -217,7 +225,10 @@ function AppShell() {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister, maxAge: 24 * 60 * 60 * 1000, buster: 'v1' }}
+    >
       <AuthProvider>
         <ThemeModeProvider>
           <StreamSessionProvider>
@@ -225,7 +236,7 @@ export function Providers({ children }: { children: ReactNode }) {
           </StreamSessionProvider>
         </ThemeModeProvider>
       </AuthProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
 

@@ -153,6 +153,12 @@ export function useSaveProductMutation() {
       originalVideos: Product['videos'];
     }) => saveProduct(product, originalImages, originalVideos),
 
+    // Default networkMode: 'online' — the mutation pauses while onlineManager
+    // reports offline (button stays in its loading state, nothing errors or
+    // drops) and fires automatically on reconnect. retry: 3 also covers
+    // transient network blips that aren't a full offline stretch.
+    retry: 3,
+
     onSuccess: (savedId, { product }) => invalidateAfterSave(queryClient, product, savedId),
 
     onError: (error, { product }) => {

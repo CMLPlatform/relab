@@ -50,7 +50,13 @@ jest.mock('@/services/api/saving', () => ({
 }));
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  // useSaveProductMutation hardcodes retry: 3 so it survives transient blips
+  // offline-and-reconnect (Task 14); that beats this client's retry: false,
+  // so zero the delay too or these failure-path tests wait out real backoff.
+  defaultOptions: {
+    queries: { retry: false },
+    mutations: { retry: false, retryDelay: 0 },
+  },
 });
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
