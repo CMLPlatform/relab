@@ -58,6 +58,8 @@ Base products and components share the same database table, but they are separat
 
 Product and component entry is progressive. A record can be created before its full component tree or bill of materials is known; completeness checks belong to later curation and audit workflows, not to create-time validation.
 
+Product- and component-create requests (`POST /v1/products`, `POST /v1/products/{id}/components`, `POST /v1/components/{id}/components`) accept an optional `Idempotency-Key` header so a client can safely retry a request whose response was lost after the server had already committed it. The first request with a given key is processed normally; a retry with the same key and the same authenticated user returns the original response instead of creating a duplicate record. The key is scoped per user, so it cannot be replayed across accounts, and it expires after 24 hours.
+
 Owner attribution is viewer-aware. Public profiles show product owner names to everyone, community profiles show them only to signed-in users, and private profiles show them only to the owner and admins. Hidden owner identity is returned as `null` rather than exposing a username or owner id.
 
 ### Hardware integration

@@ -46,7 +46,9 @@ Security-sensitive areas:
 
 - authentication and OAuth
 - public read APIs
-- authenticated mutation APIs
+- authenticated mutation APIs — create endpoints that accept an `Idempotency-Key` header cache
+  the replayed response in Redis scoped by authenticated user id, endpoint, and key, so a cached
+  response can never be replayed across accounts
 - uploads and media
 - admin APIs
 - RPi camera device APIs and WebSocket relay

@@ -9,6 +9,7 @@ from typing import Annotated
 
 from fastapi import Body, Depends, Form, Path, UploadFile
 from fastapi import File as FastAPIFile
+from fastapi.responses import JSONResponse
 from fastapi_pagination.links import Page
 from pydantic import UUID4, BeforeValidator
 
@@ -30,6 +31,7 @@ from app.api.data_collection.examples import (
     COMPONENT_CREATE_OPENAPI_EXAMPLES,
     PRODUCT_CREATE_OPENAPI_EXAMPLES,
 )
+from app.api.data_collection.idempotency import IdempotencyKeyDep, begin_idempotent_request, finish_idempotent_request
 from app.api.data_collection.presentation.product_reads import to_read_model
 from app.api.data_collection.product_schemas import ProductRead
 from app.api.data_collection.routers.media_handlers import (
@@ -54,6 +56,7 @@ from app.api.file_storage.schemas import (
     ImageReadWithinParent,
     empty_str_to_none,
 )
+from app.core.redis import RedisDep
 
 product_mutation_router = PublicAPIRouter(prefix="/products", tags=["products"])
 _FILE_FILTER_DEPENDENCY = create_filter_dependency(FileFilter)
@@ -77,11 +80,33 @@ async def create_product(
     ],
     current_user: CurrentActiveVerifiedUserDep,
     session: AsyncSessionDep,
-) -> ProductRead:
-    """Create a new product."""
+    redis: RedisDep,
+    idempotency_key: IdempotencyKeyDep = None,
+) -> ProductRead | JSONResponse:
+    """Create a new product.
+
+    An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
+    key returns the original response instead of creating a second product.
+    """
+    endpoint = "POST /products"
+    replay = await begin_idempotent_request(
+        redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key
+    )
+    if replay is not None:
+        return replay
+
     created = await create_product_record(session, product, current_user.id)
     await session.refresh(created, attribute_names=["owner"])
-    return to_read_model(created, ProductRead, current_user)
+    result = to_read_model(created, ProductRead, current_user)
+    await finish_idempotent_request(
+        redis,
+        user_id=current_user.id,
+        endpoint=endpoint,
+        idempotency_key=idempotency_key,
+        status_code=201,
+        body=result.model_dump(mode="json"),
+    )
+    return result
 
 
 @product_mutation_router.patch(
@@ -128,15 +153,37 @@ async def add_component_to_product(
     ],
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
-) -> ComponentReadWithRecursiveComponents:
-    """Create a new component under the given base product."""
+    redis: RedisDep,
+    idempotency_key: IdempotencyKeyDep = None,
+) -> ComponentReadWithRecursiveComponents | JSONResponse:
+    """Create a new component under the given base product.
+
+    An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
+    key returns the original response instead of creating a second component.
+    """
+    endpoint = "POST /products/{id}/components"
+    replay = await begin_idempotent_request(
+        redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key
+    )
+    if replay is not None:
+        return replay
+
     created = await create_component(
         db=session,
         component=component,
         parent_product=db_product,
     )
     await session.refresh(created, attribute_names=["owner", "components"])
-    return to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
+    result = to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
+    await finish_idempotent_request(
+        redis,
+        user_id=current_user.id,
+        endpoint=endpoint,
+        idempotency_key=idempotency_key,
+        status_code=201,
+        body=result.model_dump(mode="json"),
+    )
+    return result
 
 
 ### File routes (scoped to base products only) ###

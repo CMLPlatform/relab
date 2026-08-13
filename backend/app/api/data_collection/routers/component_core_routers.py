@@ -3,6 +3,7 @@
 from typing import Annotated
 
 from fastapi import Body, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, OptionalCurrentActiveUserDep
@@ -15,6 +16,7 @@ from app.api.data_collection.crud.product_commands import update_product as upda
 from app.api.data_collection.crud.product_tree_queries import require_product_detail
 from app.api.data_collection.dependencies import UserOwnedComponentDep
 from app.api.data_collection.examples import COMPONENT_CREATE_OPENAPI_EXAMPLES
+from app.api.data_collection.idempotency import IdempotencyKeyDep, begin_idempotent_request, finish_idempotent_request
 from app.api.data_collection.presentation.product_reads import to_read_model
 from app.api.data_collection.schemas import (
     ComponentCreateWithComponents,
@@ -23,6 +25,7 @@ from app.api.data_collection.schemas import (
     ComponentReadWithRelationshipsAndFlatComponents,
     ProductUpdate,
 )
+from app.core.redis import RedisDep
 
 component_core_router = PublicAPIRouter(prefix="/components", tags=["components"])
 
@@ -62,15 +65,37 @@ async def add_component_to_component(
     ],
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
-) -> ComponentReadWithRecursiveComponents:
-    """Create a new component below an existing component."""
+    redis: RedisDep,
+    idempotency_key: IdempotencyKeyDep = None,
+) -> ComponentReadWithRecursiveComponents | JSONResponse:
+    """Create a new component below an existing component.
+
+    An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
+    key returns the original response instead of creating a second component.
+    """
+    endpoint = "POST /components/{id}/components"
+    replay = await begin_idempotent_request(
+        redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key
+    )
+    if replay is not None:
+        return replay
+
     created = await create_component(
         db=session,
         component=component,
         parent_product=db_component,
     )
     await session.refresh(created, attribute_names=["owner", "components"])
-    return to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
+    result = to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
+    await finish_idempotent_request(
+        redis,
+        user_id=current_user.id,
+        endpoint=endpoint,
+        idempotency_key=idempotency_key,
+        status_code=201,
+        body=result.model_dump(mode="json"),
+    )
+    return result
 
 
 @component_core_router.patch(
