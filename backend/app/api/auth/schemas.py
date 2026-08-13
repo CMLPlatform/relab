@@ -179,11 +179,6 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
         default_factory=UserPreferences,
         description="User preferences.",
     )
-    credit_in_releases: bool = Field(
-        default=False,
-        description="Whether the user consented to being named as a contributor in published "
-        "dataset releases. Separate from profile visibility: a release is permanent.",
-    )
     # Read-only by omission from UserUpdate, which forbids extras: a user must not be able
     # to PATCH themselves into having accepted terms they were never shown.
     terms_accepted_version: int | None = Field(
@@ -234,12 +229,6 @@ class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUs
         default=None,
         description="User preferences (partial merge).",
     )
-    credit_in_releases: bool | None = Field(
-        default=None,
-        description="Consent to being named as a contributor in published dataset releases. "
-        "Withdrawing it applies to future releases only; published ones cannot be retracted.",
-    )
-
     model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
 
     def create_update_dict(self) -> dict:

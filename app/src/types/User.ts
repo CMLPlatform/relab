@@ -29,9 +29,4 @@ export type User = {
   username: string | null;
   oauth_accounts: NonNullable<ApiUserRead['oauth_accounts']>;
   preferences: UserPreferences;
-  /**
-   * Consent to being named as a contributor in published dataset releases. Not a
-   * preference: profile visibility is revocable access control, a release is permanent.
-   */
-  credit_in_releases: boolean;
 };

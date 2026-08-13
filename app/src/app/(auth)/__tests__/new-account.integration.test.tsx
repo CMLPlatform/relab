@@ -298,7 +298,6 @@ describe('NewAccount – authenticated redirect', () => {
         hasUsablePassword: true,
         oauth_accounts: [],
         preferences: {},
-        credit_in_releases: false,
       },
       isLoading: false,
       refetch: mockRefetch,

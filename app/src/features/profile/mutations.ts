@@ -88,8 +88,7 @@ export function promptUsernameEdit({
 
 export type ProfilePreferenceUpdate =
   | { field: 'profile_visibility'; value: ProfileVisibility }
-  | { field: 'email_updates_enabled'; value: boolean }
-  | { field: 'credit_in_releases'; value: boolean };
+  | { field: 'email_updates_enabled'; value: boolean };
 
 const PREFERENCE_COPY = {
   profile_visibility: {
@@ -101,14 +100,6 @@ const PREFERENCE_COPY = {
     success: (value: unknown) => (value ? 'Email updates enabled.' : 'Email updates disabled.'),
     errorPrefix: 'Failed to update email preferences',
     errorTitle: 'Email preference update failed',
-  },
-  credit_in_releases: {
-    success: (value: unknown) =>
-      value
-        ? 'You will be named in future dataset releases.'
-        : 'You will not be named in future dataset releases. Published releases are unchanged.',
-    errorPrefix: 'Failed to update release credit',
-    errorTitle: 'Release credit update failed',
   },
 } as const;
 
@@ -130,12 +121,7 @@ export async function updateProfilePreferenceField({
 }) {
   const copy = PREFERENCE_COPY[field];
   try {
-    // credit_in_releases is a top-level consent column, not a preferences key.
-    await updateUser(
-      field === 'credit_in_releases'
-        ? { credit_in_releases: value }
-        : { preferences: { [field]: value } },
-    );
+    await updateUser({ preferences: { [field]: value } });
     await refetch(false);
     feedback.toast(copy.success(value));
   } catch (error) {
@@ -161,7 +147,6 @@ export function useProfilePreferences({
 }) {
   const [emailUpdatesSaving, setEmailUpdatesSaving] = useState(false);
   const [visibilitySaving, setVisibilitySaving] = useState(false);
-  const [creditInReleasesSaving, setCreditInReleasesSaving] = useState(false);
 
   const savePreference = useCallback(
     async (
@@ -200,24 +185,7 @@ export function useProfilePreferences({
     [savePreference, emailUpdatesSaving],
   );
 
-  const handleCreditInReleasesChange = useCallback(
-    (credit: boolean) =>
-      savePreference(
-        { field: 'credit_in_releases', value: credit },
-        creditInReleasesSaving,
-        setCreditInReleasesSaving,
-      ),
-    [savePreference, creditInReleasesSaving],
-  );
-
-  return {
-    emailUpdatesSaving,
-    visibilitySaving,
-    creditInReleasesSaving,
-    handleVisibilityChange,
-    handleEmailUpdatesChange,
-    handleCreditInReleasesChange,
-  };
+  return { emailUpdatesSaving, visibilitySaving, handleVisibilityChange, handleEmailUpdatesChange };
 }
 
 export async function confirmOAuthUnlink({

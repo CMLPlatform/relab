@@ -114,9 +114,8 @@ type SharedStepProps = {
   mutedColor: string;
 };
 
-// No checkbox: account creation is the acceptance. Consent to be *named* in a
-// published dataset release is separate and unbundled — it lives behind the
-// credit_in_releases toggle in account settings.
+// No checkbox: creating the account is the acceptance, recorded server-side as
+// terms_accepted_version / terms_accepted_at.
 export function PrivacyPolicy() {
   const theme = useAppTheme();
   const termsUrl = WEBSITE_URL ? new URL('/terms', WEBSITE_URL).toString() : '';

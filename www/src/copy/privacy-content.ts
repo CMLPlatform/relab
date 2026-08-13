@@ -42,7 +42,7 @@ export const privacyContent = {
         'We may use research contributions after removing direct account identifiers. We do not use your email, username, or password to train models.',
         'An open licence lets anyone reuse a published release, including for commercial purposes and for training machine-learning models. We cannot restrict that, and we do not try to. Account identifiers are not published as part of a release.',
         'A release replaces your account with a stable contributor code, not your username. The same code is reused across releases, on purpose: it lets researchers tell which records came from one contributor without knowing who that is, which is what keeps a machine-learning model from being tested on the same person it was trained on. It is not anonymous — we keep the key that links a code back to an account, so we can answer questions about a release and correct it. That key is never published.',
-        'If you have opted into being credited by name, your name appears in the release alongside your contributor code. That is the only case where a release names you.',
+        'A release never names you. Contributors are credited as a group, so your username does not appear in one at all. Your name stays on your profile in the app, where your profile settings control who sees it.',
       ],
     },
     {

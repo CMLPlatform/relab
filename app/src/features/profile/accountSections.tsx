@@ -13,7 +13,6 @@ import { ProfileIntegrationsSection } from '@/components/profile/Integrations';
 import {
   ProfileAppearanceSection,
   ProfileEmailUpdatesSection,
-  ProfileReleaseCreditSection,
   ProfileVisibilitySection,
 } from '@/components/profile/Preferences';
 import { ProfileSecuritySection } from '@/components/profile/SecuritySection';
@@ -58,11 +57,6 @@ export const ACCOUNT_SECTIONS: AccountSectionDef[] = [
             profile={profile.profile}
             visibilitySaving={profile.visibilitySaving}
             onChangeVisibility={profile.handleVisibilityChange}
-          />
-          <ProfileReleaseCreditSection
-            profile={profile.profile}
-            saving={profile.creditInReleasesSaving}
-            onSetEnabled={profile.handleCreditInReleasesChange}
           />
           <ProfileEmailUpdatesSection
             enabled={profile.emailUpdatesEnabled}

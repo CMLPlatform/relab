@@ -44,8 +44,9 @@ export const termsContent = {
     {
       title: 'Credit',
       paragraphs: [
-        'Contributors may be credited in a dataset release. Being named is a separate choice you opt into; we do not name you unless you ask us to.',
-        'CC BY 4.0 requires people who reuse a release to credit the release itself. That credit goes to Relab and its authors, not to each contributor individually.',
+        'Contributors are credited collectively. A dataset release names Relab and its authors, and credits everyone who contributed records as a group; it does not name you individually. Your records appear under a code, not your username.',
+        'CC BY 4.0 requires people who reuse a release to credit the release itself. That credit goes to Relab and its authors, which is the same collective form.',
+        'Your own profile is separate. Your name and contributions stay visible in the app according to your profile settings, and that is where your work is attributed to you.',
       ],
     },
     {

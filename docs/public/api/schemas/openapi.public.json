@@ -5414,12 +5414,6 @@
           }
         ],
         "properties": {
-          "credit_in_releases": {
-            "default": false,
-            "description": "Whether the user consented to being named as a contributor in published dataset releases. Separate from profile visibility: a release is permanent.",
-            "title": "Credit In Releases",
-            "type": "boolean"
-          },
           "email": {
             "format": "email",
             "title": "Email",
@@ -5561,18 +5555,6 @@
           }
         ],
         "properties": {
-          "credit_in_releases": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Consent to being named as a contributor in published dataset releases. Withdrawing it applies to future releases only; published ones cannot be retracted.",
-            "title": "Credit In Releases"
-          },
           "current_password": {
             "anyOf": [
               {

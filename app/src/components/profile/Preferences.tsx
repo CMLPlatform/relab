@@ -135,52 +135,6 @@ export function ProfileEmailUpdatesSection({
   );
 }
 
-type ProfileReleaseCreditSectionProps = {
-  profile: User;
-  saving: boolean;
-  onSetEnabled: (enabled: boolean) => void;
-};
-
-/**
- * Consent to be named in a published dataset release.
- *
- * Deliberately not folded into the visibility options above: visibility is live-platform
- * access control and can be revoked at any time, whereas a release is permanent. Visibility
- * is only the eligibility filter — a private or community profile is never offered this.
- */
-export function ProfileReleaseCreditSection({
-  profile,
-  saving,
-  onSetEnabled,
-}: ProfileReleaseCreditSectionProps) {
-  if ((profile.preferences.profile_visibility || 'public') !== 'public') return null;
-
-  const enabled = profile.credit_in_releases;
-  return (
-    <View className="mx-1">
-      <View className="flex-row items-start justify-between gap-3 px-4 py-2.5">
-        <View className="flex-1">
-          <AppText className="font-semibold">Credit me in dataset releases</AppText>
-          <AppText className="mt-px text-[13px] opacity-[0.55]">
-            Name me as a contributor in the openly licensed dataset releases published from Relab. A
-            release cannot be withdrawn: turning this off later applies to future releases only, and
-            leaves any release already published unchanged.
-          </AppText>
-          <AppText className="mt-1.5 text-[13px] font-semibold">
-            {enabled ? 'Currently enabled.' : 'Currently disabled.'}
-          </AppText>
-        </View>
-        <Switch
-          checked={enabled}
-          onCheckedChange={onSetEnabled}
-          disabled={saving}
-          accessibilityLabel="Credit me in dataset releases"
-        />
-      </View>
-    </View>
-  );
-}
-
 function ThemeModeOption({
   mode,
   icon,

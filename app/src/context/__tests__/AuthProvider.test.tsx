@@ -29,7 +29,6 @@ const signedInUser: User = {
   username: 'tester',
   oauth_accounts: [],
   preferences: {},
-  credit_in_releases: false,
 };
 
 describe('AuthProvider — sign-out cache clearing', () => {

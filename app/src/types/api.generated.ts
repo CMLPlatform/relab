@@ -5329,12 +5329,6 @@ export interface components {
       /** @description User preferences. */
       preferences?: components['schemas']['UserPreferences'];
       /**
-       * Credit In Releases
-       * @description Whether the user consented to being named as a contributor in published dataset releases. Separate from profile visibility: a release is permanent.
-       * @default false
-       */
-      credit_in_releases: boolean;
-      /**
        * Terms Accepted Version
        * @description Version of the contributor terms this account accepted at signup, or null if it predates acceptance tracking. Recorded by the server; not client-settable.
        */
@@ -5395,11 +5389,6 @@ export interface components {
       current_password?: string | null;
       /** @description User preferences (partial merge). */
       preferences?: components['schemas']['UserPreferencesUpdate'] | null;
-      /**
-       * Credit In Releases
-       * @description Consent to being named as a contributor in published dataset releases. Withdrawing it applies to future releases only; published ones cannot be retracted.
-       */
-      credit_in_releases?: boolean | null;
     };
     /** ValidationError */
     ValidationError: {

@@ -62,27 +62,6 @@ def test_public_user_schemas_reject_privileged_fields(schema_cls: PublicUserSche
         schema_cls.model_validate(payload)
 
 
-def test_credit_in_releases_defaults_to_no_consent() -> None:
-    """Being named in a published dataset release is opt-in, never assumed."""
-    user = UserRead(id=uuid.uuid4(), email="test@example.com", is_active=True, is_superuser=False, is_verified=False)
-
-    assert user.credit_in_releases is False
-
-
-def test_credit_in_releases_reaches_the_user_model_on_update() -> None:
-    """The consent flag has to survive create_update_dict to be persisted at all."""
-    update = UserUpdate(credit_in_releases=True)
-
-    assert update.create_update_dict()["credit_in_releases"] is True
-
-
-def test_credit_in_releases_is_untouched_when_absent_from_a_patch() -> None:
-    """A patch about something else must not silently rewrite the consent flag."""
-    update = UserUpdate(username="alice")
-
-    assert "credit_in_releases" not in update.create_update_dict()
-
-
 @pytest.mark.parametrize("field_name", ["terms_accepted_version", "terms_accepted_at"])
 def test_terms_acceptance_is_not_client_settable(field_name: str) -> None:
     """A user must not be able to PATCH themselves into having accepted the terms.

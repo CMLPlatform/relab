@@ -59,14 +59,8 @@ export function useProfileScreen() {
     dialog,
   });
 
-  const {
-    emailUpdatesSaving,
-    visibilitySaving,
-    creditInReleasesSaving,
-    handleVisibilityChange,
-    handleEmailUpdatesChange,
-    handleCreditInReleasesChange,
-  } = useProfilePreferences({ profile, feedback, refetch });
+  const { emailUpdatesSaving, visibilitySaving, handleVisibilityChange, handleEmailUpdatesChange } =
+    useProfilePreferences({ profile, feedback, refetch });
 
   const linkedAccounts = useProfileLinkedAccounts(profile);
 
@@ -80,12 +74,10 @@ export function useProfileScreen() {
       emailUpdatesEnabled: profile?.preferences?.email_updates_enabled === true,
       emailUpdatesSaving,
       visibilitySaving,
-      creditInReleasesSaving,
       openEditUsername: actions.promptEditUsername,
       usernameEditTriggerRef: actions.usernameEditTriggerRef,
       handleEmailUpdatesChange,
       handleVisibilityChange,
-      handleCreditInReleasesChange,
     },
     integrations: {
       rpiEnabled,
