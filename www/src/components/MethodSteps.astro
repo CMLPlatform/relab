@@ -15,7 +15,7 @@ import MethodFlow from '@/assets/method-flow.svg';
 import MethodFlowTb from '@/assets/method-flow-tb.svg';
 ---
 
-<section class="card content-reveal method-steps" aria-labelledby="method-steps-heading">
+<section class="card method-steps" aria-labelledby="method-steps-heading">
   <p class="method-eyebrow">method</p>
   <h2 id="method-steps-heading">From teardown to data</h2>
   <figure class="method-flow">
@@ -125,7 +125,7 @@ import MethodFlowTb from '@/assets/method-flow-tb.svg';
 
   @media (prefers-reduced-motion: no-preference) {
     .method-popover {
-      transition: opacity 0.12s ease;
+      transition: opacity 140ms var(--ease-out);
     }
     .method-popover:not(:popover-open) {
       opacity: 0;

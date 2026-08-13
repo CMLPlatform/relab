@@ -71,7 +71,6 @@ describe('renderStats', () => {
     expect(tiles).toEqual(['1,234teardowns', '4.2tmass logged', '90photos']);
     expect(statText(panel, 'caption')).toContain('7 contributors');
     expect(panel.hidden).toBe(false);
-    expect(panel.classList.contains('content-reveal')).toBe(true);
   });
 
   it('draws one bar per month, defaulting to the parts measure', async () => {

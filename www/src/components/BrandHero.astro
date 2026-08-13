@@ -1,11 +1,13 @@
 ---
+import logoSvg from '@/assets/images/logo.svg?raw';
 // The brand hero: the large logo, the page's thesis, a one-line nutshell, the
 // dataset CTA, and the live totals. On scroll the logo hands off to the sticky
 // header's logo (see the scroll-driven animation below and in SiteHeader).
-// `?url`: hashed URLs under /_astro/ (immutable cache headers) rather than
-// Astro's inlining SVG component — CSS paints only one of the two variants.
-import logoUrl from '@/assets/images/logo.svg?url';
-import logoDarkUrl from '@/assets/images/logo-dark.svg?url';
+// `?raw`: the logo is inlined rather than linked, because the ring — the <circle>
+// the 9R loop is drawn from — has to be reachable from CSS to draw itself in.
+// Costs the /_astro/ hashed-asset caching on this one file (~3KB per variant,
+// inline) and saves the request. CSS paints only one of the two variants.
+import logoDarkSvg from '@/assets/images/logo-dark.svg?raw';
 import { siteMeta } from '@/copy/site-meta.ts';
 import { formatCount, type HomeStats } from '@/lib/stats.ts';
 
@@ -19,10 +21,12 @@ const appBase = appUrl.replace(/\/$/, '');
 ---
 
 <section class="brand-hero content-reveal">
-  {/* Decorative here: the sticky header's brand link carries the "Relab" name. */}
+  {/* Decorative here: the sticky header's brand link carries the "Relab" name.
+      The theme classes sit on wrappers rather than the inlined <svg> itself, so
+      the artwork stays byte-for-byte what `just assets-sync` produced. */}
   <div class="brand-hero-logo" aria-hidden="true">
-    <img class="brand-light" src={logoUrl} alt="" width="475" height="256" />
-    <img class="brand-dark" src={logoDarkUrl} alt="" width="475" height="256" />
+    <div class="brand-light" set:html={logoSvg} />
+    <div class="brand-dark" set:html={logoDarkSvg} />
   </div>
   <h1 class="brand-hero-title">{siteMeta.heroTitle}</h1>
   <p class="brand-hero-lead">{siteMeta.heroNutshell}</p>
@@ -63,7 +67,8 @@ const appBase = appUrl.replace(/\/$/, '');
     text-align: center;
   }
 
-  .brand-hero-logo img {
+  /* :global — Astro cannot add its scope attribute to `set:html` markup. */
+  .brand-hero-logo :global(svg) {
     display: block;
     height: clamp(80px, 11vw, 128px);
     width: auto;
@@ -115,6 +120,58 @@ const appBase = appUrl.replace(/\/$/, '');
     font-size: 0.82rem;
     font-variant-numeric: tabular-nums;
     color: var(--color-muted);
+  }
+
+  /* The totals are baked at build time and refreshed from the API after load
+     (landing-refresh.ts). Without this the figures change with no explanation,
+     which reads as a glitch rather than as freshness. Opacity only: the line
+     must not move, so the refresh keeps its no-layout-shift guarantee. */
+  @media (prefers-reduced-motion: no-preference) {
+    .brand-hero-metrics {
+      transition: opacity 180ms var(--ease-out);
+    }
+
+    .brand-hero-metrics.is-refreshing {
+      opacity: 0.35;
+    }
+  }
+
+  /* The ring closes: on load the mark's circle — the 9R loop — draws itself,
+     and the letters fade up behind it so the loop lands last. The only authored
+     entrance on the site; everything else here is feedback or continuity.
+     Both rules live inside the no-preference query, so the default state is the
+     finished logo: reduced motion and a failed stylesheet both show the mark. */
+  @media (prefers-reduced-motion: no-preference) {
+    /* 2πr for the mark's r="771.6", rounded up so the ends overlap rather than
+       leave a hairline gap. Fixed because the artwork's geometry is fixed —
+       if the ring is ever regenerated at another radius, this follows it. */
+    .brand-hero-logo :global(circle) {
+      stroke-dasharray: 4849;
+      stroke-dashoffset: 4849;
+      animation: ring-draw 600ms var(--ease-out) forwards;
+    }
+
+    /* Every letter group, but not the ring: the <circle> is a top-level sibling
+       of the four <g> wordmark groups, so it keeps its own timing above. */
+    .brand-hero-logo :global(g) {
+      opacity: 0;
+      animation: ring-letters-in 300ms var(--ease-out) 80ms forwards;
+    }
+  }
+
+  /* Starts at 3 o'clock, where an SVG circle's path begins. Rotating the start
+     to 12 needs a transform-origin in user units on a viewBox that is already
+     offset — not worth the fragility for a quarter turn nobody is timing. */
+  @keyframes ring-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes ring-letters-in {
+    to {
+      opacity: 1;
+    }
   }
 
   /* The melt: as the page scrolls the hero logo dissolves upward while the

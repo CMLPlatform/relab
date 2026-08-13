@@ -4,6 +4,10 @@
 
 html {
   scroll-behavior: smooth;
+  /* Makes `height: auto` an animatable value, which is what lets the teardown's
+     part groups open on a transition instead of snapping (HeroTeardown). Inert
+     everywhere else: nothing animates to or from a keyword size but that. */
+  interpolate-size: allow-keywords;
 }
 
 body {
@@ -109,10 +113,15 @@ select {
     scroll-behavior: auto;
   }
 
-  .content-reveal,
   .btn,
   .theme-toggle {
     animation: none;
     transition-duration: 0.01ms;
+  }
+
+  /* The press still has to acknowledge itself — the background change carries
+     that. Only the movement goes, since a 0.01ms scale is a jump, not motion. */
+  .btn:active {
+    transform: none;
   }
 }

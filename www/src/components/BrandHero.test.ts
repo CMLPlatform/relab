@@ -20,10 +20,17 @@ async function render(props: Record<string, unknown> = {}): Promise<string> {
 describe('BrandHero', () => {
   it('leads with the logo, the thesis, and the nutshell', async () => {
     const html = await render();
-    // The build hashes the filename, so match the stem rather than a path.
-    expect(html).toMatch(/src="[^"]*logo[.\-\w]*\.svg"/);
+    expect(html).toMatch(/<svg[^>]*viewBox/);
     expect(html).toContain('Open product data for circular-economy research');
     expect(html).toMatch(/Relab documents how durable goods come apart/);
+  });
+
+  it('inlines both logo variants so the ring stays reachable from CSS', async () => {
+    const html = await render();
+    // Linking the logo instead would leave nothing for the load-in ring draw
+    // (BrandHero) or the scroll-driven close (SiteHeader) to animate.
+    expect(html).not.toMatch(/<img[^>]*logo/);
+    expect(html.match(/<circle/g)).toHaveLength(2);
   });
 
   it('links the single CTA to the dataset, warning that it opens a new tab', async () => {

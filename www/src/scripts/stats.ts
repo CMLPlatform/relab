@@ -374,6 +374,7 @@ function mountActivity(panel: HTMLElement, series: SeriesPoint[]): void {
   }
 
   let current: MeasureKey = 'parts';
+  let drawn = false;
 
   const draw = (): void => {
     const measure = MEASURES.find((m) => m.key === current) ?? MEASURES[0];
@@ -384,6 +385,11 @@ function mountActivity(panel: HTMLElement, series: SeriesPoint[]): void {
       ? `${measure.label} per month (${unit}) · last ${SERIES_MONTHS} months`
       : `${measure.label} per month · last ${SERIES_MONTHS} months`;
     chartSlot.replaceChildren(buildChart(series, measure));
+    // The bar entrance is a first-impression device. Replacing the bars re-runs
+    // it, so a measure toggle would make you wait out the stagger before the
+    // comparison you clicked for is readable — gate it to the first draw.
+    chartSlot.classList.toggle('stats-chart-enter', !drawn);
+    drawn = true;
     tableSlot.replaceChildren(buildTable(series, measure, formatValue, unit));
     for (const button of controls.querySelectorAll('button')) {
       button.setAttribute('aria-pressed', String(button.dataset.measure === current));
@@ -448,6 +454,5 @@ export async function renderStats(): Promise<void> {
   }
 
   renderPanel(panel, stats);
-  panel.classList.add('content-reveal');
   panel.hidden = false;
 }

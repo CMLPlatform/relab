@@ -56,27 +56,24 @@
   line-height: var(--content-page-line-height);
 }
 
-.content-reveal {
-  animation: rise-in 520ms ease both;
-}
-
-.content-reveal:nth-of-type(2) {
-  animation-delay: 70ms;
-}
-
-.content-reveal:nth-of-type(3) {
-  animation-delay: 140ms;
-}
-
-@keyframes rise-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
+/* The one supporting entrance, and only on first-viewport content — anything
+   further down finishes long before it is scrolled to. The page's authored
+   moment is the mark drawing its ring and melting into the header (BrandHero /
+   SiteHeader); sections below do not get reveals competing with it. */
+@media (prefers-reduced-motion: no-preference) {
+  .content-reveal {
+    animation: rise-in 280ms var(--ease-out) both;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .content-reveal:nth-of-type(2) {
+    animation-delay: 60ms;
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
   }
 }
 

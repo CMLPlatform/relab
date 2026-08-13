@@ -81,7 +81,7 @@ const formatMassG = (weightG: number | null): string =>
           </ul>
           {fromFixture && (
             <p class="blueprint-fixture-note" data-fixture-note>
-              Example teardown with illustrative masses — not a live record.
+              Example teardown with illustrative masses, not a live record.
             </p>
           )}
           {teardown.photos.length > 0 && (
@@ -202,6 +202,24 @@ const formatMassG = (weightG: number | null): string =>
     background-repeat: no-repeat;
   }
 
+  /* The bar's length is the datum, so it arrives as a measurement being taken
+     rather than a line that was always there — the reading the stats chart
+     gives its own bars. On load, not on scroll: this panel is above the fold
+     at every viewport we ship, so a view() timeline would already be past its
+     range on first paint and the bars would simply be drawn. The delay lets
+     the section's own rise-in settle first. */
+  @media (prefers-reduced-motion: no-preference) {
+    .blueprint-part-bar {
+      animation: blueprint-bar-grow 300ms var(--ease-out) 320ms both;
+    }
+
+    @keyframes blueprint-bar-grow {
+      from {
+        background-size: 0 100%;
+      }
+    }
+  }
+
   summary.blueprint-part {
     cursor: pointer;
     list-style: none;
@@ -223,6 +241,27 @@ const formatMassG = (weightG: number | null): string =>
   .blueprint-part-group details[open] > summary.blueprint-part .blueprint-part-name::before {
     content: '▾ ';
     content: '▾ ' / '';
+  }
+
+  /* Opening a part group used to teleport its subparts in, shoving the rest of
+     the schedule down a step. Bridged with the shortest transition that reads:
+     `interpolate-size` (base.css) is what makes the `auto` height animatable,
+     and `allow-discrete` carries content-visibility along with it so the
+     closing direction isn't instant. Older browsers keep the snap. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports selector(::details-content) {
+      .blueprint-part-group details::details-content {
+        block-size: 0;
+        overflow: hidden;
+        transition:
+          block-size 200ms var(--ease-out),
+          content-visibility 200ms var(--ease-out) allow-discrete;
+      }
+
+      .blueprint-part-group details[open]::details-content {
+        block-size: auto;
+      }
+    }
   }
 
   .blueprint-subparts {

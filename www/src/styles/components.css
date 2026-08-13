@@ -54,9 +54,17 @@
   text-decoration: none;
   cursor: pointer;
   transition:
-    background 160ms ease,
-    color 160ms ease,
-    border-color 160ms ease;
+    background 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+/* Press feedback. Buttons are hit often enough that this has to stay at the
+   threshold of perception — 0.98, not the 0.95 that reads as a toy. Transform
+   only, so a press never reflows the row it sits in. */
+.btn:active {
+  transform: scale(0.98);
 }
 
 .btn:disabled {
@@ -331,15 +339,19 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* Load reveal: bars grow from the baseline, staggered left to right. Needs
-     fill-box so scaleY pivots on each bar's own baseline rather than the SVG
-     viewport; where unsupported the bars simply appear, which is fine. */
+  /* First reveal only: bars grow from the baseline, staggered left to right.
+     Re-renders (the measure toggle) paint at full height — the toggle is a
+     comparison control, and a ramp would delay the comparison. Needs fill-box
+     so scaleY pivots on each bar's own baseline rather than the SVG viewport;
+     where unsupported the bars simply appear, which is fine. */
   @supports (transform-box: fill-box) {
-    .stats-chart-bar {
+    .stats-chart-enter .stats-chart-bar {
       transform-box: fill-box;
       transform-origin: bottom;
-      animation: stats-bar-grow 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-      animation-delay: calc(var(--bar-i, 0) * 40ms);
+      animation: stats-bar-grow 300ms var(--ease-out) both;
+      /* Capped: the series runs to a year, so an uncapped 40ms/bar tail would
+         leave the last bar most of a second behind the first. */
+      animation-delay: calc(min(var(--bar-i, 0) * 40ms, 240ms));
     }
 
     @keyframes stats-bar-grow {
@@ -383,9 +395,9 @@
   align-items: center;
   justify-content: center;
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease;
+    background 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
 }
 
 /* 44px pointer target (WCAG 2.5.8) without inflating the 2.1rem glyph box:
