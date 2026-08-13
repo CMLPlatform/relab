@@ -85,14 +85,16 @@ graph TD
 
 ## Technology choices
 
-- **Backend API**: FastAPI
-- **Persistence layer**: SQLAlchemy 2.0 + Pydantic
-- **Database**: PostgreSQL
-- **Migrations**: Alembic
-- **Caching and token infrastructure**: Redis
-- **Research app frontend**: Expo / React Native
-- **Public web frontend**: Astro
-- **Docs site**: Astro Starlight
+| Concern                          | Choice                    |
+| -------------------------------- | ------------------------- |
+| Backend API                      | FastAPI                   |
+| Persistence layer                | SQLAlchemy 2.0 + Pydantic |
+| Database                         | PostgreSQL                |
+| Migrations                       | Alembic                   |
+| Caching and token infrastructure | Redis                     |
+| Research app frontend            | Expo / React Native       |
+| Public web frontend              | Astro                     |
+| Docs site                        | Astro Starlight           |
 
 These choices keep the stack small enough to understand and operate without dedicated infrastructure work.
 

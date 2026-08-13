@@ -9,50 +9,51 @@ goods, developed by the
 at Leiden University. It supports structured data collection, media capture, and later analysis of
 product composition, materials, and circularity.
 
-<div class="relab-badge-row" markdown>
-
-[![DOI record](https://zenodo.org/badge/DOI/10.5281/zenodo.16637742.svg)](https://doi.org/10.5281/zenodo.16637742)
-[![Test coverage report](https://img.shields.io/codecov/c/github/CMLPlatform/relab)](https://codecov.io/gh/CMLPlatform/relab)
-[![OpenSSF Scorecard rating](https://api.scorecard.dev/projects/github.com/CMLPlatform/relab/badge)](https://scorecard.dev/viewer/?uri=github.com/CMLPlatform/relab)
-[![Deployment status](https://img.shields.io/website?url=https%3A%2F%2Fcml-relab.org&label=website)](https://cml-relab.org)
-
-</div>
-
 ## Start here
 
 <div class="grid cards relab-card-grid" markdown>
 
 - **[Getting started](user-guides/getting-started/)**
-  Create an account and document your first product.
+  Create an account and document your first product. Start here if you have never used Relab.
 
 - **[Guides](user-guides/)**
   Practical help for data collection, hardware, camera capture, and API access.
 
 - **[API reference](api-reference/)**
-  Explore the generated interactive references for the public, device, and RPi camera APIs.
+  Generated interactive references for the public, device, and RPi camera APIs.
 
 - **[Architecture](architecture/)**
-  How the platform is built, how it runs, and where the main boundaries are.
+  How the platform is built, how it runs, and where the main boundaries are. Written for people
+  extending or self-hosting it.
 
 - **[Project context](project/)**
   Why Relab exists, who it is for, and where the dataset work is heading.
 
 </div>
 
-## Quick links
+## Why this exists
 
-- [Open the platform](https://app.cml-relab.org)
-- [Open public API reference](/api/public/)
-- [View the repository](https://github.com/CMLPlatform/relab)
-
-## Research motivation
-
-Good product data is still surprisingly hard to get: what something is made of, how it comes apart,
-which parts matter, and what evidence supports those claims. Relab takes a bottom-up approach. It
-helps people who handle real products document what they see, with enough structure that the records
-can later be compared, reused, and linked to other industrial-ecology data.
+Good product data is still hard to get: what something is made of, and what evidence supports the
+claim. Relab works downstream, with the people who already open products, so that routine repair and
+dismantling work leaves behind structured records anyone can reuse. [Project context](project/) sets
+out the argument in full.
 
 For repository entry points and self-hosting, see
 [README.md](https://github.com/CMLPlatform/relab/blob/main/README.md),
 [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md), or
 [Install and self-host](/operations/install/).
+
+<div class="relab-colophon" markdown>
+
+**Relab** — Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden
+University.
+Simon van Lierde ([ORCID](https://orcid.org/0009-0006-6953-909X)) and Franco Donati
+([ORCID](https://orcid.org/0000-0002-8287-2413)).
+Cite as [doi:10.5281/zenodo.16637742](https://doi.org/10.5281/zenodo.16637742).
+Code is [AGPL-3.0-or-later](https://github.com/CMLPlatform/relab/blob/main/LICENSE); curated dataset
+releases are [planned under CC BY 4.0](/project/dataset/).
+Supported by the Leiden University Starter Fund, the Depack grant (Leiden University Fund), and
+_Sectorplan Gelden_, a research infrastructure fund of the Dutch government.
+Contact [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl).
+
+</div>

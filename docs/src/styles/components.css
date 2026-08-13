@@ -8,62 +8,28 @@
   }
 }
 
-.relab-section-intro {
-  padding: 1rem 1.1rem;
-  margin: 0.2rem 0 1.2rem;
-  border-left: 4px solid var(--relab-brand-primary);
-  background: var(--relab-brand-primary-soft);
-  border-radius: var(--radius-card);
+/* Research metadata at the foot of the overview: affiliation, authors, citation,
+   licences, funding, contact. Small mono, one hairline above it, no cards and no
+   icons — a colophon, not a section. It replaces the shields.io badge row, which
+   was README furniture aimed at contributors evaluating the repo rather than at
+   readers looking for a guide, and which loaded four third-party images on first
+   paint. Every paragraph is one label line, so they set tight. */
+.relab-colophon {
+  margin-top: 3rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--relab-brand-divider);
+  font-family: var(--relab-brand-font-mono), monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--sl-color-gray-3);
 }
 
-/* Flat panel: hairline border + a flat primary tint. The manila radial wash
-   that used to sit here was the accent used as a *fill*, which DESIGN.md
-   reserves for text only — and the gradients were the last soft-surface
-   holdover from the old look. */
-.relab-hero {
-  padding: 1.25rem 1.3rem;
-  margin: 0.2rem 0 1.4rem;
-  border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 18%, transparent);
-  border-radius: var(--radius-card);
-  background: var(--relab-brand-primary-soft);
+.relab-colophon p {
+  margin: 0 0 0.4rem;
 }
 
-.relab-hero h1 {
-  margin: 0 0 0.55rem;
-}
-
-.relab-hero-title {
-  margin: 0 0 0.55rem;
-  font-family: var(--relab-brand-font), sans-serif;
-  font-size: clamp(1.6rem, 4vw, 2.6rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.relab-hero p:last-child {
+.relab-colophon p:last-child {
   margin-bottom: 0;
-}
-
-.relab-badge-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.45rem;
-  margin: 1rem 0 1.4rem;
-}
-
-.relab-badge-row p {
-  display: contents;
-}
-
-.relab-badge-row a,
-.relab-badge-row img {
-  display: inline-block;
-}
-
-.relab-badge-row img {
-  margin: 0;
-  vertical-align: middle;
 }
 
 .relab-card-grid > ul {
@@ -82,8 +48,11 @@
   background: color-mix(in srgb, var(--relab-brand-primary) 4%, transparent);
 }
 
+/* block, not inline-block: markdown folds the soft newline after the card's
+   link into a space, so an inline-block title runs straight into its own
+   description on the same line. */
 .relab-card-grid strong:first-child {
-  display: inline-block;
+  display: block;
   margin-bottom: 0.35rem;
 }
 
@@ -103,6 +72,15 @@
   background: color-mix(in srgb, var(--relab-brand-primary) 22%, rgba(15, 23, 42, 0.9) 78%);
 }
 
+/* Long code lines were escaping their own block and forcing the whole page to
+   scroll sideways on narrow viewports (WCAG 1.4.10 reflow). Expressive Code
+   ships its own scroll container, but the computed overflow-x on the `pre`
+   lands as `visible` here, so the line box overflows the frame instead of
+   scrolling inside it. Wide content scrolls in its own box; the page never does. */
+.expressive-code pre {
+  overflow-x: auto;
+}
+
 .relab-mermaid {
   margin: 1rem 0 1.5rem;
   padding: 1rem;
@@ -110,6 +88,17 @@
   border-radius: var(--radius-card);
   border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 16%, transparent);
   background: color-mix(in srgb, white 88%, var(--relab-brand-primary) 6%);
+}
+
+/* Diagrams break out of the prose column rather than the column widening to
+   suit them: the measure is set for reading, and only the diagrams need the
+   extra room. Desktop only — below this the column is already the full width,
+   so a break-out would push the page into horizontal scroll. */
+@media (min-width: 72rem) {
+  .relab-mermaid {
+    width: calc(100% + 4.5rem);
+    margin-inline: -2.25rem;
+  }
 }
 
 :root[data-theme="dark"] .relab-mermaid {

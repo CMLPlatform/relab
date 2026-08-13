@@ -49,7 +49,7 @@ its own record. A battery pack is a component. A single screw usually is not.
 
 :::note[Partial is fine]
 If you are not sure, say so in the record. "Likely polypropylene, unconfirmed" is a perfectly good
-observation — and more useful than a guess.
+observation, and more useful than a guess.
 :::
 
 ## Good notes often include
@@ -89,7 +89,7 @@ Accepted types and size limits:
   — up to 50 MiB.
 
 Relab validates type, size, and content before storing a file. It also unpacks and inspects office
-files before accepting them. Each account has a cap on total file count and storage used — 5000
+files before accepting them. Each account has a cap on total file count and storage used: 5000
 files and 2048 MB by default, tunable per instance by the operator through
 `MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB`. If malware scanning is enabled,
 Relab scans files on upload and rejects flagged ones.
@@ -100,4 +100,4 @@ Relab scans files on upload and rejects flagged ones.
 - Make sure important images are attached to the right record.
 - Add missing notes while the work is still fresh.
 - Normalize product types or materials where possible.
-- Keep "unconfirmed" notes as they are — do not replace them with guesses.
+- Keep "unconfirmed" notes as they are. Do not replace them with guesses.

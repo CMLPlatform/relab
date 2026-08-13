@@ -3,37 +3,19 @@ title: Architecture
 description: System design, data model, API, and auth.
 ---
 
-How Relab is built. These pages are for maintainers and contributors who need to understand the main system boundaries before changing code.
+How Relab is built. These pages are for maintainers and contributors who need to understand the main
+system boundaries before changing code.
 
-## Architecture
+Start with [System design](system-design/): it explains why the platform is split across app, web,
+backend, and docs, and the rest of this section assumes that split. [Data model](datamodel/) and
+[API structure](api/) then cover the two boundaries most changes touch, the entities and their
+relationships, and how routes are organized around them.
 
-<div class="grid cards relab-card-grid" markdown>
+[Authentication](auth/) and [RPi camera plugin](rpi-cam/) are self-contained. Read them when you are
+changing login, sessions, and OAuth, or the camera pairing and streaming path, respectively. Both
+describe security-relevant behavior, so treat them as the reference rather than reading it off the
+code.
 
-- **[System design](system-design/)**
-  The main moving parts and why the platform is split across app, web, backend, and docs.
-
-- **[Data model overview](datamodel/)**
-  Main entities and relationships.
-
-- **[API structure](api/)**
-  Route organization and integration flow.
-
-- **[Authentication](auth/)**
-  Login, refresh, OAuth, and session handling.
-
-- **[RPi camera plugin architecture](rpi-cam/)**
-  How the camera plugin talks to the backend and app clients.
-
-</div>
-
-## Running Relab
-
-<div class="grid cards relab-card-grid" markdown>
-
-- **[Install and self-host](/operations/install/)**
-  Run the stack locally or on your own server.
-
-- **[Deployment](/operations/deployment/)**
-  Compose topology and operational trade-offs.
-
-</div>
+These pages describe the design. To actually run the stack, see
+[Install and self-host](/operations/install/) for a local or single-server deployment, and
+[Deployment](/operations/deployment/) for the Compose topology and its operational trade-offs.

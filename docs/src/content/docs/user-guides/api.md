@@ -19,8 +19,8 @@ your client configuration, then build requests such as `https://api.cml-relab.or
 
 ## Authentication
 
-- **Browsers** use cookies (`POST /v1/auth/session/login`)
-- **Apps and scripts** use bearer tokens (`POST /v1/auth/bearer/login`)
+- Browsers use cookies (`POST /v1/auth/session/login`)
+- Apps and scripts use bearer tokens (`POST /v1/auth/bearer/login`)
 - Refresh-token handling depends on the Redis-backed auth path (see
   [Authentication](../../architecture/auth/))
 

@@ -178,6 +178,16 @@ const renderMermaid = async (force = false): Promise<void> => {
       await mermaid.run({ nodes: diagrams });
     } catch (error) {
       reportMermaidError(error);
+    } finally {
+      // Release the pre-render reservation. It exists only to stop the swap
+      // shrinking already-laid-out content during load; kept afterwards it is
+      // pure dead space, because a rendered diagram is usually much shorter
+      // than the source block it replaced (the system-design flowchart renders
+      // 328px tall from a 1619px `pre`). Cleared even when run() throws, so a
+      // failed render leaves the source text rather than a blank reserved box.
+      for (const diagram of diagrams) {
+        diagram.style.minHeight = '';
+      }
     }
   })();
 

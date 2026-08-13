@@ -39,8 +39,10 @@ test.describe('API reference pages', () => {
       'href',
       '/api/rpi-cam/',
     );
-    await expect(page.getByRole('button', { name: 'Search' })).toHaveCount(0);
-    await expect(page.getByRole('complementary')).toHaveCount(0);
+    // Starlight chrome must not leak into the standalone reference pages; the
+    // sidebar and search that do render belong to Scalar.
+    await expect(page.locator('site-search')).toHaveCount(0);
+    await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Relab - Data Collection API' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Download OpenAPI Document' })).toHaveAttribute(
       'href',
@@ -89,16 +91,17 @@ test.describe('API reference discoverability', () => {
   test('homepage and sidebar expose API reference entry points', async ({ page }) => {
     await page.goto('/');
 
+    // The overview reaches the references through the "Start here" card only.
+    // The direct "Open public API reference" shortcut is deliberately gone: it
+    // sat in a "Quick links" block that repeated the header CTA and the sidebar,
+    // and /api/public/ is one click further, from the API reference page itself.
     await expect(page.getByRole('main').getByRole('link', { exact: true, name: 'API reference' })).toHaveAttribute(
       'href',
       'api-reference/',
     );
     await expect(
-      page.getByRole('main').getByRole('link', { exact: true, name: 'Open public API reference' }),
-    ).toHaveAttribute(
-      'href',
-      '/api/public/',
-    );
+      page.getByRole('main').getByRole('link', { name: /public API reference/i }),
+    ).toHaveCount(0);
 
     const sidebar = page.getByRole('navigation', { name: 'Main' });
     await expect(sidebar.getByRole('link', { exact: true, name: 'API reference' })).toHaveAttribute(

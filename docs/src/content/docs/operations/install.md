@@ -21,7 +21,7 @@ tooling policy and contributor workflow.
 - [Docker Desktop](https://docs.docker.com/get-started/get-docker/)
 - [`just`](https://just.systems/man/en/) is optional but recommended
 - Contributing code additionally requires [`uv`](https://docs.astral.sh/uv/), Node 26.x, and pnpm
-  11.x — see step 2 below and
+  11.x. See step 2 below and
   [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md)
 
 ## Local Docker setup
@@ -147,7 +147,7 @@ migrations, verify health.
    quota ledger counts existing rows, so raise these limits before the first start on a host with a
    large existing dataset. Otherwise, an owner whose existing uploads already exceed the new limit
    is blocked from uploading entirely. `MALWARE_SCAN_ENABLED` controls ClamAV upload scanning and
-   must agree with whether the stack starts with the `scanning` Compose profile — see the two modes
+   must agree with whether the stack starts with the `scanning` Compose profile. See the two modes
    in the "Start the stack" step below.
 
    Environment identity and public origins live in `deploy/env/prod.compose.env` and
@@ -283,12 +283,12 @@ WebDAV is handled through restic's rclone backend.
 
 1. Set `RESTIC_OFFSITE_REPOSITORY` in the host's root `.env`:
 
-   ```env
+   ```ini
    RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/staging/restic
    ```
 
    Once set, the scheduled `backups` service copies snapshots offsite automatically at the end of
-   every backup cycle — no further action needed for ongoing offsite copies.
+   every backup cycle. No further action is needed for ongoing offsite copies.
 
 1. To copy snapshots on demand outside the scheduled cycle (for example, right after a one-off
    local backup), export the same variable in the shell that runs the manual helper. The helper
@@ -326,7 +326,7 @@ If you want camera-assisted capture, see the external plugin repository:
 
 [Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin)
 
-The plugin uses **WebSocket relay** — the RPi connects outbound to the backend, so no public IP or
+The plugin uses a **WebSocket relay**: the RPi connects outbound to the backend, so no public IP or
 port forwarding is needed. The quickest setup is **automatic pairing**: set `PAIRING_BACKEND_URL` on
 the RPi, boot it, and enter the displayed pairing code in the app. See the
 [plugin install guide](https://github.com/CMLPlatform/relab-rpi-cam-plugin/blob/main/INSTALL.md),

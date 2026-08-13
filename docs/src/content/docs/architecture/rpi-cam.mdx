@@ -131,12 +131,12 @@ sequenceDiagram
 
 ## Key design decisions
 
-- **Backend as control plane**: Pairing, relay orchestration, capture storage, and YouTube coordination stay in the main backend.
-- **Two contract layers**: a public app-facing API plus a smaller private device contract for pairing, relay, and uploads (see [Protocol boundaries](#protocol-boundaries)).
-- **Optional local direct mode**: After pairing, the app can switch to LAN-direct access with a device-local API key for lower-latency preview and capture when the device is reachable locally.
-- **Relay-first registration**: Cameras pair through a short-lived code and receive runtime relay credentials from the backend; operators do not manually copy long-lived API keys in the normal path.
-- **Media storage**: Captured images are stored in Relab's file storage and linked to the originating product or component record automatically.
-- **Optional YouTube integration**: Streaming is mediated through the backend's OAuth connection to YouTube. The device streams directly to YouTube once authorized.
+- Pairing, relay orchestration, capture storage, and YouTube coordination stay in the main backend, which acts as the control plane.
+- There are two contract layers: a public app-facing API plus a smaller private device contract for pairing, relay, and uploads (see [Protocol boundaries](#protocol-boundaries)).
+- After pairing, the app can switch to LAN-direct access with a device-local API key, for lower-latency preview and capture when the device is reachable locally.
+- Cameras pair through a short-lived code and receive runtime relay credentials from the backend. Operators do not manually copy long-lived API keys in the normal path.
+- Captured images are stored in Relab's file storage and linked to the originating product or component record automatically.
+- YouTube streaming is optional and mediated through the backend's OAuth connection to YouTube. The device streams directly to YouTube once authorized.
 
 ## Protocol boundaries
 

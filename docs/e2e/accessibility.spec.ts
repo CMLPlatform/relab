@@ -78,7 +78,10 @@ test.describe('Viewport overflow', () => {
 
   test.use({ viewport: { width: VIEWPORT_WIDTH, height: 800 } });
 
-  for (const path of ['/architecture/datamodel/', '/api/public/']) {
+  // system-design carries the widest terminal block on the site (a directory
+  // tree), which is what made long code lines escape their own `pre` and push
+  // the whole page sideways. Keep it in this list as the regression guard.
+  for (const path of ['/architecture/datamodel/', '/architecture/system-design/', '/api/public/']) {
     test(`${path} has no horizontal overflow at ${VIEWPORT_WIDTH}px`, async ({ page }) => {
       await page.goto(path);
       await page.waitForLoadState('networkidle');

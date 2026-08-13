@@ -25,4 +25,4 @@ Relab is not:
 - a fully automated computer-vision pipeline
 - a highly elastic cloud-native platform
 
-Keeping the scope narrow keeps the platform simple enough for a small research team to run — and for new contributors to learn quickly.
+Keeping the scope narrow keeps the platform simple enough for a small research team to run, and for new contributors to learn quickly.
