@@ -40,6 +40,24 @@ class User(BaseUserDB, TimeStampMixinBare):
     # SHA-256 hashes of single-use recovery codes (high-entropy, so a fast hash is fine).
     mfa_recovery_codes: Mapped[list[str]] = mapped_column(JSONB, nullable=False, server_default="[]", default=list)
 
+    # Consent to be named as a contributor in published dataset releases. Deliberately a
+    # column and not a `preferences` key: preferences are revocable UI settings, this is a
+    # consent record the release build reads, and a published release cannot be unpublished.
+    credit_in_releases: Mapped[bool] = mapped_column(nullable=False, server_default="false", default=False)
+
+    # Evidence that this account accepted the contributor terms, which carry the licence
+    # grant the dataset releases rest on. Columns rather than `preferences` keys for the
+    # same reason as above, but harder: load_user_preferences() deliberately fails soft,
+    # silently substituting a default for any value it cannot validate. An evidence field
+    # must never do that — a quietly defaulted licence grant is an unenforceable one.
+    #
+    # An integer version, not the terms' date: the release tooling asks "whose owner
+    # accepted version >= N", which is an integer comparison rather than a string parse,
+    # and it still distinguishes two revisions published on the same day. NULL means the
+    # account accepted nothing — true of every account predating this column.
+    terms_accepted_version: Mapped[int | None] = mapped_column(default=None)
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
     # Flexible user preferences (UI settings, feature toggles, etc.)
     preferences: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)
 

@@ -18,6 +18,7 @@ from app.api.auth.services.user_manager import (
     VERIFICATION_TOKEN_AUDIENCE,
     UserManager,
 )
+from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audit import AuditAction
 from app.api.common.rate_limiting import RateLimitExceededError
 from app.core.runtime import AppServices
@@ -494,4 +495,44 @@ async def test_on_after_register_skips_password_signup() -> None:
 
     welcome.assert_not_called()
     assert user.has_usable_password is True
-    mock_session.commit.assert_not_awaited()
+
+
+@pytest.mark.parametrize("oauth_accounts", [[], [MagicMock(oauth_name="google")]])
+async def test_on_after_register_records_terms_acceptance(oauth_accounts: list[MagicMock]) -> None:
+    """Creating an account is the acceptance, on the password and the OAuth path alike."""
+    manager, mock_session = _make_manager()
+    mock_session.commit = AsyncMock()
+    user = MagicMock()
+    user.oauth_accounts = oauth_accounts
+    user.has_usable_password = True
+    user.terms_accepted_version = None
+    user.terms_accepted_at = None
+
+    with patch("app.api.auth.services.user_manager.send_oauth_welcome_notification", new_callable=AsyncMock):
+        await manager.on_after_register(user, request=MagicMock())
+
+    assert user.terms_accepted_version == CURRENT_TERMS_VERSION
+    assert user.terms_accepted_at is not None
+    assert user.terms_accepted_at.tzinfo is not None
+    mock_session.commit.assert_awaited()
+
+
+async def test_on_after_register_leaves_programmatic_accounts_unaccepted() -> None:
+    """Seeded and CLI-created accounts saw no signup screen, so they accept nothing.
+
+    Programmatic creation reaches ``create`` without a request. Stamping acceptance there would
+    fabricate the evidence these columns exist to provide, so they must stay NULL.
+    """
+    manager, mock_session = _make_manager()
+    mock_session.commit = AsyncMock()
+    user = MagicMock()
+    user.oauth_accounts = []
+    user.has_usable_password = True
+    user.terms_accepted_version = None
+    user.terms_accepted_at = None
+
+    with patch("app.api.auth.services.user_manager.send_oauth_welcome_notification", new_callable=AsyncMock):
+        await manager.on_after_register(user, request=None)
+
+    assert user.terms_accepted_version is None
+    assert user.terms_accepted_at is None

@@ -37,6 +37,7 @@ from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
 from app.api.auth.services.user_database import UserDatabaseAsync
+from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 from app.api.common.routers.dependencies import get_external_http_client
@@ -177,21 +178,30 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         return updated_user
 
     async def on_after_register(self, user: User, request: Request | None = None) -> None:
-        """Welcome social-login signups.
+        """Record terms acceptance, and welcome social-login signups.
 
         Password signups are emailed through the verification flow (``request_verify`` in the
         register route), so only OAuth-created accounts — which are verified by the provider and
         never request verification — need a welcome here. The linked OAuth account distinguishes
         them: password signups have none at this point.
         """
-        if not user.oauth_accounts:
-            return
+        # Creating the account is the acceptance — both signup screens link the terms — so the
+        # grant is evidenced for password and OAuth signups alike, before either branch below.
+        # Only for accounts created through a request, though: programmatic creation (seeding,
+        # CLI) has no signup screen and therefore no acceptance to record. Stamping those would
+        # fabricate the very evidence these columns exist to provide, so they stay NULL.
+        if request is not None:
+            user.terms_accepted_version = CURRENT_TERMS_VERSION
+            user.terms_accepted_at = datetime.now(UTC)
         # OAuth-created accounts get a random password they can never use; record that
         # so step-up re-auth (e.g. unlinking a social login) doesn't demand a password
         # the user never set. Password signups keep the column default (True).
-        if user.has_usable_password:
+        if user.oauth_accounts and user.has_usable_password:
             user.has_usable_password = False
-            await self.user_db.session.commit()
+        await self.user_db.session.commit()
+
+        if not user.oauth_accounts:
+            return
         background_tasks = getattr(getattr(request, "state", None), "background_tasks", None)
         await send_oauth_welcome_notification(
             user.email,

@@ -179,6 +179,22 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
         default_factory=UserPreferences,
         description="User preferences.",
     )
+    credit_in_releases: bool = Field(
+        default=False,
+        description="Whether the user consented to being named as a contributor in published "
+        "dataset releases. Separate from profile visibility: a release is permanent.",
+    )
+    # Read-only by omission from UserUpdate, which forbids extras: a user must not be able
+    # to PATCH themselves into having accepted terms they were never shown.
+    terms_accepted_version: int | None = Field(
+        default=None,
+        description="Version of the contributor terms this account accepted at signup, or null "
+        "if it predates acceptance tracking. Recorded by the server; not client-settable.",
+    )
+    terms_accepted_at: datetime | None = Field(
+        default=None,
+        description="When the contributor terms were accepted. Recorded by the server; not client-settable.",
+    )
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_READ_EXAMPLES})
 
@@ -217,6 +233,11 @@ class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUs
     preferences: UserPreferencesUpdate | None = Field(
         default=None,
         description="User preferences (partial merge).",
+    )
+    credit_in_releases: bool | None = Field(
+        default=None,
+        description="Consent to being named as a contributor in published dataset releases. "
+        "Withdrawing it applies to future releases only; published ones cannot be retracted.",
     )
 
     model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
