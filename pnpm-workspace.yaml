@@ -55,7 +55,7 @@ minimumReleaseAgeExclude:
   - '@expo/*'
   - babel-preset-expo
   - jest-expo
-  - '@astrojs/mdx@7.0.3'
+  # NOTE: biome 2.5.8 published 2026-08-11; these version pins expire (delete after 2026-08-14).
   - '@biomejs/biome@2.5.8'
   - '@biomejs/cli-darwin-arm64@2.5.8'
   - '@biomejs/cli-darwin-x64@2.5.8'
