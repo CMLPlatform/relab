@@ -8,10 +8,11 @@ import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
 import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
 import { useYouTubeIntegration } from '@/features/cameras/youtube/useYouTubeIntegration';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { ThemeMode } from '@/types/User';
 import { useProfileActions } from './actions';
 import { useProfilePreferences } from './mutations';
-import { useProfileAuthRedirect, useProfileDialogs, useProfileLinkedAccounts } from './state';
+import { useProfileDialogs, useProfileLinkedAccounts } from './state';
 import { useOAuthAssociations } from './useOAuthAssociations';
 import { useOwnProfileStats } from './useOwnProfileStats';
 
@@ -36,7 +37,7 @@ export function useProfileScreen() {
   const { activeStream, setActiveStream } = useStreamSession();
   const stopStreamMutation = useStopYouTubeStreamMutation(activeStream?.cameraId ?? '');
 
-  useProfileAuthRedirect({ profile, router, isLoggingOut });
+  useRequireAuth('/account', { isLoggingOut });
   const actions = useProfileActions({
     profile,
     feedback,

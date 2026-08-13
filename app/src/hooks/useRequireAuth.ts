@@ -5,11 +5,7 @@ import { useScreenFocusedSafe } from '@/hooks/useScreenFocused';
 import type { User } from '@/types/User';
 
 /**
- * Shared guard effect behind `useRequireAuth`. Exposed separately so
- * `useProfileAuthRedirect` (`@/features/profile/state`) — whose sole call
- * site already sources `profile`/`router` itself, rather than reading them
- * from context the way this hook does — can share the same redirect logic
- * without duplicating it.
+ * Guard effect behind `useRequireAuth`.
  *
  * Gated on:
  *  - `isLoading`, so a slow initial session restore can't flash a logged-in

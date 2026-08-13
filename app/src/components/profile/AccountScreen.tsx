@@ -89,7 +89,7 @@ export function AccountScreen() {
     [nav],
   );
 
-  // useProfileAuthRedirect (called inside useProfileScreen) fires the redirect;
+  // useProfileScreen's useRequireAuth('/account') fires the redirect;
   // AuthProvider already blocks rendering until the initial auth check resolves,
   // so this can only be hit for the one-render window before that redirect completes.
   if (!profile.profile) return <CenteredSpinner />;

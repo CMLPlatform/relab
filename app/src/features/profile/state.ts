@@ -1,7 +1,5 @@
-import type { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import type { useAuth } from '@/context/auth';
-import { useAuthRedirectGuard } from '@/hooks/useRequireAuth';
 
 export function useProfileDialogs() {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
@@ -44,32 +42,6 @@ export function useProfileDialogs() {
       setPassword: setUnlinkPassword,
     },
   };
-}
-
-export function useProfileAuthRedirect({
-  profile,
-  router,
-  isLoggingOut,
-}: {
-  profile: ReturnType<typeof useAuth>['user'];
-  router: ReturnType<typeof useRouter>;
-  isLoggingOut: boolean;
-}) {
-  // The account tab stays mounted (tab groups preserve per-tab state), so a
-  // logout's `refetch(false)` can clear `profile` after `isLoggingOut` has
-  // already flipped back to false and after logout's own navigate to
-  // /products has landed. `useAuthRedirectGuard`'s focus gate stops that
-  // stale effect from clobbering the /products navigation with a /login
-  // redirect; a session that actually expires while the tab is focused still
-  // redirects. No initial-auth-check gate here (unlike `useRequireAuth`):
-  // the account tab is unreachable before that check resolves.
-  useAuthRedirectGuard({
-    user: profile,
-    isLoading: false,
-    isLoggingOut,
-    router,
-    redirectTo: '/account',
-  });
 }
 
 export function useProfileLinkedAccounts(profile: ReturnType<typeof useAuth>['user']) {
