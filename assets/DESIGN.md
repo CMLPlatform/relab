@@ -20,13 +20,15 @@ Three voices, one family:
 | --------------- | --------------------- | --------------------------------------------- |
 | Display / brand | IBM Plex Serif 600    | Headings on www/docs, logo letters, og-images |
 | UI / body       | IBM Plex Sans 400–600 | Everything else on web and email              |
-| Data / labels   | IBM Plex Mono 400     | Measurements, IDs, eyebrow labels, code       |
+| Data / labels   | IBM Plex Mono 400     | Measurements, IDs, small data labels, code    |
 
 Type scale (web): display 38/44, h2 24/30, heading 19/24, body 16/26, label 13 caps
-(+0.1em tracking, weight 500), caption 13/18, data 14 mono with `tabular-nums`. The app
+(+0.1em tracking, weight 500), caption 13/18, data 14 mono with `tabular-nums`. Docs maps
+this scale onto Starlight's `--sl-text-h1/h2/h3` tokens; www sets it directly. The app
 adds an `eyebrow` variant — label metrics, rendered uppercase, muted (or accent) ink for
 compact tags — and caps Dynamic Type scaling app-wide at 2x so fixed layouts survive
-large accessibility text sizes.
+large accessibility text sizes. That variant is app-only: see the accent rules
+[below](#colour--type-roles-within-the-form) for why the web surfaces carry no eyebrows.
 
 The **Expo app intentionally stays on platform system fonts** (native feel,
 Dynamic Type, zero load cost). The app adopts the *scale and palette*, not the
@@ -157,11 +159,17 @@ ghost/tonal/outline buttons) — **never the accent.** `tokens.surface.accent`
 rows, toggles. MD3's `*Container` roles are retired from app call sites in
 favour of it.
 
-The **manila accent is a text colour** — mono eyebrow labels, small data
-highlights, live/status pills, and strategy tags. It never fills a button or
-drives a hover/pressed state. Lean on the mono voice (IBM Plex Mono on web,
-platform monospace in the app) for IDs, counts, and measurements — the
-"lab instrument" register.
+The **manila accent is a data-label colour** — R-numbers, record IDs, small data
+highlights, live/status pills, and strategy tags. It marks a *datum*, never a
+section. Decorative kickers above a heading are not a use for it, and on the web
+they are not a use for anything: a mono uppercase label that only restates the
+heading under it is chrome, so www and docs carry no eyebrows at all. The app's
+`AppText variant="eyebrow"` stays, because there it labels a value inside a
+compact tag rather than announcing a section.
+
+The accent never fills a button or drives a hover/pressed state. Lean on the mono
+voice (IBM Plex Mono on web, platform monospace in the app) for IDs, counts, and
+measurements — the "lab instrument" register.
 
 **Accent is for small text, never for mass.** Bars, big figures, and other
 large elements stay ink — including single-series chart bars and the hero/tile
