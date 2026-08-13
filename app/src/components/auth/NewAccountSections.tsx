@@ -114,19 +114,37 @@ type SharedStepProps = {
   mutedColor: string;
 };
 
+// No checkbox: account creation is the acceptance. Consent to be *named* in a
+// published dataset release is separate and unbundled — it lives behind the
+// credit_in_releases toggle in account settings.
 export function PrivacyPolicy() {
   const theme = useAppTheme();
-  const url = WEBSITE_URL ? new URL('/privacy', WEBSITE_URL).toString() : '';
+  const termsUrl = WEBSITE_URL ? new URL('/terms', WEBSITE_URL).toString() : '';
+  const privacyUrl = WEBSITE_URL ? new URL('/privacy', WEBSITE_URL).toString() : '';
   const textColor = theme.colors.onBackground;
-  const openPrivacy = useCallback(() => {
-    if (url) {
-      void openExternalUrl(url);
+  const openTerms = useCallback(() => {
+    if (termsUrl) {
+      void openExternalUrl(termsUrl);
     }
-  }, [url]);
+  }, [termsUrl]);
+  const openPrivacy = useCallback(() => {
+    if (privacyUrl) {
+      void openExternalUrl(privacyUrl);
+    }
+  }, [privacyUrl]);
 
   return (
     <Text className="opacity-70 text-center" style={[styles.privacyText, { color: textColor }]}>
       By creating an account, you agree to our{' '}
+      <Text
+        className="underline"
+        style={[styles.privacyLink, { color: textColor }]}
+        onPress={openTerms}
+        accessibilityRole="link"
+      >
+        Terms
+      </Text>{' '}
+      and{' '}
       <Text
         className="underline"
         style={[styles.privacyLink, { color: textColor }]}

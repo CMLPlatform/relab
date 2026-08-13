@@ -40,6 +40,7 @@ export function mockUser(overrides: Partial<User> = {}): User {
     hasUsablePassword: true,
     oauth_accounts: [],
     preferences: {},
+    credit_in_releases: false,
     ...overrides,
   };
 }

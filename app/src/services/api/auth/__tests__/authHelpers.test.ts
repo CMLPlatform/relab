@@ -67,6 +67,8 @@ describe('authHelpers', () => {
       username: 'dev_user',
       oauth_accounts: [],
       preferences: {},
+      // Absent from the response is not consent: an unknown flag maps to false.
+      credit_in_releases: false,
     });
   });
 

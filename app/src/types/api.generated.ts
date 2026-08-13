@@ -847,6 +847,9 @@ export interface paths {
     /**
      * Create a new product, optionally with components
      * @description Create a new product.
+     *
+     *     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
+     *     key returns the original response instead of creating a second product.
      */
     post: operations['create_product_v1_products_post'];
     delete?: never;
@@ -939,6 +942,9 @@ export interface paths {
     /**
      * Create a new component under a base product
      * @description Create a new component under the given base product.
+     *
+     *     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
+     *     key returns the original response instead of creating a second component.
      */
     post: operations['add_component_to_product_v1_products__product_id__components_post'];
     delete?: never;
@@ -1123,6 +1129,9 @@ export interface paths {
     /**
      * Create a nested component
      * @description Create a new component below an existing component.
+     *
+     *     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
+     *     key returns the original response instead of creating a second component.
      */
     post: operations['add_component_to_component_v1_components__component_id__components_post'];
     delete?: never;
@@ -5319,6 +5328,22 @@ export interface components {
       has_usable_password: boolean;
       /** @description User preferences. */
       preferences?: components['schemas']['UserPreferences'];
+      /**
+       * Credit In Releases
+       * @description Whether the user consented to being named as a contributor in published dataset releases. Separate from profile visibility: a release is permanent.
+       * @default false
+       */
+      credit_in_releases: boolean;
+      /**
+       * Terms Accepted Version
+       * @description Version of the contributor terms this account accepted at signup, or null if it predates acceptance tracking. Recorded by the server; not client-settable.
+       */
+      terms_accepted_version?: number | null;
+      /**
+       * Terms Accepted At
+       * @description When the contributor terms were accepted. Recorded by the server; not client-settable.
+       */
+      terms_accepted_at?: string | null;
     };
     /**
      * UserRegister
@@ -5370,6 +5395,11 @@ export interface components {
       current_password?: string | null;
       /** @description User preferences (partial merge). */
       preferences?: components['schemas']['UserPreferencesUpdate'] | null;
+      /**
+       * Credit In Releases
+       * @description Consent to being named as a contributor in published dataset releases. Withdrawing it applies to future releases only; published ones cannot be retracted.
+       */
+      credit_in_releases?: boolean | null;
     };
     /** ValidationError */
     ValidationError: {
@@ -7415,7 +7445,9 @@ export interface operations {
   create_product_v1_products_post: {
     parameters: {
       query?: never;
-      header?: never;
+      header?: {
+        'Idempotency-Key'?: string | null;
+      };
       path?: never;
       cookie?: never;
     };
@@ -7433,6 +7465,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ProductRead'];
         };
+      };
+      /** @description A request with this Idempotency-Key is already being processed. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
@@ -7749,7 +7788,9 @@ export interface operations {
   add_component_to_product_v1_products__product_id__components_post: {
     parameters: {
       query?: never;
-      header?: never;
+      header?: {
+        'Idempotency-Key'?: string | null;
+      };
       path: {
         product_id: number;
       };
@@ -7769,6 +7810,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ComponentReadWithRecursiveComponents'];
         };
+      };
+      /** @description A request with this Idempotency-Key is already being processed. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
@@ -8255,7 +8303,9 @@ export interface operations {
   add_component_to_component_v1_components__component_id__components_post: {
     parameters: {
       query?: never;
-      header?: never;
+      header?: {
+        'Idempotency-Key'?: string | null;
+      };
       path: {
         component_id: number;
       };
@@ -8275,6 +8325,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ComponentReadWithRecursiveComponents'];
         };
+      };
+      /** @description A request with this Idempotency-Key is already being processed. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

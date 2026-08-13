@@ -37,5 +37,6 @@ export function mapApiUserToUser(data: ApiUserRead): User {
     username: data.username ?? null,
     oauth_accounts: data.oauth_accounts ?? [],
     preferences: data.preferences ?? {},
+    credit_in_releases: data.credit_in_releases ?? false,
   };
 }
