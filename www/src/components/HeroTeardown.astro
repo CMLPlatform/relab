@@ -13,20 +13,16 @@ interface Props {
 
 const { teardown, fromFixture = false } = Astro.props;
 
-/** "212 g" for recorded masses; an em dash — never "null"/"NaN" — otherwise. */
+/** "212 g" for recorded masses; an em dash (never "null"/"NaN") otherwise. */
 const formatMassG = (weightG: number | null): string =>
   weightG === null ? '—' : `${formatCount(weightG)} g`;
 ---
 
-<section class="teardown-panel card content-reveal">
+<section class="teardown-panel" aria-label="Featured teardown">
   <div class="teardown-grid">
     {
       teardown && (
         <div class="blueprint">
-          <p class="blueprint-eyebrow">
-            {/* No record number for the fixture: an invented №id would read as a real record. */}
-            {fromFixture ? 'teardown · example' : `teardown №${teardown.id} · live`}
-          </p>
           <div class="blueprint-heading">
             <h2 class="blueprint-title">{teardown.name}</h2>
             {teardown.productType && (
@@ -35,6 +31,20 @@ const formatMassG = (weightG: number | null): string =>
               </span>
             )}
           </div>
+          {/* One provenance line under the title, where it reads as a caption on
+              the record rather than a kicker above it. No record number for the
+              fixture: an invented №id would read as a real record. The
+              illustrative-masses disclaimer is folded in here rather than
+              repeated at the foot of the schedule. */}
+          <p
+            class="blueprint-provenance"
+            data-provenance
+            {...(fromFixture ? { 'data-fixture-note': true } : {})}
+          >
+            {fromFixture
+              ? 'Example teardown · illustrative masses, not a live record'
+              : `Teardown №${teardown.id} · live record`}
+          </p>
           {/* Explicit role: WebKit drops list semantics under list-style: none. */}
           <ul class="blueprint-parts" role="list">
             {teardown.parts.map((part) =>
@@ -79,11 +89,6 @@ const formatMassG = (weightG: number | null): string =>
               ),
             )}
           </ul>
-          {fromFixture && (
-            <p class="blueprint-fixture-note" data-fixture-note>
-              Example teardown with illustrative masses, not a live record.
-            </p>
-          )}
           {teardown.photos.length > 0 && (
             <ul class="photo-strip" data-photo-strip role="list">
               {teardown.photos.map((photo) => (
@@ -100,17 +105,20 @@ const formatMassG = (weightG: number | null): string =>
 </section>
 
 <style>
-  /* Without the old pitch column beside it, the schedule would stretch the
-     full card width and leave each part name marooned from its mass. */
+  /* The schedule sits in the hero's right column, so its width is set by the
+     split (index.astro) rather than here; the cap only applies once that split
+     collapses to a single column and the panel would otherwise run the full
+     page width, leaving each part name marooned from its mass. */
   .teardown-grid {
     display: grid;
     width: 100%;
-    max-width: 60rem;
+    max-width: 48rem;
     margin-inline: auto;
   }
 
-  /* The blueprint panel: hairline border, card radius, no shadow, and a faint
-     drafting grid mixed from the brand primary — never a raw hex. */
+  /* The one framed surface on the page, and it earns the frame: a document
+     reproduced inside a document. Hairline border, card radius, no shadow, and
+     a faint drafting grid mixed from the brand primary, never a raw hex. */
   .blueprint {
     display: grid;
     gap: 0.9rem;
@@ -131,14 +139,15 @@ const formatMassG = (weightG: number | null): string =>
     background-size: 1.5rem 1.5rem;
   }
 
-  /* Manila is reserved for this small mono eyebrow — never fills or figures. */
-  .blueprint-eyebrow {
-    margin: 0;
+  /* Record provenance, set as a caption on the title above it: mono for the
+     record number, muted ink, and pulled up out of the panel's own row gap so
+     it reads as part of the heading rather than as the first row of data. */
+  .blueprint-provenance {
+    margin: -0.55rem 0 0;
     font-family: var(--relab-brand-font-mono), monospace;
     font-size: 0.8125rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-accent);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-muted);
   }
 
   .blueprint-heading {
@@ -154,7 +163,7 @@ const formatMassG = (weightG: number | null): string =>
     color: var(--color-on-surface);
   }
 
-  /* Product-type tag: same chip chrome as the 9R rungs — hairline border,
+  /* Product-type tag: same chip chrome as the 9R rungs: hairline border,
      control radius, small mono. Muted ink; manila stays on the eyebrow only. */
   .blueprint-type {
     padding: 0.2rem 0.55rem;
@@ -203,10 +212,10 @@ const formatMassG = (weightG: number | null): string =>
   }
 
   /* The bar's length is the datum, so it arrives as a measurement being taken
-     rather than a line that was always there — the reading the stats chart
+     rather than a line that was always there: the reading the stats chart
      gives its own bars. On load, not on scroll: this panel is above the fold
      at every viewport we ship, so a view() timeline would already be past its
-     range on first paint and the bars would simply be drawn. The delay lets
+     range on first paint and the bars would arrive already drawn. The delay lets
      the section's own rise-in settle first. */
   @media (prefers-reduced-motion: no-preference) {
     .blueprint-part-bar {
@@ -290,13 +299,6 @@ const formatMassG = (weightG: number | null): string =>
     font-variant-numeric: tabular-nums;
     color: var(--color-on-surface);
     white-space: nowrap;
-  }
-
-  .blueprint-fixture-note {
-    margin: 0;
-    font-size: 0.8rem;
-    font-style: italic;
-    color: var(--color-muted);
   }
 
   /* Demoted photo strip: small frames, duotoned in CSS so mixed webcam shots

@@ -18,40 +18,54 @@ async function render(props: Record<string, unknown> = {}): Promise<string> {
 }
 
 describe('BrandHero', () => {
-  it('leads with the logo, the thesis, and the nutshell', async () => {
+  it('leads with the thesis and the nutshell', async () => {
     const html = await render();
-    expect(html).toMatch(/<svg[^>]*viewBox/);
     expect(html).toContain('Open product data for circular-economy research');
     expect(html).toMatch(/Relab documents how durable goods come apart/);
   });
 
-  it('inlines both logo variants so the ring stays reachable from CSS', async () => {
+  it('carries the mark decoratively, in both theme variants', async () => {
     const html = await render();
-    // Linking the logo instead would leave nothing for the load-in ring draw
-    // (BrandHero) or the scroll-driven close (SiteHeader) to animate.
-    expect(html).not.toMatch(/<img[^>]*logo/);
-    expect(html.match(/<circle/g)).toHaveLength(2);
+    // Linked, not inlined: nothing animates the artwork's internals, so the two
+    // variants ship as hashed, cacheable URLs with their box reserved.
+    expect(html).not.toContain('<svg');
+    expect(html.match(/<img[^>]*class="brand-(light|dark)"/g)).toHaveLength(2);
+    expect(html.match(/width="126" height="68"/g)).toHaveLength(2);
+    // The header's brand link carries the name; this one is decoration, and
+    // hands off to it on scroll.
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).not.toContain('alt="Relab"');
   });
 
-  it('links the single CTA to the dataset, warning that it opens a new tab', async () => {
+  it('offers both doors: browsing the records and contributing one', async () => {
     const html = await render();
     expect(html).toContain('https://app.cml-relab.org/products');
-    expect(html).toMatch(/Explore the dataset/);
-    expect(html).toContain('(opens in new tab)');
+    expect(html).toContain('https://app.cml-relab.org/new-account');
+    expect(html).toMatch(/Browse the records/);
+    expect(html).toMatch(/Contribute a teardown/);
+    // Both leave the site, and each says so to a screen reader.
+    expect(html.match(/\(opens in new tab\)/g)).toHaveLength(2);
   });
 
-  it('renders the totals, and omits the line when stats are unavailable', async () => {
+  it('says which door needs an account, so neither CTA overpromises', async () => {
+    const html = await render();
+    expect(html).toMatch(/Browsing needs no account/);
+  });
+
+  it('shows one headline figure, not a triad, and omits it without stats', async () => {
     const html = await render();
     expect(html).toContain('data-metrics');
-    expect(html).toContain('47 teardowns');
+    expect(html).toContain('1,600 parts documented');
+    // The old interpunct-separated totals line read as decoration.
+    expect(html).not.toContain('teardowns ·');
 
     const withoutStats = await render({ stats: null });
     expect(withoutStats).not.toContain('data-metrics');
   });
 
-  it('keeps the hero logo decorative — the header brand link carries the name', async () => {
+  it('names the institution behind the platform above the fold', async () => {
     const html = await render();
-    expect(html).toContain('aria-hidden="true"');
-    expect(html).not.toContain('alt="Relab"');
+    expect(html).toContain('Leiden University');
+    expect(html).toContain('Institute of Environmental Sciences (CML)');
   });
 });

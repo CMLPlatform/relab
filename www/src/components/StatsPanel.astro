@@ -2,18 +2,17 @@
 // Static shell for the homepage stats. It starts hidden and is populated +
 // revealed by src/scripts/stats.ts, which fetches the public stats API in the
 // browser (allowed via the CADDY_API_ORIGIN entry in the site CSP). If the
-// fetch fails the panel simply stays hidden.
+// fetch fails the panel stays hidden.
 ---
 
 <section
   id="stats-panel"
-  class="card stats-panel"
+  class="section stats-panel"
   aria-labelledby="stats-heading"
   aria-live="polite"
   hidden
 >
-  <p class="stats-eyebrow">From the lab</p>
-  <h2 id="stats-heading">Torn down so far</h2>
+  <h2 id="stats-heading">What has been recorded so far</h2>
 
   <div class="stats-ledger">
     <div class="stats-hero">

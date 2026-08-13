@@ -4,22 +4,24 @@ import { expectCanonicalUrl, expectHomepageHero, expectThemeToggle } from './hel
 const HOMEPAGE_TITLE_PATTERN = /Relab/i;
 const META_TITLE_PATTERN = /Relab/i;
 const META_DESCRIPTION_PATTERN = /open-source research platform/i;
-// The hero CTA and the 9R docs link; header/footer links sit outside <main>.
-const HOMEPAGE_MAIN_LINK_COUNT = 2;
+// Two hero CTAs and the 9R docs link; header and footer links (including the
+// colophon, which now lives in the footer) sit outside <main>.
+const HOMEPAGE_MAIN_LINK_COUNT = 3;
 
 test.describe('Landing page', () => {
   test('renders the homepage shell, core links, and metadata @smoke', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(HOMEPAGE_TITLE_PATTERN);
     await expectHomepageHero(page);
-    await expect(page.getByRole('link', { name: 'Relab home' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Relab', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Read the Relab privacy policy' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'YouTube' })).toBeVisible();
     await expectThemeToggle(page);
 
-    const backdrop = page.locator('.site-backdrop');
-    await expect(backdrop).toBeVisible();
-    await expect(backdrop).toHaveCSS('position', 'fixed');
+    // No decorative backdrop layer: the page ground is flat, and the one
+    // photograph the site had was only ever shown blurred into wallpaper.
+    await expect(page.locator('.site-backdrop')).toHaveCount(0);
+    await expect(page.locator('body')).toHaveCSS('background-image', 'none');
     await expect(page.locator('main').getByRole('link')).toHaveCount(HOMEPAGE_MAIN_LINK_COUNT);
     await expectCanonicalUrl(page, '/');
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(

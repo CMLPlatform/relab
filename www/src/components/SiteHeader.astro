@@ -1,31 +1,44 @@
 ---
 // Slim brand bar: the wordmark plus the three places visitors actually go.
 // The landing hero keeps the page's h1; this is navigation, not a heading.
-// `?url` keeps the logos as plain hashed URLs under /_astro/ (immutable cache
-// headers) instead of Astro's inlining SVG component — the two variants are
-// swapped by CSS, so only one is ever painted.
+// `?url`: hashed URLs under /_astro/ (immutable cache headers), matching
+// SiteFooter. The logos were inlined with `?raw` while a scroll-driven
+// animation needed CSS access to the mark's <circle>; that animation is gone,
+// so the ~6KB of inline SVG is gone with it. CSS paints one variant of two.
 import logoUrl from '@/assets/images/logo.svg?url';
 import logoDarkUrl from '@/assets/images/logo-dark.svg?url';
 
 interface Props {
   appUrl: string;
   docsUrl: string;
-  githubUrl: string;
+  /**
+   * True on pages whose hero carries its own mark (the landing page). The
+   * header's mark then starts hidden and fades in as the hero's melts away, so
+   * the brand is never shown twice. Everywhere else it is visible from the
+   * first paint, because there is nothing to hand off from.
+   */
+  heroBrand?: boolean;
 }
 
-const { appUrl, docsUrl, githubUrl } = Astro.props;
+const { appUrl, docsUrl, heroBrand = false } = Astro.props;
 ---
 
 <header class="site-header">
   <div class="site-header-inner">
     {/* The link carries the name: whichever logo the theme shows is
-        display: none in the other theme, which would leave the link nameless. */}
-    {/* width/height reserve the box before the SVG loads (the artwork is
-        475x256, so 38px tall is 70px wide); CSS still sizes it. */}
-    <a href="/" class="site-header-brand" aria-label="Relab">
-      <img class="brand-light" src={logoUrl} alt="" aria-hidden="true" width="70" height="38" />
-      <img class="brand-dark" src={logoDarkUrl} alt="" aria-hidden="true" width="70" height="38" />
+        display: none in the other theme, which would leave the link nameless.
+        width/height reserve the box before the SVG loads (the artwork is
+        475x256, so 38px tall is 71px wide); CSS still sizes it. */}
+    <a
+      href="/"
+      class:list={['site-header-brand', { 'is-handoff': heroBrand }]}
+      aria-label="Relab"
+    >
+      <img class="brand-light" src={logoUrl} alt="" aria-hidden="true" width="71" height="38" />
+      <img class="brand-dark" src={logoDarkUrl} alt="" aria-hidden="true" width="71" height="38" />
     </a>
+    {/* App and Docs only: GitHub is a project channel and lives once, in the
+        footer beside the other channels, rather than in two places. */}
     <nav class="site-header-nav" aria-label="Site">
       <a href={appUrl} target="_blank" rel="noopener noreferrer"
         >App<span class="visually-hidden"> (opens in new tab)</span></a
@@ -33,23 +46,22 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
       <a href={docsUrl} target="_blank" rel="noopener noreferrer"
         >Docs<span class="visually-hidden"> (opens in new tab)</span></a
       >
-      <a href={githubUrl} target="_blank" rel="noopener noreferrer"
-        >GitHub<span class="visually-hidden"> (opens in new tab)</span></a
-      >
     </nav>
   </div>
 </header>
 
 <style>
-  /* Sticky, flat and sharp: a translucent blurred surface with a hairline
-     bottom rule — no shadow. Keeps App/Docs/GitHub reachable down the page. */
+  /* Sticky, flat and sharp: an opaque surface with a hairline bottom rule and
+     no shadow. Keeps App and Docs reachable down the page.
+     Opaque, not the frosted translucent bar it was: at 82% over an 8px blur,
+     scrolled body text still read through the bar and collided with the nav.
+     Blur is the last thing a document-grade brand should hide its chrome
+     behind, and this was the site's final backdrop-filter. */
   .site-header {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: color-mix(in srgb, var(--color-page-surface) 82%, transparent);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: var(--color-page-surface);
     border-bottom: 1px solid var(--color-page-border);
   }
 
@@ -120,19 +132,21 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
     display: block;
   }
 
-  /* The melt: the hero's large logo dissolves as the page scrolls (BrandHero)
-     while this one fades in to take its place. Scroll-driven and
-     reduced-motion-gated; without support the logo is simply always visible. */
+  /* The other half of the handoff: the hero's mark melts over the first 140px
+     of scroll (BrandHero) and this one arrives just behind it. Only on pages
+     that have a hero mark to hand off from. Without scroll-timeline support
+     the rule never applies and the mark is simply always visible, which is the
+     same fallback reduced motion gets. */
   @supports (animation-timeline: scroll()) {
     @media (prefers-reduced-motion: no-preference) {
-      /* Longhands, never the `animation` shorthand — see BrandHero. */
-      .site-header-brand {
+      /* Longhands, never the `animation` shorthand; see BrandHero. */
+      .site-header-brand.is-handoff {
         animation-name: site-header-logo-in;
         animation-duration: auto;
         animation-timing-function: linear;
         animation-fill-mode: both;
         animation-timeline: scroll(root);
-        animation-range: 90px 180px;
+        animation-range: 70px 150px;
       }
     }
   }

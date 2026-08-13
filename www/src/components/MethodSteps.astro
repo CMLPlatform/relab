@@ -4,7 +4,7 @@
 // steps documented there): a horizontal flow for wide and semi-wide screens
 // that scales to fit, and a vertical flow for narrow screens where the
 // horizontal one would shrink its labels to nothing. Both inherit the page's
-// CSS variables and font. Each node carries a <title> — the accessible name and
+// CSS variables and font. Each node carries a <title>: the accessible name and
 // the no-JS hover tooltip; method-flow.ts upgrades those into a popover that
 // also works on touch and keyboard, across whichever variant is shown.
 
@@ -15,8 +15,7 @@ import MethodFlow from '@/assets/method-flow.svg';
 import MethodFlowTb from '@/assets/method-flow-tb.svg';
 ---
 
-<section class="card method-steps" aria-labelledby="method-steps-heading">
-  <p class="method-eyebrow">method</p>
+<section class="section method-steps" aria-labelledby="method-steps-heading">
   <h2 id="method-steps-heading">From teardown to data</h2>
   <figure class="method-flow">
     <div class="flow-wide"><MethodFlow /></div>
@@ -26,7 +25,7 @@ import MethodFlowTb from '@/assets/method-flow-tb.svg';
       detail.
     </figcaption>
   </figure>
-  <div id="method-flow-popover" class="method-popover" popover="manual" role="tooltip"></div>
+  <div id="method-flow-popover" class="hint-popover" popover="manual" role="tooltip"></div>
 </section>
 
 <script>
@@ -36,16 +35,6 @@ import MethodFlowTb from '@/assets/method-flow-tb.svg';
 </script>
 
 <style>
-  /* Manila stays confined to this small mono eyebrow — never the numbers. */
-  .method-eyebrow {
-    margin: 0 0 0.35rem;
-    font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.8125rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-  }
-
   /* min-width: 0 keeps the flowchart from setting the grid section's
      min-content width and pushing the page sideways. */
   .method-steps {
@@ -105,30 +94,6 @@ import MethodFlowTb from '@/assets/method-flow-tb.svg';
     color: var(--color-muted);
   }
 
-  /* Flowchart step description. The one floating surface on the page, so it
-     earns the single overlay-shadow tier DESIGN.md reserves — kept subtle and
-     tinted, over a hairline drafting box. JS positions it with left/top. */
-  .method-popover {
-    position: fixed;
-    inset: auto;
-    margin: 0;
-    max-width: 22rem;
-    padding: 0.6rem 0.8rem;
-    border: 1px solid var(--color-page-border);
-    border-radius: var(--radius-card);
-    background: var(--color-surface-strong);
-    color: var(--color-on-surface);
-    font-size: 0.86rem;
-    line-height: 1.5;
-    box-shadow: var(--relab-shadow-overlay);
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .method-popover {
-      transition: opacity 140ms var(--ease-out);
-    }
-    .method-popover:not(:popover-open) {
-      opacity: 0;
-    }
-  }
+  /* The popover itself is styled globally as `.hint-popover` (components.css),
+     shared with the 9R ladder. */
 </style>

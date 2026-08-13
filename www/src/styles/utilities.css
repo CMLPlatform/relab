@@ -26,10 +26,16 @@
   border: 0;
 }
 
+/* Prose pages are Read mode: the page column is sized for the landing page's
+   two-column hero and wide flowchart, which would set continuous prose at
+   ~140 characters a line. Cap the whole page so headings and paragraphs share
+   one measure, near the 75-character comfort ceiling. */
 .content-page {
   --content-page-body-size: var(--font-size-body-compact);
   --content-page-line-height: var(--line-height-body-compact);
   --content-page-heading-size: clamp(1.42rem, 2vw, 1.85rem);
+
+  max-width: 44rem;
 }
 
 .content-page p,
@@ -43,8 +49,11 @@
   font-size: var(--content-page-heading-size);
 }
 
-.content-page .card {
-  padding: 1.35rem 1.45rem;
+/* Prose pages run many more sections than the landing page, so they sit on a
+   tighter rhythm; the landing page's 3rem would strand each clause on its own
+   screen. */
+.content-page .section {
+  padding-block: 1.6rem;
 }
 
 .content-page .page-intro {
@@ -54,27 +63,6 @@
 .content-page .page-intro p {
   font-size: var(--content-page-body-size);
   line-height: var(--content-page-line-height);
-}
-
-/* The one supporting entrance, and only on first-viewport content — anything
-   further down finishes long before it is scrolled to. The page's authored
-   moment is the mark drawing its ring and melting into the header (BrandHero /
-   SiteHeader); sections below do not get reveals competing with it. */
-@media (prefers-reduced-motion: no-preference) {
-  .content-reveal {
-    animation: rise-in 280ms var(--ease-out) both;
-  }
-
-  .content-reveal:nth-of-type(2) {
-    animation-delay: 60ms;
-  }
-
-  @keyframes rise-in {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-  }
 }
 
 @media (max-width: 760px) {

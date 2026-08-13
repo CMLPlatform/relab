@@ -1,16 +1,21 @@
 import { expect, test } from '@playwright/test';
 
-import { analyzeAccessibility, EXPLORE_DATASET_LINK_NAME, expectHomepageHero } from './helpers.ts';
+import {
+  analyzeAccessibility,
+  BROWSE_RECORDS_LINK_NAME,
+  CONTRIBUTE_LINK_NAME,
+  expectHomepageHero,
+} from './helpers.ts';
 
-// "212 g" — grouped digits, a space, the unit. The em dash used for unrecorded
+// "212 g": grouped digits, a space, the unit. The em dash used for unrecorded
 // masses never matches, so this finds parts with a real recorded mass.
 const RECORDED_MASS_PATTERN = /^[\d,]+ g$/;
 
 // The build bakes either the committed fixture (API unreachable at build time,
 // e.g. this repo's CI-less local runs) or the live featured product. The page
 // must be honest about which one it is showing.
-const FIXTURE_EYEBROW = 'teardown · example';
-const LIVE_EYEBROW_PATTERN = /^teardown №\d+ · live$/;
+const FIXTURE_PROVENANCE = 'Example teardown · illustrative masses, not a live record';
+const LIVE_PROVENANCE_PATTERN = /^Teardown №\d+ · live record$/;
 
 test.describe('Landing page content', () => {
   test('hero blueprint shows a named teardown with weighed parts @smoke', async ({ page }) => {
@@ -47,27 +52,44 @@ test.describe('Landing page content', () => {
   test('the teardown is labelled honestly as example or live data', async ({ page }) => {
     await page.goto('/');
 
-    const eyebrow = page.locator('.blueprint-eyebrow');
-    await expect(eyebrow).toBeVisible();
-    const eyebrowText = ((await eyebrow.textContent()) ?? '').trim();
-    if (eyebrowText === FIXTURE_EYEBROW) {
-      // Fixture build: the illustrative-masses disclaimer must be shown.
+    const provenance = page.locator('[data-provenance]');
+    await expect(provenance).toBeVisible();
+    const provenanceText = ((await provenance.textContent()) ?? '').trim();
+    if (provenanceText === FIXTURE_PROVENANCE) {
+      // Fixture build: the same line carries the illustrative-masses disclaimer.
       await expect(page.locator('[data-fixture-note]')).toBeVisible();
     } else {
       // Live build (API reachable at build time): a real record, no disclaimer.
-      expect(eyebrowText).toMatch(LIVE_EYEBROW_PATTERN);
+      expect(provenanceText).toMatch(LIVE_PROVENANCE_PATTERN);
       await expect(page.locator('[data-fixture-note]')).toHaveCount(0);
     }
   });
 
-  test('the call to action points at the app dataset @smoke', async ({ page }) => {
+  test('both calls to action point into the app @smoke', async ({ page }) => {
     await page.goto('/');
 
-    const exploreDataset = page.getByRole('link', { name: EXPLORE_DATASET_LINK_NAME });
+    const browse = page.getByRole('link', { name: BROWSE_RECORDS_LINK_NAME });
+    expect(await browse.getAttribute('href')).toMatch(/^https?:\/\/.+\/products$/);
+    await expect(browse).toHaveAttribute('rel', 'noopener noreferrer');
 
-    const href = await exploreDataset.getAttribute('href');
-    expect(href).toMatch(/^https?:\/\/.+\/products$/);
-    await expect(exploreDataset).toHaveAttribute('rel', 'noopener noreferrer');
+    // Contributing is the door that needs an account, and it says so.
+    const contribute = page.getByRole('link', { name: CONTRIBUTE_LINK_NAME });
+    expect(await contribute.getAttribute('href')).toMatch(/^https?:\/\/.+\/new-account$/);
+    await expect(contribute).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  test('the colophon states who runs the platform, how to cite it, and its licence', async ({
+    page,
+  }) => {
+    await page.goto('/');
+
+    const colophon = page.locator('.colophon');
+    await expect(colophon).toContainText('Leiden University');
+    await expect(colophon).toContainText('10.5281/zenodo.19703316');
+    await expect(colophon).toContainText('AGPL-3.0-or-later');
+    // The dataset licence is planned, not published; the page must not claim
+    // otherwise, and links the docs rather than restating the terms.
+    await expect(colophon).toContainText('no release has been published yet');
   });
 
   test('the 9R ladder runs from Refuse down to Recover', async ({ page }) => {
@@ -109,6 +131,19 @@ test.describe('Landing page content', () => {
     await expect(popover).toBeHidden();
   });
 
+  test('scrolling re-places the popover instead of dismissing it', async ({ page }) => {
+    await page.goto('/');
+
+    // Regression: scroll used to call hide(), so tabbing to an off-screen node
+    // closed the popover that the same keypress had just opened.
+    const popover = page.locator('#method-flow-popover');
+    await page.locator('#method-flow').locator('g.node').first().click();
+    await expect(popover).toBeVisible();
+
+    await page.mouse.wheel(0, 120);
+    await expect(popover).toBeVisible();
+  });
+
   test('the stats panel shell ships with the page', async ({ page }) => {
     await page.goto('/');
 
@@ -116,7 +151,7 @@ test.describe('Landing page content', () => {
     // the stats API responds, so assert presence rather than visibility.
     const panel = page.locator('#stats-panel');
     await expect(panel).toBeAttached();
-    await expect(panel.locator('#stats-heading')).toHaveText('Torn down so far');
+    await expect(panel.locator('#stats-heading')).toHaveText('What has been recorded so far');
   });
 });
 
@@ -126,12 +161,9 @@ test.describe('Method flow touch interaction', () => {
   test('tapping a flow node toggles the popover: first tap opens, second tap closes', async ({
     page,
   }) => {
-    // The page scrolls smoothly (base.css); a real tap doesn't drive a
-    // scroll animation, but Playwright's scroll-into-view before each tap
-    // does, and the animation's own 'scroll' events would otherwise trip
-    // method-flow.ts's scroll-dismiss handler mid-gesture. Reduced motion
-    // (which the site already treats as an instant-scroll signal) keeps the
-    // two taps deterministic without touching the popover's dismiss logic.
+    // Reduced motion keeps the two taps deterministic: Playwright scrolls each
+    // node into view before tapping it, and the popover's own opacity
+    // transition would otherwise still be running when the assertion reads it.
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
 

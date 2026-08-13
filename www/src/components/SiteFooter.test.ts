@@ -3,30 +3,72 @@ import { describe, expect, it } from 'vitest';
 
 import SiteFooter from './SiteFooter.astro';
 
+const PROPS = {
+  contactEmail: 'team@relab.test',
+  currentYear: 2031,
+  docsUrl: 'https://docs.example.com',
+  githubUrl: 'https://github.test',
+  linkedInUrl: 'https://linkedin.test',
+  youtubeUrl: 'https://youtube.test',
+};
+
+const render = async () =>
+  (await AstroContainer.create()).renderToString(SiteFooter, { props: PROPS });
+
 describe('SiteFooter', () => {
   it('renders the year, contact mailto, social links, and nested theme control', async () => {
-    const container = await AstroContainer.create();
-    const html = await container.renderToString(SiteFooter, {
-      props: {
-        contactEmail: 'team@relab.test',
-        currentYear: 2031,
-        githubUrl: 'https://github.test',
-        linkedInUrl: 'https://linkedin.test',
-        youtubeUrl: 'https://youtube.test',
-      },
-    });
+    const html = await render();
 
     expect(html).toContain('2031');
     expect(html).toContain('href="mailto:team@relab.test"');
     expect(html).toContain('href="https://github.test"');
     expect(html).toContain('href="https://linkedin.test"');
     expect(html).toContain('href="https://youtube.test"');
-    // The social links leave the site, and their labels say so.
     expect(html).toContain('aria-label="GitHub (opens in new tab)"');
-    expect(html.match(/\(opens in new tab\)/g)).toHaveLength(3);
-    // Reserved wordmark box, so the footer does not shift once the SVG loads.
-    expect(html.match(/width="82"\s+height="26"/g)).toHaveLength(2);
     // The footer nests ThemeControl, so its markup renders too.
     expect(html).toContain('data-theme-control');
+  });
+
+  it('carries no wordmark: the header holds the mark on every page', async () => {
+    const html = await render();
+    // A third instance of the mark, under a sticky header that already shows
+    // one, is decoration; the copyright line names the institution instead.
+    expect(html).not.toContain('wordmark');
+    expect(html).not.toContain('aria-label="Relab home"');
+  });
+
+  it('states the institution, the authors, and the funding', async () => {
+    const html = await render();
+    expect(html).toContain('Institute of Environmental Sciences (CML), Leiden University');
+    expect(html).toContain('Simon van Lierde');
+    expect(html).toContain('Franco Donati');
+    expect(html).toContain('Sectorplan Gelden');
+  });
+
+  it('gives a citable DOI, resolved through doi.org', async () => {
+    const html = await render();
+    expect(html).toContain('https://doi.org/10.5281/zenodo.19703316');
+    expect(html).toContain('doi:10.5281/zenodo.19703316');
+  });
+
+  it('licenses the software and links the docs for the dataset terms', async () => {
+    const html = await render();
+    expect(html).toContain('AGPL-3.0-or-later');
+    expect(html).toContain('https://docs.example.com/project/dataset/');
+  });
+
+  it('never claims a dataset release that does not exist yet', async () => {
+    const html = await render();
+    // ODbL is planned for curated releases; saying "the data is ODbL" would
+    // promise terms nothing has been published under.
+    expect(html).toContain('planned under ODbL 1.0');
+    expect(html).toContain('no release has been published yet');
+    expect(html).not.toMatch(/published under ODbL/);
+  });
+
+  it('warns on every link that leaves the site', async () => {
+    const html = await render();
+    // Three social marks plus the DOI, licence and dataset links.
+    expect(html.match(/\(opens in new tab\)/g)).toHaveLength(6);
   });
 });

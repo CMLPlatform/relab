@@ -13,6 +13,8 @@ interface Props {
   description?: string;
   image?: string;
   noIndex?: boolean;
+  /** True when this page's hero carries the mark; see SiteHeader's `heroBrand`. */
+  heroBrand?: boolean;
 }
 
 const {
@@ -20,6 +22,7 @@ const {
   description = siteMeta.defaultDescription,
   image = '/images/og.png',
   noIndex = false,
+  heroBrand = false,
 } = Astro.props;
 
 const publicSiteConfig = getPublicSiteConfig();
@@ -71,13 +74,10 @@ const currentYear = new Date().getFullYear();
     <title>{pageTitle}</title>
   </head>
   <body>
-    <div class="site-backdrop" aria-hidden="true">
-    </div>
-
     <SiteHeader
       appUrl={publicSiteConfig.appUrl}
       docsUrl={publicSiteConfig.docsUrl}
-      githubUrl={siteLinks.github}
+      heroBrand={heroBrand}
     />
 
     <main class="page-shell">
@@ -87,6 +87,7 @@ const currentYear = new Date().getFullYear();
     <SiteFooter
       contactEmail={publicSiteConfig.contactEmail}
       currentYear={currentYear}
+      docsUrl={publicSiteConfig.docsUrl}
       githubUrl={siteLinks.github}
       linkedInUrl={siteLinks.linkedin}
       youtubeUrl={siteLinks.youtube}

@@ -3,7 +3,6 @@
 }
 
 html {
-  scroll-behavior: smooth;
   /* Makes `height: auto` an animatable value, which is what lets the teardown's
      part groups open on a transition instead of snapping (HeroTeardown). Inert
      everywhere else: nothing animates to or from a keyword size but that. */
@@ -15,12 +14,7 @@ body {
   min-height: 100vh;
   font-family: var(--relab-brand-font), "Segoe UI", sans-serif;
   color: var(--color-text);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-page-surface) 92%, rgb(212, 229, 238)) 0%,
-    var(--color-page-surface) 18%,
-    color-mix(in srgb, var(--color-page-surface) 86%, white) 100%
-  );
+  background: var(--color-page-surface);
   display: flex;
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
@@ -79,47 +73,14 @@ select {
   background: color-mix(in srgb, var(--color-primary) 22%, white);
 }
 
-.site-backdrop {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  overflow: hidden;
-}
-
-.site-backdrop::before,
-.site-backdrop::after {
-  content: "";
-  position: absolute;
-  inset: -2rem;
-}
-
-.site-backdrop::before {
-  background-image: var(--bg-image);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  filter: blur(var(--backdrop-image-blur));
-  opacity: var(--backdrop-image-opacity);
-  transform: scale(var(--backdrop-image-scale));
-}
-
-.site-backdrop::after {
-  background: var(--backdrop-wash);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
   .btn,
   .theme-toggle {
     animation: none;
     transition-duration: 0.01ms;
   }
 
-  /* The press still has to acknowledge itself — the background change carries
+  /* The press still has to acknowledge itself; the background change carries
      that. Only the movement goes, since a 0.01ms scale is a jump, not motion. */
   .btn:active {
     transform: none;

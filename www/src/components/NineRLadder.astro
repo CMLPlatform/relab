@@ -1,7 +1,13 @@
 ---
-// The 9R framework as a compact tier strip. Names only; the full canonical
-// definitions (Potting et al. 2017, approved verbatim) live in the docs at
-// project/9r-framework — do not restate them here.
+// The 9R framework as a compact tier strip.
+//
+// The `hint` strings are deliberately short paraphrases, NOT the canonical
+// definitions: those are Potting et al. 2017, approved verbatim, and live in
+// the docs at project/9r-framework, which stays the single source for them.
+// A hint here is an orientation aid so a reader can tell Remanufacture from
+// Repurpose without leaving the page; anything longer belongs in the docs, and
+// NineRLadder.test.ts guards the boundary by asserting the canonical wording
+// never appears on the landing page.
 interface Props {
   docsUrl: string;
 }
@@ -13,36 +19,55 @@ const tiers = [
   {
     label: 'Smarter product use and manufacture',
     rungs: [
-      { r: 'R0', name: 'Refuse' },
-      { r: 'R1', name: 'Rethink' },
-      { r: 'R2', name: 'Reduce' },
+      { r: 'R0', name: 'Refuse', hint: 'Do without the product, or meet the need another way.' },
+      {
+        r: 'R1',
+        name: 'Rethink',
+        hint: 'Use the product more intensively, through sharing or multi-purpose designs.',
+      },
+      {
+        r: 'R2',
+        name: 'Reduce',
+        hint: 'Make or use the product with fewer resources and materials.',
+      },
     ],
   },
   {
     label: 'Extend lifespan of product and its parts',
     rungs: [
-      { r: 'R3', name: 'Re-use' },
-      { r: 'R4', name: 'Repair' },
-      { r: 'R5', name: 'Refurbish' },
-      { r: 'R6', name: 'Remanufacture' },
-      { r: 'R7', name: 'Repurpose' },
+      {
+        r: 'R3',
+        name: 'Re-use',
+        hint: 'Another owner uses the discarded product as it is, for its original purpose.',
+      },
+      { r: 'R4', name: 'Repair', hint: 'Fix a faulty product so it works in its original role.' },
+      { r: 'R5', name: 'Refurbish', hint: 'Restore an older product and bring it up to date.' },
+      {
+        r: 'R6',
+        name: 'Remanufacture',
+        hint: 'Build a new product from parts of discarded ones, keeping the same function.',
+      },
+      {
+        r: 'R7',
+        name: 'Repurpose',
+        hint: 'Use a discarded product or its parts for a different function.',
+      },
     ],
   },
   {
     label: 'Useful application of materials',
     rungs: [
-      { r: 'R8', name: 'Recycle' },
-      { r: 'R9', name: 'Recover' },
+      { r: 'R8', name: 'Recycle', hint: 'Process the materials back into usable feedstock.' },
+      { r: 'R9', name: 'Recover', hint: 'Burn the materials to recover the energy in them.' },
     ],
   },
 ];
 ---
 
-<section class="card nine-r" aria-labelledby="nine-r-heading">
-  <p class="nine-r-eyebrow">framework</p>
+<section class="section nine-r" aria-labelledby="nine-r-heading">
   <h2 id="nine-r-heading">The 9R framework</h2>
   <p class="nine-r-lede">
-    Ten strategies, R0 to R9, ordered from smartest to last resort — the higher a product stays on
+    Ten strategies, R0 to R9, ordered from smartest to last resort. The higher a product stays on
     the ladder, the more of its value survives. It is the lens Relab reads teardowns through: each
     record shows what a product is made of and how it comes apart, which is what deciding between
     these strategies takes.
@@ -55,8 +80,14 @@ const tiers = [
         <ol class="rungs" role="list">
           {tier.rungs.map((rung) => (
             <li class="rung">
-              <span class="rung-num">{rung.r}</span>
-              <span class="rung-name">{rung.name}</span>
+              {/* The <span> carries the hint, not the <li>: it is the focusable
+                  trigger, and a focusable list item would be announced twice.
+                  `title` is the no-JS fallback; the script lifts it into the
+                  popover and removes it so the two never double up. */}
+              <span class="rung-body" data-rung-hint={rung.hint} title={rung.hint}>
+                <span class="rung-num">{rung.r}</span>
+                <span class="rung-name">{rung.name}</span>
+              </span>
             </li>
           ))}
         </ol>
@@ -65,24 +96,35 @@ const tiers = [
   }
   <p class="nine-r-source">
     {/* Explicit space: Astro strips the inter-node newline before the <a>. */}
-    After Potting et al. (2017) —{' '}
+    After Potting et al. (2017):{' '}
     <a href={frameworkUrl} target="_blank" rel="noopener noreferrer"
       >full definitions in the docs<span class="visually-hidden"> (opens in new tab)</span></a
     >.
   </p>
+  <div id="nine-r-popover" class="hint-popover" popover="manual" role="tooltip"></div>
 </section>
 
-<style>
-  /* Manila stays small mono text: the eyebrow and the R-numbers, nothing more. */
-  .nine-r-eyebrow {
-    margin: 0 0 0.35rem;
-    font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.8125rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-  }
+<script>
+  import { createHintPopover, wireHintTrigger } from '@/scripts/popover-hint.ts';
 
+  const hint = createHintPopover(document.getElementById('nine-r-popover'));
+  if (hint) {
+    for (const rung of document.querySelectorAll<HTMLElement>('[data-rung-hint]')) {
+      const text = rung.dataset.rungHint;
+      if (!text) {
+        continue;
+      }
+      // Remove the native tooltip only once the popover is live, so a failed
+      // script leaves the `title` fallback in place.
+      rung.removeAttribute('title');
+      rung.setAttribute('tabindex', '0');
+      rung.setAttribute('aria-label', `${rung.textContent?.trim()}: ${text}`);
+      wireHintTrigger(rung, text, hint);
+    }
+  }
+</script>
+
+<style>
   .nine-r h2 {
     margin: 0 0 0.6rem;
   }
@@ -125,12 +167,23 @@ const tiers = [
 
   .rung {
     display: inline-flex;
+    font-size: 0.88rem;
+  }
+
+  /* The chip chrome sits on the trigger, so the focus ring outlines exactly
+     what is focusable. `cursor: help` matches the flowchart nodes. */
+  .rung-body {
+    display: inline-flex;
     align-items: baseline;
     gap: 0.4rem;
     padding: 0.25rem 0.6rem;
     border: 1px solid var(--color-page-border);
     border-radius: var(--radius-control);
-    font-size: 0.88rem;
+    cursor: help;
+  }
+
+  .rung-body:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-page-border));
   }
 
   .rung-num {

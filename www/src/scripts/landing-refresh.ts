@@ -2,7 +2,7 @@
 // enhancement, same CSP allowance as src/scripts/stats.ts). The baked page is
 // already correct; this only rewrites the text of the existing [data-metrics]
 // node in place, carried by a short opacity dip so the change reads as a
-// refresh rather than a glitch — it never adds, removes, or resizes elements,
+// refresh rather than a glitch; it never adds, removes, or resizes elements,
 // so it cannot cause layout shift. The teardown parts list stays untouched. On
 // any failure it does nothing.
 
@@ -14,10 +14,7 @@ export function applyRefresh(stats: Pick<HomeStats, 'totals'> | null): void {
   if (!(metrics && stats)) {
     return;
   }
-  const { teardowns, parts, mass_kg } = stats.totals;
-  const next =
-    `${formatCount(teardowns)} teardowns · ${formatCount(parts)} parts · ` +
-    `${formatCount(mass_kg)} kg logged`;
+  const next = `${formatCount(stats.totals.parts)} parts documented`;
   // Unchanged figures are the common case, and a dip that means nothing is
   // worse than no dip at all.
   if (metrics.textContent?.trim() === next) {

@@ -32,7 +32,7 @@ describe('applyRefresh', () => {
     expect(metrics?.textContent).toBe('old');
 
     vi.advanceTimersByTime(180);
-    expect(metrics?.textContent).toContain('50');
+    expect(metrics?.textContent).toBe('1,700 parts documented');
     expect(metrics?.classList.contains('is-refreshing')).toBe(false);
   });
 
@@ -83,6 +83,6 @@ describe('refreshLanding', () => {
     await refreshLanding();
     vi.advanceTimersByTime(180);
 
-    expect(document.querySelector('[data-metrics]')?.textContent).toContain('50');
+    expect(document.querySelector('[data-metrics]')?.textContent).toBe('1,700 parts documented');
   });
 });

@@ -3,27 +3,36 @@
   margin: 0 auto;
 }
 
+/* No gap: sections space themselves with `padding-block`, so the hairline rule
+   between them sits in the middle of the gap rather than at one edge of it. */
 .page-shell {
   width: min(calc(100% - 2rem), var(--content-width));
   margin: 0 auto;
   padding: 2.75rem 0;
   display: grid;
-  gap: 1.25rem;
+  gap: 0;
 }
 
 .site-footer {
   margin-top: auto;
-  padding-top: 0.8rem;
   border-top: 1px solid var(--color-page-border);
 }
 
+/* Two bands: the research colophon, then the site chrome under a hairline. */
 .site-footer-inner {
   width: min(calc(100% - 2rem), var(--content-width));
+  display: grid;
+  gap: 1.6rem;
+  padding: 2.5rem 0 1rem;
+}
+
+.footer-chrome {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 0;
+  border-top: 1px solid var(--color-page-border);
+  padding-top: 1rem;
 }
 
 .footer-meta {
@@ -52,10 +61,13 @@
     width: min(calc(100% - 1.25rem), var(--content-width));
     padding-top: 1.5rem;
     padding-bottom: 2rem;
-    gap: 0.9rem;
   }
 
   .site-footer-inner {
+    padding-top: 1.8rem;
+  }
+
+  .footer-chrome {
     grid-template-columns: 1fr auto;
     align-items: center;
     gap: 0.8rem;

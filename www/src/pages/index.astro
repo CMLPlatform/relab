@@ -13,21 +13,48 @@ import { loadLandingData } from '@/lib/landing.ts';
 
 const publicSiteConfig = getPublicSiteConfig();
 
-// Runs at build time only. Never throws — falls back to a committed fixture.
+// Runs at build time only. Never throws; falls back to a committed fixture.
 const landing = await loadLandingData();
 ---
 
 <Layout
   title="Relab | Product data and disassembly records for the circular economy"
   description={siteMeta.defaultDescription}
+  heroBrand={true}
 >
-  {/* Narrative order: what Relab is (hero) -> what a record looks like
-      (teardown) -> why it matters (motivation) -> how records are made
-      (method) -> what they are for (9R) -> how many exist (stats). */}
-  <BrandHero stats={landing.stats} appUrl={publicSiteConfig.appUrl} />
-  <HeroTeardown teardown={landing.teardown} fromFixture={landing.fromFixture} />
+  {/* Narrative order: what Relab is and one real record, side by side (hero)
+      -> why it matters (motivation) -> how records are made (method) -> what
+      they are for (9R) -> how many exist (stats). Who made it, how to cite it
+      and what it is licensed under live in the footer colophon.
+      The claim and its evidence share the first viewport rather than the pitch
+      taking a screen to itself. */}
+  <div class="hero-split">
+    <BrandHero stats={landing.stats} appUrl={publicSiteConfig.appUrl} />
+    <HeroTeardown teardown={landing.teardown} fromFixture={landing.fromFixture} />
+  </div>
   <WhyRelab />
   <MethodSteps />
   <NineRLadder docsUrl={publicSiteConfig.docsUrl} />
   <StatsPanel />
 </Layout>
+
+<style>
+  /* The pitch and the artifact, side by side. The record column is given the
+     larger share: it is the thing worth looking at. Collapses to one column
+     well before tablet width, where two columns would starve both. */
+  .hero-split {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: 2.5rem;
+    align-items: start;
+    padding-bottom: 3rem;
+  }
+
+  @media (max-width: 1000px) {
+    .hero-split {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      padding-bottom: 2rem;
+    }
+  }
+</style>

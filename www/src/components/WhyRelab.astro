@@ -1,14 +1,13 @@
 ---
 // The motivation section: why the platform exists, told in three beats.
-// Static copy, no props — the wording is owner-approved verbatim.
+// Static copy, no props; the wording is owner-approved verbatim.
 ---
 
-<section class="card why-relab" aria-labelledby="why-relab-heading">
-  <p class="why-eyebrow">motivation</p>
+<section class="section why-relab" aria-labelledby="why-relab-heading">
   <h2 id="why-relab-heading">Why Relab exists</h2>
   <div class="why-beats">
     <div class="why-beat">
-      <h3 class="why-beat-label">The gap</h3>
+      <h3 class="why-beat-label">Closed, and too slow</h3>
       <p>
         Circular-economy research depends on detailed product data: what things are made of, how
         they come apart, which parts matter. That data is scarce, mostly closed, and slow to
@@ -17,16 +16,16 @@
       </p>
     </div>
     <div class="why-beat">
-      <h3 class="why-beat-label">The move</h3>
+      <h3 class="why-beat-label">Downstream, at the point of failure</h3>
       <p>
         So Relab goes downstream, to the people who already open products: repairers, refurbishers,
-        dismantlers, recyclers. They meet products at the point of failure &mdash; a vantage that
+        dismantlers, recyclers. They meet products at the point of failure, a vantage that
         captures as-failed composition, wear, and recoverability that as-designed specifications
         never show.
       </p>
     </div>
     <div class="why-beat">
-      <h3 class="why-beat-label">The loop</h3>
+      <h3 class="why-beat-label">Value in both directions</h3>
       <p>
         The exchange runs both ways. Those observations feed back into the data infrastructure
         research and design rely on, and contributors get value back: composition insight,
@@ -38,16 +37,6 @@
 </section>
 
 <style>
-  /* Manila is reserved for this small mono eyebrow — never fills or figures. */
-  .why-eyebrow {
-    margin: 0 0 0.35rem;
-    font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.8125rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-  }
-
   .why-relab h2 {
     margin: 0 0 1.4rem;
   }
@@ -64,14 +53,15 @@
     padding-top: 0.9rem;
   }
 
+  /* Sentence case, not the uppercase-with-tracking label treatment: these are
+     phrases now rather than one-word tags, and caps would set them wrapping. */
   .why-beat-label {
     margin: 0 0 0.6rem;
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.8125rem;
+    font-size: 0.85rem;
     font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-muted);
+    line-height: 1.35;
+    color: var(--color-on-surface);
   }
 
   .why-beat p {

@@ -41,13 +41,31 @@ describe('NineRLadder', () => {
     expect(html).toContain('(opens in new tab)');
     // Regression: Astro strips the inter-node newline before the <a>, which
     // once glued the source line to its link text.
-    expect(html).toMatch(/\(2017\) —\s+<a/);
+    expect(html).toMatch(/\(2017\):\s+<a/);
   });
 
   it('keeps the definitions in the docs, not on the landing page', async () => {
     const html = await render();
     expect(html).not.toContain('Incineration');
     expect(html).not.toContain('radically different product');
+  });
+
+  it('gives every rung a short hint, with a no-JS title fallback', async () => {
+    const html = await render();
+    expect(html.match(/data-rung-hint=/g)).toHaveLength(10);
+    // The `title` is what a visitor gets if the popover script never runs; the
+    // script removes it once the popover is live so the two never double up.
+    expect(html.match(/title="[^"]+"/g)?.length).toBeGreaterThanOrEqual(10);
+    expect(html).toContain('id="nine-r-popover"');
+  });
+
+  it('paraphrases in the hints rather than restating the canonical wording', async () => {
+    const html = await render();
+    // Remanufacture and Repurpose are the pair readers actually confuse, so
+    // the hints have to separate them without importing the docs' definitions.
+    expect(html).toContain('keeping the same function');
+    expect(html).toContain('for a different function');
+    expect(html).not.toContain('Use parts of a discarded product in a new product');
   });
 
   it('does not claim there are nine strategies', async () => {

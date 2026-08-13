@@ -3,125 +3,217 @@
 import GithubIcon from '@/assets/icons/brand/github.svg';
 import LinkedinIcon from '@/assets/icons/brand/linkedin.svg';
 import YoutubeIcon from '@/assets/icons/brand/youtube.svg';
-// `?url`: hashed URLs under /_astro/ (immutable cache headers) rather than
-// Astro's inlining SVG component — CSS paints only one of the two variants.
-import wordmarkUrl from '@/assets/images/wordmark.svg?url';
-import wordmarkDarkUrl from '@/assets/images/wordmark-dark.svg?url';
+import { research } from '@/copy/site-meta.ts';
 
 import ThemeControl from './ThemeControl.astro';
 
+// The page foot, in two bands: the research colophon, then the site chrome.
+//
+// Provenance used to sit in its own section directly above this, which left
+// two blocks of page-foot metadata stacked with a rule between them. It is all
+// one thing, and `<footer>` is where it belongs, so it is one block now.
+//
+// No wordmark here. The sticky header carries the mark on every page, and on
+// the landing page the hero carries it too; a third instance at the bottom is
+// decoration, and the copyright line below already names the institution.
 interface Props {
   contactEmail: string;
   currentYear: number;
+  docsUrl: string;
   githubUrl: string;
   linkedInUrl: string;
   youtubeUrl: string;
 }
 
-const { contactEmail, currentYear, githubUrl, linkedInUrl, youtubeUrl } = Astro.props;
+const { contactEmail, currentYear, docsUrl, githubUrl, linkedInUrl, youtubeUrl } = Astro.props;
+const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
 ---
 
 <footer class="site-footer">
   <div class="frame site-footer-inner">
-    <div class="footer-meta">
-      {/* width/height reserve the box before the SVG loads (the artwork is
-          810x256, so 26px tall is 82px wide); CSS still sizes it. */}
-      <a href="/" class="footer-brand" aria-label="Relab home">
-        <img class="brand-light" src={wordmarkUrl} alt="Relab" width="82" height="26" />
-        <img
-          class="brand-dark"
-          src={wordmarkDarkUrl}
-          alt=""
-          aria-hidden="true"
-          width="82"
-          height="26"
-        />
-      </a>
-      <a
-        href="/privacy"
-        class="text-[var(--color-muted)] no-underline font-medium text-[0.95rem]"
-        aria-label="Read the Relab privacy policy"
-      >
-        Privacy policy
-      </a>
-      <p class="footer-copy">© {currentYear} CML, Leiden University</p>
-    </div>
+    {/* Research provenance: who runs this, how to cite it, what it is licensed
+        under, who funded it. Every fact is sourced from the repository itself
+        (CITATION.cff, LICENSE) via src/copy/site-meta.ts, so the page and the
+        citation file cannot drift apart.
 
-    <nav class="footer-links" aria-label="Footer">
-      <a
-        href={`mailto:${contactEmail}`}
-        class="text-[var(--color-muted)] no-underline font-medium text-[0.95rem]"
-      >
-        {contactEmail}
-      </a>
-      <div class="inline-flex items-center gap-[0.15rem] footer-social">
-        <a
-          href={githubUrl}
-          class="inline-flex items-center justify-center w-11 h-11 text-[var(--color-muted)]"
-          aria-label="GitHub (opens in new tab)"
-          title="GitHub"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <GithubIcon class="w-[1.18rem] h-[1.18rem] fill-current" aria-hidden="true" />
-        </a>
-        <a
-          href={linkedInUrl}
-          class="inline-flex items-center justify-center w-11 h-11 text-[var(--color-muted)]"
-          aria-label="LinkedIn (opens in new tab)"
-          title="LinkedIn"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <LinkedinIcon class="w-[1.18rem] h-[1.18rem] fill-current" aria-hidden="true" />
-        </a>
-        <a
-          href={youtubeUrl}
-          class="inline-flex items-center justify-center w-11 h-11 text-[var(--color-muted)]"
-          aria-label="YouTube (opens in new tab)"
-          title="YouTube"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <YoutubeIcon class="w-[1.18rem] h-[1.18rem] fill-current" aria-hidden="true" />
+        The dataset's own terms are deliberately a link, not a restatement:
+        ODbL 1.0 is planned for curated releases that do not exist yet, and the
+        docs hold the one canonical statement of that. Two copies would drift. */}
+    {/* aria-label rather than a visually-hidden <h2>: this repeats on every
+        page, and a heading here would insert itself into each page's outline
+        below that page's own content. */}
+    <section class="colophon" aria-label="About this project">
+      <dl class="colophon-list">
+        <div class="colophon-entry">
+          <dt>Run by</dt>
+          <dd>{research.institution}</dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Authors</dt>
+          <dd>{research.authors}</dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Cite as</dt>
+          <dd>
+            <a href={research.citationUrl} target="_blank" rel="noopener noreferrer"
+              >doi:{research.doi}<span class="visually-hidden"> (opens in new tab)</span></a
+            >
+          </dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Licence</dt>
+          <dd>
+            {/* Explicit spaces: Astro strips the inter-node newline around an <a>. */}
+            Software under{' '}
+            <a href={research.licenceUrl} target="_blank" rel="noopener noreferrer"
+              >{research.licence}<span class="visually-hidden"> (opens in new tab)</span></a
+            >. Curated dataset releases are{' '}
+            <a href={datasetUrl} target="_blank" rel="noopener noreferrer"
+              >planned under ODbL 1.0<span class="visually-hidden"> (opens in new tab)</span></a
+            >; no release has been published yet.
+          </dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Funding</dt>
+          <dd>{research.funding}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <div class="footer-chrome">
+      <div class="footer-meta">
+        <p class="footer-copy">© {currentYear} CML, Leiden University</p>
+        <a href="/privacy" class="footer-link" aria-label="Read the Relab privacy policy">
+          Privacy policy
         </a>
       </div>
-    </nav>
 
-    <div class="footer-theme">
-      <ThemeControl />
+      <nav class="footer-links" aria-label="Footer">
+        <a href={`mailto:${contactEmail}`} class="footer-link">
+          {contactEmail}
+        </a>
+        <div class="footer-social">
+          <a
+            href={githubUrl}
+            class="footer-social-link"
+            aria-label="GitHub (opens in new tab)"
+            title="GitHub"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <GithubIcon aria-hidden="true" />
+          </a>
+          <a
+            href={linkedInUrl}
+            class="footer-social-link"
+            aria-label="LinkedIn (opens in new tab)"
+            title="LinkedIn"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <LinkedinIcon aria-hidden="true" />
+          </a>
+          <a
+            href={youtubeUrl}
+            class="footer-social-link"
+            aria-label="YouTube (opens in new tab)"
+            title="YouTube"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <YoutubeIcon aria-hidden="true" />
+          </a>
+        </div>
+      </nav>
+
+      <div class="footer-theme">
+        <ThemeControl />
+      </div>
     </div>
   </div>
 </footer>
 
 <style>
-  .footer-brand {
+  /* Label/value pairs in the data register. Not a section with a pitch: the
+     heading is for screen readers, and the rows carry the facts. */
+  .colophon-list {
+    margin: 0;
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .colophon-entry {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    column-gap: 1.2rem;
+    align-items: baseline;
+    border-top: 1px solid var(--color-page-border);
+    padding-top: 0.7rem;
+  }
+
+  .colophon-entry dt {
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .colophon-entry dd {
+    margin: 0;
+    max-width: 70ch;
+    font-size: var(--font-size-body-compact);
+    line-height: var(--line-height-body-compact);
+  }
+
+  .footer-link {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    text-decoration: none;
+  }
+
+  .footer-link:hover,
+  .footer-link:focus-visible {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  .footer-social {
     display: inline-flex;
     align-items: center;
+    gap: 0.15rem;
   }
-  .footer-brand img {
-    height: 26px;
-    width: auto;
+
+  /* 44px hit area (WCAG 2.5.8) around a 1.18rem glyph: the target is the link
+     box, not the icon, so the marks can stay small without being hard to hit. */
+  .footer-social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: var(--color-muted);
   }
-  /* theme-swapped wordmark: teal on light, cyan on dark (system + manual toggle) */
-  .footer-brand .brand-light {
-    display: block;
+
+  .footer-social-link:hover,
+  .footer-social-link:focus-visible {
+    color: var(--color-primary);
   }
-  .footer-brand .brand-dark {
-    display: none;
+
+  /* Brand marks are filled with currentColor at the shared icon size, never
+     recoloured into their own brand palettes (assets/DESIGN.md). */
+  .footer-social-link :global(svg) {
+    width: 1.18rem;
+    height: 1.18rem;
+    fill: currentColor;
   }
-  @media (prefers-color-scheme: dark) {
-    :global(:root:not([data-theme='light'])) .footer-brand .brand-light {
-      display: none;
+
+  @media (max-width: 860px) {
+    .colophon-entry {
+      grid-template-columns: 1fr;
+      row-gap: 0.3rem;
     }
-    :global(:root:not([data-theme='light'])) .footer-brand .brand-dark {
-      display: block;
-    }
-  }
-  :global(:root[data-theme='dark']) .footer-brand .brand-light {
-    display: none;
-  }
-  :global(:root[data-theme='dark']) .footer-brand .brand-dark {
-    display: block;
   }
 </style>

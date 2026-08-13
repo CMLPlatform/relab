@@ -93,14 +93,21 @@ describe('HeroTeardown', () => {
     const html = await render({ fromFixture: true });
     expect(html).toContain('data-fixture-note');
     expect(html).toContain('Example teardown');
-    expect(html).toContain('teardown · example');
+    expect(html).toContain('illustrative masses');
     expect(html).not.toContain('№');
+  });
+
+  it('states provenance exactly once, under the title rather than above it', async () => {
+    const html = await render({});
+    expect(html.match(/data-provenance/g)).toHaveLength(1);
+    // Below the heading: a caption on the record, not a kicker over it.
+    expect(html.indexOf('blueprint-heading')).toBeLessThan(html.indexOf('blueprint-provenance'));
   });
 
   it('shows no example-data marker for live data', async () => {
     const html = await render({ fromFixture: false });
     expect(html).not.toContain('data-fixture-note');
     expect(html).not.toContain('Example teardown');
-    expect(html).toContain('teardown №47 · live');
+    expect(html).toContain('Teardown №47 · live record');
   });
 });
