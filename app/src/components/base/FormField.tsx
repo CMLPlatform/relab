@@ -1,5 +1,5 @@
 import type { TextStyle } from 'react-native';
-import { Text } from 'react-native';
+import Animated, { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { useAppTheme } from '@/theme';
 
 /**
@@ -20,7 +20,13 @@ export function FormFieldError({
   const theme = useAppTheme();
   if (!message) return null;
   return (
-    <Text
+    // Errors used to appear and vanish in a single frame, shoving the rest of
+    // the form down with them. The fade is a bridge, not decoration: it stays
+    // under the 150ms feedback budget, and Reanimated drops it on its own when
+    // the OS asks for reduced motion. The alert role fires on mount regardless.
+    <Animated.Text
+      entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
+      exiting={FadeOut.duration(120).reduceMotion(ReduceMotion.System)}
       nativeID={errorId}
       accessibilityRole="alert"
       // Capped so error text stays legible instead of clipping inside
@@ -29,6 +35,6 @@ export function FormFieldError({
       style={[{ color: theme.tokens.status.danger, fontSize: 12 }, style]}
     >
       {message}
-    </Text>
+    </Animated.Text>
   );
 }
