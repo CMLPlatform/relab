@@ -11,7 +11,7 @@ type NewProductPillProps = {
 export function NewProductPill({ label = 'New product' }: NewProductPillProps) {
   const theme = useAppTheme();
 
-  // ponytail: renders as plain emphasized text, not a pill shape — it names the
+  // NOTE: renders as plain emphasized text, not a pill shape — it names the
   // real "New product" control elsewhere on screen rather than acting as one,
   // so it shouldn't look tappable (design critique P3 #1).
   return (
