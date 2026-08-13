@@ -3,6 +3,7 @@
 // exports into a file that also exports a component).
 import type { ReactNode, RefObject } from 'react';
 import type { View } from 'react-native';
+import { ProfileAboutSection } from '@/components/profile/About';
 import {
   ProfileAccountSection,
   ProfileDangerZoneSection,
@@ -18,7 +19,7 @@ import {
 import { ProfileSecuritySection } from '@/components/profile/SecuritySection';
 import type { useProfileScreen } from '@/features/profile/useProfileScreen';
 
-export type AccountSectionKey = 'preferences' | 'integrations' | 'security' | 'danger';
+export type AccountSectionKey = 'preferences' | 'integrations' | 'security' | 'about' | 'danger';
 
 export type AccountSectionContext = ReturnType<typeof useProfileScreen> & {
   onManageCameras: () => void;
@@ -128,6 +129,12 @@ export const ACCOUNT_SECTIONS: AccountSectionDef[] = [
         </>
       );
     },
+  },
+  {
+    key: 'about',
+    label: 'About',
+    title: 'About',
+    render: () => <ProfileAboutSection />,
   },
   {
     key: 'danger',
