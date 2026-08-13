@@ -3,14 +3,20 @@ title: Licensing
 description: How Relab licenses its software, its API specification, and its dataset releases, and the two limits no licence changes.
 ---
 
-Relab licenses three layers separately, on purpose. Which one applies depends on what you are
+Relab licenses four layers separately, on purpose. Which one applies depends on what you are
 reusing, not on which repository you found it in.
 
 | Layer                                                                                    | Licence                                                                         |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Platform software: backend, app, www, and this docs site                                 | [AGPL-3.0-or-later](https://github.com/CMLPlatform/relab/blob/main/LICENSE)     |
+| Platform software: the code behind the backend, app, website, and this docs site         | [AGPL-3.0-or-later](https://github.com/CMLPlatform/relab/blob/main/LICENSE)     |
 | API specification: the OpenAPI schemas this repository generates, and their client types | [Apache-2.0](https://github.com/CMLPlatform/relab/blob/main/LICENSE-APACHE-2.0) |
+| Site content: the writing on the docs site and on [cml-relab.org](https://cml-relab.org) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)                       |
 | Curated dataset releases                                                                 | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), planned              |
+
+Code samples inside the documentation are **Apache-2.0**, not CC BY, so that copying one into your
+own project raises no question — it lands under the same terms as a generated client. And whatever
+the layer, the Relab name, logo, and wordmark are **not licensed**; see
+[Names and marks](#names-and-marks) below.
 
 ## Why the API specification is carved out
 
@@ -28,8 +34,8 @@ covering with a CC licence, and Apache-2.0 carries an explicit patent grant.
 In practice: **generate a client from the public or device schema and you inherit no copyleft.**
 
 The carve-out covers the two schemas this repository generates, `openapi.public.json` and
-`openapi.device.json`. The [RPi camera API](/api/rpi-cam/) is not one of them: `openapi.rpi-cam.json`
-is fetched verbatim from the separate
+`openapi.device.json`. The [RPi camera API](/api/rpi-cam/) is not one of them:
+`openapi.rpi-cam.json` is fetched verbatim from the separate
 [relab-rpi-cam-plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin) repository and carries
 whatever licence that project sets. Check there before reusing it.
 
@@ -43,6 +49,34 @@ CC 4.0 licenses the EU *sui generis* database right alongside copyright, so one 
 both the structure of the database and its contents, and no second licence is needed for the records
 themselves. Attribution is the whole obligation, which is what keeps a release usable for
 machine-learning work.
+
+## Site content
+
+The writing on this docs site and on the main site — pages, guides, explanations, diagrams — is
+CC BY 4.0. Quote it, translate it, teach from it, adapt it; credit Relab and say if you changed it.
+
+Applying the platform's copyleft to prose would have been an odd fit: its obligations are about
+providing corresponding *source*, which means nothing for a paragraph. Attribution is the obligation
+that actually expresses what the project wants from a reader.
+
+The exception is **code samples**, which are Apache-2.0. Creative Commons advises against covering
+software with a CC licence, and someone pasting a snippet from a guide into their own project should
+not have to reason about attribution terms written for prose. Samples land under the same licence as
+a client generated from the API specification.
+
+## Names and marks
+
+**Relab, R9lab, the logo, and the wordmark are not covered by any licence on this page.** No licence
+here — not AGPL, not Apache-2.0, not CC BY — grants rights in them, and CC BY says so explicitly
+([§2(b)(2)](https://creativecommons.org/licenses/by/4.0/legalcode#s2b)).
+
+This is worth stating rather than leaving to inference, because the rest of the project is open
+enough that a reader could reasonably assume the marks come along with it. They do not. Reuse the
+software, the specification, the writing, and the data freely; use the name and the mark only to
+refer to this project, not to identify your own work as Relab or to imply endorsement.
+
+Nominative use — naming Relab as a source, citing it, writing about it, showing a screenshot in a
+paper or a talk — needs no permission and is what the licences above are for.
 
 ## Two limits no licence changes
 

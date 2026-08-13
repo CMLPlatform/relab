@@ -125,13 +125,22 @@ for what runs where.
 
 ## Licensing
 
-Three layers, licensed separately on purpose:
+Four layers, licensed separately on purpose:
 
 | What                                                                                                                                                      | Licence                                                   | Why                                                                                                                                                                                                                                                      |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Platform software — backend, app, www, docs site                                                                                                          | [AGPL-3.0-or-later](LICENSE)                              | Copyleft, including over a network, so a hosted fork stays open.                                                                                                                                                                                         |
 | API specification — the OpenAPI schemas this repository generates (`openapi.public.json`, `openapi.device.json`) and the client types generated from them | [Apache-2.0](LICENSE-APACHE-2.0)                          | An integration surface should not pass copyleft to anyone writing a client or an importer. Includes a patent grant.                                                                                                                                      |
 | Curated dataset releases                                                                                                                                  | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | One instrument over the database structure and its contents. CC 4.0 licenses the EU *sui generis* database right, so no second licence is needed for the data. Attribution is the whole obligation, which keeps the dataset usable for machine learning. |
+
+Site content — the writing on the docs site and on cml-relab.org — is
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Copyleft over prose is an odd fit, since
+its obligations are about providing corresponding source. Code samples in the documentation are
+Apache-2.0 instead, because CC licences are not meant for software.
+
+**Relab, R9lab, the logo and the wordmark are not licensed by any of the above.** No licence here
+grants rights in them, and CC BY says so explicitly (§2(b)(2)). Use the name to refer to this
+project, not to identify your own work as Relab.
 
 The RPi camera plugin's schema (`openapi.rpi-cam.json`) is published here for reference but is
 fetched verbatim from its own repository,
