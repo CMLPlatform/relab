@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   type DimensionValue,
@@ -47,7 +47,7 @@ type ProductsListContentProps = {
   searchQuery: string;
   isAuthenticated: boolean;
   onScroll: FlatListProps<Product>['onScroll'];
-  onRefresh: () => void;
+  onRefresh: () => Promise<unknown>;
   onSetPage: (page: number) => void;
 };
 
@@ -237,6 +237,18 @@ export function ProductsListContent({
   const theme = useAppTheme();
   const showOwner = filterMode === 'all';
 
+  // Own the spinner state: RefreshControl.refreshing must reflect only a
+  // user-initiated pull, never background refetches (which also flip isFetching).
+  const [userRefreshing, setUserRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setUserRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setUserRefreshing(false);
+    }
+  }, [onRefresh]);
+
   const renderSkeleton = useCallback(() => <ProductCardSkeleton />, []);
   const renderProduct = useCallback(
     ({ item }: { item: (typeof productList)[number] }) => (
@@ -302,7 +314,7 @@ export function ProductsListContent({
       numColumns={numColumns}
       onScroll={onScroll}
       scrollEventThrottle={16}
-      refreshControl={<RefreshControl refreshing={isFetching} onRefresh={onRefresh} />}
+      refreshControl={<RefreshControl refreshing={userRefreshing} onRefresh={handleRefresh} />}
       data={productList}
       extraData={showOwner}
       keyExtractor={productKeyExtractor}

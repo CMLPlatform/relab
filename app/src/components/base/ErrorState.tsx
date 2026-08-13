@@ -31,7 +31,7 @@ export function ErrorState({
           {title}
         </AppText>
       ) : null}
-      <AppText className="text-center opacity-70">{message}</AppText>
+      <AppText className="text-center">{message}</AppText>
       <AppButton variant="primary" onPress={onRetry} className="mt-2">
         {actionLabel}
       </AppButton>

@@ -17,3 +17,9 @@ test('renders title, message, and custom action label', () => {
   fireEvent.press(screen.getByText('Back to products'));
   expect(onRetry).toHaveBeenCalled();
 });
+
+test('never de-emphasizes the error message', () => {
+  renderWithProviders(<ErrorState message="Something went wrong." onRetry={jest.fn()} />);
+  const className = screen.getByText('Something went wrong.').props.className as string;
+  expect(className).not.toEqual(expect.stringContaining('opacity'));
+});

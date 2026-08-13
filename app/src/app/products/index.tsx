@@ -52,7 +52,7 @@ export default function Products() {
         <title>Products · Relab</title>
       </Head>
       <PageContainer phoneFullBleed>
-        <View style={{ padding: 10, gap: 10 }} onLayout={handleLayout}>
+        <View className="p-3" style={{ gap: 10 }} onLayout={handleLayout}>
           <ProductsWelcomeCard
             visible={screen.showWelcomeCard}
             isAuthenticated={screen.isAuthenticated}
