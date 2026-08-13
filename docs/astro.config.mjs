@@ -81,6 +81,7 @@ const SIDEBAR = [
       { label: 'Use cases', slug: 'project/use-cases' },
       { label: 'Roadmap', slug: 'project/roadmap' },
       { label: 'Dataset', slug: 'project/dataset' },
+      { label: 'Licensing', slug: 'project/licensing' },
     ],
   },
 ];

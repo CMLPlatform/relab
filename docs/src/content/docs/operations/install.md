@@ -194,14 +194,14 @@ migrations, verify health.
    the `scanning` profile is also passed. Passing any profile replaces the `backups` default, so
    list `backups` explicitly whenever you pass `scanning`.
 
-   - **With scanning (default)** — keep `MALWARE_SCAN_ENABLED=true` in the root `.env` and pass the
+   - **With scanning (default):** keep `MALWARE_SCAN_ENABLED=true` in the root `.env` and pass the
      `scanning` profile on every up/down. Budget roughly 3-4 GiB of extra RAM for ClamAV.
 
      ```bash
      just prod-up YES backups scanning
      ```
 
-   - **Without scanning** — set `MALWARE_SCAN_ENABLED=false` in the root `.env` and start without
+   - **Without scanning:** set `MALWARE_SCAN_ENABLED=false` in the root `.env` and start without
      the `scanning` profile. Uploads are accepted unscanned; treat this as an explicit, temporary
      accepted risk, not a default to keep long-term.
 

@@ -17,5 +17,13 @@ Three references are published, one per audience:
 - [RPi camera API](/api/rpi-cam/) is the local camera service API, for status checks, capture
   workflows, and camera-device integration.
 
+## Licensing
+
+The public and device schemas, and the client types generated from them, are published under
+Apache-2.0 rather than the platform's AGPL. Generating a client from either one carries no copyleft
+obligation into your own code, and Apache-2.0 adds a patent grant. The RPi camera schema comes from
+a separate repository and is not covered by that carve-out. See [Licensing](/project/licensing/) for
+the reasoning and for the terms covering the platform itself and its dataset releases.
+
 For practical scripting guidance, start with the [API interaction guide](../user-guides/api/). For
 implementation architecture, see [API structure](../architecture/api/).
