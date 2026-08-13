@@ -129,6 +129,25 @@ function mockCreateAnimatedComponent() {
   return AnimatedComponent;
 }
 
+// Entering/exiting animation builders (FadeIn.duration(150) and friends): the
+// real ones are worklet-backed classes, so the mock only has to be chainable
+// and land on something a component can hold as a prop.
+function mockCreateAnimationBuilder() {
+  const builder: Record<string, () => unknown> = {};
+  for (const method of [
+    'duration',
+    'delay',
+    'springify',
+    'easing',
+    'withInitialValues',
+    'reduceMotion',
+    'build',
+  ]) {
+    builder[method] = () => builder;
+  }
+  return builder;
+}
+
 // Mock react-native-reanimated
 // react-native-reanimated 4.x uses react-native-worklets which requires native
 // initialisation; unusable in Jest. We provide a minimal inline mock instead.
@@ -137,6 +156,10 @@ jest.mock('react-native-reanimated', () => {
   const AnimatedComponent = mockCreateAnimatedComponent();
 
   return {
+    FadeIn: mockCreateAnimationBuilder(),
+    FadeOut: mockCreateAnimationBuilder(),
+    FadeInUp: mockCreateAnimationBuilder(),
+    FadeInDown: mockCreateAnimationBuilder(),
     __esModule: true,
     default: AnimatedComponent,
     useAnimatedStyle: mockCreateAnimatedStyleHook(),

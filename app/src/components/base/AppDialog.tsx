@@ -1,5 +1,6 @@
 import type { ReactNode, RefObject } from 'react';
 import { Modal, Pressable, StyleSheet, type View } from 'react-native';
+import Animated, { FadeInUp, ReduceMotion } from 'react-native-reanimated';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme';
 import { OverlaySurface } from './OverlaySurface';
@@ -56,9 +57,11 @@ export function AppDialog({
         onPress={handleDismiss}
       >
         <Pressable onPress={stopPropagation} className="w-full" style={styles.dialogWrapper}>
-          <OverlaySurface className="p-4" style={theme.tokens.elevation.overlay} tone="surface">
-            {children}
-          </OverlaySurface>
+          <Animated.View entering={FadeInUp.duration(200).reduceMotion(ReduceMotion.System)}>
+            <OverlaySurface className="p-4" style={theme.tokens.elevation.overlay} tone="surface">
+              {children}
+            </OverlaySurface>
+          </Animated.View>
         </Pressable>
       </Pressable>
     </Modal>

@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { useAppTheme } from '@/theme';
 import { AppButton } from './AppButton';
 import { AppDialog } from './AppDialog';
@@ -194,19 +195,24 @@ function Toast({ message, onDismiss }: { message: string | null; onDismiss: () =
       style={styles.toastContainer}
       pointerEvents="box-none"
     >
-      <OverlaySurface
-        className="px-4 py-2"
-        style={[styles.toast, { backgroundColor: theme.colors.inverseSurface }]}
-        tone="scrim"
+      <Animated.View
+        entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
+        exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
       >
-        <AppText
-          variant="body"
-          accessibilityLiveRegion="polite"
-          style={{ color: theme.colors.inverseOnSurface }}
+        <OverlaySurface
+          className="px-4 py-2"
+          style={[styles.toast, { backgroundColor: theme.colors.inverseSurface }]}
+          tone="scrim"
         >
-          {message}
-        </AppText>
-      </OverlaySurface>
+          <AppText
+            variant="body"
+            accessibilityLiveRegion="polite"
+            style={{ color: theme.colors.inverseOnSurface }}
+          >
+            {message}
+          </AppText>
+        </OverlaySurface>
+      </Animated.View>
     </View>
   );
 }

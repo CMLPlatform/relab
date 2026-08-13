@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { MIN_TAP_TARGET } from '@/constants';
@@ -64,19 +65,22 @@ export function Menu({ visible, onDismiss, anchor, children }: MenuProps) {
           onPress={onDismiss}
           accessibilityLabel="Dismiss menu"
         >
-          <Pressable
-            onPress={stopPropagation}
-            accessibilityRole="menu"
-            className="rounded-xl py-1"
-            style={[
-              styles.content,
-              position,
-              theme.tokens.elevation.overlay,
-              { backgroundColor: theme.colors.elevation.level2 },
-            ]}
+          <Animated.View
+            entering={FadeInDown.duration(150).reduceMotion(ReduceMotion.System)}
+            style={[styles.content, position]}
           >
-            {children}
-          </Pressable>
+            <Pressable
+              onPress={stopPropagation}
+              accessibilityRole="menu"
+              className="rounded-xl py-1"
+              style={[
+                theme.tokens.elevation.overlay,
+                { backgroundColor: theme.colors.elevation.level2 },
+              ]}
+            >
+              {children}
+            </Pressable>
+          </Animated.View>
         </Pressable>
       </Modal>
     </>
