@@ -106,14 +106,27 @@ const phases = [
     }
   </ol>
 
-  {/* The 9R framework used to have a full section here teaching all ten
-      strategies. It is reference material, and the landing page's job is to get
-      a visitor to the data, so it moved to the docs beside its canonical
-      definitions and is named here in a sentence instead. */}
+  {/* What the records are for. The earlier version of this line claimed
+      finished records are "read through the 9R framework", which describes an
+      analysis step the platform does not perform: Relab collects data, and the
+      research that uses it does the interpreting. The gap named here is the
+      project's own argument (docs/project/index.md) and matches the literature:
+      manufacturers rarely disclose composition, published disassembly-derived
+      bills of materials exist only as small case-study sets, and life-cycle
+      inventory work has no uniform source for it. */}
   <p class="method-lens">
+    A finished record says what one product is made of and how it comes apart. Interpreting that is
+    the research's job: life-cycle assessment and material-flow studies still lean on generic
+    composition figures, and recovery targets are seldom checked against a real product.
+  </p>
+  {/* The 9R framework had a full section here teaching all ten strategies. It
+      is the circular-economy framing the project sits in rather than anything
+      the platform applies, so it is an aside with a link, and the ladder itself
+      lives in the docs beside its canonical definitions. */}
+  <p class="method-aside">
     {/* Explicit spaces: Astro strips the inter-node newline around an <a>. */}
-    Finished records are read through the 9R framework, the ten circularity strategies from Refuse
-    to Recover that rank how much of a product survives:{' '}
+    The circular-economy thinking behind the project is the 9R framework, ten strategies from Refuse
+    to Recover:{' '}
     <a href={frameworkUrl} target="_blank" rel="noopener noreferrer"
       >see the ladder in the docs<span class="visually-hidden"> (opens in new tab)</span></a
     >.
@@ -232,7 +245,17 @@ const phases = [
 
   .method-lens {
     margin: 1.8rem 0 0;
-    max-width: 80ch;
+    max-width: 72ch;
+    font-size: var(--font-size-body-compact);
+    line-height: var(--line-height-body-compact);
+    color: var(--color-text);
+  }
+
+  /* Subordinate to the line above, because the framework is context the project
+     sits in rather than something it does. */
+  .method-aside {
+    margin: 0.7rem 0 0;
+    max-width: 72ch;
     font-size: var(--font-size-meta);
     color: var(--color-muted);
   }

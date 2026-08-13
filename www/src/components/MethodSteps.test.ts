@@ -60,9 +60,20 @@ describe('MethodSteps', () => {
     const html = await render();
     expect(html).toContain('https://docs.example.com/project/9r-framework/');
     // The ten strategies and their definitions belong beside each other, in the
-    // docs; the landing page only needs to say the lens exists.
+    // docs; the landing page only needs to say the framing exists.
     expect(html).not.toContain('Remanufacture');
     expect(html).not.toContain('Incineration');
+  });
+
+  it('does not claim the platform applies the 9R framework to records', async () => {
+    const html = await render();
+    // Relab collects data; the research that uses it does the interpreting.
+    // Saying records are "read through" the framework describes a step the
+    // platform has never performed.
+    expect(html).not.toMatch(/read through the 9R/i);
+    expect(html).not.toMatch(/records are (scored|ranked|classified|assessed)/i);
+    // The framing is context the project sits in, stated as such.
+    expect(html).toMatch(/circular-economy thinking behind the project/i);
   });
 
   it('carries no inlined SVG', async () => {
