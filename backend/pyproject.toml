@@ -76,6 +76,9 @@
   # Optional taxonomy-import tooling used by one-off seeding scripts
   seed-taxonomies = ["openpyxl>=3.1.5", "pandas>=2.3.3"]
 
+  # Typed-table writer for the one-off dataset release build script
+  dataset-release = ["pyarrow>=21.0.0"]
+
   # Heavy deps for scripts/plugins/rpi_cam/webcam_fake_camera.py (local dev only)
   fake-camera = ["opencv-python-headless>=4.0", "websockets>=14.0"]
 

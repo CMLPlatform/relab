@@ -127,6 +127,11 @@ openapi:
 openapi-check:
     ENVIRONMENT=testing uv run python -m scripts.generate.export_openapi --check
 
+# Build a publishable dataset release directory (verification failures abort the build)
+# Usage: just release-build --owner <username> [--out DIR] [--doi 10.5281/zenodo.NNNNNNN]
+release-build *ARGS:
+    uv run python -m scripts.build_dataset_release {{ ARGS }}
+
 # Refresh the committed disposable-email fallback list from the upstream source
 refresh-disposable-email-domains:
     uv run python -m scripts.maintenance.refresh_disposable_email_domains

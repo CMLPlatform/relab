@@ -16,12 +16,17 @@ title: "Relab - Data Collection Platform"
 abstract: "Data collection platform for disassembled power tool images and metadata supporting computer vision tasks for life cycle assessments."
 version: 0.2.0
 identifiers:
-  # Zenodo concept DOI: always resolves to the newest release, which is what a
-  # "cite this software" identifier should do. The per-version DOI for v0.2.0 is
-  # 10.5281/zenodo.19703316; cite that only when pinning a specific release.
+  # The concept DOI comes first: it always resolves to the newest release, which is
+  # what a "cite this software" identifier should do. Cite the version DOI below only
+  # when pinning a specific release — provenance links, which must not move, do.
+  # Both are read by backend/tests, so the version entry needs bumping alongside
+  # `version:` and `date-released:` on every release.
   - type: doi
     value: 10.5281/zenodo.16637742
     description: Concept DOI for all versions of Relab
+  - type: doi
+    value: 10.5281/zenodo.19703316
+    description: Version DOI for Relab v0.2.0
 date-released: 2026-04-23
 url: https://cml-relab.org
 repository-code: "https://github.com/CMLPlatform/relab"
