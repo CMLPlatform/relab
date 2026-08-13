@@ -1,6 +1,11 @@
-import { describe, expect, it, jest } from '@jest/globals';
-import { QueryClient, QueryClientProvider, useInfiniteQuery } from '@tanstack/react-query';
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
+import {
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+  useInfiniteQuery,
+} from '@tanstack/react-query';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import {
   productsInfiniteQueryOptions,
@@ -11,6 +16,7 @@ import {
   useSearchBrandsQuery,
   useSearchProductTypesQuery,
 } from '@/features/products/queries';
+import { ApiError } from '@/services/api/errors';
 import { searchProductBrands } from '@/services/api/productSuggestions';
 import {
   getBaseProduct,
@@ -50,9 +56,11 @@ jest.mock('@/services/api/saving', () => ({
 }));
 
 const queryClient = new QueryClient({
-  // useSaveProductMutation hardcodes retry: 3 so it survives transient blips
-  // offline-and-reconnect (Task 14); that beats this client's retry: false,
-  // so zero the delay too or these failure-path tests wait out real backoff.
+  // useSaveProductMutation sets its own retry predicate (retries network-level
+  // failures only, up to the same count `retry: 3` would give) so it survives
+  // transient blips offline-and-reconnect (Task 14); an explicit per-mutation
+  // retry option always beats this client's retry: false default, so zero the
+  // delay too or these failure-path tests wait out real backoff.
   defaultOptions: {
     queries: { retry: false },
     mutations: { retry: false, retryDelay: 0 },
@@ -64,6 +72,10 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 describe('useProductQueries', () => {
+  afterEach(() => {
+    act(() => onlineManager.setOnline(true));
+  });
+
   const mockedProducts = jest.mocked(products);
   const mockedSearchBrands = jest.mocked(searchProductBrands);
   const mockedSearchProductTypes = jest.mocked(searchProductTypes);
@@ -404,6 +416,59 @@ describe('useProductQueries', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['baseProduct', 7] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['products'] });
+  });
+
+  it('useSaveProductMutation does not retry a real server response, to avoid re-POSTing a create the server already accepted or rejected', async () => {
+    mockedSaveProduct.mockRejectedValue(new ApiError('Validation failed', 422));
+
+    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+
+    result.current.mutate({
+      product: { ...newProductDraft, name: 'New' },
+      originalImages: [],
+      originalVideos: [],
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockedSaveProduct).toHaveBeenCalledTimes(1);
+  });
+
+  it('useSaveProductMutation retries a network-level failure that never reached the server', async () => {
+    mockedSaveProduct.mockRejectedValue(new TypeError('Network request failed'));
+
+    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+
+    result.current.mutate({
+      product: { ...newProductDraft, name: 'New' },
+      originalImages: [],
+      originalVideos: [],
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    // 1 initial attempt + 3 retries — same total as the plain `retry: 3` option.
+    expect(mockedSaveProduct).toHaveBeenCalledTimes(4);
+  });
+
+  it('pauses offline instead of failing or firing, then sends the POST on reconnect', async () => {
+    act(() => onlineManager.setOnline(false));
+    mockedSaveProduct.mockResolvedValue(999);
+
+    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+
+    result.current.mutate({
+      product: { ...newProductDraft, name: 'Offline capture' },
+      originalImages: [],
+      originalVideos: [],
+    });
+
+    await waitFor(() => expect(result.current.isPaused).toBe(true));
+    expect(result.current.isSuccess).toBe(false);
+    expect(mockedSaveProduct).not.toHaveBeenCalled();
+
+    act(() => onlineManager.setOnline(true));
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockedSaveProduct).toHaveBeenCalledTimes(1);
   });
 
   it('useDeleteProductMutation does not evict the cache when deletion fails', async () => {

@@ -28,6 +28,7 @@ import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMode';
+import { saveProductMutationFn } from '@/features/products/queries';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
@@ -45,7 +46,26 @@ const queryClient = new QueryClient({
   },
 });
 
-const persister = createAsyncStoragePersister({ storage: AsyncStorage, key: 'relab-query-cache' });
+// A mutation restored from the persisted cache (after a reload) is dehydrated
+// down to its key + variables — the mutationFn itself can't survive
+// (de)serialization. Registering it here by mutationKey is how TanStack's
+// persist-mutations pattern re-attaches a working function before
+// resumePausedMutations() (see Providers' onSuccess below) runs it.
+queryClient.setMutationDefaults(['saveProduct'], { mutationFn: saveProductMutationFn });
+
+// This file can only export components (Fast Refresh), so the key isn't
+// exported — AuthProvider duplicates the literal to clear it on sign-out.
+// Keep the two in sync if this ever changes.
+const QUERY_CACHE_STORAGE_KEY = 'relab-query-cache';
+
+const persister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: QUERY_CACHE_STORAGE_KEY,
+});
+
+function resumePausedMutations() {
+  return queryClient.resumePausedMutations();
+}
 
 export default function RootLayout() {
   return (
@@ -228,6 +248,11 @@ export function Providers({ children }: { children: ReactNode }) {
     <PersistQueryClientProvider
       client={queryClient}
       persistOptions={{ persister, maxAge: 24 * 60 * 60 * 1000, buster: 'v1' }}
+      // Restoring only repopulates the caches; paused mutations (a capture
+      // POST that was mid-offline at reload) stay paused until something
+      // asks them to run. onlineManager gates the actual network call, so
+      // this is a no-op while still offline.
+      onSuccess={resumePausedMutations}
     >
       <AuthProvider>
         <ThemeModeProvider>

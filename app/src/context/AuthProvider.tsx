@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
@@ -6,6 +7,11 @@ import { getToken, getUser, hasWebSessionFlag } from '@/services/api/auth/authen
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
 import { AuthContext } from './auth';
+
+// Mirrors the persister's `key` in `_layout.tsx` — importing it directly
+// would be circular (`_layout.tsx` imports AuthProvider), so the string is
+// duplicated here. Keep the two in sync if the persister key ever changes.
+const QUERY_CACHE_STORAGE_KEY = 'relab-query-cache';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | undefined>(undefined);
@@ -18,12 +24,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // list and detail refetches with the new "me" id (or undefined on logout).
   useEffect(() => {
     if (isLoading) return;
+    const wasSignedIn = prevUserIdRef.current !== undefined;
     if (prevUserIdRef.current === user?.id) return;
     prevUserIdRef.current = user?.id;
+
+    if (wasSignedIn && user === undefined) {
+      // Sign-out, not just an account switch: on a shared device the next
+      // person to open the app must not see this user's cached products,
+      // profile, or camera data — wipe the in-memory cache and the
+      // AsyncStorage-persisted copy (otherwise it survives up to the
+      // persister's 24h maxAge).
+      queryClient.clear();
+      void AsyncStorage.removeItem(QUERY_CACHE_STORAGE_KEY);
+      return;
+    }
+
     queryClient.invalidateQueries({ queryKey: ['products'] });
     queryClient.invalidateQueries({ queryKey: ['baseProduct'] });
     queryClient.invalidateQueries({ queryKey: ['component'] });
-  }, [user?.id, isLoading, queryClient]);
+  }, [user, isLoading, queryClient]);
 
   useEffect(() => {
     const initializeAuth = async () => {

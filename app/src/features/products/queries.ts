@@ -7,6 +7,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
+import { ApiError } from '@/services/api/errors';
 import { searchProductBrands } from '@/services/api/productSuggestions';
 import { products } from '@/services/api/products';
 import { searchProductTypes } from '@/services/api/productTypes';
@@ -139,25 +140,51 @@ function invalidateAfterSave(queryClient: QueryClient, product: Product, savedId
   }
 }
 
+export type SaveProductVariables = {
+  product: Product;
+  originalImages: Product['images'];
+  originalVideos: Product['videos'];
+};
+
+// Exported (not just inlined in the hook below) so _layout.tsx can register it
+// via queryClient.setMutationDefaults(['saveProduct'], { mutationFn: ... }) —
+// a mutation restored from the persisted cache after a reload has no function
+// attached (functions aren't serializable), so TanStack's persist-mutations
+// pattern re-attaches one by mutationKey. Keep this in sync with the
+// mutationKey below if either ever changes.
+export const saveProductMutationFn = ({
+  product,
+  originalImages,
+  originalVideos,
+}: SaveProductVariables) => saveProduct(product, originalImages, originalVideos);
+
+// Retries only failures where the request never reached the server (network
+// drop, timeout — anything that isn't ApiError). ApiError means we got a real
+// HTTP response, so retrying risks either repeating a rejected request for no
+// reason or, worse for saveNewProduct's POST, re-creating a product the
+// server already accepted. MediaSyncError is safe to retry despite not being
+// an ApiError: it's thrown only after the entity POST already returned an id
+// (mutated onto `product`), so a retry re-enters saveProduct as an update
+// (PATCH), not a second create.
+// NOTE: this doesn't close every gap — a response lost in flight *after* the
+// server actually committed the POST (socket dropped right after the 201)
+// still looks like "no response" here and would retry into a duplicate. A
+// real fix needs a server-side idempotency key; out of scope for this task.
+function isRetryableSaveError(failureCount: number, error: unknown): boolean {
+  if (failureCount >= 3) return false;
+  return !(error instanceof ApiError);
+}
+
 export function useSaveProductMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      product,
-      originalImages,
-      originalVideos,
-    }: {
-      product: Product;
-      originalImages: Product['images'];
-      originalVideos: Product['videos'];
-    }) => saveProduct(product, originalImages, originalVideos),
-
     // Default networkMode: 'online' — the mutation pauses while onlineManager
     // reports offline (button stays in its loading state, nothing errors or
-    // drops) and fires automatically on reconnect. retry: 3 also covers
-    // transient network blips that aren't a full offline stretch.
-    retry: 3,
+    // drops) and fires automatically on reconnect.
+    mutationKey: ['saveProduct'],
+    mutationFn: saveProductMutationFn,
+    retry: isRetryableSaveError,
 
     onSuccess: (savedId, { product }) => invalidateAfterSave(queryClient, product, savedId),
 
