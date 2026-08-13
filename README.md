@@ -6,7 +6,7 @@
 
 [![Version](https://img.shields.io/github/v/release/CMLPlatform/relab?include_prereleases&filter=v*)](CHANGELOG.md)
 [![License: AGPL-v3+](https://img.shields.io/badge/License-AGPL--v3+-rebeccapurple.svg)](LICENSE)
-[![Data License: ODbL](https://img.shields.io/badge/Data_License-ODbL-rebeccapurple.svg)](https://opendatacommons.org/licenses/odbl/)
+[![Data License: CC BY 4.0](https://img.shields.io/badge/Data_License-CC_BY_4.0-rebeccapurple.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.16637742-blue.svg)](https://doi.org/10.5281/zenodo.16637742)
 [![Coverage](https://img.shields.io/codecov/c/github/CMLPlatform/relab)](https://codecov.io/gh/CMLPlatform/relab)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CMLPlatform/relab/badge)](https://scorecard.dev/viewer/?uri=github.com/CMLPlatform/relab)

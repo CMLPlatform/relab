@@ -13,6 +13,7 @@ test('privacy page renders', async ({ page }) => {
     'Account information',
     'Contributions',
     'AI and research use',
+    'Cookies and local storage',
     'Your rights and choices',
   ]);
   await expectContentPage(page);

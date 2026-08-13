@@ -35,8 +35,8 @@ Current records can be explored in the app or through the API. For technical acc
 [public API reference](/api/public/).
 
 Curated releases will have a defined scope, version, and license, so they can be cited and linked
-with other open industrial-ecology datasets. The planned license is the
-[Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/).
+with other open industrial-ecology datasets. The planned license is
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). No release has been published yet.
 
 ## Dublin Core metadata
 
@@ -56,7 +56,7 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
 | Identifier  | <https://github.com/CMLPlatform/relab>                                                                                                |
 | Language    | en-US                                                                                                                                 |
 | Coverage    | Products: Power tools; Time: 2025-03–2026-08, ongoing; Geographic location: NL                                                        |
-| Rights      | <https://opendatacommons.org/licenses/odbl/>                                                                                          |
+| Rights      | <https://creativecommons.org/licenses/by/4.0/>                                                                                        |
 
 ## Contact
 
