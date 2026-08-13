@@ -36,7 +36,8 @@ export const termsContent = {
     {
       title: 'What you promise',
       paragraphs: [
-        'You confirm that you created what you contribute and that it contains no third-party material: no photos taken by someone else, no manuals, no diagrams, no text copied from elsewhere.',
+        'You confirm that you made what you upload: you took the photographs yourself and wrote the measurements and notes yourself. Do not upload someone else’s photographs, or images and text copied from a manual, a datasheet, a catalogue, or another site.',
+        'Photographing a product you took apart is exactly what Relab is for, and those photographs will show brand names, logos, model numbers and the design of the product itself. That is expected and is not a problem: you are not promising your photographs are free of other people’s trademarks, only that the photographs are yours.',
         'If you are not sure you hold the rights to something, do not upload it.',
       ],
     },
