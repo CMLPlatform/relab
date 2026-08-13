@@ -21,10 +21,17 @@ export const privacyContent = {
   intro: 'This policy explains what we collect, how we use it, and what choices you have.',
   sections: [
     {
+      title: 'Who is responsible for your data',
+      paragraphs: [
+        'Relab is a research platform of the Institute of Environmental Sciences (CML) at Leiden University. CML is part of the university, so Leiden University is the controller for the personal data described here, and “we” means Leiden University acting through CML.',
+      ],
+    },
+    {
       title: 'Account information',
       paragraphs: [
         'When you create an account, we ask for a username, email address, and password. We store passwords only in protected hashed form. We use your email to help you sign in and to send important service messages. We record when you log in successfully, but we do not keep login IP addresses on your account.',
         'If you connect Google, GitHub, or YouTube, Relab stores the connection details encrypted. You can use “Sign out everywhere” in your profile to end active sessions on your other devices.',
+        'Those three are United States companies, so connecting one, or choosing to load an external video, sends data about you outside the European Economic Area under that provider’s own terms. Nothing else leaves: the platform itself runs on servers in the Netherlands, and we send your data to no other third party.',
       ],
     },
     {
@@ -63,7 +70,19 @@ export const privacyContent = {
         },
         {
           label: 'Account holders',
-          text: 'You can view and update your account details, and you can ask us to delete your account and related data.',
+          text: 'You can view and update your account details in the app, and you can ask us to delete your account and related data.',
+        },
+        {
+          label: 'Your rights',
+          text: 'You can ask for a copy of the personal data we hold about you, have it corrected, have it deleted, have our use of it restricted, object to our use of it, or receive it in a portable form. Where you gave consent — for optional update emails, for example — you can withdraw it at any time, and withdrawing does not affect what we did before you withdrew. One limit is worth stating plainly: a published dataset release cannot be recalled, so deletion removes your records from the platform but cannot retract a release that is already out.',
+        },
+        {
+          label: 'Complaints',
+          text: 'If you think we are handling your data wrongly, please tell us first — but you also have the right to complain to the Dutch data protection authority, the Autoriteit Persoonsgegevens.',
+          link: {
+            href: 'https://www.autoriteitpersoonsgegevens.nl/en',
+            text: 'autoriteitpersoonsgegevens.nl',
+          },
         },
         {
           label: 'Contact',

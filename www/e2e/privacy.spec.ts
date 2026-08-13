@@ -10,6 +10,7 @@ test('privacy page renders', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Relab', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2 })).toHaveText([
+    'Who is responsible for your data',
     'Account information',
     'Contributions',
     'AI and research use',

@@ -20,9 +20,15 @@ export const termsContent = {
     'These terms cover what you contribute to Relab and how it may be used. They are short on purpose.',
   sections: [
     {
+      title: 'Who you are agreeing with',
+      paragraphs: [
+        'Relab is a research platform of the Institute of Environmental Sciences (CML) at Leiden University. CML is part of the university, not a separate organisation, so the agreement below is with Leiden University, and “we” means Leiden University acting through CML.',
+      ],
+    },
+    {
       title: 'The licence you give us',
       paragraphs: [
-        'When you contribute a product record, image, measurement, or note, you give Relab a worldwide, royalty-free, non-exclusive, perpetual, irrevocable, sublicensable licence to use, reproduce, adapt, publish, and distribute it, including in curated dataset releases.',
+        'When you contribute a product record, image, measurement, or note, you give Leiden University a worldwide, royalty-free, non-exclusive, perpetual, irrevocable, sublicensable licence to use, reproduce, adapt, publish, and distribute it, including in curated dataset releases.',
         'This is a licence, not a transfer. You keep the copyright in what you contribute, and you stay free to use it however you like.',
       ],
     },

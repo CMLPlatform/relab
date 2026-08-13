@@ -8,6 +8,7 @@ test('terms page renders and is linked from the footer', async ({ page }) => {
   await expect(page).toHaveTitle(TERMS_TITLE);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2 })).toHaveText([
+    'Who you are agreeing with',
     'The licence you give us',
     'How we license it onwards',
     'What you promise',
