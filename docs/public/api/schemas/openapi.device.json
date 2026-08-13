@@ -370,10 +370,10 @@
     }
   },
   "info": {
-    "description": "Data collection app for the Relab project at CML.",
+    "description": "Data collection app for the Relab project at CML.\n\n**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write clients, importers, or integrations against it without inheriting the platform's copyleft. The Relab platform software itself remains AGPL-3.0-or-later, and curated dataset releases are licensed CC BY 4.0.",
     "license": {
-      "name": "GNU Affero General Public License v3.0",
-      "url": "https://www.gnu.org/licenses/agpl-3.0.en.html"
+      "identifier": "Apache-2.0",
+      "name": "Apache-2.0"
     },
     "title": "Relab - Data Collection API",
     "version": "1.0.0",

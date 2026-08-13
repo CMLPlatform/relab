@@ -5414,6 +5414,12 @@
           }
         ],
         "properties": {
+          "credit_in_releases": {
+            "default": false,
+            "description": "Whether the user consented to being named as a contributor in published dataset releases. Separate from profile visibility: a release is permanent.",
+            "title": "Credit In Releases",
+            "type": "boolean"
+          },
           "email": {
             "format": "email",
             "title": "Email",
@@ -5462,6 +5468,31 @@
           "preferences": {
             "$ref": "#/components/schemas/UserPreferences",
             "description": "User preferences."
+          },
+          "terms_accepted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the contributor terms were accepted. Recorded by the server; not client-settable.",
+            "title": "Terms Accepted At"
+          },
+          "terms_accepted_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Version of the contributor terms this account accepted at signup, or null if it predates acceptance tracking. Recorded by the server; not client-settable.",
+            "title": "Terms Accepted Version"
           },
           "username": {
             "anyOf": [
@@ -5530,6 +5561,18 @@
           }
         ],
         "properties": {
+          "credit_in_releases": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Consent to being named as a contributor in published dataset releases. Withdrawing it applies to future releases only; published ones cannot be retracted.",
+            "title": "Credit In Releases"
+          },
           "current_password": {
             "anyOf": [
               {
@@ -5971,10 +6014,10 @@
     }
   },
   "info": {
-    "description": "Data collection app for the Relab project at CML.",
+    "description": "Data collection app for the Relab project at CML.\n\n**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write clients, importers, or integrations against it without inheriting the platform's copyleft. The Relab platform software itself remains AGPL-3.0-or-later, and curated dataset releases are licensed CC BY 4.0.",
     "license": {
-      "name": "GNU Affero General Public License v3.0",
-      "url": "https://www.gnu.org/licenses/agpl-3.0.en.html"
+      "identifier": "Apache-2.0",
+      "name": "Apache-2.0"
     },
     "title": "Relab - Data Collection API",
     "version": "1.0.0",

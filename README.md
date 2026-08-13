@@ -123,6 +123,26 @@ for what runs where.
 - [Citation](CITATION.cff)
 - [License](LICENSE)
 
+## Licensing
+
+Three layers, licensed separately on purpose:
+
+| What                                                                                                                                                      | Licence                                                   | Why                                                                                                                                                                                                                                                      |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Platform software — backend, app, www, docs site                                                                                                          | [AGPL-3.0-or-later](LICENSE)                              | Copyleft, including over a network, so a hosted fork stays open.                                                                                                                                                                                         |
+| API specification — the OpenAPI schemas this repository generates (`openapi.public.json`, `openapi.device.json`) and the client types generated from them | [Apache-2.0](LICENSE-APACHE-2.0)                          | An integration surface should not pass copyleft to anyone writing a client or an importer. Includes a patent grant.                                                                                                                                      |
+| Curated dataset releases                                                                                                                                  | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | One instrument over the database structure and its contents. CC 4.0 licenses the EU *sui generis* database right, so no second licence is needed for the data. Attribution is the whole obligation, which keeps the dataset usable for machine learning. |
+
+The RPi camera plugin's schema (`openapi.rpi-cam.json`) is published here for reference but is
+fetched verbatim from its own repository,
+[relab-rpi-cam-plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin), and carries whatever
+licence that project sets. It is not covered by the Apache-2.0 statement above.
+
+Two limits that no licence changes. Personal data is governed by the GDPR regardless of the licence,
+so it is the sanitisation applied when building a release — not CC BY — that makes publication
+lawful. And CC BY grants no trademark rights: teardown photographs necessarily show brand marks and
+model numbers, which the licence covers as images without licensing the marks themselves.
+
 ## Contact
 
 Questions about the platform, code, or dataset:
