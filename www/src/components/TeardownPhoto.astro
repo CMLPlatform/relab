@@ -1,0 +1,90 @@
+---
+// One photograph, shown sharp and at a readable size.
+//
+// This image used to be the site's wallpaper: blurred 14px, scaled up, dropped
+// to 0.74 opacity and covered with a two-stop wash, behind every paragraph on
+// the page. It is a knolled teardown -- a phone opened out with every component
+// separated and spaced -- which is exactly what this project does, so it earns
+// being looked at instead of being atmosphere. `just assets-sync` now derives a
+// sharp 1600px JPEG for this (scripts/sync_brand_assets.py), and Astro emits the
+// responsive variants below.
+//
+// No theme variant: the shared source's dark counterpart is a close-up of loose
+// screws, which reads as texture rather than as a record. A photograph shown as
+// content does not need to change with the page's colour scheme.
+//
+// A plain <img> rather than astro:assets' <Image>: that needs `sharp`, and a
+// native image-processing dependency is a lot to add for one picture the sync
+// script already sizes correctly. The ESM import still gives a hashed
+// /_astro/ URL with immutable cache headers, plus the intrinsic dimensions
+// that reserve the box before it loads.
+import photo from '@/assets/images/teardown-knolled.jpg';
+---
+
+<figure class="section teardown-photo">
+  <img
+    src={photo.src}
+    width={photo.width}
+    height={photo.height}
+    alt="A smartphone disassembled and laid out flat on a pale surface: the mainboard, two camera modules, a speaker, a vibration motor, ribbon cables and connectors, each part separated and spaced apart."
+    loading="lazy"
+    decoding="async"
+  />
+  <figcaption>
+    Every record starts here: one product, fully disassembled, each component separated before it is
+    named, weighed and photographed.
+  </figcaption>
+</figure>
+
+<style>
+  .teardown-photo {
+    margin: 0;
+  }
+
+  /* No border: the photograph's own edge is the boundary, and the blueprint
+     schedule above is the page's one framed surface.
+
+     Cropped to a band rather than shown at its native 4:3, which ran nearly a
+     full screen tall at the page width. The trim comes out of the empty
+     surface above and below the components, not off the parts themselves, so
+     nothing that carries meaning is lost. `aspect-ratio` reserves the box, so
+     the crop costs no layout shift. */
+  .teardown-photo img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    object-position: center;
+    border-radius: var(--radius-card);
+  }
+
+  /* Below the fold on a phone the band would be a letterbox slot, so the
+     narrow layout keeps more of the frame. */
+  @media (max-width: 760px) {
+    .teardown-photo img {
+      aspect-ratio: 4 / 3;
+    }
+  }
+
+  /* The parts were shot on a near-white surface, which lands as a glaring
+     panel on the dark page. Held back just enough to sit in the page rather
+     than punch a hole in it; the components keep their own contrast. */
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .teardown-photo img {
+      filter: brightness(0.86) contrast(1.03);
+    }
+  }
+
+  :global(:root[data-theme='dark']) .teardown-photo img {
+    filter: brightness(0.86) contrast(1.03);
+  }
+
+  .teardown-photo figcaption {
+    margin-top: 0.8rem;
+    max-width: 60ch;
+    font-size: var(--font-size-body-compact);
+    line-height: var(--line-height-body-compact);
+    color: var(--color-muted);
+  }
+</style>

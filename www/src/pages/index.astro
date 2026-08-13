@@ -5,6 +5,7 @@ import HeroTeardown from '@/components/HeroTeardown.astro';
 import MethodSteps from '@/components/MethodSteps.astro';
 import NineRLadder from '@/components/NineRLadder.astro';
 import StatsPanel from '@/components/StatsPanel.astro';
+import TeardownPhoto from '@/components/TeardownPhoto.astro';
 import WhyRelab from '@/components/WhyRelab.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
 import { siteMeta } from '@/copy/site-meta.ts';
@@ -23,15 +24,18 @@ const landing = await loadLandingData();
   heroBrand={true}
 >
   {/* Narrative order: what Relab is and one real record, side by side (hero)
-      -> why it matters (motivation) -> how records are made (method) -> what
-      they are for (9R) -> how many exist (stats). Who made it, how to cite it
-      and what it is licensed under live in the footer colophon.
+      -> what that looks like physically (photo) -> why it matters (motivation)
+      -> how records are made (method) -> what they are for (9R) -> how many
+      exist (stats). Who made it, how to cite it and what it is licensed under
+      live in the footer colophon.
       The claim and its evidence share the first viewport rather than the pitch
-      taking a screen to itself. */}
+      taking a screen to itself, and the photograph lands between the abstract
+      schedule and the argument, as the object both are about. */}
   <div class="hero-split">
     <BrandHero stats={landing.stats} appUrl={publicSiteConfig.appUrl} />
     <HeroTeardown teardown={landing.teardown} fromFixture={landing.fromFixture} />
   </div>
+  <TeardownPhoto />
   <WhyRelab />
   <MethodSteps />
   <NineRLadder docsUrl={publicSiteConfig.docsUrl} />

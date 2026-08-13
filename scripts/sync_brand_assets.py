@@ -183,26 +183,27 @@ GENERATED_ASSETS = (
 )
 
 
-def blurred_backdrop_args() -> tuple[str, ...]:
-    """ImageMagick args for a downscaled, pre-blurred JPEG backdrop.
+def content_photo_args() -> tuple[str, ...]:
+    """ImageMagick args for a sharp, web-sized JPEG shown as content.
 
-    The www and docs sites render the backdrop heavily blurred and
-    semi-transparent, so a smaller pre-blurred JPEG is visually identical at ~85%
-    fewer bytes than the shared full-resolution source (which app renders sharp
-    and must keep).
+    www used to receive these downscaled and pre-blurred, because both sites
+    painted the photograph as a full-viewport backdrop behind the text. Neither
+    does any more: the page ground is flat, and www shows this one sharp, at a
+    readable size, as the artifact it is. So the derivative keeps its detail --
+    the whole point is that you can pick out individual components -- and is
+    sized for a full-width figure in the page column rather than for a viewport
+    it was only ever going to be blurred across.
     """
     return (
         "-resize",
-        "1280x",
-        "-gaussian-blur",
-        "0x2",
+        "1600x",
         "-sampling-factor",
         "4:2:0",
         "-strip",
         "-interlace",
         "JPEG",
         "-quality",
-        "50",
+        "72",
     )
 
 
@@ -210,28 +211,19 @@ def blurred_backdrop_args() -> tuple[str, ...]:
 PROCESSED_ASSETS = (
     (
         root_path("assets/images/bg-light.jpg"),
-        root_path("www/src/assets/images/bg-light.jpg"),
-        blurred_backdrop_args(),
+        root_path("www/src/assets/images/teardown-knolled.jpg"),
+        content_photo_args(),
         DENSITY,
     ),
-    (
-        root_path("assets/images/bg-dark.jpg"),
-        root_path("www/src/assets/images/bg-dark.jpg"),
-        blurred_backdrop_args(),
-        DENSITY,
-    ),
-    (
-        root_path("assets/images/bg-light.jpg"),
-        root_path("docs/src/assets/images/bg-light.jpg"),
-        blurred_backdrop_args(),
-        DENSITY,
-    ),
-    (
-        root_path("assets/images/bg-dark.jpg"),
-        root_path("docs/src/assets/images/bg-dark.jpg"),
-        blurred_backdrop_args(),
-        DENSITY,
-    ),
+    # NOTE: neither site receives a backdrop any more. Their page grounds are
+    # flat tokens (www/src/styles/tokens.css, docs/src/styles/base.css), and
+    # syncing the JPEGs back in would resurrect the wallpaper on the next run.
+    #
+    # bg-dark.jpg is not synced to www at all: it is a close-up of loose screws,
+    # which works as texture behind a dark page but says nothing as a picture.
+    # The knolled teardown above carries meaning at any size, so it is the only
+    # one that survives the move from wallpaper to content. Both still sync to
+    # app, which renders them sharp as real backgrounds.
 )
 
 
