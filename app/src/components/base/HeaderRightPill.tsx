@@ -25,9 +25,11 @@ export function HeaderRightPill() {
   const theme = useAppTheme();
   const needsOnboarding = user ? needsUsernameOnboarding(user) : false;
   // Interactive header control — primary family, never the neutral glass
-  // (DESIGN.md: primary blue carries all interaction).
-  const pillStyle = { backgroundColor: theme.colors.primaryContainer };
-  const primaryTextStyle = { color: theme.colors.onPrimaryContainer };
+  // (DESIGN.md: primary blue carries all interaction). tokens.surface.accent
+  // is the canonical tinted fill (primary at 12% opacity); *Container roles
+  // are retired.
+  const pillStyle = { backgroundColor: theme.tokens.surface.accent };
+  const primaryTextStyle = { color: theme.colors.primary };
 
   const goToAccount = useCallback(() => {
     // navigate(): /account is a tab, and this pill also renders on the public

@@ -114,7 +114,7 @@ function AmountChip({
   editMode: boolean;
   onAmountChange?: (n: number) => void;
 }): JSX.Element {
-  const { colors } = useAppTheme();
+  const { colors, tokens } = useAppTheme();
   const amount = product.amountInParent ?? 1;
   const [draftValue, setDraftValue] = useState<string | null>(null);
   const inputValue = draftValue ?? String(amount);
@@ -153,13 +153,13 @@ function AmountChip({
   return (
     <View
       className="rounded-md flex-row items-center"
-      style={{ backgroundColor: colors.primaryContainer }}
+      style={{ backgroundColor: tokens.surface.accent }}
     >
       <View className="flex-row items-center">
         <AppText
           variant="label"
           className="py-2 pl-3"
-          style={[amountStyles.titleText, { color: colors.onPrimaryContainer }]}
+          style={[amountStyles.titleText, { color: colors.primary }]}
         >
           Amount
         </AppText>

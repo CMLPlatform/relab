@@ -46,11 +46,11 @@ export function IconButton({
     ({ pressed }: { pressed: boolean }) => [
       // First so callers can still override deliberately.
       styles.base,
-      mode === 'contained-tonal' && { backgroundColor: theme.colors.secondaryContainer },
+      mode === 'contained-tonal' && { backgroundColor: theme.tokens.surface.accent },
       pressed && !loading && styles.pressed,
       style,
     ],
-    [mode, theme.colors.secondaryContainer, loading, style],
+    [mode, theme.tokens.surface.accent, loading, style],
   );
 
   return (

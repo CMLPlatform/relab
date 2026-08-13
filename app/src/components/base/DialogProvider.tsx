@@ -161,6 +161,7 @@ function DialogBody({
           <DialogActionButton
             key={btn.text}
             button={btn}
+            isSubmit={btn === submitButton}
             onSelect={handleClose}
             disabled={isButtonDisabled(btn)}
           />
@@ -172,10 +173,12 @@ function DialogBody({
 
 function DialogActionButton({
   button,
+  isSubmit,
   onSelect,
   disabled,
 }: {
   button: DialogButton;
+  isSubmit: boolean;
   onSelect: (btn: DialogButton) => void;
   disabled: boolean;
 }) {
@@ -183,12 +186,13 @@ function DialogActionButton({
     onSelect(button);
   }, [onSelect, button]);
 
+  // Destructive keeps its filled destructive variant; the button Enter would
+  // submit gets the same emphasis (AppButton's primary) so its visual weight
+  // matches the keyboard default. Every other action stays ghost.
+  const variant = button.style === 'destructive' ? 'destructive' : isSubmit ? 'primary' : 'ghost';
+
   return (
-    <AppButton
-      variant={button.style === 'destructive' ? 'destructive' : 'ghost'}
-      onPress={handlePress}
-      disabled={disabled}
-    >
+    <AppButton variant={variant} onPress={handlePress} disabled={disabled}>
       {button.text}
     </AppButton>
   );

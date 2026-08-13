@@ -43,6 +43,9 @@ export default function Cube({ width = 1, height = 1, depth = 1 }: CubeProps) {
         <Rect
           width={width}
           height={depth}
+          // Illustration, not a control — MD3 *Container retirement targets
+          // interactive fills (chips, pills, toggles); this decorative cube
+          // face keeps the extra tone for depth shading.
           fill={theme.colors.primaryContainer}
           stroke={theme.colors.shadow}
           transform={`scale(1.41,.81) rotate(45) translate(0 -${depth})`}

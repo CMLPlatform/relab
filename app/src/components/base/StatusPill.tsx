@@ -3,7 +3,8 @@ import { AppText } from '@/components/base/AppText';
 import { getStatusTone, useAppTheme } from '@/theme';
 import type { AppTokens } from '@/theme/types';
 
-export type StatusTone = keyof AppTokens['status'];
+// onStatus is the fill's foreground text color, not a selectable tone.
+export type StatusTone = Exclude<keyof AppTokens['status'], 'onStatus'>;
 
 type StatusPillProps = {
   label: string;
@@ -49,7 +50,9 @@ export function StatusPill({ label, tone, variant = 'solid', testID }: StatusPil
 
 const styles = StyleSheet.create({
   pill: {
-    // Bumped from 22 to fit the caption step's 13px cap.
-    height: 24,
+    // Bumped from 22 to fit the caption step's 13px cap. minHeight, not
+    // height, so a caption line that grows (e.g. accessibility font scaling)
+    // doesn't get clipped.
+    minHeight: 24,
   },
 });

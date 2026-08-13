@@ -68,9 +68,7 @@ export function ProductPageLoadingState({
               paddingVertical: 8,
             }}
           >
-            <AppText style={{ fontSize: 12 }}>
-              This is taking longer than usual. Please wait…
-            </AppText>
+            <AppText variant="caption">This is taking longer than usual. Please wait…</AppText>
           </Card>
         </View>
       ) : null}

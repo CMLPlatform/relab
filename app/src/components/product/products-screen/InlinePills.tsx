@@ -14,11 +14,11 @@ export function NewProductPill({ label = 'New product' }: NewProductPillProps) {
   return (
     <View
       className="self-center rounded-full px-2 py-0.5"
-      style={{ backgroundColor: theme.colors.primaryContainer }}
+      style={{ backgroundColor: theme.tokens.surface.accent }}
     >
       <AppText
         className="font-bold"
-        style={[styles.inlineButtonText, { color: theme.colors.onPrimaryContainer }]}
+        style={[styles.inlineButtonText, { color: theme.colors.primary }]}
       >
         {label}
       </AppText>
@@ -32,13 +32,13 @@ export function ProfilePill() {
   return (
     <View
       className="flex-row items-center gap-1 self-center rounded-full px-2 py-0.5"
-      style={{ backgroundColor: theme.colors.primaryContainer }}
+      style={{ backgroundColor: theme.tokens.surface.accent }}
     >
-      <Icon name="circle-user-round" size={14} color={theme.colors.onPrimaryContainer} />
+      <Icon name="circle-user-round" size={14} color={theme.colors.primary} />
       <AppText
         testID="profile-pill-label"
         className="font-bold"
-        style={[styles.inlineProfileText, { color: theme.colors.onPrimaryContainer }]}
+        style={[styles.inlineProfileText, { color: theme.colors.primary }]}
       >
         account
       </AppText>

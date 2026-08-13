@@ -65,7 +65,7 @@ export function ProductsFab({ extended, highlight, onPress }: ProductsFabProps) 
         { bottom: 16 + bottomOffset },
         {
           borderWidth: highlight ? 1 : 0,
-          borderColor: highlight ? theme.colors.primaryContainer : 'transparent',
+          borderColor: highlight ? theme.colors.primary : 'transparent',
           ...(Platform.OS === 'web'
             ? highlight
               ? { boxShadow: `0px 0px 10px ${theme.colors.primary}` }

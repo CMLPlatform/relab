@@ -66,4 +66,35 @@ describe('DialogProvider destructive action hierarchy', () => {
       expect.stringContaining('bg-destructive'),
     );
   });
+
+  // The button Enter/return submits (pickSubmitButton) gets the same visual
+  // weight as the keyboard default: AppButton's primary fill, not ghost.
+  it('the submit action gets the primary emphasis; cancel stays ghost', async () => {
+    function Trigger() {
+      const dialog = useDialog();
+      return renderTrigger(() =>
+        dialog.alert({
+          title: 'Sign out?',
+          buttons: [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign out', onPress: () => {} },
+          ],
+        }),
+      );
+    }
+
+    renderWithProviders(<Trigger />, { withDialog: true });
+    await user.press(screen.getByTestId('trigger'));
+
+    const submitClassName = screen.getByRole('button', { name: 'Sign out' }).props
+      .className as string;
+    const cancelClassName = screen.getByRole('button', { name: 'Cancel' }).props
+      .className as string;
+
+    // Exact-token check: ghost's className also contains the substring
+    // "bg-primary" (inside "active:bg-primary/10"), so a plain
+    // stringContaining check can't tell the variants apart.
+    expect(submitClassName.split(' ')).toContain('bg-primary');
+    expect(cancelClassName.split(' ')).not.toContain('bg-primary');
+  });
 });

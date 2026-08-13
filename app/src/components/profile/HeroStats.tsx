@@ -42,7 +42,7 @@ export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }:
       <View className="flex-row flex-wrap gap-2 mt-1">
         {profile.isActive ? (
           <Badge variant="outline">
-            <Text className="text-accent font-medium">Active</Text>
+            <Text className="text-manila font-medium">Active</Text>
           </Badge>
         ) : (
           <Badge variant="outline">
@@ -51,12 +51,12 @@ export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }:
         )}
         {profile.isSuperuser ? (
           <Badge variant="outline">
-            <Text className="text-accent font-medium">Superuser</Text>
+            <Text className="text-manila font-medium">Superuser</Text>
           </Badge>
         ) : null}
         {profile.isVerified ? (
           <Badge variant="outline">
-            <Text className="text-accent font-medium">Verified</Text>
+            <Text className="text-manila font-medium">Verified</Text>
           </Badge>
         ) : (
           <Badge variant="outline">

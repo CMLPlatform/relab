@@ -29,4 +29,6 @@
 @theme inline {
   --color-accent: var(--state);
   --color-accent-foreground: var(--state-foreground);
+  --color-manila: var(--accent);
+  --color-manila-foreground: var(--accent-foreground);
 }

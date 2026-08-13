@@ -11,11 +11,11 @@ interface Props {
 }
 
 export default function CPVCard({ CPV, onPress, actionElement }: Props) {
-  const { colors } = useAppTheme();
+  const { colors, tokens } = useAppTheme();
   const error = CPV.name === 'undefined';
 
-  const bgColor = error ? colors.errorContainer : colors.primaryContainer;
-  const textColor = error ? colors.onErrorContainer : colors.onPrimaryContainer;
+  const bgColor = error ? colors.errorContainer : tokens.surface.accent;
+  const textColor = error ? colors.onErrorContainer : colors.primary;
 
   const pressableStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [

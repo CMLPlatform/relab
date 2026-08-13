@@ -28,6 +28,10 @@ jest.mock('expo-router', () => ({
   // which calls useSegments() — default it to segments outside the tab group
   // so the fab's bottom offset stays at its base value unless a test opts in.
   useSegments: jest.fn().mockReturnValue([]),
+  // useProductSearchShortcut scopes itself to this screen via useFocusEffect;
+  // a no-op default keeps the "/" shortcut out of scope for these tests,
+  // matching the unit-lane default (see config/setup.unit.ts).
+  useFocusEffect: jest.fn(),
 }));
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -299,7 +303,7 @@ describe('Products screen', () => {
     renderProducts();
     fireEvent.changeText(screen.getByPlaceholderText('Search products'), '');
 
-    expect(mockSetParams).toHaveBeenCalledWith({ q: undefined, page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ q: undefined });
   });
 
   it('resets page to 1 when sort changes (colocated in onPress)', async () => {
@@ -309,7 +313,7 @@ describe('Products screen', () => {
     fireEvent.press(screen.getByLabelText('Sort products'));
     fireEvent.press(screen.getByText('Oldest first'));
 
-    expect(mockSetParams).toHaveBeenCalledWith({ sort: 'created_at', page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ sort: 'created_at' });
   });
 
   it('renders welcome banner on first visit', async () => {
@@ -417,7 +421,7 @@ describe('Filter chips and modals', () => {
     renderProducts();
     fireEvent.press(screen.getByText('Date'));
     fireEvent.press(screen.getByText('Last 7d'));
-    expect(mockSetParams).toHaveBeenCalledWith({ days: '7', page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ days: '7' });
   });
 
   it('shows the active preset label on the Date chip', async () => {
@@ -432,7 +436,7 @@ describe('Filter chips and modals', () => {
     expect(screen.getByText('Last 7d')).toBeOnTheScreen();
     const closeBtn = screen.getByLabelText('Clear Last 7d filter');
     fireEvent.press(closeBtn);
-    expect(mockSetParams).toHaveBeenCalledWith({ days: undefined, page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ days: undefined });
   });
 });
 
@@ -456,7 +460,7 @@ describe('Empty-state messages', () => {
 
     // Switch to mine filter via the Mine chip
     fireEvent.press(screen.getByText('Mine'));
-    expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine', page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine' });
   });
 
   it('shows a mine-specific empty state with a New product CTA', async () => {
@@ -573,7 +577,7 @@ describe('Mine filter chip', () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
     renderProducts();
     fireEvent.press(screen.getByText('Mine'));
-    expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine', page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine' });
   });
 
   it('clears filterMode when pressed while already in mine mode', async () => {
@@ -581,7 +585,7 @@ describe('Mine filter chip', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ filterMode: 'mine' });
     renderProducts();
     fireEvent.press(screen.getByText('Mine'));
-    expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'all', page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'all' });
   });
 
   it('exposes the active filter to screen readers via accessibilityState.selected', async () => {
@@ -615,7 +619,7 @@ describe('Date filter dropdown', () => {
     renderProducts();
     fireEvent.press(screen.getByText('Date'));
     fireEvent.press(screen.getByText('Last 30d'));
-    expect(mockSetParams).toHaveBeenCalledWith({ days: '30', page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ days: '30' });
   });
 
   it('shows the active preset label on the chip when days param is set', async () => {
@@ -672,6 +676,6 @@ describe('Sort — Relevance default when searching', () => {
     renderProducts();
     fireEvent.press(screen.getByLabelText('Sort products'));
     fireEvent.press(screen.getByText('Relevance'));
-    expect(mockSetParams).toHaveBeenCalledWith({ sort: undefined, page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ sort: undefined });
   }, 15_000);
 });

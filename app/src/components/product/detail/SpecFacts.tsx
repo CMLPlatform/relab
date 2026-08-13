@@ -10,7 +10,7 @@ export function SpecFacts({ facts }: { facts: SpecFact[] }) {
     <View className="flex-row flex-wrap gap-x-6 gap-y-2">
       {facts.map((fact) => (
         <View key={fact.label}>
-          <AppText variant="eyebrow" className="text-accent">
+          <AppText variant="eyebrow" className="text-manila">
             {fact.label}
           </AppText>
           <AppText variant="data">{fact.value}</AppText>
