@@ -113,37 +113,24 @@ describe('Providers', () => {
   });
 });
 
-describe('AppStack header visibility', () => {
+describe('AppStack', () => {
   beforeEach(() => {
     for (const key of Object.keys(mockScreenOptions)) delete mockScreenOptions[key];
   });
 
-  // AppStack is memo()'d on {isDark, isLg}. This proves isLg reaching the
-  // component as a real prop is enough for React.memo's default shallow
-  // compare to pick it up on rerender — the TopNav-covered screens' headers
-  // flip with it, and screens TopNav doesn't cover (back button / name
-  // editing / add-camera) are untouched either way.
-  it('hides headers only for the TopNav-covered screens, only when isLg, and recomputes on rerender', () => {
-    const { rerender } = render(<AppStack isDark={false} isLg={false} />);
+  // The root stack only holds what sits outside the tabs. Every primary
+  // destination — and its header — now belongs to a tab's own stack (see
+  // tab-layouts.test.tsx), and the (tabs) route must not add a second header
+  // above them.
+  it('owns no tab screens and lets the tabs render their own headers', () => {
+    render(<AppStack />);
 
-    expect(mockScreenOptions['products/index']?.headerShown).not.toBe(false);
-    expect(mockScreenOptions.account?.headerShown).not.toBe(false);
-    expect(mockScreenOptions['cameras/index']?.headerShown).not.toBe(false);
-    expect(mockScreenOptions['cameras/add']?.headerShown).toBeUndefined();
-
-    rerender(<AppStack isDark={false} isLg={true} />);
-
-    expect(mockScreenOptions['products/index']?.headerShown).toBe(false);
-    expect(mockScreenOptions.account?.headerShown).toBe(false);
-    expect(mockScreenOptions['cameras/index']?.headerShown).toBe(false);
-    // Detail/auth/add screens keep their header regardless of isLg.
-    expect(mockScreenOptions['cameras/add']?.headerShown).toBeUndefined();
-    expect(mockScreenOptions['cameras/[id]']?.headerShown).toBeUndefined();
-
-    rerender(<AppStack isDark={false} isLg={false} />);
-
-    expect(mockScreenOptions['products/index']?.headerShown).not.toBe(false);
-    expect(mockScreenOptions.account?.headerShown).not.toBe(false);
-    expect(mockScreenOptions['cameras/index']?.headerShown).not.toBe(false);
+    expect(mockScreenOptions['(tabs)']?.headerShown).toBe(false);
+    expect(mockScreenOptions['products/index']).toBeUndefined();
+    expect(mockScreenOptions['cameras/index']).toBeUndefined();
+    expect(mockScreenOptions.account).toBeUndefined();
+    // Screens presented over a tab stay here.
+    expect(mockScreenOptions['category-selection']?.title).toBe('Select category');
+    expect(mockScreenOptions['users/[username]']).toBeDefined();
   });
 });

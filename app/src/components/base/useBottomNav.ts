@@ -1,4 +1,4 @@
-import { usePathname } from 'expo-router';
+import { useSegments } from 'expo-router';
 import { MIN_TAP_TARGET } from '@/constants';
 import { useAuth } from '@/context/auth';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -25,36 +25,44 @@ const DESTINATION_ICONS: Record<string, IconName> = {
  */
 export const BOTTOM_NAV_CLEARANCE = MIN_TAP_TARGET + 16;
 
-export type TabHref = '/products' | '/cameras' | '/account';
-
 export type Tab = {
   key: string;
   label: string;
-  href: TabHref;
   icon: IconName;
 };
+
+/**
+ * Route name of a destination's tab. Every tab is a group segment named after
+ * its destination key — `(products)` holds both the /products and /components
+ * trees, so the folder can't just be called `products` (see (tabs)/_layout.tsx).
+ */
+export function tabRouteName(key: string): string {
+  return `(${key})`;
+}
 
 export function useBottomNavTabs(): Tab[] {
   const { user } = useAuth();
   const destinations = useVisibleDestinations();
   return [
-    ...destinations.map((d) => ({ ...d, icon: DESTINATION_ICONS[d.key] ?? 'package' })),
-    ...(user
-      ? [{ key: 'account', label: 'Account', href: '/account' as const, icon: 'user' as IconName }]
-      : []),
+    ...destinations.map(({ key, label }) => ({
+      key,
+      label,
+      icon: DESTINATION_ICONS[key] ?? 'package',
+    })),
+    ...(user ? [{ key: 'account', label: 'Account', icon: 'user' as IconName }] : []),
   ];
 }
 
 /**
- * True exactly when `<BottomNav />` will render: phone-width (below lg,
- * always true on native) and pathname is one of its top-level tabs. Exported
- * as the single source of truth so callers that need to reserve space below
- * the bar (ActiveStreamBanner) key off the same computation instead of a
- * duplicated, driftable condition.
+ * True exactly when `<BottomNav />` will render: phone-width (below lg, always
+ * true on native) and the current route is inside the (tabs) group — which now
+ * includes every tab's detail screens, not just the three tab roots. Exported
+ * as the single source of truth so callers that need to reserve space below the
+ * bar (ActiveStreamBanner, the FABs, SaveBar's web dock) key off the same
+ * computation instead of a duplicated, driftable condition.
  */
 export function useBottomNavVisible(): boolean {
   const { isLg } = useBreakpoint();
-  const pathname = usePathname();
-  const tabs = useBottomNavTabs();
-  return !isLg && tabs.some((tab) => tab.href === pathname);
+  const segments = useSegments();
+  return !isLg && segments[0] === '(tabs)';
 }

@@ -13,11 +13,8 @@ import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react
 import { colorScheme as nativewindColorScheme } from 'react-native-css';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { BottomNav } from '@/components/base/BottomNav';
-import { BrandHeaderTitle } from '@/components/base/BrandHeaderTitle';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
-import { HeaderRightPill } from '@/components/base/HeaderRightPill';
 import { OfflineBanner } from '@/components/base/OfflineBanner';
 import { StaticBackground } from '@/components/base/StaticBackground';
 import { TopNav } from '@/components/base/TopNav';
@@ -29,12 +26,10 @@ import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMode';
 import { saveProductMutationFn } from '@/features/products/queries';
-import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
 import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
-import { getProductsHeaderStyle } from '@/utils/router/styles';
 
 // TODO: wire onlineManager to NetInfo for the native phase
 const queryClient = new QueryClient({
@@ -102,48 +97,24 @@ function AppBackground({ overlay }: { overlay: BackgroundOverlay }) {
   );
 }
 
-// memo: AppShell re-renders on every route change and stream-telemetry tick, and
-// this rebuilds every screen's options object and header renderer. Bail unless
-// isDark or isLg changes. Both are plain props on AppStack — React.memo's default
-// shallow-prop compare already covers isLg without a custom comparator, but it
-// only works if isLg keeps being passed as an actual prop; don't move this back
-// to reading useBreakpoint() from inside a component the memo doesn't see.
-export const AppStack = memo(function AppStack({
-  isDark,
-  isLg,
-}: {
-  isDark: boolean;
-  isLg: boolean;
-}) {
+// The root stack holds what sits *outside* the tabs: the entry redirect, the
+// auth group, and the two screens that present over a tab (the category picker
+// and a public profile). Each tab's own screens are declared by its group
+// layout under (tabs)/.
+//
+// memo: AppShell re-renders on every route change and stream-telemetry tick,
+// and this rebuilds every screen's options object and header renderer. Nothing
+// here depends on props or state, so memo bails on all of it.
+export const AppStack = memo(function AppStack() {
   const router = useRouter();
-  const theme = getAppTheme(isDark ? 'dark' : 'light');
-  const goToProducts = useCallback(() => router.replace('/products'), [router]);
-  const goToCameras = useCallback(() => router.replace('/cameras'), [router]);
-  // TopNav (mounted in AppShell) already covers these on >=lg web, so the stack's
-  // own header would just duplicate it. Every other screen keeps its header.
-  const hideForTopNav = isLg;
+  // Cross-navigator target: a replace from this root screen would swap the
+  // whole (tabs) route out for a fresh one, resetting every tab's trail.
+  // navigate() returns to the tabs already on the stack instead.
+  const goToProducts = useCallback(() => router.navigate('/products'), [router]);
   return (
     <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="products/index"
-        options={{
-          title: 'Relab',
-          headerTitle: () => <BrandHeaderTitle isDark={isDark} />,
-          ...getProductsHeaderStyle(theme),
-          headerRight: () => <HeaderRightPill />,
-          headerLeft: () => null,
-          headerShown: !hideForTopNav,
-        }}
-      />
-      <Stack.Screen
-        name="account"
-        options={{
-          title: 'Account',
-          headerLeft: (props) => <HeaderBackButton {...props} onPress={goToProducts} />,
-          headerShown: !hideForTopNav,
-        }}
-      />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="users/[username]"
         options={{
@@ -151,9 +122,6 @@ export const AppStack = memo(function AppStack({
           headerLeft: (props) => <HeaderBackButton {...props} onPress={goToProducts} />,
         }}
       />
-      <Stack.Screen name="products/new" options={{ title: 'New product' }} />
-      <Stack.Screen name="products/[id]/components/new" options={{ title: 'New component' }} />
-      <Stack.Screen name="components/[id]/components/new" options={{ title: 'New component' }} />
       <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/new-account" options={{ headerShown: false }} />
@@ -162,24 +130,6 @@ export const AppStack = memo(function AppStack({
       <Stack.Screen name="(auth)/mfa" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/verify" options={{ headerShown: false }} />
       <Stack.Screen name="category-selection" options={{ title: 'Select category' }} />
-      <Stack.Screen
-        name="cameras/index"
-        options={{ title: 'My cameras', headerShown: !hideForTopNav }}
-      />
-      <Stack.Screen
-        name="cameras/add"
-        options={{
-          title: 'Add camera',
-          headerLeft: (props) => <HeaderBackButton {...props} onPress={goToCameras} />,
-        }}
-      />
-      <Stack.Screen
-        name="cameras/[id]"
-        options={{
-          title: 'Camera',
-          headerLeft: (props) => <HeaderBackButton {...props} onPress={goToCameras} />,
-        }}
-      />
     </Stack>
   );
 });
@@ -193,7 +143,6 @@ function AppShell() {
   const { user, isLoading: authLoading } = useAuth();
   const { activeStream } = useStreamSession();
   const overlay = useBackgroundOverlay(isDark);
-  const { isLg } = useBreakpoint();
 
   // On native there's no document/visibilitychange, so TanStack's focus
   // manager reports always-focused and refetch intervals (camera telemetry,
@@ -236,8 +185,7 @@ function AppShell() {
       <AppBackground overlay={overlay} />
       <TopNav />
       <OfflineBanner />
-      <AppStack isDark={isDark} isLg={isLg} />
-      <BottomNav />
+      <AppStack />
       <ActiveStreamBanner />
     </View>
   );

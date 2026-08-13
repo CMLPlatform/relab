@@ -2,10 +2,6 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react-native';
 import type { Text as RNText } from 'react-native';
 
-jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ id: '42' }),
-}));
-
 jest.mock('@/components/product/capture/CaptureScreen', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
@@ -21,11 +17,11 @@ jest.mock('@/components/product/capture/CaptureScreen', () => {
   };
 });
 
-import NestedComponentNewPage from '@/app/components/[id]/components/new';
+import ProductNewPage from '@/app/(tabs)/(products)/products/new';
 
-describe('NestedComponentNewPage route', () => {
-  it('renders CaptureScreen for a new component and seeds the component-parent context', () => {
-    render(<NestedComponentNewPage />);
-    expect(screen.getByText('role:component parent:42 parentRole:component')).toBeOnTheScreen();
+describe('ProductNewPage route', () => {
+  it('renders CaptureScreen for a new product with no parent context', () => {
+    render(<ProductNewPage />);
+    expect(screen.getByText('role:product parent: parentRole:')).toBeOnTheScreen();
   });
 });

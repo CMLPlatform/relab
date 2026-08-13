@@ -11,12 +11,12 @@ import { useAppTheme } from '@/theme';
 import { getFloatingPosition } from '@/utils/platformLayout';
 import { StreamingSheet } from './StreamingSheet';
 
-// Clears the native tab bar (native's default already assumed one); on web the
-// banner floats just above the viewport edge. Bumped by BOTTOM_NAV_CLEARANCE
-// below whenever BottomNav is actually rendering (useBottomNavVisible), since
-// on a phone-width web viewport there was previously no bar to account for.
-// Web-only: on native BottomNav renders in normal flow and already shrinks
-// the container the banner sits in, so adding clearance there would double it.
+// Clears the tab bar on native; on web the banner floats just above the
+// viewport edge. Bumped by BOTTOM_NAV_CLEARANCE below whenever BottomNav is
+// actually rendering (useBottomNavVisible): the banner docks with
+// position:fixed on web, so it sits against the viewport and would otherwise
+// overlap the bar. On native it docks absolutely and 88 already clears a tab
+// bar, so a bump there would double the gap.
 //
 // NOTE (native trace, kept 88): the only floating chrome the banner ever needs
 // to clear on native is a Fab (list screens' "New product"/"New camera" FABs

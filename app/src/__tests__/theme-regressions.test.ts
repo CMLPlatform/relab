@@ -26,7 +26,7 @@ const MODERNIZED_FILES = [
   'components/product/detail/ProductMetaData.tsx',
   'components/profile/styles.ts',
   'app/(auth)/onboarding.tsx',
-  'app/cameras/add.tsx',
+  'app/(tabs)/(cameras)/cameras/add.tsx',
 ].map((file) => path.join(SRC_ROOT, file));
 
 describe('theme regressions', () => {

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import CameraDetailScreen from '@/app/cameras/[id]';
+import CameraDetailScreen from '@/app/(tabs)/(cameras)/cameras/[id]';
 import { renderWithProviders } from '@/test-utils/index';
 
 const FAILED_TO_LOAD_CAMERA_PATTERN = /Failed to load camera/;

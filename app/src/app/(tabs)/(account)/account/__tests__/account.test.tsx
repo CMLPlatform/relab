@@ -120,7 +120,7 @@ const defaultUser = {
 // initialised, so the jest.mock factory would capture them as undefined.
 function renderProfileTab() {
   const { renderWithProviders } = require('@/test-utils/render.tsx');
-  const ProfileTab = require('@/app/account.tsx').default;
+  const ProfileTab = require('@/app/(tabs)/(account)/account/index.tsx').default;
   return renderWithProviders(<ProfileTab />, { withDialog: true });
 }
 

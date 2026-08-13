@@ -22,14 +22,14 @@ jest.mock('expo-router', () => {
       back: jest.fn(),
       setParams: jest.fn(),
     }),
+    // Defaults to segments matching no group, so useBottomNavVisible() reads
+    // false unless a test opts in with its own expo-router mock (as
+    // BottomNav.test.tsx and ActiveStreamBanner's do).
     useSegments: () => [],
     useFocusEffect: jest.fn(),
     useIsFocused: jest.fn().mockReturnValue(true),
     useLocalSearchParams: jest.fn().mockReturnValue({}),
     useGlobalSearchParams: jest.fn().mockReturnValue({}),
-    // Defaults to a path matching none of BottomNav's tabs, so
-    // useBottomNavVisible() reads false unless a test opts in with its own
-    // expo-router mock (as BottomNav.test.tsx and ActiveStreamBanner's do).
     usePathname: jest.fn().mockReturnValue('/'),
     useNavigation: jest.fn().mockReturnValue({
       setOptions: jest.fn(),
@@ -41,6 +41,14 @@ jest.mock('expo-router', () => {
       const { Text } = require('react-native');
       return React.createElement(Text, null, `Redirect to ${href}`);
     },
+  };
+});
+
+// The tabs navigator lives on its own entry point since SDK 57 (the `Tabs`
+// re-export from `expo-router` is deprecated). Same shim shape as Stack's.
+jest.mock('expo-router/js-tabs', () => {
+  const React = require('react');
+  return {
     Tabs: Object.assign(
       ({ children }: { children: React.ReactNode }) =>
         React.createElement(React.Fragment, null, children),

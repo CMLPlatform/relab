@@ -3,7 +3,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { HttpResponse, http } from 'msw';
 import { FlatList } from 'react-native';
-import Products from '@/app/products';
+import Products from '@/app/(tabs)/(products)/products';
 import { API_URL } from '@/config';
 import { productsInfiniteQueryOptions } from '@/features/products/queries';
 import { mockUser, renderWithProviders, server } from '@/test-utils/index';
@@ -25,9 +25,9 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(),
   useRouter: jest.fn(),
   // ProductsFab reads useBottomNavVisible() (BOTTOM_NAV_CLEARANCE on web),
-  // which calls usePathname() — default it to a non-tab path so the fab's
-  // bottom offset stays at its base value unless a test opts in.
-  usePathname: jest.fn().mockReturnValue('/'),
+  // which calls useSegments() — default it to segments outside the tab group
+  // so the fab's bottom offset stays at its base value unless a test opts in.
+  useSegments: jest.fn().mockReturnValue([]),
 }));
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────

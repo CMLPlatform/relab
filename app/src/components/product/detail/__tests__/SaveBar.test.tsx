@@ -7,6 +7,7 @@ test('save bar shows error count and routes to the first error', () => {
   const onErrorSummaryPress = jest.fn();
   renderWithProviders(
     <SaveBar
+      bottomOffset={0}
       entityRole="product"
       editMode
       isDirty
@@ -25,6 +26,7 @@ test('save bar shows error count and routes to the first error', () => {
 test('read mode renders a single Edit action', () => {
   renderWithProviders(
     <SaveBar
+      bottomOffset={0}
       entityRole="product"
       editMode={false}
       isDirty={false}
@@ -40,6 +42,7 @@ test('read mode renders a single Edit action', () => {
 test('not owned by me renders nothing', () => {
   renderWithProviders(
     <SaveBar
+      bottomOffset={0}
       entityRole="product"
       editMode={false}
       isDirty={false}
@@ -56,6 +59,7 @@ test('dirty edits with invalid validation and no error count block the save pres
   const onPrimaryPress = jest.fn();
   renderWithProviders(
     <SaveBar
+      bottomOffset={0}
       entityRole="product"
       editMode
       isDirty
@@ -76,6 +80,7 @@ test('needsAttention state routes the primary button press to the error summary,
   const onErrorSummaryPress = jest.fn();
   renderWithProviders(
     <SaveBar
+      bottomOffset={0}
       entityRole="product"
       editMode
       isDirty
@@ -95,6 +100,7 @@ test('needsAttention state routes the primary button press to the error summary,
 test('uses component labels for component pages', () => {
   renderWithProviders(
     <SaveBar
+      bottomOffset={0}
       entityRole="component"
       editMode={false}
       isDirty={false}

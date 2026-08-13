@@ -4,6 +4,8 @@ import { AppText } from '@/components/base/AppText';
 import { getFloatingPosition } from '@/utils/platformLayout';
 
 type SaveBarProps = {
+  /** Extra bottom inset so the dock clears BottomNav (see FabControls). */
+  bottomOffset: number;
   entityRole: 'product' | 'component';
   editMode: boolean;
   isDirty: boolean;
@@ -25,6 +27,7 @@ type SaveBarProps = {
  * condition below changes, update ActiveStreamBanner.tsx too.
  */
 export function SaveBar({
+  bottomOffset,
   entityRole,
   editMode,
   isDirty,
@@ -50,7 +53,8 @@ export function SaveBar({
     : onPrimaryPress;
   return (
     <View
-      style={dockStyle}
+      testID="save-bar-dock"
+      style={[dockStyle, { bottom: DOCK_BOTTOM + bottomOffset }]}
       className="flex-row items-center gap-3 rounded-lg border border-border bg-background px-4 py-2"
     >
       {needsAttention ? (
@@ -78,8 +82,8 @@ export function SaveBar({
 // 24px matches the visual right-6/bottom-6 offset; position comes from
 // getFloatingPosition() (like Fab.tsx's baseFabStyle) so the bar docks to the
 // viewport ('fixed' on web) instead of the nearest positioned ancestor.
+const DOCK_BOTTOM = 24;
 const dockStyle: ViewStyle = {
   position: getFloatingPosition(),
   right: 24,
-  bottom: 24,
 };

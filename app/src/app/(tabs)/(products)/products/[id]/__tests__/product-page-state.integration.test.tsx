@@ -3,7 +3,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ReactElement, ReactNode } from 'react';
 import type { Text as RNText } from 'react-native';
-import ProductPage from '@/app/products/[id]';
+import ProductPage from '@/app/(tabs)/(products)/products/[id]';
 import { ProductDetailScreen } from '@/components/product/detail/ProductDetailScreen';
 import { useBaseProductQuery } from '@/features/products/queries';
 import { useAncestorTrail } from '@/features/products/useAncestorTrail';
@@ -31,6 +31,9 @@ jest.mock('expo-router', () => ({
   useFocusEffect: jest.fn(),
   // Camera hooks (via CameraPickerDialog) read this for their `subscribed` flag.
   useIsFocused: jest.fn(() => true),
+  // ProductFabControls reads useBottomNavVisible() for its tab-bar clearance;
+  // segments outside the tab group keep the offset at its base value.
+  useSegments: jest.fn(() => []),
 }));
 
 const baseFormReturn = {

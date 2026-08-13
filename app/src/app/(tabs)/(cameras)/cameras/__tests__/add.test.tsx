@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
-import AddCameraScreen from '@/app/cameras/add';
+import AddCameraScreen from '@/app/(tabs)/(cameras)/cameras/add';
 import { renderWithProviders } from '@/test-utils/index';
 
 const mockUseAuth = jest.fn();

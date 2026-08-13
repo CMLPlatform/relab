@@ -1,4 +1,4 @@
-import { usePathname, useRouter } from 'expo-router';
+import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useCallback } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,7 +7,7 @@ import { useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
-import { type Tab, type TabHref, useBottomNavTabs, useBottomNavVisible } from './useBottomNav';
+import { type Tab, tabRouteName, useBottomNavTabs, useBottomNavVisible } from './useBottomNav';
 
 function BottomNavTab({
   tab,
@@ -16,10 +16,10 @@ function BottomNavTab({
 }: {
   tab: Tab;
   active: boolean;
-  onPress: (href: TabHref) => void;
+  onPress: (key: string) => void;
 }) {
   const theme = useAppTheme();
-  const handlePress = useCallback(() => onPress(tab.href), [onPress, tab.href]);
+  const handlePress = useCallback(() => onPress(tab.key), [onPress, tab.key]);
   return (
     <Pressable
       accessibilityRole="tab"
@@ -47,18 +47,20 @@ function BottomNavTab({
 }
 
 /**
- * Phone-width primary navigation: Products / Cameras / Account. TopNav owns
- * >=lg web; this bar owns everything else (native always, web below lg), and
- * only on the top-level destinations so detail screens keep their full
- * height. Flat & sharp: hairline top border, no elevation.
+ * The `tabBar` of the (tabs) navigator: Products / Cameras / Account. TopNav
+ * owns >=lg web; this bar owns everything else (native always, web below lg),
+ * on every screen inside a tab — including detail screens, so a tab is always
+ * one tap away. Flat & sharp: hairline top border, no elevation.
+ *
+ * Navigating by route name (not href) is what makes a tab switch return to that
+ * tab's preserved trail instead of resetting it to the tab's root screen.
  */
-export function BottomNav() {
-  const pathname = usePathname();
-  const router = useRouter();
+export function BottomNav({ state, navigation }: BottomTabBarProps) {
   const tabs = useBottomNavTabs();
   const visible = useBottomNavVisible();
   const insets = useSafeAreaInsets();
-  const goTo = useCallback((href: TabHref) => router.replace(href), [router]);
+  const activeRoute = state.routes[state.index]?.name;
+  const goTo = useCallback((key: string) => navigation.navigate(tabRouteName(key)), [navigation]);
 
   if (!visible) return null;
 
@@ -69,7 +71,12 @@ export function BottomNav() {
       accessibilityRole="tablist"
     >
       {tabs.map((tab) => (
-        <BottomNavTab key={tab.key} tab={tab} active={pathname === tab.href} onPress={goTo} />
+        <BottomNavTab
+          key={tab.key}
+          tab={tab}
+          active={activeRoute === tabRouteName(tab.key)}
+          onPress={goTo}
+        />
       ))}
     </View>
   );

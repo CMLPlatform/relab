@@ -3,7 +3,7 @@ import { screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import type { ScrollView as RNScrollView, Text as RNText } from 'react-native';
-import ProductPage from '@/app/products/[id]/index';
+import ProductPage from '@/app/(tabs)/(products)/products/[id]/index';
 import { getBaseProduct, newProduct } from '@/services/api/products';
 import { renderWithProviders } from '@/test-utils/index';
 

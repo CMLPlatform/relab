@@ -37,7 +37,7 @@ export function setCamerasHeaderOptions({
   streamModeEnabled,
 }: {
   navigation: { setOptions: (options: object) => void };
-  router: Pick<ImperativeRouter, 'replace'>;
+  router: Pick<ImperativeRouter, 'navigate'>;
   captureAllProductId: number | null;
   streamProductId: number | null;
   streamModeEnabled: boolean;
@@ -50,13 +50,16 @@ export function setCamerasHeaderOptions({
       createElement(HeaderBackButton, {
         ...props,
         onPress: () => {
+          // navigate(), not replace(): this hops from the cameras tab to the
+          // products tab, and a replace would resolve above the tab navigator
+          // and swap it out wholesale, resetting every tab's trail.
           if (backProductId) {
-            router.replace({
+            router.navigate({
               pathname: '/products/[id]',
               params: { id: backProductId.toString() },
             });
           } else {
-            router.replace('/products');
+            router.navigate('/products');
           }
         },
       }),

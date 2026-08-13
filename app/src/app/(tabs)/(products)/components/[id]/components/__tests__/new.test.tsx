@@ -21,11 +21,11 @@ jest.mock('@/components/product/capture/CaptureScreen', () => {
   };
 });
 
-import ComponentNewPage from '@/app/products/[id]/components/new';
+import NestedComponentNewPage from '@/app/(tabs)/(products)/components/[id]/components/new';
 
-describe('ComponentNewPage route', () => {
-  it('renders CaptureScreen for a new component and seeds parent id from the URL', () => {
-    render(<ComponentNewPage />);
-    expect(screen.getByText('role:component parent:42 parentRole:product')).toBeOnTheScreen();
+describe('NestedComponentNewPage route', () => {
+  it('renders CaptureScreen for a new component and seeds the component-parent context', () => {
+    render(<NestedComponentNewPage />);
+    expect(screen.getByText('role:component parent:42 parentRole:component')).toBeOnTheScreen();
   });
 });

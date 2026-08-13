@@ -1,10 +1,31 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
+import { BOTTOM_NAV_CLEARANCE } from '@/components/base/useBottomNav';
 import { ProductFabControls } from '@/components/product/detail/FabControls';
+import { mockPlatform, restorePlatform } from '@/test-utils';
 
 jest.mock('@/components/cameras/CameraStreamPicker', () => ({
   CameraStreamPicker: () => null,
 }));
+
+// Real BOTTOM_NAV_CLEARANCE constant stays live (imported above); only the
+// visibility hook is mocked, as in Chrome's and FeedbackControls' tests.
+const mockUseBottomNavVisible = jest.fn();
+jest.mock('@/components/base/useBottomNav', () => ({
+  ...(jest.requireActual('@/components/base/useBottomNav') as object),
+  useBottomNavVisible: () => mockUseBottomNavVisible(),
+}));
+
+const mockUseBreakpoint = jest.fn();
+jest.mock('@/hooks/useBreakpoint', () => ({
+  useBreakpoint: () => mockUseBreakpoint(),
+}));
+
+beforeEach(() => {
+  mockUseBottomNavVisible.mockReturnValue(false);
+  mockUseBreakpoint.mockReturnValue({ isMd: false });
+});
 
 const baseProps = {
   entityRole: 'product' as const,
@@ -165,5 +186,43 @@ describe('ProductFabControls — error summary routing', () => {
     fireEvent.press(fabButton());
     expect(onPrimaryFabPress).toHaveBeenCalledTimes(1);
     expect(onErrorSummaryPress).not.toHaveBeenCalled();
+  });
+});
+
+// Detail screens live inside a tab now, so BottomNav renders over them too —
+// and on web it is viewport-fixed, escaping the container these controls are
+// laid out in. Both docked controls have to lift themselves clear of it.
+describe.each([
+  ['the FAB below md', false, () => screen.getByRole('button')],
+  ['the SaveBar dock at md', true, () => screen.getByTestId('save-bar-dock')],
+])('tab-bar clearance for %s', (_label, isMd, dock) => {
+  afterEach(restorePlatform);
+
+  function dockedBottom() {
+    return StyleSheet.flatten(dock().props.style).bottom as number;
+  }
+
+  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE on web when BottomNav is visible', () => {
+    mockPlatform('web');
+    mockUseBreakpoint.mockReturnValue({ isMd });
+    const { rerender } = render(<ProductFabControls {...baseProps} />);
+    const hiddenBottom = dockedBottom();
+
+    mockUseBottomNavVisible.mockReturnValue(true);
+    rerender(<ProductFabControls {...baseProps} />);
+
+    expect(dockedBottom() - hiddenBottom).toBe(BOTTOM_NAV_CLEARANCE);
+  });
+
+  it('adds no clearance on native, where the tab bar is in normal flow', () => {
+    mockPlatform('ios');
+    mockUseBreakpoint.mockReturnValue({ isMd });
+    const { rerender } = render(<ProductFabControls {...baseProps} />);
+    const hiddenBottom = dockedBottom();
+
+    mockUseBottomNavVisible.mockReturnValue(true);
+    rerender(<ProductFabControls {...baseProps} />);
+
+    expect(dockedBottom()).toBe(hiddenBottom);
   });
 });

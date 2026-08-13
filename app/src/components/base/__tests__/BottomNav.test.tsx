@@ -1,4 +1,5 @@
-import { usePathname, useRouter } from 'expo-router';
+import { useSegments } from 'expo-router';
+import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { BottomNav } from '@/components/base/BottomNav';
 import {
   fireEvent,
@@ -9,8 +10,7 @@ import {
 } from '@/test-utils';
 
 jest.mock('expo-router', () => ({
-  useRouter: jest.fn(),
-  usePathname: jest.fn(),
+  useSegments: jest.fn(),
 }));
 
 jest.mock('@/hooks/useBreakpoint', () => ({
@@ -27,73 +27,95 @@ jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
   useRpiIntegration: () => mockUseRpiIntegration(),
 }));
 
-const replace = jest.fn();
+const navigate = jest.fn();
+const TAB_ROUTES = ['(products)', '(cameras)', '(account)'];
+
+/** The slice of BottomTabBarProps this bar actually reads. */
+function renderBar(activeIndex = 0) {
+  const props = {
+    state: {
+      index: activeIndex,
+      routes: TAB_ROUTES.map((name) => ({ key: `${name}-key`, name })),
+    },
+    navigation: { navigate },
+  } as unknown as BottomTabBarProps;
+  return renderWithProviders(<BottomNav {...props} />);
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
   const { useBreakpoint } = jest.requireMock('@/hooks/useBreakpoint');
-  (useRouter as jest.Mock).mockReturnValue({ replace });
-  (usePathname as jest.Mock).mockReturnValue('/products');
+  (useSegments as jest.Mock).mockReturnValue(['(tabs)', '(products)', 'products', 'index']);
   (useBreakpoint as jest.Mock).mockReturnValue({ isLg: false });
   mockUseAuth.mockReturnValue({ user: { id: '1' } });
   mockUseRpiIntegration.mockReturnValue({ enabled: true });
 });
 
-test('shows Products, Cameras, Account on /products at phone width', () => {
-  renderWithProviders(<BottomNav />);
+test('shows Products, Cameras, Account inside the tab group at phone width', () => {
+  renderBar();
   expect(screen.getByLabelText('Products')).toBeTruthy();
   expect(screen.getByLabelText('Cameras')).toBeTruthy();
   expect(screen.getByLabelText('Account')).toBeTruthy();
 });
 
-test('renders nothing on a detail route', () => {
-  (usePathname as jest.Mock).mockReturnValue('/products/42');
-  renderWithProviders(<BottomNav />);
+// The point of the tab groups: a detail screen belongs to a tab, so the bar
+// stays put and every other tab is still one tap away.
+test('stays visible on a detail screen inside a tab', () => {
+  (useSegments as jest.Mock).mockReturnValue(['(tabs)', '(products)', 'products', '[id]']);
+  renderBar();
+  expect(screen.getByLabelText('Products')).toBeTruthy();
+});
+
+test('renders nothing outside the tab group', () => {
+  (useSegments as jest.Mock).mockReturnValue(['category-selection']);
+  renderBar();
   expect(screen.queryByLabelText('Products')).toBeNull();
 });
 
 test('renders nothing at lg', () => {
   const { useBreakpoint } = jest.requireMock('@/hooks/useBreakpoint');
   (useBreakpoint as jest.Mock).mockReturnValue({ isLg: true });
-  renderWithProviders(<BottomNav />);
+  renderBar();
   expect(screen.queryByLabelText('Products')).toBeNull();
 });
 
 test('hides Cameras when rpi integration is disabled', () => {
   mockUseRpiIntegration.mockReturnValue({ enabled: false });
-  renderWithProviders(<BottomNav />);
+  renderBar();
   expect(screen.getByLabelText('Products')).toBeTruthy();
   expect(screen.queryByLabelText('Cameras')).toBeNull();
 });
 
 test('hides Account when signed out', () => {
   mockUseAuth.mockReturnValue({ user: null });
-  renderWithProviders(<BottomNav />);
+  renderBar();
   expect(screen.getByLabelText('Products')).toBeTruthy();
   expect(screen.queryByLabelText('Account')).toBeNull();
 });
 
-test('marks the active tab as selected', () => {
-  renderWithProviders(<BottomNav />);
-  expect(screen.getByLabelText('Products').props.accessibilityState).toEqual({ selected: true });
-  expect(screen.getByLabelText('Cameras').props.accessibilityState).toEqual({ selected: false });
+test('marks the navigator’s focused tab as selected', () => {
+  renderBar(1);
+  expect(screen.getByLabelText('Cameras').props.accessibilityState).toEqual({ selected: true });
+  expect(screen.getByLabelText('Products').props.accessibilityState).toEqual({ selected: false });
 });
 
-test('pressing a tab routes via replace', () => {
-  renderWithProviders(<BottomNav />);
+// Navigating by route name (not href) is what returns the user to that tab's
+// preserved trail instead of resetting it to the tab's root screen.
+test('pressing a tab navigates to its route name', () => {
+  renderBar();
   fireEvent.press(screen.getByLabelText('Cameras'));
-  expect(replace).toHaveBeenCalledWith('/cameras');
+  expect(navigate).toHaveBeenCalledWith('(cameras)');
 });
 
 test('tabs carry active-state opacity feedback', () => {
-  renderWithProviders(<BottomNav />);
+  renderBar();
   const className = screen.getByLabelText('Products').props.className as string;
   expect(className).toEqual(expect.stringContaining('active:opacity-60'));
 });
 
 test('tabs carry a web focus-visible ring', () => {
   mockPlatform('web');
-  renderWithProviders(<BottomNav />);
+  renderBar();
   const className = screen.getByLabelText('Products').props.className as string;
   expect(className).toEqual(expect.stringContaining('focus-visible:ring'));
   restorePlatform();

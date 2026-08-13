@@ -69,8 +69,19 @@ re-open the question only when the primitive gains the missing behavior.
 
 `src/app/` is the Expo Router tree. Groups in parens (`(auth)`) don't affect
 the URL. Layouts (`_layout.tsx`) wrap their siblings. Typed routes are on, so
-links are type-checked against the file tree. Routes for auth, cameras,
-products, profile, users live directly under `src/app/`.
+links are type-checked against the file tree.
+
+The three primary destinations are tabs: `(tabs)/(products)`,
+`(tabs)/(cameras)` and `(tabs)/(account)`, each a group holding its own Stack,
+so every tab keeps its trail while you are on another one. BottomNav is that
+navigator's `tabBar`. The products tab owns both the `/products` and
+`/components` trees — a component is a product's child, and cards, breadcrumbs
+and post-create redirects hop between them constantly; splitting them across
+navigators would make every hop a cross-navigator `replace`, which React
+Navigation resolves by swapping the whole tab navigator out and resetting every
+tab. For the same reason, a link that leaves one tab for another must use
+`navigate`, never `replace`. The root stack keeps only what sits outside the
+tabs: the entry redirect, `(auth)`, `category-selection` and `users/[username]`.
 
 Detail screens are anchored-scroll documents: sections self-register with
 SectionNavContext; chips (phone) / outline (lg web) navigate via

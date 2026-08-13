@@ -6,10 +6,11 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { Platform, Pressable, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, type StyleProp, View, type ViewStyle } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Fab } from '@/components/base/Fab';
 import { OverlaySurface } from '@/components/base/OverlaySurface';
+import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
 import { spacing } from '@/constants';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -57,10 +58,18 @@ export function ProductFabControls({
   streamTriggerRef,
 }: ProductFabControlsProps) {
   const { isMd } = useBreakpoint();
+  const bottomNavVisible = useBottomNavVisible();
+  // Web-only: these controls dock with position:fixed on web
+  // (getFloatingPosition), so they sit against the viewport and overlap the tab
+  // bar rendered at the bottom of the scene. On native they dock absolutely
+  // inside that scene, which the bar has already shrunk — no bump. Detail
+  // screens live inside a tab now, so the bar is over them too.
+  const bottomOffset = Platform.OS === 'web' && bottomNavVisible ? BOTTOM_NAV_CLEARANCE : 0;
   return (
     <>
       {isMd ? (
         <SaveBar
+          bottomOffset={bottomOffset}
           entityRole={entityRole}
           editMode={editMode}
           isDirty={isDirty}
@@ -74,6 +83,7 @@ export function ProductFabControls({
         />
       ) : (
         <PrimaryProductFab
+          bottomOffset={bottomOffset}
           entityRole={entityRole}
           icon={primaryFabIcon}
           onPrimaryPress={onPrimaryFabPress}
@@ -102,6 +112,7 @@ export function ProductFabControls({
 }
 
 function PrimaryProductFab({
+  bottomOffset,
   entityRole,
   icon,
   onPrimaryPress,
@@ -115,6 +126,7 @@ function PrimaryProductFab({
   ownedByMe,
   editMode,
 }: {
+  bottomOffset: number;
   entityRole: 'product' | 'component';
   icon: ComponentProps<typeof Fab>['icon'];
   onPrimaryPress: () => void;
@@ -152,7 +164,10 @@ function PrimaryProductFab({
   if (wouldSave && !validationValid) {
     const tooltipTitle = validationError ?? 'Fill in the required fields to save';
     return (
-      <SaveBlockedTooltip title={tooltipTitle} anchorStyle={styles.rightFab}>
+      <SaveBlockedTooltip
+        title={tooltipTitle}
+        anchorStyle={[styles.rightFab, { bottom: bottomOffset }]}
+      >
         <Fab
           icon={icon}
           label={label}
@@ -172,7 +187,7 @@ function PrimaryProductFab({
       label={label}
       accessibilityLabel={label}
       onPress={onFabPress}
-      style={styles.rightFab}
+      style={[styles.rightFab, { bottom: bottomOffset }]}
       disabled={disabled}
       extended={fabExtended}
       visible={ownedByMe}
@@ -191,7 +206,7 @@ function SaveBlockedTooltip({
   children,
 }: {
   title: string;
-  anchorStyle?: ViewStyle;
+  anchorStyle?: StyleProp<ViewStyle>;
   children: ReactNode;
 }) {
   const theme = useAppTheme();
