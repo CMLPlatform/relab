@@ -1,5 +1,7 @@
 # Frontend App Tasks
 
+import '../playwright.just'
+
 # Show available recipes
 default:
     @just --list
@@ -99,13 +101,11 @@ build-web:
 # a stale build silently tests old code.
 #
 # Run full-stack E2E tests (rebuilds dist/; requires compose.e2e.yaml running)
-test-e2e: build-web
+test-e2e: build-web _browsers
     pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
 
-# Run the full cross-browser E2E matrix. `playwright install` is idempotent (skips
-# present browsers); set INSTALL=force to also run the slow --with-deps apt step.
-test-e2e-cross-browser: build-web
-    {{ if env("INSTALL", "") == "force" { "pnpm exec playwright install --with-deps" } else { "pnpm exec playwright install" } }}
+# Run the full cross-browser E2E matrix (see ../playwright.just for INSTALL=force)
+test-e2e-cross-browser: build-web _browsers
     pnpm run test:e2e:cross-browser
 
 # Clean caches and build artifacts

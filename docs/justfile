@@ -6,6 +6,8 @@
 rpi_cam_schema_url := "https://raw.githubusercontent.com/CMLPlatform/relab-rpi-cam-plugin/main/openapi.rpi-cam.json"
 rpi_cam_schema_path := "public/api/schemas/openapi.rpi-cam.json"
 
+import '../playwright.just'
+
 # Show available recipes
 default:
     @just --list
@@ -26,8 +28,8 @@ update:
     pnpm dedupe
 
 # Start development server with live reload
-dev PORT="8012":
-    pnpm run dev -- --port {{ quote(PORT) }}
+dev:
+    pnpm run dev
 
 # Run lint checks
 lint:
@@ -59,7 +61,7 @@ test:
     pnpm run test
 
 # Browser end-to-end tests: smoke + a11y + visual + theme (requires `just build` first)
-test-e2e:
+test-e2e: (_browsers "chromium")
     pnpm run test:e2e
 
 # Refresh the committed RPi camera plugin OpenAPI schema from its source repo
