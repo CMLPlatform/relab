@@ -1,7 +1,7 @@
 import type { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { useAuth } from '@/context/auth';
-import { useScreenFocusedSafe } from '@/hooks/useScreenFocused';
+import { useAuthRedirectGuard } from '@/hooks/useRequireAuth';
 
 export function useProfileDialogs() {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
@@ -58,15 +58,18 @@ export function useProfileAuthRedirect({
   // The account tab stays mounted (tab groups preserve per-tab state), so a
   // logout's `refetch(false)` can clear `profile` after `isLoggingOut` has
   // already flipped back to false and after logout's own navigate to
-  // /products has landed. Gating on focus stops that stale effect from
-  // clobbering the /products navigation with a /login redirect; a session
-  // that actually expires while the tab is focused still redirects.
-  const isFocused = useScreenFocusedSafe();
-
-  useEffect(() => {
-    if (!isFocused || profile || isLoggingOut) return;
-    router.replace({ pathname: '/login', params: { redirectTo: '/account' } });
-  }, [profile, router, isLoggingOut, isFocused]);
+  // /products has landed. `useAuthRedirectGuard`'s focus gate stops that
+  // stale effect from clobbering the /products navigation with a /login
+  // redirect; a session that actually expires while the tab is focused still
+  // redirects. No initial-auth-check gate here (unlike `useRequireAuth`):
+  // the account tab is unreachable before that check resolves.
+  useAuthRedirectGuard({
+    user: profile,
+    isLoading: false,
+    isLoggingOut,
+    router,
+    redirectTo: '/account',
+  });
 }
 
 export function useProfileLinkedAccounts(profile: ReturnType<typeof useAuth>['user']) {

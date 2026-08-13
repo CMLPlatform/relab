@@ -29,6 +29,7 @@ import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMode';
 import { saveProductMutationFn } from '@/features/products/queries';
+import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
 import { QUERY_CACHE_STORAGE_KEY, SAVE_PRODUCT_MUTATION_KEY } from '@/services/storage';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
@@ -198,7 +199,15 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{ persister, maxAge: 24 * 60 * 60 * 1000, buster: 'v1' }}
+      persistOptions={{
+        persister,
+        maxAge: 24 * 60 * 60 * 1000,
+        buster: 'v1',
+        // Only `shouldDehydrateQuery` is overridden here — `shouldDehydrateMutation`
+        // is left at its default (paused-only), so a paused offline capture
+        // mutation still dehydrates regardless of this query allowlist.
+        dehydrateOptions: { shouldDehydrateQuery },
+      }}
       // Restoring only repopulates the caches; paused mutations (a capture
       // POST that was mid-offline at reload) stay paused until something
       // asks them to run. onlineManager gates the actual network call, so
