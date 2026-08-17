@@ -196,6 +196,17 @@ assert_secret_file_modes() {
     [[ "$failed" == "false" ]] || exit 2
 }
 
+# Secrets read by local tooling rather than mounted into a container, so they never appear
+# in the rendered Compose config that secrets-list enumerates. They still belong under
+# secrets/<env>/: secrets-export globs the directory, so these reach the password manager
+# and come back through secrets-restore like everything else.
+#
+# Regenerating dataset_pseudonym_salt on a fresh checkout would silently change every
+# contributor code in a future dataset release. That is safe to template anyway, because
+# the release build compares the salt against PINNED_SALT_FINGERPRINT and aborts on a
+# mismatch rather than publishing codes that no longer line up with what is already out.
+LOCAL_ONLY_SECRETS=(dataset_pseudonym_salt)
+
 deploy_secret_template_value() {
     local env="$1"
     local name="$2"
@@ -298,7 +309,10 @@ deploy_secrets_template() {
             # any that containers cannot read.
             echo "kept $path"
         fi
-    done < <(uv run python scripts/env_policy.py secrets-list "$tmp_root/$env.json")
+    done < <(
+        uv run python scripts/env_policy.py secrets-list "$tmp_root/$env.json"
+        printf '%s\n' "${LOCAL_ONLY_SECRETS[@]}"
+    )
     echo "✅ Secret files are present under secrets/$env"
 }
 
