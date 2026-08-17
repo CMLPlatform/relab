@@ -37,7 +37,8 @@ The carve-out covers the two schemas this repository generates, `openapi.public.
 `openapi.device.json`. The [RPi camera API](/api/rpi-cam/) is not one of them:
 `openapi.rpi-cam.json` is fetched verbatim from the separate
 [relab-rpi-cam-plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin) repository and carries
-whatever licence that project sets. Check there before reusing it.
+whatever licence that project sets — currently Apache-2.0 as well, so in practice all three
+published schemas answer alike. Check there before reusing it, since that project decides.
 
 ## Dataset releases
 

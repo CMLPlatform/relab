@@ -145,7 +145,8 @@ project, not to identify your own work as Relab.
 The RPi camera plugin's schema (`openapi.rpi-cam.json`) is published here for reference but is
 fetched verbatim from its own repository,
 [relab-rpi-cam-plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin), and carries whatever
-licence that project sets. It is not covered by the Apache-2.0 statement above.
+licence that project sets — currently Apache-2.0 as well, so all three published schemas answer
+alike.
 
 Two limits that no licence changes. Personal data is governed by the GDPR regardless of the licence,
 so it is the sanitisation applied when building a release — not CC BY — that makes publication
