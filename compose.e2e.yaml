@@ -42,9 +42,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile.migrations
       cache_from:
-        - type=gha
+        - type=gha,scope=migrator
       cache_to:
-        - type=gha,mode=max
+        - type=gha,scope=migrator,mode=max
     restart: on-failure:3
     depends_on:
       postgres:

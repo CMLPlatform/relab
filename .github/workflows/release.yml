@@ -82,6 +82,10 @@ jobs:
           load: true
           pull: true
           tags: ${{ matrix.image_ref }}
+          # Read-only: the container security matrix in security.yml populates
+          # these scopes on every run, so an SBOM build starts warm without
+          # spending release-time cache writes on an image nothing deploys.
+          cache-from: type=gha,scope=${{ matrix.service }}
           # The www/app builds require their public URLs. These images are only
           # used for SBOM generation, never deployed, so placeholders are fine.
           build-args: |

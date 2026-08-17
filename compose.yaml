@@ -17,11 +17,10 @@
 # --- Reusable fragments ------------------------------------------------------
 # YAML anchors; consumed via `<<: *name`. No runtime effect on their own.
 
-x-gha-build: &gha-build
-  cache_from:
-    - type=gha
-  cache_to:
-    - type=gha,mode=max
+# NOTE: the GHA build cache is deliberately NOT an anchor — each built service
+# needs its own `scope=`, otherwise every service shares the default scope and
+# the docker-smoke matrix legs overwrite each other's layers. Keep the scope
+# names aligned with .github/container-images.json / security.yml.
 
 x-healthcheck-defaults: &healthcheck-defaults
   interval: 30s
@@ -59,7 +58,10 @@ services:
     <<: *service-hardening
     build:
       context: ./backend
-      <<: *gha-build
+      cache_from:
+        - type=gha,scope=api
+      cache_to:
+        - type=gha,scope=api,mode=max
     restart: unless-stopped
     depends_on:
       postgres:
@@ -87,7 +89,10 @@ services:
       args:
         # Taxonomy seeding pulls in pandas/openpyxl/requests; keep it opt-in.
         INCLUDE_TAXONOMY_SEED_DEPS: ${BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS:-false}
-      <<: *gha-build
+      cache_from:
+        - type=gha,scope=migrator
+      cache_to:
+        - type=gha,scope=migrator,mode=max
     restart: on-failure:3
     depends_on:
       postgres:
@@ -199,7 +204,10 @@ services:
     build:
       context: .
       dockerfile: docs/Dockerfile
-      <<: *gha-build
+      cache_from:
+        - type=gha,scope=docs
+      cache_to:
+        - type=gha,scope=docs,mode=max
     restart: unless-stopped
     networks:
       - edge
@@ -209,7 +217,10 @@ services:
     build:
       context: .
       dockerfile: app/Dockerfile
-      <<: *gha-build
+      cache_from:
+        - type=gha,scope=app
+      cache_to:
+        - type=gha,scope=app,mode=max
     restart: unless-stopped
     networks:
       - edge
@@ -219,7 +230,10 @@ services:
     build:
       context: .
       dockerfile: www/Dockerfile
-      <<: *gha-build
+      cache_from:
+        - type=gha,scope=www
+      cache_to:
+        - type=gha,scope=www,mode=max
     restart: unless-stopped
     networks:
       - edge
