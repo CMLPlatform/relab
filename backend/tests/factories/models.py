@@ -1,9 +1,13 @@
 """Modern test factories using polyfactory for backend test models."""
 
-from typing import Any, TypeVar
+import os
+from random import Random
+from typing import TYPE_CHECKING, Any, TypeVar
 
+from faker import Faker
 from polyfactory.factories.sqlalchemy_factory import SQLAlchemyFactory
 from polyfactory.fields import Ignore
+from polyfactory.utils.predicates import is_optional
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +25,15 @@ from app.api.reference_data.models import (
     TaxonomyDomain,
 )
 
+if TYPE_CHECKING:
+    from polyfactory.field_meta import FieldMeta
+
 T = TypeVar("T")
+
+TEST_SEED = int(os.environ.get("TEST_SEED", "0"))
+_RANDOM = Random(TEST_SEED)  # noqa: S311 # Test data, not cryptography
+_FAKER = Faker()
+_FAKER.seed_instance(TEST_SEED)
 
 
 class BaseModelFactory[T](SQLAlchemyFactory[T]):
@@ -29,6 +41,26 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
 
     __is_base_factory__ = True
     __set_relationships__ = False  # Skip relationship introspection to avoid SQLAlchemy/polyfactory conflicts
+
+    # Both generators are seeded, so a run is reproducible. Unseeded, they draw fresh
+    # values every run, which turns any test that depends on a generated value into a CI
+    # failure that will not reproduce locally. Faker needs seeding separately — it owns
+    # the randomness behind most field values, so seeding __random__ alone leaves runs
+    # non-deterministic. Set TEST_SEED to re-shuffle and shake out tests that only pass
+    # under seed 0.
+    __random__ = _RANDOM
+    __faker__ = _FAKER
+
+    @classmethod
+    def should_set_none_value(cls, field_meta: FieldMeta) -> bool:
+        """Leave every nullable column empty unless the caller asks for a value.
+
+        Polyfactory's default is a coin flip per optional field, so a generated user
+        would arrive having randomly accepted the terms or logged in before. A factory
+        should build the emptiest valid row; a test that needs a column populated is the
+        one that knows what it should contain, so it passes the value in.
+        """
+        return is_optional(field_meta.annotation)
 
     @classmethod
     def get_sqlalchemy_types(cls) -> dict[Any, Any]:
@@ -88,16 +120,6 @@ class UserFactory(BaseModelFactory[User]):
     mfa_confirmed_at = None
     upload_file_count = 0
     upload_total_bytes = 0
-    # Account lifecycle state, pinned to "nothing has happened yet" for the same reason
-    # the MFA fields above are. Left unpinned, polyfactory draws a value for these
-    # nullable columns roughly two times in five, so a generated user randomly looks
-    # like it accepted the terms or logged in before — and a test asserting otherwise
-    # passes or fails on how many factory calls ran before it. Tests that need one of
-    # these set say so explicitly.
-    last_login_at = None
-    profile_stats_computed_at = None
-    terms_accepted_at = None
-    terms_accepted_version = None
 
     @classmethod
     def email(cls) -> str:
