@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 from pydantic import UUID4
-from sqlalchemy import CheckConstraint, Computed, ForeignKey, Index, and_, asc, select, text
+from sqlalchemy import CheckConstraint, Computed, ForeignKey, Index, and_, asc, select
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import (
     Mapped,
@@ -37,10 +37,9 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         Index("product_search_vector_idx", "search_vector", postgresql_using="gin"),
         Index("product_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
         Index("product_brand_trgm_idx", "brand", postgresql_using="gin", postgresql_ops={"brand": "gin_trgm_ops"}),
-        # All owned rows, including components; used for product-owned media quota checks.
+        # All owned rows, including components; used for product-owned media quota checks
+        # and for base-product listings, which add a `parent_id IS NULL` filter on top.
         Index("ix_product_owner_id", "owner_id"),
-        # Base products only; keeps user product-list queries on a smaller targeted index.
-        Index("ix_product_base_owner_id", "owner_id", postgresql_where=text("parent_id IS NULL")),
         # Components load eagerly on every product read, and the delete cascade
         # walks the same column.
         Index("ix_product_parent_id", "parent_id"),
