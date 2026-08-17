@@ -24,6 +24,9 @@ from sqlalchemy import ColumnElement, Select, func, or_
 
 type SearchableColumn = Any  # Column-like; typed loosely to avoid SA import coupling
 
+LIKE_ESCAPE_CHAR = "\\"
+_LIKE_WILDCARDS = str.maketrans({LIKE_ESCAPE_CHAR: LIKE_ESCAPE_CHAR * 2, "%": "\\%", "_": "\\_"})
+
 
 # ─── Clause builders ──────────────────────────────────────────────────────────
 
@@ -35,6 +38,12 @@ def build_text_search_clause(
 ) -> ColumnElement[bool]:
     """Return a WHERE clause combining tsvector @@ tsquery with optional trigram fuzzy matches.
 
+    The trigram comparison runs against the bare column, never ``lower(column)``:
+    the ``gin_trgm_ops`` indexes are built on the column itself, and an expression
+    the index was not built on is an expression the planner cannot use it for.
+    Folding case by hand would buy nothing anyway — pg_trgm lowercases text before
+    it extracts trigrams, so ``'Drill' % 'drill'`` is already true.
+
     Args:
         search: The raw search string from the user.
         search_vector_col: The computed ``tsvector`` column on the model.
@@ -44,10 +53,19 @@ def build_text_search_clause(
         An OR-combined SQLAlchemy ``ColumnElement`` suitable for ``.where()``.
     """
     ts_query = func.websearch_to_tsquery("english", search)
-    search_lower = search.lower()
     conditions: list[ColumnElement[bool]] = [search_vector_col.op("@@")(ts_query)]
-    conditions.extend([func.lower(field).op("%")(search_lower) for field in trigram_fields])
+    conditions.extend([field.op("%")(search) for field in trigram_fields])
     return or_(*conditions)
+
+
+def build_contains_clause(search: str, *columns: SearchableColumn) -> ColumnElement[bool]:
+    """Return a case-insensitive substring match across *columns*.
+
+    LIKE wildcards in the user's input are escaped, so searching for ``%`` looks
+    for a literal percent sign instead of matching every row in the table.
+    """
+    pattern = f"%{search.translate(_LIKE_WILDCARDS)}%"
+    return or_(*[column.ilike(pattern, escape=LIKE_ESCAPE_CHAR) for column in columns])
 
 
 def apply_ts_rank_ordering(query: Select[Any], search_vector_col: ColumnElement[Any], search: str) -> Select[Any]:

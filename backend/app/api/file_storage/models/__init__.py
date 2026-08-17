@@ -4,7 +4,7 @@ import uuid
 from enum import StrEnum
 from typing import Any  # noqa: TC003 # Used at runtime for ORM mapped annotations
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index
+from sqlalchemy import CheckConstraint, ForeignKey, Index, text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -46,7 +46,22 @@ class Image(TimeStampMixinBare, Base):
     __tablename__ = "image"
     __table_args__ = (
         CheckConstraint("upload_size_bytes >= 0", name="ck_image_upload_size_bytes_non_negative"),
-        Index("ix_image_parent_type_parent_id", "parent_type", "parent_id"),
+        # created_at is the third column so Product.first_image_file — which picks the
+        # oldest image of one parent — reads a single index entry instead of scanning
+        # the parent's images and sorting them.
+        Index("ix_image_parent_type_parent_id_created_at", "parent_type", "parent_id", "created_at"),
+        # The stats series buckets product images by period; the partial index keeps
+        # it off the other parent types entirely.
+        Index("ix_image_product_created_at", "created_at", postgresql_where=text("parent_type = 'PRODUCT'")),
+        Index(
+            "image_filename_trgm_idx", "filename", postgresql_using="gin", postgresql_ops={"filename": "gin_trgm_ops"}
+        ),
+        Index(
+            "image_description_trgm_idx",
+            "description",
+            postgresql_using="gin",
+            postgresql_ops={"description": "gin_trgm_ops"},
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

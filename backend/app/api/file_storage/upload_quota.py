@@ -120,6 +120,11 @@ async def recompute_user_upload_quota(session: AsyncSession, *, user_id: UUID) -
         .subquery("upload_totals")
     )
 
+    # Two scalar subqueries, so Postgres scans the media rows once per column. An
+    # UPDATE ... FROM would do it in one pass, but the aggregate has no join
+    # condition to the user row — it is already scoped by user_id inside — so
+    # SQLAlchemy flags it as a cartesian product on every recompute. Not worth a
+    # warning in the logs of a repair path that runs by hand.
     await session.execute(
         update(User)
         .where(User.id == user_id)

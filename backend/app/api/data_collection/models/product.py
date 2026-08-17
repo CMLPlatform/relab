@@ -37,6 +37,10 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         Index("product_search_vector_idx", "search_vector", postgresql_using="gin"),
         Index("product_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
         Index("product_brand_trgm_idx", "brand", postgresql_using="gin", postgresql_ops={"brand": "gin_trgm_ops"}),
+        # The model suggestion endpoint trigram-matches this column. Without its own
+        # index the OR against search_vector falls back to a sequential scan, which
+        # would leave the indexed half of the clause doing nothing.
+        Index("product_model_trgm_idx", "model", postgresql_using="gin", postgresql_ops={"model": "gin_trgm_ops"}),
         # All owned rows, including components; used for product-owned media quota checks
         # and for base-product listings, which add a `parent_id IS NULL` filter on top.
         Index("ix_product_owner_id", "owner_id"),
@@ -44,6 +48,9 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         # walks the same column.
         Index("ix_product_parent_id", "parent_id"),
         Index("ix_product_product_type_id", "product_type_id"),
+        # Exposed as both a sort key and a range filter on the product list, and the
+        # stats series buckets every product by it.
+        Index("ix_product_created_at", "created_at"),
         CheckConstraint(
             "(parent_id IS NULL AND amount_in_parent IS NULL) "
             "OR (parent_id IS NOT NULL AND amount_in_parent IS NOT NULL AND amount_in_parent > 0)",

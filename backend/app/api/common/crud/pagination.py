@@ -7,6 +7,7 @@ from fastapi_pagination.api import resolve_params
 from sqlalchemy import Select, func, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.selectable import Join
 
 from app.api.common.models.base import Base
 
@@ -21,6 +22,15 @@ def _primary_key_column(model: type[Base]) -> ColumnElement[object] | None:
     mapper = inspect(model)
     primary_keys = list(mapper.primary_key) if mapper else []
     return cast("ColumnElement[object]", primary_keys[0]) if len(primary_keys) == 1 else None
+
+
+def _joins_rows(statement: Select[object]) -> bool:
+    """Return whether the statement joins, and so can repeat an entity per row.
+
+    Only a join can duplicate rows here, and ``.join()`` collapses the FROM list
+    into a single ``Join`` element — so this is the whole test.
+    """
+    return any(isinstance(from_element, Join) for from_element in statement.get_final_froms())
 
 
 async def paginate_select[T, U, ModelT: Base](
@@ -41,16 +51,26 @@ async def paginate_select[T, U, ModelT: Base](
     resolved_params = resolve_params(params)
     raw_params = resolved_params.to_raw_params()
 
+    # DISTINCT is only needed when a join can repeat an entity across rows, and it
+    # is not free: it forces the whole filtered set to be sorted before LIMIT can
+    # apply, which also drags every correlated column property (e.g. a product's
+    # thumbnail subquery) below the LIMIT so it runs per table row instead of per
+    # returned row. Applying it only when something actually joins keeps the plain
+    # list reads on a plan that stops at the page boundary.
+    needs_distinct = _joins_rows(statement)
+
     total = None
     if raw_params.include_total:
         if model is not None and (pk_col := _primary_key_column(model)) is not None:
-            subquery = statement.with_only_columns(pk_col).order_by(None).distinct().subquery()
-            total = (await db.execute(select(func.count()).select_from(subquery))).scalar_one()
+            count_source = statement.with_only_columns(pk_col).order_by(None)
+            if needs_distinct:
+                count_source = count_source.distinct()
+            total = (await db.execute(select(func.count()).select_from(count_source.subquery()))).scalar_one()
         else:
             count_query = select(func.count()).select_from(statement.order_by(None).subquery())
             total = (await db.execute(count_query)).scalar_one()
 
-    paginated_statement = statement.distinct() if model is not None else statement
+    paginated_statement = statement.distinct() if model is not None and needs_distinct else statement
 
     # LIMIT/OFFSET over an unordered (or ambiguously ordered) result has no
     # defined row order, so a row can repeat on one page and vanish from

@@ -124,7 +124,7 @@ def test_search_text_is_bound_not_concatenated_into_sql() -> None:
     sql = str(compiled)
 
     assert search not in sql
-    assert search.lower() in compiled.params.values()
+    assert search in compiled.params.values()
 
 
 def test_model_search_uses_same_bound_parameter_path() -> None:
@@ -134,7 +134,7 @@ def test_model_search_uses_same_bound_parameter_path() -> None:
     sql = str(compiled)
 
     assert search not in sql
-    assert search.lower() in compiled.params.values()
+    assert search in compiled.params.values()
 
 
 def test_order_is_limited_by_route_literal_annotations() -> None:

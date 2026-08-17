@@ -12,7 +12,9 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import status
 
+from app.api.reference_data.models import CategoryMaterialLink
 from tests.factories.models import (
+    CategoryFactory,
     MaterialFactory,
     ProductTypeFactory,
     TaxonomyFactory,
@@ -21,6 +23,8 @@ from tests.factories.models import (
 if TYPE_CHECKING:
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.api.reference_data.models import Taxonomy
 
 
 async def test_response_contains_consistent_pagination_metadata(
@@ -133,6 +137,34 @@ async def test_sorting_by_joined_column_does_not_error(
     response = await api_client_light.get(f"{path}?order_by={sort_field}")
     assert response.status_code == status.HTTP_200_OK, response.text
     assert "items" in response.json()
+
+
+async def test_many_to_many_filter_returns_each_material_once(
+    api_client_light: AsyncClient,
+    db_session: AsyncSession,
+    db_taxonomy: Taxonomy,
+) -> None:
+    """A material sitting in two matching categories is one row, not two.
+
+    The category_name filter joins through categorymateriallink, so the join
+    yields the material once per matching category. paginate_select applies
+    DISTINCT to joined queries precisely to collapse that back; without it the
+    material would appear twice in items and be double-counted in total.
+    """
+    material = await MaterialFactory.create_async(session=db_session, name="DedupeMaterial")
+    for _ in range(2):
+        category = await CategoryFactory.create_async(
+            session=db_session, taxonomy_id=db_taxonomy.id, name="DedupeCategory"
+        )
+        db_session.add(CategoryMaterialLink(category_id=category.id, material_id=material.id))
+    await db_session.flush()
+
+    response = await api_client_light.get("/v1/materials?category_name=DedupeCategory")
+    assert response.status_code == status.HTTP_200_OK, response.text
+
+    payload = response.json()
+    assert [item["name"] for item in payload["items"]] == ["DedupeMaterial"]
+    assert payload["total"] == 1
 
 
 async def test_material_category_name_sort_is_rejected(api_client_light: AsyncClient) -> None:

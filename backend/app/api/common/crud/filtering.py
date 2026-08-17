@@ -9,10 +9,10 @@ from fastapi_filters.ext.sqlalchemy import apply_filters as apply_fastapi_filter
 from fastapi_filters.ext.sqlalchemy import apply_sorting
 from fastapi_filters.schemas import csv_separator_config
 from pydantic import TypeAdapter
-from sqlalchemy import ColumnElement, Select, or_
+from sqlalchemy import ColumnElement, Select
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from app.api.common.search_utils import apply_ts_rank_ordering, build_text_search_clause
+from app.api.common.search_utils import apply_ts_rank_ordering, build_contains_clause, build_text_search_clause
 from app.api.common.validation import FILTER_CSV_SEPARATOR, BoundedQueryText, BoundedQueryTextList
 
 if TYPE_CHECKING:
@@ -105,7 +105,7 @@ class BaseFilterSet(FilterSet):
         if not self.search:
             return None
         if self.search_columns:
-            return or_(*[column.ilike(f"%{self.search}%") for column in self.search_columns])
+            return build_contains_clause(self.search, *self.search_columns)
         return build_text_search_clause(
             self.search,
             self.search_vector_column(),
@@ -182,7 +182,8 @@ def apply_filter[MT: Base](
     if model_filter.sorting:
         relationship_columns = _relationship_columns(model_filter)
         # Postgres requires every ORDER BY expression under SELECT DISTINCT
-        # (applied by paginate_select) to appear in the select list. Sorting on a
+        # (which paginate_select applies to joined queries) to appear in the
+        # select list, and a relationship sort always joins. Sorting on a
         # joined column would otherwise raise 42P10. Same approach as
         # apply_ts_rank_ordering; DISTINCT still collapses duplicates because the
         # added column is functionally dependent on the joined row.

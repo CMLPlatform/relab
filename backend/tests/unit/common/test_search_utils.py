@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import literal_column, select
 from sqlalchemy.dialects import postgresql
 
-from app.api.common.search_utils import apply_ts_rank_ordering, build_text_search_clause
+from app.api.common.search_utils import apply_ts_rank_ordering, build_contains_clause, build_text_search_clause
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.elements import ClauseElement
@@ -65,10 +65,16 @@ def test_absent_field_not_in_sql() -> None:
     assert "material.description" not in sql.lower()
 
 
-def test_search_lowercased_for_trigram() -> None:
-    """Trigram comparisons use lower() to normalise case."""
+def test_trigram_compares_the_bare_column() -> None:
+    """Trigram comparisons must not wrap the column in a function.
+
+    The gin_trgm_ops indexes are built on the column itself, so lower(column)
+    is an expression the planner cannot match to one — it would silently
+    downgrade every fuzzy search to a sequential scan. pg_trgm already folds
+    case when it extracts trigrams, so there is nothing to normalise.
+    """
     sql = _sql(build_text_search_clause("Hello", _SEARCH_VECTOR, _NAME_COL))
-    assert "lower" in sql.lower()
+    assert "lower(material.name)" not in sql.lower()
 
 
 def test_conditions_combined_with_or() -> None:
@@ -85,7 +91,25 @@ def test_search_text_is_bound_not_concatenated_into_sql() -> None:
 
     assert search not in sql
     assert search in compiled.params.values()
-    assert search.lower() in compiled.params.values()
+
+
+def test_contains_clause_escapes_like_wildcards() -> None:
+    """A user searching for % or _ looks for those characters, not for every row."""
+    compiled = _compiled(build_contains_clause("50%_off", _NAME_COL))
+    assert r"%50\%\_off%" in compiled.params.values()
+
+
+def test_contains_clause_escapes_the_escape_character() -> None:
+    """A literal backslash must not turn the next character into an escape."""
+    compiled = _compiled(build_contains_clause("back\\slash", _NAME_COL))
+    assert "%back\\\\slash%" in compiled.params.values()
+
+
+def test_contains_clause_matches_each_column_case_insensitively() -> None:
+    """Every named column is OR-matched with ILIKE."""
+    sql = _sql(build_contains_clause("x", _NAME_COL, _DESC_COL))
+    assert sql.count("ILIKE") == 2
+    assert " OR " in sql.upper()
 
 
 def test_adds_rank_column_and_orders_by_it() -> None:

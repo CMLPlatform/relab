@@ -21,6 +21,13 @@ class User(BaseUserDB, TimeStampMixinBare):
     __table_args__ = (
         CheckConstraint("upload_file_count >= 0", name="ck_user_upload_file_count_non_negative"),
         CheckConstraint("upload_total_bytes >= 0", name="ck_user_upload_total_bytes_non_negative"),
+        # The admin user list searches email and username with an unanchored ILIKE,
+        # which no btree index can serve. Both columns need one: Postgres falls back
+        # to a sequential scan for the whole OR if either side is unindexed.
+        Index("user_email_trgm_idx", "email", postgresql_using="gin", postgresql_ops={"email": "gin_trgm_ops"}),
+        Index(
+            "user_username_trgm_idx", "username", postgresql_using="gin", postgresql_ops={"username": "gin_trgm_ops"}
+        ),
     )
 
     username: Mapped[str | None] = mapped_column(String(50), index=True, unique=True, default=None)
