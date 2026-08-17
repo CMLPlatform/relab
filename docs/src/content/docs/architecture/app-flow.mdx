@@ -3,12 +3,12 @@ title: App navigation flow
 description: The mobile app's screens, how they nest, and the redirects that move between them.
 ---
 
-Which screens the Expo app has, how they nest, and what moves a person between them. This page
-is for maintainers changing routing, auth gating, or the record-creation path. For how to
-*use* the app, see [Getting started](/user-guides/getting-started/) and
+Which screens the app has, how they nest, and what moves a person between them. Read this
+before changing routing, auth gating, or the record-creation path. To learn how to use the
+app instead, see [Getting started](/user-guides/getting-started/) and
 [Data collection](/user-guides/data-collection/).
 
-The source layout behind these routes is documented in `app/ARCHITECTURE.md`.
+`app/README.md` documents the source layout behind these routes.
 
 ## Screen map
 
@@ -70,26 +70,26 @@ graph TD
 | `/category-selection` | Category and product-type picker. Presents over whichever screen opened it. |
 | `/users/[username]` | Public contributor profile. |
 
-Three things about that tree are load-bearing rather than incidental:
+Three things about that tree are load-bearing:
 
 - **Each tab is a group holding its own Stack.** A tab keeps its navigation trail while you are
   on another one, which is why `(products)`, `(cameras)` and `(account)` are groups rather than
   plain screens.
 - **The products tab owns both `/products` and `/components`.** A component is a product's
-  child, and cards, breadcrumbs and post-create redirects hop between the two constantly.
-  Splitting them across navigators would make every hop a cross-navigator replace.
-- **`/category-selection` and `/users/[username]` sit on the root stack, not in a tab.** They
-  are reachable from more than one tab and should not join any single tab's trail.
+  child, so cards, breadcrumbs and post-create redirects hop between the two trees. Splitting
+  them across navigators would make every hop a cross-navigator replace.
+- **`/category-selection` and `/users/[username]` sit on the root stack, not in a tab.** More
+  than one tab reaches them, so they should not join any single tab's trail.
 
-The cameras destination is hidden for accounts with the Raspberry Pi integration switched off.
-The tab itself still exists; only the navigation chrome filters it, through
-`useVisibleDestinations` in `src/navigation/destinations.ts`.
+Accounts with the Raspberry Pi integration switched off do not see the cameras destination. The
+tab still exists; `useVisibleDestinations` in `src/navigation/destinations.ts` filters the
+navigation chrome.
 
 ## Getting in
 
-Nothing in the app is gated behind a splash or a login wall. `/` redirects to `/products`, and
-the product list renders for signed-out visitors. Authentication is demanded per action, not up
-front.
+The app gates nothing behind a splash or a login wall. `/` redirects to `/products`, and the
+product list renders for signed-out visitors. Each action asks for an account only when it
+needs one.
 
 ```mermaid
 ---
@@ -110,13 +110,17 @@ graph LR
     Username -->|Yes| Target["redirectTo<br/>or /products"]
 ```
 
-**The auth gate** is `useRequireAuth(redirectTo)`. It replaces the current route with
-`/login`, carrying the caller's own path as `redirectTo` so the person lands back where they
-were trying to go. It waits on three conditions before firing, each of which caused a real bug:
-it holds while the session is still being restored, so a slow restore cannot flash a signed-in
-user to the login screen; it fires only for the focused screen, because tab groups keep screens
-mounted off-focus and an unfocused screen would otherwise redirect out from under the one you
-are looking at; and it holds during sign-out.
+**The auth gate** is `useRequireAuth(redirectTo)`. It replaces the current route with `/login`
+and carries the caller's own path as `redirectTo`, so the person lands back where they were
+going.
+
+It holds that redirect back in three cases:
+
+- while the session is still restoring, so a slow restore cannot flash a signed-in user to the
+  login screen;
+- on any screen that is not focused, because tab groups keep screens mounted off-focus and a
+  stale redirect would fire after that screen had already navigated elsewhere;
+- during sign-out.
 
 **`redirectTo` is validated, not trusted.** `getSafeRedirectTarget` accepts only a path
 beginning with a single `/`, and re-resolves it to confirm it cannot escape the app's origin.
@@ -124,18 +128,18 @@ Anything else — an absolute URL, a protocol-relative `//host` — is dropped a
 back to `/products`. Treat that function as the boundary: a new caller passing a
 `redirectTo` from anywhere external must go through it.
 
-**Onboarding is enforced in two places, deliberately.** `routeAuthenticatedUser` sends a fresh
-sign-in to `/onboarding` when the account has no username, and a root-level effect in
-`_layout.tsx` re-checks on every path change. The second one exists because an account can
-reach a signed-in state without passing through the sign-in screen — an OAuth callback, or a
-restored session — and the username is required before the account can own records. The same
-effect bounces you off `/onboarding` once a username exists, so the screen cannot be revisited.
+**Two separate checks enforce onboarding, deliberately.** `routeAuthenticatedUser` sends a
+fresh sign-in to `/onboarding` when the account has no username. A root-level effect in
+`_layout.tsx` then re-checks on every path change, because an account can reach a signed-in
+state without passing the sign-in screen at all: an OAuth callback, or a restored session. An
+account needs a username before it can own records. That same effect bounces you off
+`/onboarding` once a username exists, so nobody can revisit the screen.
 
 ## Recording a product
 
-Record creation is capture-first: photograph and name the thing, save it immediately, then fill
-in detail on the record that now exists. The alternative — a long form that only becomes a
-record on submit — loses work when a lab session gets interrupted.
+Record creation is capture-first: photograph and name the product, save it straight away, then
+fill in the detail on the record that now exists. An interrupted lab session therefore loses at
+most the photographs and the name, never a part-filled form.
 
 ```mermaid
 ---
@@ -155,13 +159,15 @@ graph LR
     Component --> Capture
 ```
 
-The transition into the detail screen is a `replace`, not a `push`: the capture screen has
-served its purpose and should not sit in the back stack, where "back" from a saved record would
-return to a form for creating it again. Leaving the capture screen with unsaved input prompts
-first, and the same flag that permits a discard also permits the post-save replace.
+The move into the detail screen is a `replace`, not a `push`. The capture screen has served its
+purpose, and leaving it in the back stack would make "back" from a saved record return to a
+form for creating that record again. Leaving the capture screen with unsaved input prompts
+first; the flag that permits a discard also permits the post-save replace.
 
 Adding a component runs the identical path one level down, from `/products/[id]` or
-`/components/[id]`. Component depth is not limited.
+`/components/[id]`. Nesting is not capped, but the breadcrumb trail is: `useAncestorTrail` walks
+at most 12 ancestors before it stops, so a deeper record shows a truncated trail rather than a
+complete one.
 
 ## Rules a routing change has to keep
 
@@ -169,13 +175,13 @@ Adding a component runs the identical path one level down, from `/products/[id]`
 targets another navigator by swapping the whole tab navigator out, which resets every tab's
 trail. Within one tab's stack, `replace` is fine and is what the capture flow uses.
 
-**The category picker returns, it does not redirect.** It is pushed from the capture screen and
-from a detail screen's type field, and both expect to be returned to with a selection. It is a
-root-level screen so that either caller can reach it without joining its tab's trail.
+**The category picker returns; it does not redirect.** The capture screen and a detail screen's
+type field both push it, and both expect it to come back with a selection. It sits on the root
+stack so that either caller can reach it without joining that caller's tab trail.
 
 **Public profiles come back to `/products`.** `/users/[username]` sits outside the tabs, so its
-header back button explicitly navigates to `/products` rather than popping — there may be
-nothing to pop back to when the route is opened from a shared link.
+header back button navigates to `/products` rather than popping. A shared link can open the
+route with nothing to pop back to.
 
 **Detail screens are anchored-scroll documents.** Sections self-register and the chips (phone)
 or outline (large web) scroll to them. They are not sub-routes, so adding a section does not add
