@@ -3,6 +3,12 @@ title: Data model overview
 description: The major Relab entities and the relationships between them.
 ---
 
+import UserManagement from '@/components/datamodel/user-management.generated.mdx';
+import ReferenceData from '@/components/datamodel/reference-data.generated.mdx';
+import DataCollection from '@/components/datamodel/data-collection.generated.mdx';
+import FileStorage from '@/components/datamodel/file-storage.generated.mdx';
+import CameraPlugin from '@/components/datamodel/camera-plugin.generated.mdx';
+
 ```mermaid
 ---
 config:
@@ -61,42 +67,19 @@ graph TD
     class File,Image,Video MediaFill;
 ```
 
-The full data schema is broken up into four modules: user management, reference data management, data collection, and file storage.
+The full data schema is broken up by bounded context: user management, reference data, data collection, file storage, and the camera plugin.
+
+The diagram above is drawn by hand and simplifies on purpose. The per-context diagrams below are generated from the ORM metadata by `backend/scripts/generate/export_datamodel.py`, so they list every column and every foreign key as it actually exists. `just check` fails if they fall behind the models.
 
 ## User management
 
 This part covers user accounts, linked OAuth accounts, and ownership and access control. It is kept separate from the research entities so account details stay out of the product model.
 
-```mermaid
-erDiagram
-    accTitle: User management entities
-    accDescr: A USER has a unique id, email, canonical email, hashed password, active/superuser/verified flags, and an optional unique username; each USER can have zero or more OAUTHACCOUNT records storing the OAuth provider name, access and refresh tokens, expiry, and the linked provider account id and email.
-    USER {
-        uuid id PK
-        varchar email UK
-        varchar email_canonical UK
-        varchar hashed_password
-        boolean is_active
-        boolean is_superuser
-        boolean is_verified
-        varchar username UK "nullable for OAuth onboarding, indexed"
-    }
-
-    OAUTHACCOUNT {
-        uuid id PK
-        uuid user_id FK
-        varchar oauth_name
-        varchar access_token
-        integer expires_at
-        varchar refresh_token
-        varchar account_id
-        varchar account_email
-    }
-
-    USER ||--o{ OAUTHACCOUNT : "has"
-```
+<UserManagement />
 
 Usernames are unique and indexed for fast public profile lookup. They are nullable only while an OAuth-created account is completing onboarding; password registration requires a username up front.
+
+`hashed_password` and `mfa_totp_secret` appear in no read schema, so they are never serialized into a response; the TOTP secret is encrypted at rest on top of that. `profile_stats` is a cached aggregate, stamped by `profile_stats_computed_at` rather than recomputed per request, and `upload_file_count` and `upload_total_bytes` are the per-account upload quota ledger.
 
 ## Reference data
 
@@ -104,68 +87,9 @@ This part contains the shared reference layer used to keep records more consiste
 
 These records are shared across users and products. They are not the research record itself, but they make the research record easier to search, compare, and reuse.
 
-```mermaid
-erDiagram
-    accTitle: Reference data entities and relationships
-    accDescr: PRODUCTTYPE and MATERIAL are each linked to PRODUCT and to CATEGORY through join tables; CATEGORY can nest under a parent CATEGORY and belongs to a TAXONOMY, which declares one or more domains such as products or materials.
-    PRODUCTTYPE {
-        integer id PK
-        varchar name
-        varchar description
-    }
+<ReferenceData />
 
-    MATERIAL {
-        integer id PK
-        varchar name
-        varchar description
-        varchar source
-        float density_kg_m3
-        boolean is_crm
-    }
-
-    MATERIALPRODUCTLINK {
-        integer material_id PK, FK
-        integer product_id PK, FK
-        float quantity
-        unit unit "g, kg, m, cm"
-    }
-
-    CATEGORY {
-        integer id PK
-        varchar name
-        varchar description
-        integer taxonomy_id FK
-        integer supercategory_id FK
-    }
-
-    CATEGORYMATERIALLINK {
-        integer category_id PK, FK
-        integer material_id PK, FK
-    }
-
-    CATEGORYPRODUCTTYPELINK {
-        integer category_id PK, FK
-        integer product_type_id PK, FK
-    }
-
-    TAXONOMY {
-        integer id PK
-        varchar name
-        varchar description
-        taxonomydomain domains[] "products, materials, other"
-        varchar source
-    }
-
-    PRODUCT  }o--|| PRODUCTTYPE : "is type of"
-    MATERIAL ||--o{ MATERIALPRODUCTLINK : "is part of"
-    PRODUCT ||--o{ MATERIALPRODUCTLINK : "contains"
-    CATEGORY ||--o{ CATEGORYMATERIALLINK : "contains"
-    MATERIAL ||--o{ CATEGORYMATERIALLINK : "is linked to"
-    CATEGORY ||--o{ CATEGORYPRODUCTTYPELINK : "contains"
-    PRODUCTTYPE ||--o{ CATEGORYPRODUCTTYPELINK : "is linked to"
-    TAXONOMY ||--o{ CATEGORY : "defines"
-    CATEGORY ||--o{ CATEGORY : "is subcategory of"
-```
+The join table that records how much of a material sits in a product is `materialproductlink`, and it belongs to data collection rather than here: it carries a measurement, not a classification. It appears in the next diagram.
 
 ## Data collection
 
@@ -179,85 +103,18 @@ Important characteristics:
 - ownership is attached to the user level
 - materials, product types, and media can be linked without making every field mandatory
 
-```mermaid
-erDiagram
-    accTitle: Data collection entities and relationships
-    accDescr: Each USER owns zero or more RPI_CAMERA and PRODUCT records; a PRODUCT carries name, brand, model, physical dimensions, and circularity properties directly, can reference a parent PRODUCT to form a component hierarchy, is typed by PRODUCTTYPE, and can contain zero or more VIDEO records.
-    RPI_CAMERA {
-        uuid id PK
-        varchar name
-        varchar description
-        jsonb relay_public_key_jwk
-        varchar relay_key_id
-        cameracredentialstatus relay_credential_status "active, revoked"
-        uuid owner_id FK
-    }
-
-    PRODUCT {
-        integer id PK
-        varchar name
-        varchar description
-        varchar brand
-        varchar model
-        float weight_g
-        float height_cm
-        float width_cm
-        float depth_cm
-        jsonb circularity_properties
-        integer parent_id FK
-        integer amount_in_parent
-        integer product_type_id FK
-        integer owner_id FK
-    }
-
-    VIDEO {
-        integer id PK
-        varchar url
-        varchar description
-        integer product_id FK
-        jsonb video_metadata
-        varchar title
-    }
-
-    USER ||--o{ RPI_CAMERA : "owns"
-    USER ||--o{ PRODUCT : "owns"
-    PRODUCT ||--o{ VIDEO : "contains"
-    PRODUCT ||--o{ PRODUCT : "is part of"
-```
+<DataCollection />
 
 ## File storage and media
 
 Images often carry a large part of the evidential value of a product record, so media is modeled as part of the record itself. Files and images support polymorphic associations, allowing them to be linked to products, materials, or product types. Videos are linked via URLs rather than stored directly.
 
-```mermaid
-erDiagram
-    accTitle: File and image storage entities
-    accDescr: FILE and IMAGE records store a filename, storage path, upload size in bytes, and a parent_type plus parent_id pair that polymorphically links each record to a PRODUCT, MATERIAL, or PRODUCTTYPE; IMAGE additionally stores image metadata as JSON.
-    FILE {
-        uuid id PK
-        varchar description
-        varchar filename
-        varchar file
-        integer upload_size_bytes
-        fileparenttype parent_type "product, material, product_type"
-        integer parent_id
-    }
+<FileStorage />
 
-    IMAGE {
-        uuid id PK
-        varchar description
-        varchar filename
-        varchar file
-        integer upload_size_bytes
-        imageparenttype parent_type "product, material, product_type"
-        integer parent_id
-        jsonb image_metadata
-    }
+`video` sits in this context even though a video is attached to a product: what the platform stores is a URL and its metadata, so the row is a media reference like the other two.
 
-    PRODUCT ||--o{ FILE : "contains"
-    MATERIAL ||--o{ FILE : "contains"
-    PRODUCTTYPE ||--o{ FILE : "contains"
-    PRODUCT ||--o{ IMAGE : "contains"
-    MATERIAL ||--o{ IMAGE : "contains"
-    PRODUCTTYPE ||--o{ IMAGE : "contains"
-```
+## Camera plugin
+
+The Raspberry Pi camera integration owns two tables. `camera` holds a paired device and the relay credential that authenticates it; `recording_session` links a live broadcast to the video row it produces. [RPi camera plugin](/architecture/rpi-cam/) covers the pairing and streaming path these tables support.
+
+<CameraPlugin />

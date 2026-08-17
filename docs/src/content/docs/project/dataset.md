@@ -38,6 +38,9 @@ Curated releases will have a defined scope, version, and license, so they can be
 with other open industrial-ecology datasets. The planned license is
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). No release has been published yet.
 
+The [dataset codebook](/project/codebook/) documents every file and column a release carries, so
+the shape of one can be read before the first release exists.
+
 ## Dublin Core metadata
 
 Following the [Dublin Core specifications](https://www.dublincore.org/specifications/dublin-core/):
