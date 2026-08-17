@@ -39,9 +39,13 @@ test.describe('Landing page content', () => {
 
     // Live builds may feature a product with no recorded subcomponents, so
     // only the fixture build (which commits two expandable parts) asserts.
-    if ((await page.locator('[data-fixture-note]').count()) === 0) {
-      return;
-    }
+    // Skip (not silently pass) outside the fixture build, so a broken
+    // assertion can't hide behind a vacuous pass.
+    // biome-ignore lint/suspicious/noSkippedTests: conditional on the build, not a disabled test
+    test.skip(
+      (await page.locator('[data-fixture-note]').count()) === 0,
+      'requires the committed fixture build (two expandable parts)',
+    );
     const group = page.locator('.blueprint-part-group').first();
     await expect(group.locator('.blueprint-subparts')).not.toBeVisible();
     await group.locator('summary').click();
