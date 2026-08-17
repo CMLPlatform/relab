@@ -1,4 +1,5 @@
 import { View, type ViewStyle } from 'react-native';
+import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
@@ -65,14 +66,18 @@ export function SaveBar({
       className="flex-row items-center gap-3 rounded-lg border border-border bg-background px-4 py-2"
     >
       {needsAttention ? (
-        <AppButton variant="ghost" onPress={onErrorSummaryPress ?? onPrimaryPress}>
-          {`${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`}
-        </AppButton>
+        <Animated.View entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}>
+          <AppButton variant="ghost" onPress={onErrorSummaryPress ?? onPrimaryPress}>
+            {`${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`}
+          </AppButton>
+        </Animated.View>
       ) : null}
       {blockedByValidation && validationError ? (
-        <AppText variant="label" className="text-destructive">
-          {validationError}
-        </AppText>
+        <Animated.View entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}>
+          <AppText variant="label" className="text-destructive">
+            {validationError}
+          </AppText>
+        </Animated.View>
       ) : null}
       <AppButton
         variant="primary"

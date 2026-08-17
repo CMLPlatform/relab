@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import { Platform, Pressable, type StyleProp, View, type ViewStyle } from 'react-native';
+import Animated, { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { Fab } from '@/components/base/Fab';
 import { OverlaySurface } from '@/components/base/OverlaySurface';
@@ -244,14 +245,26 @@ function SaveBlockedTooltip({
         {children}
       </Pressable>
       {visible ? (
-        <OverlaySurface
-          tone="scrim"
-          style={[styles.tooltipBubble, { backgroundColor: theme.colors.inverseSurface }]}
+        // The absolute anchor styles live on the Animated.View: an absolute
+        // child resolves against its direct parent in RN, and an unpositioned
+        // wrapper here is a zero-height box that would drop the bubble onto
+        // the FAB instead of above it. pointerEvents="none" keeps the bubble
+        // from eating FAB taps during its 1.5s hold.
+        <Animated.View
+          entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
+          exiting={FadeOut.duration(100).reduceMotion(ReduceMotion.System)}
+          style={styles.tooltipAnchor}
+          pointerEvents="none"
         >
-          <AppText testID="tooltip" style={{ color: theme.colors.inverseOnSurface }}>
-            {title}
-          </AppText>
-        </OverlaySurface>
+          <OverlaySurface
+            tone="scrim"
+            style={[styles.tooltipBubble, { backgroundColor: theme.colors.inverseSurface }]}
+          >
+            <AppText testID="tooltip" style={{ color: theme.colors.inverseOnSurface }}>
+              {title}
+            </AppText>
+          </OverlaySurface>
+        </Animated.View>
       ) : null}
     </View>
   );
@@ -270,11 +283,13 @@ const styles = {
     ...baseFabStyle,
     right: 0,
   } satisfies ViewStyle,
-  tooltipBubble: {
+  tooltipAnchor: {
     position: 'absolute',
     bottom: '100%',
     right: 0,
     marginBottom: spacing.sm,
+  } satisfies ViewStyle,
+  tooltipBubble: {
     maxWidth: 220,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

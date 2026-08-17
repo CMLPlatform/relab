@@ -112,7 +112,7 @@ export function LoginFormSection({
             className="border px-3 py-2.5"
             style={{ borderColor: error ? theme.tokens.status.danger : theme.colors.outline }}
           />
-          <FormFieldError errorId="login-email-error" message={error?.message} />
+          <FormFieldError errorId="login-email-error" message={error?.message} reserveSpace />
         </View>
       );
     },
@@ -145,7 +145,7 @@ export function LoginFormSection({
             className="border px-3 py-2.5"
             style={{ borderColor: error ? theme.tokens.status.danger : theme.colors.outline }}
           />
-          <FormFieldError errorId="login-password-error" message={error?.message} />
+          <FormFieldError errorId="login-password-error" message={error?.message} reserveSpace />
         </View>
       );
     },

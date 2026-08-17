@@ -42,7 +42,7 @@ export function ControlledTextField<T extends FieldValues>({
             {...describedBy(errorId, Boolean(error?.message))}
             {...inputProps}
           />
-          <FormFieldError errorId={errorId} message={error?.message} />
+          <FormFieldError errorId={errorId} message={error?.message} reserveSpace />
         </View>
       )}
     />

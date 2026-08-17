@@ -129,9 +129,10 @@ overlays legible on mobile.
 
 - **Touch floor 44/48px**, 8px minimum gaps, 4/8px spacing rhythm. Sharpness
   comes from tighter section spacing and hairlines, never smaller tap targets.
-- **Motion is functional**: 150–300ms, ease-out entering / ease-in exiting;
-  press feedback via opacity/state-layer with no layout shift; overlays animate
-  from their trigger; `prefers-reduced-motion` respected.
+- **Motion is functional**: 150–300ms, ease-out entering, exits as faster
+  plain fades (shorter than their entrance); press feedback via
+  opacity/state-layer with no layout shift; overlays animate from their
+  trigger; `prefers-reduced-motion` respected.
 - **Dark mode in parity**: desaturated tonal surfaces, borders visible in both
   schemes, scrim strong enough to isolate overlays.
 

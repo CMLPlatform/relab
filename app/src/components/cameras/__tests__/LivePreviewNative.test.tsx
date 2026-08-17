@@ -11,7 +11,7 @@
  */
 
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { act, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { LivePreview, PreviewErrorBoundary } from '@/components/cameras/LivePreview';
 import { mockPlatform, renderWithProviders } from '@/test-utils/index';
 
@@ -34,7 +34,16 @@ jest.mock('@/features/cameras/rpi/hooks', () => ({
 // setup callback against a fresh ``{ muted, loop, play }`` object. ``VideoView``
 // renders as a ``View`` with a test id so we can assert on props.
 
-const mockVideoPlayerInstance = { muted: false, loop: false, play: jest.fn(), release: jest.fn() };
+const mockVideoPlayerInstance = {
+  muted: false,
+  loop: false,
+  play: jest.fn(),
+  release: jest.fn(),
+  replaceAsync: jest.fn(() => Promise.resolve()),
+  // NativeHlsVideo subscribes to `statusChange` via expo's useEvent.
+  status: 'readyToPlay',
+  addListener: jest.fn(() => ({ remove: jest.fn() })),
+};
 const mockUseVideoPlayer = jest.fn(
   (
     _url: string,
@@ -76,6 +85,7 @@ describe('LivePreview', () => {
     mockPlatform('ios');
     mockVideoPlayerInstance.muted = false;
     mockVideoPlayerInstance.loop = false;
+    mockVideoPlayerInstance.status = 'readyToPlay';
     mockVideoPlayerInstance.release.mockReset();
     mockUseCameraLivePreview.mockReturnValue({ hlsUrl: HLS_URL });
   });
@@ -156,6 +166,40 @@ describe('LivePreview', () => {
 
     const videoView = screen.getByTestId('video-view');
     expect(videoView.props.accessibilityHint).toBe('contain');
+  });
+
+  // ── Status overlays ────────────────────────────────────────────────────────
+
+  it('shows the loading overlay while the player is loading', () => {
+    mockVideoPlayerInstance.status = 'loading';
+
+    renderWithProviders(<LivePreview camera={CAMERA} />);
+
+    expect(screen.getByText('Loading preview…')).toBeOnTheScreen();
+  });
+
+  it('shows no overlay once the player is ready', () => {
+    renderWithProviders(<LivePreview camera={CAMERA} />);
+
+    expect(screen.queryByText('Loading preview…')).toBeNull();
+    expect(screen.queryByText(/Couldn't load the preview/)).toBeNull();
+  });
+
+  it('error overlay retry replaces the source and resumes playback', async () => {
+    mockVideoPlayerInstance.status = 'error';
+
+    renderWithProviders(<LivePreview camera={CAMERA} />);
+
+    expect(screen.getByText("Couldn't load the preview")).toBeOnTheScreen();
+    fireEvent.press(screen.getByText('Tap to retry'));
+    expect(mockVideoPlayerInstance.replaceAsync).toHaveBeenCalled();
+    // The setup callback also calls play() on each (re)render, so counts are
+    // racy — the retry contract is that a play() FOLLOWS the replaceAsync.
+    await waitFor(() => {
+      const replaceOrder = mockVideoPlayerInstance.replaceAsync.mock.invocationCallOrder[0];
+      const playOrders = mockVideoPlayerInstance.play.mock.invocationCallOrder;
+      expect(playOrders.some((order) => order > replaceOrder)).toBe(true);
+    });
   });
 
   // Regression: expo-video's useVideoPlayer releases the player itself on

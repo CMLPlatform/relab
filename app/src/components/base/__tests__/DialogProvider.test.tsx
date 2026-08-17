@@ -360,6 +360,38 @@ describe('DialogProvider', () => {
     });
   });
 
+  it('repeating the same toast message resets the dismiss timer', async () => {
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => dialog.toast('Saved'));
+    }
+
+    renderWithProviders(<ToastTest />, { withDialog: true });
+
+    await user.press(screen.getByTestId('trigger'));
+    expect(screen.getByText('Saved')).toBeOnTheScreen();
+
+    // ~3s in, fire the identical message again — the 4s timer must restart.
+    act(() => {
+      jest.advanceTimersByTime(3000);
+    });
+    await user.press(screen.getByTestId('trigger'));
+
+    // 2s after the second fire (5s after the first): still visible.
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    expect(screen.getByText('Saved')).toBeOnTheScreen();
+
+    // And it still auto-dismisses 4s after the second fire.
+    act(() => {
+      jest.advanceTimersByTime(2100);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText('Saved')).toBeNull();
+    });
+  });
+
   it('toast() announces on iOS, where accessibilityLiveRegion does nothing', async () => {
     const announce = jest
       .spyOn(AccessibilityInfo, 'announceForAccessibility')

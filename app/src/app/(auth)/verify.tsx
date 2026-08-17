@@ -1,4 +1,9 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
+
+// Shared by the error and success branches so the two outcomes can't drift apart.
+const RESULT_FADE = FadeIn.duration(250).reduceMotion(ReduceMotion.System);
+
 import { AuthCard } from '@/components/auth/AuthCardSections';
 import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
@@ -19,34 +24,38 @@ export default function VerifyEmailScreen() {
         ) : null}
 
         {error && !isLoading && (
-          <View className="gap-3 items-center">
-            <AppText variant="body" className="text-destructive text-center">
-              {error}
-            </AppText>
-            <AppButton variant="primary" onPress={goHome}>
-              Back to home
-            </AppButton>
-          </View>
+          <Animated.View entering={RESULT_FADE}>
+            <View className="gap-3 items-center">
+              <AppText variant="body" className="text-destructive text-center">
+                {error}
+              </AppText>
+              <AppButton variant="primary" onPress={goHome}>
+                Back to home
+              </AppButton>
+            </View>
+          </Animated.View>
         )}
 
         {success && !isLoading && (
-          <View className="gap-3 items-center">
-            <AppText variant="body" className="text-primary text-center">
-              Email verified!
-            </AppText>
-            {isLoggedIn ? (
-              <AppText variant="body">Taking you to your products…</AppText>
-            ) : (
-              <>
-                <AppText variant="body" className="text-center">
-                  If you signed up in the app, you're still signed in there — just head back.
-                </AppText>
-                <AppButton variant="primary" onPress={goToLogin}>
-                  Sign in here
-                </AppButton>
-              </>
-            )}
-          </View>
+          <Animated.View entering={RESULT_FADE}>
+            <View className="gap-3 items-center">
+              <AppText variant="body" className="text-primary text-center">
+                Email verified!
+              </AppText>
+              {isLoggedIn ? (
+                <AppText variant="body">Taking you to your products…</AppText>
+              ) : (
+                <>
+                  <AppText variant="body" className="text-center">
+                    If you signed up in the app, you're still signed in there — just head back.
+                  </AppText>
+                  <AppButton variant="primary" onPress={goToLogin}>
+                    Sign in here
+                  </AppButton>
+                </>
+              )}
+            </View>
+          </Animated.View>
         )}
       </AuthCard>
     </AuthScreen>

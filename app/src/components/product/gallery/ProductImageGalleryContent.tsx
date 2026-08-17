@@ -77,6 +77,18 @@ export function ProductImageGalleryContent({
     [galleryRef],
   );
   const getItemLayout = useMemo(() => makeHorizontalItemLayout(width), [width]);
+  const rpiButtonStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [
+      styles.overlayIconButton,
+      { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
+      pressed && { opacity: 0.7 },
+    ],
+    [styles, isCapturing, rpiCamerasLoading],
+  );
+  const deleteButtonStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [styles.deleteButton, pressed && { opacity: 0.7 }],
+    [styles],
+  );
   const renderItem = useCallback(
     ({ item, index }: { item: GalleryItem; index: number }) => (
       <GalleryImageItem
@@ -156,10 +168,7 @@ export function ProductImageGalleryContent({
                   hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
                 }
                 className="h-9 w-9 items-center justify-center rounded-full"
-                style={[
-                  styles.overlayIconButton,
-                  { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
-                ]}
+                style={rpiButtonStyle}
               >
                 {isCapturing || rpiCamerasLoading ? (
                   <ActivityIndicator size={18} color={theme.tokens.text.onMedia} />
@@ -174,7 +183,7 @@ export function ProductImageGalleryContent({
             onPress={onDeleteImage}
             accessibilityLabel="Delete photo"
             className="absolute top-3 right-3 h-9 w-9 items-center justify-center rounded-full"
-            style={styles.deleteButton}
+            style={deleteButtonStyle}
           >
             <Icon name="trash-2" size="md" color={theme.tokens.text.onMedia} />
           </Pressable>
@@ -236,12 +245,16 @@ function OverlayActionButton({
 }) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
+  const pressableStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [styles.overlayIconButton, pressed && { opacity: 0.7 }],
+    [styles],
+  );
   return (
     <Pressable
       onPress={onPress}
       accessibilityLabel={label}
       className="h-9 w-9 items-center justify-center rounded-full"
-      style={styles.overlayIconButton}
+      style={pressableStyle}
     >
       <Icon name={icon} size="md" color={theme.tokens.text.onMedia} />
     </Pressable>
@@ -263,6 +276,15 @@ function GalleryNavButton({
 }) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
+  const pressableStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [
+      styles.navButton,
+      style,
+      { opacity: disabled ? 0.3 : 1 },
+      pressed && { opacity: 0.7 },
+    ],
+    [styles, style, disabled],
+  );
   return (
     <Pressable
       onPress={onPress}
@@ -270,7 +292,7 @@ function GalleryNavButton({
       disabled={disabled}
       hitSlop={15}
       className="absolute top-1/2 mt-[-22px] h-11 w-11 items-center justify-center rounded-full"
-      style={[styles.navButton, style, { opacity: disabled ? 0.3 : 1 }]}
+      style={pressableStyle}
     >
       <Icon
         name={direction === 'left' ? 'chevron-left' : 'chevron-right'}

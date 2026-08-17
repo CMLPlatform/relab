@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { memo, useCallback } from 'react';
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
+import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { useAppTheme } from '@/theme';
 import {
@@ -59,14 +60,29 @@ export function ProductImageThumbnails({
 
   return (
     <View className="mt-3 px-4">
-      <GalleryFlatList
-        ref={setThumbsRef}
-        data={items}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={galleryItemKeyExtractor}
-        renderItem={renderItem}
-      />
+      {/* Component-level platform split, not a web-undefined animation prop:
+          reanimated's web layout-animation path crashes on FlatList hosts (see
+          the products-list-fade comment in products-screen/ListContent.tsx). */}
+      {Platform.OS === 'web' ? (
+        <GalleryFlatList
+          ref={setThumbsRef}
+          data={items}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={galleryItemKeyExtractor}
+          renderItem={renderItem}
+        />
+      ) : (
+        <Animated.FlatList
+          ref={setThumbsRef as React.Ref<Animated.FlatList<GalleryItem>>}
+          data={items}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={galleryItemKeyExtractor}
+          renderItem={renderItem}
+          itemLayoutAnimation={LinearTransition.duration(200).reduceMotion(ReduceMotion.System)}
+        />
+      )}
     </View>
   );
 }
@@ -93,13 +109,24 @@ const ThumbnailItem = memo(function ThumbnailItem({
     onScrollToIndex(index);
   }, [onSelectIndex, onScrollToIndex, index]);
 
+  const pressableStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [
+      { borderColor: selected ? selectedBorderColor : 'transparent' },
+      pressed && { opacity: 0.7 },
+    ],
+    [selected, selectedBorderColor],
+  );
+
+  // No per-item entering fade: entering fires on every MOUNT, and FlatList
+  // windowing mounts items during ordinary scroll — the fade would flicker
+  // there. LinearTransition on the list already animates real add/delete.
   return (
     <Pressable
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`Select ${altText}`}
       className="mr-2 overflow-hidden rounded-md border-2"
-      style={{ borderColor: selected ? selectedBorderColor : 'transparent' }}
+      style={pressableStyle}
     >
       {uri ? (
         // Decorative: the wrapping Pressable already carries the descriptive label.

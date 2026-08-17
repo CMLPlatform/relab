@@ -1,6 +1,7 @@
 import { usePathname } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/base/AppText';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
@@ -102,42 +103,48 @@ export function ActiveStreamBanner() {
         className="items-center left-4"
         style={{ position: getFloatingPosition(), bottom: bottomInset, right: rightInset }}
         pointerEvents="box-none"
+        collapsable={false}
       >
-        <Pressable
-          ref={bannerRef}
-          className="flex-row items-center gap-2 rounded-lg px-3.5 py-2.5"
-          style={[
-            styles.banner,
-            {
-              backgroundColor: theme.tokens.surface.sunken,
-              ...(Platform.OS === 'web'
-                ? { boxShadow: `0px 0px 8px ${theme.tokens.status.live}` }
-                : { shadowColor: theme.tokens.status.live }),
-            },
-          ]}
-          onPress={openSheet}
-          accessibilityRole="button"
-          accessibilityLabel="Manage live stream"
+        <Animated.View
+          entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
+          exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
         >
-          <View
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: theme.tokens.status.live }}
-          />
-          <AppText
-            variant="label"
-            className="flex-1 font-semibold"
-            style={[styles.label, { color: theme.colors.inverseOnSurface }]}
-            numberOfLines={1}
+          <Pressable
+            ref={bannerRef}
+            className="flex-row items-center gap-2 rounded-lg px-3.5 py-2.5"
+            style={[
+              styles.banner,
+              {
+                backgroundColor: theme.tokens.surface.sunken,
+                ...(Platform.OS === 'web'
+                  ? { boxShadow: `0px 0px 8px ${theme.tokens.status.live}` }
+                  : { shadowColor: theme.tokens.status.live }),
+              },
+            ]}
+            onPress={openSheet}
+            accessibilityRole="button"
+            accessibilityLabel="Manage live stream"
           >
-            {activeStream.productName}
-          </AppText>
-          <AppText
-            variant="data"
-            style={[styles.elapsed, { color: theme.tokens.text.inverseMuted }]}
-          >
-            {elapsed}
-          </AppText>
-        </Pressable>
+            <View
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: theme.tokens.status.live }}
+            />
+            <AppText
+              variant="label"
+              className="flex-1 font-semibold"
+              style={[styles.label, { color: theme.colors.inverseOnSurface }]}
+              numberOfLines={1}
+            >
+              {activeStream.productName}
+            </AppText>
+            <AppText
+              variant="data"
+              style={[styles.elapsed, { color: theme.tokens.text.inverseMuted }]}
+            >
+              {elapsed}
+            </AppText>
+          </Pressable>
+        </Animated.View>
       </View>
 
       <StreamingSheet visible={sheetVisible} onDismiss={closeSheet} session={activeStream} />

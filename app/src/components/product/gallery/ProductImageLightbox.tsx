@@ -19,6 +19,7 @@ import {
   View,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { Easing, ReduceMotion, ZoomIn } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
@@ -37,6 +38,8 @@ import {
   type ScrollEvent,
   scrollListToIndex,
 } from './shared';
+
+const chevronPressableStyle = ({ pressed }: { pressed: boolean }) => pressed && { opacity: 0.7 };
 
 type Props = {
   visible: boolean;
@@ -204,22 +207,36 @@ export function ProductImageLightbox({
   }, []);
   const getItemLayout = useMemo(() => makeHorizontalItemLayout(screenWidth), [screenWidth]);
   const renderItem = useCallback(
-    ({ item, index }: { item: GalleryItem; index: number }) => (
+    ({ item, index: itemIndex }: { item: GalleryItem; index: number }) => (
       <LightboxSlide
         uri={item.largeUrl}
-        altText={galleryItemAltText(item, index, items.length, fallbackLabel)}
+        altText={galleryItemAltText(item, itemIndex, items.length, fallbackLabel)}
         screenWidth={screenWidth}
         screenHeight={screenHeight}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         setIsZoomed={setIsZoomed}
         navigateBy={navigateBy}
+        active={itemIndex === index}
       />
     ),
-    [items, fallbackLabel, screenWidth, screenHeight, handleTouchStart, handleTouchEnd, navigateBy],
+    [
+      items,
+      fallbackLabel,
+      screenWidth,
+      screenHeight,
+      handleTouchStart,
+      handleTouchEnd,
+      navigateBy,
+      index,
+    ],
   );
   const goPrev = useCallback(() => navigateBy(-1), [navigateBy]);
   const goNext = useCallback(() => navigateBy(1), [navigateBy]);
+  const closeButtonStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [styles.closeButton, pressed && { opacity: 0.7 }],
+    [styles],
+  );
 
   if (!visible) return null;
 
@@ -232,72 +249,82 @@ export function ProductImageLightbox({
       statusBarTranslucent={true}
     >
       <GestureHandlerRootView style={styles.root}>
-        <Pressable
-          onPress={handleClose}
-          hitSlop={20}
-          accessibilityLabel="Close lightbox"
-          className="absolute top-10 right-5 z-10 rounded-full w-11 h-11 justify-center items-center"
-          style={styles.closeButton}
+        <Animated.View
+          style={styles.root}
+          entering={ZoomIn.duration(200)
+            .withInitialValues({ transform: [{ scale: 0.94 }] })
+            .easing(Easing.out(Easing.cubic))
+            .reduceMotion(ReduceMotion.System)}
         >
-          <Icon name="x" size={28} color={theme.tokens.text.onMedia} />
-        </Pressable>
+          <Pressable
+            onPress={handleClose}
+            hitSlop={20}
+            accessibilityLabel="Close lightbox"
+            className="absolute top-10 right-5 z-10 rounded-full w-11 h-11 justify-center items-center"
+            style={closeButtonStyle}
+          >
+            <Icon name="x" size={28} color={theme.tokens.text.onMedia} />
+          </Pressable>
 
-        <GalleryFlatList
-          ref={setScrollRef}
-          testID="lightbox-pager"
-          data={items}
-          horizontal
-          pagingEnabled
-          disableIntervalMomentum={true}
-          bounces={false}
-          scrollEnabled={!(isZoomed || isTouchWeb)}
-          style={styles.list}
-          snapToInterval={screenWidth}
-          snapToAlignment="center"
-          decelerationRate="fast"
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={galleryItemKeyExtractor}
-          getItemLayout={getItemLayout}
-          onScrollBeginDrag={handleScrollBeginDrag}
-          onScrollEndDrag={handleScrollEnd}
-          onMomentumScrollEnd={handleScrollEnd}
-          renderItem={renderItem}
-        />
+          <GalleryFlatList
+            ref={setScrollRef}
+            testID="lightbox-pager"
+            data={items}
+            horizontal
+            pagingEnabled
+            disableIntervalMomentum={true}
+            bounces={false}
+            scrollEnabled={!(isZoomed || isTouchWeb)}
+            style={styles.list}
+            snapToInterval={screenWidth}
+            snapToAlignment="center"
+            decelerationRate="fast"
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={galleryItemKeyExtractor}
+            getItemLayout={getItemLayout}
+            onScrollBeginDrag={handleScrollBeginDrag}
+            onScrollEndDrag={handleScrollEnd}
+            onMomentumScrollEnd={handleScrollEnd}
+            renderItem={renderItem}
+          />
 
-        {items.length > 1 ? (
-          <View className="absolute bottom-10 w-full items-center">
-            <View className="flex-row items-center rounded-xl px-4 py-2" style={styles.footerBar}>
-              <Pressable
-                onPress={goPrev}
-                hitSlop={15}
-                className={cn('p-2', index === 0 && 'opacity-30')}
-                disabled={index === 0}
-                accessibilityRole="button"
-                accessibilityLabel="Previous image"
-              >
-                <Icon name="chevron-left" size={32} color={theme.tokens.text.onMedia} />
-              </Pressable>
+          {items.length > 1 ? (
+            <View className="absolute bottom-10 w-full items-center">
+              <View className="flex-row items-center rounded-xl px-4 py-2" style={styles.footerBar}>
+                <Pressable
+                  onPress={goPrev}
+                  hitSlop={15}
+                  className={cn('p-2', index === 0 && 'opacity-30')}
+                  style={chevronPressableStyle}
+                  disabled={index === 0}
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous image"
+                >
+                  <Icon name="chevron-left" size={32} color={theme.tokens.text.onMedia} />
+                </Pressable>
 
-              <AppText
-                className="mx-5 min-w-[60px] text-center"
-                style={{ color: theme.tokens.text.onMedia }}
-              >
-                {index + 1} / {items.length}
-              </AppText>
+                <AppText
+                  className="mx-5 min-w-[60px] text-center"
+                  style={{ color: theme.tokens.text.onMedia }}
+                >
+                  {index + 1} / {items.length}
+                </AppText>
 
-              <Pressable
-                onPress={goNext}
-                hitSlop={15}
-                className={cn('p-2', index === items.length - 1 && 'opacity-30')}
-                disabled={index === items.length - 1}
-                accessibilityRole="button"
-                accessibilityLabel="Next image"
-              >
-                <Icon name="chevron-right" size={32} color={theme.tokens.text.onMedia} />
-              </Pressable>
+                <Pressable
+                  onPress={goNext}
+                  hitSlop={15}
+                  className={cn('p-2', index === items.length - 1 && 'opacity-30')}
+                  style={chevronPressableStyle}
+                  disabled={index === items.length - 1}
+                  accessibilityRole="button"
+                  accessibilityLabel="Next image"
+                >
+                  <Icon name="chevron-right" size={32} color={theme.tokens.text.onMedia} />
+                </Pressable>
+              </View>
             </View>
-          </View>
-        ) : null}
+          ) : null}
+        </Animated.View>
       </GestureHandlerRootView>
     </Modal>
   );
@@ -312,6 +339,7 @@ const LightboxSlide = memo(function LightboxSlide({
   onTouchEnd,
   setIsZoomed,
   navigateBy,
+  active,
 }: {
   uri: string | null;
   altText: string;
@@ -321,6 +349,7 @@ const LightboxSlide = memo(function LightboxSlide({
   onTouchEnd: (event: GestureResponderEvent) => void;
   setIsZoomed: Dispatch<SetStateAction<boolean>>;
   navigateBy: (delta: number, animated?: boolean) => void;
+  active: boolean;
 }) {
   const handleSwipe = useCallback(
     (direction: number) => {
@@ -343,6 +372,7 @@ const LightboxSlide = memo(function LightboxSlide({
           accessibilityLabel={altText}
           setIsZoomed={setIsZoomed}
           onSwipe={handleSwipe}
+          active={active}
         />
       ) : (
         <ImagePlaceholder width={screenWidth} height={screenHeight} borderRadius={0} />

@@ -2,6 +2,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { useCallback, useEffect } from 'react';
 import { Pressable, type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
 import Animated, {
+  Easing,
   ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
@@ -60,7 +61,11 @@ export function Fab({
 
   useEffect(() => {
     progress.value = extended
-      ? withTiming(1, { duration: ANIMATION_DURATION, reduceMotion: ReduceMotion.System })
+      ? withTiming(1, {
+          duration: ANIMATION_DURATION,
+          easing: Easing.out(Easing.quad),
+          reduceMotion: ReduceMotion.System,
+        })
       : 0;
   }, [extended, progress]);
 

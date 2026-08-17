@@ -26,7 +26,9 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   // useReturnFocus's return-focus-on-close logic (web and native, incl. triggerRef) only
   // fires on that transition, never on unmount.
   const [visible, setVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // A fresh object per trigger: repeating the same message still produces a new
+  // identity, so the Toast effect re-runs and the dismiss timer resets.
+  const [toastState, setToastState] = useState<{ message: string } | null>(null);
   const [dialogVersion, setDialogVersion] = useState(0);
 
   const alert = useCallback<DialogContextType['alert']>((opts: DialogOptions) => {
@@ -42,7 +44,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toast = useCallback<DialogContextType['toast']>((message: string) => {
-    setToastMessage(message);
+    setToastState({ message });
   }, []);
 
   const clear = useCallback(() => {
@@ -50,7 +52,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const dismissToast = useCallback(() => {
-    setToastMessage(null);
+    setToastState(null);
   }, []);
 
   const contextValue = useMemo(() => ({ alert, input, toast }), [alert, input, toast]);
@@ -63,7 +65,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       {options ? (
         <DialogBody key={dialogVersion} options={options} visible={visible} onDismiss={clear} />
       ) : null}
-      <Toast message={toastMessage} onDismiss={dismissToast} />
+      <Toast state={toastState} onDismiss={dismissToast} />
     </DialogContext.Provider>
   );
 }
@@ -199,16 +201,20 @@ function DialogActionButton({
  * so it announces via aria-live without trapping focus or being dismissable by
  * Escape (a toast is not a dialog).
  */
-function Toast({ message, onDismiss }: { message: string | null; onDismiss: () => void }) {
+function Toast({ state, onDismiss }: { state: { message: string } | null; onDismiss: () => void }) {
   const theme = useAppTheme();
+  const message = state?.message ?? null;
 
+  // Depends on the state OBJECT, not the message string: each toast() call
+  // mints a new object, so a repeated identical message still restarts the
+  // timer (and re-announces on iOS; Android's live region ignores equal text).
   useEffect(() => {
-    if (!message) return;
+    if (!state) return;
     // accessibilityLiveRegion is Android-only; VoiceOver needs an explicit announcement.
-    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
+    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(state.message);
     const timer = setTimeout(onDismiss, TOAST_DURATION_MS);
     return () => clearTimeout(timer);
-  }, [message, onDismiss]);
+  }, [state, onDismiss]);
 
   if (!message) return null;
 

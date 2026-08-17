@@ -1,5 +1,6 @@
 import { type RefObject, useRef } from 'react';
 import { ScrollView, View } from 'react-native';
+import Animated, { ReduceMotion, ZoomIn } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
@@ -24,7 +25,13 @@ function PairingSuccessDialog({
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
       <View className="items-center gap-3 pt-6">
-        <Icon name="circle-check-big" size={56} color={theme.tokens.status.success} />
+        <Animated.View
+          entering={ZoomIn.duration(250)
+            .withInitialValues({ transform: [{ scale: 0.92 }] })
+            .reduceMotion(ReduceMotion.System)}
+        >
+          <Icon name="circle-check-big" size={56} color={theme.tokens.status.success} />
+        </Animated.View>
         <AppText variant="title" accessibilityRole="header">
           Camera paired
         </AppText>

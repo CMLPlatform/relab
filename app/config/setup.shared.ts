@@ -107,7 +107,7 @@ function mockCreateSharedValue(initialValue: unknown, noopFn: jest.Mock) {
 
 function mockCreateAnimatedComponent() {
   const React = require('react');
-  const { View, Text, Image, ScrollView } = require('react-native');
+  const { View, Text, Image, ScrollView, FlatList } = require('react-native');
   const AnimatedComponent = ({
     children,
     style,
@@ -123,6 +123,7 @@ function mockCreateAnimatedComponent() {
     Text,
     Image,
     ScrollView,
+    FlatList,
     createAnimatedComponent: (c: React.ComponentType) => c,
   });
 
@@ -160,6 +161,10 @@ jest.mock('react-native-reanimated', () => {
     FadeOut: mockCreateAnimationBuilder(),
     FadeInUp: mockCreateAnimationBuilder(),
     FadeInDown: mockCreateAnimationBuilder(),
+    FadeOutUp: mockCreateAnimationBuilder(),
+    ZoomIn: mockCreateAnimationBuilder(),
+    SlideInDown: mockCreateAnimationBuilder(),
+    LinearTransition: mockCreateAnimationBuilder(),
     __esModule: true,
     default: AnimatedComponent,
     useAnimatedStyle: mockCreateAnimatedStyleHook(),
@@ -186,6 +191,7 @@ jest.mock('react-native-reanimated', () => {
     withRepeat: (value: number) => value,
     withSequence: (...values: number[]) => values[values.length - 1],
     interpolate: (value: number) => value,
+    clamp: (value: number, min: number, max: number) => Math.min(max, Math.max(min, value)),
     Extrapolation: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
     ReduceMotion: { System: 'system', Always: 'always', Never: 'never' },
     SensorType: {
@@ -233,7 +239,17 @@ jest.mock('expo-video', () => {
       _src: string,
       init?: (instance: { muted: boolean; loop: boolean; play: () => void }) => void,
     ) => {
-      const instance = { muted: false, loop: false, play: noop };
+      // status + addListener: expo's useEvent subscribes to the player in an
+      // effect; without these, any test rendering NativeHlsVideo crashes in
+      // useEventListener instead of naming this mock.
+      const instance = {
+        muted: false,
+        loop: false,
+        play: noop,
+        replaceAsync: () => Promise.resolve(),
+        status: 'readyToPlay',
+        addListener: () => ({ remove: noop }),
+      };
       try {
         if (typeof init === 'function') init(instance);
       } catch {

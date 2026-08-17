@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import { type RefObject, useCallback } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
@@ -31,6 +31,14 @@ export function ProductImageEmptyEditState({
 }: Props) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
+  const rpiCardStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [
+      styles.emptyActionCard,
+      { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
+      pressed && { opacity: 0.85 },
+    ],
+    [styles, isCapturing, rpiCamerasLoading],
+  );
   return (
     <View className="h-[300px] flex-row gap-3">
       {showCameraOption ? (
@@ -59,7 +67,7 @@ export function ProductImageEmptyEditState({
             hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
           }
           className="flex-1 items-center justify-center rounded-lg border-2 border-dashed"
-          style={[styles.emptyActionCard, { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 }]}
+          style={rpiCardStyle}
         >
           {isCapturing || rpiCamerasLoading ? (
             <ActivityIndicator size={32} />
@@ -88,13 +96,17 @@ function EmptyActionCard({
 }) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
+  const pressableStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [styles.emptyActionCard, pressed && { opacity: 0.85 }],
+    [styles],
+  );
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       className="flex-1 items-center justify-center rounded-lg border-2 border-dashed"
-      style={styles.emptyActionCard}
+      style={pressableStyle}
     >
       <Icon name={icon} size={48} color={palette[theme.scheme].mutedForeground} />
       <AppText className="mt-2 text-muted-foreground">{label}</AppText>

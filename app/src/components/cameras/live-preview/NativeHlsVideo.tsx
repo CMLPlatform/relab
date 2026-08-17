@@ -1,7 +1,9 @@
+import { useEvent } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { View } from 'react-native';
 import { useAuthedMediaSource } from '@/services/api/authedMedia';
 import { useAppTheme } from '@/theme';
+import { PreviewErrorOverlay, PreviewLoadingOverlay } from './previewOverlays';
 import { createLivePreviewStyles } from './styles';
 
 export function NativeHlsVideo({
@@ -25,6 +27,7 @@ export function NativeHlsVideo({
     instance.loop = false;
     instance.play();
   });
+  const { status } = useEvent(player, 'statusChange', { status: player.status });
 
   return (
     <View className="relative aspect-[4/3] w-full">
@@ -34,6 +37,20 @@ export function NativeHlsVideo({
         contentFit="contain"
         nativeControls={false}
       />
+      {status === 'loading' || status === 'idle' ? <PreviewLoadingOverlay /> : null}
+      {status === 'error' ? (
+        <PreviewErrorOverlay
+          message="Couldn't load the preview"
+          onRetry={() => {
+            // Playback stopped on error and replace alone doesn't restart it.
+            // A failed retry re-enters 'error' via statusChange on its own.
+            player.replaceAsync(source).then(
+              () => player.play(),
+              () => undefined,
+            );
+          }}
+        />
+      ) : null}
     </View>
   );
 }
