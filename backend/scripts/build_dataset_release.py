@@ -253,7 +253,7 @@ class ReleaseMetadata:
     # Editorial: who the release is cut with, decided when it is cut. Not a platform
     # feature and not derived from any database flag — contributors at large are credited
     # collectively, as CC BY intends, and appear only as pseudonymous codes.
-    named_lab_contributors: tuple[str, ...] = ("Oskar Zemiolek",)
+    named_lab_contributors: tuple[str, ...] = ("Oskar Imiolek",)
     keywords: tuple[str, ...] = (
         "circular economy",
         "computer vision",
@@ -1505,7 +1505,9 @@ async def collect_inventory(session: AsyncSession, rules: SelectionRules) -> lis
     products: dict[Any, list[dict[str, Any]]] = defaultdict(list)
     for row in (await session.execute(select(*columns))).all():
         values = dict(row._mapping)  # noqa: SLF001  # documented SQLAlchemy Row accessor
-        products[values.pop("owner_id")].append(values)
+        # Group by owner without removing the key: select_records reads owner_id off each
+        # record to apply the consent and owner-exclusion rules.
+        products[values["owner_id"]].append(values)
 
     imaged_product_ids = {
         parent_id
