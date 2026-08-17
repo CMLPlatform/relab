@@ -5,15 +5,16 @@ description: Every column in a Relab dataset release, with its type and meaning.
 
 import Codebook from '@/components/datamodel/codebook.generated.mdx';
 
-This page describes the files in a published [dataset release](/project/dataset/): what each
-column holds, what its absence means, and where it should not be over-read. It is generated
-from the release schemas in `backend/scripts/build_dataset_release.py`, so it describes the
-archive the build actually produces rather than the platform's internal database. For the
-internal schema, see [Data model](/architecture/datamodel/).
+A published [dataset release](/project/dataset/) ships as a set of Parquet files. This page
+documents every column in them: what it holds, what its absence means, and how far to trust it.
 
-Every release also carries `croissant.json`, the same field descriptions in
-[MLCommons Croissant](https://mlcommons.org/working-groups/data/croissant/) form, for tools
-that read dataset metadata directly.
+The tables come from the release schemas in `backend/scripts/build_dataset_release.py`, so they
+describe the archive the build produces rather than the platform's internal database. For that
+database, see [Data model](/architecture/datamodel/).
+
+Every release also carries `croissant.json`, which repeats these descriptions in
+[MLCommons Croissant](https://mlcommons.org/working-groups/data/croissant/) form for tools that
+read dataset metadata directly.
 
 ## How to read the tables
 
@@ -29,18 +30,18 @@ that read dataset metadata directly.
 
 ## Contributor identity
 
-`owner_pseudonym` is the only trace of who recorded a row. It is a salted hash, the salt is
-not published, and contributors are credited collectively in the release `README.md` rather
-than individually.
+`owner_pseudonym` is the only trace of who recorded a row. It is a salted hash, and the salt
+stays unpublished. Each release credits its contributors collectively in its `README.md`
+rather than naming them against their rows.
 
-The same contributor keeps the same pseudonym across releases, which is what makes
-longitudinal work possible — but only across releases built with the same salt. Each release
-publishes a pseudonym salt fingerprint in its `README.md`; two releases whose fingerprints
-match have comparable pseudonyms, and two that differ do not. Check the fingerprint before
-joining on `owner_pseudonym` across releases.
+The same contributor keeps the same pseudonym from one release to the next, which is what makes
+longitudinal work possible. That holds only across releases built with the same salt. Each
+release publishes a pseudonym salt fingerprint in its `README.md`: two releases whose
+fingerprints match have comparable pseudonyms, and two that differ do not. Check the
+fingerprint before you join on `owner_pseudonym` across releases.
 
-Re-identifying contributors falls outside both the licence and the basis the release was
-published on.
+Re-identifying contributors falls outside the licence, and outside the GDPR basis the release
+was published under.
 
 ## Files
 

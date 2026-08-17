@@ -124,11 +124,11 @@ RECORDS_SCHEMA = pa.schema(
             "owner_pseudonym",
             pa.string(),
             "Stable pseudonymous code for the contributing account. Salted hash, not reversible. "
-            "Equal codes mean the same contributor, across releases that share a salt fingerprint.",
+            "Equal codes mean the same contributor across releases that share a salt fingerprint.",
             nullable=False,
         ),
         _column("name", pa.string(), "Contributor-given name of the product or component.", nullable=False),
-        _column("description", pa.string(), "Free-text notes the contributor recorded with the record."),
+        _column("description", pa.string(), "Free-text notes the contributor added."),
         _column("brand", pa.string(), "Brand as read off the product or its label; null if absent or unreadable."),
         _column("model", pa.string(), "Model or type number as read off the product; null if absent or unreadable."),
         _column("product_type_id", pa.int64(), "Row in reference/product_types.parquet; null if untyped."),

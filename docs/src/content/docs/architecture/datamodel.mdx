@@ -69,7 +69,7 @@ graph TD
 
 The full data schema is broken up by bounded context: user management, reference data, data collection, file storage, and the camera plugin.
 
-The diagram above is drawn by hand and simplifies on purpose. The per-context diagrams below are generated from the ORM metadata by `backend/scripts/generate/export_datamodel.py`, so they list every column and every foreign key as it actually exists. `just check` fails if they fall behind the models.
+Someone drew the diagram above by hand, and it simplifies on purpose. `backend/scripts/generate/export_datamodel.py` generates the per-context diagrams below from the ORM metadata, so they list every column and every foreign key the database really has. `just check` fails when they fall behind the models.
 
 ## User management
 
@@ -79,7 +79,7 @@ This part covers user accounts, linked OAuth accounts, and ownership and access 
 
 Usernames are unique and indexed for fast public profile lookup. They are nullable only while an OAuth-created account is completing onboarding; password registration requires a username up front.
 
-`hashed_password` and `mfa_totp_secret` appear in no read schema, so they are never serialized into a response; the TOTP secret is encrypted at rest on top of that. `profile_stats` is a cached aggregate, stamped by `profile_stats_computed_at` rather than recomputed per request, and `upload_file_count` and `upload_total_bytes` are the per-account upload quota ledger.
+`hashed_password` and `mfa_totp_secret` appear in no read schema, so no response ever carries them, and the TOTP secret is encrypted at rest on top of that. `profile_stats` is a cached aggregate that `profile_stats_computed_at` stamps, rather than a figure recomputed per request. `upload_file_count` and `upload_total_bytes` hold the per-account upload quota ledger.
 
 ## Reference data
 
@@ -89,7 +89,7 @@ These records are shared across users and products. They are not the research re
 
 <ReferenceData />
 
-The join table that records how much of a material sits in a product is `materialproductlink`, and it belongs to data collection rather than here: it carries a measurement, not a classification. It appears in the next diagram.
+`materialproductlink` records how much of a material sits in a product. It belongs to data collection rather than here, because it carries a measurement rather than a classification, so it appears in the next diagram.
 
 ## Data collection
 
@@ -111,7 +111,7 @@ Images often carry a large part of the evidential value of a product record, so 
 
 <FileStorage />
 
-`video` sits in this context even though a video is attached to a product: what the platform stores is a URL and its metadata, so the row is a media reference like the other two.
+`video` sits in this context even though a video attaches to a product. The platform stores a URL and its metadata, which makes the row a media reference like the other two.
 
 ## Camera plugin
 
