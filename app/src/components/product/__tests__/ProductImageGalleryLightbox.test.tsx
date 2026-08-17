@@ -26,6 +26,7 @@ type ZoomableImageMockProps = {
   uri: string;
   onSwipe?: (direction: -1 | 1) => void;
   setIsZoomed?: (value: boolean) => void;
+  zoomRef?: { current: typeof mockZoomHandle | null };
 };
 type GestureCallback = (...args: unknown[]) => unknown;
 
@@ -36,6 +37,9 @@ const SLASH_SEPARATOR_PATTERN = /\/ /;
 // on the "Select " prefix rather than the exact fallback text.
 const THUMBNAIL_LABEL_PATTERN = /^Select /;
 let keydownHandler: ((event: { key: string }) => void) | null = null;
+// Stands in for ZoomableImage's imperative handle so the lightbox's keyboard
+// zoom bindings are observable without the real gesture component.
+const mockZoomHandle = { zoomBy: jest.fn(), reset: jest.fn() };
 
 jest.mock('expo-image', () => ({
   Image: Object.assign(
@@ -76,6 +80,7 @@ jest.mock('@/services/imageProcessing', () => ({
 jest.mock('@/components/product/ZoomableImage', () => {
   return function ZoomableImageMock(props: ZoomableImageMockProps) {
     mockZoomableImageCalls.push(props);
+    if (props.zoomRef) props.zoomRef.current = mockZoomHandle;
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
     const React = jest.requireActual<typeof import('react')>('react');
     return React.createElement(Text, null, `zoom:${props.uri}`);
@@ -546,6 +551,30 @@ describe('ProductImages', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
     });
+
+    act(() => {
+      keydownHandler?.({ key: 'ArrowRight' });
+    });
+    await waitFor(() => {
+      expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
+    });
+
+    act(() => {
+      keydownHandler?.({ key: 'ArrowLeft' });
+    });
+    await waitFor(() => {
+      expect(screen.getAllByText('1 / 2').length).toBeGreaterThan(0);
+    });
+
+    // Pinch/double-tap are pointer-only; +/-/0 are the keyboard-only zoom path.
+    act(() => {
+      keydownHandler?.({ key: '+' });
+      keydownHandler?.({ key: '-' });
+      keydownHandler?.({ key: '0' });
+    });
+    expect(mockZoomHandle.zoomBy).toHaveBeenNthCalledWith(1, 1);
+    expect(mockZoomHandle.zoomBy).toHaveBeenNthCalledWith(2, -1);
+    expect(mockZoomHandle.reset).toHaveBeenCalled();
 
     const lightboxListProps = mockFlatListCalls.find(
       (props) => props.disableIntervalMomentum === true,

@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useCallback, useEffect, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { Dimensions, type LayoutChangeEvent, Platform, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -12,8 +12,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // NOTE: hard clamp at both ends; rubber-band resistance if the stops ever feel abrupt.
 const MAX_SCALE = 4;
@@ -40,7 +38,19 @@ interface Props {
    * while the pager thinks nothing is.
    */
   active?: boolean;
+  /**
+   * Keyboard zoom entry point for web (the lightbox binds +/-/0 to it) — the
+   * pinch and double-tap gestures are pointer-only, so this is the only path
+   * a keyboard-only user has to the zoom. Attached to the active slide only.
+   */
+  zoomRef?: RefObject<ZoomableImageHandle | null>;
 }
+
+export type ZoomableImageHandle = {
+  /** Steps the zoom by `step`; the result is clamped to 1..MAX_SCALE. */
+  zoomBy: (step: number) => void;
+  reset: () => void;
+};
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: the pinch/pan/tap gesture worklets share this component's shared values and stay centralized.
 export default function ZoomableImage({
@@ -50,7 +60,11 @@ export default function ZoomableImage({
   onSwipe,
   accessibilityLabel = '',
   active = true,
+  zoomRef,
 }: Props) {
+  // Only a fallback for the pre-layout window; the measured container width
+  // wins as soon as onLayout has fired.
+  const fallbackWidth = Dimensions.get('window').width;
   const [isZoomedInternal, setIsZoomedInternal] = useState(false);
 
   const scale = useSharedValue(1);
@@ -75,30 +89,35 @@ export default function ZoomableImage({
     [onScaleChange, setIsZoomed, isZoomedInternal],
   );
 
-  const resetZoom = useCallback(() => {
-    scale.set(withTiming(1, TIMING));
-    translateX.set(withTiming(0, TIMING));
-    translateY.set(withTiming(0, TIMING));
-    savedScale.set(1);
-    savedTranslateX.set(0);
-    savedTranslateY.set(0);
-    wasZoomed.set(false);
-    scheduleOnRN(updateZoomState, 1);
-  }, [
-    scale,
-    savedScale,
-    savedTranslateX,
-    savedTranslateY,
-    translateX,
-    translateY,
-    wasZoomed,
-    updateZoomState,
-  ]);
+  const resetZoom = useCallback(
+    (animated = true) => {
+      scale.set(animated ? withTiming(1, TIMING) : 1);
+      translateX.set(animated ? withTiming(0, TIMING) : 0);
+      translateY.set(animated ? withTiming(0, TIMING) : 0);
+      savedScale.set(1);
+      savedTranslateX.set(0);
+      savedTranslateY.set(0);
+      wasZoomed.set(false);
+      scheduleOnRN(updateZoomState, 1);
+    },
+    [
+      scale,
+      savedScale,
+      savedTranslateX,
+      savedTranslateY,
+      translateX,
+      translateY,
+      wasZoomed,
+      updateZoomState,
+    ],
+  );
 
-  // Paged away while zoomed: the tween runs off-screen (effectively a snap) and
-  // resetZoom's callback re-syncs both the internal flag and the parent's.
+  // Paged away while zoomed: snap rather than tween — `active` flips as soon as
+  // the index changes, while the pager is still sliding, so an animated reset
+  // would play in view. resetZoom's callback re-syncs the internal flag and the
+  // parent's.
   useEffect(() => {
-    if (!active) resetZoom();
+    if (!active) resetZoom(false);
   }, [active, resetZoom]);
 
   // NOTE: bounds use the container rect, not the drawn image rect — with contentFit="contain" a
@@ -113,8 +132,8 @@ export default function ZoomableImage({
         savedTranslateY.set(translateY.get());
         return;
       }
-      // Measured width, not the module-load SCREEN_WIDTH — rotation and web
-      // window resizes would otherwise clamp against a stale rect.
+      // Measured width — rotation and web window resizes would otherwise clamp
+      // against a stale rect.
       const maxX = (containerWidth.get() * (scale.get() - 1)) / 2;
       const maxY = (containerHeight.get() * (scale.get() - 1)) / 2;
       const clampedX = clamp(translateX.get(), -maxX, maxX);
@@ -174,7 +193,7 @@ export default function ZoomableImage({
       // Unzoomed paging is the list's native scroll, already velocity-driven.
       const horizontal = e.translationX;
       const vertical = e.translationY;
-      const swipeThreshold = SCREEN_WIDTH * 0.15;
+      const swipeThreshold = (containerWidth.get() || fallbackWidth) * 0.15;
       if (
         Math.abs(horizontal) > Math.abs(vertical) &&
         Math.abs(horizontal) > swipeThreshold &&
@@ -204,6 +223,27 @@ export default function ZoomableImage({
 
   const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture, doubleTapGesture);
 
+  // JS-thread twin of the double-tap worklet: same clamp and bookkeeping, but it
+  // can call updateZoomState directly instead of hopping threads.
+  useImperativeHandle(
+    zoomRef,
+    () => ({
+      zoomBy: (step: number) => {
+        const next = clamp(scale.get() + step, 1, MAX_SCALE);
+        if (next <= 1.05) {
+          resetZoom();
+          return;
+        }
+        scale.set(withTiming(next, TIMING));
+        savedScale.set(next);
+        wasZoomed.set(true);
+        updateZoomState(next);
+      },
+      reset: () => resetZoom(),
+    }),
+    [resetZoom, savedScale, scale, updateZoomState, wasZoomed],
+  );
+
   const handleLayout = useCallback(
     (e: LayoutChangeEvent) => {
       containerWidth.set(e.nativeEvent.layout.width);
@@ -226,7 +266,11 @@ export default function ZoomableImage({
       touchAction={Platform.OS === 'web' ? (isZoomedInternal ? 'none' : 'pan-x') : undefined}
       userSelect={Platform.OS === 'web' ? 'none' : undefined}
     >
-      <Animated.View style={[styles.container, animatedStyle]} onLayout={handleLayout}>
+      <Animated.View
+        testID="zoomable-image"
+        style={[styles.container, animatedStyle]}
+        onLayout={handleLayout}
+      >
         <Image
           source={{ uri }}
           contentFit="contain"
@@ -243,8 +287,10 @@ export default function ZoomableImage({
 // in this app, unlike the core RN View/Text/Pressable. Layout stays inline.
 const styles = StyleSheet.create({
   container: {
-    width: SCREEN_WIDTH,
-    height: '100%', // Use 100% to fill the Lightbox renderItem container
+    // Both relative: the slide around this one is already sized to the window,
+    // so percentages track window resizes that a measured-once constant misses.
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',

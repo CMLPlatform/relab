@@ -1,6 +1,8 @@
 import { act, render, screen } from '@testing-library/react-native';
+import { createRef } from 'react';
+import { StyleSheet } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
-import ZoomableImage from '@/components/product/ZoomableImage';
+import ZoomableImage, { type ZoomableImageHandle } from '@/components/product/ZoomableImage';
 
 describe('ZoomableImage', () => {
   const testUri = 'https://example.com/image.jpg';
@@ -168,6 +170,84 @@ describe('ZoomableImage', () => {
     });
 
     expect(onSwipe).not.toHaveBeenCalled();
+  });
+
+  it('scales the swipe threshold to the measured container width, not the window', () => {
+    const mockPinch = {
+      onUpdate: jest.fn().mockReturnThis(),
+      onEnd: jest.fn().mockReturnThis(),
+      onStart: jest.fn().mockReturnThis(),
+    };
+    const mockPan = {
+      enabled: jest.fn().mockReturnThis(),
+      onUpdate: jest.fn().mockReturnThis(),
+      onEnd: jest.fn().mockReturnThis(),
+      onStart: jest.fn().mockReturnThis(),
+    };
+    const onSwipe = jest.fn();
+
+    jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
+    jest.spyOn(Gesture, 'Pan').mockReturnValue(mockPan as unknown as PanGestureType);
+
+    render(<ZoomableImage uri={testUri} onSwipe={onSwipe} />);
+
+    // A 100pt-wide container puts the 15% threshold at 15pt — well under the
+    // window-width threshold the module-level constant used to impose.
+    act(() => {
+      screen.getByTestId('zoomable-image').props.onLayout({
+        nativeEvent: { layout: { width: 100, height: 100 } },
+      });
+    });
+
+    const pinchUpdate = mockPinch.onUpdate.mock.calls[0][0];
+    const pinchEnd = mockPinch.onEnd.mock.calls[0][0];
+    const panUpdate = mockPan.onUpdate.mock.calls[0][0];
+    const panEnd = mockPan.onEnd.mock.calls[0][0];
+
+    act(() => {
+      pinchUpdate({ scale: 2 });
+      pinchEnd();
+      panUpdate({ translationX: 20, translationY: 0 });
+      panEnd({ translationX: 20, translationY: 0 });
+    });
+
+    expect(onSwipe).toHaveBeenLastCalledWith(-1);
+  });
+
+  it('fills its slide rather than a width measured at module load', () => {
+    render(<ZoomableImage uri={testUri} />);
+
+    expect(StyleSheet.flatten(screen.getByTestId('zoomable-image').props.style)).toEqual(
+      expect.objectContaining({ width: '100%', height: '100%' }),
+    );
+  });
+
+  it('zooms in, out and resets through the imperative handle', () => {
+    const onScaleChange = jest.fn();
+    const setIsZoomed = jest.fn();
+    const zoomRef = createRef<ZoomableImageHandle>();
+
+    render(
+      <ZoomableImage
+        uri={testUri}
+        zoomRef={zoomRef}
+        onScaleChange={onScaleChange}
+        setIsZoomed={setIsZoomed}
+      />,
+    );
+
+    act(() => zoomRef.current?.zoomBy(1));
+    expect(onScaleChange).toHaveBeenLastCalledWith(2);
+    expect(setIsZoomed).toHaveBeenLastCalledWith(true);
+
+    act(() => zoomRef.current?.reset());
+    expect(onScaleChange).toHaveBeenLastCalledWith(1);
+    expect(setIsZoomed).toHaveBeenLastCalledWith(false);
+
+    // Stepping below 1 clamps to the identity scale instead of inverting.
+    act(() => zoomRef.current?.zoomBy(1));
+    act(() => zoomRef.current?.zoomBy(-2));
+    expect(onScaleChange).toHaveBeenLastCalledWith(1);
   });
 
   it('executes double tap end callback', () => {

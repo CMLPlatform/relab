@@ -1,6 +1,7 @@
 import {
   type Dispatch,
   memo,
+  type RefObject,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -23,7 +24,7 @@ import Animated, { Easing, ReduceMotion, ZoomIn } from 'react-native-reanimated'
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
-import ZoomableImage from '@/components/product/ZoomableImage';
+import ZoomableImage, { type ZoomableImageHandle } from '@/components/product/ZoomableImage';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 import {
@@ -68,6 +69,7 @@ export function ProductImageLightbox({
   const targetIndexRef = useRef(startIndex);
   const dragStartIndexRef = useRef(startIndex);
   const touchStartXRef = useRef<number | null>(null);
+  const zoomRef = useRef<ZoomableImageHandle | null>(null);
   const isWeb = Platform.OS === 'web';
   const isTouchWeb =
     isWeb && typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
@@ -115,6 +117,8 @@ export function ProductImageLightbox({
     onClose();
   }, [onClose, onIndexChange]);
 
+  // Pinch and double-tap are pointer-only, so +/-/0 is the keyboard-only route
+  // to the same zoom the gestures drive (WCAG 2.1.1).
   const handleWindowKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (event.key === 'ArrowLeft') {
       navigateBy(-1);
@@ -122,6 +126,12 @@ export function ProductImageLightbox({
       navigateBy(1);
     } else if (event.key === 'Escape') {
       handleClose();
+    } else if (event.key === '+' || event.key === '=') {
+      zoomRef.current?.zoomBy(1);
+    } else if (event.key === '-') {
+      zoomRef.current?.zoomBy(-1);
+    } else if (event.key === '0') {
+      zoomRef.current?.reset();
     }
   });
 
@@ -218,6 +228,7 @@ export function ProductImageLightbox({
         setIsZoomed={setIsZoomed}
         navigateBy={navigateBy}
         active={itemIndex === index}
+        zoomRef={itemIndex === index ? zoomRef : undefined}
       />
     ),
     [
@@ -340,6 +351,7 @@ const LightboxSlide = memo(function LightboxSlide({
   setIsZoomed,
   navigateBy,
   active,
+  zoomRef,
 }: {
   uri: string | null;
   altText: string;
@@ -350,6 +362,7 @@ const LightboxSlide = memo(function LightboxSlide({
   setIsZoomed: Dispatch<SetStateAction<boolean>>;
   navigateBy: (delta: number, animated?: boolean) => void;
   active: boolean;
+  zoomRef?: RefObject<ZoomableImageHandle | null>;
 }) {
   const handleSwipe = useCallback(
     (direction: number) => {
@@ -373,6 +386,7 @@ const LightboxSlide = memo(function LightboxSlide({
           setIsZoomed={setIsZoomed}
           onSwipe={handleSwipe}
           active={active}
+          zoomRef={zoomRef}
         />
       ) : (
         <ImagePlaceholder width={screenWidth} height={screenHeight} borderRadius={0} />

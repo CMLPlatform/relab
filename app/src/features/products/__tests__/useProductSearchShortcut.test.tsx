@@ -98,6 +98,18 @@ describe('useProductSearchShortcut', () => {
     },
   );
 
+  it.each([
+    ['a contenteditable host', { tagName: 'DIV', isContentEditable: true }],
+    ['an ARIA textbox', { tagName: 'DIV', getAttribute: () => 'textbox' }],
+  ])('leaves "/" alone when already typing inside %s', (_label, target) => {
+    const searchRef = makeSearchRef();
+    renderHook(() => useProductSearchShortcut(searchRef));
+
+    act(() => press('/', target));
+
+    expect(searchRef.current.focus).not.toHaveBeenCalled();
+  });
+
   it('ignores keys other than "/"', () => {
     const searchRef = makeSearchRef();
     renderHook(() => useProductSearchShortcut(searchRef));
