@@ -152,6 +152,16 @@ describe('Login screen', () => {
     expect(screen.getByLabelText('Password')).toBeOnTheScreen();
   });
 
+  // The OAuth buttons here provision an account on first sign-in, so the terms
+  // and privacy line that password signup shows has to be on this screen too —
+  // consenting to terms you were never shown is not consent.
+  it('shows the terms and privacy links alongside the OAuth buttons', async () => {
+    renderWithProviders(<Login />, { withDialog: true });
+    expect(screen.getByText('Continue with Google')).toBeOnTheScreen();
+    expect(screen.getByRole('link', { name: 'Terms' })).toBeOnTheScreen();
+    expect(screen.getByRole('link', { name: 'Privacy Policy' })).toBeOnTheScreen();
+  });
+
   it('shows Sign in button', async () => {
     renderWithProviders(<Login />, { withDialog: true });
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();

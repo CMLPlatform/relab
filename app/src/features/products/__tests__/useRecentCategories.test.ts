@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { useRecentCategories } from '@/features/products/useRecentCategories';
+import { clearPersistedUserData } from '@/services/storage';
 
 const cat = (id: number) =>
   ({
@@ -23,4 +24,21 @@ test('strips allChildren before persisting — only read by live cpvClass filter
     result.current.recordRecent(cat(1));
   });
   expect(result.current.recents[0]).toMatchObject({ id: 1, allChildren: [] });
+});
+
+// Sign-out used to drop only the AsyncStorage key, leaving the picks in
+// memory: on a shared device the next user saw them and the next write
+// persisted them straight back.
+test('sign-out empties the live store, not just its persisted copy', async () => {
+  const { result } = renderHook(() => useRecentCategories());
+  act(() => {
+    result.current.recordRecent(cat(9));
+  });
+  expect(result.current.recents.length).toBeGreaterThan(0);
+
+  await act(async () => {
+    await clearPersistedUserData();
+  });
+
+  expect(result.current.recents).toEqual([]);
 });

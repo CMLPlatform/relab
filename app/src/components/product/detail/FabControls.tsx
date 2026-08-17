@@ -158,6 +158,8 @@ function PrimaryProductFab({
   // Offline: the mutation is paused, not "loading" — nothing to spin for
   // until connectivity returns (getPrimaryFabIcon swaps the FAB's icon too).
   const isQueued = isSaving && isPaused;
+  // NOTE: hand-rolled English plural, mirrored in SaveBar. Intl.PluralRules('en')
+  // behind a shared helper is the localization path; nothing to share yet.
   const label = needsAttention
     ? `${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`
     : isQueued

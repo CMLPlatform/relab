@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import { Svg } from 'react-native-svg';
-import { AmountDraftFlushContext } from '@/components/product/detail/amountDraftFlush';
 import ProductTags from '@/components/product/detail/ProductTags';
+import { AmountDraftFlushContext } from '@/features/products/amountDraftFlush';
 import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
@@ -420,6 +420,33 @@ describe('AmountChip draft flush (Save without blur)', () => {
     expect(flushed).toBe(50);
     expect(onAmountChange).toHaveBeenCalledTimes(1);
     expect(onAmountChange).toHaveBeenCalledWith(50);
+  });
+
+  // saveAndExit reads any number from the flush as "the form is dirty", so a
+  // draft that resolves to the amount already stored would PATCH an untouched
+  // entity.
+  it('reports no change when the typed draft clamps back to the current amount', () => {
+    const onAmountChange = jest.fn();
+    const flushRef: { current: (() => number | undefined) | null } = { current: null };
+    renderWithProviders(
+      <AmountDraftFlushContext.Provider value={flushRef}>
+        <ProductTags
+          product={componentProduct}
+          editMode={true}
+          isComponent={true}
+          onAmountChange={onAmountChange}
+        />
+      </AmountDraftFlushContext.Provider>,
+      { withDialog: true },
+    );
+    fireEvent.changeText(screen.getByDisplayValue('3'), '3');
+
+    let flushed: number | undefined = 0;
+    act(() => {
+      flushed = flushRef.current?.();
+    });
+
+    expect(flushed).toBeUndefined();
   });
 
   it('flush is a no-op when there is no pending draft (already blurred, or untouched)', () => {

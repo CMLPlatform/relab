@@ -1,8 +1,10 @@
 import { onlineManager } from '@tanstack/react-query';
-import { useSyncExternalStore } from 'react';
-import { View } from 'react-native';
+import { useEffect, useSyncExternalStore } from 'react';
+import { AccessibilityInfo, Platform, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from './AppText';
+
+const OFFLINE_MESSAGE = "Offline — your captures will send when you're back online";
 
 /** Persistent strip stating the offline contract: nothing is lost, sends resume on reconnect. */
 export function OfflineBanner() {
@@ -11,6 +13,16 @@ export function OfflineBanner() {
     () => onlineManager.isOnline(),
     () => true,
   );
+
+  // accessibilityLiveRegion below is Android-only (plus aria-live on the web
+  // export); VoiceOver needs the transition announced explicitly, same split
+  // as DialogProvider's Toast.
+  useEffect(() => {
+    if (!isOnline && Platform.OS === 'ios') {
+      AccessibilityInfo.announceForAccessibility(OFFLINE_MESSAGE);
+    }
+  }, [isOnline]);
+
   if (isOnline) return null;
   return (
     <Animated.View
@@ -23,7 +35,7 @@ export function OfflineBanner() {
           accessibilityLiveRegion="polite"
           className="text-muted-foreground"
         >
-          Offline — your captures will send when you're back online
+          {OFFLINE_MESSAGE}
         </AppText>
       </View>
     </Animated.View>

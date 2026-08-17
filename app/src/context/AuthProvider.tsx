@@ -1,11 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
-import { RECENT_CATEGORIES_STORAGE_KEY } from '@/features/products/useRecentCategories';
 import { getToken, getUser, hasWebSessionFlag } from '@/services/api/auth/authentication';
-import { QUERY_CACHE_STORAGE_KEY } from '@/services/storage';
+import { clearPersistedUserData } from '@/services/storage';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
 import { AuthContext } from './auth';
@@ -32,8 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // cache and both AsyncStorage-persisted copies (otherwise the query
       // cache survives up to the persister's 24h maxAge, and recents forever).
       queryClient.clear();
-      void AsyncStorage.removeItem(QUERY_CACHE_STORAGE_KEY);
-      void AsyncStorage.removeItem(RECENT_CATEGORIES_STORAGE_KEY);
+      void clearPersistedUserData();
       return;
     }
 

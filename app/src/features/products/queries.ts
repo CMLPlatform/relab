@@ -12,10 +12,15 @@ import { searchProductBrands } from '@/services/api/productSuggestions';
 import { products } from '@/services/api/products';
 import { searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
-import { SAVE_PRODUCT_MUTATION_KEY } from '@/services/storage';
 import type { Product } from '@/types/Product';
 
 export type ProductRole = 'product' | 'component';
+
+// Registration key for the saveProduct mutation, shared with _layout.tsx's
+// setMutationDefaults — a mutation restored from the persisted cache after a
+// reload has no function attached (functions aren't serializable), so
+// TanStack's persist-mutations pattern re-attaches one by this key.
+export const SAVE_PRODUCT_MUTATION_KEY = ['saveProduct'] as const;
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -172,17 +177,25 @@ export const saveProductMutationFn = ({
 // an ApiError: it's thrown only after the entity POST already returned an id
 // (mutated onto `product`), so a retry re-enters saveProduct as an update
 // (PATCH), not a second create.
-// NOTE: this doesn't close every gap — a response lost in flight *after* the
-// server actually committed the POST (socket dropped right after the 201)
-// still looks like "no response" here and would retry into a duplicate. A
-// real fix needs a server-side idempotency key; out of scope for this task.
+// NOTE: a response lost in flight *after* the server committed the POST is
+// covered by the Idempotency-Key header saveNewProduct sends. The key is
+// minted once per draft (useProductForm / useCaptureEntity) and held until a
+// create succeeds, so every retry — automatic, rehydrated, or a manual second
+// press of Save — replays under the same key and the server returns the
+// stored response instead of writing a second record. While the first attempt
+// is still committing the server answers 409 (in-flight marker), which is the
+// one ApiError worth repeating: the bounded retries below wait it out.
 function isRetryableSaveError(failureCount: number, error: unknown): boolean {
   if (failureCount >= 3) return false;
-  return !(error instanceof ApiError);
+  if (error instanceof ApiError) return error.status === 409;
+  return true;
 }
 
 // Shown on the save/create button (kept short — see FabControls/SaveBar/
 // CaptureScreen) and in the one-time toast when the mutation pauses below.
+// NOTE: web-only in practice today — onlineManager has no native connectivity
+// listener wired yet, so a native build never reports offline and never
+// pauses. See the TODO in app/_layout.tsx.
 export const QUEUED_OFFLINE_LABEL = 'Queued — sends when online';
 
 export function useSaveProductMutation() {

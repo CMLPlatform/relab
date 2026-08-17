@@ -1,4 +1,5 @@
-import { StyleSheet, type TextStyle, View } from 'react-native';
+import { useEffect } from 'react';
+import { AccessibilityInfo, Platform, StyleSheet, type TextStyle, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { useAppTheme } from '@/theme';
 
@@ -31,12 +32,22 @@ export function FormFieldError({
   reserveSpace?: boolean;
 }) {
   const theme = useAppTheme();
+
+  // accessibilityLiveRegion below covers Android (and the web export's
+  // aria-live); VoiceOver ignores it, so iOS gets the explicit announcement —
+  // same split as DialogProvider's Toast. Keyed on the message, so a
+  // correction that swaps one error for another is announced too.
+  useEffect(() => {
+    if (message && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
+  }, [message]);
+
   const errorText = message ? (
     <Animated.Text
       entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
       exiting={FadeOut.duration(120).reduceMotion(ReduceMotion.System)}
       nativeID={errorId}
       accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
       // Capped so error text stays legible instead of clipping inside
       // fixed-height helper slots at large OS text-scale settings.
       maxFontSizeMultiplier={1.5}

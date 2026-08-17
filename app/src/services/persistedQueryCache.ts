@@ -4,8 +4,10 @@ import { defaultShouldDehydrateQuery, type Query } from '@tanstack/react-query';
 // queryKey segment is listed here survive a reload; anything else — camera/
 // telemetry state, profiles, stats, auth-adjacent queries, and any query key
 // added later — stays memory-only until someone deliberately adds it here.
-// Keep this in sync with the actual queryKey factories (grep `queryKey:`
-// under src/features) rather than guessing at shapes. CPV categories are
+// The prefixes repeat what the feature queryKey factories own — importing
+// them here would point services/ at features/ and invert the dependency
+// direction — so persistedQueryCache.test.ts asserts the two sources still
+// agree by running the real factories through this function. CPV categories are
 // reference data too, but they ship as a bundled asset read through a
 // module-level promise (@/services/cpv), never through the query client —
 // there is no CPV queryKey to allowlist.

@@ -47,6 +47,9 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
   // click can both fire before the disabled/loading state re-renders).
   const inFlightRef = useRef(false);
 
+  // One key per draft, not per Create tap: see useProductForm's saveAndExit.
+  const idempotencyKeyRef = useRef<string | null>(null);
+
   const performCreate = async (): Promise<{ id: number; partial: boolean } | undefined> => {
     if (inFlightRef.current) return undefined;
     inFlightRef.current = true;
@@ -63,22 +66,23 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
       draft.amountInParent = role === 'component' ? amount : undefined;
 
       try {
-        // Every call here is a create (draft is always a fresh, id-less
-        // product), so a key is always generated — once per Create tap,
-        // reused across react-query's automatic retries and any
-        // paused-mutation rehydration for this same save attempt.
+        // Held across retries, rehydration and manual re-taps until one lands.
+        idempotencyKeyRef.current ??= createRequestId();
         const id = await saveMutation.mutateAsync({
           product: draft,
           originalImages: [],
           originalVideos: [],
-          idempotencyKey: createRequestId(),
+          idempotencyKey: idempotencyKeyRef.current,
         });
+        idempotencyKeyRef.current = null;
         return { id, partial: false };
       } catch (err) {
         // saveNewProduct() POSTs, assigns the returned id onto this same
         // draft object, then uploads images — so a rejection with draft.id
         // already set means the record exists and only the upload failed.
         if (typeof draft.id === 'number') {
+          // The record landed, so the key has done its job.
+          idempotencyKeyRef.current = null;
           feedback.error('Created, but some photos failed to upload.');
           return { id: draft.id, partial: true };
         }

@@ -40,7 +40,7 @@ describe('AuthProvider — sign-out cache clearing', () => {
 
     const queryClient = new QueryClient();
     const clearSpy = jest.spyOn(queryClient, 'clear');
-    const removeItemSpy = jest.spyOn(AsyncStorage, 'removeItem');
+    const multiRemoveSpy = jest.spyOn(AsyncStorage, 'multiRemove');
 
     function wrapper({ children }: { children: React.ReactNode }) {
       return (
@@ -63,8 +63,9 @@ describe('AuthProvider — sign-out cache clearing', () => {
 
     await waitFor(() => expect(result.current.user).toBeUndefined());
     expect(clearSpy).toHaveBeenCalledTimes(1);
-    expect(removeItemSpy).toHaveBeenCalledWith('relab-query-cache');
-    expect(removeItemSpy).toHaveBeenCalledWith('relab-recent-categories');
+    expect(multiRemoveSpy).toHaveBeenCalledWith(
+      expect.arrayContaining(['relab-query-cache', 'relab-recent-categories']),
+    );
   });
 
   it('does not clear the cache on sign-in (only on sign-out)', async () => {
@@ -73,8 +74,8 @@ describe('AuthProvider — sign-out cache clearing', () => {
 
     const queryClient = new QueryClient();
     const clearSpy = jest.spyOn(queryClient, 'clear');
-    const removeItemSpy = jest.spyOn(AsyncStorage, 'removeItem');
-    removeItemSpy.mockClear();
+    const multiRemoveSpy = jest.spyOn(AsyncStorage, 'multiRemove');
+    multiRemoveSpy.mockClear();
 
     function wrapper({ children }: { children: React.ReactNode }) {
       return (
@@ -94,6 +95,6 @@ describe('AuthProvider — sign-out cache clearing', () => {
 
     await waitFor(() => expect(result.current.user?.id).toBe('u1'));
     expect(clearSpy).not.toHaveBeenCalled();
-    expect(removeItemSpy).not.toHaveBeenCalled();
+    expect(multiRemoveSpy).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,12 @@
-import { act, fireEvent } from '@testing-library/react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
 import { FlatList } from 'react-native';
 import { ProductsListContent } from '@/components/product/products-screen/ListContent';
-import { baseProduct, renderWithProviders } from '@/test-utils/index';
+import {
+  baseProduct,
+  mockPlatform,
+  renderWithProviders,
+  restorePlatform,
+} from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 function renderList({
@@ -163,5 +168,29 @@ describe('ProductsListContent infinite scroll', () => {
     const { getByText } = renderList({ products: [baseProduct], total: 55, hasNextPage: true });
 
     expect(getByText('1 of 55 products')).toBeOnTheScreen();
+  });
+});
+
+// RefreshControl's pull gesture does nothing on react-native-web, so without a
+// tappable affordance the web build has no way to refetch short of a reload.
+describe('ProductsListContent manual refresh (web)', () => {
+  afterEach(() => restorePlatform());
+
+  it('offers a Refresh control on web that runs the same refetch as pull-to-refresh', async () => {
+    mockPlatform('web');
+    const onRefresh = jest.fn(async () => undefined);
+    renderList({ onRefresh });
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Refresh products'));
+    });
+
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves it out on native, where the pull gesture already works', () => {
+    mockPlatform('ios');
+    renderList();
+    expect(screen.queryByLabelText('Refresh products')).toBeNull();
   });
 });

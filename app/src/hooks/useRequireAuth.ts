@@ -15,7 +15,7 @@ import type { User } from '@/types/User';
  *    navigation has already moved elsewhere;
  *  - `isLoggingOut`, for the same reason during an in-flight logout.
  */
-export function useAuthRedirectGuard({
+function useAuthRedirectGuard({
   user,
   isLoading,
   isLoggingOut,

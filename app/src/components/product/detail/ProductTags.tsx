@@ -7,10 +7,10 @@ import { SingleSelectFilterModal } from '@/components/base/FilterSelectionModal'
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { MIN_TAP_TARGET } from '@/constants';
+import { AmountDraftFlushContext } from '@/features/products/amountDraftFlush';
 import { useSearchBrandsQuery } from '@/features/products/queries';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
-import { AmountDraftFlushContext } from './amountDraftFlush';
 
 interface Props {
   product: Product;
@@ -147,8 +147,13 @@ function AmountChip({
 
   const commitDraft = useCallback((): number | undefined => {
     if (draftValue === null) return undefined;
-    return commit(draftValue === '' ? 1 : parseInt(draftValue, 10));
-  }, [draftValue, commit]);
+    const committed = commit(draftValue === '' ? 1 : parseInt(draftValue, 10));
+    // Report a change, not just a flush: saveAndExit counts any number here as
+    // a dirty edit, so returning the value the entity already had (typing "1"
+    // over "1", or blurring an untouched field) would PATCH an unchanged
+    // entity.
+    return committed === amount ? undefined : committed;
+  }, [amount, draftValue, commit]);
 
   // Save can fire before this input blurs (blur-before-press is convention,
   // not a contract, in RN) — register the flush so saveAndExit can pull any

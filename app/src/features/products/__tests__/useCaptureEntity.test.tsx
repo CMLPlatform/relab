@@ -130,6 +130,36 @@ describe('useCaptureEntity', () => {
     });
   });
 
+  // Same draft, second tap after a lost response: the key has to survive the
+  // failure, or the server writes a duplicate instead of replaying the first
+  // create.
+  it('reuses the idempotencyKey across a manual retry, then mints a fresh one for the next draft', async () => {
+    mockMutateAsync.mockRejectedValueOnce(new Error('Network request failed'));
+    mockMutateAsync.mockResolvedValueOnce(42);
+    mockMutateAsync.mockResolvedValueOnce(43);
+    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+
+    act(() => result.current.setName('Widget'));
+    await act(async () => {
+      await result.current.create();
+    });
+    await act(async () => {
+      await result.current.create();
+    });
+    await act(async () => {
+      await result.current.create();
+    });
+
+    const keys = mockMutateAsync.mock.calls.map(
+      (call) => (call[0] as { idempotencyKey?: string }).idempotencyKey,
+    );
+    expect(keys[0]).toEqual(expect.any(String));
+    expect(keys[1]).toBe(keys[0]);
+    // The second create landed, so the third is a new draft and must not
+    // replay the key the server already resolved.
+    expect(keys[2]).not.toBe(keys[0]);
+  });
+
   it('on failure calls feedback.error, keeps state, and resolves undefined', async () => {
     mockMutateAsync.mockRejectedValueOnce(new Error('network down'));
     const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));

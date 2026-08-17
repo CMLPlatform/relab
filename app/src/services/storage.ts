@@ -2,15 +2,30 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteItemAsync, getItemAsync, setItemAsync } from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-// Single source of truth for both the query-cache persister's storage key
-// (_layout.tsx) and its sign-out clear (AuthProvider.tsx), and for the
-// saveProduct mutation's registration key (_layout.tsx's setMutationDefaults
-// and queries.ts's useSaveProductMutation) — a mutation restored from the
-// persisted cache after a reload has no function attached (functions aren't
-// serializable), so TanStack's persist-mutations pattern re-attaches one by
-// this key.
+// Single source of truth for the query-cache persister's storage key
+// (_layout.tsx) and for the persisted client stores below.
 export const QUERY_CACHE_STORAGE_KEY = 'relab-query-cache';
-export const SAVE_PRODUCT_MUTATION_KEY = ['saveProduct'] as const;
+export const RECENT_CATEGORIES_STORAGE_KEY = 'relab-recent-categories';
+
+// Everything sign-out wipes. A shared device's next user must not inherit the
+// previous one's data, so a new persisted store adds its key here and
+// registers its in-memory reset below. The policy lives in services/ rather
+// than in AuthProvider so context/ doesn't have to import from features/.
+const SIGN_OUT_STORAGE_KEYS = [QUERY_CACHE_STORAGE_KEY, RECENT_CATEGORIES_STORAGE_KEY];
+
+// Removing the AsyncStorage key alone is not enough: a zustand store keeps its
+// state in memory and would re-persist the previous user's picks on the next
+// write. Owners register a reset that empties the live state too.
+const signOutResets = new Set<() => void>();
+
+export function registerSignOutReset(reset: () => void): void {
+  signOutResets.add(reset);
+}
+
+export async function clearPersistedUserData(): Promise<void> {
+  for (const reset of signOutResets) reset();
+  await AsyncStorage.multiRemove(SIGN_OUT_STORAGE_KEYS);
+}
 
 export const isWeb = () => Platform.OS === 'web';
 const getWebLocalStorage = () => globalThis.localStorage;

@@ -28,15 +28,19 @@ import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMode';
-import { saveProductMutationFn } from '@/features/products/queries';
+import { SAVE_PRODUCT_MUTATION_KEY, saveProductMutationFn } from '@/features/products/queries';
 import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
-import { QUERY_CACHE_STORAGE_KEY, SAVE_PRODUCT_MUTATION_KEY } from '@/services/storage';
+import { QUERY_CACHE_STORAGE_KEY } from '@/services/storage';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
 import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 
-// TODO: wire onlineManager to NetInfo for the native phase
+// TODO: wire onlineManager to NetInfo/expo-network for the native phase. Until
+// then onlineManager.isOnline() only tracks reality on web (where the default
+// manager listens to the browser's online/offline events); on native it stays
+// true, so mutations never pause and the queued-offline UI (OfflineBanner,
+// QUEUED_OFFLINE_LABEL, isPaused) is effectively web-only.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

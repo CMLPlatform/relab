@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 // Split from SVGCube.tsx: react-refresh/only-export-components forbids exporting
 // non-components alongside a component (see theme/appThemeContext.ts for the same
 // pattern). Keeping the projection maths here also makes it testable on its own.
@@ -70,4 +72,24 @@ export function cubeLayout(
     // The top face rises ISO*d above the shape's own origin.
     ty: (FRAME_H - (h + ISO * (w + d))) / 2 + ISO * d,
   };
+}
+
+export type Matrix = [number, number, number, number, number, number];
+
+// react-native-svg takes a column-major matrix under two different prop names:
+// the native views declare `matrix` (see fabric/GroupNativeComponent), while
+// the web renderer only understands `transform` (web/utils/prepare has no
+// `matrix` branch and would emit an invalid attribute). Normally the JS layer
+// converts `transform` to `matrix` for native, but Reanimated's animated-prop
+// path writes the keys verbatim and skips that conversion — so the key has to
+// match the platform.
+// NOTE: on-device verification of the native path is still pending.
+const IS_WEB = Platform.OS === 'web';
+
+// Typed as `transform` because that is the public prop; react-native-svg only
+// declares `matrix` on its internal extracted-props type, so the native branch
+// needs the cast.
+export function matrixProp(m: Matrix): { transform: Matrix } {
+  'worklet';
+  return (IS_WEB ? { transform: m } : { matrix: m }) as { transform: Matrix };
 }

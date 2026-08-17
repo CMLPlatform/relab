@@ -449,6 +449,28 @@ describe('useProductQueries', () => {
     expect(mockedSaveProduct).toHaveBeenCalledTimes(4);
   });
 
+  // 409 is the idempotency store's in-flight marker: an earlier attempt under
+  // this key is still committing. Giving up there strands the user on a Save
+  // that has to be pressed again — and a second press with the same key is
+  // exactly what the retry does for free.
+  it('retries a 409 in-flight conflict and succeeds on the replayed response', async () => {
+    mockedSaveProduct
+      .mockRejectedValueOnce(new ApiError('Request already in progress', 409))
+      .mockResolvedValueOnce(321);
+
+    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+
+    result.current.mutate({
+      product: { ...newProductDraft, name: 'New' },
+      originalImages: [],
+      originalVideos: [],
+      idempotencyKey: 'fixed-key-409',
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockedSaveProduct).toHaveBeenCalledTimes(2);
+  });
+
   it('retries a network-fail-then-succeed save with the same idempotencyKey on every attempt', async () => {
     // The key must come from the mutation variables, not be minted fresh
     // inside the mutationFn on each retry — otherwise a retried create would

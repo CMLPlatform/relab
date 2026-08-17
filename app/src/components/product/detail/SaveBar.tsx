@@ -65,6 +65,9 @@ export function SaveBar({
       style={[dockStyle, { bottom: DOCK_BOTTOM + bottomOffset }]}
       className="flex-row items-center gap-3 rounded-lg border border-border bg-background px-4 py-2"
     >
+      {/* NOTE: hand-rolled English plural. Swap this and FabControls' copy for
+          Intl.PluralRules('en') behind a shared helper when the app gains a
+          second locale — there is nothing to share until then. */}
       {needsAttention ? (
         <Animated.View entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}>
           <AppButton variant="ghost" onPress={onErrorSummaryPress ?? onPrimaryPress}>

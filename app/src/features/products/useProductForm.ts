@@ -10,7 +10,6 @@ import {
 } from 'react-hook-form';
 import { useDialog } from '@/components/base/dialogContext';
 import type { SectionKey } from '@/components/base/SectionNavContext';
-import type { AmountDraftFlush } from '@/components/product/detail/amountDraftFlush';
 import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { newProduct } from '@/services/api/products';
 import { createRequestId } from '@/services/api/request';
@@ -18,6 +17,7 @@ import { MediaSyncError } from '@/services/api/saving';
 import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';
 import { getErrorMessage } from '@/utils/errors';
+import type { AmountDraftFlush } from './amountDraftFlush';
 import {
   type ProductRole,
   QUEUED_OFFLINE_LABEL,
@@ -123,6 +123,7 @@ function useProductFormActions({
   amountFlushRef,
   deleteMutation,
   dialog,
+  idempotencyKeyRef,
   isDirty,
   onDeleteSuccess,
   onSaveSuccess,
@@ -136,6 +137,7 @@ function useProductFormActions({
   amountFlushRef: RefObject<AmountDraftFlush | null>;
   deleteMutation: ReturnType<typeof useDeleteProductMutation>;
   dialog: ReturnType<typeof useDialog>;
+  idempotencyKeyRef: RefObject<string | null>;
   isDirty: boolean;
   onDeleteSuccess?: () => void;
   onSaveSuccess?: (savedId: number) => void;
@@ -166,12 +168,19 @@ function useProductFormActions({
     }
 
     try {
-      // Generated here, once per user-initiated save, and carried in the
-      // mutation variables — not inside saveProductMutationFn, which also
-      // runs on a rehydrated paused mutation and would mint a new key (and
-      // thus a duplicate record) on every app restart. Only creates get one;
-      // PATCH updates are naturally idempotent.
-      const idempotencyKey = typeof currentProduct.id !== 'number' ? createRequestId() : undefined;
+      // One key per DRAFT, not per save attempt: minted on the first create
+      // attempt and held until that create succeeds. A response lost in
+      // flight (client timeout mid-commit) makes the user press Save again —
+      // with a per-attempt key the server would see an unrelated request and
+      // write a second record. Carried in the mutation variables rather than
+      // generated inside saveProductMutationFn, which also runs on a
+      // rehydrated paused mutation and would rotate the key on every app
+      // restart. Only creates get one; PATCH updates are naturally idempotent.
+      const isCreate = typeof currentProduct.id !== 'number';
+      if (isCreate && idempotencyKeyRef.current === null) {
+        idempotencyKeyRef.current = createRequestId();
+      }
+      const idempotencyKey = isCreate ? (idempotencyKeyRef.current ?? undefined) : undefined;
       const savedId = await saveMutation.mutateAsync({
         product: currentProduct,
         originalImages: serverProduct?.images ?? [],
@@ -181,6 +190,9 @@ function useProductFormActions({
       // Clear the form's dirty state with the just-persisted values so any
       // navigation guard (beforeRemove) downstream doesn't read stale
       // "unsaved changes" and block the exit the caller is about to trigger.
+      // The draft is now a persisted entity: release the key so a later
+      // create (a fresh draft on this same screen) doesn't reuse it.
+      idempotencyKeyRef.current = null;
       reset({ ...currentProduct, id: savedId });
       onSaveSuccess?.(savedId);
     } catch (err) {
@@ -188,12 +200,13 @@ function useProductFormActions({
       // put so the photos that didn't upload are still there to retry.
       const partial = err instanceof MediaSyncError;
       // saveNewProduct() already POSTed and got an id back; thread it into the
-      // live form now, not just onto the (discarded) `currentProduct` object.
-      // Without this, a manual retry re-reads `product.id` as still unset,
-      // mints a fresh idempotency key, and POSTs a duplicate record — the
-      // automatic react-query retry avoids this only because it reuses the
-      // same mutated object, which a manual re-press does not.
-      if (err instanceof MediaSyncError) setValue('id', err.productId, { shouldDirty: false });
+      // live form now, not just onto the (discarded) `currentProduct` object,
+      // so a manual retry PATCHes the record that exists instead of reading
+      // `product.id` as still unset and POSTing again.
+      if (err instanceof MediaSyncError) {
+        setValue('id', err.productId, { shouldDirty: false });
+        idempotencyKeyRef.current = null;
+      }
       dialog.alert({
         title: partial ? 'Photos not uploaded' : 'Save failed',
         message: getErrorMessage(err, 'Could not save. Please try again.'),
@@ -302,11 +315,15 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
   // amount deterministically instead of depending on blur firing first.
   const amountFlushRef = useRef<AmountDraftFlush | null>(null);
 
+  // Lives for the draft's lifetime — see the mint site in saveAndExit.
+  const idempotencyKeyRef = useRef<string | null>(null);
+
   const fieldHandlers = useProductFieldHandlers(setValue);
   const { saveAndExit, onProductDelete } = useProductFormActions({
     amountFlushRef,
     deleteMutation,
     dialog,
+    idempotencyKeyRef,
     isDirty,
     onDeleteSuccess: options.onDeleteSuccess,
     onSaveSuccess: options.onSaveSuccess,

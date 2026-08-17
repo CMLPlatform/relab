@@ -1,6 +1,12 @@
 import { describe, expect, it } from '@jest/globals';
 import { dehydrate, onlineManager, type Query, QueryClient } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react-native';
+import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
+import {
+  brandsSearchQueryOptions,
+  productsInfiniteQueryOptions,
+  productTypesSearchQueryOptions,
+} from '@/features/products/queries';
 import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
 
 // A minimal stand-in for a successful query — shouldDehydrateQuery only reads
@@ -27,6 +33,24 @@ describe('shouldDehydrateQuery (persisted-cache allowlist)', () => {
 
   it('does not dehydrate a profile query', () => {
     expect(shouldDehydrateQuery(successfulQuery(['publicProfile', 'someone', null]))).toBe(false);
+  });
+
+  // The allowlist repeats prefixes the feature query-key factories own, because
+  // services/ importing features/ would invert the dependency direction. This
+  // is what keeps the copy honest: rename a factory's first key segment and the
+  // query silently stops persisting — here it fails instead.
+  it('allowlist prefixes still match the factories they were copied from', () => {
+    const queryKeys = [
+      productsInfiniteQueryOptions('all', '').queryKey,
+      baseProductQueryOptions(1).queryKey,
+      componentQueryOptions(1).queryKey,
+      brandsSearchQueryOptions('').queryKey,
+      productTypesSearchQueryOptions('').queryKey,
+    ];
+
+    for (const queryKey of queryKeys) {
+      expect(shouldDehydrateQuery(successfulQuery([...queryKey]))).toBe(true);
+    }
   });
 
   // Default-closed: a brand-new, not-yet-allowlisted query key must not persist.

@@ -8,7 +8,15 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { G, Rect, Text as SvgText } from 'react-native-svg';
 import { alpha, useAppTheme } from '@/theme';
-import { cubeLayout, FRAME_H, FRAME_W, ISO, isMeasured } from './cubeLayout';
+import {
+  cubeLayout,
+  FRAME_H,
+  FRAME_W,
+  ISO,
+  isMeasured,
+  type Matrix,
+  matrixProp,
+} from './cubeLayout';
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
@@ -47,8 +55,6 @@ const TIMING = {
 /** Marks a face whose shape is inferred rather than measured. */
 const UNCERTAIN_DASH = '5 4';
 const UNCERTAIN_FILL_OPACITY = 0.25;
-
-type Matrix = [number, number, number, number, number, number];
 
 /** skewY(30) — the front face never moves, so its matrix is a constant. */
 const FRONT_MATRIX: Matrix = [1, ISO, 0, 1, 0, 0];
@@ -116,22 +122,20 @@ function Cube({ width, height, depth }: CubeProps) {
   // translation as the only animated term. Keeping every animated value numeric
   // avoids rebuilding transform strings inside a worklet, and avoids the
   // transform shorthand props react-native-svg 15 marks deprecated.
-  const groupProps = useAnimatedProps(() => ({
-    transform: [1, 0, 0, 1, tx.value, ty.value] as Matrix,
-  }));
+  const groupProps = useAnimatedProps(() => matrixProp([1, 0, 0, 1, tx.value, ty.value]));
   const frontProps = useAnimatedProps(() => ({ width: w.value, height: h.value }));
   // skewY(-30) translate(w, 2*ISO*w), composed.
   const sideProps = useAnimatedProps(() => ({
     width: d.value,
     height: h.value,
-    transform: [1, -ISO, 0, 1, w.value, ISO * w.value] as Matrix,
+    ...matrixProp([1, -ISO, 0, 1, w.value, ISO * w.value]),
   }));
   // Maps the w*d rect onto the top parallelogram: (0,d) -> origin, (w,d) ->
   // (w, ISO*w) meeting the front face, and (0,0) -> (d, -ISO*d).
   const topProps = useAnimatedProps(() => ({
     width: w.value,
     height: d.value,
-    transform: [1, ISO, -1, ISO, d.value, -ISO * d.value] as Matrix,
+    ...matrixProp([1, ISO, -1, ISO, d.value, -ISO * d.value]),
   }));
 
   // Labels sit one gap along the outward normal of the edge they measure.

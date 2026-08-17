@@ -180,6 +180,47 @@ describe('useProductForm', () => {
     );
   });
 
+  // A create whose response never arrives (client timeout mid-commit) leaves
+  // the user pressing Save a second time. The key must be the DRAFT's, not the
+  // attempt's — a fresh one per press makes the server treat the retry as an
+  // unrelated create and write a duplicate record.
+  it('reuses the same idempotencyKey when a failed create is retried by hand', async () => {
+    const mockMutate = jest
+      .fn()
+      .mockImplementationOnce(async () => {
+        throw new Error('Network request failed');
+      })
+      .mockImplementationOnce(async () => 77);
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
+
+    const { result } = renderHook(
+      () => useProductForm(undefined, { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      result.current.onProductNameChange('Brand New');
+    });
+    await act(async () => {
+      result.current.saveAndExit();
+    });
+    await act(async () => {
+      result.current.saveAndExit();
+    });
+
+    expect(mockMutate).toHaveBeenCalledTimes(2);
+    const [first, second] = mockMutate.mock.calls as [
+      [{ idempotencyKey?: string }],
+      [{ idempotencyKey?: string }],
+    ];
+    expect(first[0].idempotencyKey).toEqual(expect.any(String));
+    expect(second[0].idempotencyKey).toBe(first[0].idempotencyKey);
+  });
+
   // Fix round 1 (item 1, Important): AmountChip's typed-but-unblurred amount
   // used to be silently dropped by Save — nothing in the save path flushed
   // it, and blur-before-press ordering is convention, not a contract, in RN.

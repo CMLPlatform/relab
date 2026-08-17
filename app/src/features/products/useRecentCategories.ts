@@ -1,14 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { RECENT_CATEGORIES_STORAGE_KEY, registerSignOutReset } from '@/services/storage';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 const MAX_RECENTS = 5;
-
-// Exported so AuthProvider can clear it directly (by key, via AsyncStorage)
-// on sign-out — a shared device's next user must not inherit the previous
-// user's recent-category picks.
-export const RECENT_CATEGORIES_STORAGE_KEY = 'relab-recent-categories';
 
 type RecentCategoriesState = {
   recents: CPVCategory[];
@@ -39,3 +35,11 @@ export const useRecentCategories = create<RecentCategoriesState>()(
     { name: RECENT_CATEGORIES_STORAGE_KEY, storage: createJSONStorage(() => AsyncStorage) },
   ),
 );
+
+// Sign-out wipe (see services/storage.ts): clearing the AsyncStorage key alone
+// would leave the previous user's picks in memory, and the next write would
+// persist them straight back.
+registerSignOutReset(() => {
+  useRecentCategories.setState({ recents: [] });
+  void useRecentCategories.persist.clearStorage();
+});

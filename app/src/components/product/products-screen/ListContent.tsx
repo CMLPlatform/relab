@@ -6,6 +6,7 @@ import {
   type DimensionValue,
   FlatList,
   type FlatListProps,
+  Platform,
   RefreshControl,
   View,
 } from 'react-native';
@@ -58,7 +59,10 @@ function ProductsListFooter({
   if (productCount === 0) return null;
 
   return (
-    <View className="items-center gap-2 py-4">
+    // Live region so a screen reader hears the count settle after "Load more"
+    // — the button keeps focus, so the newly appended cards are otherwise
+    // silent and there is no cue that the page arrived.
+    <View className="items-center gap-2 py-4" accessibilityLiveRegion="polite">
       {isFetchingNextPage ? (
         <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
       ) : hasNextPage ? (
@@ -69,6 +73,25 @@ function ProductsListFooter({
       <AppText className="opacity-60">
         {productCount} of {total} products
       </AppText>
+    </View>
+  );
+}
+
+// RefreshControl's pull gesture is a no-op on react-native-web, so the web
+// build needs a tappable way to refetch. Rendered as a list header (not in the
+// footer) so it is reachable with an empty list too.
+function WebRefreshHeader({ busy, onRefresh }: { busy: boolean; onRefresh: () => void }) {
+  if (Platform.OS !== 'web') return null;
+  return (
+    <View className="items-end px-2 pb-1">
+      <AppButton
+        variant="ghost"
+        onPress={onRefresh}
+        disabled={busy}
+        accessibilityLabel="Refresh products"
+      >
+        Refresh
+      </AppButton>
     </View>
   );
 }
@@ -178,6 +201,7 @@ export function ProductsListContent({
         renderItem={renderProduct}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
+        ListHeaderComponent={<WebRefreshHeader busy={userRefreshing} onRefresh={handleRefresh} />}
         ListFooterComponent={listFooter}
         ListEmptyComponent={
           <View className="items-center p-5">
