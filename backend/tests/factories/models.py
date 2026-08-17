@@ -88,6 +88,16 @@ class UserFactory(BaseModelFactory[User]):
     mfa_confirmed_at = None
     upload_file_count = 0
     upload_total_bytes = 0
+    # Account lifecycle state, pinned to "nothing has happened yet" for the same reason
+    # the MFA fields above are. Left unpinned, polyfactory draws a value for these
+    # nullable columns roughly two times in five, so a generated user randomly looks
+    # like it accepted the terms or logged in before — and a test asserting otherwise
+    # passes or fails on how many factory calls ran before it. Tests that need one of
+    # these set say so explicitly.
+    last_login_at = None
+    profile_stats_computed_at = None
+    terms_accepted_at = None
+    terms_accepted_version = None
 
     @classmethod
     def email(cls) -> str:

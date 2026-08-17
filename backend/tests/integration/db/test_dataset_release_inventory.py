@@ -41,7 +41,9 @@ async def test_inventory_reads_rows_the_selection_rules_can_use(db_session: Asyn
 @pytest.mark.asyncio
 async def test_inventory_excludes_a_contributor_who_never_accepted(db_session: AsyncSession) -> None:
     """No acceptance means no licence grant, so the records are out of scope but still counted."""
-    user = await UserFactory.create_async(db_session, username="silent-contributor")
+    # Stated rather than inherited: never accepting is this test's whole premise, so it
+    # should not rest on UserFactory's default staying None.
+    user = await UserFactory.create_async(db_session, username="silent-contributor", terms_accepted_version=None)
     await ProductFactory.create_async(db_session, owner_id=user.id, name="Angle grinder", product_type_id=None)
 
     rows = await collect_inventory(db_session, SelectionRules())
