@@ -265,6 +265,9 @@ cd backend
 just dev
 ```
 
+`ENVIRONMENT` is required — the backend fails fast if it's unset. `just dev` does not export it, so
+set `ENVIRONMENT=dev` in `backend/.env.dev` or export it in your shell before running `just dev`.
+
 The API is available at <http://127.0.0.1:8010>. Use `SEED_DUMMY_DATA=true just dev-migrate` when
 you want sample data. Create `backend/.env.dev` only when you need backend-only local overrides such
 as OAuth, email, or bootstrap settings.

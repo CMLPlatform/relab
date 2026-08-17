@@ -98,7 +98,6 @@ check:
     uv run ruff check --config pyproject.toml .
     uv run ruff format --check --config pyproject.toml .
     uv run ty check
-    just test-scripts
     just assets-check
     pnpm run check
     for d in {{ subrepos }}; do just "$d/check"; done
@@ -138,6 +137,7 @@ test-scripts:
 test:
     #!/usr/bin/env bash
     set -euo pipefail
+    just test-scripts
     for d in {{ subrepos }}; do just "$d/test"; done
     echo "✅ All tests passed"
 

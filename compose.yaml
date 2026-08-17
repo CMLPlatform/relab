@@ -20,7 +20,10 @@
 # NOTE: the GHA build cache is deliberately NOT an anchor — each built service
 # needs its own `scope=`, otherwise every service shares the default scope and
 # the docker-smoke matrix legs overwrite each other's layers. Keep the scope
-# names aligned with .github/container-images.json / security.yml.
+# names aligned with the per-service `matrix.service` cache scopes in
+# .github/workflows/security.yml and release.yml. (container-images.json's own
+# "scope" field is coarser — it groups api/migrator/relab-backup under
+# "backend" for change-detection filtering, not for GHA cache scoping.)
 
 x-healthcheck-defaults: &healthcheck-defaults
   interval: 30s

@@ -138,7 +138,7 @@ Site content — the writing on the docs site and on cml-relab.org — is
 its obligations are about providing corresponding source. Code samples in the documentation are
 Apache-2.0 instead, because CC licences are not meant for software.
 
-**Relab, R9lab, the logo and the wordmark are not licensed by any of the above.** No licence here
+**Relab, the logo and the wordmark are not licensed by any of the above.** No licence here
 grants rights in them, and CC BY says so explicitly (§2(b)(2)). Use the name to refer to this
 project, not to identify your own work as Relab.
 

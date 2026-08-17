@@ -42,6 +42,23 @@ def root_path(path: str) -> Path:
     return ROOT / path
 
 
+def write_or_check(target: Path, content: str, *, check: bool) -> str | None:
+    """Write `content` to `target`, or in check mode report it as stale if it differs.
+
+    Returns the target's repo-relative path if stale (check mode only), else None.
+    """
+    if check:
+        try:
+            if target.read_text() == content:
+                return None
+        except FileNotFoundError:
+            pass
+        return relative(target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content)
+    return None
+
+
 WEB_FONT_FILES = (
     "ibm-plex-mono-latin-400.woff2",
     "ibm-plex-sans-latin-ext.woff2",
@@ -256,21 +273,11 @@ def render_app_palette_ts(palette: dict) -> str:
 def sync_app_palette(*, check: bool) -> list[str]:
     """Generate (or verify) the app palette artifacts from assets/palette.json."""
     palette = json.loads(PALETTE_SOURCE.read_text())
-    stale: list[str] = []
-    for target, content in (
+    outputs = (
         (APP_CSS_TARGET, render_app_palette_css(palette)),
         (APP_TS_TARGET, render_app_palette_ts(palette)),
-    ):
-        if check:
-            try:
-                if target.read_text() != content:
-                    stale.append(relative(target))
-            except FileNotFoundError:
-                stale.append(relative(target))
-            continue
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content)
-    return stale
+    )
+    return [stale for target, content in outputs if (stale := write_or_check(target, content, check=check))]
 
 
 TOKENS_SOURCE = root_path("assets/tokens.json")
@@ -310,22 +317,11 @@ def render_design_tokens_css(tokens: dict) -> str:
 def sync_design_tokens(*, check: bool) -> list[str]:
     """Generate (or verify) the design-token artifacts from assets/tokens.json."""
     tokens = json.loads(TOKENS_SOURCE.read_text())
-    stale: list[str] = []
     outputs = [
         (APP_TOKENS_TS_TARGET, render_design_tokens_ts(tokens)),
         *((target, render_design_tokens_css(tokens)) for target in WEB_TOKENS_CSS_TARGETS),
     ]
-    for target, content in outputs:
-        if check:
-            try:
-                if target.read_text() != content:
-                    stale.append(relative(target))
-            except FileNotFoundError:
-                stale.append(relative(target))
-            continue
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content)
-    return stale
+    return [stale for target, content in outputs if (stale := write_or_check(target, content, check=check))]
 
 
 def load_project_identity() -> dict:
@@ -438,21 +434,11 @@ def render_docs_colophon_astro(identity: dict) -> str:
 def sync_project_identity(*, check: bool) -> list[str]:
     """Generate (or verify) the project-identity artifacts for www and docs."""
     identity = load_project_identity()
-    stale: list[str] = []
-    for target, content in (
+    outputs = (
         (WWW_RESEARCH_TARGET, render_www_research_ts(identity)),
         (DOCS_COLOPHON_TARGET, render_docs_colophon_astro(identity)),
-    ):
-        if check:
-            try:
-                if target.read_text() != content:
-                    stale.append(relative(target))
-            except FileNotFoundError:
-                stale.append(relative(target))
-            continue
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content)
-    return stale
+    )
+    return [stale for target, content in outputs if (stale := write_or_check(target, content, check=check))]
 
 
 BRAND_PARITY = (

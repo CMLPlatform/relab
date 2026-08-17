@@ -1,16 +1,15 @@
-// Drift guard: every hex colour baked into the method-flow mermaid sources
+// Drift guard: every hex colour baked into a docs architecture mermaid diagram
 // must come from the shared chart palette in assets/tokens.json, or be one of
 // the documented non-palette sentinels below. Catches someone hand-picking a
 // one-off colour instead of reusing the palette the next time a diagram is
-// edited. The docs architecture mdx sources have their own copy of this guard
-// in docs/src/lib/diagram-palette.test.ts.
+// edited. The www-side method-flow.mmd sources have their own copy of this
+// guard in www/src/scripts/diagram-palette.test.ts.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// assets/tokens.json lives above the www package, out of reach of the '@/'
-// alias (which only covers www/src), so read it by path like the diagram
-// sources below, not via a parent-relative import specifier.
+// assets/tokens.json lives above the docs package, out of reach of any '@/'
+// alias, so read it by path like the diagram sources below.
 const tokens = JSON.parse(readFileSync(join(__dirname, '../../../assets/tokens.json'), 'utf8')) as {
   chart: Record<string, Record<string, string>>;
 };
@@ -20,8 +19,6 @@ const CHART_HEXES = new Set(
 );
 
 // Documented exceptions, not palette members:
-// - method-flow.mmd:6-13 post-processing sentinels (swapped for CSS vars when
-//   the SVG is regenerated; asserted directly in MethodSteps.test.ts).
 // - the brightened chart-mark pair from assets/DESIGN.md's data-viz band.
 const ALLOWED = new Set(['#1f4c96', '#172637', '#98adc7', '#fefefe', '#2f6bc7', '#6fa8ff']);
 
@@ -30,7 +27,6 @@ const ALLOWED = new Set(['#1f4c96', '#172637', '#98adc7', '#fefefe', '#2f6bc7', 
 const DIAGRAM_COLOUR_LINE =
   /^\s*(?:classDef|primaryColor|primaryBorderColor|primaryTextColor|lineColor|edgeLabelBackground|clusterBkg|clusterBorder|style)\b.*$/gm;
 const HEX_PATTERN = /#[0-9a-fA-F]{6}/g;
-const METHOD_FLOW_MMD = /^method-flow.*\.mmd$/;
 
 function hexesIn(source: string): string[] {
   const lines = source.match(DIAGRAM_COLOUR_LINE) ?? [];
@@ -45,11 +41,11 @@ function offendersIn(sources: string[]): string[] {
 }
 
 describe('diagram hexes come from the shared chart palette', () => {
-  it('www method-flow mermaid sources', () => {
-    const assetsDir = join(__dirname, '../assets');
-    const sources = readdirSync(assetsDir)
-      .filter((f) => METHOD_FLOW_MMD.test(f))
-      .map((f) => readFileSync(join(assetsDir, f), 'utf8'));
+  it('docs architecture mdx', () => {
+    const docsDir = join(__dirname, '../content/docs/architecture');
+    const sources = readdirSync(docsDir)
+      .filter((f) => f.endsWith('.mdx'))
+      .map((f) => readFileSync(join(docsDir, f), 'utf8'));
     expect(offendersIn(sources)).toEqual([]);
   });
 });

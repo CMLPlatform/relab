@@ -132,5 +132,31 @@ assert_eq "malformed JSON exits non-zero" "1|" "$(snapshot_age 'not json')"
 assert_eq "snapshot without tags exits 0 with 0" "0|0" \
     "$(snapshot_age '[{"time":"2026-08-02T03:04:05.1+00:00"}]')"
 
+# ---------------------------------------------------------------------------
+# secrets-restore: the parsed key becomes a filename under secrets/<env>/, so a
+# key carrying a path traversal must be rejected rather than written outside
+# that directory.
+# ---------------------------------------------------------------------------
+restore_key() {
+    local key_line="$1"
+    local dir out status
+    dir="$(mktemp -d)"
+    printf '%s\n' "$key_line" >"$dir/input"
+    out="$(cd "$dir" && deploy_secrets_restore dev input 2>&1)"
+    status=$?
+    local escaped_root
+    [[ -e "$dir/../../x" ]] && escaped_root=yes || escaped_root=no
+    rm -f "$dir/../../x" 2>/dev/null
+    rm -rf "$dir"
+    printf '%s|%s|%s' "$status" "$escaped_root" "$out"
+}
+
+assert_eq "traversal key is rejected" "1|no|error: refusing to restore invalid secret key '../../x'" \
+    "$(restore_key '../../x=y')"
+assert_eq "valid key still restores" 0 "$(
+    cd "$(mktemp -d)" && printf 'foo=bar\n' >input && deploy_secrets_restore dev input >/dev/null 2>&1
+    echo $?
+)"
+
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1

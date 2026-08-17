@@ -45,9 +45,9 @@ flowchart LR
 %% Post-processing also inserts a <title> into each node <g> (native hover
 %% tooltip + screen-reader name): see the descriptions in
 %% MethodSteps.test.ts and the node ids method-flow-flowchart-<key>-N.
-%% Narrow screens use the vertical variant method-flow-tb.mmd/.svg (flowchart TB,
-%% subgraph direction TB); regenerate it the same way, post-processed with
-%% svg id "method-flow-tb". MethodSteps.astro swaps the two by viewport width.
+%% (There is no narrow-screen variant: MethodSteps.astro is CSS-only markup
+%% that reflows at any width -- see its header comment. This .mmd only feeds
+%% the platform paper's figure.)
 %% IMPORTANT: the renderer must be able to *find* IBM Plex Sans, or mermaid
 %% measures labels with a fallback font and every multi-word label ends up
 %% clipped by a character once the page renders in Plex. Convert the woff2 in

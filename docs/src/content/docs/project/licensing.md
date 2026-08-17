@@ -67,7 +67,7 @@ a client generated from the API specification.
 
 ## Names and marks
 
-**Relab, R9lab, the logo, and the wordmark are not covered by any licence on this page.** No licence
+**Relab, the logo, and the wordmark are not covered by any licence on this page.** No licence
 here — not AGPL, not Apache-2.0, not CC BY — grants rights in them, and CC BY says so explicitly
 ([§2(b)(2)](https://creativecommons.org/licenses/by/4.0/legalcode#s2b)).
 

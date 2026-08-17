@@ -9,8 +9,10 @@ interface TermsSection {
 // and a licence grant should not bury a notice.
 // NOTE: `version` is what accounts record as the terms they accepted, so it pairs with
 // CURRENT_TERMS_VERSION in backend/app/api/auth/terms.py. Bump both together when the
-// wording changes materially: tests/test_terms_version.py fails if they drift apart, and
-// bumping re-prompts everyone still on the old version. A typo fix needs no bump.
+// wording changes materially: tests/test_terms_version.py fails if they drift apart. The
+// version is recorded once, at registration, and used by the dataset release script to
+// scope consent -- there is no re-prompt for accounts on an older version. A typo fix
+// needs no bump.
 export const termsContent = {
   version: 1,
   description: 'The terms you agree to when you contribute records, images, or notes to Relab.',

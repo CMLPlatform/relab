@@ -391,6 +391,10 @@ deploy_secrets_restore() {
         [[ -z "$line" ]] && continue
         [[ "$line" == \#* ]] && continue
         IFS='=' read -r k v <<<"$line"
+        if [[ -z "$k" || "$k" == *"/"* || "$k" == "." || "$k" == ".." ]]; then
+            echo "error: refusing to restore invalid secret key '$k'" >&2
+            exit 1
+        fi
         path="$dir/$k"
         if [[ -e "$path" ]]; then
             echo "overwrote $path"
