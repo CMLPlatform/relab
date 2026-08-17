@@ -762,7 +762,7 @@ def test_contributors_states_credit_is_collective() -> None:
 
 def test_contributors_names_no_individual_contributor() -> None:
     """A release that pseudonymises everyone must not then name one of them."""
-    assert "Zemiolek" not in _contributors()
+    assert "Imiolek" not in _contributors()
 
 
 def test_contributors_promises_no_opt_in_naming() -> None:
@@ -789,7 +789,7 @@ def test_contributors_explains_the_codes_are_stable_and_unresolvable() -> None:
 def test_named_credit_appears_in_the_dataset_citation_file() -> None:
     """Named credit is editorial release metadata, and CITATION.cff is where it lives."""
     cff = render_citation_cff(ReleaseMetadata(), BuildStats(records=1, images=1, owners=1))
-    assert 'family-names: "Zemiolek"' in cff
+    assert 'family-names: "Imiolek"' in cff
     assert 'given-names: "Oskar"' in cff
 
 
@@ -800,13 +800,13 @@ def test_named_credit_is_a_build_parameter_not_a_database_flag() -> None:
         BuildStats(records=1, images=1, owners=1),
     )
     assert 'family-names: "Lovelace"' in cff
-    assert "Zemiolek" not in cff
+    assert "Imiolek" not in cff
 
 
 def test_naming_nobody_is_allowed() -> None:
     """A release may credit no lab contributor at all; only the dataset authors remain."""
     cff = render_citation_cff(ReleaseMetadata(named_lab_contributors=()), BuildStats(records=1, images=1, owners=1))
-    assert "Zemiolek" not in cff
+    assert "Imiolek" not in cff
     assert 'family-names: "Donati"' in cff
 
 
