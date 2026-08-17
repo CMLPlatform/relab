@@ -58,6 +58,30 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
 | Coverage    | Products: Power tools; Time: 2025-03–2026-08, ongoing; Geographic location: NL                                                        |
 | Rights      | <https://creativecommons.org/licenses/by/4.0/>                                                                                        |
 
+## Building and depositing a release
+
+(For maintainers.) The build and deposit pipeline lives in `backend/scripts/` and runs from
+`backend/`:
+
+1. `just release-build --inventory` — a dry run across every consenting account: writes nothing,
+   just reports what a release would contain.
+1. `just release-build --out dist/dataset-vX.Y` — builds the release directory. The verification
+   pass at the end is not optional; it fails the build rather than warning.
+1. Review `dist/dataset-vX.Y/review/` by hand, including `excluded-records.csv` and the rule that
+   excluded each record. This directory is not part of the published archive.
+1. The pseudonymisation salt comes from `RELAB_PSEUDONYM_SALT` (preferred), `--pseudonym-salt`, or
+   `secrets/<env>/dataset_pseudonym_salt`; keep the same salt for every future release so owner
+   pseudonyms stay stable across versions.
+1. `uv run python -m scripts.zenodo_deposit --dir dist/dataset-vX.Y` creates or versions a Zenodo
+   *draft*. Add `--deposition <id>` to resume uploading into an existing draft rather than starting
+   a new one. The token is read from `secrets/<env>/zenodo_token` (or `ZENODO_TOKEN` for a one-off
+   run).
+1. Inspect the draft in the Zenodo web UI, then publish explicitly with
+   `--deposition <id> --publish`. Publication is irreversible — a published record can be
+   tombstoned but never withdrawn or edited — so this prompts before it sends anything.
+
+Full flags: `just release-build --help` and `uv run python -m scripts.zenodo_deposit --help`.
+
 ## Contact
 
 For questions about using the dataset or platform, contact

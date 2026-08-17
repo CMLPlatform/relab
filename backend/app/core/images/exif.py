@@ -4,7 +4,7 @@ from PIL import Image as PILImage
 from PIL import ImageOps
 from PIL.ExifTags import IFD
 
-from .constants import _EXIF_ORIENTATION_TAG, _PRESERVED_EXIF_TAGS
+from .constants import _EXIF_ORIENTATION_TAG, PRESERVED_EXIF_TAGS
 
 
 def get_exif_orientation(img: PILImage.Image) -> int | None:
@@ -39,10 +39,10 @@ def filter_exif(img: PILImage.Image) -> PILImage.Exif:
         return filtered
 
     for tag_id, value in base_tags:
-        if tag_id in _PRESERVED_EXIF_TAGS:
+        if tag_id in PRESERVED_EXIF_TAGS:
             filtered[tag_id] = value
     # Most capture parameters live in the Exif sub-IFD rather than IFD0.
-    preserved_sub_ifd = {tag_id: value for tag_id, value in exif_ifd_tags if tag_id in _PRESERVED_EXIF_TAGS}
+    preserved_sub_ifd = {tag_id: value for tag_id, value in exif_ifd_tags if tag_id in PRESERVED_EXIF_TAGS}
     if preserved_sub_ifd:
         filtered[IFD.Exif] = preserved_sub_ifd
     return filtered

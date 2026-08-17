@@ -47,6 +47,7 @@ import hmac
 import io
 import json
 import logging
+import os
 import re
 import shutil
 import statistics
@@ -78,7 +79,7 @@ from app.api.reference_data.models import (
 )
 from app.core.database import async_session_context, close_async_engine
 from app.core.env import get_secrets_dir
-from app.core.images.constants import _PRESERVED_EXIF_TAGS
+from app.core.images.constants import PRESERVED_EXIF_TAGS
 from app.core.logging import setup_logging
 
 if TYPE_CHECKING:
@@ -101,102 +102,179 @@ SCHEMA_VERSION = "1"
 
 _TIMESTAMP = pa.timestamp("us", tz="UTC")
 
+
+def _column(name: str, type_: pa.DataType, description: str, *, nullable: bool = True) -> pa.Field:
+    """Declare one release column.
+
+    The description travels with the schema, so it reaches both croissant.json and the
+    published codebook without being retyped anywhere. Write it for someone holding the
+    Parquet file and nothing else.
+    """
+    return pa.field(name, type_, nullable=nullable, metadata={"description": description})
+
+
 # Every column type is declared, never inferred. Nullable numerics stay nullable so an
 # absent mass reads as null rather than as zero or an empty string.
 RECORDS_SCHEMA = pa.schema(
     [
-        pa.field("id", pa.int64(), nullable=False),
-        pa.field("parent_id", pa.int64()),
-        pa.field("amount_in_parent", pa.int64()),
-        pa.field("owner_pseudonym", pa.string(), nullable=False),
-        pa.field("name", pa.string(), nullable=False),
-        pa.field("description", pa.string()),
-        pa.field("brand", pa.string()),
-        pa.field("model", pa.string()),
-        pa.field("product_type_id", pa.int64()),
-        pa.field("weight_g", pa.float64()),
-        pa.field("height_cm", pa.float64()),
-        pa.field("width_cm", pa.float64()),
-        pa.field("depth_cm", pa.float64()),
-        pa.field("volume_cm3", pa.float64()),
+        _column("id", pa.int64(), "Record identifier, unique within the release.", nullable=False),
+        _column("parent_id", pa.int64(), "Record this one was taken out of; null for a whole product."),
+        _column("amount_in_parent", pa.int64(), "How many of this component the parent holds; null if not counted."),
+        _column(
+            "owner_pseudonym",
+            pa.string(),
+            "Stable pseudonymous code for the contributing account. Salted hash, not reversible. "
+            "Equal codes mean the same contributor, across releases that share a salt fingerprint.",
+            nullable=False,
+        ),
+        _column("name", pa.string(), "Contributor-given name of the product or component.", nullable=False),
+        _column("description", pa.string(), "Free-text notes the contributor recorded with the record."),
+        _column("brand", pa.string(), "Brand as read off the product or its label; null if absent or unreadable."),
+        _column("model", pa.string(), "Model or type number as read off the product; null if absent or unreadable."),
+        _column("product_type_id", pa.int64(), "Row in reference/product_types.parquet; null if untyped."),
+        _column("weight_g", pa.float64(), "Measured mass in grams."),
+        _column("height_cm", pa.float64(), "Measured height in centimetres."),
+        _column("width_cm", pa.float64(), "Measured width in centimetres."),
+        _column("depth_cm", pa.float64(), "Measured depth in centimetres."),
+        _column(
+            "volume_cm3",
+            pa.float64(),
+            "Bounding-box volume in cubic centimetres, height x width x depth. Null unless all three "
+            "are present. It is the box the product fits in, not the volume of material in it.",
+        ),
         # Free-form JSONB on the platform side; carried as a JSON string, since it has no
         # fixed key set to give a column type to.
-        pa.field("circularity_properties", pa.string()),
-        pa.field("created_at", _TIMESTAMP),
-        pa.field("updated_at", _TIMESTAMP),
+        _column(
+            "circularity_properties",
+            pa.string(),
+            "Circularity notes as a JSON object string, with optional recyclability, "
+            "disassemblability and remanufacturability keys. Contributor judgement, not measurement.",
+        ),
+        _column("created_at", _TIMESTAMP, "When the record was first saved (UTC)."),
+        _column("updated_at", _TIMESTAMP, "When the record was last changed (UTC)."),
     ]
 )
 
 RECORD_MATERIALS_SCHEMA = pa.schema(
     [
-        pa.field("product_id", pa.int64(), nullable=False),
-        pa.field("material_id", pa.int64(), nullable=False),
-        pa.field("quantity", pa.float64(), nullable=False),
-        pa.field("unit", pa.string(), nullable=False),
+        _column("product_id", pa.int64(), "Record this material line belongs to (records.parquet id).", nullable=False),
+        _column("material_id", pa.int64(), "Row in reference/materials.parquet.", nullable=False),
+        _column("quantity", pa.float64(), "Amount of the material in the record, in unit.", nullable=False),
+        _column("unit", pa.string(), "Unit name for quantity; see reference/units.parquet.", nullable=False),
     ]
 )
 
 TAXONOMIES_SCHEMA = pa.schema(
     [
-        pa.field("id", pa.int64(), nullable=False),
-        pa.field("name", pa.string(), nullable=False),
-        pa.field("version", pa.string()),
-        pa.field("description", pa.string()),
-        pa.field("domains", pa.list_(pa.string()), nullable=False),
-        pa.field("source", pa.string()),
+        _column("id", pa.int64(), "Taxonomy identifier.", nullable=False),
+        _column("name", pa.string(), "Name of the classification system.", nullable=False),
+        _column("version", pa.string(), "Version of the source taxonomy, where it declares one."),
+        _column("description", pa.string(), "What the taxonomy covers."),
+        _column(
+            "domains",
+            pa.list_(pa.string()),
+            "What the taxonomy classifies: materials, products, or other.",
+            nullable=False,
+        ),
+        _column("source", pa.string(), "Citation or URL for the taxonomy."),
     ]
 )
 
 CATEGORIES_SCHEMA = pa.schema(
     [
-        pa.field("id", pa.int64(), nullable=False),
-        pa.field("name", pa.string(), nullable=False),
-        pa.field("description", pa.string()),
-        pa.field("external_id", pa.string()),
-        pa.field("supercategory_id", pa.int64()),
-        pa.field("taxonomy_id", pa.int64(), nullable=False),
+        _column("id", pa.int64(), "Category identifier.", nullable=False),
+        _column("name", pa.string(), "Category name as used by its taxonomy.", nullable=False),
+        _column("description", pa.string(), "What the category covers."),
+        _column("external_id", pa.string(), "Identifier the source taxonomy uses, where it has one."),
+        _column("supercategory_id", pa.int64(), "Parent category; null at the top of the tree."),
+        _column("taxonomy_id", pa.int64(), "Taxonomy this category belongs to.", nullable=False),
     ]
 )
 
 MATERIALS_SCHEMA = pa.schema(
     [
-        pa.field("id", pa.int64(), nullable=False),
-        pa.field("name", pa.string(), nullable=False),
-        pa.field("description", pa.string()),
-        pa.field("source", pa.string()),
-        pa.field("density_kg_m3", pa.float64()),
-        pa.field("is_crm", pa.bool_()),
+        _column("id", pa.int64(), "Material identifier.", nullable=False),
+        _column("name", pa.string(), "Material name.", nullable=False),
+        _column("description", pa.string(), "What the material entry covers."),
+        _column("source", pa.string(), "Citation or URL for the material entry."),
+        _column("density_kg_m3", pa.float64(), "Reference density in kg/m3, where known."),
+        _column("is_crm", pa.bool_(), "Whether the material is an EU Critical Raw Material (CRM)."),
     ]
 )
 
 PRODUCT_TYPES_SCHEMA = pa.schema(
     [
-        pa.field("id", pa.int64(), nullable=False),
-        pa.field("name", pa.string(), nullable=False),
-        pa.field("description", pa.string()),
+        _column("id", pa.int64(), "Product type identifier.", nullable=False),
+        _column("name", pa.string(), "Product type name.", nullable=False),
+        _column("description", pa.string(), "What the product type covers."),
     ]
 )
 
 CATEGORY_MATERIAL_LINKS_SCHEMA = pa.schema(
     [
-        pa.field("category_id", pa.int64(), nullable=False),
-        pa.field("material_id", pa.int64(), nullable=False),
+        _column("category_id", pa.int64(), "Row in reference/categories.parquet.", nullable=False),
+        _column("material_id", pa.int64(), "Row in reference/materials.parquet.", nullable=False),
     ]
 )
 
 CATEGORY_PRODUCT_TYPE_LINKS_SCHEMA = pa.schema(
     [
-        pa.field("category_id", pa.int64(), nullable=False),
-        pa.field("product_type_id", pa.int64(), nullable=False),
+        _column("category_id", pa.int64(), "Row in reference/categories.parquet.", nullable=False),
+        _column("product_type_id", pa.int64(), "Row in reference/product_types.parquet.", nullable=False),
     ]
 )
 
 UNITS_SCHEMA = pa.schema(
     [
-        pa.field("name", pa.string(), nullable=False),
-        pa.field("symbol", pa.string(), nullable=False),
+        _column("name", pa.string(), "Unit name, as it appears in record_materials.unit.", nullable=False),
+        _column("symbol", pa.string(), "Symbol for the unit.", nullable=False),
     ]
 )
+
+
+@dataclass(frozen=True)
+class ReleaseTable:
+    """One tabular file in the archive: where it sits and what shape it has."""
+
+    path: str
+    schema: pa.Schema
+    description: str
+
+
+# The archive's tabular layout in one place, for croissant.json and the published codebook.
+# NOTE: build() writes the two top-level files and export_reference_data() writes reference/;
+# a new table has to be added in both places.
+RELEASE_TABLES = (
+    ReleaseTable("records.parquet", RECORDS_SCHEMA, "One row per documented product or component."),
+    ReleaseTable(
+        "record_materials.parquet",
+        RECORD_MATERIALS_SCHEMA,
+        "Material composition lines, one per record and material pair.",
+    ),
+    ReleaseTable("reference/taxonomies.parquet", TAXONOMIES_SCHEMA, "Classification systems the categories belong to."),
+    ReleaseTable("reference/categories.parquet", CATEGORIES_SCHEMA, "Categories, nested through supercategory_id."),
+    ReleaseTable("reference/materials.parquet", MATERIALS_SCHEMA, "Materials referenced by record_materials."),
+    ReleaseTable(
+        "reference/product_types.parquet", PRODUCT_TYPES_SCHEMA, "Product types referenced by records.product_type_id."
+    ),
+    ReleaseTable(
+        "reference/category_material_links.parquet",
+        CATEGORY_MATERIAL_LINKS_SCHEMA,
+        "Which categories each material falls under.",
+    ),
+    ReleaseTable(
+        "reference/category_product_type_links.parquet",
+        CATEGORY_PRODUCT_TYPE_LINKS_SCHEMA,
+        "Which categories each product type falls under.",
+    ),
+    ReleaseTable("reference/units.parquet", UNITS_SCHEMA, "Units used by record_materials.unit."),
+)
+
+
+def field_description(field: pa.Field) -> str:
+    """Return the authored description carried on a release schema field."""
+    return (field.metadata or {}).get(b"description", b"").decode()
+
 
 # NOTE: manifest.csv, SHA256SUMS and review/ stay plain text on purpose. They are
 # operational files a human greps while chasing a path or a checksum, not dataset tables —
@@ -340,13 +418,15 @@ def matched_name_word(name: str, words: Iterable[str]) -> str | None:
     return None
 
 
-def _direct_exclusion(
+def _direct_exclusion(  # noqa: PLR0911  # one return per exclusion rule, in priority order
     record: Mapping[str, Any], owner: Mapping[str, Any], rules: SelectionRules
 ) -> tuple[str, str] | None:
     """Return the (rule, detail) excluding *record* on its own merits, or None to keep it."""
     username = owner.get("username") or ""
     if not has_release_consent(owner.get("terms_version")):
         return ("no-terms-acceptance", f"owner {username or record['owner_id']} has not accepted the terms")
+    if username in SHARED_ACCOUNTS:
+        return ("shared-account", username)
     if username in rules.excluded_owner_usernames:
         return ("excluded-owner", username)
     if rules.owner_usernames and username not in rules.owner_usernames:
@@ -422,9 +502,11 @@ def log_exclusion_tally(exclusions: Sequence[Mapping[str, Any]]) -> None:
 # to individuals who can no longer be identified, and one click-through of the terms on a
 # shared account cannot bind everyone who used that login afterwards. Never releasable — and
 # deliberately still shown by --inventory, because aggregate counts about records are facts
-# about them, not republication of them, and the paper wants those counts. Kept as a cheap
-# backstop rather than as the load-bearing rule: a shared login that never accepted the
-# terms is already excluded by the consent check.
+# about them, not republication of them, and the paper wants those counts.
+#
+# Two enforcement points: the selection pass drops these records on every build, and
+# reject_shared_accounts is the backstop that refuses a --owner run naming one outright,
+# rather than quietly building an empty release.
 SHARED_ACCOUNTS: frozenset[str] = frozenset({"demo"})
 
 
@@ -505,8 +587,13 @@ def check_salt_fingerprint(salt: str, pinned: str = PINNED_SALT_FINGERPRINT) -> 
     return fingerprint
 
 
+PSEUDONYM_SALT_ENV = "RELAB_PSEUDONYM_SALT"
+
+
 def read_pseudonym_salt(explicit: str | None) -> str:
-    """Return the pseudonymisation salt from the CLI or the repo secrets convention."""
+    """Return the pseudonymisation salt from the environment, the CLI, or repo secrets."""
+    if salt := os.environ.get(PSEUDONYM_SALT_ENV):
+        return salt
     if explicit:
         return explicit
     secrets_dir = get_secrets_dir()
@@ -514,8 +601,8 @@ def read_pseudonym_salt(explicit: str | None) -> str:
     if salt_file and salt_file.is_file():
         return salt_file.read_text(encoding="utf-8").strip()
     msg = (
-        "No pseudonymisation salt. Pass --pseudonym-salt, or write one to "
-        "secrets/<env>/dataset_pseudonym_salt and keep it for every future release."
+        f"No pseudonymisation salt. Set {PSEUDONYM_SALT_ENV}, pass --pseudonym-salt, or write one "
+        "to secrets/<env>/dataset_pseudonym_salt and keep it for every future release."
     )
     raise SystemExit(msg)
 
@@ -534,6 +621,12 @@ def read_csv(path: Path) -> list[dict[str, str]]:
     """Read *path* as a list of row dicts."""
     with path.open(encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
+
+
+def read_csv_header(path: Path) -> list[str]:
+    """Return the column names of *path*, or an empty list for an empty file."""
+    with path.open(encoding="utf-8", newline="") as handle:
+        return next(csv.reader(handle), [])
 
 
 def _parquet_value(value: object) -> object:
@@ -604,33 +697,33 @@ def check_owner_selection(rules: SelectionRules, owners: Mapping[Any, Mapping[st
         raise SystemExit(msg)
 
 
-async def load_records(session: AsyncSession) -> list[dict[str, Any]]:
-    """Return every product row, owner id included, for the selection pass to filter.
+# Columns every product read selects, explicitly rather than loading ``Product`` instances,
+# so the owner ``User`` row — which holds email, auth state and the quota ledger — is never
+# fetched into the process at all. One list, so the inventory cannot drift from the build.
+PRODUCT_COLUMNS = (
+    Product.id,
+    Product.parent_id,
+    Product.amount_in_parent,
+    Product.owner_id,
+    Product.name,
+    Product.description,
+    Product.brand,
+    Product.model,
+    Product.product_type_id,
+    Product.weight_g,
+    Product.height_cm,
+    Product.width_cm,
+    Product.depth_cm,
+    Product.circularity_properties,
+    Product.created_at,
+    Product.updated_at,
+)
 
-    Columns are selected explicitly rather than loading ``Product`` instances, so the
-    owner ``User`` row — which holds email, auth state and the quota ledger — is never
-    fetched into the process at all.
-    """
-    columns = (
-        Product.id,
-        Product.parent_id,
-        Product.amount_in_parent,
-        Product.owner_id,
-        Product.name,
-        Product.description,
-        Product.brand,
-        Product.model,
-        Product.product_type_id,
-        Product.weight_g,
-        Product.height_cm,
-        Product.width_cm,
-        Product.depth_cm,
-        Product.circularity_properties,
-        Product.created_at,
-        Product.updated_at,
-    )
+
+async def load_records(session: AsyncSession) -> list[dict[str, Any]]:
+    """Return every product row, owner id included, for the selection pass to filter."""
     records = []
-    for row in (await session.execute(select(*columns).order_by(Product.id))).all():
+    for row in (await session.execute(select(*PRODUCT_COLUMNS).order_by(Product.id))).all():
         values = dict(row._mapping)  # noqa: SLF001  # documented SQLAlchemy Row accessor
         dimensions = (values["height_cm"], values["width_cm"], values["depth_cm"])
         values["volume_cm3"] = None if None in dimensions else dimensions[0] * dimensions[1] * dimensions[2]
@@ -1009,6 +1102,7 @@ def _croissant_record_set(name: str, file_id: str, schema: pa.Schema) -> dict[st
                 "@type": "cr:Field",
                 "@id": f"{name}/{field.name}",
                 "name": field.name,
+                "description": field_description(field),
                 "dataType": _croissant_type(field.type),
                 "source": {"fileObject": {"@id": file_id}, "extract": {"column": field.name}},
             }
@@ -1217,6 +1311,23 @@ def forbidden_values(text: str) -> list[str]:
     return sorted(found)
 
 
+def exif_tags(img: PILImage.Image) -> dict[int, Any]:
+    """Return every EXIF tag of *img*, sub-IFDs flattened into one mapping.
+
+    The Exif sub-IFD pointer itself is dropped: it is structure, not payload, and Pillow
+    writes it back for any image that keeps a single allowlisted capture parameter, so
+    leaving it in would make every processed photograph look like a violation.
+    """
+    exif = img.getexif()
+    tags = dict(exif)
+    for ifd in (IFD.Exif, IFD.GPSInfo, IFD.Interop):
+        # Pillow raises rather than returning empty when the sub-IFD is absent.
+        with contextlib.suppress(KeyError, ValueError, OSError, TypeError):
+            tags |= dict(exif.get_ifd(ifd))
+    tags.pop(IFD.Exif, None)
+    return tags
+
+
 def exif_violations(path: Path) -> list[int]:
     """Return the EXIF tag ids in *path* that are outside the preserved allowlist.
 
@@ -1225,15 +1336,10 @@ def exif_violations(path: Path) -> list[int]:
     """
     try:
         with PILImage.open(path) as img:
-            exif = img.getexif()
-            tags = set(exif.keys())
-            for ifd in (IFD.Exif, IFD.GPSInfo, IFD.Interop):
-                # Pillow raises rather than returning empty when the sub-IFD is absent.
-                with contextlib.suppress(KeyError, ValueError, OSError, TypeError):
-                    tags |= set(exif.get_ifd(ifd).keys())
+            tags = set(exif_tags(img))
     except AttributeError, ValueError, OSError, TypeError:
         return []
-    return sorted(tags - _PRESERVED_EXIF_TAGS)
+    return sorted(tags - PRESERVED_EXIF_TAGS)
 
 
 def missing_references(rows: Iterable[dict[str, str]], column: str, allowed: set[str], label: str) -> list[str]:
@@ -1259,9 +1365,11 @@ def verify(root: Path) -> list[str]:
                 f"{path.name}: leaked value {value!r}" for value in forbidden_values(path.read_text("utf-8"))
             ]
         if suffix == CSV_SUFFIX:
-            header = read_csv(path)[:1]
-            names = header[0].keys() if header else []
-            violations += [f"{path.name}: forbidden column {name!r}" for name in forbidden_column_names(names)]
+            # The header row itself, not the first data row: a header-only table still has
+            # to be checked, and DictReader gives nothing at all for one.
+            violations += [
+                f"{path.name}: forbidden column {name!r}" for name in forbidden_column_names(read_csv_header(path))
+            ]
         if suffix == PARQUET_SUFFIX:
             table = pq.read_table(path)
             violations += [
@@ -1283,6 +1391,9 @@ def verify(root: Path) -> list[str]:
     image_files = {f"images/{path.name}" for path in (root / "images").glob("*")}
 
     violations += [f"manifest: {row['file']} is not in images/" for row in manifest if row["file"] not in image_files]
+    # And the other way round: an image nobody references is an unattributed publication.
+    manifest_files = {row["file"] for row in manifest}
+    violations += [f"images: {name} is not listed in manifest.csv" for name in sorted(image_files - manifest_files)]
     violations += missing_references(manifest, "record_id", record_ids, "manifest")
     violations += missing_references(records, "parent_id", record_ids, "records")
     violations += missing_references(
@@ -1381,8 +1492,8 @@ def provenance_flags(path: Path, width: int, height: int) -> list[str]:
         reasons.append(f"unusual aspect ratio {ratio:.3f}")
     try:
         with PILImage.open(path) as img:
-            exif = img.getexif()
-            has_camera = bool(exif.get(0x010F) or exif.get(0x0110))
+            tags = exif_tags(img)
+            has_camera = bool(tags.get(0x010F) or tags.get(0x0110))
             border = _border_stddev(img)
     except AttributeError, ValueError, OSError, TypeError:
         return [*reasons, "unreadable image"]
@@ -1488,22 +1599,8 @@ async def collect_inventory(session: AsyncSession, rules: SelectionRules) -> lis
     """
     # NOTE: aggregates in Python over every product row. n is a few thousand; push the
     # counting into SQL if this dataset ever outgrows a single process.
-    columns = (
-        Product.id,
-        Product.owner_id,
-        Product.parent_id,
-        Product.name,
-        Product.brand,
-        Product.model,
-        Product.description,
-        Product.product_type_id,
-        Product.weight_g,
-        Product.height_cm,
-        Product.width_cm,
-        Product.depth_cm,
-    )
     products: dict[Any, list[dict[str, Any]]] = defaultdict(list)
-    for row in (await session.execute(select(*columns))).all():
+    for row in (await session.execute(select(*PRODUCT_COLUMNS))).all():
         values = dict(row._mapping)  # noqa: SLF001  # documented SQLAlchemy Row accessor
         # Group by owner without removing the key: select_records reads owner_id off each
         # record to apply the consent and owner-exclusion rules.
@@ -1581,6 +1678,12 @@ def inventory(destination: Path | None, rules: SelectionRules = SelectionRules()
 async def build(out: Path, rules: SelectionRules, salt: str, meta: ReleaseMetadata) -> None:
     """Build the release directory, then verify it."""
     reject_shared_accounts(rules.owner_usernames)
+    if out.exists() and any(out.iterdir()):  # noqa: ASYNC240  # local filesystem, before any I/O work
+        # Refused rather than cleared: export_images only ever adds files, so leftovers from
+        # an earlier run would be checksummed and published as if this build had made them.
+        # Deleting the directory for the operator is the more dangerous of the two options.
+        msg = f"{out} is not empty. Point --out at a new directory, or remove this one yourself."
+        raise SystemExit(msg)
     out.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
     try:
         await _build(out, rules, salt, meta)
@@ -1695,7 +1798,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--pseudonym-salt",
         default=None,
-        help="salt for owner pseudonyms; defaults to secrets/<env>/dataset_pseudonym_salt",
+        help=(
+            f"salt for owner pseudonyms. Prefer ${PSEUDONYM_SALT_ENV}, which wins over this flag and "
+            "keeps the salt out of the shell history and the process list; otherwise the salt is read "
+            "from secrets/<env>/dataset_pseudonym_salt"
+        ),
     )
     return parser.parse_args(argv)
 

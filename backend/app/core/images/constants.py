@@ -9,10 +9,10 @@ __all__ = [
     "FORMAT_WEBP",
     "MAX_IMAGE_DIMENSION",
     "MAX_IMAGE_PIXELS",
+    "PRESERVED_EXIF_TAGS",
     "RESAMPLE_FILTER",
     "THUMBNAIL_WIDTHS",
     "_EXIF_ORIENTATION_TAG",
-    "_PRESERVED_EXIF_TAGS",
 ]
 
 
@@ -41,7 +41,7 @@ THUMBNAIL_WIDTHS: tuple[int, ...] = (200, 800, 1600)
 # Capture parameters worth keeping for computer-vision research. This is an allowlist,
 # not a denylist: vendor MakerNote blocks are undocumented and carry serial numbers and
 # face-detection data, so anything not named here is dropped.
-_PRESERVED_EXIF_TAGS: frozenset[int] = frozenset(
+PRESERVED_EXIF_TAGS: frozenset[int] = frozenset(
     {
         0x010F,  # Make
         0x0110,  # Model

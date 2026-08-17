@@ -13,6 +13,7 @@ The token is read the way the rest of the backend reads secrets: from
 Typical run, after ``just release-build``::
 
     uv run python -m scripts.zenodo_deposit --dir dist/dataset-v1.0
+    # to resume an interrupted upload into the same draft, add --deposition 1234567
     # inspect the draft in the Zenodo web UI, then:
     uv run python -m scripts.zenodo_deposit --dir dist/dataset-v1.0 --deposition 1234567 --publish
 """
@@ -22,6 +23,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -29,7 +31,7 @@ import httpx
 
 from app.core.env import get_secrets_dir
 from app.core.logging import setup_logging
-from scripts.build_dataset_release import REVIEW_DIR, ReleaseMetadata, iter_archive_files
+from scripts.build_dataset_release import REVIEW_DIR, ReleaseMetadata, iter_archive_files, verify
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -40,6 +42,11 @@ logger = logging.getLogger(__name__)
 ZENODO_API = "https://zenodo.org/api"
 ZENODO_SANDBOX_API = "https://sandbox.zenodo.org/api"
 TIMEOUT = httpx.Timeout(30.0, read=600.0, write=600.0)
+# A part-uploaded release is worse than a failed one, so a dropped connection is retried
+# rather than left for the operator to notice. Zenodo bucket PUTs are idempotent: the same
+# key is overwritten, so a retry cannot duplicate a file.
+UPLOAD_ATTEMPTS = 3
+UPLOAD_BACKOFF_SECONDS = 2.0
 
 
 def read_token(sandbox: bool) -> str:  # noqa: FBT001  # single flag, mirrors the CLI switch
@@ -87,11 +94,22 @@ def build_metadata(meta: ReleaseMetadata) -> dict[str, Any]:
 
 
 def release_files(directory: Path) -> list[Path]:
-    """Return the files to upload: the published archive, never the review extracts."""
+    """Return the files to upload: the published archive, never the review extracts.
+
+    The build verified this directory, but the upload is a separate invocation and the
+    directory may have been edited between the two. Verification is re-run here because a
+    Zenodo record's files can never be changed once published.
+    """
     files = [*iter_archive_files(directory), directory / "SHA256SUMS"]
     missing = [path for path in files if not path.is_file()]
     if missing:
         msg = f"Missing release files: {', '.join(str(path) for path in missing)}"
+        raise SystemExit(msg)
+    violations = verify(directory)
+    if violations:
+        for violation in violations:
+            logger.error("VERIFICATION FAILURE — %s", violation)
+        msg = f"{len(violations)} verification failure(s) in {directory}; refusing to upload."
         raise SystemExit(msg)
     if (directory / REVIEW_DIR).exists():
         logger.info("Excluding %s/ from the upload; it is for human review only.", REVIEW_DIR)
@@ -111,23 +129,51 @@ def create_deposition(client: httpx.Client, base: str, parent: int | None) -> di
     return response.json()
 
 
+def fetch_deposition(client: httpx.Client, base: str, deposition_id: int) -> dict[str, Any]:
+    """Return an existing draft, so a resumed run reuses its bucket instead of adding one."""
+    response = client.get(f"{base}/deposit/depositions/{deposition_id}")
+    response.raise_for_status()
+    return response.json()
+
+
 def upload_files(client: httpx.Client, bucket_url: str, directory: Path, files: Sequence[Path]) -> None:
     """Upload each file to the deposition bucket under its path relative to *directory*."""
     for path in files:
         name = path.relative_to(directory).as_posix()
-        with path.open("rb") as handle:
-            response = client.put(f"{bucket_url}/{name}", content=handle)
-        response.raise_for_status()
+        for attempt in range(1, UPLOAD_ATTEMPTS + 1):
+            try:
+                with path.open("rb") as handle:
+                    response = client.put(f"{bucket_url}/{name}", content=handle)
+                response.raise_for_status()
+            except httpx.HTTPError:
+                if attempt == UPLOAD_ATTEMPTS:
+                    raise
+                delay = UPLOAD_BACKOFF_SECONDS * 2 ** (attempt - 1)
+                logger.warning("Upload of %s failed (attempt %d); retrying in %.0fs.", name, attempt, delay)
+                time.sleep(delay)
+            else:
+                break
         logger.info("Uploaded %s", name)
 
 
-def deposit(directory: Path, meta: ReleaseMetadata, *, sandbox: bool, parent: int | None) -> dict[str, Any]:
+def deposit(
+    directory: Path,
+    meta: ReleaseMetadata,
+    *,
+    sandbox: bool,
+    parent: int | None,
+    deposition_id: int | None = None,
+) -> dict[str, Any]:
     """Create a draft deposition, upload the release and set its metadata. Never publishes."""
     base = ZENODO_SANDBOX_API if sandbox else ZENODO_API
     files = release_files(directory)
     headers = {"Authorization": f"Bearer {read_token(sandbox)}"}
     with httpx.Client(headers=headers, timeout=TIMEOUT) as client:
-        deposition = create_deposition(client, base, parent)
+        deposition = (
+            fetch_deposition(client, base, deposition_id)
+            if deposition_id is not None
+            else create_deposition(client, base, parent)
+        )
         deposition_id = deposition["id"]
         upload_files(client, deposition["links"]["bucket"], directory, files)
         response = client.put(
@@ -164,7 +210,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--version", default=ReleaseMetadata.version, help="dataset version")
     parser.add_argument("--doi", default=ReleaseMetadata.doi, help="DOI once the record exists")
     parser.add_argument("--parent", type=int, default=None, help="published record id to add a new version to")
-    parser.add_argument("--deposition", type=int, default=None, help="draft id to publish with --publish")
+    parser.add_argument(
+        "--deposition",
+        type=int,
+        default=None,
+        help="existing draft id: upload into its bucket instead of creating a draft, or publish it with --publish",
+    )
     parser.add_argument("--sandbox", action="store_true", help="use sandbox.zenodo.org instead of the real archive")
     parser.add_argument(
         "--publish",
@@ -187,7 +238,7 @@ def main() -> None:
         msg = "--dir is required."
         raise SystemExit(msg)
     meta = ReleaseMetadata(version=args.version, doi=args.doi)
-    deposit(args.dir, meta, sandbox=args.sandbox, parent=args.parent)
+    deposit(args.dir, meta, sandbox=args.sandbox, parent=args.parent, deposition_id=args.deposition)
 
 
 if __name__ == "__main__":

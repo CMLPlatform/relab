@@ -1,7 +1,14 @@
 """Image processing utilities using Pillow."""
 
 from .concurrency import image_resize_limiter
-from .constants import ALLOWED_IMAGE_MIME_TYPES, FORMAT_JPEG, FORMAT_WEBP, MAX_IMAGE_DIMENSION, THUMBNAIL_WIDTHS
+from .constants import (
+    ALLOWED_IMAGE_MIME_TYPES,
+    FORMAT_JPEG,
+    FORMAT_WEBP,
+    MAX_IMAGE_DIMENSION,
+    PRESERVED_EXIF_TAGS,
+    THUMBNAIL_WIDTHS,
+)
 from .exif import apply_exif_orientation, filter_exif
 from .processing import process_image_for_storage
 from .thumbnails import delete_thumbnails, generate_thumbnails, thumbnail_path_for
@@ -12,6 +19,7 @@ __all__ = [
     "FORMAT_JPEG",
     "FORMAT_WEBP",
     "MAX_IMAGE_DIMENSION",
+    "PRESERVED_EXIF_TAGS",
     "THUMBNAIL_WIDTHS",
     "apply_exif_orientation",
     "delete_thumbnails",

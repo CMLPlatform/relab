@@ -12,8 +12,10 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 from PIL import Image as PILImage
+from PIL.ExifTags import IFD
 
 import scripts.build_dataset_release as release
+from app.core.images.processing import process_image_for_storage
 from scripts.build_dataset_release import (
     CATEGORIES_SCHEMA,
     DEFAULT_EXCLUDED_NAME_WORDS,
@@ -163,8 +165,8 @@ def _write_jpeg(path: Path, exif_tags: dict[int, object] | None = None, size: tu
 
 
 def test_exif_violations_flags_a_tag_outside_the_allowlist(tmp_path) -> None:
-    """Any tag outside _PRESERVED_EXIF_TAGS is reported, whatever it holds."""
-    # 0x013B is Artist: identifying, and deliberately absent from _PRESERVED_EXIF_TAGS.
+    """Any tag outside PRESERVED_EXIF_TAGS is reported, whatever it holds."""
+    # 0x013B is Artist: identifying, and deliberately absent from PRESERVED_EXIF_TAGS.
     path = _write_jpeg(tmp_path / "artist.jpg", {0x010F: "Canon", 0x013B: "A Person"})
     assert exif_violations(path) == [0x013B]
 
@@ -178,6 +180,33 @@ def test_exif_violations_accepts_allowlisted_capture_parameters(tmp_path) -> Non
 def test_exif_violations_accepts_an_image_with_no_exif(tmp_path) -> None:
     """An image with no metadata at all is clean."""
     assert exif_violations(_write_jpeg(tmp_path / "bare.jpg")) == []
+
+
+def _write_photo(path: Path) -> Path:
+    """Write a JPEG shaped like a real photograph: IFD0, an Exif sub-IFD, and GPS."""
+    exif = PILImage.Exif()
+    exif[0x010F] = "Canon"
+    exif[0x0110] = "EOS R"
+    exif[IFD.Exif] = {0x829D: 2.8, 0x9003: "2026:01:02 03:04:05"}
+    exif[IFD.GPSInfo] = {1: "N", 2: (52.0, 9.0, 0.0)}
+    PILImage.effect_noise((64, 48), 90).convert("RGB").save(path, format="JPEG", exif=exif.tobytes())
+    return path
+
+
+def test_exif_violations_accepts_a_processed_photograph(tmp_path) -> None:
+    """A real photo that went through ingest must pass, or verify() aborts every build.
+
+    Keeping one allowlisted capture parameter makes Pillow write the Exif sub-IFD pointer
+    back, and that pointer is structure rather than payload.
+    """
+    path = _write_photo(tmp_path / "photo.jpg")
+    process_image_for_storage(path)
+    assert exif_violations(path) == []
+
+
+def test_exif_violations_flags_a_gps_pointer(tmp_path) -> None:
+    """The GPS pointer stays a violation: an image carrying one has coordinates in it."""
+    assert 0x8825 in exif_violations(_write_photo(tmp_path / "located.jpg"))
 
 
 ### Checksums ###
@@ -393,6 +422,22 @@ def test_verify_rejects_a_dangling_manifest_reference(tmp_path) -> None:
     )
     write_checksums(root)
     assert "manifest: record_id='999' does not resolve" in verify(root)
+
+
+def test_verify_rejects_an_image_no_manifest_row_references(tmp_path) -> None:
+    """An unreferenced image is an unattributed publication: nothing links it to a record."""
+    root = _minimal_release(tmp_path)
+    _write_jpeg(root / "images" / "stray.jpg", {0x010F: "Canon"})
+    write_checksums(root)
+    assert "images: images/stray.jpg is not listed in manifest.csv" in verify(root)
+
+
+def test_verify_checks_the_header_of_a_table_with_no_rows(tmp_path) -> None:
+    """A header-only CSV still publishes its column names, so it is still checked."""
+    root = _minimal_release(tmp_path)
+    (root / "empty.csv").write_text("id,email\n", encoding="utf-8")
+    write_checksums(root)
+    assert "empty.csv: forbidden column 'email'" in verify(root)
 
 
 def test_verify_rejects_a_leaked_email(tmp_path) -> None:
@@ -630,6 +675,24 @@ def test_shared_account_error_explains_why() -> None:
 def test_reject_shared_accounts_allows_ordinary_accounts() -> None:
     """An individually held account is unaffected."""
     assert reject_shared_accounts(["lab", "oskar"]) is None
+
+
+def test_shared_account_records_are_excluded_without_being_named() -> None:
+    """The default build path drops the shared login; no --exclude-owner needed."""
+    kept, excluded = select_records([_rec(1, "u1")], {"u1": _owner("demo")}, SelectionRules())
+    assert kept == []
+    assert excluded[0]["rule"] == "shared-account"
+
+
+def test_build_refuses_a_non_empty_output_directory(tmp_path) -> None:
+    """Leftovers from an earlier run would be checksummed and published as this build's."""
+    out = tmp_path / "release"
+    out.mkdir()
+    (out / "stale.txt").write_text("from an earlier run", encoding="utf-8")
+    with pytest.raises(SystemExit, match="not empty"):
+        asyncio.run(build(out, SelectionRules(), "a-salt", ReleaseMetadata()))
+    # Refused, not cleared: the operator's files are still there.
+    assert (out / "stale.txt").is_file()
 
 
 def test_build_refuses_a_shared_owner_before_touching_the_filesystem(tmp_path) -> None:

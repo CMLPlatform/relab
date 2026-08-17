@@ -132,6 +132,7 @@ openapi-check:
 # Usage: just release-build [--out DIR] [--owner USERNAME] [--doi 10.5281/zenodo.NNNNNNN]
 #        exclusions: --exclude-owner USERNAME | --exclude-product ID | --exclude-name-word WORD | --no-name-filter
 # Dry run, every account, writes nothing: just release-build --inventory
+# The pseudonym salt comes from $RELAB_PSEUDONYM_SALT, else secrets/<env>/dataset_pseudonym_salt
 release-build *ARGS:
     uv run python -m scripts.build_dataset_release {{ ARGS }}
 
