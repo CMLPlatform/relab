@@ -12,7 +12,10 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-from app.api.file_storage.models.storage_types import FileType, ImageType
+# NOTE: `file.file` and `image.file` are FileType/ImageType in the ORM, but those are
+# TypeDecorators over Unicode and render as plain VARCHAR. Spelled out here rather than
+# imported so this frozen revision does not break when the app module moves (it already
+# has once).
 
 # revision identifiers, used by Alembic.
 revision: str = "33b00b31e537"
@@ -239,7 +242,7 @@ def upgrade() -> None:
         sa.Column("description", sa.String(500), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("filename", sa.String(), nullable=False),
-        sa.Column("file", FileType(), nullable=False),
+        sa.Column("file", sa.Unicode(), nullable=False),
         sa.Column(
             "parent_type",
             postgresql.ENUM("PRODUCT", "PRODUCT_TYPE", "MATERIAL", name="fileparenttype", create_type=False),
@@ -270,7 +273,7 @@ def upgrade() -> None:
         sa.Column("image_metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("filename", sa.String(), nullable=False),
-        sa.Column("file", ImageType(), nullable=False),
+        sa.Column("file", sa.Unicode(), nullable=False),
         sa.Column(
             "parent_type",
             postgresql.ENUM("PRODUCT", "PRODUCT_TYPE", "MATERIAL", name="imageparenttype", create_type=False),

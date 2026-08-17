@@ -84,12 +84,25 @@ def run_migrations_online() -> None:
         # constraint without NOT VALID) must abort if it can't get the lock promptly,
         # rather than queueing behind readers and blocking every other query on prod.
         connection.exec_driver_sql("SET lock_timeout = '5s'")
-        connection.exec_driver_sql("SET statement_timeout = '15min'")
+        # lock_timeout only bounds *acquiring* a lock; this bounds how long a statement may
+        # hold one. A migration with a genuinely long backfill raises its own ceiling with
+        # `op.execute("SET LOCAL statement_timeout = '15min'")` rather than everyone paying it.
+        connection.exec_driver_sql("SET statement_timeout = '60s'")
         # SQLAlchemy auto-begins a transaction on the first statement above; commit it so
         # alembic's own transaction below is the real (outer) one, not a savepoint nested
         # inside a never-committed transaction that gets silently rolled back on close.
         connection.commit()
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            # One transaction per revision, not one around the whole `upgrade head` chain.
+            # A chain-wide transaction holds every lock any revision takes until the last
+            # one commits, and makes `op.get_context().autocommit_block()` (needed for
+            # CREATE INDEX CONCURRENTLY) silently commit the revisions before it. The cost
+            # is that a mid-chain failure leaves earlier revisions applied; re-running
+            # `upgrade head` after fixing the failure resumes from there.
+            transaction_per_migration=True,
+        )
 
         with context.begin_transaction():
             context.run_migrations()

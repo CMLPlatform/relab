@@ -7,6 +7,7 @@ Create Date: 2026-05-01 00:00:00.000000
 """
 
 import unicodedata
+from collections import Counter
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -38,17 +39,19 @@ def upgrade() -> None:
     rows = connection.execute(sa.text('SELECT id, email FROM "user"')).mappings().all()
     canonical_by_user_id = {row["id"]: _canonicalize_email(row["email"]) for row in rows}
 
-    seen: dict[str, str] = {}
-    collisions: set[str] = set()
-    for user_id, canonical_email in canonical_by_user_id.items():
-        if canonical_email in seen:
-            collisions.add(canonical_email)
-        seen[canonical_email] = str(user_id)
+    counts = Counter(canonical_by_user_id.values())
+    collisions = sum(1 for count in counts.values() if count > 1)
     if collisions:
-        collision_list = ", ".join(sorted(collisions))
-        msg = f"Cannot add user.email_canonical; existing users collide after canonicalization: {collision_list}"
+        # NOTE: count only. The addresses themselves are personal data and this runs in the
+        # migrations container, so anything in the message lands in the deploy log.
+        msg = (
+            f"Cannot add user.email_canonical: {collisions} canonical address(es) are shared by more than one "
+            "user. Merge or remove the duplicate accounts, then re-run the migration."
+        )
         raise RuntimeError(msg)
 
+    # ponytail: a round-trip per user. Fine at this table's scale; batch it if the user
+    # count ever reaches the thousands, since this holds a lock for the whole loop.
     for user_id, canonical_email in canonical_by_user_id.items():
         connection.execute(
             sa.text('UPDATE "user" SET email_canonical = :email_canonical WHERE id = :user_id'),
