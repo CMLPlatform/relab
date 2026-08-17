@@ -71,6 +71,11 @@ re-open the question only when the primitive gains the missing behavior.
 the URL. Layouts (`_layout.tsx`) wrap their siblings. Typed routes are on, so
 links are type-checked against the file tree.
 
+For the full screen inventory, the sign-in and capture flows as diagrams, and
+the rules a routing change has to keep, see
+[App navigation flow](https://docs.cml-relab.org/architecture/app-flow/) in the
+docs site. This section stays as the in-tree summary.
+
 The three primary destinations are tabs: `(tabs)/(products)`,
 `(tabs)/(cameras)` and `(tabs)/(account)`, each a group holding its own Stack,
 so every tab keeps its trail while you are on another one. BottomNav is that

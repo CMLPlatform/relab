@@ -60,6 +60,7 @@ const SIDEBAR = [
     label: 'Architecture',
     items: [
       { label: 'System design', slug: 'architecture/system-design' },
+      { label: 'App navigation flow', slug: 'architecture/app-flow' },
       { label: 'Data model', slug: 'architecture/datamodel' },
       { label: 'API structure', slug: 'architecture/api' },
       { label: 'API reference', slug: 'api-reference' },

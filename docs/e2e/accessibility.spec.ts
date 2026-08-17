@@ -60,6 +60,12 @@ test.describe('Accessibility', () => {
     expect(results.violations).toEqual([]);
   });
 
+  test('app flow page (mermaid diagrams) has no accessibility violations', async ({ page }) => {
+    await page.goto('/architecture/app-flow/');
+    const results = await analyzePage(page);
+    expect(results.violations).toEqual([]);
+  });
+
   for (const path of ['/api/public/', '/api/device/', '/api/rpi-cam/']) {
     test(`${path} chrome has no accessibility violations`, async ({ page }) => {
       await page.goto(path);
