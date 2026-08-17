@@ -738,6 +738,39 @@ SELECT sum(upload_file_count), sum(upload_total_bytes), max(upload_file_count) F
 ANALYZE product; ANALYZE "user"; ANALYZE image; ANALYZE file;
 ```
 
+The `ANALYZE` matters more than it looks: the release adds trigram, composite
+and partial indexes that the planner will not choose until it has statistics
+for them. Confirm they are actually used rather than assuming — on real data,
+not on the empty dev database where every plan is a sequential scan anyway:
+
+```sql
+-- Trigram search must reach the index, not fall back to a scan. A Seq Scan here
+-- means a query is comparing a wrapped column (lower(name)) against an index
+-- built on the bare one.
+EXPLAIN SELECT id FROM product WHERE name % 'drill';
+
+-- The product thumbnail subquery must read one index entry, with no Sort node
+-- above the image scan.
+EXPLAIN SELECT p.id, (SELECT i.file FROM image i
+                      WHERE i.parent_type='PRODUCT' AND i.parent_id=p.id
+                      ORDER BY i.created_at LIMIT 1)
+FROM product p ORDER BY p.id LIMIT 50;
+```
+
+Then re-measure the API itself against the prod-shaped dataset, since the
+list-endpoint work only shows up at real row counts. Needs `k6` on the host,
+and the run is read-only — two virtual users against public GET paths:
+
+```bash
+cd backend
+BASE_URL=https://api.cml-relab.org just perf-baseline
+```
+
+It writes `backend/reports/performance/latest-k6-summary.json`. Record the
+`product_list_read` p95 next to the counts from the step 3 baseline — that is the
+reference point for the next release that touches a read path, and the only
+place these numbers exist for prod-shaped data.
+
 Then exercise the real paths:
 
 ```bash

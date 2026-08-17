@@ -75,11 +75,15 @@ jobs:
         run: |
           ALL_LEGS='["docker-smoke-backend","docker-orchestration-smoke","docker-smoke-www","docker-smoke-app","docker-smoke-docs","docker-smoke-backups"]'
 
-          # Scheduled runs only exercise docker-smoke; skip all other jobs.
+          # Scheduled runs exercise docker-smoke, plus the backend suite under a
+          # rotating TEST_SEED (see the backend job) — the test factories generate
+          # data from a fixed seed, so a test that leans on a generated value only
+          # fails once the seed moves. Everything else is skipped.
           if [[ "$IS_SCHEDULE" == "true" ]]; then
-            for k in run-policy run-backend run-www run-app run-docs run-e2e; do
+            for k in run-policy run-www run-app run-docs run-e2e; do
               echo "$k=false" >> "$GITHUB_OUTPUT"
             done
+            echo "run-backend=true" >> "$GITHUB_OUTPUT"
             echo "smoke-legs=$ALL_LEGS" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -199,7 +203,7 @@ jobs:
   backend:
     name: Backend
     needs: [ changes ]
-    if: needs.changes.outputs.run-backend == 'true' && github.event_name != 'schedule'
+    if: needs.changes.outputs.run-backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -222,6 +226,13 @@ jobs:
 
       - name: Run CI test suite
         run: just backend/test-ci
+        env:
+          # The factories seed themselves from TEST_SEED so a run is reproducible.
+          # A fixed seed freezes the remaining coin flips rather than removing
+          # them, so the weekly scheduled run rotates it and surfaces any test
+          # that only passes under seed 0. run_id, not $RANDOM: the seed is then
+          # recorded on the run, and TEST_SEED=<id> reproduces the failure.
+          TEST_SEED: ${{ github.event_name == 'schedule' && github.run_id || '0' }}
 
       - name: Publish reports
         uses: ./.github/actions/publish-reports

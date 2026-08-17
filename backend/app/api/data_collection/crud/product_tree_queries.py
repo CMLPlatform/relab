@@ -33,7 +33,16 @@ class ProductTreeData:
 
 
 def apply_product_detail_loaders(statement: Select[tuple[Product]]) -> Select[tuple[Product]]:
-    """Apply relationship loaders required by product detail responses."""
+    """Apply relationship loaders required by product detail responses.
+
+    ``Product``'s components, parent and images are all eagerly loaded at class
+    level, so this looks like it should walk a whole subtree — it does not. The
+    ``raiseload("*")`` that ``apply_loader_profile`` puts on the statement
+    propagates to sub-loaders, which stops the loaded components from firing
+    their own defaults. Measured on a five-deep tree: eight queries, and a
+    component's own components come back unloaded. See
+    ``test_product_detail_load_stops_below_the_first_component_level``.
+    """
     statement = apply_loader_profile(statement, Product, PRODUCT_READ_DETAIL_RELATIONSHIPS)
     return statement.options(
         selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.owner)),
