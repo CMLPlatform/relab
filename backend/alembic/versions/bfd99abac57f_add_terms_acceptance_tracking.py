@@ -1,7 +1,7 @@
 """add terms acceptance tracking
 
 Revision ID: bfd99abac57f
-Revises: db400147aa2f
+Revises: f1a2b3c4d5e6
 Create Date: 2026-08-13 16:34:43.771525
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "bfd99abac57f"
-down_revision: str | None = "db400147aa2f"
+down_revision: str | None = "f1a2b3c4d5e6"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
