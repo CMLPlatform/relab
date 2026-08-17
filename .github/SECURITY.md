@@ -46,9 +46,13 @@ Security-sensitive areas:
 
 - authentication and OAuth
 - public read APIs
-- authenticated mutation APIs — create endpoints that accept an `Idempotency-Key` header cache
-  the replayed response in Redis scoped by authenticated user id, endpoint, and key, so a cached
-  response can never be replayed across accounts
+- authenticated mutation APIs — create endpoints accept an `Idempotency-Key` header and cache the
+  response in Redis for one hour.
+  - The cache entry is scoped by authenticated user id, endpoint (parent id included), and key, so
+    a cached response can never be replayed across accounts or targets.
+  - The entry also stores a hash of the request body: reusing a key with a different payload is
+    rejected with `422` instead of replaying the earlier record.
+  - If Redis is unreachable the request fails closed with `503` rather than risking a duplicate.
 - uploads and media
 - admin APIs
 - RPi camera device APIs and WebSocket relay

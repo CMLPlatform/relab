@@ -11,6 +11,7 @@ from starlette.responses import FileResponse
 from starlette.staticfiles import NotModifiedResponse
 
 from app.core.config import settings
+from app.core.http_headers import UPLOADS_PATH_PREFIX
 
 if TYPE_CHECKING:
     import os
@@ -88,7 +89,7 @@ def mount_static_directories(app: FastAPI) -> None:
     # from lifespan, these directories should have been ensured already.
     if settings.file_storage_path.exists() and settings.image_storage_path.exists():
         app.mount(
-            "/uploads/files",
+            f"{UPLOADS_PATH_PREFIX}/files",
             UploadedFileAttachmentStaticFiles(
                 directory=settings.file_storage_path,
                 cache_control="public, max-age=31536000, immutable",
@@ -96,7 +97,7 @@ def mount_static_directories(app: FastAPI) -> None:
             name="uploaded-files",
         )
         app.mount(
-            "/uploads/images",
+            f"{UPLOADS_PATH_PREFIX}/images",
             UploadedAssetStaticFiles(
                 directory=settings.image_storage_path,
                 cache_control="public, max-age=31536000, immutable",

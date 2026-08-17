@@ -8,6 +8,7 @@ from pydantic import PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, OptionalCurrentActiveUserDep
 from app.api.common.audiences import PublicAPIRouter
+from app.api.common.idempotency import IDEMPOTENCY_RESPONSES, IdempotencyKeyDep, idempotent_request
 from app.api.common.rate_limiting import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.data_collection.crud.product_commands import create_component
@@ -16,13 +17,6 @@ from app.api.data_collection.crud.product_commands import update_product as upda
 from app.api.data_collection.crud.product_tree_queries import require_product_detail
 from app.api.data_collection.dependencies import UserOwnedComponentDep
 from app.api.data_collection.examples import COMPONENT_CREATE_OPENAPI_EXAMPLES
-from app.api.data_collection.idempotency import (
-    IDEMPOTENCY_CONFLICT_RESPONSE,
-    IdempotencyKeyDep,
-    begin_idempotent_request,
-    finish_idempotent_request,
-    idempotency_guard,
-)
 from app.api.data_collection.presentation.product_reads import to_read_model
 from app.api.data_collection.schemas import (
     ComponentCreateWithComponents,
@@ -62,7 +56,7 @@ async def get_component(
     status_code=201,
     summary="Create a nested component",
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
-    responses=IDEMPOTENCY_CONFLICT_RESPONSE,
+    responses=IDEMPOTENCY_RESPONSES,
 )
 async def add_component_to_component(
     db_component: UserOwnedComponentDep,
@@ -78,31 +72,28 @@ async def add_component_to_component(
     """Create a new component below an existing component.
 
     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
-    key returns the original response instead of creating a second component.
+    key returns the original response instead of creating a second component. The key is bound to
+    this user, this parent, and this request body — reusing it with a different body is a 422.
     """
-    endpoint = "POST /components/{id}/components"
-    replay = await begin_idempotent_request(
-        redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key
-    )
-    if replay is not None:
-        return replay
-
-    async with idempotency_guard(redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key):
+    async with idempotent_request(
+        redis,
+        user_id=current_user.id,
+        endpoint=f"POST /components/{db_component.id}/components",
+        key=idempotency_key,
+        body=component,
+    ) as idem:
+        if idem.replay is not None:
+            return idem.replay
         created = await create_component(
             db=session,
             component=component,
             parent_product=db_component,
         )
-        await session.refresh(created, attribute_names=["owner", "components"])
-        result = to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
-        await finish_idempotent_request(
-            redis,
-            user_id=current_user.id,
-            endpoint=endpoint,
-            idempotency_key=idempotency_key,
-            status_code=201,
-            body=result.model_dump(mode="json"),
-        )
+
+    # Outside the guard: the row is committed, so a failure here must not release the marker.
+    await session.refresh(created, attribute_names=["owner", "components"])
+    result = to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
+    await idem.finish(201, result.model_dump(mode="json"))
     return result
 
 

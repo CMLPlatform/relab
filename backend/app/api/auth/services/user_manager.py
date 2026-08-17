@@ -185,8 +185,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         never request verification — need a welcome here. The linked OAuth account distinguishes
         them: password signups have none at this point.
         """
-        # Creating the account is the acceptance — both signup screens link the terms — so the
-        # grant is evidenced for password and OAuth signups alike, before either branch below.
+        # Creating the account is the acceptance — the password signup screen and the OAuth entry
+        # point (the login screen) both link the terms — so the grant is evidenced for password
+        # and OAuth signups alike, before either branch below.
         # Only for accounts created through a request, though: programmatic creation (seeding,
         # CLI) has no signup screen and therefore no acceptance to record. Stamping those would
         # fabricate the very evidence these columns exist to provide, so they stay NULL.

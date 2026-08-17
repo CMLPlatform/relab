@@ -16,6 +16,7 @@ from pydantic import UUID4, BeforeValidator
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import create_filter_dependency
+from app.api.common.idempotency import IDEMPOTENCY_RESPONSES, IdempotencyKeyDep, idempotent_request
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.rate_limiting import API_UPLOAD_RATE_LIMIT_DEPENDENCY, API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
@@ -30,13 +31,6 @@ from app.api.data_collection.dependencies import (
 from app.api.data_collection.examples import (
     COMPONENT_CREATE_OPENAPI_EXAMPLES,
     PRODUCT_CREATE_OPENAPI_EXAMPLES,
-)
-from app.api.data_collection.idempotency import (
-    IDEMPOTENCY_CONFLICT_RESPONSE,
-    IdempotencyKeyDep,
-    begin_idempotent_request,
-    finish_idempotent_request,
-    idempotency_guard,
 )
 from app.api.data_collection.presentation.product_reads import to_read_model
 from app.api.data_collection.product_schemas import ProductRead
@@ -75,7 +69,7 @@ _IMAGE_FILTER_DEPENDENCY = create_filter_dependency(ImageFilter)
     summary="Create a new product, optionally with components",
     status_code=201,
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
-    responses=IDEMPOTENCY_CONFLICT_RESPONSE,
+    responses=IDEMPOTENCY_RESPONSES,
 )
 async def create_product(
     product: Annotated[
@@ -93,27 +87,20 @@ async def create_product(
     """Create a new product.
 
     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
-    key returns the original response instead of creating a second product.
+    key returns the original response instead of creating a second product. The key is bound to
+    this user and this request body — reusing it with a different body is a 422.
     """
-    endpoint = "POST /products"
-    replay = await begin_idempotent_request(
-        redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key
-    )
-    if replay is not None:
-        return replay
-
-    async with idempotency_guard(redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key):
+    async with idempotent_request(
+        redis, user_id=current_user.id, endpoint="POST /products", key=idempotency_key, body=product
+    ) as idem:
+        if idem.replay is not None:
+            return idem.replay
         created = await create_product_record(session, product, current_user.id)
-        await session.refresh(created, attribute_names=["owner"])
-        result = to_read_model(created, ProductRead, current_user)
-        await finish_idempotent_request(
-            redis,
-            user_id=current_user.id,
-            endpoint=endpoint,
-            idempotency_key=idempotency_key,
-            status_code=201,
-            body=result.model_dump(mode="json"),
-        )
+
+    # Outside the guard: the row is committed, so a failure here must not release the marker.
+    await session.refresh(created, attribute_names=["owner"])
+    result = to_read_model(created, ProductRead, current_user)
+    await idem.finish(201, result.model_dump(mode="json"))
     return result
 
 
@@ -152,7 +139,7 @@ async def delete_product(db_product: UserOwnedBaseProductDep, session: AsyncSess
     status_code=201,
     summary="Create a new component under a base product",
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
-    responses=IDEMPOTENCY_CONFLICT_RESPONSE,
+    responses=IDEMPOTENCY_RESPONSES,
 )
 async def add_component_to_product(
     db_product: UserOwnedBaseProductDep,
@@ -168,31 +155,28 @@ async def add_component_to_product(
     """Create a new component under the given base product.
 
     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
-    key returns the original response instead of creating a second component.
+    key returns the original response instead of creating a second component. The key is bound to
+    this user, this parent, and this request body — reusing it with a different body is a 422.
     """
-    endpoint = "POST /products/{id}/components"
-    replay = await begin_idempotent_request(
-        redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key
-    )
-    if replay is not None:
-        return replay
-
-    async with idempotency_guard(redis, user_id=current_user.id, endpoint=endpoint, idempotency_key=idempotency_key):
+    async with idempotent_request(
+        redis,
+        user_id=current_user.id,
+        endpoint=f"POST /products/{db_product.id}/components",
+        key=idempotency_key,
+        body=component,
+    ) as idem:
+        if idem.replay is not None:
+            return idem.replay
         created = await create_component(
             db=session,
             component=component,
             parent_product=db_product,
         )
-        await session.refresh(created, attribute_names=["owner", "components"])
-        result = to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
-        await finish_idempotent_request(
-            redis,
-            user_id=current_user.id,
-            endpoint=endpoint,
-            idempotency_key=idempotency_key,
-            status_code=201,
-            body=result.model_dump(mode="json"),
-        )
+
+    # Outside the guard: the row is committed, so a failure here must not release the marker.
+    await session.refresh(created, attribute_names=["owner", "components"])
+    result = to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
+    await idem.finish(201, result.model_dump(mode="json"))
     return result
 
 

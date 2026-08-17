@@ -849,7 +849,8 @@ export interface paths {
      * @description Create a new product.
      *
      *     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
-     *     key returns the original response instead of creating a second product.
+     *     key returns the original response instead of creating a second product. The key is bound to
+     *     this user and this request body — reusing it with a different body is a 422.
      */
     post: operations['create_product_v1_products_post'];
     delete?: never;
@@ -944,7 +945,8 @@ export interface paths {
      * @description Create a new component under the given base product.
      *
      *     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
-     *     key returns the original response instead of creating a second component.
+     *     key returns the original response instead of creating a second component. The key is bound to
+     *     this user, this parent, and this request body — reusing it with a different body is a 422.
      */
     post: operations['add_component_to_product_v1_products__product_id__components_post'];
     delete?: never;
@@ -1131,7 +1133,8 @@ export interface paths {
      * @description Create a new component below an existing component.
      *
      *     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
-     *     key returns the original response instead of creating a second component.
+     *     key returns the original response instead of creating a second component. The key is bound to
+     *     this user, this parent, and this request body — reusing it with a different body is a 422.
      */
     post: operations['add_component_to_component_v1_components__component_id__components_post'];
     delete?: never;
@@ -7471,6 +7474,13 @@ export interface operations {
           'application/json': components['schemas']['HTTPValidationError'];
         };
       };
+      /** @description The idempotency store is unreachable; retry later. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   get_product_facets_v1_products_facets_get: {
@@ -7815,6 +7825,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
         };
+      };
+      /** @description The idempotency store is unreachable; retry later. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -8330,6 +8347,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
         };
+      };
+      /** @description The idempotency store is unreachable; retry later. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

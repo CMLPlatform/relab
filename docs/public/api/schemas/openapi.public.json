@@ -8307,7 +8307,7 @@
     },
     "/v1/components/{component_id}/components": {
       "post": {
-        "description": "Create a new component below an existing component.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second component.",
+        "description": "Create a new component below an existing component.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second component. The key is bound to\nthis user, this parent, and this request body \u2014 reusing it with a different body is a 422.",
         "operationId": "add_component_to_component_v1_components__component_id__components_post",
         "parameters": [
           {
@@ -8411,6 +8411,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "503": {
+            "description": "The idempotency store is unreachable; retry later."
           }
         },
         "security": [
@@ -14333,7 +14336,7 @@
         ]
       },
       "post": {
-        "description": "Create a new product.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second product.",
+        "description": "Create a new product.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second product. The key is bound to\nthis user and this request body \u2014 reusing it with a different body is a 422.",
         "operationId": "create_product_v1_products_post",
         "parameters": [
           {
@@ -14499,6 +14502,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "503": {
+            "description": "The idempotency store is unreachable; retry later."
           }
         },
         "security": [
@@ -15463,7 +15469,7 @@
         ]
       },
       "post": {
-        "description": "Create a new component under the given base product.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second component.",
+        "description": "Create a new component under the given base product.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second component. The key is bound to\nthis user, this parent, and this request body \u2014 reusing it with a different body is a 422.",
         "operationId": "add_component_to_product_v1_products__product_id__components_post",
         "parameters": [
           {
@@ -15567,6 +15573,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "503": {
+            "description": "The idempotency store is unreachable; retry later."
           }
         },
         "security": [

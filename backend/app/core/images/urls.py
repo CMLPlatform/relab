@@ -8,13 +8,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
+from app.core.http_headers import UPLOADS_PATH_PREFIX
 from app.core.images.thumbnails import thumbnail_path_for
 
 if TYPE_CHECKING:
     from os import PathLike
 
 THUMBNAIL_WIDTH_PX = 200
-IMAGE_URL_PREFIX = "/uploads/images"
+IMAGE_URL_PREFIX = f"{UPLOADS_PATH_PREFIX}/images"
 
 
 def relative_to_storage_root(file_path: Path, storage_root: Path) -> Path | None:

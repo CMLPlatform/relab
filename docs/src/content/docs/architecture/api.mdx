@@ -58,7 +58,15 @@ Base products and components share the same database table, but they are separat
 
 Product and component entry is progressive. A record can be created before its full component tree or bill of materials is known; completeness checks belong to later curation and audit workflows, not to create-time validation.
 
-Product- and component-create requests (`POST /v1/products`, `POST /v1/products/{id}/components`, `POST /v1/components/{id}/components`) accept an optional `Idempotency-Key` header so a client can safely retry a request whose response was lost after the server had already committed it. The first request with a given key is processed normally; a retry with the same key and the same authenticated user returns the original response instead of creating a duplicate record. The key is scoped per user, so it cannot be replayed across accounts, and it expires after 24 hours.
+Product- and component-create requests (`POST /v1/products`, `POST /v1/products/{id}/components`, `POST /v1/components/{id}/components`) accept an optional `Idempotency-Key` header so a client can safely retry a request whose response was lost after the server had already committed it. The first request with a given key is processed normally; a retry with the same key returns the original response instead of creating a duplicate record.
+
+A key is only replayed when everything about the retry matches the original:
+
+- the same authenticated user, so a key cannot be replayed across accounts
+- the same target, including the parent id: the same key on `POST /v1/products/1/components` and `POST /v1/products/2/components` are two separate requests
+- the same request body — reusing a key with a different payload returns `422`, rather than silently returning the earlier record
+
+A retry that arrives while the first request is still running returns `409`. If the idempotency store is unreachable the request fails closed with `503` instead of risking a duplicate create. Stored responses expire after one hour.
 
 Owner attribution is viewer-aware. Public profiles show product owner names to everyone, community profiles show them only to signed-in users, and private profiles show them only to the owner and admins. Hidden owner identity is returned as `null` rather than exposing a username or owner id.
 

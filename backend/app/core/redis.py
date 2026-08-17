@@ -134,18 +134,19 @@ async def set_redis_value(redis_client: Redis, key: str, value: EncodableT, ex: 
     )
 
 
-async def set_redis_value_nx(redis_client: Redis, key: str, value: EncodableT, ex: int | None = None) -> bool:
+async def set_redis_value_nx(redis_client: Redis, key: str, value: EncodableT, ex: int | None = None) -> bool | None:
     """Set value in Redis only if the key does not already exist (atomic SET NX EX).
 
-    Returns True if the value was stored, False if the key already existed or the
-    operation failed.
+    Returns True if the value was stored, False if the key already existed, and None if Redis
+    was unreachable. Callers that only need "did I win the race" can treat None as False; the
+    three-way result exists so a caller can report an outage (503) instead of a conflict (409).
     """
 
-    async def operation() -> bool:
+    async def operation() -> bool | None:
         result = await redis_client.set(key, value, ex=ex, nx=True)
         return bool(result)
 
-    return await _execute_redis_operation("set_nx", operation, failure_result=False, log_key=key)
+    return await _execute_redis_operation("set_nx", operation, failure_result=None, log_key=key)
 
 
 async def delete_redis_key(redis_client: Redis, key: str) -> bool:
