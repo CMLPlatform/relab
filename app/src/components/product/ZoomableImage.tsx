@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { type RefObject, useCallback, useEffect, useImperativeHandle, useState } from 'react';
-import { Dimensions, type LayoutChangeEvent, Platform, StyleSheet } from 'react-native';
+import { type LayoutChangeEvent, Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   clamp,
@@ -63,8 +63,11 @@ export default function ZoomableImage({
   zoomRef,
 }: Props) {
   // Only a fallback for the pre-layout window; the measured container width
-  // wins as soon as onLayout has fired.
-  const fallbackWidth = Dimensions.get('window').width;
+  // wins as soon as onLayout has fired. Reactive anyway, so the fallback cannot
+  // describe the pre-rotation screen if it is ever read for something that
+  // outlives first layout — the parent already re-renders on rotation, so the
+  // subscription costs nothing here.
+  const fallbackWidth = useWindowDimensions().width;
   const [isZoomedInternal, setIsZoomedInternal] = useState(false);
 
   const scale = useSharedValue(1);
