@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { View } from 'react-native';
 import { useAppTheme } from '@/theme';
 import { AppButton } from './AppButton';
@@ -13,11 +14,12 @@ export function SignedOutState({
 }) {
   const router = useRouter();
   const { colors } = useAppTheme();
+  const goToLogin = useCallback(() => router.replace('/login'), [router]);
   return (
     <View className="flex-1 items-center justify-center gap-3 p-6">
       <Icon name="lock" size={48} color={colors.onSurfaceVariant} />
       <AppText className="text-center opacity-70">{message}</AppText>
-      <AppButton variant="primary" onPress={() => router.replace('/login')} className="mt-2">
+      <AppButton variant="primary" onPress={goToLogin} className="mt-2">
         Sign in
       </AppButton>
     </View>

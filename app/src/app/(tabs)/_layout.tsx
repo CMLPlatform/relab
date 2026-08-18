@@ -19,7 +19,7 @@ import { BottomNav } from '@/components/base/BottomNav';
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={(props) => <BottomNav {...props} />}
+      tabBar={BottomNav}
       // Bottom tabs paint the scene from the navigation theme, which would sit
       // opaque over the app-wide StaticBackground. Same reasoning as the stacks'
       // transparent contentStyle.

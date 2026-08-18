@@ -31,6 +31,7 @@ export function ControlledTextField<T extends FieldValues>({
     <Controller
       control={control}
       name={name}
+      // biome-ignore lint/performance/noJsxPropsBind: Controller's render prop is the RHF API; it closes over this field's props.
       render={({ field: { value, onChange }, fieldState: { error } }) => (
         <View className="gap-1">
           {label ? <AppText variant="label">{label}</AppText> : null}

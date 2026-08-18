@@ -1,5 +1,6 @@
 import { useEvent } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { useCallback, useMemo } from 'react';
 import { View } from 'react-native';
 import { useAuthedMediaSource } from '@/services/api/authedMedia';
 import { useAppTheme } from '@/theme';
@@ -19,7 +20,10 @@ export function NativeHlsVideo({
   // carries a bearer token rather than the web session cookie, so the player has
   // to send it explicitly — the web path already does this via `withCredentials`.
   const authedSource = useAuthedMediaSource(authenticated ? src : null);
-  const source = authenticated ? authedSource : { uri: src };
+  const source = useMemo(
+    () => (authenticated ? authedSource : { uri: src }),
+    [authenticated, authedSource, src],
+  );
   // NOTE: useVideoPlayer releases the player on unmount; releasing it again
   // here would double-release the underlying native shared object.
   const player = useVideoPlayer(source, (instance) => {
@@ -28,6 +32,14 @@ export function NativeHlsVideo({
     instance.play();
   });
   const { status } = useEvent(player, 'statusChange', { status: player.status });
+  const retry = useCallback(() => {
+    // Playback stopped on error and replace alone doesn't restart it.
+    // A failed retry re-enters 'error' via statusChange on its own.
+    player.replaceAsync(source).then(
+      () => player.play(),
+      () => undefined,
+    );
+  }, [player, source]);
 
   return (
     <View className="relative aspect-[4/3] w-full">
@@ -39,17 +51,7 @@ export function NativeHlsVideo({
       />
       {status === 'loading' || status === 'idle' ? <PreviewLoadingOverlay /> : null}
       {status === 'error' ? (
-        <PreviewErrorOverlay
-          message="Couldn't load the preview"
-          onRetry={() => {
-            // Playback stopped on error and replace alone doesn't restart it.
-            // A failed retry re-enters 'error' via statusChange on its own.
-            player.replaceAsync(source).then(
-              () => player.play(),
-              () => undefined,
-            );
-          }}
-        />
+        <PreviewErrorOverlay message="Couldn't load the preview" onRetry={retry} />
       ) : null}
     </View>
   );

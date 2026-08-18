@@ -78,6 +78,7 @@ jest.mock('expo-video', () => {
 const HLS_URL = 'https://cam.example/live/cam-1/index.m3u8';
 const CAMERA = { id: 'cam-1' };
 const LIVE_PREVIEW_PATTERN = /Live preview/i;
+const PREVIEW_ERROR = /Couldn't load the preview/;
 
 describe('LivePreview', () => {
   beforeEach(() => {
@@ -182,7 +183,7 @@ describe('LivePreview', () => {
     renderWithProviders(<LivePreview camera={CAMERA} />);
 
     expect(screen.queryByText('Loading preview…')).toBeNull();
-    expect(screen.queryByText(/Couldn't load the preview/)).toBeNull();
+    expect(screen.queryByText(PREVIEW_ERROR)).toBeNull();
   });
 
   it('error overlay retry replaces the source and resumes playback', async () => {
