@@ -73,6 +73,8 @@ joins, and anything you had to break count. *Recyclability* and *remanufacturabi
 kind of observation about the materials and the reusable assemblies. Uncertain notes are welcome;
 see the box above.
 
+Every other term Relab uses is defined in the [Glossary](../glossary/).
+
 ## Reference data
 
 Use materials, categories, taxonomies, and product types when they improve consistency. If no entry

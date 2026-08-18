@@ -51,6 +51,7 @@ const SIDEBAR = [
     items: [
       { label: 'Getting started', slug: 'user-guides/getting-started' },
       { label: 'Data collection', slug: 'user-guides/data-collection' },
+      { label: 'Glossary', slug: 'user-guides/glossary' },
       { label: 'Hardware', slug: 'user-guides/hardware' },
       { label: 'RPi camera', slug: 'user-guides/rpi-cam' },
       { label: 'API', slug: 'user-guides/api' },
