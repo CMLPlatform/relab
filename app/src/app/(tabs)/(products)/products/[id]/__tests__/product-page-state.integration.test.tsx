@@ -265,7 +265,7 @@ describe('ProductPage state handling', () => {
 
     renderWithProviders(<ProductPage />, { withDialog: true });
 
-    expect(screen.getByText('Something went wrong')).toBeOnTheScreen();
+    expect(screen.getByText("Couldn't load product")).toBeOnTheScreen();
     // States now formats via getErrorMessage: the message, not `String(error)`
     // (which rendered "[object Object]" for a non-Error and made the friendly
     // fallback unreachable).

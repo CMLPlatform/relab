@@ -38,9 +38,8 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
 
   const trimmedName = name.trim();
   const canCreate = trimmedName.length >= PRODUCT_NAME_MIN_LENGTH && !saveMutation.isPending;
-  // A kept typeID after createAndAddAnother (see below) is a carried-over
-  // preference, not unsaved data — it shouldn't make a freshly reset screen
-  // look dirty and trigger a "Discard changes?" prompt on the way out.
+  // A kept typeID after createAndAddAnother (see below) is a carried-over preference,
+  // not unsaved data — it shouldn't trigger a "Discard changes?" prompt on the way out.
   const isDirty = trimmedName.length > 0 || (images?.length ?? 0) > 0 || amount !== DEFAULT_AMOUNT;
 
   // Guards both entry points below against a double Create (Enter-submit +
@@ -55,10 +54,9 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
     inFlightRef.current = true;
     try {
       const draft = newProduct({ parentID, parentRole });
-      // newProduct() derives role from parentID, which is undefined for a
-      // malformed parent route param — pin the role the screen was actually
-      // opened for so a broken /components/new URL fails loudly (component
-      // create requires a parent) instead of silently POSTing a top-level product.
+      // newProduct() derives role from parentID, which is undefined for a malformed
+      // parent route param — pin the role the screen was actually opened for so a
+      // broken /components/new URL fails loudly instead of POSTing a top-level product.
       draft.role = role;
       draft.name = trimmedName;
       draft.productTypeID = typeID;
@@ -77,16 +75,18 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
         idempotencyKeyRef.current = null;
         return { id, partial: false };
       } catch (err) {
-        // saveNewProduct() POSTs, assigns the returned id onto this same
-        // draft object, then uploads images — so a rejection with draft.id
-        // already set means the record exists and only the upload failed.
+        // saveNewProduct() POSTs, sets draft.id, then uploads images — a rejection
+        // with draft.id already set means only the upload failed.
         if (typeof draft.id === 'number') {
           // The record landed, so the key has done its job.
           idempotencyKeyRef.current = null;
-          feedback.error('Created, but some photos failed to upload.');
+          feedback.error('Created, but some photos failed to upload.', 'Upload failed');
           return { id: draft.id, partial: true };
         }
-        feedback.error(getErrorMessage(err, 'Could not create. Please try again.'));
+        feedback.error(
+          getErrorMessage(err, 'Could not create. Please try again.'),
+          'Create failed',
+        );
         return undefined;
       }
     } finally {

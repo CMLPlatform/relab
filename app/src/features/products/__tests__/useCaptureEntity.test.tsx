@@ -172,7 +172,7 @@ describe('useCaptureEntity', () => {
     });
 
     expect(savedId).toBeUndefined();
-    expect(mockError).toHaveBeenCalledWith('network down');
+    expect(mockError).toHaveBeenCalledWith('network down', 'Create failed');
     expect(result.current.name).toBe('Widget');
   });
 
@@ -195,7 +195,10 @@ describe('useCaptureEntity', () => {
     });
 
     expect(savedId).toBe(42);
-    expect(mockError).toHaveBeenCalledWith('Created, but some photos failed to upload.');
+    expect(mockError).toHaveBeenCalledWith(
+      'Created, but some photos failed to upload.',
+      'Upload failed',
+    );
   });
 
   it('createAndAddAnother does not toast success or reset the form on a partial failure, and surfaces the id', async () => {

@@ -41,7 +41,7 @@ export function ProductPageErrorState({
 
   return (
     <ErrorState
-      title="Something went wrong"
+      title={`Couldn't load ${entity}`}
       message={getErrorMessage(error, `Couldn't load the ${entity} details.`)}
       actionLabel="Try again"
       onRetry={onRetry}
