@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { act, render, screen, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { Text, View } from 'react-native';
 import { AppStack, Providers } from '@/app/_layout';
@@ -100,7 +100,7 @@ describe('HeaderRightPill', () => {
 });
 
 describe('Providers', () => {
-  it('renders children without crashing', () => {
+  it('renders children without crashing', async () => {
     renderWithProviders(
       <Providers>
         <View testID="child">
@@ -110,6 +110,9 @@ describe('Providers', () => {
       { withAuth: true },
     );
     expect(screen.getByTestId('child')).toBeOnTheScreen();
+    // PersistQueryClientProvider flips `isRestoring` once the persisted cache
+    // read resolves — a macrotask later. Settle it here or it lands unwrapped.
+    await act(async () => new Promise((resolve) => setImmediate(resolve)));
   });
 });
 

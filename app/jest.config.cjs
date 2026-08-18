@@ -12,6 +12,7 @@ const base = {
     doNotFake: ['nextTick', 'queueMicrotask', 'setImmediate'],
   },
   testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
+  setupFiles: [...(expoPreset.setupFiles ?? []), '<rootDir>/config/setup.node.ts'],
   transformIgnorePatterns: [
     'node_modules/(?!(?:.pnpm/.*?/node_modules/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|standard-navigation|msw|@mswjs|@open-draft/.*|until-async|rettime|@rn-primitives/.*|lucide-react-native))',
   ],

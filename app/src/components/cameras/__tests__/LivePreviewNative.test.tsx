@@ -80,6 +80,17 @@ const CAMERA = { id: 'cam-1' };
 const LIVE_PREVIEW_PATTERN = /Live preview/i;
 const PREVIEW_ERROR = /Couldn't load the preview/;
 
+/**
+ * Render and settle the async media-token read behind `useAuthedMediaSource`
+ * inside act(), so its state update lands here rather than unwrapped after the
+ * test — and so assertions see the credentialed source.
+ */
+async function renderPreview(ui: Parameters<typeof renderWithProviders>[0]) {
+  const utils = renderWithProviders(ui);
+  await act(async () => {});
+  return utils;
+}
+
 describe('LivePreview', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -119,17 +130,17 @@ describe('LivePreview', () => {
 
   // ── Platform routing ──────────────────────────────────────────────────────
 
-  it('renders the card caption on native (NativeHlsVideo path)', () => {
-    renderWithProviders(<LivePreview camera={CAMERA} />);
+  it('renders the card caption on native (NativeHlsVideo path)', async () => {
+    await renderPreview(<LivePreview camera={CAMERA} />);
 
     expect(screen.getByText('Live preview · LL-HLS')).toBeOnTheScreen();
     expect(screen.getByTestId('video-view')).toBeOnTheScreen();
   });
 
-  it('also renders the native path on android', () => {
+  it('also renders the native path on android', async () => {
     mockPlatform('android');
 
-    renderWithProviders(<LivePreview camera={CAMERA} />);
+    await renderPreview(<LivePreview camera={CAMERA} />);
 
     expect(screen.getByTestId('video-view')).toBeOnTheScreen();
   });
@@ -137,7 +148,7 @@ describe('LivePreview', () => {
   // ── Native path internals ──────────────────────────────────────────────────
 
   it('passes the hls URL and a setup callback to useVideoPlayer', async () => {
-    renderWithProviders(<LivePreview camera={CAMERA} />);
+    await renderPreview(<LivePreview camera={CAMERA} />);
 
     // The bearer token resolves asynchronously, so the player is first created with
     // a null source and recreated once credentials are available (useVideoPlayer
@@ -153,8 +164,8 @@ describe('LivePreview', () => {
     expect(typeof call?.[1]).toBe('function');
   });
 
-  it('configures the player as muted, non-looping, and auto-plays', () => {
-    renderWithProviders(<LivePreview camera={CAMERA} />);
+  it('configures the player as muted, non-looping, and auto-plays', async () => {
+    await renderPreview(<LivePreview camera={CAMERA} />);
 
     // useVideoPlayer invokes its setup callback against mockVideoPlayerInstance.
     expect(mockVideoPlayerInstance.muted).toBe(true);
@@ -162,8 +173,8 @@ describe('LivePreview', () => {
     expect(mockVideoPlayerInstance.play).toHaveBeenCalled();
   });
 
-  it('renders VideoView with contentFit="contain"', () => {
-    renderWithProviders(<LivePreview camera={CAMERA} />);
+  it('renders VideoView with contentFit="contain"', async () => {
+    await renderPreview(<LivePreview camera={CAMERA} />);
 
     const videoView = screen.getByTestId('video-view');
     expect(videoView.props.accessibilityHint).toBe('contain');
@@ -171,16 +182,16 @@ describe('LivePreview', () => {
 
   // ── Status overlays ────────────────────────────────────────────────────────
 
-  it('shows the loading overlay while the player is loading', () => {
+  it('shows the loading overlay while the player is loading', async () => {
     mockVideoPlayerInstance.status = 'loading';
 
-    renderWithProviders(<LivePreview camera={CAMERA} />);
+    await renderPreview(<LivePreview camera={CAMERA} />);
 
     expect(screen.getByText('Loading preview…')).toBeOnTheScreen();
   });
 
-  it('shows no overlay once the player is ready', () => {
-    renderWithProviders(<LivePreview camera={CAMERA} />);
+  it('shows no overlay once the player is ready', async () => {
+    await renderPreview(<LivePreview camera={CAMERA} />);
 
     expect(screen.queryByText('Loading preview…')).toBeNull();
     expect(screen.queryByText(PREVIEW_ERROR)).toBeNull();
@@ -189,7 +200,7 @@ describe('LivePreview', () => {
   it('error overlay retry replaces the source and resumes playback', async () => {
     mockVideoPlayerInstance.status = 'error';
 
-    renderWithProviders(<LivePreview camera={CAMERA} />);
+    await renderPreview(<LivePreview camera={CAMERA} />);
 
     expect(screen.getByText("Couldn't load the preview")).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Tap to retry'));
@@ -205,8 +216,8 @@ describe('LivePreview', () => {
 
   // Regression: expo-video's useVideoPlayer releases the player itself on
   // unmount. Releasing it again here would double-release the native object.
-  it('leaves the player release to useVideoPlayer on unmount', () => {
-    const { unmount } = renderWithProviders(<LivePreview camera={CAMERA} />);
+  it('leaves the player release to useVideoPlayer on unmount', async () => {
+    const { unmount } = await renderPreview(<LivePreview camera={CAMERA} />);
 
     unmount();
 
@@ -231,8 +242,8 @@ describe('LivePreview', () => {
     }
   });
 
-  it('re-resolves hlsUrl when the camera prop changes', () => {
-    const { rerender } = renderWithProviders(<LivePreview camera={{ id: 'cam-1' }} />);
+  it('re-resolves hlsUrl when the camera prop changes', async () => {
+    const { rerender } = await renderPreview(<LivePreview camera={{ id: 'cam-1' }} />);
 
     expect(mockUseCameraLivePreview).toHaveBeenCalledWith({ id: 'cam-1' }, { enabled: true });
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { screen, waitFor } from '@testing-library/react-native';
+import { act, screen, waitFor } from '@testing-library/react-native';
 import { CameraCard } from '@/components/cameras/CameraCard';
 import { resolveEffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
@@ -108,13 +108,16 @@ describe('CameraCard', () => {
     expect(screen.getByText('Direct connection')).toBeOnTheScreen();
   });
 
-  it('offline: card has opacity 0.6, "Offline" chip, "Last seen" text; no thumbnail even with preview_thumbnail_url', () => {
+  it('offline: card has opacity 0.6, "Offline" chip, "Last seen" text; no thumbnail even with preview_thumbnail_url', async () => {
     const camera = makeCamera({
       preview_thumbnail_url: 'https://example.com/stale.jpg',
       status: { connection: 'offline', last_seen_at: secsAgo(120), details: null },
     });
 
     const { UNSAFE_getByProps } = renderWithProviders(<CameraCard camera={camera} />);
+    // The card reads a bearer token for the preview URL even while offline (it
+    // just doesn't render the thumbnail), so settle that update here.
+    await act(async () => {});
 
     // No thumbnail when offline
     expect(screen.queryByTestId('camera-thumbnail')).toBeNull();

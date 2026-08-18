@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useAuthedMediaSource } from '@/services/api/authedMedia';
 
 const mockGetToken = jest.fn<() => Promise<string | undefined>>();
@@ -46,7 +46,7 @@ describe('useAuthedMediaSource', () => {
     );
   });
 
-  it('withholds the source on native until the token resolves', () => {
+  it('withholds the source on native until the token resolves', async () => {
     mockIsWeb.mockReturnValue(false);
 
     const { result } = renderHook(() => useAuthedMediaSource(URI));
@@ -54,6 +54,8 @@ describe('useAuthedMediaSource', () => {
     // Rendering a source without credentials would fire a spurious onError and
     // latch the "failed" state before the token ever arrives.
     expect(result.current).toBeNull();
+    // Settle the pending read so its setState lands inside act().
+    await act(async () => {});
   });
 
   it('keeps a stable source identity across re-renders', async () => {
