@@ -100,3 +100,57 @@ describe('components section tooltip', () => {
     expect(components.tooltip?.(bareProduct, false)).toBeUndefined();
   });
 });
+
+describe('section chunking', () => {
+  it('has four sections so the phone nav fits one row', () => {
+    expect(SECTIONS.map((section) => section.key)).toEqual([
+      'overview',
+      'components',
+      'properties',
+      'media',
+    ]);
+  });
+
+  describe('properties section', () => {
+    const properties = SECTIONS.find((section) => section.key === 'properties');
+    if (!properties) throw new Error('properties section missing from SECTIONS');
+    const emptyProps: Product = {
+      ...bareProduct,
+      physicalProperties: {
+        weight: undefined,
+        width: undefined,
+        height: undefined,
+        depth: undefined,
+      },
+      circularityProperties: {
+        recyclability: null,
+        disassemblability: null,
+        remanufacturability: null,
+      },
+    };
+
+    it('is empty only when both measurements and circularity notes are absent', () => {
+      expect(properties.isEmpty(emptyProps, { mediaStreamable: false })).toBe(true);
+      expect(
+        properties.isEmpty(
+          { ...emptyProps, physicalProperties: { ...emptyProps.physicalProperties, weight: 12 } },
+          { mediaStreamable: false },
+        ),
+      ).toBe(false);
+      expect(
+        properties.isEmpty(
+          {
+            ...emptyProps,
+            circularityProperties: { ...emptyProps.circularityProperties, recyclability: 'ok' },
+          },
+          { mediaStreamable: false },
+        ),
+      ).toBe(false);
+    });
+
+    it('offers one add-row for the merged section', () => {
+      expect(properties.addLabel).toBe('Add properties');
+      expect(properties.label).toBe('Properties');
+    });
+  });
+});

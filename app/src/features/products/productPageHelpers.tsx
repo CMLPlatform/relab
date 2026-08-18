@@ -34,8 +34,6 @@ export function useProductPageHeader({
   ancestors,
   isProductComponent,
   theme,
-  editMode,
-  onProductNameChange,
 }: {
   navigation: {
     setOptions: (options: {
@@ -50,30 +48,15 @@ export function useProductPageHeader({
   ancestors: AncestorCrumb[];
   isProductComponent: boolean;
   theme: AppTheme;
-  editMode: boolean;
-  onProductNameChange?: (newName: string) => void;
 }) {
   useEffect(() => {
     const name = product.name;
     const showTrail = isProductComponent && ancestors.length > 0;
-    // In edit mode the header *is* the name field, so always render a custom
-    // title (input). In view mode, a plain-string title is enough for base
-    // products; components fall through to the ancestor trail.
-    const needsCustomTitle = editMode || showTrail;
+    // A plain-string title is enough for base products; components fall
+    // through to the ancestor trail, which needs a custom title slot.
+    const needsCustomTitle = showTrail;
 
-    const titleSlot = (
-      // Key on product identity: the detail screen stays mounted across
-      // product navigation, so remounting the header per product drops any
-      // stale edit buffer instead of carrying the previous typed name over.
-      // A same-product hydration keeps the same key, preserving in-flight typing.
-      <ProductNameHeader
-        key={product.id}
-        name={name}
-        editMode={editMode}
-        theme={theme}
-        onProductNameChange={onProductNameChange}
-      />
-    );
+    const titleSlot = <ProductNameHeader name={name} />;
 
     navigation.setOptions({
       title: needsCustomTitle ? undefined : truncateHeaderLabel(name, 36),
@@ -96,15 +79,12 @@ export function useProductPageHeader({
     });
   }, [
     ancestors,
-    editMode,
     goBackWithGuards,
     isProductComponent,
     navigation,
-    onProductNameChange,
-    // The effect only reads product.name/id (both primitives, stable while
-    // typing); depending on the whole `product` (a fresh useWatch reference
-    // every render) re-ran setOptions on every keystroke.
-    product.id,
+    // The effect only reads product.name (a primitive, stable while typing);
+    // depending on the whole `product` (a fresh useWatch reference every
+    // render) re-ran setOptions on every keystroke.
     product.name,
     theme,
   ]);

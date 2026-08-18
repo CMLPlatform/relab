@@ -626,38 +626,69 @@ describe('Section layout', () => {
     expect(indexOf('ProductType')).toBeGreaterThan(indexOf('ProductTags'));
     expect(indexOf('Components')).toBeGreaterThan(indexOf('ProductType'));
     expect(indexOf('ProductComponents')).toBeGreaterThan(indexOf('Components'));
-    expect(indexOf('Physical properties')).toBeGreaterThan(indexOf('ProductComponents'));
-    expect(indexOf('ProductPhysicalProperties')).toBeGreaterThan(indexOf('Physical properties'));
-    expect(indexOf('Circularity')).toBeGreaterThan(indexOf('ProductPhysicalProperties'));
-    expect(indexOf('ProductCircularityProperties')).toBeGreaterThan(indexOf('Circularity'));
+    // Measurements and circularity notes share the Properties section; the
+    // metadata block is a footer after the last section, not a section itself.
+    expect(indexOf('Properties')).toBeGreaterThan(indexOf('ProductComponents'));
+    expect(indexOf('ProductPhysicalProperties')).toBeGreaterThan(indexOf('Properties'));
+    expect(indexOf('ProductCircularityProperties')).toBeGreaterThan(
+      indexOf('ProductPhysicalProperties'),
+    );
     expect(indexOf('Media')).toBeGreaterThan(indexOf('ProductCircularityProperties'));
     expect(indexOf('ProductVideo')).toBeGreaterThan(indexOf('Media'));
-    expect(indexOf('Details')).toBeGreaterThan(indexOf('ProductVideo'));
-    expect(indexOf(`Meta:${fullProduct.name}`)).toBeGreaterThan(indexOf('Details'));
+    expect(indexOf(`Meta:${fullProduct.name}`)).toBeGreaterThan(indexOf('ProductVideo'));
+    expect(indexOf('Details')).toBe(-1);
   });
 
-  it('hides an empty circularity section in view mode and shows an add-row in edit mode', () => {
+  it('hides an empty properties section in view mode and shows one add-row in edit mode', () => {
+    const bareProduct = {
+      ...baseProduct,
+      physicalProperties: {
+        weight: undefined,
+        width: undefined,
+        height: undefined,
+        depth: undefined,
+      },
+    };
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
-      product: baseProduct,
+      product: bareProduct,
       editMode: false,
     } as never);
 
     const { rerender } = renderWithProviders(<ProductPage />, { withDialog: true });
 
-    expect(screen.queryByText('Circularity')).toBeNull();
+    expect(screen.queryByText('Properties')).toBeNull();
     expect(screen.queryByText('ProductCircularityProperties')).toBeNull();
 
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
-      product: baseProduct,
+      product: bareProduct,
       editMode: true,
     } as never);
 
     rerender(<ProductPage />);
 
-    expect(screen.getByText('Add circularity notes')).toBeOnTheScreen();
+    expect(screen.getByText('Add properties')).toBeOnTheScreen();
+    expect(screen.queryByText('ProductPhysicalProperties')).toBeNull();
     expect(screen.queryByText('ProductCircularityProperties')).toBeNull();
+  });
+
+  it('renders no more than four section-nav chips in edit mode', () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: fullProduct,
+      editMode: true,
+    } as never);
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    const chips = within(screen.getByTestId('section-nav-chips')).getAllByRole('button');
+    expect(chips.map((chip) => chip.props.accessibilityLabel)).toEqual([
+      'Overview, current section',
+      'Components',
+      'Properties',
+      'Media',
+    ]);
   });
 
   it('renders phone section-nav chips with Overview and Components labels', () => {

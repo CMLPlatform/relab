@@ -177,8 +177,6 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     ancestors,
     isProductComponent,
     theme,
-    editMode,
-    onProductNameChange,
   });
 
   useEffect(() => {
@@ -245,6 +243,7 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     capabilities,
     actions: {
       onImagesChange,
+      onProductNameChange,
       onChangeDescription,
       onBrandChange,
       onModelChange,

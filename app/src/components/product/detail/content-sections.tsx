@@ -9,7 +9,6 @@ import ProductVideo from '@/components/product/ProductVideo';
 import { entityLabel, type Product } from '@/types/Product';
 import ProductCircularityProperties from './ProductCircularityProperties';
 import ProductComponents from './ProductComponents';
-import ProductMetaData from './ProductMetaData';
 import ProductPhysicalProperties from './ProductPhysicalProperties';
 import ProductTags from './ProductTags';
 import ProductType from './ProductType';
@@ -76,8 +75,8 @@ function hasCircularityNotes(product: Product): boolean {
 
 /**
  * Drives both the scroll order and the section nav (chips/outline). Order:
- * gallery → SpecHeader → these sections → Delete (all outside this config —
- * see Content.tsx's ProductPageContent).
+ * gallery → SpecHeader → these sections → metadata footer → Delete (all
+ * outside this config — see Content.tsx's ProductPageContent).
  */
 export const SECTIONS: SectionConfig[] = [
   {
@@ -127,34 +126,30 @@ export const SECTIONS: SectionConfig[] = [
     render: (props) => <ProductComponents product={props.product} editMode={props.editMode} />,
   },
   {
-    key: 'physical',
-    label: 'Physical properties',
-    addLabel: 'Add physical properties',
+    // Measurements and circularity notes share one section: six sections made
+    // six nav chips, of which two were off-screen on a phone. The circularity
+    // block keeps its own disclosure row inside, so the merged section still
+    // reads as two chunks.
+    key: 'properties',
+    label: 'Properties',
+    addLabel: 'Add properties',
     isEmpty: (product) => {
       const { weight, width, height, depth } = product.physicalProperties;
-      return !(weight || width || height || depth);
+      return !(weight || width || height || depth) && !hasCircularityNotes(product);
     },
-    tooltip: () => 'Must be greater than 0. Assume a bounding box for the dimensions.',
     render: (props) => (
-      <ProductPhysicalProperties
-        product={props.product}
-        editMode={props.editMode}
-        onChangePhysicalProperties={props.onChangePhysicalProperties}
-      />
-    ),
-  },
-  {
-    key: 'circularity',
-    label: 'Circularity',
-    addLabel: 'Add circularity notes',
-    isEmpty: (product) => !hasCircularityNotes(product),
-    tooltip: () => 'Add optional recyclability, disassemblability, and remanufacturability notes.',
-    render: (props) => (
-      <ProductCircularityProperties
-        product={props.product}
-        editMode={props.editMode}
-        onChangeCircularityProperties={props.onChangeCircularityProperties}
-      />
+      <>
+        <ProductPhysicalProperties
+          product={props.product}
+          editMode={props.editMode}
+          onChangePhysicalProperties={props.onChangePhysicalProperties}
+        />
+        <ProductCircularityProperties
+          product={props.product}
+          editMode={props.editMode}
+          onChangeCircularityProperties={props.onChangeCircularityProperties}
+        />
+      </>
     ),
   },
   {
@@ -171,12 +166,6 @@ export const SECTIONS: SectionConfig[] = [
         goLiveTriggerRef={props.goLiveTriggerRef}
       />
     ),
-  },
-  {
-    key: 'meta',
-    label: 'Details',
-    isEmpty: () => false,
-    render: (props) => <ProductMetaData product={props.product} />,
   },
 ];
 

@@ -84,6 +84,19 @@ describe('ProductCard', () => {
     expect(screen.getByText(MONTHS_AGO_PATTERN)).toBeOnTheScreen();
   });
 
+  // The timestamp sits inside the press target: pressing the "today" line
+  // opens the record, so the card has no inert strip above the owner link.
+  it('opens the product when the creation date is pressed', async () => {
+    const mockPush = jest.fn();
+    (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+    renderWithProviders(<ProductCard product={{ ...baseProduct, createdAt: TWO_MONTHS_AGO }} />);
+    await user.press(screen.getByText(MONTHS_AGO_PATTERN));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/products/[id]',
+      params: { id: String(baseProduct.id) },
+    });
+  });
+
   it('does not render a date for an invalid createdAt string', () => {
     renderWithProviders(<ProductCard product={{ ...baseProduct, createdAt: 'not-a-date' }} />);
     expect(screen.queryByText(AGO_PATTERN)).toBeNull();

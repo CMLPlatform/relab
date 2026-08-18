@@ -1,7 +1,9 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { SpecHeader } from '@/components/product/detail/SpecHeader';
 import { formatWeight } from '@/components/product/detail/spec-utils';
 import { baseProduct } from '@/test-utils/fixtures';
+import { getAppTheme } from '@/theme';
 
 const IDENTITY_PATTERN = /Vitra · T2/;
 
@@ -48,4 +50,48 @@ test('renders no facts row segments for missing data', () => {
   expect(screen.getByText('Kettle')).toBeOnTheScreen();
   expect(screen.queryByText('Weight')).toBeNull();
   expect(screen.queryByText('Components')).toBeNull();
+});
+
+// In edit mode the display-size name is the control — one name field, and it
+// is the biggest text on the screen. (Moved here from ProductNameHeader, which
+// used to carry a second, 16px copy in the stack header.)
+describe('SpecHeader name field in edit mode', () => {
+  const product = { ...baseProduct, name: 'Initial product name' };
+
+  test('renders the name as a display-scale input', () => {
+    render(<SpecHeader product={product} editMode />);
+    const input = screen.getByLabelText('Product name');
+    expect(input.props.value).toBe('Initial product name');
+    expect(StyleSheet.flatten(input.props.style).fontSize).toBe(
+      getAppTheme('light').tokens.type.display.fontSize,
+    );
+  });
+
+  test('preserves an in-progress draft when the product hydrates mid-edit', () => {
+    const { rerender } = render(<SpecHeader product={product} editMode />);
+    fireEvent.changeText(screen.getByLabelText('Product name'), 'Unsaved draft');
+    rerender(<SpecHeader product={{ ...product, name: 'Hydrated name' }} editMode />);
+    expect(screen.getByDisplayValue('Unsaved draft')).toBeOnTheScreen();
+  });
+
+  test('calls onNameChange with the trimmed draft on blur', () => {
+    const onNameChange = jest.fn();
+    render(<SpecHeader product={product} editMode onNameChange={onNameChange} />);
+    const input = screen.getByLabelText('Product name');
+    fireEvent.changeText(input, '  Updated product name  ');
+    fireEvent(input, 'blur');
+    expect(onNameChange).toHaveBeenCalledWith('Updated product name');
+  });
+
+  test('announces a validation error for a too-short name', () => {
+    render(<SpecHeader product={product} editMode />);
+    fireEvent.changeText(screen.getByLabelText('Product name'), 'A');
+    expect(screen.getByRole('alert')).toBeOnTheScreen();
+  });
+
+  test('renders plain text, not an input, in view mode', () => {
+    render(<SpecHeader product={product} editMode={false} />);
+    expect(screen.queryByLabelText('Product name')).toBeNull();
+    expect(screen.getByText('Initial product name')).toBeOnTheScreen();
+  });
 });

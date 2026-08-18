@@ -52,8 +52,8 @@ const FIELD_SECTION: Record<string, SectionKey> = {
   model: 'overview',
   amountInParent: 'overview',
   productTypeID: 'overview',
-  physicalProperties: 'physical',
-  circularityProperties: 'circularity',
+  physicalProperties: 'properties',
+  circularityProperties: 'properties',
   videos: 'media',
   images: 'media',
 };

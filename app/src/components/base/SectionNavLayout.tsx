@@ -22,7 +22,9 @@ function SectionNavItem({
       accessibilityRole="button"
       accessibilityLabel={active ? `${section.label}, current section` : section.label}
       className={cn(
-        'min-h-11 justify-center rounded-md px-4 py-2',
+        // px-2: four label-scale chips must fit a 390pt phone in one row
+        // (measured 358/366px); px-4 pushed the last chip off-screen.
+        'min-h-11 justify-center rounded-md px-2 py-2',
         active ? 'bg-primary/12' : 'opacity-70',
         Platform.select({
           web: cn('cursor-pointer outline-none hover:opacity-90', WEB_FOCUS_RING),

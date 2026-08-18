@@ -16,6 +16,7 @@ const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const VIEW_IMAGE_LABEL_PATTERN = /^View .+/;
 // ProductsWelcomeCard's dismiss affordance: "Maybe later" for guests, "Got it"
 // once signed in. "Continue" covers the onboarding variant.
+const FILTERS_TOGGLE_NAME_PATTERN = /^Filters/;
 const WELCOME_CARD_DISMISS_PATTERN = /^(Got it|Maybe later|Continue)$/;
 // The menu is an RN-core Modal (Menu.tsx) that measures its anchor position on
 // open; under parallel-worker CPU load an open can occasionally land before the
@@ -77,7 +78,7 @@ export async function reachProductsPage(page: Page) {
  * already carries a filter. Idempotent: leaves an open row alone.
  */
 export async function openProductFilters(page: Page) {
-  const toggle = page.getByRole('button', { name: /^Filters/ });
+  const toggle = page.getByRole('button', { name: FILTERS_TOGGLE_NAME_PATTERN });
   await expect(toggle).toBeVisible({ timeout: 10_000 });
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') {
     await toggle.click();

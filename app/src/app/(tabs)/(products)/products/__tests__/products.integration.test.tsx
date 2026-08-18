@@ -290,9 +290,7 @@ describe('Products screen', () => {
   it('opens the chips and counts them when the URL carries a filter', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '7', brands: 'Bosch' });
     renderProducts();
-    expect(
-      screen.getByLabelText('Filters, 2 active').props.accessibilityState.expanded,
-    ).toBe(true);
+    expect(screen.getByLabelText('Filters, 2 active').props.accessibilityState.expanded).toBe(true);
     expect(screen.getByText('Last 7d')).toBeOnTheScreen();
   });
 

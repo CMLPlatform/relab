@@ -15,6 +15,7 @@ import { useAnchoredSectionNav } from '@/hooks/useAnchoredSectionNav';
 import type { Product } from '@/types/Product';
 import type { SectionContext, SectionRenderProps } from './content-sections';
 import { guardedSections } from './content-sections';
+import ProductMetaData from './ProductMetaData';
 import { SpecHeader } from './SpecHeader';
 
 type ProductPageContentProps = {
@@ -25,6 +26,7 @@ type ProductPageContentProps = {
   scrollRef: RefObject<ScrollView | null>;
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   onImagesChange: ComponentProps<typeof ProductImageGallery>['onImagesChange'];
+  onProductNameChange: ComponentProps<typeof SpecHeader>['onNameChange'];
   onChangeDescription: SectionRenderProps['onChangeDescription'];
   onBrandChange: SectionRenderProps['onBrandChange'];
   onModelChange: SectionRenderProps['onModelChange'];
@@ -46,6 +48,7 @@ export function ProductPageContent({
   scrollRef,
   onScroll,
   onImagesChange,
+  onProductNameChange,
   onChangeDescription,
   onBrandChange,
   onModelChange,
@@ -102,7 +105,7 @@ export function ProductPageContent({
       </PageContainer>
       <PageContainer onLayout={onPageContainerLayout}>
         <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
-          <SpecHeader product={product} />
+          <SpecHeader product={product} editMode={editMode} onNameChange={onProductNameChange} />
           <SectionNavContext.Provider value={anchoredNav}>
             {guardedSections({ isProductComponent }).map((section) => (
               <Section
@@ -119,6 +122,10 @@ export function ProductPageContent({
               </Section>
             ))}
           </SectionNavContext.Provider>
+          {/* Record metadata (dates, owner, id) is a footer, not a chunk of
+              the record — keeping it out of the nav is what lets the chips
+              fit one row on a phone. */}
+          <ProductMetaData product={product} />
           <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
         </View>
       </PageContainer>

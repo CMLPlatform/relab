@@ -156,6 +156,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
       scrollRef={scrollRef}
       onScroll={handleScroll}
       onImagesChange={actions.onImagesChange}
+      onProductNameChange={actions.onProductNameChange}
       onChangeDescription={actions.onChangeDescription}
       onBrandChange={actions.onBrandChange}
       onModelChange={actions.onModelChange}

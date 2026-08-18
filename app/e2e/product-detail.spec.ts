@@ -30,8 +30,9 @@ const PRODUCT_IMAGE_UPLOAD_PATH_PATTERN = /\/v1\/products\/\d+\/images$/;
 // Empty optional sections collapse to a single "Add …" row in edit mode
 // (Section.tsx showAddRow); pressing it reveals the real fields.
 const ADD_DESCRIPTION_LABEL = 'Add a description';
-const ADD_PHYSICAL_PROPERTIES_LABEL = 'Add physical properties';
-const ADD_CIRCULARITY_NOTES_LABEL = 'Add circularity notes';
+// Measurements and circularity notes share one Properties section, so one
+// add-row opens both blocks.
+const ADD_PROPERTIES_LABEL = 'Add properties';
 const DESCRIPTION_PLACEHOLDER = 'Add a product description';
 
 // Stage 1 of capture-first creation: fill the name on the capture screen and
@@ -54,7 +55,7 @@ async function fillRequiredProductFields(
   name: string,
 ): Promise<void> {
   await createProduct(page, name);
-  await page.getByRole('button', { name: ADD_PHYSICAL_PROPERTIES_LABEL }).click();
+  await page.getByRole('button', { name: ADD_PROPERTIES_LABEL }).click();
   const weightInput = page.getByPlaceholder('> 0').first();
   await weightInput.fill('42');
   await weightInput.blur();
@@ -92,7 +93,7 @@ test.describe('Product detail: navigation', () => {
 // its onLayout y relative to its parent View, not the scroll content, so
 // chip taps landed roughly one section short (missing the gallery height).
 test.describe('Product detail: section navigation', () => {
-  test('clicking the Physical properties chip scrolls that section to the top of the viewport', async ({
+  test('clicking the Properties chip scrolls that section to the top of the viewport', async ({
     page,
   }) => {
     await reachProductsPage(page);
@@ -100,17 +101,17 @@ test.describe('Product detail: section navigation', () => {
 
     // Both seeded products have physical properties set, so the section (and
     // its nav chip/outline entry) is visible in view mode without editing.
-    await page.getByRole('button', { name: 'Physical properties' }).click();
+    await page.getByRole('button', { name: 'Properties' }).click();
 
     // The chip/outline entry and the Section heading share the same text; the
     // Section heading is the last match in DOM order (nav renders first).
-    const heading = page.getByText('Physical properties', { exact: true }).last();
+    const heading = page.getByText('Properties', { exact: true }).last();
     await expect(heading).toBeVisible({ timeout: 5_000 });
     // The heading settles just under the sticky chrome (top nav + product header
     // + chip bar), so the ceiling is measured from that chrome rather than a
     // magic number that drifts every time the header changes height. Pre-fix the
     // scroll landed ~a full section short — hundreds of px below this bound.
-    const chipBar = await page.getByRole('button', { name: 'Physical properties' }).boundingBox();
+    const chipBar = await page.getByRole('button', { name: 'Properties' }).boundingBox();
     const chromeBottom = (chipBar?.y ?? 0) + (chipBar?.height ?? 0);
     // Poll: scrollTo animates, so the heading needs a moment to settle.
     await expect
@@ -118,6 +119,36 @@ test.describe('Product detail: section navigation', () => {
         timeout: 5_000,
       })
       .toBeLessThan(chromeBottom + 100);
+  });
+});
+
+// ─── Chunking at phone width ────────────────────────────────────────────────
+// Six sections used to make six chips, of which two sat off-screen at 390pt.
+// Assert the painted result: every chip's right edge inside the viewport, in
+// edit mode (where every section, empty or not, is present).
+test.describe('Product detail: phone chunking', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('all section chips fit one row at 390pt in edit mode', async ({ page }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Chunk ${Date.now()}`);
+    const chips = page.getByTestId('section-nav-chips').getByRole('button');
+    await expect(chips).toHaveCount(4);
+    for (const chip of await chips.all()) {
+      const box = await chip.boundingBox();
+      expect(box).not.toBeNull();
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
+    }
+  });
+
+  test('edit mode has exactly one name control, at display scale', async ({ page }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Name ${Date.now()}`);
+    const nameInputs = page.getByRole('textbox', { name: 'Product name' });
+    await expect(nameInputs).toHaveCount(1);
+    const fontSize = await nameInputs.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    // The display step is the largest text on the screen (DESIGN.md §Hierarchy).
+    expect(fontSize).toBeGreaterThanOrEqual(30);
   });
 });
 
@@ -165,7 +196,7 @@ test.describe('Product creation', () => {
     await loginAndReachProducts(page);
     await saveNewProduct(page, `E2E Test ${Date.now()}`);
 
-    await expect(page.getByRole('button', { name: 'Physical properties' })).toBeVisible({
+    await expect(page.getByRole('button', { name: 'Properties' })).toBeVisible({
       timeout: 10_000,
     });
   });
@@ -195,16 +226,11 @@ test.describe('Product detail: edit mode', () => {
     });
 
     // Other empty sections stay collapsed but present.
-    await expect(page.getByRole('button', { name: ADD_PHYSICAL_PROPERTIES_LABEL })).toBeVisible({
+    await expect(page.getByRole('button', { name: ADD_PROPERTIES_LABEL })).toBeVisible({
       timeout: 5_000,
     });
-    await expect(page.getByRole('button', { name: ADD_CIRCULARITY_NOTES_LABEL })).toBeVisible({
-      timeout: 5_000,
-    });
-    // The Details section (product metadata) is never empty, so it always
-    // renders in full rather than collapsing to an "Add …" row. Its always-
-    // present "Product ID: N" line proves it rendered (the section no longer
-    // carries a redundant inner "Metadata" header — the Section title labels it).
+    // The metadata footer (dates, owner, id) is not a section and never
+    // collapses; its always-present "Product ID: N" line proves it rendered.
     await expect(page.getByText(PRODUCT_ID_TEXT_PATTERN)).toBeVisible({ timeout: 5_000 });
   });
 

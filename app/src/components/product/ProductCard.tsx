@@ -49,7 +49,6 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
       ? 'you'
       : (product.ownerUsername ?? 'anonymous')
     : null;
-  const hasMetadata = createdAgo !== null || ownerLabel !== null;
 
   const navigateToProduct = useCallback(() => {
     if (typeof product.id !== 'number') return;
@@ -71,11 +70,11 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   );
 
   return (
-    // The card's press target deliberately does NOT wrap the metadata row. It
-    // used to, which nested the owner link inside the card button (axe
+    // The card's press target deliberately does NOT wrap the owner link. It
+    // used to, which nested the link inside the card button (axe
     // `nested-interactive`, undefined AT behaviour) and squeezed that link to
-    // 21x18px. Thumbnail + text are the press target; the metadata row is a
-    // sibling below it, indented to line up with the text column.
+    // 21x18px. Thumbnail + text + timestamp are the press target; the owner
+    // link is a sibling row below it, indented to line up with the text column.
     <Card className="mx-2.5 my-1.5">
       <View className="p-3">
         <Pressable
@@ -131,30 +130,32 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
             <MutedText variant="caption" selectable={false} numberOfLines={1} ellipsizeMode="tail">
               {product.description}
             </MutedText>
-          </View>
-        </Pressable>
-
-        {hasMetadata ? (
-          // pl-24 (96px) = thumbnail w-20 (80) + mr-4 (16), so this lines up
-          // with the text column above it now that it is no longer nested in it.
-          <View className="flex-row items-center gap-2.5 pl-24" style={styles.metadataRow}>
             {createdAgo ? (
-              <View className="flex-row items-center gap-1">
+              // Inside the press target so the card has no inert strip: only
+              // the owner link (a control of its own) sits outside it.
+              <View className="mt-1 flex-row items-center gap-1">
                 {/* `colors.outline` is the input-stroke token; as text it
-                        measured 4.03:1. `onSurfaceVariant` is the muted-text
-                        token and is 7.8:1 on the same card. */}
+                    measured 4.03:1. `onSurfaceVariant` is the muted-text
+                    token and is 7.8:1 on the same card. */}
                 <Icon name="clock" size={12} color={theme.colors.onSurfaceVariant} />
                 <AppText variant="caption" style={{ color: theme.colors.onSurfaceVariant }}>
                   {createdAgo}
                 </AppText>
               </View>
             ) : null}
+          </View>
+        </Pressable>
+
+        {ownerLabel ? (
+          // pl-24 (96px) = thumbnail w-20 (80) + mr-4 (16), so this lines up
+          // with the text column above it now that it is no longer nested in it.
+          <View className="flex-row items-center pl-24" style={styles.metadataRow}>
             {/* The label always renders; only the LINK is conditional.
                 `navigateToOwner` returns early without a username, so gating the
                 whole block hid "you" on your own records, and gating nothing
                 made an unnavigable label a full-size primary-coloured link that
                 did nothing when pressed. */}
-            {ownerLabel && product.ownerUsername ? (
+            {product.ownerUsername ? (
               <Pressable
                 onPress={navigateToOwner}
                 accessibilityRole="link"
@@ -167,7 +168,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                   {ownerLabel}
                 </AppText>
               </Pressable>
-            ) : ownerLabel ? (
+            ) : (
               <View className="flex-row items-center gap-1 pr-2">
                 <Icon name="user" size={12} color={theme.colors.onSurfaceVariant} />
                 <AppText
@@ -178,7 +179,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                   {ownerLabel}
                 </AppText>
               </View>
-            ) : null}
+            )}
           </View>
         ) : null}
       </View>
