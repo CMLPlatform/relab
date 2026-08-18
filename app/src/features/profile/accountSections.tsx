@@ -9,6 +9,7 @@ import {
   ProfileDangerZoneSection,
   ProfileLinkedAccountsSection,
 } from '@/components/profile/AccountSections';
+import { ContributorTermsAction } from '@/components/profile/ContributorTermsAction';
 import { ProfileIntegrationsSection } from '@/components/profile/Integrations';
 import {
   ProfileAppearanceSection,
@@ -128,7 +129,12 @@ export const ACCOUNT_SECTIONS: AccountSectionDef[] = [
     key: 'about',
     label: 'About',
     title: 'About',
-    render: () => <ProfileAboutSection />,
+    render: () => (
+      <>
+        <ProfileAboutSection />
+        <ContributorTermsAction />
+      </>
+    ),
   },
   {
     key: 'danger',

@@ -16,6 +16,7 @@ import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react
 import { colorScheme as nativewindColorScheme } from 'react-native-css';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { TermsAcceptanceDialog } from '@/components/auth/TermsAcceptanceDialog';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { OfflineBanner } from '@/components/base/OfflineBanner';
@@ -260,7 +261,13 @@ function ThemedProviders({ children }: { children: ReactNode }) {
       <ThemeProvider value={colorScheme === 'light' ? LightTheme : DarkTheme}>
         <KeyboardProvider>
           <GestureHandlerRootView style={{ flex: 1 }}>
-            <DialogProvider>{children}</DialogProvider>
+            <DialogProvider>
+              {children}
+              {/* Inside DialogProvider (its toast reports the outcome) and inside
+                  AuthProvider (it reads the flag off the current user). Renders
+                  nothing at all when no prompt is due, including signed out. */}
+              <TermsAcceptanceDialog />
+            </DialogProvider>
           </GestureHandlerRootView>
         </KeyboardProvider>
       </ThemeProvider>
