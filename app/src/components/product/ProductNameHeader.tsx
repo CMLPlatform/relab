@@ -39,7 +39,7 @@ export function ProductNameHeader({
 
   if (!editMode) {
     return (
-      <AppText numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, fontWeight: '700' }}>
+      <AppText variant="body" numberOfLines={1} className="font-bold" style={{ flexShrink: 1 }}>
         {truncateHeaderLabel(name, 36)}
       </AppText>
     );
@@ -59,6 +59,9 @@ export function ProductNameHeader({
         onBlur={handleBlur}
         placeholder="Product name"
         maxLength={PRODUCT_NAME_MAX_LENGTH}
+        // NOTE: 16px matches the `body` ramp step, but this is RN's TextInput
+        // (no `variant` prop) rather than AppText — style-driven, matching
+        // the view-mode AppText above.
         style={{
           fontSize: 16,
           fontWeight: '700',

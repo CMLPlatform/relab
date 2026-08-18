@@ -101,7 +101,7 @@ export function MfaDialogs({
           textContentType="password"
           style={[local.field, { borderColor: theme.colors.outline }]}
         />
-        <AppText variant="caption" className="mt-2 opacity-60">
+        <AppText variant="caption" className="mt-2 text-muted-foreground">
           Signed up with Google or GitHub? Use your Relab account password — if you never set one,
           create it with “Forgot password” on the login screen first.
         </AppText>
@@ -118,7 +118,7 @@ export function MfaDialogs({
         </View>
 
         {mfa.error ? (
-          <AppText variant="body" className="mt-3 text-destructive" style={local.error}>
+          <AppText variant="caption" className="mt-3 text-destructive">
             {mfa.error}
           </AppText>
         ) : null}
@@ -175,7 +175,7 @@ export function MfaDialogs({
         )}
 
         {mfa.error ? (
-          <AppText variant="body" className="mt-3 text-destructive" style={local.error}>
+          <AppText variant="caption" className="mt-3 text-destructive">
             {mfa.error}
           </AppText>
         ) : null}
@@ -227,7 +227,7 @@ export function MfaDialogs({
         </View>
 
         {mfa.error ? (
-          <AppText variant="body" className="mt-3 text-destructive" style={local.error}>
+          <AppText variant="caption" className="mt-3 text-destructive">
             {mfa.error}
           </AppText>
         ) : null}
@@ -306,13 +306,12 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
     codesBox: {
       backgroundColor: theme.tokens.surface.sunken,
     },
+    // NOTE: enlarged past the `data` variant's 14px monospace default —
+    // recovery codes need to be easy to read and copy character-by-character.
     recoveryCode: {
       fontSize: 16,
       letterSpacing: 1,
       textAlign: 'center',
-    },
-    error: {
-      fontSize: 13,
     },
   }),
 );

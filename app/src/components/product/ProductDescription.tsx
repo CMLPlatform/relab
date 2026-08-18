@@ -70,6 +70,8 @@ export default function ProductDescription({ product, editMode, onChangeDescript
 
   return (
     <TextInput
+      // NOTE: 16/26 matches the `body` ramp step exactly, but this is RN's
+      // TextInput (no `variant` prop) rather than AppText — style-driven.
       style={{ padding: 14, fontSize: 16, lineHeight: 26 }}
       placeholder={`Add a ${entityLabel(product)} description`}
       value={draftText}

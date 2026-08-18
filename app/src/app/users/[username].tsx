@@ -7,8 +7,6 @@ import { PageContainer } from '@/components/base/PageContainer';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
-type ProfileStyles = ReturnType<typeof createStyles>;
-
 // Four stat blocks differ only in icon/color/value/label — mapped from data
 // instead of hand-copied per stat. Local to this screen: unrelated to the
 // HeroStats StatCard in components/profile.
@@ -17,22 +15,20 @@ function ProfileStatCard({
   color,
   value,
   label,
-  styles,
 }: {
   icon: IconName;
   color: string;
   value: string | number;
   label: string;
-  styles: ProfileStyles;
 }) {
   return (
     <Card className="flex-1 min-w-[140px] max-w-[200px] items-center">
       <View className="items-center py-4">
         <Icon name={icon} size={32} color={color} />
-        <AppText className="mt-3 mb-1 font-bold" style={styles.statValue} numberOfLines={1}>
+        <AppText variant="heading" className="mt-3 mb-1 font-bold" numberOfLines={1}>
           {value}
         </AppText>
-        <AppText className="text-center opacity-70" style={styles.statLabel}>
+        <AppText variant="eyebrow" className="text-center">
           {label}
         </AppText>
       </View>
@@ -75,11 +71,11 @@ export default function UserProfileScreen() {
                   {profile.username.substring(0, 2).toUpperCase()}
                 </AppText>
               </View>
-              <AppText variant="body" className="font-extrabold mb-2" style={styles.usernameText}>
+              <AppText variant="display" className="font-extrabold mb-2">
                 {profile.username}
               </AppText>
               {profile.created_at ? (
-                <AppText variant="caption" className="opacity-60">
+                <AppText variant="caption" className="text-muted-foreground">
                   Joined{' '}
                   {new Date(profile.created_at).toLocaleDateString(undefined, {
                     year: 'numeric',
@@ -119,7 +115,7 @@ export default function UserProfileScreen() {
                   },
                 ] as const
               ).map((stat) => (
-                <ProfileStatCard key={stat.label} styles={styles} {...stat} />
+                <ProfileStatCard key={stat.label} {...stat} />
               ))}
             </View>
           </View>
@@ -133,18 +129,11 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
     // bg-primary/10 (a light primary tint) backs this text, not a solid
     // *Container fill — onPrimaryContainer here was a contrast bug.
+    // NOTE: avatar-initials glyph sized to fill the 120px circle, not part of
+    // the reading hierarchy — no ramp step applies.
     avatarText: {
       fontSize: 48,
       color: theme.colors.primary,
-    },
-    usernameText: {
-      fontSize: 32,
-    },
-    statValue: {
-      fontSize: 28,
-    },
-    statLabel: {
-      fontSize: 13,
     },
   }),
 );

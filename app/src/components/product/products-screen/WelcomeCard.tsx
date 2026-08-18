@@ -50,7 +50,7 @@ export function ProductsWelcomeCard({
             />
           </View>
           <View className="flex-1">
-            <AppText className="font-bold" style={styles.welcomeTitle}>
+            <AppText variant="heading" className="font-bold">
               {!isAuthenticated
                 ? 'Welcome to Relab'
                 : currentUser?.isVerified

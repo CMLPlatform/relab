@@ -119,7 +119,7 @@ function FilterModalShell({
                 <ActivityIndicator color={theme.colors.primary} />
               </View>
             ) : visibleItems.length === 0 && !addNewChip ? (
-              <AppText className="pb-2 opacity-50">No results</AppText>
+              <AppText className="pb-2 text-muted-foreground">No results</AppText>
             ) : (
               <ScrollView style={styles.scroll}>
                 <View className="flex-row flex-wrap gap-2 pb-2">

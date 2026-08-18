@@ -70,7 +70,7 @@ function ProductsListFooter({
           Load more
         </AppButton>
       ) : null}
-      <AppText className="opacity-60">
+      <AppText className="text-muted-foreground">
         {productCount} of {total} products
       </AppText>
     </View>

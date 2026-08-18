@@ -53,7 +53,7 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
             />
           </View>
 
-          <AppText variant="title" className="mb-1 px-4 opacity-60">
+          <AppText variant="title" className="mb-1 px-4 text-muted-foreground">
             {session.cameraName}
           </AppText>
 

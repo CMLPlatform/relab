@@ -43,6 +43,10 @@ const styles = StyleSheet.create({
   step: {
     maxWidth: CARD_MAX_WIDTH,
   },
+  // NOTE: welcomeText/brandText/questionText are a bespoke three-line
+  // headline stack (own line, own weight per line), plain RN Text predating
+  // AppText — no single ramp step covers three different custom sizes in
+  // one headline.
   welcomeText: {
     fontSize: 40,
   },
@@ -71,6 +75,9 @@ const styles = StyleSheet.create({
   },
   // A visible label that survives typing — the placeholder used to be the only
   // name for the field, and it disappears the moment you type into it.
+  // NOTE: fontSize 12 is sized to LABEL_ROW_HEIGHT (16) as part of the
+  // hand-computed CARD_HEIGHT; swapping to a ramp step's own line height
+  // would desync the fixed-height card math above.
   label: {
     height: LABEL_ROW_HEIGHT,
     fontSize: 12,
@@ -81,6 +88,7 @@ const styles = StyleSheet.create({
   helperSlot: {
     height: HELPER_SLOT_HEIGHT,
   },
+  // NOTE: see label above — locked to HELPER_SLOT_HEIGHT (18), not a ramp step.
   helperText: {
     fontSize: 12,
   },
@@ -89,6 +97,7 @@ const styles = StyleSheet.create({
   actionRow: {
     height: ACTION_ROW_HEIGHT,
   },
+  // NOTE: sized to sit visually with the 16px chevron beside it, not a ramp step.
   backButtonText: {
     fontSize: 13,
   },
@@ -99,6 +108,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     maxWidth: CARD_MAX_WIDTH,
   },
+  // NOTE: matches label/helperText's 12px so all of this wizard's small print
+  // reads as one consistent size, rather than mixing in the 13px caption step.
   privacyText: {
     fontSize: 12,
   },
@@ -133,7 +144,10 @@ export function PrivacyPolicy() {
   }, [privacyUrl]);
 
   return (
-    <Text className="opacity-70 text-center" style={[styles.privacyText, { color: textColor }]}>
+    <Text
+      className="text-center"
+      style={[styles.privacyText, { color: theme.colors.onSurfaceVariant }]}
+    >
       By creating an account, you agree to our{' '}
       <Text
         className="underline"
@@ -239,11 +253,7 @@ function NewAccountStep({
           },
         ]}
       >
-        <Text
-          className="opacity-70"
-          style={[styles.label, { color: headlineColor }]}
-          maxFontSizeMultiplier={MAX_FONT_SCALE}
-        >
+        <Text style={[styles.label, { color: mutedColor }]} maxFontSizeMultiplier={MAX_FONT_SCALE}>
           {label}
         </Text>
         <View className="flex-row items-center" style={styles.inputRow}>

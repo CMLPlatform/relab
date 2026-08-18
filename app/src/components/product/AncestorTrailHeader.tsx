@@ -71,10 +71,10 @@ function TrailCrumb({
         }}
       >
         <AppText
+          variant="caption"
           numberOfLines={1}
           style={{
             maxWidth: 100,
-            fontSize: 13,
             opacity: 0.7,
             fontWeight: '600',
           }}

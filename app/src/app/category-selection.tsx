@@ -186,7 +186,7 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
       accessibilityRole="button"
       accessibilityLabel={`Browse ${CPV.directChildren.length} subcategories`}
     >
-      <AppText className="text-right" style={{ fontSize: 14, color: colors.primary }}>
+      <AppText variant="caption" className="text-right" style={{ color: colors.primary }}>
         {`${CPV.directChildren.length} subcategories`}
       </AppText>
       <Icon size="md" name="chevron-right" color={colors.primary} />

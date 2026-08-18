@@ -37,7 +37,7 @@ export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }:
         </AppText>
       </Pressable>
 
-      <AppText variant="body" className="opacity-70">
+      <AppText variant="body" className="text-muted-foreground">
         {profile.email}
       </AppText>
 

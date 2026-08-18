@@ -93,7 +93,7 @@ export function ActionRow({
             {label}
           </AppText>
           {subtitle ? (
-            <AppText variant="body" className="mt-px opacity-60">
+            <AppText variant="body" className="mt-px text-muted-foreground">
               {subtitle}
             </AppText>
           ) : null}

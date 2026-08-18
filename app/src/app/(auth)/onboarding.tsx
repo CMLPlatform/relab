@@ -1,5 +1,5 @@
 import type { useForm } from 'react-hook-form';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { AuthScreen } from '@/components/auth/AuthScreen';
 import { LoginBrandHero, LoginCard } from '@/components/auth/LoginSections';
@@ -27,10 +27,10 @@ function OnboardingBody({
       {/* The hero scrim is deliberately light — the card is what carries control
           legibility over the photo backdrop, so the copy and field live on it. */}
       <LoginCard>
-        <AppText className="font-bold text-center text-foreground" style={styles.title}>
+        <AppText variant="title" className="font-bold text-center text-foreground">
           Welcome!
         </AppText>
-        <AppText className="text-center mb-2.5 text-foreground" style={styles.subtitle}>
+        <AppText variant="body" className="text-center mb-2.5 text-foreground">
           Choose a username to continue.
         </AppText>
         <ControlledTextField
@@ -71,12 +71,3 @@ export default function Onboarding() {
     </AuthScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 32,
-  },
-  subtitle: {
-    fontSize: 16,
-  },
-});

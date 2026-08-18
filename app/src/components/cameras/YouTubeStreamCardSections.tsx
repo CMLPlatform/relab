@@ -56,10 +56,10 @@ export function YouTubeStreamCardView({
         </View>
 
         {isLoading && !streamStatus ? (
-          <MutedText className="opacity-50">Checking stream status…</MutedText>
+          <MutedText>Checking stream status…</MutedText>
         ) : isLive && streamStatus ? (
           <>
-            {elapsed ? <MutedText className="opacity-60">Live for {elapsed}</MutedText> : null}
+            {elapsed ? <MutedText>Live for {elapsed}</MutedText> : null}
             <AppText variant="body" style={themed.watchLink} onPress={onWatch} numberOfLines={1}>
               {streamStatus.url}
             </AppText>
@@ -74,9 +74,7 @@ export function YouTubeStreamCardView({
             </AppButton>
           </>
         ) : (
-          <MutedText className="opacity-50">
-            Not streaming — start a live stream from a product page.
-          </MutedText>
+          <MutedText>Not streaming — start a live stream from a product page.</MutedText>
         )}
       </View>
     </Card>

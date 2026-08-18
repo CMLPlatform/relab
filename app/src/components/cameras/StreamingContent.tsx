@@ -66,7 +66,7 @@ export function StreamingContent({
       {/* Header: LIVE badge + elapsed */}
       <View className="flex-row items-center gap-2 px-4 py-1">
         <StatusPill label="LIVE" tone="live" />
-        <AppText variant="body" className="flex-1 opacity-60" style={tabularNums}>
+        <AppText variant="body" className="flex-1 text-muted-foreground" style={tabularNums}>
           {elapsed}
         </AppText>
       </View>

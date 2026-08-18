@@ -51,6 +51,8 @@ export function FormFieldError({
       // Capped so error text stays legible instead of clipping inside
       // fixed-height helper slots at large OS text-scale settings.
       maxFontSizeMultiplier={1.5}
+      // NOTE: fontSize 12 is sized to HELPER_SLOT_MIN_HEIGHT above, matching
+      // NewAccountSections' fixed-height slot math — not a ramp step.
       style={[{ color: theme.tokens.status.danger, fontSize: 12 }, style]}
     >
       {message}

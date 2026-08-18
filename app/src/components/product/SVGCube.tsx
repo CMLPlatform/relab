@@ -41,6 +41,8 @@ const VIEW_BOX = [
 const SVG_HEIGHT = 210;
 
 const LABEL_GAP = 15;
+// NOTE: SVG-drawn dimension label inside the cube diagram, not an app text
+// primitive — the ramp's variants don't reach into SVG shape props.
 const FONT_SIZE = 12;
 /** Unit normal of an edge sloping at ISO, used to push labels clear of it. */
 const NORMAL_X = Math.sin(Math.PI / 6);

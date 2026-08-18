@@ -14,16 +14,16 @@ export default function ProductMetaData({ product }: Props) {
   return (
     <View className="gap-2 mb-2">
       {product.createdAt ? (
-        <AppText variant="body" className="opacity-70">
+        <AppText variant="body" className="text-muted-foreground">
           Created: {new Date(product.createdAt).toLocaleDateString()}
         </AppText>
       ) : null}
       {product.updatedAt ? (
-        <AppText variant="body" className="opacity-70">
+        <AppText variant="body" className="text-muted-foreground">
           Last Updated: {new Date(product.updatedAt).toLocaleDateString()}
         </AppText>
       ) : null}
-      <AppText variant="body" className="opacity-70">
+      <AppText variant="body" className="text-muted-foreground">
         Owner:{' '}
         {product.ownerUsername ? (
           // expo-router's Link isn't the react-native-css-rewritten core Text,
@@ -38,7 +38,7 @@ export default function ProductMetaData({ product }: Props) {
           'Anonymous'
         )}
       </AppText>
-      <AppText variant="body" className="opacity-70">
+      <AppText variant="body" className="text-muted-foreground">
         {entityLabelTitle(product)} ID: {product.id}
       </AppText>
     </View>

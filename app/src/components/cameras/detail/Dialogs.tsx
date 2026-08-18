@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
@@ -36,7 +36,7 @@ function ManualSetupDialog({
         Manual direct connection
       </AppText>
       <View className="gap-3">
-        <AppText className="opacity-70" style={styles.connectionHint}>
+        <AppText variant="caption" className="text-muted-foreground">
           Direct connection bypasses the WebSocket relay, cutting preview latency from ~2 s to ~0.4
           s. Connect an Ethernet cable between the Pi and this device — the app detects it
           automatically. Use this form only if auto-detection didn&apos;t find the Pi; the local API
@@ -178,10 +178,3 @@ export function CameraDetailDialogs({
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  connectionHint: {
-    // fontSize 13 has no exact Tailwind step, so it stays inline.
-    fontSize: 13,
-  },
-});

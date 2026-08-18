@@ -177,7 +177,7 @@ export function LoginDivider() {
   return (
     <View className="flex-row items-center my-1">
       <View className="flex-1 h-px opacity-30" style={{ backgroundColor: theme.colors.outline }} />
-      <AppText className="mx-2.5 opacity-50">or</AppText>
+      <AppText className="mx-2.5 text-muted-foreground">or</AppText>
       <View className="flex-1 h-px opacity-30" style={{ backgroundColor: theme.colors.outline }} />
     </View>
   );

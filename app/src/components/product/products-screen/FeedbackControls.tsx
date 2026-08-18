@@ -29,7 +29,7 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
       <Icon name="circle-alert" size="lg" color={theme.colors.error} />
       <View className="flex-1">
         <AppText className="font-bold text-destructive">Couldn't load products</AppText>
-        <AppText className="opacity-80 text-destructive" style={styles.errorMessage}>
+        <AppText variant="caption" className="opacity-80 text-destructive">
           {getErrorMessage(error, 'Something went wrong loading products.')}
         </AppText>
       </View>

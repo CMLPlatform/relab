@@ -18,7 +18,7 @@ export function SignedOutState({
   return (
     <View className="flex-1 items-center justify-center gap-3 p-6">
       <Icon name="lock" size={48} color={colors.onSurfaceVariant} />
-      <AppText className="text-center opacity-70">{message}</AppText>
+      <AppText className="text-center text-muted-foreground">{message}</AppText>
       <AppButton variant="primary" onPress={goToLogin} className="mt-2">
         Sign in
       </AppButton>

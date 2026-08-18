@@ -29,7 +29,7 @@ export function SpecHeader({ product }: { product: Product }) {
     <View className="gap-2 px-4 py-3">
       <AppText variant="display">{product.name}</AppText>
       {identity ? (
-        <AppText variant="body" className="opacity-70">
+        <AppText variant="body" className="text-muted-foreground">
           {identity}
         </AppText>
       ) : null}

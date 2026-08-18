@@ -43,7 +43,7 @@ export function CameraConnectionCard({
           {localConnection.mode === 'probing' ? (
             <>
               <ActivityIndicator size={14} className="mr-1" />
-              <AppText variant="title" className="flex-1 opacity-60">
+              <AppText variant="title" className="flex-1 text-muted-foreground">
                 {isOnline ? 'Searching for direct connection…' : 'Checking connection…'}
               </AppText>
             </>

@@ -43,6 +43,9 @@ export default function ImagePlaceholder({
           numberOfLines={2}
           style={{
             marginTop: 4,
+            // NOTE: scaled to the placeholder's own measured height so the
+            // label fits arbitrarily small/large slots — a fixed ramp step
+            // would overflow tiny thumbnails or look lost in large ones.
             fontSize: Math.max(11, Math.min(14, height * 0.06)),
             color: theme.colors.outline,
             textAlign: 'center',

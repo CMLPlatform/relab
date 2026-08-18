@@ -13,14 +13,14 @@ export const PRODUCTS_DATE_PRESETS = [
 // (expo-image, LinearGradient), has no matching fontSize+lineHeight step, or
 // (fab) is composed inside another component's own style function.
 export const productsScreenStyles = StyleSheet.create({
-  // fontSize 13 has no matching text-* step (text-xs is 12/16) — kept inline
-  // rather than force a class that would change line height.
-  errorMessage: {
-    fontSize: 13,
-  },
+  // NOTE: the surrounding contrast comment (InlinePills.tsx) measures ratios
+  // against an exact 14px bold — WCAG's "large text" threshold is 18.66px
+  // bold, so swapping to the `data` ramp step (which also forces monospace)
+  // would both change the type and invalidate the measured ratio.
   inlineButtonText: {
     fontSize: 14,
   },
+  // NOTE: see inlineButtonText above — same 14px-bold contrast dependency.
   inlineProfileText: {
     fontSize: 14,
   },
@@ -28,11 +28,6 @@ export const productsScreenStyles = StyleSheet.create({
   welcomeBrandMark: {
     width: 30,
     height: 30,
-  },
-  // fontSize/lineHeight pair (19/24) has no matching text-* step.
-  welcomeTitle: {
-    fontSize: 19,
-    lineHeight: 24,
   },
   // fontSize/lineHeight/opacity combo (14/21/0.92) has no matching step set.
   welcomeBodyText: {

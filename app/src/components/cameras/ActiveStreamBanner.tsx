@@ -137,7 +137,7 @@ export function ActiveStreamBanner() {
             <AppText
               variant="label"
               className="flex-1 font-semibold"
-              style={[styles.label, { color: inverse.foreground }]}
+              style={{ color: inverse.foreground }}
               numberOfLines={1}
             >
               {activeStream.productName}
@@ -160,10 +160,6 @@ const styles = StyleSheet.create({
   // tier) and the Data-Label Rule (accent as mass rather than as a small label).
   // The live dot is the sanctioned manila usage; the banner takes the single
   // sanctioned `tokens.elevation.overlay` tier, applied inline like Fab does.
-  label: {
-    // fontSize 13 has no exact Tailwind step, so it stays inline.
-    fontSize: 13,
-  },
   elapsed: {
     // The `data` variant supplies the mono family and tabular figures; only the
     // smaller banner size is pinned here — stepped to the caption size (13)

@@ -374,9 +374,7 @@ function GoLiveCTA({
 
 function EmptyVideoState() {
   return (
-    <AppText className="opacity-70 mb-2 text-muted-foreground">
-      This product has no associated videos.
-    </AppText>
+    <AppText className="mb-2 text-muted-foreground">This product has no associated videos.</AppText>
   );
 }
 

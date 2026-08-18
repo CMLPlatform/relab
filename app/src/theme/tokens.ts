@@ -86,6 +86,9 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       // legible over a photo while a hint of the image still shows through.
       card: alpha(colors.surface, 0.8),
     },
+    // NOTE: these fontSize values ARE the eight ramp steps DESIGN.md's Ramp
+    // Rule requires every other inline fontSize to draw from — the canonical
+    // source, read from the generated design tokens, not a violation of it.
     type: {
       display: {
         fontSize: designTokens.type.display.size,
