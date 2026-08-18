@@ -58,7 +58,16 @@
   --relab-brand-primary-soft: light-dark(rgba(31, 76, 150, 0.08), rgba(143, 184, 255, 0.14));
   --relab-brand-accent: light-dark(#8f6212, #e3b95c);
   --relab-brand-text: light-dark(#16202e, #e9eff8);
-  --relab-brand-surface: light-dark(#fafbfe, #11141d);
+  /* Page ground. Previously misnamed --relab-brand-surface, which is why the
+     card tone below never reached web: the name was taken by the background
+     value, and BRAND_PARITY asserted that pairing against the palette.json
+     background key. Renamed, not revalued, so rendering is unchanged. */
+  --relab-brand-background: light-dark(#fafbfe, #11141d);
+  /* Cards and panels. New on web: this tone previously existed only in the app
+     vocabulary, as the palette.json card and popover keys. www hand-authored
+     its own surface ramp in tokens.css to fill the gap; that ramp is left alone
+     here, and repointing it onto this token is a separate visual decision. */
+  --relab-brand-surface: light-dark(#f0f3fa, #1a2030);
   --relab-brand-divider: light-dark(#d9dfe8, #24314a);
   --relab-brand-surface-wash: light-dark(rgba(245, 247, 250, 0.8), rgba(12, 18, 32, 0.74));
   --relab-brand-theme-color: light-dark(#edf1f7, #0a0f1a);

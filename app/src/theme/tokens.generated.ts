@@ -8,7 +8,11 @@ export const designTokens = {
   },
   "shadowOverlay": {
     "light": "0 8px 24px rgba(20, 40, 80, 0.16)",
-    "dark": "0 8px 24px rgba(0, 0, 0, 0.55)"
+    "dark": "0 8px 24px rgba(0, 0, 0, 0.55)",
+    "elevationAndroid": {
+      "light": 8,
+      "dark": 12
+    }
   },
   "scrim": {
     "light": "rgba(12, 18, 32, 0.50)",
@@ -39,6 +43,10 @@ export const designTokens = {
     "caption": {
       "size": 13,
       "line": 18
+    },
+    "micro": {
+      "size": 12,
+      "line": 16
     },
     "data": {
       "size": 14,
@@ -80,6 +88,34 @@ export const designTokens = {
       "fill": "#F1F4F8",
       "stroke": "#5A6675",
       "text": "#16202E"
+    }
+  },
+  "rn": {
+    "shadowOverlay": {
+      "light": {
+        "shadowColor": "rgba(20,40,80,1)",
+        "shadowOpacity": 0.16,
+        "shadowRadius": 24,
+        "shadowOffset": {
+          "width": 0,
+          "height": 8
+        },
+        "elevation": 8
+      },
+      "dark": {
+        "shadowColor": "rgba(0,0,0,1)",
+        "shadowOpacity": 0.55,
+        "shadowRadius": 24,
+        "shadowOffset": {
+          "width": 0,
+          "height": 8
+        },
+        "elevation": 12
+      }
+    },
+    "scrim": {
+      "light": "rgba(12, 18, 32, 0.50)",
+      "dark": "rgba(0, 0, 0, 0.55)"
     }
   }
 } as const;

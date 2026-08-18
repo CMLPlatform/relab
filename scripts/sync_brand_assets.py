@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -288,17 +289,106 @@ WEB_TOKENS_CSS_TARGETS = (
 )
 
 
+CSS_SHADOW = re.compile(
+    r"^(?P<x>-?[\d.]+)(?:px)?\s+(?P<y>-?[\d.]+)px\s+(?P<blur>[\d.]+)px\s+"
+    r"rgba?\((?P<r>\d+),\s*(?P<g>\d+),\s*(?P<b>\d+)(?:,\s*(?P<a>[\d.]+))?\)$"
+)
+
+
+def render_rn_shadow(css_shadow: str, elevation: int) -> dict:
+    """Translate a CSS box-shadow string into React Native ViewStyle fields.
+
+    React Native cannot consume a CSS shadow string, so app/src/theme/tokens.ts
+    used to re-declare the same offsets and rgba parts by hand — the fifth
+    instance in this repo of a generated token a consumer could not read being
+    hand-copied downstream. Deriving the RN shape here lets tokens.ts consume it
+    the way it already consumes designTokens.type, so it computes and never
+    re-declares. Android's `elevation` is not derivable from a shadow (it is a
+    separate depth scale), so it stays authored in tokens.json -- and a scheme
+    pair, not one number: a dark surface needs more elevation than a light one
+    for the same perceived lift, the same reason shadowOpacity splits 0.16/0.55.
+    Collapsing it would silently change Android light-mode lift from 8 to 12.
+    """
+    match = CSS_SHADOW.match(css_shadow.strip())
+    if not match:
+        msg = f"Cannot parse shadow for React Native: {css_shadow!r}"
+        raise RuntimeError(msg)
+    parts = match.groupdict()
+
+    def num(raw: str) -> float | int:
+        """Emit 24 rather than 24.0; RN takes either, but the artifact is read by people."""
+        value = float(raw)
+        return int(value) if value.is_integer() else value
+
+    return {
+        # RN applies shadowOpacity separately, so the colour goes in fully opaque.
+        "shadowColor": f"rgba({parts['r']},{parts['g']},{parts['b']},1)",
+        "shadowOpacity": num(parts["a"] or "1"),
+        "shadowRadius": num(parts["blur"]),
+        "shadowOffset": {"width": num(parts["x"]), "height": num(parts["y"])},
+        "elevation": elevation,
+    }
+
+
 def render_design_tokens_ts(tokens: dict) -> str:
     """Generate the TypeScript design-tokens export from tokens dict."""
+    shadow = tokens["shadowOverlay"]
+    tokens = {
+        **tokens,
+        # Additive: every existing key keeps its shape, so tokens.ts's reads of
+        # designTokens.type.* and designTokens.radius.* are unaffected.
+        # Asymmetric on purpose: shadowOverlay is RESHAPED into RN ViewStyle
+        # fields, scrim is RE-EXPORTED unchanged because RN already accepts an
+        # rgba string. The `rn` prefix promises a shape change that only one of
+        # the two performs, and scrim therefore carries whatever whitespace
+        # tokens.json has -- which is valid CSS and cost the app a red test that
+        # was pinning the exact string rather than the colour.
+        "rn": {
+            "shadowOverlay": {
+                scheme: render_rn_shadow(shadow[scheme], shadow["elevationAndroid"][scheme])
+                for scheme in ("light", "dark")
+            },
+            "scrim": tokens["scrim"],
+        },
+    }
     body = json.dumps(tokens, indent=2)
     return (
         f"// {GENERATED_HEADER.replace('palette.json', 'tokens.json')}\nexport const designTokens = {body} as const;\n"
     )
 
 
+def render_type_tokens_css(type_tokens: dict) -> list[str]:
+    """Render the type ramp as CSS custom properties.
+
+    Sizes are emitted in rem rather than px so a reader who raises their browser
+    font size scales with it (WCAG 1.4.4); line heights are unitless ratios so a
+    nested element derives its own leading instead of inheriting a fixed px.
+    The 16px root makes every size an exact binary fraction, so no rounding is
+    lost on the way out -- only the ratios need it.
+    """
+
+    def trim(value: float) -> str:
+        """1.0 -> "1", 0.8125 -> "0.8125". Avoids emitting "1.0rem"."""
+        return f"{value:f}".rstrip("0").rstrip(".")
+
+    lines = []
+    for role, metrics in type_tokens.items():
+        size_px = metrics["size"]
+        lines.append(f"  --relab-type-{role}-size: {trim(size_px / 16)}rem;")
+        lines.append(f"  --relab-type-{role}-line: {round(metrics['line'] / size_px, 4)};")
+        if "trackingEm" in metrics:
+            lines.append(f"  --relab-type-{role}-tracking: {metrics['trackingEm']}em;")
+    return lines
+
+
 def render_design_tokens_css(tokens: dict) -> str:
-    """Generate CSS custom properties for radius/shadow/scrim/chart tokens."""
+    """Generate CSS custom properties for type/radius/shadow/scrim/chart tokens."""
     lines = [f"/* {GENERATED_HEADER.replace('palette.json', 'tokens.json')} */", "", ":root {"]
+    # The type block was defined in tokens.json from the start but never emitted
+    # here, so web hand-authored its own scale and drifted to 18 distinct sizes
+    # in the 11-25px band where this ramp defines five. The app never drifted
+    # because render_design_tokens_ts() dumps the whole dict, type included.
+    lines.extend(render_type_tokens_css(tokens["type"]))
     for tier, px in tokens["radius"].items():
         if tier == "full":
             continue  # true pills use border-radius: 9999px inline; no web consumer
@@ -442,15 +532,80 @@ def sync_project_identity(*, check: bool) -> list[str]:
 
 
 BRAND_PARITY = (
-    # (--relab-brand-* name, palette.json token, schemes-to-check). Divider is
-    # deliberately absent: brand divider (#d9dfe8) and palette border (#C4C6D0)
-    # are different ramps. Text checks LIGHT only: dark text intentionally
-    # diverges (web #e9eff8 vs app #e2e6ee — documented in DESIGN.md).
+    # (--relab-brand-* name, palette.json token, schemes-to-check). Text checks
+    # LIGHT only: dark text intentionally diverges (web #e9eff8 vs app #e2e6ee —
+    # documented in DESIGN.md).
     ("--relab-brand-primary", "primary", ("light", "dark")),
+    ("--relab-brand-primary-strong", "primaryStrong", ("light", "dark")),
     ("--relab-brand-accent", "accent", ("light", "dark")),
     ("--relab-brand-text", "foreground", ("light",)),
-    ("--relab-brand-surface", "background", ("light", "dark")),
+    ("--relab-brand-background", "background", ("light", "dark")),
+    ("--relab-brand-surface", "card", ("light", "dark")),
 )
+
+# Tokens that intentionally exist on one side only. Every entry needs a reason,
+# because this allowlist is the sole way a token escapes the parity check.
+#
+# The check below asserts these three sets are EXHAUSTIVE. That is the point:
+# brand.css and palette.json are two hand-authored vocabularies, and every
+# colour bug this repo has hit came from a token being added to one and quietly
+# forgotten in the other (primaryStrong), or named for a value it did not carry
+# (surface). A parity table that only covers the pairs someone remembered to add
+# cannot catch either. Making an unlisted token a hard failure can.
+WEB_ONLY_BRAND_TOKENS = {
+    "--relab-brand-primary-soft": "alpha wash over primary; app composes its own via alpha()",
+    "--relab-brand-surface-wash": "alpha wash; no app counterpart",
+    "--relab-brand-divider": "brand divider #d9dfe8 and palette border #C4C6D0 are different ramps",
+    "--relab-brand-theme-color": "browser chrome colour; the concept does not exist in the app",
+    "--relab-brand-font": "app deliberately uses platform system fonts (DESIGN.md)",
+    "--relab-brand-font-display": "app deliberately uses platform system fonts (DESIGN.md)",
+    "--relab-brand-font-mono": "app resolves mono via Platform.select",
+}
+APP_ONLY_PALETTE_TOKENS = {
+    # shadcn/NativeWind vocabulary with no web brand counterpart. Web authors
+    # its own page-chrome ramp in www/src/styles/tokens.css instead.
+    "accentForeground",
+    "border",
+    "cardForeground",
+    "destructive",
+    "destructiveForeground",
+    "input",
+    "muted",
+    "mutedForeground",
+    "popover",
+    "popoverForeground",
+    "primaryForeground",
+    "ring",
+    "secondary",
+    "secondaryForeground",
+    "state",
+    "stateForeground",
+}
+BRAND_TOKEN_DECL = re.compile(r"^\s*(--relab-brand-[a-z-]+):", re.MULTILINE)
+
+
+def check_brand_coverage() -> list[str]:
+    """Fail when a brand or palette token is in neither the parity table nor an allowlist."""
+    css = root_path("assets/brand.css").read_text()
+    palette = json.loads(PALETTE_SOURCE.read_text())
+    paired_css = {name for name, _, _ in BRAND_PARITY}
+    paired_palette = {token for _, token, _ in BRAND_PARITY}
+
+    unmapped_css = [
+        f"{name} is in brand.css but has no BRAND_PARITY entry and is not in "
+        f"WEB_ONLY_BRAND_TOKENS. Pair it with a palette.json token, or add it to the "
+        f"allowlist with the reason it is web-only."
+        for name in sorted(set(BRAND_TOKEN_DECL.findall(css)))
+        if name not in paired_css and name not in WEB_ONLY_BRAND_TOKENS
+    ]
+    unmapped_palette = [
+        f"palette.json '{token}' has no BRAND_PARITY entry and is not in "
+        f"APP_ONLY_PALETTE_TOKENS. Pair it with a --relab-brand-* token, or add it to "
+        f"the allowlist with the reason it is app-only."
+        for token in sorted(palette["light"])
+        if token not in paired_palette and token not in APP_ONLY_PALETTE_TOKENS
+    ]
+    return unmapped_css + unmapped_palette
 
 
 def check_brand_parity() -> list[str]:
@@ -555,6 +710,7 @@ def main() -> int:
         out_of_sync.extend(sync_project_identity(check=args.check))
         if args.check:
             out_of_sync.extend(check_brand_parity())
+            out_of_sync.extend(check_brand_coverage())
         # Each render spawns a serial ImageMagick process (~0.6s); fan them out
         # across cores since they're subprocess-bound and independent.
         with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:

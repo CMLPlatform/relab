@@ -1,4 +1,4 @@
-<mj-section background-color="{{brand:--relab-brand-surface}}" padding="28px 40px 16px">
+<mj-section background-color="{{brand:--relab-brand-background}}" padding="28px 40px 16px">
   <mj-column>
     <mj-image
       src="https://cml-relab.org/images/wordmark.png"
@@ -21,7 +21,7 @@
     </mj-text>
   </mj-column>
 </mj-section>
-<mj-section background-color="{{brand:--relab-brand-surface}}" padding="0 40px">
+<mj-section background-color="{{brand:--relab-brand-background}}" padding="0 40px">
   <mj-column>
     <mj-divider border-color="{{brand:--relab-brand-divider}}" border-width="1px" padding="0" />
   </mj-column>

@@ -66,14 +66,14 @@ body {
    --sl-color-accent* overrides above rely on. One light-dark() pair covers both
    schemes; color-scheme is set per data-theme in brand.css. */
 :root {
-  --sl-color-bg: var(--relab-brand-surface);
+  --sl-color-bg: var(--relab-brand-background);
   /* Chrome sits one faint step off the page ground, in the blue family rather
      than Starlight's stock neutral grey (#f6f7f9 / #23262f). Those greys were
      invisible under the old wash; on a flat ground they read as a mismatched
      band across the top. color-mix so one declaration serves both schemes:
      the primary is dark in light mode and light in dark mode, so the mix lands
      on the correct side of the ground either way. */
-  --sl-color-bg-sidebar: color-mix(in srgb, var(--relab-brand-primary) 5%, var(--relab-brand-surface));
+  --sl-color-bg-sidebar: color-mix(in srgb, var(--relab-brand-primary) 5%, var(--relab-brand-background));
   --sl-color-bg-nav: var(--sl-color-bg-sidebar);
 }
 
