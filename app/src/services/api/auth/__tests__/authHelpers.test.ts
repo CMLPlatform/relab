@@ -65,6 +65,11 @@ describe('authHelpers', () => {
       isVerified: true,
       hasUsablePassword: true,
       username: 'dev_user',
+      // A payload without role/quota maps to the least-privileged defaults rather
+      // than to undefined: a missing role must never read as `lab`.
+      role: 'contributor',
+      termsAcceptanceRequired: false,
+      uploadQuota: { files: 0, bytes: 0, usedFiles: 0, usedBytes: 0 },
       oauth_accounts: [],
       preferences: {},
     });

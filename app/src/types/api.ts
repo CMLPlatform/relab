@@ -23,6 +23,7 @@ export type ApiProductUpdate = components['schemas']['ProductUpdate'];
 // ─── Media ───────────────────────────────────────────────────────────────────
 export type ApiImageRead = components['schemas']['ImageRead'];
 export type ApiVideoRead = components['schemas']['VideoReadWithinProduct'];
+export type ApiFileRead = components['schemas']['FileReadWithinParent'];
 
 // ─── Users ───────────────────────────────────────────────────────────────────
 export type ApiUserRead = components['schemas']['UserRead'];

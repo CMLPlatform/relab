@@ -9,6 +9,7 @@ import ProductVideo from '@/components/product/ProductVideo';
 import { entityLabel, type Product } from '@/types/Product';
 import ProductCircularityProperties from './ProductCircularityProperties';
 import ProductComponents from './ProductComponents';
+import ProductFiles from './ProductFiles';
 import ProductPhysicalProperties from './ProductPhysicalProperties';
 import ProductTags from './ProductTags';
 import ProductType from './ProductType';
@@ -158,13 +159,18 @@ export const SECTIONS: SectionConfig[] = [
     addLabel: 'Add a video',
     isEmpty: (product, ctx) => (product.videos?.length ?? 0) === 0 && !ctx.mediaStreamable,
     render: (props) => (
-      <ProductVideo
-        product={props.product}
-        editMode={props.editMode}
-        onVideoChange={props.onVideoChange}
-        onGoLivePress={props.onGoLivePress}
-        goLiveTriggerRef={props.goLiveTriggerRef}
-      />
+      <>
+        <ProductVideo
+          product={props.product}
+          editMode={props.editMode}
+          onVideoChange={props.onVideoChange}
+          onGoLivePress={props.onGoLivePress}
+          goLiveTriggerRef={props.goLiveTriggerRef}
+        />
+        {/* Renders itself away for anyone below the lab tier, so it does not
+            affect this section's emptiness for an ordinary contributor. */}
+        <ProductFiles product={props.product} editMode={props.editMode} />
+      </>
     ),
   },
 ];

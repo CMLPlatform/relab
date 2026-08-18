@@ -118,6 +118,9 @@ importers:
       expo-constants:
         specifier: ~57.0.10
         version: 57.0.10(expo@57.0.12)(react-native@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/jest-preset@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@10.2.2)))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2))
+      expo-document-picker:
+        specifier: ~57.0.1
+        version: 57.0.1(expo@57.0.12)
       expo-font:
         specifier: ~57.0.1
         version: 57.0.1(expo@57.0.12)(react-native@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/jest-preset@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@10.2.2)))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2))(react@19.2.3)
@@ -5003,6 +5006,11 @@ packages:
 
   expo-crypto@57.0.1:
     resolution: {integrity: sha512-xwegXQw3ATgeL1ZuqbSNrGzOeG+zNeh6Z6DSJk825Qpa3TEQQ1kG3ioE1p3g/SNF373BAVz2iBKUTSytlIbBRA==}
+    peerDependencies:
+      expo: '*'
+
+  expo-document-picker@57.0.1:
+    resolution: {integrity: sha512-qBwM5oxDZ3I9kwFD3pUE1oK/WNv9artoEKO6UpqhQgNRr0XA1ALRVWYjkF4+ge9lUNDRehjTm/jenINkzqg84g==}
     peerDependencies:
       expo: '*'
 
@@ -14598,6 +14606,10 @@ snapshots:
       - supports-color
 
   expo-crypto@57.0.1(expo@57.0.12):
+    dependencies:
+      expo: 57.0.12(8b98ef742e767b581c58434dadfbf572)
+
+  expo-document-picker@57.0.1(expo@57.0.12):
     dependencies:
       expo: 57.0.12(8b98ef742e767b581c58434dadfbf572)
 

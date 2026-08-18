@@ -38,6 +38,14 @@ export const handlers = [
       // mfaEnabled, so MFA-off assertions passed for the wrong reason.
       mfa_enabled: user.mfaEnabled,
       has_usable_password: user.hasUsablePassword,
+      // Role and quota mirror the real UserRead: without them mapApiUserToUser
+      // falls back to its defaults and a role-gated affordance is never exercised.
+      role: user.role,
+      terms_acceptance_required: user.termsAcceptanceRequired,
+      upload_quota_files: user.uploadQuota.files,
+      upload_quota_bytes: user.uploadQuota.bytes,
+      upload_file_count: user.uploadQuota.usedFiles,
+      upload_total_bytes: user.uploadQuota.usedBytes,
     });
   }),
   http.post(`${API_URL}/auth/register`, () => HttpResponse.json({}, { status: 201 })),
@@ -68,6 +76,14 @@ export const handlers = [
       oauth_accounts: user.oauth_accounts,
       mfa_enabled: user.mfaEnabled,
       has_usable_password: user.hasUsablePassword,
+      // Role and quota mirror the real UserRead: without them mapApiUserToUser
+      // falls back to its defaults and a role-gated affordance is never exercised.
+      role: user.role,
+      terms_acceptance_required: user.termsAcceptanceRequired,
+      upload_quota_files: user.uploadQuota.files,
+      upload_quota_bytes: user.uploadQuota.bytes,
+      upload_file_count: user.uploadQuota.usedFiles,
+      upload_total_bytes: user.uploadQuota.usedBytes,
       ...body,
     });
   }),
