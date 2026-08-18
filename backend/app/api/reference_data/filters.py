@@ -123,8 +123,13 @@ class ProductTypeFilter(BaseFilterSet):
 
     @classmethod
     def trigram_columns(cls) -> list[Any]:
-        """Return product-type text columns used for trigram fallback."""
-        return [ProductType.name]
+        """Return product-type text columns used for trigram fallback.
+
+        ``description`` is included because for CPV product types ``name`` is the
+        code and ``description`` carries the human label; without it a typo in a
+        label matches nothing.
+        """
+        return [ProductType.name, ProductType.description]
 
 
 class ProductTypeFilterWithRelationships(ProductTypeFilter):

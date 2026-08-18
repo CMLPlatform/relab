@@ -190,6 +190,12 @@ class ProductType(TimeStampMixinBare, Base):
     __table_args__ = (
         Index("producttype_search_vector_idx", "search_vector", postgresql_using="gin"),
         Index("producttype_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
+        Index(
+            "producttype_description_trgm_idx",
+            "description",
+            postgresql_using="gin",
+            postgresql_ops={"description": "gin_trgm_ops"},
+        ),
     )
 
     search_vector: Mapped[str | None] = mapped_column(
