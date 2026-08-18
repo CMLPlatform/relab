@@ -142,23 +142,28 @@ function safeSources(urls: Record<number, string> | undefined): Record<number, s
  * original's dimensions there is nothing to derive from, and an array carrying
  * widths alone would leave the selection guessing — so return none and let the
  * caller fall back to picking one URL itself.
+ *
+ * The original is the widest candidate, so a container wider than every
+ * derivative gets the original rather than an upscaled derivative.
  */
 function toSourceSet(
   sources: Record<number, string>,
+  originalUrl: string | null,
   originalWidth: number | undefined,
   originalHeight: number | undefined,
 ): ImageSource[] {
   if (!originalWidth || !originalHeight) {
     return [];
   }
-  return Object.entries(sources)
-    .map(([width, uri]) => ({
-      uri,
-      width: Number(width),
-      height: Math.round((Number(width) * originalHeight) / originalWidth),
-    }))
-    .filter((source) => source.height > 0)
-    .sort((a, b) => a.width - b.width);
+  const candidates = Object.entries(sources).map(([width, uri]) => ({
+    uri,
+    width: Number(width),
+    height: Math.round((Number(width) * originalHeight) / originalWidth),
+  }));
+  if (originalUrl) {
+    candidates.push({ uri: originalUrl, width: originalWidth, height: originalHeight });
+  }
+  return candidates.filter((source) => source.height > 0).sort((a, b) => a.width - b.width);
 }
 
 /**
@@ -195,7 +200,7 @@ export function buildGalleryMedia(product: Product) {
       largeUrl: imageUrl,
       originalUrl: imageUrl,
       sources,
-      sourceSet: toSourceSet(sources, image.width, image.height),
+      sourceSet: toSourceSet(sources, imageUrl, image.width, image.height),
     };
   });
 

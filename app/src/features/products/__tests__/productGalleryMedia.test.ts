@@ -86,6 +86,17 @@ describe('useProductGalleryMedia', () => {
     expect(result.current.items[0].originalUrl).toBe('https://cdn.test/original.jpg');
   });
 
+  it('falls back to the original when every derivative is narrower than the screen', () => {
+    // A 1200px original publishes only {200, 800}; a 390pt @3x pager needs 1170.
+    onScreen(390, 844, 3);
+    const { result } = renderHook(() =>
+      useProductGalleryMedia(product({ 200: DERIVATIVES[200], 800: DERIVATIVES[800] })),
+    );
+
+    expect(result.current.items[0].mediumUrl).toBe('https://cdn.test/original.jpg');
+    expect(result.current.items[0].largeUrl).toBe('https://cdn.test/original.jpg');
+  });
+
   it('falls back to the original when the API published no derivatives', () => {
     onScreen(390, 844, 3);
     const { result } = renderHook(() => useProductGalleryMedia(product(undefined)));

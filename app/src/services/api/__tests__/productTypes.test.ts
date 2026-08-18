@@ -80,6 +80,21 @@ describe('productTypes API service', () => {
       expect(capturedUrl?.searchParams.getAll('name[in]')).toEqual(['CPV: 302132', 'Laptop']);
     });
 
+    it('caps the lookup at the 50 names the API accepts instead of failing the whole request', async () => {
+      let capturedUrl: URL | undefined;
+      server.use(
+        http.get(`${API_URL}/product-types`, ({ request }) => {
+          capturedUrl = new URL(request.url);
+          return HttpResponse.json({ items: [] });
+        }),
+      );
+
+      await fetchProductTypesByName(Array.from({ length: 51 }, (_, i) => `CPV: ${i}`));
+
+      expect(capturedUrl?.searchParams.getAll('name[in]')).toHaveLength(50);
+      expect(capturedUrl?.searchParams.get('size')).toBe('50');
+    });
+
     it('makes no request for an empty selection', async () => {
       let called = false;
       server.use(

@@ -58,6 +58,12 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => mockAuthState,
 }));
 
+// Realistic ProductType rows: the search yields objects, not names, and the
+// hook is what turns them into the names the picker offers and the labels the
+// chips read.
+let mockTypeSearchResults: { id: number; name: string; description?: string | null }[] = [];
+let mockSelectedTypeResults: { id: number; name: string; description?: string | null }[] = [];
+
 jest.mock('@/features/products/queries', () => ({
   DEFAULT_PRODUCT_SORT: ['-created_at'],
   PRODUCT_SORT_OPTIONS: [
@@ -67,8 +73,8 @@ jest.mock('@/features/products/queries', () => ({
   ],
   productsInfiniteQueryOptions: jest.fn(() => ({})),
   useSearchBrandsQuery: () => ({ data: [], isLoading: false }),
-  useSearchProductTypesQuery: () => ({ data: [], isLoading: false }),
-  useProductTypeLabelsQuery: () => ({ data: [], isLoading: false }),
+  useSearchProductTypesQuery: () => ({ data: mockTypeSearchResults, isLoading: false }),
+  useProductTypeLabelsQuery: () => ({ data: mockSelectedTypeResults, isLoading: false }),
 }));
 
 jest.mock('@/services/api/auth/authentication', () => ({
@@ -84,6 +90,8 @@ describe('useProductsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSearchParams = {};
+    mockTypeSearchResults = [];
+    mockSelectedTypeResults = [];
     mockGetLocalItem.mockImplementation(async () => null);
     mockSetLocalItem.mockImplementation(async () => undefined);
   });
@@ -97,6 +105,27 @@ describe('useProductsScreen', () => {
 
     return hook;
   }
+
+  it('offers product types by name and labels them from search and restored selections', async () => {
+    mockSearchParams = { types: 'CPV: 302132' };
+    mockSelectedTypeResults = [{ id: 1, name: 'CPV: 302132', description: 'Tablet computer' }];
+    mockTypeSearchResults = [
+      { id: 2, name: 'CPV: 302130', description: 'Laptop computer' },
+      { id: 3, name: 'Drill', description: 'Cordless hand drill' },
+    ];
+
+    const { result } = await renderUseProductsScreen();
+
+    // Names, not objects: selections and `product_type_name[in]` filter on `name`.
+    expect(result.current.filters.typeResults).toEqual(['CPV: 302130', 'Drill']);
+    // The link-restored selection is labelled even though it is not in the search
+    // results; hand-authored names keep their name.
+    expect(result.current.filters.typeLabels).toEqual({
+      'CPV: 302132': 'Tablet computer',
+      'CPV: 302130': 'Laptop computer',
+      Drill: 'Drill',
+    });
+  });
 
   it('syncs debounced search text back to the URL', async () => {
     const { result } = await renderUseProductsScreen();

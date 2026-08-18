@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { HttpResponse, http } from 'msw';
-import { API_URL } from '@/config';
+import { API_ORIGIN_URL, API_URL } from '@/config';
 import { fetchWithAuth, getUser } from '@/services/api/auth/authentication';
 import { searchProductBrands } from '@/services/api/productSuggestions';
 import {
@@ -66,8 +66,19 @@ const rawProductData = {
     disassemblability: 'high',
   },
   components: [{ id: 1, name: 'Part A', parent_id: 42, amount_in_parent: 2, description: '' }],
-  images: [{ id: 10, image_url: '/media/img.jpg', description: 'Main image' }],
+  images: [
+    {
+      id: 10,
+      image_url: '/media/img.jpg',
+      thumbnail_url: '/media/img_thumb_200.webp',
+      thumbnail_urls: { '200': '/media/img_thumb_200.webp', '800': '/media/img_thumb_800.webp' },
+      width_px: 1200,
+      height_px: 900,
+      description: 'Main image',
+    },
+  ],
   videos: [{ id: 20, url: 'https://example.com/vid', description: '', title: 'Demo' }],
+  product_type: { id: 1, name: 'CPV: 302132', description: 'Tablet computer' },
 };
 
 describe('Fetching API Service logic', () => {
@@ -207,6 +218,27 @@ describe('Fetching API Service logic', () => {
       expect(p.images?.[0]?.description).toBe('Main image');
       expect(p.videos?.[0]?.title).toBe('Demo');
       expect(p.ownedBy).toBe('me');
+    });
+
+    it('maps the wire image derivatives, dimensions and product-type label', async () => {
+      // The gallery, lightbox and filter chips all consume these mapped fields;
+      // without this the mapping could be reverted and every downstream unit
+      // test, built on hand-mapped fixtures, would stay green.
+      server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(rawProductData)));
+
+      const p = await getBaseProduct(42);
+
+      // API_ORIGIN_URL is normalized with a trailing slash.
+      expect(p.images?.[0]).toMatchObject({
+        thumbnailUrl: `${API_ORIGIN_URL}media/img_thumb_200.webp`,
+        thumbnailUrls: {
+          200: `${API_ORIGIN_URL}media/img_thumb_200.webp`,
+          800: `${API_ORIGIN_URL}media/img_thumb_800.webp`,
+        },
+        width: 1200,
+        height: 900,
+      });
+      expect(p.productTypeName).toBe('Tablet computer');
     });
 
     it('maps ownership to owner_id string when not current user', async () => {

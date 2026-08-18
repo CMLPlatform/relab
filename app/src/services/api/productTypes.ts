@@ -38,6 +38,9 @@ export async function searchProductTypes(
   return fetchPaginatedItems<ProductTypeOption>(`${API_URL}/product-types`, search, page, size);
 }
 
+/** Mirrors the backend's MAX_QUERY_LIST_ITEMS for `[in]` filters. */
+const MAX_NAME_LOOKUP = 50;
+
 /**
  * Look up specific product types by their stored `name`.
  *
@@ -51,11 +54,14 @@ export async function fetchProductTypesByName(names: string[]): Promise<ProductT
   if (names.length === 0) {
     return [];
   }
+  // The API rejects list filters over 50 items with a 422; beyond that the
+  // remaining chips keep their code rather than the whole lookup failing.
+  const lookup = names.slice(0, MAX_NAME_LOOKUP);
   const url = new URL(`${API_URL}/product-types`);
-  for (const name of names) {
+  for (const name of lookup) {
     url.searchParams.append('name[in]', name);
   }
-  url.searchParams.set('size', String(Math.min(names.length, 50)));
+  url.searchParams.set('size', String(lookup.length));
   const response = await apiFetch(url, { method: 'GET' });
   if (!response.ok) {
     await throwFromResponse(response, `Failed to fetch ${url.pathname}`);

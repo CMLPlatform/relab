@@ -52,14 +52,6 @@ describe('resolveApiMediaUrl', () => {
 });
 
 describe('resolveApiMediaUrlMap', () => {
-  beforeEach(() => {
-    process.env.EXPO_PUBLIC_API_URL = 'http://127.0.0.1:18010';
-  });
-
-  afterEach(() => {
-    process.env.EXPO_PUBLIC_API_URL = ORIGINAL_ENV;
-  });
-
   it('resolves every width against the API origin', () => {
     expect(
       resolveApiMediaUrlMap({ '200': '/uploads/a_200.webp', '800': '/uploads/a_800.webp' }),
@@ -97,10 +89,12 @@ describe('pickThumbnailUrl', () => {
     expect(pickThumbnailUrl(urls, 1170)).toBe('a_1600');
   });
 
-  it('falls back to the widest available rather than overshooting into nothing', () => {
-    expect(pickThumbnailUrl(urls, 4000)).toBe('a_1600');
-    // Sparse map: a narrow original generates no wide derivatives.
-    expect(pickThumbnailUrl({ 200: 'a_200' }, 1170)).toBe('a_200');
+  it('returns undefined when no derivative is wide enough, so the caller keeps the original', () => {
+    // The original is always wider than every derivative; upscaling the widest
+    // derivative would render softer than the original the caller already has.
+    expect(pickThumbnailUrl(urls, 4000)).toBeUndefined();
+    // A 1200px original publishes only {200, 800}; a 390pt @3x pager needs 1170.
+    expect(pickThumbnailUrl({ 200: 'a_200', 800: 'a_800' }, 1170)).toBeUndefined();
   });
 
   it('returns undefined for an empty map so the caller keeps its own URL', () => {
