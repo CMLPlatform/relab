@@ -99,11 +99,97 @@ function DatePresetItem({
   );
 }
 
+function SortMenuItem({
+  option,
+  active,
+  onSortChange,
+  onCloseMenu,
+}: {
+  option: SortOption;
+  active: boolean;
+  onSortChange: (sort: readonly string[]) => void;
+  onCloseMenu: () => void;
+}) {
+  const handlePress = useCallback(() => {
+    onSortChange(option.value);
+    onCloseMenu();
+  }, [onSortChange, onCloseMenu, option.value]);
+
+  return (
+    <Menu.Item
+      title={option.label}
+      trailingIcon={active ? 'check' : undefined}
+      onPress={handlePress}
+    />
+  );
+}
+
+/** Sort lives in the chip row so the toolbar stays search + one toggle. */
+function SortChip({
+  searchQueryURL,
+  sortBy,
+  sortOptions,
+  menuVisible,
+  onSortChange,
+  onSetMenuVisible,
+}: {
+  searchQueryURL: string;
+  sortBy: string[];
+  sortOptions: readonly SortOption[];
+  menuVisible: boolean;
+  onSortChange: (sort: readonly string[]) => void;
+  onSetMenuVisible: (visible: boolean) => void;
+}) {
+  const closeMenu = useCallback(() => onSetMenuVisible(false), [onSetMenuVisible]);
+  const openMenu = useCallback(() => onSetMenuVisible(true), [onSetMenuVisible]);
+  const currentSort = sortOptions.find((option) => sortBy.join(',') === option.value.join(','));
+
+  return (
+    <Menu
+      visible={menuVisible}
+      onDismiss={closeMenu}
+      anchor={
+        <FilterChip
+          icon="arrow-down-up"
+          selected={false}
+          onPress={openMenu}
+          accessibilityLabel={currentSort ? `Sort: ${currentSort.label}` : 'Sort products'}
+        >
+          {currentSort?.label ?? 'Sort'}
+        </FilterChip>
+      }
+    >
+      {sortOptions
+        .filter((option) => searchQueryURL || option.value.length > 0)
+        .map((option) => (
+          <SortMenuItem
+            key={option.label}
+            option={option}
+            active={sortBy.join(',') === option.value.join(',')}
+            onSortChange={onSortChange}
+            onCloseMenu={closeMenu}
+          />
+        ))}
+    </Menu>
+  );
+}
+
 type SelectionModalProps = ComponentProps<typeof FilterSelectionModal>;
+
+type SortOption = {
+  label: string;
+  value: readonly string[];
+};
 
 type ProductsFilterBarProps = {
   isAuthenticated: boolean;
   filterMode: ProductFilter;
+  searchQueryURL: string;
+  sortBy: string[];
+  sortOptions: readonly SortOption[];
+  sortMenuVisible: boolean;
+  onSortChange: (sort: readonly string[]) => void;
+  onSetSortMenuVisible: (visible: boolean) => void;
   activeDatePreset: number | null;
   activeBrands: string[];
   activeProductTypes: string[];
@@ -135,6 +221,12 @@ type ProductsFilterBarProps = {
 export function ProductsFilterBar({
   isAuthenticated,
   filterMode,
+  searchQueryURL,
+  sortBy,
+  sortOptions,
+  sortMenuVisible,
+  onSortChange,
+  onSetSortMenuVisible,
   activeDatePreset,
   activeBrands,
   activeProductTypes,
@@ -179,6 +271,15 @@ export function ProductsFilterBar({
         showsHorizontalScrollIndicator={false}
         contentContainerClassName="gap-2 py-0.5"
       >
+        <SortChip
+          searchQueryURL={searchQueryURL}
+          sortBy={sortBy}
+          sortOptions={sortOptions}
+          menuVisible={sortMenuVisible}
+          onSortChange={onSortChange}
+          onSetMenuVisible={onSetSortMenuVisible}
+        />
+
         {isAuthenticated ? (
           <FilterChip
             icon="user"

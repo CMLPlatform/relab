@@ -171,25 +171,13 @@ describe('ProductsListContent infinite scroll', () => {
   });
 });
 
-// RefreshControl's pull gesture does nothing on react-native-web, so without a
-// tappable affordance the web build has no way to refetch short of a reload.
-describe('ProductsListContent manual refresh (web)', () => {
+describe('ProductsListContent chrome', () => {
   afterEach(() => restorePlatform());
 
-  it('offers a Refresh control on web that runs the same refetch as pull-to-refresh', async () => {
+  // Focus refetch (TanStack `refetchOnWindowFocus`) and browser reload cover
+  // web; a Refresh button above the list was one more control before a record.
+  it('renders no Refresh button on web', () => {
     mockPlatform('web');
-    const onRefresh = jest.fn(async () => undefined);
-    renderList({ onRefresh });
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('Refresh products'));
-    });
-
-    expect(onRefresh).toHaveBeenCalledTimes(1);
-  });
-
-  it('leaves it out on native, where the pull gesture already works', () => {
-    mockPlatform('ios');
     renderList();
     expect(screen.queryByLabelText('Refresh products')).toBeNull();
   });

@@ -15,7 +15,6 @@ type ProductsErrorBannerProps = {
 
 type ProductsFabProps = {
   extended: boolean;
-  highlight: boolean;
   onPress: () => void;
 };
 
@@ -46,8 +45,7 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
  * control reads as disabled, and the accessible name must contain the visible
  * label (WCAG 2.5.3) — so both stay constant.
  */
-export function ProductsFab({ extended, highlight, onPress }: ProductsFabProps) {
-  const theme = useAppTheme();
+export function ProductsFab({ extended, onPress }: ProductsFabProps) {
   const bottomNavVisible = useBottomNavVisible();
   // Web-only: BottomNav is viewport-fixed there and escapes the container the
   // fab is laid out in, so the fab needs the clearance bump itself. On native
@@ -60,22 +58,7 @@ export function ProductsFab({ extended, highlight, onPress }: ProductsFabProps) 
       label="New product"
       extended={extended}
       onPress={onPress}
-      style={[
-        styles.fab,
-        { bottom: 16 + bottomOffset },
-        {
-          // Border-only highlight, in `onPrimary`. The coloured glow this
-          // replaced broke DESIGN.md's One Tier Rule — a second elevation tier
-          // stacked on the FAB's own `tokens.elevation.overlay`. The first
-          // replacement used `primary`, which is also the Fab's own fill
-          // (Fab.tsx:83), so the highlight painted nothing at all: a signal
-          // removed rather than restated, on the one moment the app points a
-          // new researcher at their first record. `onPrimary` is the ink that
-          // is legible on that fill by definition.
-          borderWidth: highlight ? 2 : 0,
-          borderColor: highlight ? theme.colors.onPrimary : 'transparent',
-        },
-      ]}
+      style={[styles.fab, { bottom: 16 + bottomOffset }]}
       accessibilityLabel="New product"
     />
   );

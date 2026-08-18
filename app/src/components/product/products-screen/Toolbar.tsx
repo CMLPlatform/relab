@@ -2,7 +2,6 @@ import type { RefObject } from 'react';
 import { useCallback } from 'react';
 import { Platform, type TextInput, View } from 'react-native';
 import { IconButton } from '@/components/base/IconButton';
-import { Menu } from '@/components/base/Menu';
 import { Searchbar } from '@/components/base/Searchbar';
 
 // Web-only hint for the "/" focus shortcut (see useProductSearchShortcut);
@@ -12,39 +11,34 @@ const SEARCH_PLACEHOLDER = Platform.select({
   default: 'Search products',
 });
 
-type SortOption = {
-  label: string;
-  value: readonly string[];
-};
-
 type ProductsSearchToolbarProps = {
   searchRef?: RefObject<TextInput | null>;
   searchQuery: string;
   debouncedSearchQuery: string;
   isFetching: boolean;
-  searchQueryURL: string;
-  sortBy: string[];
-  sortOptions: readonly SortOption[];
-  sortMenuVisible: boolean;
+  filtersExpanded: boolean;
+  activeFilterCount: number;
   onSearchChange: (value: string) => void;
   onClearSearch: () => void;
-  onSetSortMenuVisible: (visible: boolean) => void;
-  onSortChange: (sort: readonly string[]) => void;
+  onToggleFilters: () => void;
 };
 
+/**
+ * The only chrome above the list in the default state: search plus one
+ * disclosure that opens the sort/filter chip row (ProductsFilterBar). Keeping
+ * the chips behind a toggle is what gets the index under the cognitive-load
+ * budget — a first-time visitor sees a search box and records.
+ */
 export function ProductsSearchToolbar({
   searchRef,
   searchQuery,
   debouncedSearchQuery,
   isFetching,
-  searchQueryURL,
-  sortBy,
-  sortOptions,
-  sortMenuVisible,
+  filtersExpanded,
+  activeFilterCount,
   onSearchChange,
   onClearSearch,
-  onSetSortMenuVisible,
-  onSortChange,
+  onToggleFilters,
 }: ProductsSearchToolbarProps) {
   const handleSearchChange = useCallback(
     (text: string) => {
@@ -55,10 +49,6 @@ export function ProductsSearchToolbar({
     },
     [onSearchChange, onClearSearch],
   );
-  const closeSortMenu = useCallback(() => onSetSortMenuVisible(false), [onSetSortMenuVisible]);
-  const openSortMenu = useCallback(() => onSetSortMenuVisible(true), [onSetSortMenuVisible]);
-  const currentSort = sortOptions.find((option) => sortBy.join(',') === option.value.join(','));
-  const sortAccessibilityLabel = currentSort ? `Sort: ${currentSort.label}` : 'Sort products';
 
   return (
     <View className="flex-row items-center gap-1">
@@ -70,55 +60,17 @@ export function ProductsSearchToolbar({
         loading={isFetching && !!debouncedSearchQuery}
         style={{ flex: 1 }}
       />
-      <Menu
-        visible={sortMenuVisible}
-        onDismiss={closeSortMenu}
-        anchor={
-          <IconButton
-            icon="arrow-down-up"
-            mode="contained-tonal"
-            onPress={openSortMenu}
-            accessibilityLabel={sortAccessibilityLabel}
-          />
+      <IconButton
+        icon="sliders-horizontal"
+        mode={activeFilterCount > 0 ? 'contained-tonal' : 'default'}
+        onPress={onToggleFilters}
+        accessibilityLabel={
+          activeFilterCount > 0 ? `Filters, ${activeFilterCount} active` : 'Filters'
         }
-      >
-        {sortOptions
-          .filter((option) => searchQueryURL || option.value.length > 0)
-          .map((option) => (
-            <SortMenuItem
-              key={option.label}
-              option={option}
-              active={sortBy.join(',') === option.value.join(',')}
-              onSortChange={onSortChange}
-              onCloseMenu={closeSortMenu}
-            />
-          ))}
-      </Menu>
+        // aria-* rather than accessibilityState: RN maps it to the native state,
+        // and react-native-web only paints aria-expanded from this spelling.
+        aria-expanded={filtersExpanded}
+      />
     </View>
-  );
-}
-
-function SortMenuItem({
-  option,
-  active,
-  onSortChange,
-  onCloseMenu,
-}: {
-  option: SortOption;
-  active: boolean;
-  onSortChange: (sort: readonly string[]) => void;
-  onCloseMenu: () => void;
-}) {
-  const handlePress = useCallback(() => {
-    onSortChange(option.value);
-    onCloseMenu();
-  }, [onSortChange, onCloseMenu, option.value]);
-
-  return (
-    <Menu.Item
-      title={option.label}
-      trailingIcon={active ? 'check' : undefined}
-      onPress={handlePress}
-    />
   );
 }

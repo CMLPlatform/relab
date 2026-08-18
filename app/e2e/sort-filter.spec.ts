@@ -9,7 +9,13 @@
  */
 
 import { expect, test } from '@playwright/test';
-import { loginAndReachProducts, openMenu, reachProductsPage, selectMenuItem } from './helpers';
+import {
+  loginAndReachProducts,
+  openMenu,
+  openProductFilters,
+  reachProductsPage,
+  selectMenuItem,
+} from './helpers';
 
 // Sort values carry a direction prefix ("+" ascending / "-" descending),
 // URL-encoded as %2B. "Oldest first" and "Name A→Z" are ascending.
@@ -25,9 +31,10 @@ const ANY_SEARCH_QUERY_URL_PATTERN = /q=/;
 const FILTER_MODE_MINE_URL_PATTERN = /filterMode=mine/;
 const FILTER_MODE_ALL_URL_PATTERN = /filterMode=all/;
 
-/** Navigate to /products and dismiss the welcome card if present. */
+/** Navigate to /products, dismiss the welcome card if present, open the chip row. */
 async function goToProducts(page: import('@playwright/test').Page) {
   await reachProductsPage(page);
+  await openProductFilters(page);
 }
 
 // ─── Sort ──────────────────────────────────────────────────────────────────────
@@ -218,17 +225,20 @@ test.describe('My Products filter', () => {
 
     // After login: "Mine" chip appears
     await loginAndReachProducts(page);
+    await openProductFilters(page);
     await expect(page.getByText('Mine', { exact: true })).toBeVisible();
   });
 
   test('clicking My Products updates the filterMode URL param', async ({ page }) => {
     await loginAndReachProducts(page);
+    await openProductFilters(page);
     await page.getByText('Mine', { exact: true }).click();
     await expect(page).toHaveURL(FILTER_MODE_MINE_URL_PATTERN, { timeout: 3_000 });
   });
 
   test('switching back to All Products clears filterMode=mine', async ({ page }) => {
     await loginAndReachProducts(page);
+    await openProductFilters(page);
     await page.getByText('Mine', { exact: true }).click();
     await expect(page).toHaveURL(FILTER_MODE_MINE_URL_PATTERN, { timeout: 3_000 });
     // Click "Mine" again to toggle back to all

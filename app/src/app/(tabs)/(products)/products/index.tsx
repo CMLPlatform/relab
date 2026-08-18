@@ -56,7 +56,6 @@ export default function Products() {
           <ProductsWelcomeCard
             visible={screen.showWelcomeCard}
             isAuthenticated={screen.isAuthenticated}
-            currentUser={screen.currentUser}
             onDismiss={actions.dismissWelcomeCard}
             onSignIn={handleGoToLogin}
             onGoToProfile={handleGoToProfile}
@@ -67,45 +66,50 @@ export default function Products() {
             searchQuery={search.query}
             debouncedSearchQuery={search.debouncedQuery}
             isFetching={list.isFetching}
-            searchQueryURL={search.queryFromUrl}
-            sortBy={search.sortBy}
-            sortOptions={SORT_OPTIONS}
-            sortMenuVisible={search.sortMenuVisible}
+            filtersExpanded={filters.expanded}
+            activeFilterCount={filters.activeCount}
             onSearchChange={search.setQuery}
             onClearSearch={search.clearQuery}
-            onSetSortMenuVisible={search.setSortMenuVisible}
-            onSortChange={search.applySort}
+            onToggleFilters={filters.toggleExpanded}
           />
 
-          <ProductsFilterBar
-            isAuthenticated={screen.isAuthenticated}
-            filterMode={screen.filterMode}
-            activeDatePreset={screen.activeDatePreset}
-            activeBrands={screen.activeBrands}
-            activeProductTypes={screen.activeProductTypes}
-            dateMenuVisible={filters.dateMenuVisible}
-            brandModalVisible={filters.brandModalVisible}
-            typeModalVisible={filters.typeModalVisible}
-            brandResults={filters.brandResults}
-            brandsLoading={filters.brandsLoading}
-            typeResults={filters.typeResults}
-            typeLabels={filters.typeLabels}
-            typesLoading={filters.typesLoading}
-            brandSearch={filters.brandSearch}
-            typeSearch={filters.typeSearch}
-            onToggleMine={filters.toggleMine}
-            onClearMine={filters.clearMine}
-            onSetDateMenuVisible={filters.setDateMenuVisible}
-            onDateChange={filters.applyDatePreset}
-            onSetBrandModalVisible={filters.setBrandModalVisible}
-            onBrandSelectionChange={filters.applyBrandSelection}
-            onSetBrandSearch={filters.setBrandSearch}
-            onClearBrands={filters.clearBrands}
-            onSetTypeModalVisible={filters.setTypeModalVisible}
-            onTypeSelectionChange={filters.applyTypeSelection}
-            onSetTypeSearch={filters.setTypeSearch}
-            onClearTypes={filters.clearTypes}
-          />
+          {filters.expanded ? (
+            <ProductsFilterBar
+              isAuthenticated={screen.isAuthenticated}
+              filterMode={screen.filterMode}
+              searchQueryURL={search.queryFromUrl}
+              sortBy={search.sortBy}
+              sortOptions={SORT_OPTIONS}
+              sortMenuVisible={search.sortMenuVisible}
+              onSortChange={search.applySort}
+              onSetSortMenuVisible={search.setSortMenuVisible}
+              activeDatePreset={screen.activeDatePreset}
+              activeBrands={screen.activeBrands}
+              activeProductTypes={screen.activeProductTypes}
+              dateMenuVisible={filters.dateMenuVisible}
+              brandModalVisible={filters.brandModalVisible}
+              typeModalVisible={filters.typeModalVisible}
+              brandResults={filters.brandResults}
+              brandsLoading={filters.brandsLoading}
+              typeResults={filters.typeResults}
+              typeLabels={filters.typeLabels}
+              typesLoading={filters.typesLoading}
+              brandSearch={filters.brandSearch}
+              typeSearch={filters.typeSearch}
+              onToggleMine={filters.toggleMine}
+              onClearMine={filters.clearMine}
+              onSetDateMenuVisible={filters.setDateMenuVisible}
+              onDateChange={filters.applyDatePreset}
+              onSetBrandModalVisible={filters.setBrandModalVisible}
+              onBrandSelectionChange={filters.applyBrandSelection}
+              onSetBrandSearch={filters.setBrandSearch}
+              onClearBrands={filters.clearBrands}
+              onSetTypeModalVisible={filters.setTypeModalVisible}
+              onTypeSelectionChange={filters.applyTypeSelection}
+              onSetTypeSearch={filters.setTypeSearch}
+              onClearTypes={filters.clearTypes}
+            />
+          ) : null}
 
           <ProductsErrorBanner error={list.error} onRetry={handleRetry} />
         </View>
@@ -131,11 +135,7 @@ export default function Products() {
 
       <ProductsHeaderFade headerBottom={screen.headerBottom} overlayColor={bgOverlay} />
 
-      <ProductsFab
-        extended={screen.fabExtended}
-        highlight={screen.showWelcomeCard === true && screen.isAuthenticated && screen.fabExtended}
-        onPress={actions.createProduct}
-      />
+      <ProductsFab extended={screen.fabExtended} onPress={actions.createProduct} />
     </>
   );
 }

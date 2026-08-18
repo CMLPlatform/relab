@@ -283,3 +283,55 @@ describe('useProductsScreen', () => {
     });
   });
 });
+
+describe('useProductsScreen filters disclosure', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSearchParams = {};
+    mockAuthState.user = null;
+    mockGetLocalItem.mockImplementation(async () => null);
+  });
+
+  async function renderUseProductsScreen() {
+    const hook = renderHook(() => useProductsScreen());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    return hook;
+  }
+
+  it('starts collapsed with no active filters and toggles open', async () => {
+    const { result } = await renderUseProductsScreen();
+
+    expect(result.current.filters.expanded).toBe(false);
+    expect(result.current.filters.activeCount).toBe(0);
+
+    act(() => result.current.filters.toggleExpanded());
+    expect(result.current.filters.expanded).toBe(true);
+  });
+
+  it('starts expanded when the URL carries a filter or an explicit sort, and counts them', async () => {
+    mockSearchParams = { days: '7', brands: 'Bosch', sort: '+created_at' };
+
+    const { result } = await renderUseProductsScreen();
+
+    expect(result.current.filters.expanded).toBe(true);
+    expect(result.current.filters.activeCount).toBe(3);
+  });
+
+  it('hides the welcome card from verified users', async () => {
+    mockAuthState.user = { isVerified: true, preferences: {} } as never;
+
+    const { result } = await renderUseProductsScreen();
+
+    expect(result.current.screen.showWelcomeCard).toBe(false);
+  });
+
+  it('shows the welcome card to unverified users until dismissed', async () => {
+    mockAuthState.user = { isVerified: false, preferences: {} } as never;
+
+    const { result } = await renderUseProductsScreen();
+
+    expect(result.current.screen.showWelcomeCard).toBe(true);
+  });
+});

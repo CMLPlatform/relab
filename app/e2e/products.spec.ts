@@ -15,6 +15,7 @@ import {
   finishOnboardingIfVisible,
   loginAndReachProducts,
   openNewProductPage,
+  openProductFilters,
   suppressGuestWelcomeCard,
 } from './helpers';
 
@@ -72,13 +73,17 @@ test.describe('Products page', () => {
     tag: ['@cross-browser', '@auth'],
   }, async ({ page }) => {
     await loginAndReachProducts(page);
+    await expect(page.getByPlaceholder('Search products')).toBeVisible();
+    // The chip row is collapsed by default — a first visit is search + records.
+    await expect(page.getByText('Date', { exact: true })).not.toBeVisible();
+    await openProductFilters(page);
     await expect(page.getByText('Mine', { exact: true })).toBeVisible();
     await expect(page.getByText('Date', { exact: true })).toBeVisible();
-    await expect(page.getByPlaceholder('Search products')).toBeVisible();
   });
 
   test('empty state is shown when no products exist', async ({ page }) => {
     await registerNewUserAndReachProducts(page);
+    await openProductFilters(page);
     await page.getByText('Mine', { exact: true }).click();
     await expect(page.getByText("You haven't created any products yet. Tap the")).toBeVisible({
       timeout: 10_000,
@@ -115,6 +120,7 @@ test.describe('Search', () => {
       timeout: 5_000,
     });
     await searchBar.clear();
+    await openProductFilters(page);
     await page.getByText('Mine', { exact: true }).click();
     await expect(page.getByText("You haven't created any products yet. Tap the")).toBeVisible({
       timeout: 5_000,

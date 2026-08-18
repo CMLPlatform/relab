@@ -8,13 +8,8 @@ import { useAppTheme } from '@/theme';
 import { NewProductPill, ProfilePill } from './InlinePills';
 import { productsScreenStyles as styles } from './shared';
 
-type CurrentUser = {
-  isVerified?: boolean;
-};
-
 type ProductsWelcomeCardProps = {
   isAuthenticated: boolean;
-  currentUser?: CurrentUser | null;
   visible: boolean | null;
   onDismiss: () => void;
   onSignIn: () => void;
@@ -23,7 +18,6 @@ type ProductsWelcomeCardProps = {
 
 export function ProductsWelcomeCard({
   isAuthenticated,
-  currentUser,
   visible,
   onDismiss,
   onSignIn,
@@ -37,7 +31,7 @@ export function ProductsWelcomeCard({
     <Card className="mx-0 rounded-lg bg-muted">
       <View className="gap-3">
         <View className="flex-row items-center gap-3">
-          <View className="h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
+          <View className="h-11 w-11 items-center justify-center rounded-lg bg-primary/12">
             <Image
               source={
                 theme.dark
@@ -51,11 +45,7 @@ export function ProductsWelcomeCard({
           </View>
           <View className="flex-1">
             <AppText variant="heading" className="font-bold">
-              {!isAuthenticated
-                ? 'Welcome to Relab'
-                : currentUser?.isVerified
-                  ? 'Ready to add products'
-                  : 'Verify your email to start creating'}
+              {isAuthenticated ? 'Verify your email to start creating' : 'Welcome to Relab'}
             </AppText>
           </View>
         </View>
@@ -65,22 +55,6 @@ export function ProductsWelcomeCard({
             <AppText style={styles.welcomeBodyText}>
               Browse products freely. Sign in when you are ready to add your own.
             </AppText>
-          ) : currentUser?.isVerified ? (
-            <>
-              <View className="flex-row flex-wrap items-center">
-                <AppText style={styles.welcomeBodyText}>Use the </AppText>
-                <NewProductPill />
-                <AppText style={styles.welcomeBodyText}>
-                  {' button to add products, and manage your '}
-                </AppText>
-                <ProfilePill />
-                <AppText style={styles.welcomeBodyText}> anytime.</AppText>
-              </View>
-              <AppText className="mt-1" style={styles.welcomeBodyText}>
-                Document a product, break it into components, and tag their materials — that's one
-                full teardown.
-              </AppText>
-            </>
           ) : (
             <View className="flex-row flex-wrap items-center">
               <AppText style={styles.welcomeBodyText}>
@@ -101,12 +75,12 @@ export function ProductsWelcomeCard({
             <AppButton variant="tonal" onPress={onSignIn}>
               Sign in
             </AppButton>
-          ) : !currentUser?.isVerified ? (
+          ) : (
             <AppButton variant="tonal" onPress={onGoToProfile}>
               <Icon name="mail-check" size={18} color={theme.colors.primary} />
               <AppText>Verify email</AppText>
             </AppButton>
-          ) : null}
+          )}
           <AppButton variant="ghost" onPress={onDismiss}>
             {isAuthenticated ? 'Got it' : 'Maybe later'}
           </AppButton>

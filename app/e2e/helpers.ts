@@ -71,6 +71,20 @@ export async function reachProductsPage(page: Page) {
   });
 }
 
+/**
+ * The sort/filter chips (Sort, Mine, Date, Brand, Type) sit behind one
+ * "Filters" toggle beside the search bar; it opens by itself only when the URL
+ * already carries a filter. Idempotent: leaves an open row alone.
+ */
+export async function openProductFilters(page: Page) {
+  const toggle = page.getByRole('button', { name: /^Filters/ });
+  await expect(toggle).toBeVisible({ timeout: 10_000 });
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') {
+    await toggle.click();
+  }
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+}
+
 export async function finishOnboardingIfVisible(page: Page) {
   if (!page.url().includes('onboarding')) {
     return;

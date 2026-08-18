@@ -53,7 +53,15 @@ export function useProductsScreen() {
       setSearchQuery(searchQueryURL);
     }
   }
-  const filterUi = useProductsFilterUiState();
+  // An explicit `sort` counts as active even when it equals the default: the
+  // user (or a link) chose it, so the row that holds the sort chip stays open.
+  const activeFilterCount =
+    (filterMode === 'mine' ? 1 : 0) +
+    (activeDatePreset !== null ? 1 : 0) +
+    (activeBrands.length > 0 ? 1 : 0) +
+    (activeProductTypes.length > 0 ? 1 : 0) +
+    (params.sort ? 1 : 0);
+  const filterUi = useProductsFilterUiState(activeFilterCount > 0);
   const header = useProductsHeaderState();
   const isAuthenticated = !!currentUser;
   const newProduct = useCallback(
@@ -129,7 +137,10 @@ export function useProductsScreen() {
       currentUser,
       headerBottom: header.headerBottom,
       fabExtended: header.fabExtended,
-      showWelcomeCard: Boolean(showInfoCard),
+      // Verified users get no card: its only content for them is "use the +
+      // button", which the FAB says itself. Guests and unverified users still
+      // need the sign-in / verify prompt.
+      showWelcomeCard: Boolean(showInfoCard) && !currentUser?.isVerified,
       slowLoading,
     },
     search: {
@@ -144,6 +155,9 @@ export function useProductsScreen() {
       applySort: actions.applySort,
     },
     filters: {
+      expanded: filterUi.expanded,
+      activeCount: activeFilterCount,
+      toggleExpanded: filterUi.toggleExpanded,
       brandResults,
       brandsLoading,
       typeResults,

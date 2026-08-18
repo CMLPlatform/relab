@@ -314,7 +314,9 @@ describe('CamerasScreen', () => {
     expect(screen.getByText('1 selected')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Capture 1'));
 
-    expect(screen.getByText('Capture failed — check the cameras are online and try again.')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Capture failed — check the cameras are online and try again.'),
+    ).toBeOnTheScreen();
   });
 
   it('redirects unauthenticated users to login', async () => {

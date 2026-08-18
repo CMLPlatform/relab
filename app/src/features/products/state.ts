@@ -25,7 +25,11 @@ export function useSlowLoading(isLoading: boolean) {
   return isLoading && slowLoading;
 }
 
-export function useProductsFilterUiState() {
+// `initiallyExpanded` is read once: a deep link that carries a filter opens
+// the row so what is applied is visible; afterwards the toggle is the user's.
+export function useProductsFilterUiState(initiallyExpanded: boolean) {
+  const [expanded, setExpanded] = useState(initiallyExpanded);
+  const toggleExpanded = useCallback(() => setExpanded((value) => !value), []);
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
   const [dateMenuVisible, setDateMenuVisible] = useState(false);
   const [brandModalVisible, setBrandModalVisible] = useState(false);
@@ -34,6 +38,8 @@ export function useProductsFilterUiState() {
   const [typeSearch, setTypeSearch] = useState('');
 
   return {
+    expanded,
+    toggleExpanded,
     sortMenuVisible,
     setSortMenuVisible,
     dateMenuVisible,
