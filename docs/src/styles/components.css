@@ -105,6 +105,19 @@
   background: rgba(13, 23, 34, 0.88);
 }
 
+/* Diagrams scroll rather than shrink past legibility.
+   Mermaid emits its SVG with width="100%" plus an inline `max-width` set to the
+   diagram's natural size. Adding `min-width: 100%` on top made the SVG always
+   fill the frame exactly, so it could only ever scale DOWN — the frame's
+   `overflow-x: auto` above could never engage because there was nothing to
+   overflow. Measured on /architecture/system-design/ at 1440px: a 1636px
+   diagram rendered at 758px, a 0.46x downscale that put its 16px labels on
+   screen at ~7.4px. At 390px it was ~3px.
+   The width itself cannot be recovered here: an SVG sized in percent has no
+   intrinsic width, so `width: max-content` resolves to the container rather
+   than the viewBox (measured — it changed nothing). pinDiagramToIntrinsicWidth()
+   in src/scripts/mermaid.ts sets the explicit pixel width after render instead.
+   This rule only clears the `min-width: 100%` that used to force the fit. */
 .relab-mermaid svg {
-  min-width: 100%;
+  max-width: none;
 }

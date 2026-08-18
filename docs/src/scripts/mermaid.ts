@@ -14,6 +14,40 @@ const reportMermaidError = (error: unknown) => {
   }
 };
 
+/**
+ * Give a rendered diagram its natural width so the frame can scroll it.
+ *
+ * Mermaid emits `width="100%"` with the natural size only as an inline
+ * `max-width`, and an SVG sized in percent has no intrinsic width for CSS to
+ * recover — `width: max-content` resolves to the container, not the viewBox, so
+ * this cannot be fixed in the stylesheet. Left alone the diagram can only ever
+ * scale DOWN to fit: measured on /architecture/system-design/ at 1440px, a
+ * 1636px diagram rendered at 758px (0.46x), putting 16px labels on screen at
+ * ~7.4px, and ~3px at 390px.
+ *
+ * Setting the explicit pixel width lets it overflow into the frame's existing
+ * `overflow-x: auto`, so labels stay at their authored size and the reader
+ * scrolls instead of squinting. Narrow diagrams are left alone: pinning one
+ * that already fits would only stop it filling the frame.
+ */
+function pinDiagramToIntrinsicWidth(diagram: HTMLElement): void {
+  const svg = diagram.querySelector('svg');
+  if (!svg) {
+    return;
+  }
+  const intrinsic = svg.viewBox?.baseVal?.width;
+  if (!intrinsic) {
+    return;
+  }
+  if (intrinsic > diagram.clientWidth) {
+    svg.style.width = `${intrinsic}px`;
+    svg.style.maxWidth = 'none';
+  } else {
+    svg.style.width = '';
+    svg.style.maxWidth = '';
+  }
+}
+
 /* NOTE: hand-tuned surfaces; if brand.css primary changes, retune these (no machine link). */
 const mermaidThemeVariables = {
   light: {
@@ -23,6 +57,12 @@ const mermaidThemeVariables = {
     primaryTextColor: 'var(--relab-brand-text)',
     lineColor: '#24415b',
     tertiaryColor: '#eef5fb',
+    // Without this, mermaid's `base` theme derives an edge-label background
+    // from the other variables and lands on a pale yellow-green
+    // (rgba(244,251,217,.5)) that exists nowhere in the brand or the 7-hue
+    // chart ramp. Measured, not guessed. Pinned to the same tone as the
+    // diagram frame so edge labels sit on the panel rather than on a swatch.
+    edgeLabelBackground: '#eef5fb',
   },
   dark: {
     background: '#0c1724',
@@ -31,6 +71,8 @@ const mermaidThemeVariables = {
     primaryTextColor: 'var(--relab-brand-text)',
     lineColor: '#b9dcf6',
     tertiaryColor: '#102131',
+    // Dark-mode derivation was an olive/mustard rgba(54,77,19,.5). Same fix.
+    edgeLabelBackground: '#102131',
   },
 } as const;
 
@@ -187,6 +229,7 @@ const renderMermaid = async (force = false): Promise<void> => {
       // failed render leaves the source text rather than a blank reserved box.
       for (const diagram of diagrams) {
         diagram.style.minHeight = '';
+        pinDiagramToIntrinsicWidth(diagram);
       }
     }
   })();
