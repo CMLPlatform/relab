@@ -28,7 +28,12 @@ describe('parseTeardown', () => {
     expect(t?.id).toBe(47);
     expect(t?.name).toBe('Dell XPS 13');
     expect(t?.weightG).toBe(1190);
-    expect(t?.parts[0]).toEqual({ name: 'Battery pack', weightG: 212, share: 0.684 });
+    expect(t?.parts[0]).toEqual({
+      name: 'Battery pack',
+      weightG: 212,
+      share: 0.684,
+      photo: null,
+    });
   });
 
   it('computes each part share of the summed recorded mass, to 3 decimals', () => {
@@ -76,9 +81,10 @@ describe('parseTeardown', () => {
         name: 'Display assembly',
         weightG: 184,
         share: 0.885,
-        children: [{ name: 'LCD panel', weightG: 121 }],
+        photo: null,
+        children: [{ name: 'LCD panel', weightG: 121, photo: null }],
       },
-      { name: 'Cooling fan', weightG: 24, share: 0.115 },
+      { name: 'Cooling fan', weightG: 24, share: 0.115, photo: null },
     ]);
   });
 
@@ -142,7 +148,133 @@ describe('parseTeardown', () => {
         { name: 'Shell', weight_g: null },
       ],
     });
-    expect(t?.parts).toEqual([{ name: 'Shell', weightG: null, share: null }]);
+    expect(t?.parts).toEqual([{ name: 'Shell', weightG: null, share: null, photo: null }]);
+  });
+
+  it('offers every pre-computed derivative as a srcset, narrowest first', () => {
+    vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
+    const t = parseTeardown(RAW, [
+      {
+        name: 'Battery Pack',
+        weight_g: 227,
+        thumbnail_url: '/media/b_thumb_200.webp',
+        // Deliberately out of order, and keyed by string as JSON delivers it.
+        thumbnail_urls: {
+          '800': '/media/b_thumb_800.webp',
+          '200': '/media/b_thumb_200.webp',
+        },
+      },
+    ]);
+    expect(t?.parts[0].photo?.srcset).toBe(
+      'http://api.test/media/b_thumb_200.webp 200w, http://api.test/media/b_thumb_800.webp 800w',
+    );
+    // The default stays the small one, for anything that ignores srcset.
+    expect(t?.parts[0].photo?.url).toBe('http://api.test/media/b_thumb_200.webp');
+  });
+
+  it('offers no srcset when there is only one width to choose from', () => {
+    const t = parseTeardown(RAW, [
+      {
+        name: 'Wifi Card',
+        weight_g: 3.2,
+        thumbnail_url: '/media/w.webp',
+        thumbnail_urls: { '200': '/media/w.webp' },
+      },
+    ]);
+    expect(t?.parts[0].photo?.srcset).toBe('');
+  });
+
+  it('drops unsafe derivative URLs from the srcset without losing the photo', () => {
+    vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
+    const t = parseTeardown(RAW, [
+      {
+        name: 'Wifi Card',
+        weight_g: 3.2,
+        thumbnail_url: '/media/w_thumb_200.webp',
+        thumbnail_urls: { '200': '/media/w_thumb_200.webp', '800': 'javascript:alert(1)' },
+      },
+    ]);
+    expect(t?.parts[0].photo?.url).toBe('http://api.test/media/w_thumb_200.webp');
+    expect(t?.parts[0].photo?.srcset).toBe('');
+  });
+
+  it('reads each part photo from the component thumbnail, at both tree levels', () => {
+    vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
+    const t = parseTeardown(RAW, [
+      {
+        name: 'Display assembly',
+        weight_g: 184,
+        thumbnail_url: '/media/display-thumb.jpg',
+        components: [{ name: 'LCD panel', weight_g: 121, thumbnail_url: '/media/lcd-thumb.jpg' }],
+      },
+    ]);
+    expect(t?.parts[0].photo?.url).toBe('http://api.test/media/display-thumb.jpg');
+    expect(t?.parts[0].children?.[0].photo?.url).toBe('http://api.test/media/lcd-thumb.jpg');
+  });
+
+  it('names the part, not the product, in each part photo alt text', () => {
+    const t = parseTeardown(RAW, [
+      { name: 'Cooling fan', weight_g: 24, thumbnail_url: '/media/fan.jpg', components: [] },
+    ]);
+    expect(t?.parts[0].photo?.alt).toBe('Cooling fan, photographed during disassembly');
+  });
+
+  it('ranks parts by recorded mass, heaviest first and unweighed last', () => {
+    // Recording order, as the API returns it: a screw before the battery.
+    const t = parseTeardown({
+      ...RAW,
+      components: [
+        { name: 'Screws - torx', weight_g: 0.22 },
+        { name: 'Bracket', weight_g: null },
+        { name: 'Battery Pack', weight_g: 227 },
+        { name: 'Keyboard Module', weight_g: 97 },
+      ],
+    });
+    expect(t?.parts.map((p) => p.name)).toEqual([
+      'Battery Pack',
+      'Keyboard Module',
+      'Screws - torx',
+      'Bracket',
+    ]);
+    // Shares stay fractions of the whole product, so they descend with the mass.
+    expect(t?.parts.map((p) => p.share)).toEqual([0.7, 0.299, 0.001, null]);
+  });
+
+  it('ranks the tree top level too, leaving each part children in record order', () => {
+    const t = parseTeardown(RAW, [
+      { name: 'Cooling fan', weight_g: 24, components: [] },
+      {
+        name: 'Display assembly',
+        weight_g: 184,
+        components: [
+          { name: 'Lid and hinges', weight_g: 63 },
+          { name: 'LCD panel', weight_g: 121 },
+        ],
+      },
+    ]);
+    expect(t?.parts.map((p) => p.name)).toEqual(['Display assembly', 'Cooling fan']);
+    expect(t?.parts[0].children?.map((c) => c.name)).toEqual(['Lid and hinges', 'LCD panel']);
+  });
+
+  it('shows a CPV product type by its label, never by its code', () => {
+    const cpv = { name: 'CPV: 302132', description: 'Tablet computer' };
+    expect(parseTeardown({ ...RAW, product_type: cpv })?.productType).toBe('Tablet computer');
+
+    // A code with no label is dropped rather than printed at the visitor.
+    const bare = { name: 'CPV: 302132', description: null };
+    expect(parseTeardown({ ...RAW, product_type: bare })?.productType).toBeUndefined();
+
+    // A hand-authored type keeps its own name even when it has a description.
+    const authored = { name: 'Laptop', description: 'A portable computer' };
+    expect(parseTeardown({ ...RAW, product_type: authored })?.productType).toBe('Laptop');
+  });
+
+  it('drops an unsafe or absent component thumbnail to a null photo', () => {
+    vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
+    for (const thumbnail_url of ['//evil.test/a.jpg', 'javascript:alert(1)', '', null]) {
+      const t = parseTeardown(RAW, [{ name: 'Cooling fan', weight_g: 24, thumbnail_url }]);
+      expect(t?.parts[0].photo).toBeNull();
+    }
   });
 });
 

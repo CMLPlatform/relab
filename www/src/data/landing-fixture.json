@@ -6,26 +6,28 @@
     "weightG": 1190,
     "productType": "Laptop",
     "parts": [
-      { "name": "Battery pack", "weightG": 212 },
+      { "name": "Battery pack", "weightG": 212, "photo": null },
       {
         "name": "Display assembly",
         "weightG": 184,
+        "photo": null,
         "children": [
-          { "name": "LCD panel", "weightG": 121 },
-          { "name": "Lid and hinges", "weightG": 63 }
+          { "name": "LCD panel", "weightG": 121, "photo": null },
+          { "name": "Lid and hinges", "weightG": 63, "photo": null }
         ]
       },
-      { "name": "Chassis (base)", "weightG": 156 },
+      { "name": "Chassis (base)", "weightG": 156, "photo": null },
       {
         "name": "Mainboard",
         "weightG": 98,
+        "photo": null,
         "children": [
-          { "name": "PCB assembly", "weightG": 74 },
-          { "name": "Port brackets", "weightG": 24 }
+          { "name": "PCB assembly", "weightG": 74, "photo": null },
+          { "name": "Port brackets", "weightG": 24, "photo": null }
         ]
       },
-      { "name": "Keyboard deck", "weightG": 71 },
-      { "name": "Cooling fan", "weightG": 24 }
+      { "name": "Keyboard deck", "weightG": 71, "photo": null },
+      { "name": "Cooling fan", "weightG": 24, "photo": null }
     ],
     "photos": []
   }

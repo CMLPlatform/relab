@@ -64,6 +64,57 @@ values.
 - Playwright covers the browser flows and accessibility checks.
 - Production output is served by Caddy from `dist/`.
 
+### The landing hero's teardown photography
+
+The hero schedule has two layouts and picks between them from the data, not from a flag. If any
+part of the featured teardown has a photograph it renders as a grid of plates — one duotoned
+cyanotype print per part, dealing out of the assembly on load. If none has one it stays the compact
+list it has always been, so a product with no component photography never becomes a wall of empty
+frames.
+
+Every plate is live data: `thumbnail_url` off each node of
+`/v1/products/{id}/components/tree`, which the build already fetches. Nothing is hand-authored, so
+the hero re-shoots itself whenever `PUBLIC_FEATURED_PRODUCT_ID` changes. Individual parts with no
+photo render as a blank lattice frame, which reads as an unexposed plate in the schedule.
+
+Plates lay out near 180px, so the 200px `thumbnail_url` alone would be upscaled on any 2x screen.
+Each read schema also carries `thumbnail_urls`, the API's pre-computed derivatives keyed by width
+(`THUMBNAIL_WIDTHS` is 200/800/1600, generated at upload; widths at or above the original are
+skipped, so the map is sparse). `toPhoto` turns those into a `srcset` and the component pairs it
+with a `sizes` hint, letting the browser fetch the 200px file on a 1x screen and the 800px one on a
+2x screen. One available width means no `srcset` at all rather than a one-candidate list.
+
+Two editorial rules, both stated on the page rather than applied silently:
+
+- **Parts are ranked by recorded mass, heaviest first**, not in the order the API returns them.
+  Recording order is roughly disassembly order, which puts product 464's three screws ahead of its
+  battery and scatters the share bars; ranked, the bars read as one descending distribution.
+- **The hero shows six parts.** All twelve of product 464's made the panel more than twice the
+  height of the pitch beside it, most of it below the fold. When parts are withheld the grid says
+  so underneath (`Showing the 6 heaviest of 12 recorded parts`). Shares stay fractions of the whole
+  product, so the truncated view still tells the truth about what it shows.
+
+Two data quirks the hero handles, both first seen on product 464: masses under 10 g print to two
+significant figures, because the grouped integer format turned a recorded 0.33 g screw into `0 g`
+— which is what the em dash for *no recorded mass* already means. And a product type imported from
+the CPV taxonomy carries its code in `name` and its label in `description`, so the tag shows
+`Tablet computer`, never `CPV: 302132`; a code with no label drops the tag entirely.
+
+Builds with no API access (CI, most local dev, the Playwright suite) fall back to
+`src/data/landing-fixture.json`, whose `photo` fields are all `null` — so those builds show the
+list, not the grid. To exercise the grid there, drop images into `public/images/teardown/` and
+point the fixture's `photo` objects at them:
+
+```jsonc
+{ "name": "Battery pack", "weightG": 212,
+  "photo": { "url": "/images/teardown/battery-pack.jpg",
+             "alt": "Battery pack, photographed during disassembly" } }
+```
+
+Roughly 480×360 (4:3, `object-fit: cover`), and the top-level `photos` array takes the assembled
+product the same way. Use photographs the project holds the rights to publish; contributor uploads
+are governed by the ToS grant and are not automatically clear for marketing surfaces.
+
 ## Environment variables
 
 Public variables are read through `import.meta.env` and used by

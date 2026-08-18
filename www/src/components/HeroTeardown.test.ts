@@ -10,17 +10,36 @@ const TEARDOWN = {
   weightG: 1190,
   productType: 'Laptop',
   parts: [
-    { name: 'Battery pack', weightG: 212, share: 0.684 },
+    { name: 'Battery pack', weightG: 212, share: 0.684, photo: null },
     {
       name: 'Mainboard',
       weightG: 98,
       share: 0.316,
-      children: [{ name: 'PCB assembly', weightG: 74 }],
+      photo: null,
+      children: [{ name: 'PCB assembly', weightG: 74, photo: null }],
     },
-    { name: 'Shell', weightG: null, share: null },
+    { name: 'Shell', weightG: null, share: null, photo: null },
   ],
   photos: [{ url: '/media/a.jpg', alt: 'Dell XPS 13, photographed during disassembly' }],
 };
+
+/** The same record once its components carry photographs: one has, one has not. */
+const PLATED = {
+  ...TEARDOWN,
+  parts: [
+    {
+      ...TEARDOWN.parts[0],
+      photo: {
+        url: '/media/battery_200.webp',
+        srcset: '/media/battery_200.webp 200w, /media/battery_800.webp 800w',
+        alt: 'Battery pack, photographed during disassembly',
+      },
+    },
+    TEARDOWN.parts[1],
+    TEARDOWN.parts[2],
+  ],
+};
+
 async function render(props: Record<string, unknown>): Promise<string> {
   const container = await AstroContainer.create();
   return container.renderToString(HeroTeardown, { props: { teardown: TEARDOWN, ...props } });
@@ -72,14 +91,111 @@ describe('HeroTeardown', () => {
     expect(flat).not.toContain('<details');
   });
 
-  it('keeps explicit list semantics on the nested subcomponent list', async () => {
+  it('keeps explicit list semantics on the parts list and the nested subcomponent list', async () => {
     const html = await render({});
-    expect(html.match(/role="list"/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(html).toMatch(/class="blueprint-parts[^"]*" role="list"/);
+    expect(html).toMatch(/class="blueprint-subparts" role="list"/);
   });
 
-  it('omits the photo strip when there are no photos', async () => {
-    const html = await render({ teardown: { ...TEARDOWN, photos: [] } });
-    expect(html).not.toContain('data-photo-strip');
+  it('shows the assembled product above the schedule, and omits it when unphotographed', async () => {
+    const html = await render({});
+    expect(html).toContain('data-assembly');
+    expect(html).toContain('/media/a.jpg');
+    // The "before" comes before the parts it comes apart into.
+    expect(html.indexOf('data-assembly')).toBeLessThan(html.indexOf('blueprint-parts'));
+
+    const unphotographed = await render({ teardown: { ...TEARDOWN, photos: [] } });
+    expect(unphotographed).not.toContain('data-assembly');
+  });
+
+  it('stays a plain list when no part is photographed', async () => {
+    const html = await render({});
+    expect(html).not.toContain('data-plates');
+    expect(html).not.toContain('plate-figure');
+  });
+
+  it('becomes a plate grid as soon as one part is photographed', async () => {
+    const html = await render({ teardown: PLATED });
+    expect(html).toContain('data-plates');
+    expect(html).toContain('/media/battery_200.webp');
+    expect(html).toContain('Battery pack, photographed during disassembly');
+    // Every part gets a frame, photographed or not: three parts, three figures,
+    // one image. The unphotographed two render as blank plates, not as gaps.
+    expect(html.match(/plate-figure/g)).toHaveLength(3);
+    expect(html.match(/<img/g)).toHaveLength(2); // two parts unphotographed + the assembly
+  });
+
+  it('offers the wider derivatives to the browser, with a layout hint', async () => {
+    const html = await render({ teardown: PLATED });
+    expect(html).toContain('srcset="/media/battery_200.webp 200w, /media/battery_800.webp 800w"');
+    // srcset widths mean nothing without sizes: the browser would assume 100vw
+    // and fetch the largest file for a 180px plate.
+    expect(html).toMatch(/sizes="[^"]*180px/);
+  });
+
+  it('emits no srcset or sizes when only one width exists', async () => {
+    const single = {
+      ...PLATED,
+      parts: [{ ...PLATED.parts[0], photo: { url: '/media/b.webp', srcset: '', alt: 'Battery' } }],
+    };
+    const html = await render({ teardown: single });
+    expect(html).toContain('/media/b.webp');
+    expect(html).not.toContain('srcset');
+    expect(html).not.toContain('sizes=');
+  });
+
+  it('numbers the plates in schedule order and hides the numbers from AT', async () => {
+    const html = await render({ teardown: PLATED });
+    // Astro appends a scoped-style attribute after aria-hidden, so match loosely
+    // up to the tag close rather than pinning the attribute order.
+    const indices = [...html.matchAll(/class="plate-index" aria-hidden="true"[^>]*>(\d+)</g)];
+    expect(indices.map((match) => match[1])).toEqual(['1', '2', '3']);
+  });
+
+  it('prints sub-gram masses rather than rounding a recorded screw to "0 g"', async () => {
+    const screws = {
+      ...TEARDOWN,
+      parts: [
+        { name: 'Screws - big crosshead', weightG: 0.33, share: 0.001, photo: null },
+        { name: 'Screw - Crosshead M3', weightG: 0.11, share: 0.001, photo: null },
+        { name: '4GB RAM stick', weightG: 7.43, share: 0.02, photo: null },
+        { name: 'Bottom Cover Assembly', weightG: 62.51, share: 0.2, photo: null },
+      ],
+    };
+    const html = await render({ teardown: screws });
+    expect(html).toContain('0.33 g');
+    expect(html).toContain('0.11 g');
+    expect(html).toContain('7.4 g');
+    expect(html).toContain('63 g');
+    // "0 g" claims no mass was recorded, which is what the em dash already says.
+    expect(html).not.toMatch(/>0 g</);
+  });
+
+  it('caps the schedule at six parts and says what it left out', async () => {
+    const many = {
+      ...TEARDOWN,
+      parts: Array.from({ length: 12 }, (_, i) => ({
+        name: `Part ${i + 1}`,
+        weightG: 100 - i,
+        share: 0.08,
+        photo: null,
+      })),
+    };
+    const html = await render({ teardown: many });
+    expect(html).toContain('Part 6');
+    expect(html).not.toContain('Part 7');
+    expect(html).toContain('Showing the 6 heaviest of 12 recorded parts');
+  });
+
+  it('states no extract when the whole schedule fits', async () => {
+    const html = await render({});
+    expect(html).not.toContain('data-extract');
+  });
+
+  it('seats each plate for the deal-out stagger', async () => {
+    const html = await render({ teardown: PLATED });
+    expect(html).toContain('--i: 0');
+    expect(html).toContain('--i: 2');
   });
 
   it('leaves the page thesis, CTA and totals to BrandHero', async () => {

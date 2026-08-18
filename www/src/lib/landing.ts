@@ -13,9 +13,29 @@ const HTTP_URL_PATTERN = /^https?:\/\//i;
 // external origin, so they are not same-origin relative paths.
 const PROTOCOL_RELATIVE_PATTERN = /^[/\\][/\\]/;
 
+export interface TeardownPhoto {
+  url: string;
+  /**
+   * `srcset` over the API's pre-computed derivatives, narrowest first, or ''
+   * when there is only one width to offer. The plates render well above the
+   * 200px `thumbnail_url` on any high-density screen, and the wider files are
+   * already written at upload time (`THUMBNAIL_WIDTHS`), so letting the browser
+   * pick beats either upscaling the small one or shipping the large one to
+   * everybody.
+   */
+  srcset: string;
+  alt: string;
+}
+
 export interface TeardownSubpart {
   name: string;
   weightG: number | null;
+  /**
+   * The part's own photograph, or null when it has none. Every component in
+   * the tree payload already carries `thumbnail_url` (ProductReadBase ->
+   * ThumbnailFields), so the parts grid is live data, not authored artwork.
+   */
+  photo: TeardownPhoto | null;
 }
 
 export interface TeardownPart extends TeardownSubpart {
@@ -27,11 +47,6 @@ export interface TeardownPart extends TeardownSubpart {
   share: number | null;
   /** Direct subcomponents (one level), present only when there are any. */
   children?: TeardownSubpart[];
-}
-
-export interface TeardownPhoto {
-  url: string;
-  alt: string;
 }
 
 export interface FeaturedTeardown {
@@ -87,26 +102,91 @@ function resolveMediaUrl(path: string): string {
   return `${apiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
-function toSubpart(node: Record<string, unknown>): TeardownSubpart {
-  return { name: trimmedString(node.name), weightG: finiteOrNull(node.weight_g) };
+// Product types imported from the CPV taxonomy carry the code in `name` and the
+// human label in `description` ("CPV: 302132" / "Tablet computer"). Hand-authored
+// types put the label in `name` and may have no description at all.
+const CPV_CODE_PATTERN = /^CPV:\s*\d+$/i;
+
+/**
+ * The visitor-facing product-type label, or '' for none.
+ *
+ * A bare CPV code tells a visitor nothing, so it never reaches the hero: the
+ * imported description takes its place, and a coded type with no description
+ * drops the tag rather than printing the code.
+ */
+function productTypeLabel(productType: Record<string, unknown>): string {
+  const name = trimmedString(productType.name);
+  if (!CPV_CODE_PATTERN.test(name)) {
+    return name;
+  }
+  return trimmedString(productType.description);
 }
 
 /**
- * Add each part's fraction of the summed recorded direct-part mass.
+ * Build a photo from any payload carrying `thumbnail_url` and `thumbnail_urls`.
+ *
+ * Every URL goes through the same resolver and the same rejections, so a
+ * server-supplied `javascript:` or protocol-relative path drops out here rather
+ * than reaching an `img`. Returns null when nothing usable survives, which
+ * renders as a blank plate.
+ */
+function toPhoto(node: Record<string, unknown>, alt: string): TeardownPhoto | null {
+  const byWidth = Object.entries(asRecord(node.thumbnail_urls))
+    .map(
+      ([width, candidate]) => [Number(width), resolveMediaUrl(trimmedString(candidate))] as const,
+    )
+    .filter(([width, candidate]) => Number.isFinite(width) && width > 0 && candidate !== '')
+    .sort(([a], [b]) => a - b);
+  // `thumbnail_url` is the smallest derivative, or the original when none was
+  // generated; either way it is the right default for a browser ignoring srcset.
+  const url = resolveMediaUrl(trimmedString(node.thumbnail_url)) || byWidth[0]?.[1] || '';
+  if (!url) {
+    return null;
+  }
+  // One width is not a choice, so do not make the browser parse a candidate list.
+  const srcset = byWidth.length > 1 ? byWidth.map(([w, u]) => `${u} ${w}w`).join(', ') : '';
+  return { url, srcset, alt };
+}
+
+function toSubpart(node: Record<string, unknown>): TeardownSubpart {
+  const name = trimmedString(node.name);
+  return {
+    name,
+    weightG: finiteOrNull(node.weight_g),
+    photo: toPhoto(node, `${name}, photographed during disassembly`),
+  };
+}
+
+/**
+ * Add each part's fraction of the summed recorded direct-part mass, and rank
+ * the parts by that mass.
  *
  * Per-unit: the bar mirrors the printed `weight_g` and ignores
  * `amount_in_parent`, so a row's bar and its number never disagree.
  * No recorded mass anywhere -> every share is null and no bars render.
+ *
+ * Heaviest first, unweighed parts last. The API returns components in the order
+ * they were recorded, which is roughly the order they came off the bench —
+ * meaningful, but not what a mass breakdown wants: product 464 lists three
+ * screws before its battery, so the hero led with 0.33 g of hardware and the
+ * bars scattered. Ranked, the bars read as one descending distribution, and the
+ * parts the hero has room for are the ones that account for the mass. Shares
+ * stay fractions of the whole product, so a truncated view still tells the
+ * truth about what it shows.
  */
-function withShares<T extends { weightG: number | null }>(
+function rankedWithShares<T extends { weightG: number | null }>(
   parts: T[],
 ): (T & { share: number | null })[] {
   const total = parts.reduce((sum, part) => sum + (part.weightG ?? 0), 0);
-  return parts.map((part) => ({
-    ...part,
-    share:
-      part.weightG !== null && total > 0 ? Math.round((part.weightG / total) * 1000) / 1000 : null,
-  }));
+  return parts
+    .map((part) => ({
+      ...part,
+      share:
+        part.weightG !== null && total > 0
+          ? Math.round((part.weightG / total) * 1000) / 1000
+          : null,
+    }))
+    .sort((a, b) => (b.weightG ?? -1) - (a.weightG ?? -1));
 }
 
 /**
@@ -141,21 +221,26 @@ export function parseTeardown(raw: unknown, tree: unknown = null): FeaturedTeard
           .filter((component) => trimmedString(component.name))
           .map(toSubpart);
   const images = Array.isArray(product.images) ? product.images : [];
-  const productType = trimmedString(asRecord(product.product_type).name);
+  const productType = productTypeLabel(asRecord(product.product_type));
   return {
     id: finiteOrNull(product.id) ?? 0,
     name,
     brand: trimmedString(product.brand) || null,
     weightG: finiteOrNull(product.weight_g),
     ...(productType ? { productType } : {}),
-    parts: withShares(parts),
+    parts: rankedWithShares(parts),
     photos: images
       .map(asRecord)
-      .map((image) => ({
-        url: resolveMediaUrl(trimmedString(image.thumbnail_url) || trimmedString(image.image_url)),
-        alt: `${name}, photographed during disassembly`,
-      }))
-      .filter((photo) => photo.url !== ''),
+      // An image row that generated no derivative still has its original, which
+      // toPhoto does not look at, so fall back to it here rather than dropping
+      // the photograph entirely.
+      .map((image) =>
+        toPhoto(
+          trimmedString(image.thumbnail_url) ? image : { ...image, thumbnail_url: image.image_url },
+          `${name}, photographed during disassembly`,
+        ),
+      )
+      .filter((photo): photo is TeardownPhoto => photo !== null),
   };
 }
 
@@ -204,7 +289,7 @@ export async function loadLandingData(): Promise<LandingData> {
   return {
     // The fixture stores parts without shares so its masses stay the single
     // source of truth; compute the shares here like the live path does.
-    teardown: { ...fixture.teardown, parts: withShares(fixture.teardown.parts) },
+    teardown: { ...fixture.teardown, parts: rankedWithShares(fixture.teardown.parts) },
     stats,
     fromFixture: true,
   };

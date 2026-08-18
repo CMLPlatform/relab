@@ -7,9 +7,10 @@ import {
   expectHomepageHero,
 } from './helpers.ts';
 
-// "212 g": grouped digits, a space, the unit. The em dash used for unrecorded
-// masses never matches, so this finds parts with a real recorded mass.
-const RECORDED_MASS_PATTERN = /^[\d,]+ g$/;
+// "212 g", or "0.33 g" for a part lighter than a gram: grouped digits, an
+// optional decimal, a space, the unit. The em dash used for unrecorded masses
+// never matches, so this finds parts with a real recorded mass.
+const RECORDED_MASS_PATTERN = /^[\d,]+(\.\d+)? g$/;
 
 // The build bakes either the committed fixture (API unreachable at build time,
 // e.g. this repo's CI-less local runs) or the live featured product. The page

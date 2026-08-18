@@ -2,6 +2,13 @@
 // The featured teardown rendered as a blueprint parts schedule, baked in at
 // build time by loadLandingData() so it paints without JS. The page's headline,
 // CTA and totals live in BrandHero above this.
+//
+// Two layouts, chosen by the data rather than by a flag: when the featured
+// product's components carry photographs the schedule becomes a grid of plates
+// that deal themselves out of the assembly on load; when none of them do it
+// stays the compact list it has always been. Nothing here is authored artwork —
+// every plate is a component's own `thumbnail_url` from the tree payload — so
+// the hero re-shoots itself whenever the featured record changes.
 import type { FeaturedTeardown } from '@/lib/landing.ts';
 import { formatCount } from '@/lib/stats.ts';
 
@@ -13,9 +20,59 @@ interface Props {
 
 const { teardown, fromFixture = false } = Astro.props;
 
-/** "212 g" for recorded masses; an em dash (never "null"/"NaN") otherwise. */
-const formatMassG = (weightG: number | null): string =>
-  weightG === null ? '—' : `${formatCount(weightG)} g`;
+/**
+ * "212 g" for recorded masses; an em dash (never "null"/"NaN") otherwise.
+ *
+ * Under a tonne a teardown is mostly whole grams, but a real schedule also has
+ * screws: product 464 records three at 0.11 g, 0.22 g and 0.33 g, and the
+ * grouped integer format prints all of them as "0 g" — which claims no mass was
+ * recorded, exactly what the em dash beside them already means. Two significant
+ * figures until the gram is the meaningful unit.
+ */
+const formatMassG = (weightG: number | null): string => {
+  if (weightG === null) {
+    return '—';
+  }
+  const grams = weightG < 10 ? Number(weightG.toPrecision(2)) : formatCount(weightG);
+  return `${grams} g`;
+};
+
+/**
+ * How many parts the hero shows.
+ *
+ * Six is two rows of plates at the hero's width, which puts the panel level
+ * with the pitch beside it. Product 464 records twelve parts, and all twelve
+ * made the panel 1049px against the left column's 488px — most of it below the
+ * fold, pushing the rest of the page down to show plates nobody had scrolled
+ * to. Parts arrive ranked by mass, so the six shown are the ones that account
+ * for the product; the count below the grid says what was left out.
+ */
+const PLATE_LIMIT = 6;
+
+/**
+ * What the browser needs to pick a derivative, since `srcset` widths alone
+ * cannot tell it how big the image will be laid out.
+ *
+ * A plate lands near 180px once the content width caps out, three to a row in
+ * the hero's right column, two to a row once the split collapses. Both are far
+ * enough above the 200px `thumbnail_url` that any 2x screen would otherwise be
+ * upscaling it.
+ */
+const PLATE_SIZES =
+  '(min-width: 1288px) 180px, (min-width: 1000px) 13vw, (min-width: 640px) 30vw, 45vw';
+const ASSEMBLY_SIZES = '(min-width: 1288px) 136px, (min-width: 1000px) 11vw, 18vw';
+
+const parts = teardown?.parts ?? [];
+const shown = parts.slice(0, PLATE_LIMIT);
+const withheld = parts.length - shown.length;
+
+// One photographed part is enough to earn the grid: the rest render as blank
+// plates, which reads as an unexposed frame in a schedule rather than as a
+// hole. Zero photographed parts falls back to the list, so a product with no
+// component photography looks exactly as it did before rather than becoming a
+// wall of empty rectangles.
+const plated = shown.some((part) => part.photo);
+const assembly = teardown?.photos[0] ?? null;
 ---
 
 <section class="teardown-panel" aria-label="Featured teardown">
@@ -23,37 +80,93 @@ const formatMassG = (weightG: number | null): string =>
     {
       teardown && (
         <div class="blueprint">
-          <div class="blueprint-heading">
-            <h2 class="blueprint-title">{teardown.name}</h2>
-            {teardown.productType && (
-              <span class="blueprint-type" data-product-type>
-                {teardown.productType}
-              </span>
+          {/* The record's header: what this is, and the assembled product it
+              was before the schedule below took it apart. The photograph is
+              deliberately the size of an index print rather than a hero image —
+              given the panel's full width it dwarfed the parts, which are what
+              the page is actually about. It still sits in the first viewport,
+              so it loads eagerly rather than deferring the LCP. */}
+          <div class="blueprint-record">
+            <div class="blueprint-identity">
+              <div class="blueprint-heading">
+                <h2 class="blueprint-title">{teardown.name}</h2>
+                {teardown.productType && (
+                  <span class="blueprint-type" data-product-type>
+                    {teardown.productType}
+                  </span>
+                )}
+              </div>
+              {/* One provenance line under the title, where it reads as a
+                  caption on the record rather than a kicker above it. No record
+                  number for the fixture: an invented №id would read as a real
+                  record. The illustrative-masses disclaimer is folded in here
+                  rather than repeated at the foot of the schedule. */}
+              <p
+                class="blueprint-provenance"
+                data-provenance
+                {...(fromFixture ? { 'data-fixture-note': true } : {})}
+              >
+                {fromFixture
+                  ? 'Example teardown · illustrative masses, not a live record'
+                  : `Teardown №${teardown.id} · live record`}
+              </p>
+            </div>
+            {assembly && (
+              <figure class="blueprint-assembly" data-assembly>
+                <img
+                  src={assembly.url}
+                  {...(assembly.srcset ? { srcset: assembly.srcset, sizes: ASSEMBLY_SIZES } : {})}
+                  alt={assembly.alt}
+                  width="240"
+                  height="180"
+                  loading="eager"
+                  fetchpriority="high"
+                  decoding="async"
+                />
+              </figure>
             )}
           </div>
-          {/* One provenance line under the title, where it reads as a caption on
-              the record rather than a kicker above it. No record number for the
-              fixture: an invented №id would read as a real record. The
-              illustrative-masses disclaimer is folded in here rather than
-              repeated at the foot of the schedule. */}
-          <p
-            class="blueprint-provenance"
-            data-provenance
-            {...(fromFixture ? { 'data-fixture-note': true } : {})}
-          >
-            {fromFixture
-              ? 'Example teardown · illustrative masses, not a live record'
-              : `Teardown №${teardown.id} · live record`}
-          </p>
           {/* Explicit role: WebKit drops list semantics under list-style: none. */}
-          <ul class="blueprint-parts" role="list">
-            {teardown.parts.map((part) =>
-              part.children?.length ? (
-                <li class="blueprint-part-group">
+          <ul
+            class:list={['blueprint-parts', { 'blueprint-parts--plates': plated }]}
+            role="list"
+            {...(plated ? { 'data-plates': true } : {})}
+          >
+            {shown.map((part, index) => {
+              // The stagger index, capped inside the CSS so a twenty-part
+              // product does not fling its last plates off the panel.
+              const seat = `--i: ${index}`;
+              // The callout number is the schedule's own index, the thing that
+              // ties a plate to its row; it is aria-hidden because the list
+              // already announces position.
+              const figure = plated ? (
+                <span class="plate-figure">
+                  {part.photo ? (
+                    <img
+                      src={part.photo.url}
+                      {...(part.photo.srcset
+                        ? { srcset: part.photo.srcset, sizes: PLATE_SIZES }
+                        : {})}
+                      alt={part.photo.alt}
+                      width="240"
+                      height="180"
+                      loading={index < 3 ? 'eager' : 'lazy'}
+                      decoding="async"
+                    />
+                  ) : null}
+                  <span class="plate-index" aria-hidden="true">
+                    {index + 1}
+                  </span>
+                </span>
+              ) : null;
+
+              return part.children?.length ? (
+                <li class="blueprint-part-group" style={seat}>
                   {/* Native disclosure, closed in the baked HTML: opening it is
                       user-initiated, so it never counts as layout shift. */}
                   <details>
                     <summary class="blueprint-part">
+                      {figure}
                       <span class="blueprint-part-name">{part.name}</span>
                       <span class="blueprint-part-mass">{formatMassG(part.weightG)}</span>
                       {part.share !== null && (
@@ -75,7 +188,8 @@ const formatMassG = (weightG: number | null): string =>
                   </details>
                 </li>
               ) : (
-                <li class="blueprint-part">
+                <li class="blueprint-part" style={seat}>
+                  {figure}
                   <span class="blueprint-part-name">{part.name}</span>
                   <span class="blueprint-part-mass">{formatMassG(part.weightG)}</span>
                   {part.share !== null && (
@@ -86,17 +200,17 @@ const formatMassG = (weightG: number | null): string =>
                     />
                   )}
                 </li>
-              ),
-            )}
+              );
+            })}
           </ul>
-          {teardown.photos.length > 0 && (
-            <ul class="photo-strip" data-photo-strip role="list">
-              {teardown.photos.map((photo) => (
-                <li class="photo-frame">
-                  <img src={photo.url} alt={photo.alt} loading="lazy" width="120" height="90" />
-                </li>
-              ))}
-            </ul>
+          {/* Never a silent cap: the hero shows a ranked extract, and says so.
+              Both editorial choices are stated, because a schedule that quietly
+              drops two thirds of a record is the one thing this panel cannot
+              afford to be. */}
+          {withheld > 0 && (
+            <p class="blueprint-extract" data-extract>
+              {`Showing the ${shown.length} heaviest of ${parts.length} recorded parts`}
+            </p>
           )}
         </div>
       )
@@ -139,13 +253,47 @@ const formatMassG = (weightG: number | null): string =>
     background-size: 1.5rem 1.5rem;
   }
 
+  /* Title, provenance and the index print of the assembled product, on one
+     row. The photograph takes the width it needs and the identity block takes
+     the rest, so a long product name never squeezes the print to nothing. */
+  /* The print's width lives on the track, never on the figure: a percentage
+     width inside an `auto` track is a cyclic dependency, and it resolved by
+     starving the title to a three-character column. */
+  .blueprint-record {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(6rem, 18vw, 8.5rem);
+    align-items: start;
+    gap: 1rem;
+  }
+
+  /* No photograph, no second track: the title takes the full width rather than
+     leaving a reserved gap where the print would have been. */
+  .blueprint-record:not(:has(.blueprint-assembly)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .blueprint-identity {
+    display: grid;
+    align-content: start;
+    gap: 0.35rem;
+  }
+
   /* Record provenance, set as a caption on the title above it: mono for the
-     record number, muted ink, and pulled up out of the panel's own row gap so
-     it reads as part of the heading rather than as the first row of data. */
+     record number, muted ink. */
   .blueprint-provenance {
-    margin: -0.55rem 0 0;
+    margin: 0;
     font-family: var(--relab-brand-font-mono), monospace;
     font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-muted);
+  }
+
+  /* Same register as the provenance line at the top of the panel: both are
+     captions on the record rather than part of it. */
+  .blueprint-extract {
+    margin: -0.2rem 0 0;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.78rem;
     font-variant-numeric: tabular-nums;
     color: var(--color-muted);
   }
@@ -185,6 +333,14 @@ const formatMassG = (weightG: number | null): string =>
     gap: 0.4rem;
   }
 
+  /* Plate mode. Equal-width cells are what keeps the mass bars comparable
+     across the grid the way they were comparable down the list: same track
+     width, so bar length still reads as share without a shared baseline. */
+  .blueprint-parts--plates {
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: 0.6rem;
+  }
+
   .blueprint-part {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -196,6 +352,191 @@ const formatMassG = (weightG: number | null): string =>
     border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent);
     font-size: 0.92rem;
+  }
+
+  .blueprint-parts--plates > li {
+    min-width: 0;
+  }
+
+  /* Figure, name, mass, bar. The last track takes the slack so the bar sits on
+     the floor of every plate: without it a part whose name wraps to two lines
+     pushes its bar below its neighbour's and the row of measurements stops
+     reading as one row. */
+  .blueprint-parts--plates .blueprint-part {
+    grid-template-rows: auto auto auto 1fr;
+    padding: 0.4rem;
+  }
+
+  /* Whichever element is the frame gets the full height of its row, so a
+     one-line part name never leaves its plate shallower than the two-line one
+     beside it. For a plain part that element is the grid item itself. */
+  .blueprint-parts--plates > li.blueprint-part {
+    height: 100%;
+  }
+
+  /* A part with subcomponents is one element deeper, so the frame moves out to
+     the wrapper and the summary gives up its own. Keeping it on the summary put
+     the border around the closed row only, and an opened part's subcomponents
+     sat outside the plate on the panel ground as though they had fallen out of
+     it. Flex, so the summary absorbs the slack while closed and yields it back
+     once the subparts open and there is none left. */
+  .blueprint-parts--plates > li.blueprint-part-group {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-page-border);
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent);
+  }
+
+  .blueprint-parts--plates > li.blueprint-part-group > details {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+  }
+
+  .blueprint-parts--plates > li.blueprint-part-group > details > summary.blueprint-part {
+    flex: 1 0 auto;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+
+  /* Off the floor of the plate, where it read as an underline on the mass
+     rather than as a measurement of it. */
+  .blueprint-parts--plates .blueprint-part-bar {
+    align-self: end;
+    margin-top: 0.4rem;
+  }
+
+  .blueprint-parts--plates .blueprint-part-name {
+    grid-column: 1 / -1;
+    font-size: 0.86rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  .blueprint-parts--plates .blueprint-part-mass {
+    grid-column: 1 / -1;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+
+  /* The exposure: a cyanotype print of the part. Greyscale under a primary-hue
+     `color` blend is the duotone, and it is the whole reason a wall of
+     inconsistent bench photographs reads as one schedule. `isolation` keeps
+     that blend inside the frame instead of letting it reach the panel. */
+  .plate-figure {
+    position: relative;
+    isolation: isolate;
+    grid-column: 1 / -1;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    margin-bottom: 0.15rem;
+    border: 1px solid var(--color-page-border);
+    border-radius: calc(var(--radius-control) - 2px);
+    /* Blank plates keep the panel's drafting grid, at twice its contrast so an
+       unphotographed part reads as an unexposed frame rather than as a gap. */
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in srgb, var(--color-primary) 14%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--color-primary) 14%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 0.75rem 0.75rem;
+  }
+
+  .plate-figure img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1) contrast(1.06) brightness(var(--plate-exposure, 1));
+  }
+
+  /* Exposure, per theme. The duotone takes its lightness from the photograph,
+     so on the near-black page a bench shot lit for daylight prints as a bank of
+     glowing tiles. Stopping it down is the same correction a darkroom would
+     make, and it keeps the plates reading as prints on the page rather than as
+     light sources on it. Same theme selectors as the mark swap in BrandHero. */
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .blueprint {
+      --plate-exposure: 0.6;
+    }
+  }
+
+  :global(:root[data-theme='dark']) .blueprint {
+    --plate-exposure: 0.6;
+  }
+
+  /* The tint that makes it a cyanotype rather than a grey photograph. `color`
+     takes hue and saturation from this layer and lightness from the image
+     below, so a light area prints as pale blue and a dark one as Prussian —
+     which is what a cyanotype does. Fading it is what the hover reveals. */
+  .plate-figure:has(img)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--color-primary);
+    mix-blend-mode: color;
+  }
+
+  /* Drafting callout, keyed to the row it labels. Square, mono, tabular: the
+     number a parts diagram writes next to a part, not a badge. */
+  .plate-index {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    padding: 0.1rem 0.3rem;
+    border-right: 1px solid var(--color-page-border);
+    border-bottom: 1px solid var(--color-page-border);
+    border-bottom-right-radius: calc(var(--radius-control) - 2px);
+    background: var(--color-surface-strong);
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+    color: var(--color-muted);
+  }
+
+  /* Look closer: the duotone lifts and the part is shown as it was actually
+     photographed. Nothing is hidden behind the pointer — the name, mass, share
+     and alt text are all in the baked HTML — so this owes no equivalent, but
+     keyboard focus gets it anyway. Flat world, so the plate rises on its
+     border, never on a shadow.
+
+     `:focus-visible`, not `:focus-within`: clicking a disclosure focuses its
+     summary, and under focus-within that plate stayed stripped of its duotone
+     after the pointer left — one colour photograph marooned in a schedule of
+     blue prints. focus-visible does not match a mouse click, so the reveal
+     lasts exactly as long as the attention on it does. */
+  .blueprint-parts--plates > li:hover,
+  .blueprint-parts--plates > li:has(:focus-visible) {
+    border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  }
+
+  .blueprint-parts--plates > li:hover .plate-figure img,
+  .blueprint-parts--plates > li:has(:focus-visible) .plate-figure img {
+    filter: none;
+  }
+
+  .blueprint-parts--plates > li:hover .plate-figure:has(img)::after,
+  .blueprint-parts--plates > li:has(:focus-visible) .plate-figure:has(img)::after {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .plate-figure img,
+    .plate-figure:has(img)::after {
+      transition:
+        filter 240ms var(--ease-out),
+        opacity 240ms var(--ease-out);
+    }
   }
 
   /* Mass bar: thin single-hue mark on a faint full-width track. The track is
@@ -210,6 +551,36 @@ const formatMassG = (weightG: number | null): string =>
     background-image: linear-gradient(var(--color-chart-mark), var(--color-chart-mark));
     background-size: calc(var(--share, 0) * 100%) 100%;
     background-repeat: no-repeat;
+  }
+
+  /* The assembled product, printed the same way as its parts so the two read as
+     one document, and framed to the same 4:3 so the header print and the plates
+     below are visibly the same kind of object. */
+  .blueprint-assembly {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    margin: 0;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border: 1px solid var(--color-page-border);
+    border-radius: var(--radius-control);
+  }
+
+  .blueprint-assembly img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1) contrast(1.06) brightness(var(--plate-exposure, 1));
+  }
+
+  .blueprint-assembly::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--color-primary);
+    mix-blend-mode: color;
   }
 
   /* The bar's length is the datum, so it arrives as a measurement being taken
@@ -227,6 +598,47 @@ const formatMassG = (weightG: number | null): string =>
       from {
         background-size: 0 100%;
       }
+    }
+  }
+
+  /* The page's one authored moment: the assembly comes apart. Every plate
+     starts stacked back toward the first cell, leaning, and deals out into its
+     seat. Same reason as the bars above — this is above the fold, so it runs on
+     load rather than on a view() timeline that would already be spent.
+
+     `backwards`, never `both`: a forwards fill would keep re-applying the
+     keyframe's transform after the animation ends and swallow the hover rise.
+     `min(--i, 6)` caps the lean so a twenty-part product does not start its
+     last plates outside the panel, and the delay caps with it so the deal
+     finishes in about a second however long the schedule is. */
+  @media (prefers-reduced-motion: no-preference) {
+    .blueprint-parts--plates > li {
+      animation: plate-deal 420ms var(--ease-out) backwards;
+      animation-delay: calc(min(var(--i, 0), 10) * 42ms + 140ms);
+    }
+
+    /* Bars wait for their own plate to land instead of all growing at 320ms. */
+    .blueprint-parts--plates .blueprint-part-bar {
+      animation-delay: calc(min(var(--i, 0), 10) * 42ms + 480ms);
+    }
+
+    @keyframes plate-deal {
+      from {
+        opacity: 0;
+        transform: translate(calc(min(var(--i, 0), 6) * -6px), calc(min(var(--i, 0), 6) * -9px))
+          rotate(calc(min(var(--i, 0), 6) * -0.5deg));
+      }
+    }
+
+    .blueprint-parts--plates > li {
+      transition:
+        border-color 160ms var(--ease-out),
+        transform 160ms var(--ease-out);
+    }
+
+    .blueprint-parts--plates > li:hover,
+    .blueprint-parts--plates > li:has(:focus-visible) {
+      transform: translateY(-2px);
     }
   }
 
@@ -291,6 +703,24 @@ const formatMassG = (weightG: number | null): string =>
     font-size: 0.85rem;
   }
 
+  /* Subcomponents now open inside the plate's own frame, so the list needs the
+     floor the summary above it already had, and a hairline to separate the
+     breakdown from the part it breaks down. */
+  .blueprint-parts--plates .blueprint-subparts {
+    margin-top: 0;
+    padding: 0.4rem 0.4rem 0.5rem;
+    border-top: 1px solid var(--color-page-border);
+  }
+
+  /* A plate cell is a third of the panel, so the list indent that reads as
+     hierarchy in a full-width row just starves the name. */
+  .blueprint-parts--plates .blueprint-subpart {
+    flex-wrap: wrap;
+    gap: 0 0.6rem;
+    padding: 0 0 0 0.3rem;
+    font-size: 0.8rem;
+  }
+
   .blueprint-subpart-name {
     color: var(--color-muted);
   }
@@ -301,33 +731,4 @@ const formatMassG = (weightG: number | null): string =>
     color: var(--color-on-surface);
     white-space: nowrap;
   }
-
-  /* Demoted photo strip: small frames, duotoned in CSS so mixed webcam shots
-     read as one house style. `luminosity` keeps the image's lightness and
-     takes hue from the brand primary underneath, in both themes. */
-  .photo-strip {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .photo-frame {
-    overflow: hidden;
-    border: 1px solid var(--color-page-border);
-    border-radius: var(--radius-control);
-    background: var(--color-primary);
-  }
-
-  .photo-frame img {
-    display: block;
-    width: 120px;
-    height: 90px;
-    object-fit: cover;
-    filter: grayscale(1) contrast(1.06);
-    mix-blend-mode: luminosity;
-  }
-
 </style>
