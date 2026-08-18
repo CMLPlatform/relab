@@ -40,7 +40,7 @@ export function ProductImageEmptyEditState({
     [styles, isCapturing, rpiCamerasLoading],
   );
   return (
-    <View className="h-[300px] flex-row gap-3">
+    <View testID="empty-gallery-actions" className="min-h-28 flex-row items-stretch gap-2">
       {showCameraOption ? (
         <EmptyActionCard
           onPress={onTakePhoto}
@@ -66,15 +66,15 @@ export function ProductImageEmptyEditState({
           accessibilityLabel={
             hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
           }
-          className="flex-1 items-center justify-center rounded-lg border-2 border-dashed"
+          className="min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-dashed px-1 py-3"
           style={rpiCardStyle}
         >
           {isCapturing || rpiCamerasLoading ? (
             <ActivityIndicator size={32} />
           ) : (
-            <Icon name="camera" size={48} color={palette[theme.scheme].mutedForeground} />
+            <Icon name="camera" size={24} color={palette[theme.scheme].mutedForeground} />
           )}
-          <AppText className="mt-2 text-muted-foreground">
+          <AppText variant="caption" className="text-center text-muted-foreground">
             {hasCamerasConfigured ? 'RPi Camera' : 'Connect camera'}
           </AppText>
         </Pressable>
@@ -105,11 +105,13 @@ function EmptyActionCard({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      className="flex-1 items-center justify-center rounded-lg border-2 border-dashed"
+      className="min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-dashed px-1 py-3"
       style={pressableStyle}
     >
-      <Icon name={icon} size={48} color={palette[theme.scheme].mutedForeground} />
-      <AppText className="mt-2 text-muted-foreground">{label}</AppText>
+      <Icon name={icon} size={24} color={palette[theme.scheme].mutedForeground} />
+      <AppText variant="caption" className="text-center text-muted-foreground">
+        {label}
+      </AppText>
     </Pressable>
   );
 }

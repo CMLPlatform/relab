@@ -72,8 +72,9 @@ export function ProductFabControls({
   const bottomOffset = Platform.OS === 'web' && bottomNavVisible ? BOTTOM_NAV_CLEARANCE : 0;
   return (
     <>
-      {isMd ? (
+      {isMd || editMode ? (
         <SaveBar
+          layout={isMd ? 'floating' : 'flow'}
           bottomOffset={bottomOffset}
           entityRole={entityRole}
           editMode={editMode}
@@ -185,6 +186,7 @@ function PrimaryProductFab({
         anchorStyle={[styles.rightFab, { bottom: bottomOffset }]}
       >
         <Fab
+          testID="product-primary-fab"
           icon={icon}
           label={label}
           accessibilityLabel={label}
@@ -199,6 +201,7 @@ function PrimaryProductFab({
 
   return (
     <Fab
+      testID="product-primary-fab"
       icon={icon}
       label={label}
       accessibilityLabel={label}

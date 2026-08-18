@@ -7,15 +7,62 @@ const TWO_MONTHS_AGO = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOStri
 const MONTHS_AGO_PATTERN = /months? ago/i;
 const AGO_PATTERN = /ago/i;
 const OWNER_PATTERN = /you|alice/;
+const EMPTY_SPEC_PATTERN = /\b0\b|unknown|missing|not measured/i;
 
 describe('ProductCard', () => {
   const user = setupUser();
   it('renders name and description', () => {
     renderWithProviders(
-      <ProductCard product={{ ...baseProduct, description: 'A nice product' }} />,
+      <ProductCard
+        product={{
+          ...baseProduct,
+          description: 'A nice product',
+          components: undefined,
+          physicalProperties: { ...baseProduct.physicalProperties, weight: undefined },
+        }}
+      />,
     );
     expect(screen.getByText('Recycled Aluminum Laptop Stand')).toBeOnTheScreen();
     expect(screen.getByText('A nice product')).toBeOnTheScreen();
+  });
+
+  it('uses the existing secondary line for a measured mass', () => {
+    renderWithProviders(
+      <ProductCard product={{ ...baseProduct, description: 'A nice product' }} />,
+    );
+
+    expect(screen.getByText('850 g')).toBeOnTheScreen();
+    expect(screen.queryByText('A nice product')).toBeNull();
+  });
+
+  it('includes a positive component count only when components are loaded', () => {
+    const component = { ...baseProduct, id: 2, role: 'component' as const };
+    renderWithProviders(
+      <ProductCard
+        product={{
+          ...baseProduct,
+          physicalProperties: { ...baseProduct.physicalProperties, weight: undefined },
+          components: [component],
+        }}
+      />,
+    );
+
+    expect(screen.getByText('1 component')).toBeOnTheScreen();
+  });
+
+  it('renders no zero or placeholder spec when facts are missing', () => {
+    renderWithProviders(
+      <ProductCard
+        product={{
+          ...baseProduct,
+          description: undefined,
+          components: undefined,
+          physicalProperties: { ...baseProduct.physicalProperties, weight: undefined },
+        }}
+      />,
+    );
+
+    expect(screen.queryByText(EMPTY_SPEC_PATTERN)).toBeNull();
   });
 
   it('falls back to placeholder text for missing name', () => {

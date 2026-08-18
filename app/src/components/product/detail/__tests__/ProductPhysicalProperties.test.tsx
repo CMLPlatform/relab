@@ -5,7 +5,13 @@ import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 // Mock SVGCube to avoid react-native-svg in tests
-jest.mock('@/components/product/SVGCube', () => 'SVGCube');
+jest.mock('@/components/product/SVGCube', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return function SVGCubeMock({ compact }: { compact?: boolean }) {
+    return React.createElement(View, { testID: compact ? 'svg-cube-compact' : 'svg-cube-full' });
+  };
+});
 
 const baseProduct: Product = {
   ..._base,
@@ -15,6 +21,7 @@ const baseProduct: Product = {
 describe('ProductPhysicalProperties', () => {
   it('renders all four property labels', () => {
     renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={true} />);
+    expect(screen.getByText('Measurements')).toBeOnTheScreen();
     expect(screen.getByText('Weight')).toBeOnTheScreen();
     expect(screen.getByText('Height')).toBeOnTheScreen();
     expect(screen.getByText('Width')).toBeOnTheScreen();
@@ -85,6 +92,13 @@ describe('ProductPhysicalProperties', () => {
     renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={true} />);
     const weightInput = screen.getByDisplayValue('500');
     expect(weightInput.props.editable).toBe(true);
+    expect(screen.getByTestId('svg-cube-compact')).toBeOnTheScreen();
+  });
+
+  it('keeps the full cube presentation in view mode', () => {
+    renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={false} />);
+
+    expect(screen.getByTestId('svg-cube-full')).toBeOnTheScreen();
   });
 });
 

@@ -6,6 +6,8 @@ import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { getFloatingPosition } from '@/utils/platformLayout';
 
 type SaveBarProps = {
+  /** `flow` consumes screen height; `floating` retains the wide-web viewport dock. */
+  layout?: 'flow' | 'floating';
   /** Extra bottom inset so the dock clears BottomNav (see FabControls). */
   bottomOffset: number;
   entityRole: 'product' | 'component';
@@ -23,7 +25,8 @@ type SaveBarProps = {
 };
 
 /**
- * Docked action bar for >=md web: Edit / Save plus an inline error summary.
+ * Edit / Save action bar plus an inline error summary. It sits in normal flow
+ * while editing below md and docks to the viewport on wider layouts.
  *
  * ActiveStreamBanner reserves right-side dock space for this bar via its own
  * route-pattern + isMd check (SAVE_BAR_DOCK_ROUTE) rather than reading this
@@ -31,6 +34,7 @@ type SaveBarProps = {
  * condition below changes, update ActiveStreamBanner.tsx too.
  */
 export function SaveBar({
+  layout = 'floating',
   bottomOffset,
   entityRole,
   editMode,
@@ -62,21 +66,31 @@ export function SaveBar({
   return (
     <View
       testID="save-bar-dock"
-      style={[dockStyle, { bottom: DOCK_BOTTOM + bottomOffset }]}
-      className="flex-row items-center gap-3 rounded-lg border border-border bg-background px-4 py-2"
+      style={
+        layout === 'flow'
+          ? [flowStyle, { marginBottom: bottomOffset }]
+          : [floatingStyle, { bottom: DOCK_BOTTOM + bottomOffset }]
+      }
+      className="flex-row items-center justify-end gap-3 rounded-lg border border-border bg-background px-4 py-2"
     >
       {/* NOTE: hand-rolled English plural. Swap this and FabControls' copy for
           Intl.PluralRules('en') behind a shared helper when the app gains a
           second locale — there is nothing to share until then. */}
       {needsAttention ? (
-        <Animated.View entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}>
+        <Animated.View
+          entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
+          style={layout === 'flow' ? flowSummaryStyle : undefined}
+        >
           <AppButton variant="ghost" onPress={onErrorSummaryPress ?? onPrimaryPress}>
             {`${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`}
           </AppButton>
         </Animated.View>
       ) : null}
       {blockedByValidation && validationError ? (
-        <Animated.View entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}>
+        <Animated.View
+          entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
+          style={layout === 'flow' ? flowSummaryStyle : undefined}
+        >
           <AppText variant="label" className="text-destructive">
             {validationError}
           </AppText>
@@ -98,7 +112,17 @@ export function SaveBar({
 // getFloatingPosition() (like Fab.tsx's baseFabStyle) so the bar docks to the
 // viewport ('fixed' on web) instead of the nearest positioned ancestor.
 const DOCK_BOTTOM = 24;
-const dockStyle: ViewStyle = {
+const floatingStyle: ViewStyle = {
   position: getFloatingPosition(),
   right: 24,
+};
+
+const flowStyle: ViewStyle = {
+  width: '100%',
+  flexWrap: 'wrap',
+};
+
+const flowSummaryStyle: ViewStyle = {
+  flexBasis: '100%',
+  flexShrink: 1,
 };

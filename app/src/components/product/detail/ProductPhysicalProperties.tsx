@@ -62,10 +62,14 @@ export default function ProductPhysicalProperties({
   // Render
   return (
     <View>
+      <AppText variant="heading" className="mb-2 font-semibold">
+        Measurements
+      </AppText>
       <Cube
         width={product.physicalProperties.width}
         height={product.physicalProperties.height}
         depth={product.physicalProperties.depth}
+        compact={editMode}
       />
       {/* Four labelled boxes do not say which box is which, that centimetres and
           grams are the units, or what an empty field means — and the audience

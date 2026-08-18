@@ -142,6 +142,33 @@ describe('product gallery section components', () => {
     expect(onRpiCapture).toHaveBeenCalled();
   });
 
+  it('keeps every empty-gallery action compact and at least 44px high', () => {
+    renderWithProviders(
+      <ProductImageEmptyEditState
+        showCameraOption={true}
+        showRpiButton={true}
+        hasCamerasConfigured={true}
+        isCapturing={false}
+        rpiCamerasLoading={false}
+        onTakePhoto={jest.fn()}
+        onPickImage={jest.fn()}
+        onRpiCapture={jest.fn()}
+      />,
+    );
+
+    const actions = [
+      screen.getByLabelText('Take photo with camera'),
+      screen.getByLabelText('Add photos from gallery'),
+      screen.getByLabelText('Capture from RPi camera'),
+    ];
+    for (const action of actions) {
+      expect(action.props.className).toContain('min-h-11');
+    }
+    const actionStrip = screen.getByTestId('empty-gallery-actions');
+    expect(actionStrip.props.className).toContain('min-h-28');
+    expect(actionStrip.props.className).not.toContain('h-[300px]');
+  });
+
   it('renders thumbnails and forwards selection actions', () => {
     const onSelectIndex = jest.fn();
     const onScrollToIndex = jest.fn();

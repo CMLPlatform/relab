@@ -6,6 +6,7 @@ import {
   type DimensionValue,
   FlatList,
   type FlatListProps,
+  Platform,
   RefreshControl,
   View,
 } from 'react-native';
@@ -13,13 +14,14 @@ import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { NewProductPill } from './InlinePills';
-import { productsScreenStyles as styles } from './shared';
+import { PRODUCTS_LIST_FAB_CLEARANCE, productsScreenStyles as styles } from './shared';
 
 type ProductsHeaderFadeProps = {
   headerBottom: number;
@@ -41,6 +43,14 @@ type ProductsListContentProps = {
   onRefresh: () => Promise<unknown>;
   onFetchNextPage: () => void;
 };
+
+function useProductsListBottomInset(): number {
+  const bottomNavVisible = useBottomNavVisible();
+  return (
+    PRODUCTS_LIST_FAB_CLEARANCE +
+    (Platform.OS === 'web' && bottomNavVisible ? BOTTOM_NAV_CLEARANCE : 0)
+  );
+}
 
 function ProductsListFooter({
   hasNextPage,
@@ -93,6 +103,7 @@ export function ProductsListContent({
 }: ProductsListContentProps) {
   const theme = useAppTheme();
   const showOwner = filterMode === 'all';
+  const listBottomInset = useProductsListBottomInset();
 
   // Own the spinner state: RefreshControl.refreshing must reflect only a
   // user-initiated pull, never background refetches (which also flip isFetching).
@@ -181,6 +192,7 @@ export function ProductsListContent({
         renderItem={renderProduct}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
+        contentContainerStyle={{ paddingBottom: listBottomInset }}
         ListFooterComponent={listFooter}
         ListEmptyComponent={
           <View className="items-center p-5">

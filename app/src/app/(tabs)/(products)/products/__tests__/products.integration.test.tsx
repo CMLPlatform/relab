@@ -363,7 +363,7 @@ describe('Products screen', () => {
     renderProducts();
 
     expect(screen.getByText('Verify your email to start creating')).toBeOnTheScreen();
-    expect(screen.getAllByText('New product').length).toBeGreaterThan(0);
+    expect(screen.getByText('Verify email to add product')).toBeOnTheScreen();
     expect(screen.getByTestId('profile-pill-label')).toBeOnTheScreen();
     expect(screen.getByText('Got it')).toBeOnTheScreen();
     expect(screen.getByText('Verify email')).toBeOnTheScreen();
@@ -387,7 +387,7 @@ describe('Products screen', () => {
 describe('FAB and new-product flow', () => {
   it('shows sign-in dialog when guest presses the FAB', async () => {
     renderProducts();
-    fireEvent.press(screen.getByLabelText('New product'));
+    fireEvent.press(screen.getByLabelText('Sign in to add product'));
     expect(mockDialogApi.alert).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Sign in required' }),
     );
@@ -404,7 +404,7 @@ describe('FAB and new-product flow', () => {
   it('shows email-verification dialog when unverified user presses FAB', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser({ isVerified: false }) });
     renderProducts();
-    fireEvent.press(screen.getByLabelText('New product'));
+    fireEvent.press(screen.getByLabelText('Verify email to add product'));
     expect(mockDialogApi.alert).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Verify your email first' }),
     );
@@ -422,7 +422,7 @@ describe('Filter chips and modals', () => {
   it('opens product type filter modal when Type chip is pressed', async () => {
     renderProducts();
     openFilters();
-    fireEvent.press(screen.getByText('Type'));
+    fireEvent.press(screen.getByText('Product type'));
     expect(screen.getByText('Filter by product type')).toBeOnTheScreen();
   });
 

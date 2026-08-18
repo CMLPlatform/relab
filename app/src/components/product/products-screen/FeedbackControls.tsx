@@ -6,7 +6,7 @@ import { Icon } from '@/components/base/Icon';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { useAppTheme } from '@/theme';
 import { getErrorMessage } from '@/utils/errors';
-import { productsScreenStyles as styles } from './shared';
+import { PRODUCTS_FAB_EDGE_GAP, productsScreenStyles as styles } from './shared';
 
 type ProductsErrorBannerProps = {
   error: unknown;
@@ -15,7 +15,14 @@ type ProductsErrorBannerProps = {
 
 type ProductsFabProps = {
   extended: boolean;
+  creationState: 'guest' | 'unverified' | 'verified';
   onPress: () => void;
+};
+
+const CREATION_LABELS: Record<ProductsFabProps['creationState'], string> = {
+  guest: 'Sign in to add product',
+  unverified: 'Verify email to add product',
+  verified: 'New product',
 };
 
 export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps) {
@@ -40,13 +47,17 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
 }
 
 /**
- * The fab never dims or relabels for guests: it is fully enabled for them, and
- * `createProductAction` explains the sign-in gate on press. Dimming a working
- * control reads as disabled, and the accessible name must contain the visible
- * label (WCAG 2.5.3) — so both stay constant.
+ * The FAB stays enabled for every creation state because `createProductAction`
+ * owns the sign-in and verification flows. Its visible and accessible label
+ * names that next step so the enabled control never promises an unavailable
+ * action (and remains compliant with WCAG 2.5.3).
  */
-export function ProductsFab({ extended, onPress }: ProductsFabProps) {
+export function ProductsFab({ extended, creationState, onPress }: ProductsFabProps) {
   const bottomNavVisible = useBottomNavVisible();
+  const label = CREATION_LABELS[creationState];
+  // A gated action must keep its next-step copy visible. Only the ordinary
+  // verified-user action may collapse to the familiar plus icon on scroll.
+  const showLabel = extended || creationState !== 'verified';
   // Web-only: BottomNav is viewport-fixed there and escapes the container the
   // fab is laid out in, so the fab needs the clearance bump itself. On native
   // BottomNav is in normal flow, so the container already shrinks — no bump.
@@ -55,11 +66,11 @@ export function ProductsFab({ extended, onPress }: ProductsFabProps) {
   return (
     <Fab
       icon="plus"
-      label="New product"
-      extended={extended}
+      label={label}
+      extended={showLabel}
       onPress={onPress}
-      style={[styles.fab, { bottom: 16 + bottomOffset }]}
-      accessibilityLabel="New product"
+      style={[styles.fab, { bottom: PRODUCTS_FAB_EDGE_GAP + bottomOffset }]}
+      accessibilityLabel={label}
     />
   );
 }

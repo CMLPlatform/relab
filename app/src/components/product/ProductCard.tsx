@@ -14,6 +14,39 @@ import { getProfileHref } from '@/utils/router/profiles';
 
 // undefined locale defers to the device's own locale instead of hard-coding en-US.
 const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+const numberFormat = new Intl.NumberFormat();
+
+function productSpecLine(product: Product): string {
+  const facts: string[] = [];
+  const weight = product.physicalProperties.weight;
+  if (typeof weight === 'number' && Number.isFinite(weight) && weight > 0) {
+    facts.push(`${numberFormat.format(weight)} g`);
+  }
+  if (product.components && product.components.length > 0) {
+    const count = product.components.length;
+    facts.push(`${numberFormat.format(count)} ${count === 1 ? 'component' : 'components'}`);
+  }
+  return facts.join(' • ');
+}
+
+function ProductCardSecondary({
+  specLine,
+  description,
+}: {
+  specLine: string;
+  description?: string;
+}) {
+  return (
+    <MutedText
+      variant={specLine ? 'data' : 'caption'}
+      selectable={false}
+      numberOfLines={1}
+      ellipsizeMode="tail"
+    >
+      {specLine || description}
+    </MutedText>
+  );
+}
 
 function relativeTime(isoString?: string): string | null {
   if (!isoString) return null;
@@ -43,6 +76,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
     () => [product.brand, product.model, product.productTypeName].filter(Boolean),
     [product.brand, product.model, product.productTypeName],
   );
+  const specLine = productSpecLine(product);
   const createdAgo = relativeTime(product.createdAt);
   const ownerLabel = showOwner
     ? product.ownedBy === 'me'
@@ -127,9 +161,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
             >
               {detailList.join(' • ')}
             </MutedText>
-            <MutedText variant="caption" selectable={false} numberOfLines={1} ellipsizeMode="tail">
-              {product.description}
-            </MutedText>
+            <ProductCardSecondary specLine={specLine} description={product.description} />
             {createdAgo ? (
               // Inside the press target so the card has no inert strip: only
               // the owner link (a control of its own) sits outside it.

@@ -27,6 +27,22 @@ beforeEach(() => {
   mockUseBreakpoint.mockReturnValue({ isMd: false });
 });
 
+describe('ProductFabControls — responsive action layout', () => {
+  it('uses a flow SaveBar below md in edit mode and no FAB', () => {
+    render(<ProductFabControls {...baseProps} editMode />);
+
+    expect(screen.getByTestId('save-bar-dock')).toBeOnTheScreen();
+    expect(screen.queryByTestId('product-primary-fab')).toBeNull();
+  });
+
+  it('keeps the Edit FAB below md in view mode', () => {
+    render(<ProductFabControls {...baseProps} />);
+
+    expect(screen.getByTestId('product-primary-fab')).toBeOnTheScreen();
+    expect(screen.queryByTestId('save-bar-dock')).toBeNull();
+  });
+});
+
 const baseProps = {
   entityRole: 'product' as const,
   editMode: false,
@@ -67,7 +83,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
   // to route to, so the FAB blocks the save outright; the tooltip explains why.
   // Once errorCount is known and > 0, the FAB stays pressable to route to the
   // error summary instead (see the errorCount describe block).
-  it('disables the FAB but offers the validation tooltip when dirty edits are invalid with no known error count', () => {
+  it('blocks the phone flow action and explains invalid dirty edits with no known error count', () => {
     render(
       <ProductFabControls
         {...baseProps}
@@ -78,8 +94,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
       />,
     );
     expect(fabButton().props.accessibilityState.disabled).toBe(true);
-    fireEvent(screen.getByTestId('fab-tooltip-trigger'), 'pressIn');
-    expect(screen.getByTestId('tooltip')).toHaveTextContent('Name is required');
+    expect(screen.getByText('Name is required')).toBeOnTheScreen();
   });
 
   it('enables the FAB when dirty edits are valid', () => {
@@ -146,9 +161,10 @@ describe('ProductFabControls — error summary routing', () => {
       />,
     );
     expect(screen.getByText('2 fields need attention')).toBeOnTheScreen();
-    expect(fabButton().props.accessibilityState.disabled).toBe(false);
+    const saveButton = screen.getByRole('button', { name: 'Save Product' });
+    expect(saveButton.props.accessibilityState.disabled).toBe(false);
 
-    fireEvent.press(fabButton());
+    fireEvent.press(saveButton);
     expect(onErrorSummaryPress).toHaveBeenCalledTimes(1);
     expect(onPrimaryFabPress).not.toHaveBeenCalled();
   });

@@ -45,6 +45,11 @@ export default function Products() {
     [list],
   );
   const handleRetry = useCallback(() => list.refetch(), [list]);
+  const creationState = !screen.currentUser
+    ? 'guest'
+    : screen.currentUser.isVerified
+      ? 'verified'
+      : 'unverified';
 
   return (
     <>
@@ -135,7 +140,11 @@ export default function Products() {
 
       <ProductsHeaderFade headerBottom={screen.headerBottom} overlayColor={bgOverlay} />
 
-      <ProductsFab extended={screen.fabExtended} onPress={actions.createProduct} />
+      <ProductsFab
+        extended={screen.fabExtended}
+        creationState={creationState}
+        onPress={actions.createProduct}
+      />
     </>
   );
 }

@@ -19,6 +19,7 @@ const mockUseBottomNavVisible = jest.fn();
 // Kept in sync by hand with ActiveStreamBanner.tsx's own SAVE_BAR_DOCK_RESERVE,
 // which isn't exported (component-only file, react-refresh/only-export-components).
 const SAVE_BAR_DOCK_RESERVE = 400;
+const FLOW_SAVE_BAR_CLEARANCE = 120;
 
 jest.mock('@/components/cameras/StreamingSheet', () => ({
   StreamingSheet: (props: unknown) => {
@@ -219,6 +220,20 @@ describe('ActiveStreamBanner', () => {
     renderWithProviders(<ActiveStreamBanner />);
 
     expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(16);
+  });
+
+  it('clears the possible flow SaveBar on a below-md web detail route', () => {
+    mockPlatform('web');
+    mockUseStreamSession.mockReturnValue({ activeStream: session });
+    mockUseBottomNavVisible.mockReturnValue(true);
+    (usePathname as jest.Mock).mockReturnValue('/products/42');
+    (useBreakpoint as jest.Mock).mockReturnValue({ isMd: false, isLg: false });
+
+    renderWithProviders(<ActiveStreamBanner />);
+
+    expect(screen.getByTestId('active-stream-banner-float').props.style.bottom).toBe(
+      BOTTOM_NAV_CLEARANCE + FLOW_SAVE_BAR_CLEARANCE,
+    );
   });
 
   it('does not reserve space on a nested detail sub-route (no SaveBar there)', () => {

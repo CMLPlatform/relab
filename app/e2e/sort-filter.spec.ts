@@ -178,7 +178,7 @@ test.describe('Brand filter', () => {
 test.describe('Type filter', () => {
   test('Type chip opens a filter modal with a search field', async ({ page }) => {
     await goToProducts(page);
-    await page.getByText('Type', { exact: true }).click();
+    await page.getByText('Product type', { exact: true }).click();
     await expect(page.getByText('Filter by product type')).toBeVisible({
       timeout: 5_000,
     });

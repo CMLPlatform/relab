@@ -150,6 +150,47 @@ test.describe('Product detail: phone chunking', () => {
     // The display step is the largest text on the screen (DESIGN.md §Hierarchy).
     expect(fontSize).toBeGreaterThanOrEqual(30);
   });
+
+  test('compact empty gallery keeps the product name in the first viewport', async ({ page }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Gallery ${Date.now()}`);
+
+    const gallery = page.getByTestId('empty-gallery-actions');
+    const productName = page.getByRole('textbox', { name: 'Product name' });
+    const [galleryBox, nameBox] = await Promise.all([
+      gallery.boundingBox(),
+      productName.boundingBox(),
+    ]);
+    expect(galleryBox).not.toBeNull();
+    expect(galleryBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(112);
+    expect(nameBox).not.toBeNull();
+    expect((nameBox?.y ?? 0) + (nameBox?.height ?? 0)).toBeLessThanOrEqual(844);
+  });
+
+  test('Properties has internal hierarchy and its fields clear the flow Save bar', async ({
+    page,
+  }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Properties ${Date.now()}`);
+    await page.getByRole('button', { name: ADD_PROPERTIES_LABEL }).click();
+
+    await expect(page.getByText('Measurements', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Circularity notes' })).toBeVisible();
+
+    const saveBar = page.getByTestId('save-bar-dock');
+    const noteFields = page.locator('textarea');
+    await expect(noteFields).toHaveCount(3);
+    for (const noteField of await noteFields.all()) {
+      await noteField.scrollIntoViewIfNeeded();
+      const [fieldBox, saveBox] = await Promise.all([
+        noteField.boundingBox(),
+        saveBar.boundingBox(),
+      ]);
+      expect(fieldBox).not.toBeNull();
+      expect(saveBox).not.toBeNull();
+      expect((fieldBox?.y ?? 0) + (fieldBox?.height ?? 0)).toBeLessThanOrEqual(saveBox?.y ?? 0);
+    }
+  });
 });
 
 // ─── Product creation flow ─────────────────────────────────────────────────────

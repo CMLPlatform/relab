@@ -50,6 +50,15 @@ function renderFilterBar(props: Partial<Parameters<typeof ProductsFilterBar>[0]>
 }
 
 describe('ProductsFilterBar sort chip', () => {
+  it('puts Product Type immediately after Sort in the horizontal row', () => {
+    renderFilterBar({ isAuthenticated: true });
+
+    const controls = screen.getAllByRole('button');
+    expect(controls[0]).toHaveAccessibleName('Sort: Newest first');
+    expect(controls[1]).toHaveAccessibleName('Product type');
+    expect(controls[2]).toHaveAccessibleName('Show only my products');
+  });
+
   it('names the current sort and opens the menu on press', () => {
     const { onSetSortMenuVisible } = renderFilterBar();
     const chip = screen.getByLabelText('Sort: Newest first');

@@ -14,12 +14,12 @@ const emptyCircularity = {
 const baseProduct: Product = { ..._base, circularityProperties: emptyCircularity };
 
 describe('ProductCircularityProperties', () => {
-  // The "Circularity" heading itself is rendered by the wrapping Section, not
-  // this component — verify only the toggle it owns.
+  // The disclosure is also the internal subheading, so its name stays stable
+  // while accessibilityState carries expanded/collapsed state.
   it('renders the collapse/expand toggle collapsed by default', () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
 
-    const toggle = screen.getByRole('button', { name: 'Show circularity notes' });
+    const toggle = screen.getByRole('button', { name: 'Circularity notes' });
     expect(toggle).toBeOnTheScreen();
     expect(toggle.props.accessibilityState).toMatchObject({ expanded: false });
   });
@@ -27,7 +27,7 @@ describe('ProductCircularityProperties', () => {
   it("shows 'No circularity notes yet' once expanded with empty data", () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
 
-    fireEvent.press(screen.getByText('Show circularity notes'));
+    fireEvent.press(screen.getByText('Circularity notes'));
     expect(screen.getByText('No circularity notes yet.')).toBeOnTheScreen();
   });
 
@@ -44,11 +44,11 @@ describe('ProductCircularityProperties', () => {
 
     expect(screen.getByText('Easy to recycle')).toBeOnTheScreen();
     expect(
-      screen.getByRole('button', { name: 'Hide circularity notes' }).props.accessibilityState,
+      screen.getByRole('button', { name: 'Circularity notes (1)' }).props.accessibilityState,
     ).toMatchObject({ expanded: true });
-    fireEvent.press(screen.getByText('Hide circularity notes'));
+    fireEvent.press(screen.getByText('Circularity notes (1)'));
     expect(screen.queryByText('Easy to recycle')).toBeNull();
-    expect(screen.getByText('Show 1 circularity note')).toBeOnTheScreen();
+    expect(screen.getByText('Circularity notes (1)')).toBeOnTheScreen();
   });
 
   it('shows only notes with content in view mode', () => {
@@ -89,6 +89,22 @@ describe('ProductCircularityProperties', () => {
     ).toEqual([500, 500, 500]);
   });
 
+  it('expands the circularity chunk when an existing view enters edit mode', () => {
+    const { rerender } = renderWithProviders(
+      <ProductCircularityProperties product={baseProduct} editMode={false} />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Circularity notes' }).props.accessibilityState,
+    ).toMatchObject({ expanded: false });
+
+    rerender(<ProductCircularityProperties product={baseProduct} editMode={true} />);
+
+    expect(
+      screen.getByRole('button', { name: 'Circularity notes' }).props.accessibilityState,
+    ).toMatchObject({ expanded: true });
+    expect(screen.getByText('Recyclability')).toBeOnTheScreen();
+  });
+
   it('updates a note field in edit mode', async () => {
     const onChange = jest.fn();
     const { UNSAFE_root } = renderWithProviders(
@@ -121,14 +137,20 @@ describe('ProductCircularityProperties', () => {
       />,
     );
 
-    fireEvent.press(screen.getByText('Hide circularity notes'));
+    fireEvent.press(screen.getByText('Circularity notes (1)'));
     expect(screen.queryByText('Observed')).toBeNull();
-    fireEvent.press(screen.getByText('Show 1 circularity note'));
+    fireEvent.press(screen.getByText('Circularity notes (1)'));
 
     expect(screen.getByText('Observed')).toBeOnTheScreen();
     expect(
-      screen.getByRole('button', { name: 'Hide circularity notes' }).props.accessibilityState,
+      screen.getByRole('button', { name: 'Circularity notes (1)' }).props.accessibilityState,
     ).toMatchObject({ expanded: true });
+  });
+
+  it('uses the heading type-ramp step for note labels', () => {
+    renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={true} />);
+
+    expect(screen.getByText('Recyclability')).toHaveStyle({ fontSize: 19, lineHeight: 24 });
   });
 });
 

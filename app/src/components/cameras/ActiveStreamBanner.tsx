@@ -17,7 +17,8 @@ import { StreamingSheet } from './StreamingSheet';
 //
 // NOTE (native trace, kept 88): the only floating chrome the banner ever needs
 // to clear on native is a Fab (list screens' "New product"/"New camera" FABs
-// and the detail screens' PrimaryProductFab — SaveBar only renders on web).
+// and the detail screens' PrimaryProductFab. The flow SaveBar below md is
+// accounted for separately by FLOW_SAVE_BAR_CLEARANCE below.
 // Every Fab is MIN_TAP_TARGET (44) tall and docks 16px from the bottom of the
 // screen it lives in (list and detail now share the same offset), so its top
 // edge sits ~60px above that edge; 88 clears that with a ~28px visual gap. Routes
@@ -67,6 +68,13 @@ const SAVE_BAR_DOCK_ROUTE = /^\/(products|components)\/(?!new$)[^/]+$/;
 // (react-refresh/only-export-components), unlike useBottomNav.ts's
 // intentionally-non-.tsx module. The test below duplicates this value.
 const SAVE_BAR_DOCK_RESERVE = 400;
+// Below md, product/component edit controls sit in normal flow directly above
+// BottomNav. The globally-mounted banner cannot cheaply observe edit state, so
+// detail routes conservatively reserve the tallest expected two-row SaveBar.
+// This is an absolute baseline from the tab scene's bottom (before BottomNav),
+// not an additive bump: native's existing 88px FAB clearance already covers
+// most of it. Read-only detail routes accept the extra empty space.
+const FLOW_SAVE_BAR_CLEARANCE = 120;
 
 export function ActiveStreamBanner() {
   const theme = useAppTheme();
@@ -79,12 +87,17 @@ export function ActiveStreamBanner() {
   const bannerRef = useReturnFocus(sheetVisible);
   const bottomNavVisible = useBottomNavVisible();
   const insets = useSafeAreaInsets();
-  const bottomInset = bottomNavVisible
-    ? BASE_BOTTOM_INSET + BOTTOM_NAV_CLEARANCE + insets.bottom
-    : BASE_BOTTOM_INSET;
   const pathname = usePathname();
   const { isMd } = useBreakpoint();
-  const saveBarDockActive = Platform.OS === 'web' && isMd && SAVE_BAR_DOCK_ROUTE.test(pathname);
+  const detailRoute = SAVE_BAR_DOCK_ROUTE.test(pathname);
+  const flowSaveBarActive = !isMd && detailRoute;
+  const baseBottomInset = flowSaveBarActive
+    ? Math.max(BASE_BOTTOM_INSET, FLOW_SAVE_BAR_CLEARANCE)
+    : BASE_BOTTOM_INSET;
+  const bottomInset = bottomNavVisible
+    ? baseBottomInset + BOTTOM_NAV_CLEARANCE + insets.bottom
+    : baseBottomInset;
+  const saveBarDockActive = Platform.OS === 'web' && isMd && detailRoute;
   const rightInset = saveBarDockActive ? SAVE_BAR_DOCK_RESERVE : 16;
 
   // Reset the sheet whenever the active stream changes (ends elsewhere, or a new

@@ -23,6 +23,8 @@ const LOGIN_URL_PATTERN = /login/;
 const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
 // The seeded iPhone 12 is the one list product carrying a photograph.
 const THUMBNAIL_URL_PATTERN = /\/uploads\/images\/.+/;
+const PRODUCT_TYPE_BUTTON_PATTERN = /Product type/;
+const PRODUCT_COUNT_PATTERN = /\d+ of \d+ products/;
 
 async function registerNewUserAndReachProducts(page: import('@playwright/test').Page) {
   const unique = Date.now();
@@ -67,6 +69,42 @@ test.describe('Guest access', () => {
     });
     // Header shows "Sign in" pill for guests
     await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
+  });
+});
+
+test.describe('Products page: phone layout', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('filter controls fit the viewport and the guest creation action names its gate', async ({
+    page,
+  }) => {
+    await suppressGuestWelcomeCard(page);
+    await page.goto('/products');
+    await dismissProductsInfoCard(page);
+
+    await expect(page.getByRole('button', { name: 'Filters' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in to add product' })).toBeVisible();
+    await page.getByRole('button', { name: 'Filters' }).click();
+
+    const productType = page.getByRole('button', { name: PRODUCT_TYPE_BUTTON_PATTERN });
+    await expect(productType).toBeVisible();
+    const box = await productType.boundingBox();
+    expect(box).not.toBeNull();
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
+  });
+
+  test('terminal result count clears the floating creation action', async ({ page }) => {
+    await suppressGuestWelcomeCard(page);
+    await page.goto('/products');
+    await dismissProductsInfoCard(page);
+
+    const count = page.getByText(PRODUCT_COUNT_PATTERN);
+    await count.scrollIntoViewIfNeeded();
+    const fab = page.getByRole('button', { name: 'Sign in to add product' });
+    const [countBox, fabBox] = await Promise.all([count.boundingBox(), fab.boundingBox()]);
+    expect(countBox).not.toBeNull();
+    expect(fabBox).not.toBeNull();
+    expect((countBox?.y ?? 0) + (countBox?.height ?? 0)).toBeLessThanOrEqual(fabBox?.y ?? 0);
   });
 });
 

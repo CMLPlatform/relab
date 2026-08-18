@@ -39,6 +39,7 @@ const VIEW_BOX = [
 // always fills the frame in one direction, so a flat product wastes little
 // space here; sizing this to the shape would need the height animated too.
 const SVG_HEIGHT = 210;
+const COMPACT_SVG_HEIGHT = 132;
 
 const LABEL_GAP = 15;
 // NOTE: SVG-drawn dimension label inside the cube diagram, not an app text
@@ -68,6 +69,8 @@ type CubeProps = {
   height?: number;
   /** Depth along Z, in centimetres. */
   depth?: number;
+  /** Uses the same drawing and labels in a shorter edit-form presentation. */
+  compact?: boolean;
 };
 
 function axisLabel(value: number | undefined): string {
@@ -90,7 +93,7 @@ function describeDimensions(
   return `Scale drawing of the product: ${parts.join(', ')}`;
 }
 
-function Cube({ width, height, depth }: CubeProps) {
+function Cube({ width, height, depth, compact = false }: CubeProps) {
   // Hooks
   const theme = useAppTheme();
   const layout = cubeLayout(width, height, depth);
@@ -178,7 +181,7 @@ function Cube({ width, height, depth }: CubeProps) {
   return (
     <Svg
       width="100%"
-      height={SVG_HEIGHT}
+      height={compact ? COMPACT_SVG_HEIGHT : SVG_HEIGHT}
       viewBox={VIEW_BOX}
       accessibilityRole="image"
       accessibilityLabel={describeDimensions(width, height, depth)}

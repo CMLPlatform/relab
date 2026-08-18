@@ -1,6 +1,8 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { FlatList } from 'react-native';
 import { ProductsListContent } from '@/components/product/products-screen/ListContent';
+import { PRODUCTS_FAB_EDGE_GAP } from '@/components/product/products-screen/shared';
+import { MIN_TAP_TARGET } from '@/constants';
 import {
   baseProduct,
   mockPlatform,
@@ -180,5 +182,14 @@ describe('ProductsListContent chrome', () => {
     mockPlatform('web');
     renderList();
     expect(screen.queryByLabelText('Refresh products')).toBeNull();
+  });
+
+  it('reserves enough footer space to scroll the terminal count clear of the FAB', () => {
+    const { UNSAFE_getByType } = renderList();
+    const list = UNSAFE_getByType(FlatList);
+
+    expect(list.props.contentContainerStyle.paddingBottom).toBeGreaterThanOrEqual(
+      MIN_TAP_TARGET + PRODUCTS_FAB_EDGE_GAP * 2,
+    );
   });
 });

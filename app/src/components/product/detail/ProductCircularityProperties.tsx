@@ -57,10 +57,8 @@ function visibleNoteCount(properties: CircularityProperties): number {
   return NOTE_FIELDS.filter(({ key }) => hasContent(properties[key])).length;
 }
 
-function getToggleLabel(expanded: boolean, count: number): string {
-  if (expanded) return 'Hide circularity notes';
-  if (count === 0) return 'Show circularity notes';
-  return `Show ${count} circularity ${count === 1 ? 'note' : 'notes'}`;
+function getToggleLabel(count: number): string {
+  return count > 0 ? `Circularity notes (${count})` : 'Circularity notes';
 }
 
 export default function ProductCircularityProperties({
@@ -98,7 +96,7 @@ export default function ProductCircularityProperties({
   }
   const circularityProperties = product.circularityProperties;
   const noteCount = visibleNoteCount(circularityProperties);
-  const toggleSectionLabel = getToggleLabel(isSectionExpanded, noteCount);
+  const toggleSectionLabel = getToggleLabel(noteCount);
 
   const toggleSection = useCallback(() => setIsSectionExpanded((value) => !value), []);
   const updateNote = useCallback(
@@ -112,11 +110,10 @@ export default function ProductCircularityProperties({
   );
 
   return (
-    <View>
-      {/* The Section title ("Circularity") already covers this heading — this
-          row is only the collapse/expand toggle, in the screen's shared
-          disclosure idiom (DisclosureRow), whose label carries the note count
-          so a collapsed section needs no separate summary line. */}
+    <View className="mt-4 border-t border-border pt-4">
+      {/* This disclosure is the second internal Properties subheading. Its
+          stable, count-aware label names the evidence group while expanded
+          state carries the show/hide meaning for assistive technology. */}
       <DisclosureRow
         label={toggleSectionLabel}
         expanded={isSectionExpanded}
@@ -193,7 +190,7 @@ function CircularityNoteField({
 
   return (
     <View className="py-[14px]">
-      <AppText variant="body" className="text-[18px] font-semibold">
+      <AppText variant="heading" className="font-semibold">
         {label}
       </AppText>
       <AppText variant="caption" className="mb-1 text-muted-foreground">

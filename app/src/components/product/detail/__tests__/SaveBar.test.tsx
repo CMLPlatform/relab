@@ -1,8 +1,34 @@
 import { expect, jest, test } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
 import { SaveBar } from '@/components/product/detail/SaveBar';
 import { renderWithProviders } from '@/test-utils/index';
+
+test('flow layout fills available width, wraps content, and is not positioned', () => {
+  renderWithProviders(
+    <SaveBar
+      layout="flow"
+      bottomOffset={60}
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving={false}
+      isPaused={false}
+      validationValid={false}
+      errorCount={12}
+      onPrimaryPress={jest.fn()}
+      ownedByMe
+    />,
+  );
+
+  const style = StyleSheet.flatten(screen.getByTestId('save-bar-dock').props.style);
+  expect(style).toEqual(
+    expect.objectContaining({ width: '100%', flexWrap: 'wrap', marginBottom: 60 }),
+  );
+  expect(style.position).toBeUndefined();
+  expect(style.right).toBeUndefined();
+  expect(style.bottom).toBeUndefined();
+});
 
 test('save bar shows error count and routes to the first error', () => {
   const onErrorSummaryPress = jest.fn();

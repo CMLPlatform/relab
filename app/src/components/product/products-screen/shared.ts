@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { MIN_TAP_TARGET } from '@/constants';
 import { getFloatingPosition } from '@/utils/platformLayout';
 
 export const PRODUCTS_DATE_PRESETS = [
@@ -6,6 +7,9 @@ export const PRODUCTS_DATE_PRESETS = [
   { label: 'Last 30d', days: 30 },
   { label: 'Last 90d', days: 90 },
 ] as const;
+
+export const PRODUCTS_FAB_EDGE_GAP = 16;
+export const PRODUCTS_LIST_FAB_CLEARANCE = MIN_TAP_TARGET + PRODUCTS_FAB_EDGE_GAP * 2;
 
 // Residue after the NativeWind convergence: everything with an exact class
 // (layout, spacing, radius, var-backed color) moved to className at the call
@@ -65,8 +69,8 @@ export const productsScreenStyles = StyleSheet.create({
   // function, see Fab.tsx) — no className surface to target.
   fab: {
     position: getFloatingPosition(),
-    right: 16,
-    bottom: 16,
+    right: PRODUCTS_FAB_EDGE_GAP,
+    bottom: PRODUCTS_FAB_EDGE_GAP,
     zIndex: 31,
     margin: 0,
   },

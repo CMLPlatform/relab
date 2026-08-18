@@ -280,6 +280,19 @@ export function ProductsFilterBar({
           onSetMenuVisible={onSetSortMenuVisible}
         />
 
+        <FilterChip
+          icon="shapes"
+          selected={activeProductTypes.length > 0}
+          onPress={openTypeModal}
+          onClose={activeProductTypes.length > 0 ? onClearTypes : undefined}
+        >
+          {activeProductTypes.length === 1
+            ? (typeLabels?.[activeProductTypes[0]] ?? activeProductTypes[0])
+            : activeProductTypes.length > 1
+              ? `Product type (${activeProductTypes.length})`
+              : 'Product type'}
+        </FilterChip>
+
         {isAuthenticated ? (
           <FilterChip
             icon="user"
@@ -331,19 +344,6 @@ export function ProductsFilterBar({
             : activeBrands.length > 1
               ? `Brand (${activeBrands.length})`
               : 'Brand'}
-        </FilterChip>
-
-        <FilterChip
-          icon="shapes"
-          selected={activeProductTypes.length > 0}
-          onPress={openTypeModal}
-          onClose={activeProductTypes.length > 0 ? onClearTypes : undefined}
-        >
-          {activeProductTypes.length === 1
-            ? (typeLabels?.[activeProductTypes[0]] ?? activeProductTypes[0])
-            : activeProductTypes.length > 1
-              ? `Type (${activeProductTypes.length})`
-              : 'Type'}
         </FilterChip>
       </ScrollView>
 
