@@ -218,8 +218,10 @@ review, container scanning, repository hygiene, and release artifact checks on e
 
 ### Accessibility
 
-Accessibility is checked automatically. Every axe scan uses the same WCAG 2.0 + 2.1
-A/AA rule tags and strips animations for deterministic runs.
+Accessibility is checked automatically. Every axe scan uses the same WCAG 2.0-2.2
+A/AA rule tags and strips animations for deterministic runs. `target-size` (2.5.8)
+is the only 2.2-only rule axe-core ships and it is enforced; 2.4.11 Focus Not
+Obscured and 2.4.13 Focus Appearance have no axe rule and are checked by hand.
 
 | Surface | Runtime axe scan                                                                                    | Static lint (every PR)                           |
 | ------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------ |

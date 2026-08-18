@@ -26,6 +26,7 @@ describe('SiteFooter', () => {
     expect(html).toContain('href="https://youtube.test"');
     expect(html).toContain('href="/privacy"');
     expect(html).toContain('href="/terms"');
+    expect(html).toContain('href="/accessibility"');
     expect(html).toContain('aria-label="GitHub (opens in new tab)"');
     // The footer nests ThemeControl, so its markup renders too.
     expect(html).toContain('data-theme-control');

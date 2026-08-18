@@ -1,0 +1,48 @@
+---
+import ContentPage from '@/components/ContentPage.astro';
+import { getPublicSiteConfig } from '@/config/public.ts';
+import { accessibilityContent } from '@/copy/accessibility-content.ts';
+import Layout from '@/layouts/Layout.astro';
+
+const { feedback } = accessibilityContent;
+const { contactEmail } = getPublicSiteConfig();
+---
+
+<Layout title={accessibilityContent.title} description={accessibilityContent.description}>
+  <ContentPage
+    title={accessibilityContent.title}
+    meta={accessibilityContent.lastUpdated}
+    intro={accessibilityContent.intro}
+  >
+    <section class="grid">
+      {
+        accessibilityContent.sections.map((section) => (
+          <article class="section grid gap-[0.7rem]">
+            <h2>{section.title}</h2>
+            {section.paragraphs.map((paragraph) => (
+              <p>{paragraph}</p>
+            ))}
+            {section.items && (
+              <ul>
+                {section.items.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            )}
+          </article>
+        ))
+      }
+
+      {/* The contact address is deployment configuration, not copy, so it is
+          read from the site config rather than repeated in the copy module. */}
+      <article class="section grid gap-[0.7rem]">
+        <h2>{feedback.title}</h2>
+        <p>
+          {feedback.lead}{' '}
+          <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.{' '}
+          {feedback.trail}
+        </p>
+      </article>
+    </section>
+  </ContentPage>
+</Layout>

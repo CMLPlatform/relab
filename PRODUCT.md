@@ -206,10 +206,15 @@ collides with the pilot image count by coincidence. Never conflate them.
 **Target: WCAG 2.2 AA** across www, docs, and app. Chosen over 2.1 AA because Leiden University
 public surfaces fall under the EU Web Accessibility Directive via EN 301 549.
 
-The target and the automated gate differ on purpose. axe-core's coverage of 2.2-only criteria is too
-sparse to gate CI on, so the suite tags `wcag2a`/`wcag2aa`/`wcag21a`/`wcag21aa` and gates on
-`serious` and `critical`. That leaves a named gap: 2.2-only criteria are verified by hand. The three
-that bite are 2.5.8 Target Size, 2.4.11 Focus Not Obscured, and 2.4.13 Focus Appearance.
+All three surfaces tag `wcag2a`/`wcag2aa`/`wcag21a`/`wcag21aa`/`wcag22a`/`wcag22aa`; www and docs
+fail on any violation, the app filters to `serious` and `critical` (RN-Web emits minor/moderate
+noise it cannot fix). axe-core 4.12 ships exactly one 2.2-only rule, `target-size` (2.5.8), and it
+is now enforced — it passes on www, docs, and the app's products and detail screens, backing up
+`MIN_TAP_TARGET = 44`.
+
+A named gap remains, narrower than before: **2.4.11 Focus Not Obscured** (sticky headers, the docs
+sidebar) and **2.4.13 Focus Appearance** (pairs with `--color-ring` on www) have no axe rule at all
+and are verified by hand.
 
 Enforced today:
 
@@ -223,5 +228,18 @@ Enforced today:
   is web-only, so iOS gets an `AccessibilityInfo.announceForAccessibility` call.
 
 No manual keyboard or assistive-technology pass has been run on any surface. Automated coverage is a
-floor. A public conformance statement is approved but unwritten; it must state the enforcement gap
-rather than claim full conformance.
+floor.
+
+The public statement lives at `www/src/pages/accessibility.astro` (copy in
+`src/copy/accessibility-content.ts`), linked from the site footer. It claims partial conformance and
+names what is untested, which is the honest shape and the one the Web Accessibility Directive asks
+for.
+
+That page is the user-facing half only. The compliant artifact under the Dutch implementation
+(Tijdelijk besluit digitale toegankelijkheid overheid) is a register entry per domain, filed through
+the invulassistent at toegankelijkheidsverklaring.nl and signed by someone who can bind the
+university. **Open, and not the maintainer's alone to close:** ask Leiden's accessibility
+coordinator whether `cml-relab.org`, `app.cml-relab.org`, and `docs.cml-relab.org` are covered by an
+existing entry or need their own. A second statement that contradicts the university's is worse than
+none, so the page deliberately omits a feedback response window and an escalation body until that
+answer lands. The decree's own baseline is WCAG 2.1 AA, so the 2.2 target clears it with room.

@@ -1,10 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
-// Aligned across www/docs/app: WCAG 2.0 + 2.1, level A + AA — the real-world
-// baseline. (WCAG 2.2-only criteria are omitted; axe-core's rule coverage for
-// them is too sparse to gate on.)
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+// Aligned across www/docs/app: WCAG 2.0-2.2, level A + AA — the stated target.
+// target-size (2.5.8) is the only 2.2-only rule axe-core ships; 2.4.11 and
+// 2.4.13 have no axe coverage and are verified by hand.
+const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
 
 async function analyzePage(page: Page, options: { exclude?: string[] } = {}) {
   // Neutralize animations so results are deterministic (mirrors www).
