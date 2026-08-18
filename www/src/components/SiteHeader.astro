@@ -97,10 +97,27 @@ const { appUrl, docsUrl, heroBrand = false } = Astro.props;
   }
 
   .site-header-nav a {
-    font-size: 0.9rem;
+    position: relative;
+    font-size: var(--relab-type-body-size);
     font-weight: 500;
     color: var(--color-on-surface);
     text-decoration: none;
+  }
+
+  /* 44px pointer target (WCAG 2.5.8) over a 21.6px text box, same invisible
+     centred overlay as .theme-toggle. The nav's 1.25rem column gap leaves the
+     two overlays ~2.5px apart, so neither swallows the other's taps. Text
+     links get the overlay rather than padding because padding would grow the
+     header bar and the brand rule is a pointer target, not a visible one. */
+  .site-header-nav a::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    width: 100%;
+    height: 44px;
+    translate: -50% -50%;
   }
 
   .site-header-nav a:hover,

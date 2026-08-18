@@ -16,9 +16,21 @@ interface Props {
   teardown: FeaturedTeardown | null;
   /** True when the teardown shown is the committed fixture, not live data. */
   fromFixture?: boolean;
+  /** App origin, so the featured record can be opened at its source. */
+  appUrl: string;
 }
 
-const { teardown, fromFixture = false } = Astro.props;
+const { teardown, fromFixture = false, appUrl } = Astro.props;
+
+/*
+ * Evidence a reader cannot follow to source reads as decoration. A live record
+ * links to itself in the app; the fixture has no record behind it, so it links
+ * to the record list instead of fabricating a product URL.
+ */
+const recordHref =
+  teardown && !fromFixture
+    ? `${appUrl.replace(/\/$/, '')}/products/${teardown.id}`
+    : `${appUrl.replace(/\/$/, '')}/products`;
 
 /**
  * "212 g" for recorded masses; an em dash (never "null"/"NaN") otherwise.
@@ -110,6 +122,24 @@ const assembly = teardown?.photos[0] ?? null;
                   ? 'Example teardown · illustrative masses, not a live record'
                   : `Teardown №${teardown.id} · live record`}
               </p>
+              {/* The schedule is the page's evidence, and evidence that cannot
+                  be followed to source reads as decoration. Same caption
+                  register as the provenance line above, deliberately not a
+                  button: this is a citation, not a call to action. No
+                  target="_blank" — the app is the same product, not an
+                  outbound destination. */}
+              <a
+                class="blueprint-open"
+                href={recordHref}
+                aria-label={
+                  fromFixture
+                    ? 'Browse teardown records in the app'
+                    : `Open teardown ${teardown.id}, ${teardown.name}, in the app`
+                }
+              >
+                {fromFixture ? 'Browse the records' : 'Open this record'}
+                <span aria-hidden="true">&#8239;→</span>
+              </a>
             </div>
             {assembly && (
               <figure class="blueprint-assembly" data-assembly>
@@ -283,9 +313,39 @@ const assembly = teardown?.photos[0] ?? null;
   .blueprint-provenance {
     margin: 0;
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.8125rem;
+    font-size: var(--relab-type-caption-size);
     font-variant-numeric: tabular-nums;
     color: var(--color-muted);
+  }
+
+  /* The citation link, in the provenance register rather than as a button:
+     primary blue carries the interaction, and the underline offset keeps it
+     legible against the plate frame. */
+  .blueprint-open {
+    position: relative;
+    justify-self: start;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: var(--relab-type-caption-size);
+    color: var(--color-primary);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  /* 44px pointer target (WCAG 2.5.8) over a 19.5px text box. Nothing else in
+     the record header is interactive, so the overlay cannot swallow a
+     neighbour's taps. */
+  .blueprint-open::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 44px;
+    translate: -50% -50%;
+  }
+
+  .blueprint-open:hover {
+    color: var(--color-primary-strong);
   }
 
   /* Same register as the provenance line at the top of the panel: both are
@@ -293,7 +353,7 @@ const assembly = teardown?.photos[0] ?? null;
   .blueprint-extract {
     margin: -0.2rem 0 0;
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.78rem;
+    font-size: var(--relab-type-micro-size);
     font-variant-numeric: tabular-nums;
     color: var(--color-muted);
   }
@@ -307,19 +367,22 @@ const assembly = teardown?.photos[0] ?? null;
 
   .blueprint-title {
     margin: 0;
-    font-size: 1.35rem;
+    font-size: var(--relab-type-title-size);
     color: var(--color-on-surface);
   }
 
-  /* Product-type tag: same chip chrome as the 9R rungs: hairline border,
-     control radius, small mono. Muted ink: the web surfaces carry no manila
-     outside the 9R rung numbers (assets/DESIGN.md). */
+  /* Product-type tag: hairline border, control radius, small mono. Muted ink,
+     because manila is a data-label colour that marks a datum and this chip is a
+     category, not a measurement (assets/DESIGN.md:163). The 9R rungs this chrome
+     was copied from now live in the docs subrepo, so the previous wording here
+     — "no manila outside the 9R rung numbers" — described a page that no longer
+     exists on www. */
   .blueprint-type {
     padding: 0.2rem 0.55rem;
     border: 1px solid var(--color-page-border);
     border-radius: var(--radius-control);
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.74rem;
+    font-size: var(--relab-type-micro-size);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--color-muted);
@@ -351,7 +414,7 @@ const assembly = teardown?.photos[0] ?? null;
     border: 1px solid var(--color-page-border);
     border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent);
-    font-size: 0.92rem;
+    font-size: var(--relab-type-body-size);
   }
 
   .blueprint-parts--plates > li {
@@ -410,14 +473,14 @@ const assembly = teardown?.photos[0] ?? null;
 
   .blueprint-parts--plates .blueprint-part-name {
     grid-column: 1 / -1;
-    font-size: 0.86rem;
+    font-size: var(--relab-type-caption-size);
     line-height: 1.3;
     overflow-wrap: anywhere;
   }
 
   .blueprint-parts--plates .blueprint-part-mass {
     grid-column: 1 / -1;
-    font-size: 0.8rem;
+    font-size: var(--relab-type-micro-size);
     color: var(--color-muted);
   }
 
@@ -498,7 +561,7 @@ const assembly = teardown?.photos[0] ?? null;
     border-bottom-right-radius: calc(var(--radius-control) - 2px);
     background: var(--color-surface-strong);
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.68rem;
+    font-size: var(--relab-type-micro-size);
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
     color: var(--color-muted);
@@ -700,7 +763,7 @@ const assembly = teardown?.photos[0] ?? null;
     align-items: baseline;
     gap: 1rem;
     padding: 0 0.65rem 0 1.6rem;
-    font-size: 0.85rem;
+    font-size: var(--relab-type-caption-size);
   }
 
   /* Subcomponents now open inside the plate's own frame, so the list needs the
@@ -718,7 +781,7 @@ const assembly = teardown?.photos[0] ?? null;
     flex-wrap: wrap;
     gap: 0 0.6rem;
     padding: 0 0 0 0.3rem;
-    font-size: 0.8rem;
+    font-size: var(--relab-type-micro-size);
   }
 
   .blueprint-subpart-name {

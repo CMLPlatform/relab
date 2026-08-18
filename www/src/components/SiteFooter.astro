@@ -156,7 +156,7 @@ const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
 
   .colophon-entry dt {
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.75rem;
+    font-size: var(--relab-type-micro-size);
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -166,15 +166,32 @@ const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
   .colophon-entry dd {
     margin: 0;
     max-width: 80ch;
-    font-size: 0.875rem;
+    font-size: var(--relab-type-body-size);
     line-height: 1.5;
   }
 
   .footer-link {
-    font-size: 0.95rem;
+    position: relative;
+    font-size: var(--relab-type-body-size);
     font-weight: 500;
     color: var(--color-muted);
     text-decoration: none;
+  }
+
+  /* 44px pointer target (WCAG 2.5.8) over a 22.8px text box, matching the
+     .footer-social-link boxes beside it and .theme-toggle in the header. These
+     links stack in a column with a 0.3rem row gap, so the overlay is capped to
+     the row height where that would otherwise let a neighbour's overlay reach
+     this one; horizontally they are metres apart. */
+  .footer-link::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    width: 100%;
+    height: 44px;
+    translate: -50% -50%;
   }
 
   .footer-link:hover,

@@ -70,11 +70,15 @@ const appBase = appUrl.replace(/\/$/, '');
     /* One figure, in ink: a triad of interpunct-separated totals read as
        decoration rather than as a measurement. Baked at build time and
        refreshed in place after load (landing-refresh.ts). */
-    stats && (
-      <p class="brand-hero-metrics" data-metrics>
-        {formatCount(stats.totals.parts)} parts documented
-      </p>
-    )
+    /* Always rendered, even with no baked figure. landing-refresh.ts keys off
+       this node's presence, so omitting it disabled the one path that could
+       still recover the number from a healthy API — a build-time stats failure
+       used to remove the figure for the life of the deploy. Hidden until a real
+       number exists: no placeholder digit is ever invented, and the refresh
+       unhides it only once it has one. */
+    <p class="brand-hero-metrics" data-metrics hidden={!stats}>
+      {stats ? `${formatCount(stats.totals.parts)} parts documented` : ''}
+    </p>
   }
   <p class="brand-hero-affiliation">{research.affiliation}</p>
 </section>
@@ -213,7 +217,7 @@ const appBase = appUrl.replace(/\/$/, '');
   .brand-hero-metrics {
     margin: 0;
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.82rem;
+    font-size: var(--relab-type-data-size);
     font-variant-numeric: tabular-nums;
     color: var(--color-muted);
   }

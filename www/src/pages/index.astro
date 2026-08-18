@@ -29,7 +29,11 @@ const landing = await loadLandingData();
       taking a screen to itself. */}
   <div class="hero-split">
     <BrandHero stats={landing.stats} appUrl={publicSiteConfig.appUrl} />
-    <HeroTeardown teardown={landing.teardown} fromFixture={landing.fromFixture} />
+    <HeroTeardown
+      teardown={landing.teardown}
+      fromFixture={landing.fromFixture}
+      appUrl={publicSiteConfig.appUrl}
+    />
   </div>
   <WhyRelab />
   <MethodSteps docsUrl={publicSiteConfig.docsUrl} />

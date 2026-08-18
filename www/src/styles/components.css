@@ -48,7 +48,7 @@
 }
 
 .section h3 {
-  font-size: 1.08rem;
+  font-size: var(--relab-type-heading-size);
 }
 
 /* NOTE: the hint popover that used to live here is gone with its two callers.
@@ -64,7 +64,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius-control);
   padding: 0.8rem 1.15rem;
-  font-size: 1rem;
+  font-size: var(--relab-type-body-size);
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
@@ -104,7 +104,7 @@
 }
 
 .btn-sublabel {
-  font-size: 0.78rem;
+  font-size: var(--relab-type-micro-size);
   font-weight: 500;
   /* Subordinate, but never below the 4.5:1 the label itself clears: it is real
      information about what the button will ask for, not decoration. */
@@ -151,7 +151,7 @@
 .stats-subhead {
   margin: 0;
   font-family: var(--relab-brand-font-mono), monospace;
-  font-size: 0.8125rem;
+  font-size: var(--relab-type-label-size);
   font-weight: 400;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -200,7 +200,7 @@
 }
 
 .stats-tile-value {
-  font-size: 1.55rem;
+  font-size: var(--relab-type-title-size);
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -216,7 +216,7 @@
 }
 
 .stats-label {
-  font-size: 0.82rem;
+  font-size: var(--relab-type-caption-size);
   color: var(--color-muted);
 }
 
@@ -249,7 +249,7 @@
   border: 0;
   padding: 0.34em 0.9em;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--relab-type-micro-size);
   font-weight: 500;
   background: transparent;
   color: var(--color-muted);
@@ -319,7 +319,7 @@
 .stats-chart-xlabel {
   fill: var(--color-muted);
   font-family: var(--relab-brand-font-mono), monospace;
-  font-size: 11px;
+  font-size: var(--relab-type-micro-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -330,7 +330,7 @@
 /* Text never wears the data color; the bar beside it carries identity. */
 .stats-chart-peak {
   fill: var(--color-on-surface);
-  font-size: 11px;
+  font-size: var(--relab-type-micro-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -371,7 +371,7 @@
 .stats-chart-tip-label,
 .stats-chart-tip-value {
   fill: var(--color-surface-strong);
-  font-size: 11px;
+  font-size: var(--relab-type-micro-size);
 }
 
 .stats-chart-tip-label {

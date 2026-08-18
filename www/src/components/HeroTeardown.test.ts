@@ -40,9 +40,13 @@ const PLATED = {
   ],
 };
 
+const APP_URL = 'https://app.example.org';
+
 async function render(props: Record<string, unknown>): Promise<string> {
   const container = await AstroContainer.create();
-  return container.renderToString(HeroTeardown, { props: { teardown: TEARDOWN, ...props } });
+  return container.renderToString(HeroTeardown, {
+    props: { teardown: TEARDOWN, appUrl: APP_URL, ...props },
+  });
 }
 
 describe('HeroTeardown', () => {
@@ -225,5 +229,27 @@ describe('HeroTeardown', () => {
     expect(html).not.toContain('data-fixture-note');
     expect(html).not.toContain('Example teardown');
     expect(html).toContain('Teardown №47 · live record');
+  });
+
+  it('links a live record to its own page in the app', async () => {
+    const html = await render({ fromFixture: false });
+    expect(html).toContain(`href="${APP_URL}/products/47"`);
+    expect(html).toContain('Open this record');
+    // Evidence is a citation, not an outbound destination: the app is the same
+    // product, so the link must not force a new tab.
+    expect(html).not.toMatch(/<a[^>]*class="blueprint-open"[^>]*target=/);
+  });
+
+  it('sends the fixture to the record list rather than inventing a product URL', async () => {
+    const html = await render({ fromFixture: true });
+    expect(html).toContain(`href="${APP_URL}/products"`);
+    expect(html).not.toContain(`/products/47`);
+    expect(html).toContain('Browse the records');
+  });
+
+  it('does not double the slash when the app URL has a trailing one', async () => {
+    const html = await render({ fromFixture: false, appUrl: 'https://app.example.org/' });
+    expect(html).toContain('href="https://app.example.org/products/47"');
+    expect(html).not.toContain('//products');
   });
 });

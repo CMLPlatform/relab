@@ -63,8 +63,14 @@ describe('BrandHero', () => {
     // The old interpunct-separated totals line read as decoration.
     expect(html).not.toContain('teardowns ·');
 
+    // The node is always emitted, even with no baked figure: landing-refresh.ts
+    // keys off its presence, so dropping it disabled the only path that could
+    // recover the number from a healthy API after a build-time stats failure.
+    // It ships hidden and empty rather than absent — no digit is invented.
     const withoutStats = await render({ stats: null });
-    expect(withoutStats).not.toContain('data-metrics');
+    expect(withoutStats).toContain('data-metrics');
+    expect(withoutStats).toMatch(/<p[^>]*data-metrics[^>]*hidden/);
+    expect(withoutStats).not.toMatch(/parts documented/);
   });
 
   it('names the institution behind the platform above the fold', async () => {

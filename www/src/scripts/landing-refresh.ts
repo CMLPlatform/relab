@@ -20,6 +20,15 @@ export function applyRefresh(stats: Pick<HomeStats, 'totals'> | null): void {
   if (metrics.textContent?.trim() === next) {
     return;
   }
+  // The baked hero hides this node when the build had no stats. Reaching here
+  // means we now have a real figure, so reveal it. No dip on that first fill:
+  // the element was not visible to fade.
+  const wasHidden = metrics.hasAttribute('hidden');
+  if (wasHidden) {
+    metrics.textContent = next;
+    metrics.removeAttribute('hidden');
+    return;
+  }
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     metrics.textContent = next;
     return;

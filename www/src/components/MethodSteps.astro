@@ -63,8 +63,16 @@ const phases = [
         detail: 'Attach each component to its parent; assemblies nest to any depth.',
       },
       {
-        name: 'Publish to open dataset',
-        detail: 'The record joins the openly licensed dataset, in the app and over the API.',
+        // TODO: after the first curated dataset release is published, replace
+        // this with the release DOI and switch the wording to present tense.
+        // The release is CC BY 4.0; docs/src/content/docs/project/dataset.md is
+        // the canonical statement of its scope and terms. Until then this step
+        // must not imply an openly licensed dataset exists — it does not, and
+        // saying otherwise is the same class of overclaim as the 9R walk-back
+        // recorded in WhyRelab.astro.
+        name: 'Browse and reuse the records',
+        detail:
+          'The record becomes browsable in the app and over the API. Curated dataset releases are planned under CC BY 4.0; none has been published yet.',
       },
       {
         name: 'LCA and circular-economy research',
@@ -178,15 +186,23 @@ const phases = [
     gap: 0.5rem;
     margin: 0;
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.8125rem;
+    font-size: var(--relab-type-label-size);
     font-weight: 500;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-muted);
   }
 
+  /* Ink, not manila. These ordinals number the three phases, so they label a
+     section — and the accent rule reserves manila for a datum: record IDs,
+     counts, measurements, status pills. Numbering a section is exactly the
+     "decorative kicker" use assets/DESIGN.md:163 rules out, and this was the
+     only --color-accent usage on the site. Weight carries the emphasis instead,
+     which is what the surrounding label already uses.
+     Mirrors assets/DESIGN.md:163 — change it there first. */
   .flow-phase-num {
-    color: var(--color-accent);
+    color: var(--color-on-surface);
+    font-weight: 600;
   }
 
   /* The one phase that is a loop rather than a single pass says so, since the
@@ -195,7 +211,7 @@ const phases = [
     padding: 0.1rem 0.4rem;
     border: 1px solid var(--color-page-border);
     border-radius: var(--radius-control);
-    font-size: 0.68rem;
+    font-size: var(--relab-type-micro-size);
     letter-spacing: 0.06em;
     text-transform: none;
   }
@@ -222,7 +238,7 @@ const phases = [
     content: counter(step);
     grid-row: 1 / span 2;
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.78rem;
+    font-size: var(--relab-type-micro-size);
     font-variant-numeric: tabular-nums;
     line-height: 1.5;
     color: var(--color-muted);
@@ -231,7 +247,7 @@ const phases = [
   .flow-step-name {
     margin: 0;
     font-family: var(--relab-brand-font), sans-serif;
-    font-size: 0.95rem;
+    font-size: var(--relab-type-body-size);
     font-weight: 600;
     line-height: 1.4;
     letter-spacing: 0;
@@ -240,7 +256,7 @@ const phases = [
 
   .flow-step-detail {
     margin: 0.15rem 0 0;
-    font-size: 0.86rem;
+    font-size: var(--relab-type-caption-size);
     line-height: 1.5;
     color: var(--color-muted);
   }

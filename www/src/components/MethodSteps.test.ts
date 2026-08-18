@@ -17,7 +17,7 @@ describe('MethodSteps', () => {
       'Identify',
       'Weigh and measure',
       'Nest into component hierarchy',
-      'Publish to open dataset',
+      'Browse and reuse the records',
       'LCA and circular-economy research',
     ];
     const positions = order.map((label) => html.indexOf(label));
