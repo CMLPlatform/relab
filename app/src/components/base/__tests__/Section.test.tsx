@@ -38,7 +38,9 @@ test('edit mode + empty shows the add row, expands in place on press', () => {
     </Section>,
   );
   expect(screen.queryByText('section body')).toBeNull();
-  fireEvent.press(screen.getByText('Add circularity notes'));
+  const addRow = screen.getByRole('button', { name: 'Add circularity notes' });
+  expect(addRow.props.accessibilityState).toMatchObject({ expanded: false });
+  fireEvent.press(addRow);
   expect(screen.getByText('section body')).toBeOnTheScreen();
 });
 

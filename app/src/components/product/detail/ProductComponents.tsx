@@ -3,7 +3,13 @@ import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { DisclosureRow } from '@/components/base/DisclosureRow';
+import { useDialog } from '@/components/base/dialogContext';
+import { useSaveProductMutation } from '@/features/products/queries';
+import { newProduct } from '@/services/api/products';
+import { createRequestId } from '@/services/api/request';
 import { entityLabel, type Product } from '@/types/Product';
+import { getErrorMessage } from '@/utils/errors';
 import { ComponentRow } from './ComponentRow';
 
 interface Props {
@@ -17,6 +23,44 @@ export default function ProductComponents({ product, editMode }: Props) {
   const components = product.components ?? [];
   const label = entityLabel(product);
   const toggleExpanded = useCallback(() => setExpanded((current) => !current), []);
+  const dialog = useDialog();
+  const saveMutation = useSaveProductMutation();
+
+  // A component that recurs N times is typed N times otherwise. Copies the
+  // spec fields only — media and children stay with the original.
+  const duplicate = (component: Product) => {
+    if (typeof product.id !== 'number') return;
+    saveMutation.mutate(
+      {
+        product: {
+          ...newProduct({
+            parentID: product.id,
+            parentRole: product.role,
+            name: component.name,
+            brand: component.brand,
+            model: component.model,
+          }),
+          description: component.description,
+          productTypeID: component.productTypeID,
+          productTypeName: component.productTypeName,
+          physicalProperties: component.physicalProperties,
+          circularityProperties: component.circularityProperties,
+          amountInParent: component.amountInParent,
+        },
+        originalImages: [],
+        originalVideos: [],
+        idempotencyKey: createRequestId(),
+      },
+      {
+        onError: (err) =>
+          dialog.alert({
+            title: 'Duplicate failed',
+            message: getErrorMessage(err, 'Could not duplicate. Please try again.'),
+            buttons: [{ text: 'OK' }],
+          }),
+      },
+    );
+  };
 
   // This push used to be swallowed right after a save — reproduced ~2 in 8 under
   // 4-way parallel E2E load (app/e2e/product-detail.spec.ts), recovering on a
@@ -54,12 +98,21 @@ export default function ProductComponents({ product, editMode }: Props) {
         </AppText>
       )}
       {visibleComponents.map((component) => (
-        <ComponentRow key={component.id} component={component} enabled={!editMode} />
+        <ComponentRow
+          key={component.id}
+          component={component}
+          enabled={!editMode}
+          onDuplicate={
+            editMode && product.ownedBy === 'me' ? () => duplicate(component) : undefined
+          }
+        />
       ))}
       {components.length > 5 && (
-        <AppButton variant="ghost" onPress={toggleExpanded}>
-          {expanded ? 'Show less' : `Show ${hiddenCount} more`}
-        </AppButton>
+        <DisclosureRow
+          label={expanded ? 'Show fewer components' : `Show ${hiddenCount} more components`}
+          expanded={expanded}
+          onPress={toggleExpanded}
+        />
       )}
       {/* Shown in edit mode too. Creation routes to `?edit=1`, so hiding this
           removed the teardown's actual next step at the exact moment the user

@@ -20,6 +20,8 @@ interface Props {
   enabled: boolean;
   /** Internal: nested child rows never expand further (BOM shows one level deep). */
   nested?: boolean;
+  /** Edit mode only: copy this row into a new sibling component. */
+  onDuplicate?: () => void;
 }
 
 const THUMBNAIL_SIZE = 44;
@@ -29,7 +31,7 @@ const THUMBNAIL_SIZE = 44;
  * one-level expand chevron. Children not present in the parent payload
  * (`components === undefined`) are lazily fetched on first expand.
  */
-export function ComponentRow({ component, enabled, nested = false }: Props) {
+export function ComponentRow({ component, enabled, nested = false, onDuplicate }: Props) {
   const router = useRouter();
   const theme = useAppTheme();
   const [expanded, setExpanded] = useState(false);
@@ -66,7 +68,7 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
     } else if (fetchedEmpty) {
       expandedBody = (
         <View className="min-h-11 justify-center">
-          <AppText variant="label" className="opacity-70">
+          <AppText variant="label" className="text-muted-foreground">
             No subcomponents
           </AppText>
         </View>
@@ -74,7 +76,7 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
     } else if (query.isError) {
       expandedBody = (
         <Pressable accessibilityRole="button" onPress={retry} className="min-h-11 justify-center">
-          <AppText variant="label" className="opacity-70">
+          <AppText variant="label" className="text-muted-foreground">
             Couldn't load components — tap to retry
           </AppText>
         </Pressable>
@@ -82,7 +84,7 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
     } else {
       expandedBody = (
         <View className="min-h-11 justify-center">
-          <AppText variant="label" className="opacity-70">
+          <AppText variant="label" className="text-muted-foreground">
             Loading components…
           </AppText>
         </View>
@@ -118,7 +120,7 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
               {displayName}
             </AppText>
             {component.productTypeName ? (
-              <AppText variant="label" className="opacity-70">
+              <AppText variant="label" className="text-muted-foreground">
                 {component.productTypeName}
               </AppText>
             ) : null}
@@ -129,6 +131,16 @@ export function ComponentRow({ component, enabled, nested = false }: Props) {
             </Badge>
           ) : null}
         </Pressable>
+        {onDuplicate ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Duplicate ${displayName}`}
+            onPress={onDuplicate}
+            className="h-11 w-11 items-center justify-center"
+          >
+            <Icon name="copy" size={20} color={palette[theme.scheme].mutedForeground} />
+          </Pressable>
+        ) : null}
         {canExpand ? (
           <Pressable
             accessibilityRole="button"

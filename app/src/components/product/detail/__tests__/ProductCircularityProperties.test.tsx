@@ -19,16 +19,19 @@ describe('ProductCircularityProperties', () => {
   it('renders the collapse/expand toggle collapsed by default', () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
 
-    expect(screen.getByText('Show')).toBeOnTheScreen();
+    const toggle = screen.getByRole('button', { name: 'Show circularity notes' });
+    expect(toggle).toBeOnTheScreen();
+    expect(toggle.props.accessibilityState).toMatchObject({ expanded: false });
   });
 
-  it("shows 'No associated circularity properties' in view mode with empty data", () => {
+  it("shows 'No associated circularity properties' once expanded with empty data", () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
 
+    fireEvent.press(screen.getByText('Show circularity notes'));
     expect(screen.getByText('No associated circularity properties.')).toBeOnTheScreen();
   });
 
-  it('summarizes hidden notes when collapsed', () => {
+  it('opens on the notes in view mode when the record has any, and summarizes them once hidden', () => {
     renderWithProviders(
       <ProductCircularityProperties
         product={{
@@ -39,7 +42,13 @@ describe('ProductCircularityProperties', () => {
       />,
     );
 
-    expect(screen.getByText('1 property hidden.')).toBeOnTheScreen();
+    expect(screen.getByText('Easy to recycle')).toBeOnTheScreen();
+    expect(
+      screen.getByRole('button', { name: 'Hide circularity notes' }).props.accessibilityState,
+    ).toMatchObject({ expanded: true });
+    fireEvent.press(screen.getByText('Hide circularity notes'));
+    expect(screen.queryByText('Easy to recycle')).toBeNull();
+    expect(screen.getByText('Show 1 circularity note')).toBeOnTheScreen();
   });
 
   it('shows only notes with content in view mode', () => {
@@ -57,8 +66,6 @@ describe('ProductCircularityProperties', () => {
       />,
     );
 
-    fireEvent.press(screen.getByText('Show'));
-
     expect(screen.getByText('Recyclability')).toBeOnTheScreen();
     expect(screen.getByText('Easy to recycle')).toBeOnTheScreen();
     expect(screen.getByText('Remanufacturability')).toBeOnTheScreen();
@@ -70,7 +77,7 @@ describe('ProductCircularityProperties', () => {
       <ProductCircularityProperties product={baseProduct} editMode={true} />,
     );
 
-    // No 'Show' press: edit mode mounts expanded (see ProductCircularityProperties).
+    // No toggle press: edit mode mounts expanded (see ProductCircularityProperties).
     expect(screen.getByText('Recyclability')).toBeOnTheScreen();
     expect(screen.getByText('Disassemblability')).toBeOnTheScreen();
     expect(screen.getByText('Remanufacturability')).toBeOnTheScreen();
@@ -114,11 +121,14 @@ describe('ProductCircularityProperties', () => {
       />,
     );
 
-    fireEvent.press(screen.getByText('Show'));
-    expect(screen.getByText('Hide')).toBeOnTheScreen();
-    fireEvent.press(screen.getByText('Hide'));
+    fireEvent.press(screen.getByText('Hide circularity notes'));
+    expect(screen.queryByText('Observed')).toBeNull();
+    fireEvent.press(screen.getByText('Show 1 circularity note'));
 
-    expect(screen.getByText('1 property hidden.')).toBeOnTheScreen();
+    expect(screen.getByText('Observed')).toBeOnTheScreen();
+    expect(
+      screen.getByRole('button', { name: 'Hide circularity notes' }).props.accessibilityState,
+    ).toMatchObject({ expanded: true });
   });
 });
 

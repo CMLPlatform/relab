@@ -15,6 +15,7 @@ import {
 } from './productPageHelpers';
 import { useSlowLoading } from './state';
 import { useAncestorTrail } from './useAncestorTrail';
+import { useProductEditShortcuts } from './useProductEditShortcuts';
 import { type UseProductFormOptions, useProductForm } from './useProductForm';
 
 type SearchParams = {
@@ -191,6 +192,15 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
       confirmLeave(() => navigation.dispatch(event.data.action));
     });
   }, [capabilities.streamingThisProduct, confirmLeave, hasUnsavedChanges, navigation]);
+
+  // Web-only Escape / Cmd+S, routed through the same handlers as the header
+  // back button and the save FAB.
+  useProductEditShortcuts({
+    editMode,
+    canSave: validationResult.isValid && !isSaving,
+    onSave: saveAndExit,
+    onExit: goBackWithGuards,
+  });
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     setFabExtended(event.nativeEvent.contentOffset.y <= 0);

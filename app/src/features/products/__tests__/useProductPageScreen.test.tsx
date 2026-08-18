@@ -17,6 +17,9 @@ let beforeRemoveListener:
   | undefined;
 
 jest.mock('expo-router', () => ({
+  // No-op like the unit lane's auto-mock: the edit-mode keyboard shortcuts
+  // (useProductEditShortcuts) are covered by their own test.
+  useFocusEffect: () => {},
   useLocalSearchParams: () => ({ id: '42' }),
   useRouter: () => ({
     push: mockPush,

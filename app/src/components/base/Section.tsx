@@ -1,8 +1,8 @@
 import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { type LayoutChangeEvent, View } from 'react-native';
 import { cn } from '@/utils/cn';
-import { AppButton } from './AppButton';
 import { AppText } from './AppText';
+import { DisclosureRow } from './DisclosureRow';
 import { InfoTooltip } from './InfoTooltip';
 import { SectionNavContext } from './SectionNavContext';
 
@@ -83,15 +83,19 @@ export function Section({
       className={cn('rounded-lg bg-card border border-border px-4 py-3', className)}
     >
       {showAddRow ? (
-        <AppButton variant="ghost" onPress={handleExpand}>
-          {addLabel ?? `Add ${title.toLowerCase()}`}
-        </AppButton>
+        <DisclosureRow
+          label={addLabel ?? `Add ${title.toLowerCase()}`}
+          expanded={false}
+          onPress={handleExpand}
+        />
       ) : (
         <>
           <View className="flex-row items-center gap-1.5 mb-2">
-            <AppText variant="title">{title}</AppText>
+            {/* Section is a card, and the ramp assigns card titles `heading`;
+                `title` is for the screen. */}
+            <AppText variant="heading">{title}</AppText>
             {titleSuffix ? (
-              <AppText variant="label" className="opacity-70">
+              <AppText variant="label" className="text-muted-foreground">
                 {titleSuffix}
               </AppText>
             ) : null}

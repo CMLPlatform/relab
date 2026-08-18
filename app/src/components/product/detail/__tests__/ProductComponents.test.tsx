@@ -2,8 +2,14 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import ProductComponents from '@/components/product/detail/ProductComponents';
+import { saveProduct } from '@/services/api/saving';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
+
+jest.mock('@/services/api/saving', () => ({
+  ...(jest.requireActual('@/services/api/saving') as object),
+  saveProduct: jest.fn(async () => 42),
+}));
 
 const mockPush = jest.fn();
 
@@ -75,12 +81,19 @@ describe('ProductComponents', () => {
       expect(screen.getByText('Component 5')).toBeOnTheScreen();
     });
     expect(screen.queryByText('Component 6')).toBeNull();
-    expect(screen.getByText('Show 2 more')).toBeOnTheScreen();
+    const collapsed = screen.getByRole('button', { name: 'Show 2 more components' });
+    expect(collapsed.props.accessibilityState).toMatchObject({ expanded: false });
 
-    fireEvent.press(screen.getByText('Show 2 more'));
+    fireEvent.press(collapsed);
     expect(screen.getByText('Component 6')).toBeOnTheScreen();
     expect(screen.getByText('Component 7')).toBeOnTheScreen();
-    expect(screen.getByText('Show less')).toBeOnTheScreen();
+    const expandedToggle = screen.getByRole('button', { name: 'Show fewer components' });
+    expect(expandedToggle.props.accessibilityState).toMatchObject({ expanded: true });
+
+    // Collapsing again must actually hide the extra rows — an assertion that
+    // fails if the toggle stops toggling.
+    fireEvent.press(expandedToggle);
+    expect(screen.queryByText('Component 6')).toBeNull();
   });
 
   it('shows Add component button when owned by me and not in editMode', async () => {
@@ -168,5 +181,74 @@ describe('ProductComponents', () => {
         params: { id: '9' },
       }),
     );
+  });
+
+  it('duplicates a component row in edit mode, copying the spec fields only', async () => {
+    const componentProduct: Product = {
+      ...baseProduct,
+      id: 7,
+      role: 'component',
+      parentID: baseProduct.id,
+      name: 'Aluminium bracket',
+      brand: 'Acme',
+      model: 'B-12',
+      description: 'Holds the frame',
+      productTypeID: 3,
+      amountInParent: 2,
+      images: [{ id: 'img-1', url: 'https://example.test/a.jpg', description: '' }],
+      videos: [{ id: 1, url: 'https://example.test/a.mp4', description: '', title: 'v' }],
+      components: [{ ...baseProduct, id: 8, role: 'component', name: 'Screw' }],
+    };
+
+    renderWithProviders(
+      <ProductComponents
+        product={{ ...baseProduct, components: [componentProduct] }}
+        editMode={true}
+      />,
+      { withDialog: true },
+    );
+
+    fireEvent.press(await screen.findByLabelText('Duplicate Aluminium bracket'));
+
+    await waitFor(() => expect(saveProduct).toHaveBeenCalled());
+    const copy = (saveProduct as jest.Mock).mock.calls[0]?.[0] as Product;
+    expect(copy).toMatchObject({
+      id: undefined,
+      role: 'component',
+      parentID: baseProduct.id,
+      parentRole: 'product',
+      name: 'Aluminium bracket',
+      brand: 'Acme',
+      model: 'B-12',
+      description: 'Holds the frame',
+      productTypeID: 3,
+      amountInParent: 2,
+      physicalProperties: componentProduct.physicalProperties,
+      circularityProperties: componentProduct.circularityProperties,
+    });
+    expect(copy.images).toEqual([]);
+    expect(copy.videos).toEqual([]);
+    expect(copy.components).toEqual([]);
+    expect(copy.componentIDs).toEqual([]);
+  });
+
+  it('offers no duplicate action outside edit mode', async () => {
+    const componentProduct: Product = {
+      ...baseProduct,
+      id: 7,
+      role: 'component',
+      parentID: baseProduct.id,
+      name: 'Aluminium bracket',
+    };
+    renderWithProviders(
+      <ProductComponents
+        product={{ ...baseProduct, components: [componentProduct] }}
+        editMode={false}
+      />,
+      { withDialog: true },
+    );
+
+    await screen.findByText('Aluminium bracket');
+    expect(screen.queryByLabelText('Duplicate Aluminium bracket')).toBeNull();
   });
 });
