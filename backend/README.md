@@ -46,6 +46,13 @@ path or the maintenance command above.
 Committed migration/bootstrap payloads live under [data/seed/](data/seed/). The migrations image
 includes that directory, while generated uploads stay excluded from Docker build contexts.
 
+`dummy_data.json` seeds one full teardown: the Dell XPS 13 carries a nested component tree and a
+photograph per part, which is what gives dev and CI a product whose parts have images at all. Seed
+photographs must stay wider than 800px — `generate_thumbnails` skips any width at or above the
+original's, so a narrower file yields the 200px derivative alone and every consumer loses its
+`srcset`. [tests/integration/db/test_dummy_seed.py](tests/integration/db/test_dummy_seed.py) holds
+that line.
+
 Taxonomy imports are opt-in for the migrations image. If you want `SEED_CPV_*` or
 `SEED_HS_CATEGORIES`, rebuild `backend/Dockerfile.migrations` with
 `BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true` so the optional `seed-taxonomies` dependency

@@ -11,7 +11,11 @@ from app.api.auth.models import User
 from app.api.common.models.enums import Unit
 from app.api.data_collection.crud.product_commands import create_product
 from app.api.data_collection.models.product import Product
-from app.api.data_collection.schemas import MaterialProductLinkCreateWithinProduct, ProductCreateWithComponents
+from app.api.data_collection.schemas import (
+    ComponentCreateWithComponents,
+    MaterialProductLinkCreateWithinProduct,
+    ProductCreateWithComponents,
+)
 from app.api.reference_data.models import Material, ProductType
 
 from .data import product_data
@@ -67,6 +71,40 @@ async def get_existing_product_id(session: AsyncSession, name: str) -> int | Non
     return int(existing_id) if existing_id is not None else None
 
 
+def build_components_from_data(components_data: list[dict[str, Any]]) -> list[ComponentCreateWithComponents]:
+    """Build a nested component tree from seed data dicts."""
+    components: list[ComponentCreateWithComponents] = []
+    for data in components_data:
+        physical_props = data.get("physical_properties", {})
+        components.append(
+            ComponentCreateWithComponents(
+                name=data["name"],
+                description=data.get("description"),
+                brand=data.get("brand"),
+                model=data.get("model"),
+                amount_in_parent=data.get("amount_in_parent", 1),
+                weight_g=physical_props.get("weight_g"),
+                height_cm=physical_props.get("height_cm"),
+                width_cm=physical_props.get("width_cm"),
+                depth_cm=physical_props.get("depth_cm"),
+                components=build_components_from_data(data.get("components", [])),
+            )
+        )
+    return components
+
+
+async def get_component_ids_by_name(session: AsyncSession) -> dict[str, int]:
+    """Map every component's name to its id.
+
+    Seeded images name their parent, and a component is a product like any other,
+    so the map images resolve against has to reach into the tree rather than stop
+    at the top-level products. Queried rather than walked: the components a create
+    returns are unloaded relationships, and touching them lazy-loads mid-await.
+    """
+    stmt = select(Product.id, Product.name).where(Product.parent_id.is_not(None))
+    return {name: int(component_id) for component_id, name in (await session.execute(stmt)).all()}
+
+
 def build_product_create_from_data(
     data: dict[str, Any], product_type_id: int, bill_of_materials: list[MaterialProductLinkCreateWithinProduct]
 ) -> ProductCreateWithComponents:
@@ -83,6 +121,7 @@ def build_product_create_from_data(
         width_cm=physical_props.get("width_cm"),
         depth_cm=physical_props.get("depth_cm"),
         bill_of_materials=bill_of_materials,
+        components=build_components_from_data(data.get("components", [])),
     )
 
 
@@ -129,4 +168,9 @@ async def seed_products(
 
         if product.id:
             product_id_map[product.name] = product.id
+
+    # Top-level products win a name collision: they are what the seed data's
+    # `parent_product_name` means when both exist.
+    for name, component_id in (await get_component_ids_by_name(session)).items():
+        product_id_map.setdefault(name, component_id)
     return product_id_map
