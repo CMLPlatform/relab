@@ -197,6 +197,10 @@ test-e2e-full-stack MODE="default":
     trap 'just _e2e-backend-down || true' EXIT
     echo "→ Starting backend infrastructure..."
     just _e2e-backend-up
+    # www first: it only needs the seeded API, and its build is seconds. The
+    # fixture lane in `just www/test-e2e` cannot cover a live record's srcset.
+    echo "→ Running www live-data E2E tests..."
+    just www/test-e2e-live
     echo "→ Building Expo web app..."
     just app/build-web
     echo "→ Running Playwright E2E tests ($mode)..."

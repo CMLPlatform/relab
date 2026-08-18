@@ -83,6 +83,30 @@ test-e2e: _browsers
 test-e2e-cross-browser: _browsers
     pnpm run test:e2e
 
+# Port the E2E backend is mapped to on the host (must match compose.e2e.yaml / E2E_BACKEND_PORT)
+e2e_backend_port := env("E2E_BACKEND_PORT", "18010")
+e2e_api_url := "http://127.0.0.1:" + e2e_backend_port
+
+# Build against the running E2E backend so the hero renders a live record.
+# The committed fixture ships one URL per photograph and so cannot produce a
+# srcset; only a real API response carries the width-keyed derivative map.
+build-e2e:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ../deploy/env/prod.compose.env
+    export PUBLIC_APP_URL="$APP_PUBLIC_URL"
+    export PUBLIC_DOCS_URL="$DOCS_PUBLIC_URL"
+    export PUBLIC_SITE_URL="$SITE_PUBLIC_URL"
+    export PUBLIC_API_URL="{{ e2e_api_url }}"
+    # The seeded Dell XPS 13: the one product whose components carry photographs.
+    # Seeding runs against an empty database, so its id is stable.
+    export PUBLIC_FEATURED_PRODUCT_ID="${E2E_FEATURED_PRODUCT_ID:-2}"
+    pnpm run build
+
+# Run the live-data E2E lane (requires the compose.e2e.yaml stack; see root test-e2e-full-stack)
+test-e2e-live: build-e2e _browsers
+    WWW_E2E_LIVE=1 pnpm run test:e2e --project=chromium
+
 # Run the full www CI pipeline locally
 ci: check test-ci
     @echo "✅ Frontend-web CI pipeline passed"

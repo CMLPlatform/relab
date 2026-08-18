@@ -5,6 +5,9 @@ import { defineConfig, devices, type PlaywrightTestConfig } from '@playwright/te
 const runtimeConfig = {
   baseUrl: env.BASE_URL?.trim() || undefined,
   isCi: Boolean(env.CI?.trim()),
+  // The live lane builds against the running E2E backend first (just build-e2e),
+  // so its server must serve that dist/ rather than rebuild it from prod config.
+  isLive: Boolean(env.WWW_E2E_LIVE?.trim()),
 };
 const localBaseUrl = 'http://127.0.0.1:18013';
 
@@ -23,7 +26,7 @@ if (runtimeConfig.isCi) {
 let webServer: PlaywrightTestConfig['webServer'];
 if (!runtimeConfig.baseUrl) {
   webServer = {
-    command: 'pnpm run preview:e2e',
+    command: runtimeConfig.isLive ? 'pnpm run preview:built' : 'pnpm run preview:e2e',
     url: localBaseUrl,
     reuseExistingServer: !runtimeConfig.isCi,
   };

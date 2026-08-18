@@ -116,8 +116,15 @@ the duotone blend amplifies aliasing on fine repeating detail such as a keyboard
              "alt": "Photographed during disassembly" } }
 ```
 
-`srcset` is `""` because the fixture ships one width per photo; the top-level `photos` array takes
-the assembled product the same way. Use photographs the project holds the rights to publish — the
+`srcset` is `""` because the fixture ships one width per photo, which is also why the fixture lane
+cannot cover the responsive path: only a real API response carries the width-keyed derivative map.
+`just test-e2e-live` closes that gap — it builds against the running `compose.e2e.yaml` backend
+(`PUBLIC_FEATURED_PRODUCT_ID=2`, the seeded Dell XPS 13) and runs
+[e2e/landing-live.spec.ts](e2e/landing-live.spec.ts), which asserts the page shows a live record
+rather than silently falling back, and that every plate carries a two-candidate `srcset` plus
+`sizes`. The root `just test-e2e-full-stack` runs it before the app's lane, on the same stack.
+
+The top-level `photos` array takes the assembled product the same way. Use photographs the project holds the rights to publish — the
 fixture is also production's fallback when the API is unreachable at build time, so anything here
 can end up on the live site. Contributor uploads are governed by the ToS grant and are not
 automatically clear for marketing surfaces.
