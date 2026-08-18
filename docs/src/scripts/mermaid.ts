@@ -48,6 +48,24 @@ function pinDiagramToIntrinsicWidth(diagram: HTMLElement): void {
   }
 }
 
+/*
+ * The pin is a function of the frame's width, so it has to be redone when that
+ * changes (window resize, tablet rotation): a diagram that fit at render time
+ * would otherwise shrink back below legibility once the viewport narrows, and
+ * a pinned one would stop filling a frame that later widened. Observing the
+ * frame rather than the window also catches sidebar/layout changes. The frame
+ * scrolls its overflow, so re-pinning the SVG never resizes the frame itself
+ * and cannot loop the observer.
+ */
+const diagramFrameObserver =
+  typeof ResizeObserver === 'undefined'
+    ? undefined
+    : new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          pinDiagramToIntrinsicWidth(entry.target as HTMLElement);
+        }
+      });
+
 /* NOTE: hand-tuned surfaces; if brand.css primary changes, retune these (no machine link). */
 const mermaidThemeVariables = {
   light: {
@@ -230,6 +248,8 @@ const renderMermaid = async (force = false): Promise<void> => {
       for (const diagram of diagrams) {
         diagram.style.minHeight = '';
         pinDiagramToIntrinsicWidth(diagram);
+        // Idempotent per element; re-renders (theme swaps) do not stack observers.
+        diagramFrameObserver?.observe(diagram);
       }
     }
   })();

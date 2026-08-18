@@ -192,14 +192,18 @@ values) and run `just assets-sync`.
 
 - **Ink** (`light-dark(#16202e, #e9eff8)`, `--relab-brand-text`): body text color, set directly
   on `body` in `base.css`.
-- **Page Ground** (`light-dark(#fafbfe, #11141d)`, `--relab-brand-surface`): mapped to
+- **Page Ground** (`light-dark(#fafbfe, #11141d)`, `--relab-brand-background`): mapped to
   `--sl-color-bg`, replacing a previous fixed-background photograph + blur treatment that taxed
   reading contrast on every page load.
+- **Surface** (`light-dark(#f0f3fa, #1a2030)`, `--relab-brand-surface`): the card/panel tone,
+  matching the app's card and popover keys. New on web and not yet mapped to any Starlight token;
+  it used to be the (misnamed) page-ground value, so pair text contrast against Page Ground for
+  body copy and against Surface only inside cards.
 - **Divider** (`light-dark(#d9dfe8, #24314a)`, `--relab-brand-divider`): hairlines — the
   colophon's top rule, `NineRLadder`'s tier and rung borders (via `--sl-color-hairline` with this
   as fallback).
 - **Chrome Wash**: `--sl-color-bg-sidebar` / `--sl-color-bg-nav` are not a Relab token directly.
-  They're `color-mix(in srgb, var(--relab-brand-primary) 5%, var(--relab-brand-surface))` — a
+  They're `color-mix(in srgb, var(--relab-brand-primary) 5%, var(--relab-brand-background))` — a
   computed one-liner replacing Starlight's stock neutral grey (`#f6f7f9`/`#23262f`), which read
   as a mismatched band once the page ground went flat.
 
