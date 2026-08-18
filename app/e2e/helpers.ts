@@ -63,6 +63,45 @@ export async function dismissProductsInfoCard(page: Page) {
   await expect(dismissButton).not.toBeVisible({ timeout: 5_000 });
 }
 
+/**
+ * Pre-dismiss the contributor-terms prompt via sessionStorage so it never
+ * renders. Must be called before any goto() on this page. The key matches
+ * DISMISSED_SESSION_KEY in useTermsAcceptance.ts.
+ *
+ * Suppression rather than clicking it away: the prompt is modal, and a spec that
+ * navigates with goto() after login would meet it again on every page load.
+ */
+export async function suppressTermsPrompt(page: Page) {
+  await page.addInitScript(() => {
+    try {
+      sessionStorage.setItem('terms_prompt_dismissed', 'true');
+    } catch {
+      // Non-fatal: some contexts (e.g. opaque origin) forbid sessionStorage.
+    }
+  });
+}
+
+export async function dismissTermsPrompt(page: Page) {
+  // Seeded accounts are created programmatically, and programmatic creation
+  // deliberately records no terms acceptance — stamping one would fabricate
+  // evidence of a licence grant nobody made. So every authenticated run meets the
+  // contributor-terms prompt.
+  //
+  // It is a modal with a scrim, so leaving it up does not merely add noise: later
+  // clicks hit the scrim instead of their target, while `toBeVisible` assertions
+  // still pass because visibility is not occlusion. That combination is why this
+  // has to be dismissed rather than ignored.
+  //
+  // "Not now" rather than Accept: accepting mutates the seeded account for every
+  // other test in the run, and the prompt's own behaviour is covered in
+  // terms.spec.ts against an account nothing else uses.
+  const notNow = page.getByRole('button', { name: 'Not now' }).filter({ visible: true }).first();
+
+  if (!(await notNow.isVisible({ timeout: 5_000 }).catch(() => false))) return;
+  await notNow.click();
+  await expect(notNow).toBeHidden({ timeout: 5_000 });
+}
+
 export async function reachProductsPage(page: Page) {
   await suppressGuestWelcomeCard(page);
   await page.goto('/products');
@@ -110,6 +149,7 @@ export async function loginAndReachProducts(
   credentials: { login: string; password: string } = { login: EMAIL, password: PASSWORD },
 ) {
   await suppressGuestWelcomeCard(page);
+  await suppressTermsPrompt(page);
   await page.goto('/login');
   // Auth fields are addressed by their visible label, not their placeholder:
   // the redesign moved the field name out of the placeholder (now an example
@@ -119,6 +159,9 @@ export async function loginAndReachProducts(
   await page.getByRole('button', { name: 'Sign in' }).click();
 
   await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
+  // Before the other two: the terms prompt is modal, so while it is up neither the
+  // onboarding wizard nor the welcome card can be clicked away.
+  await dismissTermsPrompt(page);
   await finishOnboardingIfVisible(page);
   await dismissProductsInfoCard(page);
   await expect(page.getByPlaceholder('Search products')).toBeVisible({

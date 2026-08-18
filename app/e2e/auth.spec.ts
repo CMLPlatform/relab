@@ -11,7 +11,13 @@
  */
 
 import { expect, test } from '@playwright/test';
-import { EMAIL, finishOnboardingIfVisible, PASSWORD, suppressGuestWelcomeCard } from './helpers';
+import {
+  dismissTermsPrompt,
+  EMAIL,
+  finishOnboardingIfVisible,
+  PASSWORD,
+  suppressGuestWelcomeCard,
+} from './helpers';
 
 const PRODUCTS_URL_PATTERN = /products/;
 const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
@@ -72,6 +78,9 @@ test.describe('Authentication flow', () => {
     await page.getByRole('button', { name: 'Sign in' }).click();
 
     await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
+    // The contributor-terms prompt is modal and arrives first, so the onboarding
+    // wizard below cannot be clicked through while it is up.
+    await dismissTermsPrompt(page);
     await finishOnboardingIfVisible(page);
 
     // ── Verify products screen loaded ────────────────────────────────────────

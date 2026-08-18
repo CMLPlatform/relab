@@ -9,7 +9,13 @@
  */
 
 import { expect, test } from '@playwright/test';
-import { EMAIL, finishOnboardingIfVisible, loginAndGoToProfile, PASSWORD } from './helpers';
+import {
+  EMAIL,
+  finishOnboardingIfVisible,
+  loginAndGoToProfile,
+  PASSWORD,
+  suppressTermsPrompt,
+} from './helpers';
 
 const LOGIN_URL_PATTERN = /login/;
 const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
@@ -29,6 +35,7 @@ test.describe('Profile: access', () => {
   });
 
   test('header shows username pill (not Sign in) after login', async ({ page }) => {
+    await suppressTermsPrompt(page);
     await page.goto('/login');
     await page.getByLabel('Email or username').fill(EMAIL);
     await page.getByLabel('Password', { exact: true }).fill(PASSWORD);

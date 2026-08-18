@@ -9,6 +9,32 @@ type TermsPromptState = {
   setDismissed: (dismissed: boolean) => void;
 };
 
+const DISMISSED_SESSION_KEY = 'terms_prompt_dismissed';
+
+// sessionStorage exists on web only; on native the optional access throws or
+// returns undefined and the dismissal is plain in-memory state, which is the
+// same lifetime there — a native session ends when the app does.
+function readDismissed(): boolean {
+  try {
+    return globalThis.sessionStorage?.getItem(DISMISSED_SESSION_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function writeDismissed(dismissed: boolean): void {
+  try {
+    if (dismissed) {
+      globalThis.sessionStorage?.setItem(DISMISSED_SESSION_KEY, 'true');
+    } else {
+      globalThis.sessionStorage?.removeItem(DISMISSED_SESSION_KEY);
+    }
+  } catch {
+    // Non-fatal: some contexts (e.g. an opaque origin) forbid storage. The
+    // dismissal then lasts until the next reload, which is a nag, not a bug.
+  }
+}
+
 /**
  * Whether the prompt has been waved away for this session.
  *
@@ -17,12 +43,19 @@ type TermsPromptState = {
  * see the same dismissal. With local state, "open it again" from the account row
  * would toggle a copy the mounted dialog never reads.
  *
- * Deliberately not persisted — declining costs nothing, so the next login asks
- * again rather than the refusal being permanent.
+ * Held in sessionStorage on web so a page reload does not re-ask. Purely
+ * in-memory state looked equivalent until the browser was exercised: reloading
+ * is routine, and being re-prompted on every refresh is nagging rather than
+ * asking. Deliberately session-scoped and not persisted beyond it — declining
+ * costs nothing, so a later sign-in should ask again rather than the refusal
+ * standing forever.
  */
 export const useTermsPromptDismissed = create<TermsPromptState>()((set) => ({
-  dismissed: false,
-  setDismissed: (dismissed) => set({ dismissed }),
+  dismissed: readDismissed(),
+  setDismissed: (dismissed) => {
+    writeDismissed(dismissed);
+    set({ dismissed });
+  },
 }));
 
 /**

@@ -51,6 +51,7 @@ describe('TermsAcceptanceDialog', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     acceptContributorTerms.mockResolvedValue(undefined);
+    globalThis.sessionStorage?.clear();
     useTermsPromptDismissed.setState({ dismissed: false });
     setWebsiteUrl('https://relab.example');
   });
@@ -135,6 +136,18 @@ describe('TermsAcceptanceDialog', () => {
     // an unconfigured site URL must not block the grant itself.
     expect(screen.queryByText('Read terms')).toBeNull();
     expect(screen.getByText('Accept')).toBeTruthy();
+  });
+
+  it('remembers the dismissal across a reload', () => {
+    // Regression: the dismissal used to be in-memory only, so every page load
+    // re-opened the modal. That is nagging rather than asking, and it blocked
+    // every authenticated e2e spec that navigates with a full page load.
+    signedInWith(true);
+
+    renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+    fireEvent.press(screen.getByText('Not now'));
+
+    expect(globalThis.sessionStorage.getItem('terms_prompt_dismissed')).toBe('true');
   });
 
   it('keeps the prompt due after a dismissal, so the next login asks again', () => {
