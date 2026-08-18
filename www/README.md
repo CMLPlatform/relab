@@ -101,19 +101,26 @@ the CPV taxonomy carries its code in `name` and its label in `description`, so t
 `Tablet computer`, never `CPV: 302132`; a code with no label drops the tag entirely.
 
 Builds with no API access (CI, most local dev, the Playwright suite) fall back to
-`src/data/landing-fixture.json`, whose `photo` fields are all `null` — so those builds show the
-list, not the grid. To exercise the grid there, drop images into `public/images/teardown/` and
-point the fixture's `photo` objects at them:
+`src/data/landing-fixture.json`, which now carries a lab-shot photograph per part in
+`public/images/teardown/`, so those builds render the grid rather than the list — and the Playwright
+suite asserts the plates decode, which is what catches a fixture pointing at a file that never
+shipped. The masses are illustrative and the page says so; the photographs are real.
+
+Fixture photos are 800×600 WebP (4:3, `object-fit: cover`), matching the 800px derivative the API
+generates so a plate never upscales on a 2× screen. Downscale with a good filter and a ~0.5px blur:
+the duotone blend amplifies aliasing on fine repeating detail such as a keyboard.
 
 ```jsonc
-{ "name": "Battery pack", "weightG": 212,
-  "photo": { "url": "/images/teardown/battery-pack.jpg",
-             "alt": "Battery pack, photographed during disassembly" } }
+{ "name": "Bottom cover", "weightG": 156,
+  "photo": { "url": "/images/teardown/bottom_cover.webp", "srcset": "",
+             "alt": "Photographed during disassembly" } }
 ```
 
-Roughly 480×360 (4:3, `object-fit: cover`), and the top-level `photos` array takes the assembled
-product the same way. Use photographs the project holds the rights to publish; contributor uploads
-are governed by the ToS grant and are not automatically clear for marketing surfaces.
+`srcset` is `""` because the fixture ships one width per photo; the top-level `photos` array takes
+the assembled product the same way. Use photographs the project holds the rights to publish — the
+fixture is also production's fallback when the API is unreachable at build time, so anything here
+can end up on the live site. Contributor uploads are governed by the ToS grant and are not
+automatically clear for marketing surfaces.
 
 ## Environment variables
 

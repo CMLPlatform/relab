@@ -54,6 +54,31 @@ test.describe('Landing page content', () => {
     await expect(group.locator('.blueprint-subpart').first()).toContainText('LCD panel');
   });
 
+  test('photographed parts render as a plate grid with images that load', async ({ page }) => {
+    await page.goto('/');
+
+    // Live builds may feature a product whose parts carry no photographs, so
+    // the grid layout is only asserted on the fixture build, which commits one
+    // photograph per part. Skip (not silently pass) elsewhere.
+    // biome-ignore lint/suspicious/noSkippedTests: conditional on the build, not a disabled test
+    test.skip(
+      (await page.locator('[data-fixture-note]').count()) === 0,
+      'requires the committed fixture build (a photograph per part)',
+    );
+    await expect(page.locator('.blueprint-parts')).toHaveAttribute('data-plates', 'true');
+
+    const plates = page.locator('.plate-figure img');
+    await expect(plates).toHaveCount(6);
+    for (const plate of await plates.all()) {
+      await expect(plate).not.toHaveAttribute('alt', '');
+      // decoded, not just attached: a committed fixture pointing at a file that
+      // never shipped renders an empty frame, which no other assertion notices.
+      await expect
+        .poll(() => plate.evaluate((img: HTMLImageElement) => img.naturalWidth))
+        .toBeGreaterThan(0);
+    }
+  });
+
   test('the teardown is labelled honestly as example or live data', async ({ page }) => {
     await page.goto('/');
 

@@ -4,9 +4,11 @@ import { expectCanonicalUrl, expectHomepageHero, expectThemeToggle } from './hel
 const HOMEPAGE_TITLE_PATTERN = /Relab/i;
 const META_TITLE_PATTERN = /Relab/i;
 const META_DESCRIPTION_PATTERN = /open-source research platform/i;
-// Two hero CTAs and the 9R docs link; header and footer links (including the
-// colophon, which now lives in the footer) sit outside <main>.
-const HOMEPAGE_MAIN_LINK_COUNT = 3;
+// Two hero CTAs, the blueprint's record link (the fixture build's "Browse the
+// records", a live build's "Open this record"), and the 9R docs link; header
+// and footer links (including the colophon, which now lives in the footer) sit
+// outside <main>.
+const HOMEPAGE_MAIN_LINK_COUNT = 4;
 
 test.describe('Landing page', () => {
   test('renders the homepage shell, core links, and metadata @smoke', async ({ page }) => {

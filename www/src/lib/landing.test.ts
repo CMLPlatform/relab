@@ -353,7 +353,7 @@ describe('loadLandingData', () => {
     expect(data.fromFixture).toBe(true);
     expect(data.teardown?.name).toBe('Dell XPS 13');
     // The fixture stores parts without shares; the loader computes them.
-    expect(data.teardown?.parts[0].share).toBe(0.285);
+    expect(data.teardown?.parts[0].share).toBe(0.382);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('API unavailable at build time'));
   });
 
