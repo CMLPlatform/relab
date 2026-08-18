@@ -3,13 +3,17 @@
 import json
 from io import BytesIO
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 import pytest
 from fastapi import status
 from PIL import Image as PILImage
+from sqlalchemy import select, update
 
 from app.api.file_storage import upload_quota
+from app.api.file_storage.models import Image
 from app.core.config import settings
+from scripts.maintenance.backfill_image_dimensions import measure_images_missing_dimensions
 from tests.factories.models import ProductFactory, ProductTypeFactory, UserFactory
 
 if TYPE_CHECKING:
@@ -110,6 +114,65 @@ async def test_upload_image_recomputes_stats_for_product_owner_not_uploader(
     await db_session.refresh(db_superuser)
     assert owner.profile_stats_computed_at is not None
     assert db_superuser.profile_stats_computed_at is None
+
+
+async def test_upload_image_records_its_pixel_dimensions(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    setup_product_for_files: Product,
+) -> None:
+    """Dimensions are captured from the header the upload processor already parses.
+
+    They are what lets a client reserve layout space and derive each entry in
+    `thumbnail_urls` from its width, so an upload that stores them as NULL leaves
+    the client guessing.
+    """
+    buffer = BytesIO()
+    PILImage.new("RGB", (321, 123), color="red").save(buffer, format="PNG")
+
+    response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/images",
+        files={"file": ("shot.png", buffer.getvalue(), "image/png")},
+        data={"description": IMAGE_DESC},
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED, response.text
+    assert response.json()["width_px"] == 321
+    assert response.json()["height_px"] == 123
+
+    stored = (await db_session.execute(select(Image))).scalars().all()[-1]
+    assert (stored.width_px, stored.height_px) == (321, 123)
+
+
+async def test_backfill_measures_images_stored_before_dimensions_existed(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    setup_product_for_files: Product,
+) -> None:
+    """Rows predating the columns get measured from the file already on disk.
+
+    Uploads through a real stored file rather than a fabricated row, so this
+    exercises the same path the backfill takes in production.
+    """
+    buffer = BytesIO()
+    PILImage.new("RGB", (222, 111), color="blue").save(buffer, format="PNG")
+    response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/images",
+        files={"file": ("old.png", buffer.getvalue(), "image/png")},
+        data={"description": IMAGE_DESC},
+    )
+    assert response.status_code == status.HTTP_201_CREATED, response.text
+    image_id = response.json()["id"]
+
+    # Put the row back the way an upload before this feature would have left it.
+    await db_session.execute(update(Image).where(Image.id == UUID(image_id)).values(width_px=None, height_px=None))
+    await db_session.commit()
+
+    assert await measure_images_missing_dimensions(db_session) == (1, 0)
+
+    db_session.expire_all()
+    restored = (await db_session.execute(select(Image).where(Image.id == UUID(image_id)))).scalar_one()
+    assert (restored.width_px, restored.height_px) == (222, 111)
 
 
 @pytest.mark.parametrize(

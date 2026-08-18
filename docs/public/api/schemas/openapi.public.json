@@ -1765,6 +1765,14 @@
             ],
             "title": "Thumbnail Url"
           },
+          "thumbnail_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "title": "Thumbnail Urls",
+            "type": "object"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
@@ -1961,6 +1969,14 @@
               }
             ],
             "title": "Thumbnail Url"
+          },
+          "thumbnail_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "title": "Thumbnail Urls",
+            "type": "object"
           },
           "updated_at": {
             "title": "Updated At",
@@ -2192,6 +2208,14 @@
               }
             ],
             "title": "Thumbnail Url"
+          },
+          "thumbnail_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "title": "Thumbnail Urls",
+            "type": "object"
           },
           "updated_at": {
             "title": "Updated At",
@@ -2460,6 +2484,18 @@
             "title": "Filename",
             "type": "string"
           },
+          "height_px": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pixel height of the stored image, after rotation.",
+            "title": "Height Px"
+          },
           "id": {
             "format": "uuid4",
             "title": "Id",
@@ -2508,9 +2544,29 @@
             ],
             "title": "Thumbnail Url"
           },
+          "thumbnail_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "title": "Thumbnail Urls",
+            "type": "object"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "width_px": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pixel width of the stored image, after any EXIF rotation. Null for images uploaded before dimensions were recorded. With `height_px` this gives the aspect ratio every entry in `thumbnail_urls` shares, so a client can reserve layout space before the image loads and derive each derivative's height from its width.",
+            "title": "Width Px"
           }
         },
         "required": [
@@ -2557,6 +2613,18 @@
             "title": "Filename",
             "type": "string"
           },
+          "height_px": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pixel height of the stored image, after rotation.",
+            "title": "Height Px"
+          },
           "id": {
             "format": "uuid4",
             "title": "Id",
@@ -2596,9 +2664,29 @@
             ],
             "title": "Thumbnail Url"
           },
+          "thumbnail_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "title": "Thumbnail Urls",
+            "type": "object"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "width_px": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pixel width of the stored image, after any EXIF rotation. Null for images uploaded before dimensions were recorded. With `height_px` this gives the aspect ratio every entry in `thumbnail_urls` shares, so a client can reserve layout space before the image loads and derive each derivative's height from its width.",
+            "title": "Width Px"
           }
         },
         "required": [
@@ -4119,6 +4207,14 @@
             ],
             "title": "Thumbnail Url"
           },
+          "thumbnail_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "title": "Thumbnail Urls",
+            "type": "object"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
@@ -4338,6 +4434,14 @@
             ],
             "title": "Thumbnail Url"
           },
+          "thumbnail_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "title": "Thumbnail Urls",
+            "type": "object"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
@@ -4417,6 +4521,14 @@
               }
             ],
             "title": "Thumbnail Url"
+          },
+          "thumbnail_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "title": "Thumbnail Urls",
+            "type": "object"
           },
           "updated_at": {
             "title": "Updated At",

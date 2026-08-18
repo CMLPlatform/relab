@@ -12,7 +12,7 @@ from pydantic import UUID4, BaseModel, Field, PositiveInt, model_validator
 from app.api.common.schemas.base import IntIdReadSchemaWithTimeStamp
 from app.api.common.schemas.field_mixins import PhysicalPropertiesFields, ProductCircularityPropertiesFields
 from app.core.config import settings
-from app.core.images.urls import build_thumbnail_url
+from app.core.images.urls import build_thumbnail_url, build_thumbnail_urls_for
 
 
 class ProductFields(BaseModel):
@@ -28,15 +28,25 @@ class ThumbnailFields(BaseModel):
     """Shared thumbnail-derivation fields for any read schema that shows a product image."""
 
     thumbnail_url: str | None = None
+    thumbnail_urls: dict[int, str] = Field(
+        default_factory=dict,
+        description=(
+            "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this "
+            "image are present: narrower originals yield fewer entries. Pick the width you render "
+            "at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one."
+        ),
+    )
     # Sourced from the Product.first_image_file column property so summary reads
     # carry a thumbnail without loading the images relationship.
     first_image_file: Any = Field(default=None, exclude=True)
 
     @model_validator(mode="after")
     def _derive_thumbnail_url(self) -> Self:
-        """Derive the thumbnail URL from the earliest image when not supplied."""
+        """Derive the thumbnail URL and its wider siblings from the earliest image."""
         if self.thumbnail_url is None:
             self.thumbnail_url = build_thumbnail_url(self.first_image_file, settings.image_storage_path)
+        if not self.thumbnail_urls:
+            self.thumbnail_urls = build_thumbnail_urls_for(self.first_image_file, settings.image_storage_path)
         return self
 
 

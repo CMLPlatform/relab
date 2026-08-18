@@ -30,6 +30,14 @@ fi
 echo "Upgrading database to the latest revision..."
 .venv/bin/alembic upgrade head
 
+# Measure any image rows still missing their pixel dimensions. Unconditional
+# because it is idempotent and self-limiting: it only selects rows where the
+# columns are NULL, so every deploy after the first does one query returning
+# nothing. This image is the only one that ships scripts/ and mounts the user
+# uploads volume, which is what the measurement needs.
+echo "Backfilling image dimensions..."
+.venv/bin/python -m scripts.maintenance.backfill_image_dimensions
+
 # Seed dummy data if enabled and if the database is empty
 if [ "$(lc "$SEED_DUMMY_DATA")" = "true" ]; then
     echo "Dummy data seeding is enabled."

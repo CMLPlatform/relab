@@ -46,6 +46,10 @@ class Image(TimeStampMixinBare, Base):
     __tablename__ = "image"
     __table_args__ = (
         CheckConstraint("upload_size_bytes >= 0", name="ck_image_upload_size_bytes_non_negative"),
+        CheckConstraint(
+            "(width_px IS NULL OR width_px > 0) AND (height_px IS NULL OR height_px > 0)",
+            name="ck_image_dimensions_positive",
+        ),
         # created_at is the third column so Product.first_image_file — which picks the
         # oldest image of one parent — reads a single index entry instead of scanning
         # the parent's images and sorting them.
@@ -68,6 +72,12 @@ class Image(TimeStampMixinBare, Base):
     filename: Mapped[str] = mapped_column(nullable=False, doc="Original file name of the image.")
     file: Mapped[StorageImage] = mapped_column(ImageType, nullable=False, doc="Local file path to the image")
     upload_size_bytes: Mapped[int] = mapped_column(default=0, server_default="0")
+    # Nullable, and stay that way: rows written before dimensions were recorded
+    # keep NULL until the backfill reaches them, and a failed decode leaves them
+    # unset rather than blocking the upload. Measured after EXIF rotation, so
+    # they describe the file as stored.
+    width_px: Mapped[int | None] = mapped_column(default=None, doc="Pixel width of the stored image.")
+    height_px: Mapped[int | None] = mapped_column(default=None, doc="Pixel height of the stored image.")
     description: Mapped[str | None] = mapped_column(default=None)
     image_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
     parent_type: Mapped[MediaParentType] = mapped_column(

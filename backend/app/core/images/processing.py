@@ -15,11 +15,18 @@ if TYPE_CHECKING:
     from typing import Any
 
 
-def process_image_for_storage(image_path: PathLike[str]) -> None:
-    """Process an uploaded image in-place for storage."""
+def process_image_for_storage(image_path: PathLike[str]) -> tuple[int, int]:
+    """Process an uploaded image in-place for storage.
+
+    Returns the stored image's ``(width, height)`` in pixels. Read here rather
+    than by a second open: the header is already parsed for the dimension
+    validation below, and the EXIF rotation further down swaps the two, so this
+    is the only point that knows the size the file actually ends up with.
+    """
     with PILImage.open(image_path) as img:
         original_format = img.format or FORMAT_JPEG
         validate_image_dimensions(img)
+        unrotated_size = img.size
 
         has_exif = bool(img.info.get("exif"))
         if not has_exif:
@@ -51,7 +58,7 @@ def process_image_for_storage(image_path: PathLike[str]) -> None:
             processed = None
 
     if processed is None:
-        return
+        return unrotated_size
 
     # Only the allowlisted tags are written back; everything else the original carried —
     # GPS, MakerNote, serial numbers — is gone because it was never copied into this blob.
@@ -64,3 +71,4 @@ def process_image_for_storage(image_path: PathLike[str]) -> None:
         save_kwargs["lossless"] = True
 
     processed.save(image_path, **save_kwargs)
+    return processed.size

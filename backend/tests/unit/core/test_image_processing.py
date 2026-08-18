@@ -245,6 +245,29 @@ def test_process_image_accepts_anyio_path(tmp_path: Path) -> None:
         assert result.size == (100, 100)
 
 
+def test_process_image_returns_the_stored_size(tmp_path: Path) -> None:
+    """The size is read off the header the validation already parsed, not by a second open."""
+    path = tmp_path / "plain.jpg"
+    PILImage.new("RGB", (640, 480), color="green").save(path, format="JPEG")
+
+    assert process_image_for_storage(path) == (640, 480)
+
+
+def test_process_image_returns_the_size_after_rotation(tmp_path: Path) -> None:
+    """Orientation 6 rotates a portrait original to landscape on disk.
+
+    The returned size has to describe the file as stored, or every consumer of
+    the recorded dimensions gets the aspect ratio the wrong way round.
+    """
+    path = _make_jpeg_with_exif(tmp_path / "rotated.jpg", 40, 60, orientation=6)
+
+    size = process_image_for_storage(path)
+
+    assert size == (60, 40)
+    with PILImage.open(path) as result:
+        assert result.size == size
+
+
 def test_process_image_dimension_guard(tmp_path: Path) -> None:
     """Images exceeding MAX_IMAGE_DIMENSION should raise ValueError."""
     path = tmp_path / "huge.jpg"

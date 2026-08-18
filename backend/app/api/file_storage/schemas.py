@@ -22,7 +22,7 @@ from app.api.file_storage.examples import (
 )
 from app.api.file_storage.models import MediaParentType
 from app.core.config import settings
-from app.core.images.urls import build_image_urls, build_storage_url
+from app.core.images.urls import build_image_urls, build_storage_url, build_thumbnail_urls_by_width
 
 PARENT_TYPE_DESCRIPTION = f"Type of the parent object, e.g. {', '.join(parent.value for parent in MediaParentType)}"
 
@@ -140,13 +140,33 @@ class ImageReadWithinParent(UUIDIdReadSchemaWithTimeStamp, ImageBase):
     file: Any = Field(default=None, exclude=True)
     image_url: str | None = None
     thumbnail_url: str | None = None
+    width_px: int | None = Field(
+        default=None,
+        description=(
+            "Pixel width of the stored image, after any EXIF rotation. Null for images uploaded "
+            "before dimensions were recorded. With `height_px` this gives the aspect ratio every "
+            "entry in `thumbnail_urls` shares, so a client can reserve layout space before the "
+            "image loads and derive each derivative's height from its width."
+        ),
+    )
+    height_px: int | None = Field(default=None, description="Pixel height of the stored image, after rotation.")
+    thumbnail_urls: dict[int, str] = Field(
+        default_factory=dict,
+        description=(
+            "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this "
+            "image are present: narrower originals yield fewer entries. Pick the width you render "
+            "at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one."
+        ),
+    )
 
     @model_validator(mode="after")
     def _derive_image_urls(self) -> Self:
         """Derive image and thumbnail URLs when the caller didn't supply them."""
+        file_path = getattr(self.file, "path", None)
         if self.image_url is None:
-            file_path = getattr(self.file, "path", None)
             self.image_url, self.thumbnail_url = build_image_urls(file_path, settings.image_storage_path)
+        if not self.thumbnail_urls:
+            self.thumbnail_urls = build_thumbnail_urls_by_width(file_path, settings.image_storage_path)
         return self
 
 

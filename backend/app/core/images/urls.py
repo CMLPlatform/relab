@@ -9,11 +9,16 @@ from typing import TYPE_CHECKING
 from urllib.parse import quote
 
 from app.core.http_headers import UPLOADS_PATH_PREFIX
+from app.core.images.constants import THUMBNAIL_WIDTHS
 from app.core.images.thumbnails import thumbnail_path_for
 
 if TYPE_CHECKING:
     from os import PathLike
 
+# The width every read schema's ``thumbnail_url`` points at. The wider
+# derivatives in THUMBNAIL_WIDTHS are written at upload time too and are
+# published alongside it as ``thumbnail_urls``, so a caller rendering a large
+# image does not have to settle for the list-sized one.
 THUMBNAIL_WIDTH_PX = 200
 IMAGE_URL_PREFIX = f"{UPLOADS_PATH_PREFIX}/images"
 
@@ -61,9 +66,35 @@ def build_image_urls(file_path: str | None, storage_root: Path) -> tuple[str | N
     return image_url, thumbnail_url
 
 
+def build_thumbnail_urls_by_width(file_path: str | None, storage_root: Path) -> dict[int, str]:
+    """Public URLs for every pre-computed derivative that exists for an image.
+
+    Keyed by width in pixels. ``generate_thumbnails`` skips any width at or above
+    the original's, so a small upload yields fewer entries than a large one and a
+    caller has to pick from what is actually there rather than assume the set.
+    Empty for an S3-backed path, which has no local derivatives.
+    """
+    if file_path is None or file_path.startswith(("http://", "https://")):
+        return {}
+    urls: dict[int, str] = {}
+    for width in THUMBNAIL_WIDTHS:
+        url = build_storage_url(thumbnail_path_for(Path(file_path), width), storage_root, IMAGE_URL_PREFIX)
+        if url is not None:
+            urls[width] = url
+    return urls
+
+
 def build_thumbnail_url(stored_file: object | None, storage_root: Path) -> str | None:
     """Derive just the thumbnail URL from a stored-image column value."""
     file_path = getattr(stored_file, "path", None)
     if file_path is None:
         return None
     return build_image_urls(str(file_path), storage_root)[1]
+
+
+def build_thumbnail_urls_for(stored_file: object | None, storage_root: Path) -> dict[int, str]:
+    """Derive the width-keyed derivative URLs from a stored-image column value."""
+    file_path = getattr(stored_file, "path", None)
+    if file_path is None:
+        return {}
+    return build_thumbnail_urls_by_width(str(file_path), storage_root)

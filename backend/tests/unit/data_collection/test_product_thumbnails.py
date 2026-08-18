@@ -29,7 +29,13 @@ class FakeStoredImage:
     path: str
 
 
-def _stage_image(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, with_thumbnail: bool) -> FakeStoredImage:
+def _stage_image(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    with_thumbnail: bool,
+    widths: tuple[int, ...] = (200,),
+) -> FakeStoredImage:
     storage_root = tmp_path / "images"
     monkeypatch.setattr(settings, "image_storage_path", storage_root)
     stored_dir = storage_root / "products"
@@ -37,9 +43,10 @@ def _stage_image(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, with_thumbn
     original = stored_dir / "front.jpg"
     original.write_bytes(b"jpeg-bytes")
     if with_thumbnail:
-        thumbnail = thumbnail_path_for(original, 200)
-        thumbnail.parent.mkdir(parents=True, exist_ok=True)
-        thumbnail.write_bytes(b"webp-bytes")
+        for width in widths:
+            thumbnail = thumbnail_path_for(original, width)
+            thumbnail.parent.mkdir(parents=True, exist_ok=True)
+            thumbnail.write_bytes(b"webp-bytes")
     return FakeStoredImage(path=str(original))
 
 
@@ -103,6 +110,51 @@ def test_missing_file_on_disk_yields_no_thumbnail(tmp_path: Path, monkeypatch: p
     object.__setattr__(product, "first_image_file", FakeStoredImage(path=str(tmp_path / "gone.jpg")))
 
     assert ProductRead.model_validate(product).thumbnail_url is None
+
+
+def test_summary_read_publishes_every_derivative_that_exists(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The wider derivatives are written at upload time; reads must expose them.
+
+    Without this a caller rendering a large image only ever sees the 200px
+    list thumbnail and has to upscale it.
+    """
+    stored = _stage_image(tmp_path, monkeypatch, with_thumbnail=True, widths=(200, 800, 1600))
+    product = ProductFactory.build(id=1, owner_id=uuid4())
+    object.__setattr__(product, "first_image_file", stored)
+
+    urls = ProductRead.model_validate(product).thumbnail_urls
+
+    assert sorted(urls) == [200, 800, 1600]
+    assert urls[800].endswith(thumbnail_path_for(Path(stored.path), 800).name)
+
+
+def test_summary_read_omits_widths_with_no_file_on_disk(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """generate_thumbnails skips widths at or above the original, so the map is sparse."""
+    stored = _stage_image(tmp_path, monkeypatch, with_thumbnail=True, widths=(200,))
+    product = ProductFactory.build(id=1, owner_id=uuid4())
+    object.__setattr__(product, "first_image_file", stored)
+
+    assert sorted(ProductRead.model_validate(product).thumbnail_urls) == [200]
+
+
+def test_component_read_publishes_derivatives_for_the_parts_grid(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The component tree feeds the landing hero's parts grid, which renders above 200px."""
+    stored = _stage_image(tmp_path, monkeypatch, with_thumbnail=True, widths=(200, 800))
+    component = ProductFactory.build(id=2, owner_id=uuid4(), parent_id=1, amount_in_parent=1)
+    object.__setattr__(component, "first_image_file", stored)
+
+    assert sorted(ComponentRead.model_validate(component).thumbnail_urls) == [200, 800]
+
+
+def test_missing_file_on_disk_yields_no_derivatives(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A DB row pointing at a deleted file must not produce broken derivative URLs."""
+    monkeypatch.setattr(settings, "image_storage_path", tmp_path / "images")
+    product = ProductFactory.build(id=1, owner_id=uuid4())
+    object.__setattr__(product, "first_image_file", FakeStoredImage(path=str(tmp_path / "gone.jpg")))
+
+    assert ProductRead.model_validate(product).thumbnail_urls == {}
 
 
 def test_detail_read_fallback_prefers_the_generated_thumbnail() -> None:
