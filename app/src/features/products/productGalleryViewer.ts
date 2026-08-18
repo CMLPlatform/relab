@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions } from 'react-native';
+import { PixelRatio, useWindowDimensions } from 'react-native';
 import {
   buildGalleryMedia,
   clampIndex,
@@ -9,13 +9,36 @@ import {
 } from '@/components/product/gallery/shared';
 import { useGalleryIndexPersistence } from '@/features/gallery/useGalleryIndexPersistence';
 import { useGalleryKeyboardNavigation } from '@/features/gallery/useGalleryKeyboardNavigation';
+import { pickThumbnailUrl } from '@/services/api/media';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import type { Product } from '@/types/Product';
 
 export function useProductGalleryMedia(product: Product) {
-  const { images, items } = useMemo(() => buildGalleryMedia(product), [product]);
+  const { images, items: rawItems } = useMemo(() => buildGalleryMedia(product), [product]);
+  // Reactive, unlike Dimensions.get: this width drives the pager's getItemLayout
+  // and each slide's style as well as the size pick below, so a non-subscribing
+  // read left all three stale after a rotation.
+  const { width, height } = useWindowDimensions();
+  // React Native has no srcset, so each tier is resolved once here, where the
+  // screen size is known, and every consumer downstream (the pager, the
+  // lightbox, the prefetch below) keeps reading the same two fields.
+  //
+  // Without this both tiers stay pointed at the full-resolution upload: opening
+  // a gallery pulled several megabytes per image to fill a ~390pt-wide view,
+  // and the prefetch did it for every image in the product at once.
+  const items = useMemo(() => {
+    const scale = PixelRatio.get();
+    const mediumPx = width * scale;
+    // The lightbox is full-bleed and pinch-zoomable, so it asks for the larger
+    // screen dimension. Zooming past what this holds swaps in the original.
+    const largePx = Math.max(width, height) * scale;
+    return rawItems.map((item) => ({
+      ...item,
+      mediumUrl: pickThumbnailUrl(item.sources, mediumPx) ?? item.mediumUrl,
+      largeUrl: pickThumbnailUrl(item.sources, largePx) ?? item.largeUrl,
+    }));
+  }, [rawItems, width, height]);
   const imageCount = items.length;
-  const { width } = Dimensions.get('window');
   const prefetchUrls = useMemo(
     () => items.map((item) => item.mediumUrl).filter((url): url is string => url !== null),
     [items],

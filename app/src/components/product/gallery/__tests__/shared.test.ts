@@ -29,6 +29,91 @@ describe('buildGalleryMedia', () => {
     expect(source).toBe(images);
   });
 
+  it('carries the API derivatives and keeps the original reachable', () => {
+    const { items } = buildGalleryMedia(
+      product([
+        {
+          id: 'a',
+          url: 'https://cdn.test/a.jpg',
+          thumbnailUrl: 'https://cdn.test/a_200.webp',
+          thumbnailUrls: { 200: 'https://cdn.test/a_200.webp', 800: 'https://cdn.test/a_800.webp' },
+          description: '',
+        },
+      ]),
+    );
+
+    expect(items[0].sources).toEqual({
+      200: 'https://cdn.test/a_200.webp',
+      800: 'https://cdn.test/a_800.webp',
+    });
+    // Both tiers still default to the original here; the screen size that
+    // narrows them is only known in useProductGalleryMedia.
+    expect(items[0].originalUrl).toBe('https://cdn.test/a.jpg');
+    expect(items[0].mediumUrl).toBe('https://cdn.test/a.jpg');
+  });
+
+  it('shapes the derivatives for expo-image, deriving each height from the aspect', () => {
+    const { items } = buildGalleryMedia(
+      product([
+        {
+          id: 'a',
+          url: 'https://cdn.test/a.jpg',
+          thumbnailUrls: { 800: 'https://cdn.test/a_800.webp', 200: 'https://cdn.test/a_200.webp' },
+          width: 4000,
+          height: 3000,
+          description: '',
+        },
+      ]),
+    );
+
+    // Narrowest first, each height following the original's 4:3.
+    expect(items[0].sourceSet).toEqual([
+      { uri: 'https://cdn.test/a_200.webp', width: 200, height: 150 },
+      { uri: 'https://cdn.test/a_800.webp', width: 800, height: 600 },
+    ]);
+  });
+
+  it('offers no source array when the API has no dimensions for the image', () => {
+    // Widths alone would leave expo-image's selection guessing, so the caller
+    // falls back to picking a single URL by screen size instead.
+    const { items } = buildGalleryMedia(
+      product([
+        {
+          id: 'a',
+          url: 'https://cdn.test/a.jpg',
+          thumbnailUrls: { 200: 'https://cdn.test/a_200.webp', 800: 'https://cdn.test/a_800.webp' },
+          description: '',
+        },
+      ]),
+    );
+
+    expect(items[0].sourceSet).toEqual([]);
+    expect(Object.keys(items[0].sources)).toHaveLength(2);
+  });
+
+  it('drops an unsafe derivative without losing the slide', () => {
+    const { items } = buildGalleryMedia(
+      product([
+        {
+          id: 'a',
+          url: 'https://cdn.test/a.jpg',
+          thumbnailUrls: { 200: 'https://cdn.test/a_200.webp', 800: 'javascript:alert(1)' },
+          description: '',
+        },
+      ]),
+    );
+
+    expect(items[0].sources).toEqual({ 200: 'https://cdn.test/a_200.webp' });
+  });
+
+  it('emits an empty source map when the API published no derivatives', () => {
+    const { items } = buildGalleryMedia(
+      product([{ id: 'a', url: 'https://cdn.test/a.jpg', description: '' }]),
+    );
+
+    expect(items[0].sources).toEqual({});
+  });
+
   it('resolves a missing url to null rather than dropping the slide', () => {
     const { items } = buildGalleryMedia(product([{ id: 'b', url: '', description: '' }]));
 

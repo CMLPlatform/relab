@@ -13,7 +13,8 @@ import type {
 import type { Product } from '@/types/Product';
 import { apiFetch } from './client';
 import { throwFromResponse } from './errors';
-import { resolveApiMediaUrl } from './media';
+import { resolveApiMediaUrl, resolveApiMediaUrlMap } from './media';
+import { productTypeLabel } from './productTypes';
 
 const baseUrl = API_URL;
 
@@ -55,6 +56,9 @@ function commonProductFields(data: ProductMapperPayload, meId?: string) {
     'components' in data
       ? (data.components?.map((component) => toComponent(component, meId)) ?? [])
       : undefined;
+  // Display label, not the stored name: CPV-imported types keep their code in
+  // `name`, which is still what product_type_name[in] filters on.
+  const productTypeName = 'product_type' in data ? productTypeLabel(data.product_type) : undefined;
   return {
     id: Number(data.id),
     name: data.name,
@@ -85,12 +89,14 @@ function commonProductFields(data: ProductMapperPayload, meId?: string) {
         id: String(img.id),
         url: resolveApiMediaUrl(img.image_url) ?? '',
         thumbnailUrl: resolveApiMediaUrl(img.thumbnail_url),
+        thumbnailUrls: resolveApiMediaUrlMap(img.thumbnail_urls),
+        width: img.width_px ?? undefined,
+        height: img.height_px ?? undefined,
         description: img.description ?? '',
       })) ?? [],
     thumbnailUrl: resolveApiMediaUrl(data.thumbnail_url),
-    ...('product_type' in data && data.product_type?.name
-      ? { productTypeName: data.product_type.name }
-      : {}),
+    thumbnailUrls: resolveApiMediaUrlMap(data.thumbnail_urls),
+    ...(productTypeName ? { productTypeName } : {}),
   };
 }
 

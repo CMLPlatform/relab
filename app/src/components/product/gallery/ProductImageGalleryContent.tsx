@@ -11,6 +11,7 @@ import {
   galleryItemAltText,
   galleryItemKeyExtractor,
   IMAGE_HEIGHT,
+  type ImageSource,
   makeHorizontalItemLayout,
   type ScrollableListHandle,
   type ScrollEvent,
@@ -93,6 +94,8 @@ export function ProductImageGalleryContent({
     ({ item, index }: { item: GalleryItem; index: number }) => (
       <GalleryImageItem
         uri={item.mediumUrl}
+        sourceSet={item.sourceSet}
+        placeholderUri={item.thumbnailUrl}
         index={index}
         width={width}
         altText={galleryItemAltText(item, index, items.length, fallbackLabel)}
@@ -195,6 +198,8 @@ export function ProductImageGalleryContent({
 
 const GalleryImageItem = memo(function GalleryImageItem({
   uri,
+  sourceSet,
+  placeholderUri,
   index,
   width,
   altText,
@@ -202,6 +207,8 @@ const GalleryImageItem = memo(function GalleryImageItem({
   onOpenLightbox,
 }: {
   uri: string | null;
+  sourceSet: ImageSource[];
+  placeholderUri: string | null;
   index: number;
   width: number;
   altText: string;
@@ -222,7 +229,17 @@ const GalleryImageItem = memo(function GalleryImageItem({
       {uri ? (
         // Decorative: the wrapping Pressable already carries the descriptive label.
         <Image
-          source={{ uri }}
+          // The array lets expo-image match the candidate to the container at
+          // the screen's scale, and become a real srcset on web. It needs each
+          // candidate's height, so it is empty when the API has no dimensions
+          // for this image and `uri` is then the size already picked for the
+          // screen in useProductGalleryMedia.
+          source={sourceSet.length > 1 ? sourceSet : { uri }}
+          // The list thumbnail is already in the cache from the card and the
+          // filmstrip, so it paints immediately and the full-width image fades
+          // over it instead of arriving after a blank.
+          placeholder={placeholderUri ? { uri: placeholderUri } : undefined}
+          placeholderContentFit="cover"
           contentFit="cover"
           style={{ width, height: IMAGE_HEIGHT }}
           accessibilityLabel=""

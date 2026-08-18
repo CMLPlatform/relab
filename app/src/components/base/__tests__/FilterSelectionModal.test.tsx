@@ -27,6 +27,70 @@ describe('FilterSelectionModal', () => {
     expect(screen.getByRole('progressbar')).toBeOnTheScreen();
   });
 
+  it('shows a chip by its label but still selects by its value', async () => {
+    // Product types imported from CPV store the code as the name and the label
+    // in `description`; filtering matches the stored name, so the value the
+    // caller gets back has to stay the code.
+    const onSelectionChange = jest.fn();
+    renderWithProviders(
+      <FilterSelectionModal
+        visible
+        onDismiss={jest.fn()}
+        title="Filter by product type"
+        items={['CPV: 302132']}
+        labels={{ 'CPV: 302132': 'Tablet computer' }}
+        selectedValues={[]}
+        onSelectionChange={onSelectionChange}
+        searchQuery=""
+        onSearchChange={jest.fn()}
+      />,
+      { withDialog: true },
+    );
+
+    expect(screen.queryByText('CPV: 302132')).not.toBeOnTheScreen();
+    await user.press(screen.getByText('Tablet computer'));
+
+    expect(onSelectionChange).toHaveBeenCalledWith(['CPV: 302132']);
+  });
+
+  it('labels a selected value that is missing from the current results', () => {
+    renderWithProviders(
+      <FilterSelectionModal
+        visible
+        onDismiss={jest.fn()}
+        title="Filter by product type"
+        items={['Laptop']}
+        labels={{ 'CPV: 302132': 'Tablet computer' }}
+        selectedValues={['CPV: 302132']}
+        onSelectionChange={jest.fn()}
+        searchQuery="lap"
+        onSearchChange={jest.fn()}
+      />,
+      { withDialog: true },
+    );
+
+    expect(screen.getByText('Tablet computer')).toBeOnTheScreen();
+    expect(screen.queryByText('CPV: 302132')).not.toBeOnTheScreen();
+  });
+
+  it('falls back to the raw value when no label is supplied', () => {
+    renderWithProviders(
+      <FilterSelectionModal
+        visible
+        onDismiss={jest.fn()}
+        title="Filter by brand"
+        items={['Dell']}
+        selectedValues={[]}
+        onSelectionChange={jest.fn()}
+        searchQuery=""
+        onSearchChange={jest.fn()}
+      />,
+      { withDialog: true },
+    );
+
+    expect(screen.getByText('Dell')).toBeOnTheScreen();
+  });
+
   it('shows an empty state when there are no results', () => {
     renderWithProviders(
       <FilterSelectionModal

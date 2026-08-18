@@ -68,6 +68,7 @@ jest.mock('@/features/products/queries', () => ({
   productsInfiniteQueryOptions: jest.fn(() => ({})),
   useSearchBrandsQuery: () => ({ data: [], isLoading: false }),
   useSearchProductTypesQuery: () => ({ data: [], isLoading: false }),
+  useProductTypeLabelsQuery: () => ({ data: [], isLoading: false }),
 }));
 
 jest.mock('@/services/api/auth/authentication', () => ({

@@ -11,12 +11,12 @@ import {
   useState,
 } from 'react';
 import {
-  Dimensions,
   type GestureResponderEvent,
   Modal,
   Platform,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -63,7 +63,10 @@ export function ProductImageLightbox({
 }: Props) {
   const theme = useAppTheme();
   const styles = createStyles(theme);
-  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  // Reactive: these drive getItemLayout, the scroll offsets, the swipe
+  // threshold and each slide's size, so a non-subscribing read left the pager
+  // measuring against the pre-rotation screen.
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [isZoomed, setIsZoomed] = useState(false);
   const scrollRef = useRef<ScrollableListHandle | null>(null);
   const targetIndexRef = useRef(startIndex);
@@ -220,6 +223,7 @@ export function ProductImageLightbox({
     ({ item, index: itemIndex }: { item: GalleryItem; index: number }) => (
       <LightboxSlide
         uri={item.largeUrl}
+        originalUri={item.originalUrl}
         altText={galleryItemAltText(item, itemIndex, items.length, fallbackLabel)}
         screenWidth={screenWidth}
         screenHeight={screenHeight}
@@ -341,8 +345,17 @@ export function ProductImageLightbox({
   );
 }
 
+/**
+ * Zoom factor past which the derivative runs out of pixels and the original is
+ * worth its download. The large tier is picked to cover the screen at 1x, so
+ * anything beyond this is magnifying pixels the derivative does not have — and
+ * on a research dataset, looking closely at a component is the point.
+ */
+const ORIGINAL_AT_SCALE = 1.8;
+
 const LightboxSlide = memo(function LightboxSlide({
   uri,
+  originalUri,
   altText,
   screenWidth,
   screenHeight,
@@ -354,6 +367,7 @@ const LightboxSlide = memo(function LightboxSlide({
   zoomRef,
 }: {
   uri: string | null;
+  originalUri: string | null;
   altText: string;
   screenWidth: number;
   screenHeight: number;
@@ -372,6 +386,26 @@ const LightboxSlide = memo(function LightboxSlide({
     [setIsZoomed, navigateBy],
   );
 
+  // Latched, never unlatched while the slide is mounted: dropping back to the
+  // derivative on zoom-out would re-download the original on the next pinch.
+  const [wantsOriginal, setWantsOriginal] = useState(false);
+  const handleScaleChange = useCallback((scale: number) => {
+    if (scale >= ORIGINAL_AT_SCALE) {
+      setWantsOriginal(true);
+    }
+  }, []);
+  // Paging away resets, so the next visit to a slide starts on the cheap file.
+  // Render-phase reset (React's "adjust state while rendering" pattern) rather
+  // than an effect, which would cascade a second render after paint.
+  const [wasActive, setWasActive] = useState(active);
+  if (active !== wasActive) {
+    setWasActive(active);
+    if (!active) {
+      setWantsOriginal(false);
+    }
+  }
+  const shownUri = wantsOriginal ? (originalUri ?? uri) : uri;
+
   return (
     <View
       onTouchStart={onTouchStart}
@@ -379,11 +413,12 @@ const LightboxSlide = memo(function LightboxSlide({
       className="justify-center items-center"
       style={{ width: screenWidth, height: screenHeight }}
     >
-      {uri ? (
+      {shownUri ? (
         <ZoomableImage
-          uri={uri}
+          uri={shownUri}
           accessibilityLabel={altText}
           setIsZoomed={setIsZoomed}
+          onScaleChange={handleScaleChange}
           onSwipe={handleSwipe}
           active={active}
           zoomRef={zoomRef}

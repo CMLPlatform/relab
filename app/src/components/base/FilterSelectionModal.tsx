@@ -15,10 +15,12 @@ function stopPropagation(e: { stopPropagation: () => void }) {
 
 function SelectableChip({
   item,
+  label,
   selected,
   onToggle,
 }: {
   item: string;
+  label?: string;
   selected: boolean;
   onToggle: (value: string) => void;
 }) {
@@ -31,7 +33,7 @@ function SelectableChip({
       accessibilityRole="button"
       accessibilityState={{ selected }}
     >
-      {item}
+      {label ?? item}
     </Chip>
   );
 }
@@ -42,6 +44,13 @@ type ShellProps = {
   title: string;
   /** Items to display; controlled by the parent (parent owns the search query + fetch). */
   items: string[];
+  /**
+   * Optional value -> display text. Selection, search and the value handed back
+   * on toggle all stay the raw item, because that is what the caller filters
+   * with; this only changes what the chip reads. Product types need it: their
+   * stored name can be a CPV code whose label lives elsewhere.
+   */
+  labels?: Record<string, string>;
   isLoading?: boolean;
   selectedValues: string[];
   onToggle: (value: string) => void;
@@ -64,6 +73,7 @@ function FilterModalShell({
   onDismiss,
   title,
   items,
+  labels,
   isLoading,
   selectedValues,
   onToggle,
@@ -129,6 +139,7 @@ function FilterModalShell({
                     <SelectableChip
                       key={item}
                       item={item}
+                      label={labels?.[item]}
                       selected={selectedValues.includes(item)}
                       onToggle={onToggle}
                     />
@@ -149,6 +160,7 @@ type Props = {
   onDismiss: () => void;
   title: string;
   items: string[];
+  labels?: Record<string, string>;
   isLoading?: boolean;
   selectedValues: string[];
   onSelectionChange: (values: string[]) => void;
@@ -163,6 +175,7 @@ export default function FilterSelectionModal({
   onDismiss,
   title,
   items,
+  labels,
   isLoading,
   selectedValues,
   onSelectionChange,
@@ -188,6 +201,7 @@ export default function FilterSelectionModal({
       onDismiss={onDismiss}
       title={title}
       items={items}
+      labels={labels}
       isLoading={isLoading}
       selectedValues={selectedValues}
       onToggle={toggle}
@@ -215,6 +229,7 @@ type SingleSelectProps = {
   onDismiss: () => void;
   title: string;
   items: string[];
+  labels?: Record<string, string>;
   isLoading?: boolean;
   /** Currently selected value, or '' when none is set. */
   value: string;
@@ -234,6 +249,7 @@ export function SingleSelectFilterModal({
   onDismiss,
   title,
   items,
+  labels,
   isLoading,
   value,
   onValueChange,
@@ -267,6 +283,7 @@ export function SingleSelectFilterModal({
       onDismiss={onDismiss}
       title={title}
       items={items}
+      labels={labels}
       isLoading={isLoading}
       selectedValues={selectedValues}
       onToggle={selectValue}

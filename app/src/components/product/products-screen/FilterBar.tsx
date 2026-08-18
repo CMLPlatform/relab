@@ -113,6 +113,8 @@ type ProductsFilterBarProps = {
   brandResults?: SelectionModalProps['items'];
   brandsLoading: boolean;
   typeResults?: SelectionModalProps['items'];
+  /** Stored name -> label, for CPV-coded types. Values stay names everywhere else. */
+  typeLabels?: SelectionModalProps['labels'];
   typesLoading: boolean;
   brandSearch: string;
   typeSearch: string;
@@ -142,6 +144,7 @@ export function ProductsFilterBar({
   brandResults,
   brandsLoading,
   typeResults,
+  typeLabels,
   typesLoading,
   brandSearch,
   typeSearch,
@@ -236,7 +239,7 @@ export function ProductsFilterBar({
           onClose={activeProductTypes.length > 0 ? onClearTypes : undefined}
         >
           {activeProductTypes.length === 1
-            ? activeProductTypes[0]
+            ? (typeLabels?.[activeProductTypes[0]] ?? activeProductTypes[0])
             : activeProductTypes.length > 1
               ? `Type (${activeProductTypes.length})`
               : 'Type'}
@@ -261,6 +264,7 @@ export function ProductsFilterBar({
         onDismiss={closeTypeModal}
         title="Filter by product type"
         items={typeResults ?? []}
+        labels={typeLabels}
         isLoading={typesLoading}
         selectedValues={activeProductTypes}
         onSelectionChange={onTypeSelectionChange}

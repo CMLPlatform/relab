@@ -26,6 +26,7 @@ type ZoomableImageMockProps = {
   uri: string;
   onSwipe?: (direction: -1 | 1) => void;
   setIsZoomed?: (value: boolean) => void;
+  onScaleChange?: (scale: number) => void;
   zoomRef?: { current: typeof mockZoomHandle | null };
 };
 type GestureCallback = (...args: unknown[]) => unknown;
@@ -920,5 +921,43 @@ describe('ProductImages', () => {
     fireEvent.press(screen.getAllByLabelText('Next image').at(-1) as never);
 
     await waitFor(() => expect(pagerScrollEnabled()).toBe(true));
+  });
+
+  it('zooms past the derivative into the full-resolution original', async () => {
+    const productWithDerivatives = {
+      id: 1,
+      name: 'HP ProBook',
+      role: 'product',
+      ownedBy: 'me',
+      componentIDs: [],
+      physicalProperties: {},
+      circularityProperties: {},
+      images: [
+        {
+          id: '1',
+          url: 'https://cdn.test/original.jpg',
+          thumbnailUrl: 'https://cdn.test/a_200.webp',
+          thumbnailUrls: { 200: 'https://cdn.test/a_200.webp', 800: 'https://cdn.test/a_800.webp' },
+          description: 'A photo',
+        },
+      ],
+    } as unknown as Product;
+
+    renderWithProviders(<ProductImages product={productWithDerivatives} editMode={false} />, {
+      withDialog: true,
+    });
+
+    fireEvent.press(screen.getAllByText('img:https://cdn.test/a_800.webp')[0]);
+    await waitFor(() => expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen());
+
+    // Opens on the derivative, which is all a 1x view of the screen needs.
+    const opened = mockZoomableImageCalls.at(-1);
+    expect(opened?.uri).toBe('https://cdn.test/a_800.webp');
+
+    act(() => opened?.onScaleChange?.(2));
+
+    await waitFor(() =>
+      expect(mockZoomableImageCalls.at(-1)?.uri).toBe('https://cdn.test/original.jpg'),
+    );
   });
 });

@@ -3,8 +3,13 @@ import { useCallback, useMemo, useState } from 'react';
 import { useDebounce } from 'use-debounce';
 import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
+import { productTypeLabelMap } from '@/services/api/productTypes';
 import { createProductAction, useProductsActions } from './actions';
-import { useSearchBrandsQuery, useSearchProductTypesQuery } from './queries';
+import {
+  useProductTypeLabelsQuery,
+  useSearchBrandsQuery,
+  useSearchProductTypesQuery,
+} from './queries';
 import {
   normalizeProductsParams,
   type ProductsSearchParams,
@@ -72,8 +77,20 @@ export function useProductsScreen() {
   const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(
     filterUi.brandSearch,
   );
-  const { data: typeResults, isLoading: typesLoading } = useSearchProductTypesQuery(
+  const { data: typeOptions, isLoading: typesLoading } = useSearchProductTypesQuery(
     filterUi.typeSearch,
+  );
+  // Selections are stored and filtered by `name`, so the picker keeps offering
+  // names; only what the user reads is the label. The selected names are
+  // resolved separately because they arrive from the URL, before any search.
+  const { data: selectedTypeOptions } = useProductTypeLabelsQuery(activeProductTypes);
+  const typeResults = useMemo(() => (typeOptions ?? []).map((type) => type.name), [typeOptions]);
+  const typeLabels = useMemo(
+    () => ({
+      ...productTypeLabelMap(selectedTypeOptions ?? []),
+      ...productTypeLabelMap(typeOptions ?? []),
+    }),
+    [typeOptions, selectedTypeOptions],
   );
   const {
     products,
@@ -130,6 +147,7 @@ export function useProductsScreen() {
       brandResults,
       brandsLoading,
       typeResults,
+      typeLabels,
       typesLoading,
       dateMenuVisible: filterUi.dateMenuVisible,
       brandModalVisible: filterUi.brandModalVisible,

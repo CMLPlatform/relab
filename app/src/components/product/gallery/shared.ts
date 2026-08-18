@@ -39,7 +39,30 @@ export type GalleryItem = {
   thumbnailUrl: string | null;
   mediumUrl: string | null;
   largeUrl: string | null;
+  /**
+   * The full-resolution upload. Uploads are never downscaled on the way in
+   * (`process_image_for_storage` only rotates and strips EXIF), so this can be
+   * many megabytes and is reserved for zooming past what a derivative holds.
+   */
+  originalUrl: string | null;
+  /**
+   * Width-keyed derivatives, already resolved and safety-filtered. Empty when
+   * the API published none, which is what makes `mediumUrl`/`largeUrl` fall
+   * back to the original. `useProductGalleryMedia` picks from this per screen.
+   */
+  sources: Record<number, string>;
+  /**
+   * The same derivatives as `sources`, shaped for expo-image's `source` array,
+   * which selects the candidate that best fits the container at the screen's
+   * scale — and on web becomes a real `srcset`. Empty unless the API knows the
+   * original's dimensions, since selection needs each candidate's height; the
+   * deterministic pick in `useProductGalleryMedia` covers that case.
+   */
+  sourceSet: ImageSource[];
 };
+
+/** One `source` entry: a derivative URL and the size it decodes to. */
+export type ImageSource = { uri: string; width: number; height: number };
 
 /** Builds a FlatList getItemLayout for a horizontally-paged list of fixed-width items. */
 export function makeHorizontalItemLayout(width: number) {
@@ -96,6 +119,49 @@ function resolveImageUrl(url: string | undefined): string | null {
 }
 
 /**
+ * Keep only derivatives that survive the same safety check as any other gallery
+ * URL. They are already resolved by the API mapper; this guards the path where
+ * a Product is built somewhere else (a draft, a test, a cached payload).
+ */
+function safeSources(urls: Record<number, string> | undefined): Record<number, string> {
+  const safe: Record<number, string> = {};
+  for (const [width, url] of Object.entries(urls ?? {})) {
+    const resolved = resolveImageUrl(url);
+    if (resolved) {
+      safe[Number(width)] = resolved;
+    }
+  }
+  return safe;
+}
+
+/**
+ * Shape the derivatives for expo-image's source array.
+ *
+ * Every derivative is a scaled copy of the original, so they all share its
+ * aspect ratio and each height follows from its own width. Without the
+ * original's dimensions there is nothing to derive from, and an array carrying
+ * widths alone would leave the selection guessing — so return none and let the
+ * caller fall back to picking one URL itself.
+ */
+function toSourceSet(
+  sources: Record<number, string>,
+  originalWidth: number | undefined,
+  originalHeight: number | undefined,
+): ImageSource[] {
+  if (!originalWidth || !originalHeight) {
+    return [];
+  }
+  return Object.entries(sources)
+    .map(([width, uri]) => ({
+      uri,
+      width: Number(width),
+      height: Math.round((Number(width) * originalHeight) / originalWidth),
+    }))
+    .filter((source) => source.height > 0)
+    .sort((a, b) => a.width - b.width);
+}
+
+/**
  * Accessible label for a gallery item: the uploader's own description when
  * there is one (WCAG 1.1.1 — meaningful alt text, not "image 3"). Otherwise
  * falls back to the product/component name, plus a 1-based position when
@@ -118,12 +184,18 @@ export function buildGalleryMedia(product: Product) {
   const images = product.images ?? [];
   const items: GalleryItem[] = images.map((image, index) => {
     const imageUrl = resolveImageUrl(image.url);
+    const sources = safeSources(image.thumbnailUrls);
+    // Both size tiers default to the original and are narrowed to a derivative
+    // by useProductGalleryMedia, which is where the screen size is known.
     return {
       key: image.id ?? (image.url || `missing-${index}`),
       image,
       thumbnailUrl: resolveImageUrl(image.thumbnailUrl) ?? imageUrl,
       mediumUrl: imageUrl,
       largeUrl: imageUrl,
+      originalUrl: imageUrl,
+      sources,
+      sourceSet: toSourceSet(sources, image.width, image.height),
     };
   });
 

@@ -3506,6 +3506,13 @@ export interface components {
     ComponentRead: {
       /** Thumbnail Url */
       thumbnail_url?: string | null;
+      /**
+       * Thumbnail Urls
+       * @description Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.
+       */
+      thumbnail_urls?: {
+        [key: string]: string;
+      };
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
@@ -3552,6 +3559,13 @@ export interface components {
     ComponentReadWithRecursiveComponents: {
       /** Thumbnail Url */
       thumbnail_url?: string | null;
+      /**
+       * Thumbnail Urls
+       * @description Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.
+       */
+      thumbnail_urls?: {
+        [key: string]: string;
+      };
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
@@ -3603,6 +3617,13 @@ export interface components {
     ComponentReadWithRelationshipsAndFlatComponents: {
       /** Thumbnail Url */
       thumbnail_url?: string | null;
+      /**
+       * Thumbnail Urls
+       * @description Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.
+       */
+      thumbnail_urls?: {
+        [key: string]: string;
+      };
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
@@ -3835,6 +3856,23 @@ export interface components {
       image_url?: string | null;
       /** Thumbnail Url */
       thumbnail_url?: string | null;
+      /**
+       * Width Px
+       * @description Pixel width of the stored image, after any EXIF rotation. Null for images uploaded before dimensions were recorded. With `height_px` this gives the aspect ratio every entry in `thumbnail_urls` shares, so a client can reserve layout space before the image loads and derive each derivative's height from its width.
+       */
+      width_px?: number | null;
+      /**
+       * Height Px
+       * @description Pixel height of the stored image, after rotation.
+       */
+      height_px?: number | null;
+      /**
+       * Thumbnail Urls
+       * @description Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.
+       */
+      thumbnail_urls?: {
+        [key: string]: string;
+      };
       /** Parent Id */
       parent_id: number;
       /** @description Type of the parent object, e.g. product, product_type, material */
@@ -3877,6 +3915,23 @@ export interface components {
       image_url?: string | null;
       /** Thumbnail Url */
       thumbnail_url?: string | null;
+      /**
+       * Width Px
+       * @description Pixel width of the stored image, after any EXIF rotation. Null for images uploaded before dimensions were recorded. With `height_px` this gives the aspect ratio every entry in `thumbnail_urls` shares, so a client can reserve layout space before the image loads and derive each derivative's height from its width.
+       */
+      width_px?: number | null;
+      /**
+       * Height Px
+       * @description Pixel height of the stored image, after rotation.
+       */
+      height_px?: number | null;
+      /**
+       * Thumbnail Urls
+       * @description Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.
+       */
+      thumbnail_urls?: {
+        [key: string]: string;
+      };
     };
     /** Links */
     Links: {
@@ -4617,6 +4672,13 @@ export interface components {
     ProductRead: {
       /** Thumbnail Url */
       thumbnail_url?: string | null;
+      /**
+       * Thumbnail Urls
+       * @description Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.
+       */
+      thumbnail_urls?: {
+        [key: string]: string;
+      };
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
@@ -4656,6 +4718,13 @@ export interface components {
     ProductReadWithRelationshipsAndFlatComponents: {
       /** Thumbnail Url */
       thumbnail_url?: string | null;
+      /**
+       * Thumbnail Urls
+       * @description Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.
+       */
+      thumbnail_urls?: {
+        [key: string]: string;
+      };
       circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
@@ -4725,6 +4794,13 @@ export interface components {
     ProductSummary: {
       /** Thumbnail Url */
       thumbnail_url?: string | null;
+      /**
+       * Thumbnail Urls
+       * @description Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.
+       */
+      thumbnail_urls?: {
+        [key: string]: string;
+      };
       /** Created At */
       created_at?: string;
       /** Updated At */

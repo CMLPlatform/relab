@@ -17,8 +17,25 @@ export type Product = {
   ownerUsername?: string;
   physicalProperties: PhysicalProperties;
   circularityProperties: CircularityProperties;
-  images?: { id?: string; url: string; thumbnailUrl?: string; description: string }[];
+  images?: {
+    id?: string;
+    url: string;
+    thumbnailUrl?: string;
+    /**
+     * The API's pre-computed derivatives, keyed by width in pixels. Sparse: a
+     * narrow original generates fewer of them. A view picks the width it
+     * renders at rather than scaling `thumbnailUrl`, which is the smallest.
+     */
+    thumbnailUrls?: Record<number, string>;
+    /** Pixel size of the stored original, after rotation. Absent for images
+     * uploaded before the API recorded it. Every entry in `thumbnailUrls`
+     * shares this aspect ratio. */
+    width?: number;
+    height?: number;
+    description: string;
+  }[];
   thumbnailUrl?: string;
+  thumbnailUrls?: Record<number, string>;
   videos?: { id?: number; url: string; description: string; title: string }[];
   ownedBy: 'me' | string;
   amountInParent?: number;

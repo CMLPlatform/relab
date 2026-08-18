@@ -10,7 +10,7 @@ import { baseProductQueryOptions, componentQueryOptions } from '@/features/produ
 import { ApiError } from '@/services/api/errors';
 import { searchProductBrands } from '@/services/api/productSuggestions';
 import { products } from '@/services/api/products';
-import { searchProductTypes } from '@/services/api/productTypes';
+import { fetchProductTypesByName, searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
 
@@ -95,13 +95,31 @@ export const brandsSearchQueryOptions = (search: string) =>
     staleTime: 2 * 60_000,
   });
 
+// Whole options, not just names: a CPV-imported type's `name` is its code and
+// its label lives in `description`, and the caller needs both — the name to
+// filter with, the label to show.
 export const productTypesSearchQueryOptions = (search: string) =>
   queryOptions({
     queryKey: ['productTypes', 'search', search] as const,
-    queryFn: () =>
-      searchProductTypes(search || undefined, 1, 50).then((items) => items.map((pt) => pt.name)),
+    queryFn: () => searchProductTypes(search || undefined, 1, 50),
     staleTime: 2 * 60_000,
   });
+
+/**
+ * Labels for product types already selected as filters.
+ *
+ * Separate from the search query because the selection outlives any search: it
+ * arrives from the URL on a cold load, when nothing has been searched for yet.
+ */
+export const productTypeLabelsQueryOptions = (names: string[]) => {
+  const key = [...names].sort();
+  return queryOptions({
+    queryKey: ['productTypes', 'labels', key] as const,
+    queryFn: () => fetchProductTypesByName(key),
+    enabled: key.length > 0,
+    staleTime: 10 * 60_000,
+  });
+};
 
 // ─── Hooks ─────────────────────────────────────────────────────────────────────
 
@@ -119,6 +137,10 @@ export function useSearchBrandsQuery(search: string) {
 
 export function useSearchProductTypesQuery(search: string) {
   return useQuery(productTypesSearchQueryOptions(search));
+}
+
+export function useProductTypeLabelsQuery(names: string[]) {
+  return useQuery(productTypeLabelsQueryOptions(names));
 }
 
 // ─── Save / delete mutations ───────────────────────────────────────────────────

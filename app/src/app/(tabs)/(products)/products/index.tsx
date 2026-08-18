@@ -89,6 +89,7 @@ export default function Products() {
             brandResults={filters.brandResults}
             brandsLoading={filters.brandsLoading}
             typeResults={filters.typeResults}
+            typeLabels={filters.typeLabels}
             typesLoading={filters.typesLoading}
             brandSearch={filters.brandSearch}
             typeSearch={filters.typeSearch}

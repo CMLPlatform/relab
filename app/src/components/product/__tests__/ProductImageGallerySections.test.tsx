@@ -78,6 +78,9 @@ function galleryItem(key: string, url: string | null) {
     thumbnailUrl: url,
     mediumUrl: url,
     largeUrl: url,
+    originalUrl: url,
+    sources: {},
+    sourceSet: [],
   };
 }
 
