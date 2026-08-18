@@ -1011,6 +1011,9 @@ export interface paths {
     /**
      * Upload a file to a base product
      * @description Upload a new file for a base product.
+     *
+     *     Restricted to lab accounts: research-file formats are a lab capability, so the
+     *     dependency rejects before the multipart body is read.
      */
     post: operations['upload_product_file_v1_products__product_id__files_post'];
     delete?: never;
@@ -1159,6 +1162,8 @@ export interface paths {
     /**
      * Upload a file to a component
      * @description Upload a new file for a component.
+     *
+     *     Restricted to lab accounts, like the product-level route.
      */
     post: operations['upload_component_file_v1_components__component_id__files_post'];
     delete?: never;
@@ -2092,6 +2097,39 @@ export interface paths {
     patch: operations['users_patch_current_user_v1_users_me_patch'];
     trace?: never;
   };
+  '/v1/users/me/accept-terms': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Accept the current contributor terms
+     * @description Record that this account accepted the contributor terms.
+     *
+     *     The version is stamped from the server's own ``CURRENT_TERMS_VERSION`` and the
+     *     route takes no body: the column is evidence of what the person was actually
+     *     shown, so a client that could name the version could claim a grant under terms
+     *     that did not exist when it accepted.
+     *
+     *     Existing acceptance is never moved backwards — an account already past the
+     *     current version keeps its later grant, so a rolled-back version constant
+     *     cannot silently narrow a grant somebody really made.
+     *
+     *     Writes through the user database rather than a session dependency: the account
+     *     here is loaded by the auth session, which is a separate dependency from
+     *     ``AsyncSessionDep``, so committing on the latter would persist nothing.
+     */
+    post: operations['accept_terms_v1_users_me_accept_terms_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/v1/profiles/{username}': {
     parameters: {
       query?: never;
@@ -2180,6 +2218,35 @@ export interface paths {
      * @description Reset TOTP MFA after an administrator performs identity-proofed recovery.
      */
     post: operations['reset_user_mfa_v1_admin_users__user_id__mfa_reset_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/admin/users/{user_id}/role': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set a user's contributor tier
+     * @description Set a user's role.
+     *
+     *     A dedicated route rather than a field on `UserUpdate`: fastapi-users' safe
+     *     update path excludes a fixed set of privileged fields, so anything new added
+     *     to that schema would flow straight through self-service `PATCH /users/me`.
+     *     Keeping role off the schema entirely makes that escalation unrepresentable.
+     *
+     *     Writes through the user database rather than `AsyncSessionDep`: the target
+     *     user is loaded by the auth session, which is a separate dependency, so a
+     *     commit on the common session would persist nothing.
+     */
+    put: operations['set_user_role_v1_admin_users__user_id__role_put'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -5417,6 +5484,41 @@ export interface components {
        * @description When the contributor terms were accepted. Recorded by the server; not client-settable.
        */
       terms_accepted_at?: string | null;
+      /**
+       * Terms Acceptance Required
+       * @description Whether this account should be prompted to accept the contributor terms. True when it has never accepted, or accepted a version older than the one that grants the publication licence a dataset release needs.
+       * @default false
+       */
+      terms_acceptance_required: boolean;
+      /**
+       * @description Contributor tier. `lab` accounts may upload non-image research files and carry a larger upload quota. Set by an administrator; not client-settable.
+       * @default contributor
+       */
+      role: components['schemas']['UserRole'];
+      /**
+       * Upload Quota Files
+       * @description Maximum number of files and images this account's role allows.
+       * @default 0
+       */
+      upload_quota_files: number;
+      /**
+       * Upload Quota Bytes
+       * @description Maximum total upload size this account's role allows.
+       * @default 0
+       */
+      upload_quota_bytes: number;
+      /**
+       * Upload File Count
+       * @description Files and images this account currently has stored.
+       * @default 0
+       */
+      upload_file_count: number;
+      /**
+       * Upload Total Bytes
+       * @description Total bytes this account currently has stored.
+       * @default 0
+       */
+      upload_total_bytes: number;
     };
     /**
      * UserRegister
@@ -5440,6 +5542,20 @@ export interface components {
       password: string;
       /** Username */
       username: string;
+    };
+    /**
+     * UserRole
+     * @description Ordered contributor tiers. Compare with :func:`role_rank`, not ``<``.
+     * @enum {string}
+     */
+    UserRole: 'contributor' | 'lab';
+    /**
+     * UserRoleUpdate
+     * @description Administrator request to set one account's contributor tier.
+     */
+    UserRoleUpdate: {
+      /** @description The contributor tier to assign. */
+      role: components['schemas']['UserRole'];
     };
     /**
      * UserUpdate
@@ -10554,6 +10670,26 @@ export interface operations {
       };
     };
   };
+  accept_terms_v1_users_me_accept_terms_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserRead'];
+        };
+      };
+    };
+  };
   get_public_profile_v1_profiles__username__get: {
     parameters: {
       query?: never;
@@ -10750,6 +10886,42 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  set_user_role_v1_admin_users__user_id__role_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The user's ID */
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UserRoleUpdate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserRead'];
+        };
       };
       /** @description Validation Error */
       422: {

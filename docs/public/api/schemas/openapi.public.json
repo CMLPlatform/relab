@@ -5599,6 +5599,17 @@
             "$ref": "#/components/schemas/UserPreferences",
             "description": "User preferences."
           },
+          "role": {
+            "$ref": "#/components/schemas/UserRole",
+            "default": "contributor",
+            "description": "Contributor tier. `lab` accounts may upload non-image research files and carry a larger upload quota. Set by an administrator; not client-settable."
+          },
+          "terms_acceptance_required": {
+            "default": false,
+            "description": "Whether this account should be prompted to accept the contributor terms. True when it has never accepted, or accepted a version older than the one that grants the publication licence a dataset release needs.",
+            "title": "Terms Acceptance Required",
+            "type": "boolean"
+          },
           "terms_accepted_at": {
             "anyOf": [
               {
@@ -5623,6 +5634,30 @@
             ],
             "description": "Version of the contributor terms this account accepted at signup, or null if it predates acceptance tracking. Recorded by the server; not client-settable.",
             "title": "Terms Accepted Version"
+          },
+          "upload_file_count": {
+            "default": 0,
+            "description": "Files and images this account currently has stored.",
+            "title": "Upload File Count",
+            "type": "integer"
+          },
+          "upload_quota_bytes": {
+            "default": 0,
+            "description": "Maximum total upload size this account's role allows.",
+            "title": "Upload Quota Bytes",
+            "type": "integer"
+          },
+          "upload_quota_files": {
+            "default": 0,
+            "description": "Maximum number of files and images this account's role allows.",
+            "title": "Upload Quota Files",
+            "type": "integer"
+          },
+          "upload_total_bytes": {
+            "default": 0,
+            "description": "Total bytes this account currently has stored.",
+            "title": "Upload Total Bytes",
+            "type": "integer"
           },
           "username": {
             "anyOf": [
@@ -5679,6 +5714,15 @@
         ],
         "title": "UserRegister",
         "type": "object"
+      },
+      "UserRole": {
+        "description": "Ordered contributor tiers. Compare with :func:`role_rank`, not ``<``.",
+        "enum": [
+          "contributor",
+          "lab"
+        ],
+        "title": "UserRole",
+        "type": "string"
       },
       "UserUpdate": {
         "additionalProperties": false,
@@ -8762,7 +8806,7 @@
         ]
       },
       "post": {
-        "description": "Upload a new file for a component.",
+        "description": "Upload a new file for a component.\n\nRestricted to lab accounts, like the product-level route.",
         "operationId": "upload_component_file_v1_components__component_id__files_post",
         "parameters": [
           {
@@ -16445,7 +16489,7 @@
         ]
       },
       "post": {
-        "description": "Upload a new file for a base product.",
+        "description": "Upload a new file for a base product.\n\nRestricted to lab accounts: research-file formats are a lab capability, so the\ndependency rejects before the multipart body is read.",
         "operationId": "upload_product_file_v1_products__product_id__files_post",
         "parameters": [
           {
@@ -19151,6 +19195,40 @@
           }
         ],
         "summary": "Users:Patch Current User",
+        "tags": [
+          "users"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/users/me/accept-terms": {
+      "post": {
+        "description": "Record that this account accepted the contributor terms.\n\nThe version is stamped from the server's own ``CURRENT_TERMS_VERSION`` and the\nroute takes no body: the column is evidence of what the person was actually\nshown, so a client that could name the version could claim a grant under terms\nthat did not exist when it accepted.\n\nExisting acceptance is never moved backwards \u2014 an account already past the\ncurrent version keeps its later grant, so a rolled-back version constant\ncannot silently narrow a grant somebody really made.\n\nWrites through the user database rather than a session dependency: the account\nhere is loaded by the auth session, which is a separate dependency from\n``AsyncSessionDep``, so committing on the latter would persist nothing.",
+        "operationId": "accept_terms_v1_users_me_accept_terms_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Accept the current contributor terms",
         "tags": [
           "users"
         ],
