@@ -35,6 +35,8 @@ class ThumbnailFields(BaseModel):
             "image are present: narrower originals yield fewer entries. Pick the width you render "
             "at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one."
         ),
+        # JSON object keys are strings; tell generated clients they are decimal widths.
+        json_schema_extra={"propertyNames": {"pattern": "^[1-9][0-9]*$"}},
     )
     # Sourced from the Product.first_image_file column property so summary reads
     # carry a thumbnail without loading the images relationship.

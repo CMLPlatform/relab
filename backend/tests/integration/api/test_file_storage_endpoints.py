@@ -137,10 +137,15 @@ async def test_upload_image_records_its_pixel_dimensions(
     )
 
     assert response.status_code == status.HTTP_201_CREATED, response.text
-    assert response.json()["width_px"] == 321
-    assert response.json()["height_px"] == 123
+    body = response.json()
+    assert body["width_px"] == 321
+    assert body["height_px"] == 123
+    # The width-keyed derivatives are what the gallery consumes; a 321px original
+    # gets exactly the 200px one (wider widths are skipped, not upscaled).
+    assert list(body["thumbnail_urls"]) == ["200"]
+    assert body["thumbnail_urls"]["200"].endswith("_thumb_200.webp")
 
-    stored = (await db_session.execute(select(Image))).scalars().all()[-1]
+    stored = (await db_session.execute(select(Image).where(Image.id == UUID(body["id"])))).scalar_one()
     assert (stored.width_px, stored.height_px) == (321, 123)
 
 

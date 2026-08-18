@@ -174,21 +174,25 @@ def check_compiled_templates() -> int:
     Same shape as `just assets-check` and the OpenAPI schema-drift check.
     """
     before = {path: path.read_bytes() for path in sorted(BUILD_DIR.glob("*.html"))}
-    compile_mjml_templates()
-    after = {path: path.read_bytes() for path in sorted(BUILD_DIR.glob("*.html"))}
+    try:
+        compile_mjml_templates()
+    finally:
+        # Put the committed bytes back, even when the compile blew up halfway.
+        # Compiling in place is how the comparison is made, but a check that
+        # repairs what it measures would pass on its own second run and report
+        # the tree as clean when it is not, and a check that fails halfway must
+        # not leave half-recompiled templates behind to be committed.
+        after = {path: path.read_bytes() for path in sorted(BUILD_DIR.glob("*.html"))}
+        for path, body in before.items():
+            if after.get(path) != body:
+                path.write_bytes(body)
+        for path in set(after) - set(before):
+            path.unlink()
 
     stale = sorted(
         {path.name for path in set(before) ^ set(after)}
         | {path.name for path, body in after.items() if before.get(path) != body}
     )
-    # Put the committed bytes back. Compiling in place is how the comparison is
-    # made, but a check that repairs what it measures would pass on its own
-    # second run and report the tree as clean when it is not.
-    for path, body in before.items():
-        if after.get(path) != body:
-            path.write_bytes(body)
-    for path in set(after) - set(before):
-        path.unlink()
 
     if stale:
         logger.error(

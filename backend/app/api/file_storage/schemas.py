@@ -144,7 +144,8 @@ class ImageReadWithinParent(UUIDIdReadSchemaWithTimeStamp, ImageBase):
         default=None,
         description=(
             "Pixel width of the stored image, after any EXIF rotation. Null for images uploaded "
-            "before dimensions were recorded. With `height_px` this gives the aspect ratio every "
+            "before dimensions were recorded whose file could not be measured since, and for "
+            "remotely stored (S3) images. With `height_px` this gives the aspect ratio every "
             "entry in `thumbnail_urls` shares, so a client can reserve layout space before the "
             "image loads and derive each derivative's height from its width."
         ),
@@ -157,6 +158,8 @@ class ImageReadWithinParent(UUIDIdReadSchemaWithTimeStamp, ImageBase):
             "image are present: narrower originals yield fewer entries. Pick the width you render "
             "at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one."
         ),
+        # JSON object keys are strings; tell generated clients they are decimal widths.
+        json_schema_extra={"propertyNames": {"pattern": "^[1-9][0-9]*$"}},
     )
 
     @model_validator(mode="after")
@@ -166,7 +169,7 @@ class ImageReadWithinParent(UUIDIdReadSchemaWithTimeStamp, ImageBase):
         if self.image_url is None:
             self.image_url, self.thumbnail_url = build_image_urls(file_path, settings.image_storage_path)
         if not self.thumbnail_urls:
-            self.thumbnail_urls = build_thumbnail_urls_by_width(file_path, settings.image_storage_path)
+            self.thumbnail_urls = build_thumbnail_urls_by_width(file_path, settings.image_storage_path, self.width_px)
         return self
 
 

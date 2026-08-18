@@ -23,14 +23,15 @@ def upgrade() -> None:
 
     Both columns are nullable with no default, which is metadata-only on PG 11+:
     no rewrite, no scan. Existing rows stay NULL until the backfill
-    (``scripts.backfill.image_dimensions``) measures them.
+    (``scripts.maintenance.backfill_image_dimensions``) measures them; rows whose
+    file cannot be read stay NULL.
 
     The CHECK goes on NOT VALID so it applies to new rows without the
     ACCESS EXCLUSIVE scan of the existing ones; the next revision validates it
     under SHARE UPDATE EXCLUSIVE, which does not block writes.
     """
-    op.execute("SET lock_timeout = '3s'")
-    op.execute("SET statement_timeout = '30s'")
+    op.execute("SET LOCAL lock_timeout = '3s'")
+    op.execute("SET LOCAL statement_timeout = '30s'")
 
     op.add_column("image", sa.Column("width_px", sa.Integer(), nullable=True))
     op.add_column("image", sa.Column("height_px", sa.Integer(), nullable=True))
@@ -41,8 +42,13 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Drop the constraint before the columns it references."""
-    op.execute("SET lock_timeout = '3s'")
+    """Drop the constraint before the columns it references.
+
+    The deployed API writes both columns on every upload, so roll the API back
+    to the release before this revision first, or uploads fail on the missing
+    columns.
+    """
+    op.execute("SET LOCAL lock_timeout = '3s'")
     op.drop_constraint("ck_image_dimensions_positive", "image", type_="check")
     op.drop_column("image", "height_px")
     op.drop_column("image", "width_px")

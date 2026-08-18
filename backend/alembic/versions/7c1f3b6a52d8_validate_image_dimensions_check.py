@@ -20,11 +20,13 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     """Promote ck_image_dimensions_positive from NOT VALID to validated.
 
-    Its own revision so it can run later or be retried without holding anything
-    from the one that added the constraint. VALIDATE reads the table under
-    SHARE UPDATE EXCLUSIVE, so writes keep flowing while it scans.
+    Its own revision so a retry never re-runs the DDL of the one that added the
+    constraint. VALIDATE reads the whole table under SHARE UPDATE EXCLUSIVE, so
+    writes keep flowing while it scans; the statement ceiling is raised because
+    that scan, not a lock wait, is what could exceed env.py's default.
     """
-    op.execute("SET lock_timeout = '3s'")
+    op.execute("SET LOCAL lock_timeout = '3s'")
+    op.execute("SET LOCAL statement_timeout = '15min'")
     op.execute("ALTER TABLE image VALIDATE CONSTRAINT ck_image_dimensions_positive")
 
 

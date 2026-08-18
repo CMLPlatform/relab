@@ -1770,6 +1770,9 @@
               "type": "string"
             },
             "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "propertyNames": {
+              "pattern": "^[1-9][0-9]*$"
+            },
             "title": "Thumbnail Urls",
             "type": "object"
           },
@@ -1975,6 +1978,9 @@
               "type": "string"
             },
             "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "propertyNames": {
+              "pattern": "^[1-9][0-9]*$"
+            },
             "title": "Thumbnail Urls",
             "type": "object"
           },
@@ -2214,6 +2220,9 @@
               "type": "string"
             },
             "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "propertyNames": {
+              "pattern": "^[1-9][0-9]*$"
+            },
             "title": "Thumbnail Urls",
             "type": "object"
           },
@@ -2549,6 +2558,9 @@
               "type": "string"
             },
             "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "propertyNames": {
+              "pattern": "^[1-9][0-9]*$"
+            },
             "title": "Thumbnail Urls",
             "type": "object"
           },
@@ -2565,7 +2577,7 @@
                 "type": "null"
               }
             ],
-            "description": "Pixel width of the stored image, after any EXIF rotation. Null for images uploaded before dimensions were recorded. With `height_px` this gives the aspect ratio every entry in `thumbnail_urls` shares, so a client can reserve layout space before the image loads and derive each derivative's height from its width.",
+            "description": "Pixel width of the stored image, after any EXIF rotation. Null for images uploaded before dimensions were recorded whose file could not be measured since, and for remotely stored (S3) images. With `height_px` this gives the aspect ratio every entry in `thumbnail_urls` shares, so a client can reserve layout space before the image loads and derive each derivative's height from its width.",
             "title": "Width Px"
           }
         },
@@ -2669,6 +2681,9 @@
               "type": "string"
             },
             "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "propertyNames": {
+              "pattern": "^[1-9][0-9]*$"
+            },
             "title": "Thumbnail Urls",
             "type": "object"
           },
@@ -2685,7 +2700,7 @@
                 "type": "null"
               }
             ],
-            "description": "Pixel width of the stored image, after any EXIF rotation. Null for images uploaded before dimensions were recorded. With `height_px` this gives the aspect ratio every entry in `thumbnail_urls` shares, so a client can reserve layout space before the image loads and derive each derivative's height from its width.",
+            "description": "Pixel width of the stored image, after any EXIF rotation. Null for images uploaded before dimensions were recorded whose file could not be measured since, and for remotely stored (S3) images. With `height_px` this gives the aspect ratio every entry in `thumbnail_urls` shares, so a client can reserve layout space before the image loads and derive each derivative's height from its width.",
             "title": "Width Px"
           }
         },
@@ -4212,6 +4227,9 @@
               "type": "string"
             },
             "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "propertyNames": {
+              "pattern": "^[1-9][0-9]*$"
+            },
             "title": "Thumbnail Urls",
             "type": "object"
           },
@@ -4439,6 +4457,9 @@
               "type": "string"
             },
             "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "propertyNames": {
+              "pattern": "^[1-9][0-9]*$"
+            },
             "title": "Thumbnail Urls",
             "type": "object"
           },
@@ -4527,6 +4548,9 @@
               "type": "string"
             },
             "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "propertyNames": {
+              "pattern": "^[1-9][0-9]*$"
+            },
             "title": "Thumbnail Urls",
             "type": "object"
           },
