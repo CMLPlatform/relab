@@ -101,6 +101,26 @@ resource "cloudflare_ruleset" "cache_settings" {
   phase       = "http_request_cache_settings"
 
   rules = [
+    # Cloudflare already caches these by file extension and by the origin's own
+    # Cache-Control. Stating it makes the intent reviewable and pins it against a
+    # zone-setting change made outside this repo, and it covers derivative URLs
+    # whatever extension they end in.
+    {
+      ref         = "relab_uploads_cache"
+      description = "Cache stored media at the edge for a year (content-addressed, immutable)"
+      expression  = local.uploads_expression
+      action      = "set_cache_settings"
+      action_parameters = {
+        cache = true
+        edge_ttl = {
+          mode    = "override_origin"
+          default = 31536000
+        }
+        browser_ttl = {
+          mode = "respect_origin"
+        }
+      }
+    },
     {
       ref         = "relab_staging_cache_bypass"
       description = "Bypass cache for staging hostnames"

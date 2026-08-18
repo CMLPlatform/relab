@@ -60,6 +60,16 @@ locals {
     for route in values(local.edge_routes_by_environment.staging) : route.hostname
   ]))}}"
 
+  # Stored media is content-addressed: the filename embeds the file's hash, so a
+  # changed image is a new URL and a cached copy can never go stale. Prod's api
+  # host only — staging bypasses cache entirely (staging_hosts_expression above),
+  # and scoping this rule away from it keeps the two from fighting over the same
+  # setting.
+  uploads_expression = join(" and ", [
+    "http.host eq \"${local.edge_routes_by_environment.prod.api.hostname}\"",
+    "starts_with(http.request.uri.path, \"/uploads/\")",
+  ])
+
   rate_limit_rules = {
     auth = {
       description         = "Rate limit authentication endpoints"

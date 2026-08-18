@@ -62,6 +62,17 @@ run "prod_rulesets_cover_both_environments" {
     condition     = contains(output.hostnames, "cml-relab.org")
     error_message = "prod must serve the apex hostname."
   }
+
+  # The cache rules are the one place where two rules could set the same thing on
+  # the same request. They stay disjoint by host: media caching is prod's api host
+  # only, and staging bypasses cache wholesale.
+  assert {
+    condition = alltrue([
+      for rule in cloudflare_ruleset.cache_settings[0].rules :
+      rule.ref == "relab_staging_cache_bypass" || !strcontains(rule.expression, "-test.cml-relab.org")
+    ])
+    error_message = "a cache rule matches a staging host, which would contend with the staging bypass."
+  }
 }
 
 run "tunnel_ingress_ends_in_a_catch_all" {
