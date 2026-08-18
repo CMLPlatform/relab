@@ -24,16 +24,9 @@
 
 [dependency-groups]
   # pyyaml is used directly by scripts/sync_brand_assets.py to read CITATION.cff.
-  # It arrived transitively via pre-commit; declared so the script does not depend
+  # It arrived transitively via prek; declared so the script does not depend
   # on another tool's dependency tree.
-  dev = [
-    "commitizen>=4.8.3",
-    "pre-commit>=4.2.0",
-    "pytest>=9.1.1",
-    "pyyaml>=6.0.3",
-    "ruff>=0.12.1",
-    "ty>=0.0.15",
-]
+  dev = ["commitizen>=4.8.3", "prek>=0.4.11", "pytest>=9.1.1", "pyyaml>=6.0.3", "ruff>=0.12.1", "ty>=0.0.15"]
 
 [tool.commitizen]
   annotated_tag      = true

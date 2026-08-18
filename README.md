@@ -92,7 +92,7 @@ local overrides in `backend/.env.dev`, and framework/test fixtures such as
 ## Common Commands
 
 ```bash
-just setup     # install workspace dependencies and pre-commit hooks
+just setup     # install workspace dependencies and git hooks
 just ci        # run the canonical local CI pipeline
 just test      # run local test suites
 just security  # run dependency and security checks

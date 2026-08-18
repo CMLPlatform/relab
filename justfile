@@ -41,10 +41,10 @@ update:
     for d in {{ subrepos }}; do just "$d/update"; done
     echo "✅ Dependencies updated (run 'just install' to sync)"
 
-# Install pre-commit hooks (run once after clone)
-_pre-commit-install:
-    uv run pre-commit install
-    @echo "✅ Pre-commit hooks installed"
+# Install git hooks (run once after clone)
+_prek-install:
+    uv run prek install
+    @echo "✅ Git hooks installed"
 
 # Sync shared brand assets into consumer subrepos
 assets-sync:
@@ -59,7 +59,7 @@ _commit:
     uv run cz commit
 
 # Bootstrap a full local development environment
-setup: install _pre-commit-install
+setup: install _prek-install
     @echo "✅ Development environment ready"
 
 # ============================================================================
@@ -68,17 +68,17 @@ setup: install _pre-commit-install
 
 # Run repository-wide policy checks
 pre-commit:
-    uv run pre-commit run --all-files
+    uv run prek run --all-files
     @echo "✅ Repository policy checks passed"
 
 # Lint all tracked shell scripts with the pre-commit-managed ShellCheck hook
 shellcheck:
-    uv run pre-commit run shellcheck --files $(git ls-files '*.sh')
+    uv run prek run shellcheck --files $(git ls-files '*.sh')
     @echo "✅ Repository shell scripts passed ShellCheck"
 
 # Format all tracked shell scripts with the pre-commit-managed shfmt hook
 shellfmt:
-    uv run pre-commit run shfmt --files $(git ls-files '*.sh')
+    uv run prek run shfmt --files $(git ls-files '*.sh')
     @echo "✅ Repository shell scripts formatted"
 
 # Run root and subrepo lint checks
@@ -228,7 +228,7 @@ security:
     # non-zero if either step fails.
     set -uo pipefail
     status=0
-    prek run gitleaks --all-files || status=1
+    uv run prek run gitleaks --all-files || status=1
     just audit || status=1
     [[ $status -eq 0 ]] && echo "✅ Security checks complete"
     exit $status

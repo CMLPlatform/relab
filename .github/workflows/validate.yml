@@ -154,14 +154,14 @@ jobs:
             uv.lock
             backend/uv.lock
 
-      - name: Compute pre-commit cache key
+      - name: Compute prek cache key
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
 
-      - name: Cache pre-commit environments
+      - name: Cache prek environments
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ runner.os }}|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+          path: ~/.cache/prek
+          key: prek|${{ runner.os }}|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Install root dependencies
         run: pnpm install --frozen-lockfile
@@ -171,9 +171,9 @@ jobs:
         with:
           tofu_wrapper: false
 
-      - name: Run pre-commit checks
+      - name: Run repository policy checks
         run: >-
-          ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'SKIP=no-commit-to-branch ' || '' }}uv run pre-commit run --all-files --show-diff-on-failure
+          ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'SKIP=no-commit-to-branch ' || '' }}uv run prek run --all-files --show-diff-on-failure
 
       - name: Validate Cloudflare edge IaC
         run: just cloudflare-check
@@ -197,7 +197,7 @@ jobs:
             echo "- environment variable policy validated"
             echo "- Compose configs rendered successfully"
             echo "- deploy secret file paths matched rendered Compose"
-            echo "- GitHub workflow lint passed via pre-commit"
+            echo "- GitHub workflow lint passed via prek"
           } >> "$GITHUB_STEP_SUMMARY"
 
   backend:

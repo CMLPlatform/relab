@@ -197,6 +197,9 @@ Each configuration surface has one job:
 - `package.json`: JavaScript package dependencies and script wrappers
 - env files: runtime and build-time configuration only
 - GitHub workflow YAML: CI/CD wiring; move complex logic to versioned scripts
+- `.pre-commit-config.yaml`: repository policy hooks, run by [`prek`](https://github.com/j178/prek)
+  (a drop-in replacement for `pre-commit`). `just setup` installs the git hooks; `just pre-commit`
+  runs them all
 
 Keep new settings in the smallest surface that actually needs them. If a change adds or renames env
 vars, update the examples, validation rules, and affected docs in the same PR.
