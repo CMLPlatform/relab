@@ -41,5 +41,5 @@ def register_middleware(app: FastAPI) -> None:
     register_response_policy_middleware(
         app,
         enable_hsts=settings.environment in {Environment.STAGING, Environment.PROD},
-        allow_dev_cross_origin=settings.debug,
+        allow_uploads_cross_origin=settings.uploads_allow_cross_origin,
     )

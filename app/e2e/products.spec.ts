@@ -97,28 +97,22 @@ test.describe('Products page', () => {
     await openNewProductPage(page);
   });
 
-  test('a seeded product thumbnail is fetched from the API and really is an image', async ({
-    page,
-  }) => {
+  test('a seeded product thumbnail renders as a real image', async ({ page }) => {
     // Every other test here would pass against a wall of broken images: a
     // failed load swaps the <img> for a placeholder (ProductCard's onError),
     // and nothing asserts which one it got. This walks the whole chain — seeded
-    // image row, API-built thumbnail URL, app-side URL resolution, bytes.
-    const thumbnailRequest = page.waitForRequest(THUMBNAIL_URL_PATTERN);
+    // image row, API-built thumbnail URL, app-side URL resolution, decoded
+    // bytes. The API relaxes its Cross-Origin-Resource-Policy for /uploads
+    // under `testing`, so the rig's cross-port 127.0.0.1 origins load exactly
+    // as the deployed ones do.
     await page.goto('/products');
     await dismissProductsInfoCard(page);
-    const url = (await thumbnailRequest).url();
 
-    // Fetched rather than asserted on the rendered <img>: both origins here are
-    // ports on 127.0.0.1, which has no registrable domain, and Chromium blocks
-    // that cross-port load under the API's Cross-Origin-Resource-Policy:
-    // same-site (backend response_policy.py relaxes it only under debug).
-    // Deployed origins are both *.cml-relab.org and load normally, so the block
-    // is an artefact of the rig; the request is what this lane can honestly
-    // assert. www's live lane makes the same trade in landing-live.spec.ts.
-    const response = await page.request.get(url);
-    expect(response.status(), url).toBe(200);
-    expect(response.headers()['content-type']).toMatch(/^image\//);
+    const thumbnail = page.getByTestId('product-thumbnail').locator('img').first();
+    await expect(thumbnail).toHaveAttribute('src', THUMBNAIL_URL_PATTERN);
+    await expect
+      .poll(() => thumbnail.evaluate((image: HTMLImageElement) => image.naturalWidth))
+      .toBeGreaterThan(0);
   });
 });
 

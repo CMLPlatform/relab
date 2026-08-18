@@ -34,14 +34,16 @@ CONTENT_SECURITY_POLICY_HEADER_VALUE = "default-src 'none'; frame-ancestors 'non
 X_XSS_PROTECTION_HEADER_VALUE = "0"
 CROSS_ORIGIN_OPENER_POLICY_HEADER_VALUE = "same-origin"
 CROSS_ORIGIN_RESOURCE_POLICY_HEADER_VALUE = "same-site"
-# Dev-only relaxation, scoped to the uploads mount: IP-literal origins like
+# Local-only relaxation, scoped to the uploads mount: IP-literal origins like
 # 127.0.0.1 have no registrable domain, and Chromium in practice blocks
 # cross-port IP-literal loads under CORP "same-site" (observed as
 # net::ERR_BLOCKED_BY_RESPONSE.NotSameSite loading gallery images from the
-# dev api on :8010 into the dev app on :8011). Serve "cross-origin" for
-# /uploads responses only when settings.debug (dev environment); every other
-# response, and all of staging/prod, keeps "same-site".
-CROSS_ORIGIN_RESOURCE_POLICY_DEV_HEADER_VALUE = "cross-origin"
+# dev api on :8010 into the dev app on :8011, and the same for the E2E rig on
+# :18010/:18011). Serve "cross-origin" for /uploads responses only when
+# settings.uploads_allow_cross_origin, which is derived from the environment
+# (dev and testing only). Every other response, and all of staging/prod, keeps
+# "same-site".
+CROSS_ORIGIN_RESOURCE_POLICY_LOCAL_HEADER_VALUE = "cross-origin"
 BASE_SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": REFERRER_POLICY_HEADER_VALUE,
@@ -81,7 +83,7 @@ def _set_sensitive_cache_headers(response: Response) -> None:
 
 
 def register_response_policy_middleware(
-    app: FastAPI, *, enable_hsts: bool, allow_dev_cross_origin: bool = False
+    app: FastAPI, *, enable_hsts: bool, allow_uploads_cross_origin: bool = False
 ) -> None:
     """Register response-only cache and browser security policy."""
 
@@ -93,8 +95,8 @@ def register_response_policy_middleware(
         for name, value in BASE_SECURITY_HEADERS.items():
             response.headers.setdefault(name, value)
         cross_origin_resource_policy = (
-            CROSS_ORIGIN_RESOURCE_POLICY_DEV_HEADER_VALUE
-            if allow_dev_cross_origin and _is_uploads_path(request.url.path)
+            CROSS_ORIGIN_RESOURCE_POLICY_LOCAL_HEADER_VALUE
+            if allow_uploads_cross_origin and _is_uploads_path(request.url.path)
             else CROSS_ORIGIN_RESOURCE_POLICY_HEADER_VALUE
         )
         response.headers.setdefault("Cross-Origin-Resource-Policy", cross_origin_resource_policy)

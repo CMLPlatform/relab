@@ -53,7 +53,12 @@ Security-sensitive areas:
   - The entry also stores a hash of the request body: reusing a key with a different payload is
     rejected with `422` instead of replaying the earlier record.
   - If Redis is unreachable the request fails closed with `503` rather than risking a duplicate.
-- uploads and media
+- uploads and media — the `/uploads` mount serves stored bytes with a content-hashed,
+  immutable cache policy and `Cross-Origin-Resource-Policy: same-site`. That policy is
+  relaxed to `cross-origin` for `/uploads` alone in the `dev` and `testing` environments,
+  where the API and the frontends sit on different ports of `127.0.0.1` and Chromium blocks
+  the loads. The relaxation is derived from the environment, not configured, so staging and
+  production cannot opt into it.
 - admin APIs
 - RPi camera device APIs and WebSocket relay
 - backups, secrets, logs, and telemetry

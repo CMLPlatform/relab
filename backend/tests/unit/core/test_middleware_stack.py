@@ -73,21 +73,45 @@ async def test_composed_middleware_relaxes_cross_origin_resource_policy_in_dev(
     assert health_response.headers["cross-origin-resource-policy"] == "same-site"
 
 
-async def test_composed_middleware_keeps_cross_origin_resource_policy_strict_in_prod(
+async def test_composed_middleware_relaxes_cross_origin_resource_policy_in_testing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Production must keep the fail-closed same-site policy regardless of dev relaxation."""
+    """The E2E rig needs the same relaxation: www :18013 and app :18011 <-> api :18010."""
     monkeypatch.setattr(settings, "allowed_hosts", ["*"])
     monkeypatch.setattr(settings, "allowed_origins", ["https://app.example.test"])
     monkeypatch.setattr(settings, "cors_origin_regex", None)
-    monkeypatch.setattr(settings, "environment", Environment.PROD)
+    monkeypatch.setattr(settings, "environment", Environment.TESTING)
 
     app = _create_composed_middleware_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
-        response = await client.get("/health")
+        uploads_response = await client.get("/uploads/images/product.jpg")
 
-    assert response.headers["cross-origin-resource-policy"] == "same-site"
+    assert uploads_response.headers["cross-origin-resource-policy"] == "cross-origin"
+
+
+async def test_composed_middleware_keeps_cross_origin_resource_policy_strict_when_deployed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Deployed environments must keep the fail-closed policy, uploads included.
+
+    The relaxation is derived from the environment rather than configured, so
+    there is no env var that could opt staging or prod into it.
+    """
+    monkeypatch.setattr(settings, "allowed_hosts", ["*"])
+    monkeypatch.setattr(settings, "allowed_origins", ["https://app.example.test"])
+    monkeypatch.setattr(settings, "cors_origin_regex", None)
+
+    for environment in (Environment.PROD, Environment.STAGING):
+        monkeypatch.setattr(settings, "environment", environment)
+        app = _create_composed_middleware_app()
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
+            uploads_response = await client.get("/uploads/images/product.jpg")
+            health_response = await client.get("/health")
+
+        assert uploads_response.headers["cross-origin-resource-policy"] == "same-site", environment
+        assert health_response.headers["cross-origin-resource-policy"] == "same-site", environment
 
 
 async def test_composed_middleware_exposes_request_id_through_cors(monkeypatch: pytest.MonkeyPatch) -> None:

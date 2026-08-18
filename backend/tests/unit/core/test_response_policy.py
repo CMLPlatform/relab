@@ -21,9 +21,11 @@ def _assert_sensitive_cache_headers(response: Response) -> None:
     assert response.headers["expires"] == "0"
 
 
-def _create_policy_app(*, enable_hsts: bool = False, allow_dev_cross_origin: bool = False) -> FastAPI:
+def _create_policy_app(*, enable_hsts: bool = False, allow_uploads_cross_origin: bool = False) -> FastAPI:
     app = FastAPI()
-    register_response_policy_middleware(app, enable_hsts=enable_hsts, allow_dev_cross_origin=allow_dev_cross_origin)
+    register_response_policy_middleware(
+        app, enable_hsts=enable_hsts, allow_uploads_cross_origin=allow_uploads_cross_origin
+    )
 
     @app.get("/health")
     async def health() -> dict[str, str]:
@@ -76,9 +78,9 @@ async def test_response_policy_sets_browser_baseline_headers() -> None:
     assert response.headers["cross-origin-resource-policy"] == "same-site"
 
 
-async def test_response_policy_relaxes_cross_origin_resource_policy_in_dev() -> None:
+async def test_response_policy_relaxes_cross_origin_resource_policy_locally() -> None:
     """Dev-only opt-in should allow cross-port loopback image loads without weakening other responses."""
-    app = _create_policy_app(allow_dev_cross_origin=True)
+    app = _create_policy_app(allow_uploads_cross_origin=True)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
         uploads_response = await client.get("/uploads/images/product.jpg")

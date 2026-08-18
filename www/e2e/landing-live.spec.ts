@@ -48,16 +48,16 @@ test.describe('Landing page against a live API', () => {
       // so a srcset without sizes is a srcset that picks the wrong candidate.
       expect(await plate.getAttribute('sizes')).toBeTruthy();
 
-      // Fetched rather than decoded in the page. Both origins here are ports on
-      // 127.0.0.1, which has no registrable domain, and Chromium blocks such a
-      // cross-port load under the API's Cross-Origin-Resource-Policy: same-site
-      // (see the backend's response_policy.py). Deployed origins are both
-      // *.cml-relab.org and load normally, so the block is an artefact of the
-      // rig; the request is what this lane can honestly assert.
-      const url = widestCandidate(srcset);
-      const response = await page.request.get(url);
-      expect(response.status(), url).toBe(200);
-      expect(response.headers()['content-type']).toMatch(/^image\//);
+      // Decoded in the page, not fetched beside it: the API relaxes its
+      // Cross-Origin-Resource-Policy for /uploads under `testing`, so the rig's
+      // cross-port 127.0.0.1 origins load exactly as the deployed ones do.
+      // Plates below the fold are lazy, so they hold no bytes until scrolled to.
+      await plate.scrollIntoViewIfNeeded();
+      await expect
+        .poll(() => plate.evaluate((img: HTMLImageElement) => img.naturalWidth), {
+          message: widestCandidate(srcset),
+        })
+        .toBeGreaterThan(0);
     }
   });
 

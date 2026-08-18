@@ -255,6 +255,19 @@ class CoreSettings(RelabBaseSettings):
         return self.environment != Environment.TESTING
 
     @property
+    def uploads_allow_cross_origin(self) -> bool:
+        """Relax the uploads mount's resource policy outside deployed environments.
+
+        Local dev and the E2E rig serve the API and the frontends on different
+        ports of 127.0.0.1, which has no registrable domain, so Chromium blocks
+        the images under `Cross-Origin-Resource-Policy: same-site`. Deployed, the
+        origins share `cml-relab.org` and the strict policy costs nothing, so
+        this stays derived from the environment rather than set by hand: staging
+        and prod cannot opt in, whatever their env files say.
+        """
+        return self.environment in (Environment.DEV, Environment.TESTING)
+
+    @property
     def secure_cookies(self) -> bool:
         """Require HTTPS-only cookies in production and staging."""
         return self.environment in (Environment.PROD, Environment.STAGING)
