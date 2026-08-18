@@ -346,9 +346,53 @@ _dev-www:
 dev:
     {{ dev_compose }} up --watch
 
-# Start full dev stack without hot reload (uses source snapshot baked into image)
+# The snapshot never updates. A container left running here serves the code as
+# it was when the image was built, indefinitely and silently — a stale one cost
+# a full day of measurements against five-day-old code. The banner below and
+# `just dev-stale` exist so that is discoverable rather than assumed.
+#
+# Start full dev stack WITHOUT hot reload (serves the snapshot baked into the image)
 dev-up:
+    @printf '\n\033[33m%s\033[0m\n' "dev-up: source is NOT synced. Containers serve the snapshot baked into the image."
+    @printf '\033[33m%s\033[0m\n\n' "Run 'just dev' for hot reload, or 'just dev-stale' to check whether this snapshot is behind."
     {{ dev_compose }} up
+
+# A 200 from a dev port proves something answered, not that it is current.
+# This compares each dev image's build time against the newest source mtime,
+# which is what proves the latter. Cheap enough for humans and agents to run
+# before trusting any measurement taken against a dev server.
+#
+# Check whether running dev containers serve code older than the working tree
+dev-stale:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    stale=0
+    found=0
+    for svc in app www docs api; do
+      cid=$({{ dev_compose }} ps -q "$svc" 2>/dev/null || true)
+      [ -n "$cid" ] || continue
+      found=1
+      img=$(docker inspect "$cid" | jq -r '.[0].Image')
+      built=$(docker inspect "$img" | jq -r '.[0].Created')
+      built_ts=$(date -d "$built" +%s)
+      case "$svc" in
+        app) src=app/src ;; www) src=www/src ;; docs) src=docs/src ;; api) src=backend/app ;;
+      esac
+      newest=$(find "$src" -type f -not -path '*/.*' -newermt "@$built_ts" -print -quit 2>/dev/null || true)
+      if [ -n "$newest" ]; then
+        printf '\033[31mSTALE\033[0m  %-4s image built %s — %s has newer files (e.g. %s)\n' \
+          "$svc" "$(date -d "$built" '+%Y-%m-%d %H:%M')" "$src" "$newest"
+        stale=1
+      else
+        printf '\033[32mfresh\033[0m  %-4s image built %s\n' "$svc" "$(date -d "$built" '+%Y-%m-%d %H:%M')"
+      fi
+    done
+    [ "$found" -eq 1 ] || { echo "No dev containers running."; exit 0; }
+    if [ "$stale" -eq 1 ]; then
+      printf '\nThose containers serve code older than your working tree.\n'
+      printf 'Restart with %s (hot reload) or rebuild with %s.\n' "'just dev'" "'just _dev-build'"
+      exit 1
+    fi
 
 # Build (or rebuild) dev images
 _dev-build:
