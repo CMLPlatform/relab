@@ -89,12 +89,10 @@ describe('pickThumbnailUrl', () => {
     expect(pickThumbnailUrl(urls, 1170)).toBe('a_1600');
   });
 
-  it('returns undefined when no derivative is wide enough, so the caller keeps the original', () => {
-    // The original is always wider than every derivative; upscaling the widest
-    // derivative would render softer than the original the caller already has.
-    expect(pickThumbnailUrl(urls, 4000)).toBeUndefined();
-    // A 1200px original publishes only {200, 800}; a 390pt @3x pager needs 1170.
-    expect(pickThumbnailUrl({ 200: 'a_200', 800: 'a_800' }, 1170)).toBeUndefined();
+  it('falls back to the widest available rather than overshooting into the original', () => {
+    expect(pickThumbnailUrl(urls, 4000)).toBe('a_1600');
+    // Sparse map: a narrow original generates no wide derivatives.
+    expect(pickThumbnailUrl({ 200: 'a_200' }, 1170)).toBe('a_200');
   });
 
   it('returns undefined for an empty map so the caller keeps its own URL', () => {

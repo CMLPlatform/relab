@@ -66,12 +66,11 @@ describe('buildGalleryMedia', () => {
       ]),
     );
 
-    // Narrowest first, each height following the original's 4:3, and the
-    // original itself as the widest candidate so nothing is ever upscaled.
+    // Narrowest first, each height following the original's 4:3. The original
+    // is not offered: it is reserved for zooming.
     expect(items[0].sourceSet).toEqual([
       { uri: 'https://cdn.test/a_200.webp', width: 200, height: 150 },
       { uri: 'https://cdn.test/a_800.webp', width: 800, height: 600 },
-      { uri: 'https://cdn.test/a.jpg', width: 4000, height: 3000 },
     ]);
   });
 
