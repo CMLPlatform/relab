@@ -11,7 +11,9 @@
   "semanticCommitScope": "deps",
   "prConcurrentLimit": 8,
   "configMigration": true,
-  "pre-commit": { "enabled": true },
+  "pre-commit": {
+    "enabled": true
+  },
   "minimumReleaseAge": "14 days",
   "labels": ["dependencies"],
   "osvVulnerabilityAlerts": true,
@@ -38,6 +40,41 @@
       "enabled": false
     },
     {
+      "description": "Non-breaking updates merge themselves once CI is green",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "One PR per subrepo instead of one per package",
+      "groupName": "backend",
+      "matchFileNames": ["backend/**"]
+    },
+    {
+      "groupName": "app",
+      "matchFileNames": ["app/**"]
+    },
+    {
+      "groupName": "www",
+      "matchFileNames": ["www/**"]
+    },
+    {
+      "groupName": "docs",
+      "matchFileNames": ["docs/**"]
+    },
+    {
+      "groupName": "repo-tooling",
+      "matchFileNames": [
+        ".tool-versions",
+        ".node-version",
+        ".pre-commit-config.yaml",
+        ".devcontainer/**",
+        "package.json",
+        "pnpm-lock.yaml",
+        "pyproject.toml",
+        "uv.lock"
+      ]
+    },
+    {
       "description": "Batch GitHub Actions updates into one PR, pinned to immutable SHA digests",
       "matchManagers": ["github-actions"],
       "groupName": "github-actions",
@@ -49,5 +86,6 @@
       "groupName": "container-images",
       "pinDigests": true
     }
-  ]
+  ],
+  "platformAutomerge": true
 }
