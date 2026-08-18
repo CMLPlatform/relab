@@ -63,7 +63,7 @@ describe('ProfileSecuritySection enrolment', () => {
 
     fireEvent.changeText(screen.getByLabelText('Current password'), 'hunter2');
     // A full 6-digit code auto-submits, so no Confirm press is needed.
-    fireEvent.changeText(screen.getByLabelText('Setup code'), '123456');
+    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     await waitFor(() =>
       expect(mockConfirmTotpSetup).toHaveBeenCalledWith('setup-token', '123456', 'hunter2'),
@@ -80,7 +80,7 @@ describe('ProfileSecuritySection enrolment', () => {
     fireEvent.press(screen.getByLabelText('Two-step verification'));
     await screen.findByText('Set up two-step verification');
 
-    fireEvent.changeText(screen.getByLabelText('Setup code'), '123456');
+    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     await waitFor(() => expect(mockConfirmTotpSetup).not.toHaveBeenCalled());
   });
@@ -92,7 +92,7 @@ describe('ProfileSecuritySection enrolment', () => {
     fireEvent.press(screen.getByLabelText('Two-step verification'));
     await screen.findByText('Set up two-step verification');
     fireEvent.changeText(screen.getByLabelText('Current password'), 'hunter2');
-    fireEvent.changeText(screen.getByLabelText('Setup code'), '123456');
+    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     expect(await screen.findByText('Invalid code')).toBeOnTheScreen();
     expect(screen.queryByText('Save your recovery codes')).toBeNull();
@@ -116,7 +116,7 @@ describe('ProfileSecuritySection management', () => {
     fireEvent.press(screen.getByLabelText('Turn off two-step verification'));
 
     expect(await screen.findByText('Enter a current code')).toBeOnTheScreen();
-    fireEvent.changeText(screen.getByLabelText('Current code'), '654321');
+    fireEvent.changeText(screen.getByLabelText('Authentication code'), '654321');
 
     await waitFor(() => expect(mockDisableTotp).toHaveBeenCalledWith('654321'));
     expect(onEnrolled).toHaveBeenCalled();
@@ -142,19 +142,19 @@ describe('ProfileSecuritySection management', () => {
 
     fireEvent.press(screen.getByLabelText('Turn off two-step verification'));
     await screen.findByText('Enter a current code');
-    expect(screen.getByText('Current code')).toBeOnTheScreen();
+    expect(screen.getByText('Authentication code')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Lost your authenticator? Use a recovery code'));
 
     expect(screen.getByText('Recovery code')).toBeOnTheScreen();
-    expect(screen.queryByText('Current code')).toBeNull();
+    expect(screen.queryByText('Authentication code')).toBeNull();
   });
 
   it('regenerates recovery codes and lets the user copy them', async () => {
     renderSection(true);
 
     fireEvent.press(screen.getByLabelText('Generate new recovery codes'));
-    fireEvent.changeText(await screen.findByLabelText('Current code'), '654321');
+    fireEvent.changeText(await screen.findByLabelText('Authentication code'), '654321');
 
     await waitFor(() => expect(mockRegenerate).toHaveBeenCalledWith('654321'));
     expect(await screen.findByText('Save your recovery codes')).toBeOnTheScreen();

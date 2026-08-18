@@ -40,7 +40,7 @@ describe('LocalizedFloatInput', () => {
   it('calls onChange with parsed number on valid blur', async () => {
     const onChange = jest.fn();
     render(<LocalizedFloatInput value={undefined} onChange={onChange} />);
-    const input = screen.getByPlaceholderText('> 0');
+    const input = screen.getByPlaceholderText('e.g. 12');
     fireEvent.changeText(input, '42.5');
     fireEvent(input, 'blur');
     expect(onChange).toHaveBeenCalledWith(42.5);
@@ -60,7 +60,7 @@ describe('LocalizedFloatInput', () => {
 
   it('ignores non-numeric characters during text change', async () => {
     render(<LocalizedFloatInput value={undefined} />);
-    const input = screen.getByPlaceholderText('> 0');
+    const input = screen.getByPlaceholderText('e.g. 12');
     fireEvent.changeText(input, 'abc');
     // "abc" doesn't match the decimal regex, so text state stays empty
     expect(screen.queryByDisplayValue('abc')).toBeNull();
@@ -68,7 +68,7 @@ describe('LocalizedFloatInput', () => {
 
   it('accepts valid decimal text during typing', async () => {
     render(<LocalizedFloatInput value={undefined} />);
-    const input = screen.getByPlaceholderText('> 0');
+    const input = screen.getByPlaceholderText('e.g. 12');
     fireEvent.changeText(input, '12.3');
     expect(screen.getByDisplayValue('12.3')).toBeOnTheScreen();
   });
@@ -81,7 +81,7 @@ describe('LocalizedFloatInput', () => {
   it('renders empty when value is NaN', () => {
     render(<LocalizedFloatInput value={NaN} />);
     // NaN is normalized to undefined, so the field shows the placeholder not a value
-    expect(screen.getByPlaceholderText('> 0')).toBeOnTheScreen();
+    expect(screen.getByPlaceholderText('e.g. 12')).toBeOnTheScreen();
     expect(screen.queryByDisplayValue('NaN')).toBeNull();
   });
 });

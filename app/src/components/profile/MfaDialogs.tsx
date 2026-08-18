@@ -113,7 +113,7 @@ export function MfaDialogs({
             onComplete={confirm}
             disabled={mfa.busy}
             hasError={Boolean(mfa.error)}
-            label="Setup code"
+            label="Authentication code"
           />
         </View>
 
@@ -169,7 +169,7 @@ export function MfaDialogs({
               disabled={mfa.busy}
               hasError={Boolean(mfa.error)}
               autoFocus
-              label="Current code"
+              label="Authentication code"
             />
           </View>
         )}
@@ -222,7 +222,7 @@ export function MfaDialogs({
             disabled={mfa.busy}
             hasError={Boolean(mfa.error)}
             autoFocus
-            label="Current code"
+            label="Authentication code"
           />
         </View>
 

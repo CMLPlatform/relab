@@ -17,7 +17,7 @@ jest.mock('@/services/api/client', () => ({
 const FORGOT_PASSWORD_INSTRUCTIONS_PATTERN = /send you instructions to reset your password/i;
 const VALID_EMAIL_PATTERN = /valid email/i;
 const ACCOUNT_EXISTS_MESSAGE_PATTERN = /If an account exists with this email/i;
-const TRY_AGAIN_LATER_PATTERN = /Please try again later/i;
+const TRY_AGAIN_LATER_PATTERN = /Try again later/i;
 
 const mockedApiFetch = apiFetch as jest.MockedFunction<typeof apiFetch>;
 const mockBack = jest.fn();

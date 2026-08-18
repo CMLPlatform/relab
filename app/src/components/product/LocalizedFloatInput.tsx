@@ -54,7 +54,7 @@ export default function LocalizedFloatInput({
   value,
   onChange,
   editable = true,
-  placeholder = '> 0',
+  placeholder = 'e.g. 12',
   unit,
   label,
   min = 0,

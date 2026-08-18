@@ -129,7 +129,6 @@ function PhysicalPropertyRow({
         editable={editMode}
         onChange={handleChange}
         min={0}
-        placeholder="e.g. 12"
         error={editMode ? propertyError(propKey, value) : undefined}
       />
     </View>

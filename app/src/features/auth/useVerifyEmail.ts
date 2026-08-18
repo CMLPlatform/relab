@@ -6,7 +6,7 @@ import { ApiError } from '@/services/api/errors';
 import { logError } from '@/utils/logging';
 import { useSensitiveAuthToken } from './useSensitiveAuthToken';
 
-const GENERIC_ERROR = 'An error occurred during verification. Please try again later.';
+const GENERIC_ERROR = "Couldn't verify your email. Try again later.";
 
 export function useVerifyEmail() {
   const router = useRouter();

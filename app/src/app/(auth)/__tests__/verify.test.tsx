@@ -17,7 +17,7 @@ jest.mock('@/services/api/auth/authentication', () => ({
 
 const NO_VERIFICATION_TOKEN_PATTERN = /No verification token/;
 const EMAIL_VERIFIED_SUCCESS_PATTERN = /Email verified!/;
-const GENERIC_VERIFY_ERROR_PATTERN = /An error occurred/;
+const GENERIC_VERIFY_ERROR_PATTERN = /Couldn't verify your email/;
 const mockedGetToken = jest.mocked(getToken);
 const mockedGetUser = jest.mocked(getUser);
 

@@ -23,7 +23,7 @@ jest.mock('@hookform/resolvers/zod', () => ({
 
 const INVALID_LINK_PATTERN = /invalid/i;
 const RESET_FAILED_PATTERN = /couldn't reset your password/i;
-const GENERIC_ERROR_PATTERN = /an error occurred/i;
+const GENERIC_ERROR_PATTERN = /something went wrong/i;
 
 beforeEach(() => {
   mockRequestPasswordReset.mockReset();
