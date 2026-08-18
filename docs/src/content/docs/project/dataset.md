@@ -67,7 +67,13 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
 `backend/`:
 
 1. `just release-build --inventory` — a dry run across every consenting account: writes nothing,
-   just reports what a release would contain.
+   just reports what a release would contain. "Consenting" means the owner accepted the
+   contributor terms at the version that grants the publication licence; everyone else is
+   excluded by the `no-terms-acceptance` rule and appears in `excluded-records.csv`.
+   Accounts created before acceptance was tracked hold no grant until they answer the in-app
+   prompt, so the consenting set grows as contributors sign in. Declining is free and costs a
+   contributor nothing except inclusion, so expect it to be a real outcome rather than a
+   formality.
 1. `just release-build --out dist/dataset-vX.Y` — builds the release directory. The verification
    pass at the end is not optional; it fails the build rather than warning.
 1. Review `dist/dataset-vX.Y/review/` by hand, including `excluded-records.csv` and the rule that

@@ -37,6 +37,18 @@ Protection requirements:
 - Store secret material in Docker secrets, secure platform stores, hashed/token-fingerprint state, or encrypted backup material as appropriate for the data type.
 - Delete obsolete runtime state through existing session revocation, upload deletion, cache invalidation, cleanup, and backup rotation workflows. Add explicit retention automation when a new data class needs a schedule beyond those workflows.
 
+## Account privileges
+
+Three independent account attributes decide what an account may do. Conflating any two of them is a privilege escalation, so each is enforced separately:
+
+- `is_verified` — whether the account may create records at all.
+- `is_superuser` — access to the `/admin` routes. It carries no data privileges: a superuser who is not `lab` is refused a research-file upload exactly like any other contributor.
+- `role` — the contributor tier, `contributor` (the default) or `lab`. It gates non-image research-file upload and selects the upload quota tier.
+
+Roles are set only by a superuser, through `PUT /v1/admin/users/{user_id}/role`, and every change is audit-logged. `role` is deliberately absent from the self-service update schema rather than filtered out of it, so a self-service `PATCH /users/me` has no field through which to reach it. New accounts, and every account backfilled when roles were introduced, start at `contributor`.
+
+Clients hide affordances the account's role cannot use — the app renders its research-file block for lab accounts only. That is presentation. The control is the route dependency, which refuses the request whatever the client chose to display.
+
 ## Logging and error handling
 
 The backend writes application, access, audit, and security-control events through the standard Python logging stack. Development logs are human-readable; production and staging logs are JSON on stderr so container log drivers and processors can parse them consistently. Each request gets an `X-Request-ID` value that is echoed to the client and attached to backend log records with method, path, status, and latency.

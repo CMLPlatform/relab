@@ -12,8 +12,27 @@ This file is committed deliberately: it contains no secrets, and the previous
 playbook lived under `secrets/`, which is gitignored and therefore never reached
 the deploy host.
 
-Prod's Alembic revision is `6f2b9e4a1c3d` and the release is `f1a2b3c4d5e6`
-(20 migrations).
+Prod's Alembic revision is `6f2b9e4a1c3d` and the release *was* `f1a2b3c4d5e6`
+(20 migrations) when this was written.
+
+> **Stale as of 2026-08-18: the release head has moved.** The head is now
+> `c4f7b1e93a20` (47 migration files on the branch), and prod at `6f2b9e4a1c3d`
+> has **27 migrations** to apply, not 20. Every revision literal and migration
+> count below records what was true on 2026-08-03 — treat them as the historical
+> observation they are, and re-derive both before the window:
+>
+> ```bash
+> cd backend
+> uv run alembic heads                            # the revision step 9 must find
+> uv run alembic history -r 6f2b9e4a1c3d:head     # lists prod's revision + each pending one
+> ```
+>
+> That range is inclusive of prod's own revision, so the number of migrations
+> that actually run is one less than the lines it prints.
+>
+> The *shape* of the plan is unaffected: prod is still at `6f2b9e4a1c3d`, the
+> path is still forward-only and still runs in one transaction, and nothing
+> below changes except how many migrations that path contains.
 
 Prod's *code* is not literally at `main` — it sits on a pre-rewrite lineage of
 the working branch from April (step 0). For deployment purposes the two are
@@ -22,7 +41,7 @@ declare the **same** Compose services (`api`, `app-site`, `docs-site`,
 `web-site`, `migrator`, `postgres`, `redis`, `cloudflared`, `postgres-backup`,
 `uploads-backup`), the **same** volumes (`database_data`, `user_uploads`,
 `cache_data`), the same `relab_prod` project name, the same `backend/.env.prod`
-config mechanism, and the same 20 migrations. Everything below that is phrased
+config mechanism, and the same migration lineage. Everything below that is phrased
 as "on `main`" therefore applies to the host as it actually is.
 
 ## What makes this cutover different
@@ -118,18 +137,19 @@ git checkout <release-branch> && git pull --ff-only
 
 Prod's Alembic revision is `6f2b9e4a1c3d`, and the migration surface at prod's
 April tip is **identical to `main`** — 20 files, no extras. So despite the code
-drift, the database is exactly where this runbook assumes, and the 20-migration
-path to `f1a2b3c4d5e6` applies unchanged. That path was verified by replaying it
+drift, the database is exactly where this runbook assumes, and the forward-only
+path applies unchanged — it is simply longer now (27 migrations to
+`c4f7b1e93a20`, re-derive on the day). That path was verified by replaying it
 against a seeded scratch database at `6f2b9e4a1c3d`.
 
 The four answers that drive the rest of this document:
 
-| Question                                 | Answer as of 2026-08-03                                                         |
-| ---------------------------------------- | ------------------------------------------------------------------------------- |
-| Alembic revision                         | `6f2b9e4a1c3d` — matches `main`, so the 20-migration plan applies unchanged     |
-| `backend/.env.prod` present?             | Yes — it is the **source** for the secret files created in step 4               |
-| `secrets/prod/` present?                 | No — step 4 creates all 16 from scratch                                         |
-| Superuser name, `relab_*` roles present? | Custom name from `backend/.env.prod`; no `relab_*` roles, so step 5 is required |
+| Question                                 | Answer as of 2026-08-03                                                                                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Alembic revision                         | `6f2b9e4a1c3d` — matches `main`, so the forward-only plan applies unchanged (27 migrations as of 2026-08-18) |
+| `backend/.env.prod` present?             | Yes — it is the **source** for the secret files created in step 4                                            |
+| `secrets/prod/` present?                 | No — step 4 creates all 16 from scratch                                                                      |
+| Superuser name, `relab_*` roles present? | Custom name from `backend/.env.prod`; no `relab_*` roles, so step 5 is required                              |
 
 Re-confirm these on the day rather than trusting the table: it records one
 observation, and anything could change in between.
@@ -204,6 +224,9 @@ until all of the following hold:
 The migration runs as a **single transaction** (`backend/alembic/env.py` never
 sets `transaction_per_migration`), so any failure during step 8 rolls the schema
 back to `6f2b9e4a1c3d` untouched — no partial state, no `alembic stamp` repair.
+One statement escapes that transaction by necessity (a `CONCURRENTLY` index
+drop); see "The seven migrations added after this runbook was written" in §3 for
+what that does and does not change. It is idempotent, so a retry is still clean.
 The irreversible risks are the *data* losses flagged in step 3, which the
 pre-upgrade dump is the only recovery path for.
 
@@ -340,12 +363,15 @@ SELECT (SELECT count(*) FROM organization)                                AS org
 -- If newsletter_dropped > 0:
 -- \copy (SELECT email, is_confirmed, created_at FROM newslettersubscriber) TO '/tmp/newsletter.csv' CSV HEADER
 
--- E. THE UPLOAD QUOTA LOCKOUT — read the note below.
+-- E. THE UPLOAD QUOTA LOCKOUT — read the note below. This is now the list of
+--    accounts that must be promoted to the `lab` role in step 8b.
 SELECT owner_id, count(*) AS media_count FROM (
   SELECT p.owner_id FROM file  f JOIN product p ON f.parent_type='PRODUCT' AND f.parent_id=p.id
   UNION ALL
   SELECT p.owner_id FROM image i JOIN product p ON i.parent_type='PRODUCT' AND i.parent_id=p.id
 ) m GROUP BY owner_id ORDER BY media_count DESC;
+-- media_count counts files AND images across every record the account owns,
+-- base products and components alike. It is not a count of products.
 
 -- F. Baseline counts for step 9.
 SELECT (SELECT count(*) FROM product WHERE parent_id IS NULL)     AS base_products,
@@ -360,25 +386,50 @@ SELECT (SELECT count(*) FROM product WHERE parent_id IS NULL)     AS base_produc
 --    row rather than skipping it; fix the data first.
 SELECT count(*) FROM materialproductlink WHERE quantity <= 0;
 SELECT count(*) FROM product WHERE amount_in_parent IS NOT NULL AND amount_in_parent <= 0;
+
+-- H. Stray sessions. Four of the newer migrations run with lock_timeout = 3s and
+--    abort rather than queue, so anything holding a conflicting lock fails the
+--    run. Under a full outage this should be empty apart from your own psql.
+SELECT pid, usename, state, wait_event_type,
+       now() - xact_start AS xact_age, left(query, 60) AS query
+FROM pg_stat_activity
+WHERE datname = current_database() AND pid <> pg_backend_pid()
+ORDER BY xact_start;
 ```
 
 ### The quota lockout (query E) — expect this to bite
 
 The release adds a per-user upload ledger. `upload_file_count` is backfilled
-**accurately** from real rows, and `max_upload_files_per_user` defaults to
-**1000** with no override anywhere in `deploy/`. Enforcement is
-`User.upload_file_count < file_limit`.
+**accurately** from real rows, and enforcement is
+`User.upload_file_count < file_limit`. Since 2026-08-18 the limit is not one
+number: it is **tiered by the account's role**, and every account is created and
+backfilled as `contributor`.
 
-With ~3,610 images concentrated in the lab account, that account very likely
-lands above 1000 and is **permanently blocked from all further uploads** the
-moment the app restarts, returning `413 Upload quota exceeded`.
+| Role          | Files  | Storage  | Root `.env` overrides                                               |
+| ------------- | ------ | -------- | ------------------------------------------------------------------- |
+| `contributor` | 1000   | 1024 MB  | `MAX_UPLOAD_FILES_PER_USER`, `MAX_UPLOAD_BYTES_PER_USER_MB`         |
+| `lab`         | 20 000 | 20480 MB | `MAX_UPLOAD_FILES_PER_LAB_USER`, `MAX_UPLOAD_BYTES_PER_LAB_USER_MB` |
 
-The default is now **5000**, and it is overridable from the root `.env`. If any
-row in query E is at or near that, raise it before bringing the app up:
+`media_count` in query E counts **files and images**, not products, across base
+products and components alike.
+
+With ~3,610 images concentrated in the lab account, that account lands far above
+the contributor limit of 1000 and is **blocked from all further uploads** the
+moment the app restarts, returning `413 Upload quota exceeded`. Nothing is
+deleted and no existing file is affected — only new reservations fail.
+
+**The fix is step 8b: promote that account to `lab`, not raise the contributor
+tier.** Raising the contributor ceiling to cover one lab account hands the same
+ceiling to every external contributor, which is the opposite of what the role
+model exists to do. Raise the *lab* tier instead if 20 000 is genuinely too low:
 
 ```env
-MAX_UPLOAD_FILES_PER_USER=20000
+MAX_UPLOAD_FILES_PER_LAB_USER=50000
 ```
+
+A lab value below its contributor counterpart is refused at settings validation,
+so the stack will not start on an inverted pair rather than silently downgrading
+lab accounts.
 
 Related: `upload_size_bytes` is added with a default of `0`, so every
 pre-existing file counts as zero bytes until backfilled. Step 8 now runs
@@ -387,6 +438,70 @@ real files on disk/storage — until that runs, `upload_total_bytes` reads 0 for
 every user and byte-based quota is meaningless. Leave
 `MAX_UPLOAD_BYTES_PER_USER_MB` high enough that it cannot bite in the gap
 between migrate and backfill.
+
+### The seven migrations added after this runbook was written
+
+`f1a2b3c4d5e6` (the original target) to `c4f7b1e93a20` (the head) adds seven
+revisions that §3's queries above were never written against. They were audited
+on 2026-08-18; the summary is reassuring, with three caveats worth knowing
+before the window rather than during it.
+
+| Revision       | What it does                         | Aborts on data? | Drops data? |
+| -------------- | ------------------------------------ | --------------- | ----------- |
+| `bfd99abac57f` | Adds two nullable terms columns      | No              | No          |
+| `c3e7b1a90d24` | Drops a redundant index CONCURRENTLY | No              | No          |
+| `d4b8e1c60a72` | `pg_trgm` + search/thumbnail indexes | No              | No          |
+| `34345aa9c369` | Adds `image.width_px`/`height_px`    | No              | No          |
+| `7c1f3b6a52d8` | Validates the dimensions CHECK       | No (see below)  | No          |
+| `b7e2d9a4c1f0` | Trigram index on `producttype`       | No              | No          |
+| `c4f7b1e93a20` | Adds `user.role` + its CHECK         | No              | No          |
+
+**None of the seven aborts on bad data and none drops data**, so §3 needs no new
+data query for them — only query H, above, for lock contention.
+
+`7c1f3b6a52d8` looks like an exception because `VALIDATE CONSTRAINT` does abort
+on a violating row. It cannot here: `width_px`/`height_px` are added nullable two
+revisions earlier and nothing in the chain backfills them, so every row is NULL
+and the constraint (`IS NULL OR > 0`) is trivially satisfied. Its 15-minute
+statement ceiling is for the table scan, which is nothing at prod's row count.
+
+`d4b8e1c60a72` runs `CREATE EXTENSION IF NOT EXISTS pg_trgm` as `relab_migrator`,
+which is `NOSUPERUSER`. That works, and was checked rather than assumed: `pg_trgm`
+is a **trusted** extension in the pinned `postgres:18` image, and step 5's role
+script grants `CREATE ON DATABASE` to the migrator — a trusted extension needs
+only that, not the SUPERUSER attribute (which role membership never confers).
+
+**Correction to §0b's abort rule.** `c3e7b1a90d24` drops its index inside an
+`autocommit_block()`, because `CONCURRENTLY` cannot run in a transaction. So the
+run is no longer strictly all-or-nothing: if a later migration fails, that one
+index stays dropped while `alembic_version` rolls back. The practical impact is
+nil — the drop is `if_exists=True`, so a retry is clean, and the index was
+redundant — but "the migration runs as a single transaction" is now approximate,
+and a post-failure schema may differ from the pre-run one by exactly that index.
+
+**A consequence that outlives the cutover: nobody has accepted the contributor
+terms — but the app now asks.** `bfd99abac57f` adds
+`terms_accepted_version`/`terms_accepted_at` deliberately without a backfill —
+stamping a value would fabricate evidence of a licence grant nobody made. Until
+2026-08-18 acceptance was recorded only at registration, with no way for an
+existing account to accept later, which left every pre-existing contributor
+permanently unable to consent and their records permanently unpublishable
+(`scripts/build_dataset_release.py::check_owner_selection` refuses them).
+
+That gap is now closed: the app prompts on the next login after this deploy, and
+`POST /v1/users/me/accept-terms` records the grant server-side. Declining is free
+and changes nothing, so **expect the backlog to clear gradually rather than at
+once** — a contributor who has not logged in since the cutover has still granted
+nothing. Before building a release, check who is covered:
+
+```sql
+SELECT count(*) FILTER (WHERE terms_accepted_version IS NOT NULL) AS accepted,
+       count(*) FILTER (WHERE terms_accepted_version IS NULL)     AS not_yet
+FROM "user";
+```
+
+Nothing here blocks the cutover. It blocks a dataset release naming any account
+still in the `not_yet` column.
 
 ______________________________________________________________________
 
@@ -580,6 +695,13 @@ settings validation after the migrations have already applied.
 | `LOKI_URL`                                     | `LOKI_PUSH_URL`                                          |
 | `BACKUP_DIR`                                   | `BACKUP_HOST_DIR`                                        |
 
+**Upload quotas are now a pair of tiers, not one ceiling.** If the host's `.env`
+carries a raised `MAX_UPLOAD_FILES_PER_USER` from an earlier attempt at the
+lockout, reconsider it: that variable is now the *contributor* tier and applies
+to every external contributor. The lab account is covered by promotion (step 8b)
+and `MAX_UPLOAD_FILES_PER_LAB_USER` instead. A lab tier below its contributor
+counterpart fails settings validation and the stack will not start.
+
 `LOKI_PUSH_URL` matters: log shipping is enabled by the *presence* of that
 variable, so an `.env` still saying `LOKI_URL=` silently stops shipping logs.
 The Loki label set also changed from `service,env,host` to
@@ -647,7 +769,7 @@ just prod-migrate YES
 `prod-up` starts the database, cache, and (with the profile) ClamAV; expect the
 API to stay unhealthy for a few minutes on first boot while virus signatures
 download.
-`prod-migrate` runs the 20 migrations in one transaction, then always runs
+`prod-migrate` runs every pending migration in one transaction, then always runs
 `create_superuser` (which only creates when absent — it will not reset your
 existing superuser's password).
 
@@ -705,10 +827,66 @@ encrypted columns unrecoverable.
 
 ______________________________________________________________________
 
+## 8b. Promote the lab accounts — before anyone tries to upload
+
+The role model (added 2026-08-18) backfills **every** existing account to
+`contributor`, deliberately: the migration cannot know who the lab is, and
+guessing high would hand lab storage to every external contributor. So until
+this step runs, the account holding the bulk of prod's media is over its tier
+and cannot upload (see the quota lockout note in step 3).
+
+Find who is affected. This reads the ledger *after* the backfill, so it is the
+authoritative list rather than query E's estimate:
+
+```bash
+docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
+  -f compose.yaml -f compose.deploy.yaml \
+  --profile migrations run --rm --entrypoint python \
+  migrator -m scripts.maintenance.list_accounts_over_contributor_quota
+```
+
+It logs one line per account that is over the quota its current role grants,
+**by id only** — no email or username reaches those logs. An empty report means
+nothing is locked out and this step is a no-op.
+
+Promote through the admin API, which audit-logs the change. As a superuser with
+a bearer token:
+
+```bash
+curl -fsS -X PUT https://api.cml-relab.org/v1/admin/users/<user_id>/role \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"role": "lab"}'
+```
+
+If the tunnel is still closed at this point in the window, the same change by
+SQL is acceptable — it skips the audit event, so note in the launch record that
+it was done this way and why:
+
+```sql
+UPDATE "user" SET role = 'lab' WHERE id = '<user_id>';
+```
+
+Re-run the report; it must come back empty before you proceed. Then confirm the
+tiers are what you intended:
+
+```sql
+SELECT role, count(*), max(upload_file_count) AS max_files, max(upload_total_bytes) AS max_bytes
+FROM "user" GROUP BY role;
+```
+
+`role` accepts only `contributor` and `lab` — a `ck_user_role_valid` check
+constraint rejects anything else, so a typo in the SQL form fails loudly rather
+than creating a third tier nothing enforces.
+
+______________________________________________________________________
+
 ## 9. Verify before declaring success
 
 ```sql
-SELECT version_num FROM alembic_version;      -- f1a2b3c4d5e6
+SELECT version_num FROM alembic_version;      -- must equal `alembic heads` for
+                                              -- the release checkout, NOT the
+                                              -- stale f1a2b3c4d5e6 above
 
 -- Compare against the step 3 baseline (query F).
 SELECT (SELECT count(*) FROM product WHERE parent_id IS NULL)     AS base_products,
@@ -732,8 +910,17 @@ SELECT count(*), count(email_canonical), count(DISTINCT email_canonical) FROM "u
 SELECT count(*) FROM image i WHERE i.parent_type='PRODUCT'
   AND NOT EXISTS (SELECT 1 FROM product p WHERE p.id = i.parent_id);   -- 0
 
--- Quota ledger: file counts real, bytes expected 0 (see step 3).
+-- Quota ledger: file counts real, bytes real once step 8's backfill has run.
 SELECT sum(upload_file_count), sum(upload_total_bytes), max(upload_file_count) FROM "user";
+
+-- Roles: every account is `contributor` unless step 8b promoted it, and nobody
+-- is left above the tier they now hold (this must return 0 rows).
+SELECT role, count(*) FROM "user" GROUP BY role;
+SELECT id, role, upload_file_count FROM "user"
+WHERE (role = 'contributor' AND upload_file_count > 1000)
+   OR (role = 'lab'         AND upload_file_count > 20000);
+-- Compare the thresholds against the host's own MAX_UPLOAD_FILES_PER_* values
+-- if they were overridden in the root .env.
 
 ANALYZE product; ANALYZE "user"; ANALYZE image; ANALYZE file;
 ```
@@ -799,18 +986,24 @@ docker compose -p relab_prod ps --format '{{.Service}}\t{{.Status}}'
 ```
 
 By hand: log in with Google **and** GitHub (the GitHub client changed in this
-release), open a product with images, and **upload one image** — that last one
-confirms the quota ledger is not tripping.
+release), open a product with images, and **upload one image as the lab account
+that owns the bulk of the media** — any other account has a near-empty ledger
+and would pass the quota check without proving anything. If that account was
+promoted in step 8b, also confirm the "Research files" block is visible on one
+of its records: it renders only for `lab`, so its absence means the promotion
+did not take.
 
 ### Go / no-go
 
 There is no automated gate and nothing pages anyone, so this is a deliberate
 decision a human makes, once, out loud. **Go** requires all of:
 
-- `alembic_version` is `f1a2b3c4d5e6`, and every count above matches the step 3
-  baseline,
+- `alembic_version` equals the release checkout's `alembic heads`, and every
+  count above matches the step 3 baseline,
 - all five origins return 2xx and no container is restarting or unhealthy,
-- both OAuth providers, a product page, and one image upload work by hand.
+- both OAuth providers, a product page, and one image upload **by the lab
+  account** work by hand,
+- the over-quota report from step 8b comes back empty.
 
 Anything unresolved is **no-go**: roll back with §12 and retry in a later
 window. Do not launch "mostly working" and fix forward — the pre-upgrade dump

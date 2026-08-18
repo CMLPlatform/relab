@@ -142,11 +142,19 @@ migrations, verify health.
    the Microsoft Graph tenant/client/sender values and
    `secrets/<env>/microsoft_graph_client_secret`.
 
-   Also review the per-user upload ceiling and scanning inputs: `MAX_UPLOAD_FILES_PER_USER` and
-   `MAX_UPLOAD_BYTES_PER_USER_MB` cap how many files and how much storage each account can use. The
-   quota ledger counts existing rows, so raise these limits before the first start on a host with a
-   large existing dataset. Otherwise, an owner whose existing uploads already exceed the new limit
-   is blocked from uploading entirely. `MALWARE_SCAN_ENABLED` controls ClamAV upload scanning and
+   Also review the upload ceilings and scanning inputs. Quotas are tiered by account role:
+   `MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB` cap ordinary `contributor`
+   accounts, while `MAX_UPLOAD_FILES_PER_LAB_USER` and `MAX_UPLOAD_BYTES_PER_LAB_USER_MB` cap `lab`
+   accounts. Neither lab value may be set below its contributor counterpart; the backend refuses to
+   start if it is. The quota ledger counts existing rows, so raise these limits before the first
+   start on a host with a large existing dataset. Otherwise, an owner whose existing uploads already
+   exceed the new limit is blocked from uploading entirely.
+
+   Every account starts as `contributor`, including on an upgrade that introduces roles. Promote
+   lab members with `PUT /v1/admin/users/{user_id}/role` and a body of `{"role": "lab"}` as a
+   superuser. To see who an upgrade would lock out before it bites, run
+   `just list-over-quota` in `backend/`: it reports, by account id, everyone already above the
+   quota their current role grants. `MALWARE_SCAN_ENABLED` controls ClamAV upload scanning and
    must agree with whether the stack starts with the `scanning` Compose profile. See the two modes
    in the "Start the stack" step below.
 

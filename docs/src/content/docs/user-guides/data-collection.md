@@ -91,6 +91,10 @@ Use image uploads for ordinary display photos. Use file uploads for research doc
 scientific datasets, including hyperspectral ENVI, HDF5, NITF, and GeoTIFF files, so Relab stores
 the original data without image processing.
 
+Research-file upload is limited to lab accounts. Every signed-in, verified account can upload
+images; only a lab account sees the "Research files" block on a record it owns. Ask an
+administrator if you need the lab role.
+
 If you are using the camera integration, see [RPi camera integration](../rpi-cam/).
 
 ## Upload limits
@@ -104,10 +108,20 @@ Accepted types and size limits:
   — up to 50 MiB.
 
 Relab validates type, size, and content before storing a file. It also unpacks and inspects office
-files before accepting them. Each account has a cap on total file count and storage used: 5000
-files and 2048 MB by default, tunable per instance by the operator through
-`MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB`. If malware scanning is enabled,
-Relab scans files on upload and rejects flagged ones.
+files before accepting them. If malware scanning is enabled, Relab scans files on upload and
+rejects flagged ones.
+
+Each account also has a cap on total file count and storage used, set by its role:
+
+| Role          | Files  | Storage  |
+| ------------- | ------ | -------- |
+| `contributor` | 1000   | 1024 MB  |
+| `lab`         | 20 000 | 20480 MB |
+
+Both tiers are tunable per instance by the operator through `MAX_UPLOAD_FILES_PER_USER` and
+`MAX_UPLOAD_BYTES_PER_USER_MB` for contributors, and `MAX_UPLOAD_FILES_PER_LAB_USER` and
+`MAX_UPLOAD_BYTES_PER_LAB_USER_MB` for lab accounts. An upload over either cap is rejected;
+deleting media releases the quota it used.
 
 ## Final check
 

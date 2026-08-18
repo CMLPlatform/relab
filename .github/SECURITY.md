@@ -73,6 +73,21 @@ are world-readable by design, since the platform exists to publish that data. `p
 hides owner identity attribution only — it is not a control over the underlying research content,
 and must never be treated as one.
 
+Account privileges are three independent things, and conflating any two of them is a privilege
+escalation:
+
+- `is_verified` gates whether an account may create records at all.
+- `is_superuser` grants the `/admin` routes. It does **not** imply trust with research data.
+- `role` (`contributor` by default, `lab`) is the contributor tier. It gates non-image
+  research-file upload and selects the upload quota tier. A superuser who is not `lab` is refused
+  a research-file upload exactly like any other contributor.
+
+Roles are assigned only by a superuser through `PUT /v1/admin/users/{user_id}/role`, which records
+an audit event. `role` is deliberately absent from `UserUpdate`: fastapi-users' safe update path
+strips a fixed set of privileged fields, so any new field on that schema would flow through
+self-service `PATCH /users/me` — keeping role off the schema makes that escalation unrepresentable
+rather than filtered. New and backfilled accounts start at `contributor`, so the tier fails closed.
+
 ## Automated Checks
 
 Supply-chain and code-security checks:
@@ -97,7 +112,8 @@ Automated checks do not replace reviewer judgment. For changes that touch authen
 authorization, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets,
 dependencies, or personal data, confirm:
 
-- authorization is enforced server-side, not only hidden in a client
+- authorization is enforced server-side, not only hidden in a client — hiding an upload affordance
+  from a client that lacks the role is a UX choice, never the control
 - input is validated at API, upload, form, and device boundaries
 - browser-rendered values stay on framework escaping paths; raw HTML sinks and dynamic URLs are
   isolated, validated, and tested
