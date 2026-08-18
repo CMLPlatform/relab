@@ -66,6 +66,7 @@ from PIL.ExifTags import IFD
 from sqlalchemy import select
 
 from app.api.auth.models import User
+from app.api.auth.terms import MINIMUM_RELEASE_TERMS_VERSION
 from app.api.common.models.enums import Unit
 from app.api.data_collection.models.product import MaterialProductLink, Product
 from app.api.file_storage.models import Image, MediaParentType
@@ -376,11 +377,10 @@ class BuildStats:
 # Consent, not identity, decides what a release contains: a record is in scope when its
 # owner accepted the contributor terms at this version or later.
 #
-# NOT CURRENT_TERMS_VERSION, and the difference is invisible until it bites: pinning to the
-# current version would make every future revision of the terms silently drop every record
-# until each contributor re-accepted. This number means "the terms version that first
-# granted a publication licence", so it moves only if a revision changes the grant itself.
-MINIMUM_RELEASE_TERMS_VERSION = 1
+# Imported rather than defined here: the in-app acceptance prompt keys on the same
+# threshold, and two copies would eventually disagree about who is covered — the
+# prompt asking a set of people the release does not accept, or worse, not asking
+# people it silently excludes. app.api.auth.terms owns terms versioning.
 
 # Names that mark a record as scratch work rather than a real teardown.
 DEFAULT_EXCLUDED_NAME_WORDS: frozenset[str] = frozenset(

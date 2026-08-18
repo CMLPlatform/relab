@@ -15,6 +15,7 @@ from PIL import Image as PILImage
 from PIL.ExifTags import IFD
 
 import scripts.build_dataset_release as release
+from app.api.auth import terms
 from app.core.images.processing import process_image_for_storage
 from scripts.build_dataset_release import (
     CATEGORIES_SCHEMA,
@@ -898,12 +899,19 @@ def test_release_scope_never_reads_the_platforms_current_terms_version() -> None
     test can tell them apart. The damage only appears the day the terms are revised, when a
     threshold tied to the current version would drop every record whose owner had not yet
     re-accepted — an empty release that looks like a working one.
+
+    The threshold now lives in ``app.api.auth.terms`` because the in-app acceptance
+    prompt keys on it too, so this also pins that it is imported rather than
+    re-declared here: a local copy would drift from the prompt, and the two
+    disagreeing is the failure this guards.
     """
     # Comments stripped: the script explains the distinction in prose, and that mention is
     # documentation, not a dependency.
     code = re.sub(r"#.*", "", Path(release.__file__).read_text(encoding="utf-8"))
     assert "CURRENT_TERMS_VERSION" not in code
-    assert "MINIMUM_RELEASE_TERMS_VERSION = 1" in code
+    assert "from app.api.auth.terms import MINIMUM_RELEASE_TERMS_VERSION" in code
+    assert not re.search(r"^MINIMUM_RELEASE_TERMS_VERSION\s*=", code, re.MULTILINE)
+    assert release.MINIMUM_RELEASE_TERMS_VERSION == terms.MINIMUM_RELEASE_TERMS_VERSION
 
 
 def test_a_later_terms_acceptance_stays_in_scope() -> None:

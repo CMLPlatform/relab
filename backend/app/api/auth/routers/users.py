@@ -1,11 +1,14 @@
 """Public user management routes."""
 
+from datetime import UTC, datetime
 from typing import Annotated, cast
 
 from fastapi import HTTPException, Response, Security
 from sqlalchemy import select
 
 from app.api.auth.dependencies import (
+    CurrentActiveUserDep,
+    UserManagerDep,
     current_active_user,
     optional_current_active_user,
 )
@@ -19,7 +22,9 @@ from app.api.auth.schemas import (
 )
 from app.api.auth.services.privacy import can_view_profile
 from app.api.auth.services.user_manager import fastapi_user_manager
+from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audiences import PublicAPIRouter
+from app.api.common.rate_limiting import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.data_collection.crud.profile_stats import compute_profile_stats
 
@@ -37,6 +42,38 @@ _self_service_router.routes = [
     route for route in _self_service_router.routes if getattr(route, "path", None) == _SELF_SERVICE_PATH
 ]
 router.include_router(_self_service_router)
+
+
+@router.post(
+    "/me/accept-terms",
+    response_model=UserRead,
+    summary="Accept the current contributor terms",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+)
+async def accept_terms(user: CurrentActiveUserDep, user_manager: UserManagerDep) -> User:
+    """Record that this account accepted the contributor terms.
+
+    The version is stamped from the server's own ``CURRENT_TERMS_VERSION`` and the
+    route takes no body: the column is evidence of what the person was actually
+    shown, so a client that could name the version could claim a grant under terms
+    that did not exist when it accepted.
+
+    Existing acceptance is never moved backwards — an account already past the
+    current version keeps its later grant, so a rolled-back version constant
+    cannot silently narrow a grant somebody really made.
+
+    Writes through the user database rather than a session dependency: the account
+    here is loaded by the auth session, which is a separate dependency from
+    ``AsyncSessionDep``, so committing on the latter would persist nothing.
+    """
+    accepted = max(user.terms_accepted_version or 0, CURRENT_TERMS_VERSION)
+    if user.terms_accepted_version == accepted:
+        # Already on record at this version or later: leave the original timestamp
+        # alone rather than restamping evidence of when the grant was made.
+        return user
+    return await user_manager.user_db.update(
+        user, {"terms_accepted_version": accepted, "terms_accepted_at": datetime.now(UTC)}
+    )
 
 
 ## Public Profile Routes ##
