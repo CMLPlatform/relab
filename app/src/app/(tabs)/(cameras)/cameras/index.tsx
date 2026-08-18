@@ -52,6 +52,12 @@ export default function CamerasScreen() {
           onRefresh={handleRetry}
           onCardPress={actions.handleCardTap}
           onCardLongPress={actions.handleCardLongPress}
+          // Multi-select is a long-press, which nothing on a card advertises.
+          hint={
+            screen.captureModeEnabled && !selection.selectionMode
+              ? 'Press and hold a camera to select the ones to capture from.'
+              : undefined
+          }
           onEffectiveConnectionChange={actions.handleEffectiveConnectionChange}
           streamTriggerRef={streamTriggerRef}
         />

@@ -5,10 +5,12 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { ControlledTextField } from '@/components/base/ControlledTextField';
+import { DocsLink } from '@/components/base/DocsLink';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Separator } from '@/components/base/ui/separator';
+import { RPI_CAM_DOCS_PATH } from '@/config';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useAppTheme } from '@/theme';
 
@@ -35,7 +37,7 @@ function PairingSuccessDialog({
         <AppText variant="title" accessibilityRole="header">
           Camera paired
         </AppText>
-        <MutedText className="text-center opacity-70">
+        <MutedText className="text-center">
           Your camera should come online within a few seconds.
         </MutedText>
       </View>
@@ -59,10 +61,10 @@ export default function AddCameraScreen() {
     <ScrollView contentContainerClassName="pt-4 pb-12" keyboardShouldPersistTaps="handled">
       <PageContainer>
         <View className="gap-3">
-          <AppText variant="label" className="opacity-50 mb-1">
+          <AppText variant="label" className="text-muted-foreground mb-1">
             PAIRING CODE
           </AppText>
-          <MutedText className="mb-2 opacity-60">
+          <MutedText className="mb-2">
             Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed
             “PAIRING READY” banner over SSH if the device is headless.
           </MutedText>
@@ -74,12 +76,14 @@ export default function AddCameraScreen() {
             autoCapitalize="characters"
             accessibilityLabel="Pairing code"
             className="mb-1 text-center"
+            // NOTE: enlarged monospace entry field for a 6-character pairing
+            // code — no ramp step targets an oversized input glyph.
             style={{ fontFamily: 'monospace', fontSize: 20 }}
           />
 
           <Separator className="my-1" />
 
-          <AppText variant="label" className="opacity-60 -mb-1">
+          <AppText variant="label" className="text-muted-foreground -mb-1">
             Camera name *
           </AppText>
           <ControlledTextField
@@ -92,7 +96,7 @@ export default function AddCameraScreen() {
             className="mb-1"
           />
 
-          <AppText variant="label" className="opacity-60 -mb-1">
+          <AppText variant="label" className="text-muted-foreground -mb-1">
             Description (optional)
           </AppText>
           <ControlledTextField
@@ -114,13 +118,16 @@ export default function AddCameraScreen() {
             <AppText variant="body" className="flex-1 text-muted-foreground">
               Power on the Raspberry Pi, then read the pairing code from its setup page or its
               startup logs. If no code appears, the Pi does not know where to reach this server yet
-              — set{' '}
-              <AppText style={{ fontFamily: 'monospace', fontSize: 13 }}>
-                PAIRING_BACKEND_URL
-              </AppText>{' '}
-              in its .env file and restart it.
+              — ask whoever set the camera up to point it at this server and restart it.
             </AppText>
           </View>
+          <DocsLink
+            path={RPI_CAM_DOCS_PATH}
+            accessibilityLabel="Read the camera setup guide"
+            className="self-start py-1"
+          >
+            Camera setup guide
+          </DocsLink>
 
           <View ref={pairButtonRef} collapsable={false}>
             <AppButton

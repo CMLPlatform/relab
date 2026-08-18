@@ -5,9 +5,9 @@ import { baseProduct } from '@/test-utils/fixtures';
 
 const IDENTITY_PATTERN = /Vitra · T2/;
 
-test('formatWeight renders grams and kilograms', () => {
+test('formatWeight keeps grams, the unit the field is entered and shown in', () => {
   expect(formatWeight(250)).toBe('250 g');
-  expect(formatWeight(1200)).toBe('1.2 kg');
+  expect(formatWeight(1200)).toBe('1200 g');
 });
 
 test('renders name, identity line, and facts that exist', () => {
@@ -26,7 +26,7 @@ test('renders name, identity line, and facts that exist', () => {
   );
   expect(screen.getByText('Office chair')).toBeOnTheScreen();
   expect(screen.getByText(IDENTITY_PATTERN)).toBeOnTheScreen();
-  expect(screen.getByText('12 kg')).toBeOnTheScreen();
+  expect(screen.getByText('12000 g')).toBeOnTheScreen();
   expect(screen.getByText('80×90×70 cm')).toBeOnTheScreen();
   expect(screen.getByText('2')).toBeOnTheScreen();
 });

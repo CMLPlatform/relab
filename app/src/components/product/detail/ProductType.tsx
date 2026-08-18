@@ -58,14 +58,11 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   const labels = typeRowLabels(product.role);
 
   // A sub-heading within the Overview section (not a duplicate of the
-  // Section title "Overview"), so it's demoted below Section-title weight.
+  // Section title "Overview"); DetailSectionHeader already sits a step below it.
   const header = (
     <DetailSectionHeader
       title={labels.title}
       tooltipTitle={`Select a fitting category for the ${entityLabel(product)}.`}
-      // Pinned lineHeight too: the header's `title` variant would otherwise pair
-      // 15pt text with title's 30pt leading.
-      style={{ fontSize: 15, lineHeight: 20, fontWeight: '600' }}
     />
   );
 

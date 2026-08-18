@@ -5,10 +5,12 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { AmountStepper } from '@/components/base/AmountStepper';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { DocsLink } from '@/components/base/DocsLink';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Input } from '@/components/base/ui/input';
 import CPVCard from '@/components/product/CPVCard';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
+import { DATA_COLLECTION_DOCS_PATH } from '@/config';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { useCaptureScreen } from '@/features/products/useCaptureScreen';
@@ -152,6 +154,16 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
           </View>
 
           <CaptureTypeRow typeID={typeID} onTypeChange={setTypeID} entityRole={role} />
+
+          {/* A first-time contributor decides here what to record; the guide
+              answers that, so it is one tap away rather than in Account. */}
+          <DocsLink
+            path={DATA_COLLECTION_DOCS_PATH}
+            accessibilityLabel="Read the data collection guide"
+            className="self-start py-1"
+          >
+            What to record, and how much
+          </DocsLink>
 
           {role === 'component' ? (
             <>

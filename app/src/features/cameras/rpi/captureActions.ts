@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import type { EffectiveConnectionSnapshot } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { logError } from '@/utils/logging';
 
 export function useCameraConnectionSnapshots() {
   const [effectiveConnectionByCameraId, setEffectiveConnectionByCameraId] = useState<
@@ -87,7 +88,12 @@ export function useCameraCaptureActions({
             );
             clearSelection();
           },
-          onError: (err) => toast(`Capture failed: ${String(err)}`),
+          onError: (err) => {
+            // The raw error is for the log; the toast gets a sentence a
+            // contributor can act on.
+            logError('Capture failed', err);
+            toast('Capture failed — check the cameras are online and try again.');
+          },
         },
       );
     },

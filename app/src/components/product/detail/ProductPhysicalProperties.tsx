@@ -1,8 +1,10 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
+import { DocsLink } from '@/components/base/DocsLink';
 import { Separator } from '@/components/base/ui/separator';
 import LocalizedFloatInput from '@/components/product/LocalizedFloatInput';
 import Cube from '@/components/product/SVGCube';
+import { DATA_COLLECTION_DOCS_PATH } from '@/config';
 import { productSchema } from '@/services/api/validation/productSchema';
 import type { PhysicalProperties, Product } from '@/types/Product';
 
@@ -73,6 +75,17 @@ export default function ProductPhysicalProperties({
           onChangeProperty={onChangeProperty}
         />
       ))}
+      {/* Which dimension is which, and what to do with an item that has no
+          meaningful box, is answered in the guide, not guessable from four
+          labelled fields. */}
+      {editMode ? (
+        <DocsLink
+          path={DATA_COLLECTION_DOCS_PATH}
+          accessibilityLabel="Read the data collection guide"
+        >
+          How to measure and weigh (guide)
+        </DocsLink>
+      ) : null}
     </View>
   );
 }

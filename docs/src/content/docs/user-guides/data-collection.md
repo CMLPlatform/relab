@@ -60,6 +60,19 @@ observation, and more useful than a guess.
 - wear, damage, or contamination
 - reasons for modeling decisions made while documenting the product
 
+## Measurements
+
+Physical properties are the item's overall size in centimetres (width, height, depth as it sits in
+front of you) and its mass in grams. Enter what you measured; leave a field empty rather than
+typing `0`, because an empty field means "not recorded" and a zero means a weightless or flat
+object. Sub-gram masses (screws, clips) are fine as decimals.
+
+The circularity notes ask for three observations. *Disassemblability* means how easily the item
+comes apart into its parts and whether doing so damages them — tools needed, glued or welded
+joins, and anything you had to break count. *Recyclability* and *remanufacturability* are the same
+kind of observation about the materials and the reusable assemblies. Uncertain notes are welcome;
+see the box above.
+
 ## Reference data
 
 Use materials, categories, taxonomies, and product types when they improve consistency. If no entry

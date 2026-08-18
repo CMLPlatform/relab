@@ -26,6 +26,8 @@ type CamerasGridProps = {
   onRefresh: () => void;
   onCardPress: (camera: CameraReadWithStatus) => void;
   onCardLongPress: (camera: CameraReadWithStatus) => void;
+  /** One-line cue above the grid, e.g. how to enter multi-select. */
+  hint?: string;
   onEffectiveConnectionChange: (cameraId: string, connection: EffectiveConnectionSnapshot) => void;
   /**
    * Return-focus target for the stream (GoLiveDialog) flow — whichever cell was
@@ -42,6 +44,7 @@ export function CamerasGrid({
   onRefresh,
   onCardPress,
   onCardLongPress,
+  hint,
   onEffectiveConnectionChange,
   streamTriggerRef,
 }: CamerasGridProps) {
@@ -73,15 +76,22 @@ export function CamerasGrid({
       refreshControl={<RefreshControl refreshing={isFetching} onRefresh={onRefresh} />}
       contentContainerClassName={`gap-2.5 p-3 pb-[88px]${rows.length === 0 ? ' flex-1' : ''}`}
       columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
+      ListHeaderComponent={
+        hint ? (
+          <MutedText className="pb-1" accessibilityLiveRegion="polite">
+            {hint}
+          </MutedText>
+        ) : null
+      }
       ListEmptyComponent={
         <View className="flex-1 items-center justify-center p-8">
           <View className="opacity-40">
             <Icon name="camera-off" size={64} color={theme.colors.onSurfaceVariant} />
           </View>
-          <AppText variant="title" className="mt-4 opacity-60">
+          <AppText variant="title" className="mt-4 text-muted-foreground">
             No cameras yet
           </AppText>
-          <MutedText className="mt-2 text-center opacity-50">
+          <MutedText className="mt-2 text-center">
             Tap the + button to register your first RPi camera.
           </MutedText>
         </View>
