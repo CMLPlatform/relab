@@ -79,10 +79,17 @@ describe('components section tooltip', () => {
   const components = SECTIONS.find((section) => section.key === 'components');
   if (!components) throw new Error('components section missing from SECTIONS');
 
-  it('explains the save requirement while editing', () => {
-    expect(components.tooltip?.(bareProduct, true)).toBe(
+  // Was asserted for any edit-mode product. That was false: the create flow
+  // lands on `?edit=1` with the record already persisted, so the hint told the
+  // user to save something already saved while the button sat right there.
+  it('explains the save requirement only while the record has no id', () => {
+    expect(components.tooltip?.({ ...bareProduct, id: undefined }, true)).toBe(
       'Add components after saving the product.',
     );
+  });
+
+  it('says nothing once the record has an id, even in edit mode', () => {
+    expect(components.tooltip?.({ ...bareProduct, id: 1 }, true)).toBeUndefined();
   });
 
   it('says nothing in view mode', () => {

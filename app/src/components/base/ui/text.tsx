@@ -12,9 +12,21 @@ const TEXT_CLASS_NAME = cn(
 
 const TextClassContext = React.createContext<string | undefined>(undefined);
 
+/**
+ * `maxFontSizeMultiplier` defaults to the same app-wide Dynamic Type cap (2x)
+ * that `AppText` applies.
+ *
+ * DESIGN.md states the cap is app-wide, and it was not: this vendored primitive
+ * renders user-facing copy in HeroStats, ComponentRow, GoLiveDialog,
+ * ProductDelete and every AppButton label, and carried no cap at all, so those
+ * strings scaled without limit and broke fixed layouts. Defaulting it here fixes
+ * every consumer at once; a caller that genuinely wants unbounded scaling can
+ * still pass its own value.
+ */
 function Text({
   className,
   asChild = false,
+  maxFontSizeMultiplier = 2,
   ...props
 }: React.ComponentProps<typeof RNText> &
   React.RefAttributes<typeof RNText> & {
@@ -22,7 +34,13 @@ function Text({
   }) {
   const textClass = React.useContext(TextClassContext);
   const Component = asChild ? Slot : RNText;
-  return <Component className={cn(TEXT_CLASS_NAME, textClass, className)} {...props} />;
+  return (
+    <Component
+      className={cn(TEXT_CLASS_NAME, textClass, className)}
+      maxFontSizeMultiplier={maxFontSizeMultiplier}
+      {...props}
+    />
+  );
 }
 
 export { Text, TextClassContext };

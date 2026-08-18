@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useCallback } from 'react';
 import { Platform, Pressable, ScrollView, View } from 'react-native';
+import { WEB_FOCUS_RING } from '@/constants';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import type { SectionKey } from './SectionNavContext';
@@ -21,10 +22,10 @@ function SectionNavItem({
       accessibilityRole="button"
       accessibilityLabel={active ? `${section.label}, current section` : section.label}
       className={cn(
-        'min-h-11 justify-center rounded-full px-4 py-2',
-        active ? 'bg-primary/10' : 'opacity-70',
+        'min-h-11 justify-center rounded-md px-4 py-2',
+        active ? 'bg-primary/12' : 'opacity-70',
         Platform.select({
-          web: 'cursor-pointer outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring',
+          web: cn('cursor-pointer outline-none hover:opacity-90', WEB_FOCUS_RING),
         }),
       )}
     >

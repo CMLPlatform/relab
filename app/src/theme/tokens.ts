@@ -50,26 +50,18 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       // not a light film that would wash the photo the wrong way.
       heroBand: isDark ? 'rgba(12,14,20,0.82)' : 'rgba(250,251,254,0.78)',
       heroEdge: isDark ? 'rgba(12,14,20,0.22)' : 'rgba(250,251,254,0.18)',
-      scrim: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(12,18,32,0.50)',
+      scrim: designTokens.rn.scrim[scheme],
       media: 'rgba(0,0,0,0.5)',
       glass: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)',
     },
     elevation: {
-      overlay: isDark
-        ? {
-            shadowColor: '#000',
-            shadowOpacity: 0.55,
-            shadowRadius: 24,
-            shadowOffset: { width: 0, height: 8 },
-            elevation: 12,
-          }
-        : {
-            shadowColor: 'rgba(20,40,80,1)',
-            shadowOpacity: 0.16,
-            shadowRadius: 24,
-            shadowOffset: { width: 0, height: 8 },
-            elevation: 8,
-          },
+      // Read, not re-declared. These five fields used to be hand-written here
+      // because React Native cannot consume the CSS string in
+      // `tokens.generated.ts` — a generated token with a hand-copy downstream,
+      // the same shape as four other seams found across the estate today.
+      // `designTokens.rn` now carries the RN-shaped variant, so this file
+      // computes and consumes but declares nothing.
+      overlay: designTokens.rn.shadowOverlay[scheme],
     },
     border: {
       subtle: 'rgba(128,128,128,0.2)',
@@ -78,7 +70,10 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
     },
     text: {
       link: semantic.link,
-      inverseMuted: 'rgba(255,255,255,0.6)',
+      // Scheme-aware, because it sits on `inverseSurface` — which is dark in
+      // light mode and LIGHT in dark mode. A fixed white alpha measured 5.79:1
+      // light but 1.15:1 dark, i.e. invisible, on the live-stream banner.
+      inverseMuted: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)',
       // Always-light content for elements placed on overlay.media (a dark scrim),
       // regardless of app theme — the scrim is dark in both schemes.
       onMedia: '#fff',

@@ -52,4 +52,46 @@ test.describe('Accessibility', () => {
     await openSeededProductFromProductsPage(page);
     expect(await seriousViolations(page)).toEqual([]);
   });
+
+  /**
+   * WCAG 2.2 SC 2.4.7 Focus Visible (A) and 2.4.13 Focus Appearance (AA).
+   *
+   * axe has no focus-appearance rule, so nothing above catches this. Two
+   * successive implementations of the focus indicator shipped completely
+   * invisible while every class-string test stayed green:
+   *
+   *   1. `focus-visible:ring-*` compiles to a box-shadow layer, which the
+   *      `shadow-none` in the same class string flattened away.
+   *   2. `focus-visible:outline-2` compiles to
+   *      `outline-style: var(--tw-outline-style)`, and the `outline-none` in
+   *      the same class string sets that variable to `none` unconditionally.
+   *
+   * Both times width and colour computed correctly and nothing painted. The
+   * only assertion that would have caught either is this one: that the
+   * indicator has a real, non-`none` computed style while focused. Assert the
+   * painted result, never the utility that is supposed to produce it.
+   */
+  test('keyboard focus paints a visible indicator @auth', async ({ page }) => {
+    await page.goto('/login');
+    const signIn = page.getByRole('button', { name: 'Sign in' });
+    await expect(signIn).toBeVisible({ timeout: 15_000 });
+
+    await signIn.focus();
+
+    const focus = await signIn.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return {
+        matchesFocusVisible: el.matches(':focus-visible'),
+        outlineStyle: style.outlineStyle,
+        outlineWidth: style.outlineWidth,
+        outlineColor: style.outlineColor,
+        boxShadow: style.boxShadow,
+      };
+    });
+
+    expect(focus.matchesFocusVisible).toBe(true);
+    // The load-bearing assertion: a width and a colour are not an indicator.
+    expect(focus.outlineStyle).not.toBe('none');
+    expect(focus.outlineWidth).not.toBe('0px');
+  });
 });

@@ -275,7 +275,7 @@ export function ProductImageLightbox({
             onPress={handleClose}
             hitSlop={20}
             accessibilityLabel="Close lightbox"
-            className="absolute top-10 right-5 z-10 rounded-full w-11 h-11 justify-center items-center"
+            className="absolute top-10 right-5 z-10 rounded-md w-11 h-11 justify-center items-center"
             style={closeButtonStyle}
           >
             <Icon name="x" size={28} color={theme.tokens.text.onMedia} />

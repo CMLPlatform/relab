@@ -3,6 +3,7 @@ import { type ReactNode, useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
+import { MIN_TAP_TARGET } from '@/constants';
 import { truncateHeaderLabel } from '@/features/products/truncateHeaderLabel';
 import type { AncestorCrumb } from '@/features/products/useAncestorTrail';
 import type { AppTheme } from '@/theme';
@@ -52,7 +53,23 @@ function TrailCrumb({
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      <Pressable onPress={handlePress} hitSlop={6}>
+      {/* The breadcrumb is the app's structural spine and was the one control
+          the tap-target sweep missed: 13px text with `hitSlop={6}`, which is
+          invisible to the DOM on web, and no role, so assistive tech announced
+          it as neither a target nor a control. Padding plus a negative margin
+          reaches the 44px floor without pushing the header taller. */}
+      <Pressable
+        onPress={handlePress}
+        hitSlop={6}
+        accessibilityRole="link"
+        accessibilityLabel={`Go to ${crumb.name}`}
+        style={{
+          minHeight: MIN_TAP_TARGET,
+          justifyContent: 'center',
+          paddingVertical: 12,
+          marginVertical: -12,
+        }}
+      >
         <AppText
           numberOfLines={1}
           style={{

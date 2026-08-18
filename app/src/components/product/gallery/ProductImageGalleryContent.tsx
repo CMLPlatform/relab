@@ -170,7 +170,7 @@ export function ProductImageGalleryContent({
                 accessibilityLabel={
                   hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
                 }
-                className="h-9 w-9 items-center justify-center rounded-full"
+                className="h-11 w-11 items-center justify-center rounded-md"
                 style={rpiButtonStyle}
               >
                 {isCapturing || rpiCamerasLoading ? (
@@ -184,8 +184,9 @@ export function ProductImageGalleryContent({
 
           <Pressable
             onPress={onDeleteImage}
+            accessibilityRole="button"
             accessibilityLabel="Delete photo"
-            className="absolute top-3 right-3 h-9 w-9 items-center justify-center rounded-full"
+            className="absolute top-3 right-3 h-11 w-11 items-center justify-center rounded-md"
             style={deleteButtonStyle}
           >
             <Icon name="trash-2" size="md" color={theme.tokens.text.onMedia} />
@@ -269,8 +270,12 @@ function OverlayActionButton({
   return (
     <Pressable
       onPress={onPress}
+      // Without an explicit role, RN Web renders a plain <div> and the browser
+      // discards aria-label on a role-less element — the control announced as
+      // an unlabelled focusable (axe: aria-prohibited-attr).
+      accessibilityRole="button"
       accessibilityLabel={label}
-      className="h-9 w-9 items-center justify-center rounded-full"
+      className="h-11 w-11 items-center justify-center rounded-md"
       style={pressableStyle}
     >
       <Icon name={icon} size="md" color={theme.tokens.text.onMedia} />
@@ -308,7 +313,7 @@ function GalleryNavButton({
       accessibilityLabel={label}
       disabled={disabled}
       hitSlop={15}
-      className="absolute top-1/2 mt-[-22px] h-11 w-11 items-center justify-center rounded-full"
+      className="absolute top-1/2 mt-[-22px] h-11 w-11 items-center justify-center rounded-md"
       style={pressableStyle}
     >
       <Icon

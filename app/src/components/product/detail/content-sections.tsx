@@ -114,12 +114,16 @@ export const SECTIONS: SectionConfig[] = [
     // Task 5 refines this (BOM rows); never collapsed as empty for now.
     isEmpty: () => false,
     titleSuffix: (product) => `(${(product.components ?? []).length})`,
-    // Edit mode only. In view mode the "Add component" button is right there and
-    // works, so the hint contradicted the UI — and because its accessible name
-    // contains the button's, anything searching for "Add component" (a screen
-    // reader, a test) matched the tooltip first.
-    tooltip: (product, editMode) =>
-      editMode ? `Add components after saving the ${entityLabel(product)}.` : undefined,
+    // Only while the record genuinely has no id — i.e. the brief pre-save
+    // instant. It used to show throughout edit mode, where it was simply false:
+    // the record is already persisted on the `?edit=1` route the create flow
+    // lands on, and the button now renders there. Its accessible name also
+    // contains the button's, so anything searching for "Add component" (a
+    // screen reader, a test) matched the tooltip first.
+    tooltip: (product) =>
+      typeof product.id === 'number'
+        ? undefined
+        : `Add components after saving the ${entityLabel(product)}.`,
     render: (props) => <ProductComponents product={props.product} editMode={props.editMode} />,
   },
   {

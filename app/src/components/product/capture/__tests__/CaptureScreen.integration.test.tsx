@@ -221,7 +221,7 @@ describe('CaptureScreen', () => {
     await renderCapture({ entityRole: 'component', parentID: 5, parentRole: 'product' });
 
     expect(await screen.findByText('Component of: Drill press')).toBeOnTheScreen();
-    expect(screen.getByText('Amount in parent')).toBeOnTheScreen();
+    expect(screen.getByText('How many of these')).toBeOnTheScreen();
     expect(screen.getByText('Create component')).toBeOnTheScreen();
     expect(screen.getByText('Create & add another')).toBeOnTheScreen();
   });

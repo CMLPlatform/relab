@@ -38,20 +38,20 @@ describe('ProductTags', () => {
     expect(screen.getByText(MODEL_PATTERN)).toBeOnTheScreen();
   });
 
-  it("renders 'Unknown' when brand is missing", () => {
+  it("renders 'Not recorded' when brand is missing, without an error state", () => {
     const product = { ...baseProduct, brand: undefined };
     renderWithProviders(<ProductTags product={product} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0);
   });
 
-  it("renders 'Unknown' when model is missing", () => {
+  it("renders 'Not recorded' when model is missing, without an error state", () => {
     const product = { ...baseProduct, model: undefined };
     renderWithProviders(<ProductTags product={product} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0);
   });
 
   it('opens brand selection modal on brand chip press in editMode', async () => {
@@ -166,7 +166,7 @@ describe('ProductTags', () => {
     // isComponent relaxes brand/model from required (styling only — Chip has
     // no testable error signal) to optional; the fallback label still shows,
     // and the Amount chip (isComponent-only) renders alongside it.
-    expect(screen.getAllByText('Unknown').length).toBe(2);
+    expect(screen.getAllByText('Not recorded').length).toBe(2);
     expect(screen.getByText('Amount')).toBeOnTheScreen();
   });
 });
@@ -467,4 +467,17 @@ describe('AmountChip draft flush (Save without blur)', () => {
     expect(flushRef.current?.()).toBeUndefined();
     expect(onAmountChange).not.toHaveBeenCalled();
   });
+});
+
+it('never marks a missing brand or model as required', () => {
+  // PRODUCT.md: an empty or unconfirmed field must never render as an error, a
+  // warning, or a completeness penalty. Chip composes ", required" into its
+  // accessible name when `error` is set, so the absence of that string is the
+  // assertion — it checks the state a screen reader would announce rather than
+  // the colour a sighted user would see.
+  renderWithProviders(
+    <ProductTags product={{ ...baseProduct, brand: undefined, model: undefined }} editMode />,
+    { withDialog: true },
+  );
+  expect(screen.queryByLabelText(/required/i)).toBeNull();
 });

@@ -70,8 +70,7 @@ describe('ProductCircularityProperties', () => {
       <ProductCircularityProperties product={baseProduct} editMode={true} />,
     );
 
-    fireEvent.press(screen.getByText('Show'));
-
+    // No 'Show' press: edit mode mounts expanded (see ProductCircularityProperties).
     expect(screen.getByText('Recyclability')).toBeOnTheScreen();
     expect(screen.getByText('Disassemblability')).toBeOnTheScreen();
     expect(screen.getByText('Remanufacturability')).toBeOnTheScreen();
@@ -93,7 +92,6 @@ describe('ProductCircularityProperties', () => {
       />,
     );
 
-    fireEvent.press(screen.getByText('Show'));
     const inputs = UNSAFE_root.findAllByType(TextInput);
     fireEvent.changeText(inputs[1], 'Fasteners are accessible');
 
@@ -122,4 +120,18 @@ describe('ProductCircularityProperties', () => {
 
     expect(screen.getByText('1 property hidden.')).toBeOnTheScreen();
   });
+});
+
+it('mounts expanded in edit mode and collapsed in view mode', () => {
+  // Regression: collapsed-by-default made Section's "Add circularity notes"
+  // ghost row open onto "No associated circularity properties." plus a Show
+  // link — a request to add answered with a statement that there is nothing.
+  renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={true} />);
+  expect(screen.getByText('Recyclability')).toBeOnTheScreen();
+  expect(screen.queryByText('No associated circularity properties.')).toBeNull();
+
+  screen.unmount();
+
+  renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
+  expect(screen.queryByText('Recyclability')).toBeNull();
 });

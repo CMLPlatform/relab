@@ -4,7 +4,7 @@ import { Platform, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { FormFieldError } from '@/components/base/FormField';
 import { TextInput } from '@/components/base/TextInput';
-import { radius } from '@/constants';
+import { MIN_TAP_TARGET, radius } from '@/constants';
 import { describedBy } from '@/utils/a11y';
 
 interface LocalizedFloatInputProps {
@@ -78,7 +78,7 @@ export default function LocalizedFloatInput({
 
   const inputStyle = {
     textAlign: Platform.OS === 'web' ? 'right' : undefined,
-    height: 38,
+    height: MIN_TAP_TARGET,
     paddingHorizontal: 10,
     marginVertical: 2,
     borderRadius: radius.control,
@@ -144,6 +144,30 @@ export default function LocalizedFloatInput({
       ) : null}
     </>
   );
+
+  // Read mode renders the Spec Row, not a disabled input.
+  //
+  // DESIGN.md names the Spec Row — manila eyebrow label over a mono value — as
+  // the app's signature pattern, and it existed in exactly one component
+  // (SpecFacts) covering three derived facts, while the screen that is nothing
+  // BUT measurements rendered them as plain label-and-textbox rows. A disabled
+  // TextInput also reads as a form control to assistive tech when there is
+  // nothing to fill in. `data` supplies the mono family and tabular figures, so
+  // Weight/Height/Width/Depth line up in a column the way measurements should.
+  if (label && !editable) {
+    return (
+      <View className="px-4 py-2">
+        <AppText variant="eyebrow" className="text-manila">
+          {label}
+        </AppText>
+        <AppText variant="data">
+          {normalizedValue === undefined
+            ? '—'
+            : `${toLocalizedString(normalizedValue, DECIMAL_SEPARATOR)} ${unit ?? ''}`.trim()}
+        </AppText>
+      </View>
+    );
+  }
 
   // FormFieldError renders nothing without a message, so the wrapper is harmless
   // when the field is valid and keeps the message directly under its own row.

@@ -32,8 +32,19 @@ export default function ProductTags({
   const dialog = useDialog();
   const theme = useAppTheme();
 
-  const isBrandRequired = !isComponent;
-  const isModelRequired = !isComponent;
+  // Brand and model are NOT required, on products or components.
+  //
+  // They used to be required on products, which painted a danger-tinted chip
+  // with an alert icon and ", required" in the accessible name over the
+  // placeholder "Unknown" — two red errors on a record that is factually
+  // complete, for any unbranded item. PRODUCT.md is explicit that an empty or
+  // unconfirmed field must never render as an error, a warning, or a
+  // completeness penalty, and the data-collection guidance is to leave a field
+  // empty rather than force-fit the nearest match. An unbranded generic power
+  // supply from a repair café is a legitimate record, not a validation failure.
+  //
+  // The Chip's error styling is kept for genuine validation elsewhere; absence
+  // is simply not an error here.
 
   const [brandModalVisible, setBrandModalVisible] = useState(false);
   const [brandSearch, setBrandSearch] = useState('');
@@ -75,17 +86,15 @@ export default function ProductTags({
         title={'Brand'}
         onPress={onEditBrand}
         icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
-        error={isBrandRequired && !product.brand}
       >
-        {product.brand ?? 'Unknown'}
+        {product.brand ?? 'Not recorded'}
       </Chip>
       <Chip
         title={'Model'}
         onPress={onEditModel}
         icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
-        error={isModelRequired && !product.model}
       >
-        {product.model ?? 'Unknown'}
+        {product.model ?? 'Not recorded'}
       </Chip>
       {isComponent ? (
         <AmountChip product={product} editMode={editMode} onAmountChange={onAmountChange} />

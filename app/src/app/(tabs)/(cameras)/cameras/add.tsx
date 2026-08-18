@@ -112,12 +112,13 @@ export default function AddCameraScreen() {
           >
             <Icon name="info" size={18} color={theme.colors.primary} />
             <AppText variant="body" className="flex-1 text-muted-foreground">
-              Make sure your Raspberry Pi is powered on and has{' '}
+              Power on the Raspberry Pi, then read the pairing code from its setup page or its
+              startup logs. If no code appears, the Pi does not know where to reach this server yet
+              — set{' '}
               <AppText style={{ fontFamily: 'monospace', fontSize: 13 }}>
                 PAIRING_BACKEND_URL
               </AppText>{' '}
-              set in its .env file. The pairing code appears on the RPi setup page and in the
-              startup logs.
+              in its .env file and restart it.
             </AppText>
           </View>
 

@@ -51,11 +51,7 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
         </AppText>
       </Pressable>
       {actionElement ?? (
-        <AppText
-          variant="caption"
-          className="p-3 text-right opacity-70"
-          style={{ color: textColor }}
-        >
+        <AppText variant="caption" className="p-3 text-right" style={{ color: textColor }}>
           {CPV.name}
         </AppText>
       )}

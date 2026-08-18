@@ -28,7 +28,7 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
     <View className="flex-row items-center gap-3 rounded-lg p-4 bg-destructive/10">
       <Icon name="circle-alert" size="lg" color={theme.colors.error} />
       <View className="flex-1">
-        <AppText className="font-bold text-destructive">Load Failed</AppText>
+        <AppText className="font-bold text-destructive">Couldn't load products</AppText>
         <AppText className="opacity-80 text-destructive" style={styles.errorMessage}>
           {getErrorMessage(error, 'Something went wrong loading products.')}
         </AppText>
@@ -64,17 +64,16 @@ export function ProductsFab({ extended, highlight, onPress }: ProductsFabProps) 
         styles.fab,
         { bottom: 16 + bottomOffset },
         {
-          borderWidth: highlight ? 1 : 0,
-          borderColor: highlight ? theme.colors.primary : 'transparent',
-          ...(Platform.OS === 'web'
-            ? highlight
-              ? { boxShadow: `0px 0px 10px ${theme.colors.primary}` }
-              : {}
-            : {
-                shadowColor: highlight ? theme.colors.primary : undefined,
-                shadowOpacity: highlight ? 0.22 : 0,
-                shadowRadius: highlight ? 10 : 0,
-              }),
+          // Border-only highlight, in `onPrimary`. The coloured glow this
+          // replaced broke DESIGN.md's One Tier Rule — a second elevation tier
+          // stacked on the FAB's own `tokens.elevation.overlay`. The first
+          // replacement used `primary`, which is also the Fab's own fill
+          // (Fab.tsx:83), so the highlight painted nothing at all: a signal
+          // removed rather than restated, on the one moment the app points a
+          // new researcher at their first record. `onPrimary` is the ink that
+          // is legible on that fill by definition.
+          borderWidth: highlight ? 2 : 0,
+          borderColor: highlight ? theme.colors.onPrimary : 'transparent',
         },
       ]}
       accessibilityLabel="New product"

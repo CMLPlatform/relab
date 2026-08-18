@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
-import { useAppTheme } from '@/theme';
+import { useAppTheme, useInverseSurface } from '@/theme';
 import { AppButton } from './AppButton';
 import { AppDialog } from './AppDialog';
 import { AppText } from './AppText';
@@ -202,7 +202,7 @@ function DialogActionButton({
  * Escape (a toast is not a dialog).
  */
 function Toast({ state, onDismiss }: { state: { message: string } | null; onDismiss: () => void }) {
-  const theme = useAppTheme();
+  const inverse = useInverseSurface();
   const message = state?.message ?? null;
 
   // Depends on the state OBJECT, not the message string: each toast() call
@@ -233,13 +233,13 @@ function Toast({ state, onDismiss }: { state: { message: string } | null; onDism
       >
         <OverlaySurface
           className="px-4 py-2"
-          style={[styles.toast, { backgroundColor: theme.colors.inverseSurface }]}
+          style={[styles.toast, { backgroundColor: inverse.background }]}
           tone="scrim"
         >
           <AppText
             variant="body"
             accessibilityLiveRegion="polite"
-            style={{ color: theme.colors.inverseOnSurface }}
+            style={{ color: inverse.foreground }}
           >
             {message}
           </AppText>

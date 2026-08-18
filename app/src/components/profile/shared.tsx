@@ -51,7 +51,7 @@ export function ProfileAction({
             {title}
           </AppText>
           {subtitle ? (
-            <AppText className="mt-px text-[13px] opacity-[0.55]">{subtitle}</AppText>
+            <AppText className="mt-px text-[13px] text-muted-foreground">{subtitle}</AppText>
           ) : null}
         </View>
       </View>

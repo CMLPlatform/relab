@@ -9,7 +9,7 @@ import { useStreamSession } from '@/context/streamSession';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
-import { useAppTheme } from '@/theme';
+import { useAppTheme, useInverseSurface } from '@/theme';
 import { getFloatingPosition } from '@/utils/platformLayout';
 import { StreamingSheet } from './StreamingSheet';
 
@@ -70,6 +70,7 @@ const SAVE_BAR_DOCK_RESERVE = 400;
 
 export function ActiveStreamBanner() {
   const theme = useAppTheme();
+  const inverse = useInverseSurface();
   const { activeStream } = useStreamSession();
   const elapsed = useElapsed(activeStream?.startedAt ?? null);
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -113,12 +114,16 @@ export function ActiveStreamBanner() {
             ref={bannerRef}
             className="flex-row items-center gap-2 rounded-lg px-3.5 py-2.5"
             style={[
-              styles.banner,
+              theme.tokens.elevation.overlay,
               {
-                backgroundColor: theme.tokens.surface.sunken,
-                ...(Platform.OS === 'web'
-                  ? { boxShadow: `0px 0px 8px ${theme.tokens.status.live}` }
-                  : { shadowColor: theme.tokens.status.live }),
+                // Inverse surface, not `surface.sunken`. `sunken` is same-polarity
+                // (light grey in light, near-black in dark) while both text colours
+                // below are `inverse*` tokens that assume an inverted backdrop —
+                // the mismatch computed to 1.32:1 dark and 1.16:1 light, i.e. the
+                // product name was invisible in both schemes. This is the same
+                // inverse-chip recipe InfoTooltip, DialogProvider and FabControls
+                // already use.
+                backgroundColor: inverse.background,
               },
             ]}
             onPress={openSheet}
@@ -132,15 +137,12 @@ export function ActiveStreamBanner() {
             <AppText
               variant="label"
               className="flex-1 font-semibold"
-              style={[styles.label, { color: theme.colors.inverseOnSurface }]}
+              style={[styles.label, { color: inverse.foreground }]}
               numberOfLines={1}
             >
               {activeStream.productName}
             </AppText>
-            <AppText
-              variant="data"
-              style={[styles.elapsed, { color: theme.tokens.text.inverseMuted }]}
-            >
+            <AppText variant="data" style={[styles.elapsed, { color: inverse.muted }]}>
               {elapsed}
             </AppText>
           </Pressable>
@@ -153,17 +155,11 @@ export function ActiveStreamBanner() {
 }
 
 const styles = StyleSheet.create({
-  banner: {
-    // subtle red glow via shadow
-    ...(Platform.OS === 'web'
-      ? {}
-      : {
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.5,
-          shadowRadius: 8,
-        }),
-    elevation: 8,
-  },
+  // NOTE: no local shadow. The manila glow this used to paint broke two
+  // DESIGN.md rules at once — the One Tier Rule (a second, coloured elevation
+  // tier) and the Data-Label Rule (accent as mass rather than as a small label).
+  // The live dot is the sanctioned manila usage; the banner takes the single
+  // sanctioned `tokens.elevation.overlay` tier, applied inline like Fab does.
   label: {
     // fontSize 13 has no exact Tailwind step, so it stays inline.
     fontSize: 13,

@@ -1,5 +1,6 @@
 import type { NativeStackHeaderBackProps } from 'expo-router';
 import { Pressable } from 'react-native';
+import { MIN_TAP_TARGET } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon } from './Icon';
 
@@ -17,8 +18,16 @@ export function HeaderBackButton({ onPress, tintColor }: HeaderBackButtonProps) 
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="Go back"
+      // hitSlop expands the touch target on native but is invisible to the DOM
+      // on web, where this measured 36x28. Web is the shipped platform, so the
+      // floor is a real box size; hitSlop stays for native comfort.
       hitSlop={12}
-      style={{ paddingHorizontal: 4 }}
+      style={{
+        minWidth: MIN_TAP_TARGET,
+        minHeight: MIN_TAP_TARGET,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
       <Icon name="chevron-left" size={28} color={color} />
     </Pressable>

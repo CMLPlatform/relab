@@ -1,7 +1,8 @@
 // NOTE: hand-rolled on purpose — carries 1.5s auto-dismiss and mobile-web full-screen modal variant.
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { useAppTheme } from '@/theme';
+import { MIN_TAP_TARGET } from '@/constants';
+import { useAppTheme, useInverseSurface } from '@/theme';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { OverlaySurface } from './OverlaySurface';
@@ -15,6 +16,7 @@ const getIsMobileWeb = () =>
 
 export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   const theme = useAppTheme();
+  const inverse = useInverseSurface();
   const [visible, setVisible] = useState(false);
   const show = useCallback(() => setVisible(true), []);
   const hide = useCallback(() => setVisible(false), []);
@@ -40,8 +42,11 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           testID="info-pressable"
           accessibilityRole="button"
           accessibilityLabel={`Info: ${title}`}
-          // 20px glyph + spacing.sm padding (36px) + 4px hitSlop/side = 44px.
+          // 36px box + 4px hitSlop/side reaches 44 on native, but hitSlop is
+          // invisible to the DOM on web (the shipped platform), where this
+          // measured 36x36. The box itself now carries the floor.
           hitSlop={4}
+          style={styles.tapFloor}
         >
           {/* Icon doesn't forward testID (Lucide maps it to a data-testid attribute
               RNTL can't query), so the test target wraps the glyph instead. */}
@@ -58,14 +63,10 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           >
             <OverlaySurface
               className="py-3 px-4"
-              style={[
-                styles.tooltip,
-                tooltipShadowStyle,
-                { backgroundColor: theme.colors.inverseSurface },
-              ]}
+              style={[styles.tooltip, tooltipShadowStyle, { backgroundColor: inverse.background }]}
               tone="scrim"
             >
-              <AppText variant="body" style={{ color: theme.colors.inverseOnSurface }}>
+              <AppText variant="body" style={{ color: inverse.foreground }}>
                 {title}
               </AppText>
             </OverlaySurface>
@@ -87,8 +88,9 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
         className="p-2"
         accessibilityRole="button"
         accessibilityLabel={`Info: ${title}`}
-        // 20px glyph + spacing.sm padding (36px) + 4px hitSlop/side = 44px.
+        // See above: the box carries the 44px floor; hitSlop is native-only.
         hitSlop={4}
+        style={styles.tapFloor}
       >
         <View testID="info-icon">
           <Icon name="info" size="md" color={theme.colors.onSurfaceVariant} />
@@ -97,18 +99,14 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
       {visible ? (
         <OverlaySurface
           className="absolute left-0 z-10 mt-1 px-2 py-1"
-          style={[
-            styles.floating,
-            tooltipShadowStyle,
-            { backgroundColor: theme.colors.inverseSurface },
-          ]}
+          style={[styles.floating, tooltipShadowStyle, { backgroundColor: inverse.background }]}
           tone="scrim"
         >
           <AppText
             variant="label"
             accessibilityLiveRegion="polite"
             numberOfLines={1}
-            style={{ color: theme.colors.inverseOnSurface }}
+            style={{ color: inverse.foreground }}
           >
             {title}
           </AppText>
@@ -119,6 +117,12 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
 };
 
 const styles = StyleSheet.create({
+  tapFloor: {
+    minWidth: MIN_TAP_TARGET,
+    minHeight: MIN_TAP_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tooltip: {
     maxWidth: '80%',
     minWidth: 200,

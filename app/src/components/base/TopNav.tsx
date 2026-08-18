@@ -1,7 +1,7 @@
 import { usePathname, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Platform, Pressable, View } from 'react-native';
-import { AUTH_HERO_PATHS } from '@/constants';
+import { AUTH_HERO_PATHS, WEB_FOCUS_RING } from '@/constants';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { type Destination, useVisibleDestinations } from '@/navigation/destinations';
 import { useAppTheme } from '@/theme';
@@ -39,9 +39,9 @@ function TopNavDestinationItem({
       accessibilityLabel={active ? `${destination.label}, current page` : destination.label}
       className={cn(
         'min-h-11 justify-center rounded-md px-4 py-2',
-        active ? 'bg-primary/10' : 'opacity-70',
+        active ? 'bg-primary/12' : 'opacity-70',
         Platform.select({
-          web: 'cursor-pointer outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring',
+          web: cn('cursor-pointer outline-none hover:opacity-90', WEB_FOCUS_RING),
         }),
       )}
     >
@@ -84,7 +84,7 @@ export function TopNav() {
         className={cn(
           'min-h-11 justify-center',
           Platform.select({
-            web: 'cursor-pointer outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring',
+            web: cn('cursor-pointer outline-none hover:opacity-90', WEB_FOCUS_RING),
           }),
         )}
       >

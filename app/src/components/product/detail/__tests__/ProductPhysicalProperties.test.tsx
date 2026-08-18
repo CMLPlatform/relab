@@ -71,10 +71,20 @@ describe('ProductPhysicalProperties', () => {
     });
   });
 
-  it('inputs are not editable when editMode is false', () => {
+  it('renders measurements as spec rows, not disabled inputs, when editMode is false', () => {
+    // View mode used to render a disabled TextInput per measurement, which reads
+    // as a form control to assistive tech when there is nothing to fill in, and
+    // missed the Spec Row treatment DESIGN.md calls the app's signature. The
+    // value now renders as text with its unit.
     renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={false} />);
+    expect(screen.queryByDisplayValue('500')).toBeNull();
+    expect(screen.getByText('500 g')).toBeOnTheScreen();
+  });
+
+  it('renders editable inputs when editMode is true', () => {
+    renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={true} />);
     const weightInput = screen.getByDisplayValue('500');
-    expect(weightInput.props.editable).toBe(false);
+    expect(weightInput.props.editable).toBe(true);
   });
 });
 

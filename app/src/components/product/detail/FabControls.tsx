@@ -16,7 +16,7 @@ import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
 import { spacing } from '@/constants';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { useAppTheme } from '@/theme';
+import { useInverseSurface } from '@/theme';
 import { getFloatingPosition } from '@/utils/platformLayout';
 import { SaveBar } from './SaveBar';
 
@@ -225,7 +225,7 @@ function SaveBlockedTooltip({
   anchorStyle?: StyleProp<ViewStyle>;
   children: ReactNode;
 }) {
-  const theme = useAppTheme();
+  const inverse = useInverseSurface();
   const [visible, setVisible] = useState(false);
   const show = useCallback(() => setVisible(true), []);
   const hide = useCallback(() => setVisible(false), []);
@@ -260,9 +260,9 @@ function SaveBlockedTooltip({
         >
           <OverlaySurface
             tone="scrim"
-            style={[styles.tooltipBubble, { backgroundColor: theme.colors.inverseSurface }]}
+            style={[styles.tooltipBubble, { backgroundColor: inverse.background }]}
           >
-            <AppText testID="tooltip" style={{ color: theme.colors.inverseOnSurface }}>
+            <AppText testID="tooltip" style={{ color: inverse.foreground }}>
               {title}
             </AppText>
           </OverlaySurface>

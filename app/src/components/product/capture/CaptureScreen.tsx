@@ -156,7 +156,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
           {role === 'component' ? (
             <>
               {parentName ? <AppText>Component of: {parentName}</AppText> : null}
-              <AmountStepper value={amount} onChange={setAmount} label="Amount in parent" />
+              <AmountStepper value={amount} onChange={setAmount} label="How many of these" />
             </>
           ) : null}
 

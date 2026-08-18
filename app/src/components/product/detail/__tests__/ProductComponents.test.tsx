@@ -92,8 +92,22 @@ describe('ProductComponents', () => {
     });
   });
 
-  it('hides Add component button in editMode', async () => {
+  // Was 'hides Add component button in editMode'. That asserted the defect:
+  // creation routes to `?edit=1`, so hiding the button removed the teardown's
+  // next step exactly when the user has the opened product in front of them.
+  // The record is already persisted on that route, so the gate is `id`.
+  it('shows Add component in editMode once the record has an id', async () => {
     renderWithProviders(<ProductComponents product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Add component')).toBeOnTheScreen();
+    });
+  });
+
+  it('hides Add component while the record has no id yet', async () => {
+    const unsaved = { ...baseProduct, id: undefined };
+    renderWithProviders(<ProductComponents product={unsaved} editMode={true} />, {
       withDialog: true,
     });
     await waitFor(() => {
@@ -118,10 +132,16 @@ describe('ProductComponents', () => {
 
     fireEvent.press(await screen.findByText('Add component'));
 
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/products/[id]/components/new',
-      params: { id: String(baseProduct.id) },
-    });
+    // The push is deferred one frame so it cannot race the
+    // `setParams({ edit: undefined })` that leaving edit mode dispatches — see
+    // ProductComponents.newComponent. waitFor is therefore part of the contract,
+    // not test flakiness padding.
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith({
+        pathname: '/products/[id]/components/new',
+        params: { id: String(baseProduct.id) },
+      }),
+    );
   });
 
   it('navigates to the component-scoped create route when Add component is pressed on a component', async () => {
@@ -138,9 +158,15 @@ describe('ProductComponents', () => {
 
     fireEvent.press(await screen.findByText('Add component'));
 
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/components/[id]/components/new',
-      params: { id: '9' },
-    });
+    // The push is deferred one frame so it cannot race the
+    // `setParams({ edit: undefined })` that leaving edit mode dispatches — see
+    // ProductComponents.newComponent. waitFor is therefore part of the contract,
+    // not test flakiness padding.
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith({
+        pathname: '/components/[id]/components/new',
+        params: { id: '9' },
+      }),
+    );
   });
 });

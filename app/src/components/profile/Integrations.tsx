@@ -45,7 +45,7 @@ export function ProfileIntegrationsSection({
         </View>
         <View className="flex-1">
           <AppText className="font-semibold">RPi Camera</AppText>
-          <AppText className="mt-px text-[13px] opacity-[0.55]">
+          <AppText className="mt-px text-[13px] text-muted-foreground">
             Capture images with a Raspberry Pi camera during disassembly.{' '}
             <AppText className="underline" style={styles.docsLink} onPress={openDocs}>
               Learn more
@@ -75,7 +75,7 @@ export function ProfileIntegrationsSection({
           </View>
           <View className="flex-1">
             <AppText className="font-semibold">YouTube Live</AppText>
-            <AppText className="mt-px text-[13px] opacity-[0.55]">
+            <AppText className="mt-px text-[13px] text-muted-foreground">
               {youtubeAuthPending
                 ? 'Connecting to Google…'
                 : 'Stream product sessions live to YouTube.'}

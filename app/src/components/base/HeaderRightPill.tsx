@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable } from 'react-native';
+import { MIN_TAP_TARGET } from '@/constants';
 import { useAuth } from '@/context/auth';
 import { useAppTheme } from '@/theme';
 import { needsUsernameOnboarding } from '@/utils/router/onboarding';
@@ -26,7 +27,9 @@ export function HeaderRightPill() {
   // (DESIGN.md: primary blue carries all interaction). tokens.surface.accent
   // is the canonical tinted fill (primary at 12% opacity); *Container roles
   // are retired.
-  const pillStyle = { backgroundColor: theme.tokens.surface.accent };
+  // minHeight, not just hitSlop: hitSlop expands the target on native but is
+  // invisible to the DOM on web, where this measured 83x30.
+  const pillStyle = { backgroundColor: theme.tokens.surface.accent, minHeight: MIN_TAP_TARGET };
   const primaryTextStyle = { color: theme.colors.primary };
 
   const goToAccount = useCallback(() => {

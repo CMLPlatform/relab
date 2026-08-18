@@ -146,14 +146,29 @@ export function useProductGalleryImageActions({
     }
   }, [feedback.error, media.images, onImagesChange]);
 
+  // Confirmed, like every other destructive action in the app. This used to
+  // remove a photo on a single tap of a control sitting a few pixels from the
+  // RPi capture button, with no dialog, no toast and no undo — and the photo it
+  // removes may be the only record of an internal assembly that has since been
+  // reassembled.
   const handleDeleteImage = useCallback(
     (index: number) => {
-      const newImages = [...media.images];
-      newImages.splice(index, 1);
-      onImagesChange?.(newImages);
-      void viewerState.updateCurrentIndex(clampIndex(index, newImages.length));
+      const removeAt = () => {
+        const newImages = [...media.images];
+        newImages.splice(index, 1);
+        onImagesChange?.(newImages);
+        void viewerState.updateCurrentIndex(clampIndex(index, newImages.length));
+      };
+      feedback.alert({
+        title: 'Remove photo?',
+        message: 'This photo will be removed from the record. This cannot be undone.',
+        buttons: [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Remove', style: 'destructive', onPress: removeAt },
+        ],
+      });
     },
-    [media.images, onImagesChange, viewerState],
+    [feedback, media.images, onImagesChange, viewerState],
   );
 
   return {

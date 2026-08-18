@@ -2,7 +2,7 @@ import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useCallback } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MIN_TAP_TARGET } from '@/constants';
+import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
@@ -30,7 +30,7 @@ function BottomNavTab({
       className={cn(
         'flex-1 items-center justify-center gap-0.5 py-2 active:opacity-60',
         Platform.select({
-          web: 'cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          web: cn('cursor-pointer outline-none', WEB_FOCUS_RING),
         }),
       )}
     >

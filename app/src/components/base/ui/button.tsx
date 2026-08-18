@@ -1,26 +1,35 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import { Platform, Pressable } from 'react-native';
 import { TextClassContext } from '@/components/base/ui/text';
+import { WEB_FOCUS_RING } from '@/constants';
 import { cn } from '@/utils/cn';
 
 const buttonVariants = cva(
   cn(
     'group shrink-0 flex-row items-center justify-center gap-2 rounded-md shadow-none',
     Platform.select({
-      web: "cursor-pointer focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive whitespace-nowrap outline-none transition-[color,background-color,border-color,box-shadow,opacity] focus-visible:ring-[3px] disabled:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+      web: cn(
+        "cursor-pointer aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive whitespace-nowrap outline-none transition-[color,background-color,border-color,box-shadow,opacity] disabled:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        WEB_FOCUS_RING,
+      ),
     }),
   ),
   {
     variants: {
       variant: {
+        // Pressed/hover use the real `primary-strong` brand shade, not alpha on
+        // primary: assets/brand.css has carried --relab-brand-primary-strong for
+        // web all along, and palette.json now defines primaryStrong so the app
+        // reads the same value. Parity is enforced by BRAND_PARITY in
+        // scripts/sync_brand_assets.py.
         default: cn(
-          'bg-primary active:bg-primary/90',
-          Platform.select({ web: 'hover:bg-primary/90' }),
+          'bg-primary active:bg-primary-strong',
+          Platform.select({ web: 'hover:bg-primary-strong' }),
         ),
         destructive: cn(
           'bg-destructive active:bg-destructive/90 dark:bg-destructive/60',
           Platform.select({
-            web: 'hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
+            web: 'hover:bg-destructive/90',
           }),
         ),
         outline: cn(

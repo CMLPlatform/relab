@@ -7,6 +7,7 @@ import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
+import { MIN_TAP_TARGET } from '@/constants';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { getProfileHref } from '@/utils/router/profiles';
@@ -70,14 +71,20 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   );
 
   return (
-    <Pressable
-      onPress={enabled ? navigateToProduct : undefined}
-      disabled={!enabled}
-      accessibilityRole={enabled ? 'button' : undefined}
-      style={pressableStyle}
-    >
-      <Card className="mx-2.5 my-1.5">
-        <View className="flex-row items-center p-3">
+    // The card's press target deliberately does NOT wrap the metadata row. It
+    // used to, which nested the owner link inside the card button (axe
+    // `nested-interactive`, undefined AT behaviour) and squeezed that link to
+    // 21x18px. Thumbnail + text are the press target; the metadata row is a
+    // sibling below it, indented to line up with the text column.
+    <Card className="mx-2.5 my-1.5">
+      <View className="p-3">
+        <Pressable
+          onPress={enabled ? navigateToProduct : undefined}
+          disabled={!enabled}
+          accessibilityRole={enabled ? 'button' : undefined}
+          style={pressableStyle}
+          className="flex-row items-center"
+        >
           <View className="mr-4">
             {hasThumbnail ? (
               <View
@@ -124,37 +131,58 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
             <MutedText variant="caption" selectable={false} numberOfLines={1} ellipsizeMode="tail">
               {product.description}
             </MutedText>
-            {hasMetadata ? (
-              <View className="flex-row items-center gap-2.5 mt-1.5">
-                {createdAgo ? (
-                  <View className="flex-row items-center gap-1">
-                    <Icon name="clock" size={12} color={theme.colors.outline} />
-                    <AppText variant="caption" style={{ color: theme.colors.outline }}>
-                      {createdAgo}
-                    </AppText>
-                  </View>
-                ) : null}
-                {ownerLabel ? (
-                  <View className="flex-row items-center gap-1">
-                    <Icon name="user" size={12} color={theme.colors.outline} />
-                    <AppText
-                      variant="caption"
-                      className="text-primary"
-                      numberOfLines={1}
-                      onPress={navigateToOwner}
-                      accessibilityRole="link"
-                      accessibilityLabel={`View ${ownerLabel}'s profile`}
-                    >
-                      {ownerLabel}
-                    </AppText>
-                  </View>
-                ) : null}
+          </View>
+        </Pressable>
+
+        {hasMetadata ? (
+          // pl-24 (96px) = thumbnail w-20 (80) + mr-4 (16), so this lines up
+          // with the text column above it now that it is no longer nested in it.
+          <View className="flex-row items-center gap-2.5 pl-24" style={styles.metadataRow}>
+            {createdAgo ? (
+              <View className="flex-row items-center gap-1">
+                {/* `colors.outline` is the input-stroke token; as text it
+                        measured 4.03:1. `onSurfaceVariant` is the muted-text
+                        token and is 7.8:1 on the same card. */}
+                <Icon name="clock" size={12} color={theme.colors.onSurfaceVariant} />
+                <AppText variant="caption" style={{ color: theme.colors.onSurfaceVariant }}>
+                  {createdAgo}
+                </AppText>
+              </View>
+            ) : null}
+            {/* The label always renders; only the LINK is conditional.
+                `navigateToOwner` returns early without a username, so gating the
+                whole block hid "you" on your own records, and gating nothing
+                made an unnavigable label a full-size primary-coloured link that
+                did nothing when pressed. */}
+            {ownerLabel && product.ownerUsername ? (
+              <Pressable
+                onPress={navigateToOwner}
+                accessibilityRole="link"
+                accessibilityLabel={`View ${ownerLabel}'s profile`}
+                className="flex-row items-center gap-1 pr-2"
+                style={styles.ownerLink}
+              >
+                <Icon name="user" size={12} color={theme.colors.onSurfaceVariant} />
+                <AppText variant="caption" className="text-primary" numberOfLines={1}>
+                  {ownerLabel}
+                </AppText>
+              </Pressable>
+            ) : ownerLabel ? (
+              <View className="flex-row items-center gap-1 pr-2">
+                <Icon name="user" size={12} color={theme.colors.onSurfaceVariant} />
+                <AppText
+                  variant="caption"
+                  numberOfLines={1}
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {ownerLabel}
+                </AppText>
               </View>
             ) : null}
           </View>
-        </View>
-      </Card>
-    </Pressable>
+        ) : null}
+      </View>
+    </Card>
   );
 }
 
@@ -165,6 +193,21 @@ export default ProductCard;
 const styles = StyleSheet.create({
   pressed: {
     opacity: 0.7,
+  },
+  // The touch floor lives on the LINK, not the row. Putting `minHeight: 44` on
+  // the row inflated an ~18px metadata line to 44px, which cost roughly 40% of
+  // the records visible per screen on a list-first browse surface and left a
+  // 44px strip below the press target that did nothing. The link reaches the
+  // floor through vertical padding, and the negative margin lets that padding
+  // overlap the row's own spacing instead of adding to it — a real 44px target
+  // inside a row that stays the height of its text.
+  metadataRow: {
+    marginTop: 6,
+  },
+  ownerLink: {
+    minHeight: MIN_TAP_TARGET,
+    paddingVertical: 13,
+    marginVertical: -13,
   },
   // expo-image's Image ignores className, so its sizing stays style-driven.
   thumbnailImage: {

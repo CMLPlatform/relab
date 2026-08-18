@@ -10,6 +10,24 @@ jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(),
 }));
 
+// Deleting a photo is confirm-gated. These tests are about which row the index
+// arithmetic removes, not about the dialog, so the confirm auto-accepts here by
+// firing the destructive button. `alertCalls` lets one test assert the gate
+// itself still exists. Note the real no-provider fallback deliberately does NOT
+// auto-fire a destructive-only button set, which is why this mock is needed.
+const alertCalls: { title?: string; buttons?: { style?: string; onPress?: () => void }[] }[] = [];
+jest.mock('@/hooks/useAppFeedback', () => ({
+  useAppFeedback: () => ({
+    alert: (options: { title?: string; buttons?: { style?: string; onPress?: () => void }[] }) => {
+      alertCalls.push(options);
+      options.buttons?.find((b) => b.style === 'destructive')?.onPress?.();
+    },
+    error: jest.fn(),
+    input: jest.fn(),
+    toast: jest.fn(),
+  }),
+}));
+
 const IMAGES = [
   { id: 'a', url: 'https://cdn.test/a.jpg', description: '' },
   // The stored file is gone, so the API returns an empty url and this image
@@ -80,4 +98,18 @@ describe('useProductGalleryImageActions', () => {
       { id: 'c', url: 'https://cdn.test/c.jpg', description: '' },
     ]);
   });
+});
+
+it('gates deletion behind a destructive confirm', async () => {
+  alertCalls.length = 0;
+  const onImagesChange = jest.fn();
+  const { result } = setup(onImagesChange);
+
+  await act(async () => {
+    result.current.handleDeleteImage(0);
+  });
+
+  expect(alertCalls).toHaveLength(1);
+  expect(alertCalls[0]?.title).toBe('Remove photo?');
+  expect(alertCalls[0]?.buttons?.map((b) => b.style)).toEqual(['cancel', 'destructive']);
 });

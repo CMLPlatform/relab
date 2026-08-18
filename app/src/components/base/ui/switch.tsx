@@ -1,5 +1,6 @@
 import * as SwitchPrimitives from '@rn-primitives/switch';
 import { Platform } from 'react-native';
+import { WEB_FOCUS_RING } from '@/constants';
 import { cn } from '@/utils/cn';
 
 function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimitives.Root>) {
@@ -8,7 +9,10 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
       className={cn(
         'flex h-[1.15rem] w-8 shrink-0 flex-row items-center rounded-full border border-transparent shadow-sm shadow-black/5',
         Platform.select({
-          web: 'focus-visible:border-ring focus-visible:ring-ring/50 peer inline-flex outline-none transition-colors focus-visible:ring-[3px] disabled:cursor-not-allowed',
+          web: cn(
+            'peer inline-flex outline-none transition-colors disabled:cursor-not-allowed',
+            WEB_FOCUS_RING,
+          ),
         }),
         props.checked ? 'bg-primary' : 'bg-input dark:bg-input/80',
         props.disabled && 'opacity-50',

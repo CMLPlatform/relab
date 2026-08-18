@@ -117,7 +117,7 @@ export function ProfileEmailUpdatesSection({
       <View className="flex-row items-start justify-between gap-3 px-4 py-2.5">
         <View className="flex-1">
           <AppText className="font-semibold">Receive Relab account updates</AppText>
-          <AppText className="mt-px text-[13px] opacity-[0.55]">
+          <AppText className="mt-px text-[13px] text-muted-foreground">
             Opt in to occasional product and project updates tied to your account.
           </AppText>
           <AppText className="mt-1.5 text-[13px] font-semibold">
@@ -160,7 +160,10 @@ function ThemeModeOption({
       style={[styles.themeModeOption, active && styles.themeModeOptionActive]}
       onPress={handlePress}
       accessibilityRole="radio"
-      accessibilityState={{ selected: active }}
+      // `checked` is the required state for role=radio (RN Web maps it to
+      // aria-checked); `selected` alone emits aria-selected, which ARIA does not
+      // accept on a radio, so screen readers could not report the active theme.
+      accessibilityState={{ checked: active, selected: active }}
       accessibilityLabel={`${label} theme`}
     >
       <Icon name={icon} size={22} color={color} />
@@ -196,7 +199,8 @@ function VisibilityOption({
       onPress={handlePress}
       disabled={saving}
       accessibilityRole="radio"
-      accessibilityState={{ selected: isActive }}
+      // See the theme option above: role=radio requires aria-checked.
+      accessibilityState={{ checked: isActive, selected: isActive }}
     >
       <View className="w-8 items-center">
         <Icon
@@ -212,7 +216,7 @@ function VisibilityOption({
         >
           {option.title}
         </AppText>
-        <AppText className="mt-px text-[13px] opacity-[0.55]">{option.subtitle}</AppText>
+        <AppText className="mt-px text-[13px] text-muted-foreground">{option.subtitle}</AppText>
       </View>
       {isActive ? <Icon name="check" size={20} color={theme.colors.primary} /> : null}
     </Pressable>

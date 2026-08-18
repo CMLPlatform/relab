@@ -242,6 +242,8 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     );
 
     fireEvent.press(screen.getByLabelText('Delete photo'));
+    // Deletion is confirm-gated; press through the destructive button.
+    fireEvent.press(await screen.findByText('Remove'));
 
     await waitFor(() => {
       expect(onImagesChange).toHaveBeenCalledWith([
@@ -263,6 +265,8 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     );
 
     fireEvent.press(screen.getByLabelText('Delete photo'));
+    // Deletion is confirm-gated; press through the destructive button.
+    fireEvent.press(await screen.findByText('Remove'));
 
     await waitFor(() => {
       expect(onImagesChange).toHaveBeenCalledWith([]);
