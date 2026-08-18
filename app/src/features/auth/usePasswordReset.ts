@@ -43,9 +43,7 @@ export function useForgotPassword() {
       setSuccess(true);
     } catch (err) {
       logError('Forgot password error:', err);
-      setError(
-        err instanceof ApiError ? err.message : 'An error occurred. Please try again later.',
-      );
+      setError(err instanceof ApiError ? err.message : 'Something went wrong. Try again later.');
     }
   });
 

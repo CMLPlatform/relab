@@ -4,7 +4,7 @@ import {
   requestCameraPermissionsAsync,
 } from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { clampIndex } from '@/components/product/gallery/shared';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
@@ -62,7 +62,7 @@ export function useProductGalleryCaptureActions({
     if (captureState.isNewProduct) {
       captureState.feedback.alert({
         title: 'Save required',
-        message: 'Save this product first before capturing from an RPi camera.',
+        message: 'Save this product before you capture from an RPi camera.',
         buttons: [{ text: 'OK' }],
       });
       return;
@@ -146,26 +146,39 @@ export function useProductGalleryImageActions({
     }
   }, [feedback.error, media.images, onImagesChange]);
 
-  // Confirmed, like every other destructive action in the app. This used to
-  // remove a photo on a single tap of a control sitting a few pixels from the
-  // RPi capture button, with no dialog, no toast and no undo — and the photo it
-  // removes may be the only record of an internal assembly that has since been
-  // reassembled.
+  // Undo, not confirm. Removal is draft-local — the DELETE only leaves the
+  // device when the record is saved (see updateProductImages in api/saving) —
+  // so putting the row back is free, and a confirm would tax every removal to
+  // guard a mistake the toast already covers. The photo may be the only record
+  // of an internal assembly since reassembled, hence the recovery path; the
+  // delete control also sits a few pixels from the RPi capture button.
+  //
+  // Read through a ref rather than the closed-over array: the undo window is
+  // long enough to import a photo in, and restoring a snapshot taken before
+  // that import would silently drop it.
+  const imagesRef = useRef(media.images);
+  useEffect(() => {
+    imagesRef.current = media.images;
+  }, [media.images]);
+
   const handleDeleteImage = useCallback(
     (index: number) => {
-      const removeAt = () => {
-        const newImages = [...media.images];
-        newImages.splice(index, 1);
-        onImagesChange?.(newImages);
-        void viewerState.updateCurrentIndex(clampIndex(index, newImages.length));
-      };
-      feedback.alert({
-        title: 'Remove photo?',
-        message: 'This photo will be removed from the record. This cannot be undone.',
-        buttons: [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Remove', style: 'destructive', onPress: removeAt },
-        ],
+      const removed = media.images[index];
+      if (!removed) return;
+      const newImages = [...media.images];
+      newImages.splice(index, 1);
+      onImagesChange?.(newImages);
+      void viewerState.updateCurrentIndex(clampIndex(index, newImages.length));
+      feedback.toast('Photo removed', {
+        label: 'Undo',
+        onPress: () => {
+          // Filter by identity first so an undo that races a re-render (the ref
+          // still holding the pre-delete array) restores rather than duplicates.
+          const restored = imagesRef.current.filter((image) => image !== removed);
+          restored.splice(index, 0, removed);
+          onImagesChange?.(restored);
+          void viewerState.updateCurrentIndex(index);
+        },
       });
     },
     [feedback, media.images, onImagesChange, viewerState],

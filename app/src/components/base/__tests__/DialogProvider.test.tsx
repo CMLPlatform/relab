@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { createRef } from 'react';
-import { AccessibilityInfo, findNodeHandle, Pressable, Text, View } from 'react-native';
+import { AccessibilityInfo, findNodeHandle, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDialog } from '@/components/base/dialogContext';
 import { mockPlatform, renderWithProviders, restorePlatform, setupUser } from '@/test-utils/index';
 
@@ -389,6 +389,61 @@ describe('DialogProvider', () => {
     });
     await waitFor(() => {
       expect(screen.queryByText('Saved')).toBeNull();
+    });
+  });
+
+  it('toast() renders its optional action and dismisses when the action fires', async () => {
+    const onPress = jest.fn();
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => dialog.toast('Photo removed', { label: 'Undo', onPress }));
+    }
+
+    renderWithProviders(<ToastTest />, { withDialog: true });
+
+    await user.press(screen.getByTestId('trigger'));
+    expect(screen.getByText('Photo removed')).toBeOnTheScreen();
+
+    // The Inverse-Pair Rule, asserted on the paint rather than the class: the
+    // action label must carry the same ink as the message it sits beside. The
+    // button variant's own foreground assumes a same-polarity surface, and
+    // letting it through is the failure that made ActiveStreamBanner invisible.
+    const messageColor = StyleSheet.flatten(screen.getByText('Photo removed').props.style)?.color;
+    const actionColor = StyleSheet.flatten(screen.getByText('Undo').props.style)?.color;
+    expect(actionColor).toBe(messageColor);
+    expect(actionColor).toBeTruthy();
+
+    await user.press(screen.getByText('Undo'));
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.queryByText('Photo removed')).toBeNull();
+    });
+  });
+
+  // A toast with a control gets longer than the 4s plain one: the reader has to
+  // notice it, read it and reach the button before it goes.
+  it('a toast with an action outlives the plain 4s dismiss', async () => {
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() =>
+        dialog.toast('Photo removed', { label: 'Undo', onPress: () => {} }),
+      );
+    }
+
+    renderWithProviders(<ToastTest />, { withDialog: true });
+    await user.press(screen.getByTestId('trigger'));
+
+    act(() => {
+      jest.advanceTimersByTime(4100);
+    });
+    expect(screen.getByText('Undo')).toBeOnTheScreen();
+
+    act(() => {
+      jest.advanceTimersByTime(4000);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText('Photo removed')).toBeNull();
     });
   });
 

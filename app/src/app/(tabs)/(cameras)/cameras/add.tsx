@@ -116,9 +116,9 @@ export default function AddCameraScreen() {
           >
             <Icon name="info" size={18} color={theme.colors.primary} />
             <AppText variant="body" className="flex-1 text-muted-foreground">
-              Power on the Raspberry Pi, then read the pairing code from its setup page or its
-              startup logs. If no code appears, the Pi does not know where to reach this server yet
-              — ask whoever set the camera up to point it at this server and restart it.
+              Power on the Raspberry Pi. Read the pairing code from its setup page or its startup
+              logs. If no code appears, the Pi does not know where to reach this server yet. Ask
+              whoever set the camera up to point it at this server and restart it.
             </AppText>
           </View>
           <DocsLink

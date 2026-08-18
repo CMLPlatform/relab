@@ -72,7 +72,7 @@ export async function processImage(
   } catch {
     const processingError: ImageProcessingError = {
       type: 'processing',
-      message: 'Failed to process image',
+      message: "Couldn't prepare that image. Try another one.",
     };
     options.onError?.(processingError);
     return null;

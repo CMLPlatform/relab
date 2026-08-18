@@ -373,9 +373,7 @@ function GoLiveCTA({
 }
 
 function EmptyVideoState() {
-  return (
-    <AppText className="mb-2 text-muted-foreground">This product has no associated videos.</AppText>
-  );
+  return <AppText className="mb-2 text-muted-foreground">No videos yet.</AppText>;
 }
 
 // fontSize/lineHeight combos below don't match any text-* class (e.g.

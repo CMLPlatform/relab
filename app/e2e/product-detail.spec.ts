@@ -56,7 +56,7 @@ async function fillRequiredProductFields(
 ): Promise<void> {
   await createProduct(page, name);
   await page.getByRole('button', { name: ADD_PROPERTIES_LABEL }).click();
-  const weightInput = page.getByPlaceholder('> 0').first();
+  const weightInput = page.getByPlaceholder('e.g. 12').first();
   await weightInput.fill('42');
   await weightInput.blur();
 }

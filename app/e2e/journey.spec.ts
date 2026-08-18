@@ -52,7 +52,7 @@ test('an ordinary member can create, populate and publish a product', async ({ p
 
   // ── Populate: a required dimension and a real image ──────────────────────
   await page.getByRole('button', { name: 'Add properties' }).click();
-  const weight = page.getByPlaceholder('> 0').first();
+  const weight = page.getByPlaceholder('e.g. 12').first();
   await weight.fill('42');
   await weight.blur();
 

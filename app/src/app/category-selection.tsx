@@ -76,7 +76,7 @@ export default function CategorySelection() {
             Search by name or description, or browse into a category. Tap a category to select it as
             the product type.
           </AppText>
-          <InfoTooltip title="Product types come from a standard procurement taxonomy (CPV). Pick the closest match — it powers filtering and the research statistics." />
+          <InfoTooltip title="Product types come from CPV, a standard list of product categories. Pick the closest match. Relab uses it for filtering and for the research statistics." />
         </View>
         {history.length > 1 && <CPVHistory history={history} onPress={moveUp} />}
       </View>

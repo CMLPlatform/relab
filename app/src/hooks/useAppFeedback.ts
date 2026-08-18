@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import {
   type DialogButton,
   pickSubmitButton,
+  type ToastAction,
   useOptionalDialog,
 } from '@/components/base/dialogContext';
 
@@ -18,7 +19,11 @@ export function useAppFeedback() {
   // callers that pass `toast`/the whole feedback object as a useCallback/useEffect dep
   // don't get a new identity every render.
   return useMemo(() => {
-    const toast = (message: string) => (dialog ? dialog.toast(message) : fallbackAlert(message));
+    // Without a provider there is nowhere to put the action, so the fallback
+    // shows the message alone — the caller's change stands, exactly as it does
+    // when the toast auto-dismisses unactioned.
+    const toast = (message: string, action?: ToastAction) =>
+      dialog ? dialog.toast(message, action) : fallbackAlert(message);
     return {
       alert: (options: { message?: string; title?: string; buttons?: DialogButton[] }) => {
         if (dialog) {

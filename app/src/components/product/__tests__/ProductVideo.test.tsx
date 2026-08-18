@@ -75,7 +75,7 @@ describe('ProductVideo', () => {
 
   it("shows 'no associated videos' message when empty", () => {
     renderProductVideo();
-    expect(screen.getByText('This product has no associated videos.')).toBeOnTheScreen();
+    expect(screen.getByText('No videos yet.')).toBeOnTheScreen();
   });
 
   it("shows 'Add video' button in edit mode", () => {

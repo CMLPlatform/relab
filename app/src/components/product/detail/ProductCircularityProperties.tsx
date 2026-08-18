@@ -10,34 +10,35 @@ import type { CircularityProperties, Product } from '@/types/Product';
 
 type CircularityNoteKey = keyof CircularityProperties;
 
-// The placeholders are the onboarding. These three free-text notes are the
-// product's distinguishing research input and the hardest fields to write into
-// cold: the labels are domain vocabulary, and a contributor who does not know
-// what a good answer looks like writes nothing. Each example is deliberately
-// hedged, because the guidance is that an uncertain observation is a good
-// observation and a forced-precise one damages the dataset.
+// These three free-text notes are the product's distinguishing research input
+// and the hardest fields to write into cold. Every label is domain vocabulary,
+// so each one carries its meaning in a hint: the audience runs out past the lab
+// to repair-café visitors, and none of the three terms is everyday English.
+// The example under it shows what a good answer looks like, and every example is
+// deliberately hedged, because the guidance is that an uncertain observation is
+// a good observation and a forced-precise one damages the dataset.
 const NOTE_FIELDS: readonly {
   key: CircularityNoteKey;
   label: string;
-  hint?: string;
+  hint: string;
   example: string;
 }[] = [
   {
     key: 'recyclability',
     label: 'Recyclability',
+    hint: 'What the parts are made of, and whether those materials can be separated and recovered.',
     example: 'e.g. Housing likely polypropylene, unconfirmed — no resin code moulded in.',
   },
   {
     key: 'disassemblability',
     label: 'Disassemblability',
-    // The one term of the three that is not everyday English, so it carries
-    // its meaning inline; the example alone showed what to write, not why.
     hint: 'How easily the product comes apart into its parts, and whether that damages them.',
     example: 'e.g. Opens with 6 Torx T10; battery is glued, had to be prised.',
   },
   {
     key: 'remanufacturability',
     label: 'Remanufacturability',
+    hint: 'Whether whole parts could be cleaned up and used again in another product.',
     example: 'e.g. Motor and gearbox look reusable; control board is potted.',
   },
 ];
@@ -69,7 +70,7 @@ export default function ProductCircularityProperties({
 }: Props) {
   const { colors } = useAppTheme();
   // Expanded in edit mode. Collapsed-by-default made "Add circularity notes"
-  // (Section's ghost add-row) open onto "No associated circularity properties."
+  // (Section's ghost add-row) open onto "No circularity notes yet."
   // plus a Show link — three taps to reach a textarea, the middle one answering
   // a request to add with a statement that there is nothing. The collapse earns
   // its place in view mode only when there is nothing to show: a record that
@@ -146,9 +147,7 @@ export default function ProductCircularityProperties({
             );
           })}
           {!editMode && noteCount === 0 ? (
-            <AppText className="mb-2 text-muted-foreground">
-              No associated circularity properties.
-            </AppText>
+            <AppText className="mb-2 text-muted-foreground">No circularity notes yet.</AppText>
           ) : null}
           {/* The guidance that resolves most of the confusion around these three
               fields (what counts as an observation, and that leaving one empty
@@ -180,7 +179,7 @@ function CircularityNoteField({
 }: {
   noteKey: CircularityNoteKey;
   label: string;
-  hint?: string;
+  hint: string;
   example: string;
   value: string;
   editMode: boolean;
@@ -197,11 +196,9 @@ function CircularityNoteField({
       <AppText variant="body" className="text-[18px] font-semibold">
         {label}
       </AppText>
-      {hint ? (
-        <AppText variant="caption" className="mb-1 text-muted-foreground">
-          {hint}
-        </AppText>
-      ) : null}
+      <AppText variant="caption" className="mb-1 text-muted-foreground">
+        {hint}
+      </AppText>
       {editMode ? (
         <TextInput
           value={value}

@@ -118,7 +118,7 @@ export function ProfileEmailUpdatesSection({
         <View className="flex-1">
           <AppText className="font-semibold">Receive Relab account updates</AppText>
           <AppText className="mt-px text-[13px] text-muted-foreground">
-            Opt in to occasional product and project updates tied to your account.
+            Occasional news about Relab and the research project, sent to your account email.
           </AppText>
           <AppText className="mt-1.5 text-[13px] font-semibold">
             {enabled ? 'Currently enabled.' : 'Currently disabled.'}

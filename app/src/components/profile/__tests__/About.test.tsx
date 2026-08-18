@@ -25,9 +25,23 @@ describe('ProfileAboutSection', () => {
     renderWithProviders(<ProfileAboutSection />);
 
     expect(screen.getByRole('button', { name: 'The 9R framework' })).toBeOnTheScreen();
-    expect(
-      screen.getByText('The circular-economy model behind the nine in the mark'),
-    ).toBeOnTheScreen();
+    expect(screen.getByText('The nine circular-economy strategies behind Relab')).toBeOnTheScreen();
+  });
+
+  it('renders the glossary row', () => {
+    renderWithProviders(<ProfileAboutSection />);
+
+    expect(screen.getByRole('button', { name: 'Glossary' })).toBeOnTheScreen();
+  });
+
+  it('opens the glossary on the docs site', async () => {
+    renderWithProviders(<ProfileAboutSection />);
+
+    await user.press(screen.getByRole('button', { name: 'Glossary' }));
+
+    expect(mockOpenExternalUrl).toHaveBeenCalledWith(
+      new URL('/user-guides/glossary', DOCS_URL).toString(),
+    );
   });
 
   it('opens the 9R framework page on the docs site', async () => {

@@ -44,8 +44,8 @@ describe('useAppFeedback', () => {
       message: 'Saved',
       buttons: [{ text: 'OK' }],
     });
-    expect(dialog.toast).toHaveBeenNthCalledWith(1, 'Hello');
-    expect(dialog.toast).toHaveBeenNthCalledWith(2, 'Done');
+    expect(dialog.toast).toHaveBeenNthCalledWith(1, 'Hello', undefined);
+    expect(dialog.toast).toHaveBeenNthCalledWith(2, 'Done', undefined);
     expect(dialog.alert).toHaveBeenNthCalledWith(2, {
       title: 'Something went wrong',
       message: 'Boom',
@@ -53,6 +53,17 @@ describe('useAppFeedback', () => {
     });
     expect(dialog.input).toHaveBeenCalled();
     expect(alertSpy).not.toHaveBeenCalled();
+  });
+
+  it('forwards a toast action to the dialog', () => {
+    const dialog = { alert: jest.fn(), toast: jest.fn(), input: jest.fn() };
+    mockUseOptionalDialog.mockReturnValue(dialog as never);
+    const onPress = jest.fn();
+
+    const { result } = renderHook(() => useAppFeedback());
+    result.current.toast('Photo removed', { label: 'Undo', onPress });
+
+    expect(dialog.toast).toHaveBeenCalledWith('Photo removed', { label: 'Undo', onPress });
   });
 
   it('falls back to global alert and invokes the primary (last) action', () => {

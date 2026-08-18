@@ -242,14 +242,16 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     );
 
     fireEvent.press(screen.getByLabelText('Delete photo'));
-    // Deletion is confirm-gated; press through the destructive button.
-    fireEvent.press(await screen.findByText('Remove'));
 
     await waitFor(() => {
       expect(onImagesChange).toHaveBeenCalledWith([
         expect.objectContaining({ url: 'file://photo2.jpg' }),
       ]);
     });
+    // Removal is unconfirmed, so the recovery path has to actually reach the
+    // provider: the toast is the only thing standing between a mis-tap and a
+    // photo that only leaves the device on the next save.
+    expect(await screen.findByText('Undo')).toBeOnTheScreen();
   });
 
   it('delete clamps new index to the last image when the last item is removed', async () => {
@@ -265,8 +267,6 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     );
 
     fireEvent.press(screen.getByLabelText('Delete photo'));
-    // Deletion is confirm-gated; press through the destructive button.
-    fireEvent.press(await screen.findByText('Remove'));
 
     await waitFor(() => {
       expect(onImagesChange).toHaveBeenCalledWith([]);

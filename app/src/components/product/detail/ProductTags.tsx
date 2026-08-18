@@ -192,7 +192,7 @@ function AmountChip({
         >
           Amount
         </AppText>
-        <InfoTooltip title="How many times this component occurs in its parent" />
+        <InfoTooltip title="How many of this component the parent contains" />
       </View>
       {editMode ? (
         <View className="bg-primary flex-row items-center rounded-md overflow-hidden">
@@ -212,7 +212,7 @@ function AmountChip({
             className="text-primary-foreground w-9 text-center py-2 px-0"
             style={amountStyles.input}
             accessibilityLabel="Amount"
-            accessibilityHint="Enter a whole number from 1 to 10000; out-of-range values are adjusted to fit"
+            accessibilityHint="Enter a whole number from 1 to 10000. Relab corrects a value outside that range."
           />
           <StepButton
             icon="plus"

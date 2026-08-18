@@ -186,6 +186,9 @@ export function ProductImageGalleryContent({
             onPress={onDeleteImage}
             accessibilityRole="button"
             accessibilityLabel="Delete photo"
+            // The undo lives in a toast that auto-dismisses, so a screen reader
+            // user who is not moved to it has to be told it is there.
+            accessibilityHint="Removes it from this record. A message with an Undo button appears."
             className="absolute top-3 right-3 h-11 w-11 items-center justify-center rounded-md"
             style={deleteButtonStyle}
           >

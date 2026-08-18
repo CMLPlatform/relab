@@ -24,11 +24,11 @@ describe('ProductCircularityProperties', () => {
     expect(toggle.props.accessibilityState).toMatchObject({ expanded: false });
   });
 
-  it("shows 'No associated circularity properties' once expanded with empty data", () => {
+  it("shows 'No circularity notes yet' once expanded with empty data", () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
 
     fireEvent.press(screen.getByText('Show circularity notes'));
-    expect(screen.getByText('No associated circularity properties.')).toBeOnTheScreen();
+    expect(screen.getByText('No circularity notes yet.')).toBeOnTheScreen();
   });
 
   it('opens on the notes in view mode when the record has any, and summarizes them once hidden', () => {
@@ -134,11 +134,11 @@ describe('ProductCircularityProperties', () => {
 
 it('mounts expanded in edit mode and collapsed in view mode', () => {
   // Regression: collapsed-by-default made Section's "Add circularity notes"
-  // ghost row open onto "No associated circularity properties." plus a Show
+  // ghost row open onto "No circularity notes yet." plus a Show
   // link — a request to add answered with a statement that there is nothing.
   renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={true} />);
   expect(screen.getByText('Recyclability')).toBeOnTheScreen();
-  expect(screen.queryByText('No associated circularity properties.')).toBeNull();
+  expect(screen.queryByText('No circularity notes yet.')).toBeNull();
 
   screen.unmount();
 

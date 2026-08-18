@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
 import { DocsLink } from '@/components/base/DocsLink';
 import { Separator } from '@/components/base/ui/separator';
 import LocalizedFloatInput from '@/components/product/LocalizedFloatInput';
@@ -66,6 +67,16 @@ export default function ProductPhysicalProperties({
         height={product.physicalProperties.height}
         depth={product.physicalProperties.depth}
       />
+      {/* Four labelled boxes do not say which box is which, that centimetres and
+          grams are the units, or what an empty field means — and the audience
+          runs out past the lab, where none of that is assumed knowledge. The
+          guide link below carries the rest. */}
+      {editMode ? (
+        <AppText variant="caption" className="mb-1 text-muted-foreground">
+          Size and weight of the item as it sits in front of you. Leave a field empty if you did not
+          measure it.
+        </AppText>
+      ) : null}
       {Object.keys(product.physicalProperties).map((prop) => (
         <PhysicalPropertyRow
           key={prop}
@@ -118,7 +129,7 @@ function PhysicalPropertyRow({
         editable={editMode}
         onChange={handleChange}
         min={0}
-        placeholder="> 0"
+        placeholder="e.g. 12"
         error={editMode ? propertyError(propKey, value) : undefined}
       />
     </View>

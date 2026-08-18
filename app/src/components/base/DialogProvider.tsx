@@ -2,6 +2,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react
 import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { useAppTheme, useInverseSurface } from '@/theme';
+import { cn } from '@/utils/cn';
 import { AppButton } from './AppButton';
 import { AppDialog } from './AppDialog';
 import { AppText } from './AppText';
@@ -11,6 +12,7 @@ import {
   type DialogContextType,
   type DialogOptions,
   pickSubmitButton,
+  type ToastAction,
 } from './dialogContext';
 import { dialogActionsStyle, dialogTitleStyle } from './dialogStyles';
 import { OverlaySurface } from './OverlaySurface';
@@ -18,6 +20,9 @@ import { TextInput } from './TextInput';
 
 // Within WCAG's 3-5s auto-dismiss guidance for transient toasts.
 const TOAST_DURATION_MS = 4000;
+// A toast carrying an action needs long enough to be noticed, read and reached;
+// WCAG 2.2.1 allows the longer dismiss precisely because there is a control.
+const ACTION_TOAST_DURATION_MS = 8000;
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [options, setOptions] = useState<DialogOptions | null>(null);
@@ -28,7 +33,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(false);
   // A fresh object per trigger: repeating the same message still produces a new
   // identity, so the Toast effect re-runs and the dismiss timer resets.
-  const [toastState, setToastState] = useState<{ message: string } | null>(null);
+  const [toastState, setToastState] = useState<{
+    message: string;
+    action?: ToastAction;
+  } | null>(null);
   const [dialogVersion, setDialogVersion] = useState(0);
 
   const alert = useCallback<DialogContextType['alert']>((opts: DialogOptions) => {
@@ -43,8 +51,8 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     setDialogVersion((version) => version + 1);
   }, []);
 
-  const toast = useCallback<DialogContextType['toast']>((message: string) => {
-    setToastState({ message });
+  const toast = useCallback<DialogContextType['toast']>((message: string, action?: ToastAction) => {
+    setToastState({ message, action });
   }, []);
 
   const clear = useCallback(() => {
@@ -201,9 +209,23 @@ function DialogActionButton({
  * so it announces via aria-live without trapping focus or being dismissable by
  * Escape (a toast is not a dialog).
  */
-function Toast({ state, onDismiss }: { state: { message: string } | null; onDismiss: () => void }) {
+function Toast({
+  state,
+  onDismiss,
+}: {
+  state: { message: string; action?: ToastAction } | null;
+  onDismiss: () => void;
+}) {
   const inverse = useInverseSurface();
   const message = state?.message ?? null;
+  const action = state?.action;
+
+  // Dismiss first: the action may raise a toast of its own, and these two state
+  // updates batch in call order, so dismissing afterwards would swallow it.
+  const handleAction = useCallback(() => {
+    onDismiss();
+    action?.onPress();
+  }, [action, onDismiss]);
 
   // Depends on the state OBJECT, not the message string: each toast() call
   // mints a new object, so a repeated identical message still restarts the
@@ -212,7 +234,10 @@ function Toast({ state, onDismiss }: { state: { message: string } | null; onDism
     if (!state) return;
     // accessibilityLiveRegion is Android-only; VoiceOver needs an explicit announcement.
     if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(state.message);
-    const timer = setTimeout(onDismiss, TOAST_DURATION_MS);
+    const timer = setTimeout(
+      onDismiss,
+      state.action ? ACTION_TOAST_DURATION_MS : TOAST_DURATION_MS,
+    );
     return () => clearTimeout(timer);
   }, [state, onDismiss]);
 
@@ -232,17 +257,29 @@ function Toast({ state, onDismiss }: { state: { message: string } | null; onDism
         exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
       >
         <OverlaySurface
-          className="px-4 py-2"
+          className={cn('flex-row items-center gap-3 px-4', action ? 'py-1' : 'py-2')}
           style={[styles.toast, { backgroundColor: inverse.background }]}
           tone="scrim"
         >
           <AppText
             variant="body"
             accessibilityLiveRegion="polite"
+            // Only shrink when sharing the row: alone, the toast hugs its message.
+            className={action ? 'flex-1' : undefined}
             style={{ color: inverse.foreground }}
           >
             {message}
           </AppText>
+          {action ? (
+            // Ghost keeps the inverse ground showing through; the label takes its
+            // ink from useInverseSurface (the Inverse-Pair Rule) rather than the
+            // button variant's own foreground, which assumes a same-polarity surface.
+            <AppButton variant="ghost" className="-mr-2 px-2" onPress={handleAction}>
+              <AppText variant="label" style={{ color: inverse.foreground }}>
+                {action.label}
+              </AppText>
+            </AppButton>
+          ) : null}
         </OverlaySurface>
       </Animated.View>
     </View>
