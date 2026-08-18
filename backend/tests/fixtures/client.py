@@ -204,6 +204,15 @@ async def api_client_user(
 
 
 @pytest.fixture
+async def api_client_lab_user(
+    api_client: httpx.AsyncClient, db_lab_user: User, test_app: FastAPI
+) -> AsyncGenerator[httpx.AsyncClient]:
+    """Provide an authenticated client for an active lab-tier user."""
+    with override_authenticated_user(test_app, db_lab_user):
+        yield api_client
+
+
+@pytest.fixture
 async def api_client_superuser_light(
     api_client_light: httpx.AsyncClient, db_superuser: User, test_app: FastAPI
 ) -> AsyncGenerator[httpx.AsyncClient]:

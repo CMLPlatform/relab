@@ -5,6 +5,7 @@ import uuid
 import pytest
 from pydantic import ValidationError
 
+from app.api.auth.roles import UserRole
 from app.api.auth.schemas import RefreshTokenRequest, UserCreate, UserRead, UserRegister, UserUpdate
 
 VALID_PASSWORD = "correct-horse-battery-staple-v42"
@@ -86,3 +87,31 @@ def test_refresh_token_request_rejects_unknown_fields() -> None:
     """Refresh-token requests should not silently accept extra client-controlled fields."""
     with pytest.raises(ValidationError, match="is_superuser"):
         RefreshTokenRequest.model_validate({"refresh_token": "token", "is_superuser": True})
+
+
+@pytest.mark.parametrize("schema_cls", [UserCreate, UserRegister, UserUpdate])
+def test_role_is_not_client_settable(schema_cls: PublicUserSchema) -> None:
+    """No public user payload may set the contributor tier.
+
+    Role is what gates research-file upload and the larger quota, so a user able to
+    PATCH their own role could grant themselves both. fastapi-users' safe update path
+    strips only a fixed set of privileged fields and would pass this one straight
+    through, which is why role is absent from these schemas rather than filtered out
+    of them.
+    """
+    payload = {
+        "email": "test@example.com",
+        "password": VALID_PASSWORD,
+        "username": "public_user",
+        "role": "lab",
+    }
+
+    with pytest.raises(ValidationError, match="role"):
+        schema_cls.model_validate(payload)
+
+
+def test_user_read_defaults_to_the_contributor_tier() -> None:
+    """A user payload without an explicit role must not read as lab."""
+    user = UserRead(id=uuid.uuid4(), email="test@example.com", is_active=True, is_superuser=False, is_verified=False)
+
+    assert user.role == UserRole.CONTRIBUTOR

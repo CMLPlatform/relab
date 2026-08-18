@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from fastapi_pagination.links import Page
 from pydantic import UUID4, BeforeValidator
 
-from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
+from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, CurrentLabUserDep
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.idempotency import IDEMPOTENCY_RESPONSES, IdempotencyKeyDep, idempotent_request
@@ -222,10 +222,14 @@ async def upload_product_file(
     session: AsyncSessionDep,
     db_product: UserOwnedBaseProductDep,
     file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
-    current_user: CurrentActiveVerifiedUserDep,
+    current_user: CurrentLabUserDep,
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
-    """Upload a new file for a base product."""
+    """Upload a new file for a base product.
+
+    Restricted to lab accounts: research-file formats are a lab capability, so the
+    dependency rejects before the multipart body is read.
+    """
     return await handle_upload_file(
         session, db_product.id, file=file, description=description, current_user=current_user
     )

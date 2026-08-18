@@ -65,6 +65,7 @@ def test_user_table_has_required_columns(migration_helper: MigrationHelper) -> N
         "profile_stats_computed_at",
         "upload_file_count",
         "upload_total_bytes",
+        "role",
     }
     missing = required - columns
     assert not missing, f"user table is missing columns: {missing}"

@@ -7,7 +7,8 @@ import pytest
 from fastapi import HTTPException, status
 from fastapi_users.exceptions import InvalidID, UserNotExists
 
-from app.api.auth.dependencies import current_mfa_user, get_user_or_404
+from app.api.auth.dependencies import current_lab_user, current_mfa_user, get_user_or_404
+from app.api.auth.roles import UserRole
 from app.api.common.exceptions import ForbiddenError
 
 
@@ -26,6 +27,25 @@ def test_current_mfa_user_rejects_user_without_mfa() -> None:
 
     with pytest.raises(ForbiddenError) as exc_info:
         current_mfa_user(user)
+
+    assert exc_info.value.http_status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_current_lab_user_returns_lab_account() -> None:
+    """The lab dependency should pass a lab-tier account through untouched."""
+    user = MagicMock()
+    user.role = UserRole.LAB
+
+    assert current_lab_user(user) is user
+
+
+def test_current_lab_user_rejects_contributor() -> None:
+    """A contributor must be refused, since the tier is what gates research files."""
+    user = MagicMock()
+    user.role = UserRole.CONTRIBUTOR
+
+    with pytest.raises(ForbiddenError) as exc_info:
+        current_lab_user(user)
 
     assert exc_info.value.http_status_code == status.HTTP_403_FORBIDDEN
 

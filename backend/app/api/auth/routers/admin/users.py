@@ -15,7 +15,7 @@ from app.api.auth.dependencies import (
 from app.api.auth.examples import ADMIN_USERS_RESPONSE_EXAMPLES
 from app.api.auth.filters import UserFilter
 from app.api.auth.models import User
-from app.api.auth.schemas import UserRead, UserUpdate
+from app.api.auth.schemas import UserRead, UserRoleUpdate, UserUpdate
 from app.api.auth.services import mfa_service
 from app.api.auth.services.account_erasure import ANONYMIZE, ErasureContent, erase_user, require_erasable_account
 from app.api.auth.services.account_security import revoke_user_refresh_tokens
@@ -137,3 +137,36 @@ async def reset_user_mfa(
     """Reset TOTP MFA after an administrator performs identity-proofed recovery."""
     await mfa_service.clear_totp(user_manager, user)
     audit_event(actor.id, AuditAction.SUPERUSER_ACCESS, User, user.id, context=AuditContext(operation="mfa_reset"))
+
+
+@router.put(
+    "/{user_id}/role",  # user_id is bound by the get_user_or_404 dependency
+    summary="Set a user's contributor tier",
+    response_model=UserRead,
+)
+async def set_user_role(
+    role_update: UserRoleUpdate,
+    user: UserByIDDep,
+    user_manager: UserManagerDep,
+    actor: CurrentActiveSuperUserDep,
+) -> User:
+    """Set a user's role.
+
+    A dedicated route rather than a field on `UserUpdate`: fastapi-users' safe
+    update path excludes a fixed set of privileged fields, so anything new added
+    to that schema would flow straight through self-service `PATCH /users/me`.
+    Keeping role off the schema entirely makes that escalation unrepresentable.
+
+    Writes through the user database rather than `AsyncSessionDep`: the target
+    user is loaded by the auth session, which is a separate dependency, so a
+    commit on the common session would persist nothing.
+    """
+    updated = await user_manager.user_db.update(user, {"role": role_update.role})
+    audit_event(
+        actor.id,
+        AuditAction.UPDATE,
+        User,
+        user.id,
+        context=AuditContext(operation=f"set_role_{role_update.role.value}"),
+    )
+    return updated

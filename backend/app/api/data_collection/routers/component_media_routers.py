@@ -7,7 +7,7 @@ from fastapi import File as FastAPIFile
 from fastapi_pagination.links import Page
 from pydantic import UUID4, BeforeValidator
 
-from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
+from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, CurrentLabUserDep
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
@@ -71,10 +71,13 @@ async def upload_component_file(
     session: AsyncSessionDep,
     db_component: UserOwnedComponentDep,
     file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
-    current_user: CurrentActiveVerifiedUserDep,
+    current_user: CurrentLabUserDep,
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
-    """Upload a new file for a component."""
+    """Upload a new file for a component.
+
+    Restricted to lab accounts, like the product-level route.
+    """
     return await handle_upload_file(
         session, db_component.id, file=file, description=description, current_user=current_user
     )

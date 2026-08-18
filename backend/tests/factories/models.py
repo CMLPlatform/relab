@@ -12,6 +12,7 @@ from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import User
+from app.api.auth.roles import UserRole
 from app.api.data_collection.models.product import (
     MaterialProductLink,
     Product,
@@ -118,6 +119,9 @@ class UserFactory(BaseModelFactory[User]):
     mfa_enabled = False
     mfa_totp_secret = None
     mfa_confirmed_at = None
+    # Pinned: role is an enum column, so an unpinned factory draws randomly between
+    # tiers and a test that means "an ordinary contributor" silently becomes lab.
+    role = UserRole.CONTRIBUTOR
     upload_file_count = 0
     upload_total_bytes = 0
 

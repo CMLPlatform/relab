@@ -521,7 +521,7 @@ async def test_upload_rejected_at_quota_then_succeeds_after_release(
     Deleting the counted media item must release the ledger so a further upload succeeds —
     this exercises reserve/release against the real ledger columns, not a mocked session.
     """
-    monkeypatch.setattr(settings, "max_upload_files_per_user", 1)
+    monkeypatch.setattr(settings, "max_upload_files_per_lab_user", 1)
 
     first = await api_client_superuser.post(
         f"/v1/products/{setup_product_for_files.id}/files",
@@ -576,7 +576,9 @@ async def test_upload_rejected_at_byte_quota_then_succeeds_after_release(
     release decrement specifically, with the file-count limit left at its generous default
     so only the byte budget can be the cause of the 413.
     """
-    monkeypatch.setattr(upload_quota, "_max_upload_bytes", lambda: 8)
+    # Patches the role-aware lookup rather than the MB setting: the settings are
+    # whole megabytes, which cannot express the few-byte limit this test needs.
+    monkeypatch.setattr(upload_quota, "upload_quota_bytes_for_role", lambda _role: 8)
 
     first = await api_client_superuser.post(
         f"/v1/products/{setup_product_for_files.id}/files",

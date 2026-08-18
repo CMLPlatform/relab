@@ -194,8 +194,12 @@ class CoreSettings(RelabBaseSettings):
     request_body_limit_bytes: int = Field(default=1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     max_file_upload_size_mb: int = Field(default=50, ge=1, le=500)
     max_image_upload_size_mb: int = Field(default=10, ge=1, le=100)
-    max_upload_files_per_user: int = Field(default=5000, ge=1, le=100_000)
-    max_upload_bytes_per_user_mb: int = Field(default=2048, ge=1, le=1_000_000)
+    # Upload quotas are tiered by the uploader's role (app.api.auth.roles). The
+    # per-user pair is the contributor tier; lab accounts get the lab pair.
+    max_upload_files_per_user: int = Field(default=1000, ge=1, le=100_000)
+    max_upload_bytes_per_user_mb: int = Field(default=1024, ge=1, le=1_000_000)
+    max_upload_files_per_lab_user: int = Field(default=20_000, ge=1, le=100_000)
+    max_upload_bytes_per_lab_user_mb: int = Field(default=20_480, ge=1, le=1_000_000)
     malware_scan_enabled: bool = False
     clamav_host: str = ""
     clamav_port: int = Field(default=3310, ge=1, le=65535)
@@ -281,6 +285,27 @@ class CoreSettings(RelabBaseSettings):
     def enable_rate_limit(self) -> bool:
         """Disable rate limiting in development and testing."""
         return self.environment not in (Environment.DEV, Environment.TESTING)
+
+    @model_validator(mode="after")
+    def validate_upload_quota_tiers(self) -> Self:
+        """Validate that the lab upload tier is not below the contributor tier.
+
+        Inverting them would silently downgrade every lab account, which reads as
+        a quota bug at the point of upload rather than as the misconfiguration it is.
+        """
+        if self.max_upload_files_per_lab_user < self.max_upload_files_per_user:
+            msg = (
+                f"max_upload_files_per_lab_user ({self.max_upload_files_per_lab_user}) "
+                f"must not be below max_upload_files_per_user ({self.max_upload_files_per_user})"
+            )
+            raise ValueError(msg)
+        if self.max_upload_bytes_per_lab_user_mb < self.max_upload_bytes_per_user_mb:
+            msg = (
+                f"max_upload_bytes_per_lab_user_mb ({self.max_upload_bytes_per_lab_user_mb}) "
+                f"must not be below max_upload_bytes_per_user_mb ({self.max_upload_bytes_per_user_mb})"
+            )
+            raise ValueError(msg)
+        return self
 
     @model_validator(mode="after")
     def validate_concurrency_settings(self) -> Self:

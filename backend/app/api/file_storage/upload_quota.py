@@ -8,15 +8,16 @@ model registry can express without giving up type safety on the columns.
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import and_, func, select, union_all, update
+from sqlalchemy import Case, and_, case, func, select, union_all, update
 
 from app.api.auth.models import User
+from app.api.auth.roles import UserRole, upload_quota_bytes_for_role, upload_quota_files_for_role
 from app.api.common.exceptions import PayloadTooLargeError
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import File, Image, MediaParentType
-from app.core.config import settings
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from uuid import UUID
 
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,9 +28,17 @@ if TYPE_CHECKING:
 UPLOAD_QUOTA_EXCEEDED_MESSAGE = "Upload quota exceeded."
 
 
-def _max_upload_bytes() -> int:
-    """Return the configured upload quota in bytes."""
-    return settings.max_upload_bytes_per_user_mb * 1024 * 1024
+def _quota_by_role(quota_for_role: Callable[[UserRole], int]) -> Case[int]:
+    """Return a CASE mapping the charged user's role to their quota.
+
+    Keeps the reservation a single atomic UPDATE: the limit varies per row, so it
+    has to be resolved in SQL rather than read into Python and compared there,
+    which would reintroduce the read-then-write race the UPDATE exists to avoid.
+    """
+    return case(
+        *((User.role == role.value, quota_for_role(role)) for role in UserRole),
+        else_=quota_for_role(UserRole.CONTRIBUTOR),
+    )
 
 
 async def reserve_product_upload_quota(
@@ -42,10 +51,11 @@ async def reserve_product_upload_quota(
 
     Charges the product's ``owner_id`` (not the requesting user), so it stays
     consistent with release/recompute — a superuser uploading to another user's
-    product charges that product's owner, not themselves.
+    product charges that product's owner, not themselves. The limits follow that
+    same owner's role, for the same reason.
     """
-    file_limit = settings.max_upload_files_per_user
-    byte_limit = _max_upload_bytes()
+    file_limit = _quota_by_role(upload_quota_files_for_role)
+    byte_limit = _quota_by_role(upload_quota_bytes_for_role)
     owner_id = select(Product.owner_id).where(Product.id == parent_id).scalar_subquery()
     stmt = (
         update(User)

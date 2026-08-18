@@ -121,6 +121,10 @@ email-check:
 backfill-upload-sizes:
     uv run python -m scripts.maintenance.backfill_upload_sizes
 
+# Report accounts over the quota their role grants (read-only; run around the role deploy)
+list-over-quota:
+    uv run python -m scripts.maintenance.list_accounts_over_contributor_quota
+
 # Export OpenAPI schemas consumed by the docs site
 openapi:
     uv run python -m scripts.generate.export_openapi

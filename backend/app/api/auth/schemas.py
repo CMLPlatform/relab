@@ -24,6 +24,7 @@ from app.api.auth.examples import (
 )
 from app.api.auth.preferences import UserPreferences, UserPreferencesUpdate
 from app.api.auth.profile_stats import ProfileStatsData
+from app.api.auth.roles import DEFAULT_USER_ROLE, UserRole
 
 # Note: These auth schemas stay together to avoid circular imports during model/schema construction.
 
@@ -190,8 +191,40 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
         default=None,
         description="When the contributor terms were accepted. Recorded by the server; not client-settable.",
     )
+    # Derived server-side rather than exposing the threshold constant: the release
+    # tooling keys on the same rule, and a client comparing versions itself would
+    # eventually ask a different set of people than the release excludes.
+    terms_acceptance_required: bool = Field(
+        default=False,
+        description="Whether this account should be prompted to accept the contributor terms. "
+        "True when it has never accepted, or accepted a version older than the one that grants "
+        "the publication licence a dataset release needs.",
+    )
+
+    # Role and quota are server-owned: role is absent from UserUpdate (which forbids
+    # extras) so no self-service PATCH can escalate to `lab`, and the quota figures
+    # are derived from it rather than stored per user.
+    role: UserRole = Field(
+        default=DEFAULT_USER_ROLE,
+        description="Contributor tier. `lab` accounts may upload non-image research files "
+        "and carry a larger upload quota. Set by an administrator; not client-settable.",
+    )
+    upload_quota_files: int = Field(
+        default=0, description="Maximum number of files and images this account's role allows."
+    )
+    upload_quota_bytes: int = Field(default=0, description="Maximum total upload size this account's role allows.")
+    upload_file_count: int = Field(default=0, description="Files and images this account currently has stored.")
+    upload_total_bytes: int = Field(default=0, description="Total bytes this account currently has stored.")
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_READ_EXAMPLES})
+
+
+class UserRoleUpdate(BaseModel):
+    """Administrator request to set one account's contributor tier."""
+
+    model_config: ConfigDict = ConfigDict(extra="forbid")
+
+    role: UserRole = Field(description="The contributor tier to assign.")
 
 
 class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUserUpdate):

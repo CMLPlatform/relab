@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.api.auth.roles import UserRole, upload_quota_bytes_for_role, upload_quota_files_for_role
 from app.api.common.exceptions import PayloadTooLargeError
 from app.api.file_storage.models import MediaParentType
 from app.api.file_storage.upload_quota import (
@@ -33,6 +34,30 @@ async def test_reserve_product_upload_quota_uses_single_conditional_update(mock_
     # Charge targets the parent product's owner, not the requesting user.
     assert "owner_id" in rendered_statement.lower()
     assert "product" in rendered_statement.lower()
+
+
+async def test_reserve_product_upload_quota_limits_follow_the_owner_role(mock_session: AsyncMock) -> None:
+    """The limit must be resolved per row from the owner's role, not from one global constant.
+
+    Asserts the compiled SQL, not the Python helper: the whole point of the CASE is
+    that it lives inside the conditional UPDATE, so a refactor that read the role
+    into Python first would keep the helper green while reopening the read-then-write
+    race the single statement exists to close.
+    """
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = uuid4()
+    mock_session.execute.return_value = result
+
+    await reserve_product_upload_quota(mock_session, parent_id=1, upload_size_bytes=128)
+
+    compiled = mock_session.execute.await_args.args[0].compile(compile_kwargs={"literal_binds": True})
+    rendered_statement = str(compiled)
+    assert "CASE" in rendered_statement.upper()
+    assert "role" in rendered_statement
+    for role in UserRole:
+        assert f"'{role.value}'" in rendered_statement
+        assert str(upload_quota_files_for_role(role)) in rendered_statement
+        assert str(upload_quota_bytes_for_role(role)) in rendered_statement
 
 
 async def test_reserve_product_upload_quota_raises_generic_quota_error_on_rejection(
