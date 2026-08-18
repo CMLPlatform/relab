@@ -212,11 +212,12 @@ describe('parseTeardown', () => {
     expect(t?.parts[0].children?.[0].photo?.url).toBe('http://api.test/media/lcd-thumb.jpg');
   });
 
-  it('names the part, not the product, in each part photo alt text', () => {
+  it('does not repeat the adjacent part name in each part photo alt text', () => {
     const t = parseTeardown(RAW, [
       { name: 'Cooling fan', weight_g: 24, thumbnail_url: '/media/fan.jpg', components: [] },
     ]);
-    expect(t?.parts[0].photo?.alt).toBe('Cooling fan, photographed during disassembly');
+    expect(t?.parts[0].photo?.alt).toBe('Photographed during disassembly');
+    expect(t?.parts[0].photo?.alt).not.toContain('Cooling fan');
   });
 
   it('ranks parts by recorded mass, heaviest first and unweighed last', () => {

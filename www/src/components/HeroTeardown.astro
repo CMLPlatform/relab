@@ -33,7 +33,9 @@ const recordHref =
     : `${appUrl.replace(/\/$/, '')}/products`;
 
 /**
- * "212 g" for recorded masses; an em dash (never "null"/"NaN") otherwise.
+ * "212 g" for recorded masses; null (never "null"/"NaN" on screen) otherwise,
+ * which the mass span renders as an em dash with a spoken equivalent, since
+ * screen readers announce a bare dash as "em dash" or skip it.
  *
  * Under a tonne a teardown is mostly whole grams, but a real schedule also has
  * screws: product 464 records three at 0.11 g, 0.22 g and 0.33 g, and the
@@ -41,9 +43,9 @@ const recordHref =
  * recorded, exactly what the em dash beside them already means. Two significant
  * figures until the gram is the meaningful unit.
  */
-const formatMassG = (weightG: number | null): string => {
+const formatMassG = (weightG: number | null): string | null => {
   if (weightG === null) {
-    return '—';
+    return null;
   }
   const grams = weightG < 10 ? Number(weightG.toPrecision(2)) : formatCount(weightG);
   return `${grams} g`;
@@ -198,7 +200,14 @@ const assembly = teardown?.photos[0] ?? null;
                     <summary class="blueprint-part">
                       {figure}
                       <span class="blueprint-part-name">{part.name}</span>
-                      <span class="blueprint-part-mass">{formatMassG(part.weightG)}</span>
+                      <span class="blueprint-part-mass">
+                        {formatMassG(part.weightG) ?? (
+                          <>
+                            <span aria-hidden="true">—</span>
+                            <span class="visually-hidden">mass not recorded</span>
+                          </>
+                        )}
+                      </span>
                       {part.share !== null && (
                         <span
                           class="blueprint-part-bar"
@@ -211,7 +220,14 @@ const assembly = teardown?.photos[0] ?? null;
                       {part.children.map((child) => (
                         <li class="blueprint-subpart">
                           <span class="blueprint-subpart-name">{child.name}</span>
-                          <span class="blueprint-part-mass">{formatMassG(child.weightG)}</span>
+                          <span class="blueprint-part-mass">
+                        {formatMassG(child.weightG) ?? (
+                          <>
+                            <span aria-hidden="true">—</span>
+                            <span class="visually-hidden">mass not recorded</span>
+                          </>
+                        )}
+                      </span>
                         </li>
                       ))}
                     </ul>
@@ -221,7 +237,14 @@ const assembly = teardown?.photos[0] ?? null;
                 <li class="blueprint-part" style={seat}>
                   {figure}
                   <span class="blueprint-part-name">{part.name}</span>
-                  <span class="blueprint-part-mass">{formatMassG(part.weightG)}</span>
+                  <span class="blueprint-part-mass">
+                        {formatMassG(part.weightG) ?? (
+                          <>
+                            <span aria-hidden="true">—</span>
+                            <span class="visually-hidden">mass not recorded</span>
+                          </>
+                        )}
+                      </span>
                   {part.share !== null && (
                     <span
                       class="blueprint-part-bar"
@@ -569,9 +592,11 @@ const assembly = teardown?.photos[0] ?? null;
 
   /* Look closer: the duotone lifts and the part is shown as it was actually
      photographed. Nothing is hidden behind the pointer — the name, mass, share
-     and alt text are all in the baked HTML — so this owes no equivalent, but
-     keyboard focus gets it anyway. Flat world, so the plate rises on its
-     border, never on a shadow.
+     and alt text are all in the baked HTML — so this owes no equivalent. Plates
+     with a disclosure also get it on keyboard focus of their summary; plain
+     plates hold nothing focusable and are deliberately not made tab stops for
+     an effect that carries no information. Flat world, so the plate rises on
+     its border, never on a shadow.
 
      `:focus-visible`, not `:focus-within`: clicking a disclosure focuses its
      summary, and under focus-within that plate stayed stripped of its duotone

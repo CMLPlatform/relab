@@ -179,10 +179,12 @@ const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
   }
 
   /* 44px pointer target (WCAG 2.5.8) over a 22.8px text box, matching the
-     .footer-social-link boxes beside it and .theme-toggle in the header. These
-     links stack in a column with a 0.3rem row gap, so the overlay is capped to
-     the row height where that would otherwise let a neighbour's overlay reach
-     this one; horizontally they are metres apart. */
+     .footer-social-link boxes beside it and .theme-toggle in the header. The
+     links sit in wrapping flex rows (layout.css .footer-meta / .footer-links,
+     0.85–1.2rem gaps) and are wider than 44px, so overlays never meet
+     horizontally; when a row wraps, neighbouring overlays can overlap by a few
+     px vertically, which still leaves each link far more than the 24px of its
+     own that 2.5.8 requires. Nothing caps the overlay height. */
   .footer-link::after {
     content: "";
     position: absolute;

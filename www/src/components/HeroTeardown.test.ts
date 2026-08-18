@@ -32,7 +32,7 @@ const PLATED = {
       photo: {
         url: '/media/battery_200.webp',
         srcset: '/media/battery_200.webp 200w, /media/battery_800.webp 800w',
-        alt: 'Battery pack, photographed during disassembly',
+        alt: 'Photographed during disassembly',
       },
     },
     TEARDOWN.parts[1],
@@ -57,10 +57,11 @@ describe('HeroTeardown', () => {
     expect(html).toContain('212 g');
   });
 
-  it('renders an em dash for a part with no recorded mass', async () => {
+  it('renders an em dash with a spoken equivalent for a part with no recorded mass', async () => {
     const html = await render({});
     expect(html).not.toMatch(/null|NaN/);
-    expect(html).toContain('—');
+    expect(html).toMatch(/aria-hidden="true"[^>]*>—<\/span>/);
+    expect(html).toContain('mass not recorded');
   });
 
   it('renders a mass bar sized by the share only for weighed parts', async () => {
@@ -122,11 +123,11 @@ describe('HeroTeardown', () => {
     const html = await render({ teardown: PLATED });
     expect(html).toContain('data-plates');
     expect(html).toContain('/media/battery_200.webp');
-    expect(html).toContain('Battery pack, photographed during disassembly');
+    expect(html).toContain('alt="Photographed during disassembly"');
     // Every part gets a frame, photographed or not: three parts, three figures,
     // one image. The unphotographed two render as blank plates, not as gaps.
     expect(html.match(/plate-figure/g)).toHaveLength(3);
-    expect(html.match(/<img/g)).toHaveLength(2); // two parts unphotographed + the assembly
+    expect(html.match(/<img/g)).toHaveLength(2); // the one photographed part + the assembly print
   });
 
   it('offers the wider derivatives to the browser, with a layout hint', async () => {

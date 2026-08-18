@@ -153,7 +153,11 @@ function toSubpart(node: Record<string, unknown>): TeardownSubpart {
   return {
     name,
     weightG: finiteOrNull(node.weight_g),
-    photo: toPhoto(node, `${name}, photographed during disassembly`),
+    // The part's name sits right beside the image (and inside the same
+    // <summary> for grouped parts), so naming it again in the alt would make a
+    // screen reader announce every part twice. The assembly print keeps the
+    // full alt because nothing adjacent names it.
+    photo: toPhoto(node, 'Photographed during disassembly'),
   };
 }
 
