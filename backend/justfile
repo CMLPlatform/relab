@@ -42,7 +42,7 @@ typecheck:
     uv run --all-groups ty check
 
 # Run the fast backend quality gate (no database required)
-check: lint typecheck openapi-check datamodel-check
+check: lint typecheck openapi-check datamodel-check email-check
     uv run ruff format --check
     @echo "✅ Backend checks passed"
 
@@ -112,6 +112,10 @@ migrate-reset:
 # Compile MJML email templates to HTML
 compile-email:
     uv run python -m scripts.generate.compile_email_templates
+
+# Check that the committed email HTML matches a fresh compile
+email-check:
+    uv run python -m scripts.generate.compile_email_templates --check
 
 # One-time backfill of upload_size_bytes on existing File/Image rows (see CUTOVER.md)
 backfill-upload-sizes:

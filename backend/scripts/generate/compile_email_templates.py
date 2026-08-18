@@ -9,6 +9,7 @@ compiles them to HTML, and saves the output to app/templates/emails/build/.
 
 import logging
 import re
+import sys
 from pathlib import Path
 
 from mjml.mjml2html import mjml_to_html
@@ -159,8 +160,53 @@ def compile_mjml_templates() -> None:
     logger.info("Compilation complete!")
 
 
+def check_compiled_templates() -> int:
+    """Fail when the committed build/ output is not what a fresh compile produces.
+
+    build/ is committed but nothing verified it matched src/, which made a whole
+    class of change silently dangerous: brand tokens are resolved from
+    assets/brand.css at compile time, so retuning a colour -- or renaming a
+    token, as happened with --relab-brand-surface -- repaints every transactional
+    email on the next compile with no error and no failing test. The unknown-token
+    guard in expand_brand_tokens() does not help there, because a renamed token
+    still resolves; it just resolves to something else.
+
+    Same shape as `just assets-check` and the OpenAPI schema-drift check.
+    """
+    before = {path: path.read_bytes() for path in sorted(BUILD_DIR.glob("*.html"))}
+    compile_mjml_templates()
+    after = {path: path.read_bytes() for path in sorted(BUILD_DIR.glob("*.html"))}
+
+    stale = sorted(
+        {path.name for path in set(before) ^ set(after)}
+        | {path.name for path, body in after.items() if before.get(path) != body}
+    )
+    # Put the committed bytes back. Compiling in place is how the comparison is
+    # made, but a check that repairs what it measures would pass on its own
+    # second run and report the tree as clean when it is not.
+    for path, body in before.items():
+        if after.get(path) != body:
+            path.write_bytes(body)
+    for path in set(after) - set(before):
+        path.unlink()
+
+    if stale:
+        logger.error(
+            "Compiled email templates are stale; run `just compile-email` and commit: %s",
+            ", ".join(stale),
+        )
+        return 1
+    logger.info("Compiled email templates are in sync.")
+    return 0
+
+
+CHECK_FLAG = "--check"
+
+
 def main() -> None:
     """Entry point for the compile email templates script."""
+    if CHECK_FLAG in sys.argv[1:]:
+        raise SystemExit(check_compiled_templates())
     compile_mjml_templates()
 
 
