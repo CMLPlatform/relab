@@ -19,7 +19,10 @@ import { BottomNav } from '@/components/base/BottomNav';
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={BottomNav}
+      // Rendered as an element, not passed bare: React Navigation invokes `tabBar`
+      // as a plain function, so a bare component's hooks would run outside a
+      // component (React error #321) and crash every tab screen.
+      tabBar={(props) => <BottomNav {...props} />}
       // Bottom tabs paint the scene from the navigation theme, which would sit
       // opaque over the app-wide StaticBackground. Same reasoning as the stacks'
       // transparent contentStyle.
