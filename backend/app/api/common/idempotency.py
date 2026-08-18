@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Annotated
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.responses import JSONResponse
 
+from app.core.http_headers import IDEMPOTENCY_KEY_HEADER
 from app.core.redis import delete_redis_key, get_redis_value, set_redis_value, set_redis_value_nx
 
 if TYPE_CHECKING:
@@ -72,7 +73,7 @@ def validate_idempotency_key(raw: str | None) -> str | None:
 
 
 def _get_idempotency_key_header(
-    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+    idempotency_key: Annotated[str | None, Header(alias=IDEMPOTENCY_KEY_HEADER)] = None,
 ) -> str | None:
     return validate_idempotency_key(idempotency_key)
 

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.core.config import Environment, settings
-from app.core.http_headers import REQUEST_ID_HEADER
+from app.core.http_headers import IDEMPOTENCY_KEY_HEADER, REQUEST_ID_HEADER
 from app.core.middleware.content_negotiation import register_content_negotiation_middleware
 from app.core.middleware.method_policy import CORS_HTTP_METHODS, register_method_policy_middleware
 from app.core.middleware.request_id import register_request_id_middleware
@@ -34,7 +34,7 @@ def register_middleware(app: FastAPI) -> None:
         allow_origin_regex=settings.cors_origin_regex,
         allow_credentials=True,
         allow_methods=list(CORS_HTTP_METHODS),
-        allow_headers=["Authorization", "Content-Type", "Accept", REQUEST_ID_HEADER],
+        allow_headers=["Authorization", "Content-Type", "Accept", REQUEST_ID_HEADER, IDEMPOTENCY_KEY_HEADER],
         expose_headers=[REQUEST_ID_HEADER],
     )
 

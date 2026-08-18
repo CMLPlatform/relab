@@ -15,6 +15,9 @@ SENSITIVE_CACHE_HEADERS = {
     "Expires": "0",
 }
 REQUEST_ID_HEADER = "X-Request-ID"
+# Opt-in retry key on create endpoints (api/common/idempotency.py). Must stay in the
+# CORS allow-list, or the browser preflight for every guarded POST fails.
+IDEMPOTENCY_KEY_HEADER = "Idempotency-Key"
 
 # Mount prefix for uploaded-media StaticFiles routes. Single source of truth: app/core/static.py
 # mounts "<prefix>/files" and "<prefix>/images" under it, and app/core/images/urls.py derives
