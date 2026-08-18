@@ -9,11 +9,10 @@ colors:
   ink: '#16202e'
   ink-heading: rgb(23, 38, 55)
   muted: rgb(83, 102, 122)
-  page-surface: rgb(238, 244, 247)
-  surface-raised: rgb(254, 254, 254)
-  surface-strong: rgb(255, 255, 255)
+  page-surface: '#fafbfe'
+  surface-raised: '#f0f3fa'
   page-border: rgba(23, 38, 45, 0.12)
-  control-border: 'color-mix(in srgb, #1f4c96 70%, rgb(238, 244, 247))'
+  control-border: 'color-mix(in srgb, #1f4c96 70%, #fafbfe)'
   ring: '#1f4c96'
   chart-mark: '#2f6bc7'
   divider: '#d9dfe8'
@@ -124,11 +123,14 @@ components:
     backgroundColor: '{colors.primary-soft}'
     textColor: '{colors.primary-strong}'
   theme-toggle:
-    backgroundColor: '{colors.surface-raised}'
+    backgroundColor: transparent
     textColor: '{colors.muted}'
     rounded: '{rounded.control}'
     width: 2.1rem
     height: 2.1rem
+  theme-toggle-selected:
+    backgroundColor: '{colors.surface-raised}'
+    textColor: '{colors.ink-heading}'
   blueprint-panel:
     backgroundColor: transparent
     rounded: '{rounded.card}'
@@ -231,26 +233,29 @@ the categorical chart ramp live in `src/styles/tokens.generated.css`, which is g
 ### Neutral
 
 - **Ink** (`--color-text`): body prose across the site.
-- **Heading Ink** (`--color-on-surface`): a cooler, higher-contrast ink for headings, hero
-  figures, part masses and chart peak labels: anything that is a statement rather than a
-  sentence.
+- **Heading Ink** (`--color-on-surface`): a cooler ink for headings, hero figures, part masses
+  and chart peak labels: anything that is a statement rather than a sentence. Cooler, not
+  stronger — it is slightly *below* Ink on the light ground (14.8:1 against 15.9:1) and slightly
+  above it in dark (17.0:1 against 15.9:1), so it is a register, not a contrast step. Both clear
+  AAA everywhere they are used; neither is load-bearing for legibility.
 - **Muted Slate** (`--color-muted`): secondary prose, captions, mono labels, nav-adjacent chrome,
   step numbers, and every "this is context, not content" line. Deliberately distinct from the
   shared brand `muted`; www's is a page-chrome override, and `tokens.css` says so.
-- **Cool Paper** (`--color-page-surface`): the page ground, and also the sticky header's fill so
-  the bar reads as part of the sheet rather than as a layer over it.
-- **Raised Paper** (`--color-surface-raised`): the near-white of a teardown plate and the theme
-  toggle's face.
-- **Print White** (`--color-surface-strong`): the brightest tier: the drafting callout badge,
-  the chart tooltip's text, and the 2px ring that keeps the tooltip dot legible where it crosses a
-  bar.
+- **Ground** (`--color-page-surface`, the brand background): the page ground, and also the sticky
+  header's fill so the bar reads as part of the sheet rather than as a layer over it. It is the
+  paper half of every inverse pair too: the chart tooltip's text and the 2px ring that keeps the
+  tooltip dot legible where it crosses a bar are this token against `--color-on-surface`.
+- **Card** (`--color-surface-raised`, the brand surface): the tone of a teardown plate, the
+  drafting callout badge, and the theme toggle's face once a theme is explicitly chosen. It is a
+  *tint away from* the ground, not a step toward white: darker than the ground in light and
+  lighter in dark, which is how the shared brand system separates a card from its page.
 - **Hairline** (`--color-page-border`): the site's structural line. Every section divider, every
   frame, every drafting rule. Translucent at 12% and measured at roughly 1.3:1 against the page,
   because it separates content rather than identifying a control.
 - **Control Boundary** (`--color-control-border`): the border of anything whose border is the
   *only* thing marking it as a control: outline buttons, the measure toggle group, the theme
   toggle. Mixed 70% primary into the page ground rather than set solid, so it reads as chrome
-  rather than as a second primary action. Measured at 3.7:1 light and 5.1:1 dark to clear WCAG
+  rather than as a second primary action. Measured at 3.9:1 light and 5.1:1 dark to clear WCAG
   1.4.11.
 - **Focus Ring** (`--color-ring`): solid brand primary, never a tint. A translucent ring lands
   around 1.4:1 on both the page and card surfaces, well under the 3:1 that 1.4.11 requires. The
@@ -423,9 +428,14 @@ dialogs, sheets, snackbars. **Nothing on www floats, so both tokens are currentl
 That is a fact worth preserving: if a future overlay needs a shadow, it uses that token and only
 that token, at that one tier.
 
-The three surface tiers (page → raised → strong) are opaque, not translucent. They were alpha
-values while a blurred wallpaper sat behind them. With the wallpaper gone, an alpha channel only
-makes contrast harder to reason about, so each token now carries what the old pair composited to.
+The two surface tiers (ground → card) are the brand's own neutrals. www
+used to hand-author a three-step ramp of its own (cool paper → near-white → white) because the
+brand vocabulary had no card tone on web; that gap closed, so the tiers point at
+`--relab-brand-background` and `--relab-brand-surface` instead of reconstructing them. The third
+tier went with the repoint: the brand defines a ground and a card, and nothing on the site needed
+a tone above the card that the ground could not carry as an inverse. Both are opaque; the one
+place that still mixes toward transparent is the teardown plate, at 82%, so the drafting grid
+under it reads through.
 
 ### Named Rules
 

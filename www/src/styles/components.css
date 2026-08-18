@@ -357,10 +357,12 @@
   stroke-width: 1;
 }
 
-/* 2px surface ring keeps the dot legible where it meets the bar. */
+/* 2px ring in the page ground keeps the dot legible where it meets the bar.
+   Paired with the ink fill below, this is the inverse of the page: the tip is
+   ink-on-paper turned inside out, so both halves come from that one pair. */
 .stats-chart-tip circle {
   fill: var(--color-chart-mark);
-  stroke: var(--color-surface-strong);
+  stroke: var(--color-page-surface);
   stroke-width: 2;
 }
 
@@ -370,7 +372,7 @@
 
 .stats-chart-tip-label,
 .stats-chart-tip-value {
-  fill: var(--color-surface-strong);
+  fill: var(--color-page-surface);
   font-size: var(--relab-type-micro-size);
 }
 
@@ -431,7 +433,7 @@
   appearance: none;
   position: relative;
   border: 1px solid var(--color-control-border);
-  background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
+  background: transparent;
   color: var(--color-muted);
   width: 2.1rem;
   height: 2.1rem;
@@ -469,9 +471,11 @@
   border-color: var(--color-primary);
 }
 
+/* Explicit choice reads as a filled control: the card tone against the header's
+   ground, in both themes. Resting is unfilled so the fill is the state. */
 .theme-control[data-theme-current="light"] .theme-toggle,
 .theme-control[data-theme-current="dark"] .theme-toggle {
-  background: var(--color-surface-strong);
+  background: var(--color-surface-raised);
   color: var(--color-on-surface);
 }
 

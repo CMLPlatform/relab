@@ -4,26 +4,27 @@
   --color-primary-strong: var(--relab-brand-primary-strong);
   --color-primary-soft: var(--relab-brand-primary-soft);
   --color-accent: var(--relab-brand-accent);
-  /* Page-level chrome tones (ground, surfaces, hairlines), distinct from
-     --relab-brand-background/--relab-brand-divider rather than a re-fork.
-     History worth keeping: this ramp was authored when the brand vocabulary had
-     no card tone on web at all — --relab-brand-surface then held the background
-     value, and the real card tone (#f0f3fa/#1a2030) existed only in the app, as
-     the palette.json card key. That is now fixed and --relab-brand-surface
-     carries the card tone here too, so this ramp is no longer filling a gap.
-     Repointing it onto the brand token is a deliberate visual change, not a
-     cleanup, and is left for its own commit.
-     Named apart from --color-surface/--color-border so they never collide
-     with the @theme mapping in global.css, which owns those two names.
-     Opaque: these were translucent to let the blurred wallpaper through, and
-     with it gone an alpha channel only makes contrast harder to reason about.
-     The values are what the old pairs composited to over --color-page-surface. */
-  --color-page-surface: light-dark(rgb(238, 244, 247), rgb(9, 19, 27));
-  --color-surface-raised: light-dark(rgb(254, 254, 254), rgb(13, 25, 34));
-  --color-surface-strong: light-dark(rgb(255, 255, 255), rgb(18, 32, 42));
+  /* Page-level chrome tones. Both surface tiers are the brand's own neutrals:
+     www used to hand-author a three-step ramp (cool paper → near-white →
+     white) because the brand vocabulary had no card tone on web at all, and
+     --relab-brand-surface held the background value. That gap closed when the
+     token was renamed, so the ramp now points at the source instead of
+     reconstructing it. Two tiers, not three: the brand defines a ground and a
+     card, and the old third tier had no source to point at.
+     Named apart from --color-surface/--color-border so they never collide with
+     the @theme mapping in global.css, which owns those two names.
+     Opaque: these were translucent to let a blurred wallpaper through, and with
+     it gone an alpha channel only makes contrast harder to reason about. The one
+     place still mixing toward transparent is the teardown plate, where 18% is
+     what lets the drafting grid read through it. */
+  --color-page-surface: var(--relab-brand-background);
+  --color-surface-raised: var(--relab-brand-surface);
   --color-on-surface: light-dark(rgb(23, 38, 55), rgb(237, 247, 255));
   --color-text: var(--relab-brand-text);
   --color-muted: light-dark(rgb(83, 102, 122), rgb(179, 200, 216));
+  /* Stays hand-authored where the surfaces above no longer do: it is translucent
+     on purpose, so it composites over a photograph or the drafting grid as
+     readily as over the page, which the opaque --relab-brand-divider cannot. */
   --color-page-border: light-dark(rgba(23, 38, 45, 0.12), rgba(222, 239, 252, 0.12));
   /* The boundary of an interactive control, which WCAG 1.4.11 holds to 3:1 --
      unlike the hairline above, which is decorative and measures ~1.3:1 against
@@ -31,7 +32,7 @@
      this: outline buttons, the measure toggle group, the theme toggle. Borders
      that merely separate or frame content keep --color-page-border.
      Mixed toward the page ground rather than set solid, so it reads as chrome
-     rather than as a second primary action: 3.7:1 light, 5.1:1 dark. */
+     rather than as a second primary action: 3.9:1 light, 5.1:1 dark. */
   --color-control-border: color-mix(in srgb, var(--color-primary) 70%, var(--color-page-surface));
   /* Solid, not a tint: a translucent ring lands around 1.4:1 on both page and
      card surfaces, well under the 3:1 WCAG 1.4.11 needs for focus indicators.
