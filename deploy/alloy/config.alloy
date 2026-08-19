@@ -91,10 +91,12 @@ otelcol.processor.transform "resource_attributes" {
 // so they ride the same endpoint and token as the logs above — no second pipeline, no
 // second hostname, no second credential.
 //
-// set_collectors is an allowlist rather than the default set: fewer series, and each
-// one is here for a reason. `hwmon` is not decoration — the incident that started this
-// work was a backup crash-loop noticed by ear, from fan noise, after every monitor read
-// green for 19 hours. Temperatures and fan speeds now have somewhere to be seen.
+// set_collectors is an allowlist rather than the default set: fewer series, and each one
+// is here for a reason. `hwmon` earns its place as a dashboard panel — thermal data on a
+// physical box is cheap and occasionally telling — but it is NOT a control: fan RPM is a
+// symptom of load, legitimate load spins fans too, and no threshold on it would be
+// trustworthy. The crash loop that made this memorable is properly detected by container
+// restart count, not by temperature.
 prometheus.exporter.unix "host" {
 	// The exporter runs inside the container, so point it at the host's mounted /proc,
 	// /sys and /.
