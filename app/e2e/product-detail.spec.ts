@@ -134,8 +134,8 @@ test.describe('Product detail: phone chunking', () => {
     await createProduct(page, `E2E Chunk ${Date.now()}`);
     const chips = page.getByTestId('section-nav-chips').getByRole('button');
     await expect(chips).toHaveCount(4);
-    for (const chip of await chips.all()) {
-      const box = await chip.boundingBox();
+    const boxes = await Promise.all((await chips.all()).map((chip) => chip.boundingBox()));
+    for (const box of boxes) {
       expect(box).not.toBeNull();
       expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
     }
@@ -180,14 +180,15 @@ test.describe('Product detail: phone chunking', () => {
     const saveBar = page.getByTestId('save-bar-dock');
     const noteFields = page.locator('textarea');
     await expect(noteFields).toHaveCount(3);
-    for (const noteField of await noteFields.all()) {
-      await noteField.scrollIntoViewIfNeeded();
-      const [fieldBox, saveBox] = await Promise.all([
-        noteField.boundingBox(),
-        saveBar.boundingBox(),
-      ]);
+    const fields = await noteFields.all();
+    await Promise.all(fields.map((noteField) => noteField.scrollIntoViewIfNeeded()));
+    const [fieldBoxes, saveBox] = await Promise.all([
+      Promise.all(fields.map((noteField) => noteField.boundingBox())),
+      saveBar.boundingBox(),
+    ]);
+    expect(saveBox).not.toBeNull();
+    for (const fieldBox of fieldBoxes) {
       expect(fieldBox).not.toBeNull();
-      expect(saveBox).not.toBeNull();
       expect((fieldBox?.y ?? 0) + (fieldBox?.height ?? 0)).toBeLessThanOrEqual(saveBox?.y ?? 0);
     }
   });

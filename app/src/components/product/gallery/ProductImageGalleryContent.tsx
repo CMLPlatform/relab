@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { memo, type RefObject, useCallback, useMemo } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, type StyleProp, View, type ViewStyle } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
@@ -43,6 +43,83 @@ type Props = {
   fallbackLabel: string;
   rpiTriggerRef?: RefObject<View | null>;
 };
+
+type EditModeOverlayProps = {
+  showCameraOption: boolean;
+  showRpiButton: boolean;
+  hasCamerasConfigured: boolean;
+  isCapturing: boolean;
+  rpiCamerasLoading: boolean;
+  onTakePhoto: () => void;
+  onPickImage: () => void;
+  onRpiCapture: () => void;
+  onDeleteImage: () => void;
+  rpiTriggerRef?: RefObject<View | null>;
+  rpiButtonStyle: (state: { pressed: boolean }) => StyleProp<ViewStyle>;
+  deleteButtonStyle: (state: { pressed: boolean }) => StyleProp<ViewStyle>;
+};
+
+function EditModeOverlay({
+  showCameraOption,
+  showRpiButton,
+  hasCamerasConfigured,
+  isCapturing,
+  rpiCamerasLoading,
+  onTakePhoto,
+  onPickImage,
+  onRpiCapture,
+  onDeleteImage,
+  rpiTriggerRef,
+  rpiButtonStyle,
+  deleteButtonStyle,
+}: EditModeOverlayProps) {
+  const theme = useAppTheme();
+  return (
+    <>
+      <View className="absolute top-3 left-3 flex-row gap-2">
+        {showCameraOption ? (
+          <OverlayActionButton onPress={onTakePhoto} label="Take photo" icon="camera" />
+        ) : null}
+        <OverlayActionButton
+          onPress={onPickImage}
+          label="Add photo from gallery"
+          icon="image-plus"
+        />
+        {showRpiButton ? (
+          <Pressable
+            ref={rpiTriggerRef}
+            onPress={onRpiCapture}
+            disabled={isCapturing || rpiCamerasLoading}
+            accessibilityLabel={
+              hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
+            }
+            className="h-11 w-11 items-center justify-center rounded-md"
+            style={rpiButtonStyle}
+          >
+            {isCapturing || rpiCamerasLoading ? (
+              <ActivityIndicator size={18} color={theme.tokens.text.onMedia} />
+            ) : (
+              <Icon name="camera" size="md" color={theme.tokens.text.onMedia} />
+            )}
+          </Pressable>
+        ) : null}
+      </View>
+
+      <Pressable
+        onPress={onDeleteImage}
+        accessibilityRole="button"
+        accessibilityLabel="Delete photo"
+        // The undo lives in a toast that auto-dismisses, so a screen reader
+        // user who is not moved to it has to be told it is there.
+        accessibilityHint="Removes it from this record. A message with an Undo button appears."
+        className="absolute top-3 right-3 h-11 w-11 items-center justify-center rounded-md"
+        style={deleteButtonStyle}
+      >
+        <Icon name="trash-2" size="md" color={theme.tokens.text.onMedia} />
+      </Pressable>
+    </>
+  );
+}
 
 export function ProductImageGalleryContent({
   width,
@@ -152,49 +229,20 @@ export function ProductImageGalleryContent({
       ) : null}
 
       {editMode ? (
-        <>
-          <View className="absolute top-3 left-3 flex-row gap-2">
-            {showCameraOption ? (
-              <OverlayActionButton onPress={onTakePhoto} label="Take photo" icon="camera" />
-            ) : null}
-            <OverlayActionButton
-              onPress={onPickImage}
-              label="Add photo from gallery"
-              icon="image-plus"
-            />
-            {showRpiButton ? (
-              <Pressable
-                ref={rpiTriggerRef}
-                onPress={onRpiCapture}
-                disabled={isCapturing || rpiCamerasLoading}
-                accessibilityLabel={
-                  hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
-                }
-                className="h-11 w-11 items-center justify-center rounded-md"
-                style={rpiButtonStyle}
-              >
-                {isCapturing || rpiCamerasLoading ? (
-                  <ActivityIndicator size={18} color={theme.tokens.text.onMedia} />
-                ) : (
-                  <Icon name="camera" size="md" color={theme.tokens.text.onMedia} />
-                )}
-              </Pressable>
-            ) : null}
-          </View>
-
-          <Pressable
-            onPress={onDeleteImage}
-            accessibilityRole="button"
-            accessibilityLabel="Delete photo"
-            // The undo lives in a toast that auto-dismisses, so a screen reader
-            // user who is not moved to it has to be told it is there.
-            accessibilityHint="Removes it from this record. A message with an Undo button appears."
-            className="absolute top-3 right-3 h-11 w-11 items-center justify-center rounded-md"
-            style={deleteButtonStyle}
-          >
-            <Icon name="trash-2" size="md" color={theme.tokens.text.onMedia} />
-          </Pressable>
-        </>
+        <EditModeOverlay
+          showCameraOption={showCameraOption}
+          showRpiButton={showRpiButton}
+          hasCamerasConfigured={hasCamerasConfigured}
+          isCapturing={isCapturing}
+          rpiCamerasLoading={rpiCamerasLoading}
+          onTakePhoto={onTakePhoto}
+          onPickImage={onPickImage}
+          onRpiCapture={onRpiCapture}
+          onDeleteImage={onDeleteImage}
+          rpiTriggerRef={rpiTriggerRef}
+          rpiButtonStyle={rpiButtonStyle}
+          deleteButtonStyle={deleteButtonStyle}
+        />
       ) : null}
     </View>
   );

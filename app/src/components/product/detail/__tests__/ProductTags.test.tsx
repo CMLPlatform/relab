@@ -10,6 +10,7 @@ import type { Product } from '@/types/Product';
 const BRAND_PATTERN = /CircularTech/;
 const MODEL_PATTERN = /X100/;
 const AMOUNT_RANGE_HINT_PATTERN = /1 to 10000/;
+const REQUIRED_LABEL_PATTERN = /required/i;
 
 jest.mock('@/features/products/queries', () => ({
   useSearchBrandsQuery: jest.fn(() => ({
@@ -479,5 +480,5 @@ it('never marks a missing brand or model as required', () => {
     <ProductTags product={{ ...baseProduct, brand: undefined, model: undefined }} editMode />,
     { withDialog: true },
   );
-  expect(screen.queryByLabelText(/required/i)).toBeNull();
+  expect(screen.queryByLabelText(REQUIRED_LABEL_PATTERN)).toBeNull();
 });

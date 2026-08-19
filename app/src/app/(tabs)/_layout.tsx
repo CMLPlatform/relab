@@ -1,5 +1,14 @@
+import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Tabs } from 'expo-router/js-tabs';
 import { BottomNav } from '@/components/base/BottomNav';
+
+// Rendered as an element, not passed bare: React Navigation invokes `tabBar`
+// as a plain function, so a bare component's hooks would run outside a
+// component (React error #321) and crash every tab screen. Defined at module
+// scope (not inline) so it's a stable reference across renders.
+function renderTabBar(props: BottomTabBarProps) {
+  return <BottomNav {...props} />;
+}
 
 /**
  * The three primary destinations, one React Navigation tab each. Every tab is a
@@ -19,10 +28,7 @@ import { BottomNav } from '@/components/base/BottomNav';
 export default function TabsLayout() {
   return (
     <Tabs
-      // Rendered as an element, not passed bare: React Navigation invokes `tabBar`
-      // as a plain function, so a bare component's hooks would run outside a
-      // component (React error #321) and crash every tab screen.
-      tabBar={(props) => <BottomNav {...props} />}
+      tabBar={renderTabBar}
       // Bottom tabs paint the scene from the navigation theme, which would sit
       // opaque over the app-wide StaticBackground. Same reasoning as the stacks'
       // transparent contentStyle.

@@ -17,8 +17,10 @@ test('radius tiers match DESIGN.md flat & sharp scale', () => {
 // where it declared the equivalent `rgba(0,0,0,1)`. Asserting the exact byte
 // string pinned a formatting choice, not a design decision, so colours are
 // compared by normalised value and the numbers stay exact.
+const WHITESPACE_PATTERN = /\s+/g;
+const BLACK_HEX_PATTERN = /^#000$/;
 const normaliseColor = (value: string) =>
-  value.replace(/\s+/g, '').replace(/^#000$/, 'rgba(0,0,0,1)');
+  value.replace(WHITESPACE_PATTERN, '').replace(BLACK_HEX_PATTERN, 'rgba(0,0,0,1)');
 
 test('overlay elevation + scrim tokens match the flat & sharp scale in both schemes', () => {
   const light = getAppTheme('light');

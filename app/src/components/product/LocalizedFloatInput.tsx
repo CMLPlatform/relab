@@ -50,6 +50,38 @@ function toLocalizedString(value: number | undefined, decimalSeparator: string):
   return decimalSeparator === '.' ? standardString : standardString.replace('.', decimalSeparator);
 }
 
+// Read mode renders the Spec Row, not a disabled input.
+//
+// DESIGN.md names the Spec Row — manila eyebrow label over a mono value — as
+// the app's signature pattern, and it existed in exactly one component
+// (SpecFacts) covering three derived facts, while the screen that is nothing
+// BUT measurements rendered them as plain label-and-textbox rows. A disabled
+// TextInput also reads as a form control to assistive tech when there is
+// nothing to fill in. `data` supplies the mono family and tabular figures, so
+// Weight/Height/Width/Depth line up in a column the way measurements should.
+function ReadOnlySpecRow({
+  label,
+  value,
+  unit,
+}: {
+  label: string;
+  value: number | undefined;
+  unit: string | undefined;
+}) {
+  return (
+    <View className="px-4 py-2">
+      <AppText variant="eyebrow" className="text-manila">
+        {label}
+      </AppText>
+      <AppText variant="data">
+        {value === undefined
+          ? '—'
+          : `${toLocalizedString(value, DECIMAL_SEPARATOR)} ${unit ?? ''}`.trim()}
+      </AppText>
+    </View>
+  );
+}
+
 export default function LocalizedFloatInput({
   value,
   onChange,
@@ -145,28 +177,8 @@ export default function LocalizedFloatInput({
     </>
   );
 
-  // Read mode renders the Spec Row, not a disabled input.
-  //
-  // DESIGN.md names the Spec Row — manila eyebrow label over a mono value — as
-  // the app's signature pattern, and it existed in exactly one component
-  // (SpecFacts) covering three derived facts, while the screen that is nothing
-  // BUT measurements rendered them as plain label-and-textbox rows. A disabled
-  // TextInput also reads as a form control to assistive tech when there is
-  // nothing to fill in. `data` supplies the mono family and tabular figures, so
-  // Weight/Height/Width/Depth line up in a column the way measurements should.
   if (label && !editable) {
-    return (
-      <View className="px-4 py-2">
-        <AppText variant="eyebrow" className="text-manila">
-          {label}
-        </AppText>
-        <AppText variant="data">
-          {normalizedValue === undefined
-            ? '—'
-            : `${toLocalizedString(normalizedValue, DECIMAL_SEPARATOR)} ${unit ?? ''}`.trim()}
-        </AppText>
-      </View>
-    );
+    return <ReadOnlySpecRow label={label} value={normalizedValue} unit={unit} />;
   }
 
   // FormFieldError renders nothing without a message, so the wrapper is harmless
