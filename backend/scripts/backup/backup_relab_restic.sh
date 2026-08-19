@@ -89,13 +89,33 @@ backup_uploads() {
 prune_repo() {
     # Apply the retention policy to a repository. Pass ``--repo <target>`` to prune
     # a non-default repo (the offsite one); no args prunes the default local repo.
+    # Group by tags ONLY, never by host. Each run is a fresh `compose run --rm`
+    # container with a new random hostname, so grouping by host would put every
+    # single run in its own group — and a one-snapshot group is retained by every
+    # keep-* rule, making this prune a permanent no-op and growing both repos
+    # without bound. `hostname:` is pinned on the service too (compose.deploy.yaml)
+    # so restic can find a parent snapshot, but retention must not depend on that.
     restic "$@" forget \
         --prune \
         --keep-hourly="${RESTIC_KEEP_HOURLY:-24}" \
         --keep-daily="${RESTIC_KEEP_DAILY:-14}" \
         --keep-weekly="${RESTIC_KEEP_WEEKLY:-8}" \
         --keep-monthly="${RESTIC_KEEP_MONTHLY:-12}" \
-        --group-by=host,tags
+        --group-by=tags
+}
+
+# True when the offsite target needs an rclone remote that RCLONE_CONFIG does not
+# define. The repository path is committed per environment, but the credential is a
+# hand-written secret — so "configured to copy offsite" and "able to copy offsite"
+# are separate facts, and a host that has the first without the second must skip the
+# copy rather than fail every single night. A permanently red alert is no alert.
+offsite_remote_missing() {
+    local repo="${1:-}" remote
+    [[ "$repo" == rclone:* ]] || return 1
+    remote="${repo#rclone:}"
+    remote="${remote%%:*}"
+    [[ -n "${RCLONE_CONFIG:-}" && -f "${RCLONE_CONFIG}" ]] || return 0
+    ! grep -q "^\[${remote}\]" "${RCLONE_CONFIG}"
 }
 
 ensure_offsite_repository() {
@@ -104,16 +124,36 @@ ensure_offsite_repository() {
     fi
 
     export RESTIC_FROM_PASSWORD="$RESTIC_PASSWORD"
-    if ! restic --repo "$RESTIC_OFFSITE_REPOSITORY" snapshots --no-lock >/dev/null 2>&1; then
-        log "Initializing offsite restic repository at ${RESTIC_OFFSITE_REPOSITORY}"
-        restic --repo "$RESTIC_OFFSITE_REPOSITORY" init \
-            --from-repo "$RESTIC_REPOSITORY" \
-            --copy-chunker-params
+    local status=0
+    restic --repo "$RESTIC_OFFSITE_REPOSITORY" snapshots --no-lock >/dev/null 2>&1 || status=$?
+    if [[ "$status" -eq 0 ]]; then
+        return 0
     fi
+    # Only restic exit 10 means "repository does not exist". Treating every failure
+    # as first-run — an expired credential, a renamed remote, a typo'd path, a 5xx —
+    # would silently init a fresh repository, copy one day into it, and exit 0 while
+    # the real archive is orphaned and every monitor reads green. Same reasoning as
+    # ensure_restic_repository above; the offsite path needs it more, not less,
+    # because nobody ever looks at the offsite repo directly.
+    if [[ "$status" -ne 10 ]]; then
+        log "ERROR: offsite repository ${RESTIC_OFFSITE_REPOSITORY} is unreachable or unreadable (restic exit ${status}); refusing to initialize over it. Check the rclone remote, the path, and RESTIC_PASSWORD."
+        return 1
+    fi
+    log "Initializing offsite restic repository at ${RESTIC_OFFSITE_REPOSITORY}"
+    restic --repo "$RESTIC_OFFSITE_REPOSITORY" init \
+        --from-repo "$RESTIC_REPOSITORY" \
+        --copy-chunker-params
 }
 
 copy_to_offsite() {
+    # $1 is did_backup: "true" only when this run actually created snapshots.
+    local did_backup="${1:-false}"
+
     if [[ -z "${RESTIC_OFFSITE_REPOSITORY:-}" ]]; then
+        return 0
+    fi
+    if offsite_remote_missing "$RESTIC_OFFSITE_REPOSITORY"; then
+        log "WARNING: offsite copy SKIPPED — ${RESTIC_OFFSITE_REPOSITORY} needs an rclone remote that ${RCLONE_CONFIG:-<RCLONE_CONFIG unset>} does not define. Backups are LOCAL ONLY until the real rclone config is written. See deploy/DEPLOY-PROD.md Part 1.3."
         return 0
     fi
 
@@ -121,7 +161,15 @@ copy_to_offsite() {
     export RESTIC_FROM_PASSWORD="$RESTIC_PASSWORD"
     log "Copying local restic snapshots to offsite repository: ${RESTIC_OFFSITE_REPOSITORY}"
     restic --repo "$RESTIC_OFFSITE_REPOSITORY" copy --from-repo "$RESTIC_REPOSITORY"
-    # Apply retention to the offsite repo too — otherwise it grows without bound.
+
+    # Retention offsite is gated the same way the local prune is. A copy-only run
+    # (`just backup-offsite-copy`, which skips both backups) is what an operator
+    # reaches for when the LOCAL repo is already lost — pruning the offsite copy in
+    # that moment would expire the only surviving archive.
+    if [[ "$did_backup" != "true" ]]; then
+        log "Copy-only run: skipping offsite retention and integrity check"
+        return 0
+    fi
     log "Applying retention policy to offsite repository"
     prune_repo --repo "$RESTIC_OFFSITE_REPOSITORY"
     log "Checking offsite restic repository integrity"
@@ -157,7 +205,7 @@ main() {
         log "Checking restic repository integrity"
         restic check
     fi
-    copy_to_offsite
+    copy_to_offsite "$did_backup"
     log "Backup run completed"
 }
 

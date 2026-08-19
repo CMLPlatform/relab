@@ -133,6 +133,71 @@ assert_eq "snapshot without tags exits 0 with 0" "0|0" \
     "$(snapshot_age '[{"time":"2026-08-02T03:04:05.1+00:00"}]')"
 
 # ---------------------------------------------------------------------------
+# Watchdog deployment drift: a deploy host silently behind origin is the failure
+# this check exists to name, and "no upstream" must not read as "no drift".
+# ---------------------------------------------------------------------------
+drift() {
+    local out status
+    out="$(deployment_drift_alerts prod "$1" "$2" "$3" "$4" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "in sync and clean is silent" "0|" "$(drift no origin/main 0 0)"
+assert_eq "behind is reported" "1|ALERT[prod]: deploy checkout is 27 commits behind origin/main" \
+    "$(drift no origin/main 27 0)"
+assert_eq "ahead is reported too" "1|ALERT[prod]: deploy checkout has 6 commits that are not on origin/main" \
+    "$(drift no origin/main 0 6)"
+assert_eq "diverged reports both sides" "1|ALERT[prod]: deploy checkout has diverged from origin/main (3 behind, 2 ahead)" \
+    "$(drift no origin/main 3 2)"
+assert_eq "missing upstream is itself an alert" \
+    "1|ALERT[prod]: deploy checkout tracks no upstream branch; drift cannot be detected" \
+    "$(drift no '' 0 0)"
+# A dirty tree and a stale checkout are independent problems; reporting one must not
+# swallow the other.
+assert_eq "dirty and behind both count" "2|ALERT[prod]: deploy checkout has uncommitted changes
+ALERT[prod]: deploy checkout is 4 commits behind origin/main" \
+    "$(drift yes origin/main 4 0)"
+assert_eq "dirty counts even with no upstream" "2|ALERT[prod]: deploy checkout has uncommitted changes
+ALERT[prod]: deploy checkout tracks no upstream branch; drift cannot be detected" \
+    "$(drift yes '' 0 0)"
+
+# ---------------------------------------------------------------------------
+# deploy_watchdog.sh check 3: backup timer state
+# ---------------------------------------------------------------------------
+timer() {
+    local out status
+    out="$(backup_timer_alerts prod relab-backup@prod.timer "$1" "$2" "$3" "$4" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "scheduled and last run fine is silent" "0|" "$(timer enabled active no success)"
+assert_eq "disabled timer is reported" \
+    "1|ALERT[prod]: relab-backup@prod.timer is 'disabled', not 'enabled'; backups are not scheduled" \
+    "$(timer disabled inactive no success)"
+# The unit files were never installed at all.
+assert_eq "absent timer reads as not installed" \
+    "1|ALERT[prod]: relab-backup@prod.timer is 'not installed', not 'enabled'; backups are not scheduled" \
+    "$(timer '' '' no '')"
+# The gap this check exists to close: `enable` without `--now`, or a timer stopped
+# by hand, leaves is-enabled saying "enabled" while it never fires again.
+assert_eq "enabled but stopped is reported" \
+    "1|ALERT[prod]: relab-backup@prod.timer is enabled but 'inactive'; it will not fire" \
+    "$(timer enabled inactive no success)"
+assert_eq "failed last run is reported" \
+    "1|ALERT[prod]: last relab-backup@prod.service run failed (Result=exit-code); see: journalctl -u relab-backup@prod.service" \
+    "$(timer enabled active yes exit-code)"
+# Scheduling and last-run health are independent; one must not mask the other.
+assert_eq "stopped timer and failed run both count" \
+    "2|ALERT[prod]: relab-backup@prod.timer is enabled but 'inactive'; it will not fire
+ALERT[prod]: last relab-backup@prod.service run failed (Result=timeout); see: journalctl -u relab-backup@prod.service" \
+    "$(timer enabled inactive yes timeout)"
+assert_eq "unknown Result still reports the failure" \
+    "1|ALERT[prod]: last relab-backup@prod.service run failed (Result=unknown); see: journalctl -u relab-backup@prod.service" \
+    "$(timer enabled active yes '')"
+
+# ---------------------------------------------------------------------------
 # secrets-restore: the parsed key becomes a filename under secrets/<env>/, so a
 # key carrying a path traversal must be rejected rather than written outside
 # that directory.

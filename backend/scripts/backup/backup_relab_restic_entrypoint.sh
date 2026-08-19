@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Run Relab restic backups once or on a simple interval.
+# Prepare the mounted secrets, then run one Relab restic backup and exit.
+# Scheduling is a systemd timer on the host (deploy/systemd/); a non-zero exit here
+# is recorded by systemd and reported by `just watchdog <env>`.
 
 set -euo pipefail
 
 BACKUP_SCRIPT="${BACKUP_SCRIPT:-./backup_relab_restic.sh}"
-BACKUP_INTERVAL_SECONDS="${BACKUP_INTERVAL_SECONDS:-86400}"
 RESTIC_REPOSITORY="${RESTIC_REPOSITORY:-/restic}"
 BACKUP_WORK_DIR="${BACKUP_WORK_DIR:-/tmp/relab-backups}"
 
@@ -35,23 +36,4 @@ prepare_readable_file_env DATABASE_BACKUP_PASSWORD_FILE database_backup_password
 prepare_readable_file_env RESTIC_PASSWORD_FILE restic_password
 prepare_readable_file_env RCLONE_CONFIG rclone.conf
 
-run_backup() {
-    "$BACKUP_SCRIPT"
-    # Freshness stamp read by the container HEALTHCHECK.
-    touch "$BACKUP_WORK_DIR/.last-backup-ok"
-}
-
-if [[ "${BACKUP_ON_START:-true}" == "true" ]]; then
-    run_backup
-fi
-
-if [[ "${BACKUP_RUN_ONCE:-false}" == "true" ]]; then
-    exit 0
-fi
-
-echo "[$(date -Iseconds)] Relab backup service started. Interval: ${BACKUP_INTERVAL_SECONDS}s"
-
-while true; do
-    sleep "$BACKUP_INTERVAL_SECONDS"
-    run_backup
-done
+exec "$BACKUP_SCRIPT"

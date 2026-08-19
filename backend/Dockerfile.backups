@@ -6,17 +6,31 @@ FROM postgres:18@sha256:22c89fe0d0f507606260237fd55e51f6137f58b2d5bcf6152242b96d
 ARG WORKDIR=/opt/relab/backups
 ARG APP_USER=backupuser
 ARG APP_UID=1001
+# Debian package versions, pinned; see the install step below.
+ARG RCLONE_VERSION=1.60.1+dfsg-4
+ARG RESTIC_VERSION=0.18.0-1+b4
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates rclone restic \
+    # Pinned deliberately. This container reads the entire database and every
+    # upload, and is the only service besides cloudflared with a route off-host,
+    # so an unreviewed rclone/restic bump is an exfiltration surface. Bump these
+    # on purpose. backup_relab_restic.sh also depends on restic >= 0.17 exit-code
+    # semantics (exit 10 = repository does not exist).
+    && apt-get install -y --no-install-recommends ca-certificates \
+    "rclone=${RCLONE_VERSION}" "restic=${RESTIC_VERSION}" \
     && rm -rf /var/lib/apt/lists/* \
     # Postgres ships gosu for its own entrypoint; this image has its own and runs
     # as an unprivileged user, so drop the setuid-capable Go binary.
     && rm -f /usr/local/bin/gosu \
     && useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER" \
-    && install -d -o "$APP_UID" -g "$APP_UID" -m 0755 "$WORKDIR"
+    && install -d -o "$APP_UID" -g "$APP_UID" -m 0755 "$WORKDIR" \
+    # restic's cache lives on a named volume so it survives --rm. Create it here,
+    # owned by APP_UID: Docker seeds an empty named volume from the image path, so
+    # without this the volume comes up root-owned, the unprivileged user cannot
+    # write, and restic silently falls back to running with no cache at all.
+    && install -d -o "$APP_UID" -g "$APP_UID" -m 0755 /var/cache/restic
 
 WORKDIR $WORKDIR
 
@@ -27,11 +41,7 @@ ENV BACKUP_SCRIPT=$WORKDIR/backup_relab_restic.sh
 
 USER $APP_USER
 
-# Unhealthy when the success stamp is older than two backup intervals — catches
-# a hung restic/rclone run (a failed run exits the container via set -e). No
-# stamp yet (first backup still running, or BACKUP_ON_START=false) is healthy.
-HEALTHCHECK --interval=5m --timeout=10s --retries=3 \
-    CMD stamp="${BACKUP_WORK_DIR:-/tmp/relab-backups}/.last-backup-ok"; \
-        [ ! -e "$stamp" ] || [ "$(date +%s)" -lt "$(( $(stat -c %Y "$stamp") + 2 * ${BACKUP_INTERVAL_SECONDS:-86400} ))" ]
-
+# No HEALTHCHECK: this image is a one-shot run by a systemd timer on the host, not
+# a long-running service. Its exit code is the health signal, and `systemctl
+# is-failed` is what the watchdog reads.
 ENTRYPOINT ["./backup_relab_restic_entrypoint.sh"]

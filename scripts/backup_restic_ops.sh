@@ -199,7 +199,6 @@ docker_smoke_backups() {
         -e RESTIC_PASSWORD=smoke-password \
         -e RESTIC_OFFSITE_REPOSITORY=rclone:offsite:/offsite \
         -e RCLONE_CONFIG=/run/secrets/rclone.conf \
-        -e BACKUP_RUN_ONCE=true \
         "$DEPLOY_BACKUP_IMAGE"
 
     docker run --rm \
@@ -231,9 +230,23 @@ docker_smoke_backups() {
     echo "✅ Restic backups smoke test passed"
 }
 
+# Read a var from a committed per-environment Compose env file. These are plain
+# KEY=value files, so parse rather than source: sourcing a committed file to read
+# one name is a needless execution path.
+read_deploy_env_var() {
+    local env="$1" var_name="$2" file="$ROOT_DIR/deploy/env/$1.compose.env"
+    [[ -f "$file" ]] || return 0
+    sed -n "s/^${var_name}=//p" "$file" | tail -n1
+}
+
 backup_offsite_copy() {
     local env="${1:-staging}"
+    # Same precedence Compose applies: the per-environment committed file beats the
+    # shared root .env. Reading only the root .env here was how `backup-offsite-copy
+    # prod` still aimed prod snapshots at STAGING's offsite repository long after the
+    # compose path was fixed — the one value there resolves to the staging path.
     local offsite_repo="${RESTIC_OFFSITE_REPOSITORY:-}"
+    [[ -z "$offsite_repo" ]] && offsite_repo="$(read_deploy_env_var "$env" RESTIC_OFFSITE_REPOSITORY)"
     [[ -z "$offsite_repo" ]] && offsite_repo="$(read_dotenv_var RESTIC_OFFSITE_REPOSITORY)"
 
     resolve_backup_paths "$env"
@@ -261,7 +274,6 @@ backup_offsite_copy() {
         -e RESTIC_OFFSITE_REPOSITORY="$offsite_repo"
         -e SKIP_DATABASE_BACKUP=true
         -e SKIP_UPLOAD_BACKUP=true
-        -e BACKUP_RUN_ONCE=true
     )
 
     if [[ "$offsite_repo" == rclone:* ]]; then

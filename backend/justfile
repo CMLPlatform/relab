@@ -117,7 +117,8 @@ compile-email:
 email-check:
     uv run python -m scripts.generate.compile_email_templates --check
 
-# One-time backfill of upload_size_bytes on existing File/Image rows (see CUTOVER.md)
+# One-time backfill of upload_size_bytes on existing File/Image rows, for the upload
+# quota ledger. Run once per host after the quota migration; delete with the cutover.
 backfill-upload-sizes:
     uv run python -m scripts.maintenance.backfill_upload_sizes
 

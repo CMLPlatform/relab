@@ -21,6 +21,74 @@ for snapshot in json.load(sys.stdin):
 print(min(newest.get(tag, 0) for tag in ("postgres", "user-uploads")))
 '
 
+# Reducer for check 4, in a function so scripts/test_ops.sh can drive the real code.
+# Prints one ALERT line per problem and returns how many it printed. Inputs are
+# gathered from git below; keeping the decision separate is what makes it testable
+# without a repository in a known state.
+#
+# `ahead` matters as much as `behind`: prod was once found carrying local commits that
+# existed nowhere else, which is drift in the direction nobody looks for.
+deployment_drift_alerts() {
+    local env="$1" dirty="$2" upstream="$3" behind="$4" ahead="$5"
+    local found=0
+
+    if [[ "$dirty" == yes ]]; then
+        echo "ALERT[$env]: deploy checkout has uncommitted changes" >&2
+        found=$((found + 1))
+    fi
+
+    if [[ -z "$upstream" ]]; then
+        # No upstream means drift cannot be measured at all. Staying quiet here would
+        # be the same silence this check exists to remove.
+        echo "ALERT[$env]: deploy checkout tracks no upstream branch; drift cannot be detected" >&2
+        return $((found + 1))
+    fi
+
+    if ((behind > 0 && ahead > 0)); then
+        echo "ALERT[$env]: deploy checkout has diverged from $upstream ($behind behind, $ahead ahead)" >&2
+        found=$((found + 1))
+    elif ((behind > 0)); then
+        echo "ALERT[$env]: deploy checkout is $behind commits behind $upstream" >&2
+        found=$((found + 1))
+    elif ((ahead > 0)); then
+        echo "ALERT[$env]: deploy checkout has $ahead commits that are not on $upstream" >&2
+        found=$((found + 1))
+    fi
+
+    return "$found"
+}
+
+# Reducer for check 3, in a function so scripts/test_ops.sh can drive the real code
+# (systemctl is not available in that harness, and would not be worth mocking).
+# Prints one ALERT line per problem and returns how many it printed.
+#
+# `enabled` and `active` are separate facts and both must hold. `is-enabled` only
+# reports the timers.target.wants symlink, so a timer enabled without --now, stopped
+# for a maintenance window, or never re-armed after a daemon-reload still reads
+# "enabled" while never firing again — backups would then stop with nothing said
+# until check 2 notices the snapshot ageing out, a day later.
+backup_timer_alerts() {
+    local env="$1" timer="$2" enabled="$3" active="$4" failed="$5" result="$6"
+    local found=0
+
+    if [[ "$enabled" != "enabled" ]]; then
+        echo "ALERT[$env]: $timer is '${enabled:-not installed}', not 'enabled'; backups are not scheduled" >&2
+        found=$((found + 1))
+    elif [[ "$active" != "active" ]]; then
+        echo "ALERT[$env]: $timer is enabled but '${active:-inactive}'; it will not fire" >&2
+        found=$((found + 1))
+    fi
+
+    # Independent of the timer state: the unit can be scheduled correctly and still
+    # have failed last night.
+    if [[ "$failed" == "yes" ]]; then
+        echo "ALERT[$env]: last relab-backup@${env}.service run failed (Result=${result:-unknown}); see: journalctl -u relab-backup@${env}.service" >&2
+        found=$((found + 1))
+    fi
+
+    return "$found"
+}
+
 # Sourcing this script (scripts/test_ops.sh) only wants SNAPSHOT_AGE_PY; the live
 # checks below must not run.
 [[ "${BASH_SOURCE[0]}" == "$0" ]] || return 0
@@ -120,6 +188,62 @@ if ((newest_epoch == 0 || now - newest_epoch > max_age_hours * 3600)); then
     fi
     echo "ALERT[$env]: $reason" >&2
     failures=$((failures + 1))
+fi
+
+# Check 3: the backup timer. Check 2 proves a recent snapshot exists — that some run
+# produced output. This proves the job is still scheduled and that its last run did
+# not fail, neither of which snapshot age can show: a backup that stopped being
+# scheduled looks perfectly healthy until the newest snapshot ages past the
+# threshold a day later, and a run that failed after writing its snapshot (a failed
+# offsite copy, say) leaves a fresh snapshot behind and reads as success.
+backup_timer="relab-backup@${env}.timer"
+
+if ! command -v systemctl >/dev/null 2>&1; then
+    echo "ALERT[$env]: systemctl not found; cannot verify the backup timer" >&2
+    failures=$((failures + 1))
+else
+    # All read-only queries; none need privilege. `|| true` because each of these
+    # exits non-zero to *report* a state rather than to signal an error.
+    timer_enabled="$(systemctl is-enabled "$backup_timer" 2>/dev/null || true)"
+    timer_active="$(systemctl is-active "$backup_timer" 2>/dev/null || true)"
+    backup_result="$(systemctl show "relab-backup@${env}.service" -p Result --value 2>/dev/null || true)"
+    backup_failed=no
+    if systemctl is-failed --quiet "relab-backup@${env}.service" 2>/dev/null; then
+        backup_failed=yes
+    fi
+
+    backup_timer_alerts "$env" "$backup_timer" "$timer_enabled" "$timer_active" \
+        "$backup_failed" "$backup_result" || failures=$((failures + $?))
+fi
+
+# Check 4: deployment drift. Everything above proves the stack is running; none of it
+# proves it is running the code you think. A deploy host quietly sitting months behind
+# origin is otherwise only discovered by hand, which is exactly the
+# kind of thing a watchdog should be saying out loud.
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    echo "ALERT[$env]: deploy directory is not a git checkout" >&2
+    failures=$((failures + 1))
+else
+    # Remote-tracking refs go stale without this, and a stale ref reports "no drift"
+    # forever. A fetch failure is itself reportable: it means the answer is unknown.
+    if ! timeout 60 git fetch --quiet origin 2>/dev/null; then
+        echo "ALERT[$env]: cannot fetch origin; drift is measured against stale refs" >&2
+        failures=$((failures + 1))
+    fi
+
+    drift_dirty=no
+    [[ -n "$(git status --porcelain 2>/dev/null)" ]] && drift_dirty=yes
+
+    drift_upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
+    drift_behind=0
+    drift_ahead=0
+    if [[ -n "$drift_upstream" ]]; then
+        # --left-right counts both sides in one pass: left is upstream-only (behind),
+        # right is local-only (ahead).
+        read -r drift_behind drift_ahead < <(git rev-list --left-right --count "$drift_upstream...HEAD" 2>/dev/null || echo "0 0")
+    fi
+
+    deployment_drift_alerts "$env" "$drift_dirty" "$drift_upstream" "$drift_behind" "$drift_ahead" || failures=$((failures + $?))
 fi
 
 exit "$failures"

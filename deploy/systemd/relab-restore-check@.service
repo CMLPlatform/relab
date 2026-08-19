@@ -1,0 +1,32 @@
+# Relab scheduled job: backup restore verification. Instance is the environment, e.g. relab-restore-check@prod.
+#
+# Do not install by hand — `just timers-install <env>` renders these for this host
+# (checkout path, deploy user, `just` location) and enables them. The committed values
+# are placeholders; an unrendered unit runs as the wrong user in the wrong directory and
+# stays silent until its first fire.
+#
+# NOTE: the deploy user needs docker-group membership, which is root-equivalent on the
+# host. These units run a writable git checkout as unattended, scheduled, effectively
+# root-level jobs — treat that directory as privileged.
+[Unit]
+Description=Relab backup restore verification (%i)
+Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=relab
+WorkingDirectory=/opt/relab
+# Dead-man's-switch URL, one per job. Host-local and never committed; `-` means the
+# file is optional and a missing one simply disables pinging.
+EnvironmentFile=-/etc/relab/relab.env
+Environment=JUST_BIN=/usr/bin/just
+ExecStart=/opt/relab/scripts/run_scheduled.sh restore-check %i
+TimeoutStartSec=7200
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+# Nothing: triggered by relab-restore-check@%i.timer, never enabled directly.
