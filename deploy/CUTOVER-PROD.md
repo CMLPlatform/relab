@@ -12,27 +12,22 @@ This file is committed deliberately: it contains no secrets, and the previous
 playbook lived under `secrets/`, which is gitignored and therefore never reached
 the deploy host.
 
-Prod's Alembic revision is `6f2b9e4a1c3d` and the release *was* `f1a2b3c4d5e6`
-(20 migrations) when this was written.
+Prod's Alembic revision is `6f2b9e4a1c3d`.
 
-> **Stale as of 2026-08-18: the release head has moved.** The head is now
-> `c4f7b1e93a20` (47 migration files on the branch), and prod at `6f2b9e4a1c3d`
-> has **27 migrations** to apply, not 20. Every revision literal and migration
-> count below records what was true on 2026-08-03 — treat them as the historical
-> observation they are, and re-derive both before the window:
+> **Every revision literal and migration count below is a historical observation,
+> not a current fact.** Written 2026-08-03 (head `f1a2b3c4d5e6`, 20 migrations);
+> as of 2026-08-18 the head was `c4f7b1e93a20` and prod had 27 to apply. Re-derive
+> before the window:
 >
 > ```bash
 > cd backend
 > uv run alembic heads                            # the revision step 9 must find
-> uv run alembic history -r 6f2b9e4a1c3d:head     # lists prod's revision + each pending one
+> uv run alembic history -r 6f2b9e4a1c3d:head     # prod's revision + each pending one
 > ```
 >
-> That range is inclusive of prod's own revision, so the number of migrations
-> that actually run is one less than the lines it prints.
->
-> The *shape* of the plan is unaffected: prod is still at `6f2b9e4a1c3d`, the
-> path is still forward-only and still runs in one transaction, and nothing
-> below changes except how many migrations that path contains.
+> That range includes prod's own revision, so one fewer migration runs than lines
+> printed. Only the *count* moves: the path is still forward-only and still one
+> transaction.
 
 Prod's *code* is not literally at `main` — it sits on a pre-rewrite lineage of
 the working branch from April (step 0). For deployment purposes the two are
@@ -63,6 +58,10 @@ This is not a routine deploy. The deployment layout itself changed:
 - Backups become an encrypted restic repository. `main` has no restic tooling,
   so this is first-time setup, not a re-enable.
 - ClamAV is new, needs 3–4 GiB, and is now behind the `scanning` profile.
+
+The staging host has its own state and outstanding work; see
+[CUTOVER-STAGING.md](CUTOVER-STAGING.md). Staging shares `compose.deploy.yaml` with prod, so
+anything unfinished there is also unrehearsed here.
 
 Read sections 0 and 1 fully before touching anything. Steps 2–6 are preparation
 and can be done ahead of the window; the outage starts at step 7.
@@ -172,8 +171,9 @@ secret-file layout, not the least-privilege roles, not restic. Staging shares
 
 ```bash
 just staging-build
-just staging-up YES backups scanning
+just staging-up YES scanning
 just staging-migrate YES
+just backup-run staging          # initializes the repo; the smoke test needs a snapshot
 just backup-restore-smoke staging
 ```
 
@@ -264,11 +264,11 @@ free -g
 **With enough RAM** — run it, and pass the profile on every up/down:
 
 ```bash
-just prod-up YES backups scanning
+just prod-up YES scanning
 ```
 
-Passing any profile replaces the `backups` default, so list `backups` explicitly
-whenever you pass `scanning`.
+`up` starts no backup service — a systemd timer owns that (§10), so `scanning` is
+normally the only profile you pass here.
 
 **Without** — omit the profile *and* disable scanning in the root `.env`, or
 uploads fail closed:
@@ -692,8 +692,10 @@ settings validation after the migrations have already applied.
 | ---------------------------------------------- | -------------------------------------------------------- |
 | `EMAIL_HOST` / `EMAIL_PORT` / `EMAIL_USERNAME` | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USERNAME`              |
 | `SUPERUSER_EMAIL` / `SUPERUSER_NAME`           | `BOOTSTRAP_SUPERUSER_EMAIL` / `BOOTSTRAP_SUPERUSER_NAME` |
-| `LOKI_URL`                                     | `LOKI_PUSH_URL`                                          |
 | `BACKUP_DIR`                                   | `BACKUP_HOST_DIR`                                        |
+
+`LOKI_URL` has no replacement: **delete it.** Container logs no longer go to Loki
+directly — see the telemetry note below.
 
 **Upload quotas are now a pair of tiers, not one ceiling.** If the host's `.env`
 carries a raised `MAX_UPLOAD_FILES_PER_USER` from an earlier attempt at the
@@ -702,11 +704,42 @@ to every external contributor. The lab account is covered by promotion (step 8b)
 and `MAX_UPLOAD_FILES_PER_LAB_USER` instead. A lab tier below its contributor
 counterpart fails settings validation and the stack will not start.
 
-`LOKI_PUSH_URL` matters: log shipping is enabled by the *presence* of that
-variable, so an `.env` still saying `LOKI_URL=` silently stops shipping logs.
-The Loki label set also changed from `service,env,host` to
-`service,env,project`, so existing Grafana queries filtering on `host=` need
-updating.
+Log labels changed with the collection path: what used to be Loki's
+`service,env,host` label set is now the OpenTelemetry resource attributes
+`service.name`, `env` and `project`. Existing Grafana queries filtering on
+`host=` need updating.
+
+> **Telemetry is one operator input now, not a pile of them.** Set
+> `OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org` and `OTLP_AUTH_TOKEN`
+> (a bearer token from the monitoring stack operator). That single switch turns
+> on the API's own OpenTelemetry exporter **and** auto-includes
+> `compose.logging.alloy.yaml`, a Grafana Alloy agent that forwards every other
+> container's stdout to the same endpoint.
+>
+> Compose derives `OTEL_EXPORTER_OTLP_HEADERS` from the token, so the SDK's
+> percent-encoded header format is not something to get right by hand.
+>
+> `LOKI_PUSH_URL` and the Loki Docker-driver overlay are **gone**. Delete both
+> `LOKI_URL` and `LOKI_PUSH_URL` from the host's `.env`; nothing reads them. The
+> monitoring stack (github.com/CMLPlatform/monitoring) publishes only `grafana.`
+> and `otlp.` and deliberately exposes no Loki push hostname, because Loki has no
+> authentication of its own.
+>
+> Alloy also ships host metrics — CPU, memory, disk, network and `hwmon`
+> temperatures and fan speeds — over the same endpoint, so this host does not need
+> a separate host-monitoring agent. What it deliberately does NOT replace is the
+> per-job dead-man's switch: see "Alerting is two mechanisms" under Known
+> post-launch gaps, and [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5 for the standing
+> configuration.
+>
+> The token is also matched by the Cloudflare firewall rule
+> `relab_telemetry_ingress_skip_managed_security`, supplied to OpenTofu as
+> `TF_VAR_telemetry_ingress_authorization` (the whole header value,
+> `Bearer <token>`). Rotate the two together, or telemetry keeps working while
+> quietly losing its bot-product exemption.
+>
+> A wrong token shows up as `Failed to export logs batch code: 401, reason: Unauthorized` in the API's own container log — the one telemetry failure that
+> is loud rather than silent.
 
 **Delete these stale names:** `APP_ENV`, `COMPOSE_PROJECT_NAME`, `BUILD_MODE`,
 `CSP_API_ORIGIN`, `WEB_CONCURRENCY`, `BACKEND_API_URL`, `FRONTEND_APP_URL`,
@@ -762,7 +795,7 @@ Confirm no seeding is enabled (`SEED_DUMMY_DATA`, `SEED_CPV_CATEGORIES`,
 seeds are not gated on an empty database.
 
 ```bash
-just prod-up YES backups scanning   # drop `scanning` if you decided against ClamAV in 1a
+just prod-up YES scanning   # drop `scanning` if you decided against ClamAV in 1a
 just prod-migrate YES
 ```
 
@@ -784,7 +817,7 @@ start the stack with the `migrations` profile instead and the API waits for the
 migrator to exit 0 before it starts:
 
 ```bash
-just prod-up YES backups scanning migrations   # migrate, then serve, in one step
+just prod-up YES scanning migrations   # migrate, then serve, in one step
 ```
 
 The dependency is declared `required: false`, so a profile-less `prod-up`
@@ -1013,69 +1046,107 @@ ______________________________________________________________________
 
 ## 10. Set up backups
 
-On a first-time host, create the bind-mount directory yourself before
-starting the stack. If Docker creates it instead, it comes up root-owned and
-the backup container (which runs as uid 1001) cannot initialize the restic
-repository:
+The full procedure — repository, timer, offsite credential, monitoring crons — is
+**[DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1**. It is standing host setup, not cutover
+work, and it stays after this runbook is deleted. Do it now, then come back.
 
-```bash
-mkdir -p "${BACKUP_HOST_DIR:-./backups}/restic"
-sudo chown -R 1001:1001 "${BACKUP_HOST_DIR:-./backups}"
-```
+Only two things are specific to this cutover:
 
-```bash
-just prod-up YES backups scanning   # drop `scanning` only if you disabled it in 1a
-just backup-restore-smoke prod
-```
+- **This is first-time setup, not a re-enable.** `main` has no restic tooling at all,
+  so there are no pre-existing snapshots and nothing to migrate. The old plain-copy
+  backup directory was preserved in §2; it is not readable by the new tooling, so keep
+  it until §0b's abort conditions are all satisfied.
 
-Backups are now an encrypted restic repository under
-`${BACKUP_HOST_DIR:-./backups}/restic`, needing `secrets/prod/restic_password`.
-`main` has no restic tooling at all, so on a prod host coming from `main` this
-is **first-time setup**: the repository is initialized on first run and there
-are no pre-existing snapshots. From that point on, do not rotate
-`restic_password` — every later snapshot depends on it. It is a required
-secret: `up` starts the `backups` service by default.
+- **Retire the old backup container if the host ever ran one.** Compose does not remove
+  a container whose profile went away, so it would keep running beside the new timer:
 
-For offsite, set the repository in the host's root `.env` and the scheduled
-backup cycle copies snapshots there on every run:
+  ```bash
+  docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
+    -f compose.yaml -f compose.deploy.yaml --profile backups rm -sf backup
+  ```
 
-```env
-RESTIC_OFFSITE_REPOSITORY=rclone:<remote>:relab/prod/restic
-```
-
-An `rclone:` target reads its remote from `secrets/prod/rclone.conf`, which you
-write by hand — `just deploy-secrets-template` seeds every missing secret file,
-so overwrite the generated placeholder with the real rclone config. To copy on
-demand outside the cycle:
-
-```bash
-just backup-offsite-copy prod
-```
+Do not declare this step done until `just backup-restore-smoke prod` passes — §0b
+depends on it.
 
 ______________________________________________________________________
 
-## 11. Cloudflare — do nothing, deliberately
+## 11. Cloudflare — prod is still unadopted; do nothing for prod
 
-`infra/cloudflare/` is new in this release. **Do not run `just cloudflare-apply`
-during or after this cutover.**
-
-There is no OpenTofu state for either workspace (`terraform.tfstate.d/staging/`
-is empty; no `prod` workspace exists), so an apply against the live,
-hand-configured zone would try to create everything from scratch: duplicate DNS
-records, a **new** tunnel whose id does not match your live
-`CLOUDFLARE_TUNNEL_TOKEN`, and — worst — new entries in the
-`http_ratelimit`, `http_request_cache_settings`, and
-`http_request_firewall_custom` phases, which allow exactly one ruleset per
-(zone, phase) and could overwrite your hand-made rules.
+**Do not run `just cloudflare-apply prod`** during or after this cutover.
 
 Live traffic depends only on `CLOUDFLARE_TUNNEL_TOKEN` being set in the root
-`.env` for the `cloudflared` service. It does not depend on this Terraform.
+`.env` for the `cloudflared` service. It does not depend on this Terraform, and
+importing does not change or reissue that token.
 
-`just cloudflare-check` is safe (format, init, validate — no credentials, no
-network). Adopting the module properly means importing each existing tunnel, DNS
-record, and ruleset into state first; `infra/cloudflare/README.md` describes the
-workflow but provides no import commands, so treat it as a separate project
-after launch.
+`just cloudflare-check` remains safe at any time — it verifies a throwaway copy
+of each root, so it needs no credentials, no network, and no state access.
+
+### What is adopted, as of 2026-08-19
+
+| Root                     | Workspace | Status                                                                                                   |
+| ------------------------ | --------- | -------------------------------------------------------------------------------------------------------- |
+| `infra/cloudflare-zone/` | `default` | **Adopted and applied.** TLS settings, cache and firewall rulesets imported; rate-limit ruleset created. |
+| `infra/cloudflare/`      | `staging` | **Adopted and applied.** Its tunnel now answers to `relab-staging`, renamed from `cml-relab-test`.       |
+| `infra/cloudflare/`      | `prod`    | **Nothing.** No workspace, no state.                                                                     |
+
+Confirm rather than trust this table — it records one day's observation:
+
+```bash
+just cloudflare-plan staging     # a plan, not an apply
+just cloudflare-zone-plan
+```
+
+### Three things the staging adoption taught, that prod will meet too
+
+- **The live tunnels carry their original names.** Staging's was
+  `cml-relab-test` while the module computes `relab-${environment}`, so applying
+  **renames** it, and staging's apply did exactly that. The rename is safe — the
+  tunnel id is unchanged and `cloudflared` authenticates by id and secret, not
+  name — but it is a real change. Prod's tunnel is `cml-relab-prod`
+  (`9f5762a9-…`), so adopting prod will rename it to `relab-prod`. The account
+  also holds tunnels this repo does not manage (`cml-monitoring`, the `ssh-…`
+  and `cml-rpi5-…` ones); leave them alone.
+
+- **Zone-scoped resources are shared.** prod and staging share
+  `cml-relab.org`, so the TLS settings and the three entrypoint rulesets affect
+  both environments at once. They now live in `infra/cloudflare-zone/` with a
+  single owner, which is why prod's own import list is just six per-environment
+  resources. The zone was found at TLS 1.0 and is now at 1.2, for every hostname
+  including prod's.
+
+- **This zone's Cloudflare plan is restrictive, and it fails at apply time.**
+  The `http_ratelimit` phase allows one rule, a 10s counting period and a 10s
+  mitigation timeout, and neither the `matches` operator nor `http.host` may be
+  used in it. Each of those refusals landed *partway through* an apply, after
+  earlier resources had already changed. They are asserted in
+  `infra/cloudflare-zone/tests/` now, so `just cloudflare-check` catches a
+  regression instead of an apply doing it live.
+
+### Adopting prod, as separate work outside any window
+
+No `prod` workspace exists, so a plan today would show every resource as a
+*create*: duplicate DNS records, a **second** tunnel whose id does not match the
+live `CLOUDFLARE_TUNNEL_TOKEN`, and a replacement for the rulesets that protect
+prod right now.
+
+Generate the import blocks rather than writing them by hand:
+
+```bash
+cd infra/cloudflare
+./generate-imports.sh edge prod > imports.tf
+cat imports.tf                       # review before running anything
+just cloudflare-plan prod            # must show 0 to add, 0 to destroy
+```
+
+If it reports no tunnel by the expected names, it lists every tunnel in the
+account with its id and connection count; re-run with
+`RELAB_TUNNEL_NAME='<name>'` once you know which one serves prod.
+
+Delete `imports.tf` once the apply succeeds — import blocks re-run on every plan
+until removed, and they make `tofu test` unusable while present.
+
+`infra/cloudflare/README.md` carries the token scopes, where state lives, the
+state-encryption rules, and the full import workflow.
 
 ______________________________________________________________________
 
@@ -1117,9 +1188,8 @@ early.
 ## Known post-launch gaps
 
 Accepted risks, not blockers — but they are accepted by a person, not by
-default. Owner: the deploy operator (currently the maintainer, Simon van
-Lierde), who is also the one making the go/no-go call in §9. Do not discover
-these by surprise:
+default. Owner: the deploy operator, who is also the one making the go/no-go
+call in §9. Do not discover these by surprise:
 
 - **No scripted schema rollback.** All 40 migrations define `downgrade()`, and
   `test_migrations_downgrade_upgrade` proves the newest one round-trips — but on
@@ -1133,24 +1203,13 @@ these by surprise:
   short-lived), but do not read a post-deploy lull in 429s as a real change in
   traffic.
 
-- **Minimal alerting only.** `just watchdog prod` checks the API container's health and the age of
-  the newest restic snapshot, and exits non-zero with an `ALERT[...]` line per failure. Wire it to
-  host cron **as the deploy user** (docker-group membership is the only privilege it needs — not
-  root), paired with a dead-man's switch (e.g. healthchecks.io: create a check with period 1 hour,
-  grace 10 minutes):
-
-  ```cron
-  17 * * * * cd /path/to/relab && out=$(just watchdog prod 2>&1) && curl -fsS -m 10 --retry 3 https://hc-ping.com/YOUR-UUID >/dev/null || curl -fsS -m 10 --retry 3 --data-raw "$out" https://hc-ping.com/YOUR-UUID/fail >/dev/null
-  ```
-
-  Success pings the check; failure pings `/fail` with the alert text as the message body; and a dead
-  cron job alerts by *silence* — the failure mode plain `MAILTO` can never report. (`MAILTO` only
-  works if a sendmail-compatible MTA such as `msmtp-mta` is installed; without one, cron drops the
-  mail silently.) Cron's `PATH` usually does not include `just` — use an absolute path to it or set
-  `PATH=` in the crontab.
-
-  Richer alerting (Loki rules, Grafana) is still future work; anything the watchdog does not check
-  is still discovered by hand.
+- **Alerting is two mechanisms, deliberately.** Everything observable — container logs,
+  host metrics, application traces — goes to the central Grafana stack. One thing does
+  not: a per-job dead-man's switch that pushes from this host to healthchecks.io, so a
+  dead host, a dead collector or a broken tunnel still produces an alarm rather than
+  silence that looks like health. `just watchdog prod` is the local check whose exit
+  code that ping reports. Setup for both is standing configuration that outlives this
+  runbook — see [DEPLOY-PROD.md](DEPLOY-PROD.md) Parts 1.2, 1.4 and 1.5.
 
 - **This cutover is start-then-migrate.** The §8 commands bring the API up
   against the old schema before `prod-migrate` runs. Harmless here because you
