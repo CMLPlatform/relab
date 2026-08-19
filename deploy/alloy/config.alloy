@@ -1,0 +1,171 @@
+// Ship this host's telemetry to the department OpenTelemetry collector: container
+// stdout/stderr as logs, and host resource metrics.
+//
+// The API instruments itself and sends its own traces, metrics and logs over OTLP.
+// Everything else in the stack — postgres, redis, cloudflared, the three frontends,
+// backup — only writes to stdout, so this agent picks those up and forwards them on the
+// same OTLP endpoint with the same token. Nothing new is published at the edge: the
+// monitoring stack exposes `otlp.` and deliberately does not expose Loki, which has no
+// authentication of its own.
+
+// Discovery and log reading both talk to the Docker API. Mounting the socket is what
+// makes container NAMES available; reading the on-disk json logs instead would label
+// everything by container id.
+discovery.docker "containers" {
+	host = "unix:///var/run/docker.sock"
+
+	// The default is 1m, and the backup one-shot runs for 60-90s: at the default a whole
+	// backup can start and exit inside one poll window and never be discovered, which
+	// would lose exactly the logs most worth having. Polling the local socket for a
+	// dozen containers is cheap; a missed short-lived container is not.
+	refresh_interval = "5s"
+}
+
+discovery.relabel "containers" {
+	targets = discovery.docker.containers.targets
+
+	// Only this stack. The host may run other Compose projects (monitoring's own, for
+	// one) that ship their own telemetry; picking them up here would double-report them.
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		regex         = sys.env("COMPOSE_PROJECT_NAME")
+		action        = "keep"
+	}
+
+	// The Compose service name is the stable per-deployable identifier the monitoring
+	// stack's conventions ask for: `relab-api`, never `relab-api-prod-2`.
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service_name"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "container"
+	}
+}
+
+loki.source.docker "containers" {
+	host       = "unix:///var/run/docker.sock"
+	targets    = discovery.relabel.containers.output
+	labels     = {
+		env     = sys.env("ENVIRONMENT"),
+		project = "relab",
+	}
+	forward_to = [otelcol.receiver.loki.containers.receiver]
+}
+
+// Loki-shaped entries in, OpenTelemetry logs out. This is the only reason Alloy is
+// here rather than a plain OTel collector: loki.source.docker is the least fiddly way
+// to read Docker's log stream with real container labels attached.
+otelcol.receiver.loki "containers" {
+	output {
+		logs = [otelcol.processor.transform.resource_attributes.input]
+	}
+}
+
+// Promote the two identifiers the monitoring stack keys dashboards on from log-record
+// attributes to RESOURCE attributes. error_mode = "ignore" is deliberate: if the
+// conversion ever names these attributes differently, logs still arrive with the
+// attributes unpromoted, rather than the pipeline dropping them.
+otelcol.processor.transform "resource_attributes" {
+	error_mode = "ignore"
+
+	log_statements {
+		context = "log"
+
+		statements = [
+			`set(resource.attributes["service.name"], attributes["service_name"]) where attributes["service_name"] != nil`,
+			`set(resource.attributes["env"], attributes["env"]) where attributes["env"] != nil`,
+			`set(resource.attributes["project"], "relab")`,
+		]
+	}
+
+	output {
+		logs = [otelcol.processor.batch.default.input]
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Host metrics. node_exporter's collectors, scraped in-process and converted to OTLP
+// so they ride the same endpoint and token as the logs above — no second pipeline, no
+// second hostname, no second credential.
+//
+// set_collectors is an allowlist rather than the default set: fewer series, and each
+// one is here for a reason. `hwmon` is not decoration — the incident that started this
+// work was a backup crash-loop noticed by ear, from fan noise, after every monitor read
+// green for 19 hours. Temperatures and fan speeds now have somewhere to be seen.
+prometheus.exporter.unix "host" {
+	// The exporter runs inside the container, so point it at the host's mounted /proc,
+	// /sys and /.
+	procfs_path = "/host/proc"
+	sysfs_path  = "/host/sys"
+	rootfs_path = "/rootfs"
+
+	set_collectors = [
+		"cpu",
+		"diskstats",
+		"filesystem",
+		"hwmon",
+		"loadavg",
+		"meminfo",
+		"netdev",
+		"stat",
+		"uname",
+	]
+
+	filesystem {
+		// Pseudo-filesystems and per-container overlays: neither is disk anyone can free.
+		mount_points_exclude = "^/(dev|proc|sys|run)($|/)|^/rootfs/(dev|proc|sys|run)($|/)|^/var/lib/docker/"
+	}
+}
+
+prometheus.scrape "host" {
+	targets         = prometheus.exporter.unix.host.targets
+	forward_to      = [prometheus.relabel.host.receiver]
+	scrape_interval = "30s"
+	job_name        = "host"
+}
+
+// Same identifiers the logs carry, so host metrics and container logs can be filtered
+// by the same env/project in one dashboard.
+prometheus.relabel "host" {
+	forward_to = [otelcol.receiver.prometheus.host.receiver]
+
+	rule {
+		target_label = "env"
+		replacement  = sys.env("ENVIRONMENT")
+		action       = "replace"
+	}
+
+	rule {
+		target_label = "project"
+		replacement  = "relab"
+		action       = "replace"
+	}
+}
+
+otelcol.receiver.prometheus "host" {
+	output {
+		metrics = [otelcol.processor.batch.default.input]
+	}
+}
+
+otelcol.processor.batch "default" {
+	output {
+		logs    = [otelcol.exporter.otlphttp.central.input]
+		metrics = [otelcol.exporter.otlphttp.central.input]
+	}
+}
+
+otelcol.exporter.otlphttp "central" {
+	client {
+		// The tunnel routes HTTPS to the collector's HTTP receiver only; there is no
+		// public gRPC path, which is why this is otlphttp and not otlp.
+		endpoint = sys.env("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+		headers = {
+			Authorization = "Bearer " + sys.env("OTLP_AUTH_TOKEN"),
+		}
+	}
+}

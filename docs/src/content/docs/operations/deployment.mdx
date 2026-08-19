@@ -16,7 +16,7 @@ config:
 ---
 graph TD
     accTitle: Deployment Compose service topology
-    accDescr: The core services are the FastAPI backend, PostgreSQL, Redis, ClamAV, user media storage, the Expo app, the Astro landing page, and the Starlight docs site. They run alongside optional operational services for migrations, backups, the Cloudflare tunnel, and Loki or OTLP telemetry export. The backend is the hub, talking to the database, cache, malware scanner, and external monitoring collector.
+    accDescr: The core services are the FastAPI backend, PostgreSQL, Redis, ClamAV, user media storage, the Expo app, the Astro landing page, and the Starlight docs site. They run alongside optional operational services for migrations, backups, the Cloudflare tunnel, and OTLP telemetry export from both the backend and an Alloy log collector. The backend is the hub, talking to the database, cache, malware scanner, and external monitoring collector.
     subgraph Core ["Core Services"]
         Backend[FastAPI Backend]
         DB[(PostgreSQL)]
@@ -32,7 +32,7 @@ graph TD
         Migrations[migrator\none-shot on deploy]
         Backups[relab-backup\npg_dump + uploads to restic]
         Cloudflared[cloudflared\noutbound tunnel]
-        Loki[Loki log driver\nexternal push]
+        Alloy[alloy\ncontainer stdout collector]
         OTel[external OTLP collector]
     end
 
@@ -41,11 +41,11 @@ graph TD
     Backups -->|encrypted snapshots| Uploads
     Cloudflared -->|proxies inbound traffic| Backend
     Backend -->|scan uploads| ClamAV
-    Backend -->|OTLP traces/metrics| OTel
-    Backend -->|container logs via Docker driver| Loki
+    Backend -->|OTLP traces/metrics/logs| OTel
+    Alloy -->|container stdout via OTLP| OTel
 ```
 
-Backup services are enabled through Compose profiles. Telemetry is opt-in through host-level environment variables: `LOKI_PUSH_URL` enables the optional Loki logging overlay, and `OTEL_EXPORTER_OTLP_ENDPOINT` enables backend OTLP export.
+Backup services are enabled through Compose profiles. Telemetry is opt-in through one host-level environment variable: `OTEL_EXPORTER_OTLP_ENDPOINT` enables the backend's OTLP export and auto-includes the Alloy overlay that ships every other container's stdout.
 
 ## Supported delivery path
 
@@ -165,7 +165,7 @@ For local rehearsal, use staging plus the backups profile instead of production:
 - PostgreSQL stores the primary application state.
 - Uploaded files and images are stored on disk and served by the backend.
 - Database dumps and user-uploaded files are backed up into an encrypted local restic repository under `BACKUP_HOST_DIR`.
-- Optional offsite copies use `restic copy`; WebDAV is supported through restic's rclone backend. When `RESTIC_OFFSITE_REPOSITORY` is set in the root `.env`, the scheduled backup service copies snapshots offsite at the end of every backup cycle automatically. `just backup-offsite-copy <env>` remains available as an ad-hoc, on-demand copy outside that cycle.
+- Optional offsite copies use `restic copy`; WebDAV is supported through restic's rclone backend. When `RESTIC_OFFSITE_REPOSITORY` is set in `deploy/env/<env>.compose.env` (per environment — the root `.env` is shared by every stack on the host, so a value there would send production snapshots to staging's offsite repository), each backup cycle copies snapshots offsite at the end automatically. Backup cycles are driven by a host systemd timer (`deploy/systemd/relab-backup@.timer`), not by `up` — starting the stack does not schedule anything. The offsite step is skipped with a warning, rather than failing the run, while `secrets/<env>/rclone.conf` does not define the remote the repository names. `just backup-offsite-copy <env>` remains available as an ad-hoc, on-demand copy outside that cycle.
 - Alembic migrations move schema state forward in a controlled way.
 - `just backup-restore-smoke staging` or `just backup-restore-smoke prod` restores the latest database dump into a disposable Postgres container and verifies that it can be read.
 
@@ -211,9 +211,9 @@ If a real secret is exposed outside the intended host, treat it as compromised: 
 
 Prod and staging can ship logs, traces, and metrics to a central monitoring stack outside this repo. Dev and CI do not ship telemetry.
 
-- `LOKI_PUSH_URL` in the host root `.env` enables the optional Loki Docker log-driver overlay.
-- `OTEL_EXPORTER_OTLP_ENDPOINT` enables backend OTLP traces and metrics.
-- `OTEL_EXPORTER_OTLP_HEADERS` can pass collector auth headers through to the backend container.
+- `OTEL_EXPORTER_OTLP_ENDPOINT` is the switch for the whole telemetry path: the backend's OTLP traces, metrics and logs, plus the `compose.logging.alloy.yaml` overlay.
+- `OTLP_AUTH_TOKEN` is the collector's bearer token. One operator input, two consumers: Compose folds it into the SDK's header format for the backend, and Alloy reads it directly.
+- `OTEL_EXPORTER_OTLP_PROTOCOL` defaults to `http/protobuf`, pinned because the collector is reached through a tunnel that routes HTTPS only.
 
 Hosts without those variables keep the simpler local-only behavior. Keep monitoring endpoints private through a tunnel or private network; do not expose the monitoring stack directly to the public internet.
 
@@ -222,6 +222,6 @@ Hosts without those variables keep the simpler local-only behavior. Keep monitor
 - Redis is used both for caching and parts of the authentication and token flow. Partial Redis outages have user-facing effects.
 - Uploaded media is part of the research record and should be treated as primary data, not as disposable assets.
 - Production secrets and origin/host configuration matter; the backend enforces stricter checks outside development.
-- Telemetry is optional. When enabled, the backend exports OTLP traces and metrics to an external collector, while Docker ships container logs to Loki through the optional overlay.
+- Telemetry is optional. When enabled, the backend exports OTLP traces, metrics and logs to an external collector, and a Grafana Alloy agent forwards the remaining containers' stdout to the same endpoint. Nothing needs a Loki push hostname exposed, which matters because Loki has no authentication of its own.
 - The Compose-based setup is easy to reason about, but scaling and secret rotation are less automated than in a larger platform setup. That trade-off is deliberate.
-- A minimal watchdog exists: `just watchdog <env>` checks the API container's health and the age of the newest restic snapshot, exiting non-zero with an `ALERT[...]` line per failure. It has no built-in scheduler, so run it from host cron to make sure failures reach an operator. Richer alerting (Loki alert rules, external uptime monitoring, Grafana) is still future work.
+- Scheduled work (backup, watchdog, monthly restore verification) runs from systemd timers installed by `just timers-install <env>`; execution is deliberately local, since a backup needs the host's own volumes. Detection is not: a failed job leaves its unit in `failed` state for a host monitor to report, and the central Grafana stack alerts on absence of telemetry, which is the only signal external to the deploy host. `just watchdog <env>` remains as a local triage command that exits non-zero with an `ALERT[...]` line per failure.

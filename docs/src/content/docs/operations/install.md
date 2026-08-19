@@ -251,7 +251,7 @@ migrations, verify health.
    hand-configured zone tries to create everything from scratch: it duplicates DNS records,
    creates a new tunnel whose id will not match the live `CLOUDFLARE_TUNNEL_TOKEN` (breaking
    ingress), and can overwrite existing rulesets, since each Cloudflare phase allows only one
-   ruleset per zone (source: `deploy/CUTOVER.md` §11).
+   ruleset per zone.
    :::
 
    ```bash
@@ -282,6 +282,24 @@ migrations, verify health.
    just prod-down YES
    ```
 
+### Scheduling backups
+
+Starting the stack does **not** schedule backups. The backup service is a one-shot: a
+systemd timer on the host runs it once a day and it exits. Install the timer once per
+environment, substituting your deploy user and checkout path:
+
+```bash
+just backup-unit | sudo tee /etc/systemd/system/relab-backup@.service >/dev/null
+sudo cp deploy/systemd/relab-backup@.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now relab-backup@staging.timer
+systemctl list-timers relab-backup@staging.timer   # confirm a NEXT time is scheduled
+```
+
+`just backup-run <env>` runs one cycle immediately — use it for the first run, which
+initializes the repository. Without the timer installed you have no recurring backups,
+and `just watchdog <env>` reports exactly that.
+
 ### Optional WebDAV offsite backups
 
 The supported offsite path is a second restic repository copied from the local restic repository.
@@ -289,14 +307,20 @@ WebDAV is handled through restic's rclone backend.
 
 1. Create `secrets/<env>/rclone.conf` with a WebDAV remote.
 
-1. Set `RESTIC_OFFSITE_REPOSITORY` in the host's root `.env`:
+1. Set `RESTIC_OFFSITE_REPOSITORY` in `deploy/env/<env>.compose.env`, **not** the root `.env`:
 
    ```ini
    RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/staging/restic
    ```
 
+   It belongs there because the root `.env` is shared by every stack on the host, so one value
+   would resolve to the same path for staging and production alike — writing production snapshots
+   into staging's offsite repository. The per-environment files are loaded second and override the
+   root `.env`, so a value set there is ignored.
+
    Once set, the scheduled `backups` service copies snapshots offsite automatically at the end of
-   every backup cycle. No further action is needed for ongoing offsite copies.
+   every backup cycle, initializing the offsite repository on first run. No further action is
+   needed for ongoing offsite copies.
 
 1. To copy snapshots on demand outside the scheduled cycle (for example, right after a one-off
    local backup), export the same variable in the shell that runs the manual helper. The helper
@@ -316,15 +340,18 @@ WebDAV is handled through restic's rclone backend.
 If you run a central monitoring stack (Grafana + Loki + Tempo + Prometheus), prod and staging can
 ship to it without any code changes:
 
-1. Install the Loki Docker driver plugin on the host (once):
+1. Set `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTLP_AUTH_TOKEN` in the host's root `.env`, from your
+   monitoring stack operator. That single switch turns on both halves of telemetry: the backend's
+   own OpenTelemetry exporter, and a Grafana Alloy agent that collects every other container's
+   stdout and forwards it over the same OTLP endpoint.
 
-   ```bash
-   docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
-   ```
+1. The `prod-up` / `staging-up` recipes auto-include `compose.logging.alloy.yaml` when the endpoint
+   is non-empty. Hosts without it ship nothing and keep `docker logs` as the only log path.
 
-1. Set `LOKI_PUSH_URL` (and optionally `OTEL_EXPORTER_OTLP_ENDPOINT`) in the host's root `.env`. The
-   `prod-up` / `staging-up` recipes auto-include `compose.logging.loki.yaml` when `LOKI_PUSH_URL` is
-   non-empty. Hosts without the variable keep Docker's default `json-file` driver.
+Alloy reads the Docker socket to attach container names to log lines, so it runs as root with the
+socket bound read-only. Note that a read-only bind protects the file, not the API — anything able to
+reach that socket can start a privileged container. If that is not acceptable on your host, put a
+docker-socket-proxy in front of it restricted to the container endpoints.
 
 See [Deployment and operations](/operations/deployment/#telemetry) for the full flow.
 

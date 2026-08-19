@@ -10,10 +10,10 @@
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
 # --- Reusable fragments ------------------------------------------------------
-# Shipping container logs to a central Loki instance is opt-in: include
-# compose.logging.loki.yaml alongside this file (the justfile does this
-# automatically when LOKI_PUSH_URL is set in the host's root .env). Hosts without
-# Loki get Docker's default json-file driver — no config needed.
+# Shipping the other containers' stdout to the central collector is opt-in: include
+# compose.logging.alloy.yaml alongside this file (the deploy recipes do this
+# automatically when OTEL_EXPORTER_OTLP_ENDPOINT is set in the host's root .env). Hosts
+# without it get Docker's default json-file driver — no config needed.
 
 x-backend-public-origins: &backend-public-origins
   API_PUBLIC_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
@@ -75,7 +75,14 @@ services:
       # OTEL SDK automatically from the container env and matches the compose
       # service name so traces group cleanly in the backend.
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      # Derived from one operator input, so the SDK's percent-encoded header format is
+      # not a thing anyone has to remember. Alloy reads the same OTLP_AUTH_TOKEN raw.
+      OTEL_EXPORTER_OTLP_HEADERS: Authorization=Bearer%20${OTLP_AUTH_TOKEN:-}
+      # Pinned rather than left to the SDK default: the collector is reached through
+      # a Cloudflare tunnel, which routes HTTPS to the HTTP receiver only. There is no
+      # public gRPC path, so a dependency change that flipped the default protocol
+      # would silently stop all telemetry.
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
       OTEL_SERVICE_NAME: relab-api
       # ── Resource knobs ──────────────────────────────────────────────────────────
       # WEB_CONCURRENCY = Uvicorn worker processes (~1 CPU core each).
@@ -113,7 +120,7 @@ services:
         # default profile-less `up` would refuse to start at all.
         #
         # This does NOT cover `just prod-migrate`, which runs the migrator on its
-        # own against an already-serving API — see deploy/CUTOVER.md for when each
+        # own against an already-serving API — see deploy/DEPLOY-PROD.md for when each
         # is appropriate.
         condition: service_completed_successfully
         required: false
@@ -176,7 +183,12 @@ services:
       - ALL
     pids_limit: 512
     read_only: true
-    restart: unless-stopped
+    # One-shot: the systemd timer runs this via `compose run`, never `up`.
+    restart: "no"
+    # Without this each `compose run` container gets a fresh random hostname, and
+    # restic picks its parent snapshot by (host, paths) — so every run would re-read
+    # and re-hash all of /data/uploads instead of taking the metadata shortcut.
+    hostname: relab-backup
     security_opt:
       - no-new-privileges:true
     ulimits:
@@ -190,6 +202,10 @@ services:
     volumes:
       - user_uploads:/data/uploads:ro
       - ${BACKUP_HOST_DIR:-./backups}/restic:/restic
+      # restic's cache must outlive the container: this is a one-shot with --rm, so
+      # a cache on the tmpfs below would be cold every run and re-download the whole
+      # offsite index over WebDAV nightly.
+      - restic_cache:/var/cache/restic
     environment:
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
@@ -198,15 +214,14 @@ services:
       DATABASE_BACKUP_PASSWORD_FILE: /run/secrets/database_backup_password
       RESTIC_PASSWORD_FILE: /run/secrets/restic_password
       RESTIC_REPOSITORY: /restic
-      RESTIC_CACHE_DIR: /tmp/restic-cache
+      RESTIC_CACHE_DIR: /var/cache/restic
       XDG_CACHE_HOME: /tmp/xdg-cache
       UPLOADS_DIR: /data/uploads
       BACKUP_WORK_DIR: /tmp/relab-backups
-      BACKUP_INTERVAL_SECONDS: "86400"
-      BACKUP_ON_START: "true"
-      # keep-hourly is left at the backup script's default of 24. At the 86400s
-      # interval above that holds nothing keep-daily does not already hold, so the
-      # retention that matters is the daily/weekly/monthly set below.
+      # Explicitly 0: backups run once a day (systemd timer), so the script's
+      # default of keep-hourly=24 would resolve to 24 distinct DAYS and silently
+      # override the 14 below. Hourly retention only means something sub-daily.
+      RESTIC_KEEP_HOURLY: "0"
       RESTIC_KEEP_DAILY: "14"
       RESTIC_KEEP_WEEKLY: "8"
       RESTIC_KEEP_MONTHLY: "12"
@@ -225,7 +240,13 @@ services:
     tmpfs:
       - /tmp:mode=1777
     networks:
+      # `data` is internal (no gateway), which is what the database wants but leaves
+      # this container with no egress at all — the offsite copy could never resolve
+      # or reach the remote. `egress` exists only to give the backup container a way
+      # out; it is deliberately NOT `edge`, so this keeps no lateral access to the
+      # web services. Postgres and the rest stay on `data` only.
       - data
+      - egress
 
   redis:
     secrets:
@@ -305,7 +326,7 @@ services:
     environment:
       # An existing cluster may have no `postgres` role at all (staging does
       # not); the healthcheck runs `pg_isready -U $POSTGRES_USER`, so a mismatch
-      # here leaves the service permanently unhealthy. See deploy/CUTOVER.md.
+      # here leaves the service permanently unhealthy. See deploy/DEPLOY-PROD.md.
       POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
       POSTGRES_DB: relab_db
       DATABASE_APP_USER: relab_app
@@ -378,6 +399,7 @@ services:
       - /tmp:mode=1777
 
 volumes:
+  restic_cache:
   cache_data:
   clamav_db:
 
@@ -419,3 +441,6 @@ secrets:
 
 networks:
   scanning:
+  # Outbound-only network for the backup container's offsite copy. Not internal, and
+  # nothing else joins it.
+  egress:

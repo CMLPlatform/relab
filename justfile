@@ -8,6 +8,7 @@ default:
 dev_compose := "COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml"
 ci_compose := "docker compose -p relab_test -f compose.yaml -f compose.ci.yaml"
 cloudflare_dir := "infra/cloudflare"
+cloudflare_zone_dir := "infra/cloudflare-zone"
 
 # Subrepos that mirror the root quality / test / audit / clean recipes.
 subrepos := "backend docs www app"
@@ -240,14 +241,34 @@ security:
 # Format Cloudflare OpenTofu files
 cloudflare-fmt:
     tofu -chdir={{ cloudflare_dir }} fmt -recursive
+    tofu -chdir={{ cloudflare_zone_dir }} fmt -recursive
 
-# Validate Cloudflare OpenTofu configuration without configuring a state backend
-# (`test` mocks the Cloudflare provider, so it needs no credentials and makes no API calls)
+# Validate both Cloudflare OpenTofu roots: format, types, and the mocked-provider tests.
+# No credentials, no network beyond provider downloads, and no state access at all.
 cloudflare-check:
     tofu -chdir={{ cloudflare_dir }} fmt -check -recursive
-    tofu -chdir={{ cloudflare_dir }} init -backend=false
-    tofu -chdir={{ cloudflare_dir }} validate
-    tofu -chdir={{ cloudflare_dir }} test
+    tofu -chdir={{ cloudflare_zone_dir }} fmt -check -recursive
+    @just _cloudflare-verify {{ cloudflare_dir }}
+    @just _cloudflare-verify {{ cloudflare_zone_dir }}
+
+# Verify one root against a throwaway copy rather than the working directory. Two
+# reasons, both learned the hard way: `init` reads the selected workspace's state, which
+# is encrypted and would demand TF_VAR_state_passphrase for what is meant to be the
+# credential-free gate; and `tofu test` mocks the provider, which cannot service an
+# import block, so a generated imports.tf makes the run CRASH rather than fail.
+_cloudflare-verify dir:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    work="$(mktemp -d)"
+    trap 'rm -rf "$work"' EXIT
+    cp {{ dir }}/*.tf "$work"/                              # follows the hostnames.tf symlink
+    rm -f "$work"/imports.tf                                # adoption-only, breaks mocked tests
+    cp -r {{ dir }}/tests "$work"/ 2>/dev/null || true
+    cp {{ dir }}/.terraform.lock.hcl "$work"/ 2>/dev/null || true
+    cp -r {{ dir }}/.terraform "$work"/ 2>/dev/null || true # reuse downloaded providers
+    tofu -chdir="$work" init -backend=false >/dev/null
+    tofu -chdir="$work" validate
+    tofu -chdir="$work" test
 
 # Plan Cloudflare edge changes for one environment (prod or staging)
 cloudflare-plan env:
@@ -266,6 +287,20 @@ cloudflare-apply env confirm='':
     tofu -chdir={{ cloudflare_dir }} workspace select {{ quote(env) }} || tofu -chdir={{ cloudflare_dir }} workspace new {{ quote(env) }}
     tofu -chdir={{ cloudflare_dir }} apply -auto-approve -input=false -var="environment={{ env }}"
 
+# Plan the zone-global Cloudflare configuration (TLS settings + the three entrypoint
+# rulesets). One root for the whole zone, so prod and staging cannot clobber each other.
+cloudflare-zone-plan:
+    @just _require-cloudflare-vars
+    tofu -chdir={{ cloudflare_zone_dir }} init
+    tofu -chdir={{ cloudflare_zone_dir }} plan -input=false
+
+# Apply the zone-global Cloudflare configuration. This affects BOTH environments.
+cloudflare-zone-apply confirm='':
+    @just _require-cloudflare-vars
+    @just _require-confirm "apply zone-global Cloudflare changes (affects prod AND staging)" "just cloudflare-zone-apply YES" "FORCE=1 just cloudflare-zone-apply" {{ quote(confirm) }}
+    tofu -chdir={{ cloudflare_zone_dir }} init
+    tofu -chdir={{ cloudflare_zone_dir }} apply -auto-approve -input=false
+
 _require-cloudflare-env env:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -282,6 +317,9 @@ _require-cloudflare-vars:
     [ -n "${CLOUDFLARE_API_TOKEN:-}" ] || missing+=("CLOUDFLARE_API_TOKEN")
     [ -n "${TF_VAR_cloudflare_account_id:-}" ] || missing+=("TF_VAR_cloudflare_account_id")
     [ -n "${TF_VAR_cloudflare_zone_id:-}" ] || missing+=("TF_VAR_cloudflare_zone_id")
+    # State encryption is fail-closed, so name the missing passphrase here rather than
+    # letting tofu report it as an opaque decrypt error further in.
+    [ -n "${TF_VAR_state_passphrase:-}" ] || missing+=("TF_VAR_state_passphrase")
     if [ "${#missing[@]}" -gt 0 ]; then
         echo "Missing Cloudflare/OpenTofu environment variables:" >&2
         printf '  - %s\n' "${missing[@]}" >&2
@@ -427,7 +465,7 @@ _dev-reset confirm='':
 # Docker: Production
 # ============================================================================
 
-# Start production stack (no profiles = backups only; passing profiles replaces that default, so list `backups` too)
+# Start production stack (backups are NOT started here — they run from the host systemd timer; see deploy/systemd/)
 prod-up *PROFILES:
     @bash scripts/deploy_ops.sh stack prod up {{ PROFILES }}
 
@@ -451,7 +489,7 @@ prod-migrate confirm='':
 # Docker: Staging
 # ============================================================================
 
-# Start staging stack (no profiles = backups only; passing profiles replaces that default, so list `backups` too)
+# Start staging stack (backups are NOT started here — they run from the host systemd timer; see deploy/systemd/)
 staging-up *PROFILES:
     @bash scripts/deploy_ops.sh stack staging up {{ PROFILES }}
 
@@ -470,6 +508,18 @@ staging-logs:
 # Run database migrations and seed dummy data (staging)
 staging-migrate confirm='':
     @bash scripts/deploy_ops.sh stack staging migrate {{ quote(confirm) }}
+
+# Run one backup cycle now (what the systemd timer calls; see deploy/systemd/)
+backup-run env:
+    @bash scripts/deploy_ops.sh stack {{ quote(env) }} backup-run
+
+# Print the scheduled-job systemd units rendered for this host (review before installing)
+timers-render:
+    @bash scripts/install_timers.sh render
+
+# Install + enable the backup/watchdog/restore-check timers for one environment (needs sudo)
+timers-install env:
+    @bash scripts/install_timers.sh install {{ quote(env) }}
 
 # Watchdog: alert when the API is unhealthy or the newest backup snapshot is stale (cron this on the host)
 watchdog env max_age_hours='26':

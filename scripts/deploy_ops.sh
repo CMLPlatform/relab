@@ -9,10 +9,12 @@ write_validation_env_file() {
     uv run python scripts/env_policy.py validation-env "$1"
 }
 
-loki_overlay_args() {
+telemetry_overlay_args() {
     local root_env_file="${1:-.env}"
-    if [[ -f "$root_env_file" ]] && grep -qE '^LOKI_PUSH_URL=[^[:space:]]' "$root_env_file"; then
-        printf '%s\n' -f compose.logging.loki.yaml
+    # Gated on the same variable that turns on the API's own exporter, so container
+    # stdout and application telemetry are never half-enabled with respect to each other.
+    if [[ -f "$root_env_file" ]] && grep -qE '^OTEL_EXPORTER_OTLP_ENDPOINT=[^[:space:]]' "$root_env_file"; then
+        printf '%s\n' -f compose.logging.alloy.yaml
     fi
 }
 
@@ -54,6 +56,10 @@ COMPOSE_SCRUBBED_ENV_NAMES=(
     EMAIL_REPLY_TO
     BOOTSTRAP_SUPERUSER_EMAIL
     MALWARE_SCAN_ENABLED
+    # Scrubbed for the same reason it is committed per environment: an exported
+    # shell value beats every --env-file, so a stray `export` in a debugging session
+    # would silently redirect prod's offsite copy at staging's repository.
+    RESTIC_OFFSITE_REPOSITORY
 )
 
 compose_args() {
@@ -70,7 +76,7 @@ compose_args() {
     done
 
     printf '%s\n' env "${unset_flags[@]}" docker compose -p "relab_$env" --env-file "$root_env_file" --env-file "$compose_env" -f compose.yaml -f compose.deploy.yaml
-    loki_overlay_args "$root_env_file"
+    telemetry_overlay_args "$root_env_file"
     host_overlay_args
 }
 
@@ -119,12 +125,13 @@ compose_config() {
     for env in staging prod; do
         run_validation_deploy_compose "$env" "$validation_env" config >/dev/null
         run_validation_deploy_compose "$env" "$validation_env" --profile backups --profile migrations config >/dev/null
-        # Same command as above plus the loki overlay, which compose_args only
-        # emits when the root .env sets LOKI_PUSH_URL. Built via compose_args so
-        # the shell-env scrub applies here too.
+        # Same command as above plus the telemetry overlay, which compose_args only emits
+        # when the root .env sets OTEL_EXPORTER_OTLP_ENDPOINT. Built via compose_args so the
+        # shell-env scrub applies here too. The overlay hard-requires the endpoint and token,
+        # so the validation env must supply both or this renders nothing.
         local -a base_args=()
         mapfile -t base_args < <(compose_args "$env" "$validation_env")
-        "${base_args[@]}" -f compose.logging.loki.yaml config >/dev/null
+        "${base_args[@]}" -f compose.logging.alloy.yaml config >/dev/null
     done
     local e2e_config="$tmp_root/e2e.json"
     docker compose -p relab_e2e -f compose.e2e.yaml config --format json >"$e2e_config"
@@ -493,11 +500,9 @@ stack_command() {
     case "$action" in
         up)
             parse_profiles "$env" "migrations backups scanning" "$@"
-            # Backups are part of a healthy stack, so `up` defaults to them the way
-            # `build` does; explicit profiles still win.
-            if [[ "${#DEPLOY_PROFILE_FLAGS[@]}" -eq 0 ]]; then
-                DEPLOY_PROFILE_FLAGS=(--profile backups)
-            fi
+            # `up` no longer starts backups: the backup service is a one-shot driven
+            # by a systemd timer (deploy/systemd/), not a long-running container.
+            # `build` still defaults to the backups profile so the image exists.
             # NOTE: MALWARE_SCAN_ENABLED=true with no clamav container fails all uploads closed.
             # Read it the way Compose does: drop an inline ` # comment`, surrounding whitespace
             # and one matching pair of quotes, so `MALWARE_SCAN_ENABLED="false"  # off` agrees
@@ -519,6 +524,16 @@ stack_command() {
             require_confirmation "start the $env stack" "just $env-up YES [profiles...]" "FORCE=1 just $env-up [profiles...]"
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" up -d
             ;;
+        backup-run)
+            # One backup cycle, foreground, for the systemd timer. --no-deps: the
+            # timer must not start postgres as a side effect; if the stack is down
+            # the run fails and systemd records it, which is the correct signal.
+            # --name is required, not cosmetic: the container is a child of dockerd,
+            # not of the systemd unit, so the unit's ExecStopPost needs a stable name
+            # to reap it if systemd kills the run on timeout.
+            run_deploy_compose "$env" --profile backups run --rm --no-deps -T \
+                --name "relab-backup-$env" backup
+            ;;
         down)
             parse_profiles "$env" "migrations backups scanning" "$@"
             require_confirmation "stop the $env stack" "just $env-down YES [profiles...]" "FORCE=1 just $env-down [profiles...]"
@@ -536,7 +551,7 @@ stack_command() {
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" build "${no_cache[@]}"
             # Every build overwrites the single :$env-local tag, so also tag the result
             # with the current commit. Rollback is then a `docker tag` away instead of a
-            # full rebuild (see deploy/CUTOVER.md §12).
+            # full rebuild (see deploy/DEPLOY-PROD.md Part 3).
             local sha image
             sha="$(git rev-parse --short HEAD 2>/dev/null || true)"
             if [[ -n "$sha" ]]; then

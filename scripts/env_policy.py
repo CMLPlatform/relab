@@ -39,7 +39,10 @@ KNOWN_SECRET_PLACEHOLDER_PREFIXES = (
 # source of truth: deploy_ops.sh calls `validation-env` to materialize this same set.
 VALIDATION_ENV_VALUES = {
     "CLOUDFLARE_TUNNEL_TOKEN": "placeholder",
-    "LOKI_PUSH_URL": "http://placeholder/loki/api/v1/push",
+    # The Alloy telemetry overlay hard-requires both, so compose-config cannot render it
+    # without them.
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "https://placeholder.test",
+    "OTLP_AUTH_TOKEN": "placeholder-otlp-token",
     "GOOGLE_OAUTH_CLIENT_ID": "placeholder-google-client-id",
     "GITHUB_OAUTH_CLIENT_ID": "placeholder-github-client-id",
     "EMAIL_PROVIDER": "smtp",
@@ -62,6 +65,10 @@ COMMITTED_DEPLOY_ENV_NAMES = {
     "DOCS_PUBLIC_URL",
     # May be empty: the www landing hero falls back to its committed fixture.
     "FEATURED_PRODUCT_ID",
+    # Per environment on purpose. A single value in the shared root .env resolved to
+    # the staging path for prod too, which would have written prod snapshots into
+    # staging's offsite repository. Committed here so the two cannot converge again.
+    "RESTIC_OFFSITE_REPOSITORY",
 }
 REQUIRED_ROOT_OPERATOR_INPUT_NAMES = {
     "CLOUDFLARE_TUNNEL_TOKEN",
@@ -77,12 +84,16 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
     "MICROSOFT_GRAPH_TENANT_ID",
     "MICROSOFT_GRAPH_CLIENT_ID",
     "MICROSOFT_GRAPH_SENDER_USER",
-    "LOKI_PUSH_URL",
     "OTEL_EXPORTER_OTLP_ENDPOINT",
-    "OTEL_EXPORTER_OTLP_HEADERS",
+    "OTEL_EXPORTER_OTLP_PROTOCOL",
+    # One token, two consumers: the API's SDK gets it folded into
+    # OTEL_EXPORTER_OTLP_HEADERS by compose, and Alloy reads it directly.
+    "OTLP_AUTH_TOKEN",
+    # Host-specific paths and roles. NOTE: BACKUP_HOST_DIR is one value shared by
+    # every stack on the host, so prod and staging co-located on one machine would
+    # share a restic directory. It fails closed (the second environment's password
+    # will not open the first's repo), but see deploy/DEPLOY-PROD.md Part 1.1 before doing that.
     "BACKUP_HOST_DIR",
-    # Offsite backup copy and the operator's psql superuser role, both host-specific.
-    "RESTIC_OFFSITE_REPOSITORY",
     "POSTGRES_SUPERUSER",
     # Upload ceilings and malware scanning, overridable per instance.
     "MAX_UPLOAD_FILES_PER_USER",
@@ -93,6 +104,12 @@ STALE_ENV_NAMES = {
     "API_ORIGIN",
     "APP_ENV",
     "APP_ORIGIN",
+    # Retired with the in-container scheduler; backups are a systemd timer now.
+    "BACKUP_INTERVAL_SECONDS",
+    "BACKUP_ON_START",
+    "BACKUP_PING_URL",
+    "BACKUP_RUN_ONCE",
+    "BACKUP_STATE_DIR",
     "BUILD_MODE",
     "COMPOSE_PROJECT_NAME",
     "CSP_API_ORIGIN",
@@ -100,7 +117,6 @@ STALE_ENV_NAMES = {
     "OAUTH_ALLOWED_REDIRECT_URIS",
     "MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS",
     "BOOTSTRAP_SUPERUSER_NAME",
-    "BACKUP_INTERVAL_SECONDS",
     "BACKEND_API_URL",
     "DOCS_URL",
     "FRONTEND_APP_URL",
@@ -267,6 +283,41 @@ def assert_secret_value_is_usable(label: str, name: str, value: str, *, is_optio
         raise AssertionError(msg)
 
 
+def assert_offsite_remote_is_configured() -> None:
+    """Warn when a committed offsite repository names an rclone remote no secret defines.
+
+    ``RESTIC_OFFSITE_REPOSITORY`` is committed per environment, but the credential that
+    reaches it is a hand-written ``secrets/<env>/rclone.conf``. Those are two separate
+    facts, and only the first is version-controlled — so a host can be fully configured
+    on paper and still have no offsite copy.
+
+    The nightly backup deliberately SKIPS the offsite step (loudly, exit 0) in that
+    state rather than failing, because a run that fails every night leaves the alert
+    permanently red, which is indistinguishable from having no alert. That makes this
+    the place the gap has to surface instead: before the deploy, not at 02:30 nightly.
+    Warn rather than fail — local-only backups are a legitimate configuration.
+    """
+    for label in ("staging", "prod"):
+        env_file = ROOT / "deploy" / "env" / f"{label}.compose.env"
+        if not env_file.exists():
+            continue
+        repo = ""
+        for line in env_file.read_text().splitlines():
+            if line.startswith("RESTIC_OFFSITE_REPOSITORY="):
+                repo = line.partition("=")[2].strip()
+        if not repo.startswith("rclone:"):
+            continue
+        remote = repo.removeprefix("rclone:").partition(":")[0]
+        config = ROOT / "secrets" / label / "rclone.conf"
+        if not config.exists():
+            continue
+        if f"[{remote}]" not in config.read_text():
+            sys.stdout.write(
+                f"{label}: offsite repository names rclone remote '{remote}' but "
+                f"secrets/{label}/rclone.conf does not define it — backups will be LOCAL ONLY\n"
+            )
+
+
 def assert_existing_secret_files_do_not_use_placeholders(secret_inventory: dict[str, Any]) -> None:
     """Check existing production-like secret files for unfilled or empty required secrets.
 
@@ -371,13 +422,23 @@ def assert_infra_boundaries_are_preserved() -> None:
 def assert_telemetry_examples_use_department_contract() -> None:
     """Ensure Relab documents the central telemetry endpoint contract it consumes."""
     contents = (ROOT / ".env.example").read_text(encoding="utf-8")
+    # The hostname is owned by CMLPlatform/monitoring, whose infra/main.tf declares a
+    # `cloudflare_dns_record.otlp` for `otlp.<domain>` and routes it to the collector's
+    # HTTP receiver. There is no `otel.` record and no `logs.` record, so those are the
+    # wrong names, not alternatives.
     require(
-        "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org" in contents,
-        ".env.example: OTEL example must use the current department OTLP endpoint",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org" in contents,
+        ".env.example: OTEL example must use otlp.cml-relab.org, the hostname the monitoring stack actually publishes",
     )
     require(
-        "OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org" not in contents,
-        ".env.example: OTEL example must not use the old otlp.cml-relab.org endpoint",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org" not in contents,
+        ".env.example: otel.cml-relab.org does not exist; the record is otlp.",
+    )
+    # The collector authenticates machines with a bearer token (Cloudflare Access
+    # fronts Grafana, not OTLP), so a Basic credential here is stale and 401s.
+    require(
+        "OTLP_AUTH_TOKEN=" in contents,
+        ".env.example: the OTLP collector authenticates with a bearer token; document OTLP_AUTH_TOKEN",
     )
 
 
@@ -460,6 +521,7 @@ def run_env_policy_checks() -> None:
     assert_infra_boundaries_are_preserved()
     assert_telemetry_examples_use_department_contract()
     assert_existing_secret_files_do_not_use_placeholders(secret_inventory)
+    assert_offsite_remote_is_configured()
     assert_deploy_compose_render_fails_for_missing_operator_values()
 
 
