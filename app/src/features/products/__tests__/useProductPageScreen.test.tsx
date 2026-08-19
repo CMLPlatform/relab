@@ -236,6 +236,44 @@ describe('useProductPageScreen', () => {
     });
   });
 
+  it('defers back navigation until the record loads, instead of reading the loading sentinel', () => {
+    // useProductForm seeds a blank `newProduct()` while the query is in flight,
+    // and that sentinel's role is 'product' with no parentID — indistinguishable
+    // from a real top-level product. Pressing back in that window used to
+    // replace to '/products', stranding a component's user on the list instead
+    // of its parent.
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, id: undefined, parentID: undefined },
+      isProductComponent: false,
+      isLoading: true,
+    });
+
+    const { result, rerender } = renderHook(() => useProductPageScreen({ role: 'component' }));
+
+    act(() => {
+      result.current.actions.goBackWithGuards();
+    });
+
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, role: 'component', parentID: 17, parentRole: 'product' },
+      isProductComponent: true,
+      isLoading: false,
+    });
+
+    act(() => {
+      rerender({});
+    });
+
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/products/[id]',
+      params: { id: '17' },
+    });
+  });
+
   it('does not show the discard dialog twice after confirming a guarded back action', () => {
     mockUseProductForm.mockReturnValueOnce({
       ...baseFormReturn,

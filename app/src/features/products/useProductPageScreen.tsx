@@ -146,7 +146,19 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     [product, activeStream, rpiEnabled, youtubeEnabled, isGoogleLinked, isProductComponent],
   );
 
+  // Until the query resolves, `product` is useProductForm's blank loading
+  // sentinel, whose role is 'product' and whose parentID is undefined (see
+  // `newProduct()`). Reading the branch below off that sentinel answers "is this
+  // a component?" with a confident no, so a back press landing inside the load
+  // window sends a component to the products list instead of to its parent.
+  // Defer instead of guessing: park the press and replay it once the real
+  // record arrives, so back always resolves, just a beat later.
+  const pendingBackRef = useRef(false);
   const navigateBack = useCallback(() => {
+    if (isLoading) {
+      pendingBackRef.current = true;
+      return;
+    }
     if (isProductComponent && product.parentID) {
       const parentRole = product.parentRole ?? directParent?.role;
       const parentIsComponent = parentRole === 'component';
@@ -157,10 +169,22 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     } else {
       router.replace('/products');
     }
-  }, [directParent?.role, isProductComponent, product.parentID, product.parentRole, router]);
+  }, [
+    directParent?.role,
+    isLoading,
+    isProductComponent,
+    product.parentID,
+    product.parentRole,
+    router,
+  ]);
   useEffect(() => {
     navigateBackRef.current = navigateBack;
   }, [navigateBack]);
+  useEffect(() => {
+    if (isLoading || !pendingBackRef.current) return;
+    pendingBackRef.current = false;
+    navigateBack();
+  }, [isLoading, navigateBack]);
 
   const goBackWithGuards = useCallback(() => {
     if (hasUnsavedChanges || capabilities.streamingThisProduct) {
