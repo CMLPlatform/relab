@@ -8,6 +8,13 @@
 // monitoring stack exposes `otlp.` and deliberately does not expose Loki, which has no
 // authentication of its own.
 
+// The host's own name, read from its /etc/hostname through the rootfs mount rather than
+// taken as an operator input: one less thing to set per host, and one less thing to get
+// wrong. The container's own hostname is a docker id and useless here.
+local.file "hostname" {
+	filename = "/rootfs/etc/hostname"
+}
+
 // Discovery and log reading both talk to the Docker API. Mounting the socket is what
 // makes container NAMES available; reading the on-disk json logs instead would label
 // everything by container id.
@@ -51,6 +58,12 @@ loki.source.docker "containers" {
 	labels     = {
 		env     = sys.env("ENVIRONMENT"),
 		project = "relab",
+
+		// Without this every host collapses onto one identity: Alloy scrapes its OWN
+		// in-container exporter, so the address Prometheus derives `instance` from is
+		// identical on every machine. The moment a second host ships, the series
+		// interleave and every host-level alert becomes meaningless.
+		host_name = string.trim_space(local.file.hostname.content),
 	}
 	forward_to = [otelcol.receiver.loki.containers.receiver]
 }
@@ -122,6 +135,39 @@ prometheus.exporter.unix "host" {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// Per-container resource metrics. This is what makes a crash loop visible: cAdvisor has
+// no restart counter, but container_start_time_seconds moving repeatedly is the same
+// signal, and container_oom_events_total says why. The incident that produced these
+// runbooks — 668 restarts over 19 hours, every monitor green — is detected by
+//
+//     changes(container_start_time_seconds{name!=""}[15m]) > 2
+//
+// which is a rule on the central stack, not here. This side only has to ship the series.
+prometheus.exporter.cadvisor "containers" {
+	docker_host = "unix:///var/run/docker.sock"
+
+	// Both defaults are cardinality traps. store_container_labels = true turns every
+	// container label AND environment variable into a Prometheus label, which on Compose
+	// smears com_docker_compose_* across every series; docker_only = false additionally
+	// emits raw systemd-slice cgroups nobody will ever read. With these two set, a
+	// ten-container host is a few hundred series.
+	store_container_labels = false
+	docker_only            = true
+
+	allowlisted_container_labels = [
+		"com.docker.compose.project",
+		"com.docker.compose.service",
+	]
+}
+
+prometheus.scrape "cadvisor" {
+	targets         = prometheus.exporter.cadvisor.containers.targets
+	forward_to      = [prometheus.relabel.host.receiver]
+	scrape_interval = "30s"
+	job_name        = "cadvisor"
+}
+
 prometheus.scrape "host" {
 	targets         = prometheus.exporter.unix.host.targets
 	forward_to      = [prometheus.relabel.host.receiver]
@@ -145,6 +191,56 @@ prometheus.relabel "host" {
 		replacement  = "relab"
 		action       = "replace"
 	}
+
+	// See the note on the log labels: `instance` is not a host identity here.
+	rule {
+		target_label = "host_name"
+		replacement  = string.trim_space(local.file.hostname.content)
+		action       = "replace"
+	}
+}
+
+// ---------------------------------------------------------------------------
+// GPU metrics, present only on hosts that run compose.gpu.yaml. This produces no targets
+// and costs nothing when the exporter container is absent, so the same config file is
+// correct on every host — a GPU host is not a different design, it is one extra overlay.
+//
+// Alloy has no native GPU component (the whole prometheus.exporter.* list was checked,
+// and OTel Collector contrib has no NVIDIA receiver either), so an exporter container
+// scraped over the Compose network is the pattern. It still means no new agent, no new
+// endpoint and no new credential.
+discovery.relabel "gpu_exporter" {
+	targets = discovery.docker.containers.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		regex         = sys.env("COMPOSE_PROJECT_NAME")
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		regex         = "nvidia-gpu-exporter"
+		action        = "keep"
+	}
+
+	rule {
+		target_label = "service_name"
+		replacement  = "gpu"
+		action       = "replace"
+	}
+}
+
+prometheus.scrape "gpu" {
+	targets    = discovery.relabel.gpu_exporter.output
+	forward_to = [prometheus.relabel.host.receiver]
+
+	// GPU metrics are cheap to over-scrape and the temptation is 5s. 30s matches the
+	// other scrapes here: thermal throttling and XID faults persist for far longer than
+	// one interval, and a training run's utilisation curve does not need sub-minute
+	// resolution to be readable.
+	scrape_interval = "30s"
+	job_name        = "gpu"
 }
 
 otelcol.receiver.prometheus "host" {

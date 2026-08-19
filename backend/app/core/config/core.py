@@ -214,6 +214,13 @@ class CoreSettings(RelabBaseSettings):
     # OTEL SDK directly from the OTEL_SERVICE_NAME env var (set in compose).
     otel_exporter_otlp_endpoint: str | None = None
 
+    # Off by default: the deploy hosts run a Grafana Alloy agent that ships every
+    # container's stdout, this one included, so exporting the same records through the SDK
+    # as well stores each line twice in two different shapes. The stdout path is the one
+    # kept because it also carries what the SDK cannot report — the SDK's own export
+    # failures. Set true only where no log agent runs, and accept the duplication if both.
+    otel_log_export_enabled: bool = False
+
     @property
     def otel_enabled(self) -> bool:
         """Enable OpenTelemetry tracing if an OTLP endpoint is configured."""

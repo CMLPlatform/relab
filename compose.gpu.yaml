@@ -1,0 +1,47 @@
+# compose.gpu.yaml (OPTIONAL OVERLAY — GPU metrics on a host with NVIDIA hardware)
+#
+# Adds a GPU exporter that the Alloy agent discovers and scrapes automatically. Include
+# it only on hosts that have a card:
+#
+#   docker compose ... -f compose.logging.alloy.yaml -f compose.gpu.yaml up -d
+#
+# or set GPU_METRICS=1 in the host's root `.env` and let the deploy recipes include it.
+#
+# Why nvidia_gpu_exporter and not dcgm-exporter, which is the reflex answer: DCGM's
+# advantage is its DCGM_FI_PROF_* profiling fields, and NVIDIA document those as
+# datacentre-only hardware features. On a GeForce card they are simply absent, which
+# removes the entire reason to prefer DCGM while keeping its SYS_ADMIN requirement and
+# its 2021-vintage dashboard. Consumer cards also have no framebuffer ECC, so the ECC
+# fields are empty too. What remains is the NVML field set, which is exactly what this
+# exporter reads.
+#
+# If CML ever buys datacentre silicon (A100/H100/L40S), profiling, ECC, NVLink and MIG
+# all light up and dcgm-exporter becomes strictly better. That is a one-container swap
+# plus one dashboard — do not pre-build for it.
+
+services:
+  nvidia-gpu-exporter:
+    image: utkuozdemir/nvidia_gpu_exporter:1.14.0-nvml@sha256:82acc3fc60a5a709846ea9757bbccb170fd141039fa47e5899c55fe9a60f56fe
+    restart: unless-stopped
+    # The NVML backend is what produces XID error counters, which the nvidia-smi
+    # backend cannot report. XIDs are the signal that matters most here: a stuck kernel,
+    # an uncorrectable memory fault or a card that has fallen off the bus are invisible
+    # to utilisation graphs, and they are what silently kills a long training run.
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # No published ports and no host network: Alloy reaches it over the Compose network,
+    # discovers it by its Compose service label, and nothing else can.
+    networks:
+      - egress
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

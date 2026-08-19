@@ -57,6 +57,12 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+      # cAdvisor's reads. /var/lib/docker and /dev/disk are read-only; /var/run needs
+      # write access, which is why the socket mount above is the honest place to look for
+      # this container's blast radius rather than this list.
+      - /var/run:/var/run:rw
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
       # Read positions survive restarts; without this every restart re-ships whatever
       # the containers still have on disk.
       - alloy_data:/var/lib/alloy/data

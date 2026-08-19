@@ -112,7 +112,8 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
     _telemetry_state.sqlalchemy_instrumentor = sqlalchemy_instrumentor
     _telemetry_state.httpx_instrumentor = httpx_instrumentor
 
-    _init_log_export(resource, _telemetry_state)
+    if settings.otel_log_export_enabled:
+        _init_log_export(resource, _telemetry_state)
 
     logger.info("OpenTelemetry instrumentation enabled")
     return True

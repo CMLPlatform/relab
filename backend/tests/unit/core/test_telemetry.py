@@ -117,6 +117,7 @@ def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyP
 
     monkeypatch.setattr("app.core.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces")
     monkeypatch.setattr("app.core.telemetry.settings.environment", "testing")
+    monkeypatch.setattr("app.core.telemetry.settings.otel_log_export_enabled", True)
 
     fake_modules = _build_fake_otel_modules(fastapi_instrumentor, sqlalchemy_instrumentor, httpx_instrumentor)
     trace_module = fake_modules["opentelemetry.trace"]
@@ -152,3 +153,26 @@ def test_init_telemetry_returns_false_when_dependencies_missing(monkeypatch: pyt
     # Setting a module to None in sys.modules causes ImportError on import
     with patch.dict(sys.modules, {"opentelemetry": None}):
         assert init_telemetry(app, async_engine) is False
+
+
+def test_init_telemetry_skips_log_export_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Log export stays off unless asked for, so the log agent is the single log path.
+
+    The deploy hosts run an agent that ships this container's stdout; exporting the same
+    records through the SDK as well stores every line twice.
+    """
+    app = FastAPI()
+    async_engine = MagicMock()
+
+    monkeypatch.setattr("app.core.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces")
+    monkeypatch.setattr("app.core.telemetry.settings.environment", "testing")
+
+    fake_modules = _build_fake_otel_modules(MagicMock(), MagicMock(), MagicMock())
+
+    with patch.dict(sys.modules, fake_modules):
+        assert init_telemetry(app, async_engine) is True
+
+    assert _telemetry_state.log_handler is None
+    assert _telemetry_state.log_provider is None
+
+    shutdown_telemetry(app)
