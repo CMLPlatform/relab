@@ -8,6 +8,10 @@ one-time migration off `main`.
 | **Routine release**    | [DEPLOY-PROD.md](DEPLOY-PROD.md)   | [DEPLOY-STAGING.md](DEPLOY-STAGING.md)   |
 | **One-time migration** | [CUTOVER-PROD.md](CUTOVER-PROD.md) | [CUTOVER-STAGING.md](CUTOVER-STAGING.md) |
 
+[MONITORING-HANDOVER.md](MONITORING-HANDOVER.md) is a fifth, temporary document: the
+central monitoring stack's half of the observability work, written to be handed to whoever
+maintains that repo. Delete it once that side is done.
+
 `DEPLOY-*` is permanent and self-contained: first-time host setup, the routine release
 loop, and recovery. Start there for anything you do more than once.
 
