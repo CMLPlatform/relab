@@ -21,6 +21,7 @@ function widestCandidate(srcset: string): string {
 }
 
 test.describe('Landing page against a live API', () => {
+  // biome-ignore lint/suspicious/noSkippedTests: conditional on an opt-in env var, not a disabled test
   test.skip(!LIVE_LANE, 'requires a build against the E2E backend (just www/test-e2e-live)');
 
   test('the hero shows a live record, not the committed fixture @smoke', async ({ page }) => {
@@ -40,6 +41,9 @@ test.describe('Landing page against a live API', () => {
     expect(await plates.count()).toBeGreaterThan(0);
 
     for (const plate of await plates.all()) {
+      // Sequential by necessity: scrollIntoViewIfNeeded moves the shared viewport,
+      // so running plates concurrently would race each other's scroll position.
+      // biome-ignore lint/performance/noAwaitInLoops: scrollIntoViewIfNeeded is viewport-order-dependent
       const srcset = (await plate.getAttribute('srcset')) ?? '';
       const widths = [...srcset.matchAll(/\s(\d+w)(?:,|$)/g)].map(([, width]) => width);
       expect(widths).toEqual(EXPECTED_CANDIDATE_WIDTHS);

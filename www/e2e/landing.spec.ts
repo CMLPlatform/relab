@@ -69,14 +69,16 @@ test.describe('Landing page content', () => {
 
     const plates = page.locator('.plate-figure img');
     await expect(plates).toHaveCount(6);
-    for (const plate of await plates.all()) {
-      await expect(plate).not.toHaveAttribute('alt', '');
-      // decoded, not just attached: a committed fixture pointing at a file that
-      // never shipped renders an empty frame, which no other assertion notices.
-      await expect
-        .poll(() => plate.evaluate((img: HTMLImageElement) => img.naturalWidth))
-        .toBeGreaterThan(0);
-    }
+    await Promise.all(
+      (await plates.all()).map(async (plate) => {
+        await expect(plate).not.toHaveAttribute('alt', '');
+        // decoded, not just attached: a committed fixture pointing at a file that
+        // never shipped renders an empty frame, which no other assertion notices.
+        await expect
+          .poll(() => plate.evaluate((img: HTMLImageElement) => img.naturalWidth))
+          .toBeGreaterThan(0);
+      }),
+    );
   });
 
   test('the teardown is labelled honestly as example or live data', async ({ page }) => {
