@@ -15,6 +15,13 @@ telemetry_overlay_args() {
     # stdout and application telemetry are never half-enabled with respect to each other.
     if [[ -f "$root_env_file" ]] && grep -qE '^OTEL_EXPORTER_OTLP_ENDPOINT=[^[:space:]]' "$root_env_file"; then
         printf '%s\n' -f compose.logging.alloy.yaml
+
+        # GPU collection is a second opt-in on top, because a card is a property of the
+        # host rather than of the environment. Nested on purpose: the exporter is only
+        # useful if something is there to scrape it.
+        if grep -qE '^GPU_METRICS=[^[:space:]]' "$root_env_file"; then
+            printf '%s\n' -f compose.gpu.yaml
+        fi
     fi
 }
 
@@ -132,6 +139,8 @@ compose_config() {
         local -a base_args=()
         mapfile -t base_args < <(compose_args "$env" "$validation_env")
         "${base_args[@]}" -f compose.logging.alloy.yaml config >/dev/null
+        # And with the GPU overlay on top, which only some hosts include.
+        "${base_args[@]}" -f compose.logging.alloy.yaml -f compose.gpu.yaml config >/dev/null
     done
     local e2e_config="$tmp_root/e2e.json"
     docker compose -p relab_e2e -f compose.e2e.yaml config --format json >"$e2e_config"

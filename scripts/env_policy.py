@@ -89,6 +89,9 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
     # One token, two consumers: the API's SDK gets it folded into
     # OTEL_EXPORTER_OTLP_HEADERS by compose, and Alloy reads it directly.
     "OTLP_AUTH_TOKEN",
+    # A card is a property of the host, not of the environment, so this is separate
+    # from the telemetry switch rather than derived from it.
+    "GPU_METRICS",
     # Host-specific paths and roles. NOTE: BACKUP_HOST_DIR is one value shared by
     # every stack on the host, so prod and staging co-located on one machine would
     # share a restic directory. It fails closed (the second environment's password

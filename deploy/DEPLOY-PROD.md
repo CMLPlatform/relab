@@ -192,6 +192,12 @@ node_exporter running as root already has, but it is worth knowing rather than
 discovering. The hardening step, if it ever matters, is a docker-socket-proxy restricted
 to the container endpoints.
 
+On a host with an NVIDIA card, add `GPU_METRICS=1` as well. That is the entire GPU
+setup: the deploy recipes then include `compose.gpu.yaml`, Alloy discovers the exporter
+over the Compose network and scrapes it, and utilisation, VRAM, temperature, power,
+throttle reasons and XID faults start arriving under the same `host_name`. Nothing else
+changes — a GPU host is one extra overlay, not a different design.
+
 Verify the whole path end to end with a real job, which is also the fastest way to prove
 discovery, labelling and export at once:
 

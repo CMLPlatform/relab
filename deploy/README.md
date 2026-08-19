@@ -8,7 +8,9 @@ one-time migration off `main`.
 | **Routine release**    | [DEPLOY-PROD.md](DEPLOY-PROD.md)   | [DEPLOY-STAGING.md](DEPLOY-STAGING.md)   |
 | **One-time migration** | [CUTOVER-PROD.md](CUTOVER-PROD.md) | [CUTOVER-STAGING.md](CUTOVER-STAGING.md) |
 
-[MONITORING-HANDOVER.md](MONITORING-HANDOVER.md) is a fifth, temporary document: the
+[MONITORING-DESIGN.md](MONITORING-DESIGN.md) is the architecture review the observability
+work came from — the reasoning, the trade-offs, and the claims it could not verify.
+[MONITORING-HANDOVER.md](MONITORING-HANDOVER.md) is a temporary document: the
 central monitoring stack's half of the observability work, written to be handed to whoever
 maintains that repo. Delete it once that side is done.
 
