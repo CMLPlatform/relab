@@ -1,55 +1,65 @@
 # Relab Cloudflare Edge
 
-This directory manages Relab's Cloudflare edge with OpenTofu:
+This directory manages Relab's **per-environment** Cloudflare edge with OpenTofu:
 
-- Cloudflare Tunnel per environment
-- DNS records for public Relab hostnames
-- Tunnel ingress routes to the Compose `edge` network
-- TLS zone settings
-- zone rate limiting, cache, and custom firewall rules
+- a Cloudflare Tunnel per environment
+- DNS records for that environment's public hostnames
+- tunnel ingress routes into the Compose `edge` network
 
-It does not manage application runtime settings, Compose services, secrets,
+Zone-global configuration — TLS settings and the three entrypoint rulesets — lives in
+[`../cloudflare-zone`](../cloudflare-zone), because those resources belong to the zone
+rather than to either environment. See "Why two roots" below.
+
+Neither root manages application runtime settings, Compose services, secrets,
 databases, backups, or telemetry.
 
-## Managed Resources
+## Managed resources
 
-`prod` and `staging` use separate OpenTofu workspaces and separate tunnels. Both
-environments share the same route map in `locals.tf`.
+`prod` and `staging` are separate OpenTofu workspaces with separate tunnels. The
+hostname map they share lives in `hostnames.tf`, which is symlinked into the zone root
+so both read one definition.
 
-### Shared zone rulesets (important)
+## Why two roots
 
-prod and staging share **one** Cloudflare zone (`cml-relab.org`). Cloudflare allows
-exactly **one entrypoint ruleset per (zone, phase)**, so the three zone-global rulesets
-(`http_ratelimit`, `http_request_cache_settings`, `http_request_firewall_custom`) can be
-owned by only one workspace — otherwise `apply`-ing one environment overwrites the
-other's rules (e.g. staging wiping prod's auth rate limits). The `prod` workspace owns
-them (`manage_shared_zone_rulesets = true`, the default) and their rules already match
-**both** environments' api hosts; the `staging` workspace must set
-`manage_shared_zone_rulesets = false`:
+Cloudflare allows exactly **one entrypoint ruleset per (zone, phase)**, and prod and
+staging share one zone (`cml-relab.org`). A workspace-per-environment layout cannot own
+a zone-scoped resource: whichever environment applied last would overwrite the other's
+rules, and the TLS zone settings had the same problem more quietly, being written
+identically by both.
+
+Splitting by scope removes the question rather than managing it:
+
+| Root               | Scope           | Workspaces        | Owns                                        |
+| ------------------ | --------------- | ----------------- | ------------------------------------------- |
+| `cloudflare/`      | per environment | `prod`, `staging` | tunnel, DNS records, tunnel ingress         |
+| `cloudflare-zone/` | the whole zone  | `default` only    | TLS settings, the three entrypoint rulesets |
+
+The zone rulesets deliberately match **both** environments' api hosts, so the single
+owner protects both. There is no `manage_shared_zone_rulesets` variable any more; the
+split replaced it.
+
+### One-time: completing the split
+
+The `staging` workspace was adopted before the split, so its state still holds the
+three zone settings that now belong to the zone root. Hand them over once — `state rm`
+forgets them **without** deleting anything from Cloudflare, then the zone root imports
+them:
 
 ```bash
-# in the staging workspace, once:
-export TF_VAR_manage_shared_zone_rulesets=false
+cd infra/cloudflare
+tofu workspace select staging
+tofu state rm cloudflare_zone_setting.minimum_tls_version \
+              cloudflare_zone_setting.tls_1_3 \
+              cloudflare_zone_setting.always_use_https
+
+./generate-imports.sh zone > ../cloudflare-zone/imports.tf
+just cloudflare-zone-plan            # 0 to add; the TLS floor may show 1.0 -> 1.2
+just cloudflare-zone-apply YES
+rm ../cloudflare-zone/imports.tf
 ```
 
-Per-environment resources (tunnel, DNS records, tunnel ingress) stay per-workspace. The
-idempotent TLS zone settings are written identically by both and are left ungated.
-
-**One-time migration** (staging currently owns copies of these rulesets — dropping them
-naively would delete the live zone entrypoint prod now manages). In the **staging**
-workspace, detach without destroying, then let prod take ownership:
-
-```bash
-# staging workspace: forget the shared rulesets WITHOUT deleting them from Cloudflare
-tofu state rm cloudflare_ruleset.rate_limiting cloudflare_ruleset.cache_settings cloudflare_ruleset.custom_firewall
-# then apply prod (recreates them under prod ownership, covering both envs):
-just cloudflare-apply prod YES
-# finally apply staging with the flag off (no-op for the shared rulesets now):
-TF_VAR_manage_shared_zone_rulesets=false just cloudflare-apply staging YES
-```
-
-Rule `ref` values changed from `relab_<env>_<name>` to `relab_<name>` (they are shared
-now), so Cloudflare recreates the rate-limit rules once on the first prod apply.
+Order matters: `state rm` before the zone import, or two states briefly claim the same
+resources.
 
 Current hostnames:
 
@@ -77,17 +87,20 @@ run a plan before the next apply.
 Run from the repository root:
 
 ```bash
-just cloudflare-check
-just cloudflare-plan staging
-just cloudflare-plan prod
+just cloudflare-check              # both roots; no credentials, no network, no state
+
+just cloudflare-plan staging       # per-environment root
 just cloudflare-apply staging YES
-just cloudflare-apply prod YES
+
+just cloudflare-zone-plan          # zone-global root — affects BOTH environments
+just cloudflare-zone-apply YES
 ```
 
-`cloudflare-check` also runs `tofu test` over `tests/`, which mocks the Cloudflare
-provider: it asserts that staging never owns the shared zone rulesets, that those
-rulesets' rules match both environments' api hosts, and that the tunnel ingress ends in
-the catch-all. Add a case there when you change the shared-ruleset ownership rules.
+`cloudflare-check` covers **both** roots: format, validate, and `tofu test` with the
+Cloudflare provider mocked. The per-environment tests assert that staging serves only
+`-test` subdomains, that prod serves the apex, that the two never share a hostname, and
+that the tunnel ingress ends in the catch-all. The zone tests assert that every ruleset
+rule matches both environments' api hosts and that the cache rules stay disjoint.
 
 `cloudflare-check` is local/static apart from provider downloads. `plan` and
 `apply` require Cloudflare credentials and IDs. `apply` is guarded by `YES` or
@@ -99,6 +112,14 @@ Required environment variables:
 export CLOUDFLARE_API_TOKEN='...'
 export TF_VAR_cloudflare_account_id='...'
 export TF_VAR_cloudflare_zone_id='...'
+export TF_VAR_state_passphrase='...'      # >= 16 chars, see State Encryption
+```
+
+Keep them in one file outside the repo and source it, rather than re-exporting per
+shell — a half-set environment is the most common way these commands fail:
+
+```bash
+chmod 600 ~/.config/relab-cloudflare.env && . ~/.config/relab-cloudflare.env
 ```
 
 Optional:
@@ -109,40 +130,122 @@ export TF_VAR_cloudflare_zone_name='cml-relab.org'
 
 Do not commit tokens, tunnel tokens, or state files.
 
+## API Token Scopes
+
+Create the token under **My Profile -> API Tokens -> Create Custom Token**. It needs
+two policy rows, because the tunnel is an account resource while everything else is
+scoped to the zone:
+
+| Scope                   | Permission                            | Access | Required by                                      |
+| ----------------------- | ------------------------------------- | ------ | ------------------------------------------------ |
+| Account (Relab account) | Cloudflare Tunnel                     | Edit   | `cloudflare_zero_trust_tunnel_cloudflared`       |
+| Account (Relab account) | Cloudflare One Connector: cloudflared | Edit   | `..._tunnel_cloudflared_config` ingress rules    |
+| Zone (`cml-relab.org`)  | DNS                                   | Edit   | `cloudflare_dns_record`                          |
+| Zone (`cml-relab.org`)  | Zone Settings                         | Edit   | `cloudflare_zone_setting`                        |
+| Zone (`cml-relab.org`)  | Zone WAF                              | Edit   | `http_ratelimit`, `http_request_firewall_custom` |
+| Zone (`cml-relab.org`)  | Cache Rules                           | Edit   | `http_request_cache_settings`                    |
+| Zone (`cml-relab.org`)  | Zone                                  | Read   | zone lookup                                      |
+
+Some accounts still label the tunnel permission **Argo Tunnel (Legacy)**; it is the same
+grant ("create and delete Cloudflare Tunnels"). Do not substitute Cloudflare One
+Networks, which covers WARP routes and virtual networks that this config does not use.
+
+Grant nothing else. Bot Management, Access, Page Rules, Cache Purge, Zone DNS Settings,
+and a blanket Zone Write are not used here and widen the blast radius of a leaked token.
+Scope the zone row to `cml-relab.org` alone rather than all zones, and set an expiry.
+
+Verify before the first plan:
+
+```bash
+curl -s https://api.cloudflare.com/client/v4/user/tokens/verify \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq .
+```
+
+A missing scope surfaces during `plan`/`apply` as a 403 naming the resource or ruleset
+phase; add that one permission rather than broadening the token.
+
 ## Import Workflow
 
-Import existing Cloudflare resources before applying from a fresh state:
+Anything that already exists in Cloudflare must be imported before the first apply,
+or the plan will try to *create* it: duplicate DNS records, a second tunnel whose id
+does not match the live `CLOUDFLARE_TUNNEL_TOKEN`, and — worst — a replacement for the
+one entrypoint ruleset a phase allows.
 
-1. Select the matching workspace: `prod` or `staging`.
-1. Import the tunnel, DNS records, and ruleset phases managed in this directory.
-1. Run `just cloudflare-plan <env>`.
-1. Apply only after the plan shows the exact intended drift.
+`generate-imports.sh` writes the `import` blocks for you, looking up every id through
+the API so none is transcribed by hand. Review the file, plan, apply, then delete it:
+import blocks re-run on every plan until removed.
+
+```bash
+cd infra/cloudflare
+./generate-imports.sh edge prod > imports.tf     # or: edge staging
+cat imports.tf                                   # read it before running anything
+just cloudflare-plan prod                        # expect 0 to add
+rm imports.tf                                    # only after the apply succeeds
+```
+
+The zone root is adopted the same way:
+
+```bash
+./generate-imports.sh zone > ../cloudflare-zone/imports.tf
+just cloudflare-zone-plan
+```
+
+The script resolves every id before it writes anything, so a failure leaves no
+half-written file. A missing tunnel or DNS record is a hard error — those exist and
+importing them is the whole point. A ruleset phase with no ruleset is different: that is
+a legitimate state, so the script warns on stderr, omits that block, and lets the apply
+create the entrypoint.
+
+Note that rulesets take a scope-prefixed import id (`zones/<zone_id>/<ruleset_id>`),
+unlike every other resource here, which take a bare `<zone_id>/<id>`.
+
+A correct adoption ends with a plan of **0 to add, 0 to destroy**. Anything else means
+an import is missing or wrong — stop rather than applying.
 
 Keep rule `ref` values stable. Cloudflare uses them to track rules across
 reordering.
 
+## Where state lives
+
+State is local, under `terraform.tfstate.d/<workspace>/`, gitignored and encrypted. For
+one operator applying a handful of times a year, that is the proportionate answer: a
+remote backend's main product is locking between concurrent applies, and there are no
+concurrent applies.
+
+The usual objection to local state — "lose the machine, lose everything" — does not hold
+here, because every resource is adopted by script. Losing the state costs a re-import
+(see Import Workflow), not a reconstruction. It is still worth keeping a copy somewhere
+private if the passphrase is ever the only thing standing between a stolen laptop and
+your tunnel secret.
+
+**Never commit the state**, encrypted or not: this repository is public, and an encrypted
+blob published permanently is a passphrase brute-force target with no expiry.
+
+Revisit this if a second person ever applies, or if CI does — that is the point where a
+remote backend with locking stops being ceremony.
+
 ## State Encryption
 
 State and plan files hold the Cloudflare tunnel secret, so `versions.tf` configures
-OpenTofu state encryption (PBKDF2 + AES-GCM) with an unencrypted fallback. Export a
-passphrase of **at least 16 characters** before any command that reads or writes state:
+OpenTofu state encryption (PBKDF2 + AES-GCM), enforced with no plaintext fallback. Export
+a passphrase of **at least 16 characters** before any command that reads or writes state:
 
 ```bash
 export TF_VAR_state_passphrase='...'   # >= 16 chars
 ```
 
-- `just cloudflare-check` never opens state, so it still runs with no passphrase set.
+- `just cloudflare-check` never needs the passphrase: it copies each root to a
+  throwaway directory and verifies that, so `init` never opens an initialized
+  workspace's state. That also keeps an adoption-time `imports.tf` from crashing the
+  mocked-provider test run.
 - `just cloudflare-plan`, `just cloudflare-apply`, and `tofu state`/`workspace` commands
   fail closed without one, reporting `no passphrase provided`. That is deliberate — it
   beats silently writing the tunnel secret in plaintext.
-- The unencrypted fallback lets the first run with a passphrase read an existing
-  plaintext state file and rewrite it encrypted. Use the same passphrase afterwards; a
-  lost passphrase means a lost state file.
-- After the first encrypted apply, remove both `fallback` blocks from `versions.tf` and
-  set `enforced = true`, so a missing passphrase can never silently write plaintext
-  state again. Until then every command warns
-  `Method unencrypted is present in configuration`, which is expected, not a
-  misconfiguration.
+- Encryption is `enforced = true` with no plaintext fallback, so a missing passphrase
+  fails closed rather than silently writing the tunnel secret in the clear.
+- Use the same passphrase every time. A lost passphrase means a lost state file — which
+  costs a re-import (`generate-imports.sh`, a few minutes), not a rebuild. That is why
+  encryption can be enforced here without it being a hazard.
 - Keep the passphrase in the operator's password manager, not in the repo or shell
   history.
 

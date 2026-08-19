@@ -6,10 +6,9 @@ terraform {
   # credentials — and durability, which generate-imports.sh already provides: losing
   # this state costs a re-import, not a rebuild.
 
-  # State and plan files hold the Cloudflare tunnel secret, so both are encrypted
-  # with no plaintext fallback: a missing TF_VAR_state_passphrase now fails closed
-  # instead of silently writing the secret in the clear. `just cloudflare-check`
-  # never opens state, so it still runs without a passphrase.
+  # Encrypted with no plaintext fallback, matching ../cloudflare: this state holds the
+  # zone's whole security posture (rate limits, firewall rules), which is not something
+  # to leave readable on a workstation. A missing TF_VAR_state_passphrase fails closed.
   encryption {
     key_provider "pbkdf2" "state" {
       passphrase = var.state_passphrase

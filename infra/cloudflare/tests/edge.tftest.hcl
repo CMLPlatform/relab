@@ -1,6 +1,8 @@
-# Plan-only tests for the Relab Cloudflare edge. The provider is mocked, so these
-# need no Cloudflare credentials and make no API calls: run them with `tofu test`
-# (wired into `just cloudflare-check`).
+# Plan-only tests for the per-environment Relab Cloudflare edge (tunnel, DNS records,
+# tunnel ingress). The provider is mocked, so these need no Cloudflare credentials and
+# make no API calls: run them with `tofu test` (wired into `just cloudflare-check`).
+#
+# Zone-global resources are tested in ../cloudflare-zone/tests/zone.tftest.hcl.
 
 mock_provider "cloudflare" {}
 
@@ -9,17 +11,11 @@ variables {
   cloudflare_zone_id    = "11111111111111111111111111111111"
 }
 
-run "staging_does_not_own_the_shared_zone_rulesets" {
+run "staging_serves_only_test_subdomains" {
   command = plan
 
   variables {
-    environment                 = "staging"
-    manage_shared_zone_rulesets = false
-  }
-
-  assert {
-    condition     = length(cloudflare_ruleset.rate_limiting) == 0 && length(cloudflare_ruleset.cache_settings) == 0 && length(cloudflare_ruleset.custom_firewall) == 0
-    error_message = "staging must not manage the zone-global rulesets; applying it would clobber the entrypoint rulesets prod owns."
+    environment = "staging"
   }
 
   assert {
@@ -28,7 +24,7 @@ run "staging_does_not_own_the_shared_zone_rulesets" {
   }
 }
 
-run "prod_rulesets_cover_both_environments" {
+run "prod_serves_the_apex" {
   command = plan
 
   variables {
@@ -36,42 +32,26 @@ run "prod_rulesets_cover_both_environments" {
   }
 
   assert {
-    condition     = length(cloudflare_ruleset.rate_limiting) == 1 && length(cloudflare_ruleset.cache_settings) == 1 && length(cloudflare_ruleset.custom_firewall) == 1
-    error_message = "prod owns the zone-global rulesets by default."
-  }
-
-  # The shared rulesets are the only ones protecting staging's api host too, so every
-  # rule in them must match both hosts, not just prod's.
-  assert {
-    condition = alltrue([
-      for rule in cloudflare_ruleset.rate_limiting[0].rules :
-      strcontains(rule.expression, "\"api.cml-relab.org\"") && strcontains(rule.expression, "\"api-test.cml-relab.org\"")
-    ])
-    error_message = "a rate-limit rule does not match both environments' api hosts, leaving one env unprotected."
-  }
-
-  assert {
-    condition = alltrue([
-      for rule in cloudflare_ruleset.custom_firewall[0].rules :
-      strcontains(rule.expression, "\"api.cml-relab.org\"") && strcontains(rule.expression, "\"api-test.cml-relab.org\"")
-    ])
-    error_message = "a custom firewall rule does not match both environments' api hosts, leaving one env unprotected."
-  }
-
-  assert {
     condition     = contains(output.hostnames, "cml-relab.org")
     error_message = "prod must serve the apex hostname."
   }
+}
 
-  # The cache rules are the one place where two rules could set the same thing on
-  # the same request. They stay disjoint by host: media caching is prod's api host
-  # only, and staging bypasses cache wholesale.
+run "environments_never_share_a_hostname" {
+  command = plan
+
+  variables {
+    environment = "prod"
+  }
+
+  # Both environments' tunnels are CNAME targets in the same zone; an overlapping
+  # hostname would mean two tunnels claiming one name.
   assert {
-    condition = alltrue([
-      for rule in cloudflare_ruleset.cache_settings[0].rules :
-      rule.ref == "relab_staging_cache_bypass" || !strcontains(rule.expression, "-test.cml-relab.org")
-    ])
-    error_message = "a cache rule matches a staging host, which would contend with the staging bypass."
+    condition = length(setintersection(
+      toset([for route in values(local.edge_routes_by_environment.prod) : route.hostname]),
+      toset([for route in values(local.edge_routes_by_environment.staging) : route.hostname]),
+    )) == 0
+    error_message = "prod and staging must not share a hostname."
   }
 }
 

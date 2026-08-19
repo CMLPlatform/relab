@@ -16,24 +16,6 @@ resource "cloudflare_dns_record" "edge" {
   comment = "Relab ${var.environment} ${each.key} edge route managed by OpenTofu."
 }
 
-resource "cloudflare_zone_setting" "minimum_tls_version" {
-  zone_id    = var.cloudflare_zone_id
-  setting_id = "min_tls_version"
-  value      = "1.2"
-}
-
-resource "cloudflare_zone_setting" "tls_1_3" {
-  zone_id    = var.cloudflare_zone_id
-  setting_id = "tls_1_3"
-  value      = "on"
-}
-
-resource "cloudflare_zone_setting" "always_use_https" {
-  zone_id    = var.cloudflare_zone_id
-  setting_id = "always_use_https"
-  value      = "on"
-}
-
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "relab" {
   account_id = var.cloudflare_account_id
   tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.relab.id
@@ -54,93 +36,4 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "relab" {
       ]
     )
   }
-}
-
-# The three rulesets below are zone-global entrypoints (one per zone+phase). prod and
-# staging share the cml-relab.org zone, so only the workspace with
-# manage_shared_zone_rulesets set owns them; their rules already cover both envs' hosts.
-resource "cloudflare_ruleset" "rate_limiting" {
-  count = var.manage_shared_zone_rulesets ? 1 : 0
-
-  zone_id     = var.cloudflare_zone_id
-  name        = "Relab API rate limits"
-  description = "Zone-level rate limiting for Relab auth, media upload, and RPi camera endpoints (all environments)."
-  kind        = "zone"
-  phase       = "http_ratelimit"
-
-  rules = [
-    for name, rule in local.rate_limit_rules : {
-      ref         = "relab_${name}"
-      description = rule.description
-      expression  = rule.expression
-      action      = "block"
-      action_parameters = {
-        response = {
-          status_code  = 429
-          content_type = "application/json"
-          content      = jsonencode({ detail = "Too many requests." })
-        }
-      }
-      ratelimit = {
-        characteristics     = ["cf.colo.id", "ip.src"]
-        period              = rule.period
-        requests_per_period = rule.requests_per_period
-        mitigation_timeout  = rule.mitigation_timeout
-      }
-    }
-  ]
-}
-
-resource "cloudflare_ruleset" "cache_settings" {
-  count = var.manage_shared_zone_rulesets ? 1 : 0
-
-  zone_id     = var.cloudflare_zone_id
-  name        = "Relab cache rules"
-  description = "Zone-level cache rules for Relab."
-  kind        = "zone"
-  phase       = "http_request_cache_settings"
-
-  rules = [
-    # Cloudflare already caches these by file extension and by the origin's own
-    # Cache-Control. Stating it makes the intent reviewable and pins it against a
-    # zone-setting change made outside this repo, and it covers derivative URLs
-    # whatever extension they end in.
-    {
-      ref         = "relab_uploads_cache"
-      description = "Cache stored media at the edge for a year (content-addressed, immutable)"
-      expression  = local.uploads_expression
-      action      = "set_cache_settings"
-      action_parameters = {
-        cache = true
-        edge_ttl = {
-          mode    = "override_origin"
-          default = 31536000
-        }
-        browser_ttl = {
-          mode = "respect_origin"
-        }
-      }
-    },
-    {
-      ref         = "relab_staging_cache_bypass"
-      description = "Bypass cache for staging hostnames"
-      expression  = local.staging_hosts_expression
-      action      = "set_cache_settings"
-      action_parameters = {
-        cache = false
-      }
-    }
-  ]
-}
-
-resource "cloudflare_ruleset" "custom_firewall" {
-  count = var.manage_shared_zone_rulesets ? 1 : 0
-
-  zone_id     = var.cloudflare_zone_id
-  name        = "Relab custom firewall rules"
-  description = "Zone-level custom firewall rules for Relab."
-  kind        = "zone"
-  phase       = "http_request_firewall_custom"
-
-  rules = local.custom_firewall_rules
 }
