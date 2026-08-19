@@ -101,10 +101,15 @@ test.describe('Products page: phone layout', () => {
     const count = page.getByText(PRODUCT_COUNT_PATTERN);
     await count.scrollIntoViewIfNeeded();
     const fab = page.getByRole('button', { name: 'Sign in to add product' });
-    const [countBox, fabBox] = await Promise.all([count.boundingBox(), fab.boundingBox()]);
-    expect(countBox).not.toBeNull();
-    expect(fabBox).not.toBeNull();
-    expect((countBox?.y ?? 0) + (countBox?.height ?? 0)).toBeLessThanOrEqual(fabBox?.y ?? 0);
+    // Retried rather than measured once: the count text is the list's terminal
+    // row, so scrolling to it can pull in another page of products and shift it
+    // between the two boundingBox() calls.
+    await expect(async () => {
+      const [countBox, fabBox] = await Promise.all([count.boundingBox(), fab.boundingBox()]);
+      expect(countBox).not.toBeNull();
+      expect(fabBox).not.toBeNull();
+      expect((countBox?.y ?? 0) + (countBox?.height ?? 0)).toBeLessThanOrEqual(fabBox?.y ?? 0);
+    }).toPass({ timeout: 10_000 });
   });
 });
 

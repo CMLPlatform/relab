@@ -1,5 +1,10 @@
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+// Imported at the top level, not require()d inside the test: a lazy require
+// charges the screen's whole module-transform cost to the first test, which on
+// a cold jest cache blows the 15s testTimeout.
+import ProfileTab from '@/app/(tabs)/(account)/account';
+import { renderWithProviders } from '@/test-utils/render';
 
 // Variables prefixed with 'mock' can be referenced inside jest.mock() factories.
 // babel-jest hoists jest.mock() calls but exempts 'mock'-prefixed variables from TDZ.
@@ -63,12 +68,15 @@ jest.mock('@/services/api/profiles', () => ({
   getPublicProfile: jest.fn(),
 }));
 
+// Each export forwards through an arrow rather than being the mock fn itself:
+// the factory runs at import time, before the `mock*` consts initialise, so a
+// direct reference would throw on TDZ and force every import here to be lazy.
 jest.mock('@/services/api/auth/authentication', () => ({
   getToken: jest.fn().mockResolvedValue('mock-token'),
-  logout: mockLogout,
+  logout: (...args: unknown[]) => mockLogout(...args),
   unlinkOAuth: jest.fn().mockResolvedValue(undefined),
-  updateUser: mockUpdateUser,
-  verify: mockVerify,
+  updateUser: (...args: unknown[]) => mockUpdateUser(...args),
+  verify: (...args: unknown[]) => mockVerify(...args),
 }));
 
 jest.mock('expo-web-browser', () => ({
@@ -117,12 +125,7 @@ const defaultUser = {
   preferences: { profile_visibility: 'public', theme_mode: 'auto', email_updates_enabled: false },
 };
 
-// Both modules are require()d lazily, not imported: a top-level import of either
-// pulls in @/services/api/auth/authentication before the mock* consts above are
-// initialised, so the jest.mock factory would capture them as undefined.
 function renderProfileTab() {
-  const { renderWithProviders } = require('@/test-utils/render.tsx');
-  const ProfileTab = require('@/app/(tabs)/(account)/account/index.tsx').default;
   return renderWithProviders(<ProfileTab />, { withDialog: true });
 }
 
