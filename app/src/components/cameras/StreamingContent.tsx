@@ -15,7 +15,8 @@ import { useAppTheme } from '@/theme';
 import { LivePreview } from './LivePreview';
 import { showStreamStopFailed } from './streamingFeedback';
 
-// react-native-css drops font-variant-numeric, so `tabular-nums` compiles to nothing.
+// Set as a style rather than a `tabular-nums` className: font-variant-numeric has no
+// className path through the RN style bridge, so the utility compiles to nothing.
 const tabularNums = { fontVariant: ['tabular-nums' as const] };
 
 interface StreamingContentProps {

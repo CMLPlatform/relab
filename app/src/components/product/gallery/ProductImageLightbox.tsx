@@ -432,9 +432,9 @@ const LightboxSlide = memo(function LightboxSlide({
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    // GestureHandlerRootView (react-native-gesture-handler) isn't a
-    // react-native-css-rewritten core component, so className is a silent
-    // no-op here — stays fully style-driven.
+    // GestureHandlerRootView (react-native-gesture-handler) is not a className-aware
+    // component (Uniwind adds no global overrides), so className is a silent no-op
+    // here — stays fully style-driven.
     root: {
       flex: 1,
       backgroundColor: theme.tokens.overlay.media,

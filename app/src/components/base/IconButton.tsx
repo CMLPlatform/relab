@@ -64,7 +64,7 @@ export function IconButton({
       accessibilityState={{ disabled: loading, busy: loading }}
       hitSlop={8}
       // NOTE: never give a Pressable BOTH a className and a function `style`.
-      // react-native-css merges them into [classStyle, fn], and RN's Pressable
+      // The className-to-style bridge merges them into an array, and RN's Pressable
       // only calls `style` when it is literally a function — so the function is
       // silently dropped and every state it encodes (pressed, selected, caller
       // overrides) never renders. Static styling for such a Pressable belongs in

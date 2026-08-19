@@ -13,9 +13,9 @@ import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
 import { memo, type ReactNode, useCallback, useEffect } from 'react';
 import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react-native';
-import { colorScheme as nativewindColorScheme } from 'react-native-css';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { Uniwind } from 'uniwind';
 import { TermsAcceptanceDialog } from '@/components/auth/TermsAcceptanceDialog';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
@@ -28,7 +28,7 @@ import { useAuth } from '@/context/auth';
 import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
-import { useEffectiveColorScheme, useSystemColorScheme } from '@/context/themeMode';
+import { useEffectiveColorScheme } from '@/context/themeMode';
 import { SAVE_PRODUCT_MUTATION_KEY, saveProductMutationFn } from '@/features/products/queries';
 import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
 import { QUERY_CACHE_STORAGE_KEY } from '@/services/storage';
@@ -236,25 +236,16 @@ const { LightTheme, DarkTheme } = createNavigationThemes();
 /** Inner providers that depend on the resolved theme mode. */
 function ThemedProviders({ children }: { children: ReactNode }) {
   const colorScheme = useEffectiveColorScheme();
-  const systemColorScheme = useSystemColorScheme();
 
-  // Keep NativeWind's (react-native-css) color scheme in sync with the app's own
-  // theme mode so `.dark:root` CSS variables (Task 2) apply to RNR components.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: systemColorScheme is unused in the body on purpose — see the dep array comment below.
+  // Keep Uniwind's active theme in sync with the app's own theme mode, so the
+  // `dark:` variants and the palette variables in brand.generated.css resolve
+  // against the scheme the user actually chose. setTheme owns both platforms
+  // and both directions: it disables adaptive themes when a scheme is forced
+  // (so a later OS flip can no longer overwrite the choice) and routes through
+  // Appearance.setColorScheme on native so system dialogs match.
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      // react-native-css's setter routes through Appearance.setColorScheme,
-      // which react-native-web doesn't implement; drive the CSS hooks directly.
-      document.documentElement.classList.toggle('dark', colorScheme === 'dark');
-      document.documentElement.dataset.theme = colorScheme;
-      return;
-    }
-    // react-native-css@3.0.7 also wires an Appearance listener that writes this
-    // same colorScheme observable, so an OS scheme flip can silently overwrite a
-    // user-forced theme after this effect last ran. Re-run on system changes too
-    // (not just `colorScheme`) so a forced theme gets re-asserted afterwards.
-    nativewindColorScheme.set(colorScheme);
-  }, [colorScheme, systemColorScheme]);
+    Uniwind.setTheme(colorScheme);
+  }, [colorScheme]);
 
   return (
     <AppThemeProvider scheme={colorScheme}>

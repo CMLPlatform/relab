@@ -26,7 +26,8 @@ instead of using the Docker app service.
   FastAPI backend. Types are generated from the backend's OpenAPI schema.
 - **Client state:** React context + feature-local hooks/reducers.
 - **Forms:** React Hook Form + Zod resolvers.
-- **UI kit:** NativeWind v5 + vendored react-native-reusables primitives in src/components/base/.
+- **UI kit:** Uniwind (Tailwind v4 for React Native) + vendored react-native-reusables
+  primitives in src/components/base/.
   Theme (colors, type scale, semantic tokens) is delivered via `AppThemeProvider`/`useAppTheme()`
   (src/theme/); react-native-paper is not used — do not reintroduce it.
 - **Compiler:** React Compiler enabled via `babel-plugin-react-compiler`.
@@ -246,8 +247,10 @@ pnpm test -- --runInBand --json --outputFile=.jest-timings.json
 
 ## Styling And Theming
 
-Styling in `app` is built on NativeWind v5, with colors, type scale, and semantic tokens delivered
-through `AppThemeProvider` (see [Stack](#stack)).
+Styling in `app` is built on Uniwind, with colors, type scale, and semantic tokens delivered
+through `AppThemeProvider` (see [Stack](#stack)). Uniwind reads `global.css` through its Metro
+plugin; theme variables live in `src/theme/brand.generated.css` as `@variant light`/`@variant dark`
+blocks, and `Uniwind.setTheme()` in `src/app/_layout.tsx` is what switches between them.
 
 - Import theme values from `@/theme`, not from `src/assets/themes/*`
 - Use `useAppTheme()` as the default hook for theme access

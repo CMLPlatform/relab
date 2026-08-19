@@ -39,8 +39,8 @@ export const productsScreenStyles = StyleSheet.create({
     lineHeight: 21,
     opacity: 0.92,
   },
-  // Animated.View isn't a reliable className target under react-native-css —
-  // keep the fade wrapper's layout-neutral flex here as a plain style.
+  // Animated.View isn't a reliable className target — keep the fade wrapper's
+  // layout-neutral flex here as a plain style.
   listFadeWrapper: {
     flex: 1,
   },

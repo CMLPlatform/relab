@@ -1,7 +1,5 @@
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/preflight.css" layer(base);
-@import "tailwindcss/utilities.css";
-@import "nativewind/theme";
+@import "tailwindcss";
+@import "uniwind";
 @import "./src/theme/brand.generated.css";
 
 @source "./src";
@@ -10,16 +8,6 @@
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
 }
-
-@custom-variant dark (&:where(.dark, .dark *));
-
-/*
- * Phase-2 items before any screen consumes components/base/ui on web:
- * 1. (done) dark: utilities follow the app toggle via @custom-variant dark below.
- * 2. Native: react-native-css also feeds its colorScheme from an
- *    Appearance listener; the _layout sync effect re-asserts on system
- *    scheme changes to avoid being overwritten (see _layout.tsx).
- */
 
 /* NOTE: the vendored RNR/shadcn primitives use `accent` as their NEUTRAL
  * hover/pressed state-layer, but the brand `--accent` is manila, which

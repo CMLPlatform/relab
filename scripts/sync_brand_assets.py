@@ -239,14 +239,22 @@ def _css_var(name: str) -> str:
 def render_app_palette_css(palette: dict) -> str:
     """Generate CSS custom properties and theme mapping from palette dict."""
     lines = [f"/* {GENERATED_HEADER} */", ""]
-    lines.append(":root {")
-    for key, value in palette["light"].items():
-        lines.append(f"  {_css_var(key)}: {value};")
-    lines.append("}")
-    lines.append("")
-    lines.append('.dark:root, [data-theme="dark"] {')
-    for key, value in palette["dark"].items():
-        lines.append(f"  {_css_var(key)}: {value};")
+    # Uniwind resolves themes from its own runtime rather than from a `.dark`
+    # class on a DOM root, so each scheme is emitted as an `@variant` block
+    # inside `@layer theme`. That is the structure Uniwind reads on native and
+    # web alike; the previous `.dark:root, [data-theme="dark"]` selector was a
+    # web-only construct that NativeWind needed a documentElement class toggle
+    # to drive.
+    lines.append("@layer theme {")
+    lines.append("  :root {")
+    for scheme in ("light", "dark"):
+        lines.append(f"    @variant {scheme} {{")
+        for key, value in palette[scheme].items():
+            lines.append(f"      {_css_var(key)}: {value};")
+        lines.append("    }")
+        lines.append("")
+    lines.pop()  # trailing blank line inside :root
+    lines.append("  }")
     lines.append("}")
     lines.append("")
     lines.append("@theme inline {")

@@ -1,7 +1,12 @@
 const { getDefaultConfig } = require('expo/metro-config');
-const { withNativewind } = require('nativewind/metro');
+const { withUniwindConfig } = require('uniwind/metro');
 
 const config = getDefaultConfig(__dirname);
-// react-native-css inlines `rem` at 14 on native by default; Tailwind's scale assumes 16.
-// Pin it to 16 so native spacing/radius matches web and the original px values.
-module.exports = withNativewind(config, { inlineRem: 16 });
+
+// Uniwind defaults `rem` to 16, which is what Tailwind's scale assumes, so no
+// `polyfills.rem` override is needed here (NativeWind defaulted to 14 and had to be
+// pinned back to 16).
+module.exports = withUniwindConfig(config, {
+  cssEntryFile: './global.css',
+  dtsFile: './src/uniwind-types.d.ts',
+});

@@ -26,8 +26,9 @@ export default function ProductMetaData({ product }: Props) {
       <AppText variant="body" className="text-muted-foreground">
         Owner:{' '}
         {product.ownerUsername ? (
-          // expo-router's Link isn't the react-native-css-rewritten core Text,
-          // so className is a silent no-op here — stays style-driven.
+          // expo-router's Link is not a className-aware component (Uniwind adds no
+          // global overrides), so className is a silent no-op here — stays
+          // style-driven. `withUniwind` would be the alternative if it ever needs one.
           <Link
             href={getProfileHref(product.ownerUsername)}
             style={[styles.link, { color: theme.tokens.text.link }]}

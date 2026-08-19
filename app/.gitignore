@@ -5,6 +5,7 @@ node_modules/
 # Expo
 .expo/
 expo-env.d.ts
+src/uniwind-types.d.ts
 dist/
 web-build/
 

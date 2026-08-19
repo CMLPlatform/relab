@@ -17,8 +17,8 @@ type AppTextProps = ComponentProps<typeof Text> & { variant?: Variant };
 /**
  * Themed text mapped to the app type scale (tokens.type). Default: body.
  * The default color is a className (not inline style) so caller `text-*`
- * classes can override it — inline styles always beat classNames in
- * react-native-css, so a style-based default would silently eat them.
+ * classes can override it — inline styles always beat classNames under Uniwind,
+ * so a style-based default would silently eat them.
  *
  * `maxFontSizeMultiplier` defaults to the app-wide Dynamic Type cap (2x); a
  * no-op on web, it keeps native OS text scaling from blowing out fixed
