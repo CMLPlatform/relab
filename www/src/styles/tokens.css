@@ -11,8 +11,9 @@
      token was renamed, so the ramp now points at the source instead of
      reconstructing it. Two tiers, not three: the brand defines a ground and a
      card, and the old third tier had no source to point at.
-     Named apart from --color-surface/--color-border so they never collide with
-     the @theme mapping in global.css, which owns those two names.
+     Named --color-page-surface/--color-surface-raised rather than the bare
+     --color-surface: the two tiers are a ground and a card, and naming the
+     role beats naming one of them "the" surface.
      Opaque: these were translucent to let a blurred wallpaper through, and with
      it gone an alpha channel only makes contrast harder to reason about. The one
      place still mixing toward transparent is the teardown plate, where 18% is
@@ -44,6 +45,14 @@
      (--relab-chart-*-*); this one stays hand-authored per assets/DESIGN.md
      (diagram & chart palette), deliberately distinct from that ramp. */
   --color-chart-mark: light-dark(#2f6bc7, #6fa8ff);
+  /* Shape scale. Lived in global.css's `@theme inline` while Tailwind was
+     installed, where its only extra job was emitting rounded-* utilities that
+     no markup ever used. The authored CSS reads these directly, so they are
+     plain aliases now. --relab-radius-overlay has no consumer and is left
+     unaliased rather than declared dead. */
+  --radius-control: var(--relab-radius-control);
+  --radius-card: var(--relab-radius-card);
+
   --frame-width: 1280px;
   --content-width: 1248px;
   /* Both values equal the ramp's body role exactly (1rem / 1.625), so the

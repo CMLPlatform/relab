@@ -35,6 +35,8 @@
   --content-page-line-height: var(--line-height-body-compact);
   --content-page-heading-size: clamp(1.42rem, 2vw, 1.85rem);
 
+  display: grid;
+  gap: 1rem;
   max-width: 44rem;
 }
 
@@ -53,6 +55,10 @@
    tighter rhythm; the landing page's 3rem would strand each clause on its own
    screen. */
 .content-page .section {
+  display: grid;
+  /* Tighter than the 1rem the page column uses between its own blocks: these
+     are paragraphs under one heading, not separate sections. */
+  gap: 0.7rem;
   padding-block: 1.6rem;
 }
 

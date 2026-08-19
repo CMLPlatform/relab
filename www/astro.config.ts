@@ -1,6 +1,5 @@
 import { env as processEnv } from 'node:process';
 import sitemap from '@astrojs/sitemap';
-import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 
 import { readSiteUrl } from './src/config/public.ts';
@@ -14,7 +13,6 @@ export default defineConfig({
   site: readSiteUrl(processEnv, defaultSiteUrl),
   integrations: [sitemap()],
   vite: {
-    plugins: [tailwindcss()],
     build: {
       // Never inline scripts: the Caddy CSP is script-src 'self' (no
       // 'unsafe-inline'), so inlined scripts would be blocked in production.

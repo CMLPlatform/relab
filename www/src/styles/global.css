@@ -1,35 +1,12 @@
-@import "tailwindcss";
-/* Legacy hand-written CSS is imported unlayered by default, which beats any
-   layered Tailwind utility regardless of specificity or source order (see
-   tokens.css's --color-surface/--color-border note below for the same
-   defect). Placing it in Tailwind's own base/components layers restores
-   normal cascade behavior: Tailwind's `utilities` layer (highest priority)
-   can now override these rules, which utility-migrated markup relies on. */
-@import "./tokens.generated.css" layer(base);
-@import "./tokens.css" layer(base);
-@import "./base.css" layer(base);
-@import "./layout.css" layer(components);
-@import "./components.css" layer(components);
-@import "./utilities.css" layer(components);
-
-@theme {
-  --color-primary: var(--relab-brand-primary);
-  --color-primary-strong: var(--relab-brand-primary-strong);
-  --color-accent: var(--relab-brand-accent);
-  --color-text: var(--relab-brand-text);
-  --color-surface: var(--relab-brand-background);
-  --color-border: var(--relab-brand-divider);
-  --font-sans: var(--relab-brand-font);
-  --font-serif: var(--relab-brand-font-display);
-  --font-mono: var(--relab-brand-font-mono);
-}
-
-/* Plain @theme above resolves var()-referenced values eagerly (breaking utility
-   generation for anything pointing at a custom property); @theme inline defers
-   resolution to used-value time, which is required here since these reference
-   tokens.generated.css. */
-@theme inline {
-  --radius-control: var(--relab-radius-control);
-  --radius-card: var(--relab-radius-card);
-  --radius-overlay: var(--relab-radius-overlay);
-}
+/* Plain CSS, no utility framework. The site's expression lives in authored
+   rules and per-component scoped <style> blocks; consistency is enforced by
+   the generated tokens below, not by a utility scale. Import order is the
+   cascade, and every file here is unlayered, so ordinary specificity applies
+   -- base.css is element selectors only, so the class-based files after it
+   win without needing @layer to arrange them. */
+@import "./tokens.generated.css";
+@import "./tokens.css";
+@import "./base.css";
+@import "./layout.css";
+@import "./components.css";
+@import "./utilities.css";

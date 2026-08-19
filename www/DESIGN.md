@@ -260,8 +260,6 @@ the categorical chart ramp live in `src/styles/tokens.generated.css`, which is g
 - **Focus Ring** (`--color-ring`): solid brand primary, never a tint. A translucent ring lands
   around 1.4:1 on both the page and card surfaces, well under the 3:1 that 1.4.11 requires. The
   solid primary clears it at 7.5:1 light and 9.3:1 dark.
-- **Divider** (`--color-border` in the Tailwind theme map, from the shared brand divider): the
-  brand's own hairline value, exposed for utility classes.
 
 ### Named Rules
 
@@ -642,6 +640,11 @@ Everything here is baked at build time and paints without JavaScript.
   `--relab-shadow-overlay` tier is for things that genuinely float. Nothing on www does.
 - **Don't** reintroduce `backdrop-filter`. Blur is the last thing a document-grade brand should
   hide its chrome behind, and the frosted header was removed for exactly that reason.
+- **Don't** reach for a utility framework. www styles with authored CSS in `src/styles/` plus
+  per-component scoped `<style>` blocks; consistency is enforced by the generated tokens, not by
+  a utility scale. Tailwind was installed here once, migrated five class attributes over three
+  commits, and was then contradicted by every component built after it -- the same round trip
+  docs made before removing it. Both subrepos now ship none.
 - **Don't** hand-edit `src/styles/tokens.generated.css`. It is generated from `assets/tokens.json`
   by `scripts/sync_brand_assets.py`; change the source and run `just assets-sync`.
 - **Don't** let a chart or table force the page to scroll sideways. Give it its own

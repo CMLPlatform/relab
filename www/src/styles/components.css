@@ -473,6 +473,12 @@
 
 /* Explicit choice reads as a filled control: the card tone against the header's
    ground, in both themes. Resting is unfilled so the fill is the state. */
+/* Shrink-proof so the toggle keeps its size when the header nav runs long. */
+.theme-control {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
 .theme-control[data-theme-current="light"] .theme-toggle,
 .theme-control[data-theme-current="dark"] .theme-toggle {
   background: var(--color-surface-raised);

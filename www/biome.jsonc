@@ -91,16 +91,6 @@
       }
     },
     {
-      // global.css uses Tailwind CSS v4 at-rules (@theme) that Biome's CSS
-      // parser rejects unless explicitly enabled.
-      "includes": ["src/styles/global.css"],
-      "css": {
-        "parser": {
-          "tailwindDirectives": true
-        }
-      }
-    },
-    {
       // Generated mermaid flowcharts (see method-flow.mmd). `role="group"` on
       // <svg> is correct: it labels the diagram and lets it hold the
       // interactive step nodes. But Biome's useSemanticElements suggests
