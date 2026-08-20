@@ -55,10 +55,6 @@ assets-sync:
 assets-check:
     uv run python scripts/sync_brand_assets.py --check
 
-# Create a conventional commit message interactively
-_commit:
-    uv run cz commit
-
 # Bootstrap a full local development environment
 setup: install _prek-install
     @echo "✅ Development environment ready"
@@ -614,10 +610,6 @@ docker-smoke:
 
 ### CI test helpers for backend performance regression testing ---
 
-# Build (or rebuild) CI images without cache
-_docker-ci-build:
-    {{ ci_compose }} --profile migrations build --no-cache
-
 # Start CI services and wait for readiness
 _docker-ci-up services="postgres redis api":
     {{ ci_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
@@ -646,14 +638,6 @@ docker-ci-perf-baseline:
     just _docker-ci-migrate-dummy
     echo "→ Running backend k6 baseline against the CI stack..."
     just backend/_perf-ci
-
-# Write a dated CI baseline report from the latest backend k6 summary export
-_docker-ci-perf-report DATE="":
-    just backend/_perf-report-ci {{ quote(DATE) }}
-
-# Recalibrate backend perf thresholds from the latest CI baseline summary export
-_docker-ci-perf-thresholds HEADROOM="1.15":
-    just backend/_perf-thresholds-apply {{ quote(HEADROOM) }}
 
 # ============================================================================
 # Maintenance
