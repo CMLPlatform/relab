@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from app.api.plugins.rpi_cam.crud import create_camera, update_camera
+from app.api.common.crud.persistence import update_and_commit
+from app.api.plugins.rpi_cam.crud import create_camera
 from app.api.plugins.rpi_cam.models import Camera, CameraCredentialStatus
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraUpdate, RelayPublicKeyJWK
 from tests.factories.models import CameraFactory
@@ -67,7 +68,7 @@ async def test_update_camera(db_session: AsyncSession, db_superuser: User) -> No
 
     update_data = CameraUpdate(name=TEST_NEW_NAME, relay_credential_status=CameraCredentialStatus.REVOKED)
 
-    updated_camera = await update_camera(db_session, camera, update_data)
+    updated_camera = await update_and_commit(db_session, camera, update_data)
 
     assert updated_camera.name == TEST_NEW_NAME
     assert updated_camera.relay_credential_status == CameraCredentialStatus.REVOKED

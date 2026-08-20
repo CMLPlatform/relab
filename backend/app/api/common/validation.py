@@ -32,17 +32,12 @@ def normalize_user_text(value: str, *, allow_multiline: bool = False) -> str:
     return normalized
 
 
-def _normalize_single_line_user_text(value: str) -> str:
-    """Normalize a single-line user-authored text field."""
-    return normalize_user_text(value)
-
-
 def _normalize_multiline_user_text(value: str) -> str:
     """Normalize a multiline user-authored text field."""
     return normalize_user_text(value, allow_multiline=True)
 
 
-SingleLineUserText = Annotated[str, AfterValidator(_normalize_single_line_user_text)]
+SingleLineUserText = Annotated[str, AfterValidator(normalize_user_text)]
 MultilineUserText = Annotated[str, AfterValidator(_normalize_multiline_user_text)]
 
 

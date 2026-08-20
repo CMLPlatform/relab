@@ -48,22 +48,13 @@ async def _page_taxonomy_categories(
     return await paginate_select(session, statement, model=Category)
 
 
-async def _page_taxonomies(
-    session: AsyncSessionDep,
-    *,
-    taxonomy_filter: TaxonomyFilterDep,
-) -> Page[Taxonomy]:
-    """Page public taxonomies from an explicit taxonomy query (serialized via ``TaxonomyRead``)."""
+@router.get("", response_model=Page[TaxonomyRead])
+async def get_taxonomies(taxonomy_filter: TaxonomyFilterDep, session: AsyncSessionDep) -> Page[Taxonomy]:
+    """Get all taxonomies with optional filtering."""
     statement: Select[tuple[Taxonomy]] = select(Taxonomy)
     statement = apply_filter(statement, taxonomy_filter)
     statement = apply_loader_profile(statement, Taxonomy, read_schema=TaxonomyRead)
     return await paginate_select(session, statement, model=Taxonomy)
-
-
-@router.get("", response_model=Page[TaxonomyRead])
-async def get_taxonomies(taxonomy_filter: TaxonomyFilterDep, session: AsyncSessionDep) -> Page[Taxonomy]:
-    """Get all taxonomies with optional filtering."""
-    return await _page_taxonomies(session, taxonomy_filter=taxonomy_filter)
 
 
 @router.get("/{taxonomy_id}", response_model=TaxonomyRead)

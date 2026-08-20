@@ -18,7 +18,7 @@ from app.api.auth.dependencies import current_active_superuser
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.rate_limiting import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.file_storage.schemas import FileReadWithinParent, ImageReadWithinParent, empty_str_to_none
+from app.api.file_storage.schemas import FileCreate, FileReadWithinParent, ImageReadWithinParent, empty_str_to_none
 from app.api.reference_data.crud.categorized_resources import (
     CategorizedReferenceSpec,
     add_categorized_reference_categories,
@@ -29,7 +29,7 @@ from app.api.reference_data.crud.categorized_resources import (
 from app.api.reference_data.crud.persistence import update_reference_model
 from app.api.reference_data.examples import CATEGORY_IDS_OPENAPI_EXAMPLES
 from app.api.reference_data.models import Category
-from app.api.reference_data.routers.reference_media import reference_file_create, reference_image_create
+from app.api.reference_data.routers.reference_media import reference_image_create
 from app.api.reference_data.schemas import CategoryRead
 
 
@@ -115,7 +115,12 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         item = await spec.files.create(
             session,
             item_id,
-            reference_file_create(item_id, parent_type=spec.files.parent_type, file=file, description=description),
+            FileCreate(
+                file=file,
+                description=description,
+                parent_id=item_id,
+                parent_type=spec.files.parent_type,
+            ),
         )
         return FileReadWithinParent.model_validate(item)
 

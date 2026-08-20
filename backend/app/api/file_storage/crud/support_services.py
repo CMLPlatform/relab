@@ -149,7 +149,7 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
         await db.refresh(db_image)
     except (ValueError, OSError) as e:
         logger.warning("Image processing failed for image %s, rolling back: %s", db_image.id, e)
-        await delete_image_record(db, db_image.id)
+        await image_storage_service.delete(db, db_image.id)
         raise BadRequestError(str(e)) from e
 
     try:
@@ -319,8 +319,3 @@ class ImageStorageService(StoredMediaService[Image, ImageCreateFromForm | ImageC
 
 file_storage_service = FileStorageService()
 image_storage_service = ImageStorageService()
-
-
-async def delete_image_record(db: AsyncSession, image_id: UUID4) -> None:
-    """Delete an image row and remove it from storage."""
-    await image_storage_service.delete(db, image_id)

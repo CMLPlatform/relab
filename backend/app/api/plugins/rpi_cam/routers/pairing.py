@@ -36,7 +36,6 @@ from app.api.plugins.rpi_cam.schemas.pairing import FINGERPRINT_PATTERN, Pairing
 from app.api.plugins.rpi_cam.utils.device_contracts import (
     build_claimed_bootstrap,
     build_claimed_record,
-    build_waiting_record,
     dump_pairing_record,
     parse_pairing_record,
 )
@@ -110,7 +109,7 @@ async def register_pairing_code(
 
     key = _pairing_key(body.code)
     payload = dump_pairing_record(
-        build_waiting_record(
+        PairingPendingRecord(
             rpi_fingerprint=body.rpi_fingerprint,
             public_key_jwk=body.public_key_jwk,
             key_id=body.key_id,

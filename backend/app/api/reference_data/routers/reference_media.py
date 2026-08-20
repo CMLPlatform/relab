@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from app.api.common.form_json import parse_optional_json_object
 from app.api.file_storage.models import MediaParentType
-from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm
+from app.api.file_storage.schemas import ImageCreateFromForm
 
 if TYPE_CHECKING:
     from fastapi import UploadFile
@@ -14,22 +14,6 @@ if TYPE_CHECKING:
     from app.api.common.crud.filtering import BaseFilterSet
     from app.api.file_storage.crud.parent_media import ParentMediaCrud
     from app.api.file_storage.crud.support_types import StorageCreateSchema, StorageModel
-
-
-def reference_file_create(
-    parent_id: int,
-    *,
-    parent_type: MediaParentType,
-    file: UploadFile,
-    description: str | None,
-) -> FileCreate:
-    """Build the canonical reference-data file payload."""
-    return FileCreate(
-        file=file,
-        description=description,
-        parent_id=parent_id,
-        parent_type=parent_type,
-    )
 
 
 def reference_image_create(

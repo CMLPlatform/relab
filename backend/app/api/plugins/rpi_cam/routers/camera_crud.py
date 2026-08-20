@@ -12,6 +12,7 @@ from starlette.responses import FileResponse
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
+from app.api.common.crud.persistence import update_and_commit
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam import crud
 from app.api.plugins.rpi_cam.dependencies import CameraFilterDep, UserOwnedCameraDep
@@ -183,7 +184,7 @@ async def update_user_camera(
     camera_in: CameraUpdate,
 ) -> Camera:
     """Update Raspberry Pi camera."""
-    return await crud.update_camera(session, db_camera, camera_in)
+    return await update_and_commit(session, db_camera, camera_in)
 
 
 @camera_router.delete("/{camera_id}", summary="Delete Raspberry Pi camera", status_code=204)
