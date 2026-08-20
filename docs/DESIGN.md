@@ -255,7 +255,7 @@ mapped to `--sl-color-accent`; doing so would turn every Starlight link and acti
 manila, which `assets/DESIGN.md` explicitly forbids. `base.css` states this reasoning inline.
 The accent never fills a button and never drives a hover/pressed state; primary blue carries all
 interaction. Accent is for small text, never for mass — bars and big figures stay ink.
-*Mirrors assets/DESIGN.md:163 — change it there first.*
+*Mirrors assets/DESIGN.md:173 — change it there first.*
 
 **The No-Eyebrow Rule.** Docs carries no eyebrows/kickers, same as `www/`. A mono uppercase label
 that only restates the heading beneath it is chrome, not data; the app's `eyebrow` text variant
@@ -263,7 +263,7 @@ is the one sanctioned exception, and it is app-only. No component in this subrep
 pattern — confirmed by inspection of all four custom `.astro` components and `components.css`.
 The app's exception is the same principle, not a contradiction. There, an eyebrow labels a *value*
 inside a compact tag — the Accent-Is-Data Rule wearing different clothes, rather than announcing a
-section. *Mirrors assets/DESIGN.md:165 — change it there first.*
+section. *Mirrors assets/DESIGN.md:175 — change it there first.*
 
 ## Typography
 
@@ -343,7 +343,7 @@ overlay."
 The monorepo rule this inherits: inline surfaces (cards, rows, inputs) are flat — a 1px hairline
 border plus a surface fill, no shadow. Shadow is reserved for one tier, `shadow-overlay`, on
 surfaces that genuinely float. Docs simply never reaches that tier.
-*Mirrors assets/DESIGN.md:116 — change it there first.*
+*Mirrors assets/DESIGN.md:123 — change it there first.*
 
 Depth in the rendered page comes entirely from Starlight's own component chrome (search modal,
 mobile nav drawer), which docs does not restyle. The one visual "frame" docs authors itself —
@@ -353,7 +353,7 @@ tinted background, `border-radius: var(--radius-card)`, no box-shadow.
 ## Shapes
 
 The full scale is control 6px, card 8px, overlay 12px, full 9999 (avatars and true pills only).
-*Mirrors assets/DESIGN.md:106 — change it there first.*
+*Mirrors assets/DESIGN.md:113 — change it there first.*
 
 Same flat-&-sharp scale as the rest of the monorepo, but docs only draws from the bottom two rungs —
 it has no overlay-tier surface. `--radius-control` (6px) sizes the site-title logo image and the

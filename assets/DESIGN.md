@@ -22,8 +22,8 @@ Three voices, one family:
 | UI / body       | IBM Plex Sans 400–600 | Everything else on web and email              |
 | Data / labels   | IBM Plex Mono 400     | Measurements, IDs, small data labels, code    |
 
-Type scale (web): display 38/44, h2 24/30, heading 19/24, body 16/26, label 13 caps
-(+0.1em tracking, weight 500), caption 13/18, data 14 mono with `tabular-nums`. Docs maps
+Type scale (web): display 38/44, title 24/30, heading 19/24, body 16/26, label 13 caps
+(+0.1em tracking, weight 500), caption 13/18, micro 12/16, data 14 mono with `tabular-nums`. Docs maps
 this scale onto Starlight's `--sl-text-h1/h2/h3` tokens; www sets it directly. The app
 adds an `eyebrow` variant — label metrics, rendered uppercase, muted (or accent) ink for
 compact tags — and caps Dynamic Type scaling app-wide at 2x so fixed layouts survive
@@ -39,19 +39,26 @@ delivery; italic is browser-synthesized.
 
 All pairings below meet WCAG 4.5:1 against their background in both schemes.
 
-| Token          | Light     | Dark      | Role                                                                                    |
-| -------------- | --------- | --------- | --------------------------------------------------------------------------------------- |
-| primary        | `#1F4C96` | `#8FB8FF` | Brand anchor, actions, links on web                                                     |
-| primary-strong | `#143567` | `#BAD3FF` | Hover/pressed, emphasis                                                                 |
-| accent         | `#8F6212` | `#E3B95C` | Manila — highlights, live indicators, strategy tags                                     |
-| text           | `#16202E` | `#E2E6EE` | Body text (app; web uses `#E9EFF8` via --relab-brand-text)                              |
-| muted          | `#44474F` | `#C4C6D0` | Secondary text (www's `--color-muted` in tokens.css is a distinct page-chrome override) |
-| background     | `#FAFBFE` | `#11141D` | Page ground                                                                             |
-| surface        | `#F0F3FA` | `#1A2030` | Cards, panels                                                                           |
-| border         | `#C4C6D0` | `#44474F` | Hairlines, dividers (web uses `#D9DFE8`/`#24314A` via --relab-brand-divider)            |
+| Token           | Light     | Dark      | Role                                                                                    |
+| --------------- | --------- | --------- | --------------------------------------------------------------------------------------- |
+| primary         | `#1F4C96` | `#8FB8FF` | Brand anchor, actions, links on web                                                     |
+| primary-strong  | `#143567` | `#BAD3FF` | Hover/pressed, emphasis                                                                 |
+| accent          | `#8F6212` | `#E3B95C` | Manila — highlights, live indicators, strategy tags                                     |
+| text            | `#16202E` | `#E2E6EE` | Body text (app; web uses `#E9EFF8` via --relab-brand-text)                              |
+| mutedForeground | `#44474F` | `#C4C6D0` | Secondary text (www's `--color-muted` in tokens.css is a distinct page-chrome override) |
+| muted           | `#E0E2EC` | `#44474F` | Muted surface tone behind secondary content                                             |
+| background      | `#FAFBFE` | `#11141D` | Page ground                                                                             |
+| surface         | `#F0F3FA` | `#1A2030` | Cards, panels                                                                           |
+| border          | `#C4C6D0` | `#44474F` | Hairlines, dividers (web uses `#D9DFE8`/`#24314A` via --relab-brand-divider)            |
 
-The machine sources are `brand.css` (web) and `palette.json` (app); this table documents them and is
-checked by `app/src/theme/__tests__/palette-sync.test.ts`.
+The machine sources are `brand.css` (web), `palette.json` (app), and `tokens.json` (the radius,
+shadow, type and chart tables below); this table documents them and is checked by
+`app/src/theme/__tests__/palette-sync.test.ts`.
+
+The prose names above and the JSON keys are two vocabularies — `primary-strong`/`primaryStrong`,
+`text`/`foreground`, `surface`/`card` — reconciled by the `BRAND_PARITY` table in
+`scripts/sync_brand_assets.py`. `palette.json` also carries `secondary`, `state`, `destructive`
+(`#BA1A1A`), `input` and `ring`, which this table does not restate.
 
 Web consumes these as `--relab-brand-*` custom properties (see brand.css).
 The app derives its MD3 colour roles from the same anchors: `primary` maps to
@@ -121,6 +128,9 @@ float, as a single tier:
 | ---------------- | ------------------------------- | ---------------------------- | -------------------------------------- |
 | `shadow-overlay` | `0 8px 24px rgba(20,40,80,.16)` | `0 8px 24px rgba(0,0,0,.55)` | menus, dialogs, sheets, FAB, snackbars |
 | `scrim`          | `rgba(12,18,32,.50)` (45–55%)   | `rgba(0,0,0,.55)`            | behind modals / sheets                 |
+
+Android takes a native elevation instead of the web shadow: `elevationAndroid` in `tokens.json`,
+8 light / 12 dark.
 
 This single tier removes the "everything floats" MD3 tell while keeping
 overlays legible on mobile.

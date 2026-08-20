@@ -105,7 +105,7 @@ components:
 
 **Creative North Star: "Cyanotype & Manila — the colour of engineering documentation"**
 
-*Mirrors assets/DESIGN.md:1 — change it there first.*
+*Mirrors assets/DESIGN.md:8 — change it there first.*
 
 The app is a field instrument, not a showcase. Its user is at a bench with a product in pieces,
 hands occupied, working down a hierarchy one node at a time. Everything here follows from that:
@@ -189,7 +189,7 @@ live = manila.
 small data labels, live/status pills, strategy tags. **Accent is for small text, never for
 mass.** It never fills a button, never drives a hover or pressed state, and never paints bars,
 big figures, or large areas. Interaction is always primary blue. *Mirrors
-assets/DESIGN.md:163-178 — change it there first.*
+assets/DESIGN.md:173-190 — change it there first.*
 
 **The One Tint Rule.** `tokens.surface.accent` — primary at 12% — is the single canonical
 selected/tinted fill: chips, history rows, toggles, active nav. The Tailwind spelling is
@@ -236,7 +236,7 @@ gets out of the way.
 **The System-Font Rule.** The app **intentionally stays on platform system fonts** — native
 feel, Dynamic Type support, zero load cost. It adopts the brand's scale and palette, not its
 typeface. www and docs use IBM Plex; this divergence is deliberate and must not be "unified".
-*Mirrors assets/DESIGN.md:33-34 — change it there first.*
+*Mirrors assets/DESIGN.md:33-35 — change it there first.*
 
 Dynamic Type is capped at 2x, and the cap belongs on **every** text primitive, not just
 `AppText`: `ui/text` renders every button label plus HeroStats, ComponentRow, GoLiveDialog and
@@ -245,7 +245,7 @@ ProductDelete, so a cap that misses it is not app-wide. Both apply it by default
 **The Eyebrow-Is-A-Datum Rule.** `eyebrow` labels a **value inside a compact tag**. It is not a
 decorative kicker above a heading — a heading under an eyebrow makes the eyebrow chrome, which
 is why www and docs carry none at all. This is the Data-Label Rule wearing different clothes:
-an eyebrow names a datum, exactly as manila colours one. *Mirrors assets/DESIGN.md:165-169 —
+an eyebrow names a datum, exactly as manila colours one. *Mirrors assets/DESIGN.md:175-179 —
 change it there first.*
 
 **The Ramp Rule.** Every text size comes from the eight variants above. An inline `fontSize:`
@@ -300,7 +300,7 @@ gives 10.5:1 dark / 11.8:1 light for primary ink and 5.4:1 / 5.8:1 for muted.
 **The One Tier Rule.** There is exactly one shadow. Inline surfaces get a hairline and no
 shadow; floating surfaces get `shadow-overlay`. A second elevation tier, a coloured glow, or a
 shadow stacked on an already-floating element is a defect, not an emphasis technique. *Mirrors
-assets/DESIGN.md:114-122 — change it there first.*
+assets/DESIGN.md:121-129 — change it there first.*
 
 ## Shapes
 
@@ -320,7 +320,7 @@ All four map through `src/constants.ts:41`. Use the token, never a literal.
 
 **The True-Pill Rule.** `radius.full` is for avatars and genuine pills only. A square icon
 button is not a pill — a 44×44 control with `rounded-full` is a circle pretending to be one, and
-it breaks the sharp geometry everything else maintains. *Mirrors assets/DESIGN.md:106-109 —
+it breaks the sharp geometry everything else maintains. *Mirrors assets/DESIGN.md:113-116 —
 change it there first.*
 
 ## Components

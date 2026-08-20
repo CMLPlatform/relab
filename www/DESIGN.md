@@ -267,7 +267,7 @@ the categorical chart ramp live in `src/styles/tokens.generated.css`, which is g
 highlights. It marks a *datum*, never a section. It never fills a button and never drives a
 hover or pressed state. Primary blue carries **all** interaction. And accent is for small text,
 never for mass: bars, big figures and any large element stay ink. When in doubt on something
-large, use ink. *Mirrors assets/DESIGN.md:163 — change it there first.*
+large, use ink. *Mirrors assets/DESIGN.md:173 — change it there first.*
 
 **The Two-Border Rule.** A border that separates or frames content uses the hairline
 (`--color-page-border`). A border that is the only thing identifying a control uses the control
@@ -381,7 +381,7 @@ restates the heading under it is chrome. Provenance lines sit *under* the title 
 above it as kickers. (This is web-specific: the app's `eyebrow` variant stays, because there it
 labels a value inside a compact tag rather than announcing a section. That is the Accent Rule
 wearing different clothes, not a separate rule.)
-*Mirrors assets/DESIGN.md:165 — change it there first.*
+*Mirrors assets/DESIGN.md:175 — change it there first.*
 
 **The Mono-Is-Measurement Rule.** Mono is reserved for things that were measured or assigned: an
 ID, a count, a mass, a date, a licence term. Prose is never set in mono to look technical.
@@ -442,7 +442,7 @@ surface fill, no shadow, ever. If something needs to look raised, it gets a bord
 or a 2px lift, not a shadow. The teardown plate's hover is exactly this: the frame brightens to
 45% primary and the plate rises 2px. Shadow is reserved for one tier only, `shadow-overlay`, on
 surfaces that genuinely float. www never reaches it.
-*Mirrors assets/DESIGN.md:116 — change it there first.*
+*Mirrors assets/DESIGN.md:123 — change it there first.*
 
 ## Shapes
 
@@ -450,7 +450,7 @@ Corners are small and consistent, and they come from `tokens.generated.css`: **6
 (buttons, the toggle group, chips, plate frames), **8px** for cards and panels (only the blueprint
 panel uses it on www), **12px** for overlays (unused here), and `9999px` for true pills (unused
 here, since nothing on this site is a pill).
-Radius scale *Mirrors assets/DESIGN.md:106 — change it there first.*
+Radius scale *Mirrors assets/DESIGN.md:113 — change it there first.*
 Nested frames step down rather than repeat: a plate figure
 inside a 6px plate uses `calc(var(--radius-control) - 2px)`. The drafting callout in its corner
 carries that radius on one corner only, so it reads as printed into the frame rather than stuck
