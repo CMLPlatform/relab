@@ -10,7 +10,7 @@ from relab_rpi_cam_models.stream import StreamMode, StreamView
 from sqlalchemy import select
 
 from app.api.auth.models import OAuthAccount
-from app.api.auth.services.oauth import google_youtube_oauth_client
+from app.api.auth.services.oauth.clients import google_youtube_oauth_client
 from app.api.common.crud.query import get_model
 from app.api.common.crud.utils import ensure_model_exists
 from app.api.common.exceptions import APIError

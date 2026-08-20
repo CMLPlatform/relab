@@ -4,7 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.api.auth.services.email import REGISTRATION_TEMPLATE, send_templated_email
+from app.api.auth.services.email.service import send_templated_email
+from app.api.auth.services.email.templates import REGISTRATION_TEMPLATE
 
 
 async def test_send_templated_email_rejects_missing_required_context() -> None:

@@ -10,16 +10,18 @@ from fastapi import HTTPException, status
 from fastapi_users.jwt import decode_jwt
 
 from app.api.auth.exceptions import OAuthStateExpiredError
-from app.api.auth.services.oauth import (
+from app.api.auth.services.oauth.base import verify_oauth_state
+from app.api.auth.services.oauth.utils import (
     CSRF_TOKEN_COOKIE_NAME,
     CSRF_TOKEN_KEY,
+    OAUTH_FLOW_KEY,
+    OAUTH_PROVIDER_KEY,
+    OAUTH_STATE_JWT_ALGORITHM,
     STATE_TOKEN_AUDIENCE,
     OAuthCookieSettings,
     generate_csrf_token,
     generate_state_token,
 )
-from app.api.auth.services.oauth.base import verify_oauth_state
-from app.api.auth.services.oauth.utils import OAUTH_FLOW_KEY, OAUTH_PROVIDER_KEY, OAUTH_STATE_JWT_ALGORITHM
 
 from ._oauth_support import TEST_STATE_JWT_SECRET, make_base_config, make_oauth_state
 from .shared import FRONTEND_REDIRECT_URI

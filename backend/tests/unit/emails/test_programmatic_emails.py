@@ -9,18 +9,16 @@ from faker import Faker
 from fastapi import BackgroundTasks
 
 from app.api.auth.config import settings as auth_settings
-from app.api.auth.services.email import (
+from app.api.auth.services.email.service import (
     generate_token_link,
     send_email_changed_notification,
+    send_oauth_link_changed_notification,
+    send_oauth_welcome_notification,
     send_password_reset_confirmation_email,
     send_post_verification_email,
     send_registration_email,
     send_reset_password_email,
     send_verification_email,
-)
-from app.api.auth.services.email.service import (
-    send_oauth_link_changed_notification,
-    send_oauth_welcome_notification,
 )
 from app.core.config import settings as core_settings
 

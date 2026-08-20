@@ -23,16 +23,16 @@ from app.api.auth.services.account_security import (
     sensitive_update_fields,
 )
 from app.api.auth.services.auth_backends import build_authentication_backends
-from app.api.auth.services.email import (
+from app.api.auth.services.email.service import (
     mask_email_for_log,
     send_email_changed_notification,
+    send_oauth_welcome_notification,
     send_password_changed_notification,
     send_password_reset_confirmation_email,
     send_post_verification_email,
     send_reset_password_email,
     send_verification_email,
 )
-from app.api.auth.services.email.service import send_oauth_welcome_notification
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT

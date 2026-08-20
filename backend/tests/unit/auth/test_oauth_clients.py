@@ -6,14 +6,14 @@ URL construction by httpx_oauth itself is not tested.
 
 from httpx_oauth.clients.google import BASE_SCOPES as GOOGLE_BASE_SCOPES
 
-from app.api.auth.services.oauth import (
+from app.api.auth.services.oauth import routes as oauth_routes
+from app.api.auth.services.oauth.clients import (
     GOOGLE_YOUTUBE_SCOPES,
+    YOUTUBE_API_SCOPES,
     github_oauth_client,
     google_oauth_client,
     google_youtube_oauth_client,
 )
-from app.api.auth.services.oauth import routes as oauth_routes
-from app.api.auth.services.oauth.clients import YOUTUBE_API_SCOPES
 
 
 def test_google_login_client_uses_base_scopes_only() -> None:

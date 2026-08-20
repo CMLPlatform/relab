@@ -5,14 +5,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi import Response, status
 
-from app.api.auth.services.oauth import (
+from app.api.auth.services.oauth.base import OAuthFlowConfig
+from app.api.auth.services.oauth.utils import (
     CSRF_TOKEN_KEY,
+    OAUTH_FLOW_KEY,
+    OAUTH_PROVIDER_KEY,
     OAuthCookieSettings,
     generate_csrf_token,
     generate_state_token,
 )
-from app.api.auth.services.oauth.base import OAuthFlowConfig
-from app.api.auth.services.oauth.utils import OAUTH_FLOW_KEY, OAUTH_PROVIDER_KEY
 
 from .shared import TEST_EMAIL, TEST_STATE_JWT_SECRET
 
