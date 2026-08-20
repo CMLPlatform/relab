@@ -424,3 +424,4 @@ async def test_get_youtube_recording_monitor_stream(
     )
 
     assert result == monitor_stream
+    mock_yt_service.get_broadcast_monitor_stream.assert_awaited_once_with(FAKE_BROADCAST_KEY)

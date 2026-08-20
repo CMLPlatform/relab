@@ -135,7 +135,6 @@ describe('CamerasScreen', () => {
     renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     expect(screen.getByText('Workbench Camera')).toBeOnTheScreen();
-    expect(screen.getByText('Workbench Camera')).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByLabelText('Camera: Workbench Camera'));

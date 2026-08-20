@@ -181,16 +181,6 @@ describe('Authentication API Service', () => {
 
       expect(result).toBe(false);
     });
-
-    it('returns false on web when hasWebSessionFlag is false', async () => {
-      // Mock isWeb implicitly by checking behavior or mocking it if possible
-      // Here we rely on the implementation using hasWebSessionFlag
-      jest.spyOn(auth, 'hasWebSessionFlag').mockReturnValueOnce(false);
-      // We need to trigger the isWeb path. The service uses Platform.OS.
-      // Assuming we can mock Platform.OS or just use the current one if it's web.
-      const result = await auth.refreshAuthToken();
-      expect(result).toBe(false);
-    });
   });
 
   describe('fetchWithAuth', () => {

@@ -78,8 +78,6 @@ describe('useOAuthAssociations', () => {
     expect(result.current.youtube.authPending).toBe(false);
     expect(typeof result.current.youtube.toggle).toBe('function');
     expect(typeof result.current.actions.linkOAuth).toBe('function');
-    expect(typeof result.current.actions.linkOAuth).toBe('function');
-    expect(typeof result.current.actions.linkOAuth).toBe('function');
   });
 
   it('enables YouTube and refetches on successful YouTube authorization', async () => {

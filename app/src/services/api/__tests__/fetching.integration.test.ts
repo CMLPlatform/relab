@@ -267,11 +267,7 @@ describe('Fetching API Service logic', () => {
 
       await expect(getBaseProduct(99)).rejects.toBeInstanceOf(ProductNotFoundError);
 
-      try {
-        await getBaseProduct(99);
-      } catch (error) {
-        expect(isProductNotFoundError(error)).toBe(true);
-      }
+      expect(isProductNotFoundError(await getBaseProduct(99).catch((e: unknown) => e))).toBe(true);
     });
 
     it('throws a generic HTTP error for non-404 failures', async () => {
