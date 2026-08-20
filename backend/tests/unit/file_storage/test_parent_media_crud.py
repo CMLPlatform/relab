@@ -9,7 +9,7 @@ from fastapi import UploadFile
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.exceptions import BadRequestError
 from app.api.data_collection.models.product import Product
-from app.api.file_storage.crud.parent_media import ParentMediaCrud, unlink_stored_media
+from app.api.file_storage.crud.parent_media import ParentMediaCrud, get_parent_media, unlink_stored_media
 from app.api.file_storage.exceptions import StorageBackendError
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal
@@ -87,7 +87,14 @@ async def test_get_by_id_raises_not_found_for_wrong_parent(mock_session: AsyncMo
         patch("app.api.file_storage.crud.support_services.require_model", new=AsyncMock()),
         pytest.raises(ModelNotFoundError, match="not found"),
     ):
-        await operations.get_by_id(mock_session, 1, item_id)
+        await get_parent_media(
+            mock_session,
+            parent_model=operations.parent_model,
+            parent_type=operations.parent_type,
+            storage_model=operations.storage_model,
+            parent_id=1,
+            item_id=item_id,
+        )
 
 
 async def test_get_by_id_uses_configured_parent_type(mock_session: AsyncMock) -> None:
@@ -108,7 +115,14 @@ async def test_get_by_id_uses_configured_parent_type(mock_session: AsyncMock) ->
         ) as get_scoped_item,
         patch("app.api.file_storage.crud.parent_media.storage_item_exists", return_value=True),
     ):
-        await operations.get_by_id(mock_session, 1, item_id)
+        await get_parent_media(
+            mock_session,
+            parent_model=operations.parent_model,
+            parent_type=operations.parent_type,
+            storage_model=operations.storage_model,
+            parent_id=1,
+            item_id=item_id,
+        )
 
     get_scoped_item.assert_awaited_once_with(
         mock_session,

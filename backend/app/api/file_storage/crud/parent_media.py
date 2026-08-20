@@ -216,17 +216,6 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
             filter_params=filter_params,
         )
 
-    async def get_by_id(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> StorageModelT:
-        """Get a specific storage item for a parent, raising an error if the file is missing."""
-        return await get_parent_media(
-            db,
-            parent_model=self.parent_model,
-            parent_type=self.parent_type,
-            storage_model=self.storage_model,
-            parent_id=parent_id,
-            item_id=item_id,
-        )
-
     async def create(
         self,
         db: AsyncSession,

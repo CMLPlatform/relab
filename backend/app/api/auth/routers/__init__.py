@@ -1,6 +1,6 @@
 """Authentication and authorization routers."""
 
-from .admin import all_routers as admin_routers
+from .admin_users import router as admin_user_router
 from .auth import router as auth_router
 from .oauth import router as oauth_router
 from .users import public_profile_router
@@ -11,5 +11,5 @@ all_routers = [
     oauth_router,
     user_router,
     public_profile_router,
-    *admin_routers,
+    admin_user_router,
 ]

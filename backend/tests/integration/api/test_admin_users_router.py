@@ -100,7 +100,7 @@ class TestAdminUsersActions:
         self, api_client_superuser, db_superuser: User, db_user: User
     ) -> None:
         """Deletion returns 204 and records the actor in the audit log."""
-        with patch("app.api.auth.routers.admin.users.audit_event") as log_audit:
+        with patch("app.api.auth.routers.admin_users.audit_event") as log_audit:
             response = await api_client_superuser.delete(f"{ADMIN_USERS}/{db_user.id}")
 
         assert response.status_code == 204
@@ -116,7 +116,7 @@ class TestAdminUsersActions:
         self, api_client_superuser, db_superuser: User, db_user: User
     ) -> None:
         """Update returns the changed user without the target's password and audits the actor."""
-        with patch("app.api.auth.routers.admin.users.audit_event") as log_audit:
+        with patch("app.api.auth.routers.admin_users.audit_event") as log_audit:
             response = await api_client_superuser.patch(
                 f"{ADMIN_USERS}/{db_user.id}",
                 json={"username": "renamed_by_admin"},  # no current_password supplied — safe=False must not demand one
@@ -266,7 +266,7 @@ class TestAdminUserErasure:
         self, api_client_superuser, db_session: AsyncSession, db_superuser: User
     ) -> None:
         """The only remaining admin keeps both their account and their sessions."""
-        with patch("app.api.auth.routers.admin.users.revoke_user_refresh_tokens") as revoke:
+        with patch("app.api.auth.routers.admin_users.revoke_user_refresh_tokens") as revoke:
             response = await api_client_superuser.delete(f"{ADMIN_USERS}/{db_superuser.id}")
 
         assert response.status_code == 409
