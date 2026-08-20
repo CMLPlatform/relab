@@ -6,9 +6,7 @@ from typing import TYPE_CHECKING
 from anyio import Path as AnyIOPath
 from anyio import open_file
 
-from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
 from app.api.file_storage.models.storage_core import BaseStorage, secure_filename
-from app.core.config import settings
 
 if TYPE_CHECKING:
     from typing import BinaryIO
@@ -37,18 +35,6 @@ class FileSystemStorage(BaseStorage):
     def get_path(self, name: str) -> str:
         """Return the absolute path for a stored file."""
         return str(self._path / Path(name))
-
-    def get_size(self, name: str) -> int:
-        """Return the file size in bytes."""
-        return (self._path / name).stat().st_size
-
-    def open(self, name: str) -> BinaryIO:
-        """Open a stored file in binary mode, mapping missing files to the API error."""
-        try:
-            return (self._path / Path(name)).open("rb")
-        except FileNotFoundError as e:
-            details = str(e) if settings.debug else None
-            raise FastAPIStorageFileNotFoundError(name, details=details) from e
 
     def write(self, file: BinaryIO, name: str) -> str:
         """Write a binary file to local storage."""

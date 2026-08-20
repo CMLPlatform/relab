@@ -1,15 +1,13 @@
 """S3-compatible storage backend."""
 
-import io
 from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from anyio import to_thread
 
-from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, StorageBackendError
+from app.api.file_storage.exceptions import StorageBackendError
 from app.api.file_storage.models.storage_core import BaseStorage, secure_filename
-from app.core.config import settings
 
 if TYPE_CHECKING:
     from typing import BinaryIO
@@ -103,26 +101,6 @@ class S3Storage(BaseStorage):
         if self._endpoint_url:
             return f"{self._endpoint_url.rstrip('/')}/{self._bucket}/{key}"
         return f"https://{self._bucket}.s3.{self._region}.amazonaws.com/{key}"
-
-    def get_size(self, name: str) -> int:
-        """Return the object size in bytes via a HEAD request."""
-        client = self._get_client()
-        response = client.head_object(Bucket=self._bucket, Key=self._s3_key(name))
-        return response["ContentLength"]
-
-    def open(self, name: str) -> BinaryIO:
-        """Download and return the object body as a BytesIO buffer."""
-        client_error = _client_error_type()
-        client = self._get_client()
-        try:
-            response = client.get_object(Bucket=self._bucket, Key=self._s3_key(name))
-            return io.BytesIO(response["Body"].read())
-        except client_error as e:
-            error_response: dict[str, Any] = getattr(e, "response", {})
-            if error_response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
-                details = str(e) if settings.debug else None
-                raise FastAPIStorageFileNotFoundError(name, details=details) from e
-            raise
 
     def write(self, file: BinaryIO, name: str) -> str:
         """Upload a binary file to S3 and return the stored name."""

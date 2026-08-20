@@ -42,14 +42,6 @@ class BaseStorage(ABC):
         """Return the absolute path or URL for a stored file."""
 
     @abstractmethod
-    def get_size(self, name: str) -> int:
-        """Return the file size in bytes."""
-
-    @abstractmethod
-    def open(self, name: str) -> BinaryIO:
-        """Open a stored file for reading."""
-
-    @abstractmethod
     def write(self, file: BinaryIO, name: str) -> str:
         """Persist a binary file and return the stored name."""
 
@@ -84,15 +76,6 @@ class StorageFile(str):
     def path(self) -> str:
         """Absolute file path."""
         return self._storage.get_path(self._name)
-
-    @property
-    def size(self) -> int:
-        """File size in bytes."""
-        return self._storage.get_size(self._name)
-
-    def open(self) -> BinaryIO:
-        """Open a binary file handle to the stored file."""
-        return self._storage.open(self._name)
 
     def write(self, file: BinaryIO) -> str:
         """Write binary file contents to storage."""

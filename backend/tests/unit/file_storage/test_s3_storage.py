@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, StorageBackendError
+from app.api.file_storage.exceptions import StorageBackendError
 from app.api.file_storage.models.storage_s3 import S3Storage
 from app.core.config import CoreSettings, StorageBackend
 
@@ -133,35 +133,6 @@ def test_write_uploads_to_s3(mock_boto3: MagicMock) -> None:
     }
 
 
-def test_open_returns_file_contents(mock_boto3: MagicMock) -> None:
-    """Test open() returns BytesIO with object contents."""
-    mock_body = MagicMock()
-    mock_body.read.return_value = b"file contents"
-    mock_client = MagicMock()
-    mock_client.get_object.return_value = {"Body": mock_body}
-    mock_boto3.client.return_value = mock_client
-
-    storage = S3Storage(bucket="my-bucket", prefix="files")
-    result = storage.open("document.txt")
-
-    assert isinstance(result, io.BytesIO)
-    assert result.getvalue() == b"file contents"
-    mock_client.get_object.assert_called_once_with(Bucket="my-bucket", Key="files/document.txt")
-
-
-def test_open_raises_on_missing_file(mock_boto3: MagicMock) -> None:
-    """Test open() raises FastAPIStorageFileNotFoundError for missing objects."""
-    mock_client = MagicMock()
-    error = _make_client_error("NoSuchKey", "GetObject")
-    mock_client.get_object.side_effect = error
-    mock_boto3.client.return_value = mock_client
-
-    storage = S3Storage(bucket="my-bucket", prefix="files")
-
-    with pytest.raises(FastAPIStorageFileNotFoundError):
-        storage.open("missing.txt")
-
-
 def test_boto3_import_error_on_lazy_use(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test helpful error message when boto3 is not installed."""
     # Ensure boto3 is not available for import
@@ -178,7 +149,7 @@ def test_boto3_import_error_on_lazy_use(monkeypatch: pytest.MonkeyPatch) -> None
     storage = S3Storage(bucket="my-bucket", prefix="files")
 
     with pytest.raises(ImportError, match="boto3 is required for S3 storage") as exc_info:
-        storage.get_size("file.txt")
+        storage.write(io.BytesIO(b"payload"), "file.txt")
     assert "uv sync --group s3" in str(exc_info.value)
 
 
