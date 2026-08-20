@@ -53,13 +53,6 @@ class NoActiveYouTubeRecordingError(ConflictError):
         super().__init__("No active YouTube recording found for this camera.")
 
 
-class CameraProxyRequestError(ServiceUnavailableError):
-    """Raised when the backend cannot reach the camera over HTTP."""
-
-    def __init__(self, endpoint: str, details: str) -> None:
-        super().__init__(f"Network error contacting camera: {endpoint}", details=details)
-
-
 # ── Pairing exceptions ───────────────────────────────────────────────────────
 
 

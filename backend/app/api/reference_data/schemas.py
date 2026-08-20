@@ -20,7 +20,6 @@ from app.api.reference_data.examples import (
     CATEGORY_READ_RECURSIVE_EXAMPLES,
     CATEGORY_UPDATE_EXAMPLES,
     TAXONOMY_READ_EXAMPLES,
-    TAXONOMY_READ_WITH_TREE_EXAMPLES,
 )
 from app.api.reference_data.models import TaxonomyDomain
 
@@ -218,16 +217,6 @@ class TaxonomyRead(IntIdReadSchemaWithTimeStamp, TaxonomyFields):
     """Schema for reading minimal taxonomy information."""
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": TAXONOMY_READ_EXAMPLES})
-
-
-class TaxonomyReadWithCategoryTree(TaxonomyRead):
-    """Schema for reading taxonomy information with a tree of categories."""
-
-    categories: set[CategoryReadWithRecursiveSubCategories] = Field(
-        default_factory=set, description="Set of categories in the taxonomy"
-    )
-
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": TAXONOMY_READ_WITH_TREE_EXAMPLES})
 
 
 class TaxonomyUpdate(BaseUpdateSchema):

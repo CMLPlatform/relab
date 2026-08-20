@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, func
 from sqlalchemy import inspect as sa_inspect
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 if TYPE_CHECKING:
@@ -92,13 +91,3 @@ class TimeStampMixinBare:
         onupdate=func.now(),
         default=None,
     )
-
-
-## Metadata JSON field ##
-class MetadataMixin:
-    """Mixin to add JSONB metadata field to models.
-
-    Note: Validation of the metadata content should be done in the DTO schemas.
-    """
-
-    metadata_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)

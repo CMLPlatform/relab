@@ -110,10 +110,6 @@ class FileRead(FileReadWithinParent):
     parent_type: MediaParentType = Field(description=PARENT_TYPE_DESCRIPTION)
 
 
-class FileUpdate(BaseUpdateSchema, FileBase):
-    """Schema for updating a file description."""
-
-
 class ImageCreateInternal(BaseCreateSchema, ImageBase):
     """Schema for creating a new image internally, without a form upload."""
 
@@ -178,10 +174,6 @@ class ImageRead(ImageReadWithinParent):
 
     parent_id: PositiveInt
     parent_type: MediaParentType = Field(description=PARENT_TYPE_DESCRIPTION)
-
-
-class ImageUpdate(BaseUpdateSchema, ImageBase):
-    """Schema for updating an image description."""
 
 
 class VideoCreateWithinProduct(BaseCreateSchema, VideoBase):

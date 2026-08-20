@@ -64,29 +64,6 @@ TAXONOMY_READ_EXAMPLES = [
     }
 ]
 
-TAXONOMY_READ_WITH_TREE_EXAMPLES = [
-    {
-        "name": "Materials Taxonomy",
-        "description": "Taxonomy for materials",
-        "domains": ["materials"],
-        "source": "DOI:10.2345/12345",
-        "categories": [
-            {
-                "id": 1,
-                "name": "Metals",
-                "description": "All kinds of metals",
-                "subcategories": [
-                    {
-                        "name": "Ferrous metals",
-                        "description": "Iron and its alloys",
-                        "subcategories": [{"name": "Steel", "description": "Steel alloys"}],
-                    }
-                ],
-            }
-        ],
-    }
-]
-
 CATEGORY_INCLUDE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
     none=openapi_example([]),
     materials=openapi_example(["materials"]),
