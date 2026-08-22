@@ -11,7 +11,7 @@ from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, BaseFilterSet
 from app.api.common.exceptions import BadRequestError
 from app.api.common.models.base import Base
 from app.api.file_storage.exceptions import (
-    FastAPIStorageFileNotFoundError,
+    StorageFileNotFoundError,
 )
 from app.api.file_storage.models import Image, MediaParentType
 from app.core.logging import sanitize_log_value
@@ -95,7 +95,7 @@ async def get_parent_media[StorageModelT: StorageModel](
     )
 
     if not storage_item_exists(db_item):
-        raise FastAPIStorageFileNotFoundError(filename=getattr(db_item, "filename", str(item_id)))
+        raise StorageFileNotFoundError(filename=getattr(db_item, "filename", str(item_id)))
 
     return db_item
 

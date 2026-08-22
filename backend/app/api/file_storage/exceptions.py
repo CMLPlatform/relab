@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from app.api.common.models.base import Base
 
 
-class FastAPIStorageFileNotFoundError(NotFoundError):
+class StorageFileNotFoundError(NotFoundError):
     """Custom error for file not found in storage."""
 
     def __init__(self, filename: str, details: str | None = None) -> None:

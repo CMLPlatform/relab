@@ -15,7 +15,7 @@ from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.query import require_locked_model, require_model
 from app.api.common.exceptions import BadRequestError
 from app.api.common.models.base import Base
-from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, ModelFileNotFoundError
+from app.api.file_storage.exceptions import ModelFileNotFoundError, StorageFileNotFoundError
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.models.storage_resolver import _get_file_storage, _get_image_storage
 from app.api.file_storage.parents import parent_model_for_type
@@ -87,7 +87,7 @@ async def get_parent_owned_storage_item[StorageModelT: StorageModel](
             model.parent_type == parent_type,
         )
         db_item = (await db.execute(statement)).scalars().unique().one_or_none()
-    except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
+    except (StorageFileNotFoundError, ModelFileNotFoundError) as e:
         raise ModelFileNotFoundError(model, item_id, details=str(e)) from e
 
     return ensure_storage_item_found(model, item_id, db_item)
@@ -242,7 +242,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         """Delete a file-backed model and best-effort clean up its storage file."""
         try:
             db_item = await require_locked_model(db, self.model, item_id)
-        except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
+        except (StorageFileNotFoundError, ModelFileNotFoundError) as e:
             maybe_item = await get_optional_storage_item(db, self.model, item_id)
             db_item = ensure_storage_item_found(self.model, item_id, maybe_item)
             logger.warning(
