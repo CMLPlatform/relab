@@ -36,6 +36,8 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    mem_limit: 256m
+    pids_limit: 256
     # No published ports and no host network: Alloy reaches it over the Compose network,
     # discovers it by its Compose service label, and nothing else can.
     networks:

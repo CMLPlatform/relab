@@ -43,6 +43,7 @@ VALIDATION_ENV_VALUES = {
     # without them.
     "OTEL_EXPORTER_OTLP_ENDPOINT": "https://placeholder.test",
     "OTLP_AUTH_TOKEN": "placeholder-otlp-token",
+    "TELEMETRY_EDGE_KEY": "placeholder-edge-key",
     "GOOGLE_OAUTH_CLIENT_ID": "placeholder-google-client-id",
     "GITHUB_OAUTH_CLIENT_ID": "placeholder-github-client-id",
     "EMAIL_PROVIDER": "smtp",
@@ -89,6 +90,9 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
     # One token, two consumers: the API's SDK gets it folded into
     # OTEL_EXPORTER_OTLP_HEADERS by compose, and Alloy reads it directly.
     "OTLP_AUTH_TOKEN",
+    # Second, weaker telemetry credential: matched by the Cloudflare WAF-skip rule
+    # (infra/cloudflare-zone) so the bearer token never appears in a ruleset expression.
+    "TELEMETRY_EDGE_KEY",
     # A card is a property of the host, not of the environment, so this is separate
     # from the telemetry switch rather than derived from it.
     "GPU_METRICS",
@@ -313,6 +317,13 @@ def assert_offsite_remote_is_configured() -> None:
         remote = repo.removeprefix("rclone:").partition(":")[0]
         config = ROOT / "secrets" / label / "rclone.conf"
         if not config.exists():
+            # The strongest form of the gap: no credential file at all, so no offsite
+            # copy will ever run. Staying quiet here while warning on the weaker form
+            # (file present, remote missing) would invert the severities.
+            sys.stdout.write(
+                f"{label}: offsite repository '{repo}' is configured but "
+                f"secrets/{label}/rclone.conf does not exist — backups will be LOCAL ONLY\n"
+            )
             continue
         if f"[{remote}]" not in config.read_text():
             sys.stdout.write(
@@ -445,6 +456,35 @@ def assert_telemetry_examples_use_department_contract() -> None:
     )
 
 
+def assert_telemetry_inputs_are_set_together() -> None:
+    """Fail when the host .env enables telemetry but omits one of its credentials.
+
+    The endpoint, the bearer token and the edge key are one switch wearing three
+    variables. Alloy fails loudly on a missing token or key (``:?`` guards), but the
+    API's SDK sends an empty header, swallows the collector's 401, and telemetry is
+    simply absent while every config check passes — so the pairing has to be enforced
+    here, before the deploy, rather than discovered as a silent gap in Grafana.
+    """
+    env_file = ROOT / ".env"
+    if not env_file.exists():
+        return
+    assignments = env_assignments(env_file)
+    endpoint = (assignments.get("OTEL_EXPORTER_OTLP_ENDPOINT") or "").strip().strip("\"'")
+    if not endpoint:
+        return
+    require(
+        endpoint.startswith("https://"),
+        ".env: OTEL_EXPORTER_OTLP_ENDPOINT must be https:// — a plaintext endpoint "
+        "ships the bearer token and every container log in cleartext",
+    )
+    for name in ("OTLP_AUTH_TOKEN", "TELEMETRY_EDGE_KEY"):
+        require(
+            bool((assignments.get(name) or "").strip().strip("\"'")),
+            f".env: OTEL_EXPORTER_OTLP_ENDPOINT is set but {name} is empty — the API "
+            "would export with a blank credential and telemetry would vanish silently",
+        )
+
+
 def assert_e2e_postgres_runs_initdb_scripts(config: dict[str, Any]) -> None:
     """Ensure E2E Postgres creates the least-privilege application roles."""
     postgres_service = (config.get("services") or {}).get("postgres") or {}
@@ -523,6 +563,7 @@ def run_env_policy_checks() -> None:
     assert_runtime_images_do_not_hide_prod_defaults()
     assert_infra_boundaries_are_preserved()
     assert_telemetry_examples_use_department_contract()
+    assert_telemetry_inputs_are_set_together()
     assert_existing_secret_files_do_not_use_placeholders(secret_inventory)
     assert_offsite_remote_is_configured()
     assert_deploy_compose_render_fails_for_missing_operator_values()
@@ -535,6 +576,10 @@ def run_secrets_check(configs: list[str]) -> None:
         config = load_json(path)
         assert_rendered_secrets_are_in_inventory(config, secret_inventory)
         assert_secret_files(label, config)
+    # `just deploy-secrets-check` is the command the deploy runbooks put in front of
+    # every `up`, so the telemetry credential pairing is enforced here as well as in
+    # the repo-policy `check` — this is the invocation that actually runs on hosts.
+    assert_telemetry_inputs_are_set_together()
 
 
 def run_e2e_compose_check(config_path: Path) -> None:

@@ -19,18 +19,45 @@
 # Hosts without it ship nothing and keep `docker logs` as the only log path.
 
 services:
+  # Least-privilege gate between Alloy and the Docker API. Alloy never sees the socket:
+  # it talks HTTP to this proxy, which allows exactly the read-only endpoints discovery,
+  # log tailing and cAdvisor need (containers, events, info, version, ping) and refuses
+  # everything else — POST is off, so nothing behind it can start or exec a container.
+  # The proxy itself holds the socket, so IT is the root-equivalent component; it runs
+  # nothing but haproxy with a static allowlist, joins only the internal socket network,
+  # and is the single place to audit.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1 # list/inspect/logs — discovery.docker, loki.source.docker
+      NETWORKS: 1 # discovery.docker computes network labels; 403 here kills discovery
+      EVENTS: 1 # container lifecycle stream — cAdvisor watches it
+      INFO: 1 # machine info — cAdvisor
+      VERSION: 1
+      PING: 1
+      POST: 0 # no mutations, ever
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 64m
+    pids_limit: 128
+    networks:
+      - docker_socket
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   alloy:
     image: grafana/alloy:v1.18.1@sha256:0f4434c92b3e6cdac38bb129b344e1790c246f7b6e2eaffcc16a5fa363240e33
     restart: unless-stopped
-    # Root, because reading the Docker socket needs it. Kept as small a surface as
-    # possible in return: no published ports, no inbound traffic, egress network only,
-    # and the socket bound read-only.
-    #
-    # NOTE: a read-only bind stops the FILE being modified, it does not make the Docker
-    # API read-only — anything that can reach this socket can start a privileged
-    # container. If Alloy's exposure ever stops being acceptable, the upgrade is a
-    # docker-socket-proxy in front of it restricted to the containers endpoints, not a
-    # different log agent.
+    # Root for the host mounts below (/host/proc, /host/sys, /rootfs): node_exporter's
+    # collectors read files that are root-only on the host. The Docker API is reached
+    # through docker-socket-proxy above, so root here no longer implies control of the
+    # Docker daemon.
     user: root
     command:
       - run
@@ -46,9 +73,12 @@ services:
       COMPOSE_PROJECT_NAME: relab_${ENVIRONMENT}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:?alloy overlay requires OTEL_EXPORTER_OTLP_ENDPOINT}
       OTLP_AUTH_TOKEN: ${OTLP_AUTH_TOKEN:?alloy overlay requires OTLP_AUTH_TOKEN}
+      # Second, weaker credential: matched by the Cloudflare WAF-skip rule for the
+      # telemetry hostname (infra/cloudflare-zone), so the bearer token itself never
+      # appears in a Cloudflare ruleset expression. Rotates independently of the token.
+      TELEMETRY_EDGE_KEY: ${TELEMETRY_EDGE_KEY:?alloy overlay requires TELEMETRY_EDGE_KEY (see .env.example)}
     volumes:
       - ./deploy/alloy/config.alloy:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       # node_exporter's collectors read the host's own /proc, /sys and filesystems.
       # All read-only. Note this does give the container read access to the host
       # filesystem via /rootfs, which is the price of host disk-usage metrics from a
@@ -57,17 +87,29 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-      # cAdvisor's reads. /var/lib/docker and /dev/disk are read-only; /var/run needs
-      # write access, which is why the socket mount above is the honest place to look for
-      # this container's blast radius rather than this list.
-      - /var/run:/var/run:rw
+      # cAdvisor's filesystem reads; container metadata comes over the socket proxy.
       - /var/lib/docker:/var/lib/docker:ro
       - /dev/disk:/dev/disk:ro
       # Read positions survive restarts; without this every restart re-ships whatever
       # the containers still have on disk.
       - alloy_data:/var/lib/alloy/data
+    # cAdvisor reads OOM-kill events from the kernel log; without the device AND
+    # CAP_SYSLOG (kernel.dmesg_restrict gates /dev/kmsg reads) container_oom_events_total
+    # never increments and the central ContainerOOMKilled rule can never fire ("Could
+    # not configure a source for OOM detection" in the agent log is this exact gap).
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    cap_add:
+      - SYSLOG
+    # Bounded like every other service on the host: during a collector outage the
+    # export queue grows in memory, and without a ceiling the OOM killer picks by RSS —
+    # the plausible victim being postgres or the API, i.e. the agent taking down the
+    # thing it observes. Keep in step with the sending_queue size in config.alloy.
+    mem_limit: 512m
+    pids_limit: 512
     networks:
       - egress
+      - docker_socket
     logging:
       # Never through itself: Alloy reporting its own failure to ship logs, by shipping
       # a log, is a loop with no exit.
@@ -78,3 +120,9 @@ services:
 
 volumes:
   alloy_data:
+
+networks:
+  # Carries only the proxied Docker API between the proxy and Alloy. Internal: it has
+  # no gateway, so nothing on it can reach out and nothing outside can reach in.
+  docker_socket:
+    internal: true

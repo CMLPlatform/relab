@@ -15,11 +15,12 @@ local.file "hostname" {
 	filename = "/rootfs/etc/hostname"
 }
 
-// Discovery and log reading both talk to the Docker API. Mounting the socket is what
-// makes container NAMES available; reading the on-disk json logs instead would label
-// everything by container id.
+// Discovery and log reading both talk to the Docker API — through the socket proxy
+// (compose.logging.alloy.yaml), never the socket itself, so this container cannot
+// mutate the daemon. The API is what makes container NAMES available; reading the
+// on-disk json logs instead would label everything by container id.
 discovery.docker "containers" {
-	host = "unix:///var/run/docker.sock"
+	host = "tcp://docker-socket-proxy:2375"
 
 	// The default is 1m, and the backup one-shot runs for 60-90s: at the default a whole
 	// backup can start and exit inside one poll window and never be discovered, which
@@ -39,6 +40,16 @@ discovery.relabel "containers" {
 		action        = "keep"
 	}
 
+	// Never tail this pipeline's own containers. When the export path is broken, every
+	// failed batch writes an error line; tailing that line queues it, it fails, and
+	// writes another — an amplifying self-feed with no exit. The json-file driver note
+	// in the overlay only prevents the log-DRIVER loop; this prevents the discovery one.
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		regex         = "alloy|docker-socket-proxy"
+		action        = "drop"
+	}
+
 	// The Compose service name is the stable per-deployable identifier the monitoring
 	// stack's conventions ask for: `relab-api`, never `relab-api-prod-2`.
 	rule {
@@ -53,7 +64,7 @@ discovery.relabel "containers" {
 }
 
 loki.source.docker "containers" {
-	host       = "unix:///var/run/docker.sock"
+	host       = "tcp://docker-socket-proxy:2375"
 	targets    = discovery.relabel.containers.output
 	labels     = {
 		env     = sys.env("ENVIRONMENT"),
@@ -62,8 +73,10 @@ loki.source.docker "containers" {
 		// Without this every host collapses onto one identity: Alloy scrapes its OWN
 		// in-container exporter, so the address Prometheus derives `instance` from is
 		// identical on every machine. The moment a second host ships, the series
-		// interleave and every host-level alert becomes meaningless.
-		host_name = string.trim_space(local.file.hostname.content),
+		// interleave and every host-level alert becomes meaningless. The coalesce
+		// keeps a blank /etc/hostname from silently reintroducing exactly that: the
+		// container hostname is a poor identity, but it is a distinguishable one.
+		host_name = coalesce(string.trim_space(local.file.hostname.content), constants.hostname),
 	}
 	forward_to = [otelcol.receiver.loki.containers.receiver]
 }
@@ -145,7 +158,7 @@ prometheus.exporter.unix "host" {
 //
 // which is a rule on the central stack, not here. This side only has to ship the series.
 prometheus.exporter.cadvisor "containers" {
-	docker_host = "unix:///var/run/docker.sock"
+	docker_host = "tcp://docker-socket-proxy:2375"
 
 	// Both defaults are cardinality traps. store_container_labels = true turns every
 	// container label AND environment variable into a Prometheus label, which on Compose
@@ -195,9 +208,24 @@ prometheus.relabel "host" {
 	// See the note on the log labels: `instance` is not a host identity here.
 	rule {
 		target_label = "host_name"
-		replacement  = string.trim_space(local.file.hostname.content)
+		replacement  = coalesce(string.trim_space(local.file.hostname.content), constants.hostname)
 		action       = "replace"
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Alloy's own health. The exporter below is the only place that counts what THIS agent
+// drops (otelcol_exporter_send_failed_*): without shipping it, an outage's log loss is
+// not just possible but uncounted, because the counters live on a loopback port nobody
+// reads. Riding the same pipeline is fine — when the pipeline is down these metrics go
+// dark too, and that absence is what the central ProjectTelemetrySilent rule fires on.
+prometheus.exporter.self "alloy" { }
+
+prometheus.scrape "alloy" {
+	targets         = prometheus.exporter.self.alloy.targets
+	forward_to      = [prometheus.relabel.host.receiver]
+	scrape_interval = "30s"
+	job_name        = "alloy"
 }
 
 // ---------------------------------------------------------------------------
@@ -259,11 +287,30 @@ otelcol.processor.batch "default" {
 otelcol.exporter.otlphttp "central" {
 	client {
 		// The tunnel routes HTTPS to the collector's HTTP receiver only; there is no
-		// public gRPC path, which is why this is otlphttp and not otlp.
+		// public gRPC path, which is why this is otlphttp and not otlp. The endpoint
+		// MUST be https:// — an http:// value ships the bearer token and every log
+		// line in cleartext, and nothing here can tell (see .env.example).
 		endpoint = sys.env("OTEL_EXPORTER_OTLP_ENDPOINT")
 
 		headers = {
 			Authorization = "Bearer " + sys.env("OTLP_AUTH_TOKEN"),
+
+			// Matched by the Cloudflare WAF-skip rule for the telemetry hostname, so
+			// the bearer token itself never appears in a ruleset expression readable
+			// through the Cloudflare API. Grants only the managed-security skip.
+			"X-Relab-Telemetry-Key" = sys.env("TELEMETRY_EDGE_KEY"),
 		}
+	}
+
+	// Explicit rather than collector defaults, so an outage's behaviour is a decision:
+	// retry for 15 minutes, hold up to 2000 batches in memory, then drop and COUNT the
+	// drop (shipped by prometheus.exporter.self above). The queue is the reason the
+	// overlay caps this container's memory — see mem_limit there before raising it.
+	sending_queue {
+		queue_size = 2000
+	}
+
+	retry_on_failure {
+		max_elapsed_time = "15m"
 	}
 }

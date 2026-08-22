@@ -15,6 +15,17 @@
 # automatically when OTEL_EXPORTER_OTLP_ENDPOINT is set in the host's root .env). Hosts
 # without it get Docker's default json-file driver — no config needed.
 
+# Bounded json-file logging on every deploy service. The Loki logging overlay used to
+# own rotation; with Alloy shipping logs instead, Docker's default json-file driver is
+# back in charge and its default is UNBOUNDED — a crash-looping container would fill
+# /var/lib/docker and take postgres down with it. Alloy tails the same files, so
+# rotation costs nothing but bounds the failure.
+x-json-logging: &json-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 x-backend-public-origins: &backend-public-origins
   API_PUBLIC_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
   APP_PUBLIC_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
@@ -52,6 +63,7 @@ x-backend-runtime-secrets: &backend-runtime-secrets
 services:
   api:
     image: relab-backend:${ENVIRONMENT}-local
+    logging: *json-logging
     read_only: true
     user: "1001:1001"
     # NOTE: sized against the documented ~20 GiB host budget, alongside postgres
@@ -77,7 +89,10 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       # Derived from one operator input, so the SDK's percent-encoded header format is
       # not a thing anyone has to remember. Alloy reads the same OTLP_AUTH_TOKEN raw.
-      OTEL_EXPORTER_OTLP_HEADERS: Authorization=Bearer%20${OTLP_AUTH_TOKEN:-}
+      # The edge key is the second header the Cloudflare WAF-skip rule matches; both
+      # must be set together with the endpoint — `just deploy-secrets-check` enforces
+      # the pairing, because the SDK swallows a 401 and telemetry would vanish silently.
+      OTEL_EXPORTER_OTLP_HEADERS: Authorization=Bearer%20${OTLP_AUTH_TOKEN:-},X-Relab-Telemetry-Key=${TELEMETRY_EDGE_KEY:-}
       # Pinned rather than left to the SDK default: the collector is reached through
       # a Cloudflare tunnel, which routes HTTPS to the HTTP receiver only. There is no
       # public gRPC path, so a dependency change that flipped the default protocol
@@ -136,6 +151,7 @@ services:
     profiles:
       - scanning
     image: clamav/clamav:1.5_base-debian@sha256:dc21c2989e199a0ffdc4d00bfffff21cc1faaecc22a4442005bd00b0d0a7afd9
+    logging: *json-logging
     entrypoint: /init-unprivileged
     user: clamav
     restart: unless-stopped
@@ -164,6 +180,7 @@ services:
 
   migrator:
     image: relab-backend-migrations:${ENVIRONMENT}-local
+    logging: *json-logging
     read_only: true
     user: "1001:1001"
     secrets: *backend-runtime-secrets
@@ -179,6 +196,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.backups
     image: relab-backup:${ENVIRONMENT}-local
+    logging: *json-logging
     cap_drop:
       - ALL
     pids_limit: 512
@@ -249,6 +267,7 @@ services:
       - egress
 
   redis:
+    logging: *json-logging
     secrets:
       - redis_password
     volumes:
@@ -270,6 +289,7 @@ services:
   cloudflared:
     # Cloudflared tunnel service
     image: cloudflare/cloudflared:2026.3.0@sha256:6b599ca3e974349ead3286d178da61d291961182ec3fe9c505e1dd02c8ac31b0
+    logging: *json-logging
     restart: unless-stopped
     depends_on:
       api:
@@ -291,6 +311,7 @@ services:
       - edge
 
   postgres:
+    logging: *json-logging
     # Compose replaces `command` instead of appending to it, so this repeats the
     # base tuning from compose.yaml verbatim — NOTE: keep the two in sync. Only
     # max_connections differs: the API alone needs 80 (4 workers x pool 10 +
@@ -344,6 +365,7 @@ services:
 
   docs:
     image: relab-docs:${ENVIRONMENT}-local
+    logging: *json-logging
     read_only: true
     user: "1001:1001"
     build:
@@ -361,6 +383,7 @@ services:
 
   app:
     image: relab-app:${ENVIRONMENT}-local
+    logging: *json-logging
     read_only: true
     user: "1001:1001"
     build:
@@ -379,6 +402,7 @@ services:
 
   www:
     image: relab-www:${ENVIRONMENT}-local
+    logging: *json-logging
     read_only: true
     user: "1001:1001"
     build:

@@ -13,13 +13,18 @@ telemetry_overlay_args() {
     local root_env_file="${1:-.env}"
     # Gated on the same variable that turns on the API's own exporter, so container
     # stdout and application telemetry are never half-enabled with respect to each other.
-    if [[ -f "$root_env_file" ]] && grep -qE '^OTEL_EXPORTER_OTLP_ENDPOINT=[^[:space:]]' "$root_env_file"; then
+    # The value must start with http: an empty `OTEL_EXPORTER_OTLP_ENDPOINT=` or a
+    # quoted-empty value would otherwise pull in the overlay, whose `:?` guards then
+    # abort every compose command on the host.
+    if [[ -f "$root_env_file" ]] && grep -qE '^OTEL_EXPORTER_OTLP_ENDPOINT=["'\'']?http' "$root_env_file"; then
         printf '%s\n' -f compose.logging.alloy.yaml
 
         # GPU collection is a second opt-in on top, because a card is a property of the
         # host rather than of the environment. Nested on purpose: the exporter is only
-        # useful if something is there to scrape it.
-        if grep -qE '^GPU_METRICS=[^[:space:]]' "$root_env_file"; then
+        # useful if something is there to scrape it. Truthy values only: GPU_METRICS=0
+        # or =false must mean OFF — on a host without the NVIDIA runtime, including the
+        # overlay makes `up` abort with "could not select device driver".
+        if grep -qiE '^GPU_METRICS=["'\'']?(1|true|yes)["'\'']?[[:space:]]*(#.*)?$' "$root_env_file"; then
             printf '%s\n' -f compose.gpu.yaml
         fi
     fi
@@ -132,15 +137,14 @@ compose_config() {
     for env in staging prod; do
         run_validation_deploy_compose "$env" "$validation_env" config >/dev/null
         run_validation_deploy_compose "$env" "$validation_env" --profile backups --profile migrations config >/dev/null
-        # Same command as above plus the telemetry overlay, which compose_args only emits
-        # when the root .env sets OTEL_EXPORTER_OTLP_ENDPOINT. Built via compose_args so the
-        # shell-env scrub applies here too. The overlay hard-requires the endpoint and token,
-        # so the validation env must supply both or this renders nothing.
+        # compose_args already emits the telemetry overlay here: the validation env sets
+        # OTEL_EXPORTER_OTLP_ENDPOINT, and naming the file a second time makes compose
+        # reject the render (duplicate list items in the merged service). Only the GPU
+        # overlay needs adding explicitly — GPU_METRICS is host-specific and deliberately
+        # absent from the validation env.
         local -a base_args=()
         mapfile -t base_args < <(compose_args "$env" "$validation_env")
-        "${base_args[@]}" -f compose.logging.alloy.yaml config >/dev/null
-        # And with the GPU overlay on top, which only some hosts include.
-        "${base_args[@]}" -f compose.logging.alloy.yaml -f compose.gpu.yaml config >/dev/null
+        "${base_args[@]}" -f compose.gpu.yaml config >/dev/null
     done
     local e2e_config="$tmp_root/e2e.json"
     docker compose -p relab_e2e -f compose.e2e.yaml config --format json >"$e2e_config"
