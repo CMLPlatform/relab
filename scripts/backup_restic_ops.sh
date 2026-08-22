@@ -66,8 +66,11 @@ build_backup_image() {
 
 # Restore the latest `postgres`-tagged snapshot from a restic repository into a
 # throwaway Postgres container and assert the dump loads.
-# Args: <repo dir> <restic password file> <scratch dir>.
-# Sets RESTORE_CONTAINER so the caller's EXIT trap can remove the container.
+# Args: <repo dir> <restic password file> <scratch dir> [container name].
+# Sets RESTORE_CONTAINER so the caller's EXIT trap can remove the container. The
+# systemd path passes a DETERMINISTIC name so the unit's ExecStopPost reaper can
+# remove the container after a SIGKILL, when no trap here ever runs — an unowned
+# leftover holds a full restored copy of production data.
 verify_postgres_restore() {
     local repo_dir="$1"
     local password_file="$2"
@@ -76,7 +79,10 @@ verify_postgres_restore() {
     mkdir -p "$work_dir/restore"
     # The backup image runs as uid 1001, so the restore bind mount must be writable by it.
     docker run --rm -v "$work_dir/restore:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
-    RESTORE_CONTAINER="relab_restore_smoke_$(date +%s)_$$"
+    RESTORE_CONTAINER="${4:-relab_restore_smoke_$(date +%s)_$$}"
+    # A deterministic name can collide with a leftover from a killed earlier run;
+    # replacing it is exactly what we want.
+    docker rm -f "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
 
     docker run --rm \
         -v "$repo_dir:/restic:ro" \
@@ -232,11 +238,21 @@ docker_smoke_backups() {
 
 # Read a var from a committed per-environment Compose env file. These are plain
 # KEY=value files, so parse rather than source: sourcing a committed file to read
-# one name is a needless execution path.
+# one name is a needless execution path. Strip an inline ` # comment`, surrounding
+# whitespace and one matching quote pair, the same way Compose (and the
+# MALWARE_SCAN_ENABLED reader in deploy_ops.sh) resolve the value — a quoted entry
+# must not aim the offsite copy at a repository Compose never uses.
 read_deploy_env_var() {
-    local env="$1" var_name="$2" file="$ROOT_DIR/deploy/env/$1.compose.env"
+    local env="$1" var_name="$2" file="$ROOT_DIR/deploy/env/$1.compose.env" value
     [[ -f "$file" ]] || return 0
-    sed -n "s/^${var_name}=//p" "$file" | tail -n1
+    value="$(sed -n "s/^${var_name}=//p" "$file" | tail -n1)"
+    value="${value%%[[:space:]]#*}"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    if [[ "$value" == \"*\" || "$value" == \'*\' ]]; then
+        value="${value:1:-1}"
+    fi
+    printf '%s' "$value"
 }
 
 backup_offsite_copy() {
@@ -311,7 +327,10 @@ backup_restore_smoke() {
     install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
     build_backup_image
 
-    verify_postgres_restore "$DEPLOY_RESTIC_REPOSITORY" "$tmp_root/restic_password" "$tmp_root"
+    # Deterministic container name: relab-restore-check@.service reaps it by name in
+    # ExecStopPost when systemd kills this job on timeout (see verify_postgres_restore).
+    verify_postgres_restore "$DEPLOY_RESTIC_REPOSITORY" "$tmp_root/restic_password" "$tmp_root" \
+        "relab-restore-check-$env"
 
     echo "✅ Backup restore smoke test passed"
 }

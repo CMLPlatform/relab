@@ -17,11 +17,16 @@ HOST_ENV=/etc/relab/relab.env
 JOBS=(relab-backup relab-watchdog relab-restore-check)
 
 render_one() {
-    local file="$1" just_bin
+    local file="$1" just_bin root_dir_repl just_bin_repl
     just_bin="$(command -v just || echo /usr/bin/just)"
-    sed -e "s|/opt/relab|${ROOT_DIR}|g" \
+    # sed treats & (whole match) and the delimiter specially in the REPLACEMENT, so a
+    # checkout path containing either would render silently wrong ExecStart lines that
+    # only surface at the unit's first fire. Escape both substituted values.
+    root_dir_repl="$(printf '%s' "$ROOT_DIR" | sed 's/[&|\\]/\\&/g')"
+    just_bin_repl="$(printf '%s' "$just_bin" | sed 's/[&|\\]/\\&/g')"
+    sed -e "s|/opt/relab|${root_dir_repl}|g" \
         -e "s|^User=relab$|User=$(id -un)|" \
-        -e "s|^Environment=JUST_BIN=.*$|Environment=JUST_BIN=${just_bin}|" \
+        -e "s|^Environment=JUST_BIN=.*$|Environment=JUST_BIN=${just_bin_repl}|" \
         "$file"
 }
 
@@ -92,6 +97,15 @@ EOF
     echo
     systemctl list-timers "relab-*@${env}.timer" --all --no-pager
     echo
+
+    # Empty ping URLs are indistinguishable from deliberately-off, and the jobs run
+    # fine without them — which is exactly how a host ends up failing silently
+    # forever. Be loud about the unfinished state; the watchdog alerts on it too.
+    if grep -qE '^RELAB_PING_(BACKUP|WATCHDOG|RESTORE_CHECK)=[[:space:]]*$' "$HOST_ENV"; then
+        echo "WARNING: ${HOST_ENV} has empty RELAB_PING_* URLs. The timers will run,"
+        echo "WARNING: but their failures are INVISIBLE outside this host until you"
+        echo "WARNING: create the healthchecks.io checks and fill in the URLs."
+    fi
     echo "Next: fill in ${HOST_ENV}, then verify with 'just watchdog ${env}'."
 }
 

@@ -58,8 +58,29 @@ ping_url="${!url_var:-}"
 output_file="$(mktemp)"
 trap 'rm -f "$output_file"' EXIT
 
+# A killed job must still report. systemd's TimeoutStartSec TERMs the whole cgroup:
+# the job dies, and without this trap bash would die too — before the ping block —
+# so a HUNG job would send neither success nor failure and its captured output would
+# be lost. The job runs in the background so `wait` can be interrupted by the signal;
+# the child has already received the same TERM from systemd (KillMode=control-group).
+# shellcheck disable=SC2329  # invoked via the TERM/INT traps below
+on_terminate() {
+    local sig="$1"
+    echo "run_scheduled: received SIG${sig}; job killed (likely a systemd timeout)" >>"$output_file"
+    cat "$output_file"
+    if [[ -n "$ping_url" ]]; then
+        curl -fsS -m 10 --retry 3 --data-binary "@${output_file}" "${ping_url}/fail" -o /dev/null \
+            || echo "WARNING: failure ping to ${url_var} failed" >&2
+    fi
+    rm -f "$output_file"
+    exit 143
+}
+trap 'on_terminate TERM' TERM
+trap 'on_terminate INT' INT
+
 status=0
-"${command[@]}" >"$output_file" 2>&1 || status=$?
+"${command[@]}" >"$output_file" 2>&1 &
+wait $! || status=$?
 cat "$output_file"
 
 if [[ -z "$ping_url" ]]; then

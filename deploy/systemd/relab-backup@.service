@@ -13,6 +13,13 @@ Description=Relab encrypted backup (%i)
 Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service
+# Bound retries: at RestartSec=15min the default start-limit window (5 in 10s) can
+# never trip, so a persistently failing backup — expired offsite credential, broken
+# repo — would otherwise run a full pg_dump + prune + check ~96x/day forever, flapping
+# the /fail ping hourly. Three tries, then the unit lands in `failed`, which the
+# watchdog's timer check reports once and clearly.
+StartLimitIntervalSec=1d
+StartLimitBurst=3
 
 [Service]
 Type=oneshot

@@ -174,12 +174,24 @@ timer() {
 
 assert_eq "scheduled and last run fine is silent" "0|" "$(timer enabled active no success)"
 assert_eq "disabled timer is reported" \
-    "1|ALERT[prod]: relab-backup@prod.timer is 'disabled', not 'enabled'; backups are not scheduled" \
+    "1|ALERT[prod]: relab-backup@prod.timer is 'disabled', not 'enabled'; its job is not scheduled" \
     "$(timer disabled inactive no success)"
 # The unit files were never installed at all.
 assert_eq "absent timer reads as not installed" \
-    "1|ALERT[prod]: relab-backup@prod.timer is 'not installed', not 'enabled'; backups are not scheduled" \
+    "1|ALERT[prod]: relab-backup@prod.timer is 'not installed', not 'enabled'; its job is not scheduled" \
     "$(timer '' '' no '')"
+# The reducer derives the service from the timer name, so the same code covers all
+# three scheduled jobs — restore-check is the one whose silent loss goes unnoticed
+# longest (35+ day check period).
+restore_timer() {
+    local out status
+    out="$(backup_timer_alerts prod relab-restore-check@prod.timer "$1" "$2" "$3" "$4" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+assert_eq "restore-check timer uses its own service name" \
+    "1|ALERT[prod]: last relab-restore-check@prod.service run failed (Result=timeout); see: journalctl -u relab-restore-check@prod.service" \
+    "$(restore_timer enabled active yes timeout)"
 # The gap this check exists to close: `enable` without `--now`, or a timer stopped
 # by hand, leaves is-enabled saying "enabled" while it never fires again.
 assert_eq "enabled but stopped is reported" \
@@ -210,8 +222,10 @@ restore_key() {
     out="$(cd "$dir" && deploy_secrets_restore dev input 2>&1)"
     status=$?
     local escaped_root
-    [[ -e "$dir/../../x" ]] && escaped_root=yes || escaped_root=no
-    rm -f "$dir/../../x" 2>/dev/null
+    # A real escape from cwd=$dir writes secrets/dev/../../x, i.e. $dir/x — probe
+    # there, not at $dir/../../x (which resolves to /x and can never exist).
+    [[ -e "$dir/x" ]] && escaped_root=yes || escaped_root=no
+    rm -f "$dir/x" 2>/dev/null
     rm -rf "$dir"
     printf '%s|%s|%s' "$status" "$escaped_root" "$out"
 }
