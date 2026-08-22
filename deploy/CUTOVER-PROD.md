@@ -709,12 +709,14 @@ Log labels changed with the collection path: what used to be Loki's
 `service.name`, `env` and `project`. Existing Grafana queries filtering on
 `host=` need updating.
 
-> **Telemetry is one operator input now, not a pile of them.** Set
-> `OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org` and `OTLP_AUTH_TOKEN`
-> (a bearer token from the monitoring stack operator). That single switch turns
+> **Telemetry is one switch and two credentials now, not a pile of them.** Set
+> `OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org`, `OTLP_AUTH_TOKEN`
+> (a bearer token from the monitoring stack operator) and `TELEMETRY_EDGE_KEY`
+> (the WAF-skip header value, below). The endpoint switch turns
 > on the API's own OpenTelemetry exporter **and** auto-includes
 > `compose.logging.alloy.yaml`, a Grafana Alloy agent that forwards every other
-> container's stdout to the same endpoint.
+> container's stdout to the same endpoint. `just deploy-secrets-check` fails if
+> the endpoint is set without both credentials.
 >
 > Compose derives `OTEL_EXPORTER_OTLP_HEADERS` from the token, so the SDK's
 > percent-encoded header format is not something to get right by hand.
@@ -732,14 +734,16 @@ Log labels changed with the collection path: what used to be Loki's
 > post-launch gaps, and [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5 for the standing
 > configuration.
 >
-> The token is also matched by the Cloudflare firewall rule
-> `relab_telemetry_ingress_skip_managed_security`, supplied to OpenTofu as
-> `TF_VAR_telemetry_ingress_authorization` (the whole header value,
-> `Bearer <token>`). Rotate the two together, or telemetry keeps working while
-> quietly losing its bot-product exemption.
+> The Cloudflare firewall rule `relab_telemetry_ingress_skip_managed_security`
+> matches a separate `X-Relab-Telemetry-Key` header (never the bearer token —
+> ruleset expressions are readable through the Cloudflare API). Set
+> `TELEMETRY_EDGE_KEY` in this host's `.env` and supply the same value to
+> OpenTofu as `TF_VAR_telemetry_edge_key`. Rotate that pair together, or
+> telemetry keeps working while quietly losing its bot-product exemption; the
+> bearer token rotates independently with the collector.
 >
-> A wrong token shows up as `Failed to export logs batch code: 401, reason: Unauthorized` in the API's own container log — the one telemetry failure that
-> is loud rather than silent.
+> A wrong token shows up as `Failed to export logs batch code: 401, reason: Unauthorized` in the
+> API's own container log — the one telemetry failure that is loud rather than silent.
 
 **Delete these stale names:** `APP_ENV`, `COMPOSE_PROJECT_NAME`, `BUILD_MODE`,
 `CSP_API_ORIGIN`, `WEB_CONCURRENCY`, `BACKEND_API_URL`, `FRONTEND_APP_URL`,
@@ -1018,6 +1022,26 @@ catches before a user does:
 docker compose -p relab_prod ps --format '{{.Service}}\t{{.Status}}'
 ```
 
+Two host-level checks that nothing else covers:
+
+```bash
+# Log rotation. Docker's default is UNBOUNDED json-file logging; the per-service caps
+# in compose.deploy.yaml are the rotation control the repo enforces, with the host
+# daemon.json log-opts (DEPLOY-PROD.md Part 1.0) as an optional fallback for
+# containers outside the stack. Every service must report max-size — a service
+# without it fills the disk on its first crash loop.
+docker compose -p relab_prod ps -q | xargs docker inspect \
+  --format '{{.Name}} {{json .HostConfig.LogConfig.Config}}' \
+  # every line must show "max-size":"10m"; an empty {} is a finding, not noise
+
+# Telemetry actually leaving the host. Alloy fails loudly on a bad token or a
+# challenged edge (the WAF-skip rule matches TELEMETRY_EDGE_KEY — if the zone rule
+# and the host .env disagree, exports are bot-challenged and dropped). Zero matches
+# is the pass condition.
+docker logs --since 10m "$(docker compose -p relab_prod ps -q alloy)" 2>&1 \
+  | grep -Ei 'error|failed|401|403' || echo "alloy: no export errors"
+```
+
 By hand: log in with Google **and** GitHub (the GitHub client changed in this
 release), open a product with images, and **upload one image as the lab account
 that owns the bulk of the media** — any other account has a near-empty ledger
@@ -1168,8 +1192,8 @@ If verification fails and the release cannot be trusted:
 
 1. Restore uploads from `user_uploads-pre-mvp.tar.gz` if anything wrote to them.
 
-1. `just prod-up YES backups scanning` on `main` (drop `scanning` if you disabled
-   it in 1a).
+1. `just prod-up YES scanning` on `main` (drop `scanning` if you disabled
+   it in 1a; the backup service is timer-driven, not part of `up`).
 
 `just prod-build` also tags each image it builds with the commit it was built
 from (`relab-backend:prod-<sha>` alongside `relab-backend:prod-local`), so
@@ -1177,7 +1201,7 @@ rolling back to the previous build needs no rebuild — per image:
 
 ```bash
 docker tag relab-backend:prod-<oldsha> relab-backend:prod-local
-just prod-up YES backups scanning   # drop `scanning` only if you disabled it in 1a
+just prod-up YES scanning   # drop `scanning` only if you disabled it in 1a
 ```
 
 The schema has no scripted down-migration path for the dropped data: the

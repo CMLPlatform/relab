@@ -30,10 +30,10 @@ reuse prod's — a shared check cannot tell you which host went quiet. See
 [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.2 for why the ping exists alongside Grafana.
 
 Set telemetry the same way as prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5):
-`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTLP_AUTH_TOKEN` and `OTEL_EXPORTER_OTLP_PROTOCOL` in
-the root `.env`. Staging and prod may share the collector; they are separated by the
-`env` resource attribute, which Compose derives from `ENVIRONMENT`, so nothing needs
-configuring for that beyond using the right host's `.env`.
+`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTLP_AUTH_TOKEN`, `TELEMETRY_EDGE_KEY` and
+`OTEL_EXPORTER_OTLP_PROTOCOL` in the root `.env`. Staging and prod may share the collector; they are
+separated by the `env` resource attribute, which Compose derives from `ENVIRONMENT`, so nothing
+needs configuring for that beyond using the right host's `.env`.
 
 Staging's offsite remote is named `surfdrive_staging` and its committed repository is
 `rclone:surfdrive_staging:` — a SURFdrive share link scoped to staging's own folder, so

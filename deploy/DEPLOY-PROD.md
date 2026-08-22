@@ -13,6 +13,23 @@ ______________________________________________________________________
 Once per machine, not per release. `just watchdog prod` reports each of these as a
 distinct alert if it is missing, so an incomplete setup is not silent.
 
+### 1.0 Docker daemon log rotation (fallback)
+
+The Compose files cap every stack service's logs (`max-size: 10m`, `max-file: 3`),
+and that is the control the repo can enforce. Set the same defaults host-wide as a
+fallback, so a container started OUTSIDE the stack — a debug `docker run`, a future
+second project — cannot fill the disk either. Merge into `/etc/docker/daemon.json`
+(CML hosts already have one for the nvidia runtime; add the key, don't replace the
+file) and restart dockerd in a maintenance moment — daemon defaults apply only to
+containers created afterwards:
+
+```json
+"log-driver": "json-file",
+"log-opts": { "max-size": "10m", "max-file": "3" }
+```
+
+Skipping this loses nothing for the stack itself; the compose caps stay authoritative.
+
 ### 1.1 Backup repository
 
 Create the bind-mount directory **before** first use. If Docker creates it, it comes
@@ -150,22 +167,31 @@ defence; WebDAV is neither.
 ### 1.4 What the watchdog checks
 
 `just watchdog prod` — run hourly by the timer above, and worth running by hand after
-any change — checks API container health, newest snapshot age, the backup timer
-(installed, enabled, active, last run not failed), and deployment drift (uncommitted
-changes, or commits that exist nowhere else). It exits non-zero with one `ALERT[...]`
-line per problem.
+any change — checks every stack service (running, and healthy where a healthcheck
+exists), newest snapshot age, all three scheduled-job timers (installed, enabled,
+active, last run not failed), that the `RELAB_PING_*` URLs are actually filled in, and
+deployment drift (uncommitted changes, or commits that exist nowhere else). It exits
+non-zero with one `ALERT[...]` line per problem.
 
 Its exit code is what the hourly dead-man's switch reports, so a failing check surfaces
 as a missed or failed ping rather than as a line nobody reads.
 
+**Do not delete the service-health, snapshot-age or timer checks until the central
+monitoring stack's `ProjectTelemetrySilent` and container-lifecycle rules are live and
+verified** (tracked in CMLPlatform/monitoring, `docs/HANDOVER.md`). Until then this
+script is the only detector for those failures; deleting a weak local signal before its
+central replacement exists trades a weak signal for none.
+
 ### 1.5 Telemetry
 
-Set these three in the host's root `.env`, from the monitoring stack operator
-(github.com/CMLPlatform/monitoring):
+Set these four in the host's root `.env` — endpoint and token from the monitoring stack
+operator (github.com/CMLPlatform/monitoring), the edge key shared with whoever runs
+`infra/cloudflare-zone` (`TF_VAR_telemetry_edge_key` must carry the same value):
 
 ```env
 OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org
 OTLP_AUTH_TOKEN=<bearer token>
+TELEMETRY_EDGE_KEY=<edge key>
 OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 ```
 

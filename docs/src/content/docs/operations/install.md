@@ -199,14 +199,14 @@ migrations, verify health.
 
    ClamAV upload scanning is enabled by default: `.env.example` ships `MALWARE_SCAN_ENABLED=true`,
    and `deploy_ops.sh` refuses to bring the stack `up` when that flag is anything but `false` unless
-   the `scanning` profile is also passed. Passing any profile replaces the `backups` default, so
-   list `backups` explicitly whenever you pass `scanning`.
+   the `scanning` profile is also passed. `up` starts no backup service — a systemd timer owns
+   backups (see "Scheduling backups" below) — so `scanning` is normally the only profile you pass.
 
    - **With scanning (default):** keep `MALWARE_SCAN_ENABLED=true` in the root `.env` and pass the
      `scanning` profile on every up/down. Budget roughly 3-4 GiB of extra RAM for ClamAV.
 
      ```bash
-     just prod-up YES backups scanning
+     just prod-up YES scanning
      ```
 
    - **Without scanning:** set `MALWARE_SCAN_ENABLED=false` in the root `.env` and start without
@@ -219,11 +219,13 @@ migrations, verify health.
 
    Leaving `MALWARE_SCAN_ENABLED=true` without the `scanning` profile fails all uploads closed.
 
-   For a local production-like backup rehearsal, prefer staging:
+   For a local production-like backup rehearsal, prefer staging — `backup-run` seeds the
+   first snapshot, the same way the timer runs it:
 
    ```bash
-   just staging-up YES backups
+   just staging-up YES
    just staging-migrate YES
+   just backup-run staging
    just backup-restore-smoke staging
    ```
 
@@ -285,16 +287,21 @@ migrations, verify health.
 ### Scheduling backups
 
 Starting the stack does **not** schedule backups. The backup service is a one-shot: a
-systemd timer on the host runs it once a day and it exits. Install the timer once per
-environment, substituting your deploy user and checkout path:
+systemd timer on the host runs it once a day and it exits. Install all three scheduled
+jobs (backup, watchdog, restore-check) once per environment — the installer renders the
+committed units with this host's checkout path, deploy user and `just` location, then
+enables the timers:
 
 ```bash
-just backup-unit | sudo tee /etc/systemd/system/relab-backup@.service >/dev/null
-sudo cp deploy/systemd/relab-backup@.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now relab-backup@staging.timer
-systemctl list-timers relab-backup@staging.timer   # confirm a NEXT time is scheduled
+just timers-render                        # inspect what will be installed
+just timers-install staging               # renders, installs, enables (needs sudo)
+systemctl list-timers 'relab-*@staging.timer'   # confirm NEXT times are scheduled
 ```
+
+The installer also seeds `/etc/relab/relab.env` with empty `RELAB_PING_*` URLs. Fill
+them in with per-job [healthchecks.io](https://healthchecks.io) check URLs: until you
+do, the jobs run but their failures are invisible outside the host, and
+`just watchdog <env>` will keep saying so.
 
 `just backup-run <env>` runs one cycle immediately — use it for the first run, which
 initializes the repository. Without the timer installed you have no recurring backups,
@@ -340,10 +347,11 @@ WebDAV is handled through restic's rclone backend.
 If you run a central monitoring stack (Grafana + Loki + Tempo + Prometheus), prod and staging can
 ship to it without any code changes:
 
-1. Set `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTLP_AUTH_TOKEN` in the host's root `.env`, from your
-   monitoring stack operator. That single switch turns on both halves of telemetry: the backend's
-   own OpenTelemetry exporter, and a Grafana Alloy agent that collects every other container's
-   stdout and forwards it over the same OTLP endpoint.
+1. Set `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTLP_AUTH_TOKEN` and `TELEMETRY_EDGE_KEY` in the host's root
+   `.env`, from your monitoring stack operator (see `.env.example` for what each one is). That
+   single switch turns on both halves of telemetry: the backend's own OpenTelemetry exporter, and a
+   Grafana Alloy agent that collects every other container's stdout and forwards it over the same
+   OTLP endpoint.
 
 1. The `prod-up` / `staging-up` recipes auto-include `compose.logging.alloy.yaml` when the endpoint
    is non-empty. Hosts without it ship nothing and keep `docker logs` as the only log path.

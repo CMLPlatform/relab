@@ -10,9 +10,10 @@ one-time migration off `main`.
 
 [MONITORING-DESIGN.md](MONITORING-DESIGN.md) is the architecture review the observability
 work came from — the reasoning, the trade-offs, and the claims it could not verify.
-[MONITORING-HANDOVER.md](MONITORING-HANDOVER.md) is a temporary document: the
-central monitoring stack's half of the observability work, written to be handed to whoever
-maintains that repo. Delete it once that side is done.
+[MONITORING-HANDOVER.md](MONITORING-HANDOVER.md) is now a stub: the central stack's
+half of the work moved to `docs/HANDOVER.md` in CMLPlatform/monitoring, and the target
+architecture is that repo's ADR 0002. The stub keeps only the tripwire that gates
+deleting Relab's local watchdog checks.
 
 `DEPLOY-*` is permanent and self-contained: first-time host setup, the routine release
 loop, and recovery. Start there for anything you do more than once.
